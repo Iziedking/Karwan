@@ -165,14 +165,26 @@ contract KarwanEscrowYieldInvariantTest is Test {
         usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         rep = new KarwanReputation();
-        escrow = new KarwanEscrow(address(usdc), 150, treasury, address(vault), address(rep), 10000);
+        backstop = new MockBackstop(usdc);
+        escrow = new KarwanEscrow(
+            address(usdc),
+            150,
+            treasury,
+            address(vault),
+            address(rep),
+            10000,
+            KarwanEscrow.YieldConfig({backstop: address(backstop), operator: keeper, coverageFloor: 0, maxYieldBps: 10000}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
+        );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
-        backstop = new MockBackstop(usdc);
         backstop.setEscrow(address(escrow));
-        escrow.setYieldBackstop(address(backstop));
-        escrow.setYieldOperator(keeper);
-        escrow.setMaxYieldBps(10000);
 
         usdc.mint(buyer, 1_000_000e18);
         vm.prank(buyer);

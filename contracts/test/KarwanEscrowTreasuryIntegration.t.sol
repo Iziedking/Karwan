@@ -125,17 +125,22 @@ contract KarwanEscrowTreasuryIntegrationTest is Test {
             address(usdc), address(usyc), address(usyc), address(usyc), keeper, 0
         );
         escrow = new KarwanEscrow(
-            address(usdc), FEE_BPS, address(treasury), address(vault), address(rep), 10000
+            address(usdc), FEE_BPS, address(treasury), address(vault), address(rep), 10000,
+            KarwanEscrow.YieldConfig({backstop: address(treasury), operator: keeper, coverageFloor: 0, maxYieldBps: 10000}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
         );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
         escrow.setArbiter(arbiter);
 
-        // Wire the two-way yield relationship.
+        // Wire the treasury side; the escrow side is fixed at construction.
         treasury.setEscrow(address(escrow));
-        escrow.setYieldBackstop(address(treasury));
-        escrow.setYieldOperator(keeper);
-        escrow.setMaxYieldBps(10000);
 
         usdc.mint(buyer, FUNDED);
         vm.prank(buyer);

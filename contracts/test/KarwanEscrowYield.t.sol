@@ -45,12 +45,19 @@ contract MockUSDC is IERC20 {
 ///         funds lost).
 contract MockBackstop {
     IERC20 public immutable usdc;
-    address public immutable escrow;
+    /// @dev Set once after deploy rather than in the constructor: the escrow's
+    ///      yield wiring is immutable, so the escrow needs the backstop address
+    ///      at ITS construction and the two cannot both be constructor-wired.
+    address public escrow;
     bool public frozen;
 
-    constructor(IERC20 _usdc, address _escrow) {
+    constructor(IERC20 _usdc) {
         usdc = _usdc;
-        escrow = _escrow;
+    }
+
+    function setEscrow(address e) external {
+        require(escrow == address(0), "escrow already set");
+        escrow = e;
     }
 
     function setFrozen(bool f) external {
@@ -94,21 +101,33 @@ contract KarwanEscrowYieldTest is Test {
     uint256 constant FUNDED = 503.75e18;
 
     function setUp() public {
+        _deploy(0);
+    }
+
+    /// @dev Full redeploy with a chosen coverage floor. The floor is immutable
+    ///      now, so a test that needs a non-zero one deploys its own escrow
+    ///      instead of calling a setter.
+    function _deploy(uint256 floor) internal {
         usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         rep = new KarwanReputation();
+        backstop = new MockBackstop(usdc);
         escrow = new KarwanEscrow(
-            address(usdc), FEE_BPS, treasury, address(vault), address(rep), MAX_RESERVATION_BPS
+            address(usdc), FEE_BPS, treasury, address(vault), address(rep), MAX_RESERVATION_BPS,
+            // Full sweep allowed for the mechanic tests.
+            KarwanEscrow.YieldConfig({backstop: address(backstop), operator: keeper, coverageFloor: floor, maxYieldBps: 10000}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
         );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
         escrow.setArbiter(arbiter);
-        backstop = new MockBackstop(usdc, address(escrow));
-
-        // Enable yield routing.
-        escrow.setYieldBackstop(address(backstop));
-        escrow.setYieldOperator(keeper);
-        escrow.setMaxYieldBps(10000); // full sweep allowed for the mechanic tests
+        backstop.setEscrow(address(escrow));
 
         usdc.mint(buyer, 1000e18);
         vm.prank(buyer);
@@ -196,8 +215,8 @@ contract KarwanEscrowYieldTest is Test {
     /// sweepIdle can never drop liquid below the coverage floor, and only the
     /// keeper can call it.
     function test_Yield_FloorAndOperatorGuards() public {
+        _deploy(200e18);
         _fund();
-        escrow.setCoverageFloor(200e18);
 
         vm.prank(keeper);
         vm.expectRevert(KarwanEscrow.FloorBreach.selector);
@@ -240,22 +259,22 @@ contract KarwanEscrowYieldTest is Test {
         assertEq(usdc.balanceOf(seller), SELLER_NET / 2, "milestone 1 paid after recovery");
     }
 
-    /// The backstop can't be unwired while USDC is still parked at the Treasury.
-    function test_Yield_CannotOrphanParkedFunds() public {
+    /// Parked USDC can never be orphaned. The original guard refused to unwire
+    /// the backstop while atTreasury > 0; the backstop is immutable now, so
+    /// there is no unwire path at all and the pull-back route can never be
+    /// severed. Assert the property the guard existed to protect: whatever is
+    /// parked comes back on settle.
+    function test_Yield_ParkedFundsAlwaysReturn() public {
         _fund();
         vm.prank(keeper);
         escrow.sweepIdle(300e18);
+        assertEq(escrow.atTreasury(), 300e18, "parked at the backstop");
 
-        vm.expectRevert(KarwanEscrow.YieldShortfall.selector);
-        escrow.setYieldBackstop(address(0));
-
-        // After everything is pulled back (via a full settle), unwiring is fine.
         _accept();
         vm.prank(buyer);
         escrow.releaseFinal(JOB_ID);
         assertEq(escrow.atTreasury(), 0, "all pulled back on settle");
-        escrow.setYieldBackstop(address(0));
-        assertEq(escrow.yieldBackstop(), address(0), "unwired once flat");
+        assertEq(escrow.yieldBackstop(), address(backstop), "backstop cannot be unwired");
     }
 
     /// With yield disabled (no backstop), the escrow behaves exactly as a plain
@@ -266,7 +285,15 @@ contract KarwanEscrowYieldTest is Test {
         KarwanVault v = new KarwanVault(address(usdc));
         KarwanReputation r = new KarwanReputation();
         KarwanEscrow plain = new KarwanEscrow(
-            address(usdc), FEE_BPS, treasury, address(v), address(r), MAX_RESERVATION_BPS
+            address(usdc), FEE_BPS, treasury, address(v), address(r), MAX_RESERVATION_BPS,
+            KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
         );
         v.setEscrow(address(plain));
         r.setEscrow(address(plain));

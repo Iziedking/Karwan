@@ -69,7 +69,7 @@ contract KarwanAuditNFixesTest is Test {
         usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         RevertingReputation rep = new RevertingReputation();
-        escrow = new KarwanEscrow(address(usdc), 150, treasury, address(vault), address(rep), 10000);
+        escrow = new KarwanEscrow(address(usdc), 150, treasury, address(vault), address(rep), 10000, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
         vault.setEscrow(address(escrow));
         usdc.mint(buyer, 1000e18);
         vm.prank(buyer);
@@ -91,10 +91,36 @@ contract KarwanAuditNFixesTest is Test {
     // ============================ N-1 ============================
 
     function _stdEscrow() internal {
+        _escrowWithYield(KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}));
+    }
+
+    /// @dev Yield wiring is immutable, so a test that needs a live backstop
+    ///      deploys the token, then the backstop, then the escrow. Call
+    ///      _mintUsdc() first when the backstop needs the same token.
+    function _mintUsdc() internal {
         usdc = new MockUSDC();
+    }
+
+    function _escrowWithYield(KarwanEscrow.YieldConfig memory y) internal {
+        if (address(usdc) == address(0)) usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         KarwanReputation rep = new KarwanReputation();
-        escrow = new KarwanEscrow(address(usdc), 150, treasury, address(vault), address(rep), 10000);
+        escrow = new KarwanEscrow(
+            address(usdc),
+            150,
+            treasury,
+            address(vault),
+            address(rep),
+            10000,
+            y,
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
+        );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
         usdc.mint(buyer, 10000e18);
@@ -103,12 +129,13 @@ contract KarwanAuditNFixesTest is Test {
     }
 
     function test_N1_SweepCapBoundsWhatLeaves() public {
-        _stdEscrow();
+        _mintUsdc();
         SweepBackstop bs = new SweepBackstop(usdc);
+        _escrowWithYield(
+            KarwanEscrow.YieldConfig({backstop: address(bs), operator: keeper, coverageFloor: 0, maxYieldBps: 8000})
+        );
         bs.setEscrow(address(escrow));
-        escrow.setYieldBackstop(address(bs));
-        escrow.setYieldOperator(keeper);
-        // Default cap 80%. Fund 500 (escrowedTotal ~503.75).
+        // Cap 80%. Fund 500 (escrowedTotal ~503.75).
         vm.prank(buyer);
         escrow.fundEscrow(JOB, seller, 500e18, _two(), 0);
         uint256 cap = (escrow.escrowedTotal() * 8000) / 10000;
@@ -124,20 +151,50 @@ contract KarwanAuditNFixesTest is Test {
         assertEq(escrow.atTreasury(), cap);
     }
 
-    function test_N1_LockYieldWiringFreezesRepointing() public {
-        _stdEscrow();
-        SweepBackstop bs = new SweepBackstop(usdc);
-        escrow.setYieldBackstop(address(bs));
-        escrow.setYieldOperator(keeper);
+    /// @dev N-1 originally shipped a one-way `lockYieldWiring()` so a
+    ///      compromised owner key could not repoint the backstop at a drain
+    ///      address. The wiring is immutable now, so there is no setter to
+    ///      call and no unlocked window between deploy and lock: the property
+    ///      holds at compile time rather than at runtime, and the old
+    ///      "attacker calls setYieldBackstop" case is not expressible.
+    ///
+    ///      What is still worth asserting is that the deployed values are the
+    ///      ones handed to the constructor, since a mis-wired deploy is now
+    ///      the only way to get a bad backstop.
+    function test_N1_YieldWiringIsFixedAtDeploy() public {
+        address bs = makeAddr("backstop");
+        _escrowWithYield(
+            KarwanEscrow.YieldConfig({backstop: bs, operator: keeper, coverageFloor: 42e18, maxYieldBps: 7000})
+        );
+        assertEq(escrow.yieldBackstop(), bs, "backstop wired from constructor");
+        assertEq(escrow.yieldOperator(), keeper, "operator wired from constructor");
+        assertEq(escrow.coverageFloor(), 42e18, "floor wired from constructor");
+        assertEq(escrow.maxYieldBps(), 7000, "cap wired from constructor");
+    }
 
-        escrow.lockYieldWiring();
-        // A compromised owner can no longer repoint the backstop to a drain addr.
-        vm.expectRevert(KarwanEscrow.YieldWiringLockedErr.selector);
-        escrow.setYieldBackstop(makeAddr("attacker"));
-        vm.expectRevert(KarwanEscrow.YieldWiringLockedErr.selector);
-        escrow.setCoverageFloor(0);
-        vm.expectRevert(KarwanEscrow.YieldWiringLockedErr.selector);
-        escrow.setMaxYieldBps(10000);
+    /// @dev The cap is validated at deploy, so a bad value fails the deploy
+    ///      instead of sitting live until someone notices.
+    function test_N1_ConstructorRejectsOutOfRangeCap() public {
+        usdc = new MockUSDC();
+        KarwanVault v = new KarwanVault(address(usdc));
+        KarwanReputation r = new KarwanReputation();
+        vm.expectRevert(KarwanEscrow.InvalidYieldBps.selector);
+        new KarwanEscrow(
+            address(usdc),
+            150,
+            treasury,
+            address(v),
+            address(r),
+            10000,
+            KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 10001}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
+        );
     }
 
     // ============================ N-2 ============================

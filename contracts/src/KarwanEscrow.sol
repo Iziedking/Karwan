@@ -252,30 +252,35 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///         The buyer must release or dispute within the window after a
     ///         markDelivered; afterward the seller can claim.
     uint64 public reviewWindowSecs = 5 days;
-    /// @notice Per-network guardrails on per-deal review windows, owner-set
-    ///         inside immutable hard caps: permissive on testnet so a full
-    ///         lifecycle can demo in minutes, industry-grade minimums on
-    ///         mainnet. Same bytecode either way; per-deal values are
-    ///         consented by the seller at accept regardless.
-    uint64 public minReviewWindow = 60;
-    uint64 public maxReviewWindow = 180 days;
+    /// @notice Per-network guardrails on per-deal review windows, fixed at
+    ///         deploy inside immutable hard caps: permissive on testnet so a
+    ///         full lifecycle can demo in minutes, industry-grade minimums on
+    ///         mainnet. Per-deal values are consented by the seller at accept
+    ///         regardless.
+    ///
+    ///         Immutable rather than owner-settable. These are a second
+    ///         guardrail inside HARD_MIN_REVIEW/HARD_MAX_REVIEW, so the only
+    ///         thing the setters bought was the ability to mis-set them after
+    ///         deploy, and every byte here is EIP-170 headroom the escrow does
+    ///         not have.
+    uint64 public immutable minReviewWindow;
+    uint64 public immutable maxReviewWindow;
     uint64 public constant HARD_MIN_REVIEW = 60;
     uint64 public constant HARD_MAX_REVIEW = 365 days;
     /// @notice How long a dispute may sit unresolved before either party can
     ///         lapse it back to Accepted. The arbiter SLA is a protocol
     ///         property, not a deal property: a dispute can delay settlement
     ///         but never trap it behind a dead arbiter key.
-    uint64 public disputeTimeoutSecs = 14 days;
+    uint64 public immutable disputeTimeoutSecs;
     uint64 public constant MIN_DISPUTE_TIMEOUT = 1 hours;
     uint64 public constant MAX_DISPUTE_TIMEOUT = 90 days;
 
     /// @notice Review window a milestone collapses to on a PASSING guardian
     ///         delivery attestation (agent-verified good delivery lets the
-    ///         seller claim sooner). Owner-settable, bounded by the review
-    ///         guardrails. Default 24h.
-    uint64 public attestedWindowSecs = 1 days;
+    ///         seller claim sooner). Bounded by the review guardrails.
+    uint64 public immutable attestedWindowSecs;
     /// @notice Fund-time cap on how far out a delivery deadline may sit.
-    uint64 public maxDeadlineHorizon = 730 days;
+    uint64 public immutable maxDeadlineHorizon;
     uint64 public constant HARD_MAX_HORIZON = 1095 days;
 
     /// @notice Pending mutual-cancel handshakes by jobId.
@@ -299,24 +304,19 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     /// @notice Liquid USDC the operator must leave in the escrow; sweepIdle can
     ///         only move the surplus above it. A tuning buffer to avoid frequent
     ///         pull-backs, not the safety mechanism (that is the exact-USDC
-    ///         accounting + the payout-time pull-back). Owner-settable.
-    uint256 public coverageFloor;
+    ///         accounting + the payout-time pull-back).
+    uint256 public immutable coverageFloor;
     /// @notice Treasury that holds swept USDC and honours pull-backs. Zero
     ///         disables yield routing entirely (the escrow ships yield-inert;
     ///         sweepIdle reverts and no payout ever calls the backstop).
-    address public yieldBackstop;
-    /// @notice Keeper allowed to sweep idle USDC to the backstop. Owner-set.
-    address public yieldOperator;
-    /// @notice Audit N-1: once locked, the yield wiring (backstop, operator,
-    ///         coverage floor, cap) is frozen forever, so a compromised owner
-    ///         key can't repoint the backstop to a drain address. One-way.
-    bool public yieldWiringLocked;
+    address public immutable yieldBackstop;
+    /// @notice Keeper allowed to sweep idle USDC to the backstop.
+    address public immutable yieldOperator;
     /// @notice Audit N-1: hard cap on how much of the total liability may sit at
     ///         the backstop (bps of escrowedTotal), so even a mis-set coverage
-    ///         floor can't move the whole balance out. Owner-set within the 100%
-    ///         ceiling; combined with returnEscrowLiquidity, principal stays
-    ///         recoverable. Default 80%.
-    uint16 public maxYieldBps = 8000;
+    ///         floor can't move the whole balance out. Combined with
+    ///         returnEscrowLiquidity, principal stays recoverable.
+    uint16 public immutable maxYieldBps;
 
     /// @dev Internal, not public: the struct is now large enough that the
     ///      auto-generated getter hits stack-too-deep under the non-viaIR
@@ -362,12 +362,8 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event ArbiterSet(address indexed arbiter);
     event ReviewWindowSet(uint64 secs);
-    event AttestedWindowSet(uint64 secs);
     event DeliveryAttested(bytes32 indexed jobId, uint8 milestoneIndex, bool pass, bytes32 evidenceHash);
     event FeeBpsSet(uint16 bps);
-    event ReviewBoundsSet(uint64 minSecs, uint64 maxSecs);
-    event DisputeTimeoutSet(uint64 secs);
-    event DeadlineHorizonSet(uint64 secs);
     /// @notice Separate from EscrowFunded so the funded-event signature (and
     ///         the indexers parsing it) stays stable across v2b.
     event DealTiming(bytes32 indexed jobId, uint64 deliveryDeadline, uint64 reviewWindow, uint64 reclaimGrace);
@@ -380,11 +376,6 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event MutualCancelled(bytes32 indexed jobId, uint16 sellerBps, uint256 sellerCut, uint256 buyerCut);
     event IdleSwept(uint256 amount, uint256 atTreasuryAfter);
     event LiquidityPulled(uint256 amount, uint256 atTreasuryAfter);
-    event YieldBackstopSet(address indexed backstop);
-    event YieldOperatorSet(address indexed operator);
-    event CoverageFloorSet(uint256 floor);
-    event YieldWiringLocked();
-    event MaxYieldBpsSet(uint16 bps);
 
     error AlreadyFunded();
     error NotBuyer();
@@ -416,6 +407,8 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     error NoDeadline();
     error DeliveryPending();
     error DeadlineNotPassed();
+    /// @dev F-3: a delivery mark arrived after the buyer's reclaim had vested.
+    error DeadlinePassed();
     error NoPendingExtension();
     error ExtensionsExhausted();
     error DisputeStillFresh();
@@ -426,9 +419,31 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     error BackstopNotSet();
     error FloorBreach();
     error YieldShortfall();
-    error YieldWiringLockedErr();
     error SweepCapExceeded();
     error InvalidYieldBps();
+
+    /// @notice Yield routing, fixed at deploy. A zero `backstop` ships the
+    ///         escrow yield-inert: sweepIdle reverts and no payout ever calls
+    ///         out, which is the correct configuration until a Treasury is
+    ///         trusted.
+    struct YieldConfig {
+        address backstop;
+        address operator;
+        uint256 coverageFloor;
+        uint16 maxYieldBps;
+    }
+
+    /// @notice Protocol clocks, fixed at deploy inside the HARD_* constants.
+    ///         Grouped in a struct rather than flattened into the constructor
+    ///         so a deploy script names every value it sets; a fifteen-argument
+    ///         positional constructor is exactly how a mis-wired deploy happens.
+    struct TimingConfig {
+        uint64 minReviewWindow;
+        uint64 maxReviewWindow;
+        uint64 disputeTimeoutSecs;
+        uint64 attestedWindowSecs;
+        uint64 maxDeadlineHorizon;
+    }
 
     constructor(
         address _usdc,
@@ -436,7 +451,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         address _treasury,
         address _vault,
         address _reputation,
-        uint16 _maxReservationBps
+        uint16 _maxReservationBps,
+        YieldConfig memory _yield,
+        TimingConfig memory _timing
     ) {
         if (_usdc == address(0)) revert InvalidUSDC();
         if (_treasury == address(0)) revert InvalidTreasury();
@@ -445,12 +462,44 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (_feeBps > MAX_FEE_BPS) revert FeeTooHigh();
         if (_maxReservationBps > BPS_DENOMINATOR) revert ReservationTooHigh();
         if (_maxReservationBps < MIN_TRUSTED_BPS) revert ReservationTooHigh();
+        if (_yield.maxYieldBps > BPS_DENOMINATOR) revert InvalidYieldBps();
+        // Same bounds the removed setters enforced, now checked once at deploy
+        // instead of on every call. A bad value fails the deploy rather than
+        // sitting live until someone notices.
+        if (
+            _timing.minReviewWindow < HARD_MIN_REVIEW
+                || _timing.maxReviewWindow > HARD_MAX_REVIEW
+                || _timing.minReviewWindow >= _timing.maxReviewWindow
+        ) revert InvalidWindow();
+        if (reviewWindowSecs < _timing.minReviewWindow || reviewWindowSecs > _timing.maxReviewWindow) {
+            revert InvalidWindow();
+        }
+        if (
+            _timing.disputeTimeoutSecs < MIN_DISPUTE_TIMEOUT
+                || _timing.disputeTimeoutSecs > MAX_DISPUTE_TIMEOUT
+        ) revert InvalidWindow();
+        if (
+            _timing.attestedWindowSecs < _timing.minReviewWindow
+                || _timing.attestedWindowSecs > _timing.maxReviewWindow
+        ) revert InvalidWindow();
+        if (_timing.maxDeadlineHorizon == 0 || _timing.maxDeadlineHorizon > HARD_MAX_HORIZON) {
+            revert InvalidWindow();
+        }
         usdc = IERC20(_usdc);
         feeBps = _feeBps;
         treasury = _treasury;
         vault = IKarwanVault(_vault);
         reputation = IKarwanReputation(_reputation);
         maxReservationBps = _maxReservationBps;
+        yieldBackstop = _yield.backstop;
+        yieldOperator = _yield.operator;
+        coverageFloor = _yield.coverageFloor;
+        maxYieldBps = _yield.maxYieldBps;
+        minReviewWindow = _timing.minReviewWindow;
+        maxReviewWindow = _timing.maxReviewWindow;
+        disputeTimeoutSecs = _timing.disputeTimeoutSecs;
+        attestedWindowSecs = _timing.attestedWindowSecs;
+        maxDeadlineHorizon = _timing.maxDeadlineHorizon;
         owner = msg.sender;
         emit OwnershipTransferred(address(0), msg.sender);
     }
@@ -493,41 +542,12 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         emit ReviewWindowSet(secs);
     }
 
-    /// @notice Set the per-network review-window guardrails. Hard caps keep
-    ///         the owner from griefing either direction, and the default must
-    ///         stay inside the new bounds.
-    function setReviewBounds(uint64 minSecs, uint64 maxSecs) external onlyOwner {
-        if (minSecs < HARD_MIN_REVIEW || maxSecs > HARD_MAX_REVIEW || minSecs >= maxSecs) revert InvalidWindow();
-        if (reviewWindowSecs < minSecs || reviewWindowSecs > maxSecs) revert InvalidWindow();
-        minReviewWindow = minSecs;
-        maxReviewWindow = maxSecs;
-        emit ReviewBoundsSet(minSecs, maxSecs);
-    }
-
-    function setDisputeTimeout(uint64 secs) external onlyOwner {
-        if (secs < MIN_DISPUTE_TIMEOUT || secs > MAX_DISPUTE_TIMEOUT) revert InvalidWindow();
-        disputeTimeoutSecs = secs;
-        emit DisputeTimeoutSet(secs);
-    }
-
-    function setDeadlineHorizon(uint64 secs) external onlyOwner {
-        if (secs == 0 || secs > HARD_MAX_HORIZON) revert InvalidWindow();
-        maxDeadlineHorizon = secs;
-        emit DeadlineHorizonSet(secs);
-    }
-
     /// @notice Adjust the base platform fee for FUTURE deals. Existing deals
     ///         keep the fee they snapshotted at fund. Bounded by MAX_FEE_BPS.
     function setFeeBps(uint16 bps) external onlyOwner {
         if (bps > MAX_FEE_BPS) revert FeeTooHigh();
         feeBps = bps;
         emit FeeBpsSet(bps);
-    }
-
-    function setAttestedWindow(uint64 secs) external onlyOwner {
-        if (secs < minReviewWindow || secs > maxReviewWindow) revert InvalidWindow();
-        attestedWindowSecs = secs;
-        emit AttestedWindowSet(secs);
     }
 
     // ============================ Security agent ===========================
@@ -559,49 +579,6 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     }
 
     // ============================ Idle yield ============================
-
-    /// @notice Wire (or unwire) the Treasury backstop. Zero disables routing.
-    ///         Refuses to unwire while USDC is still parked at the Treasury so
-    ///         the pull-back path can never be orphaned.
-    function setYieldBackstop(address backstop) external onlyOwner {
-        if (yieldWiringLocked) revert YieldWiringLockedErr();
-        if (backstop == address(0) && atTreasury > 0) revert YieldShortfall();
-        yieldBackstop = backstop;
-        emit YieldBackstopSet(backstop);
-    }
-
-    function setYieldOperator(address op) external onlyOwner {
-        if (yieldWiringLocked) revert YieldWiringLockedErr();
-        yieldOperator = op;
-        emit YieldOperatorSet(op);
-    }
-
-    /// @notice Liquid buffer sweepIdle must leave behind. Tuning only; safety
-    ///         is the exact-USDC accounting + payout-time pull-back, so no hard
-    ///         minimum is needed.
-    function setCoverageFloor(uint256 floor) external onlyOwner {
-        if (yieldWiringLocked) revert YieldWiringLockedErr();
-        coverageFloor = floor;
-        emit CoverageFloorSet(floor);
-    }
-
-    /// @notice Audit N-1: cap how much of the total liability may sit at the
-    ///         backstop. Owner-set within 100%; locked once the wiring is.
-    function setMaxYieldBps(uint16 bps) external onlyOwner {
-        if (yieldWiringLocked) revert YieldWiringLockedErr();
-        if (bps > BPS_DENOMINATOR) revert InvalidYieldBps();
-        maxYieldBps = bps;
-        emit MaxYieldBpsSet(bps);
-    }
-
-    /// @notice Audit N-1: freeze the yield wiring forever. After this, the
-    ///         backstop, operator, coverage floor and cap can't change, so a
-    ///         compromised owner key can't repoint the backstop to drain the
-    ///         escrow. One-way; call once the Treasury backstop is trusted.
-    function lockYieldWiring() external onlyOwner {
-        yieldWiringLocked = true;
-        emit YieldWiringLocked();
-    }
 
     /// @notice Sweep idle USDC into the Treasury for yield. Keeper-only. Moves
     ///         only the surplus above coverageFloor, so short-lived float and
@@ -826,10 +803,22 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     /// @notice Seller marks the current milestone delivered, opening the buyer
     ///         review window. Callable only on the milestone next in line.
     ///         Re-callable (e.g. after re-delivery) which resets the window.
+    ///
+    /// @dev    F-3: refused once the buyer's reclaim has vested. reclaimAfterDeadline
+    ///         requires `deliveredAt == 0`, so without this a seller who blew the
+    ///         deadline could mark delivered with any junk proof and permanently
+    ///         strip the buyer's only trustless exit. The cut-off is the same
+    ///         instant reclaim becomes callable, so the reclaim grace stays the
+    ///         seller's genuine last chance and neither window overlaps the other.
+    ///         A seller who needs longer has the consented route: requestExtension
+    ///         plus the buyer's approveExtension, capped at MAX_EXTENSIONS.
     function markDelivered(bytes32 jobId, bytes32 proofHash) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
         if (!_isParty(e.seller, msg.sender)) revert NotSeller();
+        if (e.deliveryDeadline != 0 && block.timestamp > uint256(e.deliveryDeadline) + e.reclaimGrace) {
+            revert DeadlinePassed();
+        }
         e.deliveredAt = uint64(block.timestamp);
         e.claimDeadline = uint64(block.timestamp) + e.reviewWindow;
         emit Delivered(jobId, e.milestonesReleased, proofHash, e.claimDeadline);
@@ -1152,7 +1141,21 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (block.timestamp < uint256(e.disputedAt) + disputeTimeoutSecs) revert DisputeStillFresh();
 
         uint64 frozen = uint64(block.timestamp) - e.disputedAt;
-        if (e.deliveryDeadline != 0) {
+        // F-3: the freeze credit exists so a seller is not punished for time
+        // they were blocked from delivering, including by a spite dispute
+        // filed at the buzzer. It must not become a stall lever for a seller
+        // who was ALREADY late: mark inside the reclaim grace, the buyer has
+        // to dispute or lose the milestone, the dispute lapses, the deadline
+        // moves out by exactly the frozen duration, re-mark, repeat. The buyer
+        // never reaches a block where reclaim is callable.
+        //
+        // The discriminator is lateness, not delivery. A seller who marked
+        // before the deadline was on time and the freeze genuinely cost them;
+        // a seller who marked after it had already missed, and gets nothing.
+        // Nothing delivered at all also earns the credit, since that seller
+        // was blocked outright.
+        bool deliveredLate = e.deliveredAt != 0 && e.deliveredAt > e.deliveryDeadline;
+        if (e.deliveryDeadline != 0 && !deliveredLate) {
             e.deliveryDeadline += frozen;
         }
         e.disputedAt = 0;

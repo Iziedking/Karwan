@@ -70,7 +70,15 @@ contract KarwanEscrowTest is Test {
             treasury,
             address(vault),
             address(rep),
-            MAX_RESERVATION_BPS
+            MAX_RESERVATION_BPS,
+            KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
         );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
@@ -344,27 +352,27 @@ contract KarwanEscrowTest is Test {
 
     function test_Constructor_RevertsOnZeroTreasury() public {
         vm.expectRevert(KarwanEscrow.InvalidTreasury.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, address(0), address(vault), address(rep), MAX_RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), FEE_BPS, address(0), address(vault), address(rep), MAX_RESERVATION_BPS, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
     }
 
     function test_Constructor_RevertsOnFeeTooHigh() public {
         vm.expectRevert(KarwanEscrow.FeeTooHigh.selector);
-        new KarwanEscrow(address(usdc), 1001, treasury, address(vault), address(rep), MAX_RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), 1001, treasury, address(vault), address(rep), MAX_RESERVATION_BPS, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
     }
 
     function test_Constructor_RevertsOnReservationTooHigh() public {
         vm.expectRevert(KarwanEscrow.ReservationTooHigh.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(vault), address(rep), 10001);
+        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(vault), address(rep), 10001, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
     }
 
     function test_Constructor_RevertsOnZeroVault() public {
         vm.expectRevert(KarwanEscrow.InvalidVault.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(0), address(rep), MAX_RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(0), address(rep), MAX_RESERVATION_BPS, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
     }
 
     function test_Constructor_RevertsOnZeroReputation() public {
         vm.expectRevert(KarwanEscrow.InvalidReputation.selector);
-        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(vault), address(0), MAX_RESERVATION_BPS);
+        new KarwanEscrow(address(usdc), FEE_BPS, treasury, address(vault), address(0), MAX_RESERVATION_BPS, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
     }
 
     /* ====================== AUDIT FIX REGRESSIONS ======================= */

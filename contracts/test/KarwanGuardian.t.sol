@@ -46,7 +46,7 @@ contract KarwanGuardianTest is Test {
         usdc = new MockUSDC();
         vault = new KarwanVault(address(usdc));
         rep = new KarwanReputation();
-        escrow = new KarwanEscrow(address(usdc), 150, treasury, address(vault), address(rep), 10000);
+        escrow = new KarwanEscrow(address(usdc), 150, treasury, address(vault), address(rep), 10000, KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}), KarwanEscrow.TimingConfig({minReviewWindow: 60, maxReviewWindow: 180 days, disputeTimeoutSecs: 14 days, attestedWindowSecs: 1 days, maxDeadlineHorizon: 730 days}));
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
         escrow.setArbiter(arbiter);
@@ -171,8 +171,7 @@ contract KarwanGuardianTest is Test {
     // ========================= attestDelivery ========================
 
     function test_Attest_PassShortensWindow() public {
-        _fundAcceptDeliver(); // 5-day default window
-        escrow.setAttestedWindow(1 days);
+        _fundAcceptDeliver(); // 5-day default window; attested window is 1 day
 
         vm.prank(guardian);
         escrow.attestDelivery(JOB, 0, true, "clean-scan");

@@ -131,7 +131,15 @@ contract DeployEscrowV4 is Script {
             treasury,
             address(vault),
             address(rep),
-            maxReservationBps
+            maxReservationBps,
+            KarwanEscrow.YieldConfig({backstop: address(0), operator: address(0), coverageFloor: 0, maxYieldBps: 8000}),
+            KarwanEscrow.TimingConfig({
+                minReviewWindow: 60,
+                maxReviewWindow: 180 days,
+                disputeTimeoutSecs: 14 days,
+                attestedWindowSecs: 1 days,
+                maxDeadlineHorizon: 730 days
+            })
         );
         vault.setEscrow(address(escrow));
         rep.setEscrow(address(escrow));
