@@ -117,16 +117,16 @@ export function BusinessHome({
                   fund other businesses' invoices, is a secondary capability. */}
               <CTAPill href="/buyer">{bh.hero.newTradeCta}</CTAPill>
               <CTAPill href="/buyer?mode=direct" variant="secondary" tone="dark">
-                Direct deal
+                {bh.hero.directDealCta}
               </CTAPill>
               {/* The sell side. /seller is not account-gated, but the only link
                   to it sat on /p2p, which is person-only, so a business had no
                   route to posting an offer at all. */}
               <CTAPill href="/seller" variant="secondary" tone="dark">
-                Post an offer
+                {bh.hero.postOfferCta}
               </CTAPill>
               <CTAPill href="/financier" variant="secondary" tone="dark">
-                Financier desk
+                {bh.hero.financierDeskCta}
               </CTAPill>
               <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />

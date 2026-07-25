@@ -689,6 +689,9 @@ export const fr: Messages = {
         'Votre bureau commercial. Suivez chaque transaction, mobilisez du fonds de roulement sur votre portefeuille et réglez à l\'international en USDC.',
       openDeskCta: 'Ouvrir le bureau PME',
       newTradeCta: 'Nouvelle transaction',
+      directDealCta: 'Transaction directe',
+      postOfferCta: 'Publier une offre',
+      financierDeskCta: 'Bureau financier',
       viewActivityCta: 'Voir l\'activité',
     },
     status: {
@@ -3235,6 +3238,7 @@ export const fr: Messages = {
         bridge: { title: 'Dépôt / Retrait', blurb: 'Déplacer des USDC vers Arc et depuis Arc avec Circle CCTP.' },
         roadmap: { title: 'Roadmap', blurb: 'Ce qui est live aujourd\'hui et ce qui arrive ensuite.' },
         faq: { title: 'FAQ', blurb: 'Réponses rapides aux questions que les nouveaux utilisateurs posent en premier.' },
+        x402: { title: 'Points de données payants', blurb: 'Les endpoints x402 que chacun peut payer à l\'appel pour lire un passeport de crédit ou un historique de remboursement.' },
       },
     },
   },

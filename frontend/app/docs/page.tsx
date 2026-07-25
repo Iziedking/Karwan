@@ -78,6 +78,13 @@ export default function DocsOverviewPage() {
           title={t.next.cards.faq.title}
           blurb={t.next.cards.faq.blurb}
         />
+        {/* /x402 is the public catalogue for the paid data endpoints. It had
+            no inbound link from anywhere in the product. */}
+        <DocsCardLink
+          href="/x402"
+          title={t.next.cards.x402.title}
+          blurb={t.next.cards.x402.blurb}
+        />
       </div>
     </article>
   );

@@ -661,6 +661,9 @@ interface MessagesShape {
       description: string;
       openDeskCta: string;
       newTradeCta: string;
+      directDealCta: string;
+      postOfferCta: string;
+      financierDeskCta: string;
       viewActivityCta: string;
     };
     status: {
@@ -3081,6 +3084,7 @@ interface MessagesShape {
         bridge: { title: string; blurb: string };
         roadmap: { title: string; blurb: string };
         faq: { title: string; blurb: string };
+        x402: { title: string; blurb: string };
       };
     };
   };
@@ -4636,6 +4640,9 @@ export const en: MessagesShape = {
         'Your trade desk. Track every deal, draw working capital against your book, and settle cross-border in USDC.',
       openDeskCta: 'Open SME desk',
       newTradeCta: 'New trade',
+      directDealCta: 'Direct deal',
+      postOfferCta: 'Post an offer',
+      financierDeskCta: 'Financier desk',
       viewActivityCta: 'View activity',
     },
     status: {
@@ -7221,6 +7228,7 @@ export const en: MessagesShape = {
         bridge: { title: 'Top up / Withdraw', blurb: 'Moving USDC in and out of Arc using Circle CCTP.' },
         roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
         faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
+        x402: { title: 'Paid data endpoints', blurb: 'The x402 endpoints anyone can pay per call to read a credit passport or a repayment record.' },
       },
     },
   },

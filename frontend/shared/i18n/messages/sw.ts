@@ -689,6 +689,9 @@ export const sw: Messages = {
         'Dawati lako la biashara. Fuatilia kila mkataba, pata mtaji wa kufanyia kazi dhidi ya rekodi yako, na malizia malipo ng\'ambo kwa USDC.',
       openDeskCta: 'Fungua dawati la SME',
       newTradeCta: 'Mkataba mpya',
+      directDealCta: 'Mkataba wa moja kwa moja',
+      postOfferCta: 'Chapisha ofa',
+      financierDeskCta: 'Dawati la mfadhili',
       viewActivityCta: 'Tazama shughuli',
     },
     status: {
@@ -3235,6 +3238,7 @@ export const sw: Messages = {
         bridge: { title: 'Weka / Toa', blurb: 'Kuhamisha USDC kuingia na kutoka Arc kwa kutumia Circle CCTP.' },
         roadmap: { title: 'Ramani ya Njia', blurb: 'Kilicho hai leo na kinachofuata.' },
         faq: { title: 'Maswali Yanayoulizwa Mara kwa Mara', blurb: 'Majibu ya haraka kwa maswali ambayo watumiaji wapya wanauliza kwanza.' },
+        x402: { title: 'Sehemu za data zinazolipiwa', blurb: 'Sehemu za x402 ambazo yeyote anaweza kulipia kwa kila mwito ili kusoma pasipoti ya mkopo au rekodi ya ulipaji.' },
       },
     },
   },
