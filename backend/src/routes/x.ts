@@ -10,6 +10,7 @@ import {
   findProfileByXUserId,
 } from '../db/profiles.js';
 import { logger } from '../logger.js';
+import { sessionAddress } from '../auth/session.js';
 
 export const xRoutes = new Hono();
 
@@ -60,28 +61,57 @@ function generatePkce() {
 }
 
 const startSchema = z.object({
-  address: addrSchema,
+  address: addrSchema.optional(),
   returnTo: z.string().url().optional(),
 });
+
+/// Only same-origin return targets are honoured. `returnTo` reaches the browser
+/// through c.redirect on both the success and the already-taken branch, so an
+/// unchecked value turns the callback into an open redirect on a Karwan URL:
+/// a link that genuinely starts at the api host and lands wherever the attacker
+/// chose, which is exactly the shape a phishing page wants. Anything off-origin
+/// or unparseable falls back to the profile page.
+function safeReturnTo(candidate: string | undefined): string {
+  const base = frontendBase();
+  const fallback = `${base}/profile`;
+  if (!candidate) return fallback;
+  try {
+    const target = new URL(candidate);
+    return target.origin === new URL(base).origin ? target.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 /// Kicks off the X OAuth flow. Returns the URL the browser should bounce to.
 xRoutes.post('/oauth/start', async (c) => {
   if (!configured()) {
     return c.json({ error: 'x oauth not configured' }, 503);
   }
+  // The wallet the X account binds to is the signed-in session, never the body.
+  // With a caller-supplied address, anyone could start a flow naming a wallet
+  // they do not own, finish it with their own X account, and land their handle
+  // and display name on that wallet's profile. On a wallet with no profile yet
+  // the callback creates one (see below), so this also let a stranger author
+  // the first profile record for an address.
+  const caller = sessionAddress(c);
+  if (!caller) return c.json({ error: 'not authenticated' }, 401);
   let body;
   try {
     body = startSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
   }
+  if (body.address && body.address.toLowerCase() !== caller.toLowerCase()) {
+    return c.json({ error: 'address does not match the signed-in account' }, 403);
+  }
   purgeExpired();
   const state = randomBytes(24).toString('base64url');
   const { codeVerifier, codeChallenge } = generatePkce();
   pending.set(state, {
-    address: body.address.toLowerCase(),
+    address: caller.toLowerCase(),
     codeVerifier,
-    returnTo: body.returnTo ?? `${frontendBase()}/profile`,
+    returnTo: safeReturnTo(body.returnTo),
     expiresAt: Date.now() + 10 * 60 * 1000,
   });
 
