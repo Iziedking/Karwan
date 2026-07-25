@@ -101,6 +101,11 @@ contract KarwanF2F4AttackTest is Test {
         p[1] = 50;
     }
 
+    function _oneMilestone() internal pure returns (uint8[] memory p) {
+        p = new uint8[](1);
+        p[0] = 100;
+    }
+
     function _deliveredDeal() internal {
         vm.prank(buyer);
         escrow.fundEscrow(
@@ -181,6 +186,69 @@ contract KarwanF2F4AttackTest is Test {
     }
 
     // ============================== F-4 ==============================
+
+    // ============================== F-6 ==============================
+
+    /// A settlement must produce exactly one EscrowSettled log. releaseFinal
+    /// used to emit it and then call _finalizeSuccess, which emits it again
+    /// with the same payload, so an indexer summing settled volume counted
+    /// every buyer-released deal twice.
+    function test_F6_SettlementEmitsExactlyOneEscrowSettled() public {
+        vm.prank(buyer);
+        escrow.fundEscrow(
+            JOB,
+            seller,
+            500e18,
+            _pcts(),
+            0,
+            KarwanEscrow.Timing({deliveryDeadline: 0, reviewWindow: 5 days, reclaimGrace: 0})
+        );
+        vm.prank(seller);
+        escrow.acceptEscrow(JOB);
+
+        vm.recordLogs();
+        vm.prank(buyer);
+        escrow.releaseFinal(JOB);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 topic = keccak256("EscrowSettled(bytes32,uint256,uint256)");
+        uint256 seen;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics.length != 0 && logs[i].topics[0] == topic) seen++;
+        }
+        assertEq(seen, 1, "exactly one EscrowSettled per settlement");
+    }
+
+    /// The seller-claim path must emit it too, so the fix cannot be "delete
+    /// the emit and lose the event on one of the two routes".
+    function test_F6_ClaimPathStillEmitsEscrowSettled() public {
+        vm.prank(buyer);
+        escrow.fundEscrow(
+            JOB,
+            seller,
+            500e18,
+            _oneMilestone(),
+            0,
+            KarwanEscrow.Timing({deliveryDeadline: 0, reviewWindow: 5 days, reclaimGrace: 0})
+        );
+        vm.prank(seller);
+        escrow.acceptEscrow(JOB);
+        vm.prank(seller);
+        escrow.markDelivered(JOB, "proof");
+        vm.warp(block.timestamp + 5 days + 1);
+
+        vm.recordLogs();
+        vm.prank(seller);
+        escrow.claimMilestone(JOB, 0);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 topic = keccak256("EscrowSettled(bytes32,uint256,uint256)");
+        uint256 seen;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics.length != 0 && logs[i].topics[0] == topic) seen++;
+        }
+        assertEq(seen, 1, "claim path still emits exactly one EscrowSettled");
+    }
 
     /// withdrawForYield refuses to drop liquid USDC below reservations plus
     /// cooling positions. wrap() moves USDC to the teller and must honour the

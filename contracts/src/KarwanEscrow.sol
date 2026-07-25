@@ -425,7 +425,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     /// @notice Yield routing, fixed at deploy. A zero `backstop` ships the
     ///         escrow yield-inert: sweepIdle reverts and no payout ever calls
     ///         out, which is the correct configuration until a Treasury is
-    ///         trusted.
+    ///         trusted. Audit N-1 previously guarded these with four setters
+    ///         and a one-way lock; immutability supersedes both and removes the
+    ///         window between deploy and lock.
     struct YieldConfig {
         address backstop;
         address operator;
@@ -434,9 +436,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     }
 
     /// @notice Protocol clocks, fixed at deploy inside the HARD_* constants.
-    ///         Grouped in a struct rather than flattened into the constructor
-    ///         so a deploy script names every value it sets; a fifteen-argument
-    ///         positional constructor is exactly how a mis-wired deploy happens.
+    ///         Grouped rather than flattened so a deploy script names every
+    ///         value it sets; a fifteen-argument positional constructor is how
+    ///         a mis-wired deploy happens.
     struct TimingConfig {
         uint64 minReviewWindow;
         uint64 maxReviewWindow;
@@ -804,14 +806,13 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///         review window. Callable only on the milestone next in line.
     ///         Re-callable (e.g. after re-delivery) which resets the window.
     ///
-    /// @dev    F-3: refused once the buyer's reclaim has vested. reclaimAfterDeadline
-    ///         requires `deliveredAt == 0`, so without this a seller who blew the
-    ///         deadline could mark delivered with any junk proof and permanently
-    ///         strip the buyer's only trustless exit. The cut-off is the same
-    ///         instant reclaim becomes callable, so the reclaim grace stays the
-    ///         seller's genuine last chance and neither window overlaps the other.
-    ///         A seller who needs longer has the consented route: requestExtension
-    ///         plus the buyer's approveExtension, capped at MAX_EXTENSIONS.
+    /// @dev    Audit F-3: refused once the buyer's reclaim has vested.
+    ///         reclaimAfterDeadline requires `deliveredAt == 0`, so a seller who
+    ///         blew the deadline could otherwise mark delivered with any junk
+    ///         proof and permanently strip the buyer's only trustless exit. The
+    ///         cut-off is the instant reclaim becomes callable, so the grace
+    ///         stays the seller's last chance and the windows never overlap.
+    ///         Late sellers use requestExtension + approveExtension instead.
     function markDelivered(bytes32 jobId, bytes32 proofHash) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
@@ -943,7 +944,10 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             usdc.safeTransfer(treasury, feeRemaining);
             emit FeeCollected(jobId, e.milestonesReleased, feeRemaining, treasury);
         }
-        emit EscrowSettled(jobId, e.sellerNet, e.feeTotal);
+        // Audit F-6: EscrowSettled is emitted once, by _finalizeSuccess, which
+        // both this path and the seller-claim path reach. Emitting it here too
+        // gave one jobId two identical logs in a single transaction, so any
+        // indexer summing settled volume counted it twice.
         _finalizeSuccess(jobId, e);
     }
 
@@ -1141,19 +1145,14 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (block.timestamp < uint256(e.disputedAt) + disputeTimeoutSecs) revert DisputeStillFresh();
 
         uint64 frozen = uint64(block.timestamp) - e.disputedAt;
-        // F-3: the freeze credit exists so a seller is not punished for time
-        // they were blocked from delivering, including by a spite dispute
-        // filed at the buzzer. It must not become a stall lever for a seller
-        // who was ALREADY late: mark inside the reclaim grace, the buyer has
-        // to dispute or lose the milestone, the dispute lapses, the deadline
-        // moves out by exactly the frozen duration, re-mark, repeat. The buyer
-        // never reaches a block where reclaim is callable.
-        //
-        // The discriminator is lateness, not delivery. A seller who marked
-        // before the deadline was on time and the freeze genuinely cost them;
-        // a seller who marked after it had already missed, and gets nothing.
-        // Nothing delivered at all also earns the credit, since that seller
-        // was blocked outright.
+        // Audit F-3: the freeze credit compensates a seller for time they were
+        // blocked from delivering, including by a spite dispute at the buzzer.
+        // Crediting a seller who was ALREADY late turns it into a stall lever:
+        // mark inside the reclaim grace, the buyer must dispute or lose the
+        // milestone, the dispute lapses, the deadline moves out by the frozen
+        // duration, re-mark. The buyer never reaches a callable reclaim. The
+        // discriminator is lateness, not delivery: nothing delivered still
+        // earns the credit, since that seller was blocked outright.
         bool deliveredLate = e.deliveredAt != 0 && e.deliveredAt > e.deliveryDeadline;
         if (e.deliveryDeadline != 0 && !deliveredLate) {
             e.deliveryDeadline += frozen;
