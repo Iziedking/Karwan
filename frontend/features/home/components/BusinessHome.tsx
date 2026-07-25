@@ -116,8 +116,14 @@ export function BusinessHome({
                   via /buyer, or a direct deal). The financier desk, where they
                   fund other businesses' invoices, is a secondary capability. */}
               <CTAPill href="/buyer">{bh.hero.newTradeCta}</CTAPill>
-              <CTAPill href="/deals" variant="secondary" tone="dark">
+              <CTAPill href="/buyer?mode=direct" variant="secondary" tone="dark">
                 Direct deal
+              </CTAPill>
+              {/* The sell side. /seller is not account-gated, but the only link
+                  to it sat on /p2p, which is person-only, so a business had no
+                  route to posting an offer at all. */}
+              <CTAPill href="/seller" variant="secondary" tone="dark">
+                Post an offer
               </CTAPill>
               <CTAPill href="/financier" variant="secondary" tone="dark">
                 Financier desk

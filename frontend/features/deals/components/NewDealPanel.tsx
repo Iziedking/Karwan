@@ -16,9 +16,12 @@ export function NewDealPanel() {
   ];
   // When the user arrives here via a "Make offer" link from a listing detail
   // page (/buyer?seller=0x...&amount=...&terms=...), default to the direct
-  // mode so the pre-filled fields are visible without a tab click.
+  // mode so the pre-filled fields are visible without a tab click. ?mode=direct
+  // does the same without a counterparty, which is what a "Direct deal" call to
+  // action links to.
   const search = useSearchParams();
-  const initialMode: Mode = search.get('seller') ? 'direct' : 'managed';
+  const initialMode: Mode =
+    search.get('seller') || search.get('mode') === 'direct' ? 'direct' : 'managed';
   const [mode, setMode] = useState<Mode>(initialMode);
   const active = MODES.find((m) => m.value === mode)!;
 
