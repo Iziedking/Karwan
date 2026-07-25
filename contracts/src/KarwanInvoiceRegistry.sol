@@ -10,6 +10,28 @@ interface IKarwanEscrow {
     function partiesOf(bytes32 jobId) external view returns (address buyer, address seller);
 }
 
+/// Assignment surface, split from IKarwanEscrow so the read path above stays
+/// usable against escrow generations that predate receivable assignment.
+interface IKarwanEscrowAssign {
+    function assignPayout(bytes32 jobId, address assignee, uint128 amount) external;
+}
+
+/// The EIP-3009 entry point the factoring advance rides on. USDC moves directly
+/// from the financier to the seller; this contract only submits the signature.
+interface IUSDC3009 {
+    function transferWithAuthorization(
+        address from,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+}
+
 /// @title KarwanInvoiceRegistry
 /// @notice Single source of truth for trade-document anchors, payee
 ///         redirection on factoring, attester allowlist, and proof-of-delivery
@@ -47,6 +69,10 @@ contract KarwanInvoiceRegistry {
     ///         lookups. v2 (D1): owner-settable and repointable so an escrow
     ///         redeploy is a repoint, not a one-shot cascade.
     address public escrow;
+
+    /// @notice USDC, used only to relay a financier's signed factoring advance.
+    ///         The registry never holds a balance.
+    address public usdc;
 
     /// @notice Owner of the attester allowlist + payee emergency reset.
     ///         Starts as deployer. Transferable via a two-step pattern so a
@@ -88,6 +114,14 @@ contract KarwanInvoiceRegistry {
     // Events
 
     event EscrowSet(address indexed escrow);
+    event UsdcSet(address indexed usdc);
+    event ReceivableAssigned(
+        bytes32 indexed invoiceId,
+        address indexed seller,
+        address indexed financier,
+        uint256 advanceUsdc,
+        uint128 repayUsdc
+    );
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
@@ -108,6 +142,8 @@ contract KarwanInvoiceRegistry {
     // Errors
 
     error EscrowNotSet();
+    error UsdcNotSet();
+    error AlreadyAssigned();
     error NotOwner();
     error NotPendingOwner();
     error ZeroAddress();
@@ -140,6 +176,65 @@ contract KarwanInvoiceRegistry {
         if (_escrow == address(0)) revert ZeroAddress();
         escrow = _escrow;
         emit EscrowSet(_escrow);
+    }
+
+    /// @notice Set the USDC contract the factoring advance is settled through.
+    ///         Owner-only and repointable for the same reason as setEscrow.
+    ///         The registry never holds USDC; it only relays a financier's
+    ///         pre-signed EIP-3009 authorisation.
+    function setUsdc(address _usdc) external {
+        if (msg.sender != owner) revert NotOwner();
+        if (_usdc == address(0)) revert ZeroAddress();
+        usdc = _usdc;
+        emit UsdcSet(_usdc);
+    }
+
+    /// @notice Sell this invoice's receivable to `financier`, paying the seller
+    ///         the advance in the same transaction.
+    ///
+    /// @dev    The two legs are inseparable on purpose. Assignment is
+    ///         irrevocable in the escrow, so a seller who could assign before
+    ///         collecting would be one bad counterparty away from having their
+    ///         receivable permanently redirected to someone who never paid.
+    ///         Relaying the financier's signed authorisation here means the
+    ///         advance must clear for the assignment to exist, and the
+    ///         assignment must succeed for the advance to stand.
+    ///
+    ///         The registry takes no custody: USDC moves financier to seller
+    ///         directly, and this contract is merely the submitter.
+    ///
+    /// @param repayUsdc  what the escrow will pay the financier at settlement,
+    ///                   ahead of the seller. The spread over `advanceUsdc` is
+    ///                   the financier's return.
+    function assignReceivable(
+        bytes32 invoiceId,
+        address financier,
+        uint128 repayUsdc,
+        uint256 advanceUsdc,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        if (escrow == address(0)) revert EscrowNotSet();
+        if (usdc == address(0)) revert UsdcNotSet();
+        if (financier == address(0)) revert ZeroAddress();
+        if (podAccepted[invoiceId]) revert PoDLocked();
+        if (payeeOf[invoiceId] != address(0)) revert AlreadyAssigned();
+
+        address seller = _sellerOf(invoiceId);
+        if (msg.sender != seller) revert NotParty();
+
+        payeeOf[invoiceId] = financier;
+
+        IUSDC3009(usdc).transferWithAuthorization(
+            financier, seller, advanceUsdc, validAfter, validBefore, nonce, v, r, s
+        );
+        IKarwanEscrowAssign(escrow).assignPayout(invoiceId, financier, repayUsdc);
+
+        emit ReceivableAssigned(invoiceId, seller, financier, advanceUsdc, repayUsdc);
     }
 
     // Ownership handover
