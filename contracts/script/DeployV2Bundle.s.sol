@@ -170,6 +170,12 @@ contract DeployV2Bundle is Script {
         KarwanTreasury(a.treasury).setPayoutDelay(p.payoutDelay);
 
         KarwanInvoiceRegistry(a.invoiceRegistry).setEscrow(a.escrow);
+        // Factoring pays the seller and assigns the receivable in one call, so
+        // the registry needs USDC to relay the advance through and the escrow's
+        // permission to record the redirect. Without both, the first factoring
+        // attempt reverts.
+        KarwanInvoiceRegistry(a.invoiceRegistry).setUsdc(p.usdc);
+        KarwanEscrow(a.escrow).setAssigner(a.invoiceRegistry, true);
 
         // Dispute resolution and guardian holds are both inert until set.
         KarwanEscrow(a.escrow).setArbiter(p.arbiter);
@@ -187,6 +193,11 @@ contract DeployV2Bundle is Script {
         require(KarwanReputation(a.rep).escrow() == a.escrow, "reputation.escrow");
         require(KarwanTreasury(a.treasury).escrow() == a.escrow, "treasury.escrow");
         require(KarwanInvoiceRegistry(a.invoiceRegistry).escrow() == a.escrow, "invoiceRegistry.escrow");
+        require(KarwanInvoiceRegistry(a.invoiceRegistry).usdc() == p.usdc, "invoiceRegistry.usdc");
+        require(
+            KarwanEscrow(a.escrow).authorizedAssigners(a.invoiceRegistry),
+            "escrow.authorizedAssigners(registry)"
+        );
 
         require(KarwanEscrow(a.escrow).arbiter() == p.arbiter, "escrow.arbiter");
         require(KarwanEscrow(a.escrow).guardian() == p.guardian, "escrow.guardian");

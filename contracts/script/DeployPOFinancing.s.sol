@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Script.sol";
 import {KarwanPOFinancing} from "../src/KarwanPOFinancing.sol";
 import {KarwanVault} from "../src/KarwanVault.sol";
+import {KarwanEscrow} from "../src/KarwanEscrow.sol";
 
 /// @title PO Financing deploy and verify
 /// @notice KarwanPOFinancing holds its escrow, vault and registry references as
@@ -39,11 +40,18 @@ contract DeployPOFinancing is Script {
             KarwanVault(vault).operator() == msg.sender,
             "sender is not vault operator, setConsumer would revert"
         );
+        require(
+            KarwanEscrow(escrow).owner() == msg.sender,
+            "sender is not escrow owner, setAssigner would revert"
+        );
 
         vm.startBroadcast();
 
         KarwanPOFinancing po = new KarwanPOFinancing(usdc, registry, escrow, vault);
         KarwanVault(vault).setConsumer(address(po), true);
+        // fund() assigns the receivable in the same transaction as the advance,
+        // so an unauthorised PO contract cannot open a line at all.
+        KarwanEscrow(escrow).setAssigner(address(po), true);
 
         vm.stopBroadcast();
 
@@ -53,6 +61,7 @@ contract DeployPOFinancing is Script {
         require(address(po.usdc()) == usdc, "po.usdc");
         require(po.owner() == msg.sender, "po.owner");
         require(KarwanVault(vault).authorizedConsumers(address(po)), "vault.authorizedConsumers");
+        require(KarwanEscrow(escrow).authorizedAssigners(address(po)), "escrow.authorizedAssigners");
 
         console.log("KARWAN_PO_FINANCING_ADDR", address(po));
         console.log("authorized as vault consumer, bound to escrow", escrow);
