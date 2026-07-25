@@ -334,6 +334,31 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///      struct (including milestonePcts) anyway.
     mapping(bytes32 => EscrowAccount) internal escrows;
 
+    /// @notice A receivable sold to a financier. The escrow pays `assignee`
+    ///         out of its own balance at settlement, ahead of the seller, until
+    ///         `amount` is satisfied. There is no second transfer to fail and no
+    ///         window in which the seller holds the financier's money.
+    ///
+    ///         `paid` accumulates across milestone releases. The assignee is
+    ///         senior: pro-rata is not computable when the number of future
+    ///         releases is unknown at assignment time.
+    struct Assignment {
+        address assignee;
+        uint128 amount;
+        uint128 paid;
+    }
+
+    /// @notice Receivable assignment per deal. Set once, never revocable: a
+    ///         seller who could clear it would have rebuilt the diversion this
+    ///         mechanism exists to remove.
+    mapping(bytes32 => Assignment) public assignmentOf;
+
+    /// @notice Contracts allowed to assign a receivable, the finance contracts.
+    ///         Owner-managed rather than immutable because those contracts take
+    ///         this escrow as a constructor argument, so the two cannot both be
+    ///         fixed at construction. No EOA belongs here.
+    mapping(address => bool) public authorizedAssigners;
+
     event EscrowFunded(
         bytes32 indexed jobId,
         address indexed buyer,
@@ -371,6 +396,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event ArbiterSet(address indexed arbiter);
+    event AssignerSet(address indexed who, bool allowed);
+    event PayoutAssigned(bytes32 indexed jobId, address indexed assignee, uint128 amount);
+    event AssignedPayout(bytes32 indexed jobId, address indexed assignee, uint256 amount);
     event ReviewWindowSet(uint64 secs);
     event DeliveryAttested(bytes32 indexed jobId, uint8 milestoneIndex, bool pass, bytes32 evidenceHash);
     event FeeBpsSet(uint16 bps);
@@ -387,6 +415,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     event IdleSwept(uint256 amount, uint256 atTreasuryAfter);
     event LiquidityPulled(uint256 amount, uint256 atTreasuryAfter);
 
+    error NotAssigner();
+    error AlreadyAssigned();
+    error InvalidAssignment();
     error AlreadyFunded();
     error NotBuyer();
     error NotSeller();
@@ -543,6 +574,55 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (_arbiter == address(0)) revert ZeroAddress();
         arbiter = _arbiter;
         emit ArbiterSet(_arbiter);
+    }
+
+    /// @notice Authorise a finance contract to assign receivables.
+    function setAssigner(address who, bool ok) external onlyOwner {
+        if (who == address(0)) revert ZeroAddress();
+        authorizedAssigners[who] = ok;
+        emit AssignerSet(who, ok);
+    }
+
+    /// @notice Sell this deal's receivable to `assignee` for up to `amount`.
+    ///         Called by a finance contract at the moment it commits cash, so
+    ///         the redirect is in place before the seller could act on it.
+    ///
+    /// @dev    Irrevocable and single-use by design. Allowing a second
+    ///         assignment would let one receivable be sold twice; allowing
+    ///         revocation would let the seller undo it before settlement.
+    ///         Only bites on a live deal: once Settled or Refunded there is
+    ///         nothing left to redirect.
+    function assignPayout(bytes32 jobId, address assignee, uint128 amount) external {
+        if (!authorizedAssigners[msg.sender]) revert NotAssigner();
+        if (assignee == address(0) || amount == 0) revert InvalidAssignment();
+
+        EscrowAccount storage e = escrows[jobId];
+        if (e.state != EscrowState.Funded && e.state != EscrowState.Accepted) revert InvalidState();
+        if (assignmentOf[jobId].assignee != address(0)) revert AlreadyAssigned();
+
+        assignmentOf[jobId] = Assignment({assignee: assignee, amount: amount, paid: 0});
+        emit PayoutAssigned(jobId, assignee, amount);
+    }
+
+    /// @dev Pay a seller-side amount, routing the assigned portion to the
+    ///      financier first. Conservation is preserved: the two transfers
+    ///      always sum to `amount`. Capping at `amount` rather than reverting
+    ///      is deliberate, a financier owed more than the deal will ever pay
+    ///      takes a haircut instead of stranding the settlement for everyone.
+    function _paySellerSide(bytes32 jobId, address sellerTo, uint256 amount) internal {
+        if (amount == 0) return;
+        Assignment storage a = assignmentOf[jobId];
+        uint256 cut;
+        if (a.assignee != address(0) && a.paid < a.amount) {
+            uint256 owed = uint256(a.amount) - uint256(a.paid);
+            cut = amount < owed ? amount : owed;
+            a.paid += uint128(cut);
+            usdc.safeTransfer(a.assignee, cut);
+            emit AssignedPayout(jobId, a.assignee, cut);
+        }
+        if (amount > cut) {
+            usdc.safeTransfer(sellerTo, amount - cut);
+        }
     }
 
     /// @notice Set the DEFAULT review window (used when a deal passes 0).
@@ -926,9 +1006,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         uint256 out = sellerCut + feeCut;
         _ensureLiquid(out);
         escrowedTotal -= out;
-        if (sellerCut > 0) {
-            usdc.safeTransfer(sellerTo, sellerCut);
-        }
+        _paySellerSide(jobId, sellerTo, sellerCut);
         if (feeCut > 0) {
             usdc.safeTransfer(treasury, feeCut);
             emit FeeCollected(jobId, milestoneIndex, feeCut, treasury);
@@ -971,9 +1049,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         uint256 out = sellerRemaining + feeRemaining;
         _ensureLiquid(out);
         escrowedTotal -= out;
-        if (sellerRemaining > 0) {
-            usdc.safeTransfer(e.seller, sellerRemaining);
-        }
+        _paySellerSide(jobId, e.seller, sellerRemaining);
         if (feeRemaining > 0) {
             usdc.safeTransfer(treasury, feeRemaining);
             emit FeeCollected(jobId, e.milestonesReleased, feeRemaining, treasury);
@@ -1015,9 +1091,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         uint256 out = sellerRemaining + feeRemaining;
         _ensureLiquid(out);
         escrowedTotal -= out;
-        if (sellerRemaining > 0) {
-            usdc.safeTransfer(e.seller, sellerRemaining);
-        }
+        _paySellerSide(jobId, e.seller, sellerRemaining);
         if (feeRemaining > 0) {
             usdc.safeTransfer(treasury, feeRemaining);
             emit FeeCollected(jobId, e.milestonesReleased, feeRemaining, treasury);
@@ -1323,9 +1397,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         uint256 out = remainingSellerNet + remainingFee;
         _ensureLiquid(out);
         escrowedTotal -= out;
-        if (sellerCut > 0) {
-            usdc.safeTransfer(sellerTo, sellerCut);
-        }
+        _paySellerSide(jobId, sellerTo, sellerCut);
         if (feeCut > 0) {
             usdc.safeTransfer(treasury, feeCut);
             emit FeeCollected(jobId, e.milestonesReleased, feeCut, treasury);
