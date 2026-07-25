@@ -94,6 +94,64 @@ export const invoiceRegistryV2Abi = [
   },
   {
     "type": "function",
+    "name": "assignReceivable",
+    "inputs": [
+      {
+        "name": "invoiceId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "financier",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "repayUsdc",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "advanceUsdc",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "validAfter",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "validBefore",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "nonce",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "v",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "r",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "s",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "docCount",
     "inputs": [
       {
@@ -377,6 +435,19 @@ export const invoiceRegistryV2Abi = [
   },
   {
     "type": "function",
+    "name": "setUsdc",
+    "inputs": [
+      {
+        "name": "_usdc",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "transferOwnership",
     "inputs": [
       {
@@ -387,6 +458,19 @@ export const invoiceRegistryV2Abi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "usdc",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "event",
@@ -566,6 +650,61 @@ export const invoiceRegistryV2Abi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "ReceivableAssigned",
+    "inputs": [
+      {
+        "name": "invoiceId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "seller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "financier",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "advanceUsdc",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "repayUsdc",
+        "type": "uint128",
+        "indexed": false,
+        "internalType": "uint128"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "UsdcSet",
+    "inputs": [
+      {
+        "name": "usdc",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyAssigned",
+    "inputs": []
+  },
+  {
     "type": "error",
     "name": "EmptyHash",
     "inputs": []
@@ -623,6 +762,11 @@ export const invoiceRegistryV2Abi = [
   {
     "type": "error",
     "name": "PoDNotAccepted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UsdcNotSet",
     "inputs": []
   },
   {
