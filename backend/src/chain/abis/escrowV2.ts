@@ -33,6 +33,65 @@ export const escrowV2Abi = [
         "name": "_maxReservationBps",
         "type": "uint16",
         "internalType": "uint16"
+      },
+      {
+        "name": "_yield",
+        "type": "tuple",
+        "internalType": "struct KarwanEscrow.YieldConfig",
+        "components": [
+          {
+            "name": "backstop",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "operator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "coverageFloor",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxYieldBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      },
+      {
+        "name": "_timing",
+        "type": "tuple",
+        "internalType": "struct KarwanEscrow.TimingConfig",
+        "components": [
+          {
+            "name": "minReviewWindow",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "maxReviewWindow",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "disputeTimeoutSecs",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "attestedWindowSecs",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "maxDeadlineHorizon",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
       }
     ],
     "stateMutability": "nonpayable"
@@ -85,6 +144,19 @@ export const escrowV2Abi = [
         "name": "",
         "type": "uint64",
         "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_EXTENSIONS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "stateMutability": "view"
@@ -181,6 +253,19 @@ export const escrowV2Abi = [
     "type": "function",
     "name": "acceptOwnership",
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "approveExtension",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -617,6 +702,16 @@ export const escrowV2Abi = [
             "name": "disputedAt",
             "type": "uint64",
             "internalType": "uint64"
+          },
+          {
+            "name": "extensionCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "pendingDeadline",
+            "type": "uint64",
+            "internalType": "uint64"
           }
         ]
       }
@@ -702,13 +797,6 @@ export const escrowV2Abi = [
         "internalType": "bytes32"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "lockYieldWiring",
-    "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -984,6 +1072,24 @@ export const escrowV2Abi = [
   },
   {
     "type": "function",
+    "name": "requestExtension",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "newDeadline",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "resolve",
     "inputs": [
       {
@@ -1052,58 +1158,6 @@ export const escrowV2Abi = [
   },
   {
     "type": "function",
-    "name": "setAttestedWindow",
-    "inputs": [
-      {
-        "name": "secs",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setCoverageFloor",
-    "inputs": [
-      {
-        "name": "floor",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setDeadlineHorizon",
-    "inputs": [
-      {
-        "name": "secs",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setDisputeTimeout",
-    "inputs": [
-      {
-        "name": "secs",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setFeeBps",
     "inputs": [
       {
@@ -1143,69 +1197,12 @@ export const escrowV2Abi = [
   },
   {
     "type": "function",
-    "name": "setMaxYieldBps",
-    "inputs": [
-      {
-        "name": "bps",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setReviewBounds",
-    "inputs": [
-      {
-        "name": "minSecs",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "maxSecs",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setReviewWindow",
     "inputs": [
       {
         "name": "secs",
         "type": "uint64",
         "internalType": "uint64"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setYieldBackstop",
-    "inputs": [
-      {
-        "name": "backstop",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setYieldOperator",
-    "inputs": [
-      {
-        "name": "op",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -1316,19 +1313,6 @@ export const escrowV2Abi = [
     "stateMutability": "view"
   },
   {
-    "type": "function",
-    "name": "yieldWiringLocked",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
     "type": "event",
     "name": "ArbiterSet",
     "inputs": [
@@ -1337,19 +1321,6 @@ export const escrowV2Abi = [
         "type": "address",
         "indexed": true,
         "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "AttestedWindowSet",
-    "inputs": [
-      {
-        "name": "secs",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
       }
     ],
     "anonymous": false
@@ -1400,19 +1371,6 @@ export const escrowV2Abi = [
   },
   {
     "type": "event",
-    "name": "CoverageFloorSet",
-    "inputs": [
-      {
-        "name": "floor",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "DeadlineExtended",
     "inputs": [
       {
@@ -1423,19 +1381,6 @@ export const escrowV2Abi = [
       },
       {
         "name": "newDeadline",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DeadlineHorizonSet",
-    "inputs": [
-      {
-        "name": "secs",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
@@ -1625,19 +1570,6 @@ export const escrowV2Abi = [
   },
   {
     "type": "event",
-    "name": "DisputeTimeoutSet",
-    "inputs": [
-      {
-        "name": "secs",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "EscrowAccepted",
     "inputs": [
       {
@@ -1812,6 +1744,25 @@ export const escrowV2Abi = [
   },
   {
     "type": "event",
+    "name": "ExtensionRequested",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "newDeadline",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "FeeBpsSet",
     "inputs": [
       {
@@ -1958,19 +1909,6 @@ export const escrowV2Abi = [
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "MaxYieldBpsSet",
-    "inputs": [
-      {
-        "name": "bps",
-        "type": "uint16",
-        "indexed": false,
-        "internalType": "uint16"
       }
     ],
     "anonymous": false
@@ -2127,25 +2065,6 @@ export const escrowV2Abi = [
   },
   {
     "type": "event",
-    "name": "ReviewBoundsSet",
-    "inputs": [
-      {
-        "name": "minSecs",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      },
-      {
-        "name": "maxSecs",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "ReviewWindowSet",
     "inputs": [
       {
@@ -2183,38 +2102,6 @@ export const escrowV2Abi = [
     "anonymous": false
   },
   {
-    "type": "event",
-    "name": "YieldBackstopSet",
-    "inputs": [
-      {
-        "name": "backstop",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "YieldOperatorSet",
-    "inputs": [
-      {
-        "name": "operator",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "YieldWiringLocked",
-    "inputs": [],
-    "anonymous": false
-  },
-  {
     "type": "error",
     "name": "AlreadyFunded",
     "inputs": []
@@ -2241,12 +2128,22 @@ export const escrowV2Abi = [
   },
   {
     "type": "error",
+    "name": "DeadlinePassed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "DeliveryPending",
     "inputs": []
   },
   {
     "type": "error",
     "name": "DisputeStillFresh",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ExtensionsExhausted",
     "inputs": []
   },
   {
@@ -2361,6 +2258,11 @@ export const escrowV2Abi = [
   },
   {
     "type": "error",
+    "name": "NoPendingExtension",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotArbiter",
     "inputs": []
   },
@@ -2448,11 +2350,6 @@ export const escrowV2Abi = [
   {
     "type": "error",
     "name": "YieldShortfall",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "YieldWiringLockedErr",
     "inputs": []
   },
   {

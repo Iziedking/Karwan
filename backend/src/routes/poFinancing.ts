@@ -289,12 +289,22 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       {
         walletId: user.circleIdentityWalletId,
         contractAddress: financingAddr,
-        abiFunctionSignature: 'fund(bytes32,uint128,uint128,uint64)',
+        // The v2 contract takes a fifth argument, requiredStakeUsdc. Sending
+        // the four-arg form is a DIFFERENT SELECTOR: on a Circle SCA the call
+        // fails as an inner revert inside a successful handleOps, so the tx
+        // hash looks fine and the line is never funded.
+        //
+        // 0 = unsecured line, which is exactly what this route does today: it
+        // has no stake field and reserves nothing. Wiring a real value is the
+        // factoring-stake work in todo.md, and it must arrive here and in the
+        // request schema together.
+        abiFunctionSignature: 'fund(bytes32,uint128,uint128,uint64,uint128)',
         abiParameters: [
           body.invoiceId,
           principalWei.toString(),
           repayWei.toString(),
           body.releaseTimeoutSeconds.toString(),
+          '0',
         ],
       },
       `poFinancing.fund(${body.invoiceId})`,
