@@ -45,12 +45,28 @@ contract MockUSDC {
 contract MockEscrow {
     mapping(bytes32 => address) private _seller;
 
+    /// Receivable assignment. These tests cover the PO state machine rather
+    /// than the redirect itself (see KarwanPOAssignment.t.sol for that), so
+    /// assignment always succeeds here and `paid` stays zero, which keeps the
+    /// repayment pull on the path these tests exercise.
+    struct Assignment {
+        address assignee;
+        uint128 amount;
+        uint128 paid;
+    }
+
+    mapping(bytes32 => Assignment) public assignmentOf;
+
     function seedDeal(bytes32 jobId, address, address seller) external {
         _seller[jobId] = seller;
     }
 
     function sellerOf(bytes32 jobId) external view returns (address) {
         return _seller[jobId];
+    }
+
+    function assignPayout(bytes32 jobId, address assignee, uint128 amount) external {
+        assignmentOf[jobId] = Assignment({assignee: assignee, amount: amount, paid: 0});
     }
 }
 

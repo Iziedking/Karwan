@@ -12,6 +12,17 @@ import {Guardable} from "./Guardable.sol";
 ///         recipient on PoD release.
 interface IKarwanEscrow {
     function sellerOf(bytes32 jobId) external view returns (address);
+
+    /// Sell this deal's receivable to `assignee` for up to `amount`. The escrow
+    /// pays the assignee ahead of the seller at settlement.
+    function assignPayout(bytes32 jobId, address assignee, uint128 amount) external;
+
+    /// How much the escrow has already paid the assignee. Drives the shortfall
+    /// calculation at repayment.
+    function assignmentOf(bytes32 jobId)
+        external
+        view
+        returns (address assignee, uint128 amount, uint128 paid);
 }
 
 /// @notice KarwanInvoiceRegistry subset used for PoD acceptance lookup.
@@ -68,9 +79,11 @@ interface IKarwanVault {
 ///           - PoD never lands: financier calls reclaimPrincipal() after
 ///             releaseTimeoutAt to recover their deposit. State -> Reclaimed.
 ///           - Repayment never lands: financier calls markDefaulted() after
-///             repaymentTimeoutAt. State -> Defaulted. No funds move on
-///             chain; off-chain recourse (dispute, stake slash via v2.D,
-///             reputation hit, future SecurityAgent tagging) follows.
+///             repaymentTimeoutAt. State -> Defaulted. When the line was
+///             opened with collateral, the seller's reserved stake is slashed
+///             to the financier on chain, so recovery is not conditional on
+///             off-chain recourse. An unsecured line (requiredStakeUsdc == 0)
+///             still falls back to dispute and a reputation hit.
 contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     using SafeERC20 for IERC20;
 
@@ -256,6 +269,13 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
             vault.reserve(invoiceId, seller, requiredStakeUsdc, msg.sender);
         }
 
+        // Sell the receivable in the same transaction that commits the cash, so
+        // the redirect is never absent while an advance is outstanding. Reverts
+        // if this contract is not an authorised assigner, which is deliberate:
+        // a line that cannot be assigned would silently fall back to pulling
+        // from the seller, the exact exposure assignment exists to remove.
+        escrow.assignPayout(invoiceId, msg.sender, repayUsdc);
+
         usdc.safeTransferFrom(msg.sender, address(this), principalUsdc);
 
         emit POFunded(
@@ -313,7 +333,15 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
             vault.release(invoiceId);
         }
 
-        usdc.safeTransferFrom(seller, financier, repay);
+        // The escrow pays the assignee first at settlement, so by the time this
+        // runs the financier is usually already whole and nothing is pulled. A
+        // shortfall only arises when the deal settled for less than the repay
+        // amount; that remainder is still the seller's obligation.
+        (, , uint128 paidByEscrow) = escrow.assignmentOf(invoiceId);
+        uint256 shortfall = repay > paidByEscrow ? uint256(repay) - uint256(paidByEscrow) : 0;
+        if (shortfall > 0) {
+            usdc.safeTransferFrom(seller, financier, shortfall);
+        }
 
         emit PORepaid(invoiceId, financier, repay, msg.sender);
     }
