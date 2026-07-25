@@ -200,6 +200,11 @@ const fundCircleBodySchema = z.object({
   principalUsdc: usdcAmountSchema,
   repayUsdc: usdcAmountSchema,
   releaseTimeoutSeconds: z.number().int().min(60).max(5 * 365 * 24 * 60 * 60),
+  /// Seller stake to reserve against this line, slashed to the financier if
+  /// repayment never lands. Omitted means an unsecured line, which keeps
+  /// older clients working. The vault reverts if the seller's free stake is
+  /// below this, so the caller is expected to have checked freeStakeOf first.
+  requiredStakeUsdc: usdcAmountSchema.optional(),
 });
 
 /// POST /api/po-financing/fund-circle: Circle DCW-only sister route.
@@ -273,6 +278,9 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
 
   const principalWei = parseUnits(body.principalUsdc, USDC_DECIMALS);
   const repayWei = parseUnits(body.repayUsdc, USDC_DECIMALS);
+  const stakeWei = body.requiredStakeUsdc
+    ? parseUnits(body.requiredStakeUsdc, USDC_DECIMALS)
+    : 0n;
 
   try {
     const approveResult = await executeContractCall(
@@ -294,17 +302,13 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
         // fails as an inner revert inside a successful handleOps, so the tx
         // hash looks fine and the line is never funded.
         //
-        // 0 = unsecured line, which is exactly what this route does today: it
-        // has no stake field and reserves nothing. Wiring a real value is the
-        // factoring-stake work in todo.md, and it must arrive here and in the
-        // request schema together.
         abiFunctionSignature: 'fund(bytes32,uint128,uint128,uint64,uint128)',
         abiParameters: [
           body.invoiceId,
           principalWei.toString(),
           repayWei.toString(),
           body.releaseTimeoutSeconds.toString(),
-          '0',
+          stakeWei.toString(),
         ],
       },
       `poFinancing.fund(${body.invoiceId})`,

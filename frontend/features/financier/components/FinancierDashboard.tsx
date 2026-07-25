@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
-import { parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
@@ -16,6 +16,7 @@ import {
   ARC_USDC_ADDRESS,
   ARC_USDC_DECIMALS,
   KARWAN_PO_FINANCING_ADDRESS,
+  KARWAN_VAULT_ADDRESS,
 } from '@/features/profile/config';
 import {
   buildTransferAuthorization,
@@ -100,6 +101,19 @@ const poFinancingAbi = [
       { name: 'requiredStakeUsdc', type: 'uint128' },
     ],
     outputs: [],
+  },
+] as const;
+
+/// Free stake is what the vault will actually let PO financing reserve. Both
+/// freeStakeOf and reserve resolve an agent wallet to its owner, so reading
+/// against the escrow's seller returns the same number the contract checks.
+const vaultAbi = [
+  {
+    type: 'function',
+    name: 'freeStakeOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
   },
 ] as const;
 
@@ -1021,6 +1035,10 @@ function FundModal({
   const [principal, setPrincipal] = useState<number>(Math.round(face * 0.8 * 100) / 100);
   const [repay, setRepay] = useState<number>(Math.round(face * 0.84 * 100) / 100);
   const [timeoutSeconds, setTimeoutSeconds] = useState<number>(30 * 86_400);
+  /// Seller stake reserved against this line and slashed to the financier if
+  /// repayment never lands. Without it the only recovery is off-chain.
+  const [collateral, setCollateral] = useState<number>(0);
+  const [freeStake, setFreeStake] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'idle' | 'approving' | 'funding' | 'mirroring'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -1028,8 +1046,44 @@ function FundModal({
   const isCircleUser = auth.method === 'circle';
   const address = auth.address as `0x${string}` | undefined;
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
+
+  /// Load the seller's free stake once and default the line to the largest
+  /// collateral it can actually carry. Defaulting to the principal would
+  /// revert with InsufficientStake for any seller staking less than that, so
+  /// the default is capped at what exists: secured when possible, never a
+  /// guaranteed revert. Zero free stake leaves the line unsecured, which is
+  /// the honest state rather than a blocked form.
+  useEffect(() => {
+    if (!arcClient || !deal.seller) return;
+    let live = true;
+    arcClient
+      .readContract({
+        address: KARWAN_VAULT_ADDRESS,
+        abi: vaultAbi,
+        functionName: 'freeStakeOf',
+        args: [deal.seller as `0x${string}`],
+      })
+      .then((wei) => {
+        if (!live) return;
+        const free = Number(formatUnits(wei as bigint, ARC_USDC_DECIMALS));
+        setFreeStake(free);
+        setCollateral(Math.floor(Math.min(principal, free) * 100) / 100);
+      })
+      .catch(() => {
+        if (live) setFreeStake(0);
+      });
+    return () => {
+      live = false;
+    };
+    // Principal is read for the initial cap only; re-running on every keystroke
+    // would fight the financier editing the collateral field.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [arcClient, deal.seller]);
   const spread = repay - principal;
   const validRepay = repay > principal && repay <= face;
+  /// The vault reverts InsufficientFreeStake rather than reserving what it can,
+  /// so block the submit instead of letting the financier pay gas to find out.
+  const validCollateral = collateral >= 0 && (freeStake === null || collateral <= freeStake);
 
   async function submit() {
     if (!isAuthed || !address) {
@@ -1054,6 +1108,7 @@ function FundModal({
           principalUsdc: principal.toFixed(6),
           repayUsdc: repay.toFixed(6),
           releaseTimeoutSeconds: timeoutSeconds,
+          requiredStakeUsdc: collateral.toFixed(6),
         });
         onFunded(r.line);
       } else {
@@ -1096,9 +1151,7 @@ function FundModal({
             principalWei,
             repayWei,
             BigInt(timeoutSeconds),
-            // Unsecured line. Collateralised factoring reserves seller stake on
-            // the vault, which needs a way to set the amount here first.
-            0n,
+            parseUnits(collateral.toFixed(6), ARC_USDC_DECIMALS),
           ],
           chain: walletClient.chain,
           account: address,
@@ -1192,6 +1245,30 @@ function FundModal({
             </ModalField>
           </div>
 
+          <ModalField label="Seller collateral">
+            <input
+              type="number"
+              min={0}
+              max={freeStake ?? undefined}
+              step={0.01}
+              value={collateral}
+              onChange={(e) => setCollateral(Number(e.target.value))}
+              disabled={submitting || freeStake === 0}
+              className="form-input form-input-num"
+            />
+            <p className="mt-1 text-[11px] text-zinc-500">
+              {freeStake === null
+                ? 'Checking the seller stake.'
+                : freeStake === 0
+                  ? 'This seller has no free stake. The line will be unsecured.'
+                  : collateral > freeStake
+                    ? `Only ${freeStake.toLocaleString()} USDC is free. Funding will revert above that.`
+                    : collateral > 0
+                      ? `Slashed to you if repayment never lands. ${freeStake.toLocaleString()} USDC free.`
+                      : `Unsecured. ${freeStake.toLocaleString()} USDC of seller stake is available.`}
+            </p>
+          </ModalField>
+
           <ModalField label="Release timeout">
             <div className="flex gap-2 flex-wrap">
               {RELEASE_TIMEOUT_OPTIONS.map((opt) => (
@@ -1242,7 +1319,7 @@ function FundModal({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting || !validRepay || onWrongChain}
+            disabled={submitting || !validRepay || !validCollateral || onWrongChain}
             className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
               borderTopLeftRadius: 10,
