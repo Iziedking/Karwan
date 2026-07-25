@@ -143,8 +143,13 @@ tradeRoutes.post('/pod/accept', async (c) => {
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
   const caller = session.address.toLowerCase();
-  // Buyer is always allowed; attester checks happen on chain.
-  if (caller !== deal.buyer && !addrSchema.safeParse(caller).success) {
+  // Only the buyer confirms delivery. The previous guard also allowed anyone
+  // whose address failed addrSchema, which a session address never does, so
+  // the 403 was unreachable and any signed-in user could mark any deal
+  // delivered. There is no second role to admit: KarwanInvoiceRegistry
+  // collapses acceptPoD to the buyer, and addAttester is not on the deployed
+  // contract, so "attester checks happen on chain" was never true.
+  if (caller !== deal.buyer.toLowerCase()) {
     return c.json({ error: 'caller cannot sign PoD' }, 403);
   }
 
