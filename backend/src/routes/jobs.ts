@@ -38,6 +38,7 @@ import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
+import { getAgentWallets } from '../db/agentWallets.js';
 import { logger } from '../logger.js';
 
 const addrSchema = z
@@ -144,15 +145,19 @@ export const jobsRoutes = new Hono();
 
 /// The managed-jobs snapshot carries full negotiation state (bids, counter
 /// prices, amounts, buyer agent) and so must never enumerate every buyer's
-/// jobs. Scope it to a single caller address and return only that buyer's
 /// jobs. The masked public market surface is /marketplace; this is the owner's
 /// own dashboard feed.
-jobsRoutes.get('/', (c) => {
-  const caller = c.req.query('caller');
-  if (!caller || !/^0x[a-fA-F0-9]{40}$/.test(caller)) {
-    return c.json({ error: 'caller query param required (0x... address)' }, 400);
-  }
-  return c.json(getBuyerSnapshot(caller));
+///
+/// Scoping used to come from ?caller=, which any anonymous client could set to
+/// another user's buyer agent to read their whole bid book. Identity is the
+/// signed session now, and the agent address is resolved server-side, so the
+/// caller cannot name the account they are reading.
+jobsRoutes.get('/', async (c) => {
+  const caller = sessionAddress(c);
+  if (!caller) return c.json({ error: 'not authenticated' }, 401);
+  const agents = await getAgentWallets(caller);
+  if (!agents) return c.json({ jobs: [] });
+  return c.json(getBuyerSnapshot(agents.buyerAddress));
 });
 
 /// Open buyer briefs packaged for the marketplace surface. Public; we mask

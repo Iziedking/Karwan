@@ -13,23 +13,40 @@ import { logger } from '../logger.js';
 
 export const agentsRoutes = new Hono();
 
-// Managed deals run on per-user agents. With ?address= these endpoints scope the
-// snapshot to that user's own agent; without it they return the whole network.
+// Managed deals run on per-user agents. Identity is the signed session, never a
+// query param.
+//
+// Both of these previously took ?address= from the caller and, with no param at
+// all, returned the unscoped network snapshot: every open job with every bid's
+// seller address, price, score, suggested counter price, tier, display name and
+// counter history, to anyone who asked. That is the buyer-only bidder roster the
+// three-tier gate in routes/jobs.ts and auth/partyScope.ts exists to protect, so
+// this route was a way around it. Scoped to the caller's own agents now; a
+// mismatched ?address= is refused rather than silently ignored so a stale client
+// fails loudly instead of quietly reading the wrong account.
+
+async function ownAgents(c: Parameters<typeof sessionAddress>[0]) {
+  const caller = sessionAddress(c);
+  if (!caller) return { error: 'not authenticated' as const, status: 401 as const };
+  const claimed = c.req.query('address');
+  if (claimed && claimed.toLowerCase() !== caller.toLowerCase()) {
+    return { error: 'address does not match the signed-in account' as const, status: 403 as const };
+  }
+  return { caller, agents: await getAgentWallets(caller) };
+}
 
 agentsRoutes.get('/buyer', async (c) => {
-  const address = c.req.query('address');
-  if (!address) return c.json({ profile: null, ...getBuyerSnapshot() });
-  const agents = await getAgentWallets(address);
-  if (!agents) return c.json({ profile: null, jobs: [] });
-  return c.json({ profile: null, ...getBuyerSnapshot(agents.buyerAddress) });
+  const scope = await ownAgents(c);
+  if ('error' in scope) return c.json({ error: scope.error }, scope.status);
+  if (!scope.agents) return c.json({ profile: null, jobs: [] });
+  return c.json({ profile: null, ...getBuyerSnapshot(scope.agents.buyerAddress) });
 });
 
 agentsRoutes.get('/seller', async (c) => {
-  const address = c.req.query('address');
-  if (!address) return c.json({ profile: null, ...getSellerSnapshot() });
-  const agents = await getAgentWallets(address);
-  if (!agents) return c.json({ profile: null, activeBids: [] });
-  return c.json({ profile: null, ...getSellerSnapshot(agents.sellerAddress) });
+  const scope = await ownAgents(c);
+  if ('error' in scope) return c.json({ error: scope.error }, scope.status);
+  if (!scope.agents) return c.json({ profile: null, activeBids: [] });
+  return c.json({ profile: null, ...getSellerSnapshot(scope.agents.sellerAddress) });
 });
 
 /// Manually abandon one of the caller's own in-flight seller bids. Identity is
