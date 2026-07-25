@@ -1,6 +1,7 @@
-import { recoverTypedDataAddress, type Address, type Hex } from 'viem';
+import { keccak256, recoverTypedDataAddress, toBytes, type Address, type Hex } from 'viem';
 import { executeContractCall } from './txs.js';
 import { config } from '../config.js';
+import { dcwEvmSigner } from '../x402/dcwSigner.js';
 
 /// Native USDC EIP-3009 helpers for the factoring settlement rail.
 ///
@@ -147,10 +148,64 @@ export async function submitTransferWithAuthorization(
   return { txHash };
 }
 
-/// Direct USDC transfer from a Circle developer-controlled wallet. Used
-/// for parties whose identity wallet the backend signs for (email and
-/// passkey users): no offchain authorization is needed, the platform
-/// moves the funds when the settlement condition is met.
+/// Split a 65-byte signature into the (v, r, s) triple the contract ABI takes.
+/// Shared by every caller that passes an authorization on to a contract rather
+/// than submitting it to USDC directly.
+export function splitSignature(signature: string): { v: number; r: string; s: string } {
+  if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) {
+    throw new Error('expected a 65-byte signature');
+  }
+  let v = parseInt(signature.slice(130, 132), 16);
+  if (v < 27) v += 27;
+  return { v, r: signature.slice(0, 66), s: `0x${signature.slice(66, 130)}` };
+}
+
+/// Produce a transfer authorization from a Circle developer-controlled wallet,
+/// the same instrument a web3 signer builds in the browser.
+///
+/// Receivable assignment requires one: KarwanInvoiceRegistry.assignReceivable
+/// relays the financier's signed advance and records the assignment atomically,
+/// so an offer with no signature cannot be accepted on chain at all. Having
+/// Circle financiers sign here keeps both wallet types on one code path rather
+/// than reintroducing a second, unprotected rail for them.
+export async function signTransferAuthorizationWithCircle(
+  walletId: string,
+  from: string,
+  to: string,
+  valueAtomic: string,
+  validForSeconds: number,
+): Promise<UsdcTransferAuthorization> {
+  const now = Math.floor(Date.now() / 1000);
+  // validAfter one second in the past: the contract requires
+  // block.timestamp > validAfter, so `now` would fail in the same second.
+  const validAfter = String(now - 1);
+  const validBefore = String(now + validForSeconds);
+  const nonce = keccak256(toBytes(`${from}:${to}:${valueAtomic}:${now}:${Math.random()}`));
+
+  const signature = await dcwEvmSigner(walletId, from as Address).signTypedData({
+    domain: usdcDomain(),
+    types: USDC_AUTHORIZATION_TYPES as unknown as Record<
+      string,
+      Array<{ name: string; type: string }>
+    >,
+    primaryType: 'TransferWithAuthorization',
+    message: {
+      from,
+      to,
+      value: valueAtomic,
+      validAfter,
+      validBefore,
+      nonce,
+    },
+  });
+
+  return { from, to, value: valueAtomic, validAfter, validBefore, nonce, signature };
+}
+
+/// Direct USDC transfer from a Circle developer-controlled wallet. Used for
+/// parties whose identity wallet the backend signs for (email and passkey
+/// users): no offchain authorization is needed, the platform moves the funds
+/// when the settlement condition is met.
 export async function transferFromCircleWallet(
   walletId: string,
   to: string,

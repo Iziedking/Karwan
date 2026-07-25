@@ -16,11 +16,11 @@ import {
 } from '../db/factoring.js';
 import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
-import { deterministicIdempotencyKey } from '../chain/txs.js';
+import { deterministicIdempotencyKey, executeContractCall } from '../chain/txs.js';
 import {
   verifyTransferAuthorization,
-  submitTransferWithAuthorization,
-  transferFromCircleWallet,
+  splitSignature,
+  signTransferAuthorizationWithCircle,
 } from '../chain/usdc3009.js';
 import { vault } from '../chain/contracts.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
@@ -30,16 +30,23 @@ import { bus } from '../events.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
 
-/// Invoice factoring routes. Both money legs ride native USDC EIP-3009 on
-/// Arc (or a direct backend transfer for Circle-auth parties):
-///   - ADVANCE (financier -> seller): a web3 financier signs the
-///     authorization at OFFER time; the relay submits it the moment the
-///     seller accepts. Circle financiers skip the signature; the backend
-///     transfers from their identity wallet at accept.
-///   - REPAYMENT (seller -> financier): a web3 seller signs at ACCEPT
-///     time (zero balance needed); the settlement watcher submits it when
-///     the escrow settles. Circle sellers skip it; the backend transfers
-///     from their identity wallet at settle time.
+/// Invoice factoring routes.
+///
+///   - ADVANCE (financier -> seller): the financier signs a USDC EIP-3009
+///     authorization at OFFER time. A web3 financier signs in the browser; a
+///     Circle one has it signed from their identity wallet here. Either way an
+///     offer carries a signature, because acceptance cannot proceed without one.
+///
+///   - ACCEPT: the seller calls KarwanInvoiceRegistry.assignReceivable, which
+///     relays that authorization to pay them AND records the receivable
+///     assignment on the escrow, in one transaction. The call is seller-gated
+///     on chain, so a web3 seller signs it and returns the hash while a Circle
+///     seller has it signed from their identity wallet.
+///
+///   - REPAYMENT: there isn't one. The escrow pays the financier out of the
+///     settlement, ahead of the seller. Nothing is pulled from the seller's
+///     wallet afterwards, so there is nothing for a seller to spend first and
+///     no watcher race to lose.
 
 const USDC_DECIMALS = 6;
 /// A web3 seller's repayment authorization must outlive the deal. 60 days
@@ -78,6 +85,13 @@ const offerBodySchema = z.object({
 const acceptBodySchema = z.object({
   offerId: z.string().uuid(),
   setPayeeTxHash: hashSchema.optional(),
+  /// Web3 sellers sign registry.assignReceivable themselves, since the call is
+  /// seller-gated on chain, and hand back the hash. Circle sellers omit it and
+  /// the backend signs from their identity wallet.
+  assignTxHash: hashSchema.optional(),
+  /// Retained for offers accepted before receivable assignment shipped. The
+  /// escrow now pays the financier directly, so no repayment instrument is
+  /// collected for new offers.
   repayAuthorization: authorizationSchema.optional(),
 });
 
@@ -267,6 +281,35 @@ factoringRoutes.post('/offer', async (c) => {
     }
   }
 
+  // Circle financiers do not sign in a browser, but the registry needs an
+  // authorization to relay: assignReceivable pays the seller and records the
+  // assignment from that one signature. Producing it here from their identity
+  // wallet keeps both wallet types on the same on-chain path, rather than
+  // leaving Circle-funded offers on an unprotected rail.
+  let advanceAuthorization = body.advanceAuthorization;
+  if (!advanceAuthorization && financierUser) {
+    try {
+      advanceAuthorization = await signTransferAuthorizationWithCircle(
+        financierUser.circleIdentityWalletId,
+        financier,
+        deal.seller,
+        atomicUsdc(body.offeredAdvanceUsdc),
+        // Outlive the offer with an hour of margin, matching the validity the
+        // web3 path is checked against just above.
+        Math.floor((expiresAt - Date.now()) / 1000) + 3600,
+      );
+    } catch (err) {
+      logger.warn(
+        { financier, err: (err as Error).message },
+        'factoring: could not sign the advance from the Circle wallet',
+      );
+      return c.json(
+        { error: 'could not sign the advance authorization', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+
   // A financier gets ONE live offer per invoice. Re-pricing supersedes the
   // previous one instead of stacking a second offer against the same seller,
   // who would otherwise see two live quotes from one counterparty and have to
@@ -294,7 +337,7 @@ factoringRoutes.post('/offer', async (c) => {
     status: 'offered',
     offeredAt: now,
     expiresAt,
-    advanceAuthorization: body.advanceAuthorization,
+    advanceAuthorization,
   });
 
   bus.emitEvent({
@@ -363,10 +406,52 @@ factoringRoutes.get('/open', async (c) => {
   return c.json({ offers });
 });
 
-/// POST /api/factoring/accept: seller accepts a financier's offer.
-/// Caller's wallet already did registry.setPayee + Circle Gateway
-/// authorisations off-chain; this records the tx hashes and updates
-/// state.
+/// GET /api/factoring/offers/:offerId/assignment: the exact arguments a web3
+/// seller needs to call registry.assignReceivable themselves.
+///
+/// The call is seller-gated on chain, so the backend cannot make it for them,
+/// and it carries the financier's signed authorization. Returning those
+/// arguments here rather than widening the offer payload keeps the signature
+/// out of every listing and scoped to the one party entitled to submit it.
+factoringRoutes.get('/offers/:offerId/assignment', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
+  const offer = await getFactoringOffer(c.req.param('offerId'));
+  if (!offer) return c.json({ error: 'offer not found' }, 404);
+  if (offer.seller.toLowerCase() !== session.address.toLowerCase()) {
+    return c.json({ error: 'not your offer' }, 403);
+  }
+  if (offer.status !== 'offered') {
+    return c.json({ error: 'offer is no longer open' }, 409);
+  }
+  if (!offer.advanceAuthorization) {
+    return c.json({ error: 'offer has no advance instrument' }, 409);
+  }
+  if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
+    return c.json({ error: 'invoice registry not configured' }, 503);
+  }
+
+  const auth = offer.advanceAuthorization;
+  const { v, r, s } = splitSignature(auth.signature);
+  return c.json({
+    registry: config.KARWAN_INVOICE_REGISTRY_ADDR,
+    invoiceId: offer.invoiceId,
+    financier: offer.financier,
+    repayUsdc: atomicUsdc(offer.expectedReturnUsdc),
+    advanceUsdc: auth.value,
+    validAfter: auth.validAfter,
+    validBefore: auth.validBefore,
+    nonce: auth.nonce,
+    v,
+    r,
+    s,
+  });
+});
+
+/// POST /api/factoring/accept: seller accepts a financier's offer. The advance
+/// and the receivable assignment happen in one on-chain call; this records the
+/// result and flips state.
 factoringRoutes.post('/accept', async (c) => {
   if (!config.KARWAN_INVOICE_REGISTRY_ADDR) {
     return c.json({ error: 'invoice registry not configured' }, 503);
@@ -452,18 +537,11 @@ factoringRoutes.post('/accept', async (c) => {
   }
   acceptingInvoices.add(offer.invoiceId);
   try {
-    // Repayment instrument. Circle sellers: nothing to capture; the
-    // settlement watcher transfers from their identity wallet when the
-    // escrow settles. Web3 sellers: an EIP-3009 authorization signed now
-    // (zero balance needed; the escrow payout funds it later), submitted
-    // by the relay at settle time.
-    const sellerUser = getUserByAddress(seller);
-    if (!sellerUser && !body.repayAuthorization) {
-      return c.json(
-        { error: 'repayment authorization required: sign the USDC transfer authorization for the repayment' },
-        400,
-      );
-    }
+    // No repayment instrument is collected any more. The escrow pays the
+    // financier out of the settlement itself, ahead of the seller, so there is
+    // nothing left to pull and nothing for a seller to withhold. An
+    // authorization is still verified when an older client sends one, rather
+    // than silently storing something unchecked.
     if (body.repayAuthorization) {
       const problem = await verifyTransferAuthorization(body.repayAuthorization, {
         from: seller,
@@ -477,49 +555,76 @@ factoringRoutes.post('/accept', async (c) => {
       }
     }
 
-    // Move the advance BEFORE flipping state: an accepted offer means the
-    // seller has been paid, not that paperwork happened. On failure the
-    // offer stays 'offered' so the seller can retry.
-    let advanceTxHash: string;
-    try {
-      if (offer.advanceAuthorization) {
-        const r = await submitTransferWithAuthorization(
-          offer.advanceAuthorization,
-          `factoring.advance(${offer.id})`,
-        );
-        advanceTxHash = r.txHash;
-      } else {
-        const financierUser = getUserByAddress(offer.financier);
-        if (!financierUser) {
-          // Legacy offer from before the on-chain advance shipped: no
-          // authorization stored and no Circle wallet to sign from.
-          return c.json(
-            { error: 'offer has no advance instrument; ask the financier to re-offer' },
-            409,
-          );
-        }
-        const r = await transferFromCircleWallet(
-          financierUser.circleIdentityWalletId,
-          seller,
-          atomicUsdc(offer.offeredAdvanceUsdc),
-          `factoring.advance(${offer.id})`,
-          // Namespaced idempotency key: a retried accept can't double-pay the
-          // advance, and the key can never collide with the REPAY leg's key
-          // (raw offer.id was used for both, which would make Circle dedupe
-          // the repayment against the advance and silently skip it).
-          deterministicIdempotencyKey(`factoring-advance:${offer.id}`),
-        );
-        advanceTxHash = r.txHash;
-      }
-    } catch (err) {
-      logger.warn(
-        { offerId: offer.id, err: (err as Error).message },
-        'factoring: advance transfer failed; offer stays open',
-      );
+    // The advance and the receivable assignment are one call on the registry.
+    // Splitting them would reopen the hole this replaced: assignment is
+    // irrevocable in the escrow, so a seller who assigned before collecting
+    // could be left with their receivable redirected to someone who never
+    // paid. assignReceivable relays the financier's signed authorization and
+    // records the redirect atomically, or does neither.
+    //
+    // It is seller-gated on chain. A web3 seller sends it themselves and hands
+    // back the hash; a Circle seller has it signed from their identity wallet
+    // here, so the flow stays invisible to them.
+    if (!offer.advanceAuthorization) {
       return c.json(
-        { error: 'advance transfer failed', detail: (err as Error).message },
-        502,
+        { error: 'offer has no advance instrument; ask the financier to re-offer' },
+        409,
       );
+    }
+    const registryAddr = config.KARWAN_INVOICE_REGISTRY_ADDR;
+    if (!registryAddr) {
+      return c.json({ error: 'invoice registry not configured' }, 503);
+    }
+
+    let advanceTxHash: string;
+    if (body.assignTxHash) {
+      // Web3 seller: they signed and sent it, we record it. The chain already
+      // enforced the seller gate, the atomicity and the single-sale rule.
+      advanceTxHash = body.assignTxHash;
+    } else {
+      const sellerUserForAssign = getUserByAddress(seller);
+      if (!sellerUserForAssign) {
+        return c.json(
+          { error: 'sign the assignment from your wallet and resubmit with assignTxHash' },
+          400,
+        );
+      }
+      const auth = offer.advanceAuthorization;
+      const { v, r: sigR, s: sigS } = splitSignature(auth.signature);
+      try {
+        const res = await executeContractCall(
+          {
+            walletId: sellerUserForAssign.circleIdentityWalletId,
+            contractAddress: registryAddr,
+            abiFunctionSignature:
+              'assignReceivable(bytes32,address,uint128,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)',
+            abiParameters: [
+              offer.invoiceId,
+              offer.financier,
+              atomicUsdc(offer.expectedReturnUsdc),
+              auth.value,
+              auth.validAfter,
+              auth.validBefore,
+              auth.nonce,
+              String(v),
+              sigR,
+              sigS,
+            ],
+            idempotencyKey: deterministicIdempotencyKey(`factoring-assign:${offer.id}`),
+          },
+          `factoring.assignReceivable(${offer.id})`,
+        );
+        advanceTxHash = res.txHash;
+      } catch (err) {
+        logger.warn(
+          { offerId: offer.id, err: (err as Error).message },
+          'factoring: assignReceivable failed; offer stays open',
+        );
+        return c.json(
+          { error: 'advance and assignment failed', detail: (err as Error).message },
+          502,
+        );
+      }
     }
 
     const now = Date.now();

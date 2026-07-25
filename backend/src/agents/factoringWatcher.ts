@@ -4,13 +4,15 @@
 /// the financier. The offer flips to 'settled' only after the transfer
 /// confirms with a real tx hash.
 ///
-/// Settlement instrument per seller type:
-///   - Web3 seller: the EIP-3009 authorization they signed at offer
-///     accept (stored on the offer), submitted on the USDC contract by
-///     the platform relay. The seller signed with a zero balance; the
-///     escrow payout funds the transfer by the time this fires.
-///   - Circle seller: a direct transfer from their identity wallet,
-///     signed by the backend. No pre-authorization needed.
+/// Since receivable assignment shipped, the usual case is that there is
+/// nothing to do: the escrow pays an assigned financier out of the settlement
+/// ahead of the seller, so this watcher sees the debt already cleared and just
+/// flips the offer to settled. Pulling anyway would charge the seller twice.
+///
+/// The pull below remains for the shortfall case (the deal settled for less
+/// than the repay amount) and for offers accepted before assignment existed:
+///   - Web3 seller: the EIP-3009 authorization they signed at accept.
+///   - Circle seller: a direct transfer from their identity wallet.
 ///
 /// Failure handling: a failed transfer keeps the offer 'accepted' and
 /// retries on the next tick. After MAX_SETTLE_ATTEMPTS the offer flips to
@@ -19,6 +21,7 @@
 /// dispute path pursues remediation against the seller's stake.
 
 import { parseUnits } from 'viem';
+import { publicClient } from '../chain/client.js';
 import { listAllDeals, getDeal, type DirectDeal } from '../db/deals.js';
 import { listAcceptedOffers, patchFactoringOffer, type FactoringOffer } from '../db/factoring.js';
 import { getUserByAddress } from '../db/users.js';
@@ -40,6 +43,43 @@ const processing = new Set<string>();
 
 async function settleOffer(offer: FactoringOffer): Promise<void> {
   const repayAtomic = parseUnits(offer.expectedReturnUsdc, USDC_DECIMALS).toString();
+
+  // The escrow pays an assigned financier out of the settlement itself, ahead
+  // of the seller. Pulling the full amount again here would charge the seller
+  // twice for the same advance, so ask the escrow what it already paid and
+  // only collect a shortfall (which arises when the deal settled for less than
+  // the repay amount). Read with a local ABI so this does not depend on the
+  // generated escrow ABI being regenerated first.
+  let alreadyPaid = 0n;
+  try {
+    const [, , paid] = (await publicClient.readContract({
+      address: config.KARWAN_ESCROW_ADDR as `0x${string}`,
+      abi: [
+        {
+          type: 'function',
+          name: 'assignmentOf',
+          stateMutability: 'view',
+          inputs: [{ type: 'bytes32' }],
+          outputs: [{ type: 'address' }, { type: 'uint128' }, { type: 'uint128' }],
+        },
+      ] as const,
+      functionName: 'assignmentOf',
+      args: [offer.invoiceId as `0x${string}`],
+    })) as readonly [string, bigint, bigint];
+    alreadyPaid = paid;
+  } catch {
+    // Pre-assignment escrow generation, or an unreachable node. Fall through to
+    // the pull, which is what those offers were accepted under.
+  }
+
+  if (alreadyPaid >= BigInt(repayAtomic)) {
+    logger.info(
+      { offerId: offer.id, alreadyPaid: alreadyPaid.toString() },
+      'factoring: escrow already paid the financier, nothing to pull',
+    );
+    await patchFactoringOffer(offer.id, { status: 'settled', settledAt: Date.now() });
+    return;
+  }
 
   let txHash: string;
   if (offer.repayAuthorization) {
