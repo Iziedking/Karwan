@@ -135,6 +135,16 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     struct EscrowAccount {
         address buyer;
         address seller;
+        /// Audit F-5: the identity wallet behind each party, resolved through
+        /// the vault ONCE and stored. Resolving at call time instead let a
+        /// unilateral vault.revokeAgent rewrite a live deal's answer to "who
+        /// is this party", which locked the honest owner out of their own
+        /// deal (the agent is the stored address and stays self-equal) and
+        /// moved the settlement outcome onto a throwaway agent. Snapshotting
+        /// is what the vault already does for Reservation.owner, which is why
+        /// the money side was never exposed to this.
+        address buyerIdentity;
+        address sellerIdentity;
         uint256 dealAmount;
         uint256 sellerNet;
         uint256 feeTotal;
@@ -688,9 +698,14 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ) internal {
         if (escrows[jobId].state != EscrowState.None) revert AlreadyFunded();
         if (seller == address(0) || seller == msg.sender) revert InvalidSeller();
+        // Audit F-5: resolve both identities once, here. These feed the
+        // self-deal guard below and are stored on the account so no later
+        // party check, payout or reputation credit has to ask the vault again.
+        address buyerIdentity = vault.resolveOwner(msg.sender);
+        address sellerIdentity = vault.resolveOwner(seller);
         // Identity-level self-deal guard: a user's buyer agent funding their
         // own seller agent resolves to the same identity in the vault.
-        if (vault.resolveOwner(seller) == vault.resolveOwner(msg.sender)) revert InvalidSeller();
+        if (buyerIdentity == sellerIdentity) revert InvalidSeller();
         if (dealAmount == 0) revert InvalidAmount();
 
         uint64 window = timing.reviewWindow == 0 ? reviewWindowSecs : timing.reviewWindow;
@@ -728,6 +743,8 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             EscrowAccount storage e = escrows[jobId];
             e.buyer = msg.sender;
             e.seller = seller;
+            e.buyerIdentity = buyerIdentity;
+            e.sellerIdentity = sellerIdentity;
             e.dealAmount = dealAmount;
             e.sellerNet = dealAmount - (feeTotal - buyerFee);
             e.feeTotal = feeTotal;
@@ -756,7 +773,13 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     function acceptEscrow(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Funded) revert InvalidState();
-        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
+        if (!_isSeller(e, msg.sender)) revert NotSeller();
+
+        // Audit F-5: accept is the seller's commitment, so re-snapshot their
+        // identity here. A seller named at fund may only have bound their
+        // agent afterwards, and this deal should carry the binding that was
+        // true when they took it on. Nothing after this point re-resolves.
+        e.sellerIdentity = vault.resolveOwner(e.seller);
 
         if (e.reservationBps > 0) {
             uint256 reserveAmount = (e.dealAmount * e.reservationBps) / BPS_DENOMINATOR;
@@ -785,18 +808,29 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///      the consented approveAgent/registerOwner handshake) can drive the
     ///      deal alongside the stored agent wallet. If the platform's signer
     ///      dies, the human with their own key keeps every lifecycle lever.
-    function _isParty(address stored, address caller) internal view returns (bool) {
-        if (caller == stored) return true;
-        return vault.resolveOwner(caller) == vault.resolveOwner(stored);
+    /// @dev Party checks read the snapshot taken at fund/accept, so they are
+    ///      pure storage reads and cannot change answer mid-deal. Both the
+    ///      acting wallet and the identity behind it are the same human, and
+    ///      both were consented when the deal was committed.
+    function _isBuyer(EscrowAccount storage e, address caller) internal view returns (bool) {
+        return caller == e.buyer || (e.buyerIdentity != address(0) && caller == e.buyerIdentity);
     }
 
-    /// @dev Payee choice for the remedy paths: the stored party wallet or its
-    ///      vault-registered identity, nothing else. Both are consented
+    function _isSeller(EscrowAccount storage e, address caller) internal view returns (bool) {
+        return caller == e.seller || (e.sellerIdentity != address(0) && caller == e.sellerIdentity);
+    }
+
+    /// @dev Payee choice for the remedy paths: the stored party wallet or the
+    ///      identity snapshotted for it, nothing else. Both are consented
     ///      addresses of the same human, so there is no redirect vector.
     ///      address(0) means "the stored wallet".
-    function _validPayee(address stored, address requested) internal view returns (address) {
+    function _validPayee(address stored, address storedIdentity, address requested)
+        internal
+        pure
+        returns (address)
+    {
         if (requested == address(0) || requested == stored) return stored;
-        if (requested == vault.resolveOwner(stored)) return requested;
+        if (storedIdentity != address(0) && requested == storedIdentity) return requested;
         revert InvalidPayee();
     }
 
@@ -816,7 +850,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     function markDelivered(bytes32 jobId, bytes32 proofHash) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
+        if (!_isSeller(e, msg.sender)) revert NotSeller();
         if (e.deliveryDeadline != 0 && block.timestamp > uint256(e.deliveryDeadline) + e.reclaimGrace) {
             revert DeadlinePassed();
         }
@@ -844,13 +878,13 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
         _requireNotHeld(jobId);
-        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
+        if (!_isSeller(e, msg.sender)) revert NotSeller();
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
         if (e.deliveredAt == 0) revert NotDelivered();
         if (block.timestamp < e.claimDeadline) revert ReviewWindowOpen();
 
-        address to = _validPayee(e.seller, payee);
+        address to = _validPayee(e.seller, e.sellerIdentity, payee);
         uint256 sellerCut = _payMilestone(jobId, e, milestoneIndex, to);
         emit MilestoneClaimed(jobId, milestoneIndex, sellerCut, to);
         if (e.state == EscrowState.Settled) {
@@ -907,7 +941,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
         _requireNotHeld(jobId);
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
         if (milestoneIndex != e.milestonesReleased) revert TooManyReleases();
         if (milestoneIndex >= e.milestonePcts.length) revert TooManyReleases();
 
@@ -925,7 +959,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
         _requireNotHeld(jobId);
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
 
         uint256 sellerRemaining = e.sellerNet - e.released;
         uint256 feeRemaining = e.feeTotal - e.feeReleased;
@@ -956,7 +990,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     function dispute(bytes32 jobId, string calldata reasonHash) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Funded && e.state != EscrowState.Accepted) revert InvalidState();
-        if (!_isParty(e.buyer, msg.sender) && !_isParty(e.seller, msg.sender)) revert NotParty();
+        if (!_isBuyer(e, msg.sender) && !_isSeller(e, msg.sender)) revert NotParty();
         e.state = EscrowState.Disputed;
         e.disputedAt = uint64(block.timestamp);
         emit EscrowDisputed(jobId, reasonHash);
@@ -969,7 +1003,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
         _requireNotHeld(jobId);
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
 
         uint256 sellerRemaining = e.sellerNet - e.released;
         uint256 feeRemaining = e.feeTotal - e.feeReleased;
@@ -994,7 +1028,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             vault.release(jobId);
             e.reservedAmount = 0;
             _recordReputation(
-                jobId, e.buyer, e.seller, IKarwanReputation.Outcome.DisputeResolved, e.dealAmount
+                jobId, e.buyerIdentity, e.sellerIdentity, IKarwanReputation.Outcome.DisputeResolved, e.dealAmount
             );
         }
         // Casual deals: no reservation, no reputation credit on a disputed
@@ -1016,7 +1050,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     function refund(bytes32 jobId) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
         if (e.wasAccepted) revert RefundAfterAccept();
 
         // Pre-accept => nothing released yet and no reservation exists, so this
@@ -1045,12 +1079,12 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     function reclaimAfterDeadline(bytes32 jobId, address payee) external nonReentrant {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
         if (e.deliveryDeadline == 0) revert NoDeadline();
         if (e.deliveredAt != 0) revert DeliveryPending();
         if (block.timestamp <= uint256(e.deliveryDeadline) + e.reclaimGrace) revert DeadlineNotPassed();
 
-        address to = _validPayee(e.buyer, payee);
+        address to = _validPayee(e.buyer, e.buyerIdentity, payee);
         uint256 remainingSellerNet = e.sellerNet - e.released;
         uint256 remaining = remainingSellerNet + (e.feeTotal - e.feeReleased);
         uint256 priorReleased = e.released;
@@ -1072,7 +1106,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         }
         // A blown deadline is on-chain-provable lateness, so it records
         // Failed even on casual (no-stake) deals.
-        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Failed, e.dealAmount);
+        _recordReputation(jobId, e.buyerIdentity, e.sellerIdentity, IKarwanReputation.Outcome.Failed, e.dealAmount);
     }
 
     /// @notice Buyer's own forward extension: the buyer voluntarily grants the
@@ -1082,7 +1116,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///         generosity.
     function extendDeadline(bytes32 jobId, uint64 newDeadline) external {
         EscrowAccount storage e = escrows[jobId];
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
         _moveDeadline(jobId, e, newDeadline);
     }
 
@@ -1095,7 +1129,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     function requestExtension(bytes32 jobId, uint64 newDeadline) external {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Accepted) revert InvalidState();
-        if (!_isParty(e.seller, msg.sender)) revert NotSeller();
+        if (!_isSeller(e, msg.sender)) revert NotSeller();
         if (e.deliveryDeadline == 0) revert NoDeadline();
         if (e.extensionCount >= MAX_EXTENSIONS) revert ExtensionsExhausted();
         if (newDeadline <= e.deliveryDeadline) revert InvalidTiming();
@@ -1109,7 +1143,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///         approval time inside _moveDeadline (time passed since the request).
     function approveExtension(bytes32 jobId) external {
         EscrowAccount storage e = escrows[jobId];
-        if (!_isParty(e.buyer, msg.sender)) revert NotBuyer();
+        if (!_isBuyer(e, msg.sender)) revert NotBuyer();
         if (e.pendingDeadline == 0) revert NoPendingExtension();
         if (e.extensionCount >= MAX_EXTENSIONS) revert ExtensionsExhausted();
         uint64 nd = e.pendingDeadline;
@@ -1141,7 +1175,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         EscrowAccount storage e = escrows[jobId];
         if (e.state != EscrowState.Disputed) revert InvalidState();
         if (!e.wasAccepted) revert InvalidState();
-        if (!_isParty(e.buyer, msg.sender) && !_isParty(e.seller, msg.sender)) revert NotParty();
+        if (!_isBuyer(e, msg.sender) && !_isSeller(e, msg.sender)) revert NotParty();
         if (block.timestamp < uint256(e.disputedAt) + disputeTimeoutSecs) revert DisputeStillFresh();
 
         uint64 frozen = uint64(block.timestamp) - e.disputedAt;
@@ -1174,14 +1208,15 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (e.state != EscrowState.Accepted && e.state != EscrowState.Disputed) revert InvalidState();
         if (!e.wasAccepted) revert InvalidState();
         if (sellerBps > BPS_DENOMINATOR) revert InvalidBps();
-        bool isBuyerSide = _isParty(e.buyer, msg.sender);
-        if (!isBuyerSide && !_isParty(e.seller, msg.sender)) revert NotParty();
+        bool isBuyerSide = _isBuyer(e, msg.sender);
+        if (!isBuyerSide && !_isSeller(e, msg.sender)) revert NotParty();
         address own = isBuyerSide ? e.buyer : e.seller;
+        address ownIdentity = isBuyerSide ? e.buyerIdentity : e.sellerIdentity;
         cancelProposals[jobId] = CancelProposal({
             proposer: msg.sender,
             sellerBps: sellerBps,
             proposerIsBuyer: isBuyerSide,
-            proposerPayee: _validPayee(own, payee),
+            proposerPayee: _validPayee(own, ownIdentity, payee),
             active: true
         });
         emit CancelProposed(jobId, msg.sender, isBuyerSide, sellerBps);
@@ -1205,11 +1240,15 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
         if (!p.active) revert NoCancelProposal();
         if (p.sellerBps != sellerBps) revert CancelMismatch();
         if (p.proposerIsBuyer) {
-            if (!_isParty(e.seller, msg.sender)) revert NotParty();
+            if (!_isSeller(e, msg.sender)) revert NotParty();
         } else {
-            if (!_isParty(e.buyer, msg.sender)) revert NotParty();
+            if (!_isBuyer(e, msg.sender)) revert NotParty();
         }
-        address acceptorPayee = _validPayee(p.proposerIsBuyer ? e.seller : e.buyer, payee);
+        address acceptorPayee = _validPayee(
+            p.proposerIsBuyer ? e.seller : e.buyer,
+            p.proposerIsBuyer ? e.sellerIdentity : e.buyerIdentity,
+            payee
+        );
         address sellerTo = p.proposerIsBuyer ? acceptorPayee : p.proposerPayee;
         address buyerTo = p.proposerIsBuyer ? p.proposerPayee : acceptorPayee;
         delete cancelProposals[jobId];
@@ -1254,7 +1293,7 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
 
         // Arbiter resolution: hand the raw split to the reputation contract,
         // which bands it and value-weights it (v2 recordResolution).
-        _recordResolution(jobId, e.buyer, e.seller, sellerBps, e.dealAmount);
+        _recordResolution(jobId, e.buyerIdentity, e.sellerIdentity, sellerBps, e.dealAmount);
     }
 
     // Internals
@@ -1314,25 +1353,21 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             vault.release(jobId);
             e.reservedAmount = 0;
         }
-        _recordReputation(jobId, e.buyer, e.seller, IKarwanReputation.Outcome.Success, e.dealAmount);
+        _recordReputation(jobId, e.buyerIdentity, e.sellerIdentity, IKarwanReputation.Outcome.Success, e.dealAmount);
     }
 
-    /// @dev Resolves agent addresses to their identity wallets via the vault
-    ///      before crediting reputation. Stake lives on identity wallets, so
-    ///      reputation should too, otherwise the off-chain composite engine
-    ///      has to do an agent-summing dance per deal. Falls back to the
-    ///      passed address when the vault returns address(0), but that's a
-    ///      degenerate case (vault.resolveOwner is a pure mapping read with
-    ///      a pass-through default).
+    /// @dev Credits the identities snapshotted when the deal was committed,
+    ///      not whatever the vault says now. Stake lives on identity wallets
+    ///      so reputation should too, and audit F-5 showed that resolving at
+    ///      settlement let a seller revoke their agent mid-deal and move the
+    ///      outcome onto a throwaway address.
     function _recordReputation(
         bytes32 jobId,
-        address buyer,
-        address seller,
+        address buyerIdentity,
+        address sellerIdentity,
         IKarwanReputation.Outcome outcome,
         uint256 dealAmount
     ) internal {
-        address buyerIdentity = vault.resolveOwner(buyer);
-        address sellerIdentity = vault.resolveOwner(seller);
         // Audit I-3: reputation is a non-critical side effect of a settled
         // deal. A revert here (bad rep wiring, paused rep contract) must never
         // block the seller's payout, so we swallow it and emit for retry.
@@ -1349,13 +1384,11 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     ///      into an outcome and value-weights it.
     function _recordResolution(
         bytes32 jobId,
-        address buyer,
-        address seller,
+        address buyerIdentity,
+        address sellerIdentity,
         uint16 sellerBps,
         uint256 dealAmount
     ) internal {
-        address buyerIdentity = vault.resolveOwner(buyer);
-        address sellerIdentity = vault.resolveOwner(seller);
         try reputation.recordResolution(jobId, buyerIdentity, sellerIdentity, sellerBps, dealAmount) {
         } catch Error(string memory reason) {
             emit ReputationRecordFailed(jobId, reason);
