@@ -619,6 +619,16 @@ export const escrowV2Abi = [
             "internalType": "address"
           },
           {
+            "name": "buyerIdentity",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sellerIdentity",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "dealAmount",
             "type": "uint256",
             "internalType": "uint256"

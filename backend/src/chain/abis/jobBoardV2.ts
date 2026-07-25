@@ -60,6 +60,19 @@ export const jobBoardV2Abi = [
   },
   {
     "type": "function",
+    "name": "cancelAccept",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "counterOffer",
     "inputs": [
       {
@@ -143,6 +156,19 @@ export const jobBoardV2Abi = [
       }
     ],
     "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "expireJob",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -285,6 +311,19 @@ export const jobBoardV2Abi = [
   },
   {
     "type": "event",
+    "name": "AcceptCancelled",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "BidAccepted",
     "inputs": [
       {
@@ -415,6 +454,19 @@ export const jobBoardV2Abi = [
   },
   {
     "type": "event",
+    "name": "JobExpired",
+    "inputs": [
+      {
+        "name": "jobId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "JobPosted",
     "inputs": [
       {
@@ -478,6 +530,16 @@ export const jobBoardV2Abi = [
   {
     "type": "error",
     "name": "JobNotOpen",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MatchWindowClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MatchWindowOpen",
     "inputs": []
   },
   {

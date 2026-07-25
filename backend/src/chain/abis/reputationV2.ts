@@ -61,6 +61,29 @@ export const reputationV2Abi = [
   },
   {
     "type": "function",
+    "name": "backfillDiversity",
+    "inputs": [
+      {
+        "name": "subject",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "parties",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "counts",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "backfillLocked",
     "inputs": [],
     "outputs": [
@@ -68,6 +91,25 @@ export const reputationV2Abi = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "distinctCounterparties",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -207,6 +249,49 @@ export const reputationV2Abi = [
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pairDealCount",
+    "inputs": [
+      {
+        "name": "a",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "b",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pairDeals",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -669,6 +754,25 @@ export const reputationV2Abi = [
   },
   {
     "type": "event",
+    "name": "DiversityBackfilled",
+    "inputs": [
+      {
+        "name": "subject",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "partyCount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "EscrowSet",
     "inputs": [
       {
@@ -771,6 +875,43 @@ export const reputationV2Abi = [
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PairSettled",
+    "inputs": [
+      {
+        "name": "buyer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "seller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "pairCount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyerDistinct",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "sellerDistinct",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -933,6 +1074,11 @@ export const reputationV2Abi = [
   {
     "type": "error",
     "name": "InvalidSeverity",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LengthMismatch",
     "inputs": []
   },
   {
