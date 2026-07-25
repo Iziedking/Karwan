@@ -33,9 +33,12 @@ import {
   KARWAN_VAULT_LEGACY_ADDRESS_3,
 } from '@/features/profile/config';
 
-/// 30-day recovery surface for the pre-v2.D KarwanEscrow + KarwanVault. One
-/// page, two sections. Reads stay open forever via /api/legacy/window; writes
-/// refuse with 410 once the window closes.
+/// Recovery surface for the KarwanEscrow + KarwanVault the current contracts
+/// displaced. One page, two sections. Reads stay open forever via
+/// /api/legacy/window; writes refuse with 410 once the window closes.
+///
+/// Only one generation is carried. Older ones were retired at the 2026-07-25
+/// migration, so the gen 2 and 3 slots resolve to null and render nothing.
 
 const vaultAbi = [
   {
