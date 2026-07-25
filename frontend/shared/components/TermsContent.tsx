@@ -8,13 +8,13 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// `docs/terms-and-conditions.md`; bumping the `TERMS_CURRENT_VERSION` env on
 /// the backend AND editing the version here together is what triggers a
 /// re-prompt across the product.
-export const TERMS_LAST_UPDATED = '2026-07-03';
+export const TERMS_LAST_UPDATED = '2026-07-25';
 
 /// Bump this in lockstep with the backend's TERMS_CURRENT_VERSION when the
 /// visible text changes materially. The modal records whatever the backend
 /// says is current, so the source of truth for "is this user up to date" lives
 /// on the backend; this constant is just for the human-visible footer.
-export const TERMS_DISPLAY_VERSION = 1;
+export const TERMS_DISPLAY_VERSION = 2;
 
 export function TermsContent({ heading }: { heading?: ReactNode }) {
   const t = useTranslations().termsPage;
@@ -29,19 +29,31 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s1.lead}</p>
         <Bullets>
           <li>
-            <strong>{t.s1.bullets.escrow.label}</strong> {t.s1.bullets.escrow.body}
+            <strong>{t.s1.bullets.deals.label}</strong> {t.s1.bullets.deals.body}
           </li>
           <li>
             <strong>{t.s1.bullets.settlement.label}</strong> {t.s1.bullets.settlement.body}
           </li>
           <li>
+            <strong>{t.s1.bullets.localCurrency.label}</strong> {t.s1.bullets.localCurrency.body}
+          </li>
+          <li>
+            <strong>{t.s1.bullets.invite.label}</strong> {t.s1.bullets.invite.body}
+          </li>
+          <li>
+            <strong>{t.s1.bullets.moving.label}</strong> {t.s1.bullets.moving.body}
+          </li>
+          <li>
             <strong>{t.s1.bullets.reputation.label}</strong> {t.s1.bullets.reputation.body}
           </li>
           <li>
-            <strong>{t.s1.bullets.agent.label}</strong> {t.s1.bullets.agent.body}
+            <strong>{t.s1.bullets.agents.label}</strong> {t.s1.bullets.agents.body}
           </li>
           <li>
-            <strong>{t.s1.bullets.bridging.label}</strong> {t.s1.bullets.bridging.body}
+            <strong>{t.s1.bullets.assistant.label}</strong> {t.s1.bullets.assistant.body}
+          </li>
+          <li>
+            <strong>{t.s1.bullets.staking.label}</strong> {t.s1.bullets.staking.body}
           </li>
         </Bullets>
         <p>{t.s1.tail}</p>
@@ -49,89 +61,138 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
 
       <Section title={t.s2.title}>
         <p>{t.s2.lead}</p>
-        <Bullets>
-          <li>
-            <strong>{t.s2.bullets.keys.label}</strong> {t.s2.bullets.keys.body}
-          </li>
-          <li>
-            <strong>{t.s2.bullets.review.label}</strong> {t.s2.bullets.review.body}
-          </li>
-          <li>
-            <strong>{t.s2.bullets.deadlines.label}</strong> {t.s2.bullets.deadlines.body}
-          </li>
-          <li>
-            <strong>{t.s2.bullets.offPlatform.label}</strong> {t.s2.bullets.offPlatform.body}
-          </li>
-          <li>
-            <strong>{t.s2.bullets.disputes.label}</strong> {t.s2.bullets.disputes.body}
-          </li>
-        </Bullets>
+        <p>
+          <strong>{t.s2.ownWallet.label}</strong> {t.s2.ownWallet.body}
+        </p>
+        <p>
+          <strong>{t.s2.operated.label}</strong> {t.s2.operated.body}
+        </p>
+        <p>{t.s2.scope}</p>
+        <p>{t.s2.contractLimit}</p>
+        <p>{t.s2.why}</p>
+        <p>{t.s2.research}</p>
       </Section>
 
       <Section title={t.s3.title}>
         <p>{t.s3.lead}</p>
         <Bullets>
-          <li>{t.s3.bullets.success}</li>
-          <li>{t.s3.bullets.disputes}</li>
-          <li>{t.s3.bullets.malicious}</li>
-          <li>{t.s3.bullets.staking}</li>
+          <li>
+            <strong>{t.s3.bullets.signin.label}</strong> {t.s3.bullets.signin.body}
+          </li>
+          <li>
+            <strong>{t.s3.bullets.review.label}</strong> {t.s3.bullets.review.body}
+          </li>
+          <li>
+            <strong>{t.s3.bullets.deadlines.label}</strong> {t.s3.bullets.deadlines.body}
+          </li>
+          <li>
+            <strong>{t.s3.bullets.offPlatform.label}</strong> {t.s3.bullets.offPlatform.body}
+          </li>
+          <li>
+            <strong>{t.s3.bullets.counterparty.label}</strong> {t.s3.bullets.counterparty.body}
+          </li>
+          <li>
+            <strong>{t.s3.bullets.currency.label}</strong> {t.s3.bullets.currency.body}
+          </li>
         </Bullets>
-        <p>{t.s3.tail}</p>
       </Section>
 
       <Section title={t.s4.title}>
         <p>{t.s4.lead}</p>
         <Bullets>
           <li>
-            <strong>{t.s4.bullets.depeg.label}</strong> {t.s4.bullets.depeg.body}
+            <strong>{t.s4.bullets.release.label}</strong> {t.s4.bullets.release.body}
           </li>
           <li>
-            <strong>{t.s4.bullets.contract.label}</strong> {t.s4.bullets.contract.body}
+            <strong>{t.s4.bullets.autoRelease.label}</strong> {t.s4.bullets.autoRelease.body}
           </li>
           <li>
-            <strong>{t.s4.bullets.outage.label}</strong> {t.s4.bullets.outage.body}
+            <strong>{t.s4.bullets.deadline.label}</strong> {t.s4.bullets.deadline.body}
           </li>
           <li>
-            <strong>{t.s4.bullets.fiat.label}</strong> {t.s4.bullets.fiat.body}
+            <strong>{t.s4.bullets.cancel.label}</strong> {t.s4.bullets.cancel.body}
           </li>
           <li>
-            <strong>{t.s4.bullets.regulatory.label}</strong> {t.s4.bullets.regulatory.body}
-          </li>
-          <li>
-            <strong>{t.s4.bullets.testnet.label}</strong> {t.s4.bullets.testnet.body}
+            <strong>{t.s4.bullets.disputes.label}</strong> {t.s4.bullets.disputes.body}
           </li>
         </Bullets>
+        <p>{t.s4.tail}</p>
       </Section>
 
       <Section title={t.s5.title}>
-        <p>{t.s5.storeLead}</p>
+        <p>{t.s5.lead}</p>
         <Bullets>
-          <li>{t.s5.store.addresses}</li>
-          <li>{t.s5.store.email}</li>
-          <li>{t.s5.store.chats}</li>
-          <li>{t.s5.store.reputation}</li>
-        </Bullets>
-        <p>{t.s5.notStoreLead}</p>
-        <Bullets>
-          <li>{t.s5.notStore.keys}</li>
-          <li>{t.s5.notStore.fiat}</li>
+          <li>{t.s5.bullets.success}</li>
+          <li>{t.s5.bullets.disputes}</li>
+          <li>{t.s5.bullets.malicious}</li>
+          <li>{t.s5.bullets.deadline}</li>
+          <li>{t.s5.bullets.staking}</li>
         </Bullets>
         <p>{t.s5.tail}</p>
+        <p>{t.s5.agentWallet}</p>
       </Section>
 
       <Section title={t.s6.title}>
         <p>{t.s6.lead}</p>
         <Bullets>
-          <li>{t.s6.bullets.age}</li>
-          <li>{t.s6.bullets.lawful}</li>
-          <li>{t.s6.bullets.address}</li>
+          <li>
+            <strong>{t.s6.bullets.testnet.label}</strong> {t.s6.bullets.testnet.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.contract.label}</strong> {t.s6.bullets.contract.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.depeg.label}</strong> {t.s6.bullets.depeg.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.outage.label}</strong> {t.s6.bullets.outage.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.crossChain.label}</strong> {t.s6.bullets.crossChain.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.fiat.label}</strong> {t.s6.bullets.fiat.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.compliance.label}</strong> {t.s6.bullets.compliance.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.regulatory.label}</strong> {t.s6.bullets.regulatory.body}
+          </li>
         </Bullets>
-        <p>{t.s6.changes}</p>
-        <p>{t.s6.organisation}</p>
       </Section>
 
       <Section title={t.s7.title}>
-        <p>{t.s7.body}</p>
+        <p>{t.s7.storeLead}</p>
+        <Bullets>
+          <li>{t.s7.store.addresses}</li>
+          <li>{t.s7.store.email}</li>
+          <li>{t.s7.store.chats}</li>
+          <li>{t.s7.store.reputation}</li>
+          <li>{t.s7.store.business}</li>
+        </Bullets>
+        <p>{t.s7.notStoreLead}</p>
+        <Bullets>
+          <li>{t.s7.notStore.keys}</li>
+          <li>{t.s7.notStore.fiat}</li>
+        </Bullets>
+        <p>{t.s7.custody}</p>
+        <p>{t.s7.tail}</p>
+      </Section>
+
+      <Section title={t.s8.title}>
+        <p>{t.s8.lead}</p>
+        <Bullets>
+          <li>{t.s8.bullets.age}</li>
+          <li>{t.s8.bullets.lawful}</li>
+          <li>{t.s8.bullets.address}</li>
+        </Bullets>
+        <p>{t.s8.changes}</p>
+        <p>{t.s8.organisation}</p>
+      </Section>
+
+      <Section title={t.s9.title}>
+        <p>{t.s9.body}</p>
       </Section>
 
       <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] pt-4 border-t border-[var(--lp-border-light)]">

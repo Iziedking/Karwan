@@ -3385,56 +3385,85 @@ interface MessagesShape {
     s1: {
       title: string; lead: string;
       bullets: {
-        escrow: { label: string; body: string };
+        deals: { label: string; body: string };
         settlement: { label: string; body: string };
+        localCurrency: { label: string; body: string };
+        invite: { label: string; body: string };
+        moving: { label: string; body: string };
         reputation: { label: string; body: string };
-        agent: { label: string; body: string };
-        bridging: { label: string; body: string };
+        agents: { label: string; body: string };
+        assistant: { label: string; body: string };
+        staking: { label: string; body: string };
       };
       tail: string;
     };
     s2: {
       title: string; lead: string;
-      bullets: {
-        keys: { label: string; body: string };
-        review: { label: string; body: string };
-        deadlines: { label: string; body: string };
-        offPlatform: { label: string; body: string };
-        disputes: { label: string; body: string };
-      };
+      ownWallet: { label: string; body: string };
+      operated: { label: string; body: string };
+      scope: string;
+      contractLimit: string;
+      why: string;
+      research: string;
     };
     s3: {
       title: string; lead: string;
       bullets: {
-        success: string; disputes: string; malicious: string; staking: string;
+        signin: { label: string; body: string };
+        review: { label: string; body: string };
+        deadlines: { label: string; body: string };
+        offPlatform: { label: string; body: string };
+        counterparty: { label: string; body: string };
+        currency: { label: string; body: string };
       };
-      tail: string;
     };
     s4: {
       title: string; lead: string;
       bullets: {
-        depeg: { label: string; body: string };
-        contract: { label: string; body: string };
-        outage: { label: string; body: string };
-        fiat: { label: string; body: string };
-        regulatory: { label: string; body: string };
-        testnet: { label: string; body: string };
+        release: { label: string; body: string };
+        autoRelease: { label: string; body: string };
+        deadline: { label: string; body: string };
+        cancel: { label: string; body: string };
+        disputes: { label: string; body: string };
       };
-    };
-    s5: {
-      title: string; storeLead: string;
-      store: { addresses: string; email: string; chats: string; reputation: string };
-      notStoreLead: string;
-      notStore: { keys: string; fiat: string };
       tail: string;
     };
+    s5: {
+      title: string; lead: string;
+      bullets: {
+        success: string; disputes: string; malicious: string; deadline: string; staking: string;
+      };
+      tail: string;
+      agentWallet: string;
+    };
     s6: {
+      title: string; lead: string;
+      bullets: {
+        testnet: { label: string; body: string };
+        contract: { label: string; body: string };
+        depeg: { label: string; body: string };
+        outage: { label: string; body: string };
+        crossChain: { label: string; body: string };
+        fiat: { label: string; body: string };
+        compliance: { label: string; body: string };
+        regulatory: { label: string; body: string };
+      };
+    };
+    s7: {
+      title: string; storeLead: string;
+      store: { addresses: string; email: string; chats: string; reputation: string; business: string };
+      notStoreLead: string;
+      notStore: { keys: string; fiat: string };
+      custody: string;
+      tail: string;
+    };
+    s8: {
       title: string; lead: string;
       bullets: { age: string; lawful: string; address: string };
       changes: string;
       organisation: string;
     };
-    s7: { title: string; body: string };
+    s9: { title: string; body: string };
     footer: { version: string; updated: string };
   };
   adminFeedbackPage: {
@@ -7601,78 +7630,111 @@ export const en: MessagesShape = {
     preamble: 'These terms govern your use of Karwan. By signing in, posting a request, opening a deal, or staking, you agree to be bound by them. If you do not agree to these terms, please do not use the platform.',
     s1: {
       title: '1. What Karwan offers',
-      lead: 'Karwan is a settlement layer for cross-border SME work. The core pieces:',
+      lead: 'Karwan is a settlement layer for cross-border work between businesses, freelancers, and individuals. The core pieces:',
       bullets: {
-        escrow: { label: 'On-chain escrow.', body: 'Every funded deal locks USDC in a smart contract on Arc, with milestone release controlled by the buyer.' },
-        settlement: { label: 'Stablecoin settlement.', body: 'All movement is in USDC. There is no fiat rail in the product; conversions to and from your local currency are your own decision.' },
-        reputation: { label: 'Reputation passport.', body: 'Your wallet carries a tier and score based on your deal history. Anyone with the address can read it.' },
-        agent: { label: 'Agent assistance.', body: 'Optional buyer and seller agents help you find counterparties, score offers, and negotiate within the limits you set. The agent never spends without your explicit approval.' },
-        bridging: { label: 'Bridging.', body: 'USDC from supported source chains can be moved to Arc via Circle\'s Cross-Chain Transfer Protocol.' },
+        deals: { label: 'Deals with escrow.', body: 'Open a deal directly with someone you already know, or post a request and let the market bid. Either way the money locks in a smart contract on Arc before work starts, and releases in milestones.' },
+        settlement: { label: 'Settlement in USDC.', body: 'All movement inside Karwan is in USDC, a dollar stablecoin issued by Circle.' },
+        localCurrency: { label: 'Local currency.', body: 'Karwan does not convert to or from your local currency inside the product today. Converting is your own decision, made outside Karwan. Local currency access is being enabled region by region. Where it becomes available, it is provided by a licensed partner under their own terms and their own identity checks, and what you can reach depends on the region your account is registered in. Nothing here is a commitment to a date or to a particular region.' },
+        invite: { label: 'Invite by email.', body: 'You can open a deal with someone who has no account. They claim it from an emailed link with a one-time code, and get paid without ever installing a wallet.' },
+        moving: { label: 'Moving money in and out.', body: 'USDC can be moved to Arc from Ethereum, Base, Arbitrum, Optimism, Polygon, and Solana, and back out to any of them, using Circle\'s Cross-Chain Transfer Protocol. Transfers within Arc are direct.' },
+        reputation: { label: 'Reputation and the credit passport.', body: 'Your account carries a tier and a score built from settled deal history. Anyone with your address can read the on-chain part.' },
+        agents: { label: 'Agents.', body: 'Optional buyer and seller agents find counterparties, score offers, and negotiate inside the limits you set. They negotiate. They do not move money on their own. Every movement is either approved by you or is one of the automatic outcomes in section 4.' },
+        assistant: { label: 'The assistant.', body: 'An in-product AI assistant answers questions and can prepare actions for you. Anything that moves money is shown to you and needs your confirmation before it runs. You can ask it for a person at any point, which opens a support ticket.' },
+        staking: { label: 'Staking.', body: 'You can lock USDC in the vault. It raises your tier and acts as deal insurance the escrow contract can draw on if you lose a dispute.' },
       },
-      tail: 'Some of this is still rolling out. Features labelled "coming soon" or shown behind a beta flag are not guaranteed to ship on a fixed date.',
+      tail: 'Some of this is still rolling out. Business registration, invoice factoring, purchase-order financing, and the financier side are behind flags and are not available to every account. Anything labelled "coming soon" or shown behind a beta flag is not guaranteed to ship on a fixed date.',
     },
     s2: {
-      title: '2. What you are responsible for',
-      lead: 'You take care of:',
-      bullets: {
-        keys: { label: 'Your keys and sign-in.', body: 'Whether that\'s a passkey, an email login, or a connected wallet. Karwan never holds the keys that move your funds.' },
-        review: { label: 'Reviewing what you receive.', body: 'Look at the deliverable before you release the final milestone. Once released, the funds are with the seller.' },
-        deadlines: { label: 'The deadlines you set.', body: 'If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.' },
-        offPlatform: { label: 'Off-platform delivery is at your own risk.', body: 'If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.' },
-        disputes: { label: 'Disputes follow the rules in the reputation doc.', body: 'There is no human arbitration today. The contract logic and the recorded outcomes are the source of truth.' },
-      },
+      title: '2. How your account is held',
+      lead: 'Karwan settles in USDC. How your balance is held depends on how you signed in.',
+      ownWallet: { label: 'If you connected your own wallet,', body: 'you hold it. You approve every movement yourself, and Karwan cannot move anything without you.' },
+      operated: { label: 'If you signed in with email or a passkey,', body: 'Karwan opens an account for you on Circle\'s wallet infrastructure and operates it on your behalf. You do not manage credentials and you do not need to.' },
+      scope: 'Operating it means something specific. Karwan can move your money only to carry out things you started: fund a deal you created, release a milestone you approved, return funds to you when a deal is cancelled or a deadline is missed, and complete the automatic outcomes described in section 4. Karwan cannot send your balance to anyone outside a deal you opened, cannot change a deal after both sides accept, and cannot move your funds to itself.',
+      contractLimit: 'Once a deal is funded, the escrow contract on Arc governs where that money can go. That limit is enforced by the contract, not by our policy.',
+      why: 'The automatic parts of Karwan exist because of this. A milestone that releases on its own after the review window, and a refund that returns to a buyer when a seller misses a deadline, both need an account that can act when neither side is online.',
+      research: 'One exception is worth naming. If you activate paid market research, you pay once for a credit balance, and your agent spends from that balance on your behalf as it reads market data. That is the only place an agent spends without a fresh approval each time, and you can see the remaining balance on your profile.',
     },
     s3: {
-      title: '3. Reputation and the agent',
-      lead: 'Reputation is computed from actual on-chain settlement history. The summary:',
+      title: '3. What you are responsible for',
+      lead: 'You take care of:',
       bullets: {
-        success: 'Successful deals raise your score and can move you to a higher tier.',
-        disputes: 'Disputes you lose reduce your score; disputes you win do not.',
-        malicious: 'A confirmed malicious delivery (security-tagged) reduces your tier sharply.',
-        staking: 'Staking demonstrates commitment and contributes to a higher tier. It also acts as deal insurance, enforced by the current escrow contract.',
+        signin: { label: 'Your sign-in.', body: 'Keep your passkey, your email access, or your connected wallet secure. Anyone who has them can act as you.' },
+        review: { label: 'Reviewing what you receive.', body: 'Look at the deliverable before you release the final milestone. Once released, the funds are with the seller.' },
+        deadlines: { label: 'The deadlines you set.', body: 'If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.' },
+        offPlatform: { label: 'Off-platform delivery.', body: 'If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.' },
+        counterparty: { label: 'Who you deal with.', body: 'Karwan does not verify identity, licences, or the right to trade. A tier and a score describe settlement history, not trustworthiness.' },
+        currency: { label: 'Currency.', body: 'Karwan does not convert currencies and does not apply an exchange rate. Amounts you enter are amounts in USDC. If local currency access reaches your region, the rate and the fee on that leg belong to the partner providing it, not to Karwan.' },
       },
-      tail: 'The full formula lives in the reputation model doc. The agent reads the tier and applies tier-aware behaviour: ELITE gets priority and skips the auction in some flows; NEW pays a premium for first deals. The agent never overrides the limits you\'ve set.',
     },
     s4: {
-      title: '4. Risk you carry',
-      lead: 'Crypto and stablecoin work has real risks. The ones that apply here:',
+      title: '4. How a deal settles',
+      lead: 'Once escrow is funded, these are the rules that move the money.',
       bullets: {
-        depeg: { label: 'USDC depeg or freeze.', body: 'USDC is issued by Circle. If Circle\'s banking partners come under stress, or a sanctioned address is involved, USDC can lose its peg or be frozen. Karwan cannot reverse this.' },
-        contract: { label: 'Smart-contract risk.', body: 'The escrow, vault, and reputation contracts on Arc were audited internally and are still considered testnet-quality. A bug, an exploit, or a misuse could result in lost funds.' },
-        outage: { label: 'Network outages.', body: 'Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.' },
-        fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency, that transaction is solely between you and your exchange.' },
-        regulatory: { label: 'Geographic and regulatory compliance is yours.', body: 'Karwan does not check whether USDC payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.' },
-        testnet: { label: 'Karwan is on testnet today.', body: 'You are not paid in real money, and no deal on testnet carries legal weight. Testnet serves as a sandbox; a move to mainnet follows the standard hardening pass and an external audit.' },
+        release: { label: 'Milestone release.', body: 'The buyer releases each milestone. The final milestone always needs an explicit click from the buyer and never releases on a timer.' },
+        autoRelease: { label: 'Automatic release.', body: 'Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.' },
+        deadline: { label: 'A missed deadline.', body: 'When a delivery deadline passes with nothing delivered, the buyer is alerted and can reclaim or grant an extension. If nobody acts and the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller.' },
+        cancel: { label: 'Cancelling.', body: 'A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.' },
+        disputes: { label: 'Disputes.', body: 'There is no human arbitration today. Where a dispute cannot be settled between the two of you, the contract logic and the recorded outcomes are the source of truth. Do not open a deal on Karwan expecting a third party to rule on it.' },
       },
+      tail: 'The exact timings in force are published on the disputes page in the product, and they can change. That page shows the live values, not a copy of them.',
     },
     s5: {
-      title: '5. Privacy snapshot',
+      title: '5. Reputation and the agent',
+      lead: 'Reputation is computed from settled deal history. The summary:',
+      bullets: {
+        success: 'Successful deals raise your score and can move you to a higher tier.',
+        disputes: 'Disputes you lose reduce your score. Disputes you win do not.',
+        malicious: 'A delivery confirmed as malicious drops your tier sharply.',
+        deadline: 'A missed deadline that ends in a reclaim is recorded as a failure.',
+        staking: 'Staking contributes to a higher tier and acts as deal insurance the escrow contract can draw on.',
+      },
+      tail: 'The full formula lives in the reputation model doc. Agents read the tier and apply tier-aware behaviour: a high tier gets priority and can skip the auction in some flows, a new account pays a premium on first deals. An agent never overrides the limits you set.',
+      agentWallet: 'Reputation is written against the account that settled the deal. If you use an agent wallet, the record follows that wallet.',
+    },
+    s6: {
+      title: '6. Risk you carry',
+      lead: 'Stablecoin work has real risks. The ones that apply here:',
+      bullets: {
+        testnet: { label: 'Karwan is on testnet right now.', body: 'You are not paid in real money. Deals on testnet have no legal weight. Testnet is a sandbox. Mainnet follows after the hardening pass.' },
+        contract: { label: 'Smart-contract risk.', body: 'The escrow, vault, and reputation contracts on Arc were audited internally and are testnet quality. A bug, an exploit, or a misuse could result in lost funds.' },
+        depeg: { label: 'USDC depeg or freeze.', body: 'USDC is issued by Circle. If Circle\'s banking partners come under stress, or a sanctioned address is involved, USDC can lose its peg or be frozen. Karwan cannot reverse this.' },
+        outage: { label: 'Network outages.', body: 'Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.' },
+        crossChain: { label: 'Cross-chain transfers.', body: 'Moving USDC between chains depends on infrastructure outside Karwan. A transfer can take longer than the product suggests, and a transfer that has left one chain but not yet arrived on another is not something Karwan can reverse.' },
+        fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency today, that transaction is solely between you and whoever you sell it to. Where local currency access arrives inside Karwan, it runs on a licensed partner. Availability, limits, rates, and identity checks are set by that partner, can change, and can be withdrawn in a region without notice to you from us.' },
+        compliance: { label: 'No compliance screening on deals.', body: 'Karwan does not run sanctions, anti-money-laundering, or counterparty risk checks on deals, and does not verify business identity. Do not treat a deal on Karwan as a screened transaction. Where a licensed partner provides local currency access, that partner runs its own identity checks on you, separately from anything Karwan does.' },
+        regulatory: { label: 'Geographic and regulatory compliance is yours.', body: 'Karwan does not check whether stablecoin payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.' },
+      },
+    },
+    s7: {
+      title: '7. Privacy snapshot',
       storeLead: 'What we store:',
       store: {
-        addresses: 'Wallet addresses, on-chain activity, and off-chain deal records keyed by address.',
-        email: 'Optional email if you use the Circle sign-in path. Optional X handle if you bind it to your profile.',
-        chats: 'Negotiation transcripts and chat messages tied to a deal.',
-        reputation: 'Reputation inputs (success counts, dispute counts, staked balance, registration timestamp).',
+        addresses: 'Addresses, on-chain activity, and off-chain deal records keyed by address.',
+        email: 'Your email if you sign in by email or passkey, or if you verify one. Your X handle and your Telegram account if you connect them.',
+        chats: 'Negotiation transcripts, deal messages, assistant conversations, and support tickets.',
+        reputation: 'Reputation inputs: settled deal counts, dispute counts, staked balance, registration time.',
+        business: 'Business details you submit for registration, including a hash of any document you upload. The document itself is hashed in your browser and is not sent to us.',
       },
       notStoreLead: 'What we do not store:',
       notStore: {
-        keys: 'Private keys for any wallet path. Circle holds the user wallet keys; web3 wallets sign locally and we never see the secret.',
-        fiat: 'Payment card data, bank account numbers, or fiat ramp credentials. There is no fiat ramp in product.',
+        keys: 'Signing credentials for a connected wallet. Those never leave your device.',
+        fiat: 'Payment card data or bank account numbers. Where local currency access becomes available in your region, those details go to the licensed partner providing it and are handled under their privacy terms, not held by Karwan.',
       },
-      tail: 'You can ask us to delete your account record from settings. Reputation events recorded on chain stay on chain. We cannot remove those.',
+      custody: 'For accounts Karwan operates on your behalf, the signing capability is held in Circle\'s infrastructure under our control, as described in section 2. It is not stored by us as a key you or we could copy out.',
+      tail: 'You can ask us to delete your account record from settings. Anything recorded on chain stays on chain. We cannot remove that.',
     },
-    s6: {
-      title: '6. Account and acceptance',
+    s8: {
+      title: '8. Account and acceptance',
       lead: 'By accepting these terms in the product, you confirm:',
       bullets: {
         age: 'You are at least 18 years old, or the age of majority where you live.',
         lawful: 'You can lawfully enter contracts in your jurisdiction.',
-        address: 'The address you signed in with is yours, or you have authority to act for the entity that owns it.',
+        address: 'The account you signed in with is yours, or you have authority to act for the entity that owns it.',
       },
       changes: 'These terms may change. When a material change ships, the version number on this page is updated and the product asks you to accept the new version before you can post a request, open a deal, or stake. If you do not accept, you can still read your existing deals and reclaim escrow under the previous terms, but you cannot open new work.',
       organisation: 'If you are using the product through an organisation, you confirm that you have authority to bind that organisation to these terms.',
     },
-    s7: { title: '7. Contact', body: 'The fastest channel is the in-product feedback link. For matters that need a paper trail, email the address listed on karwan.site under "Contact".' },
+    s9: { title: '9. Contact', body: 'The fastest channel is the in-product feedback link, or the assistant, which can open a support ticket for you. For matters that need a paper trail, email the address listed on karwan.site under "Contact". Every live chat and email opens a ticket with an id. Keep the id if you have one.' },
     footer: { version: 'Version', updated: 'Last updated' },
   },
   adminFeedbackPage: {

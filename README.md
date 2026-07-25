@@ -105,6 +105,16 @@ cd backend && npm run usyc:prove
 
 The escrow route is the hardest of the three, because a buyer's escrowed money is exactly the capital that should be working and exactly the capital you must never gamble with. So escrow funds route **through** the treasury rather than holding USYC themselves. The escrow's books stay pure USDC and always pull back exactly what was swept, so principal is guaranteed regardless of the token's price, and the treasury, which holds the upside, absorbs any shortfall. The buyer's money earns while it waits, and the buyer never carries the risk.
 
+## Custody
+
+Karwan holds no customer funds on its own balance sheet. Balances sit in Circle-operated wallet infrastructure and, once a deal is funded, in escrow contracts on Arc.
+
+Signing authority follows the sign-in method. A user who connects their own wallet holds sole signing authority. A user who signs in by email or passkey delegates signing authority to Karwan over an account Circle operates for them, and Karwan exercises it only to execute instructions that user has already given: funding, milestone release, refund, cancellation, and the published automatic outcomes.
+
+That authority is bounded by the escrow contract, not by internal policy. Once a deal is funded, the contract governs where the money can go. Karwan cannot redirect a funded escrow, alter agreed terms, or withdraw a user balance to itself.
+
+The automatic settlement paths depend on this. Auto-release after a review window, and auto-reclaim when a seller misses a delivery deadline, both require an account that can act when neither party is online.
+
 ## Roadmap
 
 ### The v2 contract bundle
@@ -123,7 +133,7 @@ An agent ranks a seller on what they claim plus their settled-deal record. The n
 
 ### Mainnet
 
-User funds move to user-held wallets, with agents funded only through a capped spend allowance, so the platform never custodies a principal. Staker deposits route to USYC so stakers earn yield directly.
+The delegated signing described under Custody narrows further. User funds move to user-held wallets, with agents funded only through a capped spend allowance, so Karwan holds no signing authority over a principal balance. Staker deposits route to USYC so stakers earn yield directly.
 
 ### The currency leg
 

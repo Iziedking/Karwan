@@ -281,8 +281,12 @@ const envSchema = z.object({
   DEAL_INVITE_TTL_MS: z.coerce.number().int().positive().default(7 * 86_400_000),
   // Current Terms and Conditions version. Bumping this re-prompts every user
   // on next protected action; their previous acceptance row stays for audit.
-  // Bump the integer when docs/terms-and-conditions.md changes materially.
-  TERMS_CURRENT_VERSION: z.coerce.number().int().positive().default(1),
+  // Bump the integer when docs/terms-and-conditions.md changes materially, and
+  // move TERMS_DISPLAY_VERSION in frontend/shared/components/TermsContent.tsx
+  // with it. Bump the default rather than setting the env per environment: an
+  // env that goes unset silently keeps serving the old version while the
+  // frontend footer already shows the new one.
+  TERMS_CURRENT_VERSION: z.coerce.number().int().positive().default(2),
   // Delay-appeal grace: how long after the first milestone is released before
   // the seller can raise a delay appeal. Gives the buyer a normal review
   // window before any pressure. 1 hour default; longer on mainnet.
