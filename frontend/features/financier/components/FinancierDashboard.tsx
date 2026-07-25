@@ -97,6 +97,7 @@ const poFinancingAbi = [
       { name: 'principalUsdc', type: 'uint128' },
       { name: 'repayUsdc', type: 'uint128' },
       { name: 'releaseTimeoutSeconds', type: 'uint64' },
+      { name: 'requiredStakeUsdc', type: 'uint128' },
     ],
     outputs: [],
   },
@@ -1095,6 +1096,9 @@ function FundModal({
             principalWei,
             repayWei,
             BigInt(timeoutSeconds),
+            // Unsecured line. Collateralised factoring reserves seller stake on
+            // the vault, which needs a way to set the amount here first.
+            0n,
           ],
           chain: walletClient.chain,
           account: address,
