@@ -126,7 +126,7 @@ const extractionSchema = z.object({
     .positive()
     .nullable()
     .describe(
-      'For direct: total deal value in USDC. For brief: buyer budget cap in USDC. For listing: seller ask price per unit. Convert any currency to USDC at 1:1. Null if not stated.',
+      'For direct: total deal value in USDC. For brief: buyer budget cap in USDC. For listing: seller ask price per unit. USD and USDC are the same number ("$120", "120 usdc", "120 bucks" all mean 120). Any OTHER currency or asset (naira, rupees, euros, pounds, ETH, ...) must be left null: Karwan does not convert currencies and has no exchange rate, so guessing would set a real escrow amount from a number that means something else. Null if not stated.',
     ),
   deadlineDays: z
     .number()
@@ -212,7 +212,8 @@ function buildExtractPrompt(
     '',
     'Real users type messily. Handle all of these:',
     '- Typos and slang ("budjet", "deadlin", "asap", "by EOD friday", "tmrw").',
-    '- Mixed currency ("$120", "120 usdc", "120 bucks", "120k naira", "0.04 ETH"). Convert ALL to USDC at 1:1 (this is testnet — do not apply real FX).',
+    '- Dollar amounts written loosely ("$120", "120 usdc", "120 bucks", "120 dollars"). These all mean 120 USDC.',
+    '- A NON-dollar currency or asset ("120k naira", "5000 rupees", "80 euros", "0.04 ETH"). Do NOT convert these. Karwan settles only in USDC and applies no exchange rate, so a converted guess would fund escrow with a number that means something else entirely. Set amountUsdc null, set confidence.amount to 0, and add a note asking the user for the amount in USDC.',
     '- Mixed time units ("2 days", "48 hrs", "by next monday", "this weekend", "EOW", "in a week", "two weeks", "a month"). Convert ALL to DAYS. "Next monday" is 7 days. "EOW" is 5 days. "Tomorrow" is 1. "ASAP" with no number is null + add a note asking for a deadline.',
     '- Tolerance phrased loosely ("flexible", "give or take 15%", "+/- 20", "20% wiggle", "fixed price"). "Fixed" or "no wiggle" → 0. Loose phrases without a number → null. A clear number → that number (0-100).',
     '- Milestone splits phrased as "50/50", "half up front", "30 then 70", "all on delivery" (= 100 first, but Karwan minimum first release is 10).',
@@ -221,7 +222,7 @@ function buildExtractPrompt(
     '- Don\'t-care or empty fields ("idk for the deadline", "whatever the price"): return null and add a clear note saying you need that value.',
     '',
     'Hard rules:',
-    '- Currency: ALWAYS USDC, ALWAYS 1:1 testnet conversion. Never apply real exchange rates.',
+    '- Currency: amounts are ALWAYS USDC. Dollars map straight across. NEVER convert another currency or asset into USDC, and never apply an exchange rate: return null and ask.',
     '- Deadline: ALWAYS in days. Negative or zero days → null + a note. Beyond 365 days → cap at 365 and note.',
     '- Be conservative. If a value is not clearly stated, return null and add a note. NEVER invent prices, deadlines, or counterparties.',
     '- Confidence is 0-1: 1 = explicit, 0.5 = reasonable inference, below 0.3 = guess. If you returned null, the confidence for that field is 0.',
