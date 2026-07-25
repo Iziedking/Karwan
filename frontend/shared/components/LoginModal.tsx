@@ -142,6 +142,11 @@ export function LoginModal({ open, onClose }: Props) {
       const supportsWebAuthn = browserSupportsWebAuthn();
       const pref: 'passkey' | 'otp' = (() => {
         if (!supportsWebAuthn) return 'otp';
+        // A brand-new email always goes through the emailed code first. A
+        // passkey binds a credential to an address, and until the code comes
+        // back there is nothing showing the person typing it owns that address.
+        // Once they are in, they can add a passkey from the profile.
+        if (!r.exists) return 'otp';
         if (r.exists && !r.hasPasskey) return 'otp';
         return 'passkey';
       })();

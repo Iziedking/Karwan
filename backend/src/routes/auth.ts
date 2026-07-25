@@ -456,6 +456,18 @@ authRoutes.post('/passkey/add/verify', async (c) => {
 
 const startSchema = z.object({ email: emailSchema });
 
+/// Passkey registration binds a credential to an email, and the email IS the
+/// account, so it can only run once that email is proven. This path proved
+/// nothing: anyone could register any address they could type, take ownership
+/// of the account and the Circle identity wallet provisioned with it, and be
+/// sitting there when the real owner arrived.
+///
+/// There is no way to prove an email inside a WebAuthn ceremony, so the proof
+/// has to come first. A new user goes through /otp/request + /otp/verify, which
+/// emails a code, creates the account and opens a session, and then attaches a
+/// passkey through /passkey/add/*, which is session-gated. This route stays for
+/// clients that already hold a session, and refuses to mint an account for an
+/// email nobody has proven.
 authRoutes.post('/register/options', async (c) => {
   let body;
   try {
@@ -469,6 +481,17 @@ authRoutes.post('/register/options', async (c) => {
     return c.json(
       { error: 'an account already exists for this email; sign in instead' },
       409,
+    );
+  }
+  const session = readSession(c);
+  if (!session || session.email?.toLowerCase() !== body.email.toLowerCase()) {
+    return c.json(
+      {
+        error: 'verify this email first',
+        code: 'email_unverified',
+        detail: 'Request a sign-in code for this address, then add a passkey.',
+      },
+      403,
     );
   }
   const { id: rpID, name: rpName } = rp();
@@ -507,6 +530,12 @@ authRoutes.post('/register/verify', async (c) => {
     body = verifyRegisterSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  // Same gate as /register/options: the challenge alone proves possession of a
+  // browser, never possession of the email.
+  const verifySession = readSession(c);
+  if (!verifySession || verifySession.email?.toLowerCase() !== body.email.toLowerCase()) {
+    return c.json({ error: 'verify this email first', code: 'email_unverified' }, 403);
   }
   const challenge = pending.get(body.email);
   if (!challenge || challenge.kind !== 'register') {
