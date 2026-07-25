@@ -19,45 +19,39 @@ export const ARC_USDC_ADDRESS = '0x3600000000000000000000000000000000000000' as 
 // USDC at the ERC-20 interface is 6 decimals (the same scale escrow + vault use).
 export const ARC_USDC_DECIMALS = 6;
 
-// Active KarwanVault (v2.D-prime bundle, deployed 2026-05-28). Mirrors the
-// backend KARWAN_VAULT_ADDR. Web3 users sign deposit / withdraw / claim
-// against this. Previous v2.D vault (0xAb26...368E) is now the Gen 2 legacy.
-// Active KarwanVault. Env-driven so a redeploy doesn't need a frontend code
-// change. Fallback is the v2.E live address (the current production contract
-// at time of writing). Set NEXT_PUBLIC_KARWAN_VAULT_ADDRESS on Vercel to
-// the new value when the next vault redeploy happens.
+// Active KarwanVault. Mirrors the backend KARWAN_VAULT_ADDR. Web3 users sign
+// deposit / withdraw / claim against this. Env-driven so a redeploy is a Vercel
+// env swap; the fallback tracks whatever is live at time of writing, currently
+// the v2 bundle deployed 2026-07-25.
 export const KARWAN_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_KARWAN_VAULT_ADDRESS ??
-  '0x2d4506284B2D778365b4B295100EF099F35973c5') as `0x${string}`;
+  '0xBEeE1D1da5D010F0F2a67B183361A5CD90A40E2A') as `0x${string}`;
 
 // KarwanYieldDistributor, per-address USDC claim contract that holds the
 // daily-credited yield for stakers. Read-only on chain for balances; the
-// `claim()` write is the only thing a staker ever calls. Env-driven so a
-// redeploy is a Vercel env swap, not a code change. Fallback to the address
-// deployed 2026-06-04.
+// `claim()` write is the only thing a staker ever calls.
 export const KARWAN_YIELD_DISTRIBUTOR_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_YIELD_DISTRIBUTOR_ADDRESS ??
-    '0x9950b9a41A3e80930e451F2FEdaeb81e80195D03') as `0x${string}`;
+    '0xc9955389DDFc26d6845A581838965E015e79C420') as `0x${string}`;
 
-// Gen 1 legacy KarwanVault (the original pre-v2.D contract). Read-only on the
-// /legacy page so existing stakers can request-withdraw / claim USDC parked
-// on the older contract. Mirrors the backend KARWAN_VAULT_LEGACY_ADDR.
-export const KARWAN_VAULT_LEGACY_ADDRESS = '0x92b1223921944024f6615A604a2bDA6eF1fEe922' as const;
+// The vault the current one displaced. Read-only on /legacy so existing stakers
+// can request-withdraw / claim USDC parked there. Mirrors the backend
+// KARWAN_VAULT_LEGACY_ADDR. Only one generation is carried: generations older
+// than this were retired at the 2026-07-25 migration.
+export const KARWAN_VAULT_LEGACY_ADDRESS = '0x2d4506284B2D778365b4B295100EF099F35973c5' as const;
 
-// Gen 1 legacy KarwanEscrow. Backs the legacy deal recovery flow (refund,
-// release-final, mutual cancel) on /legacy. Mirrors KARWAN_ESCROW_LEGACY_ADDR.
-export const KARWAN_ESCROW_LEGACY_ADDRESS = '0xb81d9093607E460e2E4Fa971c75d9322E756b838' as const;
+// The escrow the current one displaced. Backs the legacy deal recovery flow
+// (refund, release-final, mutual cancel) on /legacy. Mirrors the backend
+// KARWAN_ESCROW_LEGACY_ADDR.
+export const KARWAN_ESCROW_LEGACY_ADDRESS = '0x48797C04EE342067A68f29Fbb19B577077d77301' as const;
 
-// Gen 2 legacy contracts. Empty string when no Gen 2 redeploy has happened
-// yet; populated at the next redeploy with whatever the previous production
-// addresses were. Frontend reads these from NEXT_PUBLIC_* env at build time so
-// they can be updated without touching code.
+// Older generations, retired at the 2026-07-25 migration. Left env-driven and
+// null so /legacy renders a single generation without a code change, and so an
+// address can be restored temporarily if a staker turns up with funds on one.
 export const KARWAN_VAULT_LEGACY_ADDRESS_2 =
   (process.env.NEXT_PUBLIC_KARWAN_VAULT_LEGACY_ADDRESS_2 as `0x${string}` | undefined) ?? null;
 export const KARWAN_ESCROW_LEGACY_ADDRESS_2 =
   (process.env.NEXT_PUBLIC_KARWAN_ESCROW_LEGACY_ADDRESS_2 as `0x${string}` | undefined) ?? null;
 
-// Gen 3 legacy contracts. The v2.D vault + escrow that v2.E displaces. Read
-// from NEXT_PUBLIC_* so a future redeploy is an env swap, not a code change.
 export const KARWAN_VAULT_LEGACY_ADDRESS_3 =
   (process.env.NEXT_PUBLIC_KARWAN_VAULT_LEGACY_ADDRESS_3 as `0x${string}` | undefined) ?? null;
 export const KARWAN_ESCROW_LEGACY_ADDRESS_3 =
@@ -67,10 +61,10 @@ export const KARWAN_ESCROW_LEGACY_ADDRESS_3 =
 // env swap, not a code change.
 export const KARWAN_INVOICE_REGISTRY_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_INVOICE_REGISTRY_ADDRESS ??
-    '0x20a7CDf59b5f304De2b22a75e49f52353273E4E4') as `0x${string}`;
+    '0xf026b263e4f08C0091efdd912cfaD31101d22A11') as `0x${string}`;
 export const KARWAN_PO_FINANCING_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_PO_FINANCING_ADDRESS ??
-    '0xc91122Eb88613C98d58616cD8973883142F74Bb5') as `0x${string}`;
+    '0xe6550216F1752147c960B5de1E797918B27AF406') as `0x${string}`;
 
 // SME Trades launch gate. The B2B rail (trade context on deals, invoice
 // factoring, PO financing, the financier desk) ships behind the SME Trades
