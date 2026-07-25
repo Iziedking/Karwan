@@ -56,11 +56,17 @@ function fmtAge(ms: number | null): string {
 }
 
 function watcherColor(status: Health['watchers'][number]['status']): string {
-  return status === 'healthy' ? GREEN : status === 'dormant' ? GREY : AMBER;
+  if (status === 'healthy') return GREEN;
+  // Grey, not amber: dormant is switched off and starting is simply not due yet.
+  // Neither is a fault, and colouring them as one is what made a healthy deal
+  // watcher read as an incident.
+  if (status === 'dormant' || status === 'starting') return GREY;
+  return AMBER;
 }
 
 function watcherDetail(w: Health['watchers'][number]): string {
   if (w.status === 'dormant') return 'dormant (disabled)';
+  if (w.status === 'starting') return 'not due yet';
   if (w.status === 'missing') return 'not ticking';
   if (w.status === 'stalled') return `stalled · last ${fmtAge(w.ageMs)}`;
   return `${fmtAge(w.ageMs)} · ${w.runs} ticks`;

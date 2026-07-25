@@ -37,20 +37,39 @@ interface WatcherDescriptor {
 
 const MINUTE = 60_000;
 
+/// When this process booted. A watcher that has not ticked yet is only a fault
+/// once it has had a full interval to do so; before that it is simply not due.
+/// Without this, trendScout (24h) reads as a red 'missing' for a whole day after
+/// every restart, and the two 5-minute vault watchers do the same for 5 minutes.
+const BOOTED_AT = Date.now();
+
+/// Read the same env override the watcher itself reads, so a cadence tuned on
+/// the host cannot make the monitor cry stalled.
+///
+/// This is not hypothetical: DEAL_WATCHER_TICK_MS, FACTORING_WATCHER_TICK_MS and
+/// BALANCE_WATCHER_POLL_MS were all set to 300000 in production while the table
+/// below claimed 60000. staleMs is 3x the interval, so all three reported
+/// 'stalled' for the last two minutes of every five-minute cycle — a red deal
+/// watcher roughly 40% of the time, on a watcher that was working perfectly.
+function envInterval(key: string, fallbackMs: number): number {
+  const raw = Number(process.env[key]);
+  return Number.isFinite(raw) && raw > 0 ? raw : fallbackMs;
+}
+
 const WATCHERS: WatcherDescriptor[] = [
-  { name: 'dealWatcher', label: 'Deal watcher (milestone release, deadline reclaim)', intervalMs: MINUTE, enabled: () => true },
-  { name: 'factoringWatcher', label: 'Factoring watcher (repayment on settle)', intervalMs: MINUTE, enabled: () => !!config.KARWAN_INVOICE_REGISTRY_ADDR },
-  { name: 'poWatcher', label: 'PO financing watcher (release + repay on chain)', intervalMs: MINUTE, enabled: () => !!config.KARWAN_PO_FINANCING_ADDR && !!config.cctpRelayWalletId },
+  { name: 'dealWatcher', label: 'Deal watcher (milestone release, deadline reclaim)', intervalMs: envInterval('DEAL_WATCHER_TICK_MS', MINUTE), enabled: () => true },
+  { name: 'factoringWatcher', label: 'Factoring watcher (repayment on settle)', intervalMs: envInterval('FACTORING_WATCHER_TICK_MS', MINUTE), enabled: () => !!config.KARWAN_INVOICE_REGISTRY_ADDR },
+  { name: 'poWatcher', label: 'PO financing watcher (release + repay on chain)', intervalMs: envInterval('PO_WATCHER_TICK_MS', MINUTE), enabled: () => !!config.KARWAN_PO_FINANCING_ADDR && !!config.cctpRelayWalletId },
   { name: 'jobExpiryWatcher', label: 'Job expiry watcher (stale jobs, deadline calls)', intervalMs: 30_000, enabled: () => true },
   { name: 'reputationReconciler', label: 'Reputation reconciler (replay settled deals)', intervalMs: 10 * MINUTE, enabled: () => config.REPUTATION_RECONCILER_ENABLED },
-  { name: 'trendScout', label: 'Trend scout (daily demand nudges)', intervalMs: 24 * 60 * MINUTE, enabled: () => config.TREND_NUDGES_ENABLED },
-  { name: 'balanceWatcher', label: 'Balance watcher (wallet credit / debit)', intervalMs: MINUTE, enabled: () => true },
+  { name: 'trendScout', label: 'Trend scout (daily demand nudges)', intervalMs: envInterval('TREND_SCOUT_TICK_MS', 24 * 60 * MINUTE), enabled: () => config.TREND_NUDGES_ENABLED },
+  { name: 'balanceWatcher', label: 'Balance watcher (wallet credit / debit)', intervalMs: envInterval('BALANCE_WATCHER_POLL_MS', MINUTE), enabled: () => true },
   { name: 'cooldownWatcher', label: 'Vault cooldown watcher', intervalMs: 5 * MINUTE, enabled: () => !!config.KARWAN_VAULT_ADDR },
   { name: 'vaultScanCache', label: 'Vault scan cache refresh', intervalMs: 5 * MINUTE, enabled: () => !!config.KARWAN_VAULT_ADDR },
   { name: 'yieldIndexer', label: 'Yield indexer (staking charts)', intervalMs: 90_000, enabled: () => !!config.KARWAN_YIELD_DISTRIBUTOR_ADDR },
 ];
 
-export type WatcherStatus = 'healthy' | 'stalled' | 'missing' | 'dormant';
+export type WatcherStatus = 'healthy' | 'stalled' | 'missing' | 'dormant' | 'starting';
 
 export interface WatcherHealth {
   name: string;
@@ -64,7 +83,11 @@ export interface WatcherHealth {
 
 /// Cross-reference the expected watchers with their recorded heartbeats.
 /// 'dormant'  = gate off, not expected to run (grey, fine).
-/// 'missing'  = enabled but never ticked (crashed at boot / not started) — red.
+/// 'starting' = enabled, no tick yet, but its first interval has not elapsed
+///              since boot, so it is not due. setInterval does not fire on
+///              registration; every watcher is silent for one full period after
+///              a restart, which is a whole day for the daily trend scout.
+/// 'missing'  = enabled and past due for its first tick (crashed at boot) — red.
 /// 'stalled'  = ticked before but has gone quiet past ~3 cycles — red.
 /// 'healthy'  = ticked recently.
 export function watcherHealth(): WatcherHealth[] {
@@ -77,8 +100,11 @@ export function watcherHealth(): WatcherHealth[] {
     const staleMs = Math.max(w.intervalMs * 3, 90_000);
     let status: WatcherStatus;
     if (!enabled) status = 'dormant';
-    else if (lastRunAt == null) status = 'missing';
-    else if (ageMs! > staleMs) status = 'stalled';
+    else if (lastRunAt == null) {
+      // Grace of one full interval plus a cycle, matching the staleness rule, so
+      // a watcher is never red purely for having just booted.
+      status = now - BOOTED_AT < w.intervalMs + staleMs ? 'starting' : 'missing';
+    } else if (ageMs! > staleMs) status = 'stalled';
     else status = 'healthy';
     return { name: w.name, label: w.label, enabled, status, lastRunAt, ageMs, runs: beat?.runs ?? 0 };
   });

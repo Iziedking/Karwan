@@ -1493,7 +1493,7 @@ export const api = {
         name: string;
         label: string;
         enabled: boolean;
-        status: 'healthy' | 'stalled' | 'missing' | 'dormant';
+        status: 'healthy' | 'stalled' | 'missing' | 'dormant' | 'starting';
         lastRunAt: number | null;
         ageMs: number | null;
         runs: number;
