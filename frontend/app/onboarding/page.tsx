@@ -748,10 +748,20 @@ function GetReadyStep({
           })}
         </ul>
 
+        {/* Activation leaves the account at zero, and the next screen is the
+            profile, where the faucet lives. Say so, otherwise the balance
+            reads as broken rather than empty. */}
+        {phase === 'done' && (
+          <p className="mt-8 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+            Your account starts empty. Next screen has a one tap button to get
+            test USDC, then you can post your first deal.
+          </p>
+        )}
+
         <div className="mt-9 flex items-center gap-5">
           {phase === 'done' ? (
             <CTAPill onClick={onDone} tone="light">
-              Enter Karwan →
+              Add money →
             </CTAPill>
           ) : (
             <CTAPill onClick={run} disabled={phase === 'running'} tone="light">
