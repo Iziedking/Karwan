@@ -110,10 +110,29 @@ adminUsycRoutes.get('/', async (c) => {
       yieldUsd: number;
     } | null = null;
     if (vault) {
-      const [operator, outForYield] = (await Promise.all([
+      /// The operator EOA holds ONE USYC pool, but `outForYield` is per-vault
+      /// storage. After a vault migration the new contract starts at zero while
+      /// the operator still holds USYC bought against the old contract's basis,
+      /// so reading only the active vault reports the entire holding as profit.
+      /// Sum the basis across every configured generation to match the pool.
+      const priorVaults = [
+        cfg.KARWAN_VAULT_LEGACY_ADDR,
+        cfg.KARWAN_VAULT_LEGACY_ADDR_2,
+        cfg.KARWAN_VAULT_LEGACY_ADDR_3,
+      ].filter(
+        (a): a is `0x${string}` => !!a && a.toLowerCase() !== vault.toLowerCase(),
+      );
+
+      const [operator, ...bases] = (await Promise.all([
         publicClient.readContract({ address: vault, abi: vaultAbi, functionName: 'operator' }),
         publicClient.readContract({ address: vault, abi: vaultAbi, functionName: 'outForYield' }),
-      ])) as [`0x${string}`, bigint];
+        ...priorVaults.map((a) =>
+          publicClient
+            .readContract({ address: a, abi: vaultAbi, functionName: 'outForYield' })
+            .catch(() => 0n),
+        ),
+      ])) as [`0x${string}`, ...bigint[]];
+      const outForYield = bases.reduce((sum, b) => sum + b, 0n);
       const operatorUsyc = await readBalance(usycToken, operator);
       const operatorUsycN = num(operatorUsyc, USYC_DECIMALS);
       const operatorValue = operatorUsycN * priceUsd;
