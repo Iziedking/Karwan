@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { legacyGenerations } from './contracts.js';
+import { logger } from '../logger.js';
 
 /// Single source of truth for the 30-day legacy recovery windows. Each
 /// generation runs its own clock; the composite `getLegacyWindow()` returns
@@ -51,6 +52,18 @@ export function getLegacyGenerations(now: number = Date.now()): LegacyGeneration
     const closesAtMs = closesAtForGeneration(gen.index);
     const hasLegacyEscrow = gen.escrowAddress !== null;
     const hasLegacyVault = gen.vaultAddress !== null;
+
+    /// An unset date reads as a closed window, so /legacy tells anyone with
+    /// funds still on that generation that their recovery period has ended
+    /// when nobody ever opened one. Configuring the contracts but not the
+    /// deadline is always a mistake, so say so rather than failing silently.
+    if ((hasLegacyEscrow || hasLegacyVault) && closesAtMs === null) {
+      logger.warn(
+        { generation: gen.index },
+        'legacy contracts are configured but LEGACY_WINDOW_CLOSES_AT is unset for this generation, so recovery renders as CLOSED',
+      );
+    }
+
     const stillOpen = closesAtMs !== null && now < closesAtMs;
     return {
       index: gen.index,
