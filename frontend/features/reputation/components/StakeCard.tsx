@@ -283,6 +283,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       status: 'pending',
     });
 
+    let deposited = false;
     try {
       if (isCircleUser) {
         const r = await api.vaultDeposit({ address, amountUsdc });
@@ -319,14 +320,29 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         patchLog(logId, { status: 'done', txHash: depositHash });
       }
       recordAction('stake-deposit');
-      // fresh=true forces the backend to scan the vault now so the new
-      // position appears in this refetch instead of after the periodic tick.
-      await refetchPositions(true);
-      await refetchRep();
+      deposited = true;
     } catch (err) {
       patchLog(logId, { status: 'failed', error: (err as Error).message });
     } finally {
       setBusyKind(null);
+    }
+    if (!deposited) return;
+
+    // Clear the field now the money has moved. Left populated, it kept
+    // re-validating the old amount against the balance the deposit just
+    // reduced, printing "insufficient balance" under a deposit that succeeded.
+    setDepositAmount('');
+
+    // Refresh OUTSIDE the try that owns the deposit. fresh=true makes the
+    // backend scan the vault over Arc RPC, and that read fails often enough
+    // that it was landing in the catch above and re-marking a CONFIRMED deposit
+    // as failed. A refresh that cannot run means a stale number until the 10s
+    // poll catches up; it must never restate whether the deposit landed.
+    try {
+      await refetchPositions(true);
+      await refetchRep();
+    } catch {
+      /* the polling cadence in useVaultPositions picks it up */
     }
   }, [address, depositAmount, walletUsdc, isCircleUser, chainId, switchToArc, recordAction, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, sc]);
 
@@ -521,12 +537,19 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           await arcClient.waitForTransactionReceipt({ hash });
           patchLog(logId, { status: 'done', txHash: hash });
         }
-        await refetchPositions(true);
-        await refetchRep();
       } catch (err) {
         patchLog(logId, { status: 'failed', error: (err as Error).message });
-      } finally {
         setBusyKind(null);
+        return;
+      }
+      setBusyKind(null);
+      // Same reason as the deposit path: the vault scan goes over Arc RPC, and a
+      // failed read must not re-mark a confirmed on-chain action as failed.
+      try {
+        await refetchPositions(true);
+        await refetchRep();
+      } catch {
+        /* the polling cadence picks it up */
       }
     },
     [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays, sc],

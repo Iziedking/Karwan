@@ -763,22 +763,44 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             names.map(async (name) => {
               const cfg = TOP_UP_CHAINS[name];
               const wallet = record.bridgeWallets?.[cfg.circleBlockchain];
-              if (!wallet) {
-                return { chain: cfg.label, depositAddress: null, usdc: null };
-              }
+              // The agent wallets carry the SAME address on every EVM chain, so
+              // an agent can hold USDC on Base with no deposit-wallet record at
+              // all. The balances card reads all three owners; this tool read
+              // only the deposit wallets and so answered "you have nothing on
+              // other chains" while a buyer agent held 20 USDC on each of four.
+              const read = (addr?: string) =>
+                addr && !/^0x0{40}$/i.test(addr)
+                  ? readSourceUsdcBalance(cfg.key, addr).catch(() => null)
+                  : Promise.resolve(null);
+              const [usdc, buyerAgentUsdc, sellerAgentUsdc] = await Promise.all([
+                read(wallet?.address),
+                read(record.buyerAddress),
+                read(record.sellerAddress),
+              ]);
               return {
                 chain: cfg.label,
-                depositAddress: wallet.address,
-                usdc: await readSourceUsdcBalance(cfg.key, wallet.address),
+                depositAddress: wallet?.address ?? null,
+                usdc,
+                buyerAgentUsdc,
+                sellerAgentUsdc,
               };
             }),
           );
-          const funded = rows.filter((r) => r.usdc !== null && Number(r.usdc) > 0);
+          const positive = (v: string | null) => v !== null && Number(v) > 0;
+          const funded = rows.filter((r) => positive(r.usdc));
+          const agentFunded = rows.filter(
+            (r) => positive(r.buyerAgentUsdc) || positive(r.sellerAgentUsdc),
+          );
           return {
             wallets: rows,
-            note: funded.length
-              ? 'Chains with a balance can be moved to Arc right now with propose_top_up — no signing, no wallet popup. Do that instead of sending them to a page.'
-              : 'No USDC waiting in any deposit wallet. To bring money in from an outside wallet or exchange, they send USDC to the deposit address for that chain (give them the address for the chain they named), and once it lands you can move it to Arc for them. If a deposit address is null, send them to top_up to have it created.',
+            note: [
+              funded.length
+                ? 'Chains with a `usdc` balance can be moved to Arc right now with propose_top_up — no signing, no wallet popup. Do that instead of sending them to a page.'
+                : 'No USDC waiting in a DEPOSIT wallet. To bring money in from an outside wallet or exchange, they send USDC to the deposit address for that chain (give them the address for the chain they named), and once it lands you can move it to Arc for them. If a deposit address is null, send them to top_up to have it created.',
+              agentFunded.length
+                ? 'IMPORTANT: their buyer and/or seller AGENT is holding USDC on other chains too (see buyerAgentUsdc / sellerAgentUsdc). Never tell them they have nothing on other chains while those are above zero. To move it, use propose_bridge with direction "toArc" and source "buyerAgent" or "sellerAgent".'
+                : 'Neither agent holds USDC on another chain either, so "nothing on other chains" is a true statement here.',
+            ].join(' '),
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant check_top_up_sources failed');
