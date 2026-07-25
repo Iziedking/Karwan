@@ -3592,7 +3592,7 @@ export const sw: Messages = {
     headlineLead: 'Kile unachojiandikisha',
     headlineAccent: 'kupata',
     intro: 'Bidhaa iko kwenye testnet leo. Masharti yanafunika muundo wa kazi, hatari za malipo ya stablecoin, na tunachofanya na data yako. Soma mara moja, saini mara moja.',
-    preamble: 'Masharti haya yanafunika kila kitu unachofanya kwenye Karwan. Kwa kuingia, kuchapisha ombi, kufungua deal, au kuweka stake, unayakubali. Kama hukubaliani, tafadhali usitumie jukwaa.',
+    preamble: 'Masharti haya yanaeleza jinsi Karwan inavyofanya kazi, tunachofanya na fedha zako, na kila upande unawajibika na nini. Kuingia, kuchapisha ombi, kufungua deal, au kuweka stake kunamaanisha unayakubali. Chukua muda kuyasoma.',
     s1: {
       title: '1. Karwan inatoa nini',
       lead: 'Karwan ni safu ya malipo kwa kazi za kuvuka mipaka kati ya biashara, wafanyakazi huru, na watu binafsi. Vipande vya msingi:',
@@ -3666,7 +3666,7 @@ export const sw: Messages = {
         outage: { label: 'Kukatika kwa mtandao.', body: 'Arc Testnet ni jukwaa la majaribio la moja kwa moja. Kama validators zinasimama, watoa huduma wa RPC wanaanguka, au mpangilio mpya wa chain unatokea, deal yako inaweza kusimama au kurudi nyuma.' },
         crossChain: { label: 'Uhamisho kati ya chains.', body: 'Kuhamisha USDC kati ya chains kunategemea miundombinu iliyo nje ya Karwan. Uhamisho unaweza kuchukua muda mrefu kuliko bidhaa inavyodokeza, na uhamisho ulioondoka chain moja lakini bado haujafika nyingine si kitu ambacho Karwan inaweza kubatilisha.' },
         fiat: { label: 'Hakuna dhamana ya ubadilishaji wa fiat.', body: 'Kama unauza USDC kwa sarafu ya ndani leo, hilo ni kati yako na yule unayemuuzia tu. Pale ufikiaji wa sarafu ya ndani unapofika ndani ya Karwan, unaendeshwa na mshirika mwenye leseni. Upatikanaji, mipaka, viwango, na ukaguzi wa utambulisho vinapangwa na mshirika huyo, vinaweza kubadilika, na vinaweza kuondolewa katika eneo bila taarifa kutoka kwetu kwako.' },
-        compliance: { label: 'Hakuna ukaguzi wa uzingatiaji kwenye deal.', body: 'Karwan haifanyi ukaguzi wa vikwazo, wala wa kuzuia utakatishaji fedha, wala wa hatari ya mwenzio kwenye deal, na haithibitishi utambulisho wa biashara. Usichukulie deal yoyote kwenye Karwan kama muamala uliokaguliwa. Pale mshirika mwenye leseni anapotoa ufikiaji wa sarafu ya ndani, mshirika huyo hufanya ukaguzi wake mwenyewe wa utambulisho kwako, tofauti na chochote ambacho Karwan hufanya.' },
+        compliance: { label: 'Kinachokaguliwa, na kisichokaguliwa.', body: 'Fedha zako zinalindwa na contract ya escrow na kila hatua inaandikwa kwenye rekodi ambayo pande zote mbili zinaweza kuithibitisha. Kile ambacho Karwan haifanyi leo ni kumkagua mtu wa upande mwingine: hakuna ukaguzi wa vikwazo, wa kuzuia utakatishaji fedha, wala wa utambulisho wa biashara kwenye deal. Chagua unayefanya naye kazi kama ungefanya mahali pengine popote. Ukaguzi wa wenzio unaolinda faragha uko kwenye mpango wa mainnet. Pale mshirika mwenye leseni anapotoa ufikiaji wa sarafu ya ndani, mshirika huyo hufanya ukaguzi wake wa utambulisho kama sehemu ya huduma yake.' },
         regulatory: { label: 'Uzingatiaji wa kijiografia na kisheria ni wako.', body: 'Karwan haiangalii ikiwa malipo ya stablecoin ni halali pale unapoishi. Baadhi ya maeneo yanazuia malipo ya stablecoin, kazi inayopitia wakala, au escrow ya peer-to-peer. Una jukumu la kujua sheria zako.' },
       },
     },

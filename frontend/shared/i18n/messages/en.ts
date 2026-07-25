@@ -7635,7 +7635,7 @@ export const en: MessagesShape = {
     headlineLead: 'What you sign up',
     headlineAccent: 'for',
     intro: 'Karwan is currently in testnet. These terms set out how the service works, the risks of stablecoin settlement, and how your data is handled. Please read them in full before you accept.',
-    preamble: 'These terms govern your use of Karwan. By signing in, posting a request, opening a deal, or staking, you agree to be bound by them. If you do not agree to these terms, please do not use the platform.',
+    preamble: 'These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.',
     s1: {
       title: '1. What Karwan offers',
       lead: 'Karwan is a settlement layer for cross-border work between businesses, freelancers, and individuals. The core pieces:',
@@ -7709,7 +7709,7 @@ export const en: MessagesShape = {
         outage: { label: 'Network outages.', body: 'Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.' },
         crossChain: { label: 'Cross-chain transfers.', body: 'Moving USDC between chains depends on infrastructure outside Karwan. A transfer can take longer than the product suggests, and a transfer that has left one chain but not yet arrived on another is not something Karwan can reverse.' },
         fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency today, that transaction is solely between you and whoever you sell it to. Where local currency access arrives inside Karwan, it runs on a licensed partner. Availability, limits, rates, and identity checks are set by that partner, can change, and can be withdrawn in a region without notice to you from us.' },
-        compliance: { label: 'No compliance screening on deals.', body: 'Karwan does not run sanctions, anti-money-laundering, or counterparty risk checks on deals, and does not verify business identity. Do not treat a deal on Karwan as a screened transaction. Where a licensed partner provides local currency access, that partner runs its own identity checks on you, separately from anything Karwan does.' },
+        compliance: { label: 'What is checked, and what is not.', body: 'Your money is protected by the escrow contract and every step is written to a record both sides can verify. What Karwan does not do today is screen the person on the other side: there are no sanctions, anti-money-laundering, or business identity checks on a deal. Choose who you work with the way you would anywhere else. Privacy-preserving counterparty screening is on the roadmap for mainnet. Where a licensed partner provides local currency access, that partner runs its own identity checks as part of their service.' },
         regulatory: { label: 'Geographic and regulatory compliance is yours.', body: 'Karwan does not check whether stablecoin payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.' },
       },
     },
