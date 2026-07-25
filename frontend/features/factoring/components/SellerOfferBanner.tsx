@@ -12,10 +12,6 @@ import {
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
-import {
-  buildTransferAuthorization,
-  serializeAuthorization,
-} from '@/features/factoring/usdcAuthorization';
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
@@ -147,9 +143,28 @@ export function SellerOfferBanner({
 
 // Offers modal
 
-/// How long the seller's repayment authorization stays valid. Must clear
-/// the backend's 60-day floor with room for slow deals.
-const REPAY_VALIDITY_DAYS = 180;
+/// registry.assignReceivable: the seller relays the financier's signed advance
+/// and assigns the receivable in one call.
+const assignReceivableAbi = [
+  {
+    type: 'function',
+    name: 'assignReceivable',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'invoiceId', type: 'bytes32' },
+      { name: 'financier', type: 'address' },
+      { name: 'repayUsdc', type: 'uint128' },
+      { name: 'advanceUsdc', type: 'uint256' },
+      { name: 'validAfter', type: 'uint256' },
+      { name: 'validBefore', type: 'uint256' },
+      { name: 'nonce', type: 'bytes32' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+] as const;
 
 function OffersModal({
   deal,
@@ -194,34 +209,46 @@ function OffersModal({
     setError(null);
     setNeedsStake(false);
     try {
-      // Accepting moves real money: the financier's advance pays out the
-      // moment the backend confirms. Web3 sellers also sign the
-      // repayment authorization here (USDC EIP-3009, no gas, nothing
-      // moves now); the settlement watcher submits it when the escrow
-      // settles. Circle sellers skip the signature; the backend signs
-      // from their identity wallet at settle time.
-      let repayAuthorization;
+      // Accepting is one on-chain call: the registry relays the financier's
+      // signed advance to the seller and assigns the receivable to them in the
+      // same transaction. Neither half can happen without the other, so there
+      // is no moment where the seller is unpaid but already assigned.
+      //
+      // The call is seller-gated on chain, so a web3 seller sends it. Circle
+      // sellers have it signed from their identity wallet by the backend and
+      // never see a prompt. No repayment signature is collected any more: the
+      // escrow pays the financier out of the settlement.
+      let assignTxHash: string | undefined;
       if (!isCircleUser) {
         if (!walletClient || !auth.address) {
-          setError('Connect your wallet to sign the repayment authorization.');
+          setError('Connect your wallet to accept this offer.');
           setAcceptingId(null);
           return;
         }
-        const typed = buildTransferAuthorization({
-          from: auth.address as `0x${string}`,
-          to: offer.financier as `0x${string}`,
-          valueUsdc: offer.expectedReturnUsdc,
-          validForSeconds: REPAY_VALIDITY_DAYS * 24 * 3600,
-        });
-        const signature = await walletClient.signTypedData({
+        const p = await api.factoringAssignmentParams(offer.id);
+        assignTxHash = await walletClient.writeContract({
+          address: p.registry,
+          abi: assignReceivableAbi,
+          functionName: 'assignReceivable',
+          args: [
+            p.invoiceId,
+            p.financier,
+            BigInt(p.repayUsdc),
+            BigInt(p.advanceUsdc),
+            BigInt(p.validAfter),
+            BigInt(p.validBefore),
+            p.nonce,
+            p.v,
+            p.r,
+            p.s,
+          ],
+          chain: walletClient.chain,
           account: auth.address as `0x${string}`,
-          ...typed,
         });
-        repayAuthorization = serializeAuthorization(typed.message, signature);
       }
       const r = await api.acceptFactoringOffer({
         offerId: offer.id,
-        repayAuthorization,
+        assignTxHash,
       });
       onAccepted(r.offer);
     } catch (e) {

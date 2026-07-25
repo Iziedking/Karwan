@@ -2718,12 +2718,31 @@ export const api = {
     json<{ asFinancier: FactoringOffer[]; asSeller: FactoringOffer[] }>(
       '/api/factoring/mine',
     ),
+  /// Arguments for registry.assignReceivable, which pays the seller the advance
+  /// and assigns the receivable to the financier in one transaction. The call is
+  /// seller-gated on chain, so a web3 seller sends it themselves.
+  factoringAssignmentParams: (offerId: string) =>
+    json<{
+      registry: `0x${string}`;
+      invoiceId: `0x${string}`;
+      financier: `0x${string}`;
+      repayUsdc: string;
+      advanceUsdc: string;
+      validAfter: string;
+      validBefore: string;
+      nonce: `0x${string}`;
+      v: number;
+      r: `0x${string}`;
+      s: `0x${string}`;
+    }>(`/api/factoring/offers/${offerId}/assignment`),
   acceptFactoringOffer: (body: {
     offerId: string;
     setPayeeTxHash?: string;
-    /// Required for web3 sellers: EIP-3009 authorizing the repayment
-    /// (seller -> financier), submitted by the settlement watcher when
-    /// the escrow settles. Circle sellers omit it.
+    /// Web3 sellers send registry.assignReceivable themselves and return the
+    /// hash. Circle sellers omit it and the backend signs from their wallet.
+    assignTxHash?: string;
+    /// Legacy: no repayment instrument is collected any more, since the escrow
+    /// pays the financier out of the settlement directly.
     repayAuthorization?: UsdcAuthorization;
   }) =>
     json<{ offer: FactoringOffer }>('/api/factoring/accept', {
@@ -2768,6 +2787,8 @@ export const api = {
     principalUsdc: string;
     repayUsdc: string;
     releaseTimeoutSeconds: number;
+    /// Omitted or "0" opens an unsecured line.
+    requiredStakeUsdc?: string;
   }) =>
     json<{
       line: POFinancingLine;
