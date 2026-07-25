@@ -26,6 +26,11 @@ abstract contract Guardable {
     struct HoldInfo {
         uint64 startedAt; // when the current active hold began (0 if inactive)
         uint64 usedSecs;  // cumulative hold seconds already consumed for this id
+        /// F-2: cumulative deadline extension already handed to the inheriting
+        /// contract for this id. usedSecs alone cannot bound it: a hold placed
+        /// and released inside one block consumes zero budget, so a guardian
+        /// could re-hold in a loop and push a deadline out without limit.
+        uint64 grantedSecs;
         bool active;
     }
 
@@ -87,14 +92,26 @@ abstract contract Guardable {
         h.active = true;
         uint64 remaining = maxHoldSecs - h.usedSecs;
         emit Held(id, reasonHash, uint64(block.timestamp) + remaining);
-        // Let the inheriting contract push its own deadline out by the hold
-        // budget, so a frozen party isn't punished for time they were blocked.
-        _afterHold(id, maxHoldSecs);
+        // Let the inheriting contract push its own deadline out, so a frozen
+        // party isn't punished for time they were blocked.
+        //
+        // F-2: bounded by what has already been granted, not by maxHoldSecs.
+        // Passing the full budget on every call let a guardian stack holds
+        // inside a single block (elapsed is zero, so usedSecs never rises) and
+        // extend a deadline by a multiple of the cap while isHeld still read
+        // false. The total handed out across every hold on an id is now the
+        // budget itself, once.
+        uint64 grantable = maxHoldSecs > h.grantedSecs ? maxHoldSecs - h.grantedSecs : 0;
+        if (grantable != 0) {
+            h.grantedSecs += grantable;
+            _afterHold(id, grantable);
+        }
     }
 
-    /// @dev Hook: fires after a hold is placed. `holdSecs` is the max hold
-    ///      duration (the budget). Override to extend a deal/line deadline so a
-    ///      hold can't make a party miss a window it was frozen out of.
+    /// @dev Hook: fires after a hold is placed. `holdSecs` is the extension
+    ///      being granted now, already capped so the cumulative grant for an id
+    ///      never exceeds maxHoldSecs. Override to extend a deal/line deadline
+    ///      so a hold can't make a party miss a window it was frozen out of.
     function _afterHold(bytes32 id, uint64 holdSecs) internal virtual {}
 
     /// @notice Lift the hold on `id` early. Guardian-only. Settles the time
