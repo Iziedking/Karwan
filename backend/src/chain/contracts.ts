@@ -99,16 +99,21 @@ export const legacyVault3 = legacyVault3Address
   ? getContract({ address: legacyVault3Address, abi: vaultAbi, client: publicClient })
   : null;
 
-/// Pre-v2.D KarwanEscrow. Backs the 30-day recovery surface so buyers can
-/// refund / cancel deals whose USDC is still locked on the legacy contract.
-/// Returns null when KARWAN_ESCROW_LEGACY_ADDR is unset (post-window or
-/// fresh environments).
+/// The KarwanEscrow the current one displaced, backing the recovery surface so
+/// buyers can refund / cancel deals whose USDC is still locked there. Returns
+/// null when KARWAN_ESCROW_LEGACY_ADDR is unset (post-window or fresh
+/// environments).
+///
+/// Binds `escrowAbi`, not `legacyEscrowAbi`: escrowAbi describes precisely this
+/// contract, because it is the ABI the app used before the 2026-07-25 migration
+/// and the v2 escrow that replaced it uses `escrowV2Abi`. Its auto-getter
+/// returns 11 fields, so decoding it with either older ABI silently truncates.
 export const legacyEscrowAddress: Address | null = optional(
   (config as unknown as Record<string, string | undefined>).KARWAN_ESCROW_LEGACY_ADDR,
 );
 
 export const legacyEscrow = legacyEscrowAddress
-  ? getContract({ address: legacyEscrowAddress, abi: legacyEscrowAbi, client: publicClient })
+  ? getContract({ address: legacyEscrowAddress, abi: escrowAbi, client: publicClient })
   : null;
 
 /// Second-generation legacy KarwanEscrow. Same shape as Gen 1.
@@ -133,10 +138,14 @@ export const legacyEscrow3 = legacyEscrow3Address
   : null;
 
 /// Per-generation registry. Each entry binds a generation number to its
-/// vault + escrow addresses. Gen 3 uses the v2.D ABI shape (one extra
-/// storage field in the auto-getter tuple) and a different state-enum
-/// mapping; the `kind` discriminator drives both at read time.
-export type LegacyEscrowKind = 'pre-v2d' | 'v2d';
+/// vault + escrow addresses. The escrow auto-getter has grown a field per
+/// generation, so the tuple width differs and `kind` drives both the ABI and
+/// the state-enum mapping at read time:
+///
+///   pre-v2d   9 fields   state in the legacy enum (no Accepted)
+///   v2d      10 fields   adds reservedAmount, state gains Accepted
+///   v2e      11 fields   adds reservationBps, same enum as v2d
+export type LegacyEscrowKind = 'pre-v2d' | 'v2d' | 'v2e';
 
 export interface LegacyGeneration {
   index: 1 | 2 | 3;
@@ -144,11 +153,9 @@ export interface LegacyGeneration {
   /// vault already shared this surface so a single ABI covers all three.
   vaultAddress: Address | null;
   vault: typeof legacyVault;
-  /// Escrow ABI differs by generation. Gen 1 + Gen 2 use the pre-v2.D ABI;
-  /// Gen 3 uses the v2.D ABI (the readEscrowFrom helper branches on kind).
   kind: LegacyEscrowKind;
   escrowAddress: Address | null;
-  escrow: typeof legacyEscrow | typeof legacyEscrow3;
+  escrow: typeof legacyEscrow | typeof legacyEscrow2 | typeof legacyEscrow3;
 }
 
 export const legacyGenerations: LegacyGeneration[] = [
@@ -156,7 +163,7 @@ export const legacyGenerations: LegacyGeneration[] = [
     index: 1,
     vaultAddress: legacyVaultAddress,
     vault: legacyVault,
-    kind: 'pre-v2d',
+    kind: 'v2e',
     escrowAddress: legacyEscrowAddress,
     escrow: legacyEscrow,
   },
@@ -223,6 +230,36 @@ async function readEscrowFrom(
 ): Promise<LegacyEscrowAccount | null> {
   if (!gen.escrow) return null;
   try {
+    if (gen.kind === 'v2e') {
+      // 11 fields: the v2.D tuple plus a trailing reservationBps. Shares the
+      // v2.D state enum, so the same mapping applies.
+      const raw = (await (gen.escrow as NonNullable<typeof legacyEscrow>).read.escrows([
+        jobId as `0x${string}`,
+      ])) as readonly [
+        `0x${string}`,
+        `0x${string}`,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint,
+        bigint, // reservedAmount, dropped from the normalised view
+        number, // milestonesReleased
+        number, // state (v2.D enum)
+        number, // reservationBps, dropped from the normalised view
+      ];
+      return {
+        buyer: raw[0],
+        seller: raw[1],
+        dealAmount: raw[2],
+        sellerNet: raw[3],
+        feeTotal: raw[4],
+        released: raw[5],
+        feeReleased: raw[6],
+        milestonesReleased: raw[8],
+        state: mapV2dStateToLegacy(raw[9]),
+      };
+    }
     if (gen.kind === 'v2d') {
       // v2.D auto-getter: 10 fields (adds reservedAmount; drops milestonePcts).
       const raw = (await (gen.escrow as NonNullable<typeof legacyEscrow3>).read.escrows([
@@ -251,8 +288,9 @@ async function readEscrowFrom(
         state: mapV2dStateToLegacy(raw[9]),
       };
     }
-    // Pre-v2.D shape: 9 fields, state already in legacy enum.
-    const raw = (await (gen.escrow as NonNullable<typeof legacyEscrow>).read.escrows([
+    // Pre-v2.D shape: 9 fields, state already in legacy enum. Typed against
+    // legacyEscrow2, the remaining binding that still carries this ABI.
+    const raw = (await (gen.escrow as NonNullable<typeof legacyEscrow2>).read.escrows([
       jobId as `0x${string}`,
     ])) as readonly [
       `0x${string}`,
