@@ -218,10 +218,12 @@ const envSchema = z.object({
     blankToUndefined,
     z.string().regex(/^\d+$/).transform(BigInt).optional(),
   ),
-  /// Third-generation legacy reputation contract (the v2.D reputation that
-  /// v2.E displaces). The off-chain composite reads all generations so a
-  /// seller's tier doesn't appear to reset when v2.E launches.
-  KARWAN_REPUTATION_LEGACY_ADDR_3: optionalAddr,
+  /// The reputation contract the current one displaced. Recorded so the
+  /// legacy view can point at it; nothing reads scores from it yet, so an
+  /// on-chain score earned there does not follow a seller across a migration.
+  /// The composite still holds up because the registry returns 5000 (neutral)
+  /// for an unknown address and the deal-history inputs come from the database.
+  KARWAN_REPUTATION_LEGACY_ADDR: optionalAddr,
   // Block at which KarwanVault was deployed. When set, the paginated event
   // reader starts here instead of `latest - 9500` (which only covered ~5h of
   // Arc testnet history at 2s blocks and made older positions disappear).
