@@ -92,15 +92,11 @@ abstract contract Guardable {
         h.active = true;
         uint64 remaining = maxHoldSecs - h.usedSecs;
         emit Held(id, reasonHash, uint64(block.timestamp) + remaining);
-        // Let the inheriting contract push its own deadline out, so a frozen
-        // party isn't punished for time they were blocked.
-        //
-        // F-2: bounded by what has already been granted, not by maxHoldSecs.
-        // Passing the full budget on every call let a guardian stack holds
-        // inside a single block (elapsed is zero, so usedSecs never rises) and
-        // extend a deadline by a multiple of the cap while isHeld still read
-        // false. The total handed out across every hold on an id is now the
-        // budget itself, once.
+        // Audit F-2: the extension is bounded by what has already been granted,
+        // not by maxHoldSecs. Passing the full budget on every call let a
+        // guardian stack holds inside one block (elapsed is zero, so usedSecs
+        // never rises) and push a deadline out by a multiple of the cap while
+        // isHeld still read false. Total granted per id is now the budget, once.
         uint64 grantable = maxHoldSecs > h.grantedSecs ? maxHoldSecs - h.grantedSecs : 0;
         if (grantable != 0) {
             h.grantedSecs += grantable;

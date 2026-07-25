@@ -297,11 +297,11 @@ contract KarwanVault is ReentrancyGuard, Guardable {
     function wrap(uint256 usdcAmount) external nonReentrant {
         if (msg.sender != operator) revert NotOperator();
         if (teller == address(0)) revert TellerNotSet();
-        // F-4: the same coverage floor withdrawForYield enforces. Wrapping
-        // moves USDC out of the vault exactly as a yield withdrawal does, so
-        // leaving it unguarded meant an operator could repoint the teller and
-        // wrap the entire balance, taking staker principal with it. Only the
-        // surplus above live reservations and cooling positions may leave.
+        // Audit F-4: the same coverage floor withdrawForYield enforces.
+        // Wrapping moves USDC out of the vault exactly as a yield withdrawal
+        // does, so leaving it unguarded let an operator repoint the teller and
+        // wrap the whole balance, taking staker principal. Only the surplus
+        // above live reservations and cooling positions may leave.
         uint256 bal = usdc.balanceOf(address(this));
         uint256 floor = totalReservedAll + totalCoolingAll;
         if (bal < usdcAmount || bal - usdcAmount < floor) revert InsufficientLiquidUsdc();
