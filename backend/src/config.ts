@@ -553,6 +553,14 @@ const envSchema = z.object({
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
 
+  // Extra browser origins allowed to make credentialed cross-origin calls,
+  // comma-separated and exact (scheme + host, no trailing slash), e.g.
+  // "https://karwan-git-preview-acme.vercel.app,https://staging.karwan.site".
+  // This replaced a `^https://[a-z0-9-]+\.vercel\.app$` wildcard: with
+  // credentials:true, that let ANY page on vercel.app read authenticated API
+  // responses for a signed-in visitor. Add preview URLs here deliberately.
+  EXTRA_ALLOWED_ORIGINS: optionalString,
+
   // X OAuth 2.0 PKCE credentials. When unset, the /api/x routes report "not
   // configured" and the frontend falls back to a manual handle entry. Set up
   // an X dev app, allowlist the redirect, and paste the values here to enable.

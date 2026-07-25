@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { getCookie } from 'hono/cookie';
 import { logger as appLogger } from './logger.js';
 import { installProcessErrorHandlers } from './errorTracker.js';
 import { startProactiveSupervisor } from './llm/supervisor.js';
@@ -93,20 +94,58 @@ const ALLOWED_ORIGINS = new Set<string>(
   ].filter((x): x is string => !!x),
 );
 
-// Also accept any *.vercel.app preview/production URL for this project so
-// we can test from the Vercel-issued domain when the custom domain isn't
-// reachable from the operator's network.
-const VERCEL_ORIGIN = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+// Preview origins are opt-in and exact. This used to be a
+// `^https://[a-z0-9-]+\.vercel\.app$` wildcard so the operator could test from
+// the Vercel-issued domain. Combined with credentials:true it meant any page
+// anyone deployed to vercel.app could call this API with the visitor's session
+// cookie attached and read the response, which is every authenticated endpoint.
+for (const extra of (config.EXTRA_ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((s) => s.trim().replace(/\/$/, ''))
+  .filter(Boolean)) {
+  ALLOWED_ORIGINS.add(extra);
+}
+
+function isAllowedOrigin(origin: string): boolean {
+  return ALLOWED_ORIGINS.has(origin.replace(/\/$/, ''));
+}
+
+/// CSRF. Session cookies are SameSite=None in production (the frontend and the
+/// API sit on different hosts), so the browser attaches them to cross-site
+/// requests and nothing here checked where a state-changing call came from.
+/// Hono's c.req.json() ignores Content-Type, so a form or a text/plain fetch
+/// from any origin reached a mutation with no preflight to block it.
+///
+/// The check targets exactly the ambient-cookie vector: a mutation that is
+/// authenticated by the session cookie must carry an Origin we allow, or a
+/// Sec-Fetch-Site that is not cross-site. Requests with no session cookie are
+/// untouched, so server-to-server callers, the Telegram bot, cron and
+/// admin-token routes keep working without an Origin header.
+const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+app.use('*', async (c, next) => {
+  if (!MUTATING.has(c.req.method)) return next();
+  if (!getCookie(c, 'karwan_session')) return next();
+
+  const site = c.req.header('sec-fetch-site');
+  if (site && site !== 'cross-site') return next();
+
+  const origin = c.req.header('origin');
+  if (origin && isAllowedOrigin(origin)) return next();
+
+  // No Origin at all on a cookie-authenticated mutation is the classic
+  // form-post shape, so it is refused rather than waved through.
+  appLogger.warn(
+    { path: c.req.path, method: c.req.method, origin: origin ?? null, site: site ?? null },
+    'blocked cross-site state-changing request',
+  );
+  return c.json({ error: 'cross-site request blocked', code: 'csrf_blocked' }, 403);
+});
 
 app.use(
   '*',
   cors({
-    origin: (origin) => {
-      if (!origin) return null;
-      if (ALLOWED_ORIGINS.has(origin)) return origin;
-      if (VERCEL_ORIGIN.test(origin)) return origin;
-      return null;
-    },
+    origin: (origin) => (origin && isAllowedOrigin(origin) ? origin : null),
     credentials: true,
     allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
     allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token'],
