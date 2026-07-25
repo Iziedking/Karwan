@@ -24,6 +24,7 @@ import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusi
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { isBusinessAccount } from '@/features/account/accountKind';
+import { AccountKindBadge } from '@/features/account/AccountKindBadge';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -203,6 +204,9 @@ function ProfilePageInner() {
             )}
             <div className="fade-up fade-up-2 mt-6 flex flex-wrap items-center gap-3">
               {address && <AddressPill address={shortAddress(address)} tone="dark" />}
+              {/* Detailed here: an unverified business says so in the badge
+                  rather than hiding it behind a hover title. */}
+              {profile && <AccountKindBadge profile={profile} detailed tone="dark" />}
               {address && (
                 <a
                   href={`/credit-passport/${address}`}

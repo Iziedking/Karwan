@@ -165,6 +165,26 @@ export interface Web3CashOutPayload {
   amountUsdc: number;
 }
 
+/// Pool USDC into the unified balance, web3 only.
+///
+/// Like the web3 top-up this executes entirely client-side: the user signs an
+/// EIP-2612 permit in their OWN wallet, so the payload is instructions for the
+/// browser. It deliberately does NOT go near `POST /gateway/deposit`, which
+/// signs a Circle DCW and stays an operator lever: for an email account the
+/// pooled balance is invisible plumbing and no chat intent may name it. The web3
+/// unified balance is a different thing — a real, surfaced feature the user
+/// already drives from the /bridge Gateway rail — and this is that same move
+/// from chat. Gateway rejects an SCA's EIP-1271 signature, so a Circle account
+/// could not sign this even if we offered it.
+///
+/// The deposit happens ON `sourceChainKey`. There is no CCTP hop: pooling 10
+/// USDC that already sits on Arbitrum credits the unified balance from Arbitrum.
+export interface GatewayDepositPayload {
+  /// A Gateway-supported chain key, e.g. `arbitrumSepolia`.
+  sourceChainKey: string;
+  amountUsdc: number;
+}
+
 export interface TopUpPayload {
   /// Always the caller's own session address, set by the backend. The
   /// circle-bridge route re-checks isSessionSelf. The burn is signed from the
@@ -261,6 +281,10 @@ export interface FundAgentConfirm extends ConfirmActionBase {
   intent: 'fund_agent';
   payload: FundAgentPayload;
 }
+export interface GatewayDepositConfirm extends ConfirmActionBase {
+  intent: 'pool_usdc_web3';
+  payload: GatewayDepositPayload;
+}
 
 /// Discriminated on `intent`, which also tells the frontend which route to call.
 export type ConfirmAction =
@@ -280,7 +304,8 @@ export type ConfirmAction =
   | CancelListingConfirm
   | StakeConfirm
   | ClaimYieldConfirm
-  | FundAgentConfirm;
+  | FundAgentConfirm
+  | GatewayDepositConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -1038,6 +1063,35 @@ export function buildFundAgentConfirm(i: {
     ],
     payload: { address: i.caller, agent: i.agent, amountUsdc: i.amountUsdc, route: i.route },
     confirmLabel: 'Fund agent',
+    cancelLabel: 'Not now',
+  };
+}
+
+/// Pool USDC the user already holds on `sourceChainKey` into their unified
+/// balance. Web3 accounts only; see GatewayDepositPayload for why.
+///
+/// No "balance after" row: the deposit is signed against the user's own wallet on
+/// another chain, a balance this backend does not read. Promising a figure we
+/// cannot verify is worse than omitting it.
+export function buildGatewayDepositConfirm(i: {
+  sourceChainKey: string;
+  sourceChainLabel: string;
+  amountUsdc: number;
+}): GatewayDepositConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  return {
+    kind: 'confirm',
+    id: `pool_usdc_web3:${i.sourceChainKey}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'pool_usdc_web3',
+    title: 'Pool this USDC',
+    summary: `Move ${i.amountUsdc} USDC on ${i.sourceChainLabel} into your unified balance.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: `Your wallet on ${i.sourceChainLabel}` },
+      { label: 'To', value: 'Your unified balance' },
+    ],
+    payload: { sourceChainKey: i.sourceChainKey, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Pool it',
     cancelLabel: 'Not now',
   };
 }

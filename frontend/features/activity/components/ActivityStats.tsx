@@ -22,7 +22,14 @@ export function ActivityStats({
   const t = useTranslations().activity.stats;
   const groups: EventGroup[] = ['jobs', 'negotiation', 'settlement', 'bridge'];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <section className="space-y-3">
+      {/* The counters lead the page, and the money ledger sits below them. The
+          eyebrow is what stops them reading as a summary of that ledger: they
+          count the network's events, never the user's own money. */}
+      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        [:{t.eyebrow}:]
+      </span>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {groups.map((g, i) => {
         const active = activeGroups.has(g);
         return (
@@ -79,6 +86,7 @@ export function ActivityStats({
           </button>
         );
       })}
-    </div>
+      </div>
+    </section>
   );
 }

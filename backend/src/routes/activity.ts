@@ -7,7 +7,7 @@ import { callerJobIds, buyerJobIds, AUCTION_INTERNAL_TYPES } from '../auth/party
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
 import { getAgentWallets } from '../db/agentWallets.js';
-import { depositWalletsByChainKey } from '../chain/cctpChains.js';
+import { chainLabel, depositWalletsByChainKey } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
 
 export const activityRoutes = new Hono();
@@ -293,8 +293,8 @@ activityRoutes.get('/me', async (c) => {
         // Written here rather than at record time because a bridge's meaning
         // changes as it progresses; activity_log rows are already past tense.
         summary: out
-          ? `Cashed out ${b.amountUsdc} USDC to ${chain ?? 'another chain'}`
-          : `Added ${b.amountUsdc} USDC from ${chain ?? 'another chain'}`,
+          ? `Cashed out ${b.amountUsdc} USDC to ${chain ? chainLabel(chain) : 'another chain'}`
+          : `Added ${b.amountUsdc} USDC from ${chain ? chainLabel(chain) : 'another chain'}`,
         amountUsdc: b.amountUsdc,
         // The burn is the receipt the user can verify first; the mint hash
         // lands later and is the better one once it exists.

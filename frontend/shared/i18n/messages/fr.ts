@@ -256,6 +256,15 @@ export const fr: Messages = {
       signingOut: 'En cours',
       fundHint: 'Envoyez de l’USDC testnet à cette adresse pour financer votre agent.',
     },
+    kind: {
+      individual: 'PARTICULIER',
+      business: 'ENTREPRISE',
+      verified: 'VÉRIFIÉE',
+      notVerified: 'NON VÉRIFIÉE',
+      titleIndividual: 'Compte particulier',
+      titleBusiness: 'Compte entreprise. Pas encore vérifié.',
+      titleVerified: 'Compte entreprise vérifié',
+    },
   },
   banners: {
     migration: {
@@ -437,6 +446,7 @@ export const fr: Messages = {
       },
     },
     stats: {
+      eyebrow: 'ACTIVITÉ DU RÉSEAU',
       groups: {
         jobs: 'Missions',
         negotiation: 'Négociation',
@@ -455,10 +465,14 @@ export const fr: Messages = {
       failed: 'ÉCHEC',
       receipt: 'REÇU',
       justNow: "à l'instant",
+      repeated: '×{n}',
+      showAll: 'VOIR LES {n}',
+      showLess: 'VOIR MOINS',
     },
     view: {
       notSignedInEyebrow: 'NON CONNECTÉ',
       notSignedInBody: 'Connectez-vous pour suivre tous les deals qui bougent sur Karwan. Cherchez par job ID pour suivre un deal précis.',
+      pulseNote: 'Parties et montants masqués. Vos propres mouvements sont au-dessus.',
       streamEyebrow: 'FLUX D’ÉVÈNEMENTS',
       countZero: '0 ÉVÈNEMENTS',
       countRange: '{start}–{end} SUR {total}',
@@ -1363,6 +1377,7 @@ export const fr: Messages = {
       unknownTemplate: 'domaine {n}',
     },
     eventTexts: {
+      'job.posted': 'Job publié on-chain',
       'job.tracked': 'Job publié on-chain',
       'job.expired': 'Requête expirée sans match',
       'bid.scored': "L'agent acheteur a scoré l'offre",
@@ -1385,6 +1400,9 @@ export const fr: Messages = {
       'deal.match.declined': 'Match refusé',
       'listing.posted': 'Offre publiée',
       'listing.matched': 'Offre matchée à une requête',
+      'listing.cancelled': 'Offre retirée',
+      'listing.expired': 'Offre expirée',
+      'brief.cancelled': 'Requête retirée',
       'bridge.burned': 'USDC brûlés sur la chaîne source',
       'bridge.attested': 'Attestation Circle reçue',
       'bridge.minted': 'USDC mintés sur Arc',

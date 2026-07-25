@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { GATEWAY_CHAINS } from '@/features/bridge/config';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useBridges } from '@/features/bridge/hooks/useBridge';
 import Link from 'next/link';
@@ -629,6 +630,9 @@ interface ConfirmDeps {
     recipient: `0x${string}`;
     amountUsdc: number;
   }) => Promise<void>;
+  /// Pooling into the unified balance is signed by the user's own EOA (Gateway
+  /// rejects an SCA's EIP-1271), so it runs client-side like the two above.
+  startGatewayDeposit?: (input: { sourceChainKey: string; amountUsdc: number }) => Promise<void>;
 }
 
 async function runConfirmIntent(
@@ -655,6 +659,23 @@ async function runConfirmIntent(
       successText: 'Signed. Your USDC lands on Arc in a few minutes.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
+    };
+  }
+  if (action.intent === 'pool_usdc_web3') {
+    const p = action.payload as { sourceChainKey: string; amountUsdc: number };
+    if (!deps.startGatewayDeposit) {
+      throw new Error('Open the Add money screen to pool this USDC.');
+    }
+    await deps.startGatewayDeposit({
+      sourceChainKey: p.sourceChainKey,
+      amountUsdc: p.amountUsdc,
+    });
+    // Gateway indexes the deposit a beat after the source tx lands, so the new
+    // figure appears on the rail rather than instantly here.
+    return {
+      successText: 'Pooled. It shows in your unified balance shortly.',
+      viewHref: '/bridge?rail=gateway',
+      viewLabel: 'Your balance',
     };
   }
   if (action.intent === 'cash_out_web3') {
@@ -920,6 +941,8 @@ function ConfirmCard({
   const router = useRouter();
   const { startAppKitBridge, startWeb3Out } = useBridges();
   const { address: wagmiAddress, connector } = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
   // Only the web3 top-up needs a client-side executor: the user signs the burn
   // in their own wallet, which no backend route can do for them. Connecting is
@@ -957,6 +980,34 @@ function ConfirmCard({
     },
     [wagmiAddress, connector, openConnectModal, startWeb3Out],
   );
+  // Pooling into the unified balance. Same shape again, but the deposit is signed
+  // ON the source chain rather than relayed, so the wallet has to be switched
+  // there first or Gateway signs against the wrong chain's USDC.
+  const startGatewayDeposit = useCallback(
+    async (input: { sourceChainKey: string; amountUsdc: number }) => {
+      if (!wagmiAddress || !connector) {
+        openConnectModal?.();
+        throw new Error('Connect your wallet, then confirm again.');
+      }
+      const cfg = GATEWAY_CHAINS.find((c) => c.key === input.sourceChainKey);
+      if (!cfg) throw new Error('That chain cannot be pooled from.');
+      if (chainId !== cfg.chainId) {
+        await switchChainAsync({ chainId: cfg.chainId });
+      }
+      const provider = await connector.getProvider();
+      if (!provider) throw new Error('Wallet provider unavailable');
+      const { gatewayDeposit } = await import('@/features/gateway/lib');
+      await gatewayDeposit({
+        provider,
+        amount: String(input.amountUsdc),
+        chain: cfg.appKit,
+      });
+      // The read is cached, so drop it or the rail keeps serving the pre-deposit
+      // figure after the user follows the card's link.
+      await api.refreshGatewayBalance().catch(() => {});
+    },
+    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync],
+  );
   // Seed from the durable store so a card that already ran (or was dismissed)
   // stays in that state across panel close/open and navigation — never reverting
   // to a re-submittable button. A stale 'running' (in-flight when the panel
@@ -977,10 +1028,12 @@ function ConfirmCard({
         ? 'Withdrawing…'
         : action.intent === 'cash_out'
           ? 'Cashing out…'
-          : action.intent === 'top_up_to_arc' ||
-              action.intent === 'top_up_web3' ||
-              action.intent === 'cash_out_web3'
-            ? 'Moving…'
+          : action.intent === 'pool_usdc_web3'
+            ? 'Pooling…'
+            : action.intent === 'top_up_to_arc' ||
+                action.intent === 'top_up_web3' ||
+                action.intent === 'cash_out_web3'
+              ? 'Moving…'
             : action.intent === 'approve_match'
               ? 'Approving…'
               : action.intent === 'decline_match'
@@ -1015,7 +1068,11 @@ function ConfirmCard({
     setStatus('running');
     setErrMsg('');
     try {
-      const r = await runConfirmIntent(action, { startWeb3TopUp, startWeb3CashOut });
+      const r = await runConfirmIntent(action, {
+        startWeb3TopUp,
+        startWeb3CashOut,
+        startGatewayDeposit,
+      });
       confirmOutcomes.set(action.id, r);
       setResult(r);
       setStatus('done');

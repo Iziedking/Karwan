@@ -256,6 +256,15 @@ export const sw: Messages = {
       signingOut: 'Inashughulikia',
       fundHint: 'Tuma USDC ya testnet kwenye anwani hii ili kufadhili wakala wako.',
     },
+    kind: {
+      individual: 'MTU BINAFSI',
+      business: 'BIASHARA',
+      verified: 'IMETHIBITISHWA',
+      notVerified: 'HAIJATHIBITISHWA',
+      titleIndividual: 'Akaunti ya mtu binafsi',
+      titleBusiness: 'Akaunti ya biashara. Bado haijathibitishwa.',
+      titleVerified: 'Akaunti ya biashara iliyothibitishwa',
+    },
   },
   banners: {
     migration: {
@@ -437,6 +446,7 @@ export const sw: Messages = {
       },
     },
     stats: {
+      eyebrow: 'SHUGHULI ZA MTANDAO',
       groups: {
         jobs: 'Kazi',
         negotiation: 'Mazungumzo',
@@ -455,10 +465,14 @@ export const sw: Messages = {
       failed: 'IMESHINDWA',
       receipt: 'RISITI',
       justNow: 'sasa hivi',
+      repeated: '×{n}',
+      showAll: 'ONA ZOTE {n}',
+      showLess: 'ONA PUNGUFU',
     },
     view: {
       notSignedInEyebrow: 'HUJAINGIA',
       notSignedInBody: 'Ingia kufuatilia kila biashara inayopita kwenye Karwan. Tafuta kwa kitambulisho cha kazi kufuatilia moja maalum.',
+      pulseNote: 'Wahusika na kiasi vimefichwa. Miamala yako mwenyewe iko juu.',
       streamEyebrow: 'MTIRIRIKO WA MATUKIO',
       countZero: 'MATUKIO 0',
       countRange: '{start}–{end} KATI YA {total}',
@@ -1363,6 +1377,7 @@ export const sw: Messages = {
       unknownTemplate: 'eneo {n}',
     },
     eventTexts: {
+      'job.posted': 'Kazi imechapishwa kwenye mnyororo',
       'job.tracked': 'Kazi imechapishwa kwenye mnyororo',
       'job.expired': 'Ombi limeisha bila ulinganifu',
       'bid.scored': 'Wakala wa mnunuzi ametoa alama ya ofa',
@@ -1385,6 +1400,9 @@ export const sw: Messages = {
       'deal.match.declined': 'Ulinganifu umekataliwa',
       'listing.posted': 'Tangazo limechapishwa',
       'listing.matched': 'Tangazo limelingana na ombi',
+      'listing.cancelled': 'Tangazo limeondolewa',
+      'listing.expired': 'Tangazo limeisha',
+      'brief.cancelled': 'Ombi limeondolewa',
       'bridge.burned': 'USDC imeteketezwa kwenye mnyororo wa chanzo',
       'bridge.attested': 'Uthibitisho wa Circle umepokelewa',
       'bridge.minted': 'USDC imechapwa kwenye Arc',

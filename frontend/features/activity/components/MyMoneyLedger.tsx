@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
@@ -28,6 +28,32 @@ function explorerFor(item: Item): string | null {
   return chain ? chain.explorerTx(item.txHash) : ARC_EXPLORER_TX(item.txHash);
 }
 
+/// How many rows show before the ledger asks to be expanded. The backend serves
+/// up to 100 and the page has three other registers below this one, so an
+/// uncapped list pushed the counters, filters and event stream off the screen.
+const VISIBLE = 6;
+
+type Row = { item: Item; repeat: number };
+
+/// A bridge that failed and retried twenty-four times is one thing that went
+/// wrong, not twenty-four. Collapse neighbouring rows that say the same thing
+/// with the same status into one row carrying a repeat count. Only consecutive
+/// runs collapse, so the ledger stays in time order and two genuine top-ups a
+/// week apart never merge. The newest of a run represents it: it holds the
+/// receipt if one ever landed.
+function collapse(items: Item[]): Row[] {
+  const rows: Row[] = [];
+  for (const item of items) {
+    const last = rows[rows.length - 1];
+    if (last && last.item.summary === item.summary && last.item.status === item.status) {
+      last.repeat += 1;
+      continue;
+    }
+    rows.push({ item, repeat: 1 });
+  }
+  return rows;
+}
+
 function when(ts: number, justNow: string): string {
   const mins = Math.floor((Date.now() - ts) / 60_000);
   if (mins < 1) return justNow;
@@ -41,6 +67,10 @@ export function MyMoneyLedger() {
   const t = useTranslations().activity.myMoney;
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const rows = useMemo(() => (items ? collapse(items) : []), [items]);
+  const visible = expanded ? rows : rows.slice(0, VISIBLE);
 
   const load = useCallback(() => {
     api
@@ -89,7 +119,7 @@ export function MyMoneyLedger() {
         </p>
       ) : (
         <ul className="divide-y divide-[var(--lp-border-light)]">
-          {items.map((item) => {
+          {visible.map(({ item, repeat }) => {
             const href = explorerFor(item);
             return (
               <li key={item.id} className="py-3 flex items-baseline justify-between gap-4">
@@ -102,6 +132,14 @@ export function MyMoneyLedger() {
                         {' · '}
                         <span style={{ color: item.status === 'failed' ? TONE.failed : TONE.pending }}>
                           {item.status === 'failed' ? t.failed : t.pending}
+                        </span>
+                      </>
+                    )}
+                    {repeat > 1 && (
+                      <>
+                        {' · '}
+                        <span className="tabular-nums">
+                          {t.repeated.replace('{n}', String(repeat))}
                         </span>
                       </>
                     )}
@@ -130,6 +168,16 @@ export function MyMoneyLedger() {
             );
           })}
         </ul>
+      )}
+
+      {rows.length > VISIBLE && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+        >
+          {expanded ? t.showLess : t.showAll.replace('{n}', String(rows.length))}
+        </button>
       )}
     </section>
   );

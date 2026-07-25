@@ -256,6 +256,15 @@ export const ar: Messages = {
       signingOut: 'جارٍ التنفيذ',
       fundHint: 'أرسل USDC تجريبي إلى هذا العنوان لتمويل وكيلك.',
     },
+    kind: {
+      individual: 'فرد',
+      business: 'شركة',
+      verified: 'موثّقة',
+      notVerified: 'غير موثّقة',
+      titleIndividual: 'حساب فردي',
+      titleBusiness: 'حساب شركة. لم يُوثّق بعد.',
+      titleVerified: 'حساب شركة موثّق',
+    },
   },
   banners: {
     migration: {
@@ -437,6 +446,7 @@ export const ar: Messages = {
       },
     },
     stats: {
+      eyebrow: 'نشاط الشبكة',
       groups: {
         jobs: 'الأعمال',
         negotiation: 'التفاوض',
@@ -455,10 +465,14 @@ export const ar: Messages = {
       failed: 'فشل',
       receipt: 'إيصال',
       justNow: 'الآن',
+      repeated: '×{n}',
+      showAll: 'عرض الكل {n}',
+      showLess: 'عرض أقل',
     },
     view: {
       notSignedInEyebrow: 'غير مسجّل',
       notSignedInBody: 'سجّل الدخول لمتابعة كل صفقة تتحرك عبر كاروان. ابحث برقم الوظيفة لمتابعة صفقة معيّنة.',
+      pulseNote: 'الأطراف والمبالغ محجوبة. حركاتك الخاصة في الأعلى.',
       streamEyebrow: 'بث الأحداث',
       countZero: 'لا أحداث',
       countRange: '{start}–{end} من {total}',
@@ -1363,6 +1377,7 @@ export const ar: Messages = {
       unknownTemplate: 'النطاق {n}',
     },
     eventTexts: {
+      'job.posted': 'تم نشر الوظيفة على السلسلة',
       'job.tracked': 'تم نشر الوظيفة على السلسلة',
       'job.expired': 'انتهت صلاحية الطلب دون تطابق',
       'bid.scored': 'وكيل المشتري قيّم العرض',
@@ -1385,6 +1400,9 @@ export const ar: Messages = {
       'deal.match.declined': 'رُفض التطابق',
       'listing.posted': 'تم نشر العرض',
       'listing.matched': 'العرض طابق طلباً',
+      'listing.cancelled': 'تم سحب العرض',
+      'listing.expired': 'انتهت صلاحية العرض',
+      'brief.cancelled': 'تم سحب الطلب',
       'bridge.burned': 'تم حرق USDC على سلسلة المصدر',
       'bridge.attested': 'تم استلام شهادة Circle',
       'bridge.minted': 'تم سكّ USDC على Arc',

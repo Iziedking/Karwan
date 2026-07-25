@@ -14,6 +14,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { isBusinessAccount } from '@/features/account/accountKind';
+import { AccountKindBadge } from '@/features/account/AccountKindBadge';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 
 // Landing routes are forced dark via these var overrides, so every embedded
@@ -212,6 +213,14 @@ export function TopNav() {
                   <NotificationBell />
                 </div>
                 <ConnectWalletButton />
+                {/* Which rail you are operating in, on every app screen. Hidden
+                    below lg: the cluster is already tight and the profile hero
+                    carries the same badge in full. */}
+                {profile && (
+                  <span className="hidden lg:inline-flex">
+                    <AccountKindBadge profile={profile} />
+                  </span>
+                )}
                 <ProfileAvatar />
               </>
             )

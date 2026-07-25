@@ -109,14 +109,18 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
   return (
     <div className="space-y-6">
-      {/* The user's own money first. The stream below is a network pulse with
-          every amount and party stripped, so it can never answer "what did I
-          do" — and that is the question someone opening this page is asking. */}
-      <MyMoneyLedger />
+      {/* Three registers, in the order someone opening this page wants them:
+          the network's headline counters, then the user's own money with real
+          amounts and receipts, then the network pulse. The pulse has every
+          amount and party stripped, so it can never answer "what did I do";
+          the ledger above it is what answers that. */}
+      <ActivityStats counts={counts} activeGroups={groups} onToggleGroup={toggleGroup} />
 
       <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 
-      <ActivityStats counts={counts} activeGroups={groups} onToggleGroup={toggleGroup} />
+      <MyMoneyLedger />
+
+      <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 
       <ActivityFilters
         activeActors={actors}
@@ -150,6 +154,12 @@ export function ActivityView({ explorer }: { explorer: string }) {
           )}
         </p>
       </div>
+
+      {/* Stripped amounts read as missing data unless the page says they were
+          stripped on purpose. */}
+      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
+        {t.pulseNote}
+      </p>
 
       <EventList events={pageEvents} explorer={explorer} variant="card" />
 

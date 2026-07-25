@@ -232,6 +232,15 @@ interface MessagesShape {
       signingOut: string;
       fundHint: string;
     };
+    kind: {
+      individual: string;
+      business: string;
+      verified: string;
+      notVerified: string;
+      titleIndividual: string;
+      titleBusiness: string;
+      titleVerified: string;
+    };
   };
   banners: {
     migration: {
@@ -429,6 +438,7 @@ interface MessagesShape {
       };
     };
     stats: {
+      eyebrow: string;
       groups: {
         jobs: string;
         negotiation: string;
@@ -447,10 +457,14 @@ interface MessagesShape {
       failed: string;
       receipt: string;
       justNow: string;
+      repeated: string;
+      showAll: string;
+      showLess: string;
     };
     view: {
       notSignedInEyebrow: string;
       notSignedInBody: string;
+      pulseNote: string;
       streamEyebrow: string;
       countZero: string;
       countRange: string;
@@ -4185,6 +4199,16 @@ export const en: MessagesShape = {
       signingOut: 'Working',
       fundHint: 'Send testnet USDC to this address to fund your agent.',
     },
+    kind: {
+      individual: 'INDIVIDUAL',
+      business: 'BUSINESS',
+      verified: 'VERIFIED',
+      notVerified: 'NOT VERIFIED',
+      titleIndividual: 'Individual account',
+      // Never let the badge imply a verification that has not happened.
+      titleBusiness: 'Business account. Not verified yet.',
+      titleVerified: 'Verified business account',
+    },
   },
   banners: {
     migration: {
@@ -4380,6 +4404,7 @@ export const en: MessagesShape = {
       },
     },
     stats: {
+      eyebrow: 'NETWORK ACTIVITY',
       groups: {
         jobs: 'Jobs',
         negotiation: 'Negotiation',
@@ -4398,10 +4423,14 @@ export const en: MessagesShape = {
       failed: 'FAILED',
       receipt: 'RECEIPT',
       justNow: 'just now',
+      repeated: '×{n}',
+      showAll: 'SEE ALL {n}',
+      showLess: 'SHOW LESS',
     },
     view: {
       notSignedInEyebrow: 'NOT SIGNED IN',
       notSignedInBody: 'Sign in to watch every deal moving across Karwan. Search by job ID to follow a specific one.',
+      pulseNote: 'Parties and amounts stripped. Your own moves are above.',
       streamEyebrow: 'EVENT STREAM',
       countZero: '0 EVENTS',
       countRange: '{start}–{end} OF {total}',
@@ -5317,6 +5346,9 @@ export const en: MessagesShape = {
       unknownTemplate: 'domain {n}',
     },
     eventTexts: {
+      // Two paths notice the same thing: the live agent path emits job.tracked,
+      // the on-chain backfill emits job.posted. Same meaning to a reader.
+      'job.posted': 'Job posted on chain',
       'job.tracked': 'Job posted on chain',
       'job.expired': 'Request expired with no match',
       'bid.scored': 'Buyer agent scored the bid',
@@ -5339,6 +5371,9 @@ export const en: MessagesShape = {
       'deal.match.declined': 'Match declined',
       'listing.posted': 'Offer posted',
       'listing.matched': 'Offer matched a request',
+      'listing.cancelled': 'Offer withdrawn',
+      'listing.expired': 'Offer expired',
+      'brief.cancelled': 'Request withdrawn',
       'bridge.burned': 'USDC burned on source chain',
       'bridge.attested': 'Circle attestation received',
       'bridge.minted': 'USDC minted on Arc',

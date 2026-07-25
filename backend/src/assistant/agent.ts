@@ -60,6 +60,7 @@ import {
   buildStakeConfirm,
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
+  buildGatewayDepositConfirm,
   buildWeb3TopUpConfirm,
   buildWeb3CashOutConfirm,
   hasEquivalentConfirm,
@@ -1458,6 +1459,38 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    propose_pool_usdc: tool({
+      description:
+        "Pool USDC into the user's UNIFIED BALANCE (Circle Gateway), from a chain they already hold it on. Call this when a web3 user asks in those words: 'pool it', 'pool 10 from arbitrum', 'unified balance', 'add to my unified balance', 'Gateway'. It is NOT a bridge: the deposit happens ON the chain named, with no CCTP hop and no wait for a mint on Arc, so do not reach for propose_bridge when they asked to pool. The user signs it in their own wallet, right in the chat. Web3 accounts only.",
+      inputSchema: z.object({
+        chain: z
+          .enum(TOP_UP_CHAIN_NAMES)
+          .describe('The chain their USDC already sits on, and where the deposit is signed.'),
+        amountUsdc: z.number().positive().max(1_000_000).describe('How much USDC to pool.'),
+      }),
+      execute: async ({ chain, amountUsdc }) => {
+        // Gateway only accepts an EOA signature on the deposit permit, so an
+        // email account genuinely cannot sign this. For them the pooled balance
+        // is invisible plumbing anyway: top up over CCTP and never name the pool.
+        if (method === 'circle') {
+          return {
+            error:
+              'Pooling needs their own wallet signature, which an email account does not have. Do NOT mention Gateway, pooling or a unified balance to them. If they want money on Arc, use propose_bridge instead.',
+          };
+        }
+        const cfg = TOP_UP_CHAINS[chain];
+        if (!cfg) return { error: 'That chain cannot be pooled from.' };
+        const built = buildGatewayDepositConfirm({
+          sourceChainKey: cfg.key,
+          sourceChainLabel: cfg.label,
+          amountUsdc,
+        });
+        if ('error' in built) return built;
+        if (!hasEquivalentConfirm(actions, built)) actions.push(built);
+        return { ok: true, shown: built.title };
+      },
+    }),
+
     propose_bridge: tool({
       description:
         "THE bridge tool. Prepare a confirm card that moves USDC between Arc and another chain, and does the WHOLE thing in the chat — no sending them to another screen. Call it after list_bridge_sources, once you know the source, the amount, and the other chain. `direction` 'toArc' brings money from another chain INTO Arc; 'fromArc' sends Arc money OUT to another chain. `source` is which wallet it leaves: 'main' (their own/identity wallet) or 'buyerAgent'/'sellerAgent'. When the card is tapped: an email account and any agent wallet move with no popup (backend-signed) and return a receipt; a web3 user's OWN wallet opens a wallet prompt right in the chat for them to sign. Always shows a confirm card first, whichever the case.",
@@ -1671,8 +1704,12 @@ function authenticatedPreamble(address: string, method: string): string {
     '  for backend-signed moves, an in-panel wallet prompt for a web3 user signing their own wallet.',
     '  Solana cash-out only: propose_cash_out (base58 recipient); Solana is not on the propose_bridge path.',
     '- FUND an agent so it can trade: propose_fund_agent(agent, amount).',
+    '- POOL into the unified balance (web3 only): propose_pool_usdc(chain, amountUsdc).',
     'The user has ONE wallet and ONE balance. Never mention a "unified balance", a "pooled balance", Gateway,',
     'or where the money physically sits — the backend picks the rail per move and it is not their concern.',
+    circle
+      ? '  That holds for THIS account with no exception: if they ask to "pool" USDC or name a unified balance, do not explain the pool and do not offer it. They asked for money on Arc, so use propose_bridge.'
+      : '  That governs YOUR unprompted words, not theirs. THIS account self-custodies an EOA, so the unified balance IS a real feature they already drive from the /bridge Gateway rail. If THEY say "pool it", "unified balance" or "Gateway", act on it with propose_pool_usdc — do not silently bridge instead, and never tell them you have no idea what they mean. Pooling is not bridging: the deposit is signed on the chain the money is already on, with no CCTP hop and no wait for an Arc mint. Only reach for propose_bridge if they actually want the USDC to land on Arc.',
     '- NAVIGATE (propose_navigation) only for things chat truly cannot do (settings, faucet). Bridging is',
     '  NOT one of them any more — do it in chat with propose_bridge.',
     '',

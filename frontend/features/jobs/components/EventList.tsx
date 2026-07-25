@@ -20,9 +20,25 @@ function hrefForEvent(e: ChainEvent): string | null {
   return `/jobs/${e.jobId}`;
 }
 
+/// A readable label for any event type, including ones i18n has no entry for.
+///
+/// `eventTexts` covers the types the product deliberately surfaces; the backend
+/// union is far larger and grows every time a lane is added. The old fallback
+/// was the raw type, so a type nobody had labelled reached users as `job.posted`
+/// sitting between two written-out rows. Derive a phrase instead: separators
+/// become spaces and the first letter is capitalised. Not a translation, but
+/// never a machine token.
+function labelFor(type: string, texts: Record<string, string>): string {
+  const known = texts[type];
+  if (known) return known;
+  const phrase = type.replace(/[._-]+/g, ' ').trim();
+  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
+
 /// Tone map for every known event type. Keeps the visual style at module scope
 /// (locale-independent) while the human-readable label lives in i18n.
 const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
+  'job.posted': 'system',
   'job.tracked': 'system',
   'job.expired': 'error',
   'bid.scored': 'buyer',
@@ -45,6 +61,10 @@ const EVENT_TONES: Record<string, 'buyer' | 'seller' | 'system' | 'error'> = {
   'deal.match.declined': 'error',
   'listing.posted': 'seller',
   'listing.matched': 'seller',
+  // Tone tracks who acted; 'error' is reserved for ending without a match.
+  'listing.cancelled': 'seller',
+  'listing.expired': 'error',
+  'brief.cancelled': 'buyer',
   'bridge.burned': 'system',
   'bridge.attested': 'system',
   'bridge.minted': 'system',
@@ -275,7 +295,7 @@ export function EventList({
     return (
       <ol className="space-y-2.5">
         {events.map((e, i) => {
-          const text = el.eventTexts[e.type] ?? e.type;
+          const text = labelFor(e.type, el.eventTexts);
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
           const rail = RAIL_COLOR[tone];
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
@@ -410,7 +430,7 @@ export function EventList({
         className="absolute start-[5px] top-3 bottom-3 w-px bg-[var(--color-line)]"
       />
       {events.map((e, i) => {
-        const text = el.eventTexts[e.type] ?? e.type;
+        const text = labelFor(e.type, el.eventTexts);
         const tone: Tone = EVENT_TONES[e.type] ?? 'system';
         const dotTone =
           tone === 'buyer'

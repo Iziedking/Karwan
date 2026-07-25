@@ -256,6 +256,15 @@ export const hi: Messages = {
       signingOut: 'कार्य जारी',
       fundHint: 'अपने एजेंट को फंड करने के लिए इस पते पर टेस्टनेट USDC भेजें।',
     },
+    kind: {
+      individual: 'व्यक्तिगत',
+      business: 'व्यवसाय',
+      verified: 'सत्यापित',
+      notVerified: 'सत्यापित नहीं',
+      titleIndividual: 'व्यक्तिगत खाता',
+      titleBusiness: 'व्यवसाय खाता। अभी सत्यापित नहीं।',
+      titleVerified: 'सत्यापित व्यवसाय खाता',
+    },
   },
   banners: {
     migration: {
@@ -437,6 +446,7 @@ export const hi: Messages = {
       },
     },
     stats: {
+      eyebrow: 'नेटवर्क गतिविधि',
       groups: {
         jobs: 'कार्य',
         negotiation: 'बातचीत',
@@ -455,10 +465,14 @@ export const hi: Messages = {
       failed: 'विफल',
       receipt: 'रसीद',
       justNow: 'अभी',
+      repeated: '×{n}',
+      showAll: 'सभी {n} देखें',
+      showLess: 'कम दिखाएँ',
     },
     view: {
       notSignedInEyebrow: 'साइन इन नहीं',
       notSignedInBody: 'कारवान पर चलने वाली हर डील देखने के लिए साइन इन करें। किसी विशेष डील को फॉलो करने के लिए जॉब आईडी से खोजें।',
+      pulseNote: 'पक्ष और रकम हटाए गए हैं। आपके अपने लेनदेन ऊपर हैं।',
       streamEyebrow: 'इवेंट स्ट्रीम',
       countZero: '0 घटनाएँ',
       countRange: '{total} में से {start}–{end}',
@@ -1363,6 +1377,7 @@ export const hi: Messages = {
       unknownTemplate: 'डोमेन {n}',
     },
     eventTexts: {
+      'job.posted': 'जॉब चेन पर पोस्ट हुआ',
       'job.tracked': 'जॉब चेन पर पोस्ट हुआ',
       'job.expired': 'अनुरोध बिना मिलान समाप्त हुआ',
       'bid.scored': 'क्रेता एजेंट ने बोली को स्कोर किया',
@@ -1385,6 +1400,9 @@ export const hi: Messages = {
       'deal.match.declined': 'मैच अस्वीकृत',
       'listing.posted': 'ऑफ़र पोस्ट हुआ',
       'listing.matched': 'ऑफ़र ने एक अनुरोध से मिलान किया',
+      'listing.cancelled': 'ऑफ़र वापस लिया गया',
+      'listing.expired': 'ऑफ़र समाप्त हुआ',
+      'brief.cancelled': 'अनुरोध वापस लिया गया',
       'bridge.burned': 'स्रोत चेन पर USDC जलाया गया',
       'bridge.attested': 'Circle अटेस्टेशन प्राप्त',
       'bridge.minted': 'Arc पर USDC मिंट किया गया',

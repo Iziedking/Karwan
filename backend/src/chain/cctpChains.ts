@@ -229,6 +229,20 @@ export function isCctpChainKey(v: string): v is CctpChainKey {
   return (CCTP_CHAIN_KEYS as readonly string[]).includes(v);
 }
 
+/// Display name for a bridge chain key.
+///
+/// Bridge records store the raw key (`baseSepolia`, `solanaDevnet`) and those
+/// were reaching users verbatim in activity summaries. Solana is named here
+/// rather than in CCTP_CHAINS because it is not an EVM chain and carries none of
+/// the contract addresses that interface requires. Anything unrecognised splits
+/// its camelCase into words rather than showing the key.
+export function chainLabel(key: string): string {
+  if (isCctpChainKey(key)) return CCTP_CHAINS[key].name;
+  if (key === 'solanaDevnet') return 'Solana Devnet';
+  const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 /// Chains a backend Circle wallet can actually burn from. The Circle deposit
 /// path must gate on this: the others are reachable only by a user-signed
 /// (web3) burn.
