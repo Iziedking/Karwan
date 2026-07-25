@@ -12,6 +12,7 @@ import {
   setProfileEmail,
   deleteProfile,
 } from '../db/profiles.js';
+import type { UserProfile } from '../db/profiles.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { deleteUser, getUserByAddress, getUserByEmail } from '../db/users.js';
 import { removeTelegramLink } from '../db/telegramLinks.js';
@@ -89,8 +90,45 @@ profileRoutes.get('/', async (c) => {
       }
     }
   }
-  return c.json({ profile });
+  return c.json({ profile: profile && !callerFor(c, parsed.data) ? publicView(profile) : profile });
 });
+
+/// What a non-owner may read. This route is address-keyed and unauthenticated
+/// by design (the market, the passport, and counterparty cards all read it),
+/// so everything private has to be dropped rather than assumed unreachable.
+///
+/// Kept: identity, the seller card (sellers advertise it), and the SME company
+/// details that already render publicly on the credit passport via
+/// GET /api/sme/profile/:address.
+///
+/// Dropped: contact email and its verification state; user settings; the buyer
+/// card, whose maxBudgetUsdc is the buyer's negotiating ceiling and must never
+/// reach a seller; the encrypted tax id; the business envelope, which carries a
+/// document hash and the submitting tx; the financier eligibility snapshot,
+/// which is stake and reputation at approval time; the prepaid research credit;
+/// and the name-edit ledger.
+function publicView(p: UserProfile): Partial<UserProfile> {
+  const sme = p.smeProfile
+    ? (({ taxIdEncrypted: _drop, ...rest }) => rest)(p.smeProfile)
+    : undefined;
+  return {
+    address: p.address,
+    role: p.role,
+    displayName: p.displayName,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+    xHandle: p.xHandle,
+    xUserId: p.xUserId,
+    xProfileImageUrl: p.xProfileImageUrl,
+    accountKind: p.accountKind,
+    accountType: p.accountType,
+    seller: p.seller,
+    ...(sme ? { smeProfile: sme } : {}),
+    // Verification status is public; the evidence behind it is not.
+    ...(p.business ? { business: { status: p.business.status, verifiedAt: p.business.verifiedAt } } : {}),
+    ...(p.financier ? { financier: { status: p.financier.status } } : {}),
+  };
+}
 
 profileRoutes.post('/', async (c) => {
   let body;
