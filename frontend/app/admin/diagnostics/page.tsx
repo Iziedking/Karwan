@@ -204,6 +204,14 @@ function HealthOverview() {
             ))}
           </HealthCard>
 
+          <HealthCard title="Contract wiring">
+            {data.contracts.map((ct) => (
+              <HealthItem key={ct.label} ok={ct.ok}>
+                {ct.label} <span className="text-white/45">{ct.detail}</span>
+              </HealthItem>
+            ))}
+          </HealthCard>
+
           <HealthCard title="Features">
             {data.features.map((f) => (
               <HealthItem key={f.label} ok={f.on}>

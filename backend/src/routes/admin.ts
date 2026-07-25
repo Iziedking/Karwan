@@ -5,7 +5,7 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { getAgentWallets, listAllAgentWallets, agentWalletIntegrity } from '../db/agentWallets.js';
 import { listAllDeals } from '../db/deals.js';
-import { reputation, readUsdcBalance } from '../chain/contracts.js';
+import { reputation, readUsdcBalance, escrow } from '../chain/contracts.js';
 import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
 import type { DirectDeal } from '../db/deals.js';
 import { releaseMilestone, finalizeIfSettled, resolveDispute } from '../chain/settlement.js';
@@ -232,6 +232,8 @@ adminRoutes.get('/health', async (c) => {
   const watchers = watcherHealth();
   const crons = cronHealth();
 
+  const contracts = await contractWiring();
+
   return c.json({
     checkedAt,
     overall,
@@ -241,8 +243,125 @@ adminRoutes.get('/health', async (c) => {
     features,
     watchers,
     crons,
+    contracts,
   });
 });
+
+/// Reads the deployed bundle back and asserts it still matches what the app
+/// believes. Every incident during the 2026-07-25 migration was a wiring
+/// failure that no check would have caught: an ABI bound to the wrong
+/// generation, a teller left on a mock, a satellite pointing at a superseded
+/// escrow. None of those surface as an error until a user hits them, so they
+/// belong on the health page rather than in a runbook.
+async function contractWiring(): Promise<Array<{ label: string; ok: boolean; detail: string }>> {
+  const out: Array<{ label: string; ok: boolean; detail: string }> = [];
+  const cfg = config as unknown as Record<string, string | undefined>;
+  const addrAbi = [
+    { type: 'function', name: 'escrow', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
+    { type: 'function', name: 'deployer', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
+    { type: 'function', name: 'teller', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
+  ] as const;
+
+  const escrowAddr = cfg.KARWAN_ESCROW_ADDR?.toLowerCase();
+
+  /// The binding check. escrowAbi and escrowV2Abi both declare getEscrow but
+  /// with different tuple widths, so a wrong ESCROW_V2B_ENABLED decodes
+  /// garbage or throws here rather than on a user's deal page.
+  try {
+    await escrow.read.getEscrow([`0x${'0'.repeat(64)}`]);
+    out.push({ label: 'Escrow ABI', ok: true, detail: 'decodes against the deployed contract' });
+  } catch (e) {
+    out.push({
+      label: 'Escrow ABI',
+      ok: false,
+      detail: `getEscrow failed, check ESCROW_V2B_ENABLED: ${(e as Error).message.slice(0, 90)}`,
+    });
+  }
+
+  /// Satellites must name the escrow the app is configured for. A stale entry
+  /// here means writes land on a contract nothing else reads.
+  const satellites: Array<[string, string | undefined]> = [
+    ['Vault', cfg.KARWAN_VAULT_ADDR],
+    ['Reputation', cfg.KARWAN_REPUTATION_ADDR],
+    ['Treasury', cfg.KARWAN_TREASURY_CONTRACT_ADDR],
+    ['Invoice registry', cfg.KARWAN_INVOICE_REGISTRY_ADDR],
+    ['PO financing', cfg.KARWAN_PO_FINANCING_ADDR],
+  ];
+  await Promise.all(
+    satellites.map(async ([label, addr]) => {
+      if (!addr) return;
+      try {
+        const wired = (await publicClient.readContract({
+          address: addr as `0x${string}`,
+          abi: addrAbi,
+          functionName: 'escrow',
+        })) as string;
+        const ok = wired.toLowerCase() === escrowAddr;
+        out.push({
+          label: `${label} to escrow`,
+          ok,
+          detail: ok ? 'matches' : `points at ${wired}`,
+        });
+      } catch (e) {
+        out.push({ label: `${label} to escrow`, ok: false, detail: (e as Error).message.slice(0, 90) });
+      }
+    }),
+  );
+
+  /// setEscrow on the vault is one-shot and zeroes `deployer` on success. A
+  /// non-zero value means the bundle was never sealed and can still be repointed.
+  if (cfg.KARWAN_VAULT_ADDR) {
+    try {
+      const deployer = (await publicClient.readContract({
+        address: cfg.KARWAN_VAULT_ADDR as `0x${string}`,
+        abi: addrAbi,
+        functionName: 'deployer',
+      })) as string;
+      const sealed = /^0x0+$/.test(deployer);
+      out.push({
+        label: 'Vault one-shot spent',
+        ok: sealed,
+        detail: sealed ? 'deployer zeroed, escrow can no longer be repointed' : `still ${deployer}`,
+      });
+    } catch (e) {
+      out.push({ label: 'Vault one-shot spent', ok: false, detail: (e as Error).message.slice(0, 90) });
+    }
+  }
+
+  /// Vault and treasury must subscribe through the same teller, or routed
+  /// stake and fee income end up in different funds.
+  const tellerOf = async (addr: string | undefined): Promise<string | null> => {
+    if (!addr) return null;
+    try {
+      return ((await publicClient.readContract({
+        address: addr as `0x${string}`,
+        abi: addrAbi,
+        functionName: 'teller',
+      })) as string).toLowerCase();
+    } catch {
+      return null;
+    }
+  };
+  const [vaultTeller, treasuryTeller] = await Promise.all([
+    tellerOf(cfg.KARWAN_VAULT_ADDR),
+    tellerOf(cfg.KARWAN_TREASURY_CONTRACT_ADDR),
+  ]);
+  if (vaultTeller || treasuryTeller) {
+    const agree = !!vaultTeller && vaultTeller === treasuryTeller;
+    const unset = vaultTeller === `0x${'0'.repeat(40)}`;
+    out.push({
+      label: 'USYC teller',
+      ok: agree && !unset,
+      detail: unset
+        ? 'unset on the vault'
+        : agree
+          ? `both on ${vaultTeller?.slice(0, 10)}`
+          : `vault ${vaultTeller ?? 'n/a'}, treasury ${treasuryTeller ?? 'n/a'}`,
+    });
+  }
+
+  return out;
+}
 
 /// Event log for the admin debug view. `?jobId=` traces a whole auction;
 /// `?address=` traces one agent/wallet across deals; `?type=` filters (comma-

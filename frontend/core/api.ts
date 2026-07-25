@@ -1505,6 +1505,9 @@ export const api = {
         status: 'fresh' | 'stale' | 'unknown';
         detail?: string;
       }>;
+      /// Deployed-bundle wiring read back from chain: ABI binding, satellite
+      /// cross-references, the vault one-shot, and teller agreement.
+      contracts: Array<{ label: string; ok: boolean; detail: string }>;
     }>('/api/admin/health', { headers: adminHeaders() }),
   adminAgentSeedStatus: (address: string) =>
     json<{
