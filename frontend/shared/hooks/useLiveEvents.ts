@@ -9,6 +9,33 @@ import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 // itself doesn't restate buyer/seller (e.g. follow-up escrow.* events).
 const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy'];
 
+/// Event types that are plumbing, not history, and never belong on a timeline.
+///
+/// These are recorded on purpose (an inbound Circle webhook, a crashed handler,
+/// a support reply, a chat message) and the assistant and admin surfaces read
+/// them. What they are not is a thing that happened to the user's deal, so a row
+/// reading "Circle webhook" or "System error" between two settlement steps only
+/// makes the timeline harder to trust. The label fallback renders them
+/// faithfully, which is precisely the problem: the fix is not nicer copy.
+///
+/// Filtered HERE rather than in EventList because callers count and paginate
+/// before rendering. Dropping rows at render time would leave "1-20 of 200"
+/// disagreeing with the twenty rows actually on screen.
+///
+/// Nothing is lost: the global /activity feed already omits these server-side
+/// (they are absent from PUBLIC_EVENT_TYPES in routes/activity.ts), so this
+/// closes the party-scoped path that still let them through.
+const HIDDEN_FROM_TIMELINE = new Set<string>([
+  'circle.webhook',
+  'system.error',
+  'chat.message',
+  'support.reply',
+]);
+
+function isTimelineEvent(event: ChainEvent): boolean {
+  return !HIDDEN_FROM_TIMELINE.has(event.type);
+}
+
 function isPartyMatch(event: ChainEvent, caller: string): boolean {
   const payload = event.payload as Record<string, unknown> | undefined;
   if (!payload) return false;
@@ -30,13 +57,17 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
     callerJobsRef.current = new Set();
     api
       .activity(max, filterJobId, caller)
-      .then(({ events }) => {
+      .then(({ events: raw }) => {
+        // Party tracking still learns from the plumbing rows before they are
+        // dropped: they carry jobIds the caller is genuinely a party to, and
+        // discarding them first would narrow the live filter below.
+        const events = raw.filter(isTimelineEvent);
         if (callerLower) {
           // The caller-scoped backfill is filtered server-side by the signed
           // session and returns only the caller's own events, so every jobId in
           // it is a job the caller is a party to. Payload matching alone would
           // miss auction events, which carry agent addresses.
-          for (const e of events) {
+          for (const e of raw) {
             if (e.jobId) callerJobsRef.current.add(e.jobId.toLowerCase());
           }
         }
@@ -47,6 +78,9 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
 
   useEffect(() => {
     return subscribeLiveEvents((parsed) => {
+      // Dropped before the party checks below so a webhook can never be the row
+      // that lands on a timeline mid-session.
+      if (!isTimelineEvent(parsed)) return;
       if (filterJobId) {
         // Per-job pages trust the server-side session scoping: non-party events
         // arrive as pulses with NO jobId, so a jobId match here already means
