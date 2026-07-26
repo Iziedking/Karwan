@@ -2,6 +2,7 @@
 import type { UserProfile } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { isBusinessAccount } from './accountKind';
+import { AccountKindIcon } from './AccountKindIcon';
 
 /// Which account someone is operating as, said out loud.
 ///
@@ -22,11 +23,18 @@ function kindOf(profile?: Parameters<typeof isBusinessAccount>[0] & Pick<UserPro
 }
 
 const TONE: Record<Kind, string> = {
-  // Neutral: being an individual is a state, not an achievement.
-  individual: 'rgba(255,255,255,0.45)',
-  // Amber: registered but the registry has not approved it yet.
+  // Inherits the badge's own colour rather than picking one: being an individual
+  // is a state, not an achievement, and a fixed value here would be invisible on
+  // one of the two themes.
+  individual: 'currentColor',
+  // Amber: registered, but the registry has not approved it yet.
   business: '#FFC857',
-  verified: 'var(--lp-accent)',
+  // Fallback is load-bearing, not belt-and-braces. This badge rides in TopNav on
+  // every route, and TopNav is styled from the --color-* family; the --lp-*
+  // family is not in scope everywhere. Where it is missing the bare var() falls
+  // back to the inherited colour, which rendered a VERIFIED business in the same
+  // ink as an individual and silently dropped the whole signal.
+  verified: 'var(--lp-accent, #afc95b)',
 };
 
 export function AccountKindBadge({
@@ -59,6 +67,11 @@ export function AccountKindBadge({
   return (
     <span
       title={title}
+      // The words are the label for a screen reader either way; sighted users in
+      // the nav get the mark alone, which is why the same mark heads the account
+      // cards at sign-up.
+      aria-label={title}
+      role="img"
       className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap px-2 py-1 border"
       style={{
         borderColor: tone === 'dark' ? 'rgba(255,255,255,0.18)' : 'var(--color-line)',
@@ -69,8 +82,12 @@ export function AccountKindBadge({
         borderBottomRightRadius: 2,
       }}
     >
-      <span aria-hidden className="block w-[6px] h-[6px]" style={{ background: TONE[kind] }} />
-      {label}
+      {/* Tinted by state, so verification still carries when the words are gone:
+          grey individual, amber business awaiting the registry, lime verified. */}
+      <span style={{ color: TONE[kind] }}>
+        <AccountKindIcon kind={kind === 'individual' ? 'individual' : 'business'} />
+      </span>
+      {detailed && label}
     </span>
   );
 }

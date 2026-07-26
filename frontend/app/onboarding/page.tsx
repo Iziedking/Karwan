@@ -20,6 +20,7 @@ import {
   CTAPill,
 } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
+import { AccountKindIcon } from '@/features/account/AccountKindIcon';
 
 type OnbStep = 'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady';
 
@@ -928,6 +929,11 @@ function AccountCard({
       }}
     >
       <div className="p-6">
+        {/* The same mark the nav badge carries. Shown at full size here, where
+            there is room to learn it next to the words it stands for. */}
+        <span className="block mb-4">
+          <AccountKindIcon kind={kind === 'business' ? 'business' : 'individual'} size={28} />
+        </span>
         <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
           {eyebrow}
         </span>
