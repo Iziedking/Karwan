@@ -505,6 +505,24 @@ const envSchema = z.object({
   // module no-ops gracefully and the /telegram routes report "not configured".
   TELEGRAM_BOT_TOKEN: optionalString,
   TELEGRAM_BOT_USERNAME: optionalString,
+  // Where team greetings go. Defaults to SUPPORT_TELEGRAM_CHAT_ID, which is the
+  // staff group. Set this only to send greetings somewhere else.
+  //
+  // Worth remembering what the support chat already carries: live support
+  // transcripts including the user's wallet address, dispute alerts with both
+  // parties and the amount, and business registrations. That is fine for staff.
+  // If the group ever takes in contractors, partners or community moderators,
+  // point the support chat somewhere private first.
+  TEAM_TELEGRAM_CHAT_ID: z.preprocess(blankToUndefined, z.coerce.number().int().optional()),
+  // Daily greeting in the team group. Off by default: a bot that posts every
+  // morning into an alert channel should be a deliberate choice.
+  TEAM_DAILY_ENABLED: envBool('TEAM_DAILY_ENABLED'),
+  // Hour (UTC) the daily greeting posts. Scheduled against the clock rather
+  // than a 24h interval, so it does not drift to whenever the process last
+  // restarted.
+  TEAM_DAILY_HOUR_UTC: z.coerce.number().int().min(0).max(23).default(8),
+  // Greet people who join the team group. Independent of the daily post.
+  TEAM_WELCOME_ENABLED: envBool('TEAM_WELCOME_ENABLED'),
 
   // Reputation chain-mirror reconciler. OFF by default. It replays the legacy
   // recordCompletion(jobId, ...) directly from the buyer agent wallet for

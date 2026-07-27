@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { config } from '../config.js';
+import { welcomeTeamMember } from './team.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
 import { logger } from '../logger.js';
 import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/telegramLinks.js';
@@ -172,12 +173,21 @@ async function loop() {
             chat: { id: number; type: string; username?: string };
             text?: string;
             reply_to_message?: { text?: string };
+            /// Telegram delivers joins as a message with no text. The loop used
+            /// to gate on `message.text`, so these were dropped entirely.
+            new_chat_members?: Array<{
+              id: number;
+              is_bot?: boolean;
+              first_name?: string;
+              username?: string;
+            }>;
           };
         }>;
       };
       if (!json.ok || !json.result) continue;
       for (const u of json.result) {
         lastUpdateId = Math.max(lastUpdateId, u.update_id);
+        if (u.message?.new_chat_members?.length) await handleJoin(u.message);
         if (u.message?.text) await handleMessage(u.message);
       }
     } catch (err) {
@@ -185,6 +195,23 @@ async function loop() {
       await sleep(2_000);
     }
   }
+}
+
+/// Someone joined a group the bot is in. Only the team chat is greeted, and the
+/// bot never greets itself being added, which is the first thing that happens
+/// and would otherwise be the group's welcome message.
+async function handleJoin(message: {
+  chat: { id: number };
+  new_chat_members?: Array<{ id: number; is_bot?: boolean; first_name?: string; username?: string }>;
+}) {
+  const target = config.TEAM_TELEGRAM_CHAT_ID ?? supportOperatorChatId();
+  if (target === null || message.chat.id !== target) return;
+
+  const people = (message.new_chat_members ?? []).filter((m) => !m.is_bot);
+  if (people.length === 0) return;
+
+  const names = people.map((m) => (m.username ? `@${m.username}` : (m.first_name ?? 'there')));
+  await welcomeTeamMember(names);
 }
 
 async function handleMessage(message: {

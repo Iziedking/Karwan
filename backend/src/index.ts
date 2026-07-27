@@ -73,6 +73,7 @@ import { backfillBusFromChain } from './chain/eventBackfill.js';
 import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
 import { startTelegramBot } from './telegram/bot.js';
+import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
@@ -426,6 +427,7 @@ async function boot() {
   // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
   try {
     stopFns.push(startTelegramBot());
+    stopFns.push(startTeamDaily());
     stopFns.push(startTelegramNotifier());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'telegram not started');
