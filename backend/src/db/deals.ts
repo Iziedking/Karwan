@@ -371,6 +371,19 @@ export interface DirectDeal {
   /// Active factoring offer accepted by the seller. References
   /// FactoringOffer.id; null/absent means no factoring on this deal.
   factoringOfferId?: string;
+  /// When the SELLER asked to be paid early on this invoice. Absent means they
+  /// have not, and the invoice is not shown to financiers at all.
+  ///
+  /// Factoring used to be opt-out: every accepted finance-lane deal appeared in
+  /// the financier marketplace whether or not the seller wanted an advance. That
+  /// exposed a seller's counterparty, amount and timing to every approved
+  /// financier on the strength of having opened a deal, which is not something
+  /// they agreed to. Financing is now something a seller asks for.
+  factoringRequestedAt?: number;
+  /// Optional floor the seller will consider, in USDC. Financiers see it and can
+  /// bid at or above it; a lower bid is refused at the write path rather than
+  /// wasting the seller's attention.
+  factoringMinAdvanceUsdc?: string;
   /// Active PO financing line opened by a financier. References
   /// POFinancingLine.id; null/absent means no PO financing on this deal.
   poFinancingId?: string;

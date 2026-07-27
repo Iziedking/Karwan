@@ -44,6 +44,41 @@ export function SellerOfferBanner({
 
   const [offers, setOffers] = useState<FactoringOffer[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  /// Mirrors deal.factoringRequestedAt so the band flips the moment the seller
+  /// acts, without waiting for the parent to refetch the deal.
+  const [requestedAt, setRequestedAt] = useState<number | undefined>(deal.factoringRequestedAt);
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRequestedAt(deal.factoringRequestedAt);
+  }, [deal.factoringRequestedAt]);
+
+  async function askForEarlyPayout() {
+    setRequestBusy(true);
+    setRequestError(null);
+    try {
+      const r = await api.requestFactoring({ invoiceId: deal.jobId });
+      setRequestedAt(r.deal?.factoringRequestedAt ?? Date.now());
+    } catch (e) {
+      setRequestError(e instanceof ApiError ? e.message : 'Could not send the request.');
+    } finally {
+      setRequestBusy(false);
+    }
+  }
+
+  async function withdrawEarlyPayout() {
+    setRequestBusy(true);
+    setRequestError(null);
+    try {
+      await api.withdrawFactoringRequest({ invoiceId: deal.jobId });
+      setRequestedAt(undefined);
+    } catch (e) {
+      setRequestError(e instanceof ApiError ? e.message : 'Could not withdraw the request.');
+    } finally {
+      setRequestBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!eligible) {
@@ -77,7 +112,38 @@ export function SellerOfferBanner({
     );
   }, [offers]);
 
-  if (!eligible || !offers || offers.length === 0) return null;
+  if (!eligible) return null;
+
+  // Nothing is shown to financiers until the seller asks. Before that, this is
+  // the only place the option appears at all.
+  if (!requestedAt) {
+    return (
+      <FactoringRequestBand
+        tone="idle"
+        tag="[:GET PAID EARLY:]"
+        line="Open this invoice to financiers instead of waiting for buyer release."
+        cta={requestBusy ? 'Sending…' : 'Ask for early payout'}
+        onClick={askForEarlyPayout}
+        busy={requestBusy}
+        error={requestError}
+      />
+    );
+  }
+
+  if (!offers || offers.length === 0) {
+    return (
+      <FactoringRequestBand
+        tone="waiting"
+        tag="[:EARLY PAYOUT REQUESTED:]"
+        line="Financiers can see this invoice and bid. You accept or ignore."
+        cta={requestBusy ? 'Working…' : 'Withdraw request'}
+        onClick={withdrawEarlyPayout}
+        busy={requestBusy}
+        error={requestError}
+      />
+    );
+  }
+
   const best = sortedOffers[0];
   const bestDiscount = (best.discountBps / 100).toFixed(1);
   const bestSpread = (Number(best.faceValueUsdc) - Number(best.offeredAdvanceUsdc)).toFixed(2);
@@ -463,5 +529,74 @@ function OfferRow({
         </div>
       </div>
     </li>
+  );
+}
+
+/// The pre-offer states of the early-payout band: the seller has not asked yet,
+/// or has asked and nobody has bid. Top-level component per Vercel
+/// `rerender-no-inline-components`.
+function FactoringRequestBand({
+  tone,
+  tag,
+  line,
+  cta,
+  onClick,
+  busy,
+  error,
+}: {
+  tone: 'idle' | 'waiting';
+  tag: string;
+  line: string;
+  cta: string;
+  onClick: () => void;
+  busy: boolean;
+  error: string | null;
+}) {
+  const waiting = tone === 'waiting';
+  return (
+    <section
+      className="mt-7 px-5 py-4 md:px-6 md:py-5 flex items-center justify-between gap-4 flex-wrap"
+      style={{
+        background: waiting ? 'rgba(175, 201, 91, 0.12)' : 'transparent',
+        border: waiting
+          ? '1px solid rgba(175, 201, 91, 0.45)'
+          : '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderBottomLeftRadius: 10,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <div className="min-w-0">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
+          {tag}
+        </p>
+        <p className="mt-1.5 text-[14px] text-[var(--lp-dark)] leading-snug">{line}</p>
+        {error ? (
+          <p className="mt-1 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={busy}
+        className={cn(
+          'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-50',
+          waiting
+            ? 'bg-transparent text-[var(--lp-dark)] border border-black/20'
+            : 'bg-[var(--lp-dark)] text-[var(--lp-bg)]',
+        )}
+        style={{
+          borderTopLeftRadius: 6,
+          borderTopRightRadius: 6,
+          borderBottomLeftRadius: 6,
+          borderBottomRightRadius: 2,
+        }}
+      >
+        {cta}
+      </button>
+    </section>
   );
 }

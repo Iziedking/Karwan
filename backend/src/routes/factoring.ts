@@ -124,10 +124,107 @@ const rejectBodySchema = z.object({
 
 export const factoringRoutes = new Hono();
 
-/// GET /api/factoring/available: invoices open to factoring offers:
-/// accepted deals where the seller has not yet accepted a factoring offer
-/// and where delivery is still pending. The /financier dashboard pulls
-/// from here.
+const requestBodySchema = z.object({
+  invoiceId: hashSchema,
+  /// Optional floor the seller will consider. Financiers see it; a bid below it
+  /// is refused rather than shown.
+  minAdvanceUsdc: usdcAmountSchema.optional(),
+});
+
+const withdrawRequestBodySchema = z.object({
+  invoiceId: hashSchema,
+});
+
+/// POST /api/factoring/request: the SELLER asks to be paid early on this
+/// invoice. Until they do, the invoice is invisible to financiers.
+///
+/// This is the opt-in that factoring used to lack. Every accepted finance-lane
+/// deal was listed to every approved financier automatically, which published a
+/// seller's counterparty, amount and timing on the strength of them having
+/// opened a deal. Financing is a thing a seller asks for, not a thing that
+/// happens to their invoice.
+factoringRoutes.post('/request', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
+  let body;
+  try {
+    body = requestBodySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+
+  const deal = await getDeal(body.invoiceId);
+  if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+
+  const caller = session.address.toLowerCase();
+  if (caller !== deal.seller.toLowerCase()) {
+    return c.json({ error: 'only the seller can request early payout' }, 403);
+  }
+  if (deal.tradeLane !== 'finance') {
+    return c.json({ error: 'factoring is only available on trade-finance deals' }, 409);
+  }
+  if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
+    return c.json({ error: 'deal not eligible for factoring' }, 409);
+  }
+  if (deal.factoringOfferId) {
+    return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
+  }
+  if (body.minAdvanceUsdc && Number(body.minAdvanceUsdc) >= Number(deal.dealAmountUsdc)) {
+    return c.json({ error: 'minimum advance must be below the invoice face value' }, 400);
+  }
+
+  const updated = await patchDeal(deal.jobId, {
+    factoringRequestedAt: Date.now(),
+    factoringMinAdvanceUsdc: body.minAdvanceUsdc,
+  });
+
+  logger.info(
+    { invoiceId: deal.jobId, seller: caller, minAdvanceUsdc: body.minAdvanceUsdc },
+    'factoring: seller requested early payout',
+  );
+  return c.json({ deal: updated ? financierSafeDeal(updated) : null });
+});
+
+/// POST /api/factoring/withdraw-request: seller changes their mind and pulls the
+/// invoice back off the desk. Offers already made are left alone rather than
+/// force-rejected: a financier who priced one deserves the seller's explicit
+/// answer, and the seller can still reject them one by one.
+factoringRoutes.post('/withdraw-request', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
+  let body;
+  try {
+    body = withdrawRequestBodySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+
+  const deal = await getDeal(body.invoiceId);
+  if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  if (session.address.toLowerCase() !== deal.seller.toLowerCase()) {
+    return c.json({ error: 'only the seller can withdraw the request' }, 403);
+  }
+  if (deal.factoringOfferId) {
+    return c.json({ error: 'an offer was already accepted on this invoice' }, 409);
+  }
+
+  const updated = await patchDeal(deal.jobId, {
+    factoringRequestedAt: undefined,
+    factoringMinAdvanceUsdc: undefined,
+  });
+
+  logger.info(
+    { invoiceId: deal.jobId, seller: deal.seller },
+    'factoring: seller withdrew the early-payout request',
+  );
+  return c.json({ deal: updated ? financierSafeDeal(updated) : null });
+});
+
+/// GET /api/factoring/available: invoices the SELLER has opened to offers:
+/// accepted deals with a live early-payout request, no accepted offer yet, and
+/// delivery still pending. The /financier dashboard pulls from here.
 factoringRoutes.get('/available', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
@@ -159,6 +256,10 @@ factoringRoutes.get('/available', async (c) => {
       // a financier seeing or fronting them. Without this, the financier
       // marketplace leaked every accepted P2P deal.
       d.tradeLane === 'finance' &&
+      // The seller asked to be paid early. Without this the desk listed every
+      // accepted finance-lane deal, exposing counterparty, amount and timing to
+      // every approved financier without the seller ever asking for an advance.
+      d.factoringRequestedAt &&
       d.acceptedAt &&
       !d.settledAt &&
       !d.cancelledAt &&
@@ -245,6 +346,16 @@ factoringRoutes.post('/offer', async (c) => {
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
   }
+  // Consent is enforced at the write path too, not just by leaving the invoice
+  // out of /available. A financier who kept a jobId from an earlier listing, or
+  // guessed one, must not be able to put an offer in front of a seller who has
+  // withdrawn or never asked.
+  if (!deal.factoringRequestedAt) {
+    return c.json(
+      { error: 'the seller has not asked for early payout on this invoice', code: 'not_requested' },
+      409,
+    );
+  }
 
   const financier = session.address.toLowerCase();
   // A financier must be a third party. Block both sides of the deal so the
@@ -263,6 +374,18 @@ factoringRoutes.post('/offer', async (c) => {
   const face = Number(faceValueUsdc);
   if (advance >= face) {
     return c.json({ error: 'advance must be below face value' }, 400);
+  }
+  // The seller named a floor when they asked. Refusing a lower bid here beats
+  // showing them one they have already said they will not take.
+  if (deal.factoringMinAdvanceUsdc && advance < Number(deal.factoringMinAdvanceUsdc)) {
+    return c.json(
+      {
+        error: `the seller will not consider less than ${deal.factoringMinAdvanceUsdc} USDC`,
+        code: 'below_seller_minimum',
+        minAdvanceUsdc: deal.factoringMinAdvanceUsdc,
+      },
+      409,
+    );
   }
   if (expected <= advance || expected > face) {
     return c.json({ error: 'expected return must be above advance and at most face value' }, 400);
