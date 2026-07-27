@@ -2803,8 +2803,15 @@ export const api = {
     return json<{
       tier: 'elite' | 'strong' | 'established' | 'cold' | 'new';
       suggestedBps: number;
+      /// Already clamped up to the contract's own floor when the two disagree,
+      /// so this figure never reverts at fund time.
       suggestedStakeUsdc: string;
       raisedBySize: boolean;
+      /// The contract's minStakeBps applied to this principal. Null when the
+      /// chain read failed.
+      onChainFloorUsdc: string | null;
+      /// True when the contract floor, not the tier ladder, set the figure.
+      raisedByContractFloor: boolean;
       freeStakeUsdc: string | null;
     }>(`/api/po-financing/stake-policy?${qs.toString()}`);
   },

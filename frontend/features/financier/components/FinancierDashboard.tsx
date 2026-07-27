@@ -1069,6 +1069,7 @@ function FundModal({
     suggestedBps: number;
     suggestedStakeUsdc: string;
     raisedBySize: boolean;
+    raisedByContractFloor: boolean;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'idle' | 'approving' | 'funding' | 'mirroring'>('idle');
@@ -1338,9 +1339,11 @@ function FundModal({
             </p>
             {suggestion && freeStake !== null && freeStake > 0 ? (
               <p className="mt-1 text-[11px] text-zinc-500">
-                {suggestion.suggestedBps === 0
-                  ? `${suggestion.tier.toUpperCase()} seller: no collateral required at this size.`
-                  : `${suggestion.tier.toUpperCase()} seller: ${(suggestion.suggestedBps / 100).toFixed(0)}% of principal suggested${suggestion.raisedBySize ? ', raised because the advance is large' : ''}. You can ask for more.`}
+                {suggestion.raisedByContractFloor
+                  ? `${suggestion.tier.toUpperCase()} seller, but the contract floor is higher and sets this figure. You can ask for more.`
+                  : suggestion.suggestedBps === 0
+                    ? `${suggestion.tier.toUpperCase()} seller: no collateral required at this size.`
+                    : `${suggestion.tier.toUpperCase()} seller: ${(suggestion.suggestedBps / 100).toFixed(0)}% of principal suggested${suggestion.raisedBySize ? ', raised because the advance is large' : ''}. You can ask for more.`}
                 {shortOfSuggestion
                   ? ` This seller can only cover ${freeStake.toLocaleString()} USDC of it.`
                   : ''}

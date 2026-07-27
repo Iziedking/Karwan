@@ -155,7 +155,7 @@ On and off ramps through the Circle Payments Network, so a business funds a deal
 |---|---|
 | KarwanEscrow | `0x0262A4dFec0E057cAf80F124BfD2847581E82B63` |
 | KarwanInvoiceRegistry | `0xFb0Debd5E2618881699ED9b02CE0c9B718a1C649` |
-| KarwanPOFinancing | `0xf14b41BD1a07c9Fe643Aae8292422127d0221d6F` |
+| KarwanPOFinancing | `0xE87ef70E19FA8BbfdC04b9310371A7006B86b60A` |
 | KarwanReputation | `0x8bD35853b986a04EfDED7F863AFF34826fde69eE` |
 | KarwanVault | `0xA600Bd772A032Ec2b96a9A44545024E270418927` |
 | KarwanTreasury | `0x5a642BE344Fc3a01999bF113197ddC1A163EE837` |

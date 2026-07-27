@@ -18,6 +18,8 @@ import { getDeal, listAllDeals } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { vault } from '../chain/contracts.js';
+import { publicClient } from '../chain/client.js';
+import { poFinancingV2Abi } from '../chain/abis/poFinancingV2.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { suggestPOStake } from '../profile/poStakePolicy.js';
 import { config } from '../config.js';
@@ -161,7 +163,44 @@ poFinancingRoutes.get('/stake-policy', async (c) => {
     freeStakeUsdc = null;
   }
 
-  return c.json({ ...suggestPOStake(tier, principalUsdc), freeStakeUsdc });
+  const suggestion = suggestPOStake(tier, principalUsdc);
+
+  // The contract enforces its own minStakeBps floor and reverts StakeBelowFloor
+  // under it. Suggesting a number below that floor would hand the financier a
+  // prefilled value that burns gas on the approve and then reverts at fund.
+  //
+  // The two are set independently, by an operator on chain and by env off it,
+  // so they WILL drift. When they do, the on-chain floor wins here and the
+  // response says so, rather than the desk quietly proposing a losing tx.
+  let onChainFloorUsdc: string | null = null;
+  try {
+    const floorWei = (await publicClient.readContract({
+      address: config.KARWAN_PO_FINANCING_ADDR as `0x${string}`,
+      abi: poFinancingV2Abi,
+      functionName: 'stakeFloorFor',
+      args: [parseUnits(principalUsdc.toFixed(6), USDC_DECIMALS)],
+    })) as bigint;
+    onChainFloorUsdc = formatUnits(floorWei, USDC_DECIMALS);
+  } catch (err) {
+    logger.warn(
+      { invoiceId, err: (err as Error).message },
+      'po stake policy: on-chain floor read failed; suggesting the tier figure alone',
+    );
+  }
+
+  const raisedByContractFloor =
+    onChainFloorUsdc !== null && Number(onChainFloorUsdc) > Number(suggestion.suggestedStakeUsdc);
+  const suggestedStakeUsdc = raisedByContractFloor
+    ? Number(onChainFloorUsdc).toFixed(2)
+    : suggestion.suggestedStakeUsdc;
+
+  return c.json({
+    ...suggestion,
+    suggestedStakeUsdc,
+    onChainFloorUsdc,
+    raisedByContractFloor,
+    freeStakeUsdc,
+  });
 });
 
 /// POST /api/po-financing/fund: financier records that they funded a
