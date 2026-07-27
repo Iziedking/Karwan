@@ -122,16 +122,6 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
       <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 
-      <ActivityFilters
-        activeActors={actors}
-        onToggleActor={toggleActor}
-        jobIdSearch={jobIdSearch}
-        onJobIdSearch={setJobIdSearch}
-        onClear={clearAll}
-        hasAnyFilter={hasAnyFilter}
-        showSearch={false}
-      />
-
       <div
         ref={streamTopRef}
         className="flex items-baseline justify-between gap-3 pt-2 scroll-mt-24"
@@ -161,7 +151,19 @@ export function ActivityView({ explorer }: { explorer: string }) {
         {t.pulseNote}
       </p>
 
-      <EventList events={pageEvents} explorer={explorer} variant="card" />
+      {/* Directly above the list they filter. Sitting under the money ledger
+          they read as filters on the user's own money, which they are not. */}
+      <ActivityFilters
+        activeActors={actors}
+        onToggleActor={toggleActor}
+        jobIdSearch={jobIdSearch}
+        onJobIdSearch={setJobIdSearch}
+        onClear={clearAll}
+        hasAnyFilter={hasAnyFilter}
+        showSearch={false}
+      />
+
+      <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
 
       <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
     </div>

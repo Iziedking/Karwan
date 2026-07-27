@@ -261,11 +261,17 @@ export function EventList({
   explorer,
   showJobId,
   variant = 'timeline',
+  collapseRepeats = false,
 }: {
   events: ChainEvent[];
   explorer: string;
   showJobId?: boolean;
   variant?: 'timeline' | 'card';
+  /// Off by default, and it must stay off on a deal's own timeline: two
+  /// identical bids in a row there are two negotiation rounds, not one event
+  /// seen twice. Only the public stream, where amounts and parties are
+  /// stripped, has rows that genuinely carry no information apart.
+  collapseRepeats?: boolean;
 }) {
   const el = useTranslations().eventList;
   if (events.length === 0) {
@@ -292,9 +298,25 @@ export function EventList({
   }
 
   if (variant === 'card') {
+    // The public stream strips amounts and parties, so four consecutive
+    // "USDC minted on Arc · PLATFORM" rows carry no information the first one
+    // did not. Merge neighbouring rows that read identically and count them,
+    // the way the money ledger above already does. Same actor required, so
+    // BUYER and PLATFORM never merge into each other. Only consecutive runs
+    // collapse, so the stream stays in time order, and the ×N keeps the row
+    // count reconcilable with the "1-20 OF 200" range in the header.
+    const runs: { e: (typeof events)[number]; repeat: number }[] = [];
+    for (const e of events) {
+      const last = runs[runs.length - 1];
+      if (collapseRepeats && last && last.e.type === e.type && last.e.actor === e.actor) {
+        last.repeat += 1;
+        continue;
+      }
+      runs.push({ e, repeat: 1 });
+    }
     return (
       <ol className="space-y-2.5">
-        {events.map((e, i) => {
+        {runs.map(({ e, repeat }, i) => {
           const text = labelFor(e.type, el.eventTexts);
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
           const rail = RAIL_COLOR[tone];
@@ -317,6 +339,7 @@ export function EventList({
                   {text}
                 </span>
                 <span className="mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-[var(--lp-text-muted)] shrink-0">
+                  {repeat > 1 && <span className="me-2">{`×${repeat}`}</span>}
                   {relativeTime(e.ts)}
                 </span>
               </div>
