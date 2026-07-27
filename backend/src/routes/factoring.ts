@@ -15,6 +15,7 @@ import {
   patchFactoringOfferIfStatus,
 } from '../db/factoring.js';
 import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
+import { listAllLines as listAllPOLines } from '../db/poFinancing.js';
 import { getUserByAddress } from '../db/users.js';
 import { deterministicIdempotencyKey, executeContractCall } from '../chain/txs.js';
 import {
@@ -136,6 +137,21 @@ factoringRoutes.get('/available', async (c) => {
   const sector = c.req.query('sector');
   const region = c.req.query('region');
   const deals = await listAllDeals();
+  // A deal that already carries a PO line cannot be funded again:
+  // KarwanPOFinancing.fund() reverts with AlreadyFunded for any state other
+  // than None. Leaving those in the list offered a Fund line button that could
+  // only ever revert, and read as though the line were still open.
+  let financedInvoiceIds = new Set<string>();
+  try {
+    financedInvoiceIds = new Set(
+      (await listAllPOLines()).map((l) => l.invoiceId.toLowerCase()),
+    );
+  } catch (err) {
+    logger.warn(
+      { err: (err as Error).message },
+      'po line lookup failed; funded lines may still show as available',
+    );
+  }
   const available = deals.filter(
     (d) =>
       // Factoring is a finance-lane (trade-finance) product only. P2P
@@ -147,7 +163,8 @@ factoringRoutes.get('/available', async (c) => {
       !d.settledAt &&
       !d.cancelledAt &&
       !d.disputed &&
-      !d.factoringOfferId,
+      !d.factoringOfferId &&
+      !financedInvoiceIds.has(d.jobId.toLowerCase()),
   );
   const filtered = available.filter((d) => {
     if (sector && d.counterpartyCompany?.sector !== sector) return false;
