@@ -21,11 +21,6 @@ export type POFinancingState =
   | 'released'    // LEGACY: PoD anchored, principal sent to seller
   | 'reclaimed';  // LEGACY: financier reclaimed pre-PoD timeout
 
-/// Lines opened on the retired custody rail. Kept out of the "can still act on
-/// it" paths: the old contract is no longer the configured one, so a watcher
-/// must not try to drive them.
-export const LEGACY_PO_STATES: readonly POFinancingState[] = ['funded', 'released', 'reclaimed'];
-
 export interface POFinancingLine {
   id: string;
   /// The deal's jobId; same as DirectDeal.jobId and the on-chain

@@ -19,40 +19,22 @@ import {
 import { bus } from '../events.js';
 import { settleFactoringForDeal } from './factoringWatcher.js';
 import { settlePOFinancingForDeal } from './poWatcher.js';
-import { getPOLineForInvoice } from '../db/poFinancing.js';
 import { logger } from '../logger.js';
 
-/// True while a LEGACY custody-rail PO line for this deal still holds the
-/// seller's principal.
+/// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
+/// unattended path while a PO line still held the seller's principal in the old
+/// financing contract's custody. That contract assigned the escrow payout to the
+/// financier at fund time but only released the principal on a proof-of-delivery
+/// anchor the ordinary milestone path never wrote, so a deal settling on the
+/// timer paid the financier out of the escrow while the seller had nothing.
 ///
-/// The contract this guarded was retired on 2026-07-27. Its `fund()` assigned
-/// the escrow payout to the financier immediately while the principal only
-/// reached the seller via `releaseToSeller`, which needed proof of delivery
-/// anchored on the registry, and nothing in the ordinary milestone path anchors
-/// PoD. A deal settling on the timer therefore paid the financier out of the
-/// escrow while the seller's principal sat in custody.
-///
-/// The current rail pays the seller inside the funding transaction, so it
-/// cannot reach this state and lines on it are never held back. The guard stays
-/// for the lines opened before the cutover, which are still on the old contract
-/// and still carry the exposure. Remove it once those have all closed out.
-///
-/// Auto-release exists to stop funds getting stuck when a buyer goes quiet. It
-/// must not be the thing that strips a seller. A buyer releasing by hand is
-/// their own call and stays allowed; only the unattended path is held back.
-async function poPrincipalStillHeld(jobId: string): Promise<boolean> {
-  try {
-    const line = await getPOLineForInvoice(jobId);
-    return line?.state === 'funded';
-  } catch (err) {
-    // A store failure must not silently unblock the guard.
-    logger.warn(
-      { jobId, err: (err as Error).message },
-      'po line lookup failed; holding auto-release to stay safe',
-    );
-    return true;
-  }
-}
+/// The guard is gone because both halves of the exposure are gone. The current
+/// rail pays the seller inside the funding transaction, so it cannot reach that
+/// state at all. And the retired contract (0xf14b41BD…) holds no USDC and has had
+/// its escrow assigner revoked, so it can neither strand anything nor open a new
+/// line. Kept only as a note: a stale DB row would now block auto-release forever
+/// while protecting nothing, which is why leaving the guard in was the riskier
+/// option. See contracts/test/KarwanPOCustodyAttack.t.sol.
 
 /// Deal lifecycle tick. Each tick reads on-chain escrow state for every
 /// open deal; on a busy backend with many active deals that compounds the
@@ -435,13 +417,6 @@ async function tick() {
             : (deal.lastReleaseAt ?? deal.reviewWindowStartedAt ?? deal.deliveredAt);
         const windowMs = milestoneWindowMs(nextIndex);
         if (now <= anchor + windowMs) continue;
-        if (await poPrincipalStillHeld(deal.jobId)) {
-          logger.warn(
-            { jobId: deal.jobId, milestone: nextIndex },
-            'auto-release held: PO principal still in custody, anchor PoD first',
-          );
-          continue;
-        }
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const releasedAt = Date.now();
         await patchDeal(deal.jobId, {
@@ -502,13 +477,6 @@ async function tick() {
         responseDeadline !== null &&
         now > responseDeadline
       ) {
-        if (await poPrincipalStillHeld(deal.jobId)) {
-          logger.warn(
-            { jobId: deal.jobId, milestone: nextIndex },
-            'final auto-release held: PO principal still in custody, anchor PoD first',
-          );
-          continue;
-        }
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const settled = await finalizeIfSettled(deal.jobId);
         await patchDeal(deal.jobId, {
