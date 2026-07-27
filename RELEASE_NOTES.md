@@ -1,5 +1,75 @@
 # Release notes
 
+## July 6 to July 26, 2026
+
+The contract bundle that the previous window described as in development is
+deployed and serving. The headline is receivable assignment, which moves payment
+risk out of the product and into the escrow: a financier who advances against a
+deal is now paid by the contract, ahead of the seller, and the seller cannot
+divert the settlement.
+
+251 commits across the backend, contracts, and frontend.
+
+### The contract bundle shipped
+
+- Deployed and wired on Arc Testnet. Guardians are set on all four money-holding
+  contracts, the arbiter is set, and the deployer address on the vault is zeroed.
+  The current addresses are in the [README](./README.md#contracts-on-arc-testnet-chain-5042002).
+- `assignPayout` records an irrevocable, single-use redirect on the escrow, and
+  all four payout paths pay the assignee ahead of the seller. The assignee is
+  senior across milestones and is capped at what is due rather than reverting.
+  Refund paths are untouched, so a refund still returns the buyer's money.
+- Arbiter resolution splits unreleased funds by basis points instead of picking a
+  winner, and settles the seller's reserved stake in proportion to fault. A dead
+  arbiter key can delay a deal but never trap it.
+- The guardian, the on-chain deal clocks, the capped seller-appeal extension, the
+  match window, and anti-farming reputation weighted by distinct settled
+  counterparties all went live with the same bundle.
+- 409 tests passing across 35 suites. The escrow sits at 23,885 bytes of the
+  24,576 limit, so the remaining headroom is 691 bytes.
+
+### Trade finance moved onto the assignment rail
+
+- `KarwanInvoiceRegistry.assignReceivable` relays the financier's signed EIP-3009
+  advance to the seller and assigns the receivable in one atomic, seller-gated,
+  non-custodial call. Atomic because assignment is irrevocable: a seller who could
+  assign before collecting could be griefed into redirecting a receivable to
+  someone who never paid.
+- Purchase-order financing assigns at `fund()`, in the same transaction as the
+  advance, and reverts if it is not an authorised assigner.
+- The factoring watcher now pulls only a shortfall. It would otherwise have
+  charged every seller twice.
+
+### Security
+
+- Closed an unauthenticated auction dump and projected `GET /api/profile` so a
+  non-owner no longer reads another user's personal fields.
+- Bound the X OAuth callback to the session and closed an open redirect.
+- Passkey registration now requires a proven email.
+- Tightened the CORS origin check.
+
+### Custody and terms
+
+- Terms rewritten to version 2 across all five locales, with a new section on how
+  an account is held. The previous claim that Karwan never holds the keys that
+  move funds was not true of email and passkey accounts, and has been replaced by
+  a plain description of what signing authority Karwan has and what bounds it.
+- The README carries the same disclosure under Custody.
+
+### Assistant and product
+
+- The assistant bridges end to end inside the chat, with a source picker and
+  in-panel signing. It requires sign-in and enforces per-account daily and weekly
+  caps.
+- The activity ledger collapses retry runs into a single row with a count, caps
+  the visible list, and moves the network counters to the top of the page so they
+  no longer read as a summary of the money list below them.
+- Event labels now derive a readable phrase for every event type rather than
+  printing a raw machine name.
+- Watcher heartbeats read the same interval overrides as the watchers themselves,
+  and report a starting state before the first tick, so a healthy watcher no
+  longer reports as stalled.
+
 ## June 15 to July 5, 2026
 
 This window moved Karwan from a working escrow marketplace to an agent-run
@@ -130,9 +200,8 @@ by area rather than by date.
 
 ### In development, targeting the next contract release
 
-The following is built and test-proven in the repository. It ships as the next
-immutable contract bundle rather than a mid-cycle redeploy, so the live deployment
-stays stable while the new bundle completes its security review.
+Superseded. Everything below shipped in the July 6 to July 26 window above, in one
+immutable bundle rather than a mid-cycle redeploy.
 
 - A contract-level guardian that places bounded, auto-expiring holds and records
   delivery attestation across the escrow, vault, treasury, and financing
