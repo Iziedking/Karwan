@@ -108,9 +108,10 @@ What the Forwarding Service changed:
   leverage change in our bridge. Because Circle submits the destination mint, we no
   longer need a funded wallet on each destination chain, and withdrawal coverage went
   from a handful of chains to every chain CCTP reaches. A user cashes out to any of
-  them without ever holding that chain's gas token. This deserves more prominence in
-  the docs than it currently gets. It reads like an optimization and it is actually a
-  capability unlock.
+  them without ever holding that chain's gas token. It is documented across four
+  pages and a fee table, under both CCTP and Gateway, so coverage is not the issue.
+  The framing is: it reads like an optimization and it is actually a capability
+  unlock, and we nearly skipped it on that basis.
 
 Asks:
 
@@ -176,20 +177,24 @@ What worked:
 
 Friction:
 
-- A funded wallet that has not deposited reads as a zero Gateway balance, with
-  nothing in the response to say why. The docs are explicit that a deposit is
-  required, so this is not a documentation gap. It is a response-shape gap: an
-  address holding several hundred USDC on Base returns exactly what an empty address
-  returns, and every integrator loses the same afternoon to it.
-- Gateway transfers can be fetched by id but not listed. Any product that shows a
-  user their own transfer history has to keep a parallel ledger, which means the
-  on-chain record and the product record can drift.
+- `/v1/balances` returns one balance state out of four without pointing at the rest.
+  The wallet contract models total, available, withdrawing and withdrawable, and
+  `/v1/deposits` covers deposits submitted but not yet observed. The endpoint returns
+  the available figure alone, so a developer reading a zero cannot tell which of the
+  other states they are in. We lost an afternoon to it before finding the siblings.
+  The genuinely-undeposited case is not Gateway's to answer: that is an ordinary
+  token balance the app already reads for itself.
+- Gateway transfer history has no hosted endpoint. The API surface is balances,
+  info, transfer and deposits. Nothing is lost, since the record is on chain in the
+  same `Deposit`, `AttestationUsed` and `WithdrawInitiated` events the Gateway System
+  consumes. The cost is that every integrator writes the same indexer to show a user
+  their own history.
 
 Asks:
 
-- An explicit signal in the balance response distinguishing "pooled" from "held on
-  chain, not yet deposited". The silent zero is the sharpest edge in an otherwise
-  excellent API, and it is fixable at the API rather than in every app.
+- A line in the `/v1/balances` reference naming the other three balance types and
+  `/v1/deposits`. The silent zero is the sharpest edge in an otherwise excellent API
+  and it is a cross-reference away from being a non-issue.
 - A list endpoint for Gateway transfers, so a product does not have to shadow-ledger
   its own users' activity.
 
