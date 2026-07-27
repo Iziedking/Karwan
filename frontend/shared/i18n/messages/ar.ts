@@ -2940,6 +2940,19 @@ export const ar: Messages = {
       tryAgain: 'حاول مجددًا',
     },
   },
+  supplyPage: {
+    signInGate: { tag: 'التوريد', body: 'سجّل الدخول لنشر ما توفّره شركتك.' },
+    tag: 'التوريد',
+    notBusiness: { headline: 'هذا مكتب الشركات', cta: 'مكتب البائع الخاص بك' },
+    hero: {
+      headlinePrefix: 'انشر ما ',
+      headlineAccent: 'توفّره',
+      lede: 'المشترون يجدونك، أو وكيلك يجدهم.',
+      ctaPost: 'انشر عرضًا',
+      ctaPartners: 'ابحث عن شركاء ←',
+    },
+    matchesHeadline: 'مطابقات بانتظارك',
+  },
   sellerHub: {
     signInGate: { tag: 'مكتب البائع', body: 'العروض والمزايدات مرتبطة بمحفظتك. سجّل الدخول لإعداد وكيل البائع.' },
     hero: {

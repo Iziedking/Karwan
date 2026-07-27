@@ -2940,6 +2940,19 @@ export const fr: Messages = {
       tryAgain: 'Réessayer',
     },
   },
+  supplyPage: {
+    signInGate: { tag: 'APPROVISIONNEMENT', body: 'Connectez-vous pour publier ce que votre entreprise fournit.' },
+    tag: 'APPROVISIONNEMENT',
+    notBusiness: { headline: 'Ceci est le bureau de l\'entreprise', cta: 'Votre bureau vendeur' },
+    hero: {
+      headlinePrefix: 'Publiez ce que vous ',
+      headlineAccent: 'fournissez',
+      lede: 'Les acheteurs vous trouvent, ou votre agent les trouve.',
+      ctaPost: 'Publier une offre',
+      ctaPartners: 'Trouver des partenaires →',
+    },
+    matchesHeadline: 'Correspondances en attente',
+  },
   sellerHub: {
     signInGate: { tag: 'BUREAU VENDEUR', body: "Les offres et les enchères sont liées à votre wallet. Connectez-vous pour configurer l'agent vendeur." },
     hero: {

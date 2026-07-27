@@ -2795,6 +2795,19 @@ interface MessagesShape {
       tryAgain: string;
     };
   };
+  supplyPage: {
+    signInGate: { tag: string; body: string };
+    tag: string;
+    notBusiness: { headline: string; cta: string };
+    hero: {
+      headlinePrefix: string;
+      headlineAccent: string;
+      lede: string;
+      ctaPost: string;
+      ctaPartners: string;
+    };
+    matchesHeadline: string;
+  };
   sellerHub: {
     signInGate: { tag: string; body: string };
     hero: {
@@ -6961,6 +6974,19 @@ export const en: MessagesShape = {
       sendMore: 'Send more',
       tryAgain: 'Try again',
     },
+  },
+  supplyPage: {
+    signInGate: { tag: 'SUPPLY', body: 'Sign in to publish what your company supplies.' },
+    tag: 'SUPPLY',
+    notBusiness: { headline: 'This is the company desk', cta: 'Your seller desk' },
+    hero: {
+      headlinePrefix: 'Publish what you ',
+      headlineAccent: 'supply',
+      lede: 'Buyers find you, or your agent finds them.',
+      ctaPost: 'Post an offer',
+      ctaPartners: 'Find partners →',
+    },
+    matchesHeadline: 'Matches waiting on you',
   },
   sellerHub: {
     signInGate: { tag: 'SELLER DESK', body: 'Offers and bids are keyed to your wallet. Sign in to set up the seller agent.' },

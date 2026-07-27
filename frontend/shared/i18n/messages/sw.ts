@@ -2940,6 +2940,19 @@ export const sw: Messages = {
       tryAgain: 'Jaribu tena',
     },
   },
+  supplyPage: {
+    signInGate: { tag: 'UGAVI', body: 'Ingia ili kuchapisha kile kampuni yako inatoa.' },
+    tag: 'UGAVI',
+    notBusiness: { headline: 'Hii ni dawati la kampuni', cta: 'Dawati lako la muuzaji' },
+    hero: {
+      headlinePrefix: 'Chapisha unachokitoa',
+      headlineAccent: ' kama ugavi',
+      lede: 'Wanunuzi wanakupata, au wakala wako anawapata.',
+      ctaPost: 'Chapisha ofa',
+      ctaPartners: 'Tafuta washirika →',
+    },
+    matchesHeadline: 'Mechi zinakusubiri',
+  },
   sellerHub: {
     signInGate: { tag: 'DAWATI YA MUUZAJI', body: 'Ofa na bids zimefungwa kwa wallet yako. Ingia ili kuweka wakala wa muuzaji.' },
     hero: {

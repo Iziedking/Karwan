@@ -9,6 +9,9 @@ import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { shortAddress } from '@/shared/utils/format';
+import { PageTour } from '@/shared/guide/PageTour';
+import { SUPPLY_TOUR_ID, SUPPLY_STEPS } from '@/shared/guide/tours';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   FullBleed,
   Band,
@@ -30,11 +33,9 @@ import {
 /// account type), so the agents match it against business briefs and never
 /// against the person-to-person pool.
 export default function SupplyPage() {
+  const sp = useTranslations().supplyPage;
   return (
-    <AuthGuard
-      gateTag="SUPPLY"
-      gateBody="Sign in to publish what your company supplies."
-    >
+    <AuthGuard gateTag={sp.signInGate.tag} gateBody={sp.signInGate.body}>
       <SupplyPageInner />
     </AuthGuard>
   );
@@ -44,6 +45,7 @@ function SupplyPageInner() {
   const { address } = useAuth();
   const { profile } = useUserProfile();
   const { activated } = useActivation();
+  const sp = useTranslations().supplyPage;
 
   // An individual posts on the P2P desk; this is the company book.
   if (!isBusinessAccount(profile)) {
@@ -51,13 +53,14 @@ function SupplyPageInner() {
       <FullBleed>
         <Band tone="dark" compact overlay={<GridOverlay />}>
           <div className="max-w-[46ch]">
-            <SectionTag tone="dark">SUPPLY</SectionTag>
+            <SectionTag tone="dark">{sp.tag}</SectionTag>
             <HeroHeadline size="md">
-              This is the company desk<Punc>.</Punc>
+              {sp.notBusiness.headline}
+              <Punc>.</Punc>
             </HeroHeadline>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <CTAPill href="/seller" tone="dark">
-                Your seller desk
+                {sp.notBusiness.cta}
               </CTAPill>
             </div>
           </div>
@@ -68,27 +71,30 @@ function SupplyPageInner() {
 
   return (
     <FullBleed>
+      <PageTour id={SUPPLY_TOUR_ID} steps={SUPPLY_STEPS} />
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <div className="max-w-[52ch]">
           <SectionTag tone="dark" dot={activated ? 'live' : undefined}>
-            SUPPLY
+            {sp.tag}
           </SectionTag>
           <HeroHeadline size="md">
-            Publish what you <Accent>supply</Accent>
+            {sp.hero.headlinePrefix}
+            <Accent>{sp.hero.headlineAccent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-            Buyers find you, or your agent finds them.
+            {sp.hero.lede}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <CTAPill href="#post-supply" tone="dark">
-              Post an offer
+              {sp.hero.ctaPost}
             </CTAPill>
             <Link
               href="/partners"
+              data-guide="supply-partners"
               className="mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-accent)] hover:underline"
             >
-              Find partners →
+              {sp.hero.ctaPartners}
             </Link>
             {address && (
               <span className="ms-1">
@@ -99,11 +105,15 @@ function SupplyPageInner() {
         </div>
       </Band>
 
-      <ActivateAgentsNotice role="seller" tone="light" />
-      <PendingMatchesBand tone="light" headline="Matches waiting on you" />
+      {/* Doubles as the tour's "your agent works both ways" anchor: it is the
+          surface where an agent-found match actually lands. */}
+      <div data-guide="supply-agent">
+        <ActivateAgentsNotice role="seller" tone="light" />
+        <PendingMatchesBand tone="light" headline={sp.matchesHeadline} />
+      </div>
 
       <Band tone="light" compact>
-        <div id="post-supply" style={{ scrollMarginTop: 80 }}>
+        <div id="post-supply" data-guide="supply-post" style={{ scrollMarginTop: 80 }}>
           <ListingComposer />
         </div>
       </Band>

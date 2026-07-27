@@ -2940,6 +2940,19 @@ export const hi: Messages = {
       tryAgain: 'फिर से कोशिश करें',
     },
   },
+  supplyPage: {
+    signInGate: { tag: 'सप्लाई', body: 'आपकी कंपनी क्या सप्लाई करती है, प्रकाशित करने के लिए साइन इन करें.' },
+    tag: 'सप्लाई',
+    notBusiness: { headline: 'यह कंपनी डेस्क है', cta: 'आपका सेलर डेस्क' },
+    hero: {
+      headlinePrefix: 'आप जो ',
+      headlineAccent: 'सप्लाई करते हैं',
+      lede: 'खरीदार आपको ढूंढते हैं, या आपका एजेंट उन्हें ढूंढता है.',
+      ctaPost: 'ऑफ़र पोस्ट करें',
+      ctaPartners: 'पार्टनर खोजें →',
+    },
+    matchesHeadline: 'आपके इंतज़ार में मैच',
+  },
   sellerHub: {
     signInGate: { tag: 'सेलर डेस्क', body: 'ऑफ़र और बिड आपके वॉलेट से जुड़े हैं. सेलर एजेंट सेट करने के लिए साइन इन करें.' },
     hero: {
