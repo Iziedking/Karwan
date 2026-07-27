@@ -105,3 +105,6 @@ audit/
 
 # hackathon submission documents — internal
 submission/
+
+# deck generator, local tooling only
+scripts/build-checkpoint2-deck.py
