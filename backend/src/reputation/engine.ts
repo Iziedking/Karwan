@@ -13,7 +13,15 @@
 /// drive the score negative, so a penalised wallet drops but always has a path
 /// back. `decay` fades the visible score for idle wallets.
 
-import { repConfig, tierFor, type Tier } from './config.js';
+import {
+  repConfig,
+  tierFor,
+  minTier,
+  tierCeilingForDeals,
+  tierCeilingForConcentration,
+  TIER_MIN_DEALS,
+  type Tier,
+} from './config.js';
 import type { ReputationInputs } from './signals.js';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -45,7 +53,16 @@ export interface ReputationTerms {
 export interface ReputationResult {
   address: string;
   score: number;
+  /// The tier actually held, after ceilings. Never above `scoreTier`.
   tier: Tier;
+  /// What the score alone would have earned, before ceilings. Kept so the UI can
+  /// show a wallet what it is losing and why, rather than an unexplained tier.
+  scoreTier: Tier;
+  /// Which ceiling bound the tier down, if any. Null when the score governs.
+  tierCappedBy: 'deals' | 'concentration' | null;
+  /// Settled deals needed for the next tier up, when deals are the binding
+  /// constraint. Null otherwise.
+  dealsToNextTier: number | null;
   terms: ReputationTerms;
   inputs: ReputationInputs;
   modelVersion: number;
@@ -91,14 +108,56 @@ export function compute(inputs: ReputationInputs): ReputationResult {
   const decay = decayMultiplier(inputs.lastActionAt);
   const score = clamp(0, 1000, Math.round(1000 * base * (1 - penalty) * decay));
 
+  // The score says how much standing has been earned. The ceilings say how much
+  // of it can be HELD. Stake, tenure and activity all earn points without a
+  // single deal closing, which is intended, but standing gates other people's
+  // money now: it decides financing eligibility and how much collateral a seller
+  // posts. So a tier has to be backed by completed deals with real
+  // counterparties, not by capital parked and a calendar.
+  const scoreTier = tierFor(score);
+  const dealsCeiling = tierCeilingForDeals(inputs.completedDeals);
+  const concentrationCeiling = tierCeilingForConcentration(
+    inputs.concentrationSoft,
+    inputs.concentrationHard,
+  );
+  const tier = minTier(scoreTier, dealsCeiling, concentrationCeiling);
+
+  let tierCappedBy: 'deals' | 'concentration' | null = null;
+  if (tier !== scoreTier) {
+    // Concentration named first when both bind: it is the one the wallet cannot
+    // fix by simply doing more of the same thing.
+    tierCappedBy =
+      concentrationCeiling === tier && concentrationCeiling !== dealsCeiling
+        ? 'concentration'
+        : dealsCeiling === tier
+          ? 'deals'
+          : 'concentration';
+  }
+
   return {
     address: inputs.address,
     score,
-    tier: tierFor(score),
+    tier,
+    scoreTier,
+    tierCappedBy,
+    dealsToNextTier: dealsToNext(inputs.completedDeals, tier, scoreTier),
     terms: { stake, completion, volume, tenure, activity, referral, base, penalty, decay, rates },
     inputs,
     modelVersion: repConfig.modelVersion,
   };
+}
+
+/// How many more settled deals unlock the next tier, when deals are what is
+/// holding the wallet back. Null when the score is the binding constraint, so
+/// the UI never tells someone to close deals that would not move them.
+function dealsToNext(completedDeals: number, tier: Tier, scoreTier: Tier): number | null {
+  if (tier === scoreTier) return null;
+  const order: Array<Exclude<Tier, 'NEW'>> = ['COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
+  for (const t of order) {
+    const need = TIER_MIN_DEALS[t];
+    if (completedDeals < need) return need - completedDeals;
+  }
+  return null;
 }
 
 // Factor sub-scores. Each returns [0,1]. Exported for unit tests + UI preview.

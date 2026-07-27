@@ -126,6 +126,12 @@ reputationRoutes.get('/', async (c) => {
       address: result.address,
       score: result.score,
       tier: result.tier,
+      /// What the score alone earned, and why the held tier is lower when it is.
+      /// A demotion the wallet cannot explain is worse than no tier at all, and
+      /// this one is actionable: close more deals, or spread them wider.
+      scoreTier: result.scoreTier,
+      tierCappedBy: result.tierCappedBy,
+      dealsToNextTier: result.dealsToNextTier,
       terms: result.terms,
       inputs: result.inputs,
       modelVersion: result.modelVersion,

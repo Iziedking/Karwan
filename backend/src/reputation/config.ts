@@ -90,6 +90,35 @@ const TIER_RANK: Record<Tier, number> = {
   ELITE: 4,
 };
 
+const RANK_TIER: Tier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
+
+/// Settled deals required to HOLD each tier, regardless of score.
+///
+/// The additive model lets stake, tenure and activity earn points on their own,
+/// which is deliberate: a serious wallet should not read as NEW while it waits
+/// for its first deal to close. But it also means a wallet could reach
+/// ESTABLISHED, the financing benchmark, having never completed a single deal.
+/// Standing is a claim about repeated completion, so nothing substitutes for
+/// having actually finished deals.
+export const TIER_MIN_DEALS: Record<Exclude<Tier, 'NEW'>, number> = {
+  COLD: num('REP_MIN_DEALS_COLD', 1),
+  ESTABLISHED: num('REP_MIN_DEALS_ESTABLISHED', 3),
+  STRONG: num('REP_MIN_DEALS_STRONG', 8),
+  ELITE: num('REP_MIN_DEALS_ELITE', 15),
+};
+
+/// Ceiling imposed by counterparty concentration. Trading repeatedly with one
+/// wallet is the cheapest way to manufacture a record, and the composite is
+/// otherwise blind to it: `concentrationRatio` fed the buyer agent's trust
+/// signal and the passport, but never the score itself, so five deals with five
+/// counterparties and five deals with the same wallet scored identically.
+///
+/// Hard (>=80% with one counterparty) caps at COLD. Soft (>=60%) caps at
+/// ESTABLISHED, which still allows financing but not the tiers that reduce or
+/// waive collateral.
+export const CONCENTRATION_HARD_CEILING: Tier = 'COLD';
+export const CONCENTRATION_SOFT_CEILING: Tier = 'ESTABLISHED';
+
 export function tierFor(score: number): Tier {
   if (score >= TIER_BREAKPOINTS.ELITE) return 'ELITE';
   if (score >= TIER_BREAKPOINTS.STRONG) return 'STRONG';
@@ -101,4 +130,27 @@ export function tierFor(score: number): Tier {
 /// Ordinal rank for comparing tiers (e.g. detecting a tier-up). Higher = better.
 export function tierRank(tier: Tier): number {
   return TIER_RANK[tier] ?? 0;
+}
+
+/// The lowest of the given tiers. Ceilings compose by taking the strictest.
+export function minTier(...tiers: Tier[]): Tier {
+  let rank = TIER_RANK.ELITE;
+  for (const t of tiers) rank = Math.min(rank, tierRank(t));
+  return RANK_TIER[rank] ?? 'NEW';
+}
+
+/// Highest tier this many settled deals can hold.
+export function tierCeilingForDeals(completedDeals: number): Tier {
+  if (completedDeals >= TIER_MIN_DEALS.ELITE) return 'ELITE';
+  if (completedDeals >= TIER_MIN_DEALS.STRONG) return 'STRONG';
+  if (completedDeals >= TIER_MIN_DEALS.ESTABLISHED) return 'ESTABLISHED';
+  if (completedDeals >= TIER_MIN_DEALS.COLD) return 'COLD';
+  return 'NEW';
+}
+
+/// Highest tier this counterparty concentration can hold.
+export function tierCeilingForConcentration(soft: boolean, hard: boolean): Tier {
+  if (hard) return CONCENTRATION_HARD_CEILING;
+  if (soft) return CONCENTRATION_SOFT_CEILING;
+  return 'ELITE';
 }
