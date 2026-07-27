@@ -143,7 +143,7 @@ function LegacyPageInner() {
 
   return (
     <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[64ch]">
           <SectionTag tone="dark" dot="live">
             {lp.hero.tag}

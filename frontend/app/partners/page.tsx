@@ -31,7 +31,7 @@ function PartnersInner() {
   if (!SME_TRADES_ENABLED || !isBusiness) {
     return (
       <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
+        <Band tone="dark" overlay={<GridOverlay />} compact>
           <div className="max-w-[46ch]">
             <SectionTag tone="dark">PARTNERS</SectionTag>
             <HeroHeadline size="md">

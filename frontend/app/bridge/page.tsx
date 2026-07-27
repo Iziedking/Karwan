@@ -88,9 +88,9 @@ function BridgePageInner() {
 
   return (
     <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
         <SectionTag tone="dark">{t.sectionTag}</SectionTag>
-        <HeroHeadline>
+        <HeroHeadline size="md">
           {t.headlinePrefix}<Accent>USDC</Accent>
           <Punc>.</Punc>
         </HeroHeadline>

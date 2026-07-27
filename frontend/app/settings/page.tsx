@@ -46,7 +46,7 @@ export default function SettingsPage() {
       <PageTour id={SETTINGS_TOUR_ID} steps={SETTINGS_STEPS} />
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <SectionTag>{t.settings.eyebrow}</SectionTag>
-        <HeroHeadline>
+        <HeroHeadline size="md">
           {t.settings.title}
           <Punc>.</Punc>
         </HeroHeadline>

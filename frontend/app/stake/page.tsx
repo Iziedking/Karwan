@@ -112,12 +112,12 @@ function StakePageInner() {
   return (
     <FullBleed>
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] fade-up">
           <SectionTag tone="dark" dot="live">
             {sp.hero.tag}
           </SectionTag>
-          <HeroHeadline size="lg">
+          <HeroHeadline size="md">
             {sp.hero.line1Prefix} <Accent>{sp.hero.line1Accent}</Accent>
             <Punc>.</Punc>{' '}
             <br className="hidden md:block" />
