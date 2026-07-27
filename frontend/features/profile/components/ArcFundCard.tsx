@@ -10,6 +10,7 @@ import { useCircleFund, type CircleFundRecord } from '../hooks/useCircleFund';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const CARD_STYLE = {
@@ -51,6 +52,7 @@ export function ArcFundCard({
   defaultAgent?: 'buyer' | 'seller';
 }) {
   const af = useTranslations().arcFundCard;
+  const gt = useTranslations().gatewayTopUp;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const isConnected = auth.isAuthenticated;
@@ -126,6 +128,8 @@ export function ArcFundCard({
     if (!buyerAgent && sellerAgent) setSelected('seller');
     else if (buyerAgent && !sellerAgent) setSelected('buyer');
   }, [buyerAgent, sellerAgent]);
+
+  const selectedAddress = options.find((o) => o.key === selected)?.address;
 
   const [amount, setAmount] = useState<number | ''>('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -428,6 +432,20 @@ export function ArcFundCard({
           </p>
         )}
       </form>
+
+      {/* The pooled balance funds the same agent the form above is pointed at.
+          An agent is a Circle SCA, which Gateway rejects as a SIGNER but accepts
+          as a RECIPIENT, so the user's EOA signs and the agent receives. */}
+      {selectedAddress && (
+        <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{gt.cta}:]
+          </span>
+          <div className="mt-3.5">
+            <TopUpFromGateway recipient={selectedAddress} onFunded={refetchAll} />
+          </div>
+        </div>
+      )}
 
       {records.length > 0 && (
         <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
