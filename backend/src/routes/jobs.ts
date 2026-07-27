@@ -34,7 +34,7 @@ import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearM
 import { bus } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
-import { accountTypeOf, deriveLane } from '../profile/accountType.js';
+import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
@@ -362,7 +362,7 @@ jobsRoutes.post('/', async (c) => {
     negotiationMaxIncreasePct: body.negotiationMaxIncreasePct,
     milestonePcts: body.milestonePcts,
     trustedMatch: body.trustedMatch === true,
-    tradeLane: deriveLane(posterAccountType, body.tradeType),
+    tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,
     tradeType: body.tradeType,
     incoterms: body.incoterms,

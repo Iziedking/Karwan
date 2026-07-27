@@ -137,6 +137,15 @@ export function TopNav() {
             </NavLink>
             {biz && (
               <NavLink
+                href="/supply"
+                active={pathname.startsWith('/supply')}
+                title="Publish what your company supplies"
+              >
+                Supply
+              </NavLink>
+            )}
+            {biz && (
+              <NavLink
                 href="/partners"
                 active={pathname.startsWith('/partners')}
                 title="Find businesses to trade with, by sector and region"

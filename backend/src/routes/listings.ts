@@ -287,7 +287,7 @@ listingsRoutes.post('/', async (c) => {
     askingPriceUsdc: body.askingPriceUsdc,
     negotiationMaxDecreasePct: body.negotiationMaxDecreasePct,
     ttlDays: body.ttlDays,
-    tradeLane: deriveLane(sellerAccountType, undefined),
+    tradeLane: deriveLane(sellerAccountType),
     partyKind: sellerAccountType,
   });
 

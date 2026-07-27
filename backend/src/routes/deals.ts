@@ -53,7 +53,7 @@ import {
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
-import { accountTypeOf, deriveLane } from '../profile/accountType.js';
+import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
 import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
@@ -322,7 +322,7 @@ dealsRoutes.post('/direct', async (c) => {
   // A finance-lane direct deal (SME/B2B) is between verified businesses on both
   // sides: a known counterparty is checked now, a pending invited one at accept.
   const creatorAccountType = await accountTypeOf(body.buyerAddress);
-  const tradeLane = deriveLane(creatorAccountType, body.tradeType);
+  const tradeLane = deriveJobLane(creatorAccountType, body.tradeType);
 
   // P2P only, for now. A handle is a nickname, not a verification: anyone can
   // claim any unclaimed name. The finance lane moves real credit against a

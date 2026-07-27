@@ -38,7 +38,26 @@ export async function accountKindOf(address: string): Promise<AccountType> {
 /// mixed). A business buying a single service stays in the service lane so it
 /// still reaches person providers. Everything a person posts stays 'service',
 /// which leaves the entire existing P2P flow unchanged.
-export function deriveLane(
+export function deriveLane(accountType: AccountType): TradeLane {
+  // A business belongs in the business lane, full stop. It used to fall through
+  // to 'service' whenever the trade was not goods, which put a company's own
+  // offers into the person-to-person pool and made it compete as a freelancer.
+  // A company whose people freelance uses a separate individual account, so the
+  // two books never mix.
+  //
+  // NOTE the asymmetry this creates on the buy side, handled at the job route:
+  // a business hiring an INDIVIDUAL is a real flow (the market's "businesses
+  // hiring individuals" bucket), and lanes partition matching strictly, so that
+  // case is laned by what is being bought rather than who is buying.
+  if (accountType === 'business') return 'finance';
+  return 'service';
+}
+
+/// Lane for a job/brief. The buy side is laned by WHAT is being bought, so a
+/// company can still hire an individual: a service brief stays in the service
+/// pool where the individuals are, and only goods or mixed briefs sit in the
+/// business lane. Selling is the side that follows the account type.
+export function deriveJobLane(
   accountType: AccountType,
   tradeType: 'service' | 'goods' | 'mixed' | undefined,
 ): TradeLane {
