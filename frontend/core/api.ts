@@ -1108,6 +1108,37 @@ function adminHeaders(): Record<string, string> {
   return t ? { 'x-admin-token': t } : {};
 }
 
+export interface AdminDisputeRow {
+  jobId: string;
+  buyer: string;
+  seller: string;
+  dealAmountUsdc: string;
+  disputedAt: number | null;
+  disputedBy: 'buyer' | 'seller' | null;
+}
+
+/// Everything needed to sign one arbiter ruling. `typedData` is handed over
+/// whole so the browser never rebuilds the Safe domain or field order: one
+/// wrong field yields a different digest and a signature the Safe rejects.
+export interface AdminDisputePrepared {
+  safe: string;
+  escrow: string;
+  chainId: number;
+  nonce: string;
+  owners: string[];
+  threshold: number;
+  sellerBps: number;
+  rulingHash: string;
+  typedData: {
+    domain: { chainId: number; verifyingContract: string };
+    types: Record<string, Array<{ name: string; type: string }>>;
+    primaryType: string;
+    message: Record<string, unknown>;
+  };
+  collected: Array<{ signer: string; signedAt: number }>;
+  ready: boolean;
+}
+
 export interface AdminDealRow {
   jobId: string;
   buyer: string;
@@ -1419,6 +1450,45 @@ export const api = {
     json<{ count: number; profiles: AdminProfileRow[] }>('/api/admin/profiles', {
       headers: adminHeaders(),
     }),
+  /// Arbiter dispute desk. The escrow's arbiter is a 2-of-3 Safe, so resolving
+  /// a dispute means collecting owner signatures rather than calling resolve()
+  /// directly. The backend computes the digest and assembles; the authority is
+  /// always a signature made in an owner's own wallet.
+  adminDisputes: () =>
+    json<{
+      disputes: AdminDisputeRow[];
+      safe: string | null;
+      escrow: string | null;
+    }>('/api/admin/disputes', { headers: adminHeaders() }),
+  adminPrepareDispute: (jobId: string, sellerBps: number, rulingReason: string) =>
+    json<AdminDisputePrepared>(`/api/admin/disputes/${jobId}/prepare`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ sellerBps, rulingReason }),
+    }),
+  adminSignDispute: (
+    jobId: string,
+    body: { sellerBps: number; rulingReason: string; signature: string; safeNonce: string },
+  ) =>
+    json<{
+      signer: string;
+      collected: Array<{ signer: string; signedAt: number }>;
+      threshold: number;
+      ready: boolean;
+    }>(`/api/admin/disputes/${jobId}/sign`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(body),
+    }),
+  adminExecuteDispute: (jobId: string, sellerBps: number, rulingReason: string) =>
+    json<{ ok: true; txHash: string; sellerBps: number }>(
+      `/api/admin/disputes/${jobId}/execute`,
+      {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ sellerBps, rulingReason }),
+      },
+    ),
   adminExtendDeal: (jobId: string, additionalSeconds: number) =>
     json<{ ok: true; newDeadlineUnix: number }>(`/api/admin/deals/${jobId}/extend`, {
       method: 'POST',

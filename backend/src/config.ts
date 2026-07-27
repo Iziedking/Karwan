@@ -410,6 +410,10 @@ const envSchema = z.object({
   // on-chain resolve() that splits a post-accept dispute between the parties.
   // Must match the address set via escrow.setArbiter. Optional until v2 live.
   SECURITY_COUNCIL_WALLET_ID: optionalString,
+  // The 2-of-3 Safe that escrow.arbiter() points at. Dispute resolution goes
+  // through it rather than a single council key, so no one person can move a
+  // disputed escrow. Unset disables /admin/disputes signing (reads still work).
+  KARWAN_ARBITER_SAFE: optionalString,
   BUYER_AGENT_ADDRESS: optionalAddr,
   /// Genuinely legacy. Nothing in production code reads these. Safe to drop.
   SELLER_AGENT_WALLET_ID: optionalString,

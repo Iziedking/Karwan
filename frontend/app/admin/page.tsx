@@ -29,7 +29,7 @@ export default function AdminOverview() {
     { label: 'Deals', value: deals?.length, href: '/admin/deals' },
     { label: 'Open', value: deals ? byStage('open') + byStage('accepted') + byStage('delivered') : undefined, href: '/admin/deals' },
     { label: 'Settled', value: deals ? byStage('settled') : undefined, href: '/admin/deals' },
-    { label: 'Disputed', value: deals ? byStage('disputed') : undefined, href: '/admin/deals' },
+    { label: 'Disputed', value: deals ? byStage('disputed') : undefined, href: '/admin/disputes' },
     { label: 'Profiles', value: profiles?.length, href: '/admin/profiles' },
     { label: 'Businesses', value: profiles?.filter((p) => p.accountType === 'business').length, href: '/admin/profiles' },
     { label: 'Research on', value: profiles?.filter((p) => p.researchActive).length, href: '/admin/profiles' },

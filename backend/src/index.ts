@@ -32,6 +32,7 @@ import { gatewayRoutes } from './routes/gateway.js';
 import { chatRoutes } from './routes/chat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
+import { adminDisputeRoutes } from './routes/adminDisputes.js';
 import { supportTeamRoutes } from './routes/supportTeam.js';
 import { adminTreasuryRoutes } from './routes/adminTreasury.js';
 import { adminUsycRoutes } from './routes/adminUsyc.js';
@@ -226,6 +227,7 @@ app.route('/api/telegram', telegramRoutes);
 // support token, while the rest of /api/admin stays admin-only.
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/admin/disputes', adminDisputeRoutes);
 app.route('/api/admin/treasuries', adminTreasuryRoutes);
 app.route('/api/admin/usyc', adminUsycRoutes);
 app.route('/api/yield', yieldRoutes);

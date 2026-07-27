@@ -62,6 +62,7 @@ import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
 import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
 import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
+import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { isSessionSelf, viewerAddress, readSession } from '../auth/session.js';
@@ -2186,6 +2187,35 @@ dealsRoutes.post('/direct/:jobId/delay-appeal-respond', async (c) => {
   return c.json({ accepted: true, jobId, respondedAt: now }, 200);
 });
 
+/// Push a raised dispute at the operator team. Fire-and-forget on purpose: the
+/// dispute is already on chain and recorded by the time this runs, so a
+/// Telegram outage must not turn a successful appeal into a 502 for the party
+/// who raised it.
+///
+/// A dispute is the one deal state no automation clears. Resolution needs two
+/// of three arbiter Safe owners to sign, so it sits frozen until a human looks.
+/// Waiting for someone to notice the admin tile is how a frozen escrow becomes
+/// a week-old frozen escrow.
+function notifyOperatorOfDispute(
+  jobId: string,
+  deal: { buyer: string; seller: string; dealAmountUsdc: string },
+  raisedBy: 'buyer' | 'seller',
+): void {
+  const opChat = supportOperatorChatId();
+  if (opChat === null) return;
+  const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+  void sendTelegramMessage(
+    opChat,
+    `*Deal disputed*\nRaised by the ${raisedBy}\n` +
+      `Amount: ${deal.dealAmountUsdc} USDC\n` +
+      `Buyer: \`${short(deal.buyer)}\`\nSeller: \`${short(deal.seller)}\`\n` +
+      `Job: \`${jobId.slice(0, 10)}…\`\n\n` +
+      `Escrow is frozen until two arbiter owners sign a ruling.`,
+    base ? [{ text: 'Open disputes', url: `${base}/admin/disputes` }] : undefined,
+  );
+}
+
 /// Either party appeals: moves the on-chain escrow to Disputed and freezes
 /// movement until both sides reach consensus (via the mutual-cancel propose
 /// flow). The contract's dispute() accepts either buyer or seller as caller,
@@ -2258,6 +2288,11 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     });
     // A dispute is a neutral marker on the record until it is resolved.
     await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_DISPUTE_RESOLVED);
+    // A disputed escrow needs two of three Safe owners to sign before anything
+    // moves, so nobody's money is going anywhere until a human acts. Push it
+    // rather than waiting for someone to notice the admin tile. Best-effort: a
+    // Telegram failure must never fail the dispute the parties just raised.
+    notifyOperatorOfDispute(jobId, deal, callerRole);
     return c.json({ accepted: true, jobId, txHash: disputeTxHash }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
