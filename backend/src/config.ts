@@ -278,6 +278,18 @@ const envSchema = z.object({
   DEAL_REVIEW_EXTENSION_MS: z.coerce.number().int().positive().default(600_000),
   // Most times the buyer can extend the final-release window.
   DEAL_MAX_REVIEW_EXTENSIONS: z.coerce.number().int().positive().default(3),
+  // Floor on the auto-release window for a GOODS deal carrying no explicit net
+  // terms. "Delivered" on physical goods means dispatched, not arrived, so the
+  // review ladder alone would release the escrow while the shipment is still in
+  // transit and the buyer has nothing to inspect. 14 days is a short ocean leg;
+  // raise it for the corridors you actually serve.
+  GOODS_TRANSIT_FLOOR_MS: z.coerce.number().int().nonnegative().default(14 * 86_400_000),
+  // Deal size at which the auto-release window has doubled. Bigger money earns
+  // more time to look at it, saturating at AUTO_RELEASE_MAX_AMOUNT_FACTOR.
+  AUTO_RELEASE_AMOUNT_REF_USDC: z.coerce.number().positive().default(5_000),
+  // Ceiling on the size multiplier, so one huge deal cannot park an escrow for
+  // an unreasonable stretch.
+  AUTO_RELEASE_MAX_AMOUNT_FACTOR: z.coerce.number().min(1).default(3),
   // Shareable invite-link TTL. The recipient has this long to claim the link
   // before it expires. 7 days default matches a normal "I'll get to it" cadence.
   DEAL_INVITE_TTL_MS: z.coerce.number().int().positive().default(7 * 86_400_000),

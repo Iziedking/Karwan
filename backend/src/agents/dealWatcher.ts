@@ -46,14 +46,92 @@ const processing = new Set<string>();
 
 type BlockReason = 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
 
-/// Auto-release window for the milestone at `index`. Each milestone doubles the
-/// one before it: the buyer gets the base window to look at the first delivery,
-/// twice that before the second tranche moves, and so on. Later tranches are
-/// worth more and are harder to judge, so the buyer earns more time as the deal
-/// progresses. The FINAL milestone is not on this ladder at all — it never
-/// auto-releases (see below).
-function milestoneWindowMs(index: number): number {
-  return config.DEAL_REVIEW_WINDOW_MS * 2 ** index;
+const DAY_MS = 86_400_000;
+
+/// How long the payment terms say the buyer's money is theirs to hold, as a
+/// floor under the auto-release window.
+///
+/// Net terms are not decoration. A buyer who agreed Net 30 agreed that
+/// settlement happens thirty days after delivery, and auto-releasing on day one
+/// hands the seller the money while the buyer still has every right to inspect.
+///
+/// Goods with no explicit terms get the transit floor instead, because
+/// "delivered" on physical goods means DISPATCHED. The seller marks it the
+/// moment the container leaves, and nothing has arrived for the buyer to look
+/// at. Services are excluded: a delivery there is a link the buyer can open
+/// immediately, which is what the review ladder was designed around.
+function termsFloorMs(deal: DirectDeal): number {
+  switch (deal.paymentTerms) {
+    case 'net90':
+      return 90 * DAY_MS;
+    case 'net60':
+      return 60 * DAY_MS;
+    case 'net30':
+      return 30 * DAY_MS;
+    default:
+      break;
+  }
+  if (deal.tradeType === 'goods' || deal.tradeType === 'mixed') {
+    return config.GOODS_TRANSIT_FLOOR_MS;
+  }
+  return 0;
+}
+
+/// Bigger deals earn more review time, saturating so one large deal cannot park
+/// an escrow indefinitely.
+function amountFactor(deal: DirectDeal): number {
+  const amount = Number(deal.dealAmountUsdc);
+  if (!Number.isFinite(amount) || amount <= 0) return 1;
+  const scaled = 1 + amount / config.AUTO_RELEASE_AMOUNT_REF_USDC;
+  return Math.min(config.AUTO_RELEASE_MAX_AMOUNT_FACTOR, scaled);
+}
+
+/// A counterparty you have settled with before needs less scrutiny than a
+/// stranger. Only ever lengthens the window: trust shortens it back toward the
+/// base ladder, it never pushes below it.
+function historyFactor(priorSettledTogether: number): number {
+  if (priorSettledTogether >= 3) return 1;
+  if (priorSettledTogether >= 1) return 1.5;
+  return 2;
+}
+
+/// Auto-release window for the milestone at `index`.
+///
+/// The position ladder is unchanged: each milestone doubles the one before it,
+/// because later tranches are worth more and are harder to judge. On top of it
+/// the window now scales with deal size and with how well the two parties know
+/// each other, and it can never expire before the payment terms allow.
+///
+/// Deliberately NOT a function of anything resembling quality. The contract
+/// cannot observe whether the work was any good, and a timer that pretended to
+/// would just be a slower way of guessing.
+function autoReleaseWindowMs(
+  deal: DirectDeal,
+  index: number,
+  priorSettledTogether: number,
+): number {
+  const ladder = config.DEAL_REVIEW_WINDOW_MS * 2 ** index;
+  const scaled = ladder * amountFactor(deal) * historyFactor(priorSettledTogether);
+  return Math.max(scaled, termsFloorMs(deal));
+}
+
+/// Settled deals between the same two parties, from the list the tick already
+/// holds. Built once per pass rather than queried per deal: the watcher walks
+/// every deal anyway, so this is a single extra traversal instead of an N+1.
+function buildPairHistory(deals: DirectDeal[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const d of deals) {
+    if (!d.settledAt) continue;
+    const key = pairKey(d.buyer, d.seller);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/// Order-independent, so a pair reads the same whichever side is buying.
+function pairKey(a: string, b: string): string {
+  const [x, y] = [a.toLowerCase(), b.toLowerCase()].sort();
+  return `${x}:${y}`;
 }
 
 /// Record (once) that the agent has stopped the auto-release clock, and why.
@@ -211,7 +289,7 @@ async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
 /// One pass over direct deals.
 ///
 /// Auto-release covers the first milestone and any intermediate one, on the
-/// doubling ladder in milestoneWindowMs(). The FINAL release never auto-fires
+/// window from autoReleaseWindowMs(). The FINAL release never auto-fires
 /// on a timer. The buyer must explicitly verify the work and click release. If
 /// they stall, the seller raises a delay appeal and the agent settles on their
 /// behalf when the buyer ignores it. This protects buyer funds from silent
@@ -222,7 +300,9 @@ async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
 /// pause the seller cannot see is a deal that wedges forever.
 async function tick() {
   const now = Date.now();
-  for (const deal of await listAllDeals()) {
+  const deals = await listAllDeals();
+  const pairHistory = buildPairHistory(deals);
+  for (const deal of deals) {
     if (deal.cancelledAt || deal.settledAt) continue;
     // A disputed deal is otherwise invisible to every auto-release path below.
     // Left alone, a dispute whose counterparty goes silent never resolves (the
@@ -415,7 +495,11 @@ async function tick() {
           nextIndex === 0
             ? deal.deliveredAt
             : (deal.lastReleaseAt ?? deal.reviewWindowStartedAt ?? deal.deliveredAt);
-        const windowMs = milestoneWindowMs(nextIndex);
+        const windowMs = autoReleaseWindowMs(
+          deal,
+          nextIndex,
+          pairHistory.get(pairKey(deal.buyer, deal.seller)) ?? 0,
+        );
         if (now <= anchor + windowMs) continue;
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const releasedAt = Date.now();
