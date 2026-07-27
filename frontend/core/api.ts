@@ -1003,7 +1003,8 @@ export interface AssistantConfirmAction {
     | 'stake_usdc'
     | 'claim_yield'
     | 'fund_agent'
-    | 'pool_usdc_web3';
+    | 'pool_usdc_web3'
+    | 'fund_agent_web3';
   title: string;
   summary?: string;
   /// Stark line for irreversible/money-moving actions (release). Absent on post_offer.

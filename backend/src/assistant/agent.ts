@@ -60,6 +60,7 @@ import {
   buildStakeConfirm,
   buildClaimYieldConfirm,
   buildFundAgentConfirm,
+  buildFundAgentWeb3Confirm,
   buildGatewayDepositConfirm,
   buildWeb3TopUpConfirm,
   buildWeb3CashOutConfirm,
@@ -1145,8 +1146,24 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           if (route === 'insufficient') {
             return { error: `${insufficientMessage(spendable, amountUsdc)} They can bring more over with check_top_up_sources.` };
           }
+          // A web3 user self-custodies their Arc wallet, so the backend cannot
+          // sign this leg. That is not a reason to send them away: the panel can
+          // raise the wallet prompt itself, the same way the web3 top-up and
+          // pool cards already do. Hand back a client-side card instead.
           if (route === 'wallet' && method !== 'circle') {
-            return { error: 'Moving money out of their own wallet needs their signature (they self-custody it). Send them to their profile with propose_navigation (destination "profile").' };
+            const to = agent === 'buyer' ? record.buyerAddress : record.sellerAddress;
+            if (!to) {
+              return { error: `They have no ${agent} agent wallet yet. Offer a button to their profile (destination "profile").` };
+            }
+            const web3Built = buildFundAgentWeb3Confirm({
+              agent,
+              toAddress: to,
+              amountUsdc,
+              balanceAfterUsdc: (spendable.totalUsd - amountUsdc).toFixed(2),
+            });
+            if ('error' in web3Built) return web3Built;
+            if (!hasEquivalentConfirm(actions, web3Built)) actions.push(web3Built);
+            return { ok: true, shown: web3Built.title };
           }
           const built = buildFundAgentConfirm({
             caller: address,

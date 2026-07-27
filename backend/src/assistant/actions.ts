@@ -286,6 +286,21 @@ export interface GatewayDepositConfirm extends ConfirmActionBase {
   payload: GatewayDepositPayload;
 }
 
+/// A web3 user moving their OWN Arc USDC into an agent wallet. The backend
+/// cannot sign this (they self-custody), but the panel can: it is a plain USDC
+/// transfer on Arc. Before this existed the assistant refused and sent them to
+/// the profile screen to do by hand what it could have prepared.
+export interface Web3FundAgentPayload {
+  agent: 'buyer' | 'seller';
+  /// Resolved server-side so the panel never picks the destination itself.
+  toAddress: string;
+  amountUsdc: number;
+}
+export interface Web3FundAgentConfirm extends ConfirmActionBase {
+  intent: 'fund_agent_web3';
+  payload: Web3FundAgentPayload;
+}
+
 /// Discriminated on `intent`, which also tells the frontend which route to call.
 export type ConfirmAction =
   | PostOfferConfirm
@@ -305,7 +320,8 @@ export type ConfirmAction =
   | StakeConfirm
   | ClaimYieldConfirm
   | FundAgentConfirm
-  | GatewayDepositConfirm;
+  | GatewayDepositConfirm
+  | Web3FundAgentConfirm;
 
 /// Stage 2 shipped `navigate`; Stages 3-4 add `confirm`. The envelope + renderer
 /// carry the union unchanged as new variants land.
@@ -1096,3 +1112,31 @@ export function buildGatewayDepositConfirm(i: {
   };
 }
 
+/// Confirm card for a web3 user funding their own agent from their Arc wallet.
+export function buildFundAgentWeb3Confirm(i: {
+  agent: 'buyer' | 'seller';
+  toAddress: string;
+  amountUsdc: number;
+  balanceAfterUsdc: string;
+}): Web3FundAgentConfirm | { error: string } {
+  if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
+  if (!/^0x[a-fA-F0-9]{40}$/.test(i.toAddress)) {
+    return { error: 'That agent wallet address does not look right.' };
+  }
+  return {
+    kind: 'confirm',
+    id: `fund_agent_web3:${i.agent}:${i.amountUsdc}:${confirmNonce()}`,
+    intent: 'fund_agent_web3',
+    title: `Fund your ${i.agent} agent`,
+    summary: `Move ${i.amountUsdc} USDC from your wallet into your ${i.agent} agent.`,
+    fields: [
+      { label: 'Amount', value: `${i.amountUsdc} USDC` },
+      { label: 'From', value: 'Your wallet' },
+      { label: 'To', value: `Your ${i.agent} agent` },
+      { label: 'Left after', value: `${i.balanceAfterUsdc} USDC` },
+    ],
+    payload: { agent: i.agent, toAddress: i.toAddress, amountUsdc: i.amountUsdc },
+    confirmLabel: 'Sign and send',
+    cancelLabel: 'Not now',
+  };
+}
