@@ -408,6 +408,7 @@ export function PostJobForm() {
           hint={t.sectionWork.requestHint}
         >
           <textarea
+            data-guide="buyer-brief"
             value={brief}
             onChange={(e) => {
               setBrief(e.target.value);
@@ -629,6 +630,7 @@ export function PostJobForm() {
             dataGuide="buyer-budget"
           >
             <input
+              data-guide="buyer-budget"
               type="number"
               min={1}
               step={1}
@@ -647,6 +649,7 @@ export function PostJobForm() {
           >
             <div className="flex items-stretch gap-2">
               <input
+                data-guide="buyer-deadline"
                 type="number"
                 min={1}
                 max={deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90}
@@ -679,6 +682,7 @@ export function PostJobForm() {
             dataGuide="buyer-tolerance"
           >
             <input
+              data-guide="buyer-tolerance"
               type="number"
               min={0}
               max={50}
