@@ -3287,6 +3287,11 @@ interface MessagesShape {
         shareable: { title: string; body: string };
         cashout: { title: string; body: string };
         vault: { title: string; body: string };
+        factoring: { title: string; body: string };
+        disputes: { title: string; body: string };
+        symmetric: { title: string; body: string };
+        verified: { title: string; body: string };
+        escrowYield: { title: string; body: string };
         terms: { title: string; body: string };
         signin: { title: string; body: string };
         languages: { title: string; body: string };
@@ -3296,10 +3301,6 @@ interface MessagesShape {
     next: {
       title: string;
       skills: { title: string; body: string };
-      x402: { title: string; body: string };
-      factoring: { title: string; body: string };
-      symmetric: { title: string; body: string };
-      verified: { title: string; body: string };
       fileDelivery: { title: string; body: string };
       referral: { title: string; body: string };
       mainnet: {
@@ -3357,8 +3358,8 @@ interface MessagesShape {
     };
     roadmap: {
       eyebrow: string; title: string; body: string;
-      x402: { title: string; body: string };
-      factoring: { title: string; body: string };
+      fileDelivery: { title: string; body: string };
+      referral: { title: string; body: string };
       mainnet: { title: string; body: string };
       i18n: { title: string; body: string };
     };
@@ -7572,7 +7573,12 @@ export const en: MessagesShape = {
         passport: { title: 'Public Credit Passport.', body: 'Every wallet has a public reputation page showing tier, score, term breakdown, and on-chain history. Anyone can read it without signing in.' },
         shareable: { title: 'Shareable deal links.', body: 'Open a deal pointed at an email address. The recipient claims with a one-time code and a Circle wallet is provisioned in their browser.' },
         cashout: { title: 'Cashout after settlement.', body: 'Send settled USDC to any wallet on Arc, or bridge out to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana with an inline progress card.' },
-        vault: { title: 'Treasury earns real Hashnote USYC.', body: 'Platform fee reserves route through real Hashnote USYC on Arc Testnet via the standard ERC-4626 Teller interface. Live since 2026-06-06 after Circle whitelisted Treasury V3 on Hashnote\'s entitlements contract. A daily distribution credits each staker their pro-rata share, claimable on demand. Vault USYC routing is queued on the same support thread and flips live the moment Circle confirms the second whitelist.' },
+        vault: { title: 'Idle balances earn real Hashnote USYC.', body: 'Platform fee reserves and staked capital both route into real Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface. USYC is permissioned, so holding it at all is the proof the integration is real: an address without an entitlement cannot. A daily distribution credits each staker their pro-rata share, claimable on demand.' },
+        factoring: { title: 'Invoice factoring and purchase-order financing.', body: 'A financier advances against an invoice at a discount set by the seller\'s reputation tier, and the escrow records an irrevocable redirect so the repayment cannot be diverted. Purchase-order financing advances working capital against an accepted order and releases it when proof of delivery is anchored on chain. Both legs move native USDC.' },
+        disputes: { title: 'Arbitrated disputes with proportional splits.', body: 'A dispute that survives the two sides talking goes to an arbiter, who splits the unreleased funds by basis points rather than picking a winner. The same ruling settles the seller\'s reserved stake in proportion to fault. A dead arbiter key can delay a deal but never trap it: after the timeout either party can push it to its default outcome.' },
+        symmetric: { title: 'Both sides earn a record.', body: 'A settled deal credits the buyer and the seller on chain, not only the seller, and each side gains a distinct counterparty the first time a pair settles. Standing is value-weighted and counts distinct counterparties, so volume with one repeat partner cannot inflate a score.' },
+        verified: { title: 'Verified deliverables.', body: 'A security agent scans every delivered link before the buyer sees it, and guards the in-app chat so a phishing or malware link cannot be sent in the first place. A flagged link pauses the deal\'s automatic release and routes both sides to resolve it. A confirmed bad link is a heavy hit to the sender\'s reputation.' },
+        escrowYield: { title: 'Escrow yield path deployed.', body: 'The live escrow can sweep idle float through the treasury into USYC, capped at 80 percent, and pulls it back before every payout. The escrow\'s books stay pure USDC and always recover exactly what was swept, so principal is guaranteed whatever the token price does. No escrow balance has been swept yet.' },
         terms: { title: 'Terms and Conditions with versioned consent.', body: 'A public terms page and a first-signup consent gate that re-prompts when the version changes.' },
         signin: { title: 'Three sign-in paths.', body: 'Email and passkey, email one-time code, or a web3 wallet through Sign-In with Ethereum.' },
         languages: { title: 'Multi-language framework.', body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },
@@ -7582,10 +7588,6 @@ export const en: MessagesShape = {
     next: {
       title: 'Shipping next',
       skills: { title: 'Skills verification', body: 'Agents rank a seller on what they claim plus their settled-deal record. The next layer proves it. Sellers bind external identities (GitHub first, then X, Substack, Dribbble) with a wallet-signed proof, no OAuth and no passwords, and the agent reads public signals for the skill, commits and languages for a developer, audit placements for a security researcher, published work for a writer, and blends that evidence into the match score. A buyer sees why a seller ranks where they do. Evidence and reputation stay separate labels, so proving a skill never hides a thin record and a thin record never hides a proven skill. Free sources cover the common categories; paid checks gate behind tier and deal value.' },
-      x402: { title: 'USYC yield on idle escrow', body: 'The x402 nanopayment rail is already live: agents pay sub-cent USDC fees to read an outside market signal for a deal, and Karwan exposes its own paid underwriting endpoints over x402, every call on the deal timeline. The platform treasury already earns USYC yield on Arc too. The next contract upgrade routes idle escrow balances into USYC, so money waiting on delivery earns institutional yield instead of sitting still.' },
-      factoring: { title: 'Invoice factoring', body: "A financier funds an accepted deal at a discount; the escrow's payout slot switches to the financier for the release; the seller gets paid early. Reputation tier sets the discount floor. The credit passport becomes the financing surface." },
-      symmetric: { title: 'Symmetric reputation crediting', body: 'Settled deals will credit both buyer and seller on chain instead of only the seller. Both wallets carry the same outcome record.' },
-      verified: { title: 'Verified deliverables', body: 'A security agent scans every delivered link before the buyer sees it, so a malicious URL never reaches the person about to release escrow. Confirmed bad actors take a permanent reputation hit.' },
       fileDelivery: { title: 'File delivery', body: 'Deliver work as a file rather than only a link, with the same scan pipeline. Built on Cloudflare R2 for speed and IPFS for tamper-evident, content-addressed delivery of confidential trade documents.' },
       referral: { title: 'Referral marketing rail (mainnet)', body: 'A growth surface that rewards users for bringing real counterparties on board. When you refer someone who registers through a completed deal with you, both wallets get a reputation lift on the new referral signal. Designed for mainnet, where every honest signup is a real customer rather than a faucet click. Sits behind a small anti-fraud check so the same wallet does not refer itself, and so repeating with the same counterparty does not stack indefinitely.' },
       mainnet: {
@@ -7661,14 +7663,14 @@ export const en: MessagesShape = {
       appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. The Circle Wallets adapter signs straight from our Developer-Controlled Wallets, so an email or passkey user bridges without ever seeing a wallet popup, and web3 users sign with their own wallet through the same SDK.',
       gateway: 'One pooled USDC balance across twelve chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas. It is also the rail that settles the agents\' per-call payments.',
       arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
-      usyc: 'Trade capital is idle by nature, and money that sits should earn. The treasury holds real allowlisted Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same operator-mediated path, and with the v2 release escrow funds left idle during long-dated trades earn too.',
+      usyc: 'Trade capital is idle by nature, and money that sits should earn. The treasury holds real allowlisted Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same operator-mediated path. The live escrow carries the same sweep path for funds left idle during long-dated trades, capped at 80 percent of float, though no escrow balance has been swept yet.',
     },
     roadmap: {
       eyebrow: 'Roadmap',
       title: 'Coming next',
       body: 'What ships after the current testnet build.',
-      x402: { title: 'USYC yield on idle escrow', body: 'The platform treasury already earns USYC yield on Arc today. The next contract upgrade routes idle escrow balances into USYC too, so money waiting on delivery earns institutional yield instead of sitting still.' },
-      factoring: { title: 'Business rail trade finance', body: 'Invoice factoring and purchase-order financing on the Business rail, so an SME does not wait 30 or 60 days for cash already earned. A financier funds an accepted deal at a discount and the payout routes to them on release. Rolling out behind the Business side.' },
+      fileDelivery: { title: 'File delivery', body: 'Deliver work as a file rather than only a link, with the same scan pipeline behind it. Cloudflare R2 for speed, IPFS for tamper-evident, content-addressed delivery of confidential trade documents.' },
+      referral: { title: 'Referral rail', body: 'A growth surface that rewards bringing real counterparties on board. Refer someone who settles a deal with you and both wallets gain on the referral signal. Built for mainnet, behind an anti-fraud check so a wallet cannot refer itself.' },
       mainnet: { title: 'Mainnet and wider corridors', body: 'An external contract audit and a multisig treasury before any mainnet deployment, then wider trade corridors and more source chains as the network grows.' },
       i18n: { title: 'Skill verification', body: 'Graded proof of work, so a seller who can show a real delivery record raises their skill-match score. Evidence stays separate from reputation, so proving a skill never hides a thin record.' },
     },

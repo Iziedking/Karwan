@@ -50,6 +50,26 @@ export default function DocsRoadmapPage() {
           <strong>{t.live.items.vault.title}</strong> {t.live.items.vault.body}
         </DocsListItem>
         <DocsListItem>
+          <strong>{t.live.items.factoring.title}</strong>{' '}
+          {t.live.items.factoring.body}
+        </DocsListItem>
+        <DocsListItem>
+          <strong>{t.live.items.disputes.title}</strong>{' '}
+          {t.live.items.disputes.body}
+        </DocsListItem>
+        <DocsListItem>
+          <strong>{t.live.items.symmetric.title}</strong>{' '}
+          {t.live.items.symmetric.body}
+        </DocsListItem>
+        <DocsListItem>
+          <strong>{t.live.items.verified.title}</strong>{' '}
+          {t.live.items.verified.body}
+        </DocsListItem>
+        <DocsListItem>
+          <strong>{t.live.items.escrowYield.title}</strong>{' '}
+          {t.live.items.escrowYield.body}
+        </DocsListItem>
+        <DocsListItem>
           <strong>{t.live.items.terms.title}</strong> {t.live.items.terms.body}
         </DocsListItem>
         <DocsListItem>
@@ -69,18 +89,6 @@ export default function DocsRoadmapPage() {
 
       <DocsH3 id="skills-verification">{t.next.skills.title}</DocsH3>
       <DocsP>{t.next.skills.body}</DocsP>
-
-      <DocsH3>{t.next.x402.title}</DocsH3>
-      <DocsP>{t.next.x402.body}</DocsP>
-
-      <DocsH3>{t.next.factoring.title}</DocsH3>
-      <DocsP>{t.next.factoring.body}</DocsP>
-
-      <DocsH3>{t.next.symmetric.title}</DocsH3>
-      <DocsP>{t.next.symmetric.body}</DocsP>
-
-      <DocsH3>{t.next.verified.title}</DocsH3>
-      <DocsP>{t.next.verified.body}</DocsP>
 
       <DocsH3>{t.next.fileDelivery.title}</DocsH3>
       <DocsP>{t.next.fileDelivery.body}</DocsP>

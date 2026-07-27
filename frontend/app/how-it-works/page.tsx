@@ -194,12 +194,12 @@ export default function HowItWorksPage() {
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
           <RoadmapTile
-            title={t.roadmap.x402.title}
-            body={t.roadmap.x402.body}
+            title={t.roadmap.fileDelivery.title}
+            body={t.roadmap.fileDelivery.body}
           />
           <RoadmapTile
-            title={t.roadmap.factoring.title}
-            body={t.roadmap.factoring.body}
+            title={t.roadmap.referral.title}
+            body={t.roadmap.referral.body}
           />
           <RoadmapTile
             title={t.roadmap.mainnet.title}
