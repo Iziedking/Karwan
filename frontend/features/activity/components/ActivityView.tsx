@@ -124,6 +124,9 @@ export function ActivityView({ explorer }: { explorer: string }) {
           leaves half the screen empty. 5:7 because the ledger is short rows
           and the stream carries the filters and pager. */}
       <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-x-10 gap-y-8 items-start">
+        {/* Not sticky, though it would suit this column: every Band sets
+            overflow-hidden for the full-bleed trick, and an overflow ancestor
+            disables position:sticky for everything inside it. */}
         <div className="min-w-0">
           <MyMoneyLedger />
         </div>
