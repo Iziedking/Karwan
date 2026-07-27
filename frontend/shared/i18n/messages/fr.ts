@@ -3441,7 +3441,7 @@ export const fr: Messages = {
       heading: 'Le cycle de vie',
       open: { label: 'Ouvert.', body: 'Un acheteur crée un deal direct ou approuve une proposition issue d\'un agent.' },
       acceptFund: { label: 'Accepter et financer.', body: 'Le vendeur accepte les conditions. L\'escrow est financé du montant du deal et de la moitié des frais de plateforme de l\'acheteur. Une portion du stake du vendeur est réservée contre le deal en guise d\'assurance.' },
-      deliver: { label: 'Livrer.', body: 'Le vendeur marque le travail comme livré, avec un lien de preuve ou une note optionnels.' },
+      deliver: { label: 'Livrer.', body: 'Le vendeur marque le travail comme livré face à quelque chose que l\'acheteur peut vérifier. Les services livrent un lien qui doit pointer vers un site réel. Les marchandises physiques livrent un transporteur et une référence de suivi, et l\'acheteur confirme l\'arrivée séparément de la libération des fonds.' },
       release: { label: 'Libérer.', body: 'L\'acheteur libère le premier milestone, puis vérifie et libère le reste. L\'escrow se règle, la réserve revient au stake libre du vendeur, et le registre de réputation enregistre un résultat propre.' },
       summary: 'La page du deal suit chaque étape via un bandeau de progression en haut et un panneau de prochaine action en dessous, pour que les deux parties sachent toujours où en est le deal et ce qu\'elles peuvent faire.',
     },
@@ -3512,7 +3512,7 @@ export const fr: Messages = {
     },
     tiers: {
       heading: 'Les cinq paliers',
-      lead: 'Votre score se range dans l\'un des cinq paliers. Votre agent et celui de votre contrepartie lisent tous deux le palier au moment d\'évaluer un match.',
+      lead: 'Votre score se range dans l\'un des cinq paliers. Votre agent et celui de votre contrepartie lisent tous deux le palier au moment d\'évaluer un match. Un palier doit aussi se gagner en deals réglés : le stake, l\'ancienneté et l\'activité montent votre score seuls, mais ils ne peuvent pas porter un palier sans travail terminé derrière. Si ce sont les deals qui vous bloquent, votre profil le dit et indique combien il en manque.',
       items: {
         new: 'Portefeuille neuf. Les agents orientent vers la revue humaine et tarifient prudemment.',
         cold: 'Quelques antécédents. Traitement standard avec une petite prime de prudence.',
@@ -3527,15 +3527,15 @@ export const fr: Messages = {
     resistance: {
       heading: 'Comment le score résiste au jeu',
       lead: 'Les systèmes de réputation échouent souvent parce qu\'un utilisateur déterminé trouve un chemin bon marché vers le sommet. La formule de Karwan ferme les plus courants par conception.',
-      volumeFarming: { heading: 'Farming de volume', body: 'Poster beaucoup de petits deals avec vous-même ne paie pas. La courbe de volume est concave, donc chaque unité supplémentaire de volume contribue moins que la précédente. Les facteurs d\'activité et de parrainage regardent aussi les contreparties distinctes, donc répéter le même partenaire cesse de créditer votre score.' },
+      volumeFarming: { heading: 'Farming de volume', body: 'Poster beaucoup de petits deals avec vous-même ne paie pas. La courbe de volume est concave, donc chaque unité supplémentaire contribue moins que la précédente. La diversité des contreparties est ensuite vérifiée à part : quand la plupart de vos deals réglés sont avec un seul portefeuille, votre palier est plafonné quoi que dise le score. Tourner en circuit fermé n\'achète pas de réputation.' },
       stakeAndRun: { heading: 'Miser et fuir', body: 'Déposer une grosse mise pour faire grimper le score, faire un deal, puis retirer le même jour ne marchera pas. Les retraits passent par une fenêtre de refroidissement de 3 jours. La position cesse de contribuer au score dès la demande de retrait, et le système lance des contrôles antifraude avant la libération des fonds. Annulez dans la fenêtre pour garder l\'ancienneté accumulée.' },
-      selfDealing: { heading: 'Auto-deal', body: 'Le registre de réputation on-chain refuse qu\'un propriétaire d\'agent note son propre agent. La contrainte est appliquée au niveau du contrat, pas seulement dans notre application, donc un utilisateur déterminé ne peut pas la contourner en écrivant son propre client.' },
+      selfDealing: { heading: 'Auto-deal', body: 'Le registre de réputation on-chain refuse qu\'un propriétaire d\'agent note son propre agent. La contrainte est appliquée au niveau du contrat, pas seulement dans notre application, donc un utilisateur déterminé ne peut pas la contourner en écrivant son propre client. Passer par deux portefeuilles ne marche pas non plus : la concentration plafonne le palier, donc un portefeuille dont le dossier tient à un seul partenaire ne peut pas atteindre les paliers qui réduisent la garantie.' },
       matchAndCancel: { heading: 'Matcher et annuler', body: 'Enchérir sur de nombreuses demandes et se retirer avant le règlement compte dans la pénalité d\'annulation. La pénalité frappe en jours, pas en mois, donc enchaîner ce schéma fait chuter le score vite.' },
       decay: { heading: 'Déclin à l\'inactivité', body: 'Un portefeuille jadis fort qui se tait pendant des mois n\'est plus tenu pour fort aujourd\'hui. Le terme de déclin réduit le score affiché pour que les agents pèsent moins l\'historique inactif. Un utilisateur qui revient regagne la confiance en bouclant un deal ou deux.' },
     },
     staking: {
       heading: 'Miser monte votre palier et garantit vos deals',
-      body: 'Déposez de l\'USDC dans le coffre pour lever votre réputation. La mise est un signal, elle montre que vous avez la peau dans le jeu. La même position sert aussi d\'assurance de deal, car quand vous acceptez un deal, une part de votre mise libre se réserve contre le montant. Un règlement propre libère la réserve, un litige perdu la fait passer à l\'acheteur.',
+      body: 'Déposez de l\'USDC dans le coffre pour lever votre réputation. La mise est un signal, elle montre que vous avez la peau dans le jeu. La même position sert aussi d\'assurance de deal, car quand vous acceptez un deal, une part de votre mise libre se réserve contre le montant. Un règlement propre libère la réserve, un litige perdu la fait passer à l\'acheteur. La fenêtre n\'est pas un chiffre fixe : elle grandit avec la taille du deal et se réduit à mesure que deux parties construisent un historique réglé ensemble. Sur un deal de marchandises, elle n\'expire jamais tant que l\'expédition est en transit, et des conditions Net convenues la maintiennent ouverte pour tout le terme, car marquer des marchandises livrées veut dire expédiées, pas arrivées.',
       cooldown: 'Vous pouvez retirer à tout moment. Les retraits passent par une fenêtre de refroidissement de 3 jours pendant laquelle le signal de mise s\'interrompt tandis que le système lance des contrôles antifraude. Annulez dans la fenêtre pour garder l\'ancienneté accumulée.',
       calloutTitle: 'SUR LE MAINNET, VOTRE MISE GÉNÈRE DU RENDEMENT',
       calloutBody: 'Sur Arc Testnet, le coffre détient de l\'USDC simple. Sur le mainnet, le même dépôt passe par Hashnote USYC via l\'interface standard ERC-4626, donc votre mise verrouillée gagne aussi du rendement en bons du Trésor tokenisés au lieu de rester inerte.',

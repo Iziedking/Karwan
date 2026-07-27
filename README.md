@@ -31,6 +31,10 @@ Both are live. The sections below describe the trade-finance layer, because that
 
 A deal splits into two to five milestones. The supplier marks a milestone delivered, the buyer reviews and releases that portion. The final milestone always needs an explicit buyer click and never releases on a timer. A missed deadline lets the buyer reclaim, and it counts against the supplier's record. A cancel or extension both sides agree to carries no penalty and refunds in full.
 
+Delivery has to be against something the buyer can check. A service delivers a link whose host must resolve, scanned before the buyer ever sees it. Physical goods deliver a carrier and tracking reference, and the buyer confirms arrival as a separate act from releasing the money.
+
+The review window is not one fixed number. It grows with the size of the deal, shrinks as two parties build a settled history together, and on a goods deal it cannot expire while the shipment is still moving. Agreed Net terms hold it open for the full term. Marking goods delivered means dispatched, not arrived, and an escrow that released five minutes after a container left the port would be protecting nobody.
+
 The platform fee is 1.5 percent of the deal, split evenly between the two sides.
 
 ### Invoice factoring
@@ -47,7 +51,9 @@ On settlement the escrow pays the financier ahead of the supplier, so repayment 
 
 ### The credit passport
 
-A public page per business at `/credit-passport/[address]`, built from settled deals, repayment behaviour, and counterparty concentration. Reputation is value-weighted and counts distinct settled counterparties, so volume with one repeat partner cannot inflate a score. It follows the wallet, not the platform.
+A public page per business at `/credit-passport/[address]`, built from settled deals, repayment behaviour, and counterparty concentration. It follows the wallet, not the platform.
+
+Standing has to be earned in completed work. Stake, tenure and activity all raise the score on their own, but they cannot carry a tier without settled deals behind it, and concentration caps the tier when most of those deals are with a single counterparty. Both matter because the tier is not cosmetic: it decides financing eligibility and how much collateral a supplier posts against an advance. A ladder that is cheap to climb makes the financing gate cheap to fake.
 
 It is also a paid endpoint. Any lender can pay a fraction of a cent over x402 and read a verifiable settled-deal record without asking Karwan for permission. That is what makes it a passport rather than a profile.
 
@@ -69,7 +75,7 @@ A contract-level guardian sits across the escrow, vault, treasury, and purchase-
 
 Deal timing is on chain: per-deal clocks both sides consent to, a capped seller-appeal extension, and a match window that expires a job nobody took.
 
-Reputation is hardened against farming. Standing is value-weighted and counts distinct settled counterparties, so volume against one repeat partner cannot inflate a score.
+Reputation is hardened against farming. Standing is value-weighted, a tier has to be backed by settled deals rather than parked capital and a calendar, and concentration caps the tier when most of those deals are with one counterparty, so volume against a single repeat partner cannot inflate a score.
 
 ### Delivery safety
 

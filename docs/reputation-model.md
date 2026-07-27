@@ -23,6 +23,30 @@ Tiers map to:
 Tier breakpoints are **fixed** at 200 / 400 / 600 / 800 (not env-tuned). The
 *score* is the lever; a tier label means the same on testnet and mainnet.
 
+### Ceilings: what a score can HOLD (added 2026-07-27)
+
+The score says how much standing has been earned. Two ceilings say how much of it
+can be held, and the tier is the lowest of the three.
+
+**Settled deals** (`TIER_MIN_DEALS`, env-tunable): COLD 1, ESTABLISHED 3,
+STRONG 8, ELITE 15. The additive model is deliberate, so stake and tenure earn
+points with no deal closed, but standing now gates other people's money: it
+decides financing eligibility and how much collateral a seller posts. Before this,
+a wallet reached ESTABLISHED, the financing benchmark, having never completed a
+deal, and ELITE, which waives PO collateral entirely, in fourteen days on five
+deals and 100 USDC staked.
+
+**Counterparty concentration**: hard (>=80% of settled deals with one
+counterparty) caps at COLD, soft (>=60%) caps at ESTABLISHED. `concentrationRatio`
+was computed but never reached the score, so five deals with five counterparties
+and five deals with one wallet you control both scored 843. The claim that
+reputation "counts distinct settled counterparties" was true of the on-chain
+contract and false of the off-chain tier that gates lending. It is true of both
+now.
+
+`ReputationResult` carries `scoreTier`, `tierCappedBy` and `dealsToNextTier`,
+surfaced on `/api/reputation`, so a capped wallet is told what is holding it.
+
 ## 2. The composite score
 
 > The score is **additive**: every factor earns points on its own. An earlier

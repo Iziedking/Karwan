@@ -3441,7 +3441,7 @@ export const sw: Messages = {
       heading: 'Mzunguko wa maisha',
       open: { label: 'Wazi.', body: 'Mnunuzi huunda deal ya moja kwa moja au kukubali pendekezo lililolingana na wakala.' },
       acceptFund: { label: 'Kubali na fadhili.', body: 'Muuzaji anakubali masharti. escrow inafadhiliwa kwa kiasi cha deal pamoja na nusu ya ada ya jukwaa kutoka kwa mnunuzi. Sehemu ya stake ya muuzaji inahifadhiwa dhidi ya deal kama bima.' },
-      deliver: { label: 'Wasilisha.', body: 'Muuzaji anaweka alama kuwa kazi imewasilishwa kwa kiungo cha uthibitisho au noti ya hiari.' },
+      deliver: { label: 'Wasilisha.', body: 'Muuzaji anaweka alama ya kuwasilisha dhidi ya kitu ambacho mnunuzi anaweza kukagua. Huduma huwasilishwa kwa kiungo kinachopaswa kuelekeza kwenye tovuti halisi. Bidhaa halisi huwasilishwa kwa msafirishaji na kumbukumbu ya ufuatiliaji, na mnunuzi huthibitisha kuwasili kando na kuachia fedha.' },
       release: { label: 'Achilia.', body: 'Mnunuzi anaachilia milestone ya kwanza, kisha anathibitisha na kuachilia iliyobaki. escrow inakamilika, hifadhi inarudi kwenye stake huru ya muuzaji, na rejista ya sifa inarekodi matokeo safi.' },
       summary: 'Ukurasa wa deal hufuatilia kila hatua kwa ukanda wa maendeleo juu na paneli ya hatua inayofuata chini yake, ili pande zote mbili daima zijue mahali deal ilipo na wanachoweza kufanya.',
     },
@@ -3512,7 +3512,7 @@ export const sw: Messages = {
     },
     tiers: {
       heading: 'Ngazi tano',
-      lead: 'Alama yako huingia kwenye mojawapo ya ngazi tano. Wakala wako na wakala wa mwenza wako wote husoma ngazi wanapotathmini ulinganifu.',
+      lead: 'Alama yako huingia kwenye mojawapo ya ngazi tano. Wakala wako na wakala wa mwenza wako wote husoma ngazi wanapotathmini ulinganifu. Ngazi pia lazima ipatikane kwa deal zilizokamilika: dhamana, muda na shughuli huinua alama yako peke yake, lakini haziwezi kubeba ngazi bila kazi iliyokamilika nyuma yake. Kama deal ndizo zinakuzuia, wasifu wako husema hivyo na kukuambia unahitaji ngapi zaidi.',
       items: {
         new: 'Pochi mpya. Wakala huelekeza kwa ukaguzi wa kibinadamu na hutoa bei kwa tahadhari.',
         cold: 'Historia kidogo. Utunzaji wa kawaida na malipo madogo ya tahadhari.',
@@ -3527,15 +3527,15 @@ export const sw: Messages = {
     resistance: {
       heading: 'Jinsi alama inavyozuia udanganyifu',
       lead: 'Mifumo ya sifa kawaida hushindwa kwa sababu mtumiaji mwenye azimio hupata njia ya bei rahisi kuelekea juu. Fomula ya Karwan hufunga njia zinazojulikana zaidi kwa muundo.',
-      volumeFarming: { heading: 'Kulima ujazo', body: 'Kuchapisha deal nyingi ndogondogo na wewe mwenyewe hakulipi. Mkunjo wa ujazo umejikunja, hivyo kila kitengo cha ziada cha ujazo huchangia chini ya kile cha awali. Vipengele vya shughuli na marejeleo pia hutazama wenza tofauti, hivyo kurudia mwenza yuleyule huacha kuongeza alama yako.' },
+      volumeFarming: { heading: 'Kulima ujazo', body: 'Kuchapisha deal nyingi ndogondogo na wewe mwenyewe hakulipi. Mkunjo wa ujazo umejikunja, hivyo kila kitengo cha ziada huchangia chini ya kile cha awali. Kisha mtawanyiko wa wenza hukaguliwa peke yake: deal zako nyingi zilizokamilika zikiwa na pochi moja tu, daraja lako hufungwa hata alama ikisema nini. Kufanya biashara kwenye mzunguko wako mwenyewe hakununui hadhi.' },
       stakeAndRun: { heading: 'Weka dhamana na ukimbie', body: 'Kuweka dhamana kubwa ili kuinua alama, kufanya deal moja, kisha kuondoa siku hiyohiyo hakutafanya kazi. Uondoaji hupitia dirisha la kupoa la siku 3. Nafasi huacha kuchangia kwenye alama wakati unaomba uondoaji, na mfumo huendesha ukaguzi wa udanganyifu kabla ya kutoa fedha. Ghairi ndani ya dirisha kuhifadhi uzee uliopata.' },
-      selfDealing: { heading: 'Kujishughulisha mwenyewe', body: 'Daftari la sifa la on-chain hukataa kumruhusu mmiliki wa wakala kumtathmini wakala wake mwenyewe. Kizuizi kinatekelezwa kwenye safu ya kontrakti, si tu kwenye programu yetu, hivyo mtumiaji mwenye azimio hawezi kupita kwa kuandika mteja wake mwenyewe.' },
+      selfDealing: { heading: 'Kujishughulisha mwenyewe', body: 'Daftari la sifa la on-chain hukataa kumruhusu mmiliki wa wakala kumtathmini wakala wake mwenyewe. Kizuizi kinatekelezwa kwenye safu ya kontrakti, si tu kwenye programu yetu, hivyo mtumiaji mwenye azimio hawezi kupita kwa kuandika mteja wake mwenyewe. Kuendesha pande zote mbili kwa pochi mbili nako hakufanyi kazi: mkusanyiko hufunga daraja, hivyo pochi ambayo rekodi yake ni mwenza mmoja anayerudiwa haiwezi kufikia madaraja yanayopunguza dhamana.' },
       matchAndCancel: { heading: 'Linganisha na ghairi', body: 'Kutoa bei kwenye maombi mengi na kujiondoa kabla ya kumalizia huhesabiwa katika adhabu ya kughairi. Adhabu hupiga kwa siku, si miezi, hivyo kuendelea na mfumo huu huangusha alama haraka.' },
       decay: { heading: 'Kupungua kwa uvivu', body: 'Pochi iliyokuwa imara mara moja ambayo imenyamaza kwa miezi haiaminiki tena kama imara sasa. Kipindi cha kupungua hupunguza alama inayoonyeshwa ili wakala wapime historia ya uvivu kidogo. Mtumiaji anayerejea hupata tena uaminifu kwa kukamilisha deal moja au mbili.' },
     },
     staking: {
       heading: 'Kuweka dhamana huinua ngazi yako na kuunga mkono deal zako',
-      body: 'Weka USDC kwenye hifadhi ili kuinua sifa yako. Dhamana ni ishara, inaonyesha una ngozi yako kwenye mchezo. Nafasi hiyohiyo pia hufanya kazi kama bima ya deal, kwani unapokubali deal, sehemu ya dhamana yako huru huhifadhiwa dhidi ya kiasi cha deal. Malizio safi hutoa hifadhi nyuma, na mgogoro uliopotea huikata kwa mnunuzi.',
+      body: 'Weka USDC kwenye hifadhi ili kuinua sifa yako. Dhamana ni ishara, inaonyesha una ngozi yako kwenye mchezo. Nafasi hiyohiyo pia hufanya kazi kama bima ya deal, kwani unapokubali deal, sehemu ya dhamana yako huru huhifadhiwa dhidi ya kiasi cha deal. Malizio safi hutoa hifadhi nyuma, na mgogoro uliopotea huikata kwa mnunuzi. Dirisha si tarakimu moja isiyobadilika: hukua kulingana na ukubwa wa deal na hupungua kadri pande mbili zinavyojenga historia ya makubaliano yaliyokamilika pamoja. Kwenye deal ya bidhaa haliishi kamwe wakati mzigo bado uko njiani, na masharti ya Net yaliyokubaliwa huliweka wazi kwa muda wote, kwa sababu kuweka alama bidhaa zimewasilishwa maana yake zimesafirishwa, si zimewasili.',
       cooldown: 'Unaweza kuondoa wakati wowote. Uondoaji hupitia dirisha la kupoa la siku 3 ambapo ishara ya dhamana hupumzika wakati mfumo unaendesha ukaguzi wa udanganyifu. Ghairi ndani ya dirisha kuhifadhi uzee uliopata.',
       calloutTitle: 'KWENYE MAINNET, DHAMANA YAKO HUPATA MAPATO',
       calloutBody: 'Kwenye Arc Testnet hifadhi hushikilia USDC ya kawaida. Kwenye mainnet amana hiyohiyo hupitia Hashnote USYC kupitia kiolesura cha kawaida cha ERC-4626, hivyo dhamana yako iliyofungwa pia hupata mapato kwenye hati za hazina zilizotokenishwa badala ya kukaa bila kazi.',

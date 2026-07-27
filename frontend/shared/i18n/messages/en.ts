@@ -7518,7 +7518,7 @@ export const en: MessagesShape = {
       heading: 'The lifecycle',
       open: { label: 'Open.', body: 'A buyer creates a direct deal or approves an agent-matched proposal.' },
       acceptFund: { label: 'Accept and fund.', body: 'The seller accepts the terms. The escrow funds with the deal amount and the buyer\'s half of the platform fee. A portion of the seller\'s stake reserves against the deal as insurance.' },
-      deliver: { label: 'Deliver.', body: 'The seller marks the work delivered with an optional proof link or note.' },
+      deliver: { label: 'Deliver.', body: 'The seller marks the work delivered against something the buyer can check. Services deliver a link that has to point at a real site. Physical goods deliver a carrier and tracking reference, and the buyer confirms arrival separately from releasing the money.' },
       release: { label: 'Release.', body: 'The buyer releases the first milestone, then verifies and releases the rest. The escrow settles, the reservation returns to the seller\'s free stake, and the reputation registry records a clean outcome.' },
       summary: 'The deal page tracks every stage with a progress strip on top and a next-move panel below it, so both sides always know exactly where the deal is and what they can do.',
     },
@@ -7540,7 +7540,7 @@ export const en: MessagesShape = {
     },
     review: {
       heading: 'Review windows and auto-release',
-      body: 'Two timers protect both sides from a stalling counterparty. After the seller marks delivered, the buyer has a window to release the first milestone. If the buyer goes quiet past a short delay-appeal grace, the deal watcher releases the first milestone on their behalf. The final tranche never releases automatically; it always needs a buyer click. The buyer can extend the review window when they need more time.',
+      body: 'Two timers protect both sides from a stalling counterparty. After the seller marks delivered, the buyer has a window to release the first milestone. If the buyer goes quiet past a short delay-appeal grace, the deal watcher releases the first milestone on their behalf. The final tranche never releases automatically; it always needs a buyer click. The buyer can extend the review window when they need more time. The window is not one fixed number: it grows with the size of the deal and shrinks as two parties build a settled history together. On a goods deal it never expires while the shipment is still in transit, and agreed Net terms hold it open for the full term, because marking goods delivered means dispatched, not arrived.',
     },
     stake: {
       heading: 'Stake as deal insurance',
@@ -7604,7 +7604,7 @@ export const en: MessagesShape = {
     },
     tiers: {
       heading: 'The five tiers',
-      lead: 'Your score buckets into one of five tiers. Your agent and your counterparty\'s agent both read the tier when scoring a match.',
+      lead: 'Your score buckets into one of five tiers. Your agent and your counterparty\'s agent both read the tier when scoring a match. A tier also has to be earned in settled deals: stake, tenure and activity all raise your score on their own, but they cannot carry a tier without completed work behind it. If deals are what is holding you back, your profile says so and tells you how many more you need.',
       items: {
         new: 'Fresh wallet. Agents route to human review and price cautiously.',
         cold: 'Some history. Standard handling with a small caution premium.',
@@ -7619,9 +7619,9 @@ export const en: MessagesShape = {
     resistance: {
       heading: 'How the score resists gaming',
       lead: 'Reputation systems usually fail because a determined user can find a cheap path to the top. Karwan\'s formula closes the most common ones by design.',
-      volumeFarming: { heading: 'Volume farming', body: 'Posting many small deals with yourself does not pay off. The volume curve is concave, so each extra unit of volume contributes less than the one before. The activity and referral factors also look at distinct counterparties, so repeating the same partner stops crediting your score.' },
+      volumeFarming: { heading: 'Volume farming', body: 'Posting many small deals with yourself does not pay off. The volume curve is concave, so each extra unit of volume contributes less than the one before. Counterparty spread is then checked separately: when most of your settled deals are with a single wallet, your tier is capped no matter what the score says. Trading in a circle cannot buy standing.' },
       stakeAndRun: { heading: 'Stake and run', body: 'Depositing a large stake to spike the score, doing one deal, then withdrawing the same day will not work. Withdrawals pass through a 3-day cooling window. The position stops contributing to the score the moment you request the withdrawal, and the system runs fraud checks before the funds release. Cancel inside the window to keep your accrued tenure.' },
-      selfDealing: { heading: 'Self-dealing', body: 'The on-chain reputation registry refuses to let an agent\'s owner rate their own agent. The constraint is enforced at the contract layer, not just in our application, so a determined user cannot bypass it by writing their own client.' },
+      selfDealing: { heading: 'Self-dealing', body: 'The on-chain reputation registry refuses to let an agent\'s owner rate their own agent. The constraint is enforced at the contract layer, not just in our application, so a determined user cannot bypass it by writing their own client. Running both sides through two wallets does not work either: concentration caps the tier, so a wallet whose record is one repeat partner cannot reach the tiers that reduce collateral.' },
       matchAndCancel: { heading: 'Match and cancel', body: 'Bidding on many requests and pulling out before settlement counts toward the cancellation penalty. The penalty hits in days, not months, so cycling through this pattern drops the score fast.' },
       decay: { heading: 'Decay on idleness', body: 'A once-strong wallet that goes silent for months is no longer trusted as currently strong. The decay term reduces the displayed score so agents weigh inactive history less. A returning user re-earns trust by completing a deal or two.' },
     },
