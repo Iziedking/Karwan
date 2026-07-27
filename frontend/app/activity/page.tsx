@@ -48,7 +48,7 @@ function ActivityPageInner({
     <FullBleed>
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[58ch]">
           <div className="fade-up">
             <SectionTag tone="dark" dot="live">
@@ -56,7 +56,7 @@ function ActivityPageInner({
             </SectionTag>
           </div>
           <div className="fade-up fade-up-1">
-            <HeroHeadline>
+            <HeroHeadline size="md">
               {t.hero.headlineTop}<Punc>.</Punc>
               <br />
               <Accent>{t.hero.headlineAccent}</Accent>

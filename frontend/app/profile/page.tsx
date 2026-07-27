@@ -166,7 +166,7 @@ function ProfilePageInner() {
     <FullBleed>
       <PageTour id={PROFILE_TOUR_ID} steps={buildProfileSteps(isCircleUser)} />
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
           <div className="min-w-0">
             <div className="fade-up">
@@ -177,7 +177,7 @@ function ProfilePageInner() {
             <div className="fade-up fade-up-1">
               {/* Username/company in its natural case (not the display all-caps)
                   and allowed to wrap so a long handle never overflows. */}
-              <HeroHeadline className="break-words">
+              <HeroHeadline size="md" className="break-words">
                 <span className="normal-case" title={heroTitle}>{heroDisplay}</span>
                 <Punc>.</Punc>
               </HeroHeadline>
