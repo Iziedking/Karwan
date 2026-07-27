@@ -64,25 +64,25 @@ const REGISTRY: Array<{ name: string; contract: string; path: string; address: s
     name: 'KarwanEscrow',
     contract: 'KarwanEscrow',
     path: 'src/KarwanEscrow.sol:KarwanEscrow',
-    address: '0x48797C04EE342067A68f29Fbb19B577077d77301',
+    address: '0x0262A4dFec0E057cAf80F124BfD2847581E82B63',
   },
   {
     name: 'KarwanReputation',
     contract: 'KarwanReputation',
     path: 'src/KarwanReputation.sol:KarwanReputation',
-    address: '0xBBAC748cA8C7a47e39Bd2AEaDbaa4e9f96ae4442',
+    address: '0x8bD35853b986a04EfDED7F863AFF34826fde69eE',
   },
   {
     name: 'KarwanVault',
     contract: 'KarwanVault',
     path: 'src/KarwanVault.sol:KarwanVault',
-    address: '0x2d4506284B2D778365b4B295100EF099F35973c5',
+    address: '0xA600Bd772A032Ec2b96a9A44545024E270418927',
   },
   {
     name: 'KarwanTreasury',
     contract: 'KarwanTreasury',
     path: 'src/KarwanTreasury.sol:KarwanTreasury',
-    address: '0xa5516F58Ab4dbF1B4949723715D1310A8FBb6fBA',
+    address: '0x5a642BE344Fc3a01999bF113197ddC1A163EE837',
   },
   {
     // v3 is dead source (oracle interface bug); kept here for explorer
@@ -102,34 +102,57 @@ const REGISTRY: Array<{ name: string; contract: string; path: string; address: s
     name: 'KarwanYieldDistributor',
     contract: 'KarwanYieldDistributor',
     path: 'src/KarwanYieldDistributor.sol:KarwanYieldDistributor',
-    address: '0x9950b9a41A3e80930e451F2FEdaeb81e80195D03',
+    address: '0x9E4AdFcfB46108ED7c2F3C1AF1728AAE937f336F',
   },
   {
-    // SME trade-finance rail (deployed in the SME bundle). Document anchors,
-    // factoring payee redirect, PoD acceptance.
+    // SME trade-finance rail. Document anchors, receivable assignment, PoD
+    // acceptance, attester allowlist.
     name: 'KarwanInvoiceRegistry',
     contract: 'KarwanInvoiceRegistry',
     path: 'src/KarwanInvoiceRegistry.sol:KarwanInvoiceRegistry',
-    address: '0x20a7CDf59b5f304De2b22a75e49f52353273E4E4',
+    address: '0xFb0Debd5E2618881699ED9b02CE0c9B718a1C649',
   },
   {
-    // Single-funder PO financing custody.
+    // Single-funder PO financing custody. Holds escrow, vault and registry as
+    // immutables, so it is redeployed on every escrow migration.
     name: 'KarwanPOFinancing',
     contract: 'KarwanPOFinancing',
     path: 'src/KarwanPOFinancing.sol:KarwanPOFinancing',
-    address: '0xc91122Eb88613C98d58616cD8973883142F74Bb5',
+    address: '0xf14b41BD1a07c9Fe643Aae8292422127d0221d6F',
   },
   {
-    // Verified-business account gate. Deployed 2026-06-10. Constructor args
-    // (owner, reviewer) are both static addresses, so the verifier recovers
-    // them from the DeployBusinessRegistry broadcast automatically.
+    // Verified-business account gate. Constructor args (owner, reviewer) are
+    // both static addresses, so the verifier recovers them from the
+    // DeployBusinessRegistry broadcast automatically.
     name: 'KarwanBusinessRegistry',
     contract: 'KarwanBusinessRegistry',
     path: 'src/KarwanBusinessRegistry.sol:KarwanBusinessRegistry',
-    address: '0xc64d347c9Fe451A3f1c8f4cF2d7a2E43D9AA771e',
+    address: '0x77F4a1Cc4C1F7BB35b23db679966b33b8d8b27cf',
   },
-  // The testnet USYC stand-in is gone. Real Hashnote USYC is wired on Treasury v3
-  // and the live KarwanVault after Circle whitelisted both 2026-06-04.
+  // Retired generations, kept for explorer bookkeeping so a user exiting an old
+  // position can still read verified source. Skip with CONTRACTS=... when
+  // re-running against the current bundle only.
+  {
+    name: 'KarwanEscrowLegacy',
+    contract: 'KarwanEscrow',
+    path: 'src/KarwanEscrow.sol:KarwanEscrow',
+    address: '0x48797C04EE342067A68f29Fbb19B577077d77301',
+  },
+  {
+    name: 'KarwanVaultLegacy',
+    contract: 'KarwanVault',
+    path: 'src/KarwanVault.sol:KarwanVault',
+    address: '0x2d4506284B2D778365b4B295100EF099F35973c5',
+  },
+  {
+    name: 'KarwanReputationLegacy',
+    contract: 'KarwanReputation',
+    path: 'src/KarwanReputation.sol:KarwanReputation',
+    address: '0xBBAC748cA8C7a47e39Bd2AEaDbaa4e9f96ae4442',
+  },
+  // The testnet USYC stand-in is gone. Real Hashnote USYC sits on Treasury v4
+  // above, which keeps the Hashnote entitlement because an entitlement is granted
+  // to an address and does not transfer when a contract is redeployed.
 ];
 
 interface BroadcastTx {
