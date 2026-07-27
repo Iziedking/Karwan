@@ -72,6 +72,7 @@ import { scanDelivery } from '../security/sa-stub.js';
 import { verifyDeliverable } from '../security/requirementCheck.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
 import { extractUrls } from '../security/extractUrls.js';
+import { unresolvableHosts } from '../security/hostCheck.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -1326,12 +1327,27 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   // a link, so they are exempt; everything else must carry a URL. A file
   // deliverable belongs on a share link (e.g. Google Drive), which satisfies this.
   if (deal.tradeType !== 'goods') {
-    if (extractUrls(body.deliveryProof ?? '').length === 0) {
+    const proofUrls = extractUrls(body.deliveryProof ?? '');
+    if (proofUrls.length === 0) {
       return c.json(
         {
           error:
             'Submit your work as a link the buyer can open (e.g. a Google Drive or repo URL). Files must be shared via a link.',
           code: 'link-required',
+        },
+        400,
+      );
+    }
+    // Carrying the https scheme proved nothing: an invented domain passed every
+    // check. Require the host to exist in DNS so a made-up address cannot
+    // satisfy a delivery. A real domain that is briefly down still passes,
+    // because this asks whether the name exists, not whether it responds.
+    const dead = await unresolvableHosts(proofUrls.map((u) => u.host));
+    if (dead.length === proofUrls.length) {
+      return c.json(
+        {
+          error: `That link does not point at a real site (${dead[0]}). Check the address and submit again.`,
+          code: 'link-unresolvable',
         },
         400,
       );
