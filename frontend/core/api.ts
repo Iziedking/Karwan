@@ -577,6 +577,11 @@ export interface DirectDeal {
   /// The seller's reputation tier, stamped only on the financier's factoring
   /// available-deals feed so they can price risk. Absent elsewhere.
   sellerTier?: FactoringTier;
+  /// What the escrow can still pay an assignee: sellerNet minus everything
+  /// already released. NOT the invoice face, which includes the platform fee
+  /// and every tranche already gone. Price against this. Stamped only on the
+  /// factoring available-deals feed.
+  claimableUsdc?: string;
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
   paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
   counterpartyCompany?: { name?: string; sector?: string; region?: string };

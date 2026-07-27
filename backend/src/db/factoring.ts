@@ -22,7 +22,16 @@ export interface FactoringOffer {
   invoiceId: string;
   financier: string;
   seller: string;
+  /// The invoice's full face value. Display only.
   faceValueUsdc: string;
+  /// What the escrow could still pay the assignee when this offer was made:
+  /// sellerNet minus everything already released. This is what the offer is
+  /// actually buying, and what `discountBps` is measured against.
+  ///
+  /// Absent on offers made before 2026-07-27, when everything was priced
+  /// against face. Those predate part-released invoices being financeable and
+  /// should be read as claimable == face.
+  claimableAtOfferUsdc?: string;
   offeredAdvanceUsdc: string;
   expectedReturnUsdc: string;
   /// Computed at offer time: (faceValue - advance) / faceValue * 10000.

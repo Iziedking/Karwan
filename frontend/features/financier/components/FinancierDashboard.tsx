@@ -650,6 +650,14 @@ function OfferModal({
   const auth = useAuth();
   const { data: walletClient } = useWalletClient();
   const face = Number(deal.dealAmountUsdc);
+  // Price against what the escrow can still PAY, not the invoice face.
+  //
+  // Face includes the platform fee and every milestone already released to the
+  // seller. The assignment can only pay out of what is left, so quoting off face
+  // on a part-released invoice offers more than the escrow can ever return. The
+  // backend refuses those, and would have let a financier lose the difference.
+  const claimable = deal.claimableUsdc ? Number(deal.claimableUsdc) : face;
+  const partlyReleased = claimable < face - 0.000001;
   // Re-pricing an existing quote opens on the rate you already offered, not
   // on the 2% default, so an edit starts from where you left it.
   const [discountBps, setDiscountBps] = useState<number>(existingOffer?.discountBps ?? 200);
@@ -661,8 +669,8 @@ function OfferModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const advance = face * (1 - discountBps / 10_000);
-  const repay = face;
+  const advance = claimable * (1 - discountBps / 10_000);
+  const repay = claimable;
   const profit = repay - advance;
   const isCircleUser = auth.method === 'circle';
 
@@ -858,6 +866,14 @@ function OfferModal({
           </div>
 
           <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
+            {partlyReleased ? (
+              <>
+                <ModalRow label="Invoice face" value={`${face.toFixed(2)} USDC`} />
+                <ModalRow label="Still claimable" value={`${claimable.toFixed(2)} USDC`} bold />
+              </>
+            ) : (
+              <ModalRow label="Invoice face" value={`${face.toFixed(2)} USDC`} />
+            )}
             <ModalRow label="You pay seller now" value={`${advance.toFixed(2)} USDC`} />
             <ModalRow label="You receive on settlement" value={`${repay.toFixed(2)} USDC`} bold />
             <ModalRow
@@ -872,6 +888,14 @@ function OfferModal({
               />
             ) : null}
           </dl>
+
+          {partlyReleased ? (
+            <p className="mt-2 text-[11px] text-[var(--lp-text-muted)]">
+              This invoice has already released {(face - claimable).toFixed(2)} USDC to the seller.
+              You are buying what is left, so the numbers above are priced against{' '}
+              {claimable.toFixed(2)} USDC, not the {face.toFixed(2)} face.
+            </p>
+          ) : null}
 
           {belowSellerFloor ? (
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">

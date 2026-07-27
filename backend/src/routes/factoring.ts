@@ -24,6 +24,7 @@ import {
   signTransferAuthorizationWithCircle,
 } from '../chain/usdc3009.js';
 import { vault, readEscrow } from '../chain/contracts.js';
+import { claimableUsdc, claimableForDeals } from '../deals/claimable.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { parseUnits, formatUnits } from 'viem';
 import { config } from '../config.js';
@@ -272,19 +273,38 @@ factoringRoutes.get('/available', async (c) => {
     if (region && d.counterpartyCompany?.region !== region) return false;
     return true;
   });
+  // Quote what is still CLAIMABLE, not just the invoice face. An invoice that
+  // has already released a tranche can still be financed, but only against what
+  // is left, and a financier pricing off face would offer more than the escrow
+  // can ever repay.
+  //
+  // A deal whose escrow could not be read is dropped from the listing rather
+  // than shown at face. Better a shorter desk than a price nobody can stand
+  // behind. Same for one with nothing left to claim.
+  const claimableMap = await claimableForDeals(filtered.map((d) => d.jobId));
+
   // Stamp each deal with the seller's reputation tier so the financier can price
   // risk at a glance (tier drives both the discount floor and the stake the
   // seller must post to take the advance).
   const withTier = await Promise.all(
-    filtered.map(async (d) => {
-      let sellerTier: RepTier = 'new';
-      try {
-        sellerTier = (await actorSignalsFor(d.seller)).repTier;
-      } catch {
-        sellerTier = 'new';
-      }
-      return { ...financierSafeDeal(d), sellerTier };
-    }),
+    filtered
+      .filter((d) => {
+        const claimable = claimableMap.get(d.jobId);
+        return claimable !== undefined && Number(claimable) > 0;
+      })
+      .map(async (d) => {
+        let sellerTier: RepTier = 'new';
+        try {
+          sellerTier = (await actorSignalsFor(d.seller)).repTier;
+        } catch {
+          sellerTier = 'new';
+        }
+        return {
+          ...financierSafeDeal(d),
+          sellerTier,
+          claimableUsdc: claimableMap.get(d.jobId)!,
+        };
+      }),
   );
   return c.json({ deals: withTier });
 });
@@ -368,12 +388,44 @@ factoringRoutes.post('/offer', async (c) => {
     return c.json({ error: 'buyer cannot fund their own deal' }, 403);
   }
 
+  // Price against what is CLAIMABLE, not against invoice face.
+  //
+  // Face includes the platform fee and every tranche already released to the
+  // seller. The assignment can only pay out of what is left on the seller side,
+  // so an offer priced against face on a part-released invoice is an offer the
+  // escrow cannot honour. A 500 invoice with 50% already released can support a
+  // 250 claim, not a 430 one.
+  //
+  // This also keeps a partly-released invoice FINANCEABLE, which blocking it
+  // outright did not. The seller factors what remains, at a number that is true.
+  const claimable = await claimableUsdc(deal.jobId);
+  if (claimable === null) {
+    return c.json(
+      { error: 'could not read the escrow balance, try again shortly', code: 'escrow-unreadable' },
+      503,
+    );
+  }
+
   const faceValueUsdc = deal.dealAmountUsdc;
   const advance = Number(body.offeredAdvanceUsdc);
   const expected = Number(body.expectedReturnUsdc);
-  const face = Number(faceValueUsdc);
-  if (advance >= face) {
-    return c.json({ error: 'advance must be below face value' }, 400);
+  const claimableNum = Number(claimable);
+
+  if (claimableNum <= 0) {
+    return c.json(
+      { error: 'this invoice has already paid out in full', code: 'nothing-claimable' },
+      409,
+    );
+  }
+  if (advance >= claimableNum) {
+    return c.json(
+      {
+        error: `advance must be below the ${claimableNum.toFixed(2)} USDC still claimable on this invoice`,
+        code: 'above-claimable',
+        claimableUsdc: claimable,
+      },
+      400,
+    );
   }
   // The seller named a floor when they asked. Refusing a lower bid here beats
   // showing them one they have already said they will not take.
@@ -387,11 +439,24 @@ factoringRoutes.post('/offer', async (c) => {
       409,
     );
   }
-  if (expected <= advance || expected > face) {
-    return c.json({ error: 'expected return must be above advance and at most face value' }, 400);
+  // The expected return is capped by what the escrow can actually pay. Anything
+  // above the claimable balance is a number the assignment can never reach, and
+  // the financier would discover that only at settlement.
+  if (expected <= advance || expected > claimableNum) {
+    return c.json(
+      {
+        error: `expected return must be above the advance and at most the ${claimableNum.toFixed(2)} USDC still claimable`,
+        code: 'above-claimable',
+        claimableUsdc: claimable,
+      },
+      400,
+    );
   }
 
-  const discountBps = Math.round(((face - advance) / face) * 10_000);
+  // Discount is measured against the claimable balance, because that is what is
+  // being bought. Measuring against face would understate the discount on a
+  // part-released invoice and misprice the risk for both sides.
+  const discountBps = Math.round(((claimableNum - advance) / claimableNum) * 10_000);
   const now = Date.now();
   const expiresAt = now + body.expiresInHours * 60 * 60 * 1000;
 
@@ -471,6 +536,7 @@ factoringRoutes.post('/offer', async (c) => {
     financier,
     seller: deal.seller,
     faceValueUsdc,
+    claimableAtOfferUsdc: claimable,
     offeredAdvanceUsdc: body.offeredAdvanceUsdc,
     expectedReturnUsdc: body.expectedReturnUsdc,
     discountBps,

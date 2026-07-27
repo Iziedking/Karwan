@@ -146,7 +146,13 @@ export function SellerOfferBanner({
 
   const best = sortedOffers[0];
   const bestDiscount = (best.discountBps / 100).toFixed(1);
-  const bestSpread = (Number(best.faceValueUsdc) - Number(best.offeredAdvanceUsdc)).toFixed(2);
+  // What early payout actually costs the seller: what the financier takes on
+  // settlement, minus what they hand over now. Measuring from face was wrong on
+  // an invoice that has already released a tranche, because the financier is
+  // only ever repaid out of what is left.
+  const bestSpread = (
+    Number(best.expectedReturnUsdc) - Number(best.offeredAdvanceUsdc)
+  ).toFixed(2);
 
   return (
     <>
@@ -435,7 +441,11 @@ function OfferRow({
   const advance = Number(offer.offeredAdvanceUsdc);
   const face = Number(offer.faceValueUsdc);
   const discountPct = (offer.discountBps / 100).toFixed(1);
-  const spread = (face - advance).toFixed(2);
+  // The cost of taking the money early is what the financier collects on
+  // settlement minus what they pay now. On an invoice that has already released
+  // a tranche this is not face minus advance, because the financier is repaid
+  // only out of what remains.
+  const spread = (Number(offer.expectedReturnUsdc) - advance).toFixed(2);
   const expiresInHours = Math.max(0, Math.round((offer.expiresAt - Date.now()) / 3_600_000));
   const isAccepting = acceptingId === offer.id;
   const anyAccepting = acceptingId !== null;
