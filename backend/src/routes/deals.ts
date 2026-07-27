@@ -63,6 +63,7 @@ import { bus, recentEventsByType } from '../events.js';
 import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
 import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
+import { findCarrier, trackingUrlFor, carrierOptions } from '../deals/carriers.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { isSessionSelf, viewerAddress, readSession } from '../auth/session.js';
@@ -215,6 +216,16 @@ const callerSchema = z.object({ caller: addrSchema });
 const deliveredSchema = z.object({
   caller: addrSchema,
   deliveryProof: z.string().min(1).max(600).optional(),
+  /// Required on a GOODS deal. Services deliver a link; goods deliver a
+  /// shipment reference the buyer can open.
+  shipment: z
+    .object({
+      carrier: z.string().min(1).max(40),
+      trackingNumber: z.string().min(3).max(60),
+      /// Only for carriers with no known tracking page.
+      trackingUrl: z.string().max(400).optional(),
+    })
+    .optional(),
 });
 const appealSchema = z.object({
   caller: addrSchema,
@@ -779,6 +790,10 @@ dealsRoutes.get('/stats', async (c) => {
 
 /// List direct deals where the address is buyer or seller, enriched with the
 /// current on-chain escrow state.
+/// Carriers the goods-delivery form offers. Public: it is a static list, and
+/// the seller needs it before they are anywhere near a signed action.
+dealsRoutes.get('/carriers', (c) => c.json({ carriers: carrierOptions() }));
+
 dealsRoutes.get('/direct', async (c) => {
   const address = c.req.query('address');
   if (!address) return c.json({ error: 'address query param required' }, 400);
@@ -1323,11 +1338,75 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   if (deal.delivered && !wasHeld) {
     return c.json({ error: 'deal already marked delivered' }, 409);
   }
-  // Work is submitted as a link so the buyer can open and verify it (and the
-  // Security Agent can scan it). Physical-goods deals deliver against a PoD, not
-  // a link, so they are exempt; everything else must carry a URL. A file
-  // deliverable belongs on a share link (e.g. Google Drive), which satisfies this.
-  if (deal.tradeType !== 'goods') {
+  // Goods deliver a shipment reference; everything else delivers a link.
+  //
+  // Goods used to be exempt from BOTH, which meant a seller could mark a
+  // container delivered with an empty string and the buyer had nothing to check
+  // and nothing to dispute against. This does not verify the shipment with the
+  // carrier, it requires the seller to state who is carrying it and under what
+  // reference, resolving to a page the buyer can open.
+  let shipment: DirectDeal['shipment'] | undefined;
+  if (deal.tradeType === 'goods') {
+    if (!body.shipment) {
+      return c.json(
+        {
+          error: 'Add the carrier and tracking number so the buyer can follow the shipment.',
+          code: 'shipment-required',
+        },
+        400,
+      );
+    }
+    const carrier = findCarrier(body.shipment.carrier);
+    if (!carrier) {
+      return c.json({ error: 'Unknown carrier.', code: 'unknown-carrier' }, 400);
+    }
+    const trackingNumber = body.shipment.trackingNumber.trim();
+    if (!carrier.pattern.test(trackingNumber)) {
+      return c.json(
+        {
+          error: `That does not look like a ${carrier.name} tracking number. Check it and submit again.`,
+          code: 'tracking-format',
+        },
+        400,
+      );
+    }
+    const url = trackingUrlFor(carrier, trackingNumber, body.shipment.trackingUrl);
+    if (!url) {
+      return c.json(
+        {
+          error: 'Add the tracking page URL for this carrier.',
+          code: 'tracking-url-required',
+        },
+        400,
+      );
+    }
+    // A seller-supplied URL is held to the SAME standard as a services
+    // delivery. Without this, picking "other" and inventing a domain would be
+    // the hole the whole check leaks through.
+    if (!carrier.trackingUrl) {
+      const urls = extractUrls(url);
+      if (urls.length === 0) {
+        return c.json({ error: 'That is not a valid URL.', code: 'tracking-url-invalid' }, 400);
+      }
+      const dead = await unresolvableHosts(urls.map((u) => u.host));
+      if (dead.length === urls.length) {
+        return c.json(
+          {
+            error: `That tracking link does not point at a real site (${dead[0]}).`,
+            code: 'link-unresolvable',
+          },
+          400,
+        );
+      }
+    }
+    shipment = {
+      carrier: carrier.slug,
+      carrierName: carrier.name,
+      trackingNumber,
+      trackingUrl: url,
+      dispatchedAt: Date.now(),
+    };
+  } else {
     const proofUrls = extractUrls(body.deliveryProof ?? '');
     if (proofUrls.length === 0) {
       return c.json(
@@ -1540,6 +1619,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     // buyer a fresh, full window to review what they can finally see.
     deliveredAt: Date.now(),
     ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
+    ...(shipment ? { shipment } : {}),
     // Always overwrite the verdict + reasons so a corrected link clears the old
     // flag (reasons explicitly emptied when the new link is clean).
     ...(verificationStatus ? { verificationStatus } : {}),
@@ -1589,6 +1669,57 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     });
   }
   return c.json({ accepted: true, jobId, verificationStatus }, 200);
+});
+
+/// Buyer confirms the goods physically arrived.
+///
+/// Deliberately NOT a release. Arrival is a fact about the shipment; release is
+/// a decision about the money. Conflating them is how a buyer ends up paying
+/// for a container the moment it lands, before opening it.
+///
+/// What it does change is the clock. Auto-release on a goods deal is floored by
+/// the transit window precisely because "delivered" means dispatched and the
+/// buyer has nothing to inspect. Once the buyer says it is here, that reason is
+/// gone and the ordinary review ladder resumes. Net terms still apply: those
+/// are a commercial agreement, not a statement about where the container is.
+dealsRoutes.post('/direct/:jobId/arrived', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'unknown deal' }, 404);
+  if (body.caller.toLowerCase() !== deal.buyer.toLowerCase()) {
+    return c.json({ error: 'only the buyer can confirm arrival' }, 403);
+  }
+  if (!deal.shipment) {
+    return c.json({ error: 'no shipment on this deal', code: 'no-shipment' }, 409);
+  }
+  if (deal.shipment.arrivedAt) {
+    return c.json({ error: 'arrival already confirmed' }, 409);
+  }
+  if (deal.settledAt || deal.cancelledAt) {
+    return c.json({ error: 'deal is closed' }, 409);
+  }
+
+  const arrivedAt = Date.now();
+  await patchDeal(jobId, { shipment: { ...deal.shipment, arrivedAt } });
+  bus.emitEvent({
+    type: 'deal.goods.arrived',
+    jobId,
+    actor: 'buyer',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      carrier: deal.shipment.carrierName,
+      trackingNumber: deal.shipment.trackingNumber,
+    },
+  });
+  logger.info({ jobId, carrier: deal.shipment.carrier }, 'buyer confirmed goods arrival');
+  return c.json({ ok: true, arrivedAt });
 });
 
 /// Buyer releases the next milestone. After the seller marks delivered, the

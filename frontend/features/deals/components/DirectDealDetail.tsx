@@ -147,6 +147,28 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     return () => window.cancelAnimationFrame(id);
   }, [deal]);
   const [deliveryProof, setDeliveryProof] = useState('');
+  /// Goods deliver a shipment reference instead of a link. Held here so the
+  /// seller's typing survives the poll-driven refresh of the deal.
+  const [shipment, setShipment] = useState({ carrier: '', trackingNumber: '', trackingUrl: '' });
+  const [carriers, setCarriers] = useState<
+    Array<{ slug: string; name: string; needsUrl: boolean }>
+  >([]);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .listCarriers()
+      .then((r) => {
+        if (live) setCarriers(r.carriers);
+      })
+      .catch(() => {
+        // A failed carrier list leaves the picker empty rather than blocking
+        // the page; the seller sees the field and can retry by reloading.
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
   // Optional pre-filled chat draft, used by a couple of softer surfaces. The
   // formal extension flow no longer touches it; this stays for future hooks.
@@ -345,7 +367,38 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     setBusy(true);
     setErrorInfo(null);
     try {
-      await api.markDelivered(jobId, address, deliveryProof.trim() || undefined);
+      const isGoods = deal?.tradeType === 'goods';
+      await api.markDelivered(
+        jobId,
+        address,
+        deliveryProof.trim() || undefined,
+        isGoods
+          ? {
+              carrier: shipment.carrier,
+              trackingNumber: shipment.trackingNumber.trim(),
+              ...(shipment.trackingUrl.trim()
+                ? { trackingUrl: shipment.trackingUrl.trim() }
+                : {}),
+            }
+          : undefined,
+      );
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onConfirmArrived() {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.confirmGoodsArrived(jobId, address);
       refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
@@ -778,6 +831,51 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </div>
           </PageCard>
 
+          {deal.shipment && (
+            <PageCard>
+              <CardHead label="SHIPMENT" />
+              <div className="p-5 md:p-6 space-y-3">
+                <p className="text-[14px] text-[var(--lp-text-sub)]">
+                  {deal.shipment.carrierName}
+                </p>
+                <p className="mono text-[12px] tracking-[0.06em] text-[var(--lp-dark)] break-all">
+                  {deal.shipment.trackingNumber}
+                </p>
+                {deal.shipment.trackingUrl ? (
+                  <a
+                    href={deal.shipment.trackingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block mono text-[11px] uppercase tracking-[0.14em] underline"
+                  >
+                    track shipment ↗
+                  </a>
+                ) : null}
+                <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  {deal.shipment.arrivedAt
+                    ? `Arrived ${relativeTime(deal.shipment.arrivedAt)}`
+                    : `Dispatched ${relativeTime(deal.shipment.dispatchedAt)}`}
+                </p>
+                {viewerIsBuyer && !deal.shipment.arrivedAt && !deal.settledAt ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={onConfirmArrived}
+                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-black/25 disabled:opacity-50"
+                      style={{ borderRadius: 6 }}
+                    >
+                      {busy ? 'Working…' : 'Confirm goods arrived'}
+                    </button>
+                    <p className="text-[11px] text-[var(--lp-text-muted)]">
+                      This does not release the money. It records that the goods are with you, so
+                      the review clock can start.
+                    </p>
+                  </>
+                ) : null}
+              </div>
+            </PageCard>
+          )}
           {deal.delivered && deal.deliveryProof && (
             <PageCard>
               <CardHead label={dd.terms.deliveryProofLabel} />
@@ -1043,6 +1141,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               now={now}
               deliveryProof={deliveryProof}
               onDeliveryProofChange={setDeliveryProof}
+              shipment={shipment}
+              onShipmentChange={setShipment}
+              carriers={carriers}
               onAccept={requestAccept}
               onMarkDelivered={onMarkDelivered}
               onRelease={onRelease}
@@ -1562,6 +1663,9 @@ function ActionPanel({
   now,
   deliveryProof,
   onDeliveryProofChange,
+  shipment,
+  onShipmentChange,
+  carriers,
   onAccept,
   onMarkDelivered,
   onRelease,
@@ -1587,6 +1691,13 @@ function ActionPanel({
   now: number;
   deliveryProof: string;
   onDeliveryProofChange: (v: string) => void;
+  shipment: { carrier: string; trackingNumber: string; trackingUrl: string };
+  onShipmentChange: (v: {
+    carrier: string;
+    trackingNumber: string;
+    trackingUrl: string;
+  }) => void;
+  carriers: Array<{ slug: string; name: string; needsUrl: boolean }>;
   onAccept: () => void;
   onMarkDelivered: () => void;
   onRelease: () => void;
@@ -1839,8 +1950,22 @@ function ActionPanel({
               }}
             />
           </label>
+          {deal.tradeType === 'goods' ? (
+            <GoodsShipmentFields
+              shipment={shipment}
+              onChange={onShipmentChange}
+              carriers={carriers}
+            />
+          ) : null}
           <div className="flex flex-wrap gap-2">
-            <CTAPill disabled={busy} onClick={onMarkDelivered}>
+            <CTAPill
+              disabled={
+                busy ||
+                (deal.tradeType === 'goods' &&
+                  (!shipment.carrier || shipment.trackingNumber.trim().length < 3))
+              }
+              onClick={onMarkDelivered}
+            >
               {busy ? copy.awaitingDelivery.markDeliveredBusy : copy.awaitingDelivery.markDeliveredCta}
             </CTAPill>
             <span
@@ -2926,4 +3051,83 @@ function DealErrorNote({
     );
   }
   return wrap(info.message);
+}
+
+/// Carrier and tracking reference for a physical-goods delivery.
+///
+/// Goods used to be exempt from delivery proof entirely: the seller marked a
+/// container delivered and the buyer had nothing to open and nothing to dispute
+/// against. This does not verify the shipment with the carrier, it makes the
+/// seller state who carries it and under what reference, resolving to a page the
+/// buyer can read. Top-level component per `rerender-no-inline-components`.
+function GoodsShipmentFields({
+  shipment,
+  onChange,
+  carriers,
+}: {
+  shipment: { carrier: string; trackingNumber: string; trackingUrl: string };
+  onChange: (v: { carrier: string; trackingNumber: string; trackingUrl: string }) => void;
+  carriers: Array<{ slug: string; name: string; needsUrl: boolean }>;
+}) {
+  const selected = carriers.find((c) => c.slug === shipment.carrier);
+  const field =
+    'w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] border border-white/10 focus:outline-none focus:border-[var(--lp-accent)]';
+  const radius = {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 3,
+  } as const;
+
+  return (
+    <div className="space-y-2.5">
+      <label className="block space-y-1.5">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          [:CARRIER:]
+        </span>
+        <select
+          value={shipment.carrier}
+          onChange={(e) => onChange({ ...shipment, carrier: e.target.value })}
+          className={field}
+          style={radius}
+        >
+          <option value="">Select a carrier</option>
+          {carriers.map((c) => (
+            <option key={c.slug} value={c.slug}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block space-y-1.5">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          [:TRACKING NUMBER:]
+        </span>
+        <input
+          value={shipment.trackingNumber}
+          onChange={(e) => onChange({ ...shipment, trackingNumber: e.target.value })}
+          placeholder="Container or waybill reference"
+          className={field}
+          style={radius}
+        />
+      </label>
+      {selected?.needsUrl ? (
+        <label className="block space-y-1.5">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+            [:TRACKING PAGE:]
+          </span>
+          <input
+            value={shipment.trackingUrl}
+            onChange={(e) => onChange({ ...shipment, trackingUrl: e.target.value })}
+            placeholder="https://carrier.example/track/..."
+            className={field}
+            style={radius}
+          />
+          <span className="block text-[11px] text-white/45">
+            The buyer opens this to follow the shipment, so it has to be a real page.
+          </span>
+        </label>
+      ) : null}
+    </div>
+  );
 }

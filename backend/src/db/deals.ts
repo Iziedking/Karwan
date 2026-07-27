@@ -359,6 +359,28 @@ export interface DirectDeal {
     sector?: string;
     region?: string;
   };
+  /// Shipment reference captured when a GOODS deal is marked delivered.
+  ///
+  /// Goods used to deliver against nothing: the delivery-proof branch skipped
+  /// tradeType 'goods' entirely, so a seller marked a container delivered with
+  /// an empty string and the buyer had no claim to check. This is not carrier
+  /// verification, it is the seller stating who carries it and under what
+  /// reference, in a shape that opens a page the buyer can read.
+  shipment?: {
+    /// Slug from deals/carriers.ts, or 'other'.
+    carrier: string;
+    carrierName: string;
+    trackingNumber: string;
+    /// Built for known carriers; supplied by the seller for 'other', where it
+    /// is held to the same DNS-resolvable standard as a services delivery.
+    trackingUrl: string | null;
+    dispatchedAt: number;
+    /// The buyer confirming the goods physically arrived. Distinct from
+    /// releasing the escrow: arrival is a fact about the shipment, release is a
+    /// decision about the money, and conflating them is how a buyer ends up
+    /// paying for a container they have not seen.
+    arrivedAt?: number;
+  };
   /// Document hashes anchored on KarwanInvoiceRegistry. Mirror of on-chain
   /// state for fast UI render; chain is the source of truth on tie.
   documentRefs?: Array<{

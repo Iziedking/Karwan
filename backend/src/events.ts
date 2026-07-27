@@ -61,6 +61,9 @@ export type KarwanEventType =
   | 'deal.extension.declined'
   | 'deal.auto_released'
   | 'deal.disputed'
+  /// Buyer confirmed physical goods arrived. Distinct from a release: it lifts
+  /// the transit floor on auto-release, it does not move money.
+  | 'deal.goods.arrived'
   | 'deal.dispute.auto_resolved'
   | 'deal.dispute.needs_arbiter'
   | 'deal.cancelled'

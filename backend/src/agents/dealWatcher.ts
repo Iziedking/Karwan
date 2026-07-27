@@ -72,6 +72,11 @@ function termsFloorMs(deal: DirectDeal): number {
       break;
   }
   if (deal.tradeType === 'goods' || deal.tradeType === 'mixed') {
+    // The transit floor exists because the buyer cannot inspect goods that are
+    // still moving. Once the buyer confirms arrival that reason is gone, so the
+    // ordinary review ladder resumes rather than holding the seller's money for
+    // a fortnight against a shipment everyone agrees has landed.
+    if (deal.shipment?.arrivedAt) return 0;
     return config.GOODS_TRANSIT_FLOOR_MS;
   }
   return 0;

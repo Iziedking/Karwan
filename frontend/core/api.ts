@@ -580,6 +580,18 @@ export interface DirectDeal {
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
   paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
   counterpartyCompany?: { name?: string; sector?: string; region?: string };
+  /// Captured when a GOODS deal is marked delivered. Goods used to deliver
+  /// against nothing at all, so there was no claim for the buyer to check.
+  shipment?: {
+    carrier: string;
+    carrierName: string;
+    trackingNumber: string;
+    trackingUrl: string | null;
+    dispatchedAt: number;
+    /// Buyer confirmed physical arrival. Lifts the transit floor on
+    /// auto-release; it does not release the money.
+    arrivedAt?: number;
+  };
   documentRefs?: Array<{
     hash: string;
     kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
@@ -2297,14 +2309,37 @@ export const api = {
       `/api/deals/direct/${jobId}/accept`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
-  markDelivered: (jobId: string, caller: string, deliveryProof?: string) =>
+  /// Carriers offered by the goods-delivery form. Static list, public.
+  listCarriers: () =>
+    json<{ carriers: Array<{ slug: string; name: string; needsUrl: boolean }> }>(
+      '/api/deals/carriers',
+    ),
+  /// `shipment` is REQUIRED on a goods deal: services deliver a link, goods
+  /// deliver a carrier and tracking reference the buyer can open.
+  markDelivered: (
+    jobId: string,
+    caller: string,
+    deliveryProof?: string,
+    shipment?: { carrier: string; trackingNumber: string; trackingUrl?: string },
+  ) =>
     json<{ accepted: boolean; jobId: string }>(
       `/api/deals/direct/${jobId}/delivered`,
       {
         method: 'POST',
-        body: JSON.stringify({ caller, ...(deliveryProof ? { deliveryProof } : {}) }),
+        body: JSON.stringify({
+          caller,
+          ...(deliveryProof ? { deliveryProof } : {}),
+          ...(shipment ? { shipment } : {}),
+        }),
       },
     ),
+  /// Buyer confirms the goods physically arrived. Not a release: it lifts the
+  /// transit floor on auto-release, it does not move money.
+  confirmGoodsArrived: (jobId: string, caller: string) =>
+    json<{ ok: true; arrivedAt: number }>(`/api/deals/direct/${jobId}/arrived`, {
+      method: 'POST',
+      body: JSON.stringify({ caller }),
+    }),
   releaseDirectDeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string; txHash: string; settled: boolean; settledInMs?: number }>(
       `/api/deals/direct/${jobId}/release`,
