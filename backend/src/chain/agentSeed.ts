@@ -103,6 +103,7 @@ export async function seedAgentFromOperator(
         address: owner,
         kind: 'agent_seed',
         summary: `Karwan seeded your ${meta.agent} agent with ${amount} USDC to cover its first transactions`,
+        params: {t: 'seededByKarwan', agent: String(meta.agent), amount: String(amount)},
         amountUsdc: String(amount),
         txHash,
       });

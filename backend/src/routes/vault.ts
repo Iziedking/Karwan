@@ -332,6 +332,7 @@ vaultRoutes.post('/deposit', async (c) => {
       address: body.address,
       kind: 'stake',
       summary: `Staked ${body.amountUsdc} USDC`,
+      params: {t: 'staked', amount: String(body.amountUsdc)},
       amountUsdc: body.amountUsdc.toString(),
       txHash: depositResult.txHash,
     });
@@ -464,6 +465,21 @@ async function positionActionRoute(
           : fn === 'requestWithdraw'
             ? `Started unstaking ${principalUsdc ?? 'your'} USDC`
             : `Cancelled unstaking ${principalUsdc ?? 'your'} USDC`,
+      // Without a principal figure the sentence reads "your USDC", which no
+      // template placeholder can carry. Those rows keep the English summary.
+      ...(principalUsdc !== null
+        ? {
+            params: {
+              t:
+                fn === 'claim'
+                  ? 'unstakeClaim'
+                  : fn === 'requestWithdraw'
+                    ? 'unstakeStart'
+                    : 'unstakeCancel',
+              amount: String(principalUsdc),
+            },
+          }
+        : {}),
       ...(principalUsdc !== null ? { amountUsdc: principalUsdc } : {}),
       txHash: result.txHash,
     });

@@ -1813,6 +1813,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       address: deal.buyer,
       kind: 'release',
       summary: `Released milestone ${releasedIndex + 1} on deal ${jobId} to the seller${settled ? ' (final release, deal settled)' : ''}`,
+      params: {t: settled ? 'milestoneReleaseFinal' : 'milestoneRelease', n: String(releasedIndex + 1), job: String(jobId)},
       jobId,
       txHash,
       counterparty: deal.seller,
@@ -2400,6 +2401,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
       address: deal.buyer,
       kind: 'refund',
       summary: `Reclaimed ${deal.dealAmountUsdc} USDC from the deal the seller did not deliver`,
+      params: {t: 'deadlineReclaim', amount: String(deal.dealAmountUsdc)},
       amountUsdc: deal.dealAmountUsdc,
       txHash: refundTxHash,
       jobId,
@@ -2677,6 +2679,7 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
       summary: isReleaseFromDispute
         ? `Received ${deal.dealAmountUsdc} USDC from a resolved dispute`
         : `Refunded ${deal.dealAmountUsdc} USDC from a cancelled deal`,
+      params: {t: isReleaseFromDispute ? 'disputeReceived' : 'cancelRefund', amount: String(deal.dealAmountUsdc)},
       amountUsdc: deal.dealAmountUsdc,
       txHash: finalTxHash,
       jobId,

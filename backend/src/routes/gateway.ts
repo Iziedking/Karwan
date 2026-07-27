@@ -219,6 +219,7 @@ gatewayRoutes.post('/deposit', async (c) => {
       address,
       kind: 'gateway_deposit',
       summary: `Added ${result.amountUsd} USDC to the unified balance from the ${result.source} wallet`,
+      params: {t: 'gatewayDeposit', amount: String(result.amountUsd), source: String(result.source)},
       amountUsdc: result.amountUsd.toString(),
       txHash: result.depositTxHash,
     });
@@ -294,6 +295,7 @@ gatewayRoutes.post('/fund-agent', async (c) => {
       // Plain past tense with no plumbing in it: the user has one balance and
       // one wallet, and where the USDC physically sat is not their concern.
       summary: `Funded the ${result.agent} agent with ${result.amountUsd} USDC`,
+      params: {t: 'gatewayFundAgent', agent: String(result.agent), amount: String(result.amountUsd)},
       amountUsdc: result.amountUsd.toString(),
       // Prefer the mined hash, which resolves on an explorer. transferId is a
       // Circle-internal reference and only a fallback.
@@ -339,6 +341,7 @@ gatewayRoutes.post('/cash-out', async (c) => {
       address,
       kind: 'gateway_cash_out',
       summary: `Cashed out ${result.amountUsd} USDC to ${result.recipientAddress.toLowerCase()} on ${result.destChainKey}`,
+      params: {t: 'gatewayCashOut', amount: String(result.amountUsd), to: result.recipientAddress.toLowerCase(), chain: String(result.destChainKey)},
       amountUsdc: result.amountUsd.toString(),
       ...(result.txHash ? { txHash: result.txHash } : {}),
       refId: result.transferId,

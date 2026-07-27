@@ -449,6 +449,32 @@ interface MessagesShape {
       events: string;
     };
     myMoney: {
+      /// Keyed by the `t` field the backend puts on each row. A row whose `t`
+      /// is missing or unknown falls back to the English summary it shipped
+      /// with, so historical rows keep rendering.
+      text: {
+        bridgeIn: string;
+        bridgeOut: string;
+        seededByKarwan: string;
+        setupMove: string;
+        agentWithdraw: string;
+        agentTopUp: string;
+        milestoneRelease: string;
+        milestoneReleaseFinal: string;
+        deadlineReclaim: string;
+        disputeReceived: string;
+        cancelRefund: string;
+        gatewayDeposit: string;
+        gatewayFundAgent: string;
+        gatewayCashOut: string;
+        researchActivate: string;
+        marketRead: string;
+        staked: string;
+        unstakeClaim: string;
+        unstakeStart: string;
+        unstakeCancel: string;
+        yieldClaim: string;
+      };
       eyebrow: string;
       count: string;
       loading: string;
@@ -4416,6 +4442,29 @@ export const en: MessagesShape = {
       events: 'events',
     },
     myMoney: {
+      text: {
+        bridgeIn: 'Added {amount} USDC from {chain}',
+        bridgeOut: 'Cashed out {amount} USDC to {chain}',
+        seededByKarwan: 'Karwan seeded your {agent} agent with {amount} USDC to cover its first transactions',
+        setupMove: 'Moved {amount} USDC from your wallet into your {agent} agent at setup',
+        agentWithdraw: 'Withdrew {amount} USDC from the {agent} agent wallet to {to}',
+        agentTopUp: 'Topped up the {agent} agent wallet with {amount} USDC from the sign-in wallet',
+        milestoneRelease: 'Released milestone {n} on deal {job} to the seller',
+        milestoneReleaseFinal: 'Released milestone {n} on deal {job} to the seller (final release, deal settled)',
+        deadlineReclaim: 'Reclaimed {amount} USDC from the deal the seller did not deliver',
+        disputeReceived: 'Received {amount} USDC from a resolved dispute',
+        cancelRefund: 'Refunded {amount} USDC from a cancelled deal',
+        gatewayDeposit: 'Added {amount} USDC to the unified balance from the {source} wallet',
+        gatewayFundAgent: 'Funded the {agent} agent with {amount} USDC',
+        gatewayCashOut: 'Cashed out {amount} USDC to {to} on {chain}',
+        researchActivate: 'Paid {amount} USDC to activate agent market research',
+        marketRead: 'Your scout agent paid {amount} USDC for a market read on {keywords}',
+        staked: 'Staked {amount} USDC',
+        unstakeClaim: 'Claimed {amount} USDC of unstaked principal',
+        unstakeStart: 'Started unstaking {amount} USDC',
+        unstakeCancel: 'Cancelled unstaking {amount} USDC',
+        yieldClaim: 'Claimed {amount} USDC of earned yield',
+      },
       eyebrow: 'YOUR MONEY',
       count: '{n} MOVES',
       loading: 'Loading…',
@@ -4425,7 +4474,7 @@ export const en: MessagesShape = {
       receipt: 'RECEIPT',
       justNow: 'just now',
       repeated: '×{n}',
-      showAll: 'SEE ALL {n}',
+      showAll: 'SEE ALL',
       showLess: 'SHOW LESS',
     },
     view: {

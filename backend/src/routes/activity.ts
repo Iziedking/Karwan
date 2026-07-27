@@ -19,7 +19,12 @@ export interface PersonalActivityItem {
   id: string;
   ts: number;
   kind: string;
+  /// English, written at record time. Kept as the fallback for rows whose kind
+  /// the client cannot render, and for every row written before `params`.
   summary: string;
+  /// Structured fields the client formats per locale. `t` names the template.
+  /// Absent on historical rows, which is why `summary` has to stay.
+  params: Record<string, string> | null;
   amountUsdc: string | null;
   txHash: string | null;
   refId: string | null;
@@ -276,6 +281,7 @@ activityRoutes.get('/me', async (c) => {
       ts: e.ts,
       kind: e.kind as string,
       summary: e.summary,
+      params: (e as { params?: Record<string, string> }).params ?? null,
       amountUsdc: e.amountUsdc ?? null,
       txHash: e.txHash ?? null,
       refId: e.refId ?? null,
@@ -295,6 +301,13 @@ activityRoutes.get('/me', async (c) => {
         summary: out
           ? `Cashed out ${b.amountUsdc} USDC to ${chain ? chainLabel(chain) : 'another chain'}`
           : `Added ${b.amountUsdc} USDC from ${chain ? chainLabel(chain) : 'another chain'}`,
+        // The chain label is a proper noun and stays as-is in every locale;
+        // only the sentence around it is translated.
+        params: {
+          t: out ? 'bridgeOut' : 'bridgeIn',
+          amount: b.amountUsdc,
+          chain: chain ? chainLabel(chain) : '',
+        },
         amountUsdc: b.amountUsdc,
         // The burn is the receipt the user can verify first; the mint hash
         // lands later and is the better one once it exists.

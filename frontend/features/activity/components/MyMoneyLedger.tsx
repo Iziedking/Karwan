@@ -35,17 +35,34 @@ const VISIBLE = 6;
 
 type Row = { item: Item; repeat: number };
 
+/// The row's sentence in the reader's language. The backend sends structured
+/// `params` with a `t` naming the template; anything it cannot name falls back
+/// to the English `summary` written at record time, which is what every row
+/// logged before `params` existed still carries.
+function lineFor(item: Item, texts: Record<string, string>): string {
+  const p = (item as { params?: Record<string, string> | null }).params;
+  const tpl = p?.t ? texts[p.t] : undefined;
+  if (!tpl || !p) return item.summary;
+  return tpl.replace(/\{(\w+)\}/g, (whole, key: string) => p[key] ?? whole);
+}
+
 /// A bridge that failed and retried twenty-four times is one thing that went
 /// wrong, not twenty-four. Collapse neighbouring rows that say the same thing
 /// with the same status into one row carrying a repeat count. Only consecutive
 /// runs collapse, so the ledger stays in time order and two genuine top-ups a
 /// week apart never merge. The newest of a run represents it: it holds the
 /// receipt if one ever landed.
-function collapse(items: Item[]): Row[] {
+function collapse(items: Item[], texts: Record<string, string>): Row[] {
   const rows: Row[] = [];
   for (const item of items) {
     const last = rows[rows.length - 1];
-    if (last && last.item.summary === item.summary && last.item.status === item.status) {
+    // Compare the rendered line, not the raw summary: two rows that read the
+    // same to the user should collapse in every locale, not just English.
+    if (
+      last &&
+      lineFor(last.item, texts) === lineFor(item, texts) &&
+      last.item.status === item.status
+    ) {
       last.repeat += 1;
       continue;
     }
@@ -69,7 +86,7 @@ export function MyMoneyLedger() {
   const [failed, setFailed] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  const rows = useMemo(() => (items ? collapse(items) : []), [items]);
+  const rows = useMemo(() => (items ? collapse(items, t.text) : []), [items, t.text]);
   const visible = expanded ? rows : rows.slice(0, VISIBLE);
 
   const load = useCallback(() => {
@@ -124,7 +141,7 @@ export function MyMoneyLedger() {
             return (
               <li key={item.id} className="py-3 flex items-baseline justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{item.summary}</p>
+                  <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{lineFor(item, t.text)}</p>
                   <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {when(item.ts, t.justNow)}
                     {item.status !== 'done' && (
@@ -176,7 +193,10 @@ export function MyMoneyLedger() {
           onClick={() => setExpanded((v) => !v)}
           className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          {expanded ? t.showLess : t.showAll.replace('{n}', String(rows.length))}
+          {/* No count here. The header already states how many moves there
+              were; a second number counting collapsed rows instead read as a
+              contradiction (43 moves, "see all 20"). */}
+          {expanded ? t.showLess : t.showAll}
         </button>
       )}
     </section>

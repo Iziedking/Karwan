@@ -630,6 +630,7 @@ activationRoutes.post('/withdraw', async (c) => {
       address: userAddress,
       kind: 'withdraw',
       summary: `Withdrew ${body.amountUsdc} USDC from the ${body.agent} agent wallet to ${body.toAddress.toLowerCase()}`,
+      params: {t: 'agentWithdraw', agent: body.agent, amount: String(body.amountUsdc), to: body.toAddress.toLowerCase()},
       amountUsdc: body.amountUsdc.toString(),
       txHash: result.txHash,
       counterparty: body.toAddress.toLowerCase(),
@@ -719,6 +720,7 @@ activationRoutes.post('/fund-agent', async (c) => {
       address: userAddress,
       kind: 'agent_topup',
       summary: `Topped up the ${body.agent} agent wallet with ${body.amountUsdc} USDC from the sign-in wallet`,
+      params: {t: 'agentTopUp', agent: body.agent, amount: String(body.amountUsdc)},
       amountUsdc: body.amountUsdc.toString(),
       txHash: result.txHash,
     });
@@ -848,6 +850,7 @@ async function transferFromIdentity(
       address: userAddress,
       kind: 'agent_seed',
       summary: `Moved ${amountUsdc} USDC from your wallet into your ${agent} agent at setup`,
+      params: {t: 'setupMove', agent: String(agent), amount: String(amountUsdc)},
       amountUsdc: amountUsdc.toString(),
       txHash: result.txHash,
     });

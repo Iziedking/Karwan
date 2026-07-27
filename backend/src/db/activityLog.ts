@@ -34,8 +34,12 @@ export interface ActivityEntry {
   address: string;
   ts: number;
   kind: ActivityKind;
-  /// One plain sentence, written at record time, that stands alone.
+  /// One plain sentence, written at record time, that stands alone. English.
+  /// Stays the fallback: rows written before `params` existed only have this.
   summary: string;
+  /// Structured fields so the reader's locale, not the writer's, decides the
+  /// wording. `t` names the client template; the rest are its placeholders.
+  params?: Record<string, string>;
   amountUsdc?: string;
   /// On-chain Arc tx hash when the move settled in one tx.
   txHash?: string;

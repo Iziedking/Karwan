@@ -129,6 +129,7 @@ researchRoutes.post('/activate', async (c) => {
       address: owner,
       kind: 'agent_spend',
       summary: `Paid ${RESEARCH_ACTIVATION_USDC} USDC to activate agent market research`,
+      params: {t: 'researchActivate', amount: String(RESEARCH_ACTIVATION_USDC)},
       amountUsdc: String(RESEARCH_ACTIVATION_USDC),
       txHash: tx.txHash,
     });
@@ -241,6 +242,7 @@ researchRoutes.post('/scout', async (c) => {
         address: key,
         kind: 'agent_spend',
         summary: `Your scout agent paid ${read.paidUsd} USDC for a market read on "${keywords}"`,
+        params: {t: 'marketRead', amount: String(read.paidUsd), keywords: String(keywords)},
         amountUsdc: String(read.paidUsd),
         ...(read.txHash ? { txHash: read.txHash } : {}),
       });

@@ -583,6 +583,7 @@ yieldRoutes.post('/claim', async (c) => {
       address,
       kind: 'yield_claim',
       summary: `Claimed ${claimedUsdc} USDC of earned yield`,
+      params: {t: 'yieldClaim', amount: String(claimedUsdc)},
       amountUsdc: claimedUsdc,
       ...(tx?.txHash ? { txHash: tx.txHash } : {}),
     });
