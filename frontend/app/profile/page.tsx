@@ -352,18 +352,23 @@ function ProfilePageInner() {
       {profile ? (
         <>
           <Band tone="light" compact>
-            <SectionTag>{t.accountType.tag}</SectionTag>
-            <HeroHeadline size="md">
-              {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-              {t.accountType.body}
-            </p>
-            {/* The role picker is one compact control now, not three cards, so
-                the card wraps to it instead of stretching a band of empty white
-                across the page. max-w-full keeps it in bounds on a phone. */}
-            <div className="mt-8">
+            {/* Copy left, control right, the same grid the activation band above
+                uses. Stacked, the picker sat under a 46ch column and left the
+                right half of a desktop empty; beside it the band reads as one
+                row and the page loses a screenful of scrolling. */}
+            <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
+              <div className="max-w-[52ch]">
+                <SectionTag>{t.accountType.tag}</SectionTag>
+                <HeroHeadline size="md">
+                  {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
+                  <Punc>.</Punc>
+                </HeroHeadline>
+                <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+                  {t.accountType.body}
+                </p>
+              </div>
+              {/* max-w-full keeps it in bounds on a phone, where the grid is
+                  a single column again. */}
               <PageCard className="w-fit max-w-full">
                 <div className="p-6 md:p-8">
                   <RoleToggle profile={profile} onUpdate={setProfile} />

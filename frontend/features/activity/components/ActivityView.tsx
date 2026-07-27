@@ -118,13 +118,20 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
       <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 
-      <MyMoneyLedger />
+      {/* Side by side once there is room. Stacked they read as one long list
+          and a hairline is the only thing saying "your money" ended and "the
+          network" began; as columns the split is obvious, and neither register
+          leaves half the screen empty. 5:7 because the ledger is short rows
+          and the stream carries the filters and pager. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-x-10 gap-y-8 items-start">
+        <div className="min-w-0">
+          <MyMoneyLedger />
+        </div>
 
-      <div className="pt-2 border-t border-[var(--lp-border-light)]" />
-
+        <div className="min-w-0 space-y-6 lg:border-s lg:border-[var(--lp-border-light)] lg:ps-10">
       <div
         ref={streamTopRef}
-        className="flex items-baseline justify-between gap-3 pt-2 scroll-mt-24"
+        className="flex items-baseline justify-between gap-3 scroll-mt-24"
       >
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           [:{t.streamEyebrow}:]
@@ -163,9 +170,11 @@ export function ActivityView({ explorer }: { explorer: string }) {
         showSearch={false}
       />
 
-      <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
+          <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
 
-      <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
+          <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
+        </div>
+      </div>
     </div>
   );
 }
