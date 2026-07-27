@@ -181,9 +181,9 @@ oracle in `totalReserves()`. Three balances feed it:
 
 | Balance | Status |
 |---|---|
-| Platform fee reserves, in the treasury | Live. The treasury holds real allowlisted USYC. |
-| Idle staking principal, in the vault | Live, through an operator-mediated Teller path. |
-| Escrow funds idle during long-dated trades | Ships with the v2 release. |
+| Platform fee reserves, in the treasury | Live. The entitled treasury holds real allowlisted USYC. |
+| Idle staking principal, in the vault | Live, through an operator-mediated Teller path. The position was opened under the previous vault generation and has not been re-routed since the current bundle deployed. |
+| Escrow funds idle during long-dated trades | Deployed. The live escrow carries the sweep path, capped at 80 percent of idle float. No balance has been swept yet. |
 
 USYC is a permissioned Reg-S token, so holding it at all is the integration
 proof: an unentitled address cannot. Reproduce the report against the live chain

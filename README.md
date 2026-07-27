@@ -39,7 +39,7 @@ A financier advances against an invoice at a discount tied to the supplier's rep
 
 ### Purchase-order financing
 
-Working capital advanced against an accepted purchase order and held in contract custody. Proof of delivery is attested on chain by an allowlisted attester, and that attestation is what releases the capital to the supplier. A watcher drives release and repayment without a human in the loop.
+Working capital advanced against an accepted purchase order and held in contract custody. Proof of delivery is anchored on chain by the buyer, or by an allowlisted attester signing on the buyer's behalf, and that attestation is what releases the capital to the supplier. Anyone can trigger the release once it lands, because the contract checks the attestation rather than the caller. A watcher drives release and repayment without a human in the loop, and if proof of delivery never arrives the financier reclaims the principal after a timeout.
 
 ### The credit passport
 
@@ -56,6 +56,16 @@ An SME cannot afford to staff a sourcing desk. The agents do that work.
 - **Proceed or pass, never a silent no.** When the best achievable price lands just outside the buyer's range, the agent surfaces it with the market reason attached instead of declining behind their back. Nothing funds until a human approves.
 - **Counterparty vetting.** A buyer agent pulls a seller's full settled-deal record before scoring their bid, and a seller agent pulls the buyer's funded-deal record before pricing: deals completed clean, deals on time, disputes, lifetime volume. Far beyond a public score. These reads settle on Arc through Circle Gateway, which nets thousands of sub-cent payments into batched on-chain settlement, because paying gas on each one would make the idea uneconomic. Each side pays only on the deals they actually match.
 - **Human approval always.** An agent never opens or funds an escrow without an explicit click. New and low-reputation counterparties route to human review, never an automatic decline.
+
+### Disputes, guardians, and deal timing
+
+A dispute that survives the two sides talking goes to an arbiter, who splits the unreleased funds by basis points rather than picking a winner. The same ruling settles the seller's reserved stake in proportion to fault and hands the raw split to the reputation contract, which bands it into an outcome. A dead arbiter key can delay a deal but never trap it: after the dispute timeout either party can push the deal to its default outcome without the arbiter.
+
+A contract-level guardian sits across the escrow, vault, treasury, and purchase-order financing. It places bounded, auto-expiring holds and records delivery attestation. It can pause a settlement and it can never move funds.
+
+Deal timing is on chain: per-deal clocks both sides consent to, a capped seller-appeal extension, and a match window that expires a job nobody took.
+
+Reputation is hardened against farming. Standing is value-weighted and counts distinct settled counterparties, so volume against one repeat partner cannot inflate a score.
 
 ### Delivery safety
 
@@ -81,29 +91,31 @@ Trade capital is idle by nature. Ninety-day payment terms mean money sits in esc
 
 | Route into USYC | Status |
 |---|---|
-| **Staked capital**, in the vault. A trader's collateral, working while it backs their deals. | **Live**, and the largest position. Routed through an entitled operator address. |
-| **Platform fee reserves**, in the treasury. Karwan's own balance sheet. | **Live.** The treasury holds real allowlisted USYC today. |
-| **Escrowed funds**, during long-dated trades. A buyer's money, earning while it waits for delivery. | **Ships with v2.** Built, and covered by a stateful invariant suite. |
+| **Staked capital**, in the vault. A trader's collateral, working while it backs their deals. | **Live**, and the largest position, held through an entitled operator address. The position was opened under the previous vault generation and has not been re-routed since the current bundle deployed, so the vault contract listed above reports no USYC of its own. |
+| **Platform fee reserves**, in the treasury. Karwan's own balance sheet. | **Live.** The entitled treasury holds real allowlisted USYC today. |
+| **Escrowed funds**, during long-dated trades. A buyer's money, earning while it waits for delivery. | **Deployed.** The live escrow carries the sweep path with a ceiling of 80 percent of idle float, and is covered by a stateful invariant suite. No escrow balance has been swept yet. |
 
 USYC is permissioned, so holding it at all is the proof the integration is real: an unentitled address simply cannot. Circle allowlisted two Karwan addresses on Arc Testnet, the treasury contract and the operator that routes staked capital, because the Hashnote Teller checks entitlement against the **direct caller**, not the beneficiary. A vault subscribe reverts `NotPermissioned` for exactly this reason, so `withdrawForYield` hands USDC to the entitled operator, which subscribes and holds the position while the vault tracks it through `outForYield`.
 
-Live position at the time of writing:
+Live position, read from Arc Testnet on 2026-07-26:
 
 | | |
 |---|---|
-| Total USYC held | **3,994.60 USDC** across the vault and treasury |
-| Yield earned | **45.08 USDC**, marked to the on-chain oracle |
-| Staked capital | 3,507.60 USYC, worth 3,965.75 USDC against a 3,924.00 cost basis |
-| Fee reserves | 25.52 USYC, worth 28.85 USDC |
-| Instrument | USYC at 1.1306, up 13.06 percent on par |
+| Total USYC held | 3,533.12 USYC, worth **3,997.94 USDC** |
+| Yield earned on staked capital | **45.06 USDC**, marked to the on-chain oracle |
+| Staked capital | 3,507.60 USYC, worth 3,969.06 USDC against a 3,924.00 cost basis |
+| Fee reserves | 25.52 USYC, worth 28.88 USDC |
+| Instrument | USYC at 1.1316, up 1.87 percent over the 213 days Karwan has tracked it, about 3.20 percent annualized |
 
-Yield is measured against USDC actually paid, not against par. USYC already traded above a dollar when Karwan subscribed, so the naive value-minus-shares measure would count appreciation that accrued before Karwan held the token. Reproduce the whole report against the live chain:
+Yield is measured against USDC actually paid, not against par. USYC already traded above a dollar when Karwan subscribed, so the naive value-minus-shares measure would read the token's whole life as Karwan's return. The instrument row above follows the same rule: it reports the climb since Karwan started tracking the oracle, not the distance from a dollar.
+
+One caveat the report prints for itself: the Arc Testnet oracle is frozen at round 100, dated 2026-07-20, so the marks above use a price a few days stale. The live Hashnote feed is the moving one. Reproduce the whole report against the live chain:
 
 ```bash
 cd backend && npm run usyc:prove
 ```
 
-The escrow route is the hardest of the three, because a buyer's escrowed money is exactly the capital that should be working and exactly the capital you must never gamble with. So escrow funds route **through** the treasury rather than holding USYC themselves. The escrow's books stay pure USDC and always pull back exactly what was swept, so principal is guaranteed regardless of the token's price, and the treasury, which holds the upside, absorbs any shortfall. The buyer's money earns while it waits, and the buyer never carries the risk.
+The escrow route is the hardest of the three, because a buyer's escrowed money is exactly the capital that should be working and exactly the capital you must never gamble with. So escrow funds route **through** the treasury rather than holding USYC themselves. The escrow's books stay pure USDC and always pull back exactly what was swept, so principal is guaranteed regardless of the token's price, and the treasury, which holds the upside, absorbs any shortfall. The buyer's money earns while it waits, and the buyer never carries the risk. A stateful invariant suite ran 128,000 randomized calls against this path without breaking the invariant that liabilities stay covered.
 
 ## Custody
 
@@ -116,16 +128,6 @@ That authority is bounded by the escrow contract, not by internal policy. Once a
 The automatic settlement paths depend on this. Auto-release after a review window, and auto-reclaim when a seller misses a delivery deadline, both require an account that can act when neither party is online.
 
 ## Roadmap
-
-### The v2 contract bundle
-
-A second contract generation is written, tested, and reviewed internally. It ships as one immutable release after review rather than a mid-cycle redeploy, so the live deployment stays stable while the bundle is finished. It lands in the coming weeks.
-
-- **Escrow idle funds earn USYC.** Escrow sweeps its idle float into the treasury, which wraps it into USYC, and pulls it back before every payout. The escrow holds only USDC and always recovers exactly what it swept, so principal is guaranteed regardless of the token's price. Covered by a stateful invariant suite that ran 128,000 randomized calls without breaking the liability-always-covered invariant.
-- A contract-level guardian places bounded, auto-expiring holds and records delivery attestation across the escrow, vault, treasury, and financing contracts. It can pause a settlement but never move funds.
-- Arbiter dispute resolution with proportional splits, and a seller claim path after a review window.
-- Deal timing on chain: consented per-deal clocks, a capped seller-appeal extension flow, and a match window.
-- Reputation hardened against farming, weighting standing on distinct settled counterparties so volume against one repeat party cannot inflate a score.
 
 ### Skill verification
 
@@ -147,16 +149,18 @@ On and off ramps through the Circle Payments Network, so a business funds a deal
 
 | Contract | Address |
 |---|---|
-| KarwanEscrow | `0x48797C04EE342067A68f29Fbb19B577077d77301` |
-| KarwanInvoiceRegistry | `0x20a7CDf59b5f304De2b22a75e49f52353273E4E4` |
-| KarwanPOFinancing | `0xc91122Eb88613C98d58616cD8973883142F74Bb5` |
-| KarwanReputation | `0xBBAC748cA8C7a47e39Bd2AEaDbaa4e9f96ae4442` |
-| KarwanVault | `0x2d4506284B2D778365b4B295100EF099F35973c5` |
-| KarwanTreasury | `0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573` |
-| KarwanBusinessRegistry | `0xc64d347c9Fe451A3f1c8f4cF2d7a2E43D9AA771e` |
+| KarwanEscrow | `0x0262A4dFec0E057cAf80F124BfD2847581E82B63` |
+| KarwanInvoiceRegistry | `0xFb0Debd5E2618881699ED9b02CE0c9B718a1C649` |
+| KarwanPOFinancing | `0xf14b41BD1a07c9Fe643Aae8292422127d0221d6F` |
+| KarwanReputation | `0x8bD35853b986a04EfDED7F863AFF34826fde69eE` |
+| KarwanVault | `0xA600Bd772A032Ec2b96a9A44545024E270418927` |
+| KarwanTreasury | `0x5a642BE344Fc3a01999bF113197ddC1A163EE837` |
+| KarwanBusinessRegistry | `0x77F4a1Cc4C1F7BB35b23db679966b33b8d8b27cf` |
 | KarwanJobBoard | `0x35224C2234263B5506a9F7BfF4bb98e9FceD3FF3` |
-| KarwanYieldDistributor | `0x9950b9a41A3e80930e451F2FEdaeb81e80195D03` |
+| KarwanYieldDistributor | `0x9E4AdFcfB46108ED7c2F3C1AF1728AAE937f336F` |
 | USDC | `0x3600000000000000000000000000000000000000` |
+
+One address does not follow the bundle. The fee reserves that hold USYC sit in an earlier treasury, `0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573`, because a Hashnote entitlement is granted to an address and does not transfer when a contract is redeployed. That treasury keeps the allowlisted position while `KarwanTreasury` above takes fee income from the current escrow. Anyone checking the USYC balance should read the entitled address, not the bundle one.
 
 Hashnote USYC on Arc Testnet, verified against Circle's published addresses.
 
@@ -184,7 +188,7 @@ Earlier contract generations stay registered so users with open positions can fi
 
 A Next.js frontend and a Hono backend sit above the Circle SDKs. The backend holds no user funds: it provisions Circle wallets, relays what needs relaying, and runs the watchers that drive delivery, repayment, expiry, and yield. The contracts are the source of truth, and every settlement event links to Arcscan from the live activity feed at `/activity`.
 
-Contracts are Solidity, tested with Foundry: **375 tests passing across 29 suites**, including conservation and vault invariant suites, named attack suites for escrow timing, vault reentrancy, and reputation farming, and an exploit-first acceptance suite for the trade-finance v2 design.
+Contracts are Solidity, tested with Foundry: **409 tests passing across 35 suites**, including conservation and vault invariant suites, named attack suites for escrow timing, vault reentrancy, and reputation farming, and an exploit-first acceptance suite for the trade-finance v2 design.
 
 ```bash
 cd contracts && forge test

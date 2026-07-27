@@ -79,8 +79,9 @@ bills on Arc.
   holdings to the on-chain oracle in `totalReserves()`.
 - Three balances route in: platform-fee reserves (treasury, live), idle staking
   principal (vault, via an operator-mediated Teller path because the Teller checks
-  the direct caller and the vault contract is not itself entitled), and, with the
-  v2 release, idle escrow float.
+  the direct caller and the vault contract is not itself entitled), and idle escrow
+  float, whose sweep path is deployed on the live escrow but has not yet carried a
+  balance.
 - USYC is permissioned, so holding it at all is the integration proof: an address
   without an entitlement cannot. Reproduce the live position:
   `cd backend && npm run usyc:prove` (read-only, no keys).
