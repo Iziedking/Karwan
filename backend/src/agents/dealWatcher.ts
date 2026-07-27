@@ -19,7 +19,34 @@ import {
 import { bus } from '../events.js';
 import { settleFactoringForDeal } from './factoringWatcher.js';
 import { settlePOFinancingForDeal } from './poWatcher.js';
+import { getPOLineForInvoice } from '../db/poFinancing.js';
 import { logger } from '../logger.js';
+
+/// True while a PO line for this deal is funded but not yet released.
+///
+/// `KarwanPOFinancing.fund()` assigns the escrow payout to the financier
+/// immediately, but the principal only reaches the seller once `releaseToSeller`
+/// runs, and that needs proof of delivery anchored on the registry. Nothing in
+/// the ordinary milestone path anchors PoD. So a deal that settles on the timer
+/// pays the financier out of the escrow while the seller's principal is still
+/// sitting in custody: the seller delivers and receives nothing.
+///
+/// Auto-release exists to stop funds getting stuck when a buyer goes quiet. It
+/// must not be the thing that strips a seller. A buyer releasing by hand is
+/// their own call and stays allowed; only the unattended path is held back.
+async function poPrincipalStillHeld(jobId: string): Promise<boolean> {
+  try {
+    const line = await getPOLineForInvoice(jobId);
+    return line?.state === 'funded';
+  } catch (err) {
+    // A store failure must not silently unblock the guard.
+    logger.warn(
+      { jobId, err: (err as Error).message },
+      'po line lookup failed; holding auto-release to stay safe',
+    );
+    return true;
+  }
+}
 
 /// Deal lifecycle tick. Each tick reads on-chain escrow state for every
 /// open deal; on a busy backend with many active deals that compounds the
@@ -402,6 +429,13 @@ async function tick() {
             : (deal.lastReleaseAt ?? deal.reviewWindowStartedAt ?? deal.deliveredAt);
         const windowMs = milestoneWindowMs(nextIndex);
         if (now <= anchor + windowMs) continue;
+        if (await poPrincipalStillHeld(deal.jobId)) {
+          logger.warn(
+            { jobId: deal.jobId, milestone: nextIndex },
+            'auto-release held: PO principal still in custody, anchor PoD first',
+          );
+          continue;
+        }
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const releasedAt = Date.now();
         await patchDeal(deal.jobId, {
@@ -462,6 +496,13 @@ async function tick() {
         responseDeadline !== null &&
         now > responseDeadline
       ) {
+        if (await poPrincipalStillHeld(deal.jobId)) {
+          logger.warn(
+            { jobId: deal.jobId, milestone: nextIndex },
+            'final auto-release held: PO principal still in custody, anchor PoD first',
+          );
+          continue;
+        }
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const settled = await finalizeIfSettled(deal.jobId);
         await patchDeal(deal.jobId, {
