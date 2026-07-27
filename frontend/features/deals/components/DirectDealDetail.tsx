@@ -2028,8 +2028,16 @@ function ActionPanel({
     // R4: prefer the on-chain claim deadline (v2b) so the claim button never
     // reverts on the contract's ReviewWindowOpen from clock drift; fall back to
     // the off-chain window on v1 / pre-cutover.
+    // The backend's terms-aware moment wins. The contract's claim deadline knows
+    // nothing about Net terms or a container still at sea, so counting down to
+    // it told a Net 30 seller the window had passed while the agent was thirty
+    // days from releasing. Fall back to the on-chain deadline only when the
+    // backend could not compute one.
     const onChainClaimMs = deal.onChain?.claimDeadlineMs ?? null;
-    const endsAt = onChainClaimMs ?? (deal.deliveredAt ? deal.deliveredAt + windowMs : null);
+    const endsAt =
+      deal.releaseEligibleAtMs ??
+      onChainClaimMs ??
+      (deal.deliveredAt ? deal.deliveredAt + windowMs : null);
     const msLeft = endsAt ? endsAt - now : 0;
     // A flagged delivery link freezes the release: the backend pauses the
     // auto-release and rejects a manual release. Reflect that here instead of
@@ -3085,15 +3093,25 @@ function GoodsShipmentFields({
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
           [:CARRIER:]
         </span>
+        {/* The options render in a NATIVE popup the page cannot style, and that
+            popup is white on most platforms. Inheriting the field's white text
+            made every option invisible except the highlighted one. Set the
+            colours on the options explicitly. */}
         <select
           value={shipment.carrier}
           onChange={(e) => onChange({ ...shipment, carrier: e.target.value })}
           className={field}
           style={radius}
         >
-          <option value="">Select a carrier</option>
+          <option value="" style={{ color: '#0A0A0B', background: '#FFFFFF' }}>
+            Select a carrier
+          </option>
           {carriers.map((c) => (
-            <option key={c.slug} value={c.slug}>
+            <option
+              key={c.slug}
+              value={c.slug}
+              style={{ color: '#0A0A0B', background: '#FFFFFF' }}
+            >
               {c.name}
             </option>
           ))}

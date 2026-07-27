@@ -23,7 +23,7 @@ import {
   splitSignature,
   signTransferAuthorizationWithCircle,
 } from '../chain/usdc3009.js';
-import { vault } from '../chain/contracts.js';
+import { vault, readEscrow } from '../chain/contracts.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { parseUnits, formatUnits } from 'viem';
 import { config } from '../config.js';
@@ -631,6 +631,55 @@ factoringRoutes.post('/accept', async (c) => {
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
+  }
+
+  // The escrow must still hold enough to repay the financier.
+  //
+  // An offer is priced against the invoice FACE value at the moment it is made.
+  // Milestones keep releasing while the offer sits open, and the assignment can
+  // only ever pay out of what is left. So a seller could take a 50% release and
+  // THEN accept a 430 advance against a 500 invoice: the financier pays 430 and
+  // the escrow can return at most 250. That is a straight loss of 180 to the
+  // financier, and nothing between the offer and the accept was checking it.
+  //
+  // Read the escrow at accept time, not at offer time, because the gap between
+  // them is exactly where the money leaks.
+  try {
+    const account = await readEscrow(deal.jobId);
+    // The assignee is paid out of the SELLER side, so what is still claimable is
+    // sellerNet minus what has already been released. Face value is the wrong
+    // number here: it includes the platform fee and every tranche already gone.
+    const remainingWei = account.sellerNet - account.released;
+    const remainingUsdc = Number(
+      formatUnits(remainingWei > 0n ? remainingWei : 0n, USDC_DECIMALS),
+    );
+    const owed = Number(offer.expectedReturnUsdc);
+    if (Number.isFinite(remainingUsdc) && remainingUsdc + 1e-6 < owed) {
+      logger.warn(
+        { offerId: offer.id, jobId: deal.jobId, remainingUsdc, owed },
+        'factoring accept refused: escrow no longer covers the expected return',
+      );
+      return c.json(
+        {
+          error: `This invoice has already paid out. Only ${remainingUsdc.toFixed(2)} USDC is left in escrow, and the offer expects ${owed.toFixed(2)} back. Ask the financier to re-price.`,
+          code: 'escrow-drained',
+          remainingUsdc: remainingUsdc.toFixed(6),
+          expectedReturnUsdc: offer.expectedReturnUsdc,
+        },
+        409,
+      );
+    }
+  } catch (err) {
+    // Fail CLOSED. An unreadable escrow means we cannot prove the financier is
+    // covered, and this is the last gate before their money moves.
+    logger.error(
+      { offerId: offer.id, jobId: deal.jobId, err: (err as Error).message },
+      'factoring accept refused: could not read the escrow',
+    );
+    return c.json(
+      { error: 'could not verify the escrow balance, try again shortly', code: 'escrow-unreadable' },
+      503,
+    );
   }
 
   // Reputation + stake gate. The financier's downside on a default is the

@@ -63,6 +63,19 @@ function LineRow({ line, side }: { line: POFinancingLine; side: 'financier' | 's
           >
             {STATE_LABEL[line.state]}
           </span>
+          {/* A line in a custody-rail state sits on the retired contract, which
+              has had its escrow assigner revoked and holds no USDC. It cannot
+              progress and nothing will drive it. Saying so beats leaving a
+              financier waiting on a delivery that will never release. */}
+          {line.state === 'funded' || line.state === 'released' || line.state === 'reclaimed' ? (
+            <span
+              className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
+              style={{ color: '#6b6b6b', background: '#6b6b6b1f' }}
+              title="Opened on the previous PO contract, retired 2026-07-27. Settled off the desk."
+            >
+              RETIRED RAIL
+            </span>
+          ) : null}
           <span className="mono text-[13px] font-bold tabular-nums text-[var(--lp-dark)]">
             {side === 'financier'
               ? `${line.principalUsdc} → ${line.repayUsdc} USDC`
@@ -131,9 +144,9 @@ export function POLinesPanel() {
         </span>
       </div>
       <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)] max-w-[64ch]">
-        Release and repayment run automatically on chain. When the buyer accepts delivery the
-        principal is sent to the seller, and when the deal settles the repayment is pulled to the
-        financier. Every step links to its transaction on Arc.
+        The advance reaches the seller in the same transaction that funds the line, and the escrow
+        repays you ahead of the seller when the deal settles. Every step links to its transaction
+        on Arc.
       </p>
 
       {lines.asFinancier.length > 0 ? (

@@ -64,6 +64,12 @@ import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
 import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { findCarrier, trackingUrlFor, carrierOptions } from '../deals/carriers.js';
+import {
+  releaseEligibleAt,
+  termsFloorMs,
+  buildPairHistory,
+  pairKey,
+} from '../deals/releaseWindow.js';
 import { logger } from '../logger.js';
 import { classifyAgentError } from '../chain/errors.js';
 import { isSessionSelf, viewerAddress, readSession } from '../auth/session.js';
@@ -1760,6 +1766,40 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
+  // The claim has to respect the SAME window the unattended path does.
+  //
+  // The contract enforces its own review window, which is a per-deal snapshot
+  // and knows nothing about payment terms or whether a container is still at
+  // sea. So a Net 30 goods deal held off auto-release for thirty days while the
+  // seller could force the payout on day one by pressing Claim. The buyer's
+  // protection was one button wide. The floor is the buyer's, not the timer's.
+  {
+    const account0 = await readEscrow(jobId);
+    const index = account0.milestonesReleased;
+    const pairHistory = buildPairHistory(await listAllDeals());
+    const eligibleAt = releaseEligibleAt(
+      deal,
+      index,
+      pairHistory.get(pairKey(deal.buyer, deal.seller)) ?? 0,
+    );
+    if (eligibleAt !== null && Date.now() < eligibleAt) {
+      const floor = termsFloorMs(deal);
+      return c.json(
+        {
+          error:
+            floor > 0 && deal.paymentTerms && deal.paymentTerms !== 'immediate'
+              ? `This deal is on ${deal.paymentTerms.toUpperCase()} terms. The buyer's window runs until then.`
+              : floor > 0
+                ? 'The goods are still in transit. The window opens once the buyer confirms they arrived.'
+                : 'The review window has not passed yet.',
+          code: 'window-open',
+          eligibleAt,
+        },
+        409,
+      );
+    }
+  }
+
   const account = await readEscrow(jobId);
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not claimable (state ${account.state})` }, 409);
@@ -2987,6 +3027,9 @@ async function enrich(deal: DirectDeal) {
   const base = {
     ...deal,
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
+    /// How long the payment terms or a shipment in transit hold the money,
+    /// independent of the review ladder. Zero on an ordinary service deal.
+    termsFloorMs: termsFloorMs(deal),
     delayAppealResponseWindowMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS,
     delayAppealGraceMs: config.DEAL_DELAY_APPEAL_GRACE_MS,
   };
@@ -3010,8 +3053,31 @@ async function enrich(deal: DirectDeal) {
         return { ...base, legacyEscrow: true, legacyState: legacy.state, onChain: null };
       }
     }
+    // The ONE authoritative moment the next payout can happen.
+    //
+    // Three answers to this used to disagree. The UI counted down the contract's
+    // review window, the claim button gated on the same, and the watcher used
+    // the terms-aware window. On a Net 30 goods deal the seller was told "window
+    // passed, the agent will release shortly" while the agent was thirty days
+    // away, and Claim was the only thing that worked. Every surface counts down
+    // to this instant now.
+    let releaseEligibleAtMs: number | null = null;
+    if (deal.delivered) {
+      try {
+        const pairHistory = buildPairHistory(await listAllDeals());
+        releaseEligibleAtMs = releaseEligibleAt(
+          deal,
+          account.milestonesReleased,
+          pairHistory.get(pairKey(deal.buyer, deal.seller)) ?? 0,
+        );
+      } catch {
+        releaseEligibleAtMs = null;
+      }
+    }
+
     return {
       ...base,
+      releaseEligibleAtMs,
       onChain: {
         state: account.state,
         milestonePcts: account.milestonePcts,

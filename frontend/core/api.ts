@@ -600,6 +600,15 @@ export interface DirectDeal {
     txHash?: string;
   }>;
   factoringOfferId?: string;
+  /// The one authoritative moment the next payout can happen: the review ladder
+  /// scaled by deal size and counterparty history, floored by payment terms and
+  /// by a shipment still in transit. Prefer this over reviewWindowMs and over
+  /// onChain.claimDeadlineMs for any countdown or claim gate. Null until
+  /// delivered.
+  releaseEligibleAtMs?: number | null;
+  /// How long terms or transit hold the money, independent of the ladder. Zero
+  /// on an ordinary service deal.
+  termsFloorMs?: number;
   /// Set when the seller has asked to be paid early. Until then the invoice is
   /// not shown to financiers at all, and no offer can be posted against it.
   factoringRequestedAt?: number;
