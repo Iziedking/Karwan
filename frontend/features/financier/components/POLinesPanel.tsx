@@ -49,10 +49,36 @@ function short(addr: string): string {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 }
 
-function LineRow({ line, side }: { line: POFinancingLine; side: 'financier' | 'seller' }) {
+const LEGACY_STATES = ['funded', 'released', 'reclaimed'];
+
+function LineRow({
+  line,
+  side,
+  onDismissed,
+}: {
+  line: POFinancingLine;
+  side: 'financier' | 'seller';
+  onDismissed: () => void;
+}) {
   const proof = proofFor(line);
   const tone = STATE_TONE[line.state];
   const counterparty = side === 'financier' ? line.seller : line.financier;
+  // A retired-rail line cannot progress: the contract holding it has no USDC
+  // and can no longer assign. Leaving it on the desk reads as a delivery that
+  // is still coming.
+  const isLegacy = LEGACY_STATES.includes(line.state);
+  const [dismissing, setDismissing] = useState(false);
+
+  async function dismiss() {
+    setDismissing(true);
+    try {
+      await api.archivePOLine({ lineId: line.id });
+      onDismissed();
+    } catch {
+      setDismissing(false);
+    }
+  }
+
   return (
     <li className="border border-[var(--lp-border-light)] rounded-xl overflow-hidden">
       <div className="px-3.5 py-3">
@@ -67,7 +93,7 @@ function LineRow({ line, side }: { line: POFinancingLine; side: 'financier' | 's
               has had its escrow assigner revoked and holds no USDC. It cannot
               progress and nothing will drive it. Saying so beats leaving a
               financier waiting on a delivery that will never release. */}
-          {line.state === 'funded' || line.state === 'released' || line.state === 'reclaimed' ? (
+          {isLegacy ? (
             <span
               className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
               style={{ color: '#6b6b6b', background: '#6b6b6b1f' }}
@@ -96,6 +122,23 @@ function LineRow({ line, side }: { line: POFinancingLine; side: 'financier' | 's
             </a>
           ) : null}
         </div>
+        {isLegacy ? (
+          <div className="mt-2.5 pt-2.5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-[11px] text-[var(--lp-text-muted)] max-w-[46ch]">
+              This line is on the retired contract. It holds no funds and cannot move, so it will
+              not settle on its own.
+            </span>
+            <button
+              type="button"
+              onClick={dismiss}
+              disabled={dismissing}
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1.5 border border-black/20 disabled:opacity-50 shrink-0"
+              style={{ borderRadius: 6 }}
+            >
+              {dismissing ? 'Dismissing…' : 'Dismiss'}
+            </button>
+          </div>
+        ) : null}
       </div>
     </li>
   );
@@ -156,7 +199,7 @@ export function POLinesPanel() {
           </p>
           <ul className="space-y-2">
             {lines.asFinancier.map((l) => (
-              <LineRow key={l.id} line={l} side="financier" />
+              <LineRow key={l.id} line={l} side="financier" onDismissed={load} />
             ))}
           </ul>
         </div>
@@ -169,7 +212,7 @@ export function POLinesPanel() {
           </p>
           <ul className="space-y-2">
             {lines.asSeller.map((l) => (
-              <LineRow key={l.id} line={l} side="seller" />
+              <LineRow key={l.id} line={l} side="seller" onDismissed={load} />
             ))}
           </ul>
         </div>

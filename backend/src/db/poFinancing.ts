@@ -45,6 +45,18 @@ export interface POFinancingLine {
   /// Collateral reserved on the vault for this line, in USDC base units. The
   /// backend derives it from the seller's reputation tier at offer time.
   requiredStakeUsdc?: string;
+  /// A party dismissed this line from their desk.
+  ///
+  /// Only ever set on a LEGACY custody-rail line. Those sit on the retired
+  /// contract, which holds no USDC and is no longer an authorised assigner, so
+  /// they cannot progress and no watcher will drive them. Left alone they read
+  /// as "funded, awaiting delivery" forever and a financier waits on a delivery
+  /// that can never release.
+  ///
+  /// The row is kept, not deleted. Dismissing is a statement about a desk, not
+  /// about history.
+  archivedAt?: number;
+  archivedBy?: string;
   repaidAt?: number;
   podHash?: string;
   txHashes: {

@@ -470,6 +470,55 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
   }
 });
 
+/// POST /api/po-financing/archive: a party dismisses a dead legacy line.
+///
+/// Strictly limited to lines in a custody-rail state. Those sit on the retired
+/// contract, which holds no USDC and has had its escrow assigner revoked, so
+/// they cannot move and nothing will drive them. Without this they read as
+/// "funded, awaiting delivery" forever.
+///
+/// A line on the CURRENT rail can never be archived. Hiding a live line would
+/// hide real exposure, which is the opposite of the point, so the state check
+/// here is the whole safety of this route.
+const archiveBodySchema = z.object({ lineId: z.string().uuid() });
+
+poFinancingRoutes.post('/archive', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+
+  let body;
+  try {
+    body = archiveBodySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+
+  const line = await getPOLine(body.lineId);
+  if (!line) return c.json({ error: 'unknown line' }, 404);
+
+  const LEGACY_STATES = ['funded', 'released', 'reclaimed'];
+  if (!LEGACY_STATES.includes(line.state)) {
+    return c.json(
+      {
+        error:
+          'only lines from the retired custody rail can be dismissed. A live line stays on the desk until it settles.',
+        code: 'not-legacy',
+      },
+      409,
+    );
+  }
+
+  const caller = session.address.toLowerCase();
+  if (caller !== line.financier && caller !== line.seller) {
+    return c.json({ error: 'caller is not a party to this line' }, 403);
+  }
+  if (line.archivedAt) return c.json({ line });
+
+  const updated = await patchPOLine(line.id, { archivedAt: Date.now(), archivedBy: caller });
+  logger.info({ lineId: line.id, by: caller, state: line.state }, 'po: legacy line dismissed');
+  return c.json({ line: updated });
+});
+
 /// POST /api/po-financing/claim: financier or seller records that
 /// claimRepayment fired on chain. Updates state to Settled.
 poFinancingRoutes.post('/claim', async (c) => {
@@ -562,11 +611,14 @@ poFinancingRoutes.get('/mine', async (c) => {
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
   const address = session.address.toLowerCase();
-  const [asFinancier, asSeller] = await Promise.all([
+  const [allFinancier, allSeller] = await Promise.all([
     listLinesByFinancier(address),
     listLinesBySeller(address),
   ]);
-  return c.json({ asFinancier, asSeller });
+  // A dismissed line is gone from the desk but not from the record. Anyone
+  // needing the history reads the store or the chain.
+  const live = (l: { archivedAt?: number }) => !l.archivedAt;
+  return c.json({ asFinancier: allFinancier.filter(live), asSeller: allSeller.filter(live) });
 });
 
 /// GET /api/po-financing/open: lines in non-terminal state. The timeout watcher

@@ -2968,6 +2968,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  /// Dismiss a dead legacy line from your desk. Only works on custody-rail
+  /// states: those sit on the retired contract, which holds nothing and can no
+  /// longer assign, so they will never move. A live line is refused.
+  archivePOLine: (body: { lineId: string }) =>
+    json<{ line: POFinancingLine }>('/api/po-financing/archive', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   claimPOLine: (body: { lineId: string; repayTxHash: string }) =>
     json<{ line: POFinancingLine }>('/api/po-financing/claim', {
       method: 'POST',
