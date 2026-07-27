@@ -613,15 +613,17 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               `Factoring offer on invoice ${f.invoiceId}: ${f.offeredAdvanceUsdc} USDC advance now against ${f.faceValueUsdc} face value — accept or reject before it expires.`,
             );
           }
+          // 'funded' and 'released' are legacy custody-rail states; lines on
+          // the current rail are 'outstanding' from funding until they close.
           for (const l of poSeller) {
-            if (l.state === 'funded' || l.state === 'released') {
+            if (l.state === 'outstanding' || l.state === 'funded' || l.state === 'released') {
               inFlight.push(
-                `PO financing on invoice ${l.invoiceId}: ${l.principalUsdc} USDC funded, ${l.repayUsdc} USDC repays automatically when the deal settles.`,
+                `PO financing on invoice ${l.invoiceId}: ${l.principalUsdc} USDC advanced to you, ${l.repayUsdc} USDC repays automatically when the deal settles.`,
               );
             }
           }
           for (const l of poFinancier) {
-            if (l.state === 'funded' || l.state === 'released') {
+            if (l.state === 'outstanding' || l.state === 'funded' || l.state === 'released') {
               inFlight.push(
                 `You are financing invoice ${l.invoiceId}: ${l.principalUsdc} USDC out, ${l.repayUsdc} USDC due back.`,
               );

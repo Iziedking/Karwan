@@ -320,9 +320,13 @@ cluttered with trade-finance controls it will never use.
   of it (waived for elite, full for a new wallet), so the financier's
   default risk is backed by slashable insurance rather than a bare promise.
   Factoring is finance-lane only; a P2P service deal is never factorable.
-- **Purchase-order financing.** `KarwanPOFinancing` holds a financier's
-  advance against an accepted purchase order and releases it to the supplier
-  when proof of delivery is anchored on the registry.
+- **Purchase-order financing.** `KarwanPOFinancing` moves a financier's advance
+  straight to the supplier against an accepted purchase order whose escrow is
+  already funded, in the same transaction that assigns that deal's receivable
+  to the financier. The contract never custodies the advance, so no unlock
+  condition can strand it. On settlement the escrow pays the assignee ahead of
+  the supplier; a shortfall, and only a shortfall, is recovered from the
+  supplier's staked collateral.
 - **Credit passport.** The reputation surface gains an SME band with company
   details and a rolling repayment record, so a financier can underwrite a
   counterparty from one shareable page.

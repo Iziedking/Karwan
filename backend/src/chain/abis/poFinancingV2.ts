@@ -42,7 +42,20 @@ export const poFinancingV2Abi = [
   },
   {
     "type": "function",
-    "name": "MAX_RELEASE_WINDOW",
+    "name": "MAX_MIN_STAKE_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_REPAYMENT_WINDOW",
     "inputs": [],
     "outputs": [
       {
@@ -65,6 +78,13 @@ export const poFinancingV2Abi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -112,7 +132,7 @@ export const poFinancingV2Abi = [
         "internalType": "uint128"
       },
       {
-        "name": "releaseTimeoutSeconds",
+        "name": "repaymentWindowSeconds",
         "type": "uint64",
         "internalType": "uint64"
       },
@@ -163,16 +183,6 @@ export const poFinancingV2Abi = [
           },
           {
             "name": "fundedAt",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "releaseTimeoutAt",
-            "type": "uint64",
-            "internalType": "uint64"
-          },
-          {
-            "name": "releasedAt",
             "type": "uint64",
             "internalType": "uint64"
           },
@@ -307,16 +317,6 @@ export const poFinancingV2Abi = [
         "internalType": "uint64"
       },
       {
-        "name": "releaseTimeoutAt",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "releasedAt",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
         "name": "repaymentTimeoutAt",
         "type": "uint64",
         "internalType": "uint64"
@@ -367,6 +367,19 @@ export const poFinancingV2Abi = [
   },
   {
     "type": "function",
+    "name": "minStakeBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -380,16 +393,16 @@ export const poFinancingV2Abi = [
   },
   {
     "type": "function",
-    "name": "reclaimPrincipal",
-    "inputs": [
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "invoiceId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        "name": "",
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -419,19 +432,6 @@ export const poFinancingV2Abi = [
   },
   {
     "type": "function",
-    "name": "releaseToSeller",
-    "inputs": [
-      {
-        "name": "invoiceId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "setGuardian",
     "inputs": [
       {
@@ -451,6 +451,51 @@ export const poFinancingV2Abi = [
         "name": "s",
         "type": "uint64",
         "internalType": "uint64"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMinStakeBps",
+    "inputs": [
+      {
+        "name": "bps",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "stakeFloorFor",
+    "inputs": [
+      {
+        "name": "principalUsdc",
+        "type": "uint128",
+        "internalType": "uint128"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -598,6 +643,38 @@ export const poFinancingV2Abi = [
   },
   {
     "type": "event",
+    "name": "MinStakeBpsSet",
+    "inputs": [
+      {
+        "name": "bps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "PODefaulted",
     "inputs": [
       {
@@ -656,60 +733,10 @@ export const poFinancingV2Abi = [
         "internalType": "uint128"
       },
       {
-        "name": "releaseTimeoutAt",
+        "name": "repaymentTimeoutAt",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "POReclaimed",
-    "inputs": [
-      {
-        "name": "invoiceId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "financier",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "principalUsdc",
-        "type": "uint128",
-        "indexed": false,
-        "internalType": "uint128"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "POReleased",
-    "inputs": [
-      {
-        "name": "invoiceId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "seller",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "principalUsdc",
-        "type": "uint128",
-        "indexed": false,
-        "internalType": "uint128"
       }
     ],
     "anonymous": false
@@ -817,17 +844,22 @@ export const poFinancingV2Abi = [
   },
   {
     "type": "error",
+    "name": "NotOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotParty",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "PoDAlreadyAccepted",
+    "name": "NothingOutstanding",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "PoDNotAccepted",
+    "name": "PoDAlreadyAccepted",
     "inputs": []
   },
   {
@@ -845,6 +877,21 @@ export const poFinancingV2Abi = [
         "internalType": "address"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "SelfFunding",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StakeBelowFloor",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StakeFloorTooHigh",
+    "inputs": []
   },
   {
     "type": "error",

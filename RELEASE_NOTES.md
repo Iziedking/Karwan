@@ -1,5 +1,74 @@
 # Release notes
 
+## July 27, 2026
+
+### Invoice factoring is opt-in
+
+Factoring used to be opt-out. Every accepted trade-finance deal appeared in the
+financier marketplace automatically, which published a supplier's counterparty,
+amount and timing to every approved financier on the strength of them having
+opened a deal. Nobody asked to be funded; the invoice was simply listed.
+
+A supplier now requests early payout, optionally naming a floor they will
+consider. Only then can financiers see the invoice and bid, and the supplier
+accepts one or ignores them all. Withdrawing the request pulls the invoice back
+off the desk without force-rejecting offers already made, so a financier who
+priced one still gets an explicit answer.
+
+Consent is enforced at the write path as well as the listing, so a financier
+holding a jobId from an earlier session cannot put an offer in front of someone
+who never asked or has since withdrawn. Bids under a stated floor are refused
+where they are made rather than shown to the supplier.
+
+### Purchase-order collateral is graded by reputation
+
+How much collateral a supplier posts against a PO advance now comes from their
+reputation tier rather than the financier guessing: 0% at elite, rising to 20%
+for a new wallet, with a 25% floor on anything above 5,000 USDC regardless of
+tier. Reputation grades the small deals, size governs the large ones.
+
+It is a suggestion, not a gate. The financier sees it prefilled and can ask for
+more; the desk stops them going under. Every figure is env-tunable so the ladder
+can be re-rated without a deploy, and a malformed value falls back to the default
+rather than parsing to zero.
+
+### Purchase-order financing rebuilt around an atomic advance
+
+A defect in the PO rail was found, reproduced, and fixed. The old design assigned
+the deal's receivable to the financier at `fund()` while holding the advance in
+the contract's own custody, released to the supplier only once proof of delivery
+was anchored on the registry. Nothing in the ordinary milestone settlement path
+anchors proof of delivery. So on the default path the escrow paid the financier
+out of the supplier's proceeds while the supplier's advance stayed locked, and
+after the release window the financier could reclaim the principal as well,
+finishing a full repay amount ahead with nothing at risk.
+
+The rail no longer has custody at all. `fund()` moves the advance from the
+financier directly to the supplier, in the same transaction that assigns the
+receivable, so no state exists in which the redirect is live and the advance is
+unpaid. `releaseToSeller` and `reclaimPrincipal` are gone, along with the two
+states that went with them.
+
+Two further guards came out of testing the new design adversarially. A financier
+who was already paid in full by the escrow can no longer let the repayment window
+lapse and slash the supplier's collateral on top. And a default now recovers only
+the amount the settlement failed to cover, returning the rest of the bond to the
+supplier's free stake, instead of taking the whole bond for any shortfall.
+
+Collateral requirements are derived from the supplier's reputation tier off
+chain, with an owner-settable floor enforced on chain. Keeping tier policy out of
+the contract means it can change without redeploying a money contract or
+cascading through everything that references reputation.
+
+- `contracts/test/KarwanPOCustodyAttack.t.sol` proved the exploit against the
+  deployed contract first, then was flipped to prove it closed. It settles deals
+  *without* anchoring proof of delivery, which is what the previous suite never
+  did: every existing PO test ran through a helper that set it true, which is how
+  a funds-losing rail sat behind a green suite.
+- 423 tests passing across 36 suites, invariant gates included.
+- `KarwanPOFinancing` is 7,180 bytes, down from 7,441 despite the additions:
+  removing custody paid for them. The escrow is unchanged.
+
 ## July 6 to July 26, 2026
 
 The contract bundle that the previous window described as in development is
@@ -178,7 +247,8 @@ by area rather than by date.
   Hardened with idempotency keys and unique money indexes so a retry cannot
   double-fund.
 - Purchase-order financing. Working capital advanced against an accepted purchase
-  order, released to the supplier on verified proof of delivery.
+  order, paid to the supplier in the same transaction that redirects the deal's
+  settlement to the financier.
 - Credit passport. A portable onchain record of completed deals, repayment
   behaviour, and counterparty concentration that travels with each business.
 

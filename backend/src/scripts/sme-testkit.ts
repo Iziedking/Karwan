@@ -110,16 +110,19 @@ async function printActor(address: string): Promise<void> {
 }
 
 function printPOLine(line: Awaited<ReturnType<typeof listAllLines>>[number], pod?: boolean | null): void {
+  // 'funded' / 'released' only appear on legacy custody-rail lines.
   const next =
-    line.state === 'funded'
-      ? pod
-        ? '→ watcher will releaseToSeller next tick'
-        : 'waiting on proof of delivery'
-      : line.state === 'released'
-        ? '→ watcher will claimRepayment once the deal settles'
-        : '';
+    line.state === 'outstanding'
+      ? '→ watcher will claimRepayment once the deal settles'
+      : line.state === 'funded'
+        ? pod
+          ? 'LEGACY line: awaiting release from custody'
+          : 'LEGACY line: waiting on proof of delivery'
+        : line.state === 'released'
+          ? 'LEGACY line: → watcher will claimRepayment once the deal settles'
+          : '';
   console.log(
-    `   PO   ${line.state.padEnd(9)} ${line.principalUsdc}→${line.repayUsdc} USDC  ` +
+    `   PO   ${line.state.padEnd(11)} ${line.principalUsdc}→${line.repayUsdc} USDC  ` +
       `financier ${short(line.financier)} seller ${short(line.seller)}  ${next}`,
   );
   const t = line.txHashes;
@@ -164,7 +167,9 @@ async function boardCmd(): Promise<void> {
   }
 
   const lines = await listAllLines();
-  const openLines = lines.filter((l) => l.state === 'funded' || l.state === 'released');
+  const openLines = lines.filter(
+    (l) => l.state === 'outstanding' || l.state === 'funded' || l.state === 'released',
+  );
   console.log(`\n-- PO lines (${lines.length}, ${openLines.length} open) --`);
   for (const l of lines) printPOLine(l, await isPoDAccepted(l.invoiceId));
 

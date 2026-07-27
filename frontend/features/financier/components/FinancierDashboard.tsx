@@ -137,7 +137,7 @@ const TABS: ReadonlyArray<{ id: Tab; label: string; available: boolean }> = [
 /// Release timeout presets. The financier picks how long they're
 /// willing to wait for PoD before reclaiming principal. Aligned to
 /// payment-term defaults from sme-design.md §9.2.
-const RELEASE_TIMEOUT_OPTIONS: ReadonlyArray<{ label: string; seconds: number }> = [
+const REPAYMENT_WINDOW_OPTIONS: ReadonlyArray<{ label: string; seconds: number }> = [
   { label: '7 DAYS', seconds: 7 * 86_400 },
   { label: '30 DAYS', seconds: 30 * 86_400 },
   { label: '45 DAYS', seconds: 45 * 86_400 },
@@ -666,9 +666,21 @@ function OfferModal({
   const profit = repay - advance;
   const isCircleUser = auth.method === 'circle';
 
+  /// The seller named a floor when they asked for early payout. The backend
+  /// refuses anything under it, so say so here rather than letting the offer
+  /// round-trip into a 409.
+  const sellerFloor = deal.factoringMinAdvanceUsdc
+    ? Number(deal.factoringMinAdvanceUsdc)
+    : null;
+  const belowSellerFloor = sellerFloor !== null && advance < sellerFloor;
+
   async function submit() {
     if (!isAuthed) {
       setError('Sign in to post an offer.');
+      return;
+    }
+    if (belowSellerFloor) {
+      setError(`This seller will not consider less than ${sellerFloor!.toFixed(2)} USDC.`);
       return;
     }
     setSubmitting(true);
@@ -853,7 +865,20 @@ function OfferModal({
               value={`+${profit.toFixed(2)} USDC`}
               accent
             />
+            {sellerFloor !== null ? (
+              <ModalRow
+                label="Seller will not go below"
+                value={`${sellerFloor.toFixed(2)} USDC`}
+              />
+            ) : null}
           </dl>
+
+          {belowSellerFloor ? (
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
+              Below the seller minimum. Lower the discount to offer at least{' '}
+              {sellerFloor!.toFixed(2)} USDC.
+            </p>
+          ) : null}
 
           {error ? (
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
@@ -864,7 +889,7 @@ function OfferModal({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting}
+            disabled={submitting || belowSellerFloor}
             className="w-full mono text-[12px] uppercase tracking-[0.14em] font-bold py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
             style={{
               borderTopLeftRadius: 10,
@@ -1034,11 +1059,17 @@ function FundModal({
   // Matches the demo scenario in sme-design.md §17 (5% PO financing fee).
   const [principal, setPrincipal] = useState<number>(Math.round(face * 0.8 * 100) / 100);
   const [repay, setRepay] = useState<number>(Math.round(face * 0.84 * 100) / 100);
-  const [timeoutSeconds, setTimeoutSeconds] = useState<number>(30 * 86_400);
+  const [repaymentWindowSeconds, setRepaymentWindowSeconds] = useState<number>(30 * 86_400);
   /// Seller stake reserved against this line and slashed to the financier if
   /// repayment never lands. Without it the only recovery is off-chain.
   const [collateral, setCollateral] = useState<number>(0);
   const [freeStake, setFreeStake] = useState<number | null>(null);
+  const [suggestion, setSuggestion] = useState<{
+    tier: string;
+    suggestedBps: number;
+    suggestedStakeUsdc: string;
+    raisedBySize: boolean;
+  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'idle' | 'approving' | 'funding' | 'mirroring'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -1047,43 +1078,70 @@ function FundModal({
   const address = auth.address as `0x${string}` | undefined;
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
 
-  /// Load the seller's free stake once and default the line to the largest
-  /// collateral it can actually carry. Defaulting to the principal would
-  /// revert with InsufficientStake for any seller staking less than that, so
-  /// the default is capped at what exists: secured when possible, never a
-  /// guaranteed revert. Zero free stake leaves the line unsecured, which is
-  /// the honest state rather than a blocked form.
+  /// Prefill the collateral from the desk's tier policy rather than making the
+  /// financier guess. The suggestion comes from the seller's reputation tier and
+  /// the size of the advance; the financier can raise it but not drop below it,
+  /// so the ladder means something while risk appetite stays theirs.
+  ///
+  /// Capped at the seller's free stake, because the vault reverts
+  /// InsufficientStake rather than reserving what it can. A seller who cannot
+  /// cover the suggestion leaves the line under-secured, which is the honest
+  /// state to show rather than a form that is guaranteed to revert.
   useEffect(() => {
     if (!arcClient || !deal.seller) return;
     let live = true;
-    arcClient
+
+    const readFree = arcClient
       .readContract({
         address: KARWAN_VAULT_ADDRESS,
         abi: vaultAbi,
         functionName: 'freeStakeOf',
         args: [deal.seller as `0x${string}`],
       })
-      .then((wei) => {
-        if (!live) return;
-        const free = Number(formatUnits(wei as bigint, ARC_USDC_DECIMALS));
-        setFreeStake(free);
-        setCollateral(Math.floor(Math.min(principal, free) * 100) / 100);
-      })
-      .catch(() => {
-        if (live) setFreeStake(0);
-      });
+      .then((wei) => Number(formatUnits(wei as bigint, ARC_USDC_DECIMALS)))
+      .catch(() => 0);
+
+    const readPolicy = api
+      .getPOStakePolicy({ invoiceId: deal.jobId, principalUsdc: principal.toFixed(6) })
+      .then((p) => p)
+      .catch(() => null);
+
+    Promise.all([readFree, readPolicy]).then(([free, policy]) => {
+      if (!live) return;
+      setFreeStake(free);
+      setSuggestion(policy);
+      // No policy read means no informed suggestion, so fall back to the old
+      // behaviour of securing as much as the seller can carry.
+      const target = policy ? Number(policy.suggestedStakeUsdc) : principal;
+      setCollateral(Math.floor(Math.min(target, free) * 100) / 100);
+    });
+
     return () => {
       live = false;
     };
-    // Principal is read for the initial cap only; re-running on every keystroke
+    // Principal seeds the initial suggestion only; re-running on every keystroke
     // would fight the financier editing the collateral field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arcClient, deal.seller]);
+  }, [arcClient, deal.seller, deal.jobId]);
   const spread = repay - principal;
   const validRepay = repay > principal && repay <= face;
-  /// The vault reverts InsufficientFreeStake rather than reserving what it can,
-  /// so block the submit instead of letting the financier pay gas to find out.
-  const validCollateral = collateral >= 0 && (freeStake === null || collateral <= freeStake);
+
+  /// The desk's suggestion, capped at what the seller can actually reserve. A
+  /// seller short of the suggested amount should not produce a form that cannot
+  /// be submitted, so the floor drops to their free stake and the copy says why.
+  const suggestedRaw = suggestion ? Number(suggestion.suggestedStakeUsdc) : 0;
+  const suggestedFloor =
+    freeStake === null ? 0 : Math.floor(Math.min(suggestedRaw, freeStake) * 100) / 100;
+  const shortOfSuggestion = freeStake !== null && suggestedRaw > freeStake;
+  const belowSuggestion = collateral < suggestedFloor;
+
+  /// Two ways to be invalid. Above the seller's free stake the vault reverts
+  /// InsufficientStake rather than reserving what it can, so block the submit
+  /// instead of letting the financier pay gas to find out. Below the suggested
+  /// floor is a policy choice: the tier ladder is the desk's, the appetite above
+  /// it is the financier's.
+  const validCollateral =
+    collateral >= 0 && (freeStake === null || collateral <= freeStake) && !belowSuggestion;
 
   async function submit() {
     if (!isAuthed || !address) {
@@ -1092,6 +1150,14 @@ function FundModal({
     }
     if (!validRepay) {
       setError('Repay must be greater than principal and at most the PO value.');
+      return;
+    }
+    if (!validCollateral) {
+      setError(
+        belowSuggestion
+          ? `Collateral is below the ${suggestion?.tier.toUpperCase() ?? 'suggested'} rate of ${suggestedFloor.toFixed(2)} USDC.`
+          : 'Collateral is above the seller free stake. Funding would revert.',
+      );
       return;
     }
     setSubmitting(true);
@@ -1107,7 +1173,7 @@ function FundModal({
           invoiceId: deal.jobId,
           principalUsdc: principal.toFixed(6),
           repayUsdc: repay.toFixed(6),
-          releaseTimeoutSeconds: timeoutSeconds,
+          repaymentWindowSeconds,
           requiredStakeUsdc: collateral.toFixed(6),
         });
         onFunded(r.line);
@@ -1150,7 +1216,7 @@ function FundModal({
             deal.jobId as `0x${string}`,
             principalWei,
             repayWei,
-            BigInt(timeoutSeconds),
+            BigInt(repaymentWindowSeconds),
             parseUnits(collateral.toFixed(6), ARC_USDC_DECIMALS),
           ],
           chain: walletClient.chain,
@@ -1163,7 +1229,8 @@ function FundModal({
           invoiceId: deal.jobId,
           principalUsdc: principal.toFixed(6),
           repayUsdc: repay.toFixed(6),
-          releaseTimeoutSeconds: timeoutSeconds,
+          repaymentWindowSeconds,
+          requiredStakeUsdc: collateral.toFixed(6),
           fundTxHash: fundHash,
         });
         onFunded(r.line);
@@ -1248,7 +1315,7 @@ function FundModal({
           <ModalField label="Seller collateral">
             <input
               type="number"
-              min={0}
+              min={suggestedFloor}
               max={freeStake ?? undefined}
               step={0.01}
               value={collateral}
@@ -1263,23 +1330,35 @@ function FundModal({
                   ? 'This seller has no free stake. The line will be unsecured.'
                   : collateral > freeStake
                     ? `Only ${freeStake.toLocaleString()} USDC is free. Funding will revert above that.`
-                    : collateral > 0
-                      ? `Slashed to you if repayment never lands. ${freeStake.toLocaleString()} USDC free.`
-                      : `Unsecured. ${freeStake.toLocaleString()} USDC of seller stake is available.`}
+                    : belowSuggestion
+                      ? `Below the ${suggestion?.tier.toUpperCase()} rate of ${suggestion?.suggestedStakeUsdc} USDC. Raise it or leave it at the suggestion.`
+                      : collateral > 0
+                        ? `Slashed to you, up to the shortfall, if the settlement falls short. ${freeStake.toLocaleString()} USDC free.`
+                        : `Unsecured. ${freeStake.toLocaleString()} USDC of seller stake is available.`}
             </p>
+            {suggestion && freeStake !== null && freeStake > 0 ? (
+              <p className="mt-1 text-[11px] text-zinc-500">
+                {suggestion.suggestedBps === 0
+                  ? `${suggestion.tier.toUpperCase()} seller: no collateral required at this size.`
+                  : `${suggestion.tier.toUpperCase()} seller: ${(suggestion.suggestedBps / 100).toFixed(0)}% of principal suggested${suggestion.raisedBySize ? ', raised because the advance is large' : ''}. You can ask for more.`}
+                {shortOfSuggestion
+                  ? ` This seller can only cover ${freeStake.toLocaleString()} USDC of it.`
+                  : ''}
+              </p>
+            ) : null}
           </ModalField>
 
-          <ModalField label="Release timeout">
+          <ModalField label="Repayment window">
             <div className="flex gap-2 flex-wrap">
-              {RELEASE_TIMEOUT_OPTIONS.map((opt) => (
+              {REPAYMENT_WINDOW_OPTIONS.map((opt) => (
                 <button
                   key={opt.seconds}
                   type="button"
                   disabled={submitting}
-                  onClick={() => setTimeoutSeconds(opt.seconds)}
+                  onClick={() => setRepaymentWindowSeconds(opt.seconds)}
                   className={cn(
                     'mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
-                    timeoutSeconds === opt.seconds
+                    repaymentWindowSeconds === opt.seconds
                       ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
                       : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
                   )}
@@ -1297,16 +1376,20 @@ function FundModal({
           </ModalField>
 
           <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-            <ModalRow label="You fund now" value={`${principal.toFixed(2)} USDC`} />
+            <ModalRow label="Seller receives now" value={`${principal.toFixed(2)} USDC`} />
             <ModalRow
-              label="You receive on PoD repay"
+              label="You receive on settlement"
               value={`${repay.toFixed(2)} USDC`}
               bold
             />
             <ModalRow label="Your spread" value={`+${spread.toFixed(2)} USDC`} accent />
             <ModalRow
-              label="If PoD never lands"
-              value={`Reclaim principal after ${Math.round(timeoutSeconds / 86_400)}d`}
+              label="If settlement falls short"
+              value={
+                collateral > 0
+                  ? `Slash the gap from collateral after ${Math.round(repaymentWindowSeconds / 86_400)}d`
+                  : `Unsecured. Dispute only, after ${Math.round(repaymentWindowSeconds / 86_400)}d`
+              }
             />
           </dl>
 

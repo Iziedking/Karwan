@@ -6,12 +6,25 @@ import { poFinancingLines } from './schema.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'po-financing-lines.json');
 
+/// Current states. The rail advances the seller at fund time, so a line is
+/// either outstanding or finished.
+///
+/// `funded`, `released` and `reclaimed` are LEGACY: they belong to lines opened
+/// on the pre-2026-07-27 contract, which held the principal in custody until
+/// proof of delivery anchored. Those rows still exist and still render, so the
+/// union keeps them readable. Nothing new is ever written in those states.
 export type POFinancingState =
-  | 'funded'      // financier deposited, awaiting PoD
-  | 'released'    // PoD anchored, principal sent to seller, awaiting repayment
+  | 'outstanding' // advance paid to the seller, awaiting settlement
   | 'repaid'      // financier repaid via claimRepayment
-  | 'reclaimed'   // financier reclaimed pre-PoD timeout
-  | 'defaulted';  // post-release timeout passed without repayment
+  | 'defaulted'   // repayment window passed without settlement
+  | 'funded'      // LEGACY: financier deposited, awaiting PoD
+  | 'released'    // LEGACY: PoD anchored, principal sent to seller
+  | 'reclaimed';  // LEGACY: financier reclaimed pre-PoD timeout
+
+/// Lines opened on the retired custody rail. Kept out of the "can still act on
+/// it" paths: the old contract is no longer the configured one, so a watcher
+/// must not try to drive them.
+export const LEGACY_PO_STATES: readonly POFinancingState[] = ['funded', 'released', 'reclaimed'];
 
 export interface POFinancingLine {
   id: string;
@@ -25,13 +38,18 @@ export interface POFinancingLine {
   repayUsdc: string;
   state: POFinancingState;
   fundedAt: number;
-  /// Mirror of on-chain releaseTimeoutAt. After this, financier may call
-  /// reclaimPrincipal if PoD never lands.
-  releaseTimeoutAt: number;
+  /// LEGACY, custody rail only: mirror of the old on-chain releaseTimeoutAt.
+  /// Never set on new lines; there is no release step to time out.
+  releaseTimeoutAt?: number;
+  /// LEGACY, custody rail only: when the principal left custody.
   releasedAt?: number;
-  /// Mirror of on-chain repaymentTimeoutAt. After this, financier may call
-  /// markDefaulted if repayment never came.
+  /// Mirror of on-chain repaymentTimeoutAt. Set at fund time now, since the
+  /// clock starts when the advance goes out. After this, the financier may
+  /// call markDefaulted if the settlement never covered the repay amount.
   repaymentTimeoutAt?: number;
+  /// Collateral reserved on the vault for this line, in USDC base units. The
+  /// backend derives it from the seller's reputation tier at offer time.
+  requiredStakeUsdc?: string;
   repaidAt?: number;
   podHash?: string;
   txHashes: {
@@ -161,24 +179,19 @@ export async function listLinesBySeller(seller: string): Promise<POFinancingLine
     .sort((x, y) => y.fundedAt - x.fundedAt);
 }
 
-/// Lines in a non-terminal state. Used by the timeout watcher to find
-/// candidates for reclaimPrincipal / markDefaulted prompts.
+/// Lines the watcher can still act on: outstanding lines on the current
+/// contract. Legacy custody-rail lines are deliberately excluded, since the
+/// contract that holds them is no longer the configured one.
 export async function listOpenLines(): Promise<POFinancingLine[]> {
   if (pgEnabled) {
-    const fundedRows = await db()
+    const rows = await db()
       .select()
       .from(poFinancingLines)
-      .where(eq(poFinancingLines.state, 'funded'));
-    const releasedRows = await db()
-      .select()
-      .from(poFinancingLines)
-      .where(eq(poFinancingLines.state, 'released'));
-    return [...fundedRows, ...releasedRows]
-      .map((r) => r.data)
-      .sort((x, y) => y.fundedAt - x.fundedAt);
+      .where(eq(poFinancingLines.state, 'outstanding'));
+    return rows.map((r) => r.data).sort((x, y) => y.fundedAt - x.fundedAt);
   }
   return Object.values(loadFile())
-    .filter((l) => l.state === 'funded' || l.state === 'released')
+    .filter((l) => l.state === 'outstanding')
     .sort((x, y) => y.fundedAt - x.fundedAt);
 }
 

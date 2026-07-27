@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { readSession } from '../auth/session.js';
 import { getProfile } from '../db/profiles.js';
 import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
@@ -17,6 +17,9 @@ import {
 import { getDeal, listAllDeals } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
+import { vault } from '../chain/contracts.js';
+import { actorSignalsFor, type RepTier } from '../agents/signals.js';
+import { suggestPOStake } from '../profile/poStakePolicy.js';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { shouldHoldPOFunding } from '../security/sa-stub.js';
@@ -24,10 +27,15 @@ import { logger } from '../logger.js';
 
 const USDC_DECIMALS = 6;
 
-/// Purchase-order financing routes. Single-funder per invoice: financier
-/// deposits principal into KarwanPOFinancing, contract releases to seller
-/// on PoD anchor, financier reclaims repayUsdc from seller's settlement
-/// via the contract's pull-based ERC20 approval pattern.
+/// Purchase-order financing routes. Single-funder per invoice: the financier's
+/// principal goes straight to the seller inside KarwanPOFinancing.fund(), in
+/// the same transaction that assigns the deal's receivable to the financier.
+/// The escrow then pays the financier ahead of the seller at settlement, and
+/// claimRepayment only collects a shortfall.
+///
+/// There is no release step. The custody-and-proof-of-delivery rail this
+/// replaced could not release on the ordinary settlement path, which stranded
+/// sellers' advances; see contracts/test/KarwanPOCustodyAttack.t.sol.
 ///
 /// All on-chain interactions are signed by the user's wallet. Routes
 /// here record the off-chain mirror and provide list / get views.
@@ -40,28 +48,31 @@ const usdcAmountSchema = z
   .regex(/^\d+(\.\d+)?$/, 'expected decimal USDC string')
   .refine((v) => Number(v) > 0, { message: 'must be positive' });
 
+/// Matches KarwanPOFinancing.MIN_REPAYMENT_WINDOW / MAX_REPAYMENT_WINDOW. The
+/// floor is not cosmetic: repayment arrives through the escrow settlement, so a
+/// window shorter than the buyer's own release timing would let a financier
+/// default a seller who did nothing wrong.
+const MIN_REPAYMENT_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+const MAX_REPAYMENT_WINDOW_SECONDS = 5 * 365 * 24 * 60 * 60;
+
+const repaymentWindowSchema = z
+  .number()
+  .int()
+  .min(MIN_REPAYMENT_WINDOW_SECONDS)
+  .max(MAX_REPAYMENT_WINDOW_SECONDS);
+
 const fundBodySchema = z.object({
   invoiceId: hashSchema,
   principalUsdc: usdcAmountSchema,
   repayUsdc: usdcAmountSchema,
-  releaseTimeoutSeconds: z.number().int().min(60).max(5 * 365 * 24 * 60 * 60),
+  repaymentWindowSeconds: repaymentWindowSchema,
+  requiredStakeUsdc: usdcAmountSchema.optional(),
   fundTxHash: hashSchema,
-});
-
-const releaseBodySchema = z.object({
-  lineId: z.string().uuid(),
-  releaseTxHash: hashSchema,
-  podHash: hashSchema.optional(),
 });
 
 const claimBodySchema = z.object({
   lineId: z.string().uuid(),
   repayTxHash: hashSchema,
-});
-
-const reclaimBodySchema = z.object({
-  lineId: z.string().uuid(),
-  reclaimTxHash: hashSchema,
 });
 
 const defaultBodySchema = z.object({
@@ -102,6 +113,55 @@ poFinancingRoutes.get('/available', async (c) => {
     return true;
   });
   return c.json({ deals: filtered.map(financierSafeDeal) });
+});
+
+/// GET /api/po-financing/stake-policy: the collateral this desk suggests for one
+/// advance, so the fund modal can prefill it instead of making the financier
+/// guess. Returns the seller's tier, the suggested bps and USDC figure, and
+/// their free stake so the caller can cap the suggestion at what actually
+/// exists. Financier-only, matching every other read on this desk.
+///
+/// A suggestion, not a gate. The financier may raise it, and the only hard floor
+/// is minStakeBps on the contract. freeStakeUsdc is null when the chain read
+/// failed, which the caller should treat as "unknown", not as zero.
+poFinancingRoutes.get('/stake-policy', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  if (!isApprovedFinancier(await getProfile(session.address))) {
+    return c.json({ error: 'Apply to become a financier first.', code: 'financier_required' }, 403);
+  }
+
+  const invoiceId = c.req.query('invoiceId');
+  const principalRaw = c.req.query('principalUsdc');
+  if (!invoiceId || !/^0x[a-fA-F0-9]{64}$/.test(invoiceId)) {
+    return c.json({ error: 'invoiceId required' }, 400);
+  }
+  const principalUsdc = Number(principalRaw);
+  if (!Number.isFinite(principalUsdc) || principalUsdc <= 0) {
+    return c.json({ error: 'principalUsdc must be a positive number' }, 400);
+  }
+
+  const deal = await getDeal(invoiceId);
+  if (!deal) return c.json({ error: 'unknown deal' }, 404);
+
+  // An unreadable tier must not quietly suggest zero collateral, so it falls
+  // back to 'new', the most conservative rung.
+  let tier: RepTier = 'new';
+  try {
+    tier = (await actorSignalsFor(deal.seller)).repTier;
+  } catch {
+    tier = 'new';
+  }
+
+  let freeStakeUsdc: string | null = null;
+  try {
+    const freeWei = (await vault.read.freeStakeOf([deal.seller as `0x${string}`])) as bigint;
+    freeStakeUsdc = formatUnits(freeWei, USDC_DECIMALS);
+  } catch {
+    freeStakeUsdc = null;
+  }
+
+  return c.json({ ...suggestPOStake(tier, principalUsdc), freeStakeUsdc });
 });
 
 /// POST /api/po-financing/fund: financier records that they funded a
@@ -163,9 +223,10 @@ poFinancingRoutes.post('/fund', async (c) => {
     buyer: deal.buyer,
     principalUsdc: body.principalUsdc,
     repayUsdc: body.repayUsdc,
-    state: 'funded',
+    state: 'outstanding',
     fundedAt: now,
-    releaseTimeoutAt: now + body.releaseTimeoutSeconds * 1000,
+    repaymentTimeoutAt: now + body.repaymentWindowSeconds * 1000,
+    requiredStakeUsdc: body.requiredStakeUsdc,
     txHashes: { fund: body.fundTxHash },
   });
 
@@ -199,19 +260,21 @@ const fundCircleBodySchema = z.object({
   invoiceId: hashSchema,
   principalUsdc: usdcAmountSchema,
   repayUsdc: usdcAmountSchema,
-  releaseTimeoutSeconds: z.number().int().min(60).max(5 * 365 * 24 * 60 * 60),
-  /// Seller stake to reserve against this line, slashed to the financier if
-  /// repayment never lands. Omitted means an unsecured line, which keeps
-  /// older clients working. The vault reverts if the seller's free stake is
-  /// below this, so the caller is expected to have checked freeStakeOf first.
+  repaymentWindowSeconds: repaymentWindowSchema,
+  /// Seller stake to reserve against this line, slashed to the financier up to
+  /// the shortfall if the settlement does not cover the repay amount. Omitted
+  /// means an unsecured line, which keeps older clients working. The contract
+  /// enforces its own minStakeBps floor and the vault reverts if the seller's
+  /// free stake is below this, so the caller is expected to have checked
+  /// freeStakeOf first.
   requiredStakeUsdc: usdcAmountSchema.optional(),
 });
 
 /// POST /api/po-financing/fund-circle: Circle DCW-only sister route.
 /// Backend signs USDC.approve(financing, principal) then
-/// KarwanPOFinancing.fund(invoiceId, principal, repay, releaseTimeoutSeconds)
-/// via the caller's identity wallet, mirrors the line + emits po.funded
-/// with the real chain hash. Web3 callers stay on POST /fund.
+/// KarwanPOFinancing.fund(invoiceId, principal, repay, repaymentWindowSeconds,
+/// requiredStake) via the caller's identity wallet, mirrors the line + emits
+/// po.funded with the real chain hash. Web3 callers stay on POST /fund.
 poFinancingRoutes.post('/fund-circle', async (c) => {
   if (!config.KARWAN_PO_FINANCING_ADDR) {
     return c.json({ error: 'po financing contract not configured' }, 503);
@@ -307,7 +370,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
           body.invoiceId,
           principalWei.toString(),
           repayWei.toString(),
-          body.releaseTimeoutSeconds.toString(),
+          body.repaymentWindowSeconds.toString(),
           stakeWei.toString(),
         ],
       },
@@ -323,9 +386,10 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       buyer: deal.buyer,
       principalUsdc: body.principalUsdc,
       repayUsdc: body.repayUsdc,
-      state: 'funded',
+      state: 'outstanding',
       fundedAt: now,
-      releaseTimeoutAt: now + body.releaseTimeoutSeconds * 1000,
+      repaymentTimeoutAt: now + body.repaymentWindowSeconds * 1000,
+      requiredStakeUsdc: body.requiredStakeUsdc,
       txHashes: { fund: fundResult.txHash },
     });
 
@@ -367,62 +431,6 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
   }
 });
 
-/// POST /api/po-financing/release: anyone records that releaseToSeller
-/// fired on chain after PoD anchored. Updates state to Released. The PO
-/// watcher drives this leg automatically; this route is the web3 manual
-/// fallback and no-ops when the contract is not configured.
-poFinancingRoutes.post('/release', async (c) => {
-  if (!config.KARWAN_PO_FINANCING_ADDR) {
-    return c.json({ error: 'po financing contract not configured' }, 503);
-  }
-  const session = readSession(c);
-  if (!session) return c.json({ error: 'not authenticated' }, 401);
-
-  let body;
-  try {
-    body = releaseBodySchema.parse(await c.req.json());
-  } catch (e) {
-    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
-  }
-
-  const line = await getPOLine(body.lineId);
-  if (!line) return c.json({ error: 'unknown line' }, 404);
-  if (line.state !== 'funded') {
-    return c.json({ error: `cannot release line in state ${line.state}` }, 409);
-  }
-
-  // Only the two parties to the line may record its release. Without this any
-  // caller could flip a funded line to released, which desyncs the mirror,
-  // blocks the financier's own reclaim path (it requires state 'funded'), and
-  // fires a false po.released event.
-  const caller = session.address.toLowerCase();
-  if (caller !== line.financier && caller !== line.seller) {
-    return c.json({ error: 'caller is not a party to this line' }, 403);
-  }
-
-  const now = Date.now();
-  const updated = await patchPOLine(line.id, {
-    state: 'released',
-    releasedAt: now,
-    repaymentTimeoutAt: now + 7 * 24 * 60 * 60 * 1000,
-    podHash: body.podHash,
-    txHashes: { ...line.txHashes, release: body.releaseTxHash },
-  });
-
-  bus.emitEvent({
-    type: 'po.released',
-    jobId: line.invoiceId,
-    actor: 'platform',
-    payload: {
-      lineId: line.id,
-      seller: line.seller,
-      financier: line.financier,
-      principalUsdc: line.principalUsdc,
-    },
-  });
-  return c.json({ line: updated });
-});
-
 /// POST /api/po-financing/claim: financier or seller records that
 /// claimRepayment fired on chain. Updates state to Settled.
 poFinancingRoutes.post('/claim', async (c) => {
@@ -441,7 +449,7 @@ poFinancingRoutes.post('/claim', async (c) => {
 
   const line = await getPOLine(body.lineId);
   if (!line) return c.json({ error: 'unknown line' }, 404);
-  if (line.state !== 'released') {
+  if (line.state !== 'outstanding') {
     return c.json({ error: `cannot claim line in state ${line.state}` }, 409);
   }
 
@@ -470,50 +478,6 @@ poFinancingRoutes.post('/claim', async (c) => {
   return c.json({ line: updated });
 });
 
-/// POST /api/po-financing/reclaim: financier reclaimed principal after
-/// the release timeout passed with no PoD. State -> Reclaimed.
-poFinancingRoutes.post('/reclaim', async (c) => {
-  if (!config.KARWAN_PO_FINANCING_ADDR) {
-    return c.json({ error: 'po financing contract not configured' }, 503);
-  }
-  const session = readSession(c);
-  if (!session) return c.json({ error: 'not authenticated' }, 401);
-
-  let body;
-  try {
-    body = reclaimBodySchema.parse(await c.req.json());
-  } catch (e) {
-    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
-  }
-
-  const line = await getPOLine(body.lineId);
-  if (!line) return c.json({ error: 'unknown line' }, 404);
-  if (line.state !== 'funded') {
-    return c.json({ error: `cannot reclaim line in state ${line.state}` }, 409);
-  }
-  if (session.address.toLowerCase() !== line.financier) {
-    return c.json({ error: 'only financier can reclaim' }, 403);
-  }
-
-  const updated = await patchPOLine(line.id, {
-    state: 'reclaimed',
-    txHashes: { ...line.txHashes, reclaim: body.reclaimTxHash },
-  });
-
-  bus.emitEvent({
-    type: 'po.reclaimed',
-    jobId: line.invoiceId,
-    actor: 'platform',
-    payload: {
-      lineId: line.id,
-      financier: line.financier,
-      seller: line.seller,
-      principalUsdc: line.principalUsdc,
-    },
-  });
-  return c.json({ line: updated });
-});
-
 /// POST /api/po-financing/default: financier writes off the line after
 /// the repayment window expired. State -> Defaulted.
 poFinancingRoutes.post('/default', async (c) => {
@@ -532,7 +496,7 @@ poFinancingRoutes.post('/default', async (c) => {
 
   const line = await getPOLine(body.lineId);
   if (!line) return c.json({ error: 'unknown line' }, 404);
-  if (line.state !== 'released') {
+  if (line.state !== 'outstanding') {
     return c.json({ error: `cannot default line in state ${line.state}` }, 409);
   }
   if (session.address.toLowerCase() !== line.financier) {

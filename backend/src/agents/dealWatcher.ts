@@ -22,14 +22,20 @@ import { settlePOFinancingForDeal } from './poWatcher.js';
 import { getPOLineForInvoice } from '../db/poFinancing.js';
 import { logger } from '../logger.js';
 
-/// True while a PO line for this deal is funded but not yet released.
+/// True while a LEGACY custody-rail PO line for this deal still holds the
+/// seller's principal.
 ///
-/// `KarwanPOFinancing.fund()` assigns the escrow payout to the financier
-/// immediately, but the principal only reaches the seller once `releaseToSeller`
-/// runs, and that needs proof of delivery anchored on the registry. Nothing in
-/// the ordinary milestone path anchors PoD. So a deal that settles on the timer
-/// pays the financier out of the escrow while the seller's principal is still
-/// sitting in custody: the seller delivers and receives nothing.
+/// The contract this guarded was retired on 2026-07-27. Its `fund()` assigned
+/// the escrow payout to the financier immediately while the principal only
+/// reached the seller via `releaseToSeller`, which needed proof of delivery
+/// anchored on the registry, and nothing in the ordinary milestone path anchors
+/// PoD. A deal settling on the timer therefore paid the financier out of the
+/// escrow while the seller's principal sat in custody.
+///
+/// The current rail pays the seller inside the funding transaction, so it
+/// cannot reach this state and lines on it are never held back. The guard stays
+/// for the lines opened before the cutover, which are still on the old contract
+/// and still carry the exposure. Remove it once those have all closed out.
 ///
 /// Auto-release exists to stop funds getting stuck when a buyer goes quiet. It
 /// must not be the thing that strips a seller. A buyer releasing by hand is

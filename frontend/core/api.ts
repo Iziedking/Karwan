@@ -354,11 +354,16 @@ export interface POFinancingLine {
   buyer: string;
   principalUsdc: string;
   repayUsdc: string;
-  state: 'funded' | 'released' | 'repaid' | 'reclaimed' | 'defaulted';
+  /// 'outstanding' | 'repaid' | 'defaulted' are the live states. The other
+  /// three belong to lines opened on the retired custody rail and are kept so
+  /// historic lines still render.
+  state: 'outstanding' | 'repaid' | 'defaulted' | 'funded' | 'released' | 'reclaimed';
   fundedAt: number;
-  releaseTimeoutAt: number;
+  /// Legacy custody-rail lines only.
+  releaseTimeoutAt?: number;
   releasedAt?: number;
   repaymentTimeoutAt?: number;
+  requiredStakeUsdc?: string;
   repaidAt?: number;
   podHash?: string;
   txHashes: {
@@ -583,6 +588,12 @@ export interface DirectDeal {
     txHash?: string;
   }>;
   factoringOfferId?: string;
+  /// Set when the seller has asked to be paid early. Until then the invoice is
+  /// not shown to financiers at all, and no offer can be posted against it.
+  factoringRequestedAt?: number;
+  /// Optional floor the seller will consider, in USDC. Bids below it are
+  /// refused at the write path.
+  factoringMinAdvanceUsdc?: string;
   poFinancingId?: string;
   /// Pending delivery-deadline extension request from the seller. Buyer sees
   /// a banner with Approve / Decline; the request clears either way.
@@ -2737,6 +2748,20 @@ export const api = {
       r: `0x${string}`;
       s: `0x${string}`;
     }>(`/api/factoring/offers/${offerId}/assignment`),
+  /// The seller asks to be paid early on this invoice. Until they do, it is
+  /// invisible to financiers and no offer can be posted against it.
+  requestFactoring: (body: { invoiceId: string; minAdvanceUsdc?: string }) =>
+    json<{ deal: DirectDeal | null }>('/api/factoring/request', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  /// Pull the invoice back off the desk. Offers already made survive, so a
+  /// financier who priced one still gets an explicit answer.
+  withdrawFactoringRequest: (body: { invoiceId: string }) =>
+    json<{ deal: DirectDeal | null }>('/api/factoring/withdraw-request', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   acceptFactoringOffer: (body: {
     offerId: string;
     setPayeeTxHash?: string;
@@ -2758,8 +2783,8 @@ export const api = {
     }),
   // Purchase-order financing (Phase 2 Track 2). Lists are public; the
   // mutating calls require the financier's session + an on-chain tx
-  // hash from KarwanPOFinancing.fund() / releaseToSeller() / claim()
-  // signed by the user's wallet ahead of the POST.
+  // hash from KarwanPOFinancing.fund() / claimRepayment() signed by the
+  // user's wallet ahead of the POST.
   listPOFinancingAvailable: (params?: { sector?: string; region?: string }) => {
     const qs = new URLSearchParams();
     if (params?.sector) qs.set('sector', params.sector);
@@ -2769,11 +2794,28 @@ export const api = {
       `/api/po-financing/available${q ? `?${q}` : ''}`,
     );
   },
+  /// Collateral this desk suggests for one advance, from the seller's
+  /// reputation tier and the size of the principal. A prefill, not a gate: the
+  /// financier may raise it. `freeStakeUsdc` is null when the chain read failed,
+  /// which means unknown rather than zero.
+  getPOStakePolicy: (params: { invoiceId: string; principalUsdc: string }) => {
+    const qs = new URLSearchParams(params);
+    return json<{
+      tier: 'elite' | 'strong' | 'established' | 'cold' | 'new';
+      suggestedBps: number;
+      suggestedStakeUsdc: string;
+      raisedBySize: boolean;
+      freeStakeUsdc: string | null;
+    }>(`/api/po-financing/stake-policy?${qs.toString()}`);
+  },
   fundPOLine: (body: {
     invoiceId: string;
     principalUsdc: string;
     repayUsdc: string;
-    releaseTimeoutSeconds: number;
+    /// At least 7 days: repayment arrives through the escrow settlement, so
+    /// the window has to outlast the buyer's own release timing.
+    repaymentWindowSeconds: number;
+    requiredStakeUsdc?: string;
     fundTxHash: string;
   }) =>
     json<{ line: POFinancingLine }>('/api/po-financing/fund', {
@@ -2788,7 +2830,7 @@ export const api = {
     invoiceId: string;
     principalUsdc: string;
     repayUsdc: string;
-    releaseTimeoutSeconds: number;
+    repaymentWindowSeconds: number;
     /// Omitted or "0" opens an unsecured line.
     requiredStakeUsdc?: string;
   }) =>
@@ -2800,18 +2842,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  releasePOLine: (body: { lineId: string; releaseTxHash: string; podHash?: string }) =>
-    json<{ line: POFinancingLine }>('/api/po-financing/release', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
   claimPOLine: (body: { lineId: string; repayTxHash: string }) =>
     json<{ line: POFinancingLine }>('/api/po-financing/claim', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
-  reclaimPOLine: (body: { lineId: string; reclaimTxHash: string }) =>
-    json<{ line: POFinancingLine }>('/api/po-financing/reclaim', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

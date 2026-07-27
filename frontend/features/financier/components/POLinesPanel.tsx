@@ -3,11 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, type POFinancingLine } from '@/core/api';
 
 /// The user's purchase-order financing lines, as financier and as seller, with
-/// live status and on-chain proof. The money-out legs run automatically: once
-/// the buyer accepts proof of delivery the platform releases the principal to
-/// the seller on chain, and once the underlying deal settles it pulls the
-/// repayment to the financier. This panel is where both sides watch that happen
-/// and click through to the transactions.
+/// live status and on-chain proof. The advance reaches the seller in the
+/// funding transaction itself, and once the underlying deal settles the escrow
+/// pays the financier back ahead of the seller. This panel is where both sides
+/// watch that happen and click through to the transactions.
 
 const ARC_EXPLORER = 'https://testnet.arcscan.app';
 
@@ -15,20 +14,24 @@ function isTxHash(h?: string): boolean {
   return !!h && /^0x[0-9a-fA-F]{64}$/.test(h);
 }
 
+/// 'funded', 'released' and 'reclaimed' only appear on lines opened before the
+/// custody rail was retired.
 const STATE_LABEL: Record<POFinancingLine['state'], string> = {
+  outstanding: 'Advanced, awaiting settlement',
+  repaid: 'Repaid, settled',
+  defaulted: 'Defaulted',
   funded: 'Funded, awaiting delivery',
   released: 'Delivered, principal sent',
-  repaid: 'Repaid, settled',
   reclaimed: 'Reclaimed',
-  defaulted: 'Defaulted',
 };
 
 const STATE_TONE: Record<POFinancingLine['state'], string> = {
+  outstanding: '#b25425',
+  repaid: '#4f8a3f',
+  defaulted: '#7a1f1a',
   funded: '#b25425',
   released: '#3a6ea5',
-  repaid: '#4f8a3f',
   reclaimed: '#6b6b6b',
-  defaulted: '#7a1f1a',
 };
 
 /// The single most-advanced on-chain proof for a line: the repayment, else the

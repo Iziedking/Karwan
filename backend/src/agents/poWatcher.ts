@@ -1,18 +1,20 @@
-/// Purchase-order financing watcher. Drives the two money-out legs of a PO
-/// line on chain, so the financing loop completes without a human clicking a
-/// contract call. Both legs are permissionless on KarwanPOFinancing, so the
-/// platform relay wallet is the caller; it only pays gas and is msg.sender.
+/// Purchase-order financing watcher. Closes out PO lines on chain so the
+/// financing loop completes without a human clicking a contract call.
+/// claimRepayment is permissionless on KarwanPOFinancing, so the platform relay
+/// wallet is the caller; it only pays gas and is msg.sender.
 ///
-///   1. Release on proof of delivery. A `funded` line whose PoD has anchored
-///      on KarwanInvoiceRegistry (buyer or attester accepted it) is released:
-///      the contract transfers the principal from custody to the seller. This
-///      is the automated proof-of-delivery trigger the SME rail promises.
+/// There is ONE leg now. The advance reaches the seller inside the funding
+/// transaction, so there is no release to drive: when the underlying escrow
+/// settles, the assignment has already paid the financier, and claimRepayment
+/// closes the line out, pulling only a shortfall if the deal settled for less
+/// than the repay amount. The seller grants that pull first; for a Circle
+/// seller the backend signs the approval from their wallet, since the backend
+/// custodies it.
 ///
-///   2. Repay on settlement. A `released` line whose underlying escrow has
-///      settled (the seller has been paid in full) is repaid: the contract
-///      pulls `repayUsdc` from the seller and pays the financier. The seller
-///      grants the pull first; for a Circle seller the backend signs the
-///      approval from their wallet, since the backend custodies it.
+/// The proof-of-delivery release leg this watcher used to run is gone with the
+/// custody rail it belonged to. It could not fire on the ordinary settlement
+/// path, which is what stranded sellers' advances. See
+/// contracts/test/KarwanPOCustodyAttack.t.sol.
 ///
 /// Failure handling mirrors the factoring watcher: a failed leg keeps the line
 /// in place and retries next tick, and the repay leg defaults after
@@ -20,7 +22,6 @@
 /// the watcher fired). The off-chain dispute path pursues remediation.
 
 import { parseUnits } from 'viem';
-import { publicClient } from '../chain/client.js';
 import {
   listOpenLines,
   getPOLineForInvoice,
@@ -39,86 +40,17 @@ const TICK_MS = Number(process.env.PO_WATCHER_TICK_MS ?? 60_000);
 const MAX_REPAY_ATTEMPTS = 5;
 const USDC_DECIMALS = 6;
 
-/// Minimal read ABI: has the buyer or an attester accepted proof of delivery
-/// for this invoice on the registry.
-const REGISTRY_READ_ABI = [
-  {
-    type: 'function',
-    name: 'isPoDAccepted',
-    stateMutability: 'view',
-    inputs: [{ name: 'invoiceId', type: 'bytes32' }],
-    outputs: [{ name: '', type: 'bool' }],
-  },
-] as const;
-
 const processing = new Set<string>();
 // Per-line repay attempt counter. Kept in memory: a process restart simply
 // re-tries from zero, which is safe because claimRepayment is idempotent at the
 // contract (a second call on a Settled line reverts and we treat that as done).
 const repayAttempts = new Map<string, number>();
 
-async function isPoDAccepted(invoiceId: string): Promise<boolean> {
-  const registry = config.KARWAN_INVOICE_REGISTRY_ADDR;
-  if (!registry) return false;
-  return (await publicClient.readContract({
-    address: registry as `0x${string}`,
-    abi: REGISTRY_READ_ABI,
-    functionName: 'isPoDAccepted',
-    args: [invoiceId as `0x${string}`],
-  })) as boolean;
-}
-
-/// Leg 1: PoD anchored -> releaseToSeller. Permissionless; the relay signs.
-async function releaseLine(line: POFinancingLine): Promise<void> {
-  const poAddr = config.KARWAN_PO_FINANCING_ADDR;
-  const relayWalletId = config.cctpRelayWalletId;
-  if (!poAddr || !relayWalletId) {
-    throw new Error('PO release: KARWAN_PO_FINANCING_ADDR or relay wallet unset');
-  }
-
-  const r = await executeContractCall(
-    {
-      walletId: relayWalletId,
-      contractAddress: poAddr,
-      abiFunctionSignature: 'releaseToSeller(bytes32)',
-      abiParameters: [line.invoiceId],
-    },
-    `poFinancing.releaseToSeller(${line.invoiceId})`,
-  );
-
-  const now = Date.now();
-  const updated = await patchPOLine(line.id, {
-    state: 'released',
-    releasedAt: now,
-    // The contract sets its own repaymentTimeoutAt; mirror a 7-day window so
-    // the default sweep and the UI countdown have a value to read.
-    repaymentTimeoutAt: now + 7 * 24 * 60 * 60 * 1000,
-    txHashes: { ...line.txHashes, release: r.txHash },
-  });
-
-  bus.emitEvent({
-    type: 'po.released',
-    jobId: line.invoiceId,
-    actor: 'platform',
-    payload: {
-      lineId: line.id,
-      seller: line.seller,
-      financier: line.financier,
-      principalUsdc: line.principalUsdc,
-      releaseTxHash: r.txHash,
-    },
-  });
-
-  logger.info(
-    { lineId: line.id, invoiceId: line.invoiceId, seller: line.seller, releaseTxHash: r.txHash },
-    'po-financing: released to seller on chain (proof-of-delivery trigger)',
-  );
-  void updated;
-}
-
-/// Leg 2: escrow settled -> claimRepayment. The seller grants the pull first.
-/// For a Circle seller the backend approves from their wallet; a web3 seller
-/// must have approved the PO contract themselves (captured at consent time).
+/// Escrow settled -> claimRepayment. The escrow assignment has usually paid the
+/// financier already, so the pull is normally zero and this just closes the
+/// line. The seller grants the pull to cover a shortfall: for a Circle seller
+/// the backend approves from their wallet; a web3 seller must have approved the
+/// PO contract themselves (captured at consent time).
 async function repayLine(line: POFinancingLine): Promise<void> {
   const poAddr = config.KARWAN_PO_FINANCING_ADDR;
   const usdcAddr = config.USDC_ADDR;
@@ -195,40 +127,37 @@ async function markDefaulted(line: POFinancingLine, reason: string): Promise<voi
 }
 
 async function handleLine(line: POFinancingLine): Promise<void> {
-  if (line.state === 'funded') {
-    if (!(await isPoDAccepted(line.invoiceId))) return;
-    await releaseLine(line);
+  // Legacy custody-rail lines sit on a contract that is no longer configured,
+  // so driving them here would call the wrong address. listOpenLines already
+  // filters them out; this is the belt to that braces.
+  if (line.state !== 'outstanding') return;
+
+  const deal = await getDeal(line.invoiceId);
+  if (!deal) return;
+
+  // The deal was refunded to the buyer, so the assignment will never pay: the
+  // advance is out and nothing is coming back through the escrow. Default and
+  // let the collateral slash and the dispute path pursue recovery.
+  if (deal.cancelledAt && !deal.settledAt) {
+    await markDefaulted(line, 'deal cancelled while the advance was outstanding');
     return;
   }
+  if (!deal.settledAt) return;
 
-  if (line.state === 'released') {
-    const deal = await getDeal(line.invoiceId);
-    if (!deal) return;
-
-    // Buyer refunded the escrow after release: the seller was never paid in
-    // full, so there is nothing to pull. Default and let the dispute path
-    // pursue the seller.
-    if (deal.cancelledAt && !deal.settledAt) {
-      await markDefaulted(line, 'deal cancelled after PO release');
-      return;
-    }
-    if (!deal.settledAt) return;
-
-    try {
-      await repayLine(line);
-    } catch (err) {
-      const attempts = (repayAttempts.get(line.id) ?? 0) + 1;
-      repayAttempts.set(line.id, attempts);
-      const reason = (err as Error).message;
-      logger.warn(
-        { lineId: line.id, attempts, err: reason },
-        'po-financing: repayment failed; will retry',
+  try {
+    await repayLine(line);
+  } catch (err) {
+    const attempts = (repayAttempts.get(line.id) ?? 0) + 1;
+    repayAttempts.set(line.id, attempts);
+    const reason = (err as Error).message;
+    logger.warn(
+      { lineId: line.id, attempts, err: reason },
+      'po-financing: repayment failed; will retry',
+    );
+    if (attempts >= MAX_REPAY_ATTEMPTS) {
+      await markDefaulted(line, `repayment failed after ${attempts} attempts: ${reason}`).catch(
+        () => {},
       );
-      if (attempts >= MAX_REPAY_ATTEMPTS) {
-        await markDefaulted(line, `repayment failed after ${attempts} attempts: ${reason}`).catch(
-          () => {},
-        );
-      }
     }
   }
 }

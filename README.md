@@ -35,11 +35,15 @@ The platform fee is 1.5 percent of the deal, split evenly between the two sides.
 
 ### Invoice factoring
 
-A financier advances against an invoice at a discount tied to the supplier's reputation tier. The supplier is paid early. On settlement the contract pulls the agreed repayment, so the financier does not chase it. Both legs move native USDC.
+The supplier asks to be paid early, naming a floor if they want one. Financiers then bid a discount against the supplier's reputation tier, and the supplier accepts one or ignores them all. Nothing is shown to a financier until that request exists, so an invoice is never quietly listed for funding on the strength of the supplier having opened a deal.
+
+On settlement the escrow pays the financier ahead of the supplier, so repayment is not something anyone has to chase. Both legs move native USDC.
 
 ### Purchase-order financing
 
-Working capital advanced against an accepted purchase order and held in contract custody. Proof of delivery is anchored on chain by the buyer, or by an allowlisted attester signing on the buyer's behalf, and that attestation is what releases the capital to the supplier. Anyone can trigger the release once it lands, because the contract checks the attestation rather than the caller. A watcher drives release and repayment without a human in the loop, and if proof of delivery never arrives the financier reclaims the principal after a timeout.
+Working capital advanced against an accepted purchase order whose escrow the buyer has already funded. The advance goes straight to the supplier, in the same transaction that redirects that deal's settlement to the financier. That atomicity is the whole design: there is no state where the redirect is live and the supplier has not been paid, so nothing can strand the advance. The supplier can spend the capital immediately, which is the point of pre-delivery finance.
+
+On settlement the escrow pays the financier ahead of the supplier, so repayment is not something anyone has to chase. If the deal settles short, the shortfall, and only the shortfall, is recovered from the supplier's staked collateral. How much collateral a given supplier posts is set from their reputation tier.
 
 ### The credit passport
 
@@ -177,7 +181,7 @@ Earlier contract generations stay registered so users with open positions can fi
 
 | Circle product | Role in Karwan |
 |---|---|
-| USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order custody, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
+| USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order advances, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
 | Developer-Controlled Wallets | An identity wallet and two agent wallets per user, provisioned on sign-in with an email or a passkey. No seed phrase. Web3 users can sign in with their own wallet through Sign-In with Ethereum instead. |
 | CCTP V2 with Bridge Kit | USDC into and out of Arc across twelve chains, both directions, through App Kit and the Circle Wallets adapter. Outbound uses Circle's Forwarding Service to submit the destination mint, so a supplier cashes out anywhere without holding that chain's gas token. |
 | Circle Gateway | One pooled USDC balance across twelve chains, spendable to any of them from a single signature. Also the settlement rail for x402, netting the agents' per-call payments into batched on-chain settlement. |
@@ -211,4 +215,4 @@ Deeper reference.
 
 ## License
 
-MIT.
+MIT. See [LICENSE](./LICENSE).

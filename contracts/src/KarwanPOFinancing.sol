@@ -9,7 +9,7 @@ import {Guardable} from "./Guardable.sol";
 /// @notice KarwanEscrow subset used for seller lookup at fund time. v2 reads
 ///         the decoupled sellerOf() view so adding escrow struct fields never
 ///         breaks the ABI decode. The canonical seller is the only valid
-///         recipient on PoD release.
+///         recipient of the advance.
 interface IKarwanEscrow {
     function sellerOf(bytes32 jobId) external view returns (address);
 
@@ -25,12 +25,13 @@ interface IKarwanEscrow {
         returns (address assignee, uint128 amount, uint128 paid);
 }
 
-/// @notice KarwanInvoiceRegistry subset used for PoD acceptance lookup.
+/// @notice KarwanInvoiceRegistry subset. Used only to reject a PO whose goods
+///         have already been delivered: that is factoring, not PO financing.
 interface IKarwanInvoiceRegistry {
     function isPoDAccepted(bytes32 invoiceId) external view returns (bool);
 }
 
-/// @notice KarwanVault subset for factoring stake v2. The financier can require
+/// @notice KarwanVault subset for factoring stake. The financier can require
 ///         the seller to back the line with reserved stake; on default it
 ///         slashes to the financier, on settle it releases. Namespaced by
 ///         this contract as the consumer, so PO lines can't collide with escrow
@@ -38,71 +39,93 @@ interface IKarwanInvoiceRegistry {
 interface IKarwanVault {
     function reserve(bytes32 id, address ownerOrAgent, uint256 amount, address beneficiary) external;
     function release(bytes32 id) external;
-    function slash(bytes32 id) external;
+    /// Slash `amount` to the beneficiary and return the remainder to the
+    /// owner's free stake. Clamped to the reservation size by the vault.
+    function slashTo(bytes32 id, uint256 amount) external;
     function freeStakeOf(address owner) external view returns (uint256);
 }
 
 /// @title KarwanPOFinancing
-/// @notice Single-funder purchase-order financing. A financier pre-funds the
+/// @notice Single-funder purchase-order financing. A financier advances a
 ///         seller's working capital against a PO whose escrow the buyer has
-///         already funded. The contract holds the principal until proof of
-///         delivery anchors on KarwanInvoiceRegistry, then releases to the
-///         seller. The seller repays from their escrow settlement via a
-///         pull-based approval, the contract has no claim on the seller's
-///         wallet beyond the pre-agreed `repayUsdc` amount.
+///         already funded. The advance goes to the seller immediately, in the
+///         same transaction that redirects the seller's settlement to the
+///         financier. The financier is repaid by the escrow at settlement; the
+///         seller's stake is the recourse if that falls short.
 ///
-///         Design (per docs/sme-design.md §3.2, refined Day 2):
+///         THE CORE INVARIANT
 ///
-///           1. Financier calls fund(): pays principal into custody. Validated
-///              against the underlying deal's seller (escrow lookup) so the
-///              financier cannot accidentally fund the wrong PO.
+///         The seller receives the advance in the same transaction that
+///         `escrow.assignPayout` redirects their settlement. There is no
+///         intermediate custody and no unlock condition, so there is no state
+///         in which the redirect is live while the advance is unpaid.
 ///
-///           2. Buyer or registered attester anchors PoD via the registry.
+///         This is not a stylistic choice. The previous design held the
+///         principal in this contract and released it only once proof of
+///         delivery anchored on the registry, while assigning the receivable
+///         unconditionally at fund time. The ordinary milestone settlement path
+///         never anchors PoD, so the default outcome was: the escrow paid the
+///         financier out of the seller's proceeds, the seller's advance stayed
+///         locked in custody, and after the release window the financier
+///         reclaimed the principal as well, ending a full repay amount ahead
+///         with nothing at risk. See test/KarwanPOCustodyAttack.t.sol, which
+///         proved that exploit against the deployed contract and now proves it
+///         closed. Any future change that reintroduces a gap between "advance
+///         paid" and "receivable assigned" reopens it.
 ///
-///           3. Anyone calls releaseToSeller(): contract verifies PoD is
-///              anchored, transfers principal from custody to the seller.
+///         Custody-until-delivery also defeated the product. PO financing
+///         exists so a seller can buy materials BEFORE delivering. An advance
+///         the seller cannot touch until after delivery is not working capital.
 ///
-///           4. Buyer releases the escrow as usual. Funds land in the
-///              seller's wallet (the registry's setPayee mechanism is NOT
-///              used here, that path is for factoring).
+///         RISK MODEL
 ///
-///           5. Anyone (typically the financier or seller's agent) calls
-///              claimRepayment(): contract pulls `repayUsdc` from the
-///              seller's wallet using a standard ERC20 approval the seller
-///              gave at offer-accept time. Pays financier.
+///         Pre-delivery funding puts the financier at risk from the moment they
+///         fund, which is the honest shape for this product. Their protection
+///         is layered:
 ///
-///         The platform fee already lands in KarwanTreasury via the escrow
-///         on release; PO financing adds no extra fee, the financier's
-///         repay-vs-principal spread is the financier's return.
+///           1. The buyer's money is already locked in escrow. `assignPayout`
+///              only succeeds while the deal is Funded or Accepted, so a line
+///              cannot open against an unfunded deal.
+///           2. The assignment is senior across every escrow payout path and
+///              is irrevocable and single-use.
+///           3. Seller stake reserved on the vault, slashed to the financier on
+///              default.
 ///
-///         Failure handling:
-///           - PoD never lands: financier calls reclaimPrincipal() after
-///             releaseTimeoutAt to recover their deposit. State -> Reclaimed.
-///           - Repayment never lands: financier calls markDefaulted() after
-///             repaymentTimeoutAt. State -> Defaulted. When the line was
-///             opened with collateral, the seller's reserved stake is slashed
-///             to the financier on chain, so recovery is not conditional on
-///             off-chain recourse. An unsecured line (requiredStakeUsdc == 0)
-///             still falls back to dispute and a reputation hit.
+///         How much stake a given seller must post is reputation policy, and
+///         policy is deliberately NOT encoded here: tier rules change far more
+///         often than money contracts should be redeployed, and reading a v2
+///         composite on chain would mean redeploying KarwanReputation and
+///         cascading through every contract that references it. The backend
+///         computes the requirement from the seller's tier and passes it as
+///         `requiredStakeUsdc`. `minStakeBps` is the operator's on-chain
+///         backstop: a floor, as a share of principal, that no caller can go
+///         under regardless of what the backend asks for.
+///
+///         Failure handling: repayment never lands (the deal settled short, or
+///         never settled at all) -> the financier calls markDefaulted() after
+///         repaymentTimeoutAt. Where the line carried collateral, the seller's
+///         stake is slashed to the financier on chain. An unsecured line
+///         (requiredStakeUsdc == 0) falls back to dispute and a reputation hit.
 contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     using SafeERC20 for IERC20;
 
-    /// @notice Guardian admin (sets the guardian + hold cap). The deployer;
-    ///         a multisig on mainnet. PO financing is otherwise permissionless.
+    /// @notice Owner sets the guardian, the hold cap and the stake floor. The
+    ///         deployer; a multisig on mainnet. Funding is otherwise
+    ///         permissionless. Two-step transfer, matching the other contracts.
     address public owner;
+    address public pendingOwner;
 
     function _guardianAdmin() internal view override returns (address) {
         return owner;
     }
 
-    /// @dev Audit N-3: a hold freezes claimRepayment, but markDefaulted was not
+    /// @dev Audit N-3: a hold freezes claimRepayment, but markDefaulted is not
     ///      hold-gated, so a held borrower could be defaulted + slashed for time
-    ///      they were blocked from repaying (MIN_REPAYMENT_WINDOW == maxHoldSecs).
-    ///      Extend the repayment deadline by the hold budget so the frozen time
-    ///      doesn't count against the borrower.
+    ///      they were blocked from repaying. Extend the repayment deadline by
+    ///      the hold budget so frozen time doesn't count against the borrower.
     function _afterHold(bytes32 id, uint64 holdSecs) internal override {
         POLine storage l = lines[id];
-        if (l.state == POState.Released && l.repaymentTimeoutAt != 0) {
+        if (l.state == POState.Outstanding && l.repaymentTimeoutAt != 0) {
             l.repaymentTimeoutAt += holdSecs;
         }
     }
@@ -111,11 +134,9 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
 
     enum POState {
         None,        // 0 - no line
-        Funded,      // 1 - financier deposited, awaiting PoD
-        Released,    // 2 - principal sent to seller, awaiting repayment
-        Settled,     // 3 - financier repaid
-        Reclaimed,   // 4 - financier reclaimed pre-PoD timeout
-        Defaulted    // 5 - repayment timeout passed without claim
+        Outstanding, // 1 - advance paid to the seller, awaiting repayment
+        Settled,     // 2 - financier repaid
+        Defaulted    // 3 - repayment window passed without settlement
     }
 
     struct POLine {
@@ -124,14 +145,11 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         uint128 principalUsdc;
         uint128 repayUsdc;
         uint64 fundedAt;
-        uint64 releaseTimeoutAt;
-        uint64 releasedAt;
         uint64 repaymentTimeoutAt;
         uint64 settledAt;
         POState state;
-        /// v2: seller stake reserved on the vault as factoring collateral.
-        /// 0 = unsecured line (back-compat). Slashed to the financier on
-        /// default, released on settle / reclaim.
+        /// Seller stake reserved on the vault as collateral. 0 = unsecured
+        /// line. Slashed to the financier on default, released on settle.
         uint128 requiredStakeUsdc;
     }
 
@@ -140,20 +158,30 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     IERC20 public immutable usdc;
     IKarwanInvoiceRegistry public immutable registry;
     IKarwanEscrow public immutable escrow;
-    /// @notice Vault for factoring stake reservations (v2). Immutable; this is
-    ///         a leaf contract, cheap to redeploy on its own if it must repoint.
+    /// @notice Vault for stake reservations. Immutable; this is a leaf
+    ///         contract, cheap to redeploy on its own if it must repoint.
     IKarwanVault public immutable vault;
 
-    /// @notice After release, the financier has at least this many seconds
-    ///         before they can mark the line defaulted. Gives the seller a
-    ///         window to repay from the eventual escrow settlement, which
-    ///         depends on the buyer's release timing.
+    /// @notice Floor on collateral, in basis points of principal. The operator's
+    ///         backstop under whatever the backend's tier policy asks for.
+    ///         Default 0 keeps unsecured lines available until an operator
+    ///         deliberately raises it.
+    uint16 public minStakeBps;
+
+    /// @notice Ceiling on that floor. An operator who could demand more than
+    ///         half the principal as collateral could price every seller out of
+    ///         the product, which is a griefing vector rather than a safeguard.
+    uint16 public constant MAX_MIN_STAKE_BPS = 5000;
+
+    /// @notice Shortest repayment window a financier may set. The window has to
+    ///         outlast the buyer's own release timing, since repayment comes out
+    ///         of the escrow settlement rather than the seller's wallet.
     uint64 public constant MIN_REPAYMENT_WINDOW = 7 days;
 
-    /// @notice Hard ceiling on the release timeout a financier may request.
-    ///         A 5-year window is well beyond any legitimate trade and stops
-    ///         a financier from accidentally locking principal forever.
-    uint64 public constant MAX_RELEASE_WINDOW = 5 * 365 days;
+    /// @notice Hard ceiling on the repayment window. Five years is well beyond
+    ///         any legitimate trade and stops a financier from parking a
+    ///         seller's collateral indefinitely.
+    uint64 public constant MAX_REPAYMENT_WINDOW = 5 * 365 days;
 
     mapping(bytes32 => POLine) public lines;
 
@@ -165,20 +193,18 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         address indexed seller,
         uint128 principalUsdc,
         uint128 repayUsdc,
-        uint64 releaseTimeoutAt
+        uint64 repaymentTimeoutAt
     );
-    event POReleased(bytes32 indexed invoiceId, address indexed seller, uint128 principalUsdc);
     event PORepaid(
         bytes32 indexed invoiceId, address indexed financier, uint128 repayUsdc, address caller
-    );
-    event POReclaimed(
-        bytes32 indexed invoiceId, address indexed financier, uint128 principalUsdc
     );
     event PODefaulted(
         bytes32 indexed invoiceId, address indexed financier, address indexed seller
     );
     event CollateralSlashed(bytes32 indexed invoiceId, address indexed financier, uint128 amount);
     event CollateralSlashFailed(bytes32 indexed invoiceId, address indexed financier);
+    event MinStakeBpsSet(uint16 bps);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     // Errors
 
@@ -189,13 +215,22 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     error InvalidTimeout();
     error InvalidState();
     error NotFinancier();
+    error NotOwner();
     error NotParty();
-    error PoDNotAccepted();
+    error NothingOutstanding();
     error PoDAlreadyAccepted();
+    error SelfFunding();
+    error StakeBelowFloor();
+    error StakeFloorTooHigh();
     error StillWithinWindow();
     error ZeroAddress();
     error MissingEscrowRecord();
     error InsufficientStake();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
 
     // Constructor
 
@@ -211,41 +246,76 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         owner = msg.sender;
     }
 
+    // Ownership
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        pendingOwner = newOwner;
+    }
+
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotOwner();
+        address previous = owner;
+        owner = pendingOwner;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(previous, owner);
+    }
+
+    /// @notice Raise or lower the collateral floor for FUTURE lines. Existing
+    ///         lines keep the requirement they were opened with.
+    function setMinStakeBps(uint16 bps) external onlyOwner {
+        if (bps > MAX_MIN_STAKE_BPS) revert StakeFloorTooHigh();
+        minStakeBps = bps;
+        emit MinStakeBpsSet(bps);
+    }
+
     // Fund
 
-    /// @notice Financier funds a PO line. Pulls principal from the caller.
-    ///         The seller is resolved via the escrow's getEscrow() view so
-    ///         the financier cannot accidentally route funds to a wrong
-    ///         party. The canonical seller is the only valid recipient.
+    /// @notice Financier advances a PO line. The principal moves straight from
+    ///         the financier to the seller, in the same transaction that
+    ///         assigns the receivable. The seller is resolved from the escrow
+    ///         so the financier cannot route the advance to a wrong party.
     ///
-    /// @param invoiceId            the deal's jobId in the escrow
-    /// @param principalUsdc        amount the financier pays in now
-    /// @param repayUsdc            amount the financier expects back from
-    ///                             the seller's settlement (must be > principal)
-    /// @param releaseTimeoutSeconds seconds from now before financier can
-    ///                              reclaim if PoD never anchors
-    /// @param requiredStakeUsdc  seller stake to reserve on the vault as
-    ///                           factoring collateral (v2). 0 = unsecured line.
-    ///                           Reverts if the seller lacks the free stake.
+    /// @param invoiceId               the deal's jobId in the escrow
+    /// @param principalUsdc           amount advanced to the seller now
+    /// @param repayUsdc               amount the financier is owed back out of
+    ///                                the settlement (must exceed principal)
+    /// @param repaymentWindowSeconds  seconds before the financier may mark the
+    ///                                line defaulted and slash collateral
+    /// @param requiredStakeUsdc       seller stake to reserve on the vault as
+    ///                                collateral. The backend derives this from
+    ///                                the seller's reputation tier; it must
+    ///                                clear `minStakeBps` of principal.
     function fund(
         bytes32 invoiceId,
         uint128 principalUsdc,
         uint128 repayUsdc,
-        uint64 releaseTimeoutSeconds,
+        uint64 repaymentWindowSeconds,
         uint128 requiredStakeUsdc
     ) external nonReentrant {
         if (invoiceId == bytes32(0)) revert InvalidInvoiceId();
         if (lines[invoiceId].state != POState.None) revert AlreadyFunded();
         if (principalUsdc == 0) revert InvalidAmount();
         if (repayUsdc <= principalUsdc) revert InvalidRepay();
-        if (releaseTimeoutSeconds == 0 || releaseTimeoutSeconds > MAX_RELEASE_WINDOW) {
+        if (
+            repaymentWindowSeconds < MIN_REPAYMENT_WINDOW
+                || repaymentWindowSeconds > MAX_REPAYMENT_WINDOW
+        ) {
             revert InvalidTimeout();
         }
+        // Goods already delivered and accepted is factoring, not PO financing.
         if (registry.isPoDAccepted(invoiceId)) revert PoDAlreadyAccepted();
 
         // Resolve seller from escrow. Reverts if the deal does not exist.
         address seller = escrow.sellerOf(invoiceId);
         if (seller == address(0)) revert MissingEscrowRecord();
+        // A seller financing their own receivable would assign their settlement
+        // to themselves and post their own collateral for the privilege. It has
+        // no legitimate use and it corrupts the financing reputation signal.
+        if (seller == msg.sender) revert SelfFunding();
+
+        if (uint256(requiredStakeUsdc) * 10_000 < uint256(principalUsdc) * minStakeBps) {
+            revert StakeBelowFloor();
+        }
 
         uint64 nowTs = uint64(block.timestamp);
         lines[invoiceId] = POLine({
@@ -254,70 +324,45 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
             principalUsdc: principalUsdc,
             repayUsdc: repayUsdc,
             fundedAt: nowTs,
-            releaseTimeoutAt: nowTs + releaseTimeoutSeconds,
-            releasedAt: 0,
-            repaymentTimeoutAt: 0,
+            repaymentTimeoutAt: nowTs + repaymentWindowSeconds,
             settledAt: 0,
-            state: POState.Funded,
+            state: POState.Outstanding,
             requiredStakeUsdc: requiredStakeUsdc
         });
 
-        // v2: reserve the seller's stake as collateral, payable to the
-        // financier on default. Namespaced by this contract on the vault.
+        // Reserve the seller's stake as collateral, payable to the financier on
+        // default. Namespaced by this contract on the vault.
         if (requiredStakeUsdc > 0) {
             if (vault.freeStakeOf(seller) < requiredStakeUsdc) revert InsufficientStake();
             vault.reserve(invoiceId, seller, requiredStakeUsdc, msg.sender);
         }
 
-        // Sell the receivable in the same transaction that commits the cash, so
-        // the redirect is never absent while an advance is outstanding. Reverts
-        // if this contract is not an authorised assigner, which is deliberate:
-        // a line that cannot be assigned would silently fall back to pulling
+        // Reverts if this contract is not an authorised assigner, which is
+        // deliberate: a line that cannot be assigned would fall back to pulling
         // from the seller, the exact exposure assignment exists to remove.
         escrow.assignPayout(invoiceId, msg.sender, repayUsdc);
 
-        usdc.safeTransferFrom(msg.sender, address(this), principalUsdc);
+        // The invariant, in one line: the advance reaches the seller in the
+        // same transaction that redirects the seller's settlement. Financier to
+        // seller directly, never through this contract's balance.
+        usdc.safeTransferFrom(msg.sender, seller, principalUsdc);
 
         emit POFunded(
-            invoiceId, msg.sender, seller, principalUsdc, repayUsdc, nowTs + releaseTimeoutSeconds
+            invoiceId, msg.sender, seller, principalUsdc, repayUsdc, nowTs + repaymentWindowSeconds
         );
-    }
-
-    // Release to seller
-
-    /// @notice Release the principal to the seller. Verifies that PoD has
-    ///         been anchored on the registry. Anyone can call, the principal
-    ///         goes to the seller recorded at fund time regardless of caller.
-    ///         Starts the repayment window: settlement must come (and
-    ///         claimRepayment fire) within MIN_REPAYMENT_WINDOW or the
-    ///         financier may mark the line defaulted.
-    function releaseToSeller(bytes32 invoiceId) external nonReentrant {
-        POLine storage l = lines[invoiceId];
-        if (l.state != POState.Funded) revert InvalidState();
-        _requireNotHeld(invoiceId);
-        if (!registry.isPoDAccepted(invoiceId)) revert PoDNotAccepted();
-
-        uint64 nowTs = uint64(block.timestamp);
-        l.state = POState.Released;
-        l.releasedAt = nowTs;
-        l.repaymentTimeoutAt = nowTs + MIN_REPAYMENT_WINDOW;
-
-        uint128 principal = l.principalUsdc;
-        usdc.safeTransfer(l.seller, principal);
-
-        emit POReleased(invoiceId, l.seller, principal);
     }
 
     // Claim repayment
 
-    /// @notice Pull `repayUsdc` from the seller's wallet and pay the
-    ///         financier. The seller pre-approved this contract for the
-    ///         repay amount at offer-accept time (standard ERC20 approval).
-    ///         Callable by the financier or the seller, either party can
-    ///         trigger the settlement to close out the line cleanly.
+    /// @notice Close out the line. The escrow pays the assignee first at
+    ///         settlement, so by the time this runs the financier is usually
+    ///         already whole and nothing is pulled. A shortfall only arises
+    ///         when the deal settled for less than the repay amount; that
+    ///         remainder is still the seller's obligation and is pulled against
+    ///         the approval the seller gave at offer-accept time.
     function claimRepayment(bytes32 invoiceId) external nonReentrant {
         POLine storage l = lines[invoiceId];
-        if (l.state != POState.Released) revert InvalidState();
+        if (l.state != POState.Outstanding) revert InvalidState();
         _requireNotHeld(invoiceId);
         if (msg.sender != l.financier && msg.sender != l.seller) revert NotParty();
 
@@ -328,15 +373,11 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         address seller = l.seller;
         uint128 repay = l.repayUsdc;
 
-        // v2: the line settled cleanly, release the seller's collateral.
+        // The line settled cleanly, release the seller's collateral.
         if (l.requiredStakeUsdc > 0) {
             vault.release(invoiceId);
         }
 
-        // The escrow pays the assignee first at settlement, so by the time this
-        // runs the financier is usually already whole and nothing is pulled. A
-        // shortfall only arises when the deal settled for less than the repay
-        // amount; that remainder is still the seller's obligation.
         (, , uint128 paidByEscrow) = escrow.assignmentOf(invoiceId);
         uint256 shortfall = repay > paidByEscrow ? uint256(repay) - uint256(paidByEscrow) : 0;
         if (shortfall > 0) {
@@ -346,55 +387,40 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         emit PORepaid(invoiceId, financier, repay, msg.sender);
     }
 
-    // Reclaim principal
-
-    /// @notice Financier reclaims the principal when PoD never landed and
-    ///         the release window expired. The line was Funded, never made
-    ///         it to Released. State -> Reclaimed.
-    function reclaimPrincipal(bytes32 invoiceId) external nonReentrant {
-        POLine storage l = lines[invoiceId];
-        if (l.state != POState.Funded) revert InvalidState();
-        if (msg.sender != l.financier) revert NotFinancier();
-        if (block.timestamp < l.releaseTimeoutAt) revert StillWithinWindow();
-        if (registry.isPoDAccepted(invoiceId)) revert PoDAlreadyAccepted();
-
-        l.state = POState.Reclaimed;
-
-        // v2: PoD never landed, the seller didn't default, release the stake.
-        if (l.requiredStakeUsdc > 0) {
-            vault.release(invoiceId);
-        }
-
-        uint128 principal = l.principalUsdc;
-        usdc.safeTransfer(l.financier, principal);
-
-        emit POReclaimed(invoiceId, l.financier, principal);
-    }
-
     // Mark defaulted
 
-    /// @notice Financier writes the line off after the repayment window
-    ///         expires with no claim. No funds move on chain, the seller
-    ///         already has the principal, the buyer's settlement landed in
-    ///         the seller's wallet, but the seller refused or failed to
-    ///         allow the contract to pull repayUsdc. Off-chain recourse
-    ///         (dispute, stake slash via v2.D, reputation hit) follows.
-    ///         State -> Defaulted.
+    /// @notice Financier writes the line off after the repayment window expires
+    ///         without settlement. Only the amount the escrow failed to cover
+    ///         is recovered from the seller's collateral; the rest of the bond
+    ///         returns to the seller's free stake.
+    ///
+    ///         Two things this deliberately refuses to do. It will not run at
+    ///         all once the escrow has paid the assignment in full: the line is
+    ///         whole, and a financier who simply let the window lapse would
+    ///         otherwise collect the settlement AND slash the bond. And it
+    ///         never slashes more than the shortfall, so a deal that settled
+    ///         most of the way does not cost the seller their entire stake.
+    ///
+    ///         The slash is wrapped so a vault revert can't trap the write-off:
+    ///         the line is defaulted either way and the operator can follow up
+    ///         via adminRelease if the reservation is in a bad state.
     function markDefaulted(bytes32 invoiceId) external {
         POLine storage l = lines[invoiceId];
-        if (l.state != POState.Released) revert InvalidState();
+        if (l.state != POState.Outstanding) revert InvalidState();
         if (msg.sender != l.financier) revert NotFinancier();
         if (block.timestamp < l.repaymentTimeoutAt) revert StillWithinWindow();
 
+        (, , uint128 paidByEscrow) = escrow.assignmentOf(invoiceId);
+        if (paidByEscrow >= l.repayUsdc) revert NothingOutstanding();
+        uint256 shortfall = uint256(l.repayUsdc) - uint256(paidByEscrow);
+
         l.state = POState.Defaulted;
 
-        // v2: repayment never came, slash the seller's collateral to the
-        // financier as on-chain recovery. Wrapped so a vault revert can't trap
-        // the write-off (the line is defaulted either way; operator can follow
-        // up via adminRelease if the reservation is in a bad state).
         if (l.requiredStakeUsdc > 0) {
-            try vault.slash(invoiceId) {
-                emit CollateralSlashed(invoiceId, l.financier, l.requiredStakeUsdc);
+            try vault.slashTo(invoiceId, shortfall) {
+                uint256 taken =
+                    shortfall < l.requiredStakeUsdc ? shortfall : l.requiredStakeUsdc;
+                emit CollateralSlashed(invoiceId, l.financier, uint128(taken));
             } catch {
                 emit CollateralSlashFailed(invoiceId, l.financier);
             }
@@ -405,11 +431,22 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
 
     // Views
 
-    /// @notice Explicit struct getter. The auto-generated public mapping
-    ///         getter unpacks fields by position, which is fragile across
-    ///         struct edits; returning the whole struct keeps off-chain
-    ///         consumers stable.
+    /// @notice Explicit struct getter. The auto-generated public mapping getter
+    ///         unpacks fields by position, which is fragile across struct
+    ///         edits; returning the whole struct keeps off-chain consumers
+    ///         stable.
     function getLine(bytes32 invoiceId) external view returns (POLine memory) {
         return lines[invoiceId];
+    }
+
+    /// @notice Collateral floor in USDC for a given principal, so a caller can
+    ///         quote the same number the contract will enforce. Rounds UP: fund
+    ///         compares `stake * 10000 >= principal * bps` exactly rather than
+    ///         against a divided-down floor, so quoting the truncated value
+    ///         would hand back a number that reverts whenever the division
+    ///         leaves a remainder.
+    function stakeFloorFor(uint128 principalUsdc) external view returns (uint256) {
+        uint256 numerator = uint256(principalUsdc) * minStakeBps;
+        return (numerator + 9_999) / 10_000;
     }
 }

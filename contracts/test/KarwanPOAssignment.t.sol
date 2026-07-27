@@ -104,7 +104,7 @@ contract MockVault {
 
     function reserve(bytes32, address, uint256, address) external {}
     function release(bytes32) external {}
-    function slash(bytes32) external {}
+    function slashTo(bytes32, uint256) external {}
 
     function freeStakeOf(address owner) external view returns (uint256) {
         return free[owner];
@@ -153,11 +153,13 @@ contract KarwanPOAssignmentTest is Test {
         usdc.approve(address(po), type(uint256).max);
     }
 
-    function _fundAndRelease() internal {
+    /// Opening the line IS the disbursement now. There is no second step, and
+    /// no PoD to anchor: the helper this replaced set PoD true on every path,
+    /// which is exactly how the custody defect stayed hidden behind a green
+    /// suite. See KarwanPOCustodyAttack.t.sol.
+    function _openLine() internal {
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, WINDOW, 0);
-        registry.setPoD(JOB, true);
-        po.releaseToSeller(JOB);
     }
 
     /// Funding now sells the receivable in the same transaction that commits
@@ -186,7 +188,7 @@ contract KarwanPOAssignmentTest is Test {
     /// The hole, recorded. The seller receives the advance, spends everything,
     /// and the pull has nothing to take.
     function test_Exploit_PullFailsWhenSellerSpentTheSettlement() public {
-        _fundAndRelease();
+        _openLine();
         usdc.burnFrom(seller, usdc.balanceOf(seller));
 
         vm.prank(financier);
@@ -197,7 +199,7 @@ contract KarwanPOAssignmentTest is Test {
     /// §6.1 With the escrow having paid the assignee, an empty seller wallet is
     /// irrelevant: nothing is pulled and the line settles.
     function test_SettlesWithoutPullingWhenEscrowAlreadyPaid() public {
-        _fundAndRelease();
+        _openLine();
         escrow.simulateSettlePaying(JOB, REPAY, usdc);
         usdc.burnFrom(seller, usdc.balanceOf(seller));
 
@@ -211,7 +213,7 @@ contract KarwanPOAssignmentTest is Test {
     /// §6.9 A deal too small to cover the repay leaves a shortfall. The escrow
     /// paid what it could; the remainder is still the seller's obligation.
     function test_PullsOnlyTheShortfall() public {
-        _fundAndRelease();
+        _openLine();
         uint128 paidByEscrow = REPAY / 4;
         escrow.simulateSettlePaying(JOB, paidByEscrow, usdc);
 
@@ -224,7 +226,7 @@ contract KarwanPOAssignmentTest is Test {
 
     /// §7 A line is repaid at most once.
     function test_SecondClaimReverts() public {
-        _fundAndRelease();
+        _openLine();
         escrow.simulateSettlePaying(JOB, REPAY, usdc);
         vm.prank(financier);
         po.claimRepayment(JOB);
