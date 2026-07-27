@@ -118,18 +118,6 @@ function BuyerPageInner() {
                   Find partners →
                 </Link>
               )}
-              {/* A business's only nav entry, B2B Trades, lands here on the buy
-                  side. An individual gets /p2p, which offers both desks, so
-                  without this a business that wants to SELL has no route to it
-                  from anywhere except the home page. */}
-              {isBusiness && (
-                <Link
-                  href="/seller"
-                  className="mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-accent)] hover:underline"
-                >
-                  Post an offer →
-                </Link>
-              )}
               {address && (
                 <span className="ms-1">
                   <AddressPill address={shortAddress(address)} tone="dark" />

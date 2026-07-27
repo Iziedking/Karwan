@@ -119,10 +119,10 @@ export function BusinessHome({
               <CTAPill href="/buyer?mode=direct" variant="secondary" tone="dark">
                 {bh.hero.directDealCta}
               </CTAPill>
-              {/* The sell side. /seller is not account-gated, but the only link
-                  to it sat on /p2p, which is person-only, so a business had no
-                  route to posting an offer at all. */}
-              <CTAPill href="/seller" variant="secondary" tone="dark">
+              {/* Supply, not /seller: that desk is the individual lane, and a
+                  company posting there would drop its offers into the
+                  person-to-person pool. */}
+              <CTAPill href="/supply" variant="secondary" tone="dark">
                 {bh.hero.postOfferCta}
               </CTAPill>
               <CTAPill href="/financier" variant="secondary" tone="dark">

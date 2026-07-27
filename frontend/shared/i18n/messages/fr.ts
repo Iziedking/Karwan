@@ -727,7 +727,7 @@ export const fr: Messages = {
       openDeskCta: 'Ouvrir le bureau PME',
       newTradeCta: 'Nouvelle transaction',
       directDealCta: 'Transaction directe',
-      postOfferCta: 'Publier une offre',
+      postOfferCta: 'Soyez trouve par les acheteurs',
       financierDeskCta: 'Bureau financier',
       viewActivityCta: 'Voir l\'activité',
     },

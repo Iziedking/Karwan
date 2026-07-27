@@ -22,8 +22,11 @@ import {
   Accent,
   AddressPill,
   PageCard,
+  CTAPill,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { isBusinessAccount } from '@/features/account/accountKind';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -42,6 +45,7 @@ export default function SellerPage() {
 function SellerPageInner() {
   const auth = useAuth();
   const address = auth.address;
+  const { profile } = useUserProfile();
   const { activated, agents } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
@@ -75,6 +79,37 @@ function SellerPageInner() {
     { n: '02', title: sh.steps.s2.title, body: sh.steps.s2.body },
     { n: '03', title: sh.steps.s3.title, body: sh.steps.s3.body },
   ];
+
+  // The P2P seller desk is the INDIVIDUAL lane: a person offering their own
+  // work to other people and to businesses. A company sells on the B2B rail,
+  // where a counterparty finds them through Partners or the business market and
+  // opens an order against them. Letting a business post here put company
+  // service offers into the person-to-person pool, which is the wrong lane and
+  // the wrong matching pool. A company whose people freelance needs an
+  // individual account for that, kept separate from the company's own book.
+  if (isBusinessAccount(profile)) {
+    return (
+      <FullBleed>
+        <Band tone="dark" compact overlay={<GridOverlay />}>
+          <div className="max-w-[46ch]">
+            <SectionTag tone="dark">SUPPLY</SectionTag>
+            <HeroHeadline size="md">
+              Your selling lives on <Accent>Supply</Accent>
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <CTAPill href="/supply" tone="dark">
+                Go to Supply
+              </CTAPill>
+              <CTAPill href="/buyer" variant="secondary" tone="dark">
+                Your B2B desk
+              </CTAPill>
+            </div>
+          </div>
+        </Band>
+      </FullBleed>
+    );
+  }
 
   return (
     <FullBleed>

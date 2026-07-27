@@ -727,7 +727,7 @@ export const hi: Messages = {
       openDeskCta: 'SME डेस्क खोलें',
       newTradeCta: 'नया सौदा',
       directDealCta: 'सीधा सौदा',
-      postOfferCta: 'ऑफ़र पोस्ट करें',
+      postOfferCta: 'खरीदारों को आप मिलें',
       financierDeskCta: 'फ़ाइनेंसर डेस्क',
       viewActivityCta: 'गतिविधि देखें',
     },

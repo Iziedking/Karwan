@@ -727,7 +727,7 @@ export const sw: Messages = {
       openDeskCta: 'Fungua dawati la SME',
       newTradeCta: 'Mkataba mpya',
       directDealCta: 'Mkataba wa moja kwa moja',
-      postOfferCta: 'Chapisha ofa',
+      postOfferCta: 'Wanunuzi wakupate',
       financierDeskCta: 'Dawati la mfadhili',
       viewActivityCta: 'Tazama shughuli',
     },

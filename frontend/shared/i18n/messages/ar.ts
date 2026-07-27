@@ -727,7 +727,7 @@ export const ar: Messages = {
       openDeskCta: 'فتح مكتب الشركات الصغيرة',
       newTradeCta: 'صفقة جديدة',
       directDealCta: 'صفقة مباشرة',
-      postOfferCta: 'انشر عرضاً',
+      postOfferCta: 'ليجدك المشترون',
       financierDeskCta: 'مكتب التمويل',
       viewActivityCta: 'عرض النشاط',
     },

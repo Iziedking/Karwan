@@ -4723,7 +4723,7 @@ export const en: MessagesShape = {
       openDeskCta: 'Open SME desk',
       newTradeCta: 'New trade',
       directDealCta: 'Direct deal',
-      postOfferCta: 'Post an offer',
+      postOfferCta: 'Get found by buyers',
       financierDeskCta: 'Financier desk',
       viewActivityCta: 'View activity',
     },
