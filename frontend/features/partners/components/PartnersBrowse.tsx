@@ -62,7 +62,7 @@ export function PartnersBrowse() {
     <FullBleed>
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <div className="fade-up">
-          <SectionTag tone="dark">[:FIND PARTNERS:]</SectionTag>
+          <SectionTag tone="dark">FIND PARTNERS</SectionTag>
         </div>
         <div className="fade-up fade-up-1">
           <HeroHeadline size="sm">

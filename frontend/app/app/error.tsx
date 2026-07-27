@@ -28,7 +28,7 @@ export default function AppError({
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
-        <SectionTag tone="dark">[:OOPS:]</SectionTag>
+        <SectionTag tone="dark">OOPS</SectionTag>
         <HeroHeadline>
           Something tripped<Punc>.</Punc>
         </HeroHeadline>

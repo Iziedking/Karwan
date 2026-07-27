@@ -28,7 +28,7 @@ export function SmeTradesComingSoon() {
   return (
     <main className="min-h-[70vh]">
       <Band tone="light">
-        <SectionTag>[:SME TRADES:]</SectionTag>
+        <SectionTag>SME TRADES</SectionTag>
         <HeroHeadline size="lg">
           Trade finance, on Arc<Punc>.</Punc>
         </HeroHeadline>

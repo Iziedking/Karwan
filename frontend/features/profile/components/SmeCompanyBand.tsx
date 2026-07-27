@@ -191,7 +191,7 @@ export function SmeCompanyBand({
   if (!loaded) {
     return (
       <Band tone="light" compact>
-        <SectionTag>[:COMPANY PROFILE:]</SectionTag>
+        <SectionTag>COMPANY PROFILE</SectionTag>
         <HeroHeadline size="md">
           Loading<Punc>…</Punc>
         </HeroHeadline>
@@ -207,9 +207,7 @@ export function SmeCompanyBand({
         className="flex items-end justify-between gap-4 flex-wrap"
       >
         <div>
-          <SectionTag dot={verifiedAt ? 'live' : undefined}>
-            [:COMPANY PROFILE:]
-          </SectionTag>
+          <SectionTag dot={verifiedAt ? 'live' : undefined}>COMPANY PROFILE</SectionTag>
           <HeroHeadline size="md">
             Trade card<Punc>.</Punc>
           </HeroHeadline>

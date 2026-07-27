@@ -266,7 +266,7 @@ export function FinancierDashboard() {
     <main className="min-h-[70vh]">
       <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
-        <SectionTag>[:FINANCIER:]</SectionTag>
+        <SectionTag>FINANCIER</SectionTag>
         <HeroHeadline size="md">
           Fund real trade<Punc>.</Punc>
         </HeroHeadline>

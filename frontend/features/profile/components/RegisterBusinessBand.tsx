@@ -142,7 +142,7 @@ export function RegisterBusinessBand({ address }: { address: string }) {
   if (!loaded) {
     return (
       <Band tone="light" compact>
-        <SectionTag>[:BUSINESS:]</SectionTag>
+        <SectionTag>BUSINESS</SectionTag>
         <HeroHeadline size="md">
           Loading<Punc>…</Punc>
         </HeroHeadline>
@@ -154,7 +154,7 @@ export function RegisterBusinessBand({ address }: { address: string }) {
     <Band tone="light" compact>
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <SectionTag dot={status === 'verified' ? 'live' : undefined}>[:BUSINESS:]</SectionTag>
+          <SectionTag dot={status === 'verified' ? 'live' : undefined}>BUSINESS</SectionTag>
           <HeroHeadline size="md">
             Trade as a business<Punc>.</Punc>
           </HeroHeadline>

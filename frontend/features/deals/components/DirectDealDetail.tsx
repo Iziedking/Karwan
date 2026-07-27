@@ -1257,7 +1257,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
   const hasCompany = company && (company.name || company.sector || company.region);
   return (
     <Band tone="light" compact>
-      <SectionTag>[:TRADE CONTEXT:]</SectionTag>
+      <SectionTag>TRADE CONTEXT</SectionTag>
       <HeroHeadline size="md">
         Trade rails<Punc>.</Punc>
       </HeroHeadline>
