@@ -95,7 +95,13 @@ jobs:
             echo ":: docker compose pull"
             docker compose pull karwan-api
             echo ":: docker compose up"
-            docker compose up -d --remove-orphans
+            # Named explicitly, not a bare `up`. The compose file also carries
+            # karwan-team-mcp, which is built and released from a different
+            # repository on its own cadence. An unscoped `up` tries to start it
+            # too, so a backend deploy would fail on an image the backend does
+            # not own and did not change. Postgres comes up as a dependency of
+            # karwan-api; caddy is left running rather than bounced.
+            docker compose up -d --remove-orphans karwan-api
             echo ":: prune dangling images"
             docker image prune -f
             # Wait for the karwan-api container's built-in HEALTHCHECK to

@@ -152,9 +152,12 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    # Deliberately NOT depending on karwan-team-mcp. Caddy proxying to an
+    # upstream that is not running answers 502 on that one vhost, which is a
+    # contained failure. Caddy refusing to start because an unrelated image is
+    # missing takes the whole site down, which is not.
     depends_on:
       - karwan-api
-      - karwan-team-mcp
     logging:
       driver: json-file
       options:
