@@ -18,6 +18,7 @@ import {
 import { login as verifyPassword } from '../db/teamMembers.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { page as shellPage, escapeHtml } from '../ui/shell.js';
 
 /// The OAuth 2.1 authorization server.
 ///
@@ -32,11 +33,6 @@ import { logger } from '../logger.js';
 /// them the thing they were fishing for.
 
 export const oauthRoutes = new Hono();
-
-const escapeHtml = (s: string): string =>
-  s.replace(/[&<>"']/g, (ch) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] ?? ch,
-  );
 
 function issuer(): string {
   return config.OAUTH_ISSUER.replace(/\/$/, '');
@@ -178,43 +174,15 @@ function redirectError(redirectUri: string, state: string, error: string, descri
   return url.toString();
 }
 
-function page(title: string, body: string, status = 200) {
-  return new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} · Karwan</title>
-<style>
-  :root { color-scheme: dark; }
-  body { margin:0; min-height:100vh; display:grid; place-items:center;
-    background:#0A0A0B; color:#F4F4F1;
-    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
-  .card { width:min(420px,92vw); padding:32px; border:1px solid rgba(255,255,255,.10);
-    border-radius:16px; background:#161616; }
-  h1 { margin:0 0 6px; font-size:20px; font-weight:800; letter-spacing:-.2px; }
-  p { margin:0 0 18px; color:rgba(244,244,241,.6); font-size:13px; }
-  label { display:block; margin:0 0 14px; }
-  span.l { display:block; margin-bottom:6px; font-size:10px; letter-spacing:.12em;
-    text-transform:uppercase; color:rgba(244,244,241,.45); }
-  input { width:100%; box-sizing:border-box; padding:11px 12px; border-radius:9px;
-    border:1px solid rgba(255,255,255,.15); background:#0E0E0E; color:#F4F4F1; font-size:15px; }
-  input:focus { outline:none; border-color:rgba(255,255,255,.45); }
-  button { width:100%; padding:12px; border:0; border-radius:9px; background:#AFC95B;
-    color:#0E0E0E; font-weight:700; font-size:13px; letter-spacing:.04em;
-    text-transform:uppercase; cursor:pointer; }
-  .err { margin:0 0 16px; padding:10px 12px; border-radius:9px; font-size:13px;
-    color:#e0794f; border:1px solid rgba(224,121,79,.3); background:rgba(224,121,79,.08); }
-  .who { padding:12px; border-radius:9px; background:#0E0E0E;
-    border:1px solid rgba(255,255,255,.10); margin:0 0 18px; font-size:13px; }
-  .foot { margin:16px 0 0; font-size:11px; color:rgba(244,244,241,.35); }
-</style></head><body><div class="card">${body}</div></body></html>`,
-    { status, headers: { 'content-type': 'text/html; charset=utf-8' } },
-  );
+/// Centred card, the shape every page in this flow wants.
+function renderPage(title: string, body: string, status = 200) {
+  return shellPage(title, body, { status, center: true });
 }
 
 function loginPage(req: AuthRequest, clientName: string, error?: string) {
   const encoded = encodeRequest(req);
   const sig = signParams(encoded);
-  return page(
+  return renderPage(
     'Sign in',
     `<h1>Connect to Karwan</h1>
 <p>${escapeHtml(clientName)} is asking to read the Karwan canon as you.</p>
@@ -254,10 +222,10 @@ oauthRoutes.get('/authorize', async (c) => {
   const client = clientId ? await getClient(clientId) : null;
 
   if (!client) {
-    return page('Unknown application', '<h1>Unknown application</h1><p>This client is not registered with Karwan.</p>', 400);
+    return renderPage('Unknown application', '<h1>Unknown application</h1><p>This client is not registered with Karwan.</p>', 400);
   }
   if (!redirectUri || !redirectUriAllowed(client, redirectUri)) {
-    return page(
+    return renderPage(
       'Bad redirect',
       '<h1>Bad redirect</h1><p>That redirect address is not one this application registered. Nothing was sent to it.</p>',
       400,
@@ -306,19 +274,19 @@ oauthRoutes.post(
     // The parameters must be the ones this server put in the form. Without
     // this, a forged POST could start a flow the user never saw.
     if (!encoded || !signature || !paramsValid(encoded, signature)) {
-      return page('Expired', '<h1>That form expired</h1><p>Start the connection again from your app.</p>', 400);
+      return renderPage('Expired', '<h1>That form expired</h1><p>Start the connection again from your app.</p>', 400);
     }
 
     const req = decodeRequest(encoded);
     if (!req) {
-      return page('Expired', '<h1>That form expired</h1><p>Start the connection again from your app.</p>', 400);
+      return renderPage('Expired', '<h1>That form expired</h1><p>Start the connection again from your app.</p>', 400);
     }
 
     // Re-check rather than trust the signed blob: a client could have been
     // deleted or had its redirects changed since the form was rendered.
     const client = await getClient(req.clientId);
     if (!client || !redirectUriAllowed(client, req.redirectUri)) {
-      return page('Unknown application', '<h1>Unknown application</h1><p>This client is no longer registered.</p>', 400);
+      return renderPage('Unknown application', '<h1>Unknown application</h1><p>This client is no longer registered.</p>', 400);
     }
 
     const email = String(form.email ?? '');
