@@ -103,6 +103,44 @@ services:
         max-size: "20m"
         max-file: "5"
 
+  # The team canon over MCP, for the team and whoever we give a key to.
+  #
+  # Built from the SEPARATE karwan-content-os repo and pulled here, because the
+  # canon lives there. The image is private on GHCR and must stay that way: it
+  # carries positioning, the decisions log and the roadmap.
+  #
+  # It authenticates every request against karwan-api's /api/team-mcp/verify,
+  # so it holds no key material of its own. Revoking a key in the admin panel
+  # kills access here within the client's 15 minute cache window.
+  karwan-team-mcp:
+    image: ghcr.io/iziedking/karwan-content-os/karwan-team-mcp:latest
+    container_name: karwan-team-mcp
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8790
+      # Over the internal network. The verify call never leaves the box, so it
+      # does not depend on public DNS or on Caddy being healthy.
+      KARWAN_BACKEND_URL: http://karwan-api:8787
+      # Per key, per minute. Generous for a person, thin for a drained key.
+      KARWAN_MCP_RATE_LIMIT: "120"
+    depends_on:
+      karwan-api:
+        condition: service_healthy
+    expose:
+      - "8790"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8790/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
   caddy:
     image: caddy:2-alpine
     container_name: karwan-caddy
@@ -116,6 +154,7 @@ services:
       - caddy_config:/config
     depends_on:
       - karwan-api
+      - karwan-team-mcp
     logging:
       driver: json-file
       options:

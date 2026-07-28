@@ -8,6 +8,46 @@
 # Reload after edits:
 #   docker compose restart caddy
 
+# The team MCP. Reachable from anywhere, useful to nobody without a key.
+#
+# DNS: mcp.karwan.site must be DNS-ONLY in Cloudflare, grey cloud, exactly like
+# api. Proxied through Cloudflare, Caddy cannot complete the HTTP-01 challenge
+# and never gets a certificate.
+mcp.karwan.site {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    @bad-method method TRACE CONNECT
+    respond @bad-method 405
+
+    # Nothing but the MCP endpoint and its healthcheck is served here. A path
+    # that does not exist should look like it does not exist, rather than
+    # reaching an app that then has to decide.
+    @allowed path /mcp /health
+    handle @allowed {
+        reverse_proxy karwan-team-mcp:8790 {
+            # Streamable HTTP can answer as SSE, so no buffering.
+            flush_interval -1
+            transport http {
+                response_header_timeout 5m
+                dial_timeout 5s
+                read_timeout 5m
+            }
+            header_up X-Real-IP {http.request.remote.host}
+            header_up X-Forwarded-Proto {http.request.scheme}
+        }
+    }
+    handle {
+        respond "Not found" 404
+    }
+}
+
 api.karwan.site {
     # Compression + standard security headers
     encode zstd gzip
