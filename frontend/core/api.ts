@@ -1239,6 +1239,60 @@ export interface SignalView {
   dismissedAt?: number;
 }
 
+export type IssueStatus = 'draft' | 'approved' | 'rejected' | 'sent';
+export type SectionKey = 'shipped' | 'ecosystem' | 'learned';
+
+export interface IssueSection {
+  key: SectionKey;
+  heading: string;
+  body: string;
+  signalIds: string[];
+}
+
+export interface NewsletterIssue {
+  id: string;
+  status: IssueStatus;
+  subject: string;
+  preheader: string;
+  sections: IssueSection[];
+  sources: Array<{
+    signalId: string;
+    title: string;
+    url: string;
+    source: string;
+    publishedAt: number;
+  }>;
+  signalIds: string[];
+  from: number;
+  to: number;
+  monthInReview: boolean;
+  createdAt: number;
+  updatedAt: number;
+  approvedAt?: number;
+  sentAt?: number;
+  rejectedAt?: number;
+  rejectionNote?: string;
+  draftedBy?: string;
+}
+
+export interface DraftFinding {
+  rule: string;
+  severity: 'error' | 'warning';
+  excerpt: string;
+  line: number;
+  fix: string;
+}
+
+export interface NewsletterEngineState {
+  enabled: boolean;
+  wouldDraft: boolean;
+  reason: string;
+  blocked: 'kill-switch' | 'daily-cap' | 'monthly-cap' | null;
+  monthInReview: boolean;
+  waiting: number;
+  clusters: Array<{ key: SectionKey; count: number }>;
+}
+
 export interface AdminTicketRow {
   id: string;
   address: string | null;
@@ -1742,6 +1796,52 @@ export const api = {
     json<{ signal: SignalView }>(`/api/admin/signals/${id}`, {
       method: 'DELETE',
       headers: adminHeaders(),
+    }),
+  adminListNewsletter: () =>
+    json<{
+      issues: NewsletterIssue[];
+      engine: NewsletterEngineState;
+      caps: { maxPerMonth: number; minHoursBetween: number };
+    }>('/api/admin/newsletter', { headers: adminHeaders() }),
+  // `force` overrides the thresholds and the caps. It does not override the
+  // kill switch.
+  adminDraftNewsletter: (force = false) =>
+    json<{
+      drafted: boolean;
+      issue?: NewsletterIssue;
+      reason: string;
+      warnings?: DraftFinding[];
+      attempts?: number;
+      blocked: string | null;
+    }>(`/api/admin/newsletter/draft${force ? '?force=1' : ''}`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    }),
+  adminNewsletterPreview: (id: string) =>
+    json<{
+      issue: NewsletterIssue;
+      rendered: { subject: string; html: string; text: string };
+      review: { findings: DraftFinding[]; errors: number; warnings: number; clean: boolean };
+    }>(`/api/admin/newsletter/${id}/preview`, { headers: adminHeaders() }),
+  adminEditNewsletter: (
+    id: string,
+    edit: { subject?: string; preheader?: string; sections?: IssueSection[] },
+  ) =>
+    json<{ issue: NewsletterIssue }>(`/api/admin/newsletter/${id}`, {
+      method: 'PATCH',
+      headers: adminHeaders(),
+      body: JSON.stringify(edit),
+    }),
+  adminApproveNewsletter: (id: string) =>
+    json<{ issue: NewsletterIssue; note: string }>(`/api/admin/newsletter/${id}/approve`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    }),
+  adminRejectNewsletter: (id: string, note: string) =>
+    json<{ issue: NewsletterIssue; note: string }>(`/api/admin/newsletter/${id}/reject`, {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ note }),
     }),
   adminWalletIntegrity: () =>
     json<{

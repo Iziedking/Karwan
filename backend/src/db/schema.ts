@@ -11,6 +11,7 @@ import type { FactoringOffer } from './factoring.js';
 import type { POFinancingLine } from './poFinancing.js';
 import type { TeamAccessKey } from './teamKeys.js';
 import type { Signal } from './signals.js';
+import type { NewsletterIssue } from './newsletter.js';
 import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
@@ -343,5 +344,24 @@ export const signals = pgTable(
   (t) => ({
     createdAtIdx: index('signals_created_at_idx').on(t.createdAt),
     originIdx: index('signals_origin_idx').on(t.origin),
+  }),
+);
+
+/// Newsletter issues from draft to sent. `sent_at` is a column rather than only
+/// a field inside `data` because the send caps ask "how many went out this
+/// month", which should be a query and not a full table scan in application
+/// code once there are more than a handful of issues.
+export const newsletterIssues = pgTable(
+  'newsletter_issues',
+  {
+    id: text('id').primaryKey(),
+    status: text('status').notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    sentAt: bigint('sent_at', { mode: 'number' }),
+    data: jsonb('data').$type<NewsletterIssue>().notNull(),
+  },
+  (t) => ({
+    createdAtIdx: index('newsletter_issues_created_at_idx').on(t.createdAt),
+    sentAtIdx: index('newsletter_issues_sent_at_idx').on(t.sentAt),
   }),
 );

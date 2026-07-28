@@ -701,6 +701,14 @@ const envSchema = z.object({
   /// endpoint refuses everything, which is the right default for a box that has
   /// no sweep configured.
   SIGNAL_INGEST_TOKEN: optionalString,
+  /// Kill switch for the newsletter engine. Off means no draft is written and
+  /// nothing can be approved, whatever is in the pipeline. Default off: an
+  /// engine that starts drafting the moment it is deployed is an engine nobody
+  /// decided to turn on.
+  NEWSLETTER_ENABLED: envBool('NEWSLETTER_ENABLED'),
+  /// Hard caps. Two a month unless overridden, and never twice in a day.
+  NEWSLETTER_MAX_PER_MONTH: z.coerce.number().int().positive().default(2),
+  NEWSLETTER_MIN_HOURS_BETWEEN: z.coerce.number().int().positive().default(24),
 });
 
 const parsed = envSchema.safeParse(process.env);

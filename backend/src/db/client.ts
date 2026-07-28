@@ -198,6 +198,15 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS signals_created_at_idx ON signals (created_at);
     CREATE INDEX IF NOT EXISTS signals_origin_idx ON signals (origin);
+    CREATE TABLE IF NOT EXISTS newsletter_issues (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      created_at BIGINT NOT NULL,
+      sent_at BIGINT,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS newsletter_issues_created_at_idx ON newsletter_issues (created_at);
+    CREATE INDEX IF NOT EXISTS newsletter_issues_sent_at_idx ON newsletter_issues (sent_at);
   `);
 
   // Money-path invariants the schema comments promise but nothing enforced:
