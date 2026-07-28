@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, type TeamAccessKeyView } from '@/core/api';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// Issue and revoke access to the team canon.
 ///
@@ -71,6 +72,7 @@ function IssuedKey({ rawKey, onDone }: { rawKey: string; onDone: () => void }) {
 }
 
 export default function AdminTeamKeysPage() {
+  const { confirm } = useDialog();
   const [keys, setKeys] = useState<TeamAccessKeyView[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -117,9 +119,15 @@ export default function AdminTeamKeysPage() {
 
   async function revoke(key: TeamAccessKeyView) {
     if (revoking) return;
-    // Native confirm rather than the Dialog provider: this is destructive, it is
-    // one line, and the operator should read the name before it goes.
-    if (!window.confirm(`Revoke "${key.label}" for ${key.member}? This cannot be undone.`)) return;
+    // The operator should read the name before it goes, so the key and the
+    // person are both in the prompt rather than a bare "are you sure".
+    const ok = await confirm({
+      title: 'Revoke this key',
+      message: `"${key.label}" for ${key.member} stops working. A client already running may keep answering for up to 15 minutes before it re-checks.`,
+      confirmLabel: 'Revoke',
+      danger: true,
+    });
+    if (!ok) return;
     setRevoking(key.id);
     try {
       await api.adminRevokeTeamKey(key.id);

@@ -7,6 +7,7 @@ import {
   type SignalOrigin,
   type SignalView,
 } from '@/core/api';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// The signal pipeline, and the form that feeds it.
 ///
@@ -48,6 +49,7 @@ const inputClass =
 const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
 
 export default function AdminSignalsPage() {
+  const { confirm } = useDialog();
   const [signals, setSignals] = useState<SignalView[] | null>(null);
   const [excerptMax, setExcerptMax] = useState(1500);
   const [err, setErr] = useState<string | null>(null);
@@ -117,7 +119,13 @@ export default function AdminSignalsPage() {
   }
 
   async function dismiss(signal: SignalView) {
-    if (!window.confirm(`Drop "${signal.title}" from the pipeline?`)) return;
+    const ok = await confirm({
+      title: 'Drop from the pipeline',
+      message: `"${signal.title}" stops being drafted from. It is kept rather than deleted, so it stays in the record.`,
+      confirmLabel: 'Drop',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await api.adminDismissSignal(signal.id);
       load();

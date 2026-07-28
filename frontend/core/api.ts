@@ -1239,6 +1239,29 @@ export interface SignalView {
   dismissedAt?: number;
 }
 
+export interface TeamMemberView {
+  id: string;
+  email: string;
+  name: string;
+  role: 'dev' | 'marketing';
+  createdAt: number;
+  lastLoginAt: number | null;
+  disabledAt: number | null;
+  active: boolean;
+  locked: boolean;
+}
+
+export interface TeamInviteView {
+  id: string;
+  email: string;
+  name: string;
+  role: 'dev' | 'marketing';
+  createdAt?: number;
+  expiresAt: number;
+  redeemedAt?: number | null;
+  pending?: boolean;
+}
+
 export type IssueStatus = 'draft' | 'approved' | 'rejected' | 'sent';
 export type SectionKey = 'shipped' | 'ecosystem' | 'learned';
 
@@ -1766,6 +1789,34 @@ export const api = {
       method: 'DELETE',
       headers: adminHeaders(),
     }),
+  adminListTeamMembers: () =>
+    json<{
+      members: TeamMemberView[];
+      invites: TeamInviteView[];
+      inviteTtlHours: number;
+    }>('/api/admin/team-members', { headers: adminHeaders() }),
+  // Emails the link and returns it. The email is a convenience: if Resend is
+  // unconfigured the link still comes back and `emailed` says false.
+  adminInviteTeamMember: (input: { email: string; name: string; role: 'dev' | 'marketing' }) =>
+    json<{ invite: TeamInviteView; link: string; emailed: boolean; note: string }>(
+      '/api/admin/team-members/invites',
+      { method: 'POST', headers: adminHeaders(), body: JSON.stringify(input) },
+    ),
+  adminResendTeamInvite: (id: string) =>
+    json<{ invite: TeamInviteView; link: string; emailed: boolean; note: string }>(
+      `/api/admin/team-members/invites/${id}/resend`,
+      { method: 'POST', headers: adminHeaders() },
+    ),
+  adminCancelTeamInvite: (id: string) =>
+    json<{ ok: true }>(`/api/admin/team-members/invites/${id}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    }),
+  adminSetTeamMemberDisabled: (id: string, disabled: boolean) =>
+    json<{ member: TeamMemberView; revokedTokens: number; note: string }>(
+      `/api/admin/team-members/${id}`,
+      { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ disabled }) },
+    ),
   adminListSignals: (params: { origin?: SignalOrigin; includeDismissed?: boolean } = {}) => {
     const qs = new URLSearchParams();
     if (params.origin) qs.set('origin', params.origin);

@@ -8,6 +8,7 @@ import {
   type NewsletterEngineState,
   type NewsletterIssue,
 } from '@/core/api';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// The approval gate.
 ///
@@ -57,6 +58,7 @@ function Findings({ findings }: { findings: DraftFinding[] }) {
 }
 
 export default function AdminNewsletterPage() {
+  const { confirm, prompt } = useDialog();
   const [issues, setIssues] = useState<NewsletterIssue[] | null>(null);
   const [engine, setEngine] = useState<NewsletterEngineState | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -137,7 +139,12 @@ export default function AdminNewsletterPage() {
   }
 
   async function approve(id: string) {
-    if (!window.confirm('Approve this issue? It will be marked ready to send.')) return;
+    const ok = await confirm({
+      title: 'Approve this issue',
+      message: 'It is marked ready to send. Nothing goes out until you send it separately.',
+      confirmLabel: 'Approve',
+    });
+    if (!ok) return;
     try {
       const r = await api.adminApproveNewsletter(id);
       setNotice(r.note);
@@ -148,16 +155,21 @@ export default function AdminNewsletterPage() {
     }
   }
 
-  async function send(id: string, confirm: boolean) {
-    if (confirm) {
+  async function send(id: string, forReal: boolean) {
+    if (forReal) {
       // Typed, not clicked. This is the only irreversible action in the panel
-      // and a confirm dialog is a thing people dismiss without reading.
-      const typed = window.prompt('This sends to every subscriber and cannot be undone. Type SEND to confirm.');
+      // and a yes/no dialog is a thing people dismiss without reading.
+      const typed = await prompt({
+        title: 'Send to every subscriber',
+        message: 'This cannot be undone. Type SEND to confirm.',
+        placeholder: 'SEND',
+        confirmLabel: 'Send it',
+      });
       if (typed !== 'SEND') return;
     }
     setBusy(true);
     try {
-      const r = await api.adminSendNewsletter(id, confirm);
+      const r = await api.adminSendNewsletter(id, forReal);
       setNotice(
         r.sent
           ? `Sent. Archived at ${r.archiveUrl}${r.announced ? ' and announced on Telegram.' : '.'}`
@@ -186,7 +198,12 @@ export default function AdminNewsletterPage() {
   }
 
   async function reject(id: string) {
-    const note = window.prompt('What was wrong with it? This goes into the next draft.');
+    const note = await prompt({
+      title: 'Reject this draft',
+      message: 'What was wrong with it? This goes into the next draft, so be specific.',
+      placeholder: 'Too long, and stop calling it a platform.',
+      confirmLabel: 'Reject',
+    });
     if (!note?.trim()) return;
     try {
       const r = await api.adminRejectNewsletter(id, note.trim());
