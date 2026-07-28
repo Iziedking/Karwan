@@ -694,6 +694,13 @@ const envSchema = z.object({
   // so a client that has drifted behind a canon release can say so instead of
   // answering from stale facts. Bumped in lockstep with the canon package.
   CANON_VERSION: z.preprocess(blankToUndefined, z.string().default('0.1.0')),
+  /// Write-only credential for the signal sweep. Deliberately not the admin
+  /// token: the sweep runs unattended on a machine that is not this one, and a
+  /// job that only needs to append to a content pipeline should not be able to
+  /// read tickets, move money, or issue canon keys. Unset means the ingest
+  /// endpoint refuses everything, which is the right default for a box that has
+  /// no sweep configured.
+  SIGNAL_INGEST_TOKEN: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

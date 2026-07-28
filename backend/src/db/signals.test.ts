@@ -1,7 +1,8 @@
-import { test, before, after, beforeEach } from 'node:test';
+import { test, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 /// The definition of done for signal ingestion: all three sources land in one
 /// table with one shape, and running any of them twice adds nothing.
@@ -17,24 +18,21 @@ assert.equal(
   'refusing to run: DATABASE_URL is set, which would run this against a real database',
 );
 
+// Its own store, in a temp dir, so this never touches the developer's real
+// pipeline and never races the other suites.
+const STORE_PATH = join(tmpdir(), `karwan-signals-store-${process.pid}.json`);
+process.env.SIGNALS_STORE_PATH = STORE_PATH;
+
 const { addSignal, listSignals, dismissSignal, normaliseUrl, dedupeKeyFor, clampExcerpt, EXCERPT_MAX } =
   await import('./signals.js');
 const { parseReleaseNotes, ingestReleaseNotes } = await import('../agents/releaseWatcher.js');
-
-const STORE_PATH = resolve(process.cwd(), 'data', 'signals.json');
-let saved: string | null = null;
-
-before(() => {
-  saved = existsSync(STORE_PATH) ? readFileSync(STORE_PATH, 'utf8') : null;
-});
 
 beforeEach(() => {
   if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
 });
 
 after(() => {
-  if (saved !== null) writeFileSync(STORE_PATH, saved, 'utf8');
-  else if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
+  if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
 });
 
 test('the same article under different tracking urls is one signal', async () => {

@@ -72,7 +72,13 @@ export interface SignalInput {
   externalId?: string;
 }
 
-const STORE_PATH = resolve(process.cwd(), 'data', 'signals.json');
+/// Overridable so each test file can own its own store. The test runner gives
+/// files their own process but not their own filesystem, and two suites sharing
+/// one json file clobber each other in ways that read as bugs in whatever they
+/// were actually checking.
+const STORE_PATH = process.env.SIGNALS_STORE_PATH
+  ? resolve(process.env.SIGNALS_STORE_PATH)
+  : resolve(process.cwd(), 'data', 'signals.json');
 
 /// Query parameters that identify the reader rather than the article. Left in
 /// place they defeat dedupe entirely: the same link shared on two platforms
