@@ -201,6 +201,18 @@ export async function ensureSchema(): Promise<void> {
       data JSONB NOT NULL
     );
     CREATE INDEX IF NOT EXISTS team_invites_email_idx ON team_invites (email);
+    CREATE TABLE IF NOT EXISTS oauth_clients (
+      client_id TEXT PRIMARY KEY,
+      data JSONB NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS oauth_grants (
+      id TEXT PRIMARY KEY,
+      member_id TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS oauth_grants_member_idx ON oauth_grants (member_id);
+    CREATE INDEX IF NOT EXISTS oauth_grants_expires_idx ON oauth_grants (expires_at);
     CREATE TABLE IF NOT EXISTS signals (
       id TEXT PRIMARY KEY,
       origin TEXT NOT NULL,

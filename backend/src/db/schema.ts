@@ -13,6 +13,7 @@ import type { TeamAccessKey } from './teamKeys.js';
 import type { Signal } from './signals.js';
 import type { NewsletterIssue } from './newsletter.js';
 import type { TeamMember, TeamInvite } from './teamMembers.js';
+import type { OAuthClient, OAuthGrant } from './oauth.js';
 import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
@@ -352,6 +353,32 @@ export const teamInvites = pgTable(
   },
   (t) => ({
     emailIdx: index('team_invites_email_idx').on(t.email),
+  }),
+);
+
+/// OAuth clients, created by dynamic registration. Unauthenticated by design:
+/// a client alone grants nothing, because a human still has to log in and
+/// approve before any token exists.
+export const oauthClients = pgTable('oauth_clients', {
+  clientId: text('client_id').primaryKey(),
+  data: jsonb('data').$type<OAuthClient>().notNull(),
+});
+
+/// Authorization codes and tokens in one table. `member_id` and `expires_at`
+/// are columns because the two operations that must be fast are "revoke
+/// everything this person holds" and "drop what has expired", and both are
+/// scans otherwise.
+export const oauthGrants = pgTable(
+  'oauth_grants',
+  {
+    id: text('id').primaryKey(),
+    memberId: text('member_id').notNull(),
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<OAuthGrant>().notNull(),
+  },
+  (t) => ({
+    memberIdx: index('oauth_grants_member_idx').on(t.memberId),
+    expiresIdx: index('oauth_grants_expires_idx').on(t.expiresAt),
   }),
 );
 
