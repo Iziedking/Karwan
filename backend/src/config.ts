@@ -701,6 +701,21 @@ const envSchema = z.object({
   /// endpoint refuses everything, which is the right default for a box that has
   /// no sweep configured.
   SIGNAL_INGEST_TOKEN: optionalString,
+  /// The authorization server's own identity. It MUST equal the origin the
+  /// metadata document is served from: clients validate that the `issuer` in
+  /// the document matches the URL they fetched it from, and reject it if not.
+  OAUTH_ISSUER: z.preprocess(blankToUndefined, z.string().default('https://api.karwan.site')),
+  /// The MCP servers a token may be minted for, comma separated. An audience
+  /// allowlist rather than "whatever the client asked for": without it this
+  /// would issue tokens for any resource on request, which is a phishing tool.
+  OAUTH_RESOURCES: z.preprocess(
+    blankToUndefined,
+    z.string().default('https://mcp.karwan.site/mcp'),
+  ),
+  /// Shared secret the MCP resource server presents when calling introspection.
+  /// Unset means introspection refuses everything, so a misconfigured deploy
+  /// fails closed.
+  OAUTH_INTROSPECT_TOKEN: optionalString,
   /// Kill switch for the newsletter engine. Off means no draft is written and
   /// nothing can be approved, whatever is in the pipeline. Default off: an
   /// engine that starts drafting the moment it is deployed is an engine nobody

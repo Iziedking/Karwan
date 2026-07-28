@@ -36,6 +36,7 @@ import { adminDisputeRoutes } from './routes/adminDisputes.js';
 import { adminTeamKeyRoutes } from './routes/adminTeamKeys.js';
 import { adminSignalRoutes } from './routes/adminSignals.js';
 import { signalIngestRoutes } from './routes/signalIngest.js';
+import { oauthRoutes, oauthMetadataRoutes } from './routes/oauth.js';
 import { adminNewsletterRoutes } from './routes/adminNewsletter.js';
 import { newsletterArchiveRoutes } from './routes/newsletterArchive.js';
 import { teamMcpRoutes } from './routes/teamMcp.js';
@@ -241,6 +242,10 @@ app.route('/api/admin/usyc', adminUsycRoutes);
 app.route('/api/admin/team-keys', adminTeamKeyRoutes);
 app.route('/api/admin/signals', adminSignalRoutes);
 app.route('/api/signals', signalIngestRoutes);
+app.route('/oauth', oauthRoutes);
+// At the issuer root, not under /oauth. Clients build this path from the issuer
+// identifier and will not look anywhere else for it.
+app.route('/.well-known', oauthMetadataRoutes);
 app.route('/api/admin/newsletter', adminNewsletterRoutes);
 app.route('/api/newsletter', newsletterArchiveRoutes);
 app.route('/api/team-mcp', teamMcpRoutes);
