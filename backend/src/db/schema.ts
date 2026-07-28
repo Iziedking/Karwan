@@ -9,6 +9,8 @@ import type { TelegramLink } from './telegramLinks.js';
 import type { MatchProposal } from './matchProposals.js';
 import type { FactoringOffer } from './factoring.js';
 import type { POFinancingLine } from './poFinancing.js';
+import type { TeamAccessKey } from './teamKeys.js';
+import type { Signal } from './signals.js';
 import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
@@ -301,5 +303,45 @@ export const ephemeralState = pgTable(
   },
   (t) => ({
     expiresIdx: index('ephemeral_state_expires_idx').on(t.expiresAt),
+  }),
+);
+
+/// Access keys for the team canon. The raw key is shown once at issue and never
+/// stored: `data` holds a scrypt hash and its salt, so a dump of this table does
+/// not hand anyone the canon. `revokedAt` is a column rather than only a field
+/// inside `data` so revocation can be filtered in SQL.
+export const teamAccessKeys = pgTable(
+  'team_access_keys',
+  {
+    id: text('id').primaryKey(),
+    role: text('role').notNull(),
+    revokedAt: bigint('revoked_at', { mode: 'number' }),
+    data: jsonb('data').$type<TeamAccessKey>().notNull(),
+  },
+  (t) => ({
+    roleIdx: index('team_access_keys_role_idx').on(t.role),
+  }),
+);
+
+/// Inputs for the newsletter and social engines. `dedupe_key` is a column and
+/// carries a UNIQUE constraint rather than living only inside `data`, so a
+/// watcher running twice collides in the database rather than relying on the
+/// application having read before it wrote. It is nullable because a pasted
+/// note has no stable identity, and Postgres allows many NULLs under a unique
+/// index, which is exactly the behaviour wanted: dedupe what can be deduped and
+/// never pretend about the rest.
+export const signals = pgTable(
+  'signals',
+  {
+    id: text('id').primaryKey(),
+    origin: text('origin').notNull(),
+    dedupeKey: text('dedupe_key').unique(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    dismissedAt: bigint('dismissed_at', { mode: 'number' }),
+    data: jsonb('data').$type<Signal>().notNull(),
+  },
+  (t) => ({
+    createdAtIdx: index('signals_created_at_idx').on(t.createdAt),
+    originIdx: index('signals_origin_idx').on(t.origin),
   }),
 );

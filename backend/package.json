@@ -9,6 +9,7 @@
     "start": "tsx --env-file=../.env src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
     "check:events-projection": "tsx src/scripts/events-projection-check.ts",
   "solana:bridge-smoke": "tsx --env-file=../.env src/scripts/solana-bridge-smoke.ts",

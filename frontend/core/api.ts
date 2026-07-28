@@ -1204,6 +1204,41 @@ export interface SupervisorDiagnosis {
   model: string;
 }
 
+/// A team access key as the admin surface sees it. Never carries the secret:
+/// the backend hashes it at issue and cannot return it again.
+export interface TeamAccessKeyView {
+  id: string;
+  label: string;
+  member: string;
+  role: 'dev' | 'marketing';
+  createdAt: number;
+  lastUsedAt: number | null;
+  revokedAt: number | null;
+  active: boolean;
+}
+
+/// Which pipeline produced a signal. Distinct from `source`, the human name of
+/// where it came from.
+export type SignalOrigin = 'manual' | 'arc' | 'circle' | 'karwan';
+export type SignalImportance = 'low' | 'normal' | 'high';
+
+export interface SignalView {
+  id: string;
+  origin: SignalOrigin;
+  source: string;
+  title: string;
+  url: string;
+  publishedAt: number;
+  summary: string;
+  rawExcerpt: string;
+  myTake: string;
+  tags: string[];
+  importance: SignalImportance;
+  createdAt: number;
+  dedupeKey: string;
+  dismissedAt?: number;
+}
+
 export interface AdminTicketRow {
   id: string;
   address: string | null;
@@ -1660,6 +1695,52 @@ export const api = {
   adminSupportClose: (id: string) =>
     json<{ ok: true }>(`/api/admin/support/${id}/close`, {
       method: 'POST',
+      headers: adminHeaders(),
+    }),
+  adminListTeamKeys: () =>
+    json<{ keys: TeamAccessKeyView[] }>('/api/admin/team-keys', { headers: adminHeaders() }),
+  // `rawKey` comes back exactly once. The backend does not store it, so if the
+  // caller drops it on the floor the only remedy is to issue a new key.
+  adminIssueTeamKey: (input: { label: string; member: string; role: 'dev' | 'marketing' }) =>
+    json<{ key: TeamAccessKeyView; rawKey: string; warning: string }>('/api/admin/team-keys', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify(input),
+    }),
+  adminRevokeTeamKey: (id: string) =>
+    json<{ key: TeamAccessKeyView; note: string }>(`/api/admin/team-keys/${id}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    }),
+  adminListSignals: (params: { origin?: SignalOrigin; includeDismissed?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.origin) qs.set('origin', params.origin);
+    if (params.includeDismissed) qs.set('includeDismissed', '1');
+    return json<{
+      signals: SignalView[];
+      limits: { excerptMax: number; importances: SignalImportance[]; origins: SignalOrigin[] };
+    }>(`/api/admin/signals?${qs.toString()}`, { headers: adminHeaders() });
+  },
+  // A repeat of something already in the pipeline comes back 200 with
+  // `duplicate: true` and the row it collided with, not an error.
+  adminDropSignal: (input: {
+    source: string;
+    title: string;
+    url?: string;
+    publishedOn?: string;
+    summary?: string;
+    rawExcerpt?: string;
+    myTake?: string;
+    tags?: string[];
+    importance?: SignalImportance;
+  }) =>
+    json<{ signal: SignalView; duplicate: boolean; merged: boolean; note?: string }>(
+      '/api/admin/signals',
+      { method: 'POST', headers: adminHeaders(), body: JSON.stringify(input) },
+    ),
+  adminDismissSignal: (id: string) =>
+    json<{ signal: SignalView }>(`/api/admin/signals/${id}`, {
+      method: 'DELETE',
       headers: adminHeaders(),
     }),
   adminWalletIntegrity: () =>

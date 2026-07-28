@@ -690,6 +690,10 @@ const envSchema = z.object({
   // tickets without the power to touch deals or accounts. Unset = no support-
   // only access (only the full admin token works).
   SUPPORT_API_TOKEN: optionalString,
+  // Semver of the canon the team MCP serves. Every verify response carries it,
+  // so a client that has drifted behind a canon release can say so instead of
+  // answering from stale facts. Bumped in lockstep with the canon package.
+  CANON_VERSION: z.preprocess(blankToUndefined, z.string().default('0.1.0')),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -61,6 +61,12 @@ RUN npm ci --omit=dev --workspace=backend --include-workspace-root \
 # Compiled output
 COPY --from=builder /app/backend/dist backend/dist
 
+# The release notes are read at boot and turned into signals for the newsletter
+# pipeline. They ship inside the image on purpose: the file can only change when
+# a new image is built, so what the running container reads always matches the
+# code it is running.
+COPY RELEASE_NOTES.md backend/RELEASE_NOTES.md
+
 # Standalone scripts that the host cron invokes via
 # `docker compose exec -T karwan-api node scripts/<name>.mjs`. Plain ESM,
 # no compile step. Keep small + use only deps already installed for the

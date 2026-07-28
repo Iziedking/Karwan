@@ -24,6 +24,8 @@ const NAV = [
   { href: '/admin/treasury', label: 'Treasury' },
   { href: '/admin/usyc', label: 'USYC' },
   { href: '/admin/feedback', label: 'Feedback' },
+  { href: '/admin/team-keys', label: 'Team keys' },
+  { href: '/admin/signals', label: 'Signals' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

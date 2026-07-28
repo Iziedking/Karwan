@@ -33,6 +33,9 @@ import { chatRoutes } from './routes/chat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
 import { adminDisputeRoutes } from './routes/adminDisputes.js';
+import { adminTeamKeyRoutes } from './routes/adminTeamKeys.js';
+import { adminSignalRoutes } from './routes/adminSignals.js';
+import { teamMcpRoutes } from './routes/teamMcp.js';
 import { supportTeamRoutes } from './routes/supportTeam.js';
 import { adminTreasuryRoutes } from './routes/adminTreasury.js';
 import { adminUsycRoutes } from './routes/adminUsyc.js';
@@ -65,6 +68,7 @@ import { startDealWatcher } from './agents/dealWatcher.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
+import { startReleaseWatcher } from './agents/releaseWatcher.js';
 import { startTrendScout } from './agents/trendScout.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
@@ -231,6 +235,9 @@ app.route('/api/admin', adminRoutes);
 app.route('/api/admin/disputes', adminDisputeRoutes);
 app.route('/api/admin/treasuries', adminTreasuryRoutes);
 app.route('/api/admin/usyc', adminUsycRoutes);
+app.route('/api/admin/team-keys', adminTeamKeyRoutes);
+app.route('/api/admin/signals', adminSignalRoutes);
+app.route('/api/team-mcp', teamMcpRoutes);
 app.route('/api/yield', yieldRoutes);
 app.route('/api/treasury', treasuryRoutes);
 app.route('/api/listings', listingsRoutes);
@@ -329,6 +336,11 @@ function bootAgents() {
     stopFns.push(startJobExpiryWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'job expiry watcher not started');
+  }
+  try {
+    stopFns.push(startReleaseWatcher());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'release watcher not started');
   }
   try {
     if (config.REPUTATION_RECONCILER_ENABLED) {
