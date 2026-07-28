@@ -6,7 +6,12 @@ import { eq } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { teamAccessKeys } from './schema.js';
 
-const STORE_PATH = resolve(process.cwd(), 'data', 'team-access-keys.json');
+/// Overridable so a test suite can own its own file. The runner gives each
+/// test file a process but not a filesystem, and a suite that snapshots and
+/// restores a shared store races every other suite that touches `data/`.
+const STORE_PATH = process.env.TEAM_KEYS_STORE_PATH
+  ? resolve(process.env.TEAM_KEYS_STORE_PATH)
+  : resolve(process.cwd(), 'data', 'team-access-keys.json');
 const scryptAsync = promisify(scrypt);
 
 /// Access keys for the team canon.

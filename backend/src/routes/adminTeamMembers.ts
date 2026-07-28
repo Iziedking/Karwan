@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import {
   createInvite,
+  reissueInvite,
   listInvites,
   revokeInvite,
   listMembers,
@@ -11,6 +12,7 @@ import {
 } from '../db/teamMembers.js';
 import { revokeForMember } from '../db/oauth.js';
 import { config } from '../config.js';
+import { sendTeamInviteEmail } from '../emails/teamInvite.js';
 import { logger } from '../logger.js';
 
 /// Inviting people and taking access away.
@@ -54,9 +56,12 @@ const inviteSchema = z.object({
 
 /// POST /api/admin/team-members/invites: invite somebody.
 ///
-/// The link comes back once and is not recoverable, same as a team key. The
-/// role is set here and the person redeeming it cannot change it, which is the
-/// entire reason invitations exist rather than open signup.
+/// The role is set here and the person redeeming it cannot change it, which is
+/// the entire reason invitations exist rather than open signup.
+///
+/// The link is emailed and also returned. Only its hash is stored, so it cannot
+/// be read back later, but that is a storage decision rather than a policy: if
+/// it goes missing, `/resend` mints a new one.
 adminTeamMemberRoutes.post('/invites', async (c) => {
   let body;
   try {
@@ -68,22 +73,60 @@ adminTeamMemberRoutes.post('/invites', async (c) => {
   try {
     const { invite, rawToken } = await createInvite(body);
     logger.info({ email: invite.email, role: invite.role }, 'team invite created');
-
-    return c.json({
-      invite: {
-        id: invite.id,
-        email: invite.email,
-        name: invite.name,
-        role: invite.role,
-        expiresAt: invite.expiresAt,
-      },
-      link: `${portalBase()}/team/invite?token=${encodeURIComponent(rawToken)}`,
-      warning: 'Send this link to them now. It is not stored and cannot be shown again.',
-    });
+    return c.json(await inviteResponse(invite, rawToken));
   } catch (e) {
     return c.json({ error: (e as Error).message }, 409);
   }
 });
+
+/// POST /api/admin/team-members/invites/:id/resend
+///
+/// Mints a fresh link for an invitation that already exists and emails it
+/// again. The previous link stops working, which is the point: this is for
+/// "they never got it" and "they lost it", and in both cases the old one
+/// should not still be lying around.
+adminTeamMemberRoutes.post('/invites/:id/resend', async (c) => {
+  const result = await reissueInvite(c.req.param('id'));
+  if (!result) return c.json({ error: 'no such pending invitation' }, 404);
+
+  logger.info({ email: result.invite.email }, 'team invite reissued');
+  return c.json(await inviteResponse(result.invite, result.rawToken));
+});
+
+/// One shape for both create and resend: email it, and hand the link back
+/// anyway. The email is a convenience, not a dependency. If Resend is
+/// unconfigured or rejects it, the admin still has a working link to pass on
+/// by whatever means they like.
+async function inviteResponse(
+  invite: { id: string; email: string; name: string; role: 'dev' | 'marketing'; expiresAt: number },
+  rawToken: string,
+) {
+  const link = `${portalBase()}/team/invite?token=${encodeURIComponent(rawToken)}`;
+  const days = Math.max(1, Math.round((invite.expiresAt - Date.now()) / 86_400_000));
+
+  const sent = await sendTeamInviteEmail({
+    to: invite.email,
+    name: invite.name,
+    role: invite.role,
+    inviteUrl: link,
+    expiresLabel: `This link works for ${days} day${days === 1 ? '' : 's'}`,
+  });
+
+  return {
+    invite: {
+      id: invite.id,
+      email: invite.email,
+      name: invite.name,
+      role: invite.role,
+      expiresAt: invite.expiresAt,
+    },
+    link,
+    emailed: sent.delivered,
+    note: sent.delivered
+      ? `Emailed to ${invite.email}. The link is here too if you would rather send it yourself.`
+      : `Not emailed (${sent.reason ?? 'unknown'}). Send this link to them yourself.`,
+  };
+}
 
 /// DELETE /api/admin/team-members/invites/:id: cancel an unredeemed invitation.
 adminTeamMemberRoutes.delete('/invites/:id', async (c) => {

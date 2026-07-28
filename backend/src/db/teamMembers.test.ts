@@ -29,6 +29,7 @@ const {
   checkInvite,
   redeemInvite,
   revokeInvite,
+  reissueInvite,
   listInvites,
   login,
   listMembers,
@@ -113,6 +114,43 @@ test('a tampered invite token is refused, and underscores in the secret survive'
   assert.equal((await checkInvite(`${token}x`)).reason, 'mismatch');
   assert.equal((await checkInvite('nonsense')).reason, 'malformed');
   assert.equal((await checkInvite('invite__')).reason, 'malformed');
+});
+
+test('a lost invite can be reissued, and the old link dies', async () => {
+  const first = await invited('dev');
+  const [invite] = await listInvites();
+  assert.ok(invite);
+
+  const again = await reissueInvite(invite.id);
+  assert.ok(again, 'a pending invite could not be reissued');
+  assert.notEqual(again.rawToken, first, 'reissue handed back the same token');
+
+  // The whole point: the old link stops working. This is used when somebody
+  // never received it or lost it, and in both cases the first one should not
+  // still be lying around in an inbox.
+  assert.equal((await checkInvite(first)).valid, false);
+  assert.equal((await checkInvite(again.rawToken)).valid, true);
+
+  // Same person, same role. Reissuing must not become a way to change either.
+  assert.equal(again.invite.email, invite.email);
+  assert.equal(again.invite.role, 'dev');
+  // And the clock restarts, or reissuing an expired link would produce another
+  // expired link.
+  assert.ok(again.invite.expiresAt > invite.expiresAt);
+
+  const redeemed = await redeemInvite(again.rawToken, GOOD_PASSWORD);
+  assert.equal(redeemed.ok, true);
+});
+
+test('a redeemed or unknown invite cannot be reissued', async () => {
+  const token = await invited();
+  const [invite] = await listInvites();
+  await redeemInvite(token, GOOD_PASSWORD);
+
+  // Once it has become an account, reissuing would be a way to mint a second
+  // password-setting link for somebody who already has one.
+  assert.equal(await reissueInvite(invite!.id), null);
+  assert.equal(await reissueInvite('no-such-invite'), null);
 });
 
 test('a weak password is refused before an account exists', async () => {

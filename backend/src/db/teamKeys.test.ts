@@ -1,7 +1,8 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, rmSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 /// The definition of done for team access keys: issue a key, use it, revoke it,
 /// and prove access dies.
@@ -19,19 +20,20 @@ assert.equal(
   'refusing to run: DATABASE_URL is set, which would run this against a real database',
 );
 
+// Its own store in a temp dir. Snapshotting and restoring the shared `data/`
+// file raced every other suite that touches it, which showed up as this file
+// failing intermittently in a full run and passing alone.
+const STORE_PATH = join(tmpdir(), `karwan-team-keys-${process.pid}.json`);
+process.env.TEAM_KEYS_STORE_PATH = STORE_PATH;
+
 const { issueTeamKey, verifyTeamKey, revokeTeamKey, listTeamKeys } = await import('./teamKeys.js');
 
-const STORE_PATH = resolve(process.cwd(), 'data', 'team-access-keys.json');
-let saved: string | null = null;
-
 before(() => {
-  saved = existsSync(STORE_PATH) ? readFileSync(STORE_PATH, 'utf8') : null;
   if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
 });
 
 after(() => {
-  if (saved !== null) writeFileSync(STORE_PATH, saved, 'utf8');
-  else if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
+  if (existsSync(STORE_PATH)) rmSync(STORE_PATH);
 });
 
 test('a key works, then stops working the moment it is revoked', async () => {
