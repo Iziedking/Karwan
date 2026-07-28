@@ -2872,7 +2872,10 @@ export async function proceedAgentNearMiss(
     description: '',
   });
   if (!bidRes.ok && bidRes.reason !== 'already-bid') {
-    return { ok: false, code: 'BID_FAILED', message: bidRes.reason };
+    // `message` is the classified one. `reason` is a code and was never fit to
+    // show anyone: it used to carry the raw chain error straight to the buyer's
+    // screen, which is how a contract label and a job id ended up in the UI.
+    return { ok: false, code: 'BID_FAILED', message: bidRes.message };
   }
 
   // Human explicitly chose to proceed with this near-miss seller; never let a

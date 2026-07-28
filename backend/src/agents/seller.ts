@@ -3,6 +3,12 @@ import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
 import { jobBoard, vault, getReservationBps } from '../chain/contracts.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
+import { classifyAgentError } from '../chain/errors.js';
+
+/// KarwanJobBoard.JobState. None=0, Posted=1, Accepted=2, Cancelled=3,
+/// Expired=4. Only Posted accepts a bid.
+const JOB_STATE_POSTED = 1;
+const JOB_STATE_ACCEPTED = 2;
 import { executeContractCall } from '../chain/txs.js';
 import { negotiationModel } from '../llm/client.js';
 import {
@@ -163,9 +169,53 @@ export async function submitListingBid(
     description: string;
     deadlineDays?: number;
   },
-): Promise<{ ok: true; txHash: string } | { ok: false; reason: string }> {
+): Promise<
+  | { ok: true; txHash: string }
+  // `reason` is a CODE for callers to branch on, never prose. `message` is the
+  // only field fit to show a person: the raw chain error is a contract label and
+  // a job id, which tells a seller nothing and tells everyone else too much.
+  | { ok: false; reason: string; message: string }
+> {
   const key = bidKey(job.jobId, seller.address);
-  if (activeBids.has(key)) return { ok: false, reason: 'already-bid' };
+  if (activeBids.has(key)) {
+    return { ok: false, reason: 'already-bid', message: 'This offer is already on the board.' };
+  }
+
+  // Is the job still open on chain?
+  //
+  // `submitBid` reverts JobNotOpen for anything past Posted, and the Circle SDK
+  // collapses that into a bare "tx FAILED", so without this read the caller
+  // cannot tell a closed job from a broken one. Worse, the listing sweep has no
+  // reason to stop: it rediscovers the same job every cycle and burns an LLM
+  // decision and a doomed transaction on it, indefinitely. One cheap read turns
+  // that loop into a skip.
+  //
+  // A read failure is not treated as closed. RPC blips happen, and refusing to
+  // bid because we could not check would cost real matches; the transaction is
+  // the backstop.
+  try {
+    const onChain = (await jobBoard.read.jobs([job.jobId as `0x${string}`])) as readonly unknown[];
+    const state = Number(onChain[4]);
+    if (state !== JOB_STATE_POSTED) {
+      logger.info(
+        { jobId: job.jobId, seller: seller.address, state },
+        'skipping listing bid: the job is no longer open on chain',
+      );
+      return {
+        ok: false,
+        reason: 'job-not-open',
+        message:
+          state === JOB_STATE_ACCEPTED
+            ? 'This request already has an accepted offer, so it can no longer be bid on.'
+            : 'This request is closed and can no longer be bid on.',
+      };
+    }
+  } catch (err) {
+    logger.warn(
+      { jobId: job.jobId, err: (err as Error).message },
+      'could not read job state before bidding; letting the transaction decide',
+    );
+  }
 
   // The on-chain bid deadline is the OFFER's acceptance validity (acceptBid
   // reverts BidExpired once it passes), not the delivery deadline (the brief's,
@@ -218,11 +268,16 @@ export async function submitListingBid(
     );
     return { ok: true, txHash: txResult.txHash };
   } catch (err) {
+    // The raw string goes to the log, where it is useful. What comes back is
+    // the classified message, because the Circle SDK collapses every contract
+    // revert into a bare "tx FAILED" and handing that to a seller is neither
+    // an explanation nor something we should be showing outside the building.
+    const info = classifyAgentError(err);
     logger.error(
-      { jobId: job.jobId, seller: seller.address, err: (err as Error).message },
+      { jobId: job.jobId, seller: seller.address, code: info.code, err: info.raw },
       'listing-driven submitBid failed',
     );
-    return { ok: false, reason: (err as Error).message };
+    return { ok: false, reason: info.code, message: info.message };
   }
 }
 

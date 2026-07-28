@@ -8,8 +8,13 @@ import {
   type Address,
 } from 'viem';
 import { z } from 'zod';
-import { jobBoard, readPostedJobId } from '../chain/contracts.js';
-import { publicClient, arcTestnet } from '../chain/client.js';
+import {
+  jobBoard,
+  readPostedJobId,
+  readUsdcBalance,
+  computeFunding,
+  getEscrowFeeBps,
+} from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
 import {
   getBuyerSnapshot,
@@ -70,7 +75,6 @@ const editBriefSchema = z
 const inFlight = new Set<string>();
 
 const USDC_DECIMALS = 6;
-const NATIVE_DECIMALS = arcTestnet.nativeCurrency.decimals;
 
 /// Deadline accepts either legacy `deadlineDays` (int 1-90) or the newer
 /// `deadlineSeconds` (60s to 90d). Frontend's deadline-unit picker sends
@@ -304,25 +308,50 @@ jobsRoutes.post('/', async (c) => {
     );
   }
 
+  // The money has to be in the agent wallet before the request goes up.
+  //
+  // A deal opens on the agent's balance, not the identity wallet's: when a
+  // seller accepts, the escrow pulls the deal amount plus the buyer's half of
+  // the platform fee straight from the agent. Posting first and discovering the
+  // shortfall at accept time is how a job ends up accepted on chain against an
+  // escrow that never funded, and the JobBoard has no way back from Accepted.
+  //
+  // So the check here uses the SAME arithmetic the escrow will use, rather than
+  // a budget plus a guessed half-dollar of headroom. It also reports the exact
+  // shortfall, so the client can offer funding instead of an error.
   try {
-    const balanceWei = await publicClient.getBalance({
-      address: buyerProfile.address as Address,
-    });
-    const balanceUsdc = Number(formatUnits(balanceWei, NATIVE_DECIMALS));
-    const headroom = body.budgetUsdc + 0.5;
-    if (balanceUsdc < headroom) {
+    const priceWei = parseUnits(String(body.budgetUsdc), USDC_DECIMALS);
+    const [agentBalance, feeBps] = await Promise.all([
+      readUsdcBalance(buyerProfile.address),
+      getEscrowFeeBps(),
+    ]);
+    const { fundedAmount } = computeFunding(priceWei, feeBps);
+    // Gas on Arc is USDC and a deal costs a handful of transactions, so leave
+    // room for them on top of what the escrow takes.
+    const required = fundedAmount + parseUnits('0.5', USDC_DECIMALS);
+
+    if (agentBalance < required) {
+      const shortfall = required - agentBalance;
       return c.json(
         {
           error: 'insufficient buyer balance',
-          detail: `Your buyer agent has ${balanceUsdc.toFixed(2)} USDC, this deal needs >= ${headroom.toFixed(2)} USDC (budget plus gas). Fund it from your profile page.`,
-          balanceUsdc,
+          code: 'FUND_BUYER_AGENT',
+          detail:
+            'Your buyer agent needs the funds before a request goes up, because the escrow is funded from it the moment a seller accepts.',
+          agentAddress: buyerProfile.address,
+          balanceUsdc: formatUnits(agentBalance, USDC_DECIMALS),
+          requiredUsdc: formatUnits(required, USDC_DECIMALS),
+          topUpNeededUsdc: formatUnits(shortfall, USDC_DECIMALS),
           budgetUsdc: body.budgetUsdc,
         },
         409,
       );
     }
   } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'balance precheck skipped');
+    // A read failure must not block posting. The accept-time pre-flight is the
+    // backstop, and refusing every post because an RPC blipped is worse than
+    // the shortfall this catches.
+    logger.warn({ err: (err as Error).message }, 'buyer agent balance precheck skipped');
   }
 
   // Audit L-1: the JobBoard now DERIVES jobId = keccak256(msg.sender, salt),
