@@ -8,6 +8,10 @@
 !backend/tsconfig.json
 !backend/src/**
 !scripts/**
+# The release watcher parses this at boot to turn shipped work into newsletter
+# signals. The Dockerfile copies it, and with `**` excluding everything by
+# default it has to be named here or the build fails on a file it cannot see.
+!RELEASE_NOTES.md
 
 # ---- Never include secrets or local-only state ----
 .env
