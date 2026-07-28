@@ -12,6 +12,7 @@ import type { POFinancingLine } from './poFinancing.js';
 import type { TeamAccessKey } from './teamKeys.js';
 import type { Signal } from './signals.js';
 import type { NewsletterIssue } from './newsletter.js';
+import type { TeamMember, TeamInvite } from './teamMembers.js';
 import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
@@ -321,6 +322,36 @@ export const teamAccessKeys = pgTable(
   },
   (t) => ({
     roleIdx: index('team_access_keys_role_idx').on(t.role),
+  }),
+);
+
+/// Team accounts. `email` is a column and unique because it is the login
+/// identifier, and two rows sharing one would make "who is this" ambiguous at
+/// the moment it matters most.
+export const teamMembers = pgTable(
+  'team_members',
+  {
+    id: text('id').primaryKey(),
+    email: text('email').notNull().unique(),
+    role: text('role').notNull(),
+    data: jsonb('data').$type<TeamMember>().notNull(),
+  },
+  (t) => ({
+    roleIdx: index('team_members_role_idx').on(t.role),
+  }),
+);
+
+/// Unredeemed invitations. The role travels on the invite, so redeeming one
+/// cannot change what it grants.
+export const teamInvites = pgTable(
+  'team_invites',
+  {
+    id: text('id').primaryKey(),
+    email: text('email').notNull(),
+    data: jsonb('data').$type<TeamInvite>().notNull(),
+  },
+  (t) => ({
+    emailIdx: index('team_invites_email_idx').on(t.email),
   }),
 );
 
