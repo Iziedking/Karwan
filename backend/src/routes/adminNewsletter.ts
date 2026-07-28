@@ -14,6 +14,8 @@ import { decide } from '../newsletter/collect.js';
 import { writeDraft, DraftFailed } from '../newsletter/draft.js';
 import { renderIssue } from '../newsletter/render.js';
 import { reviewDraft } from '../newsletter/checks.js';
+import { sendIssue, SendRefused } from '../newsletter/send.js';
+import { writeSocial, SocialFailed } from '../newsletter/social.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -194,6 +196,64 @@ adminNewsletterRoutes.post('/:id/approve', async (c) => {
     return c.json({ issue, note: 'Approved. Sending is a separate step and has not happened.' });
   } catch (e) {
     return c.json({ error: (e as Error).message }, 409);
+  }
+});
+
+/// POST /api/admin/newsletter/:id/send
+///
+/// Dry run unless `confirm=1` is on the query string. Not a body flag and not a
+/// default: sending is the one irreversible act in this system, and it should
+/// take a deliberate keystroke that reads as intent in a log.
+adminNewsletterRoutes.post('/:id/send', async (c) => {
+  const dryRun = c.req.query('confirm') !== '1';
+
+  try {
+    const result = await sendIssue(c.req.param('id'), { dryRun });
+    if (!result.sent) {
+      return c.json({
+        sent: false,
+        dryRun: true,
+        archiveUrl: result.archiveUrl,
+        warnings: result.warnings,
+        note: 'Nothing was sent. Add confirm=1 to send it for real.',
+      });
+    }
+    return c.json({
+      sent: true,
+      issue: result.issue,
+      broadcastId: result.broadcastId,
+      archiveUrl: result.archiveUrl,
+      announced: result.announced,
+      warnings: result.warnings,
+    });
+  } catch (e) {
+    const refused = e instanceof SendRefused;
+    if (!refused) logger.error({ err: (e as Error).message }, 'newsletter send failed');
+    return c.json({ error: (e as Error).message }, refused ? 409 : 500);
+  }
+});
+
+/// POST /api/admin/newsletter/:id/social?platform=x
+///
+/// Generates and returns. It does not queue to a platform and it cannot: there
+/// is no client and no token in the social module. The output is text somebody
+/// copies, which is the whole design for this phase.
+adminNewsletterRoutes.post('/:id/social', async (c) => {
+  const platform = c.req.query('platform');
+  if (platform !== 'x' && platform !== 'linkedin' && platform !== 'youtube') {
+    return c.json({ error: 'platform must be x, linkedin or youtube' }, 400);
+  }
+
+  const issue = await getIssue(c.req.param('id'));
+  if (!issue) return c.json({ error: 'unknown issue' }, 404);
+
+  try {
+    const draft = await writeSocial(issue, platform);
+    return c.json({ draft, note: 'Nothing was posted. Copy this where you want it.' });
+  } catch (e) {
+    const failed = e instanceof SocialFailed;
+    if (!failed) logger.error({ err: (e as Error).message }, 'social draft failed');
+    return c.json({ error: (e as Error).message }, failed ? 422 : 500);
   }
 });
 

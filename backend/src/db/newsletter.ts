@@ -66,6 +66,23 @@ export interface NewsletterIssue {
   rejectionNote?: string;
   /// Which model wrote it, so a bad run can be traced to a provider.
   draftedBy?: string;
+  /// Public archive path. Assigned once, at send, and never recomputed: the
+  /// subject can be edited before approval, and a url that moves after it has
+  /// been shared is a dead link in somebody's inbox.
+  slug?: string;
+}
+
+/// A stable, readable archive path. Date first so the archive sorts and so two
+/// issues with similar subjects cannot collide.
+export function slugFor(subject: string, at: Date): string {
+  const words = subject
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 8)
+    .join('-');
+  return `${at.toISOString().slice(0, 10)}-${words || 'issue'}`;
 }
 
 const STORE_PATH = process.env.NEWSLETTER_STORE_PATH
@@ -239,14 +256,30 @@ export async function markSent(id: string): Promise<NewsletterIssue | null> {
     throw new Error(`this issue is ${issue.status}, and only an approved issue can be sent`);
   }
 
+  const at = new Date();
   const next: NewsletterIssue = {
     ...issue,
     status: 'sent',
-    sentAt: Date.now(),
-    updatedAt: Date.now(),
+    sentAt: at.getTime(),
+    updatedAt: at.getTime(),
+    slug: issue.slug ?? slugFor(issue.subject, at),
   };
   await persist(next);
   return next;
+}
+
+/// Issues that have actually gone out. The only ones the public archive may
+/// serve: a draft reachable by url is a draft published by accident.
+export async function listSentIssues(limit = 50): Promise<NewsletterIssue[]> {
+  const all = await listIssues(200);
+  return all
+    .filter((i) => i.status === 'sent' && i.slug)
+    .sort((a, b) => (b.sentAt ?? 0) - (a.sentAt ?? 0))
+    .slice(0, limit);
+}
+
+export async function getSentIssueBySlug(slug: string): Promise<NewsletterIssue | null> {
+  return (await listSentIssues(200)).find((i) => i.slug === slug) ?? null;
 }
 
 async function persist(issue: NewsletterIssue): Promise<void> {

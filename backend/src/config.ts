@@ -709,6 +709,27 @@ const envSchema = z.object({
   /// Hard caps. Two a month unless overridden, and never twice in a day.
   NEWSLETTER_MAX_PER_MONTH: z.coerce.number().int().positive().default(2),
   NEWSLETTER_MIN_HOURS_BETWEEN: z.coerce.number().int().positive().default(24),
+  /// Resend segment for the newsletter. `audienceId` is deprecated in the
+  /// installed SDK (6.12.3) in favour of `segmentId`, so prefer this and fall
+  /// back to RESEND_AUDIENCE_ID, which is what the subscribe box writes to.
+  RESEND_SEGMENT_ID: optionalString,
+  /// Sender for the newsletter, separate from RESEND_FROM. A marketing spam
+  /// complaint against the newsletter must not be able to poison delivery of
+  /// sign-in codes, and shared reputation is how that happens. Falls back to
+  /// RESEND_FROM so a single-domain setup still works.
+  NEWSLETTER_FROM: optionalString,
+  /// Public base for archived issues, used in the "view in browser" link and in
+  /// the Telegram announcement.
+  NEWSLETTER_ARCHIVE_BASE: z.preprocess(
+    blankToUndefined,
+    z.string().default('https://karwan.site/newsletter'),
+  ),
+  /// Where a new issue is announced. Unset means no announcement, which is a
+  /// degraded send rather than a failed one.
+  ANNOUNCE_TELEGRAM_CHAT_ID: z.preprocess(
+    blankToUndefined,
+    z.coerce.number().int().optional(),
+  ),
 });
 
 const parsed = envSchema.safeParse(process.env);

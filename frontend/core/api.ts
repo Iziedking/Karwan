@@ -1837,6 +1837,56 @@ export const api = {
       method: 'POST',
       headers: adminHeaders(),
     }),
+  // Dry run unless `confirm` is true. Sending is the one irreversible act in
+  // this system, so the safe call is the one you get by default.
+  adminSendNewsletter: (id: string, confirm = false) =>
+    json<{
+      sent: boolean;
+      dryRun?: boolean;
+      archiveUrl: string;
+      announced?: boolean;
+      warnings: string[];
+      note?: string;
+    }>(`/api/admin/newsletter/${id}/send${confirm ? '?confirm=1' : ''}`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    }),
+  adminSocialDraft: (id: string, platform: 'x' | 'linkedin' | 'youtube') =>
+    json<{
+      draft: {
+        platform: string;
+        posts: string[];
+        chapters?: string[];
+        shotList?: string[];
+        findings: DraftFinding[];
+      };
+      note: string;
+    }>(`/api/admin/newsletter/${id}/social?platform=${platform}`, {
+      method: 'POST',
+      headers: adminHeaders(),
+    }),
+  newsletterArchive: () =>
+    json<{
+      issues: Array<{
+        slug: string;
+        subject: string;
+        preheader: string;
+        sentAt: number;
+        monthInReview: boolean;
+      }>;
+    }>('/api/newsletter/archive'),
+  newsletterIssue: (slug: string) =>
+    json<{
+      issue: {
+        slug: string;
+        subject: string;
+        preheader: string;
+        sentAt: number;
+        monthInReview: boolean;
+        sections: Array<{ heading: string; body: string }>;
+        sources: Array<{ title: string; url: string; source: string; publishedAt: number }>;
+      };
+    }>(`/api/newsletter/archive/${slug}`),
   adminRejectNewsletter: (id: string, note: string) =>
     json<{ issue: NewsletterIssue; note: string }>(`/api/admin/newsletter/${id}/reject`, {
       method: 'POST',

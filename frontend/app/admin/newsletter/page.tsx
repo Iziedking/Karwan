@@ -69,6 +69,13 @@ export default function AdminNewsletterPage() {
     rendered: { html: string; text: string };
     review: { findings: DraftFinding[]; clean: boolean };
   } | null>(null);
+  const [socialDraft, setSocialDraft] = useState<{
+    platform: string;
+    posts: string[];
+    chapters?: string[];
+    shotList?: string[];
+    findings: DraftFinding[];
+  } | null>(null);
   const [editing, setEditing] = useState(false);
   const [draftSubject, setDraftSubject] = useState('');
   const [draftSections, setDraftSections] = useState<IssueSection[]>([]);
@@ -90,6 +97,7 @@ export default function AdminNewsletterPage() {
     setOpen(id);
     setEditing(false);
     setPreview(null);
+    setSocialDraft(null);
     try {
       const r = await api.adminNewsletterPreview(id);
       setPreview(r);
@@ -137,6 +145,43 @@ export default function AdminNewsletterPage() {
       openIssue(id);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : 'Could not approve');
+    }
+  }
+
+  async function send(id: string, confirm: boolean) {
+    if (confirm) {
+      // Typed, not clicked. This is the only irreversible action in the panel
+      // and a confirm dialog is a thing people dismiss without reading.
+      const typed = window.prompt('This sends to every subscriber and cannot be undone. Type SEND to confirm.');
+      if (typed !== 'SEND') return;
+    }
+    setBusy(true);
+    try {
+      const r = await api.adminSendNewsletter(id, confirm);
+      setNotice(
+        r.sent
+          ? `Sent. Archived at ${r.archiveUrl}${r.announced ? ' and announced on Telegram.' : '.'}`
+          : `${r.note} ${r.warnings.join(' ')}`,
+      );
+      load();
+      openIssue(id);
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'The send failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function social(id: string, platform: 'x' | 'linkedin' | 'youtube') {
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await api.adminSocialDraft(id, platform);
+      setSocialDraft(r.draft);
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : `Could not write the ${platform} draft`);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -304,8 +349,100 @@ export default function AdminNewsletterPage() {
                         </button>
                       </>
                     )}
+
+                    {preview.issue.status === 'approved' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => send(preview.issue.id, false)}
+                          disabled={busy}
+                          className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white disabled:opacity-40"
+                        >
+                          Dry run
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => send(preview.issue.id, true)}
+                          disabled={busy}
+                          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 rounded-lg bg-[#AFC95B] text-[#0e0e0e] disabled:opacity-40"
+                        >
+                          Send for real
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
+
+                {preview.issue.status === 'sent' && (
+                  <div className="mt-3">
+                    <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/35">
+                      Sent · archived
+                    </p>
+                    <div className="mt-2 flex gap-2 flex-wrap">
+                      {(['x', 'linkedin', 'youtube'] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => social(preview.issue.id, p)}
+                          disabled={busy}
+                          className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white disabled:opacity-40"
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-white/30">
+                      Generates text to copy. Nothing is posted anywhere.
+                    </p>
+                  </div>
+                )}
+
+                {socialDraft && (
+                  <div className="mt-4 border border-white/10 rounded-lg p-3 bg-[#0e0e0e]">
+                    <p className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                      {socialDraft.platform}
+                    </p>
+                    <div className="mt-2 space-y-2">
+                      {socialDraft.posts.map((post, i) => (
+                        <pre
+                          key={i}
+                          className="whitespace-pre-wrap text-[13px] text-white/80 border-l-2 border-white/15 pl-3 font-sans"
+                        >
+                          {post}
+                        </pre>
+                      ))}
+                    </div>
+                    {socialDraft.chapters && (
+                      <>
+                        <p className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                          Chapters
+                        </p>
+                        <ul className="mt-1 text-[12px] text-white/60 space-y-0.5">
+                          {socialDraft.chapters.map((ch, i) => (
+                            <li key={i}>{ch}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {socialDraft.shotList && (
+                      <>
+                        <p className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                          Shot list
+                        </p>
+                        <ul className="mt-1 text-[12px] text-white/60 space-y-0.5">
+                          {socialDraft.shotList.map((shot, i) => (
+                            <li key={i}>{shot}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {socialDraft.findings.length > 0 && (
+                      <div className="mt-3">
+                        <Findings findings={socialDraft.findings} />
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {preview.issue.rejectionNote && (
                   <p className="mt-3 text-[12px] text-white/60 border-l-2 border-[#e0794f] pl-3">
