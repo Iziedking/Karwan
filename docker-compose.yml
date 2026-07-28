@@ -124,6 +124,14 @@ services:
       KARWAN_BACKEND_URL: http://karwan-api:8787
       # Per key, per minute. Generous for a person, thin for a drained key.
       KARWAN_MCP_RATE_LIMIT: "120"
+      # This server's own identity, and the audience every OAuth token is
+      # checked against. Public address, because clients and browsers see it.
+      KARWAN_MCP_RESOURCE: https://mcp.karwan.site/mcp
+      KARWAN_OAUTH_ISSUER: https://api.karwan.site
+      # The credential this container presents to /oauth/introspect. Same value
+      # the backend checks it against, read from the one .env so it is written
+      # once. Unset means OAuth tokens are refused and team keys still work.
+      KARWAN_INTROSPECT_TOKEN: ${OAUTH_INTROSPECT_TOKEN:-}
     depends_on:
       karwan-api:
         condition: service_healthy
