@@ -26,10 +26,16 @@ mcp.karwan.site {
     @bad-method method TRACE CONNECT
     respond @bad-method 405
 
-    # Nothing but the MCP endpoint and its healthcheck is served here. A path
-    # that does not exist should look like it does not exist, rather than
-    # reaching an app that then has to decide.
-    @allowed path /mcp /health
+    # Nothing but the MCP endpoint, its healthcheck and OAuth discovery is
+    # served here. A path that does not exist should look like it does not
+    # exist, rather than reaching an app that then has to decide.
+    #
+    # The .well-known paths are NOT optional. A client that cannot fetch the
+    # protected resource metadata never learns where to authorize, and reports
+    # it as "could not register with the sign-in service" with nothing in our
+    # logs, because the request never reached the app. This allowlist was
+    # written before the OAuth flow existed and silently blocked it.
+    @allowed path /mcp /health /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/*
     handle @allowed {
         reverse_proxy karwan-team-mcp:8790 {
             # Streamable HTTP can answer as SSE, so no buffering.

@@ -208,6 +208,38 @@ export async function redeemInvite(
   return { ok: true, member };
 }
 
+/// Mint a fresh token for an invitation that already exists.
+///
+/// The link is shown once at creation because only its hash is stored, which is
+/// what keeps a database dump from being a set of working invitations. That
+/// makes "I lost the link" unanswerable, so this answers it instead: a new
+/// secret for the same invitation, same person, same role, and the old link
+/// stops working immediately.
+///
+/// Not a security hole. Anyone who can call this already has admin access and
+/// could simply create another invitation; the only thing being avoided is a
+/// pointless round of revoke-and-recreate.
+export async function reissueInvite(
+  id: string,
+): Promise<{ invite: TeamInvite; rawToken: string } | null> {
+  const existing = await getInvite(id);
+  if (!existing || existing.redeemedAt) return null;
+
+  const secret = randomBytes(32).toString('base64url');
+  const salt = randomBytes(16).toString('hex');
+  const invite: TeamInvite = {
+    ...existing,
+    tokenHash: await hash(secret, salt),
+    salt,
+    // The clock restarts. A link reissued because the first expired that is
+    // itself already expired would be a joke.
+    expiresAt: Date.now() + INVITE_TTL_MS,
+  };
+
+  await persistInvite(invite);
+  return { invite, rawToken: `invite_${id}_${secret}` };
+}
+
 export async function listInvites(): Promise<TeamInvite[]> {
   const all = pgEnabled
     ? (await db().select().from(teamInvites)).map((r) => r.data)

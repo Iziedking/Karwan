@@ -13,7 +13,7 @@ import {
 import type { TeamRole } from '../db/teamKeys.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { page, escapeHtml } from '../ui/shell.js';
+import { page, escapeHtml, copyable } from '../ui/shell.js';
 
 /// The team portal.
 ///
@@ -142,7 +142,7 @@ in, then it can read the Karwan canon: what we have shipped, what we have not,
 how we write, and the brand rules. It answers from that instead of guessing,
 which is the difference between copy that is right and copy that sounds right.</p>
 
-<pre>${escapeHtml(mcpUrl)}</pre>
+${copyable(mcpUrl)}
 
 <div class="step">
   <h2>Claude app (desktop or web)</h2>
@@ -166,21 +166,14 @@ which is the difference between copy that is right and copy that sounds right.</
 <div class="step">
   <h2>Claude Code</h2>
   <p>One command, then follow the browser prompt:</p>
-  <pre>claude mcp add --transport http karwan ${escapeHtml(mcpUrl)}</pre>
+  ${copyable(`claude mcp add --transport http karwan ${mcpUrl}`)}
 </div>
 
 <div class="step">
   <h2>Codex, Cursor, or anything else</h2>
   <p>Anything that speaks MCP over HTTP works. Give it this, and it will handle
   the sign-in itself:</p>
-  <pre>{
-  "mcpServers": {
-    "karwan": {
-      "type": "http",
-      "url": "${escapeHtml(mcpUrl)}"
-    }
-  }
-}</pre>
+  ${copyable(JSON.stringify({ mcpServers: { karwan: { type: 'http', url: mcpUrl } } }, null, 2))}
 </div>
 
 <h2>What to ask it</h2>

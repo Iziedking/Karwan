@@ -52,15 +52,65 @@ const STYLE = `
   .tag { font:700 9px/1 ui-monospace,Menlo,monospace; letter-spacing:.14em;
     text-transform:uppercase; padding:5px 8px; border-radius:6px;
     border:1px solid rgba(255,255,255,.15); color:rgba(244,244,241,.55); }
-  pre { margin:0 0 8px; padding:14px 16px; border-radius:11px; background:#0E0E0E;
+  pre { margin:0; padding:14px 16px; border-radius:11px; background:#0E0E0E;
     border:1px solid rgba(255,255,255,.10); overflow-x:auto;
     font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; color:#F4F4F1; }
+  .copy { position:relative; margin:0 0 8px; }
+  .copy pre { padding-right:88px; }
+  .copy button { position:absolute; top:8px; right:8px; padding:7px 10px;
+    background:rgba(255,255,255,.08); color:rgba(244,244,241,.75);
+    border:1px solid rgba(255,255,255,.14); font-size:10px; letter-spacing:.1em; }
+  .copy button:hover { background:rgba(255,255,255,.14); color:#F4F4F1; }
+  .copy button[data-done="1"] { background:rgba(175,201,91,.16); color:#AFC95B;
+    border-color:rgba(175,201,91,.4); }
   ol { margin:0 0 16px; padding-left:20px; font-size:14px; color:rgba(244,244,241,.62); }
   li { margin:0 0 8px; }
   .step { border-left:2px solid rgba(175,201,91,.4); padding-left:16px; margin:0 0 28px; }
   .foot { margin:32px 0 0; font-size:12px; color:rgba(244,244,241,.32); }
   a { color:#AFC95B; }
 `;
+
+/// A code block with a copy button.
+///
+/// The text lives in the markup rather than in a data attribute, so the button
+/// copies exactly what is on screen. Reading it back from the DOM means the two
+/// can never drift, which is the failure that matters here: a member pasting a
+/// URL that differs from the one they were shown has no way to tell.
+export function copyable(text: string): string {
+  return `<div class="copy"><pre>${escapeHtml(text)}</pre>
+<button type="button" class="js-copy">Copy</button></div>`;
+}
+
+/// Progressive enhancement, deliberately. Without JavaScript the block is still
+/// selectable text, which is what it was before the button existed.
+const COPY_SCRIPT = `
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.js-copy');
+  if (!btn) return;
+  var pre = btn.parentElement.querySelector('pre');
+  if (!pre) return;
+  var done = function () {
+    btn.textContent = 'Copied';
+    btn.dataset.done = '1';
+    setTimeout(function () { btn.textContent = 'Copy'; delete btn.dataset.done; }, 1600);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(pre.textContent).then(done).catch(function () { select(pre); });
+  } else {
+    select(pre);
+  }
+  function select(el) {
+    // Clipboard access is blocked without a secure context or permission.
+    // Selecting the text is a downgrade, not a failure: the person can still
+    // copy it themselves with one keystroke.
+    var r = document.createRange();
+    r.selectNodeContents(el);
+    var s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+    btn.textContent = 'Press Ctrl+C';
+  }
+});`;
 
 export function page(title: string, body: string, opts: { status?: number; center?: boolean } = {}) {
   const inner = opts.center
@@ -72,7 +122,8 @@ export function page(title: string, body: string, opts: { status?: number; cente
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${escapeHtml(title)} · Karwan</title>
-<style>${STYLE}</style></head><body>${inner}</body></html>`,
+<style>${STYLE}</style></head><body>${inner}
+<script>${COPY_SCRIPT}</script></body></html>`,
     {
       status: opts.status ?? 200,
       headers: {
