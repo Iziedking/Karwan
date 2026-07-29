@@ -868,6 +868,50 @@ export interface NetworkOnchainDayPoint {
   refunded: number;
 }
 
+/// One contract generation's share of the all-time totals. USDC fields are
+/// decimal strings, matching the top-level `volumes`.
+export interface LifetimeContract {
+  name: string;
+  address: string;
+  deployBlock: string;
+  scannedTo: string;
+  events: number;
+  undecodedEvents: number;
+  deals: number;
+  fundedUsdc: string;
+  releasedUsdc: string;
+  settledUsdc: string;
+  refundedUsdc: string;
+  feesUsdc: string;
+  firstActivityBlock: string | null;
+  lastActivityBlock: string | null;
+}
+
+/// All-time totals across every contract generation, including retired ones.
+/// Distinct from NetworkOnchainStats, which covers only the currently
+/// configured contracts and resets to zero on each redeploy.
+export interface LifetimeStats {
+  fromBlock: string;
+  toBlock: string;
+  totals: {
+    contracts: number;
+    contractsWithActivity: number;
+    transactions: number;
+    events: number;
+    undecodedEvents: number;
+    deals: number;
+  };
+  volumes: {
+    fundedUsdc: string;
+    releasedUsdc: string;
+    settledUsdc: string;
+    refundedUsdc: string;
+    feesUsdc: string;
+  };
+  contracts: LifetimeContract[];
+  scannedAt: number;
+}
+
 export interface NetworkOnchainStats {
   fromBlock: string;
   toBlock: string;
@@ -1553,6 +1597,11 @@ export const api = {
   /// reasonable wait.
   networkOnchain: (init?: RequestInit) =>
     json<NetworkOnchainStats>('/api/network/onchain', init),
+  /// All-time totals across every contract generation ever deployed, retired
+  /// ones included. Served from a snapshot the backend seeds with an ops
+  /// script, so this is a fast read; it 503s until that first scan has run.
+  networkLifetime: (init?: RequestInit) =>
+    json<LifetimeStats>('/api/network/lifetime', init),
   /// Finance-lane (business) jobIds. The /activity page strips these events to
   /// bare on the public feed: the event still shows, the amount and parties do
   /// not. Business trade is sensitive, so only the fact of activity is public.
