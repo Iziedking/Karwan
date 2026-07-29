@@ -41,7 +41,11 @@ function resolveWssUrls(): string[] {
   return urls;
 }
 
-const RPC_URLS = resolveRpcUrls();
+/// Exported so the historical scan can pick which endpoints it is able to use.
+/// Providers differ enormously in the getLogs block range they allow (a free
+/// tier can be capped at ten blocks), and a wide sweep has to route around the
+/// narrow ones rather than fail on them. Read-only: nothing should mutate this.
+export const RPC_URLS = resolveRpcUrls();
 const WSS_URLS = resolveWssUrls();
 
 export const arcTestnet = defineChain({

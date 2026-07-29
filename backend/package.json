@@ -11,6 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
+    "scan:lifetime": "tsx --env-file=../.env src/scripts/scan-lifetime.ts",
     "check:events-projection": "tsx src/scripts/events-projection-check.ts",
   "solana:bridge-smoke": "tsx --env-file=../.env src/scripts/solana-bridge-smoke.ts",
   "solana:wallet": "tsx --env-file=../.env src/scripts/solana-provision-wallet.ts",

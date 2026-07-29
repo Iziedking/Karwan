@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { getNetworkStats } from '../chain/networkStats.js';
+import { getLifetimeStats } from '../chain/lifetimeStats.js';
 import { config } from '../config.js';
 
 export const networkRoutes = new Hono();
@@ -32,4 +33,27 @@ networkRoutes.get('/onchain', async (c) => {
       502,
     );
   }
+});
+
+/// All-time totals, across every contract generation rather than only the ones
+/// currently in the env. `/onchain` above resets to zero on each redeploy by
+/// design; this one does not, and the two must never be confused for each
+/// other.
+///
+/// Serves only what the seed scan has already produced. The first seed sweeps
+/// ~87M blocks and takes minutes, so it belongs to `ops/scanLifetime.ts` and
+/// not to whoever happens to load the page first: a 503 saying "not scanned
+/// yet" is a better answer than a request that hangs for four minutes.
+networkRoutes.get('/lifetime', async (c) => {
+  const stats = await getLifetimeStats();
+  if (!stats) {
+    return c.json(
+      {
+        error: 'lifetime stats not scanned yet',
+        detail: 'run `npm run scan:lifetime` in backend to produce the first snapshot',
+      },
+      503,
+    );
+  }
+  return c.json(stats);
 });
