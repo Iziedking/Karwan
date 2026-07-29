@@ -1,0 +1,30 @@
+# Karwan security contact, per RFC 9116.
+#
+# Karwan settles real trades against on-chain escrow. If you have found a way to
+# move money that should not move, to read a deal you are not party to, or to
+# act as somebody else, we want to hear it before anyone else does.
+#
+# Served from https://karwan.site/.well-known/security.txt
+
+# support@ is a monitored Google Workspace address and every mail to it opens a
+# ticket. Put SECURITY in the subject so it is triaged ahead of the queue.
+# Deliberately not a security@ alias: an address nobody has created yet bounces,
+# and a researcher who gets a bounce goes public instead of waiting.
+Contact: mailto:support@karwan.site
+Contact: https://karwan.site/feedback
+
+# Refresh this before the date below. An expired security.txt is treated as
+# stale by scanners and by the researchers who read it, which defeats the point
+# of publishing one.
+Expires: 2027-07-29T00:00:00.000Z
+
+Preferred-Languages: en
+Canonical: https://karwan.site/.well-known/security.txt
+
+# In scope: karwan.site, api.karwan.site, mcp.karwan.site, and the contracts
+# deployed on Arc Testnet.
+#
+# Please do not run automated scanners against the deal or escrow paths. Karwan
+# runs on a testnet, so the funds are not real, but a flooded escrow is still a
+# broken demo for everyone else testing that day. Tell us and we will give you a
+# funded account to work against.
