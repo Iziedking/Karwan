@@ -86,12 +86,23 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
         </ul>`
     : '';
 
+  // One table row holding the whole issue.
+  //
+  // `brandedEmailHtml` injects this straight into the card's own <table>, so it
+  // has to be <tr> rows. Loose <p> and <h2> tags are invalid there and every
+  // client hoists them out, which renders the issue OUTSIDE the white card,
+  // full bleed and running off the edge of a phone. The 28px horizontal padding
+  // matches the shell's other rows so the text lines up under the wordmark.
   const inner = `
-        <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#6B6B6B;">${escapeHtml(
-          issue.preheader,
-        )}</p>
-        ${sections}
-        ${sources}`;
+          <tr>
+            <td style="padding:6px 28px 28px 28px;">
+              <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#6B6B6B;">${escapeHtml(
+                issue.preheader,
+              )}</p>
+              ${sections}
+              ${sources}
+            </td>
+          </tr>`;
 
   return {
     subject: issue.subject,

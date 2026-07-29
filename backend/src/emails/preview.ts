@@ -115,3 +115,46 @@ console.log('Open in a browser. Toggle OS dark mode + refresh to see the dark fa
   );
   console.log('wrote docs/email-previews/team-invite.html');
 }
+
+// A newsletter issue. Same trap as the invite: the body is injected into the
+// card's table, so anything that is not a <tr> gets hoisted out of the card.
+{
+  const { renderIssue } = await import('../newsletter/render.js');
+  const rendered = renderIssue({
+    id: 'preview',
+    status: 'draft',
+    subject: 'A PO financier reclaimed the principal while the advance stayed locked',
+    preheader: 'We fixed the defect. Collateral now grades by reputation. Factoring is opt-in.',
+    sections: [
+      {
+        key: 'shipped',
+        heading: 'What we shipped',
+        body: '**The old PO rail held a fatal design flaw.** At fund time the financier owned the deal\u2019s receivable, while the supplier\u2019s advance sat in contract custody, released only when proof of delivery hit the registry.\n\nHow much collateral a supplier posts now comes from their [reputation tier](https://karwan.site/credit-passport), not the financier guessing.',
+        signalIds: [],
+      },
+      {
+        key: 'ecosystem',
+        heading: 'What moved on Arc and Circle',
+        body: '- Gateway now covers Solana, which widens the pool we already route through\n- A second item, to check list rendering inside the card',
+        signalIds: [],
+      },
+    ],
+    sources: [
+      {
+        signalId: 's1',
+        title: 'Unified balance covers Solana',
+        url: 'https://docs.arc.network/app-kit/unified-balance',
+        source: 'Arc docs',
+        publishedAt: Date.UTC(2026, 6, 24),
+      },
+    ],
+    signalIds: [],
+    from: 0,
+    to: 1,
+    monthInReview: false,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+  writeFileSync(resolve(OUT_DIR, 'newsletter-issue.html'), rendered.html, 'utf8');
+  console.log('wrote docs/email-previews/newsletter-issue.html');
+}
