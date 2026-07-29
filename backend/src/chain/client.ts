@@ -6,6 +6,7 @@ import {
   webSocket,
   type Abi,
   type Log,
+  type Transport,
 } from 'viem';
 import { config } from '../config.js';
 
@@ -93,6 +94,51 @@ const httpTransports = RPC_URLS.map((url) =>
   }),
 );
 
+/// Hostnames only, never the full URL. QuikNode, Alchemy and Canteen all carry
+/// the API key in the path, and this string ends up in logs, in the admin error
+/// feed, and in the LLM diagnosis the supervisor writes.
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return 'unparseable-rpc-url';
+  }
+}
+
+const RPC_HOSTS = RPC_URLS.map(hostOf);
+
+/// Say that every endpoint was tried, not just the one that spoke last.
+///
+/// `fallback` rotates through the transports and, when they all fail, throws
+/// the LAST error. On its own that reads as though the last provider is broken,
+/// which is how an incident where the first two endpoints were out of quota got
+/// diagnosed as "upgrade your dRPC plan". dRPC was simply last in the list.
+///
+/// The original error object is rethrown, not replaced: `classifyAgentError`
+/// and the contract-revert paths match on viem's error types and messages, and
+/// swapping in a plain Error would quietly break both. Only the message is
+/// enriched, and only once, so a retry does not stack the prefix.
+const ALL_FAILED = `all ${RPC_HOSTS.length} Arc RPC endpoints failed`;
+
+export function withEndpointContext(transport: Transport): Transport {
+  return (opts) => {
+    const inner = transport(opts);
+    return {
+      ...inner,
+      async request(args: Parameters<typeof inner.request>[0]) {
+        try {
+          return await inner.request(args);
+        } catch (err) {
+          if (err instanceof Error && !err.message.includes(ALL_FAILED)) {
+            err.message = `${ALL_FAILED} (${RPC_HOSTS.join(' then ')}). The error below is from the LAST endpoint tried and is not necessarily the cause; check the earlier ones before blaming it.\n${err.message}`;
+          }
+          throw err;
+        }
+      },
+    } as ReturnType<Transport>;
+  };
+}
+
 /// Shared Arc transport: a single http() when only one RPC is configured,
 /// otherwise a fallback() that rotates on any per-transport error. Exported so
 /// write paths (the USYC wrap signer) ride the same fallback as reads instead of
@@ -100,11 +146,13 @@ const httpTransports = RPC_URLS.map((url) =>
 export const arcTransport =
   httpTransports.length === 1
     ? httpTransports[0]!
-    : fallback(httpTransports, {
-        rank: false,
-        retryCount: 0,
-        shouldThrow: () => false,
-      });
+    : withEndpointContext(
+        fallback(httpTransports, {
+          rank: false,
+          retryCount: 0,
+          shouldThrow: () => false,
+        }),
+      );
 
 export const publicClient = createPublicClient({
   chain: arcTestnet,
