@@ -95,3 +95,23 @@ console.log(`  ${otpPath}`);
 console.log(`  ${invitePath}`);
 console.log('');
 console.log('Open in a browser. Toggle OS dark mode + refresh to see the dark fallback.');
+
+// Team invitation. The long invite URL is the interesting part: it is one
+// unbreakable ~130 character string, which is exactly what blows a fixed-width
+// email card open on a phone. Preview at a narrow viewport, not just desktop.
+{
+  const { teamInvitePreviewHtml } = await import('./teamInvite.js');
+  writeFileSync(
+    resolve(OUT_DIR, 'team-invite.html'),
+    teamInvitePreviewHtml({
+      to: 'israel@karwan.site',
+      name: 'Israel',
+      role: 'marketing',
+      inviteUrl:
+        'https://api.karwan.site/team/invite?token=invite_583043c2-c080-46cd-8039-6f18d7f5b32d_8jsIN0yy7amuXRenZiYzoFQcbLa40p_A6xiVW7iw5Og',
+      expiresLabel: 'This link works for 7 days',
+    }),
+    'utf8',
+  );
+  console.log('wrote docs/email-previews/team-invite.html');
+}

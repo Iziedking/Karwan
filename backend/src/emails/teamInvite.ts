@@ -21,32 +21,73 @@ export interface SendResult {
 }
 
 function inner(input: TeamInviteEmailInput): string {
+  const url = escapeHtml(input.inviteUrl);
+
+  // `inner` is injected directly inside the card's own <table>, so it MUST be
+  // a sequence of <tr> rows. Returning a <table> here is invalid nesting: every
+  // client hoists it out, and the body renders outside the white card, full
+  // bleed, running off the edge of a phone. The 28px horizontal padding matches
+  // the shell's other rows so the text lines up with the wordmark above it.
+  //
+  // The invite URL is ~130 characters with no spaces, and an unbreakable string
+  // like that widens a table past its own max-width. `word-break` on the cell
+  // that holds it is what contains it; the same rule on an inline span is
+  // widely ignored.
   return `
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:#0E0E0E;">
-      ${escapeHtml(input.name)}, you have been given access to Karwan's canon:
-      what we have shipped, how we write, and the brand rules.
-    </p>
-    <p style="margin:0 0 24px;font-size:15px;line-height:1.65;color:#0E0E0E;">
-      Set a password and you can connect it to the Claude app, ChatGPT, or
-      whatever you already use, so it writes from what is actually true about
-      the product instead of guessing.
-    </p>
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-      <tr><td style="border-radius:10px;background:#0E0E0E;">
-        <a href="${escapeHtml(input.inviteUrl)}"
-           style="display:inline-block;padding:13px 26px;font-size:14px;font-weight:700;
-                  color:#F4F4F1;text-decoration:none;">Set up my account</a>
-      </td></tr>
-    </table>
-    <p style="margin:0 0 8px;font-size:13px;line-height:1.6;color:#6B6B6B;">
-      ${escapeHtml(input.expiresLabel)}. You are joining as
-      <strong>${escapeHtml(input.role)}</strong>, which decides what the canon
-      shows you.
-    </p>
-    <p style="margin:0;font-size:13px;line-height:1.6;color:#6B6B6B;">
-      If the button does not work, paste this into your browser:<br>
-      <span style="word-break:break-all;">${escapeHtml(input.inviteUrl)}</span>
-    </p>`;
+          <tr>
+            <td style="padding:6px 28px 16px 28px;font-size:15px;line-height:1.65;color:#0e0e0e;">
+              ${escapeHtml(input.name)}, you now have access to Karwan's canon:
+              what we have shipped, what we have not, how we write, and the
+              brand rules.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 24px 28px;font-size:15px;line-height:1.65;color:#0e0e0e;">
+              Set a password, then connect it to the Claude app, ChatGPT, or
+              whatever you already use. It will write from what is actually true
+              about the product instead of guessing.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 20px 28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-radius:10px;background:#0e0e0e;">
+                    <a href="${url}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#f4f4f1;text-decoration:none;">Set up my account</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 20px 28px;font-size:13px;line-height:1.6;color:#8a8478;">
+              ${escapeHtml(input.expiresLabel)}. You are joining as
+              <strong style="color:#0e0e0e;">${escapeHtml(input.role)}</strong>,
+              which decides what the canon shows you.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 28px 28px;">
+              <div style="border-top:1px solid #e6e2d8;padding-top:16px;font-size:12px;line-height:1.6;color:#8a8478;">
+                Button not working? Paste this in:
+              </div>
+              <div style="margin-top:8px;padding:10px 12px;background:#f7f5f0;border:1px solid #e6e2d8;border-radius:8px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;line-height:1.55;color:#6b6b6b;word-break:break-all;">
+                <a href="${url}" style="color:#6b6b6b;text-decoration:none;">${url}</a>
+              </div>
+            </td>
+          </tr>`;
+}
+
+/// The rendered email. Exported so the preview harness renders the SAME thing
+/// that gets sent, rather than a second copy of the shell config that drifts
+/// the first time either is edited.
+export function teamInvitePreviewHtml(input: TeamInviteEmailInput): string {
+  return brandedEmailHtml({
+    eyebrow: 'TEAM ACCESS',
+    title: 'Your Karwan team access',
+    inner: inner(input),
+    footerNote: 'You are getting this because somebody at Karwan invited you.',
+  });
 }
 
 export async function sendTeamInviteEmail(input: TeamInviteEmailInput): Promise<SendResult> {
@@ -71,12 +112,7 @@ export async function sendTeamInviteEmail(input: TeamInviteEmailInput): Promise<
       replyTo: 'support@karwan.site',
       to: input.to,
       subject: 'Your Karwan team access',
-      html: brandedEmailHtml({
-        eyebrow: 'TEAM ACCESS',
-        title: 'Your Karwan team access',
-        inner: inner(input),
-        footerNote: 'You are getting this because somebody at Karwan invited you.',
-      }),
+      html: teamInvitePreviewHtml(input),
       text,
       ...(LOGO_BUFFER
         ? { attachments: [{ filename: 'karwan-logo.png', content: LOGO_BUFFER, contentId: LOGO_CID }] }
