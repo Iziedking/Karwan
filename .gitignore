@@ -111,3 +111,4 @@ scripts/build-checkpoint2-deck.py
 
 # session handoff, fallback while agent-memory was down. delete once folded in.
 SESSION-HANDOFF-*.md
+docs/dmarc-hardening.md
