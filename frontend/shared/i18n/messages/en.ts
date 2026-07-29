@@ -487,10 +487,51 @@ interface MessagesShape {
       showAll: string;
       showLess: string;
     };
+    allTime: {
+      sectionTag: string;
+      entryTitle: string;
+      entryCta: string;
+      headlineTop: string;
+      headlineAccent: string;
+      description: string;
+      loadingTag: string;
+      loadingBody: string;
+      unscannedTag: string;
+      unscannedBody: string;
+      errorTag: string;
+      errorBody: string;
+      volumeLabel: string;
+      txnsLabel: string;
+      dealsLabel: string;
+      eventsLabel: string;
+      releasedLabel: string;
+      settledLabel: string;
+      refundedLabel: string;
+      feesLabel: string;
+      contractsLabel: string;
+      blocksLabel: string;
+      breakdownTag: string;
+      colContract: string;
+      colDeployed: string;
+      colDeals: string;
+      colEvents: string;
+      colFunded: string;
+      neverUsed: string;
+      undecodedNote: string;
+      scannedTo: string;
+      backToActivity: string;
+    };
     view: {
       notSignedInEyebrow: string;
       notSignedInBody: string;
-      pulseNote: string;
+      everyone: string;
+      onlyMine: string;
+      everyoneHint: string;
+      onlyMineHint: string;
+      moneyTag: string;
+      moneyTitle: string;
+      moneyShow: string;
+      moneyHide: string;
       streamEyebrow: string;
       countZero: string;
       countRange: string;
@@ -4490,10 +4531,51 @@ export const en: MessagesShape = {
       showAll: 'SEE ALL',
       showLess: 'SHOW LESS',
     },
+    allTime: {
+      sectionTag: 'ALL TIME',
+      entryTitle: 'All Karwan volume and transactions since day one',
+      entryCta: 'SEE ALL TIME',
+      headlineTop: 'Every deal',
+      headlineAccent: 'since day one',
+      description: 'Totals across every contract Karwan has deployed, retired ones included.',
+      loadingTag: 'READING CHAIN',
+      loadingBody: 'Pulling the all-time totals.',
+      unscannedTag: 'NOT SCANNED YET',
+      unscannedBody: 'The history sweep has not run on this deployment. Totals appear once it has.',
+      errorTag: 'UNAVAILABLE',
+      errorBody: 'The all-time totals could not be read. Try again shortly.',
+      volumeLabel: 'TOTAL VOLUME',
+      txnsLabel: 'TRANSACTIONS',
+      dealsLabel: 'DEALS FUNDED',
+      eventsLabel: 'ON CHAIN EVENTS',
+      releasedLabel: 'RELEASED USDC',
+      settledLabel: 'SETTLED USDC',
+      refundedLabel: 'REFUNDED USDC',
+      feesLabel: 'FEES USDC',
+      contractsLabel: 'CONTRACTS USED',
+      blocksLabel: 'BLOCKS COVERED',
+      breakdownTag: 'BY CONTRACT',
+      colContract: 'CONTRACT',
+      colDeployed: 'DEPLOY BLOCK',
+      colDeals: 'DEALS',
+      colEvents: 'EVENTS',
+      colFunded: 'FUNDED USDC',
+      neverUsed: 'NEVER USED',
+      undecodedNote: '{n} events came from a contract whose interface is no longer in the codebase. They are counted above but their value is not.',
+      scannedTo: 'BLOCKS {from} TO {to}',
+      backToActivity: 'BACK TO ACTIVITY',
+    },
     view: {
       notSignedInEyebrow: 'NOT SIGNED IN',
       notSignedInBody: 'Sign in to watch every deal moving across Karwan. Search by job ID to follow a specific one.',
-      pulseNote: 'Parties and amounts stripped. Your own moves are above.',
+      everyone: 'Everyone',
+      onlyMine: 'Only mine',
+      everyoneHint: 'Parties and amounts stripped, so rows do not open.',
+      onlyMineHint: 'Your rows, with detail. Click one to open it.',
+      moneyTag: 'YOUR MONEY',
+      moneyTitle: 'Deposits, cash-outs and receipts',
+      moneyShow: 'Open',
+      moneyHide: 'Close',
       streamEyebrow: 'EVENT STREAM',
       countZero: '0 EVENTS',
       countRange: '{start}–{end} OF {total}',

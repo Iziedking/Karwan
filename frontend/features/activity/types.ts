@@ -61,6 +61,19 @@ export interface ActivityFilters {
   jobIdSearch: string;
 }
 
+/// Did the server hand us this event in full, or as a pulse?
+///
+/// `projectFor` on the backend returns the whole event when the caller owns it
+/// and exactly `{ type, actor, ts, payload: {} }` when they do not. Both fields
+/// a pulse drops are checked, because either one alone is lossy: a deal event
+/// whose payload happens to be empty would vanish from "only mine" on the
+/// payload test, and an own-money event (a bridge, a top up) carries no jobId
+/// at all. The answer is the server's either way, so there is no client-side
+/// guess here and no way to widen it from the browser.
+export function isOwnEvent(e: ChainEvent): boolean {
+  return !!e.jobId || Object.keys(e.payload ?? {}).length > 0;
+}
+
 export function applyFilters(events: ChainEvent[], filters: ActivityFilters): ChainEvent[] {
   const groupActive = filters.groups.size > 0;
   const actorActive = filters.actors.size > 0;

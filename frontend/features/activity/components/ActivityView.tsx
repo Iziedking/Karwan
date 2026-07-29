@@ -13,6 +13,7 @@ import {
   type ActivityFilters as Filters,
   type EventGroup,
 } from '../types';
+import { isOwnEvent } from '../types';
 import { publicizeEvents } from '../publicFeed';
 import { MyMoneyLedger } from './MyMoneyLedger';
 
@@ -34,17 +35,37 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // still sees full detail of their OWN deals on the deal page; this network
   // feed is deliberately detail-free.
   const events = useMemo(() => publicizeEvents(rawEvents), [rawEvents]);
+
+  // The caller's own events, as a SEPARATE subscription.
+  //
+  // The stream above passes no caller, so the backend pulses every row: that is
+  // the public feed and it stays fully stripped. Passing the address asks the
+  // backend to project for this caller, which returns full detail only for
+  // events it can prove they own. Filtering on `isOwnEvent` then keeps what
+  // survived that check.
+  //
+  // Two subscriptions rather than relaxing the strip on one. The public feed
+  // never gains a code path that could leak, and the browser is never the thing
+  // deciding what somebody may see.
+  const myRawEvents = useLiveEvents(address, 200);
+  const myEvents = useMemo(() => myRawEvents.filter(isOwnEvent), [myRawEvents]);
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the
   // user signs in.
   const [groups, setGroups] = useState<Set<EventGroup>>(new Set());
   const [actors, setActors] = useState<Set<ActorFilter>>(new Set());
   const [jobIdSearch, setJobIdSearch] = useState('');
+  const [onlyMine, setOnlyMine] = useState(false);
+  const [moneyOpen, setMoneyOpen] = useState(false);
+  // Public rows carry no deal id and no amounts, so there is nothing to open.
+  // The caller's own rows do, and become links. The difference is the backend's
+  // decision, surfaced rather than made here.
+  const source = onlyMine ? myEvents : events;
   const filters: Filters = useMemo(
     () => ({ groups, actors, jobIdSearch }),
     [groups, actors, jobIdSearch],
   );
-  const filtered = useMemo(() => applyFilters(events, filters), [events, filters]);
+  const filtered = useMemo(() => applyFilters(source, filters), [source, filters]);
   const counts = useMemo(() => countByGroup(events), [events]);
 
   // Paginate so the stream doesn't grow into an endless scroll as new events
@@ -54,7 +75,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // Filtering changes the result set, so jump back to the first page.
   useEffect(() => {
     setPage(1);
-  }, [groups, actors, jobIdSearch]);
+  }, [groups, actors, jobIdSearch, onlyMine]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -118,66 +139,114 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
       <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 
-      {/* Side by side once there is room. Stacked they read as one long list
-          and a hairline is the only thing saying "your money" ended and "the
-          network" began; as columns the split is obvious, and neither register
-          leaves half the screen empty. 5:7 because the ledger is short rows
-          and the stream carries the filters and pager. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[5fr_7fr] gap-x-10 gap-y-8 items-start">
-        {/* Not sticky, though it would suit this column: every Band sets
-            overflow-hidden for the full-bleed trick, and an overflow ancestor
-            disables position:sticky for everything inside it. */}
-        <div className="min-w-0">
+      {/* The money used to sit in a column beside the stream, which cost the
+          stream half the width for a register most visits do not open. It is a
+          tile now: one line saying whether there is anything to see, and a
+          click to open it. The stream gets the whole page. */}
+      <MoneyTile open={moneyOpen} onToggle={() => setMoneyOpen((v) => !v)} />
+
+      <div className="min-w-0 space-y-6">
+        <div ref={streamTopRef} className="flex items-baseline justify-between gap-3 scroll-mt-24">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{t.streamEyebrow}:]
+          </span>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            {filtered.length === 0
+              ? t.countZero
+              : t.countRange
+                  .replace('{start}', String(pageStart + 1))
+                  .replace('{end}', String(pageStart + pageEvents.length))
+                  .replace('{total}', String(filtered.length))}
+            {/* Counted against `source`, not the public feed: with "only mine"
+                on those are different lists, and comparing across them reported
+                a hidden count that belonged to nothing on screen. */}
+            {hasAnyFilter && source.length > filtered.length && (
+              <span>
+                {' · '}
+                {t.countHidden.replace('{n}', String(source.length - filtered.length))}
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Public rows are stripped of parties, amounts and deal ids, so there
+            is nothing to open. Switching to your own asks the backend for the
+            rows it can prove are yours, and those come back with detail, which
+            is what makes them links. */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {([false, true] as const).map((v) => (
+            <button
+              key={String(v)}
+              type="button"
+              onClick={() => setOnlyMine(v)}
+              className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition ${
+                onlyMine === v
+                  ? 'bg-[var(--lp-ink)] text-[var(--lp-paper)] border-[var(--lp-ink)] font-bold'
+                  : 'border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)]'
+              }`}
+            >
+              {v ? t.onlyMine : t.everyone}
+            </button>
+          ))}
+          <span className="text-[11px] text-[var(--lp-text-sub)]">
+            {onlyMine ? t.onlyMineHint : t.everyoneHint}
+          </span>
+        </div>
+
+        {/* Directly above the list they filter. Sitting under the money ledger
+            they read as filters on the user's own money, which they are not. */}
+        <ActivityFilters
+          activeActors={actors}
+          onToggleActor={toggleActor}
+          jobIdSearch={jobIdSearch}
+          onJobIdSearch={setJobIdSearch}
+          onClear={clearAll}
+          hasAnyFilter={hasAnyFilter}
+          showSearch={false}
+        />
+
+        <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
+
+        <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
+      </div>
+    </div>
+  );
+}
+
+/// The money register, behind one click.
+///
+/// Collapsed it is a single row: the label, and an affordance. Expanded it is
+/// the ledger. The point of the tile is that this is the only place on the page
+/// with real amounts and receipts, so it should read as a deliberate act to
+/// open rather than something that was already lying open next to a public
+/// feed.
+function MoneyTile({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  const t = useTranslations().activity.view;
+  return (
+    <div className="rounded-xl border border-[var(--lp-border-light)] overflow-hidden">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-[var(--lp-wash)] transition"
+      >
+        <span className="min-w-0">
+          <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{t.moneyTag}:]
+          </span>
+          <span className="mt-1 block text-[14px] font-bold text-[var(--lp-ink)]">
+            {t.moneyTitle}
+          </span>
+        </span>
+        <span className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          {open ? t.moneyHide : t.moneyShow}
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-[var(--lp-border-light)] p-4">
           <MyMoneyLedger />
         </div>
-
-        <div className="min-w-0 space-y-6 lg:border-s lg:border-[var(--lp-border-light)] lg:ps-10">
-      <div
-        ref={streamTopRef}
-        className="flex items-baseline justify-between gap-3 scroll-mt-24"
-      >
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{t.streamEyebrow}:]
-        </span>
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {filtered.length === 0
-            ? t.countZero
-            : t.countRange
-                .replace('{start}', String(pageStart + 1))
-                .replace('{end}', String(pageStart + pageEvents.length))
-                .replace('{total}', String(filtered.length))}
-          {hasAnyFilter && events.length > filtered.length && (
-            <span>
-              {' · '}
-              {t.countHidden.replace('{n}', String(events.length - filtered.length))}
-            </span>
-          )}
-        </p>
-      </div>
-
-      {/* Stripped amounts read as missing data unless the page says they were
-          stripped on purpose. */}
-      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        {t.pulseNote}
-      </p>
-
-      {/* Directly above the list they filter. Sitting under the money ledger
-          they read as filters on the user's own money, which they are not. */}
-      <ActivityFilters
-        activeActors={actors}
-        onToggleActor={toggleActor}
-        jobIdSearch={jobIdSearch}
-        onJobIdSearch={setJobIdSearch}
-        onClear={clearAll}
-        hasAnyFilter={hasAnyFilter}
-        showSearch={false}
-      />
-
-          <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
-
-          <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
