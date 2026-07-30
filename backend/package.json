@@ -27,6 +27,7 @@
     "wallets:return": "tsx --env-file=../.env src/scripts/wallet-return-misswept.ts",
     "reviewer:create": "tsx --env-file=../.env src/scripts/provision-reviewer-wallet.ts",
     "yield:backfill": "tsx --env-file=../.env src/scripts/yield-backfill.ts",
+    "legacy:unwind": "tsx --env-file=../.env src/scripts/legacy-vault-unwind.ts",
     "usyc:cron": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
     "usyc:wrap": "tsx --env-file=../.env src/scripts/usyc-cron.ts",
     "usyc:prove": "tsx --env-file=../.env src/scripts/prove-usyc.ts",
