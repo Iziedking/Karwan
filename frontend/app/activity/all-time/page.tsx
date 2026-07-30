@@ -81,7 +81,7 @@ export default function AllTimePage() {
         <div className="fade-up fade-up-1">
           <PageCard>
             <div className="p-6 md:p-8 space-y-8">
-              {state === 'loading' && <BracketMessage tag={t.loadingTag} body={t.loadingBody} />}
+              {state === 'loading' && <BracketMessage tag={t.loadingTag} />}
               {state === 'unscanned' && (
                 <BracketMessage tag={t.unscannedTag} body={t.unscannedBody} />
               )}
@@ -106,13 +106,13 @@ export default function AllTimePage() {
 
 type Copy = ReturnType<typeof useTranslations>['activity']['allTime'];
 
-function BracketMessage({ tag, body }: { tag: string; body: string }) {
+function BracketMessage({ tag, body }: { tag: string; body?: string }) {
   return (
     <div className="py-10 text-center space-y-2.5 max-w-[46ch] mx-auto">
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:{tag}:]
       </p>
-      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>
+      {body && <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>}
     </div>
   );
 }
@@ -139,6 +139,7 @@ function Totals({
   t: Copy;
 }) {
   const { totals, volumes } = stats;
+  const active = stats.contracts.filter((c) => c.events > 0);
 
   return (
     <div className="space-y-8">
@@ -148,57 +149,46 @@ function Totals({
         <Headline label={t.txnsLabel} value={count(totals.transactions)} />
       </div>
 
+      {/* Money and deals only. Event counts, block spans and undecodable-log
+          tallies were on this page and none of them are a user's question: they
+          are how the number was produced, not what it says. They stay in the
+          scan script's output, where whoever runs it needs them. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Stat label={t.dealsLabel} value={count(totals.deals)} />
-        <Stat label={t.eventsLabel} value={count(totals.events)} />
         <Stat label={t.releasedLabel} value={usdc(volumes.releasedUsdc)} />
         <Stat label={t.settledLabel} value={usdc(volumes.settledUsdc)} />
         <Stat label={t.refundedLabel} value={usdc(volumes.refundedUsdc)} />
-        <Stat label={t.feesLabel} value={usdc(volumes.feesUsdc)} />
-        <Stat
-          label={t.contractsLabel}
-          value={`${count(totals.contractsWithActivity)}/${count(totals.contracts)}`}
-        />
-        <Stat label={t.blocksLabel} value={count(Number(stats.toBlock) - Number(stats.fromBlock))} />
       </div>
 
       {/* The proof. A total across contracts nobody can name is a claim; the
-          addresses and their block ranges are what make it checkable. */}
-      <section className="space-y-3">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{t.breakdownTag}:]
-        </span>
-        <div className="overflow-x-auto -mx-2 px-2">
-          <table className="w-full min-w-[640px] border-collapse">
-            <thead>
-              <tr className="border-b border-[var(--lp-border-light)]">
-                <Th>{t.colContract}</Th>
-                <Th>{t.colDeployed}</Th>
-                <Th right>{t.colDeals}</Th>
-                <Th right>{t.colEvents}</Th>
-                <Th right>{t.colFunded}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.contracts.map((c) => (
-                <ContractRow key={c.address} c={c} explorer={explorer} t={t} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {totals.undecodedEvents > 0 && (
-        <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
-          {t.undecodedNote.replace('{n}', count(totals.undecodedEvents))}
-        </p>
+          addresses are what make it checkable, and each links out to the
+          explorer. Only the ones that carried money are listed: the rest were
+          deployed and superseded before anyone touched them, so a row of zeros
+          is noise. The count above still says how many exist, so nothing is
+          being hidden. */}
+      {active.length > 0 && (
+        <section className="space-y-3">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{t.breakdownTag}:]
+          </span>
+          <div className="overflow-x-auto -mx-2 px-2">
+            <table className="w-full min-w-[420px] border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--lp-border-light)]">
+                  <Th>{t.colContract}</Th>
+                  <Th right>{t.colDeals}</Th>
+                  <Th right>{t.colFunded}</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {active.map((c) => (
+                  <ContractRow key={c.address} c={c} explorer={explorer} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
-
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        {t.scannedTo
-          .replace('{from}', count(Number(stats.fromBlock)))
-          .replace('{to}', count(Number(stats.toBlock)))}
-      </p>
     </div>
   );
 }
@@ -272,21 +262,9 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
   );
 }
 
-function ContractRow({
-  c,
-  explorer,
-  t,
-}: {
-  c: LifetimeContract;
-  explorer: string;
-  t: Copy;
-}) {
-  const unused = c.events === 0;
+function ContractRow({ c, explorer }: { c: LifetimeContract; explorer: string }) {
   return (
-    <tr
-      className="border-b border-[var(--lp-border-light)] last:border-0"
-      style={unused ? { opacity: 0.45 } : undefined}
-    >
+    <tr className="border-b border-[var(--lp-border-light)] last:border-0">
       <td className="py-2.5 pr-4">
         <a
           href={`${explorer}/address/${c.address}`}
@@ -299,20 +277,9 @@ function ContractRow({
         <span className="ml-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {c.name.replace('Karwan', '')}
         </span>
-        {unused && (
-          <span className="ml-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            {t.neverUsed}
-          </span>
-        )}
-      </td>
-      <td className="py-2.5 pr-4 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
-        {count(Number(c.deployBlock))}
       </td>
       <td className="py-2.5 pr-4 text-right tabular-nums text-[13px] text-[var(--lp-ink)]">
         {count(c.deals)}
-      </td>
-      <td className="py-2.5 pr-4 text-right tabular-nums text-[13px] text-[var(--lp-ink)]">
-        {count(c.events)}
       </td>
       <td className="py-2.5 text-right tabular-nums text-[13px] font-bold text-[var(--lp-ink)]">
         {usdc(c.fundedUsdc)}

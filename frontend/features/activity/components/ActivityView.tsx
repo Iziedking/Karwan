@@ -169,11 +169,12 @@ export function ActivityView({ explorer }: { explorer: string }) {
           </p>
         </div>
 
-        {/* Public rows are stripped of parties, amounts and deal ids, so there
-            is nothing to open. Switching to your own asks the backend for the
-            rows it can prove are yours, and those come back with detail, which
-            is what makes them links. */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Two words, no explanation. The behaviour explains itself: your own
+            rows open, the network's do not. Describing the privacy mechanism in
+            the UI told users about the backend instead of showing them their
+            money. Public rows are stripped of parties, amounts and deal ids by
+            `projectFor`, which is why they have nothing to link to. */}
+        <div className="flex items-center gap-2">
           {([false, true] as const).map((v) => (
             <button
               key={String(v)}
@@ -188,9 +189,6 @@ export function ActivityView({ explorer }: { explorer: string }) {
               {v ? t.onlyMine : t.everyone}
             </button>
           ))}
-          <span className="text-[11px] text-[var(--lp-text-sub)]">
-            {onlyMine ? t.onlyMineHint : t.everyoneHint}
-          </span>
         </div>
 
         {/* Directly above the list they filter. Sitting under the money ledger
