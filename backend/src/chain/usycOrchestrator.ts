@@ -2,6 +2,7 @@ import { createWalletClient, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arcTestnet, arcTransport, publicClient } from './client.js';
 import { VAULT_DEPLOYMENTS } from './deployLedger.js';
+import { readVaultLiquidity, toBaseUnits } from './vaultLiquidity.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -108,9 +109,31 @@ async function rebalance(
     return;
   }
 
-  const buffer = toUnits(config.USYC_VAULT_BUFFER_USDC);
   const margin = toUnits(config.USYC_REBALANCE_MARGIN_USDC);
   const liquid = await balanceOf(usdc, vault);
+
+  // The buffer is the LARGER of the configured floor and what is actually owed
+  // to positions in cooldown.
+  //
+  // A flat floor is only safe while claims stay smaller than the constant. Past
+  // that it guarantees the failure it exists to prevent: the wrap sweeps
+  // everything above the floor into USYC, a batch of cooldowns matures, and the
+  // claims revert because the vault is empty. That is precisely how the legacy
+  // vault ended up owing 2,347 USDC while holding 1.
+  //
+  // The cooldown is the whole reason this is fixable. A withdrawal announces
+  // itself days ahead, so by the time the money is due the wrap has already had
+  // a chance to leave it behind.
+  const floor = toUnits(config.USYC_VAULT_BUFFER_USDC);
+  const liability = toBaseUnits((await readVaultLiquidity(vault)).liabilityUsdc);
+  const buffer = liability > floor ? liability : floor;
+  if (liability > floor) {
+    steps.push({
+      action: 'vault-buffer',
+      detail: `holding ${fmt(buffer)} USDC for positions in cooldown (floor is ${fmt(floor)})`,
+      skipped: true,
+    });
+  }
 
   if (liquid > buffer + margin) {
     const amount = liquid - buffer;
@@ -267,6 +290,95 @@ export async function runUsycWrap(opts: { dryRun?: boolean } = {}): Promise<Usyc
   );
 
   return { operator: account.address, dryRun, steps };
+}
+
+export interface CoverResult {
+  vault: string;
+  dryRun: boolean;
+  liabilityUsdc: string;
+  liquidUsdc: string;
+  shortfallUsdc: string;
+  /// USDC returned to the vault. Zero when there was no shortfall.
+  coveredUsdc: string;
+  redeemedUsyc?: string;
+  txHash?: string;
+  note?: string;
+}
+
+/// Redeem exactly the shortfall and return it, on demand.
+///
+/// The scheduled wrap keeps the vault topped up once a day. That is the wrong
+/// granularity for a claim: cooldowns mature at arbitrary times, and a user who
+/// hits Claim between two runs gets a revert. This is the manual path, so an
+/// operator can clear it immediately instead of waiting for tomorrow.
+///
+/// Deliberately narrow. It redeems the shortfall and no more, because the
+/// operator's USYC is a single pool backing several vaults' cost basis and
+/// over-returning to one strands another.
+export async function coverVaultShortfall(
+  vaultAddress: string,
+  opts: { dryRun?: boolean } = {},
+): Promise<CoverResult> {
+  const dryRun = !!opts.dryRun;
+  const vault = getAddress(vaultAddress);
+  const liq = await readVaultLiquidity(vault);
+  const shortfall = toBaseUnits(liq.shortfallUsdc);
+
+  const base: CoverResult = {
+    vault,
+    dryRun,
+    liabilityUsdc: liq.liabilityUsdc,
+    liquidUsdc: liq.liquidUsdc,
+    shortfallUsdc: liq.shortfallUsdc,
+    coveredUsdc: '0',
+  };
+
+  if (shortfall === 0n) return { ...base, note: 'vault already covers every position in cooldown' };
+  if (!config.USYC_OPERATOR_PRIVATE_KEY) {
+    return { ...base, note: 'USYC_OPERATOR_PRIVATE_KEY not set, cannot sign' };
+  }
+
+  const account = privateKeyToAccount(config.USYC_OPERATOR_PRIVATE_KEY as `0x${string}`);
+  const operator = (await publicClient.readContract({ address: vault, abi: vaultAbi, functionName: 'operator' })) as `0x${string}`;
+  if (getAddress(operator) !== getAddress(account.address)) {
+    return { ...base, note: `signer ${account.address} is not the vault operator ${operator}` };
+  }
+  if (dryRun) return { ...base, coveredUsdc: liq.shortfallUsdc, note: 'dry run, nothing signed' };
+
+  const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
+  const heldUsdc = await balanceOf(usdc, account.address);
+
+  // Redeem only what the operator's own USDC cannot already cover. Reading the
+  // USDC actually received rather than pricing the shares locally: the oracle
+  // and the Teller can disagree, and the Teller is the one that pays.
+  let redeemed = 0n;
+  if (heldUsdc < shortfall) {
+    const need = shortfall - heldUsdc;
+    const heldUsyc = await balanceOf(USYC, account.address);
+    const shares = need > heldUsyc ? heldUsyc : need;
+    if (shares === 0n) {
+      return { ...base, note: `short ${fmt(shortfall)} USDC and the operator holds no USYC to redeem` };
+    }
+    const before = await balanceOf(usdc, account.address);
+    await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
+    await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcTestnet });
+    redeemed = shares;
+    const after = await balanceOf(usdc, account.address);
+    logger.info({ shares: fmt(shares), usdcOut: fmt(after - before) }, 'usyc: redeemed to cover vault shortfall');
+  }
+
+  const available = await balanceOf(usdc, account.address);
+  const amount = available > shortfall ? shortfall : available;
+  await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, amount], account, chain: arcTestnet });
+  const txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [amount], account, chain: arcTestnet });
+
+  return {
+    ...base,
+    coveredUsdc: fmt(amount),
+    redeemedUsyc: redeemed > 0n ? fmt(redeemed) : undefined,
+    txHash,
+    note: amount < shortfall ? `partial: ${fmt(shortfall - amount)} USDC still short` : undefined,
+  };
 }
 
 /// Report retired vaults that are still owed routed stake.
