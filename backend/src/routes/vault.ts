@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { formatUnits, parseUnits } from 'viem';
 import { config } from '../config.js';
+import { alertIfClaimLiquidityShort } from '../chain/claimLiquidityAlert.js';
 import { publicClient } from '../chain/client.js';
 import { usdc as usdcAddress } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -483,6 +484,15 @@ async function positionActionRoute(
       ...(principalUsdc !== null ? { amountUsdc: principalUsdc } : {}),
       txHash: result.txHash,
     });
+
+    // A withdrawal request is the only advance warning that a claim is coming.
+    // Claims are paid from the vault's liquid USDC, the vault cannot redeem its
+    // own USYC, and the wrap job only rebalances once a day, so a cooldown can
+    // mature into an empty vault. Check now, while there are still days to act.
+    // Fire-and-forget: a failed alert must not fail the user's withdrawal.
+    if (fn === 'requestWithdraw') {
+      alertIfClaimLiquidityShort(config.KARWAN_VAULT_ADDR);
+    }
     logger.info(
       { address: body.address, positionId: positionIdStr, fn, txHash: result.txHash },
       'vault action confirmed (Circle identity DCW)',

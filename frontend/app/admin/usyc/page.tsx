@@ -92,7 +92,36 @@ export default function AdminUsycPage() {
 type RunStep = { action: string; detail: string; txHash?: string; skipped?: boolean; failed?: boolean };
 type RunResult = { ok: boolean; operator?: string | null; dryRun?: boolean; steps?: RunStep[]; error?: string };
 
+interface PendingClaim {
+  positionId: string;
+  owner: string;
+  principalUsdc: string;
+  claimableAt: number;
+  due: boolean;
+}
+interface Liquidity {
+  vault: string;
+  liquidUsdc: string;
+  liabilityUsdc: string;
+  dueNowUsdc: string;
+  shortfallUsdc: string;
+  urgentShortfallUsdc: string;
+  pending: PendingClaim[];
+  nextDueAt: number | null;
+}
+interface CoverResult {
+  coveredUsdc?: string;
+  shortfallUsdc?: string;
+  redeemedUsyc?: string;
+  txHash?: string;
+  note?: string;
+  error?: string;
+}
+
 function Console({ token, onLock }: { token: string; onLock: () => void }) {
+  const [liq, setLiq] = useState<Liquidity | null>(null);
+  const [covering, setCovering] = useState(false);
+  const [cover, setCover] = useState<CoverResult | null>(null);
   const [data, setData] = useState<UsycResp | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +146,16 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
       }
       setData((await r.json()) as UsycResp);
       setError(null);
+      // Separate call: the liquidity read must still work when the USYC/oracle
+      // reads above fail, because it is the one an operator acts on.
+      try {
+        const lr = await fetch(`${BACKEND_URL}/api/admin/usyc/liquidity`, {
+          headers: { 'x-admin-token': token },
+        });
+        setLiq(lr.ok ? ((await lr.json()) as Liquidity) : null);
+      } catch {
+        setLiq(null);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -140,6 +179,26 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
         setRun({ ok: false, error: (e as Error).message });
       } finally {
         setRunning(false);
+      }
+    },
+    [token, refresh],
+  );
+
+  const runCover = useCallback(
+    async (dry: boolean) => {
+      setCovering(true);
+      setCover(null);
+      try {
+        const r = await fetch(`${BACKEND_URL}/api/admin/usyc/cover${dry ? '?dry=1' : ''}`, {
+          method: 'POST',
+          headers: { 'x-admin-token': token },
+        });
+        setCover((await r.json()) as CoverResult);
+        if (!dry) refresh();
+      } catch (e) {
+        setCover({ error: (e as Error).message });
+      } finally {
+        setCovering(false);
       }
     },
     [token, refresh],
@@ -245,6 +304,95 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
               )}
             </section>
           </>
+        ) : null}
+
+        {/* Claim liquidity. Above the wrap panel on purpose: this is the one
+            that has a user waiting on it. A claim is paid from the vault's
+            liquid USDC and nothing else, and the vault cannot redeem USYC
+            itself, so a shortfall here is somebody's Claim button reverting. */}
+        {liq ? (
+          <section
+            className="mt-8 rounded-2xl border p-5"
+            style={{
+              borderColor: Number(liq.urgentShortfallUsdc) > 0 ? '#7f1d1d' : '#27272a',
+              background: Number(liq.urgentShortfallUsdc) > 0 ? 'rgba(127,29,29,0.12)' : 'rgba(24,24,27,0.4)',
+            }}
+          >
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight">Claim liquidity</h2>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {Number(liq.urgentShortfallUsdc) > 0
+                    ? `Short $${usd(Number(liq.urgentShortfallUsdc))} against claims that are due NOW. Claims are reverting.`
+                    : Number(liq.shortfallUsdc) > 0
+                      ? `Covers everything due today, short $${usd(Number(liq.shortfallUsdc))} before the last cooldown matures.`
+                      : 'Covers every position in cooldown.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => runCover(true)}
+                  disabled={covering || Number(liq.shortfallUsdc) === 0}
+                  className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+                >
+                  Preview
+                </button>
+                <button
+                  onClick={() => runCover(false)}
+                  disabled={covering || Number(liq.shortfallUsdc) === 0}
+                  className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:opacity-40"
+                >
+                  {covering ? 'Redeeming…' : 'Redeem and cover'}
+                </button>
+              </div>
+            </header>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <Row label="Liquid in vault" value={`$${usd(Number(liq.liquidUsdc))}`} />
+              <Row label="Owed (in cooldown)" value={`$${usd(Number(liq.liabilityUsdc))}`} />
+              <Row label="Claimable now" value={`$${usd(Number(liq.dueNowUsdc))}`} />
+              <Row label="Shortfall" value={`$${usd(Number(liq.shortfallUsdc))}`} accent={Number(liq.shortfallUsdc) > 0} />
+            </div>
+
+            {liq.nextDueAt ? (
+              <p className="mt-3 text-xs text-zinc-500">
+                Next cooldown matures {new Date(liq.nextDueAt * 1000).toLocaleString()}.
+              </p>
+            ) : null}
+
+            {liq.pending.length > 0 ? (
+              <ul className="mt-4 space-y-1 text-xs text-zinc-400">
+                {liq.pending.slice(0, 8).map((p) => (
+                  <li key={p.positionId} className="flex justify-between gap-3">
+                    <span className="font-mono">
+                      #{p.positionId} · {p.owner.slice(0, 10)}…
+                    </span>
+                    <span>
+                      ${usd(Number(p.principalUsdc))}{' '}
+                      <span className={p.due ? 'text-emerald-400' : 'text-zinc-600'}>
+                        {p.due ? 'due now' : new Date(p.claimableAt * 1000).toLocaleDateString()}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {cover ? (
+              <pre className="mt-4 overflow-x-auto rounded-lg bg-zinc-950 p-3 text-xs text-zinc-300">
+                {cover.error
+                  ? `failed: ${cover.error}`
+                  : [
+                      cover.redeemedUsyc ? `redeemed ${cover.redeemedUsyc} USYC` : null,
+                      cover.coveredUsdc ? `returned ${cover.coveredUsdc} USDC` : null,
+                      cover.note ?? null,
+                      cover.txHash ?? null,
+                    ]
+                      .filter(Boolean)
+                      .join('\n')}
+              </pre>
+            ) : null}
+          </section>
         ) : null}
 
         {/* One-click wrap: operator-signed vault rebalance + treasury sweep. */}

@@ -4,7 +4,8 @@ import { config } from '../config.js';
 import { publicClient } from '../chain/client.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { logger } from '../logger.js';
-import { runUsycWrap } from '../chain/usycOrchestrator.js';
+import { runUsycWrap, coverVaultShortfall } from '../chain/usycOrchestrator.js';
+import { readVaultLiquidity } from '../chain/vaultLiquidity.js';
 
 /// Admin USYC yield monitor. Read-only. Marks the platform's USYC holdings to
 /// the live Hashnote oracle so the demo can show reserves earning yield in real
@@ -179,6 +180,42 @@ adminUsycRoutes.get('/', async (c) => {
 /// treasury sweep into USYC). `?dry=1` previews without signing. The signer is
 /// USYC_OPERATOR_PRIVATE_KEY; on testnet that is the deployer EOA (whitelisted,
 /// vault operator + treasury keeper). 503 when no operator key is configured.
+/// What the vault owes people in cooldown, and whether it can pay.
+///
+/// Separate from `/` because it must stay fast and must keep working when the
+/// USYC reads fail. This is the number an operator acts on: if
+/// `urgentShortfallUsdc` is above zero, somebody's claim is reverting right now.
+adminUsycRoutes.get('/liquidity', async (c) => {
+  const vault = ((config as unknown as Record<string, string | undefined>).KARWAN_VAULT_ADDR ?? null) as `0x${string}` | null;
+  if (!vault) return c.json({ error: 'KARWAN_VAULT_ADDR unset' }, 410);
+  try {
+    return c.json(await readVaultLiquidity(vault));
+  } catch (err) {
+    return c.json({ error: 'liquidity read failed', detail: (err as Error).message }, 502);
+  }
+});
+
+/// Redeem exactly the shortfall and return it to the vault.
+///
+/// The wrap job already does this on its daily schedule, but "daily" is not
+/// good enough when a cooldown matures between runs: the user sees a claim
+/// fail. This is the button that fixes it in the next thirty seconds.
+///
+/// It redeems the shortfall and nothing more. Returning the full USYC holding
+/// would be simpler and wrong: the operator's USYC is one pool backing several
+/// vaults' cost basis, so over-returning to one strands another.
+adminUsycRoutes.post('/cover', async (c) => {
+  const vault = ((config as unknown as Record<string, string | undefined>).KARWAN_VAULT_ADDR ?? null) as `0x${string}` | null;
+  if (!vault) return c.json({ error: 'KARWAN_VAULT_ADDR unset' }, 410);
+  const dryRun = c.req.query('dry') === '1';
+  try {
+    const result = await coverVaultShortfall(vault, { dryRun });
+    return c.json(result);
+  } catch (err) {
+    return c.json({ error: 'cover failed', detail: (err as Error).message }, 502);
+  }
+});
+
 adminUsycRoutes.post('/run', async (c) => {
   const dryRun = c.req.query('dry') === '1' || c.req.query('dryRun') === '1';
   try {
