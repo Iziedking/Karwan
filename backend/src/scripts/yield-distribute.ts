@@ -1,8 +1,14 @@
 /// Daily yield distribution to Karwan stakers. Runs INSIDE the api
 /// container; the only host-side requirement is `docker compose exec`.
 ///
-/// Reads every active position from KarwanVault, computes each address's
-/// pro-rata daily yield, optionally pulls the day's total USDC out of the
+/// Reads every active position from KarwanVault and pays each staker the yield
+/// the money ACTUALLY earned: the fractional USYC price move since the previous
+/// successful distribution, applied to their principal. Not a fixed APR. A
+/// fixed rate is a promise the platform funds from its own pocket whenever the
+/// instrument underperforms it, and USYC has been running near 3% against a
+/// 5% promise. Pass-through cannot be underfunded by construction.
+///
+/// Computes each address's pro-rata yield, optionally pulls the day's total USDC out of the
 /// vault via withdrawForYield, then calls bulkCredit on
 /// KarwanYieldDistributor so stakers can claim.
 ///
@@ -36,7 +42,11 @@
 ///
 /// Optional env:
 ///   USDC_ADDR                          defaults to 0x3600... on Arc
-///   USER_DAILY_APY_BPS                 default 14 (≈5.1% APR)
+///   USER_DAILY_APY_BPS                 fallback bps/day when the oracle is
+///                                      unreadable. Default 1. NOT the normal
+///                                      path: the rate is passed through from
+///                                      the USYC price move (see PASS-THROUGH).
+///   YIELD_MAX_DAILY_BPS                default 20. Hard ceiling per run.
 ///   YIELD_BUFFER_BPS                   default 500 (5% headroom check)
 ///   MIN_DISTRIBUTION_USDC              default 1000000 (1 USDC, 6 decimals)
 ///   YIELD_FUNDING_MODE                 'operator' (default) | 'vault'
@@ -74,6 +84,79 @@ const QUIET = FLAGS.has('--quiet');
 /// an unmounted path: the daily lock is then lost on every container roll and
 /// the diagnostics page never sees the run.
 const STATE_PATH = resolve(process.cwd(), 'data', 'yieldDistribution.json');
+/// The USYC price at the last distribution. Separate from the run lock because
+/// it must survive `--force` and a skipped day: it is the left-hand side of
+/// every future "what did the stake earn since then" calculation, and losing it
+/// silently restarts accrual from zero.
+const YIELD_MARK_PATH = resolve(process.cwd(), 'data', 'yieldPriceMark.json');
+
+interface YieldMark {
+  /// Oracle answer, 18 decimals, as a decimal string (JSON has no bigint).
+  price: string;
+  at: number;
+  roundId: string;
+}
+
+const treasuryOracleAbi = [
+  { type: 'function', name: 'oracle', inputs: [], outputs: [{ type: 'address' }], stateMutability: 'view' },
+] as const;
+const priceOracleAbi = [
+  {
+    type: 'function',
+    name: 'latestRoundData',
+    inputs: [],
+    outputs: [{ type: 'uint80' }, { type: 'int256' }, { type: 'uint256' }, { type: 'uint256' }, { type: 'uint80' }],
+    stateMutability: 'view',
+  },
+] as const;
+
+function fmtPrice(v: bigint): string {
+  return formatUnits(v, 18);
+}
+
+/// The USYC price the Teller will actually honour.
+///
+/// Resolved through the treasury rather than hardcoded, so it follows the same
+/// oracle the contracts use. Returns null rather than throwing: an unreadable
+/// oracle must not stop the run, it must fall back to the fixed rate and say so.
+async function readUsycPrice(): Promise<{ price: bigint; roundId: bigint } | null> {
+  const treasury = (process.env.KARWAN_TREASURY_USYC_ADDR ??
+    process.env.KARWAN_TREASURY_CONTRACT_ADDR) as Address | undefined;
+  if (!treasury) return null;
+  try {
+    const oracle = (await publicClient.readContract({
+      address: treasury, abi: treasuryOracleAbi, functionName: 'oracle',
+    })) as Address;
+    const round = (await publicClient.readContract({
+      address: oracle, abi: priceOracleAbi, functionName: 'latestRoundData',
+    })) as readonly [bigint, bigint, bigint, bigint, bigint];
+    if (round[1] <= 0n) return null;
+    return { price: round[1], roundId: round[0] };
+  } catch {
+    return null;
+  }
+}
+
+async function readLastYieldMark(): Promise<{ price: bigint; at: number } | null> {
+  try {
+    if (!existsSync(YIELD_MARK_PATH)) return null;
+    const m = JSON.parse(readFileSync(YIELD_MARK_PATH, 'utf8')) as YieldMark;
+    if (!m?.price) return null;
+    return { price: BigInt(m.price), at: m.at };
+  } catch {
+    return null;
+  }
+}
+
+async function writeYieldMark(p: { price: bigint; roundId: bigint }): Promise<void> {
+  try {
+    mkdirSync(dirname(YIELD_MARK_PATH), { recursive: true });
+    const mark: YieldMark = { price: p.price.toString(), at: Date.now(), roundId: p.roundId.toString() };
+    writeFileSync(YIELD_MARK_PATH, JSON.stringify(mark), 'utf8');
+  } catch (err) {
+    console.error(`could not persist the yield price mark: ${(err as Error).message}`);
+  }
+}
 const USDC_DECIMALS = 6;
 const POSITION_STATE_ACTIVE = 1;
 
@@ -82,7 +165,22 @@ const VAULT = process.env.KARWAN_VAULT_ADDR as Address | undefined;
 const DISTRIBUTOR = process.env.KARWAN_YIELD_DISTRIBUTOR_ADDR as Address | undefined;
 const USDC = (process.env.USDC_ADDR ?? '0x3600000000000000000000000000000000000000') as Address;
 const PK = process.env.OPERATOR_PRIVATE_KEY as `0x${string}` | undefined;
-const DAILY_APY_BPS = BigInt(process.env.USER_DAILY_APY_BPS ?? '14');
+/// Fixed fallback rate, in basis points PER DAY, used only when the oracle
+/// cannot be read.
+///
+/// It is 1, not the 14 this used to default to. 14 bps/day is 0.14% a day,
+/// which is 51% a year, not the "≈5.1% APR" the comment claimed: whoever wrote
+/// it divided 510 bps by 365 and then dropped the decimal. Nothing was
+/// overpaid, because `bulkCredit` had been reverting with NotOperator, but the
+/// moment that was fixed it would have started paying ten times the intended
+/// rate on an instrument yielding three percent.
+///
+/// The rate is not the policy any more regardless. See PASS-THROUGH below.
+const FALLBACK_DAILY_BPS = BigInt(process.env.USER_DAILY_APY_BPS ?? '1');
+/// Refuse to distribute more than this in a single run, whatever the oracle
+/// says. A price feed that jumps (or a long gap between runs) would otherwise
+/// pay out a year of yield in one day. Expressed as bps of principal per run.
+const MAX_DAILY_BPS = BigInt(process.env.YIELD_MAX_DAILY_BPS ?? '20');
 const BUFFER_BPS = BigInt(process.env.YIELD_BUFFER_BPS ?? '500');
 const MIN_DISTRIBUTION = BigInt(process.env.MIN_DISTRIBUTION_USDC ?? '1000000');
 const FUNDING_MODE = (process.env.YIELD_FUNDING_MODE ?? 'operator').toLowerCase();
@@ -194,6 +292,51 @@ async function run(): Promise<void> {
     return;
   }
 
+  // ── 0. PASS-THROUGH: what did the stake actually earn since last run? ──
+  //
+  // Stakers receive the yield the money genuinely made, not a rate we picked.
+  // The yield IS the USYC price move: routed stake sits in USYC, and USYC
+  // appreciates. So the honest daily rate is the fractional change in the
+  // oracle price since the previous distribution.
+  //
+  // Why this replaces a fixed APR. A fixed rate is a promise the platform funds
+  // out of its own pocket whenever the instrument underperforms it. USYC has
+  // been accruing around 3% annualised, so a 5% promise is a 2% subsidy per
+  // year, growing with TVL. Pass-through cannot be underfunded by construction.
+  //
+  // The previous price is stored rather than derived, because "yield since
+  // yesterday" has no on-chain representation: the oracle exposes a level, not
+  // a delta.
+  const priceNow = await readUsycPrice();
+  const last = await readLastYieldMark();
+  let dailyBps = FALLBACK_DAILY_BPS;
+  let basis = 'fallback (oracle unavailable)';
+
+  if (priceNow && last?.price && priceNow.price > last.price) {
+    // bps = (now/prev - 1) * 10_000, in integer maths.
+    dailyBps = ((priceNow.price - last.price) * 10_000n) / last.price;
+    const days = Math.max(1, Math.round((Date.now() - last.at) / 86_400_000));
+    basis = `USYC ${fmtPrice(last.price)} -> ${fmtPrice(priceNow.price)} over ${days}d`;
+  } else if (priceNow && !last) {
+    // First run under pass-through. Record the mark and pay nothing: we have no
+    // idea what accrued before we started watching, and inventing a number is
+    // how a distribution becomes a subsidy.
+    await writeYieldMark(priceNow);
+    log(`pass-through baseline recorded at ${fmtPrice(priceNow.price)}. Nothing to distribute on the first run.`);
+    return;
+  } else if (priceNow && last && priceNow.price <= last.price) {
+    log(`USYC did not appreciate since the last run (${fmtPrice(last.price)} -> ${fmtPrice(priceNow.price)}). Nothing to distribute.`);
+    await writeYieldMark(priceNow);
+    return;
+  }
+
+  if (dailyBps > MAX_DAILY_BPS) {
+    log(`WARNING computed ${dailyBps} bps for this run, capping at ${MAX_DAILY_BPS}. Basis: ${basis}`);
+    dailyBps = MAX_DAILY_BPS;
+    basis += ' (capped)';
+  }
+  log(`pass-through rate: ${dailyBps} bps for this run  [${basis}]`);
+
   // ── 1. Enumerate active positions ──────────────────────────────────
   const nextId = (await publicClient.readContract({
     address: VAULT!,
@@ -227,7 +370,7 @@ async function run(): Promise<void> {
     if (posState !== POSITION_STATE_ACTIVE) continue;
     if (principal === 0n) continue;
 
-    const dailyYield = (principal * DAILY_APY_BPS) / 10_000n;
+    const dailyYield = (principal * dailyBps) / 10_000n;
     if (dailyYield === 0n) continue;
 
     /// Resolve agent → identity per karwan_reputation_agent_layer. A staker
@@ -354,6 +497,11 @@ async function run(): Promise<void> {
     lastTotalUsdc: total.toString(),
     lastStakerCount: stakers.length,
   });
+  // Advance the price mark ONLY after the credit landed. If bulkCredit reverts
+  // (it did, for weeks, with NotOperator) the mark stays put and the next run
+  // pays the whole accrual since the last successful distribution rather than
+  // silently dropping the days in between.
+  if (priceNow) await writeYieldMark(priceNow);
   console.log(`distribution complete for ${today}.`);
 }
 
