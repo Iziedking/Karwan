@@ -569,6 +569,7 @@ function adopt(p: Persisted | undefined): boolean {
   if (!p?.acc || !p.snapshot?.value) return false;
   accumulator = p.acc;
   cached = p.snapshot;
+  hydrated = true;
   return true;
 }
 
@@ -577,9 +578,23 @@ function adopt(p: Persisted | undefined): boolean {
 /// it implicitly: without a snapshot the route reports "not scanned yet" and
 /// the ops script is what produces one.
 let hydrated = false;
+let lastHydrateAttempt = 0;
+/// Retry gap when nothing was found. Long enough that a bucket with no snapshot
+/// is not queried on every request, short enough that a seed run lands without
+/// a restart.
+const HYDRATE_RETRY_MS = 30_000;
+
 async function hydrate(): Promise<void> {
   if (hydrated) return;
-  hydrated = true;
+  // Only latch on SUCCESS.
+  //
+  // Latching on the attempt meant a container that was asked for stats before
+  // the seed existed served 503 for the rest of its life: the seed script would
+  // write the snapshot, the route would never look again, and the only cure was
+  // a restart nobody knew they needed. Since the seed is a separate ops step
+  // that by definition runs after boot, that is the normal case, not an edge.
+  if (Date.now() - lastHydrateAttempt < HYDRATE_RETRY_MS) return;
+  lastHydrateAttempt = Date.now();
   try {
     if (existsSync(STATE_PATH)) {
       if (adopt(JSON.parse(readFileSync(STATE_PATH, 'utf8')) as Persisted)) {
@@ -631,6 +646,15 @@ export function __resetLifetimeStatsForTest(options?: { allowHydrate?: boolean }
   cached = null;
   accumulator = null;
   hydrated = !options?.allowHydrate;
+  // The retry gap too, or a reset in one test is silently blocked by the
+  // hydrate another test attempted seconds earlier.
+  lastHydrateAttempt = 0;
+}
+
+/// Wind the retry gap back so a test can assert the next hydrate actually looks
+/// again, without sleeping for the real interval.
+export function __expireHydrateBackoffForTest(): void {
+  lastHydrateAttempt = 0;
 }
 
 /// The block the next sweep would resume from, or null if nothing is loaded.

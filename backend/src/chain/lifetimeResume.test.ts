@@ -81,6 +81,30 @@ test('the work already counted survives the resume', async () => {
   assert.equal(stats.volumes.fundedUsdc, '1');
 });
 
+test('a seed that lands after boot is picked up without a restart', async () => {
+  // The normal case, not an edge case: seeding is a separate ops step, so it
+  // always runs after the API is already up and has probably already answered
+  // "no snapshot" at least once.
+  //
+  // Latching hydration on the ATTEMPT rather than on success meant that first
+  // miss was permanent. Production served 503 with a perfectly good snapshot
+  // sitting in Postgres, and the only cure was a restart nobody knew to do.
+  writeFileSync(STORE, '{}', 'utf8'); // nothing seeded yet
+  lifetime.__resetLifetimeStatsForTest({ allowHydrate: true });
+
+  assert.equal(await lifetime.getLifetimeStats(), null, 'should report nothing yet');
+
+  // The seed runs.
+  writeSnapshot('54000000');
+
+  // Same process, no restart. The retry gap is 30s, so wind the clock past it.
+  lifetime.__expireHydrateBackoffForTest();
+  const stats = await lifetime.getLifetimeStats();
+
+  assert.ok(stats, 'the snapshot written after the first miss was never picked up');
+  assert.equal(stats.totals.transactions, 161);
+});
+
 test('a corrupt snapshot is refused rather than half adopted', async () => {
   // Half-loading is worse than not loading: a cursor without its counts would
   // skip every block below it AND report nothing for them.
