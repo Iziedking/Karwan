@@ -1,6 +1,7 @@
 import { createWalletClient, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { arcTestnet, arcTransport, publicClient } from './client.js';
+import { VAULT_DEPLOYMENTS } from './deployLedger.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -261,6 +262,49 @@ export async function runUsycWrap(opts: { dryRun?: boolean } = {}): Promise<Usyc
   await sweep(wallet, account, dryRun, steps).catch((err) =>
     steps.push({ action: 'treasury-sweep', detail: `failed: ${(err as Error).message}`, skipped: true }),
   );
+  await flagStrandedVaults(steps).catch((err) =>
+    steps.push({ action: 'stranded-check', detail: `failed: ${(err as Error).message}`, skipped: true }),
+  );
 
   return { operator: account.address, dryRun, steps };
+}
+
+/// Report retired vaults that are still owed routed stake.
+///
+/// `rebalance` above only ever touches `KARWAN_VAULT_ADDR`. That is correct
+/// while a vault is live and becomes a trap the moment it is superseded: USDC
+/// already routed out via `withdrawForYield` stays booked in the old vault's
+/// `outForYield`, the operator keeps holding it as USYC, and nothing calls
+/// `depositFromYield` on that address again. The vault ends up unable to pay
+/// claims, which surfaces to a user as CLAIM READY buttons that revert.
+///
+/// This does not fix it, deliberately. Moving funds is `npm run legacy:unwind`,
+/// an explicit operator action. What this does is make the condition VISIBLE on
+/// /admin/usyc and in the cron output, because the only reason it went unnoticed
+/// is that nothing was looking.
+async function flagStrandedVaults(steps: UsycStep[]): Promise<void> {
+  const current = config.KARWAN_VAULT_ADDR ? getAddress(config.KARWAN_VAULT_ADDR) : null;
+  const retired = VAULT_DEPLOYMENTS.filter((v) => !current || getAddress(v.address) !== current);
+
+  for (const v of retired) {
+    const address = getAddress(v.address);
+    let owed: bigint;
+    try {
+      owed = (await publicClient.readContract({
+        address,
+        abi: [{ type: 'function', name: 'outForYield', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] }] as const,
+        functionName: 'outForYield',
+      })) as bigint;
+    } catch {
+      continue; // predates the yield routing
+    }
+    if (owed === 0n) continue;
+    steps.push({
+      action: 'stranded-check',
+      detail:
+        `retired vault ${address} is still owed ${fmt(owed)} USDC of routed stake. ` +
+        `Holders cannot claim until it is returned: run \`npm run legacy:unwind\`.`,
+      skipped: true,
+    });
+  }
 }
