@@ -2046,8 +2046,7 @@ export const fr: Messages = {
     yield: {
       eyebrow: 'RENDEMENT MAINNET',
       bodyPrefix: 'Sur testnet, le coffre détient des USDC simples. Sur mainnet, la même mise transite par',
-      bodyMiddle: 'et gagne environ',
-      bodySuffix: 'de rendement annuel tout en bâtissant votre réputation.',
+      bodyMiddle: 'pendant qu’il construit votre reputation. Vous gagnez ce qu’il gagne, credite chaque jour.',
     },
     depositForm: {
       label: 'DÉPÔT',
@@ -3111,7 +3110,7 @@ export const fr: Messages = {
       line2Prefix: 'Gagnez du',
       line2Accent: 'rendement',
       body: 'Déposez des USDC. Plus le dépôt reste, plus il gagne en réputation. Retirez à tout moment. Délai de retrait de 7 jours à la sortie.',
-      mainnetNote: '// SUR LE MAINNET, CE DÉPÔT PASSE PAR HASHNOTE USYC AVEC UN APY DE ~5%',
+      mainnetNote: '// LE DEPOT INACTIF PASSE PAR HASHNOTE USYC. LE RENDEMENT EST REVERSE, CHAQUE JOUR',
     },
     position: {
       reputation: 'Réputation',

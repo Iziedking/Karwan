@@ -1209,7 +1209,12 @@ function YieldNote({ copy }: { copy: Messages['stakeCard']['yield'] }) {
         >
           Hashnote USYC
         </span>{' '}
-        {copy.bodyMiddle} <span className="tabular-nums font-semibold">~5%</span> {copy.bodySuffix}
+        {/* No rate quoted. Yield is passed through from the actual USYC price
+            move, so any number here would be a promise the platform does not
+            control: USYC has been running nearer 3% than the 5% this used to
+            claim. Saying what the mechanism is beats naming a figure that goes
+            stale the day the fund moves. */}
+        {copy.bodyMiddle}
       </p>
     </div>
   );

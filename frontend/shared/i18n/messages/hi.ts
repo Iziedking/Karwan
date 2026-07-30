@@ -2046,8 +2046,7 @@ export const hi: Messages = {
     yield: {
       eyebrow: 'मेननेट यील्ड',
       bodyPrefix: 'टेस्टनेट पर वॉल्ट सादा USDC रखता है. मेननेट पर वही स्टेक रूट होता है',
-      bodyMiddle: 'के माध्यम से और लगभग कमाता है',
-      bodySuffix: 'APY जबकि आपकी प्रतिष्ठा बनाता है.',
+      bodyMiddle: 'जबकि यह आपकी प्रतिष्ठा बनाता है। जो यह कमाता है वही आपको मिलता है, रोज़ जमा।',
     },
     depositForm: {
       label: 'जमा',
@@ -3111,7 +3110,7 @@ export const hi: Messages = {
       line2Prefix: 'कमाएँ',
       line2Accent: 'यील्ड',
       body: 'USDC स्टेक करें. जितनी देर रखी रहेगी, उतनी अधिक प्रतिष्ठा बनेगी. कभी भी निकालें. बाहर निकलने पर 7 दिन का कूल-डाउन.',
-      mainnetNote: '// मेननेट पर यह स्टेक HASHNOTE USYC से होकर गुज़रता है, लगभग 5% APY',
+      mainnetNote: '// निष्क्रिय स्टेक HASHNOTE USYC से गुज़रता है। जो कमाई होती है वही मिलती है, रोज़',
     },
     position: {
       reputation: 'प्रतिष्ठा',

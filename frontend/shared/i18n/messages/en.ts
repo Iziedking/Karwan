@@ -1899,7 +1899,6 @@ interface MessagesShape {
       eyebrow: string;
       bodyPrefix: string;
       bodyMiddle: string;
-      bodySuffix: string;
     };
     depositForm: {
       label: string;
@@ -6088,8 +6087,7 @@ export const en: MessagesShape = {
     yield: {
       eyebrow: 'LIVE YIELD',
       bodyPrefix: 'Idle stake accrues through',
-      bodyMiddle: 'at roughly',
-      bodySuffix: 'APY while it builds your reputation. Your pro-rata share is non-custodial and claimable on demand.',
+      bodyMiddle: 'while it builds your reputation. You earn what it earns, credited daily.',
     },
     depositForm: {
       label: 'DEPOSIT',
@@ -7177,7 +7175,7 @@ export const en: MessagesShape = {
       line2Prefix: 'Earn',
       line2Accent: 'yield',
       body: 'Stake USDC. The longer it sits, the more reputation it earns. Withdraw any time. 3-day cool-down on the way out.',
-      mainnetNote: '// IDLE STAKE ROUTES THROUGH HASHNOTE USYC FOR ~5% APY, CREDITED DAILY',
+      mainnetNote: '// IDLE STAKE ROUTES THROUGH HASHNOTE USYC. YIELD IS PASSED THROUGH, CREDITED DAILY',
     },
     position: {
       reputation: 'Reputation',

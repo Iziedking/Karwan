@@ -2046,8 +2046,7 @@ export const sw: Messages = {
     yield: {
       eyebrow: 'MAVUNO YA MAINNET',
       bodyPrefix: 'Kwenye testnet vault inashika USDC tu. Kwenye mainnet dhamana hiyo hupita kupitia',
-      bodyMiddle: 'na kupata takriban',
-      bodySuffix: 'APY huku ikijenga sifa yako.',
+      bodyMiddle: 'huku ikijenga sifa yako. Unapata kile inachopata, kikiwekwa kila siku.',
     },
     depositForm: {
       label: 'WEKA',
@@ -3111,7 +3110,7 @@ export const sw: Messages = {
       line2Prefix: 'Pata',
       line2Accent: 'mavuno',
       body: 'Weka USDC. Inavyokaa muda mrefu, ndivyo inavyojenga sifa zaidi. Toa wakati wowote. Kipindi cha kupoza cha siku 7 unapotoka.',
-      mainnetNote: '// KWENYE MAINNET STAKE HII HUPITIA HASHNOTE USYC KWA APY YA KARIBIA 5%',
+      mainnetNote: '// STAKE ISIYOTUMIKA HUPITIA HASHNOTE USYC. MAPATO HUPITISHWA, KILA SIKU',
     },
     position: {
       reputation: 'Sifa',

@@ -2046,8 +2046,7 @@ export const ar: Messages = {
     yield: {
       eyebrow: 'عائد الشبكة الرئيسية',
       bodyPrefix: 'على شبكة الاختبار يحتفظ الخزان بـ USDC فقط. على الشبكة الرئيسية يمر الرهان نفسه عبر',
-      bodyMiddle: 'ويحقق عائدًا سنويًا يقارب',
-      bodySuffix: 'بينما يبني سمعتك.',
+      bodyMiddle: 'بينما تبني سمعتك. تحصل على ما تحققه، ويُضاف يوميًا.',
     },
     depositForm: {
       label: 'إيداع',
@@ -3111,7 +3110,7 @@ export const ar: Messages = {
       line2Prefix: 'اكسب',
       line2Accent: 'العائد',
       body: 'أودع USDC. كلما طال بقاؤه, زادت السمعة المكتسبة. اسحب في أي وقت. فترة تهدئة سبعة أيام عند الخروج.',
-      mainnetNote: '// على الشبكة الرئيسية يمر هذا الإيداع عبر HASHNOTE USYC بعائد سنوي قرابة 5%',
+      mainnetNote: '// يمر الرصيد الخامل عبر HASHNOTE USYC. يُمرَّر العائد كما هو، يوميًا',
     },
     position: {
       reputation: 'السمعة',
