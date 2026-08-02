@@ -7,6 +7,7 @@ import { isBusinessAccount } from '@/features/account/accountKind';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { SignInGate } from '@/shared/components/SignInGate';
+import { CtaArrow, withoutTrailingArrow } from '@/shared/components/CtaArrow';
 import {
   FullBleed,
   Band,
@@ -238,15 +239,24 @@ export function ListingsBrowse() {
               <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-1">
                 <Link
                   href="/buyer"
-                  className="mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+                  className="group inline-flex items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
                 >
-                  {homeHero.postRequestCta}
+                  {withoutTrailingArrow(homeHero.postRequestCta)}
+                  <CtaArrow />
                 </Link>
+                {/* /supply for a company, /seller for a person. /seller is the
+                    individual lane, so sending a business there posted its
+                    offers into the person-to-person pool, and the page had to
+                    catch it with an interstitial telling them to go to Supply
+                    instead. A business should never meet that screen: the link
+                    that knows the account kind should just point at the right
+                    desk. Same rule as BusinessHome's own CTA. */}
                 <Link
-                  href="/seller"
-                  className="mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+                  href={onBusinessTrack ? '/supply' : '/seller'}
+                  className="group inline-flex items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
                 >
-                  {homeHero.postOfferCta}
+                  {withoutTrailingArrow(homeHero.postOfferCta)}
+                  <CtaArrow />
                 </Link>
               </div>
             </div>
