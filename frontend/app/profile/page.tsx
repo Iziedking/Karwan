@@ -190,40 +190,38 @@ function ProfilePageInner() {
       key: 'identity',
       label: t.tabs.identity,
       content: (
-        <>
-        {/* ACTIVATION */}
-        <div className="px-6 py-6 md:px-8 md:py-7">
-          {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
+        <div data-guide="profile-identity">
+        {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
+        <div className="px-6 pt-6 md:px-8">
           <TierCelebration address={address} />
-          <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end" data-guide="profile-identity">
+        </div>
+
+        {/* ACTIVATION, only while it still has something to ask for.
+            Once agents are active this block was a heading, a sentence and no
+            control: "Agents active. Buyer and seller wallets sign every
+            on-chain action." The panel is already labelled, there is an AGENTS
+            panel one tab over, and the sentence describes the product rather
+            than telling anyone anything about their account. Hidden while
+            loading too, so an activated user never sees "Activate to begin"
+            flash before the state resolves. */}
+        {!activation.loading && !activation.activated ? (
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end">
             <div className="max-w-[52ch]">
-              <SectionTag dot={activation.activated ? 'live' : undefined}>
-                {activation.activated ? t.activation.activatedTag : t.activation.inactiveTag}
-              </SectionTag>
+              <SectionTag>{t.activation.inactiveTag}</SectionTag>
               <HeroHeadline size="md">
-                {activation.activated ? (
-                  <>
-                    {t.activation.activatedHeadlinePrefix}
-                    <Accent>{t.activation.activatedHeadlineAccent}</Accent>
-                    <Punc>.</Punc>
-                  </>
-                ) : (
-                  <>
-                    {t.activation.inactiveHeadlinePrefix}
-                    <Accent>{t.activation.inactiveHeadlineAccent}</Accent>
-                    <Punc>.</Punc>
-                  </>
-                )}
+                {t.activation.inactiveHeadlinePrefix}
+                <Accent>{t.activation.inactiveHeadlineAccent}</Accent>
+                <Punc>.</Punc>
               </HeroHeadline>
               <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-                {activation.activated ? t.activation.activatedBody : t.activation.inactiveBody}
+                {t.activation.inactiveBody}
               </p>
             </div>
-            {!activation.activated && !activation.loading && (
-              <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
-            )}
+            <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
           </div>
         </div>
+        ) : null}
 
         {/* ROLE + AGENT DETAILS */}
         {profile ? (
@@ -363,7 +361,7 @@ function ProfilePageInner() {
         {SME_TRADES_ENABLED && address && isBusiness ? (
           <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
         ) : null}
-        </>
+        </div>
       ),
     },
     {

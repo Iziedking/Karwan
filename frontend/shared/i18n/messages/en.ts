@@ -556,19 +556,14 @@ interface MessagesShape {
       walletsPrefix: string;
       walletsLive: string;
       walletsIdle: string;
-      activatedBody: string;
       inactiveBody: string;
       buyerFallback: string;
       sellerFallback: string;
     };
     activation: {
-      activatedTag: string;
       inactiveTag: string;
-      activatedHeadlinePrefix: string;
-      activatedHeadlineAccent: string;
       inactiveHeadlinePrefix: string;
       inactiveHeadlineAccent: string;
-      activatedBody: string;
       inactiveBody: string;
       cta: string;
     };
@@ -4596,19 +4591,14 @@ export const en: MessagesShape = {
       walletsPrefix: 'Wallets',
       walletsLive: 'live',
       walletsIdle: 'idle',
-      activatedBody: 'Buyer and seller wallets provisioned. Signing on chain.',
       inactiveBody: 'Activate below to provision agent wallets.',
       buyerFallback: 'Buyer agent',
       sellerFallback: 'Seller agent',
     },
     activation: {
-      activatedTag: 'AGENT WALLETS',
       inactiveTag: 'NOT ACTIVATED',
-      activatedHeadlinePrefix: 'Agents ',
-      activatedHeadlineAccent: 'active',
       inactiveHeadlinePrefix: 'Activate to ',
       inactiveHeadlineAccent: 'begin',
-      activatedBody: 'Buyer and seller wallets sign every on-chain action. Fund or withdraw below.',
       inactiveBody: 'Activation provisions buyer and seller Circle wallets for this address.',
       cta: 'Activate agents',
     },

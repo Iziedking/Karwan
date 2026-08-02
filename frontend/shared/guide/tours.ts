@@ -263,8 +263,8 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
     },
     {
       target: 'profile-identity',
-      title: 'Activate your agents',
-      body: 'This shows whether your buyer and seller agents are live. Activate here to let them bid, negotiate, and fund deals for you. Your reputation tier sits up top.',
+      title: 'Your identity',
+      body: 'Your account, your role, and the ranges your agents work within. If your agents are not live yet, the activate button is here. Use the tabs above to move between identity, wallets, agents and preferences.',
     },
     {
       target: 'profile-wallets',
