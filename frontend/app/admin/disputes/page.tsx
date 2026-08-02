@@ -105,6 +105,17 @@ function DisputeCard({
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const onWrongChain = !!address && chainId !== ARC_CHAIN_ID;
+  /// A Safe verifies owners with ecrecover, so signing here needs a browser
+  /// wallet holding a private key. A Circle account has neither a wagmi client
+  /// nor an EOA, so it cannot produce a signature at all.
+  ///
+  /// This used to be an unexplained disabled button: the operator saw a greyed
+  /// control and no reason, which is the same dead end as a button that does
+  /// nothing when clicked. Name the reason instead.
+  const canSignHere = !!address && !!walletClient;
+  const cannotSignReason = canSignHere
+    ? null
+    : 'This account signs through Karwan and has no key of its own, so it cannot sign a Safe ruling. Connect a browser wallet that is an owner of the arbiter Safe.';
   const amount = Number(dispute.dealAmountUsdc);
   const toSeller = (amount * sellerBps) / 10_000;
 
@@ -257,7 +268,7 @@ function DisputeCard({
           <button
             type="button"
             onClick={sign}
-            disabled={!prepared || busy !== null || alreadySigned || !address}
+            disabled={!prepared || busy !== null || alreadySigned || !canSignHere}
             className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50"
           >
             {busy === 'sign' ? 'Signing…' : alreadySigned ? 'You signed' : 'Sign as owner'}
@@ -273,6 +284,11 @@ function DisputeCard({
         </button>
       </div>
 
+      {cannotSignReason && !alreadySigned ? (
+        <p className="mt-2 text-[11px] leading-snug text-zinc-500 max-w-[62ch]">
+          {cannotSignReason}
+        </p>
+      ) : null}
       {msg ? <p className="mt-2 mono text-[10px] text-zinc-600">{msg}</p> : null}
       {err ? (
         <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
