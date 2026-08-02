@@ -183,6 +183,11 @@ function DisputeCard({
     }
   }
 
+  /// Only hide the controls when the backend has positively said the deal is
+  /// elsewhere. An older backend omits the field entirely, and defaulting to
+  /// "retired" there would blank the ruling UI for every dispute.
+  const onRetiredEscrow = dispute.rulable === false;
+
   const alreadySigned =
     !!address && !!prepared?.collected.some((s) => s.signer.toLowerCase() === address.toLowerCase());
 
@@ -202,6 +207,31 @@ function DisputeCard({
         {dispute.jobId.slice(0, 10)}…
       </p>
 
+      {onRetiredEscrow ? (
+        <div
+          className="mt-4 p-4 text-[12px] leading-relaxed text-zinc-300"
+          style={{ borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}
+        >
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+            [:RETIRED ESCROW:]
+          </p>
+          <p className="mt-2">
+            This deal is held by escrow generation {dispute.venue?.generation}
+            {dispute.venue?.escrow ? ` (${short(dispute.venue.escrow)})` : ''}, not the one
+            rulings target. A ruling prepared here would collect signatures and then revert at
+            execution, which is what used to happen.
+          </p>
+          <p className="mt-2">
+            That contract predates the arbiter Safe: it has no <code>arbiter()</code> and no{' '}
+            <code>resolve()</code>, so a split cannot be expressed on it at all. The only dispute
+            action it carries is <code>releaseFromDispute</code>, which pays the seller in full.
+          </p>
+          <p className="mt-2 text-zinc-400">
+            Resolve it on that contract directly, or leave it for the legacy window to close.
+          </p>
+        </div>
+      ) : (
+      <>
       <div className="mt-4 grid gap-3 md:grid-cols-[200px_1fr]">
         <label className="block">
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-600">
@@ -305,6 +335,8 @@ function DisputeCard({
           ruling tx ↗
         </a>
       ) : null}
+      </>
+      )}
     </section>
   );
 }

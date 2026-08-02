@@ -1185,6 +1185,18 @@ export interface AdminDisputeRow {
   dealAmountUsdc: string;
   disputedAt: number | null;
   disputedBy: 'buyer' | 'seller' | null;
+  /// False when the escrow holding this deal is not the one a ruling targets.
+  /// The admin surface offers no signing controls in that case: two owners
+  /// signing something that cannot execute is worse than no controls at all.
+  rulable?: boolean;
+  /// Where the money actually is, when it is not on the current escrow.
+  venue?: {
+    generation: 1 | 2 | 3;
+    escrow: string | null;
+    /// Retired escrows predate the arbiter Safe. They can release a disputed
+    /// escrow to the seller and nothing else, so a split has no expression.
+    supportsSplitRuling: boolean;
+  } | null;
 }
 
 /// Everything needed to sign one arbiter ruling. `typedData` is handed over

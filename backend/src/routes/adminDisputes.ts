@@ -8,6 +8,7 @@ import { executeContractCall } from '../chain/txs.js';
 import { listAllDeals, getDeal, patchDeal } from '../db/deals.js';
 import { listSignatures, putSignature, clearSignatures } from '../db/arbiterSignatures.js';
 import { config } from '../config.js';
+import { legacyGenerations, readLegacyEscrowWithGen } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -71,8 +72,48 @@ adminDisputeRoutes.get('/', async (c) => {
       disputedAt: d.disputedAt ?? null,
       disputedBy: d.disputedBy ?? null,
     }));
+
+  /// Which contract actually holds each disputed escrow, and whether a ruling
+  /// can be executed against it.
+  ///
+  /// The ruling always targets KARWAN_ESCROW_ADDR. For a deal opened before the
+  /// last redeploy that address is simply wrong: the money sits on a retired
+  /// escrow, `resolve` reverts, and the failure only surfaces at EXECUTE, after
+  /// two owners have already signed. Worse, the gen-1 escrow has no `arbiter()`
+  /// and no `resolve()` at all, so no signature could ever have worked there.
+  ///
+  /// Answer it here rather than letting the page find out the hard way. A
+  /// dispute whose funds are elsewhere gets `rulable: false` and a plain
+  /// statement of where it lives, instead of controls that cannot deliver.
+  const withVenue = await Promise.all(
+    disputed.map(async (d) => {
+      try {
+        const legacy = await readLegacyEscrowWithGen(d.jobId);
+        if (!legacy) return { ...d, rulable: true as const, venue: null };
+        return {
+          ...d,
+          rulable: false as const,
+          venue: {
+            generation: legacy.generation,
+            escrow:
+              legacyGenerations.find((g) => g.index === legacy.generation)?.escrowAddress ?? null,
+            /// Only the current escrow carries the arbiter Safe and the
+            /// split-ruling `resolve`. Older ones can release a disputed
+            /// escrow to the seller wholesale and nothing else, so a
+            /// "refund the buyer" ruling has no expression there.
+            supportsSplitRuling: false,
+          },
+        };
+      } catch {
+        // A failed lookup must not hide a dispute. Show it, and let the
+        // execute step be the thing that reports a problem.
+        return { ...d, rulable: true as const, venue: null };
+      }
+    }),
+  );
+
   return c.json({
-    disputes: disputed,
+    disputes: withVenue,
     safe: safeAddress(),
     escrow: escrowAddress(),
   });
