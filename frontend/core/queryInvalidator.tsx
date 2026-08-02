@@ -59,6 +59,31 @@ const DEAL_EVENTS = new Set<string>([
   'security.match.evaluated',
 ]);
 
+/// wagmi keys every `useBalance` under this prefix, so invalidating it refreshes
+/// the chain reads for every address and chain at once. Matching the prefix
+/// rather than reconstructing each full key means a new balance surface is
+/// covered the day it is added, without anyone remembering to register it.
+const WAGMI_BALANCE_KEY = ['balance'] as const;
+
+/// Did this event move money that a chain balance would show?
+///
+/// Deliberately broader than the deal table: a top up, a bridge landing or a
+/// stake claim never touches a deal, and those are exactly the moments somebody
+/// is staring at their balance waiting for it to change.
+function touchesMoney(event: ChainEvent): boolean {
+  const t = event.type;
+  return (
+    DEAL_EVENTS.has(t) ||
+    t.startsWith('escrow.') ||
+    t.startsWith('vault.') ||
+    t.startsWith('bridge.') ||
+    t.startsWith('gateway.') ||
+    t.startsWith('wallet.') ||
+    t.startsWith('payment.') ||
+    t.startsWith('yield.')
+  );
+}
+
 function routes(event: ChainEvent): readonly (readonly string[])[] {
   const t = event.type;
 
@@ -142,7 +167,8 @@ export function QueryInvalidator() {
   useEffect(() => {
     return subscribeLiveEvents((event) => {
       const keys = routes(event);
-      if (keys.length === 0) return;
+      const money = touchesMoney(event);
+      if (keys.length === 0 && !money) return;
       // Small delay so the backend has written its store update before the
       // refetch lands; matches the hand-rolled 400ms timeouts we used to
       // scatter through the hooks.
@@ -151,6 +177,14 @@ export function QueryInvalidator() {
           if (key.length === 0) continue;
           qc.invalidateQueries({ queryKey: key as unknown as readonly unknown[] });
         }
+        // Chain balances too, not just the backend's view of them.
+        //
+        // The routing table above only knows `qk.*` keys, which are the
+        // queries this app defines. wagmi's useBalance lives under its own
+        // ['balance', ...] key, so every chain balance on the profile was
+        // invisible to SSE and only ever refreshed on its own timer. That is
+        // why the balance could lag an event it was caused by.
+        if (money) qc.invalidateQueries({ queryKey: WAGMI_BALANCE_KEY });
       }, 400);
       return () => clearTimeout(t);
     });

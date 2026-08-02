@@ -12,6 +12,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
@@ -148,6 +149,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { recordAction } = useGuide();
+  const refreshMoney = useMoneyRefresh();
   // Web3 users sign vault txs from their own wallet. If that wallet is on the
   // wrong network (e.g. Base), the deposit/withdraw/claim would broadcast on
   // the wrong chain. Detect it and make the user switch to Arc first. Circle
@@ -338,6 +340,12 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     // that it was landing in the catch above and re-marking a CONFIRMED deposit
     // as failed. A refresh that cannot run means a stale number until the 10s
     // poll catches up; it must never restate whether the deposit landed.
+    // The wallet already told us the deposit landed, so refresh the balances
+    // now rather than waiting for SSE to report an event we caused. Synchronous
+    // and outside the try below on purpose: it only invalidates caches, so it
+    // cannot fail in a way that should look like a failed deposit.
+    refreshMoney();
+
     try {
       await refetchPositions(true);
       await refetchRep();

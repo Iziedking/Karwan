@@ -64,33 +64,64 @@ const CARD_STYLE = {
 /// undefined (wagmi skips the fetch), so buyer/seller tabs cost nothing until set.
 /// No explicit return type: let inference carry the real useBalance data shape
 /// (ReturnType<typeof useBalance> widens .data to {} on an unresolved generic).
-function useChainBalances(address?: `0x${string}`) {
+/// Arc is the money in play, but the clock is no longer how it stays current.
+///
+/// SSE invalidation now covers wagmi's balance keys, and a wallet-signed
+/// transaction refreshes on its own receipt, so the balance moves when the
+/// money moves rather than on the next tick. That makes this a SAFETY NET for
+/// the cases neither path covers: a dropped SSE connection, a phone that
+/// backgrounded the tab, an event the backend has not observed yet.
+///
+/// 30s rather than 5s because a net that only catches rare misses does not need
+/// to be checked twelve times a minute. Dropping this before the invalidation
+/// landed would have made the page slower, not cheaper.
+const ARC_POLL_MS = 30_000;
+/// The CCTP source chains are not. They only change when the user moves money
+/// on ANOTHER chain, which this app cannot observe and cannot cause, so polling
+/// them fast buys nothing. A minute is well inside the time it takes to decide
+/// to bridge.
+const SOURCE_POLL_MS = 60_000;
+
+function useChainBalances(address: `0x${string}` | undefined, enabled: boolean) {
+  // `enabled` is what actually fixes the load. This card is collapsed by
+  // default and renders only a chain COUNT until it is opened, yet the hooks
+  // ran regardless: three addresses times six chains, eighteen reads for a
+  // panel showing nothing. Three of those hit Arc, each with viem retries
+  // behind it, which is how a rate limit turned into a screen of console
+  // errors. You cannot read data you are not rendering.
+  const arc = { enabled: !!address && enabled, refetchInterval: ARC_POLL_MS };
+  const source = { enabled: !!address && enabled, refetchInterval: SOURCE_POLL_MS };
   return {
-    arc: useBalance({ address, chainId: arcTestnet.id }),
+    arc: useBalance({ address, chainId: arcTestnet.id, query: arc }),
     baseSepolia: useBalance({
       address,
       chainId: SOURCE_CHAINS.baseSepolia.chainId,
       token: SOURCE_CHAINS.baseSepolia.usdc,
+      query: source,
     }),
     sepolia: useBalance({
       address,
       chainId: SOURCE_CHAINS.sepolia.chainId,
       token: SOURCE_CHAINS.sepolia.usdc,
+      query: source,
     }),
     arbitrumSepolia: useBalance({
       address,
       chainId: SOURCE_CHAINS.arbitrumSepolia.chainId,
       token: SOURCE_CHAINS.arbitrumSepolia.usdc,
+      query: source,
     }),
     optimismSepolia: useBalance({
       address,
       chainId: SOURCE_CHAINS.optimismSepolia.chainId,
       token: SOURCE_CHAINS.optimismSepolia.usdc,
+      query: source,
     }),
     polygonAmoy: useBalance({
       address,
       chainId: SOURCE_CHAINS.polygonAmoy.chainId,
       token: SOURCE_CHAINS.polygonAmoy.usdc,
+      query: source,
     }),
   };
 }
@@ -121,9 +152,14 @@ export function BalancesCard({
   const buyer = (buyerAgent as `0x${string}` | undefined) ?? undefined;
   const seller = (sellerAgent as `0x${string}` | undefined) ?? undefined;
 
-  const youBal = useChainBalances(address);
-  const buyerBal = useChainBalances(buyer);
-  const sellerBal = useChainBalances(seller);
+  // Only the open card, and only the tab actually on screen. The hooks still
+  // run in the same order every render (rules of hooks); what changes is
+  // whether each one fetches. Switching tabs is not a cold start either: the
+  // client's 30s staleTime means coming back to a tab you just looked at is
+  // served from cache with no request at all.
+  const youBal = useChainBalances(address, open && view === 'you');
+  const buyerBal = useChainBalances(buyer, open && view === 'buyer');
+  const sellerBal = useChainBalances(seller, open && view === 'seller');
 
   if (!auth.isAuthenticated || !address) {
     return (

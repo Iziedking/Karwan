@@ -127,7 +127,19 @@ export const wagmiConfig = createConfig({
   ],
   connectors,
   transports: {
-    [arcTestnet.id]: fallback(ARC_RPC_URLS.map((url) => http(url))),
+    // retryCount 1, not viem's default of 3.
+    //
+    // A rate limit amplifies itself here. Every read that gets throttled is
+    // retried three times by the transport, then rotated to the next URL in the
+    // fallback and retried three more, then retried again by react-query. One
+    // throttled render of three Arc balances became roughly two dozen requests,
+    // which is what filled the console on /profile. Worse, a throttled response
+    // arrives without CORS headers, so the browser reports it as a CORS failure
+    // and the retries look like a policy problem rather than a load problem.
+    //
+    // `fallback` already provides the redundancy: rotating to the next endpoint
+    // is a better answer to a busy one than asking it again.
+    [arcTestnet.id]: fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 }))),
     [baseSepolia.id]: fallback(BASE_SEPOLIA_RPCS.map((url) => http(url))),
     [sepolia.id]: fallback(SEPOLIA_RPCS.map((url) => http(url))),
     [optimismSepolia.id]: fallback(OP_SEPOLIA_RPCS.map((url) => http(url))),
