@@ -10,6 +10,8 @@ import {
   KARWAN_INVOICE_REGISTRY_ADDRESS,
 } from '@/features/profile/config';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { chainErrorMessage } from '@/shared/utils/chainError';
 
 /// Buyer-side PoD acceptance band. Buyer signs registry.acceptPoD on the
 /// KarwanInvoiceRegistry contract, then the PO financing watcher releases
@@ -69,6 +71,7 @@ function BuyerPodPanelInner({
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const [submitting, setSubmitting] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const errCopy = useTranslations().chainErrors;
   const [error, setError] = useState<string | null>(null);
 
   const isCircleUser = auth.method === 'circle';
@@ -118,7 +121,7 @@ function BuyerPodPanelInner({
       }
       onPodAccepted();
     } catch (err) {
-      setError((err as Error).message);
+      setError(chainErrorMessage(err, errCopy, errCopy.generic));
     } finally {
       setSubmitting(false);
     }

@@ -24,6 +24,8 @@ import { api } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { chainErrorMessage } from '@/shared/utils/chainError';
+import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
@@ -238,6 +240,8 @@ function LegacyStakeCard({
   isCircleUser: boolean;
   copy: Messages['legacyPage'];
 }) {
+  const errCopy = useTranslations().chainErrors;
+  const refreshMoney = useMoneyRefresh();
   const { data: walletClient } = useWalletClient();
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const chainId = useChainId();
@@ -282,7 +286,7 @@ function LegacyStakeCard({
       }
       setCooldownDaysByGen(map);
     } catch (err) {
-      setLastError((err as Error).message);
+      setLastError(chainErrorMessage(err, errCopy, errCopy.generic));
     } finally {
       setLoading(false);
     }
@@ -349,10 +353,13 @@ function LegacyStakeCard({
           });
           await arcClient.waitForTransactionReceipt({ hash });
           setLastTx(hash);
+          // The wallet has confirmed it. Refresh now rather than waiting for
+          // the backend to observe an event this browser already saw.
+          refreshMoney();
         }
         await refetch();
       } catch (err) {
-        setLastError((err as Error).message);
+        setLastError(chainErrorMessage(err, errCopy, errCopy.generic));
       } finally {
         setBusy(null);
       }
@@ -388,10 +395,11 @@ function LegacyStakeCard({
         });
         await arcClient.waitForTransactionReceipt({ hash });
         setLastTx(hash);
+        refreshMoney();
       }
       await refetch();
     } catch (err) {
-      setLastError((err as Error).message);
+      setLastError(chainErrorMessage(err, errCopy, errCopy.generic));
     } finally {
       setBusy(null);
     }
@@ -677,6 +685,8 @@ interface LegacyDeal {
 type DealBusy = { jobId: string; kind: 'refund' | 'release' | 'cancel-propose' | 'cancel-accept' } | null;
 
 function LegacyDealsList({ address, copy }: { address: string; copy: Messages['legacyPage'] }) {
+  const errCopy = useTranslations().chainErrors;
+  const refreshMoney = useMoneyRefresh();
   const [deals, setDeals] = useState<LegacyDeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<DealBusy>(null);
@@ -692,7 +702,7 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
       const r = await api.legacyDeals(address);
       setDeals(r.deals);
     } catch (err) {
-      setLastError((err as Error).message);
+      setLastError(chainErrorMessage(err, errCopy, errCopy.generic));
     } finally {
       setLoading(false);
     }
@@ -765,7 +775,7 @@ function LegacyDealsList({ address, copy }: { address: string; copy: Messages['l
         }
         await refetch();
       } catch (err) {
-        setLastError((err as Error).message);
+        setLastError(chainErrorMessage(err, errCopy, errCopy.generic));
       } finally {
         setBusy(null);
       }
