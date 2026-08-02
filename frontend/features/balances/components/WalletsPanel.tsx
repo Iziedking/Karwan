@@ -108,7 +108,14 @@ function Row({
         className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: hub ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
       />
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      {/* Stack below sm, two columns above it. NOT flex-wrap.
+          With wrapping, whether the balance sat beside the name or under it
+          depended on how wide that particular card's title and address happened
+          to be: "Identity wallet" pushed it to a second line while "Buyer agent"
+          did not, so on a phone the three cards in one list rendered in two
+          different shapes off the same component. A breakpoint decides it now,
+          so every card in the list agrees at every width. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{tag}:]
@@ -119,7 +126,10 @@ function Row({
           </p>
           {address && <CopyAddress address={address} onCopied={onCopied} />}
         </div>
-        <div className="text-end shrink-0">
+        {/* Left-aligned while stacked, right-aligned once it is a column. A
+            fixed text-end looked centred-ish and arbitrary on a phone, because
+            the wrapped block hugs its content rather than filling the row. */}
+        <div className="text-start sm:text-end shrink-0">
           <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
             {primary}
           </p>
