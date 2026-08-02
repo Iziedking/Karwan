@@ -27,6 +27,7 @@ import { isBusinessAccount } from '@/features/account/accountKind';
 import { AccountKindBadge } from '@/features/account/AccountKindBadge';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
+import { ProfileDeck, type DeckPanel } from '@/shared/components/ProfileDeck';
 import { PageTour } from '@/shared/guide/PageTour';
 import { PROFILE_TOUR_ID, buildProfileSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -59,7 +60,7 @@ function ProfilePageInner() {
   const t = useTranslations().profile;
   const navT = useTranslations().nav;
   const router = useRouter();
-  const { profile: loadedProfile, address, isConnected, fetchState } = useUserProfile();
+  const { profile: loadedProfile, address, fetchState } = useUserProfile();
   const { method } = useAuth();
   const isCircleUser = method === 'circle';
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -79,25 +80,41 @@ function ProfilePageInner() {
 
   useEffect(() => setProfile(loadedProfile), [loadedProfile]);
 
-  // Drive tab active state from scroll position.
+  // Deep links still work. The assistant sends people to /profile#wallets and
+  // /profile#agents after an action, and QuickStartBand links #identity. Those
+  // used to resolve as scroll anchors; with a deck they have to select a panel
+  // instead, or the link lands on the page and shows the wrong thing.
+  //
+  // `company` maps to identity because the company band lives inside that
+  // panel: a business's EDIT DETAILS points there.
   useEffect(() => {
-    if (!isConnected) return;
-    const ids = ['identity', 'wallets', 'agents', 'preferences'];
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]) setActiveTab(visible[0].target.id);
-      },
-      { threshold: [0.2, 0.5, 0.8], rootMargin: '-100px 0px -40% 0px' },
-    );
-    for (const id of ids) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [isConnected]);
+    const fromHash = () => {
+      const h = window.location.hash.replace('#', '');
+      if (!h) return;
+      const key = h === 'company' ? 'identity' : h;
+      if (['identity', 'wallets', 'agents', 'preferences'].includes(key)) setActiveTab(key);
+    };
+    fromHash();
+    window.addEventListener('hashchange', fromHash);
+    return () => window.removeEventListener('hashchange', fromHash);
+  }, []);
+
+  // Keep the URL in step so the panel someone is looking at is the one they
+  // share. replaceState rather than push: paging through four panels should not
+  // bury the page they arrived from under four history entries.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash === `#${activeTab}`) return;
+    window.history.replaceState(null, '', `#${activeTab}`);
+  }, [activeTab]);
+
+  // The scroll-spy that used to drive the tab strip is gone.
+  //
+  // It watched four anchors and set the active tab from whatever scrolled into
+  // view. With a deck there is only ever one panel mounted, so it would fight
+  // the selection instead of following it: choosing WALLETS would swap the
+  // panel, the observer would then see the only visible anchor and set the tab
+  // back. Selection is the deck's now, and the tab strip is its remote.
 
   const agents = {
     buyer: activation.agents?.buyer,
@@ -161,6 +178,331 @@ function ProfilePageInner() {
   // which ?edit=company opens in place. The individual editor hides the display-
   // name field for a business, so the two name surfaces never overlap.
   const editHref = '/profile/edit';
+
+  /// The four panels of the deck.
+  ///
+  /// Content is the same as the old scrolling sections, with the full-bleed
+  /// Band wrappers replaced by padding: a Band positions itself at left-1/2
+  /// with w-bleed, which escapes a card. The AGENTS panel keeps its dark tone,
+  /// carried by the card instead of by a section.
+  const deckPanels: DeckPanel[] = [
+    {
+      key: 'identity',
+      label: t.tabs.identity,
+      content: (
+        <>
+        {/* ACTIVATION */}
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
+          <TierCelebration address={address} />
+          <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end" data-guide="profile-identity">
+            <div className="max-w-[52ch]">
+              <SectionTag dot={activation.activated ? 'live' : undefined}>
+                {activation.activated ? t.activation.activatedTag : t.activation.inactiveTag}
+              </SectionTag>
+              <HeroHeadline size="md">
+                {activation.activated ? (
+                  <>
+                    {t.activation.activatedHeadlinePrefix}
+                    <Accent>{t.activation.activatedHeadlineAccent}</Accent>
+                    <Punc>.</Punc>
+                  </>
+                ) : (
+                  <>
+                    {t.activation.inactiveHeadlinePrefix}
+                    <Accent>{t.activation.inactiveHeadlineAccent}</Accent>
+                    <Punc>.</Punc>
+                  </>
+                )}
+              </HeroHeadline>
+              <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+                {activation.activated ? t.activation.activatedBody : t.activation.inactiveBody}
+              </p>
+            </div>
+            {!activation.activated && !activation.loading && (
+              <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
+            )}
+          </div>
+        </div>
+
+        {/* ROLE + AGENT DETAILS */}
+        {profile ? (
+          <>
+            <div className="px-6 py-6 md:px-8 md:py-7">
+              {/* Copy left, control right, the same grid the activation band above
+                  uses. Stacked, the picker sat under a 46ch column and left the
+                  right half of a desktop empty; beside it the band reads as one
+                  row and the page loses a screenful of scrolling. */}
+              <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
+                <div className="max-w-[52ch]">
+                  <SectionTag>{t.accountType.tag}</SectionTag>
+                  <HeroHeadline size="md">
+                    {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
+                    <Punc>.</Punc>
+                  </HeroHeadline>
+                  <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+                    {t.accountType.body}
+                  </p>
+                </div>
+                {/* max-w-full keeps it in bounds on a phone, where the grid is
+                    a single column again. */}
+                <PageCard className="w-fit max-w-full">
+                  <div className="p-6 md:p-8">
+                    <RoleToggle profile={profile} onUpdate={setProfile} />
+                  </div>
+                </PageCard>
+              </div>
+            </div>
+
+            {(profile.buyer || profile.seller) && (
+              <div className="px-6 py-6 md:px-8 md:py-7">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <SectionTag>{t.agentProfiles.tag}</SectionTag>
+                  {/* The ranges editor is the same for a business and an individual.
+                      A business's hero EDIT DETAILS opens the company trade card, so
+                      this is the entry point that reaches the agent ranges for them
+                      (and a handy second one for individuals). */}
+                  <CTAPill href="/profile/edit" variant="secondary" tone="light">
+                    {t.agentProfiles.editRanges}
+                  </CTAPill>
+                </div>
+                <HeroHeadline size="md">
+                  {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent>
+                  <Punc>.</Punc>
+                </HeroHeadline>
+                <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+                  {t.agentProfiles.body}
+                </p>
+                {!activation.activated && (
+                  <p
+                    className="mt-3 mono text-[11px] uppercase tracking-[0.12em] leading-relaxed max-w-[52ch]"
+                    style={{ color: '#b25425' }}
+                  >
+                    [:{t.agentProfiles.headsUpEyebrow}:] {t.agentProfiles.headsUpBody}
+                  </p>
+                )}
+                <div className="mt-10 grid md:grid-cols-2 gap-5">
+                  {profile.buyer && (
+                    <AgentBlock
+                      eyebrow={t.agentProfiles.buyerEyebrow}
+                      fallbackName={t.agentProfiles.buyerFallback}
+                      name={activation.agents?.buyerName}
+                      agentAddress={agents.buyer}
+                      rows={[
+                        { label: t.agentProfiles.rows.maxBudget, value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
+                        {
+                          label: t.agentProfiles.rows.deadline,
+                          value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
+                          mono: true,
+                        },
+                        {
+                          label: t.agentProfiles.rows.milestones,
+                          value: profile.buyer.milestonePcts.join(' / ') || '-',
+                          mono: true,
+                        },
+                      ]}
+                    />
+                  )}
+                  {profile.seller && (
+                    <AgentBlock
+                      eyebrow={t.agentProfiles.sellerEyebrow}
+                      fallbackName={t.agentProfiles.sellerFallback}
+                      name={activation.agents?.sellerName}
+                      agentAddress={agents.seller}
+                      rows={[
+                        {
+                          label: isBusiness
+                            ? t.agentProfiles.rows.supplies
+                            : t.agentProfiles.rows.skills,
+                          value: profile.seller.skills.join(', ') || '-',
+                        },
+                        { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
+                        {
+                          label: t.agentProfiles.rows.budget,
+                          value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
+                          mono: true,
+                        },
+                        {
+                          label: t.agentProfiles.rows.delivery,
+                          value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
+                          mono: true,
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="px-6 py-6 md:px-8 md:py-7">
+            <SectionTag>{t.noProfile.tag}</SectionTag>
+            <HeroHeadline size="md">
+              {t.noProfile.headlinePrefix}<Accent>{t.noProfile.headlineAccent}</Accent>
+              <Punc>.</Punc>
+            </HeroHeadline>
+            <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
+              {t.noProfile.body}
+            </p>
+            <div className="mt-7">
+              <CTAPill href="/onboarding">{t.noProfile.cta}</CTAPill>
+            </div>
+          </div>
+        )}
+
+        {/* BUSINESS + COMPANY PROFILE. Only for accounts that chose the business
+            kind at onboarding; an individual account never sees these. Gated by
+            the SME rail too. Register-as-business gates the verified tag; the
+            company band holds the trade card. Independent components so editing
+            one re-renders nothing else on this page. */}
+        {/* Company section anchor: a business's EDIT DETAILS scrolls here. */}
+        <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
+        {SME_TRADES_ENABLED && address && isBusiness ? (
+          <RegisterBusinessBand address={address} />
+        ) : null}
+        {SME_TRADES_ENABLED && address && isBusiness ? (
+          <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
+        ) : null}
+        </>
+      ),
+    },
+    {
+      key: 'wallets',
+      label: t.tabs.wallets,
+      content: (
+        <>
+        {/* HOLDINGS */}
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <div className="flex items-center gap-2">
+            <SectionTag>{t.holdings.tag}</SectionTag>
+            <Hint glow side="bottom" align="start">{t.holdings.body}</Hint>
+          </div>
+          <HeroHeadline size="md">
+            {t.holdings.headlinePrefix}<Accent>{t.holdings.headlineAccent}</Accent>
+            <Punc>.</Punc>
+          </HeroHeadline>
+          <div className="mt-10" data-guide="profile-wallets">
+            <WalletsPanel address={address ?? undefined} />
+          </div>
+          {/* Multi-chain breakdown, folded by default: the same holdings spread
+              across chains, kept with the wallet holdings instead of a separate
+              band lower down. */}
+          <div className="mt-5" data-guide="profile-balances">
+            <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
+          </div>
+        </div>
+        </>
+      ),
+    },
+    {
+      key: 'agents',
+      label: t.tabs.agents,
+      tone: 'dark',
+      content: (
+        <>
+        {/* FUND + WITHDRAW */}
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <div className="flex items-center gap-2">
+            <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
+            <Hint glow side="bottom" align="start">{t.agentTreasury.body}</Hint>
+          </div>
+          <HeroHeadline size="md">
+            {t.agentTreasury.headlineFund}<Punc>.</Punc> {t.agentTreasury.headlineWithdraw}<Punc>.</Punc>
+          </HeroHeadline>
+          {activation.activated ? (
+            <>
+              {/* One surface, two modes: a toggle swaps between adding money and
+                  cashing out, so the page shows a single card, not two. */}
+              <div
+                className="mt-8 inline-flex p-1 gap-1"
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  borderTopLeftRadius: 9,
+                  borderTopRightRadius: 9,
+                  borderBottomLeftRadius: 9,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                {(['add', 'out'] as const).map((mode) => {
+                  const on = moneyMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setMoneyMode(mode)}
+                      aria-pressed={on}
+                      className={`px-4 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+                        on ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'text-white/60 hover:text-white'
+                      }`}
+                      style={{
+                        borderTopLeftRadius: 7,
+                        borderTopRightRadius: 7,
+                        borderBottomLeftRadius: 7,
+                        borderBottomRightRadius: 2,
+                      }}
+                    >
+                      {mode === 'add' ? t.agentTreasury.headlineFund : t.agentTreasury.headlineWithdraw}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-5 max-w-[640px]" data-guide="profile-agents">
+                {moneyMode === 'add' ? (
+                  <ArcFundCard
+                    buyerAgent={agents.buyer}
+                    sellerAgent={agents.seller}
+                    defaultAgent={defaultAgent}
+                  />
+                ) : (
+                  <AgentWithdrawCard
+                    buyerAgent={agents.buyer}
+                    sellerAgent={agents.seller}
+                    defaultAgent={defaultAgent}
+                  />
+                )}
+              </div>
+              <div className="mt-5 max-w-[640px]">
+                <AgentResearchCard />
+              </div>
+            </>
+          ) : (
+            <div className="mt-10 max-w-[640px]" data-guide="profile-agents">
+              <ArcFundCard
+                buyerAgent={agents.buyer}
+                sellerAgent={agents.seller}
+                defaultAgent={defaultAgent}
+              />
+            </div>
+          )}
+        </div>
+        </>
+      ),
+    },
+    {
+      key: 'preferences',
+      label: t.tabs.preferences,
+      content: (
+        <>
+        {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
+        <div className="px-6 py-6 md:px-8 md:py-7">
+          <div className="flex items-center gap-2">
+            <SectionTag>{t.preferences.tag}</SectionTag>
+            <Hint glow side="bottom" align="start">{t.preferences.body}</Hint>
+          </div>
+          <HeroHeadline size="md">
+            {t.preferences.headline}<Punc>.</Punc>
+          </HeroHeadline>
+          <div className="mt-8 flex flex-wrap items-center gap-3" data-guide="profile-preferences">
+            {address && <ProfileEmailButton address={address} tone="light" />}
+            <TelegramConnectButton address={address ?? undefined} tone="light" />
+            <ConnectXButton tone="light" />
+          </div>
+        </div>
+        </>
+      ),
+    },
+  ];
 
   return (
     <FullBleed>
@@ -312,304 +654,15 @@ function ProfilePageInner() {
       <PendingDealsBand tone="light" />
 
       {/* IDENTITY section anchor. Also contains ACTIVATION + ROLE blocks below. */}
-      <div id="identity" aria-hidden style={{ scrollMarginTop: 80 }} />
-
-      {/* ACTIVATION */}
+      {/* The four sections are a deck now, not a scroll. The tab strip
+          above drives it; the deck owns the motion. */}
       <Band tone="light" compact>
-        {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
-        <TierCelebration address={address} />
-        <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end" data-guide="profile-identity">
-          <div className="max-w-[52ch]">
-            <SectionTag dot={activation.activated ? 'live' : undefined}>
-              {activation.activated ? t.activation.activatedTag : t.activation.inactiveTag}
-            </SectionTag>
-            <HeroHeadline size="md">
-              {activation.activated ? (
-                <>
-                  {t.activation.activatedHeadlinePrefix}
-                  <Accent>{t.activation.activatedHeadlineAccent}</Accent>
-                  <Punc>.</Punc>
-                </>
-              ) : (
-                <>
-                  {t.activation.inactiveHeadlinePrefix}
-                  <Accent>{t.activation.inactiveHeadlineAccent}</Accent>
-                  <Punc>.</Punc>
-                </>
-              )}
-            </HeroHeadline>
-            <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-              {activation.activated ? t.activation.activatedBody : t.activation.inactiveBody}
-            </p>
-          </div>
-          {!activation.activated && !activation.loading && (
-            <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
-          )}
-        </div>
+        <ProfileDeck
+          panels={deckPanels}
+          activeKey={activeTab}
+          onChange={setActiveTab}
+        />
       </Band>
-
-      {/* ROLE + AGENT DETAILS */}
-      {profile ? (
-        <>
-          <Band tone="light" compact>
-            {/* Copy left, control right, the same grid the activation band above
-                uses. Stacked, the picker sat under a 46ch column and left the
-                right half of a desktop empty; beside it the band reads as one
-                row and the page loses a screenful of scrolling. */}
-            <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
-              <div className="max-w-[52ch]">
-                <SectionTag>{t.accountType.tag}</SectionTag>
-                <HeroHeadline size="md">
-                  {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
-                  <Punc>.</Punc>
-                </HeroHeadline>
-                <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                  {t.accountType.body}
-                </p>
-              </div>
-              {/* max-w-full keeps it in bounds on a phone, where the grid is
-                  a single column again. */}
-              <PageCard className="w-fit max-w-full">
-                <div className="p-6 md:p-8">
-                  <RoleToggle profile={profile} onUpdate={setProfile} />
-                </div>
-              </PageCard>
-            </div>
-          </Band>
-
-          {(profile.buyer || profile.seller) && (
-            <Band tone="light" compact>
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <SectionTag>{t.agentProfiles.tag}</SectionTag>
-                {/* The ranges editor is the same for a business and an individual.
-                    A business's hero EDIT DETAILS opens the company trade card, so
-                    this is the entry point that reaches the agent ranges for them
-                    (and a handy second one for individuals). */}
-                <CTAPill href="/profile/edit" variant="secondary" tone="light">
-                  {t.agentProfiles.editRanges}
-                </CTAPill>
-              </div>
-              <HeroHeadline size="md">
-                {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent>
-                <Punc>.</Punc>
-              </HeroHeadline>
-              <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                {t.agentProfiles.body}
-              </p>
-              {!activation.activated && (
-                <p
-                  className="mt-3 mono text-[11px] uppercase tracking-[0.12em] leading-relaxed max-w-[52ch]"
-                  style={{ color: '#b25425' }}
-                >
-                  [:{t.agentProfiles.headsUpEyebrow}:] {t.agentProfiles.headsUpBody}
-                </p>
-              )}
-              <div className="mt-10 grid md:grid-cols-2 gap-5">
-                {profile.buyer && (
-                  <AgentBlock
-                    eyebrow={t.agentProfiles.buyerEyebrow}
-                    fallbackName={t.agentProfiles.buyerFallback}
-                    name={activation.agents?.buyerName}
-                    agentAddress={agents.buyer}
-                    rows={[
-                      { label: t.agentProfiles.rows.maxBudget, value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
-                      {
-                        label: t.agentProfiles.rows.deadline,
-                        value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
-                        mono: true,
-                      },
-                      {
-                        label: t.agentProfiles.rows.milestones,
-                        value: profile.buyer.milestonePcts.join(' / ') || '-',
-                        mono: true,
-                      },
-                    ]}
-                  />
-                )}
-                {profile.seller && (
-                  <AgentBlock
-                    eyebrow={t.agentProfiles.sellerEyebrow}
-                    fallbackName={t.agentProfiles.sellerFallback}
-                    name={activation.agents?.sellerName}
-                    agentAddress={agents.seller}
-                    rows={[
-                      {
-                        label: isBusiness
-                          ? t.agentProfiles.rows.supplies
-                          : t.agentProfiles.rows.skills,
-                        value: profile.seller.skills.join(', ') || '-',
-                      },
-                      { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
-                      {
-                        label: t.agentProfiles.rows.budget,
-                        value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
-                        mono: true,
-                      },
-                      {
-                        label: t.agentProfiles.rows.delivery,
-                        value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
-                        mono: true,
-                      },
-                    ]}
-                  />
-                )}
-              </div>
-            </Band>
-          )}
-        </>
-      ) : (
-        <Band tone="light" compact>
-          <SectionTag>{t.noProfile.tag}</SectionTag>
-          <HeroHeadline size="md">
-            {t.noProfile.headlinePrefix}<Accent>{t.noProfile.headlineAccent}</Accent>
-            <Punc>.</Punc>
-          </HeroHeadline>
-          <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-            {t.noProfile.body}
-          </p>
-          <div className="mt-7">
-            <CTAPill href="/onboarding">{t.noProfile.cta}</CTAPill>
-          </div>
-        </Band>
-      )}
-
-      {/* BUSINESS + COMPANY PROFILE. Only for accounts that chose the business
-          kind at onboarding; an individual account never sees these. Gated by
-          the SME rail too. Register-as-business gates the verified tag; the
-          company band holds the trade card. Independent components so editing
-          one re-renders nothing else on this page. */}
-      {/* Company section anchor: a business's EDIT DETAILS scrolls here. */}
-      <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
-      {SME_TRADES_ENABLED && address && isBusiness ? (
-        <RegisterBusinessBand address={address} />
-      ) : null}
-      {SME_TRADES_ENABLED && address && isBusiness ? (
-        <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
-      ) : null}
-
-      {/* WALLETS anchor */}
-      <div id="wallets" aria-hidden style={{ scrollMarginTop: 80 }} />
-
-      {/* HOLDINGS */}
-      <Band tone="light" compact>
-        <div className="flex items-center gap-2">
-          <SectionTag>{t.holdings.tag}</SectionTag>
-          <Hint glow side="bottom" align="start">{t.holdings.body}</Hint>
-        </div>
-        <HeroHeadline size="md">
-          {t.holdings.headlinePrefix}<Accent>{t.holdings.headlineAccent}</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-10" data-guide="profile-wallets">
-          <WalletsPanel address={address ?? undefined} />
-        </div>
-        {/* Multi-chain breakdown, folded by default: the same holdings spread
-            across chains, kept with the wallet holdings instead of a separate
-            band lower down. */}
-        <div className="mt-5" data-guide="profile-balances">
-          <BalancesCard buyerAgent={agents.buyer} sellerAgent={agents.seller} />
-        </div>
-      </Band>
-
-      {/* AGENTS anchor */}
-      <div id="agents" aria-hidden style={{ scrollMarginTop: 80 }} />
-
-      {/* FUND + WITHDRAW */}
-      <Band tone="dark" compact>
-        <div className="flex items-center gap-2">
-          <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
-          <Hint glow side="bottom" align="start">{t.agentTreasury.body}</Hint>
-        </div>
-        <HeroHeadline size="md">
-          {t.agentTreasury.headlineFund}<Punc>.</Punc> {t.agentTreasury.headlineWithdraw}<Punc>.</Punc>
-        </HeroHeadline>
-        {activation.activated ? (
-          <>
-            {/* One surface, two modes: a toggle swaps between adding money and
-                cashing out, so the page shows a single card, not two. */}
-            <div
-              className="mt-8 inline-flex p-1 gap-1"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.14)',
-                borderTopLeftRadius: 9,
-                borderTopRightRadius: 9,
-                borderBottomLeftRadius: 9,
-                borderBottomRightRadius: 2,
-              }}
-            >
-              {(['add', 'out'] as const).map((mode) => {
-                const on = moneyMode === mode;
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setMoneyMode(mode)}
-                    aria-pressed={on}
-                    className={`px-4 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
-                      on ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'text-white/60 hover:text-white'
-                    }`}
-                    style={{
-                      borderTopLeftRadius: 7,
-                      borderTopRightRadius: 7,
-                      borderBottomLeftRadius: 7,
-                      borderBottomRightRadius: 2,
-                    }}
-                  >
-                    {mode === 'add' ? t.agentTreasury.headlineFund : t.agentTreasury.headlineWithdraw}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-5 max-w-[640px]" data-guide="profile-agents">
-              {moneyMode === 'add' ? (
-                <ArcFundCard
-                  buyerAgent={agents.buyer}
-                  sellerAgent={agents.seller}
-                  defaultAgent={defaultAgent}
-                />
-              ) : (
-                <AgentWithdrawCard
-                  buyerAgent={agents.buyer}
-                  sellerAgent={agents.seller}
-                  defaultAgent={defaultAgent}
-                />
-              )}
-            </div>
-            <div className="mt-5 max-w-[640px]">
-              <AgentResearchCard />
-            </div>
-          </>
-        ) : (
-          <div className="mt-10 max-w-[640px]" data-guide="profile-agents">
-            <ArcFundCard
-              buyerAgent={agents.buyer}
-              sellerAgent={agents.seller}
-              defaultAgent={defaultAgent}
-            />
-          </div>
-        )}
-      </Band>
-
-      {/* PREFERENCES anchor */}
-      <div id="preferences" aria-hidden style={{ scrollMarginTop: 80 }} />
-
-      {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
-      <Band tone="light" compact>
-        <div className="flex items-center gap-2">
-          <SectionTag>{t.preferences.tag}</SectionTag>
-          <Hint glow side="bottom" align="start">{t.preferences.body}</Hint>
-        </div>
-        <HeroHeadline size="md">
-          {t.preferences.headline}<Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-8 flex flex-wrap items-center gap-3" data-guide="profile-preferences">
-          {address && <ProfileEmailButton address={address} tone="light" />}
-          <TelegramConnectButton address={address ?? undefined} tone="light" />
-          <ConnectXButton tone="light" />
-        </div>
-      </Band>
-
 
       <ActivationModal
         open={activationOpen}
