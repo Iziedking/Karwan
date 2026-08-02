@@ -10,6 +10,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tours';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -1078,6 +1079,7 @@ function FundModal({
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
+  const refreshMoney = useMoneyRefresh();
   const face = Number(deal.dealAmountUsdc);
   // Default principal at 80% of face, repay at 84% (5% fee on principal).
   // Matches the demo scenario in sme-design.md §17 (5% PO financing fee).
@@ -1248,6 +1250,10 @@ function FundModal({
           account: address,
         });
         await arcClient.waitForTransactionReceipt({ hash: fundHash });
+        // Principal has left the financier's wallet in this transaction, so
+        // the balance on screen is already stale. Do not make them wait for
+        // the backend to tell us what the receipt just did.
+        refreshMoney();
 
         setStep('mirroring');
         const r = await api.fundPOLine({
