@@ -56,7 +56,7 @@ function CopyAddress({
     <button
       type="button"
       onClick={copy}
-      className="mt-1.5 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-text-sub)]"
+      className="mt-0.5 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-text-sub)]"
     >
       <span>{short(address)}</span>
       <span>{wp.copyAddress.idle}</span>
@@ -92,7 +92,7 @@ function Row({
   const copied = !!address && copiedAddr === address;
   return (
     <li
-      className="relative overflow-hidden px-5 py-4 ps-6"
+      className="relative overflow-hidden px-4 py-3 ps-5"
       style={{
         background: 'var(--lp-light)',
         border: '1px solid var(--lp-border-light)',
@@ -117,12 +117,12 @@ function Row({
           did not, so on a phone the three cards in one list rendered in two
           different shapes off the same component. A breakpoint decides it now,
           so every card in the list agrees at every width. */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{tag}:]
           </span>
-          <p className="mt-1.5 flex items-center gap-1.5 font-sans text-[16px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+          <p className="mt-0.5 flex items-center gap-1.5 font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
             {title}
             <LpHint>{purpose}</LpHint>
           </p>
@@ -248,9 +248,13 @@ export function WalletsPanel({ address }: { address?: string }) {
     setFaucetBusy(null);
   };
 
+  // Tightened so all three wallets and the holdings row are visible together.
+  // This section already sits inside a deck card, so the old p-8 plus a 3-unit gap
+  // between rows was a second frame's worth of air, and the third wallet fell
+  // below the fold.
   return (
-    <section style={CARD} className="p-6 md:p-8">
-      <ul className="space-y-3">
+    <section style={CARD} className="p-4 md:p-5">
+      <ul className="space-y-2">
         <Row
           tag={wp.rows.identity.tag}
           title={wp.rows.identity.title}

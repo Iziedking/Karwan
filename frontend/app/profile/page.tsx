@@ -445,22 +445,26 @@ function ProfilePageInner() {
                   );
                 })}
               </div>
-              <div className="mt-5 max-w-[640px]" data-guide="profile-agents">
-                {moneyMode === 'add' ? (
-                  <ArcFundCard
-                    buyerAgent={agents.buyer}
-                    sellerAgent={agents.seller}
-                    defaultAgent={defaultAgent}
-                  />
-                ) : (
-                  <AgentWithdrawCard
-                    buyerAgent={agents.buyer}
-                    sellerAgent={agents.seller}
-                    defaultAgent={defaultAgent}
-                  />
-                )}
-              </div>
-              <div className="mt-5 max-w-[640px]">
+              {/* Two columns from lg. Both cards were capped at 640px and stacked,
+                  which left the right half of a desktop panel empty and pushed
+                  research below the fold for no reason. items-start so the shorter
+                  card does not stretch to match the taller one. */}
+              <div className="mt-5 grid gap-5 items-start lg:grid-cols-2">
+                <div data-guide="profile-agents">
+                  {moneyMode === 'add' ? (
+                    <ArcFundCard
+                      buyerAgent={agents.buyer}
+                      sellerAgent={agents.seller}
+                      defaultAgent={defaultAgent}
+                    />
+                  ) : (
+                    <AgentWithdrawCard
+                      buyerAgent={agents.buyer}
+                      sellerAgent={agents.seller}
+                      defaultAgent={defaultAgent}
+                    />
+                  )}
+                </div>
                 <AgentResearchCard />
               </div>
             </>
