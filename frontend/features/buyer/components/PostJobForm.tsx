@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { FundAgentFromBalance } from '@/features/deposit/components/FundAgentFromBalance';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import { chainErrorMessage } from '@/shared/utils/chainError';
@@ -181,6 +182,8 @@ export function PostJobForm() {
   }, [submitting]);
 
   const [insufficientBalance, setInsufficientBalance] = useState(false);
+  // Which funding path this account can actually use.
+  const circleAccount = useAuth().method === 'circle';
   // Symmetric check to the seller form. If a buyer brief reads as an offer
   // ("I sell..."), warn before posting so it doesn't end up on the wrong
   // surface. Brief has no title field, so we pass the brief itself as both
@@ -956,11 +959,18 @@ export function PostJobForm() {
             {t.errors.insufficientBalanceTitle}
           </p>
           <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">{error}</p>
-          {/* One click, straight from the pooled balance into the buyer agent.
-              No bridge, no chain switch, no gas. If the pool cannot cover it the
-              button opens the Gateway rail in a NEW TAB, so this half-filled
-              form survives. */}
-          {buyerAgent && typeof budget === 'number' ? (
+          {/* One click into the buyer agent. For an email account the money is
+              already on Arc, because deposits auto-route to the identity wallet,
+              so this is one backend-signed transfer with no bridge and no
+              prompt. A web3 account keeps the pooled-balance path: they have a
+              wallet to sign a spend with, and a pool they funded themselves. */}
+          {circleAccount && typeof budget === 'number' ? (
+            <FundAgentFromBalance
+              agent="buyer"
+              amountUsdc={budget}
+              onFunded={() => setInsufficientBalance(false)}
+            />
+          ) : buyerAgent && typeof budget === 'number' ? (
             <TopUpFromGateway
               recipient={buyerAgent}
               amount={budget}
