@@ -3387,30 +3387,45 @@ export const sw: Messages = {
   },
   docsBridgePage: {
     eyebrow: 'WEKA / TOA',
-    title: 'Hamisha USDC kuingia na kutoka Arc',
-    intro: 'Mikataba inalipwa kwa USDC kwenye Arc. Kuweka huleta USDC yako kutoka mnyororo mwingine na, baada ya malipo, kutoa huirudisha popote unapotaka. Mtiririko mzima unaendeshwa kwenye Circle Cross-Chain Transfer Protocol, hivyo USDC yako inachomwa kwenye mnyororo wa chanzo na inachapishwa upya kwenye mnyororo wa lengo. Hakuna tokeni zilizofungwa, hakuna mabwawa ya ukwasi ya watu wa tatu.',
-    supportedChains: { heading: 'Minyororo inayoungwa mkono', body: 'Minyororo kumi na miwili inaongeza kwenye Arc: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, na HyperEVM, pamoja na Solana. Kutoa fedha kunafikia minyororo kumi na moja ya EVM, na Solana kupitia msaidizi. Minyororo mipya inajumuishwa kadri Circle inavyoizindua.' },
+    title: 'Ingiza na toa USDC kwenye Arc',
+    intro: 'Mikataba hulipwa kwa USDC kwenye Arc, kwa hiyo pesa inahitaji njia ya kuingia na kutoka. Ukiingia kwa barua pepe au passkey, ni anwani moja: nakili, tuma USDC kutoka mnyororo wowote unaotumika, na salio lako linajisasisha lenyewe. Hakuna mnyororo wa kuchagua na hakuna kitu cha kusaini. Ukiunganisha pochi yako mwenyewe, wewe unashikilia fedha, kwa hiyo unachagua mnyororo ambao USDC yako iko na unasaini mwenyewe. Kwa vyovyote, USDC inayotoka mnyororo mwingine ni ile ile inayofika Arc.',
+    supportedChains: {
+      heading: 'Minyororo inayotumika',
+      body: 'Amana hufika kutoka Ethereum, Base, Arbitrum na Polygon kwa anwani moja inayoshirikiwa, na kutoka Solana kwa anwani yake mwenyewe, kwa sababu anwani ya Solana haiwezi kufanana na ya Ethereum. Utoaji hufika Ethereum, Base, Arbitrum, Optimism, Polygon na Solana. Minyororo mingine inaongezwa Circle inapoifungua.',
+    },
     bringingIn: {
-      heading: 'Kuleta USDC kwenye Arc',
+      heading: 'Ukileta USDC kutoka pochi yako mwenyewe',
       steps: {
-        pickSource: { label: 'Chagua mnyororo wa chanzo.', body: 'Chagua mahali USDC yako ilipo sasa.' },
-        approveBurn: { label: 'Idhinisha na choma.', body: 'USDC yako inachomwa kwenye mnyororo wa chanzo. Watumiaji wa Web3 wanasaini hili kutoka kwenye pochi zao wenyewe. Watumiaji wa email na passkey, pochi yao ya Circle inashughulikia hili, na haiwaombi kamwe kushikilia tokeni asili ya gesi.' },
-        attestation: { label: 'Subiri uthibitisho.', body: 'Circle inathibitisha kuchomwa. Kwenye testnet hii inachukua takriban dakika kumi hadi kumi na tisa kwa njia ya kawaida.' },
-        mintArc: { label: 'Chapisha kwenye Arc.', body: 'Karwan inasambaza uchapishaji kwa niaba yako, hivyo huhitaji gesi ya Arc kupokea pesa zako.' },
+        pickSource: { label: 'Chagua mnyororo.', body: 'Onyesha mahali USDC yako ilipo.' },
+        approveBurn: { label: 'Saini uhamisho.', body: 'USDC yako inachomwa kwenye mnyororo huo. Unasaini kutoka pochi yako, kwa kuwa wewe unaishikilia.' },
+        attestation: { label: 'Subiri uthibitisho.', body: 'Circle inathibitisha. Kwenye testnet hii inachukua kama dakika kumi hadi kumi na tisa kwa njia ya kawaida.' },
+        mintArc: { label: 'Kufika Arc.', body: 'Karwan inatuma hatua ya mwisho kwa niaba yako, kwa hiyo hauhitaji gas ya Arc kupokea fedha zako.' },
       },
     },
-    figure: { alt: 'Kadi ya kuweka inayoonyesha hatua za idhini, kuchoma, uthibitisho, na uchapishaji', caption: 'Hatua nne za kuweka kwa kuingia, zinafuatiliwa moja kwa moja.' },
-    callout: { title: '[:UTHIBITISHO HUCHUKUA MUDA KWENYE TESTNET:]', body: 'Uhamishaji wa kawaida unasubiri ukomavu wa mnyororo wa chanzo, ambao huchukua dakika kumi hadi kumi na tisa kwenye testnets za Sepolia. Ikiwa uhamishaji unaonyesha bado unathibitishwa, lipe muda kabla ya kujaribu tena. Kitufe cha Recheck kwenye kadi ya Weka / Toa kinauliza Circle tena.' },
+    figure: {
+      alt: 'Kadi ya amana inayoonyesha anwani yako na minyororo inayokubalika',
+      caption: 'Kadi ya amana: anwani moja, msimbo QR, na minyororo inayokubalika.',
+    },
+    callout: {
+      title: '[:UTHIBITISHO HUCHUKUA MUDA KWENYE TESTNET:]',
+      body: 'Uhamisho wa kawaida husubiri mnyororo wa asili kukamilisha, dakika kumi hadi kumi na tisa kwenye testnet za Sepolia. Kama uhamisho bado unathibitishwa, mpe muda kabla ya kujaribu tena. Kitufe cha Angalia tena kwenye kadi ya Weka / Toa kinauliza Circle upya.',
+    },
     cashout: {
-      heading: 'Kutoa pesa baada ya mkataba kukamilika',
-      body: 'Mara mkataba wako unapokamilika, ukurasa wa Cashout unakuwezesha kutuma USDC yako popote unapotaka. Maelekeo mawili:',
+      heading: 'Kupata malipo',
+      body: 'Mkataba ukikamilika, unachagua pesa ziende wapi. Sehemu mbili:',
       options: {
-        arcToArc: { label: 'Arc kwenda Arc.', body: 'Tuma kwenye pochi yoyote kwenye Arc. Papo hapo, na ada za sehemu ya senti.' },
-        crossChain: { label: 'Kati ya minyororo.', body: 'Tuma kwenye mnyororo wowote kati ya kumi na miwili inayoungwa mkono. USDC yako inachomwa kwenye Arc, inathibitishwa na Circle, na inachapishwa kwenye lengo kupitia Forwarding Service ya Circle, hivyo hauhitaji kamwe token ya gesi ya mnyororo huo ili kuipokea. Kadi ya maendeleo inaonyesha kuchomwa, imechomwa, imethibitishwa, na imechapishwa kwa wakati halisi, hivyo hutalazimika kufuatilia hashi ya muamala kwenye kichunguzi cha bloki.' },
+        arcToArc: { label: 'Baki kwenye Arc.', body: 'Tuma kwa pochi yoyote kwenye Arc. Papo hapo, na gharama ni sehemu ndogo ya senti.' },
+        crossChain: { label: 'Tuma kwa mnyororo mwingine.', body: 'Tuma kwa Ethereum, Base, Arbitrum, Optimism, Polygon au Solana. Hauhitaji gas ya mnyororo huo kupokea, na kadi inaonyesha kila hatua inapotokea, kwa hiyo haufuatilii hash kwenye kivinjari cha blockchain.' },
       },
     },
-    emailPasskey: { heading: 'Ikiwa unaingia na email au passkey', body: 'Unapata pochi maalum kwenye kila mnyororo mara ya kwanza unapoweka kutoka kwake. Tuma USDC kwenye anwani ya pochi hiyo na Karwan inashughulikia kuchomwa kwa niaba yako. Ukurasa wa Weka / Toa unaonyesha anwani na salio.' },
-    whyThisRail: { heading: 'Kwa nini reli hii na siyo daraja la kawaida', body: 'USDC inayotoka Base ni USDC ile ile inayofika Arc. Circle inaichoma upande mmoja na kuichapisha upande mwingine. Hakuna tokeni iliyofungwa, hakuna bwawa la ukwasi, hakuna ulinzi wa mtu wa tatu kati ya ncha hizo mbili. Hili ni muhimu kwa bidhaa ya kuaminiwa: mali unayopokea ni mali ile ile iliyoondoka.' },
+    emailPasskey: {
+      heading: 'Ukiingia kwa barua pepe au passkey',
+      body: 'Unapata anwani moja ya Karwan, na ni anwani ile ile kwenye Ethereum, Base, Arbitrum na Polygon. Tuma USDC kutoka yoyote kati yao na inafika kwenye salio lako. Solana ina anwani yake kwenye ukurasa huo huo. Hauhitaji pochi, gas, au saini, na hakuna anwani tofauti ya kukumbuka kwa kila mnyororo.',
+    },
+    whyThisRail: {
+      heading: 'Kwa nini hii na si daraja la kawaida',
+      body: 'USDC inayotoka Base ni ile ile inayofika Arc. Circle inaichoma upande mmoja na kuiunda upande mwingine. Hakuna tokeni iliyofungwa, hakuna bwawa la ukwasi, na hakuna mtu wa tatu anayeshikilia pesa zako katikati. Hii ni muhimu kwa bidhaa ya uaminifu: kile unachopokea ni kile kilichotoka.',
+    },
   },
   x402Page: {
     eyebrow: 'API YA DATA YA KULIPIA',

@@ -3387,30 +3387,45 @@ export const fr: Messages = {
   },
   docsBridgePage: {
     eyebrow: 'DÉPÔT / RETRAIT',
-    title: 'Déplacer USDC vers et depuis Arc',
-    intro: 'Les affaires se règlent en USDC sur Arc. Le dépôt amène votre USDC depuis une autre chaîne et, après règlement, le retrait le renvoie là où vous le souhaitez. Tout le flux fonctionne sur Circle Cross-Chain Transfer Protocol. Votre USDC est brûlé sur la chaîne source et frappé à neuf sur la destination. Aucun jeton enveloppé, aucun pool de liquidité tiers.',
-    supportedChains: { heading: 'Chaînes prises en charge', body: 'Douze chaînes alimentent Arc: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain et HyperEVM, plus Solana. Le retrait atteint les onze chaînes EVM, et Solana via l\'assistant. De nouvelles chaînes arrivent au fur et à mesure que Circle les déploie.' },
+    title: "Faire entrer et sortir de l'USDC sur Arc",
+    intro: "Les transactions se règlent en USDC sur Arc, donc l'argent doit pouvoir entrer et sortir. Si vous vous connectez par e-mail ou avec une clé d'accès, il s'agit d'une seule adresse : copiez-la, envoyez de l'USDC depuis n'importe quelle chaîne prise en charge, et votre solde se met à jour tout seul. Aucune chaîne à choisir, rien à signer. Si vous avez connecté votre propre portefeuille, vous détenez les fonds : vous choisissez la chaîne où se trouve votre USDC et vous signez le transfert. Dans les deux cas, l'USDC qui quitte l'autre chaîne est le même que celui qui arrive sur Arc.",
+    supportedChains: {
+      heading: 'Chaînes prises en charge',
+      body: "Les dépôts arrivent depuis Ethereum, Base, Arbitrum et Polygon sur une seule adresse partagée, et depuis Solana sur une adresse distincte, car une adresse Solana ne peut pas correspondre à une adresse Ethereum. Les retraits atteignent Ethereum, Base, Arbitrum, Optimism, Polygon et Solana. D'autres chaînes s'ajoutent au fur et à mesure.",
+    },
     bringingIn: {
-      heading: 'Amener USDC sur Arc',
+      heading: "Si vous apportez de l'USDC depuis votre propre portefeuille",
       steps: {
-        pickSource: { label: 'Choisissez une chaîne source.', body: 'Choisissez où se trouve actuellement votre USDC.' },
-        approveBurn: { label: 'Approuver et brûler.', body: 'Votre USDC est brûlé sur la chaîne source. Les utilisateurs Web3 signent depuis leur propre portefeuille. Pour les utilisateurs email et passkey, leur portefeuille Circle s en charge et ne leur demande jamais de détenir un jeton de gas natif.' },
-        attestation: { label: 'Attendre l attestation.', body: 'Circle confirme la combustion. Sur testnet, cela prend environ dix à dix-neuf minutes pour la voie standard.' },
-        mintArc: { label: 'Frapper sur Arc.', body: 'Karwan relaie la frappe pour vous, vous n avez donc pas besoin de gas Arc pour recevoir vos fonds.' },
+        pickSource: { label: 'Choisissez la chaîne.', body: 'Indiquez où se trouve votre USDC.' },
+        approveBurn: { label: 'Signez le transfert.', body: "Votre USDC est brûlé sur cette chaîne. Vous signez depuis votre portefeuille, puisque c'est vous qui le détenez." },
+        attestation: { label: 'Attendez la confirmation.', body: 'Circle confirme le retrait. Sur testnet, cela prend environ dix à dix-neuf minutes sur la voie standard.' },
+        mintArc: { label: 'Arrivée sur Arc.', body: "Karwan soumet la dernière étape pour vous, vous n'avez donc pas besoin de gas Arc pour recevoir vos fonds." },
       },
     },
-    figure: { alt: 'Carte de dépôt montrant les étapes d approbation, de combustion, d attestation et de frappe', caption: 'Les quatre étapes d un dépôt entrant, suivies en direct.' },
-    callout: { title: '[:L ATTESTATION PREND DU TEMPS SUR TESTNET:]', body: 'Les transferts standard attendent la finalité de la chaîne source, qui dure dix à dix-neuf minutes sur les testnets Sepolia. Si un transfert apparaît encore en attestation, laissez-lui du temps avant de réessayer. Le bouton Recheck sur la carte Dépôt / Retrait relance la requête vers Circle.' },
+    figure: {
+      alt: 'La carte de dépôt montrant votre adresse et les chaînes acceptées',
+      caption: 'La carte de dépôt : une adresse, un code QR, et les chaînes acceptées.',
+    },
+    callout: {
+      title: '[:LA CONFIRMATION PREND DU TEMPS SUR TESTNET:]',
+      body: 'Les transferts standard attendent la finalisation de la chaîne source, soit dix à dix-neuf minutes sur les testnets Sepolia. Si un transfert est encore en confirmation, laissez-lui le temps avant de réessayer. Le bouton Vérifier de la carte Dépôt / Retrait interroge Circle à nouveau.',
+    },
     cashout: {
-      heading: 'Encaisser après le règlement d une affaire',
-      body: 'Une fois votre affaire réglée, la page Cashout vous permet d envoyer votre USDC où vous le souhaitez. Deux destinations:',
+      heading: 'Être payé',
+      body: "Une fois la transaction réglée, vous choisissez où va l'argent. Deux destinations :",
       options: {
-        arcToArc: { label: 'Arc vers Arc.', body: 'Envoyez vers n importe quel portefeuille sur Arc. Instantané, avec des frais en fractions de centime.' },
-        crossChain: { label: 'Inter-chaînes.', body: 'Envoyez vers l une des douze chaînes prises en charge. Votre USDC est brûlé sur Arc, attesté par Circle, et frappé sur la destination via le Forwarding Service de Circle, donc vous n avez jamais besoin du jeton de gaz de cette chaîne pour le recevoir. La carte de progression indique en temps réel les états brûlure, brûlé, attesté et frappé, sans jamais avoir à suivre un hash de transaction sur un explorateur de blocs.' },
+        arcToArc: { label: 'Rester sur Arc.', body: "Envoyez vers n'importe quel portefeuille sur Arc. Instantané, avec des frais de quelques fractions de centime." },
+        crossChain: { label: 'Envoyer vers une autre chaîne.', body: "Envoyez vers Ethereum, Base, Arbitrum, Optimism, Polygon ou Solana. Vous n'avez jamais besoin du gas de cette chaîne pour recevoir, et la carte affiche chaque étape, sans avoir à suivre un hash sur un explorateur." },
       },
     },
-    emailPasskey: { heading: 'Si vous vous connectez avec email ou passkey', body: 'Vous obtenez un portefeuille dédié sur chaque chaîne la première fois que vous y faites un dépôt. Envoyez USDC à l adresse de ce portefeuille et Karwan s occupe de la combustion pour vous. La page Dépôt / Retrait affiche l adresse et le solde.' },
-    whyThisRail: { heading: 'Pourquoi cette voie et non un pont générique', body: 'L USDC qui quitte Base est le même USDC qui arrive sur Arc. Circle le brûle d un côté et le frappe de l autre. Il n y a ni jeton enveloppé, ni pool de liquidité, ni garde tierce entre les deux extrémités. Cela compte pour un produit de confiance: l actif que vous recevez est le même actif qui est parti.' },
+    emailPasskey: {
+      heading: "Si vous vous connectez par e-mail ou clé d'accès",
+      body: "Vous obtenez une seule adresse Karwan, identique sur Ethereum, Base, Arbitrum et Polygon. Envoyez-y de l'USDC depuis l'une de ces chaînes et il arrive sur votre solde. Solana a sa propre adresse sur la même page. Pas besoin de portefeuille, de gas ni de signature, et aucune adresse distincte à retenir par chaîne.",
+    },
+    whyThisRail: {
+      heading: "Pourquoi ceci plutôt qu'une passerelle générique",
+      body: "L'USDC qui quitte Base est le même que celui qui arrive sur Arc. Circle le brûle d'un côté et le frappe de l'autre. Pas de token enveloppé, pas de pool de liquidité, aucun tiers qui détient votre argent entre les deux. C'est important pour un produit de confiance : l'actif que vous recevez est celui qui est parti.",
+    },
   },
   x402Page: {
     eyebrow: 'API DE DONNÉES PAYANTES',

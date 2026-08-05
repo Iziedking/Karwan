@@ -7486,45 +7486,45 @@ export const en: MessagesShape = {
     },
   },
   docsBridgePage: {
-    eyebrow: 'TOP UP / WITHDRAW',
+    eyebrow: 'DEPOSIT / WITHDRAW',
     title: 'Move USDC in and out of Arc',
-    intro: 'Deals settle in USDC on Arc. Top up to bring your USDC over from another chain and, after settlement, withdraw it back out to wherever you want it. There are two rails on the page. Circle Gateway gives you one pooled balance across every supported chain, so you deposit once and then spend to any chain from a single signature. CCTP is the one-time transfer: your USDC is burned on the source chain and minted fresh on the destination. Either way there are no wrapped tokens and no third-party liquidity pools.',
+    intro: 'Deals settle in USDC on Arc, so money has to get in and out. If you signed in with email or a passkey, that is one address: copy it, send USDC from any supported chain, and your balance updates itself. There is no chain to choose and nothing to sign. If you connected your own wallet, you hold the funds, so you pick the chain your USDC is on and sign the transfer yourself. Either way the USDC that leaves the other chain is the same USDC that arrives on Arc.',
     supportedChains: {
       heading: 'Supported chains',
-      body: 'Twelve chains top up Arc: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, and HyperEVM, plus Solana. Cash out reaches the eleven EVM chains, and Solana through the assistant. New chains come on as Circle rolls them out.',
+      body: 'Deposits arrive from Ethereum, Base, Arbitrum and Polygon on a single shared address, and from Solana on its own address, because a Solana address cannot match an Ethereum one. Withdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana. More chains come on as Circle rolls them out.',
     },
     bringingIn: {
-      heading: 'Bringing USDC to Arc',
+      heading: 'If you bring USDC from your own wallet',
       steps: {
-        pickSource: { label: 'Pick a source chain.', body: 'Choose where your USDC currently sits.' },
-        approveBurn: { label: 'Approve and burn.', body: 'Your USDC is burned on the source chain. Web3 users sign this from their own wallet. email and passkey users have it handled by their Circle wallet, which never asks them to hold a native gas token.' },
-        attestation: { label: 'Wait for attestation.', body: 'Circle confirms the burn. On testnet this takes about ten to nineteen minutes for the standard path.' },
-        mintArc: { label: 'Mint on Arc.', body: 'Karwan relays the mint on your behalf, so you do not need Arc gas to receive your funds.' },
+        pickSource: { label: 'Pick the chain.', body: 'Choose where your USDC currently sits.' },
+        approveBurn: { label: 'Sign the transfer.', body: 'Your USDC is burned on that chain. You sign this from your own wallet, because you are the one holding it.' },
+        attestation: { label: 'Wait for confirmation.', body: 'Circle confirms the burn. On testnet this takes about ten to nineteen minutes on the standard path.' },
+        mintArc: { label: 'Arrive on Arc.', body: 'Karwan submits the final step for you, so you do not need Arc gas to receive your own funds.' },
       },
     },
     figure: {
       alt: 'The deposit card showing your address and the chains it accepts',
-      caption: 'The four steps of an inbound top up, tracked live.',
+      caption: 'The deposit card: one address, a QR code, and the chains it accepts.',
     },
     callout: {
-      title: '[:ATTESTATION TAKES TIME ON TESTNET:]',
-      body: 'Standard transfers wait for source-chain finality, which runs ten to nineteen minutes on Sepolia testnets. If a transfer shows as still attesting, give it time before retrying. The Recheck button on the Deposit / Withdraw card re-queries Circle.',
+      title: '[:CONFIRMATION TAKES TIME ON TESTNET:]',
+      body: 'Standard transfers wait for the source chain to finalise, which runs ten to nineteen minutes on Sepolia testnets. If a transfer still shows as confirming, give it time before retrying. The Recheck button on the Deposit / Withdraw card asks Circle again.',
     },
     cashout: {
-      heading: 'Cashing out after a deal settles',
-      body: 'Once your deal settles, the Cashout page lets you send your USDC where you want it. Two destinations:',
+      heading: 'Getting paid out',
+      body: 'Once a deal settles, you choose where the money goes. Two destinations:',
       options: {
-        arcToArc: { label: 'Arc to Arc.', body: 'Send to any wallet on Arc. Instant, with fees in fractions of a cent.' },
-        crossChain: { label: 'Cross-chain.', body: 'Send to any of the twelve supported chains. Your USDC is burned on Arc, attested by Circle, and minted on the destination through Circle\'s Forwarding Service, so you never need that chain\'s gas token to receive it. The progress card shows burning, burned, attested, and minted in real time, so you never have to track a transaction hash on a block explorer.' },
+        arcToArc: { label: 'Stay on Arc.', body: 'Send to any wallet on Arc. Instant, and fees are fractions of a cent.' },
+        crossChain: { label: 'Send to another chain.', body: 'Send to Ethereum, Base, Arbitrum, Optimism, Polygon or Solana. You never need that chain’s gas token to receive it, and the card shows each stage as it happens, so you are not tracking a transaction hash on a block explorer.' },
       },
     },
     emailPasskey: {
       heading: 'If you sign in with email or a passkey',
-      body: "You get a dedicated wallet on each chain the first time you top up from it. Send USDC to that wallet's address and Karwan handles the burn for you. The Deposit / Withdraw page shows the address and the balance.",
+      body: 'You get one Karwan address, and it is the same address on Ethereum, Base, Arbitrum and Polygon. Send USDC to it from any of them and it lands on your balance. Solana has its own address on the same page. You do not need a wallet, a gas token, or a signature, and there is no separate address to keep track of per chain.',
     },
     whyThisRail: {
-      heading: 'Why this rail and not a generic bridge',
-      body: 'The USDC that leaves Base is the same USDC that arrives on Arc. Circle burns it on one side and mints it on the other. There is no wrapped token, no liquidity pool, no third-party custody between the two ends. That matters for a trust product: the asset you receive is the same asset that left.',
+      heading: 'Why this and not a generic bridge',
+      body: 'The USDC that leaves Base is the same USDC that arrives on Arc. Circle burns it on one side and mints it on the other. There is no wrapped token, no liquidity pool, and no third party holding your money in between. That matters for a trust product: the asset you receive is the asset that left.',
     },
   },
   x402Page: {

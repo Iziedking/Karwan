@@ -87,6 +87,12 @@ USDC moves into and out of Arc in both directions across twelve chains, includin
 
 Circle Gateway gives a business one pooled USDC balance across those chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas.
 
+**Depositing is one address.** For an email or passkey account, Circle derives every deposit wallet from the user's identity anchor, so the same address serves Ethereum, Base, Arbitrum and Polygon. The user copies one address, sends USDC from wherever they hold it, and the balance updates itself. There is no chain to select, no amount to declare, no wallet to connect, and no bridge in front of them. Solana gets its own address on the same screen, because a different signature curve cannot share an EVM address.
+
+Inbound credit is driven by Circle's transaction webhook rather than by polling, and every guard on that path assumes the notification is untrusted: only inbound, only a transfer whose token contract matches the known USDC on that chain, only to an address derived for that user, keyed on chain and address together, deduplicated on the transaction id. The balance itself is always read from chain, so a missed, duplicated or forged webhook can change when the UI updates but never what the number is.
+
+A user who connects their own wallet keeps the explicit flow: they pick the chain, and they sign. That difference is deliberate. Self-custody is the product working correctly for someone who wants it, and the absence of a wallet is the product working correctly for someone who does not.
+
 ### Staking that doubles as deal insurance, and earns while it does
 
 A staker locks USDC into KarwanVault, and the same principal does two jobs at once. When a seller accepts a deal, the escrow reserves a portion of their free stake against it, and a lost dispute slashes that reservation to the buyer. Trust becomes something a trader can post, not just claim.
@@ -183,6 +189,10 @@ Hashnote USYC on Arc Testnet, verified against Circle's published addresses.
 
 Earlier contract generations stay registered so users with open positions can find and exit them under `/legacy`. Nothing on a retired contract gets stuck.
 
+The current generation exists because an internal audit found problems worth changing the contracts for rather than patching around. It brings a contract-level guardian that can pause a settlement but can never move funds, dispute resolution through an arbiter that splits an escrow proportionally instead of all-or-nothing, on-chain deal clocks with a capped extension flow, receivable assignment for financing, and reputation hardened against farming. The contracts are immutable, so this was a redeployment with state migration, not an upgrade.
+
+Because volume and transaction counts would otherwise reset with every redeployment, `/activity/all-time` reads every generation Karwan has ever deployed, retired ones included, and totals across all of them. It decodes the historical event shapes too, since event signatures changed between generations.
+
 ## The Circle stack
 
 | Circle product | Role in Karwan |
@@ -190,6 +200,7 @@ Earlier contract generations stay registered so users with open positions can fi
 | USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order advances, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
 | Developer-Controlled Wallets | An identity wallet and two agent wallets per user, provisioned on sign-in with an email or a passkey. No seed phrase. Web3 users can sign in with their own wallet through Sign-In with Ethereum instead. |
 | CCTP V2 with Bridge Kit | USDC into and out of Arc across twelve chains, both directions, through App Kit and the Circle Wallets adapter. Outbound uses Circle's Forwarding Service to submit the destination mint, so a supplier cashes out anywhere without holding that chain's gas token. |
+| Wallets: derived deposit addresses | Every deposit wallet for an email or passkey account is derived from that user's identity anchor, so one address serves every EVM chain instead of one per chain. Inbound credit is triggered by the transaction webhook and verified against the USDC contract on the notified chain. |
 | Circle Gateway | One pooled USDC balance across twelve chains, spendable to any of them from a single signature. Also the settlement rail for x402, netting the agents' per-call payments into batched on-chain settlement. |
 | Nanopayments (x402) | Agents pay a cent per call to read a counterparty's full settled-deal record before they price a bid, so neither side negotiates on a public score alone. Karwan also sells five paid endpoints, including the credit passport and repayment behaviour. |
 | Hashnote USYC | On-chain yield on idle balances, sourced from tokenized Treasury bills. Real allowlisted USYC, marked to the live oracle. |
