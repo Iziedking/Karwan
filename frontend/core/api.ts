@@ -2301,6 +2301,17 @@ export const api = {
       } | null;
       bridgeWallets: Record<string, { walletId: string; address: string }>;
     }>(`/api/activation/wallets?address=${address}`),
+  /// Where to send USDC from another chain, already translated out of Circle's
+  /// vocabulary. `supported` is false for web3 accounts, who fund from the wallet
+  /// they already hold. Two addresses at most: one shared by every EVM chain,
+  /// and Solana's, which is a different curve and cannot share it.
+  depositAddress: (address: string) =>
+    json<{
+      supported: boolean;
+      reason?: string;
+      chains: Array<{ key: string; name: string; address: string }>;
+      solana: { key: string; name: string; address: string } | null;
+    }>(`/api/deposit/address?address=${address}`),
   /// Arc-USDC faucet for one of the user's own wallets (identity hub or an
   /// agent). Testnet only.
   faucet: (address: string, target: 'identity' | 'buyer' | 'seller') =>

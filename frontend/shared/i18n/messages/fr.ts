@@ -814,6 +814,18 @@ export const fr: Messages = {
     resend: 'Renvoyer',
     errors: { emailRequired: 'Saisissez une adresse e-mail.', codeShape: 'Saisissez le code à 6 chiffres.' },
   },
+  deposit: {
+    tag: '• [:DEPOT:]',
+    addressLabel: 'Votre adresse',
+    acceptsLabel: 'Envoyer depuis',
+    copy: "Copier l'adresse",
+    copied: 'Copie',
+    qrAlt: 'Code QR de votre adresse de depot',
+    watching: 'En attente de votre depot',
+    landedTemplate: '{amount} USDC recus',
+    unavailable: 'Les depots sont en cours de configuration pour votre compte. Revenez dans un instant.',
+    groups: { evm: 'Reseaux EVM', solana: 'Solana' },
+  },
   bridge: {
     signInGate: {
       tag: 'DÉPÔT / RETRAIT',

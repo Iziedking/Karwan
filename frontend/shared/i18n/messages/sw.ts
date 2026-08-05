@@ -814,6 +814,18 @@ export const sw: Messages = {
     resend: 'Tuma tena',
     errors: { emailRequired: 'Weka anwani ya barua pepe.', codeShape: 'Weka msimbo wa tarakimu 6.' },
   },
+  deposit: {
+    tag: '• [:AMANA:]',
+    addressLabel: 'Anwani yako',
+    acceptsLabel: 'Tuma kutoka',
+    copy: 'Nakili anwani',
+    copied: 'Imenakiliwa',
+    qrAlt: 'Msimbo QR wa anwani yako ya amana',
+    watching: 'Inasubiri amana yako',
+    landedTemplate: 'USDC {amount} zimewasili',
+    unavailable: 'Amana zinaandaliwa kwa akaunti yako. Angalia tena baada ya muda mfupi.',
+    groups: { evm: 'Mitandao ya EVM', solana: 'Solana' },
+  },
   bridge: {
     signInGate: {
       tag: 'WEKA / TOA',

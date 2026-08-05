@@ -783,6 +783,18 @@ interface MessagesShape {
     resend: string;
     errors: { emailRequired: string; codeShape: string };
   };
+  deposit: {
+    tag: string;
+    addressLabel: string;
+    acceptsLabel: string;
+    copy: string;
+    copied: string;
+    qrAlt: string;
+    watching: string;
+    landedTemplate: string;
+    unavailable: string;
+    groups: { evm: string; solana: string };
+  };
   bridge: {
     signInGate: { tag: string; body: string };
     sectionTag: string;
@@ -4848,6 +4860,18 @@ export const en: MessagesShape = {
     verifying: 'Verifying…',
     resend: 'Resend',
     errors: { emailRequired: 'Enter an email address.', codeShape: 'Enter the 6-digit code.' },
+  },
+  deposit: {
+    tag: '• [:DEPOSIT:]',
+    addressLabel: 'Your address',
+    acceptsLabel: 'Send from',
+    copy: 'Copy address',
+    copied: 'Copied',
+    qrAlt: 'QR code of your deposit address',
+    watching: 'Waiting for your deposit',
+    landedTemplate: '{amount} USDC landed',
+    unavailable: 'Deposits are being set up for your account. Check back in a moment.',
+    groups: { evm: 'EVM chains', solana: 'Solana' },
   },
   bridge: {
     signInGate: {

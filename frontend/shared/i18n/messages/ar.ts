@@ -814,6 +814,18 @@ export const ar: Messages = {
     resend: 'إعادة الإرسال',
     errors: { emailRequired: 'أدخِل عنوان بريد إلكتروني.', codeShape: 'أدخِل الرمز المكوّن من 6 أرقام.' },
   },
+  deposit: {
+    tag: '• [:إيداع:]',
+    addressLabel: 'عنوانك',
+    acceptsLabel: 'أرسل من',
+    copy: 'نسخ العنوان',
+    copied: 'تم النسخ',
+    qrAlt: 'رمز QR لعنوان الإيداع الخاص بك',
+    watching: 'في انتطار إيداعك',
+    landedTemplate: 'وصل {amount} USDC',
+    unavailable: 'يتم إعداد الإيداعات لحسابك. تحقق بعد قليل.',
+    groups: { evm: 'شبكات EVM', solana: 'Solana' },
+  },
   bridge: {
     signInGate: {
       tag: 'إيداع / سحب',

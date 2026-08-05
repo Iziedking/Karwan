@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { DepositCard } from '@/features/deposit/components/DepositCard';
 import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
@@ -69,7 +71,14 @@ function BridgePageInner() {
   const t = useTranslations().bridge;
   const c = useTranslations().bridgeChooser;
   const { agents } = useActivation();
+  const { method } = useAuth();
   const params = useSearchParams();
+  // Circle accounts do not choose a rail. They have one address that every chain
+  // can pay into, so the rail switch, the direction toggle and the source-chain
+  // form are all questions about our plumbing that they should never see. Web3
+  // accounts keep the old flow: they hold their own funds and genuinely have to
+  // pick a chain and sign from it.
+  const circleAccount = method === 'circle';
   // CCTP is the default: it works for every account today, while Gateway is
   // coming-soon for email users and only usable by a connected web3 wallet.
   // Landing on Gateway showed most users a rail they cannot use.
@@ -83,8 +92,6 @@ function BridgePageInner() {
     const r = params.get('rail');
     if (r === 'cctp' || r === 'gateway') setRail(r);
   }, [params]);
-
-  const gateway = rail === 'gateway';
 
   return (
     <FullBleed>
@@ -101,64 +108,106 @@ function BridgePageInner() {
 
       <Band tone="light" compact>
         <div className="max-w-xl">
-          <RailSwitch rail={rail} onChange={setRail} copy={c} />
-
-          {/* key on the rail so the card remounts and the fade-up actually
-              replays on every switch instead of only the first. */}
-          <div key={rail} className="mt-6 fade-up">
-            {gateway ? (
-              <GatewayBalanceCard />
-            ) : (
-              <>
-                <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-                  <div
-                    className="inline-flex p-1"
-                    style={{
-                      background: 'var(--lp-card)',
-                      border: '1px solid var(--lp-border-light)',
-                      borderRadius: 999,
-                    }}
-                  >
-                    <DirToggle
-                      active={direction === 'in'}
-                      onClick={() => setDirection('in')}
-                    >
-                      {t.directions.toArc}
-                    </DirToggle>
-                    <DirToggle
-                      active={direction === 'out'}
-                      onClick={() => setDirection('out')}
-                    >
-                      {t.directions.fromArc}
-                    </DirToggle>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setHistoryOpen(true)}
-                    className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 transition-colors hover:bg-[var(--lp-light)]"
-                    style={{
-                      background: 'transparent',
-                      color: 'var(--lp-dark)',
-                      border: '1px solid var(--lp-border-light)',
-                      borderRadius: 999,
-                    }}
-                  >
-                    {c.transferHistory}
-                  </button>
-                </div>
-                {direction === 'in' ? (
-                  <BridgeCard agents={agents ?? undefined} tour />
-                ) : (
-                  <BridgeOutCard />
-                )}
-              </>
-            )}
-          </div>
+          {circleAccount ? (
+            <div className="fade-up">
+              <DepositCard />
+              <div className="mt-6 flex justify-end">
+                <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
+              </div>
+            </div>
+          ) : (
+            <Web3BridgeFlow
+              rail={rail}
+              onRail={setRail}
+              direction={direction}
+              onDirection={setDirection}
+              onHistory={() => setHistoryOpen(true)}
+              agents={agents ?? undefined}
+            />
+          )}
         </div>
       </Band>
 
       <BridgeHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </FullBleed>
+  );
+}
+
+/// The web3 path, unchanged.
+///
+/// A connected wallet holds its own USDC, so picking a source chain and signing
+/// a burn from it is real work the user has to do, not plumbing we can hide.
+/// Everything Circle accounts no longer see lives here.
+function Web3BridgeFlow({
+  rail,
+  onRail,
+  direction,
+  onDirection,
+  onHistory,
+  agents,
+}: {
+  rail: Rail;
+  onRail: (r: Rail) => void;
+  direction: Direction;
+  onDirection: (d: Direction) => void;
+  onHistory: () => void;
+  agents: Parameters<typeof BridgeCard>[0]['agents'];
+}) {
+  const t = useTranslations().bridge;
+  const c = useTranslations().bridgeChooser;
+  const gateway = rail === 'gateway';
+  return (
+    <>
+      <RailSwitch rail={rail} onChange={onRail} copy={c} />
+
+      {/* key on the rail so the card remounts and the fade-up actually replays
+          on every switch instead of only the first. */}
+      <div key={rail} className="mt-6 fade-up">
+        {gateway ? (
+          <GatewayBalanceCard />
+        ) : (
+          <>
+            <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
+              <div
+                className="inline-flex p-1"
+                style={{
+                  background: 'var(--lp-card)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderRadius: 999,
+                }}
+              >
+                <DirToggle active={direction === 'in'} onClick={() => onDirection('in')}>
+                  {t.directions.toArc}
+                </DirToggle>
+                <DirToggle active={direction === 'out'} onClick={() => onDirection('out')}>
+                  {t.directions.fromArc}
+                </DirToggle>
+              </div>
+              <HistoryButton onClick={onHistory} label={c.transferHistory} />
+            </div>
+            {direction === 'in' ? <BridgeCard agents={agents} tour /> : <BridgeOutCard />}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+function HistoryButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 transition-colors hover:bg-[var(--lp-light)]"
+      style={{
+        background: 'transparent',
+        color: 'var(--lp-dark)',
+        border: '1px solid var(--lp-border-light)',
+        borderRadius: 999,
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

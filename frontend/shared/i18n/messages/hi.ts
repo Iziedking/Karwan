@@ -814,6 +814,18 @@ export const hi: Messages = {
     resend: 'फिर भेजें',
     errors: { emailRequired: 'एक ईमेल पता दर्ज करें।', codeShape: '6-अंकीय कोड दर्ज करें।' },
   },
+  deposit: {
+    tag: '• [:जमा:]',
+    addressLabel: 'आपका पता',
+    acceptsLabel: 'यहाँ से भेजें',
+    copy: 'पता कॉपी करें',
+    copied: 'कॉपी हुआ',
+    qrAlt: 'आपके जमा पते का QR कोड',
+    watching: 'आपकी जमा राशि की प्रतीक्षा',
+    landedTemplate: '{amount} USDC आ गे',
+    unavailable: 'आपके खाते के लिए जमा सुविधा तैयार हो रही है। थोड़ी देर में देखें।',
+    groups: { evm: 'EVM नेटवर्क', solana: 'Solana' },
+  },
   bridge: {
     signInGate: {
       tag: 'टॉप-अप / निकासी',
