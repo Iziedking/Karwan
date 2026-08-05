@@ -969,6 +969,14 @@ export interface Reputation {
   /// older API responses don't break the type.
   score?: number;
   tier?: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+  /// What the score ALONE earned, before ceilings. A wallet can score into
+  /// ESTABLISHED and still hold NEW, so showing the score without this is what
+  /// made 434 beside NEW look like a bug.
+  scoreTier?: 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+  /// Which ceiling bound the tier down. Null when the score governs.
+  tierCappedBy?: 'deals' | 'concentration' | null;
+  /// Settled deals needed for the next tier, when deals are what is binding.
+  dealsToNextTier?: number | null;
   /// Composite engine v2 factor breakdown (docs/reputation-model.md). All [0,1].
   terms?: {
     stake?: number;

@@ -2974,7 +2974,9 @@ interface MessagesShape {
       reputation: string;
       tier: string;
       toNextTemplate: string;
-      needsDeal: string;
+      dealOne: string;
+      dealMany: string;
+      capped: string;
       status: string;
       pts: string;
       topTier: string;
@@ -7198,7 +7200,9 @@ export const en: MessagesShape = {
       reputation: 'Reputation',
       tier: 'Tier',
       toNextTemplate: 'To {tier}',
-      needsDeal: 'Settle a deal',
+      dealOne: 'deal',
+      dealMany: 'deals',
+      capped: 'Held until a deal settles',
       status: 'Status',
       pts: 'pts',
       topTier: 'Top tier',

@@ -108,11 +108,14 @@ function StakePageInner() {
   const idx = ORDER.indexOf(tier);
   const nextTier = idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
   const toNext = nextTier ? Math.max(0, BREAKS[idx + 1] - score) : 0;
-  /// Points are not the only gate. Settled deals cap the tier, so a wallet can
-  /// clear the next breakpoint on stake and tenure alone and still read NEW.
-  /// Reporting "0 pts" there names a target already met and explains nothing,
-  /// so when the score is not what is holding the tier back, say what is.
-  const dealsAreTheGate = nextTier !== null && toNext === 0;
+  /// Points are not the only gate, and the backend already knows which one is
+  /// binding: `tierCappedBy` plus `dealsToNextTier` come straight off
+  /// /api/reputation. Deriving it here from the score is what produced
+  /// "TO COLD 0 pts" for a score that had already cleared 200.
+  const dealsNeeded = data?.tierCappedBy === 'deals' ? (data.dealsToNextTier ?? null) : null;
+  /// The score earned a higher tier than the wallet holds. Worth saying out
+  /// loud, because otherwise 434 sitting beside NEW reads as a broken number.
+  const capped = data?.tierCappedBy != null;
 
   return (
     <FullBleed>
@@ -147,6 +150,11 @@ function StakePageInner() {
           </Stat>
           <Stat label={sp.position.tier}>
             <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
+            {capped ? (
+              <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">
+                {sp.position.capped}
+              </span>
+            ) : null}
           </Stat>
           <Stat
             label={
@@ -156,8 +164,13 @@ function StakePageInner() {
             }
             wide
           >
-            {nextTier && dealsAreTheGate ? (
-              <span className="text-[19px] leading-tight">{sp.position.needsDeal}</span>
+            {nextTier && dealsNeeded !== null ? (
+              <span className="tabular-nums">
+                <CountUp value={dealsNeeded} />{' '}
+                <span className="text-white/45 text-[15px]">
+                  {dealsNeeded === 1 ? sp.position.dealOne : sp.position.dealMany}
+                </span>
+              </span>
             ) : nextTier ? (
               <span className="tabular-nums">
                 <CountUp value={toNext} />{' '}
