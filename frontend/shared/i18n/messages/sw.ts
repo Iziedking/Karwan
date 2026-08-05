@@ -425,8 +425,8 @@ export const sw: Messages = {
     },
     hero: {
       sectionTag: 'MTIRIRIKO',
-      headlineTop: 'Kila tukio',
-      headlineAccent: 'Kwenye mnyororo.',
+      headlineTop: 'Shughuli',
+      headlineAccent: 'Hai',
       description: 'Moja kwa moja kutoka Arc Testnet. Kila safu inaungana na kichunguzi.',
     },
     stream: {
@@ -522,8 +522,8 @@ export const sw: Messages = {
     view: {
       notSignedInEyebrow: 'HUJAINGIA',
       notSignedInBody: 'Ingia kufuatilia kila biashara inayopita kwenye Karwan. Tafuta kwa kitambulisho cha kazi kufuatilia moja maalum.',
-      everyone: 'Wote',
-      onlyMine: 'Yangu tu',
+      everyone: 'Zote',
+      onlyMine: 'Mimi',
       moneyTag: 'PESA YAKO',
       moneyTitle: 'Shughuli zako za pesa',
       moneyShow: 'ONYESHA',
@@ -1693,7 +1693,7 @@ export const sw: Messages = {
     heroHeadlinePart1: 'Wauzaji wanatoa nini.',
     heroHeadlinePart2Prefix: 'Wanunuzi wanahitaji ',
     heroAccent: 'nini',
-    heroBody: 'Ofa na maombi ya moja kwa moja kwenye Karwan. Ulinganifu unakuja kwenye kengele yako na Telegram.',
+    heroBody: 'Ofa na maombi ya moja kwa moja kwenye Karwan. Unapata taarifa ya kila mechi.',
     filters: {
       all: 'Zote',
       offers: 'Ofa',
@@ -1843,7 +1843,7 @@ export const sw: Messages = {
     recipient: {
       eyebrowChoose: '[:CHAGUA MPOKEAJI:]',
       selfSummary: 'Huingia kwenye pochi yako ya Arc',
-      sendElsewhere: 'Tuma mahali pengine',
+      sendElsewhere: 'Tuma kwa pochi nyingine',
       identityLabel: 'Pochi yako',
       identityHint: 'Utambulisho',
       buyerLabel: 'Wakala wa mnunuzi',
@@ -2603,7 +2603,7 @@ export const sw: Messages = {
     header: {
       eyebrow: 'ONGEZA FEDHA',
       title: 'Jaza wakala wako',
-      subtitleCircle: 'Bonyezo moja · seva inasaini',
+      subtitleCircle: 'Moja kwa moja kwenye salio lako',
       subtitleWeb3: 'Tx moja · inakaa kwa sekunde 3 hivi',
       inFlightTemplate: '{count} ZINASAFIRI',
       refreshTitle: 'Onyesha upya salio',
@@ -3124,6 +3124,7 @@ export const sw: Messages = {
       reputation: 'Sifa',
       tier: 'Daraja',
       toNextTemplate: 'Hadi {tier}',
+      needsDeal: 'Kamilisha deal',
       status: 'Hali',
       pts: 'pointi',
       topTier: 'Daraja la juu',

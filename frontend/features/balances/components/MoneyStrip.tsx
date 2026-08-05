@@ -187,9 +187,6 @@ export function MoneyStrip() {
     <Band tone="light" compact>
       <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
         <SectionTag>{ms.eyebrow}</SectionTag>
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {ms.heldSafe}
-        </p>
       </div>
       <div data-guide="home-money" className="mt-6 fade-up fade-up-1">
         {/* Mobile: one rotating card so the phone view stays uncluttered. */}

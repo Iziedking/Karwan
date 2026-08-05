@@ -425,8 +425,8 @@ export const hi: Messages = {
     },
     hero: {
       sectionTag: 'स्ट्रीम',
-      headlineTop: 'हर घटना',
-      headlineAccent: 'चेन पर।',
+      headlineTop: 'लाइव',
+      headlineAccent: 'गतिविधि',
       description: 'Arc Testnet से लाइव। हर पंक्ति एक्सप्लोरर से जुड़ती है।',
     },
     stream: {
@@ -522,8 +522,8 @@ export const hi: Messages = {
     view: {
       notSignedInEyebrow: 'साइन इन नहीं',
       notSignedInBody: 'कारवान पर चलने वाली हर डील देखने के लिए साइन इन करें। किसी विशेष डील को फॉलो करने के लिए जॉब आईडी से खोजें।',
-      everyone: 'सभी',
-      onlyMine: 'केवल मेरी',
+      everyone: 'सब',
+      onlyMine: 'मेरे',
       moneyTag: 'आपका पैसा',
       moneyTitle: 'आपकी पैसों की गतिविधि',
       moneyShow: 'दिखाएँ',
@@ -1693,7 +1693,7 @@ export const hi: Messages = {
     heroHeadlinePart1: 'विक्रेता क्या प्रस्ताव देते हैं।',
     heroHeadlinePart2Prefix: 'क्रेताओं को क्या ',
     heroAccent: 'चाहिए',
-    heroBody: 'कारवान पर लाइव ऑफ़र और अनुरोध। मैच आपकी घंटी और Telegram पर पहुँचते हैं।',
+    heroBody: 'Karwan पर लाइव ऑफर और अनुरोध। मैछ की सूचना मिलती है।',
     filters: {
       all: 'सभी',
       offers: 'ऑफ़र',
@@ -1843,7 +1843,7 @@ export const hi: Messages = {
     recipient: {
       eyebrowChoose: '[:प्राप्तकर्ता चुनें:]',
       selfSummary: 'आपके Arc वॉलेट में आता है',
-      sendElsewhere: 'कहीं और भेजें',
+      sendElsewhere: 'दूसरे वॉलेट में भेजें',
       identityLabel: 'आपका वॉलेट',
       identityHint: 'पहचान',
       buyerLabel: 'बायर एजेंट',
@@ -2603,7 +2603,7 @@ export const hi: Messages = {
     header: {
       eyebrow: 'पैसा जोड़ें',
       title: 'अपने एजेंट को टॉप अप करें',
-      subtitleCircle: 'एक क्लिक · बैकएंड साइन करता है',
+      subtitleCircle: 'सीधे आपके बैलेंस में',
       subtitleWeb3: 'सिंगल tx · लगभग 3 सेकंड में सेटल',
       inFlightTemplate: '{count} प्रगति में',
       refreshTitle: 'बैलेंस रीफ्रेश करें',
@@ -3124,6 +3124,7 @@ export const hi: Messages = {
       reputation: 'प्रतिष्ठा',
       tier: 'श्रेणी',
       toNextTemplate: '{tier} तक',
+      needsDeal: 'एक डील निपटाएं',
       status: 'स्थिति',
       pts: 'अंक',
       topTier: 'शीर्ष श्रेणी',

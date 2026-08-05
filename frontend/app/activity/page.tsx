@@ -58,14 +58,11 @@ function ActivityPageInner({
           </div>
           <div className="fade-up fade-up-1">
             <HeroHeadline size="md">
-              {t.hero.headlineTop}<Punc>.</Punc>
+              {t.hero.headlineTop}
               <br />
-              <Accent>{t.hero.headlineAccent}</Accent>
+              <Accent>{t.hero.headlineAccent}</Accent><Punc>.</Punc>
             </HeroHeadline>
           </div>
-          <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-            {t.hero.description}
-          </p>
         </div>
       </Band>
 

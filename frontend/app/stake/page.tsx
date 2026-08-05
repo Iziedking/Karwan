@@ -108,6 +108,11 @@ function StakePageInner() {
   const idx = ORDER.indexOf(tier);
   const nextTier = idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
   const toNext = nextTier ? Math.max(0, BREAKS[idx + 1] - score) : 0;
+  /// Points are not the only gate. Settled deals cap the tier, so a wallet can
+  /// clear the next breakpoint on stake and tenure alone and still read NEW.
+  /// Reporting "0 pts" there names a target already met and explains nothing,
+  /// so when the score is not what is holding the tier back, say what is.
+  const dealsAreTheGate = nextTier !== null && toNext === 0;
 
   return (
     <FullBleed>
@@ -151,7 +156,9 @@ function StakePageInner() {
             }
             wide
           >
-            {nextTier ? (
+            {nextTier && dealsAreTheGate ? (
+              <span className="text-[19px] leading-tight">{sp.position.needsDeal}</span>
+            ) : nextTier ? (
               <span className="tabular-nums">
                 <CountUp value={toNext} />{' '}
                 <span className="text-white/45 text-[15px]">{sp.position.pts}</span>

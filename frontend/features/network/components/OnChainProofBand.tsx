@@ -87,9 +87,6 @@ export function OnChainProofBand() {
           <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
             {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>.
           </HeroHeadline>
-          <p className="mt-6 text-pretty text-[15px] leading-relaxed text-white/65 max-w-[44ch]">
-            {t.description}
-          </p>
         </div>
         {stats && (
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 tabular-nums">
@@ -194,28 +191,6 @@ export function OnChainProofBand() {
       </div>
       </div>
 
-      {/* Source contracts. Tap-friendly explorer links so a reader can verify
-          which addresses we are reading. */}
-      {stats && (
-        <div className="mt-12 pt-6 border-t border-white/[0.08]">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
-            [:{t.sourceContracts.eyebrow}:]
-          </p>
-          <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-2 gap-x-6">
-            <ContractRow label={t.sourceContracts.labels.escrow} address={stats.contracts.escrow} />
-            <ContractRow label={t.sourceContracts.labels.vault} address={stats.contracts.vault} />
-            <ContractRow label={t.sourceContracts.labels.reputation} address={stats.contracts.reputation} />
-            <ContractRow label={t.sourceContracts.labels.treasury} address={stats.contracts.treasury} />
-            <ContractRow label={t.sourceContracts.labels.jobBoard} address={stats.contracts.jobBoard} />
-            {stats.contracts.yieldDistributor ? (
-              <ContractRow
-                label="Yield distributor"
-                address={stats.contracts.yieldDistributor}
-              />
-            ) : null}
-          </ul>
-        </div>
-      )}
     </Band>
   );
 }
@@ -629,31 +604,6 @@ function SmallStat({
       </p>
     </div>
   );
-}
-
-function ContractRow({ label, address }: { label: string; address: string }) {
-  if (!address) return null;
-  const explorer = process.env.NEXT_PUBLIC_ARC_EXPLORER ?? 'https://testnet.arcscan.app';
-  return (
-    <li className="flex items-baseline gap-3 min-w-0">
-      <span className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 shrink-0">
-        {label}
-      </span>
-      <a
-        href={`${explorer}/address/${address}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mono text-[11px] tabular-nums text-white/80 hover:text-white truncate"
-      >
-        {short(address)}
-      </a>
-    </li>
-  );
-}
-
-function short(address: string): string {
-  if (!address || address.length < 12) return address || '';
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
 function fmtBlock(raw: string): string {

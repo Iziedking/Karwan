@@ -425,8 +425,8 @@ export const ar: Messages = {
     },
     hero: {
       sectionTag: 'البث',
-      headlineTop: 'كل حدث',
-      headlineAccent: 'على السلسلة.',
+      headlineTop: 'النشاط',
+      headlineAccent: 'المباشر',
       description: 'مباشر من Arc Testnet. كل سطر يربط بمستعرض السلسلة.',
     },
     stream: {
@@ -522,8 +522,8 @@ export const ar: Messages = {
     view: {
       notSignedInEyebrow: 'غير مسجّل',
       notSignedInBody: 'سجّل الدخول لمتابعة كل صفقة تتحرك عبر كاروان. ابحث برقم الوظيفة لمتابعة صفقة معيّنة.',
-      everyone: 'الجميع',
-      onlyMine: 'لي فقط',
+      everyone: 'الكل',
+      onlyMine: 'أنا',
       moneyTag: 'أموالك',
       moneyTitle: 'حركة أموالك',
       moneyShow: 'إظهار',
@@ -1693,7 +1693,7 @@ export const ar: Messages = {
     heroHeadlinePart1: 'ما يقدّمه البائعون.',
     heroHeadlinePart2Prefix: 'ما يحتاجه المشترون ',
     heroAccent: 'الآن',
-    heroBody: 'عروض وطلبات حية على كرَوان. تصل التطابقات إلى جرسك وTelegram.',
+    heroBody: 'عروض وطلبات مباشرة على Karwan. يتم إشعارك بالمطابقات.',
     filters: {
       all: 'الكل',
       offers: 'العروض',
@@ -1843,7 +1843,7 @@ export const ar: Messages = {
     recipient: {
       eyebrowChoose: '[:اختر المستلم:]',
       selfSummary: 'يصل إلى محفظتك على Arc',
-      sendElsewhere: 'إرسال إلى مكان آخر',
+      sendElsewhere: 'إرسال إلى محفظة أخرى',
       identityLabel: 'محفظتك',
       identityHint: 'الهوية',
       buyerLabel: 'وكيل المشتري',
@@ -2603,7 +2603,7 @@ export const ar: Messages = {
     header: {
       eyebrow: 'أضف أموالاً',
       title: 'اشحن وكيلك',
-      subtitleCircle: 'نقرة واحدة · يوقع الخادم',
+      subtitleCircle: 'مباشرة إلى رصيدك',
       subtitleWeb3: 'معاملة واحدة · تسوية في نحو 3 ثوانٍ',
       inFlightTemplate: '{count} قيد التنفيذ',
       refreshTitle: 'تحديث الأرصدة',
@@ -3124,6 +3124,7 @@ export const ar: Messages = {
       reputation: 'السمعة',
       tier: 'الفئة',
       toNextTemplate: 'إلى {tier}',
+      needsDeal: 'أنجز صفقة',
       status: 'الحالة',
       pts: 'نقطة',
       topTier: 'الفئة العليا',

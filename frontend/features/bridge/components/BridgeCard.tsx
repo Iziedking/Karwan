@@ -823,11 +823,11 @@ export function BridgeCard({
                 <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {bc.eyebrow.mintsTo}
                 </span>
-                <p className="mt-0.5 text-[13px] font-semibold leading-tight text-[var(--lp-dark)]">
-                  {bc.recipient.selfSummary}
-                </p>
+                {/* The wallet, not a sentence about the wallet. "Lands in your
+                    Arc wallet" sat above the address and said less than the
+                    address does. */}
                 {mintRecipient && (
-                  <p className="mt-0.5 mono text-[10px] tabular-nums text-[var(--lp-text-muted)] truncate">
+                  <p className="mt-0.5 mono text-[13px] font-semibold tabular-nums leading-tight text-[var(--lp-dark)] truncate">
                     {shortAddress(mintRecipient)}
                   </p>
                 )}

@@ -425,8 +425,8 @@ export const fr: Messages = {
     },
     hero: {
       sectionTag: 'FLUX',
-      headlineTop: 'Chaque évènement',
-      headlineAccent: 'Sur la chaîne.',
+      headlineTop: 'Activité',
+      headlineAccent: 'En direct',
       description: 'En direct depuis Arc Testnet. Chaque ligne renvoie à l’explorateur.',
     },
     stream: {
@@ -522,8 +522,8 @@ export const fr: Messages = {
     view: {
       notSignedInEyebrow: 'NON CONNECTÉ',
       notSignedInBody: 'Connectez-vous pour suivre tous les deals qui bougent sur Karwan. Cherchez par job ID pour suivre un deal précis.',
-      everyone: 'Tout le monde',
-      onlyMine: 'Seulement moi',
+      everyone: 'Tout',
+      onlyMine: 'Moi',
       moneyTag: 'VOTRE ARGENT',
       moneyTitle: 'Vos mouvements d’argent',
       moneyShow: 'AFFICHER',
@@ -1693,7 +1693,7 @@ export const fr: Messages = {
     heroHeadlinePart1: 'Ce que les vendeurs offrent.',
     heroHeadlinePart2Prefix: 'Ce dont les acheteurs ont ',
     heroAccent: 'besoin',
-    heroBody: 'Offres et requêtes en direct sur Karwan. Les matchs arrivent dans votre cloche et Telegram.',
+    heroBody: 'Offres et demandes en direct sur Karwan. Vous êtes averti des correspondances.',
     filters: {
       all: 'Tous',
       offers: 'Offres',
@@ -1843,7 +1843,7 @@ export const fr: Messages = {
     recipient: {
       eyebrowChoose: '[:CHOISIR LE DESTINATAIRE:]',
       selfSummary: 'Arrive dans votre portefeuille Arc',
-      sendElsewhere: 'Envoyer ailleurs',
+      sendElsewhere: 'Envoyer vers un autre portefeuille',
       identityLabel: 'Votre portefeuille',
       identityHint: 'Identité',
       buyerLabel: 'Agent acheteur',
@@ -2603,7 +2603,7 @@ export const fr: Messages = {
     header: {
       eyebrow: 'AJOUTER DE L’ARGENT',
       title: 'Rechargez votre agent',
-      subtitleCircle: 'Un clic · le backend signe',
+      subtitleCircle: 'Directement sur votre solde',
       subtitleWeb3: 'Une tx · règlement en ~3s',
       inFlightTemplate: '{count} EN COURS',
       refreshTitle: 'Actualiser les soldes',
@@ -3124,6 +3124,7 @@ export const fr: Messages = {
       reputation: 'Réputation',
       tier: 'Palier',
       toNextTemplate: 'Vers {tier}',
+      needsDeal: 'Conclure un deal',
       status: 'Statut',
       pts: 'pts',
       topTier: 'Palier max',

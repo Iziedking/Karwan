@@ -2974,6 +2974,7 @@ interface MessagesShape {
       reputation: string;
       tier: string;
       toNextTemplate: string;
+      needsDeal: string;
       status: string;
       pts: string;
       topTier: string;
@@ -4461,8 +4462,8 @@ export const en: MessagesShape = {
     },
     hero: {
       sectionTag: 'STREAM',
-      headlineTop: 'Every event',
-      headlineAccent: 'On chain.',
+      headlineTop: 'Live',
+      headlineAccent: 'Activity',
       description: 'Live from Arc Testnet. Each row deep-links to the explorer.',
     },
     stream: {
@@ -4558,8 +4559,8 @@ export const en: MessagesShape = {
     view: {
       notSignedInEyebrow: 'NOT SIGNED IN',
       notSignedInBody: 'Sign in to watch every deal moving across Karwan. Search by job ID to follow a specific one.',
-      everyone: 'Everyone',
-      onlyMine: 'Only mine',
+      everyone: 'All',
+      onlyMine: 'Me',
       moneyTag: 'YOUR MONEY',
       moneyTitle: 'Deposits, cash-outs and receipts',
       moneyShow: 'Open',
@@ -5742,7 +5743,7 @@ export const en: MessagesShape = {
     heroHeadlinePart1: 'What sellers offer.',
     heroHeadlinePart2Prefix: 'What buyers ',
     heroAccent: 'need',
-    heroBody: 'Live offers and requests on Karwan. Matches land in your bell and Telegram.',
+    heroBody: 'Live offers and requests on Karwan. Matches are notified.',
     filters: {
       all: 'All',
       offers: 'Offers',
@@ -5892,7 +5893,7 @@ export const en: MessagesShape = {
     recipient: {
       eyebrowChoose: '[:CHOOSE RECIPIENT:]',
       selfSummary: 'Lands in your Arc wallet',
-      sendElsewhere: 'Send somewhere else',
+      sendElsewhere: 'Send to another wallet',
       identityLabel: 'Your wallet',
       identityHint: 'Identity',
       buyerLabel: 'Buyer agent',
@@ -6528,7 +6529,7 @@ export const en: MessagesShape = {
     rows: {
       identity: {
         tag: 'IDENTITY',
-        title: 'Identity wallet',
+        title: 'Sign-in wallet',
         purposeCircle: 'Your account wallet on Arc, funded at sign-up. The hub every other wallet draws from.',
         purposeWeb3: 'Your connected wallet, serving as your Arc identity. Fund the agents from here.',
       },
@@ -6652,7 +6653,7 @@ export const en: MessagesShape = {
     header: {
       eyebrow: 'ADD MONEY',
       title: 'Top up your agent',
-      subtitleCircle: 'One click · backend signs',
+      subtitleCircle: 'Straight to your balance',
       subtitleWeb3: 'Single tx · settles in ~3s',
       inFlightTemplate: '{count} IN FLIGHT',
       refreshTitle: 'Refresh balances',
@@ -7197,6 +7198,7 @@ export const en: MessagesShape = {
       reputation: 'Reputation',
       tier: 'Tier',
       toNextTemplate: 'To {tier}',
+      needsDeal: 'Settle a deal',
       status: 'Status',
       pts: 'pts',
       topTier: 'Top tier',
