@@ -176,10 +176,14 @@ function Qr({ value, label }: { value: string; label: string }) {
         const QR = await import('qrcode');
         if (cancelled || !ref.current) return;
         await QR.toCanvas(ref.current, value, {
-          margin: 0,
+          // A quiet zone is part of the spec, not padding we can style away.
+          margin: 1,
           width: 168,
           errorCorrectionLevel: 'M',
-          color: { dark: '#0A0A0BFF', light: '#00000000' },
+          // Fixed, not theme-aware. Dark modules on white is what every scanner
+          // is calibrated for, and inverting it in dark mode made the code
+          // near-black on a near-black card: rendered, invisible, unscannable.
+          color: { dark: '#0A0A0BFF', light: '#FFFFFFFF' },
         });
       } catch {
         // The address is on screen and copyable, so a missing QR costs
@@ -197,7 +201,9 @@ function Qr({ value, label }: { value: string; label: string }) {
     <div
       className="shrink-0 p-3"
       style={{
-        background: 'var(--lp-light)',
+        // White in both themes, for the same reason as the module colour. The
+        // plate is the code's quiet zone.
+        background: '#FFFFFF',
         border: '1px solid var(--lp-border-light)',
         borderTopLeftRadius: 14,
         borderTopRightRadius: 14,

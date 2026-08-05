@@ -110,7 +110,28 @@ function BridgePageInner() {
         <div className="max-w-xl">
           {circleAccount ? (
             <div className="fade-up">
-              <DepositCard />
+              {/* Deposit replaced the whole page for Circle accounts, which took
+                  the direction toggle with it and left them no way OUT. Money
+                  has two directions and a wallet that can only be filled is
+                  not a wallet. */}
+              <div className="mb-6">
+                <div
+                  className="inline-flex p-1"
+                  style={{
+                    background: 'var(--lp-card)',
+                    border: '1px solid var(--lp-border-light)',
+                    borderRadius: 999,
+                  }}
+                >
+                  <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
+                    {t.directions.toArc}
+                  </DirToggle>
+                  <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
+                    {t.directions.fromArc}
+                  </DirToggle>
+                </div>
+              </div>
+              {direction === 'in' ? <DepositCard /> : <BridgeOutCard />}
               <div className="mt-6 flex justify-end">
                 <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
               </div>
