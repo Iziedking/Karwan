@@ -27,7 +27,7 @@ export const ar: Messages = {
     deals: 'الصفقات',
     market: 'السوق',
     bridge: 'الجسر',
-    topUpWithdraw: 'شحن / سحب',
+    topUpWithdraw: 'إيداع / سحب',
     topUpBlurb: 'حرّك USDC إلى Arc ومنه.',
     smeTrades: 'تجارة المؤسسات',
     trades: 'صفقات الأفراد',
@@ -458,7 +458,7 @@ export const ar: Messages = {
     },
     myMoney: {
       text: {
-        bridgeIn: 'تمت إضافة {amount} USDC من {chain}',
+        bridgeIn: 'تم إيداع {amount} USDC من {chain}',
         bridgeOut: 'تم سحب {amount} USDC إلى {chain}',
         seededByKarwan: 'زوّد Karwan وكيلك {agent} بمبلغ {amount} USDC لتغطية معاملاته الأولى',
         setupMove: 'تم نقل {amount} USDC من محفظتك إلى وكيلك {agent} عند الإعداد',
@@ -626,8 +626,8 @@ export const ar: Messages = {
     },
     agentTreasury: {
       tag: 'أموال الوكيل',
-      headlineFund: 'أضف أموالاً',
-      headlineWithdraw: 'اسحب',
+      headlineFund: 'إيداع',
+      headlineWithdraw: 'سحب',
       body: 'انقل USDC إلى الوكيل الذي يدير صفقاتك، واسترجعها إلى محفظتك متى شئت.',
     },
     stake: {
@@ -833,10 +833,10 @@ export const ar: Messages = {
     },
     sectionTag: 'إيداع / سحب',
     headlinePrefix: 'حرّك ',
-    description: 'أحضر USDC إلى Arc من سلسلة أخرى، أو أرسل رصيدك على Arc إلى الخارج. USDC أصلية عبر Circle CCTP. لا توكنات مغلّفة.',
+    description: 'أودع USDC من أي شبكة، أو اسحب إلى أي محفظة. مدعوم من Circle. يكتمل في ثوانٍ.',
     directions: {
-      toArc: 'إلى Arc',
-      fromArc: 'من Arc',
+      toArc: 'إيداع',
+      fromArc: 'سحب',
     },
   },
   statsTicker: {
@@ -1788,7 +1788,7 @@ export const ar: Messages = {
     connect: {
       cta: 'اربط محفظة',
       hint: 'أحضر USDC من أي محفظة. توقيع واحد ينقلها إلى رصيدك على Arc.',
-      useDeposit: 'أضف أموالاً بدون محفظة',
+      useDeposit: 'إيداع بدون محفظة',
       useWallet: 'استخدم محفظة بدلاً من ذلك',
     },
     solana: {
@@ -1827,7 +1827,7 @@ export const ar: Messages = {
       maxTitle: 'استخدام كامل الرصيد',
     },
     submit: {
-      bridgeFromTemplate: 'الجسر من {chain}',
+      bridgeFromTemplate: 'إيداع من {chain}',
       switchToTemplate: 'التبديل إلى {chain}',
       switchingToTemplate: 'جارٍ التبديل إلى {chain}…',
       starting: 'جارٍ البدء…',
@@ -1981,11 +1981,11 @@ export const ar: Messages = {
     generic: 'لم تتم العملية. لم يتم خصم أي شيء. أعد المحاولة.',
   },
   gatewayTopUp: {
-    cta: 'التعبئة من Gateway',
+    cta: 'التمويل من رصيدك',
     fundPool: 'موّل رصيدك',
     moving: 'جارٍ النقل',
     done: 'تم التمويل',
-    failed: 'فشلت التعبئة.',
+    failed: 'فشل التمويل.',
     availableTemplate: '{amount} مجمّعة وجاهزة.',
     shortTemplate: 'لديك {have} مجمّعة. هذا يتطلب {need}.',
   },

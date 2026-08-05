@@ -27,7 +27,7 @@ export const sw: Messages = {
     deals: 'Mikataba',
     market: 'Soko',
     bridge: 'Daraja',
-    topUpWithdraw: 'Ongeza / Toa',
+    topUpWithdraw: 'Weka / Toa',
     topUpBlurb: 'Hamisha USDC ndani na nje ya Arc.',
     smeTrades: 'Biashara za SME',
     trades: 'Biashara za P2P',
@@ -458,7 +458,7 @@ export const sw: Messages = {
     },
     myMoney: {
       text: {
-        bridgeIn: 'USDC {amount} zimeongezwa kutoka {chain}',
+        bridgeIn: 'USDC {amount} zimewekwa kutoka {chain}',
         bridgeOut: 'USDC {amount} zimetolewa kwenda {chain}',
         seededByKarwan: 'Karwan iliweka USDC {amount} kwa wakala wako {agent} kugharamia miamala yake ya kwanza',
         setupMove: 'USDC {amount} zilihamishwa kutoka pochi yako kwenda kwa wakala wako {agent} wakati wa usanidi',
@@ -626,8 +626,8 @@ export const sw: Messages = {
     },
     agentTreasury: {
       tag: 'PESA YA WAKALA',
-      headlineFund: 'Ongeza fedha',
-      headlineWithdraw: 'Toa fedha',
+      headlineFund: 'Weka',
+      headlineWithdraw: 'Toa',
       body: 'Hamisha USDC kwa wakala anayeendesha biashara zako, na uirudishe kwako wakati wowote.',
     },
     stake: {
@@ -833,10 +833,10 @@ export const sw: Messages = {
     },
     sectionTag: 'WEKA / TOA',
     headlinePrefix: 'Hamisha ',
-    description: 'Lete USDC kwenye Arc kutoka mnyororo mwingine, au peleka salio lako la Arc nje. USDC asili kupitia Circle CCTP. Hakuna tokeni zilizofungwa.',
+    description: 'Weka USDC kutoka mnyororo wowote, au toa kwenda pochi yoyote. Inaendeshwa na Circle. Inakamilika kwa sekunde.',
     directions: {
-      toArc: 'Kwenda Arc',
-      fromArc: 'Kutoka Arc',
+      toArc: 'Weka',
+      fromArc: 'Toa',
     },
   },
   statsTicker: {
@@ -1827,7 +1827,7 @@ export const sw: Messages = {
       maxTitle: 'Tumia salio kamili',
     },
     submit: {
-      bridgeFromTemplate: 'Daraja kutoka {chain}',
+      bridgeFromTemplate: 'Weka kutoka {chain}',
       switchToTemplate: 'Badilisha hadi {chain}',
       switchingToTemplate: 'Inabadilisha hadi {chain}…',
       starting: 'Inaanza…',
@@ -1981,11 +1981,11 @@ export const sw: Messages = {
     generic: 'Haikufanikiwa. Hakuna kilichotozwa. Jaribu tena.',
   },
   gatewayTopUp: {
-    cta: 'Ongeza kutoka Gateway',
+    cta: 'Fadhili kutoka salio lako',
     fundPool: 'Weka pesa kwenye salio lako',
     moving: 'Inahamisha',
     done: 'Imewekwa',
-    failed: 'Kuongeza kumeshindwa.',
+    failed: 'Kufadhili kumeshindwa.',
     availableTemplate: '{amount} imekusanywa na iko tayari.',
     shortTemplate: 'Una {have} iliyokusanywa. Hii inahitaji {need}.',
   },

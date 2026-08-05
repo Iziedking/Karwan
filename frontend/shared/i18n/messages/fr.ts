@@ -27,7 +27,7 @@ export const fr: Messages = {
     deals: 'Transactions',
     market: 'Marché',
     bridge: 'Bridge',
-    topUpWithdraw: 'Recharger / Retirer',
+    topUpWithdraw: 'Dépôt / Retrait',
     topUpBlurb: 'Déplacez des USDC vers et depuis Arc.',
     smeTrades: 'Trades PME',
     trades: 'Trades P2P',
@@ -458,8 +458,8 @@ export const fr: Messages = {
     },
     myMoney: {
       text: {
-        bridgeIn: '{amount} USDC ajoutes depuis {chain}',
-        bridgeOut: '{amount} USDC retires vers {chain}',
+        bridgeIn: '{amount} USDC déposés depuis {chain}',
+        bridgeOut: '{amount} USDC retirés vers {chain}',
         seededByKarwan: 'Karwan a dote votre agent {agent} de {amount} USDC pour ses premieres transactions',
         setupMove: '{amount} USDC deplaces de votre portefeuille vers votre agent {agent} a la configuration',
         agentWithdraw: '{amount} USDC retires du portefeuille de l agent {agent} vers {to}',
@@ -626,8 +626,8 @@ export const fr: Messages = {
     },
     agentTreasury: {
       tag: 'ARGENT DE L’AGENT',
-      headlineFund: 'Ajouter',
-      headlineWithdraw: 'Retirer',
+      headlineFund: 'Dépôt',
+      headlineWithdraw: 'Retrait',
       body: 'Déplacez l’USDC vers l’agent qui gère vos deals, et récupérez-le quand vous voulez.',
     },
     stake: {
@@ -815,15 +815,15 @@ export const fr: Messages = {
     errors: { emailRequired: 'Saisissez une adresse e-mail.', codeShape: 'Saisissez le code à 6 chiffres.' },
   },
   deposit: {
-    tag: '• [:DEPOT:]',
+    tag: '• [:DÉPÔT:]',
     addressLabel: 'Votre adresse',
     acceptsLabel: 'Envoyer depuis',
     copy: "Copier l'adresse",
-    copied: 'Copie',
-    qrAlt: 'Code QR de votre adresse de depot',
-    watching: 'En attente de votre depot',
-    landedTemplate: '{amount} USDC recus',
-    unavailable: 'Les depots sont en cours de configuration pour votre compte. Revenez dans un instant.',
+    copied: 'Copié',
+    qrAlt: 'Code QR de votre adresse de dépôt',
+    watching: 'En attente de votre dépôt',
+    landedTemplate: '{amount} USDC reçus',
+    unavailable: 'Les dépôts sont en cours de configuration pour votre compte. Revenez dans un instant.',
     groups: { evm: 'Reseaux EVM', solana: 'Solana' },
   },
   bridge: {
@@ -833,10 +833,10 @@ export const fr: Messages = {
     },
     sectionTag: 'DÉPÔT / RETRAIT',
     headlinePrefix: 'Déplacer ',
-    description: 'Faites entrer de l’USDC sur Arc depuis une autre chaîne, ou sortez votre solde Arc. USDC natif via Circle CCTP. Pas de tokens wrappés.',
+    description: "Déposez de l'USDC depuis n'importe quelle chaîne, ou retirez vers n'importe quel portefeuille. Propulsé par Circle. Règlement en quelques secondes.",
     directions: {
-      toArc: 'Vers Arc',
-      fromArc: 'Depuis Arc',
+      toArc: 'Dépôt',
+      fromArc: 'Retrait',
     },
   },
   statsTicker: {
@@ -1788,7 +1788,7 @@ export const fr: Messages = {
     connect: {
       cta: 'Connecter un portefeuille',
       hint: 'Apportez de l\'USDC depuis n\'importe quel portefeuille. Une signature le déplace vers votre solde Arc.',
-      useDeposit: 'Ajouter de l\'argent sans portefeuille',
+      useDeposit: 'Déposer sans portefeuille',
       useWallet: 'Utiliser un portefeuille',
     },
     solana: {
@@ -1827,7 +1827,7 @@ export const fr: Messages = {
       maxTitle: 'Utiliser tout le solde',
     },
     submit: {
-      bridgeFromTemplate: 'Passerelle depuis {chain}',
+      bridgeFromTemplate: 'Déposer depuis {chain}',
       switchToTemplate: 'Passer à {chain}',
       switchingToTemplate: 'Passage à {chain}…',
       starting: 'Démarrage…',
@@ -1981,11 +1981,11 @@ export const fr: Messages = {
     generic: 'Cela n’a pas abouti. Rien n’a été débité. Réessayez.',
   },
   gatewayTopUp: {
-    cta: 'Recharger via Gateway',
+    cta: 'Financer depuis votre solde',
     fundPool: 'Alimenter votre solde',
     moving: 'Transfert',
     done: 'Financé',
-    failed: 'Le rechargement a échoué.',
+    failed: 'Le financement a échoué.',
     availableTemplate: '{amount} groupés et prêts.',
     shortTemplate: 'Vous avez {have} groupés. Il en faut {need}.',
   },

@@ -4048,7 +4048,7 @@ export const en: MessagesShape = {
     deals: 'Deals',
     market: 'Market',
     bridge: 'Bridge',
-    topUpWithdraw: 'Top up / Withdraw',
+    topUpWithdraw: 'Deposit / Withdraw',
     topUpBlurb: 'Move USDC in and out of Arc.',
     smeTrades: 'SME Trades',
     trades: 'P2P Trades',
@@ -4487,15 +4487,15 @@ export const en: MessagesShape = {
         jobs: 'Jobs',
         negotiation: 'Negotiation',
         settlement: 'Settlement',
-        bridge: 'Top up / Withdraw',
+        bridge: 'Deposit / Withdraw',
       },
       filtering: '↳ filtering',
       events: 'events',
     },
     myMoney: {
       text: {
-        bridgeIn: 'Added {amount} USDC from {chain}',
-        bridgeOut: 'Cashed out {amount} USDC to {chain}',
+        bridgeIn: 'Deposited {amount} USDC from {chain}',
+        bridgeOut: 'Withdrew {amount} USDC to {chain}',
         seededByKarwan: 'Karwan seeded your {agent} agent with {amount} USDC to cover its first transactions',
         setupMove: 'Moved {amount} USDC from your wallet into your {agent} agent at setup',
         agentWithdraw: 'Withdrew {amount} USDC from the {agent} agent wallet to {to}',
@@ -4662,8 +4662,8 @@ export const en: MessagesShape = {
     },
     agentTreasury: {
       tag: 'AGENT MONEY',
-      headlineFund: 'Add money',
-      headlineWithdraw: 'Cash out',
+      headlineFund: 'Deposit',
+      headlineWithdraw: 'Withdraw',
       body: 'Move USDC to the agent that runs your deals, and pull it back to yourself any time.',
     },
     stake: {
@@ -4878,12 +4878,12 @@ export const en: MessagesShape = {
       tag: 'ADD MONEY / CASH OUT',
       body: 'Adding money and cashing out is tied to your wallet. Sign in to continue.',
     },
-    sectionTag: 'ADD MONEY / CASH OUT',
+    sectionTag: 'DEPOSIT / WITHDRAW',
     headlinePrefix: 'Move ',
-    description: 'Add money to your Arc balance, or cash out to any wallet. Powered by Circle. Settles in seconds.',
+    description: 'Deposit USDC from any chain, or withdraw to any wallet. Powered by Circle. Settles in seconds.',
     directions: {
-      toArc: 'Add money',
-      fromArc: 'Cash out',
+      toArc: 'Deposit',
+      fromArc: 'Withdraw',
     },
   },
   statsTicker: {
@@ -5558,7 +5558,7 @@ export const en: MessagesShape = {
       'yield.claimed': 'Yield claimed',
       'wallet.credited': 'Money in',
       'wallet.debited': 'Money out',
-      'cashout.arc.completed': 'Cash out completed',
+      'cashout.arc.completed': 'Withdrawal completed',
     },
     reasonLabels: {
       'llm-counter-over-budget': 'Price above ceiling',
@@ -5812,8 +5812,8 @@ export const en: MessagesShape = {
   },
   unifiedBalanceCard: {
     eyebrow: 'Unified balance',
-    tagline: 'One balance. Fund either agent, or cash out anywhere.',
-    modes: { add: 'Add', fund: 'Fund agent', cashout: 'Cash out' },
+    tagline: 'One balance. Fund either agent, or withdraw anywhere.',
+    modes: { add: 'Deposit', fund: 'Fund agent', cashout: 'Withdraw' },
     fromLabel: 'From',
     toAgentLabel: 'To agent',
     toChainLabel: 'To chain',
@@ -5822,13 +5822,13 @@ export const en: MessagesShape = {
     amountLabel: 'Amount',
     destinationLabel: 'Destination address',
     invalidAddress: 'Enter a valid 0x address',
-    submit: { add: 'Add to balance', fund: 'Fund agent', cashout: 'Cash out', working: 'Working…' },
-    success: { added: 'Added to your balance.', funded: 'Agent funded.', cashedOut: 'Cash out started.' },
+    submit: { add: 'Deposit', fund: 'Fund agent', cashout: 'Withdraw', working: 'Working…' },
+    success: { added: 'Deposited to your balance.', funded: 'Agent funded.', cashedOut: 'Withdrawal started.' },
     sweepCta: 'Move all wallet USDC in',
     sweepDone: 'Swept into your balance.',
   },
   bridgeCard: {
-    title: 'Top up / Withdraw',
+    title: 'Deposit / Withdraw',
     cctpV2: 'POWERED BY CIRCLE',
     arcTestnet: 'Arc Testnet',
     buyerAgentNotConfigured: 'Buyer agent not configured.',
@@ -5837,7 +5837,7 @@ export const en: MessagesShape = {
     connect: {
       cta: 'Connect a wallet',
       hint: 'Bring USDC from any wallet. One signature moves it to your Arc balance.',
-      useDeposit: 'Add money without a wallet',
+      useDeposit: 'Deposit without a wallet',
       useWallet: 'Use a wallet instead',
     },
     solana: {
@@ -5876,7 +5876,7 @@ export const en: MessagesShape = {
       maxTitle: 'Use full balance',
     },
     submit: {
-      bridgeFromTemplate: 'Add money from {chain}',
+      bridgeFromTemplate: 'Deposit from {chain}',
       switchToTemplate: 'Switch to {chain}',
       switchingToTemplate: 'Switching to {chain}…',
       starting: 'Starting…',
@@ -6030,11 +6030,11 @@ export const en: MessagesShape = {
     generic: 'That did not go through. Nothing was charged. Try again.',
   },
   gatewayTopUp: {
-    cta: 'Top up from Gateway',
+    cta: 'Fund from your balance',
     fundPool: 'Fund your balance',
     moving: 'Moving',
     done: 'Funded',
-    failed: 'Top up failed.',
+    failed: 'Funding failed.',
     availableTemplate: '{amount} pooled and ready.',
     shortTemplate: 'You have {have} pooled. This needs {need}.',
   },
@@ -7365,7 +7365,7 @@ export const en: MessagesShape = {
         deals: { label: 'Deals & Escrow', blurb: 'Both deal flows, milestones, settlement.' },
         disputes: { label: 'Disputes', blurb: 'Published timelines for every recovery path.' },
         reputation: { label: 'Reputation & Stake', blurb: 'The composite score and the vault.' },
-        bridge: { label: 'Top up / Withdraw', blurb: 'Cross-chain USDC with CCTP V2.' },
+        bridge: { label: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { label: 'Roadmap', blurb: 'Strong functionality shipping next.' },
         faq: { label: 'FAQs', blurb: 'Quick answers for first-time users.' },
       },
@@ -7430,7 +7430,7 @@ export const en: MessagesShape = {
       },
       fund: {
         label: 'Fund your balance.',
-        body: 'Bring USDC to Arc from any of the supported source chains with Top up / Withdraw, or use the Arc faucet for testnet USDC.',
+        body: 'Bring USDC to Arc from any of the supported source chains with Deposit / Withdraw, or use the Arc faucet for testnet USDC.',
       },
       open: {
         label: 'Open a deal.',
@@ -7444,7 +7444,7 @@ export const en: MessagesShape = {
         agents: { title: 'Agents', blurb: 'How your buyer and seller agents negotiate price and deadline.' },
         deals: { title: 'Deals and Escrow', blurb: 'The deal lifecycle from acceptance to settlement, plus cashout.' },
         reputation: { title: 'Reputation and Stake', blurb: 'How your score is built, how it resists gaming, and how staking lifts your tier.' },
-        bridge: { title: 'Top up / Withdraw', blurb: 'Moving USDC in and out of Arc using Circle CCTP.' },
+        bridge: { title: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
         faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
         x402: { title: 'Paid data endpoints', blurb: 'The x402 endpoints anyone can pay per call to read a credit passport or a repayment record.' },
@@ -7503,12 +7503,12 @@ export const en: MessagesShape = {
       },
     },
     figure: {
-      alt: 'Top up card showing the approve, burn, attestation, and mint steps',
+      alt: 'The deposit card showing your address and the chains it accepts',
       caption: 'The four steps of an inbound top up, tracked live.',
     },
     callout: {
       title: '[:ATTESTATION TAKES TIME ON TESTNET:]',
-      body: 'Standard transfers wait for source-chain finality, which runs ten to nineteen minutes on Sepolia testnets. If a transfer shows as still attesting, give it time before retrying. The Recheck button on the Top up / Withdraw card re-queries Circle.',
+      body: 'Standard transfers wait for source-chain finality, which runs ten to nineteen minutes on Sepolia testnets. If a transfer shows as still attesting, give it time before retrying. The Recheck button on the Deposit / Withdraw card re-queries Circle.',
     },
     cashout: {
       heading: 'Cashing out after a deal settles',
@@ -7520,7 +7520,7 @@ export const en: MessagesShape = {
     },
     emailPasskey: {
       heading: 'If you sign in with email or a passkey',
-      body: "You get a dedicated wallet on each chain the first time you top up from it. Send USDC to that wallet's address and Karwan handles the burn for you. The Top up / Withdraw page shows the address and the balance.",
+      body: "You get a dedicated wallet on each chain the first time you top up from it. Send USDC to that wallet's address and Karwan handles the burn for you. The Deposit / Withdraw page shows the address and the balance.",
     },
     whyThisRail: {
       heading: 'Why this rail and not a generic bridge',
@@ -8104,7 +8104,7 @@ export const en: MessagesShape = {
     errors: {
       insufficientBalanceTitle: 'Buyer agent short on USDC.',
       insufficientBalanceFallback: 'Buyer agent is short on USDC.',
-      topUpCta: 'Top up via CCTP →',
+      topUpCta: 'Deposit →',
       postFailedPrefix: "Couldn't post:",
       activatingButton: 'Activating…',
       activateCta: 'Activate your agents here →',
