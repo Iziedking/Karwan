@@ -83,7 +83,10 @@ oauthMetadataRoutes.get('/oauth-authorization-server', (c) =>
     code_challenge_methods_supported: ['S256'],
     token_endpoint_auth_methods_supported: ['none', 'client_secret_post'],
     // RFC 9207. Clients validate the issuer on the authorization response.
-    authorization_response_iss_parameter_supported: true,
+   // Codex currently drops `iss` before validating the callback.
+  // Continue sending `iss`, but do not tell affected clients to require it.
+    authorization_response_iss_parameter_supported: false,
+    
   }),
 );
 
