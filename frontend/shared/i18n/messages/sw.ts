@@ -825,6 +825,11 @@ export const sw: Messages = {
     landedTemplate: 'USDC {amount} zimewasili',
     unavailable: 'Amana zinaandaliwa kwa akaunti yako. Angalia tena baada ya muda mfupi.',
     groups: { evm: 'Mitandao ya EVM', solana: 'Solana' },
+    hop: {
+      moving: 'Inahamishwa kwenye salio lako. Dakika kadhaa kwenye testnet.',
+      arrived: 'Iko kwenye salio lako na tayari kutumika.',
+      stuck: 'Imefika lakini bado haijaingia kwenye salio lako. Fungua historia ya uhamisho ujaribu tena.',
+    },
   },
   bridge: {
     signInGate: {

@@ -215,6 +215,26 @@ export function ProfileDeck({
         >
           <DeckCard shadow tone={panels[active]!.tone}>{panels[active]!.content}</DeckCard>
         </div>
+
+        {/* Edge arrows. The sequential controls used to live only in a small row
+            under the card, which is below the fold on a long panel: the deck read
+            as one page because nothing at eye level said otherwise. These sit at
+            the vertical middle of the card where the eye already is.
+
+            Outside the card on wide screens, tucked just inside on narrow ones,
+            because there is no gutter to sit in on a phone. zIndex above the
+            front card, and the clipping container is overflow-x clip rather than
+            hidden, so an arrow at a negative offset is not cut off. */}
+        <EdgeArrow
+          side="start"
+          onClick={() => go(active - 1)}
+          label={`Previous: ${panels[(active - 1 + panels.length) % panels.length]!.label}`}
+        />
+        <EdgeArrow
+          side="end"
+          onClick={() => go(active + 1)}
+          label={`Next: ${panels[(active + 1) % panels.length]!.label}`}
+        />
       </div>
 
       {/* Controls. Random access lives in the tab strip above; this row is the
@@ -237,6 +257,48 @@ export function ProfileDeck({
         </div>
       </div>
     </div>
+  );
+}
+
+/// A round arrow pinned to one edge of the deck, vertically centred.
+///
+/// 44px so it clears the minimum touch target, with a solid surface and a
+/// hairline rather than a ghost button: at the edge of a dark card an outline-only
+/// control disappears. The glyph is the same custom chevron as the row below, so
+/// the deck has one arrow language.
+function EdgeArrow({
+  side,
+  onClick,
+  label,
+}: {
+  side: 'start' | 'end';
+  onClick: () => void;
+  label: string;
+}) {
+  const back = side === 'start';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={cn(
+        'group absolute top-1/2 -translate-y-1/2 z-40 hidden sm:flex items-center justify-center',
+        'transition-colors',
+        // Outside the card where there is room, just inside it when there is not.
+        back ? 'start-0 -ms-5 lg:-ms-7' : 'end-0 -me-5 lg:-me-7',
+      )}
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 999,
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        color: 'var(--lp-dark)',
+        boxShadow: '0 2px 10px -4px rgba(0,0,0,0.25)',
+      }}
+    >
+      <Chev back={back} big />
+    </button>
   );
 }
 
@@ -303,12 +365,13 @@ function DeckNav({
   );
 }
 
-function Chev({ back }: { back?: boolean }) {
+function Chev({ back, big }: { back?: boolean; big?: boolean }) {
+  const size = big ? 16 : 10;
   return (
     <svg
       aria-hidden
-      width="10"
-      height="10"
+      width={size}
+      height={size}
       viewBox="0 0 10 10"
       fill="none"
       stroke="currentColor"

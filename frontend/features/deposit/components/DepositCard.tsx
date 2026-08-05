@@ -37,6 +37,12 @@ export function DepositCard() {
   const [group, setGroup] = useState<Group>('evm');
   const [copied, setCopied] = useState(false);
   const [credited, setCredited] = useState<{ amountUsdc: string } | null>(null);
+  /// The second stage. A credit means the money reached the deposit address on the
+  /// source chain; it is not spendable until it lands on Arc, and the CCTP hop
+  /// takes ten to nineteen minutes on a Sepolia testnet. The card used to say
+  /// "landed" and then go silent for that whole window, which reads as nothing
+  /// having happened. It had, twice.
+  const [hop, setHop] = useState<'moving' | 'arrived' | 'stuck' | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['deposit', 'address', address],
@@ -57,13 +63,40 @@ export function DepositCard() {
   // their phone, puts it down, and the number has already moved.
   useEffect(() => {
     if (!address) return;
+    const mine = (recipient?: string) =>
+      !recipient || recipient.toLowerCase() === address.toLowerCase();
     return subscribeLiveEvents((event) => {
-      if (event.type !== 'wallet.credited') return;
-      const p = (event.payload ?? {}) as { source?: string; amountUsdc?: string; owner?: string };
-      if (p.source !== 'deposit') return;
-      if (p.owner && p.owner.toLowerCase() !== address.toLowerCase()) return;
-      setCredited({ amountUsdc: p.amountUsdc ?? '' });
-      refreshMoney();
+      const p = (event.payload ?? {}) as {
+        source?: string;
+        amountUsdc?: string;
+        owner?: string;
+        mintRecipient?: string;
+      };
+
+      if (event.type === 'wallet.credited') {
+        if (p.source !== 'deposit') return;
+        if (p.owner && p.owner.toLowerCase() !== address.toLowerCase()) return;
+        setCredited({ amountUsdc: p.amountUsdc ?? '' });
+        // The hop starts server-side the moment the credit lands, so the card can
+        // say so without waiting for the first bridge event to arrive.
+        setHop('moving');
+        refreshMoney();
+        return;
+      }
+
+      // The hop is a bridge to the user's own Arc address, so the recipient is
+      // what makes it theirs.
+      if (!mine(p.mintRecipient)) return;
+      if (event.type === 'bridge.approving' || event.type === 'bridge.burning' || event.type === 'bridge.burned' || event.type === 'bridge.attested') {
+        setHop('moving');
+        return;
+      }
+      if (event.type === 'bridge.minted') {
+        setHop('arrived');
+        refreshMoney();
+        return;
+      }
+      if (event.type === 'bridge.error') setHop('stuck');
     });
   }, [address, refreshMoney]);
 
@@ -157,7 +190,11 @@ export function DepositCard() {
       </div>
 
       <div className="mt-7 pt-5" style={{ borderTop: '1px solid var(--lp-border-light)' }}>
-        {credited ? <Landed amount={credited.amountUsdc} copy={t.landedTemplate} /> : <Watching label={t.watching} />}
+        {credited ? (
+          <Landed amount={credited.amountUsdc} copy={t.landedTemplate} hop={hop} copyFor={t.hop} />
+        ) : (
+          <Watching label={t.watching} />
+        )}
       </div>
     </Shell>
   );
@@ -299,23 +336,39 @@ function Watching({ label }: { label: string }) {
   );
 }
 
-function Landed({ amount, copy }: { amount: string; copy: string }) {
+function Landed({
+  amount,
+  copy,
+  hop,
+  copyFor,
+}: {
+  amount: string;
+  copy: string;
+  hop: 'moving' | 'arrived' | 'stuck' | null;
+  copyFor: { moving: string; arrived: string; stuck: string };
+}) {
   return (
-    <div
-      className="flex items-center gap-2.5 fade-up"
-      role="status"
-      aria-live="polite"
-    >
-      <span
-        aria-hidden
-        style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--lp-accent)' }}
-      />
-      <span
-        className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-dark)]"
-        style={{ fontVariantNumeric: 'tabular-nums' }}
-      >
-        {copy.replace('{amount}', amount)}
-      </span>
+    <div className="fade-up" role="status" aria-live="polite">
+      <div className="flex items-center gap-2.5">
+        <span
+          aria-hidden
+          style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--lp-accent)' }}
+        />
+        <span
+          className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-dark)]"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {copy.replace('{amount}', amount)}
+        </span>
+      </div>
+      {/* The second line is the one that stops a user concluding it failed. It
+          says the money is on the move and roughly how long, because a silent
+          fifteen minutes is indistinguishable from a broken transfer. */}
+      {hop ? (
+        <p className="mt-2 ms-[16px] text-[13px] leading-snug text-[var(--lp-text-sub)]">
+          {hop === 'moving' ? copyFor.moving : hop === 'arrived' ? copyFor.arrived : copyFor.stuck}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -794,6 +794,7 @@ interface MessagesShape {
     landedTemplate: string;
     unavailable: string;
     groups: { evm: string; solana: string };
+    hop: { moving: string; arrived: string; stuck: string };
   };
   bridge: {
     signInGate: { tag: string; body: string };
@@ -4875,6 +4876,11 @@ export const en: MessagesShape = {
     landedTemplate: '{amount} USDC landed',
     unavailable: 'Deposits are being set up for your account. Check back in a moment.',
     groups: { evm: 'EVM chains', solana: 'Solana' },
+    hop: {
+      moving: 'Moving it to your balance. A few minutes on testnet.',
+      arrived: 'It is in your balance and ready to use.',
+      stuck: 'It arrived but has not reached your balance yet. Open transfer history to retry.',
+    },
   },
   bridge: {
     signInGate: {

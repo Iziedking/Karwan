@@ -825,6 +825,11 @@ export const fr: Messages = {
     landedTemplate: '{amount} USDC reçus',
     unavailable: 'Les dépôts sont en cours de configuration pour votre compte. Revenez dans un instant.',
     groups: { evm: 'Reseaux EVM', solana: 'Solana' },
+    hop: {
+      moving: 'Transfert vers votre solde en cours. Quelques minutes sur testnet.',
+      arrived: 'Disponible sur votre solde.',
+      stuck: "Il est bien arrivé mais pas encore sur votre solde. Ouvrez l'historique des transferts pour réessayer.",
+    },
   },
   bridge: {
     signInGate: {

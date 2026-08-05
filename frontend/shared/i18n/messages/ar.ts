@@ -825,6 +825,11 @@ export const ar: Messages = {
     landedTemplate: 'وصل {amount} USDC',
     unavailable: 'يتم إعداد الإيداعات لحسابك. تحقق بعد قليل.',
     groups: { evm: 'شبكات EVM', solana: 'Solana' },
+    hop: {
+      moving: 'جارٍ نقله إلى رصيدك. دقائق قليلة على الشبكة التجريبية.',
+      arrived: 'أصبح في رصيدك وجاهز للاستخدام.',
+      stuck: 'وصل لكنه لم يدخل رصيدك بعد. افتح سجل التحويلات للمحاولة مرة أخرى.',
+    },
   },
   bridge: {
     signInGate: {
