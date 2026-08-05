@@ -1,17 +1,28 @@
 import { createPublicKey, verify, type KeyObject } from 'node:crypto';
 import { circleWalletsClient } from './wallets.js';
-import { config } from '../config.js';
 import { logger } from '../logger.js';
 
 /// ECDSA-SHA256 signature verification for Circle webhook notifications.
 ///
-/// Circle signs each webhook with a per-subscription ECDSA key. The receiver
-/// fetches the public key for that subscription (SPKI DER, base64-encoded)
-/// from `client.getNotificationSignature(subscriptionId)`, then verifies that
-/// the X-Circle-Signature header is the ECDSA-SHA256 signature of the raw
-/// request body bytes. The key id in X-Circle-Key-Id changes if Circle rotates
-/// the signing key, which is why we cache the fetched key by its id and refetch
-/// when the header doesn't match.
+/// Circle signs each webhook with an ECDSA key and names that key in the
+/// `X-Circle-Key-Id` header. The public key is fetched BY THAT KEY ID:
+///
+///   GET /v2/notifications/publicKey/{keyId}
+///
+/// exposed by the SDK as `getNotificationSignature(id)`. The SDK types that
+/// parameter as `subscriptionId`, which is a misleading name: the value lands in
+/// the path of a publicKey endpoint, so it must be the key id from the header.
+///
+/// THIS WAS THE BUG, and it silently broke every deposit. We passed
+/// `CIRCLE_WEBHOOK_SUBSCRIPTION_ID`, that endpoint 404'd on it, verification had
+/// no key, and every delivery was rejected as an invalid signature. Deposits were
+/// therefore never credited and never bridged to Arc, so the money stayed on the
+/// source chain while the UI sat on "waiting for your deposit". Nothing in the
+/// watcher or the router was wrong; they were never reached.
+///
+/// A related red herring: `listSubscriptions()` returns zero for this account,
+/// because the webhook was created in the Developer Console rather than through
+/// the API. That is fine. Verification does not need a subscription to exist.
 ///
 /// Reference: https://developers.circle.com/wallets/webhook-notifications
 
@@ -22,32 +33,35 @@ interface CachedKey {
   fetchedAt: number;
 }
 
-// One signing key per subscription. We keep the most recent one we fetched;
-// when X-Circle-Key-Id doesn't match, we refetch. The 24h max age is a safety
-// belt against silent rotation we missed; Circle rotates keys infrequently in
-// practice but we should still be resilient.
+// Keyed BY key id, not a single slot. Circle's docs call the public key static
+// for a given id, so this only grows when a key actually rotates. The old single
+// slot held whichever key came last and refetched whenever the header differed,
+// which is fine with one key and thrashes on every delivery with two in rotation.
+// The 24h max age is a safety belt against a rotation we did not notice.
 const KEY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-let cachedKey: CachedKey | null = null;
+const keyCache = new Map<string, CachedKey>();
 
-/// Wraps Circle's REST `getNotificationSignature(subscriptionId)` SDK call,
-/// decodes the SPKI DER public key, and caches it. Subsequent calls reuse the
-/// cached key when X-Circle-Key-Id matches; on mismatch they force-refetch.
-async function loadPublicKey(expectedKeyId: string | undefined): Promise<CachedKey | null> {
-  const subscriptionId = config.CIRCLE_WEBHOOK_SUBSCRIPTION_ID;
-  if (!subscriptionId) return null;
+/// Fetch and cache the public key Circle named in the request.
+///
+/// `keyId` is the X-Circle-Key-Id header and is REQUIRED: without it there is
+/// nothing to look up, and guessing a key would defeat the point of verifying.
+async function loadPublicKey(keyId: string | undefined): Promise<CachedKey | null> {
+  if (!keyId) {
+    logger.warn('circle webhook: no X-Circle-Key-Id header, cannot verify');
+    return null;
+  }
 
-  const fresh =
-    cachedKey &&
-    Date.now() - cachedKey.fetchedAt < KEY_MAX_AGE_MS &&
-    (!expectedKeyId || cachedKey.id === expectedKeyId);
-  if (fresh) return cachedKey;
+  const cached = keyCache.get(keyId);
+  if (cached && Date.now() - cached.fetchedAt < KEY_MAX_AGE_MS) return cached;
 
   try {
     const client = circleWalletsClient();
-    const res = await client.getNotificationSignature(subscriptionId);
+    // Named subscriptionId by the SDK, but it is the path segment of
+    // /v2/notifications/publicKey/{keyId}. See the note at the top of this file.
+    const res = await client.getNotificationSignature(keyId);
     const data = res.data;
     if (!data?.publicKey || !data.id || !data.algorithm) {
-      logger.warn({ subscriptionId }, 'getNotificationSignature returned incomplete data');
+      logger.warn({ keyId }, 'getNotificationSignature returned incomplete data');
       return null;
     }
     const keyObject = createPublicKey({
@@ -55,20 +69,24 @@ async function loadPublicKey(expectedKeyId: string | undefined): Promise<CachedK
       format: 'der',
       type: 'spki',
     });
-    cachedKey = {
+    const entry: CachedKey = {
       id: data.id,
       algorithm: data.algorithm,
       key: keyObject,
       fetchedAt: Date.now(),
     };
+    // Store under the id we asked for AND the id Circle returned. They should
+    // match; caching both means a mismatch cannot cause a refetch every delivery.
+    keyCache.set(keyId, entry);
+    keyCache.set(entry.id, entry);
     logger.info(
-      { keyId: cachedKey.id, algorithm: cachedKey.algorithm },
+      { keyId: entry.id, algorithm: entry.algorithm },
       'circle webhook public key cached',
     );
-    return cachedKey;
+    return entry;
   } catch (err) {
     logger.warn(
-      { subscriptionId, err: (err as Error).message },
+      { keyId, err: (err as Error).message },
       'circle webhook public key fetch failed',
     );
     return null;

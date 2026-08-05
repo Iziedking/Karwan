@@ -22,9 +22,15 @@ circleWebhookRoutes.on(['GET', 'HEAD'], '/webhook', (c) =>
 /// skew and intermediate retry queues; tighten on mainnet if needed.
 const MAX_NOTIFICATION_AGE_SEC = 10 * 60;
 
-/// POST /api/circle/webhook receives Circle's signed event notifications for
-/// the developer-controlled-wallets subscription configured via
-/// CIRCLE_WEBHOOK_SUBSCRIPTION_ID. Responds in well under the 5-second budget
+/// POST /api/circle/webhook receives Circle's signed event notifications.
+///
+/// CIRCLE_WEBHOOK_SUBSCRIPTION_ID is the operator's on/off switch for this
+/// endpoint and NOTHING ELSE. Verification does not use it and must not: the
+/// public key is fetched by the key id in the X-Circle-Key-Id header. Passing the
+/// subscription id to that lookup is what silently rejected every delivery and
+/// stopped deposits from ever being credited. See circle/webhooks.ts.
+///
+/// Responds in well under the 5-second budget
 /// Circle enforces by emitting a bus event and returning immediately;
 /// downstream handlers run on the bus listener loop.
 ///
