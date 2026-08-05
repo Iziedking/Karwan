@@ -826,7 +826,7 @@ export const sw: Messages = {
     unavailable: 'Amana zinaandaliwa kwa akaunti yako. Angalia tena baada ya muda mfupi.',
     groups: { evm: 'Mitandao ya EVM', solana: 'Solana' },
     hop: {
-      moving: 'Inahamishwa kwenye salio lako. Dakika kadhaa kwenye testnet.',
+      moving: 'Inaelekea kwenye salio lako.',
       arrived: 'Iko kwenye salio lako na tayari kutumika.',
       stuck: 'Imefika lakini bado haijaingia kwenye salio lako. Fungua historia ya uhamisho ujaribu tena.',
     },

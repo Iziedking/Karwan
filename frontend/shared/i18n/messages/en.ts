@@ -4877,7 +4877,7 @@ export const en: MessagesShape = {
     unavailable: 'Deposits are being set up for your account. Check back in a moment.',
     groups: { evm: 'EVM chains', solana: 'Solana' },
     hop: {
-      moving: 'Moving it to your balance. A few minutes on testnet.',
+      moving: 'On its way to your balance.',
       arrived: 'It is in your balance and ready to use.',
       stuck: 'It arrived but has not reached your balance yet. Open transfer history to retry.',
     },

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { formatUnits, parseUnits, type PublicClient } from 'viem';
+import { formatUnits, maxUint256, parseUnits, type PublicClient } from 'viem';
 import { config } from '../config.js';
 import { executeContractCall, submitContractCall, getTxState } from '../chain/txs.js';
 import { publicClient } from '../chain/client.js';
@@ -738,6 +738,19 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
     // STAGE 1, APPROVE. Skip when the live allowance already covers the amount
     // (a prior attempt's approve may have landed after its window lapsed; that
     // is exactly the bug this pipeline fixes, and reading allowance recovers it).
+    //
+    // The approve below authorises the MAXIMUM, not this transfer's amount, and
+    // that is what makes the skip above reachable. Approving the exact amount
+    // meant every burn consumed the allowance back to zero, so this branch never
+    // fired and every deposit paid for a fresh approve. Measured on production:
+    // seven minutes of a fifteen minute deposit went to an approve for a transfer
+    // that was already requesting CCTP Fast finality. Now only the first transfer
+    // from a given chain pays it.
+    //
+    // The exposure is deliberate and bounded. The spender is TokenMessengerV2,
+    // Circle's own CCTP contract at the same address on every chain we use, and
+    // the approver is a single-purpose deposit wallet that holds USDC only while
+    // it is on its way to Arc. Nobody's balance lives at that address.
     let allowanceOk = false;
     try {
       const allowance = (await sourceClient.readContract({
@@ -769,7 +782,7 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
             walletId: input.bridgeWalletId,
             contractAddress: chainCfg.usdc,
             abiFunctionSignature: 'approve(address,uint256)',
-            abiParameters: [TOKEN_MESSENGER_V2, amountStr],
+            abiParameters: [TOKEN_MESSENGER_V2, maxUint256.toString()],
             feeLevel: 'HIGH',
             idempotencyKey: record.approveIdempotencyKey,
           },
