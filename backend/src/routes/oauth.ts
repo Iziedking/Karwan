@@ -174,6 +174,79 @@ function redirectError(redirectUri: string, state: string, error: string, descri
   return url.toString();
 }
 
+/// What a role can actually read, in the words of the thing being read rather
+/// than the names of the packages. Shown on the granted page so consent is
+/// informed: a person approving an app should not have to already know what
+/// "dev" means here.
+const ROLE_READS: Record<string, string[]> = {
+  dev: [
+    'Product facts and how features actually work',
+    'Contract and integration detail, with the checks behind each claim',
+    'Internal constraints and the decisions log',
+    'What is shipped versus what is still roadmap',
+  ],
+  marketing: [
+    'Product facts and the claims that are safe to make publicly',
+    'Brand voice, tone and the writing rules',
+    'What is shipped versus what is still roadmap',
+  ],
+};
+
+function roleReads(role: string): string[] {
+  return ROLE_READS[role] ?? ['Product facts marked public'];
+}
+
+/// What crosses the approve POST: the request parameters plus WHO was
+/// authenticated, so the approve endpoint never trusts a form field for identity.
+/// Signed with the same key as the request blob.
+interface Grant extends AuthRequest {
+  memberId: string;
+  email: string;
+  role: string;
+}
+
+function encodeGrant(g: Grant): string {
+  return Buffer.from(JSON.stringify(g)).toString('base64url');
+}
+
+function decodeGrant(encoded: string): Grant | null {
+  try {
+    return JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as Grant;
+  } catch {
+    return null;
+  }
+}
+
+/// Signed in, not yet approved.
+///
+/// The only Karwan surface in this flow a person reads rather than passes
+/// through, so it is where consent actually happens. It names the client, the
+/// identity, the role, and what that role can read. Before this, signing in was
+/// the whole of consent and none of that was ever shown.
+function consentPage(grant: Grant, clientName: string) {
+  const encoded = encodeGrant(grant);
+  const sig = signParams(encoded);
+  const reads = roleReads(grant.role)
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join('');
+  return renderPage(
+    'Approve access',
+    `<p class="eyebrow">Karwan</p>
+<h1>Allow ${escapeHtml(clientName)}?</h1>
+<p>It will read the canon as ${escapeHtml(grant.email)}.</p>
+<span class="l">Role</span>
+<p style="margin:0 0 16px;color:#F4F4F1"><strong>${escapeHtml(grant.role)}</strong></p>
+<span class="l">What it can read</span>
+<ul>${reads}</ul>
+<p class="foot">It cannot write anything and cannot act on your account.</p>
+<form method="post" action="/oauth/authorize/approve">
+  <input type="hidden" name="g" value="${escapeHtml(encoded)}">
+  <input type="hidden" name="s" value="${escapeHtml(sig)}">
+  <button type="submit">Allow access</button>
+</form>`,
+  );
+}
+
 /// Centred card, the shape every page in this flow wants.
 function renderPage(title: string, body: string, status = 200) {
   return shellPage(title, body, { status, center: true });
@@ -304,26 +377,79 @@ oauthRoutes.post(
       return loginPage(req, client.clientName, message);
     }
 
+    logger.info(
+      { member: result.member.email, role: result.member.role, client: client.clientName },
+      'oauth sign-in ok, awaiting approval',
+    );
+
+    // No code yet. Signing in is not consent, the next screen is.
+    return consentPage(
+      {
+        clientId: req.clientId,
+        redirectUri: req.redirectUri,
+        state: req.state,
+        codeChallenge: req.codeChallenge,
+        resource: req.resource,
+        scope: req.scope,
+        memberId: result.member.id,
+        email: result.member.email,
+        role: result.member.role,
+      },
+      client.clientName,
+    );
+  },
+);
+
+/// The approval. Mints the code and redirects, so a client still sees the same
+/// plain 302 it saw before consent existed.
+///
+/// This is a separate POST rather than a branded page in place of the redirect.
+/// The first attempt at this returned HTML from POST /authorize, and the tests
+/// caught it: a 200 where a 302 belongs breaks any client that does not run
+/// JavaScript, which is most of the ones this server exists for.
+oauthRoutes.post(
+  '/authorize/approve',
+  rateLimit({ windowMs: 60_000, max: 20, name: 'oauth-approve' }),
+  async (c) => {
+    const form = await c.req.parseBody();
+    const encoded = String(form.g ?? '');
+    const signature = String(form.s ?? '');
+
+    if (!encoded || !signature || !paramsValid(encoded, signature)) {
+      return renderPage('Expired', '<h1>That form expired</h1><p>Start the connection again from your app.</p>', 400);
+    }
+    const grant = decodeGrant(encoded);
+    if (!grant) {
+      return renderPage('Expired', '<h1>That form expired</h1><p>Start the connection again from your app.</p>', 400);
+    }
+
+    // Re-checked rather than trusted: the client could have been deleted, or had
+    // its redirects changed, between sign-in and this click.
+    const client = await getClient(grant.clientId);
+    if (!client || !redirectUriAllowed(client, grant.redirectUri)) {
+      return renderPage('Unknown application', '<h1>Unknown application</h1><p>This client is no longer registered.</p>', 400);
+    }
+
     const code = await issueCode({
-      clientId: req.clientId,
-      memberId: result.member.id,
-      role: result.member.role,
-      redirectUri: req.redirectUri,
-      codeChallenge: req.codeChallenge,
-      resource: req.resource,
-      scope: req.scope,
+      clientId: grant.clientId,
+      memberId: grant.memberId,
+      role: grant.role as never,
+      redirectUri: grant.redirectUri,
+      codeChallenge: grant.codeChallenge,
+      resource: grant.resource,
+      scope: grant.scope,
     });
 
     logger.info(
-      { member: result.member.email, role: result.member.role, client: client.clientName },
+      { member: grant.email, role: grant.role, client: client.clientName },
       'oauth authorization granted',
     );
 
-    const url = new URL(req.redirectUri);
+    const url = new URL(grant.redirectUri);
     url.searchParams.set('code', code);
     // RFC 9207: clients validate this against the issuer they discovered.
     url.searchParams.set('iss', issuer());
-    if (req.state) url.searchParams.set('state', req.state);
+    if (grant.state) url.searchParams.set('state', grant.state);
     return c.redirect(url.toString());
   },
 );

@@ -90,15 +90,62 @@ async function getCode(clientId: string, challenge: string) {
   const s = /name="s" value="([^"]+)"/.exec(html)?.[1];
   assert.ok(r && s, 'the login form did not render its signed parameters');
 
-  const posted = await oauthRoutes.request('/authorize', {
+  // Sign in. This no longer issues a code: consent is a separate, explicit step,
+  // so the response is the approval screen rather than a redirect.
+  const signedIn = await oauthRoutes.request('/authorize', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '10.0.0.1' },
     body: new URLSearchParams({ r, s, email: 'aisha@karwan.site', password: PASSWORD }).toString(),
+  });
+  assert.equal(signedIn.status, 200, 'signing in should land on the approval screen');
+  const consent = await signedIn.text();
+  // The screen has to actually say what is being granted, or it is a rubber stamp.
+  assert.match(consent, /Allow /, 'the approval screen should name the client');
+  assert.match(consent, /dev|marketing/, 'the approval screen should state the role');
+  const g = /name="g" value="([^"]+)"/.exec(consent)?.[1];
+  const gs = /name="s" value="([^"]+)"/.exec(consent)?.[1];
+  assert.ok(g && gs, 'the approval form did not render its signed grant');
+
+  // Approving is what mints the code, and it still answers with a plain 302 so a
+  // client that does not run JavaScript is unaffected.
+  const posted = await oauthRoutes.request('/authorize/approve', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '10.0.0.1' },
+    body: new URLSearchParams({ g, s: gs }).toString(),
   });
   // Location is read off the headers, so the body is only touched on failure.
   if (posted.status !== 302) assert.fail(`expected a redirect, got ${posted.status}: ${await posted.text()}`);
   return new URL(posted.headers.get('location') ?? '');
 }
+
+/// A forged approval must not mint anything. The grant blob carries the
+/// authenticated identity, so an unsigned one is an attempt to choose your own
+/// role.
+test('an approval with a bad signature mints nothing', async () => {
+  const client = await register();
+  const { challenge } = pkce();
+  const forged = Buffer.from(
+    JSON.stringify({
+      clientId: client.client_id,
+      redirectUri: REDIRECT,
+      state: '',
+      codeChallenge: challenge,
+      resource: RESOURCE,
+      scope: 'mcp',
+      memberId: 'someone',
+      email: 'attacker@example.com',
+      role: 'dev',
+    }),
+  ).toString('base64url');
+
+  const res = await oauthRoutes.request('/authorize/approve', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '10.0.0.9' },
+    body: new URLSearchParams({ g: forged, s: 'not-a-signature' }).toString(),
+  });
+  assert.equal(res.status, 400);
+  assert.doesNotMatch(res.headers.get('location') ?? '', /code=/);
+});
 
 test('metadata advertises what the spec requires and nothing weaker', async () => {
   const res = await oauthMetadataRoutes.request('/oauth-authorization-server');
