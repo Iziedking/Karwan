@@ -1,4 +1,5 @@
 'use client';
+import { MoneyValue } from '@/shared/components/Money';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -65,7 +66,6 @@ function CopyAddress({
 
 function Row({
   tag,
-  hub,
   title,
   purpose,
   address,
@@ -77,7 +77,6 @@ function Row({
   copiedLabel,
 }: {
   tag: string;
-  hub?: boolean;
   title: string;
   purpose: string;
   address?: string;
@@ -106,7 +105,10 @@ function Row({
       <span
         aria-hidden
         className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: hub ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
+        // Lime on all three: each one holds a balance, and the edge is what
+        // marks a surface as money across the app. Reserving it for the hub made
+        // the agent wallets read as labels rather than as money.
+        style={{ background: 'var(--lp-accent)' }}
       />
       {/* Stack below sm, two columns above it. NOT flex-wrap.
           With wrapping, whether the balance sat beside the name or under it
@@ -130,9 +132,7 @@ function Row({
             fixed text-end looked centred-ish and arbitrary on a phone, because
             the wrapped block hugs its content rather than filling the row. */}
         <div className="text-start sm:text-end shrink-0">
-          <p className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
-            {primary}
-          </p>
+          <MoneyValue value={primary} size="sm" />
           {secondary && (
             <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               {secondary}
@@ -253,11 +253,10 @@ export function WalletsPanel({ address }: { address?: string }) {
       <ul className="space-y-3">
         <Row
           tag={wp.rows.identity.tag}
-          hub
           title={wp.rows.identity.title}
           purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
           address={data?.identity.address}
-          primary={`${fmt(data?.identity.usdcBalance)} USDC`}
+          primary={fmt(data?.identity.usdcBalance)}
           copiedAddr={copiedAddr}
           onCopied={markCopied}
           copiedLabel={wp.copyAddress.copied}
@@ -277,7 +276,7 @@ export function WalletsPanel({ address }: { address?: string }) {
               title={wp.rows.buyer.title}
               purpose={wp.rows.buyer.purpose}
               address={agents.buyer.address}
-              primary={`${fmt(agents.buyer.usdcBalance)} USDC`}
+              primary={fmt(agents.buyer.usdcBalance)}
               copiedAddr={copiedAddr}
               onCopied={markCopied}
               copiedLabel={wp.copyAddress.copied}
@@ -294,7 +293,7 @@ export function WalletsPanel({ address }: { address?: string }) {
               title={wp.rows.seller.title}
               purpose={wp.rows.seller.purpose}
               address={agents.seller.address}
-              primary={`${fmt(agents.seller.usdcBalance)} USDC`}
+              primary={fmt(agents.seller.usdcBalance)}
               copiedAddr={copiedAddr}
               onCopied={markCopied}
               copiedLabel={wp.copyAddress.copied}

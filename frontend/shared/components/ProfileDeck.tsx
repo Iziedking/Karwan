@@ -30,10 +30,15 @@ export interface DeckPanel {
   tone?: 'light' | 'dark';
 }
 
-/// Long enough to read as physical, short enough not to feel like waiting.
-const DURATION_MS = 380;
+/// Long enough to read as physical, short enough not to feel like waiting. The
+/// card travels the full width of the deck now rather than fading 10px, so it
+/// needs more time than a crossfade would.
+const DURATION_MS = 460;
 /// Matches the app's layout easing.
 const EASE = 'cubic-bezier(0.83, 0, 0.17, 1)';
+/// The outgoing card leads, so it uses an ease-out: quick off the mark, settling
+/// as it clears the edge. Sharing the layout curve made it look pushed.
+const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
 export function ProfileDeck({
   panels,
@@ -114,6 +119,11 @@ export function ProfileDeck({
     <div className="w-full">
       <div
         className="relative"
+        // The outgoing card travels past the deck edge, which on a phone is the
+        // viewport edge, and that would hand the page a horizontal scrollbar.
+        // `clip` rather than `hidden`: hidden on one axis forces the other to
+        // auto and would cut the front card's shadow into a scroll area.
+        style={{ overflowX: 'clip' }}
         onTouchStart={(e) => { touchX.current = e.touches[0]?.clientX ?? null; }}
         onTouchEnd={(e) => {
           const start = touchX.current;
@@ -171,10 +181,17 @@ export function ProfileDeck({
             aria-hidden
             className="absolute inset-x-0 top-0 pointer-events-none"
             style={{
-              transform: leaving.back ? 'translateY(-6px) scale(1.02)' : 'translateY(10px) scale(0.96)',
+              // Off the side and tilting, the way a hand actually moves the top
+              // card of a stack. It travels far enough to clear the deck edge, so
+              // the eye follows it away rather than watching it dissolve in place.
+              // Opacity trails the movement instead of leading it: fading first
+              // would make it read as deleted rather than filed behind.
+              transform: leaving.back
+                ? 'translateX(-116%) translateY(-14px) rotate(-7deg) scale(0.94)'
+                : 'translateX(116%) translateY(-14px) rotate(7deg) scale(0.94)',
               opacity: 0,
-              zIndex: 20,
-              transition: `transform ${DURATION_MS}ms ${EASE}, opacity ${DURATION_MS}ms ${EASE}`,
+              zIndex: 40,
+              transition: `transform ${DURATION_MS}ms ${EASE_OUT}, opacity ${Math.round(DURATION_MS * 0.7)}ms linear ${Math.round(DURATION_MS * 0.3)}ms`,
             }}
           >
             <DeckCard tone={panels[leaving.index]!.tone}>{panels[leaving.index]!.content}</DeckCard>
@@ -187,8 +204,12 @@ export function ProfileDeck({
           className="relative"
           style={{
             zIndex: 30,
-            transform: entering ? 'translateY(10px) scale(0.96)' : 'none',
-            opacity: entering ? 0 : 1,
+            // Starts exactly where its shell sat one step back in the stack, and
+            // at that shell's opacity, so it reads as the same card promoted
+            // rather than a new one appearing. Fading up from zero was what made
+            // this feel like a slideshow.
+            transform: entering ? 'translateY(10px) scale(0.97)' : 'none',
+            opacity: entering ? 0.65 : 1,
             transition: reduced || entering ? 'none' : `transform ${DURATION_MS}ms ${EASE}, opacity ${DURATION_MS}ms ${EASE}`,
           }}
         >

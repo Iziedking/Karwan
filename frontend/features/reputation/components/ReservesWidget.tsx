@@ -1,4 +1,5 @@
 'use client';
+import { MoneyCard, MoneyValue } from '@/shared/components/Money';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
 
@@ -61,29 +62,26 @@ export function ReservesWidget() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)]">
+      {/* Separate cards rather than a hairline-divided grid: each of these is an
+          amount, and money carries its own bordered card and lime edge wherever
+          it appears. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
-          <div
-            key={t.label}
-            className="bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
-          >
+          <MoneyCard key={t.label}>
             <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
             </p>
             {tilesLoading ? (
               <div className="mt-1.5 h-[28px] w-3/4 rounded-md bg-[var(--lp-border-light)] animate-pulse" />
             ) : (
-              <p className="mt-1.5 font-sans text-[24px] sm:text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
-                {t.value}
-                <span className="ms-1.5 text-[13px] font-semibold text-[var(--lp-text-muted)] tracking-normal">
-                  USDC
-                </span>
-              </p>
+              <div className="mt-1.5">
+                <MoneyValue value={t.value} />
+              </div>
             )}
             <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)]">
               {t.hint}
             </p>
-          </div>
+          </MoneyCard>
         ))}
       </div>
 

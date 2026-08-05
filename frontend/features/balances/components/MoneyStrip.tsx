@@ -1,4 +1,5 @@
 'use client';
+import { MoneyCard, MoneyValue, MoneyLabel } from '@/shared/components/Money';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
@@ -31,38 +32,19 @@ interface Cell {
   value: number | null;
   label: string;
   hint: string;
-  rail: string;
 }
 
 /// One money tile. Shared by the desktop three-up row and the mobile rotator so
-/// both read identically; only the layout around them differs.
-function MoneyCard({ cell }: { cell: Cell }) {
+/// both read identically; only the layout around them differs. The card, the
+/// lime edge and the numerals all come from the shared money treatment, so a
+/// balance here looks like a balance anywhere else in the app.
+function MoneyTile({ cell }: { cell: Cell }) {
   return (
-    <div
-      className="relative overflow-hidden px-4 py-4 md:px-5 md:py-5"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: cell.rail }} />
-      <p className="font-sans text-[clamp(1.2rem,4.5vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-        {money(cell.value)}
-        {cell.value != null && (
-          <span className="ms-1.5 mono text-[0.45em] font-bold uppercase tracking-[0.12em] align-baseline text-[var(--lp-text-muted)]">
-            USDC
-          </span>
-        )}
-      </p>
-      <p className="mt-2 mono text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: cell.rail }}>
-        {cell.label}
-      </p>
+    <MoneyCard>
+      <MoneyValue value={money(cell.value)} showUnit={cell.value != null} />
+      <MoneyLabel>{cell.label}</MoneyLabel>
       <p className="mt-1 text-[11px] leading-snug text-[var(--lp-text-sub)]">{cell.hint}</p>
-    </div>
+    </MoneyCard>
   );
 }
 
@@ -94,7 +76,7 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
     return (
       <div className="grid gap-3">
         {cells.map((c) => (
-          <MoneyCard key={c.label} cell={c} />
+          <MoneyTile key={c.label} cell={c} />
         ))}
       </div>
     );
@@ -111,7 +93,7 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          <MoneyCard cell={active} />
+          <MoneyTile cell={active} />
         </motion.div>
       </AnimatePresence>
       <div className="mt-3 flex justify-center gap-1.5">
@@ -123,7 +105,7 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
             aria-current={idx === i}
             onClick={() => setI(idx)}
             className="size-1.5 rounded-full transition-colors"
-            style={{ background: idx === i ? c.rail : 'var(--lp-border-light)' }}
+            style={{ background: idx === i ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
           />
         ))}
       </div>
@@ -178,9 +160,9 @@ export function MoneyStrip() {
   if (!isAuthenticated || !address) return null;
 
   const cells = [
-    { value: available, label: ms.cells.available.label, hint: ms.cells.available.hint, rail: 'var(--lp-accent)' },
-    { value: inEscrow, label: ms.cells.inEscrow.label, hint: ms.cells.inEscrow.hint, rail: '#3a4a85' },
-    { value: earned, label: ms.cells.earned.label, hint: ms.cells.earned.hint, rail: '#0a7553' },
+    { value: available, label: ms.cells.available.label, hint: ms.cells.available.hint },
+    { value: inEscrow, label: ms.cells.inEscrow.label, hint: ms.cells.inEscrow.hint },
+    { value: earned, label: ms.cells.earned.label, hint: ms.cells.earned.hint },
   ];
 
   return (
@@ -196,7 +178,7 @@ export function MoneyStrip() {
         {/* Desktop: all three at a glance. */}
         <div className="hidden sm:grid grid-cols-3 gap-3">
           {cells.map((c) => (
-            <MoneyCard key={c.label} cell={c} />
+            <MoneyTile key={c.label} cell={c} />
           ))}
         </div>
       </div>
