@@ -116,7 +116,18 @@ export function ProfileDeck({
   const depthOf = (i: number) => (i - active + panels.length) % panels.length;
 
   return (
-    <div className="w-full">
+    // Capped and centred rather than full width. At a desktop measure the card ran
+    // to ~1800px, which turned every wallet row into a long band with its balance
+    // floated to the far edge: the eye had to cross the whole viewport to connect
+    // a wallet to its number. 1040px sits about square against the tallest panel.
+    //
+    // The number is a compromise and worth knowing why. Narrower reads calmer for
+    // Wallets and Identity, but the Agents panel puts the money card and research
+    // side by side, and Tailwind breakpoints are viewport-based rather than
+    // container-based, so a 780px cap would still take two columns on a wide screen
+    // and give each about 390px. 1040 keeps those near 500px and still roughly
+    // halves the old width.
+    <div className="w-full max-w-[1040px] mx-auto">
       {/* Outer wrapper is positioned so the edge arrows can anchor to it. It is
           deliberately NOT clipped: the inner container clips the outgoing card so
           it cannot cause a horizontal scrollbar, and an arrow anchored inside that

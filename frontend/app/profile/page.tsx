@@ -647,6 +647,10 @@ function ProfilePageInner() {
           active={activeTab}
           onChange={setActiveTab}
           onDark={false}
+          // Match the deck below it. The default 1320 measure overhung the
+          // capped card by ~140px a side, which read as two different widths
+          // stacked rather than one control driving one card.
+          contentMaxWidth={1040}
         />
       </div>
 

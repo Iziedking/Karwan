@@ -39,12 +39,18 @@ export function StickyTabStrip({
   onChange,
   className,
   onDark = true,
+  contentMaxWidth = 1320,
 }: {
   tabs: Tab[];
   active: string;
   onChange?: (id: string) => void;
   className?: string;
   onDark?: boolean;
+  /// Reading measure of the tab row, in px. Defaults to the wide page measure.
+  /// Pass the width of the content below when that content is narrower, so the
+  /// strip and the thing it drives share an edge instead of the strip overhanging
+  /// it by a couple of hundred pixels.
+  contentMaxWidth?: number;
 }) {
   // Backdrop blur kicks in once the strip is past the top nav.
   const [stuck, setStuck] = useState(false);
@@ -125,8 +131,9 @@ export function StickyTabStrip({
         // scroll naturally; the meaningful fix is generous right-padding on
         // the scroll container so the LAST tab can fully reach into view
         // instead of getting clipped by the viewport edge.
-        className="mx-auto max-w-[1320px] flex md:grid overflow-x-auto md:overflow-visible no-scrollbar"
+        className="mx-auto flex md:grid overflow-x-auto md:overflow-visible no-scrollbar"
         style={{
+          maxWidth: contentMaxWidth,
           gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
           // Extra right padding on mobile so the last tab has scroll room
           // past the viewport edge instead of getting cut off mid-word.
