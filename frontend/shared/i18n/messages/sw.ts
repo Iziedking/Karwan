@@ -469,6 +469,7 @@ export const sw: Messages = {
         deadlineReclaim: 'USDC {amount} zilirudishwa kutoka deal ambayo muuzaji hakuwasilisha',
         disputeReceived: 'USDC {amount} zilipokelewa kutoka mgogoro uliotatuliwa',
         cancelRefund: 'USDC {amount} zilirudishwa kutoka deal iliyoghairiwa',
+        depositCredited: 'USDC {amount} ziliwekwa',
         gatewayDeposit: 'USDC {amount} ziliongezwa kwenye salio la pamoja kutoka pochi ya {source}',
         gatewayFundAgent: 'Wakala {agent} alipewa USDC {amount}',
         gatewayCashOut: 'USDC {amount} zilitolewa kwenda {to} kwenye {chain}',

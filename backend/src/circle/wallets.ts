@@ -199,6 +199,21 @@ export async function provisionUserBridgeWallet(
   userAddress: string,
   blockchain: BridgeBlockchain,
   anchorWalletId?: string,
+  opts?: {
+    /// Refuse the createWallets fallback and fail instead.
+    ///
+    /// createWallets takes the next per-chain index from the shared wallet set.
+    /// Derive does not: it is a pure function of the anchor. So several derives
+    /// can run at once safely, while several concurrent creates can be handed
+    /// the same index and produce one address for two different users. That is
+    /// the collision this codebase already carries ten legacy cases of, two of
+    /// them holding funds under two owners.
+    ///
+    /// Callers that provision more than one chain at a time set this. A failure
+    /// then falls through to the lazy path, which runs one chain at a time and
+    /// can take the fallback safely.
+    deriveOnly?: boolean;
+  },
 ): Promise<ProvisionedBridgeWallet> {
   if (!config.CIRCLE_WALLET_SET_ID) {
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
@@ -268,6 +283,12 @@ export async function provisionUserBridgeWallet(
       );
     }
   }
+  if (opts?.deriveOnly) {
+    throw new Error(
+      `deposit wallet on ${blockchain} could not be derived from the identity anchor; refusing the createWallets fallback under deriveOnly`,
+    );
+  }
+
   // Circle SCAs are EVM-only. Solana wallets must be provisioned as EOA;
   // Circle returns 400 with a clear error if SCA is requested on SOL-DEVNET.
   const accountType: 'SCA' | 'EOA' =

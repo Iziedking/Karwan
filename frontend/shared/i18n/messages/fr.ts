@@ -469,6 +469,7 @@ export const fr: Messages = {
         deadlineReclaim: '{amount} USDC recuperes de la transaction que le vendeur n a pas livree',
         disputeReceived: '{amount} USDC recus d un litige resolu',
         cancelRefund: '{amount} USDC rembourses d une transaction annulee',
+        depositCredited: '{amount} USDC deposes',
         gatewayDeposit: '{amount} USDC ajoutes au solde unifie depuis le portefeuille {source}',
         gatewayFundAgent: 'Agent {agent} approvisionne de {amount} USDC',
         gatewayCashOut: '{amount} USDC retires vers {to} sur {chain}',

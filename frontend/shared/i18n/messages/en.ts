@@ -464,6 +464,7 @@ interface MessagesShape {
         deadlineReclaim: string;
         disputeReceived: string;
         cancelRefund: string;
+        depositCredited: string;
         gatewayDeposit: string;
         gatewayFundAgent: string;
         gatewayCashOut: string;
@@ -4492,6 +4493,7 @@ export const en: MessagesShape = {
         deadlineReclaim: 'Reclaimed {amount} USDC from the deal the seller did not deliver',
         disputeReceived: 'Received {amount} USDC from a resolved dispute',
         cancelRefund: 'Refunded {amount} USDC from a cancelled deal',
+        depositCredited: 'Deposited {amount} USDC',
         gatewayDeposit: 'Added {amount} USDC to the unified balance from the {source} wallet',
         gatewayFundAgent: 'Funded the {agent} agent with {amount} USDC',
         gatewayCashOut: 'Cashed out {amount} USDC to {to} on {chain}',

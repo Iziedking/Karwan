@@ -469,6 +469,7 @@ export const hi: Messages = {
         deadlineReclaim: 'विक्रेता ने डिलीवर नहीं किया, डील से {amount} USDC वापस लिए गए',
         disputeReceived: 'सुलझे विवाद से {amount} USDC मिले',
         cancelRefund: 'रद्द डील से {amount} USDC वापस किए गए',
+        depositCredited: '{amount} USDC जमा किए गए',
         gatewayDeposit: '{source} वॉलेट से एकीकृत बैलेंस में {amount} USDC जोड़े गए',
         gatewayFundAgent: '{agent} एजेंट को {amount} USDC दिए गए',
         gatewayCashOut: '{chain} पर {to} को {amount} USDC निकाले गए',

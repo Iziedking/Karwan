@@ -469,6 +469,7 @@ export const ar: Messages = {
         deadlineReclaim: 'تم استرداد {amount} USDC من الصفقة التي لم يسلّمها البائع',
         disputeReceived: 'تم استلام {amount} USDC من نزاع تمت تسويته',
         cancelRefund: 'تم رد {amount} USDC من صفقة ملغاة',
+        depositCredited: 'تم إيداع {amount} USDC',
         gatewayDeposit: 'تمت إضافة {amount} USDC إلى الرصيد الموحد من محفظة {source}',
         gatewayFundAgent: 'تم تمويل الوكيل {agent} بمبلغ {amount} USDC',
         gatewayCashOut: 'تم سحب {amount} USDC إلى {to} على {chain}',

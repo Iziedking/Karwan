@@ -6,6 +6,11 @@ import {
   provisionUserBridgeWallet,
   dripTestnetUsdc,
   BASE_SEPOLIA_BLOCKCHAIN,
+  ETH_SEPOLIA_BLOCKCHAIN,
+  ARB_SEPOLIA_BLOCKCHAIN,
+  POLYGON_AMOY_BLOCKCHAIN,
+  SOL_DEVNET_BLOCKCHAIN,
+  type BridgeBlockchain,
 } from '../circle/wallets.js';
 import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 import {
@@ -22,6 +27,7 @@ import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.
 import { executeContractCall } from '../chain/txs.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
+import { invalidateDepositIndex } from '../circle/depositWatcher.js';
 import { logger } from '../logger.js';
 
 // USDC on Arc exposes a 6-decimal ERC-20 interface. Withdrawals move funds
@@ -418,40 +424,71 @@ activationRoutes.post('/activate', async (c) => {
   try {
     const provisioned = await provisionUserAgentWallets(userAddress);
 
-    // Provision the common testnet bridge wallets (Base Sepolia + Solana
-    // Devnet) alongside the agents. Solana especially benefits from eager
-    // provisioning because its create-wallet path was hanging on /bridge
-    // first-pick for users, leaving them on "provisioning…" indefinitely
-    // (Circle's SOL-DEVNET create call sometimes never returns). Doing it
-    // here once during activation moves the failure into a place where
-    // the user expects creation work and where we can retry under user
-    // attention, instead of on a routine bridge visit.
-    // Ethereum Sepolia + other EVM chains are still lazy-provisioned the
-    // first time the user picks them; most users never will.
+    // Provision every deposit chain up front, not just Base.
+    //
+    // This is load-bearing now, not a latency trick. The deposit card tells the
+    // user to send USDC from any of these chains to one address, and Circle only
+    // emits an inbound webhook for a chain it holds a wallet on. An unprovisioned
+    // chain is therefore not a slow credit, it is a deposit that arrives and is
+    // never noticed.
+    //
+    // Solana especially benefits: its create-wallet path was hanging on a
+    // /bridge first-pick, leaving users on "provisioning..." indefinitely
+    // (Circle's SOL-DEVNET create sometimes never returns). Doing it here moves
+    // the failure to where the user expects creation work.
+    //
     // Only Circle/email accounts get backend deposit wallets. Web3 accounts
-    // bridge from their own connected wallet on every chain and never touch a
-    // backend-signed source DCW, so a deposit wallet is unusable to them AND
-    // its provisioning advances the shared wallet set's per-chain index counter,
-    // which is what causes cross-user address collisions. See
-    // provisionUserBridgeWallet, which also refuses this at the source.
+    // bridge from their own connected wallet and never touch a backend-signed
+    // source DCW, so a deposit wallet is unusable to them AND provisioning one
+    // advances the shared wallet set's per-chain index counter, which is what
+    // collides addresses across users. See provisionUserBridgeWallet, which
+    // refuses this at the source.
     let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
     const isCircleAccount = !!getUserByAddress(userAddress)?.circleIdentityWalletId;
-    const eagerBridgeChains: Array<typeof BASE_SEPOLIA_BLOCKCHAIN | 'SOL-DEVNET'> =
-      isCircleAccount ? [BASE_SEPOLIA_BLOCKCHAIN, 'SOL-DEVNET'] : [];
-    for (const chain of eagerBridgeChains) {
-      try {
-        const wallet = await provisionUserBridgeWallet(userAddress, chain);
-        bridgeWallets[chain] = { walletId: wallet.walletId, address: wallet.address };
-      } catch (err) {
-        // Bridge-wallet provisioning is not load-bearing for activation; if
-        // Circle rejects (rate limit, transient, timeout), agents still
-        // ship and the chain falls back to lazy provisioning on first use.
+    const eagerBridgeChains: BridgeBlockchain[] = isCircleAccount
+      ? [
+          BASE_SEPOLIA_BLOCKCHAIN,
+          ETH_SEPOLIA_BLOCKCHAIN,
+          ARB_SEPOLIA_BLOCKCHAIN,
+          POLYGON_AMOY_BLOCKCHAIN,
+          SOL_DEVNET_BLOCKCHAIN,
+        ]
+      : [];
+
+    // In parallel, so five chains cost the slowest one rather than the sum.
+    // Safe to parallelise only because deriveOnly forbids the createWallets
+    // fallback on the EVM chains, which is the one step that consumes a shared
+    // index. Solana has no derive path and is the single create here by design.
+    const provisioning = await Promise.allSettled(
+      eagerBridgeChains.map((chain) =>
+        provisionUserBridgeWallet(userAddress, chain, undefined, {
+          deriveOnly: chain !== SOL_DEVNET_BLOCKCHAIN,
+        }),
+      ),
+    );
+    for (const [i, result] of provisioning.entries()) {
+      const chain = eagerBridgeChains[i]!;
+      if (result.status === 'fulfilled') {
+        bridgeWallets[chain] = {
+          walletId: result.value.walletId,
+          address: result.value.address,
+        };
+      } else {
+        // Not load-bearing for activation itself: agents still ship and the
+        // chain lazy-provisions on first use. A deposit sent to that chain
+        // before then is missed, which is why the deposit card offers only the
+        // chains actually present on the record.
         logger.warn(
-          { userAddress, chain, err: (err as Error).message },
-          'eager bridge wallet provisioning failed during activation; will lazy-provision later',
+          { userAddress, chain, err: (result.reason as Error)?.message },
+          'eager deposit wallet provisioning failed during activation; will lazy-provision later',
         );
       }
     }
+
+    // A deposit landing in the first minute of an account's life must still be
+    // recognised, so drop the watcher's reverse index rather than let it expire
+    // with these addresses missing from it.
+    invalidateDepositIndex();
 
     const record = await saveAgentWallets({
       userAddress,

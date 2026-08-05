@@ -13,6 +13,9 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'activity-log.json');
 /// success, so the assistant's recall covers actions taken through the
 /// regular UI too, not only through chat.
 export type ActivityKind =
+  /// An inbound deposit from another chain, credited when Circle's webhook says
+  /// it landed. Distinct from gateway_deposit, which is the pool, not the user.
+  | 'deposit'
   | 'withdraw'
   | 'agent_topup'
   | 'gateway_deposit'

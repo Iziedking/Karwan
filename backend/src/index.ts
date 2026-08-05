@@ -77,6 +77,7 @@ import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
 import { startTrendScout } from './agents/trendScout.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
+import { startDepositWatcher } from './circle/depositWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
 import { startVaultScanWatcher } from './chain/vaultScanCache.js';
 import { backfillBusFromChain } from './chain/eventBackfill.js';
@@ -387,6 +388,13 @@ function bootAgents() {
       { err: (err as Error).message },
       'balance watcher not started',
     );
+  }
+  // The balance watcher above covers Arc only. This is the same job for the
+  // deposit chains, driven by Circle's webhook instead of by log polling.
+  try {
+    stopFns.push(startDepositWatcher());
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'deposit watcher not started');
   }
   try {
     stopFns.push(startCooldownWatcher());
