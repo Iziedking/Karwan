@@ -664,7 +664,11 @@ interface SourcePipelineInput {
   mintRecipient: string;
 }
 
-function startSourcePipeline(input: SourcePipelineInput) {
+/// Exported so the automatic deposit router can reuse THIS pipeline rather than
+/// grow a second one. It is the proven approve/burn/attest/mint path, resumable
+/// across restarts, and a parallel implementation would be a second place for a
+/// half-finished bridge to hide.
+export function startSourcePipeline(input: SourcePipelineInput) {
   if (sourceInFlight.has(input.bridgeId)) return;
   sourceInFlight.add(input.bridgeId);
   sourcePipelineLoop(input).finally(() => sourceInFlight.delete(input.bridgeId));

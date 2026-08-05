@@ -392,6 +392,11 @@ const envSchema = z.object({
   // backend additionally receives signed event push notifications for faster
   // terminal-state propagation (the polling stays as fallback).
   CIRCLE_WEBHOOK_SUBSCRIPTION_ID: optionalString,
+  // Smallest deposit worth auto-bridging to Arc, in whole USDC. Below this the
+  // source-chain gas to burn can cost more than the transfer moves, so small
+  // deposits stay on the source chain and accumulate instead of being spent on
+  // their own delivery. Set to 0 to route every deposit regardless.
+  DEPOSIT_AUTO_BRIDGE_MIN_USDC: z.coerce.number().min(0).default(1),
   // Feature flag for the App Kit migration. When false, IN-direction Circle
   // bridges run through the hand-rolled startSourcePipeline (the proven path
   // with the resumable approve/burn state machine). When true, they run

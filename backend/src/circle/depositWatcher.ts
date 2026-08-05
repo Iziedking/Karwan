@@ -4,6 +4,7 @@ import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
+import { routeDepositToArc } from './depositRouter.js';
 
 /// Credit a cross-chain deposit the moment Circle tells us it landed.
 ///
@@ -270,6 +271,13 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
       ...(n.txHash ? { txHash: n.txHash } : {}),
     },
   });
+
+  // Noticing the money is not delivering it. The deposit is sitting on the
+  // source chain and cannot fund an escrow from there, so the hop to Arc starts
+  // now, without the user asking for it. Circle's transaction id goes to the
+  // router and no further: it is the idempotency key, not something a browser
+  // needs.
+  routeDepositToArc({ owner, amountUsdc, chain: n.blockchain, txId: n.id });
 
   void appendActivity({
     address: owner,
