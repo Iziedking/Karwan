@@ -791,10 +791,10 @@ interface MessagesShape {
     copied: string;
     qrAlt: string;
     watching: string;
-    landedTemplate: string;
     unavailable: string;
+    fromTemplate: string;
+    stages: { moving: string; arrived: string; stuck: string };
     groups: { evm: string; solana: string };
-    hop: { moving: string; arrived: string; stuck: string };
   };
   bridge: {
     signInGate: { tag: string; body: string };
@@ -4873,14 +4873,14 @@ export const en: MessagesShape = {
     copied: 'Copied',
     qrAlt: 'QR code of your deposit address',
     watching: 'Waiting for your deposit',
-    landedTemplate: '{amount} USDC landed',
     unavailable: 'Deposits are being set up for your account. Check back in a moment.',
-    groups: { evm: 'EVM chains', solana: 'Solana' },
-    hop: {
-      moving: 'On its way to your balance.',
-      arrived: 'It is in your balance and ready to use.',
-      stuck: 'It arrived but has not reached your balance yet. Open transfer history to retry.',
+    fromTemplate: '+{amount} USDC from {chain}',
+    stages: {
+      moving: 'On its way',
+      arrived: 'In your balance',
+      stuck: 'Needs a retry',
     },
+    groups: { evm: 'EVM chains', solana: 'Solana' },
   },
   bridge: {
     signInGate: {

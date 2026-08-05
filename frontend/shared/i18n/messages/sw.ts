@@ -822,14 +822,14 @@ export const sw: Messages = {
     copied: 'Imenakiliwa',
     qrAlt: 'Msimbo QR wa anwani yako ya amana',
     watching: 'Inasubiri amana yako',
-    landedTemplate: 'USDC {amount} zimewasili',
     unavailable: 'Amana zinaandaliwa kwa akaunti yako. Angalia tena baada ya muda mfupi.',
-    groups: { evm: 'Mitandao ya EVM', solana: 'Solana' },
-    hop: {
-      moving: 'Inaelekea kwenye salio lako.',
-      arrived: 'Iko kwenye salio lako na tayari kutumika.',
-      stuck: 'Imefika lakini bado haijaingia kwenye salio lako. Fungua historia ya uhamisho ujaribu tena.',
+    fromTemplate: '+{amount} USDC kutoka {chain}',
+    stages: {
+      moving: 'Inakuja',
+      arrived: 'Kwenye salio lako',
+      stuck: 'Jaribu tena',
     },
+    groups: { evm: 'Mitandao ya EVM', solana: 'Solana' },
   },
   bridge: {
     signInGate: {

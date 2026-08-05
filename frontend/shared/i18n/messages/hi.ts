@@ -822,14 +822,14 @@ export const hi: Messages = {
     copied: 'कॉपी हुआ',
     qrAlt: 'आपके जमा पते का QR कोड',
     watching: 'आपकी जमा राशि की प्रतीक्षा',
-    landedTemplate: '{amount} USDC आ गे',
     unavailable: 'आपके खाते के लिए जमा सुविधा तैयार हो रही है। थोड़ी देर में देखें।',
-    groups: { evm: 'EVM नेटवर्क', solana: 'Solana' },
-    hop: {
-      moving: 'आपके बैलेंस की ओर बढ़ रहा है।',
-      arrived: 'यह आपके बैलेंस में है और उपयोग के लिए तैयार है।',
-      stuck: 'यह आ गया है लेकिन अभी आपके बैलेंस में नहीं पहुंचा। पुनः प्रयास के लिए ट्रांसफर हिस्ट्री खोलें।',
+    fromTemplate: '+{amount} USDC {chain} से',
+    stages: {
+      moving: 'रास्ते में',
+      arrived: 'बैलेंस में',
+      stuck: 'पुनः प्रयास करें',
     },
+    groups: { evm: 'EVM नेटवर्क', solana: 'Solana' },
   },
   bridge: {
     signInGate: {

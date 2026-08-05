@@ -44,7 +44,7 @@ const SOLANA_CIRCLE_CHAIN = 'SOL-DEVNET';
 /// Solana is CCTP domain 5. Arc is 26.
 const SOLANA_CCTP_DOMAIN = 5;
 
-function bridgeIdForDeposit(txId: string): string {
+export function bridgeIdForDeposit(txId: string): string {
   return `deposit-${txId}`;
 }
 

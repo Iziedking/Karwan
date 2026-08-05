@@ -30,19 +30,28 @@ import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 /// the common one is already selected.
 type Group = 'evm' | 'solana';
 
+/// A deposit's own progress. `moving` means it reached the deposit address and the
+/// hop to Arc is running; `arrived` means it is spendable.
+type Stage = 'moving' | 'arrived' | 'stuck';
+
+interface Deposit {
+  /// The hop's bridge id, which is how a bridge event finds its own deposit. The
+  /// backend puts it on the credit event for exactly this.
+  bridgeId: string;
+  amountUsdc: string;
+  /// A chain name a person recognises, resolved server-side. Never Circle's code.
+  chainName: string;
+  stage: Stage;
+}
+
 export function DepositCard() {
   const t = useTranslations().deposit;
   const { address } = useAuth();
   const refreshMoney = useMoneyRefresh();
   const [group, setGroup] = useState<Group>('evm');
   const [copied, setCopied] = useState(false);
-  const [credited, setCredited] = useState<{ amountUsdc: string } | null>(null);
-  /// The second stage. A credit means the money reached the deposit address on the
-  /// source chain; it is not spendable until it lands on Arc, and the CCTP hop
-  /// takes ten to nineteen minutes on a Sepolia testnet. The card used to say
-  /// "landed" and then go silent for that whole window, which reads as nothing
-  /// having happened. It had, twice.
-  const [hop, setHop] = useState<'moving' | 'arrived' | 'stuck' | null>(null);
+  /// Every deposit seen this session, newest first, each with its own progress.
+  const [deposits, setDeposits] = useState<Deposit[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['deposit', 'address', address],
@@ -63,40 +72,63 @@ export function DepositCard() {
   // their phone, puts it down, and the number has already moved.
   useEffect(() => {
     if (!address) return;
-    const mine = (recipient?: string) =>
-      !recipient || recipient.toLowerCase() === address.toLowerCase();
+    const setStage = (bridgeId: string | undefined, stage: Stage) => {
+      if (!bridgeId) return;
+      setDeposits((prev) => prev.map((d) => (d.bridgeId === bridgeId ? { ...d, stage } : d)));
+    };
+
     return subscribeLiveEvents((event) => {
       const p = (event.payload ?? {}) as {
         source?: string;
         amountUsdc?: string;
         owner?: string;
         mintRecipient?: string;
+        chainName?: string;
+        bridgeId?: string;
       };
 
       if (event.type === 'wallet.credited') {
         if (p.source !== 'deposit') return;
         if (p.owner && p.owner.toLowerCase() !== address.toLowerCase()) return;
-        setCredited({ amountUsdc: p.amountUsdc ?? '' });
-        // The hop starts server-side the moment the credit lands, so the card can
-        // say so without waiting for the first bridge event to arrive.
-        setHop('moving');
+        const bridgeId = p.bridgeId;
+        if (!bridgeId) return;
+        setDeposits((prev) => {
+          // Circle can deliver the same credit more than once as the transaction
+          // advances. Keyed on the bridge id so a redelivery updates the row
+          // instead of adding a second one for a single deposit.
+          if (prev.some((d) => d.bridgeId === bridgeId)) return prev;
+          const next: Deposit = {
+            bridgeId,
+            amountUsdc: p.amountUsdc ?? '',
+            chainName: p.chainName ?? '',
+            // The hop starts server-side the instant the credit lands, so the row
+            // can say so without waiting for the first bridge event.
+            stage: 'moving',
+          };
+          return [next, ...prev];
+        });
         refreshMoney();
         return;
       }
 
-      // The hop is a bridge to the user's own Arc address, so the recipient is
-      // what makes it theirs.
-      if (!mine(p.mintRecipient)) return;
-      if (event.type === 'bridge.approving' || event.type === 'bridge.burning' || event.type === 'bridge.burned' || event.type === 'bridge.attested') {
-        setHop('moving');
+      // Bridge events carry the bridge id, so each updates its own row. The
+      // recipient check keeps another user's hop out of this list.
+      if (p.mintRecipient && p.mintRecipient.toLowerCase() !== address.toLowerCase()) return;
+      if (
+        event.type === 'bridge.approving' ||
+        event.type === 'bridge.burning' ||
+        event.type === 'bridge.burned' ||
+        event.type === 'bridge.attested'
+      ) {
+        setStage(p.bridgeId, 'moving');
         return;
       }
       if (event.type === 'bridge.minted') {
-        setHop('arrived');
+        setStage(p.bridgeId, 'arrived');
         refreshMoney();
         return;
       }
-      if (event.type === 'bridge.error') setHop('stuck');
+      if (event.type === 'bridge.error') setStage(p.bridgeId, 'stuck');
     });
   }, [address, refreshMoney]);
 
@@ -190,8 +222,12 @@ export function DepositCard() {
       </div>
 
       <div className="mt-7 pt-5" style={{ borderTop: '1px solid var(--lp-border-light)' }}>
-        {credited ? (
-          <Landed amount={credited.amountUsdc} copy={t.landedTemplate} hop={hop} copyFor={t.hop} />
+        {deposits.length > 0 ? (
+          <ul className="space-y-3" role="status" aria-live="polite">
+            {deposits.map((d) => (
+              <DepositRow key={d.bridgeId} deposit={d} copy={t} />
+            ))}
+          </ul>
         ) : (
           <Watching label={t.watching} />
         )}
@@ -336,40 +372,46 @@ function Watching({ label }: { label: string }) {
   );
 }
 
-function Landed({
-  amount,
+/// One deposit. Amount and origin on the left, its own state on the right, so
+/// several at once read as a queue rather than one number that keeps changing.
+function DepositRow({
+  deposit,
   copy,
-  hop,
-  copyFor,
 }: {
-  amount: string;
-  copy: string;
-  hop: 'moving' | 'arrived' | 'stuck' | null;
-  copyFor: { moving: string; arrived: string; stuck: string };
+  deposit: Deposit;
+  copy: {
+    fromTemplate: string;
+    stages: { moving: string; arrived: string; stuck: string };
+  };
 }) {
+  const { stage } = deposit;
+  // Lime for in flight and for arrived, because both are the system working. A
+  // stalled hop is the only one that looks different, and it is muted rather than
+  // alarming: the money is safe, it just has not finished moving.
+  const tone = stage === 'stuck' ? 'var(--lp-text-muted)' : 'var(--lp-accent)';
   return (
-    <div className="fade-up" role="status" aria-live="polite">
-      <div className="flex items-center gap-2.5">
+    <li className="flex items-center justify-between gap-4 fade-up">
+      <span className="flex items-center gap-2.5 min-w-0">
         <span
           aria-hidden
-          style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--lp-accent)' }}
+          className={
+            stage === 'moving' ? 'motion-safe:animate-pulse motion-reduce:animate-none' : ''
+          }
+          style={{ width: 6, height: 6, borderRadius: 999, background: tone, flex: '0 0 auto' }}
         />
         <span
-          className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-dark)]"
+          className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-dark)] truncate"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          {copy.replace('{amount}', amount)}
+          {copy.fromTemplate
+            .replace('{amount}', deposit.amountUsdc)
+            .replace('{chain}', deposit.chainName)}
         </span>
-      </div>
-      {/* The second line is the one that stops a user concluding it failed. It
-          says the money is on the move and roughly how long, because a silent
-          fifteen minutes is indistinguishable from a broken transfer. */}
-      {hop ? (
-        <p className="mt-2 ms-[16px] text-[13px] leading-snug text-[var(--lp-text-sub)]">
-          {hop === 'moving' ? copyFor.moving : hop === 'arrived' ? copyFor.arrived : copyFor.stuck}
-        </p>
-      ) : null}
-    </div>
+      </span>
+      <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] shrink-0 text-[var(--lp-text-sub)]">
+        {copy.stages[stage]}
+      </span>
+    </li>
   );
 }
 

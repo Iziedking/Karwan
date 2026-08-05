@@ -822,14 +822,14 @@ export const ar: Messages = {
     copied: 'تم النسخ',
     qrAlt: 'رمز QR لعنوان الإيداع الخاص بك',
     watching: 'في انتطار إيداعك',
-    landedTemplate: 'وصل {amount} USDC',
     unavailable: 'يتم إعداد الإيداعات لحسابك. تحقق بعد قليل.',
-    groups: { evm: 'شبكات EVM', solana: 'Solana' },
-    hop: {
-      moving: 'في طريقه إلى رصيدك.',
-      arrived: 'أصبح في رصيدك وجاهز للاستخدام.',
-      stuck: 'وصل لكنه لم يدخل رصيدك بعد. افتح سجل التحويلات للمحاولة مرة أخرى.',
+    fromTemplate: '+{amount} USDC من {chain}',
+    stages: {
+      moving: 'في الطريق',
+      arrived: 'في رصيدك',
+      stuck: 'يحتاج محاولة',
     },
+    groups: { evm: 'شبكات EVM', solana: 'Solana' },
   },
   bridge: {
     signInGate: {

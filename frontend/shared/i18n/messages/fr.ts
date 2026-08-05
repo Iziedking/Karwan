@@ -822,14 +822,14 @@ export const fr: Messages = {
     copied: 'Copié',
     qrAlt: 'Code QR de votre adresse de dépôt',
     watching: 'En attente de votre dépôt',
-    landedTemplate: '{amount} USDC reçus',
     unavailable: 'Les dépôts sont en cours de configuration pour votre compte. Revenez dans un instant.',
-    groups: { evm: 'Reseaux EVM', solana: 'Solana' },
-    hop: {
-      moving: 'En route vers votre solde.',
-      arrived: 'Disponible sur votre solde.',
-      stuck: "Il est bien arrivé mais pas encore sur votre solde. Ouvrez l'historique des transferts pour réessayer.",
+    fromTemplate: '+{amount} USDC depuis {chain}',
+    stages: {
+      moving: 'En route',
+      arrived: 'Sur votre solde',
+      stuck: 'A relancer',
     },
+    groups: { evm: 'Reseaux EVM', solana: 'Solana' },
   },
   bridge: {
     signInGate: {

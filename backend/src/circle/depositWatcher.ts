@@ -4,7 +4,7 @@ import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
-import { routeDepositToArc } from './depositRouter.js';
+import { routeDepositToArc, bridgeIdForDeposit } from './depositRouter.js';
 
 /// Credit a cross-chain deposit the moment Circle tells us it landed.
 ///
@@ -85,6 +85,18 @@ function expectedUsdcAddress(blockchain: string): string | null {
     if (chain.circleBlockchain === blockchain) return chain.usdc;
   }
   return null;
+}
+
+/// A chain name for a person, from Circle's blockchain code. Falls back to the
+/// code only if a chain is somehow not in the table, which would be a
+/// misconfiguration rather than something a user should be shielded from silently.
+function friendlyChainName(blockchain: string): string {
+  if (blockchain === SOL_DEVNET_BLOCKCHAIN) return 'Solana';
+  for (const key of CCTP_CHAIN_KEYS) {
+    const chain = CCTP_CHAINS[key];
+    if (chain.circleBlockchain === blockchain) return chain.shortName;
+  }
+  return blockchain;
 }
 
 function sameAddress(a: string, b: string): boolean {
@@ -267,6 +279,13 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
       owner,
       amountUsdc,
       chain: n.blockchain,
+      // The chain a person recognises. `chain` above is Circle's code
+      // (BASE-SEPOLIA) and no interface should be printing that.
+      chainName: friendlyChainName(n.blockchain),
+      // Lets a client tie the hop's bridge events back to THIS deposit, so a
+      // list of deposits can each carry their own progress instead of the newest
+      // one overwriting the rest. Already client-visible via /api/bridge/list.
+      bridgeId: bridgeIdForDeposit(n.id),
       source: 'deposit',
       ...(n.txHash ? { txHash: n.txHash } : {}),
     },

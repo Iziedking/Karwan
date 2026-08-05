@@ -117,6 +117,12 @@ export function ProfileDeck({
 
   return (
     <div className="w-full">
+      {/* Outer wrapper is positioned so the edge arrows can anchor to it. It is
+          deliberately NOT clipped: the inner container clips the outgoing card so
+          it cannot cause a horizontal scrollbar, and an arrow anchored inside that
+          clip loses the half of itself that sits outside the card. That is what
+          rendered it as a semicircle. */}
+      <div className="relative">
       <div
         className="relative"
         // The outgoing card travels past the deck edge, which on a phone is the
@@ -216,25 +222,22 @@ export function ProfileDeck({
           <DeckCard shadow tone={panels[active]!.tone}>{panels[active]!.content}</DeckCard>
         </div>
 
-        {/* Edge arrows. The sequential controls used to live only in a small row
-            under the card, which is below the fold on a long panel: the deck read
-            as one page because nothing at eye level said otherwise. These sit at
-            the vertical middle of the card where the eye already is.
+      </div>
 
-            Outside the card on wide screens, tucked just inside on narrow ones,
-            because there is no gutter to sit in on a phone. zIndex above the
-            front card, and the clipping container is overflow-x clip rather than
-            hidden, so an arrow at a negative offset is not cut off. */}
-        <EdgeArrow
-          side="start"
-          onClick={() => go(active - 1)}
-          label={`Previous: ${panels[(active - 1 + panels.length) % panels.length]!.label}`}
-        />
-        <EdgeArrow
-          side="end"
-          onClick={() => go(active + 1)}
-          label={`Next: ${panels[(active + 1) % panels.length]!.label}`}
-        />
+      {/* Edge arrows, OUTSIDE the clip. The sequential controls used to live only
+          in a small row under the card, which is below the fold on a long panel,
+          so nothing at eye level said the deck had more than one page. These sit
+          at the vertical middle where the eye already is. */}
+      <EdgeArrow
+        side="start"
+        onClick={() => go(active - 1)}
+        label={`Previous: ${panels[(active - 1 + panels.length) % panels.length]!.label}`}
+      />
+      <EdgeArrow
+        side="end"
+        onClick={() => go(active + 1)}
+        label={`Next: ${panels[(active + 1) % panels.length]!.label}`}
+      />
       </div>
 
       {/* Controls. Random access lives in the tab strip above; this row is the
@@ -283,21 +286,34 @@ function EdgeArrow({
       aria-label={label}
       className={cn(
         'group absolute top-1/2 -translate-y-1/2 z-40 hidden sm:flex items-center justify-center',
-        'transition-colors',
-        // Outside the card where there is room, just inside it when there is not.
-        back ? 'start-0 -ms-5 lg:-ms-7' : 'end-0 -me-5 lg:-me-7',
+        'transition-all duration-200',
+        // Clear of the card on wide screens, closer in when there is less room.
+        back ? 'start-0 -ms-6 lg:-ms-9' : 'end-0 -me-6 lg:-me-9',
       )}
       style={{
         width: 44,
         height: 44,
         borderRadius: 999,
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        color: 'var(--lp-dark)',
-        boxShadow: '0 2px 10px -4px rgba(0,0,0,0.25)',
+        // Dark surface so the lime reads as light coming off it. A lime FILL at
+        // this size would compete with the page's one primary action.
+        background: 'var(--lp-band-dark)',
+        border: '1px solid rgba(216,255,61,0.55)',
+        color: 'var(--lp-accent)',
+        // The glow is the affordance. Against a dark panel the previous neutral
+        // button was a bump you had to look for; this is visible at a glance from
+        // the middle of the card.
+        boxShadow:
+          '0 0 0 1px rgba(216,255,61,0.10), 0 0 18px -2px rgba(216,255,61,0.45), 0 2px 10px -4px rgba(0,0,0,0.45)',
       }}
     >
       <Chev back={back} big />
+      {/* Hover raises the glow instead of changing the fill: the arrow is already
+          lime, so brightening the light around it is the honest hover. */}
+      <span
+        aria-hidden
+        className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        style={{ boxShadow: '0 0 26px 0 rgba(216,255,61,0.55)' }}
+      />
     </button>
   );
 }
