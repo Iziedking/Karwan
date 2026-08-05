@@ -62,6 +62,10 @@ export function ProfileDeck({
   const [entering, setEntering] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchX = useRef<number | null>(null);
+  /// The direction the user actually asked for, when they asked through this
+  /// component. Null when the change came from the tab strip or a hash, where
+  /// there is no next/prev intent and comparing indices is the right inference.
+  const intent = useRef<'next' | 'prev' | null>(null);
 
   const reduced =
     typeof window !== 'undefined' &&
@@ -71,6 +75,11 @@ export function ProfileDeck({
     (next: number) => {
       const target = (next + panels.length) % panels.length;
       if (target === active) return;
+      // Recorded BEFORE the prop change, because the animation direction is a
+      // fact about the gesture, not about the two indices. On a wrap the indices
+      // lie: next from the last panel lands on the first, so `active < from` reads
+      // as a reversal and the card slid backwards on a forward press.
+      intent.current = next > active ? 'next' : 'prev';
       onChange(panels[target]!.key);
     },
     [active, panels, onChange],
@@ -84,7 +93,11 @@ export function ProfileDeck({
     prevActive.current = active;
     if (from === active || reduced) return;
 
-    setLeaving({ index: from, back: active < from });
+    // Intent wins when we have it; otherwise fall back to comparing indices,
+    // which is correct for a tab-strip or hash jump.
+    const back = intent.current ? intent.current === 'prev' : active < from;
+    intent.current = null;
+    setLeaving({ index: from, back });
     // Mount the incoming panel in its "entering" pose, then release it on the
     // next frame so the browser has a start state to animate FROM. Setting
     // both in one paint produces no transition at all.

@@ -192,7 +192,7 @@ function ProfilePageInner() {
       content: (
         <div data-guide="profile-identity">
         {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
-        <div className="px-6 pt-6 md:px-8">
+        <div className="px-4 pt-5 md:px-8">
           <TierCelebration address={address} />
         </div>
 
@@ -205,7 +205,7 @@ function ProfilePageInner() {
             loading too, so an activated user never sees "Activate to begin"
             flash before the state resolves. */}
         {!activation.loading && !activation.activated ? (
-        <div className="px-6 py-6 md:px-8 md:py-7">
+        <div className="px-4 py-5 md:px-8 md:py-7">
           <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end">
             <div className="max-w-[52ch]">
               <SectionTag>{t.activation.inactiveTag}</SectionTag>
@@ -226,7 +226,7 @@ function ProfilePageInner() {
         {/* ROLE + AGENT DETAILS */}
         {profile ? (
           <>
-            <div className="px-6 py-6 md:px-8 md:py-7">
+            <div className="px-4 py-5 md:px-8 md:py-7">
               {/* Copy left, control right, the same grid the activation band above
                   uses. Stacked, the picker sat under a 46ch column and left the
                   right half of a desktop empty; beside it the band reads as one
@@ -245,7 +245,7 @@ function ProfilePageInner() {
                 {/* max-w-full keeps it in bounds on a phone, where the grid is
                     a single column again. */}
                 <PageCard className="w-fit max-w-full">
-                  <div className="p-6 md:p-8">
+                  <div className="p-4 md:p-8">
                     <RoleToggle profile={profile} onUpdate={setProfile} />
                   </div>
                 </PageCard>
@@ -253,7 +253,7 @@ function ProfilePageInner() {
             </div>
 
             {(profile.buyer || profile.seller) && (
-              <div className="px-6 py-6 md:px-8 md:py-7">
+              <div className="px-4 py-5 md:px-8 md:py-7">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <SectionTag>{t.agentProfiles.tag}</SectionTag>
                   {/* The ranges editor is the same for a business and an individual.
@@ -333,7 +333,7 @@ function ProfilePageInner() {
             )}
           </>
         ) : (
-          <div className="px-6 py-6 md:px-8 md:py-7">
+          <div className="px-4 py-5 md:px-8 md:py-7">
             <SectionTag>{t.noProfile.tag}</SectionTag>
             <HeroHeadline size="md">
               {t.noProfile.headlinePrefix}<Accent>{t.noProfile.headlineAccent}</Accent>
@@ -370,7 +370,7 @@ function ProfilePageInner() {
       content: (
         <>
         {/* HOLDINGS */}
-        <div className="px-6 py-6 md:px-8 md:py-7">
+        <div className="px-4 py-5 md:px-8 md:py-7">
           <div className="flex items-center gap-2">
             <SectionTag>{t.holdings.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{t.holdings.body}</Hint>
@@ -399,7 +399,7 @@ function ProfilePageInner() {
       content: (
         <>
         {/* FUND + WITHDRAW */}
-        <div className="px-6 py-6 md:px-8 md:py-7">
+        <div className="px-4 py-5 md:px-8 md:py-7">
           <div className="flex items-center gap-2">
             <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{t.agentTreasury.body}</Hint>
@@ -487,7 +487,7 @@ function ProfilePageInner() {
       content: (
         <>
         {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
-        <div className="px-6 py-6 md:px-8 md:py-7">
+        <div className="px-4 py-5 md:px-8 md:py-7">
           <div className="flex items-center gap-2">
             <SectionTag>{t.preferences.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{t.preferences.body}</Hint>
