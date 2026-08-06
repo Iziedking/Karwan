@@ -26,6 +26,7 @@ import { cashoutRoutes } from './routes/cashout.js';
 import { networkRoutes } from './routes/network.js';
 import { activationRoutes } from './routes/activation.js';
 import { depositRoutes } from './routes/deposit.js';
+import { attestationRoutes } from './routes/attestation.js';
 import { vaultRoutes } from './routes/vault.js';
 import { legacyRoutes } from './routes/legacy.js';
 import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
@@ -233,6 +234,9 @@ app.route('/api/cashout', cashoutRoutes);
 app.route('/api/network', networkRoutes);
 app.route('/api/activation', activationRoutes);
 app.route('/api/deposit', depositRoutes);
+// Root-mounted on purpose: a verifier derives /.well-known and /schemas from the
+// issuer domain, so they cannot live under /api.
+app.route('/', attestationRoutes);
 app.route('/api/vault', vaultRoutes);
 app.route('/api/legacy', legacyRoutes);
 app.route('/api/chat', chatRoutes);

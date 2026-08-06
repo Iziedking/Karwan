@@ -706,6 +706,14 @@ const envSchema = z.object({
   // viewer can link them. Unset = screenshots are stored but not pushed to
   // Telegram (the alert still names how many were attached).
   PUBLIC_API_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+  // Public address of the dedicated attestation signer, published in the issuer
+  // manifest so a consumer can verify our signatures. NOT the deployer: the
+  // deployer holds the USYC whitelist, and an attestation key is a key we want to
+  // be able to rotate without touching anything that holds value.
+  ATTESTATION_ISSUER_ADDRESS: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
+  ),
 
   // Shared secret gating the admin surface (/api/admin/* and the feedback
   // list/status endpoints). Callers send it as the `X-Admin-Token` header.

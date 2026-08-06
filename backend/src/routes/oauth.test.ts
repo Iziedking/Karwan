@@ -159,7 +159,17 @@ test('metadata advertises what the spec requires and nothing weaker', async () =
   assert.equal(meta.registration_endpoint, 'https://api.karwan.site/oauth/register');
   // Advertising `plain` would invite a client to use it.
   assert.deepEqual(meta.code_challenge_methods_supported, ['S256']);
-  assert.equal(meta.authorization_response_iss_parameter_supported, true);
+  // Deliberately advertised as FALSE while still being sent.
+  //
+  // Under RFC 9207 a client that sees this as true MUST validate `iss` on the
+  // authorization response, and a client that mishandles that check fails the whole
+  // flow rather than degrading. Codex did exactly that. Advertising false asks no
+  // client to require it, while we keep sending it for the ones that use it
+  // correctly, which the redirect assertions below pin.
+  //
+  // So this is not "support removed". If you are tempted to flip it back to true,
+  // re-test against Codex first.
+  assert.equal(meta.authorization_response_iss_parameter_supported, false);
 });
 
 test('the full flow: register, authorize, exchange, introspect', async () => {
