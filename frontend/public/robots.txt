@@ -1,0 +1,32 @@
+# Served from the repo rather than generated at the Cloudflare edge, so what this
+# file says is reviewable in version control and changes with a deploy.
+
+User-agent: *
+Content-Signal: search=yes,ai-train=no,use=reference
+Allow: /
+
+# Model training crawlers. The Content-Signal above reserves these rights under
+# Article 4 of EU Directive 2019/790; the lines below say the same thing in the
+# form these crawlers actually read. Enforcement is separate: the block toggles
+# in Cloudflare AI Crawl Control refuse them at the edge, and robots.txt is only
+# ever a request.
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
