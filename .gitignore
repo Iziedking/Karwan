@@ -10,6 +10,10 @@ node_modules/
 # Scoped so it does not catch committed PNG-sibling brand assets.
 /screenshots/
 /.scratch/
+/.playwright-mcp/
+/.superpowers/
+/karwan-*-desktop.png
+/karwan-*-mobile.png
 *.screenshot.png
 *.review.png
 
