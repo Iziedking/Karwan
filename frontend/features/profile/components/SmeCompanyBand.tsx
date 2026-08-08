@@ -174,6 +174,11 @@ export function SmeCompanyBand({
     }
   }
 
+  // Most accounts have no settled deals yet, so the stats card is absent and the
+  // details card takes the full row on its own rather than sitting in a half
+  // column with nothing beside it.
+  const showRepayment = Boolean(repayment && repayment.windowDealCount > 0);
+
   const hasAny =
     companyName ||
     sector ||
@@ -204,7 +209,7 @@ export function SmeCompanyBand({
       <div
         ref={cardRef}
         style={{ scrollMarginTop: 80 }}
-        className="flex w-full max-w-[760px] items-end justify-between gap-4 flex-wrap"
+        className="flex w-full items-end justify-between gap-4 flex-wrap"
       >
         <div>
           <SectionTag dot={verifiedAt ? 'live' : undefined}>COMPANY PROFILE</SectionTag>
@@ -229,7 +234,17 @@ export function SmeCompanyBand({
         ) : null}
       </div>
 
-      <div className="mt-4 grid w-full max-w-[760px] min-w-0 gap-3 md:grid-cols-2 [&>*]:min-w-0">
+      {/* Matches the width of the business band above it: the identity panel is
+          max-w-[1040px] and every other block in it runs full width, so a cap
+          here left a dead column to the right of both cards. The details card
+          carries far more rows than the stats card, so the split is weighted
+          rather than even. */}
+      <div
+        className={cn(
+          'mt-4 grid w-full min-w-0 gap-3 [&>*]:min-w-0',
+          showRepayment && 'md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]',
+        )}
+      >
         <PageCard>
           <div className="p-4 md:p-5 space-y-2.5">
             {editing ? (
@@ -334,8 +349,11 @@ export function SmeCompanyBand({
             ) : null}
           </div>
         </PageCard>
-        {repayment && repayment.windowDealCount > 0 ? (
-          <PageCard>
+        {showRepayment && repayment ? (
+          /* Sits at the top of its cell instead of stretching. Three stat rows
+             cannot fill the height of a twelve-row details card, and a card
+             padded out with empty space reads as unfinished. */
+          <PageCard className="self-start">
             <div className="p-4 md:p-5">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 [:REPAYMENT BEHAVIOR:]

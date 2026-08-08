@@ -48,6 +48,9 @@ See [`docs/current-build.md`](docs/current-build.md) for the current product inv
 - [`docs/skill-verification-roadmap.md`](docs/skill-verification-roadmap.md)
 - [`docs/test-guide.md`](docs/test-guide.md)
 
+## Roadmap
+
+The next product track is a mobile companion for the core web workspace. It will keep the high-frequency actions simple: review a match, approve a counter, fund or release a milestone, respond to a deadline, and see the current deal state. The full buyer and seller desks, business controls, verification review, and detailed activity history remain on the web surface. The mobile app is planned work, not a shipped product.
 ## Status
 
 This repository contains an active testnet build. Some integrations and policy controls are present behind configuration flags. A feature is live only when the product exposes it and the relevant backend and contract path are enabled.
