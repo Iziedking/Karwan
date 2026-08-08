@@ -73,11 +73,11 @@ export function AgentResearchCard() {
 
   return (
     <div
-      className="bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5 sm:p-6"
+      className="bg-[var(--lp-light)] border border-[var(--lp-border-light)] p-4 sm:p-5"
       style={{
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
+        borderTopLeftRadius: 14,
+        borderTopRightRadius: 14,
+        borderBottomLeftRadius: 14,
         borderBottomRightRadius: 4,
       }}
     >
@@ -86,8 +86,8 @@ export function AgentResearchCard() {
           <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             [:AGENT RESEARCH:]
           </p>
-          <p className="mt-1.5 font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            Market research for your agent
+          <p className="mt-1.5 font-sans text-[17px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+            Research credit
           </p>
         </div>
         {state?.active ? (
@@ -104,11 +104,8 @@ export function AgentResearchCard() {
         )}
       </div>
 
-      <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-        Your agent researches the live market on every deal and negotiates to it: it
-        reads what your keywords are worth, tells you if you are over or under market,
-        and never spends beyond your cap. You are charged a fraction of a cent only on
-        deals you actually match, split with the other side.
+      <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--lp-text-sub)]">
+        Optional market pricing for matched deals. Your spending cap still applies.
       </p>
 
       {state?.active && (
@@ -117,7 +114,7 @@ export function AgentResearchCard() {
         </p>
       )}
 
-      <div className="mt-5 flex items-center gap-3 flex-wrap">
+      <div className="mt-4 flex items-center gap-3 flex-wrap">
         <button
           type="button"
           onClick={onChargeClick}

@@ -145,7 +145,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
           click to open it. The stream gets the whole page. */}
       <MoneyTile open={moneyOpen} onToggle={() => setMoneyOpen((v) => !v)} />
 
-      <div className="min-w-0 space-y-6">
+      <div className="min-w-0 space-y-4" data-guide="activity-stream">
         <div ref={streamTopRef} className="flex items-baseline justify-between gap-3 scroll-mt-24">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{t.streamEyebrow}:]
@@ -180,6 +180,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
               key={String(v)}
               type="button"
               onClick={() => setOnlyMine(v)}
+              aria-pressed={onlyMine === v}
               className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition ${
                 onlyMine === v
                   ? 'bg-[var(--lp-ink)] text-[var(--lp-paper)] border-[var(--lp-ink)] font-bold'
@@ -221,7 +222,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
 function MoneyTile({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   const t = useTranslations().activity.view;
   return (
-    <div className="rounded-xl border border-[var(--lp-border-light)] overflow-hidden">
+    <div className="rounded-xl border border-[var(--lp-border-light)] overflow-hidden" data-guide="activity-money">
       <button
         type="button"
         onClick={onToggle}

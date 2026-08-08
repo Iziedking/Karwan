@@ -8,13 +8,13 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// `docs/terms-and-conditions.md`; bumping the `TERMS_CURRENT_VERSION` env on
 /// the backend AND editing the version here together is what triggers a
 /// re-prompt across the product.
-export const TERMS_LAST_UPDATED = '2026-07-25';
+export const TERMS_LAST_UPDATED = '2026-08-08';
 
 /// Bump this in lockstep with the backend's TERMS_CURRENT_VERSION when the
 /// visible text changes materially. The modal records whatever the backend
 /// says is current, so the source of truth for "is this user up to date" lives
 /// on the backend; this constant is just for the human-visible footer.
-export const TERMS_DISPLAY_VERSION = 2;
+export const TERMS_DISPLAY_VERSION = '2.1.0';
 
 export function TermsContent({ heading }: { heading?: ReactNode }) {
   const t = useTranslations().termsPage;
@@ -130,6 +130,23 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         </Bullets>
         <p>{t.s5.tail}</p>
         <p>{t.s5.agentWallet}</p>
+      </Section>
+
+      <Section title={t.verification.title}>
+        <p>{t.verification.lead}</p>
+        <Bullets>
+          <li>
+            <strong>{t.verification.individual.label}</strong> {t.verification.individual.body}
+          </li>
+          <li>{t.verification.individualStatus}</li>
+          <li>
+            <strong>{t.verification.business.label}</strong> {t.verification.business.body}
+          </li>
+          <li>
+            <strong>{t.verification.limits.label}</strong> {t.verification.limits.body}
+          </li>
+        </Bullets>
+        <p>{t.verification.policy}</p>
       </Section>
 
       <Section title={t.s6.title}>

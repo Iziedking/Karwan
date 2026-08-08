@@ -25,7 +25,7 @@ export const WELCOME_STEPS: TourStep[] = [
 
 /// Home (/app) tour. The desk a signed-in user lands on. Walks the money view,
 /// where to start, the three doors, and the deal book, every tool on the page.
-export const HOME_TOUR_ID = 'home-v1';
+export const HOME_TOUR_ID = 'home-v2';
 export const HOME_STEPS: TourStep[] = [
   {
     title: 'Start a deal',
@@ -38,8 +38,8 @@ export const HOME_STEPS: TourStep[] = [
     target: 'home-money',
   },
   {
-    title: 'Three ways in',
-    body: 'Hire someone, offer your work, or open a deal directly with a counterparty you already know. Same escrow and reputation underneath, three entry points.',
+    title: 'Choose your next desk',
+    body: 'Open the buyer desk to hire, the seller desk to offer work, or Activity to follow what is moving across Karwan.',
     target: 'home-doors',
   },
   {
@@ -58,11 +58,11 @@ export const HOME_STEPS: TourStep[] = [
 /// a different surface from the individual home: a company funds invoices and
 /// purchase orders, gets a verified badge, and watches its own book, so it gets
 /// its own walkthrough rather than the buyer/seller framing.
-export const BIZ_HOME_TOUR_ID = 'biz-home-v1';
+export const BIZ_HOME_TOUR_ID = 'biz-home-v2';
 export const BIZ_HOME_STEPS: TourStep[] = [
   {
     title: 'Your trade desk',
-    body: 'Open the financier desk to fund supplier invoices and purchase orders, or start a new trade. Your agents handle the matching and the settlement; you approve the terms.',
+    body: 'Open Buyer Desk to source work, Supply Desk to publish what your company sells, or start a direct trade with a counterparty you already know.',
     target: 'biz-desk',
   },
   {
@@ -143,21 +143,26 @@ export const SELLER_STEPS: TourStep[] = [
 ];
 
 /// Stake tour.
-export const STAKE_TOUR_ID = 'stake-v1';
+export const STAKE_TOUR_ID = 'stake-v2';
 export const STAKE_STEPS: TourStep[] = [
   {
-    title: 'What staking does',
-    body: 'Lock USDC to build your reputation. A higher tier makes your assistant negotiate better deals, and the same stake accrues yield through tokenized US Treasuries.',
-    target: 'stake-total',
+    title: 'Network yield',
+    body: 'This is the protocol-wide reserve and distribution record. It shows what the vault has earned and what remains outstanding.',
+    target: 'stake-network-yield',
   },
   {
-    title: 'Add to your stake',
-    body: 'Enter an amount and deposit. Your USDC stays yours; it is locked, not spent.',
-    target: 'stake-deposit',
+    title: 'Your yield',
+    body: 'This is your share. Claimable yield can move to your wallet without changing the stake that supports your reputation.',
+    target: 'stake-your-yield',
   },
   {
-    title: 'Taking it back',
-    body: 'Withdrawing starts a 3-day cool-down. After that you claim it back to your wallet. Cancel any time during the wait to keep earning.',
+    title: 'Your vault',
+    body: 'Deposit USDC to build reputation and withdraw from the same position when you need it back.',
+    target: 'stake-vault',
+  },
+  {
+    title: 'Taking stake back',
+    body: 'A withdrawal enters the vault cool-down before it can be claimed. The live position shows the exact wait that applies.',
     target: 'stake-withdraw',
   },
 ];
@@ -246,7 +251,7 @@ export const DEAL_STEPS: TourStep[] = [
 /// Bumped to v2 for the distill redesign: the bridge moved to the hero Top up
 /// card, wallets became a holdings view, and a folded multi-chain breakdown was
 /// added, so returning users should see the refreshed walkthrough.
-export const PROFILE_TOUR_ID = 'profile-v2';
+export const PROFILE_TOUR_ID = 'profile-v3';
 export function buildProfileSteps(isCircle: boolean): TourStep[] {
   return [
     {
@@ -293,16 +298,22 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
 
 /// Activity stream tour. The general feed is a privacy pulse now: it shows that
 /// the network is alive without revealing any deal's parties or amounts.
-export const ACTIVITY_TOUR_ID = 'activity-v2';
+export const ACTIVITY_TOUR_ID = 'activity-v3';
 export const ACTIVITY_STEPS: TourStep[] = [
   {
-    title: 'The live network pulse',
-    body: 'A heartbeat of activity across Karwan: posts, bids, settlements as they happen. By design it shows only that something happened, never who or how much.',
-    target: 'activity-stream',
+    title: 'Network counters',
+    body: 'Each counter is also a filter. Select one to narrow the stream to that kind of event.',
+    target: 'activity-stats',
   },
   {
-    title: 'Your deals stay private',
-    body: 'Everyone’s deals are private to the two sides. The full detail of your own deals lives on each deal page, visible only to you and your counterparty.',
+    title: 'Your money register',
+    body: 'Open this row for amounts and receipts tied to your own deals. The public stream does not expose them.',
+    target: 'activity-money',
+  },
+  {
+    title: 'The live network pulse',
+    body: 'Switch between the network and your own events, then narrow the stream with the controls above it.',
+    target: 'activity-stream',
   },
 ];
 

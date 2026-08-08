@@ -146,7 +146,8 @@ export function PostListingForm() {
       <form onSubmit={submit} className="space-y-7">
         {/* LISTING PREVIEW. big editorial display */}
         <div
-          className="relative overflow-hidden"
+          aria-live="polite"
+          className="relative overflow-hidden lg:sticky lg:top-24 lg:z-10"
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',

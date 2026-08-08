@@ -158,7 +158,7 @@ function BuyerPageInner() {
               </div>
             </PageCard>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 lg:sticky lg:top-24">
             <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
             {SCOUT_ENABLED && <MarketScout />}
           </div>

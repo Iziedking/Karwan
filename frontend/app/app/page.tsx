@@ -67,12 +67,12 @@ const BusinessHome = dynamic(
 );
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { MigrationBanner } from '@/shared/components/MigrationBanner';
 import { QuickStartBand } from '@/shared/components/QuickStartBand';
-import { shortAddress } from '@/shared/utils/format';
 import {
   FullBleed,
   Band,
@@ -84,7 +84,6 @@ import {
   CTAPill,
   BigStatTile,
 } from '@/shared/components/Bands';
-import { Hint } from '@/shared/components/Hint';
 import { isBusinessAccount } from '@/features/account/accountKind';
 
 interface NetStats {
@@ -105,6 +104,7 @@ export default function AppHome() {
   /// that flip was a major CLS contributor on /app (Speed Insights showed
   /// 0.82 sustained).
   const { isLoading: authLoading } = useAuth();
+  const activation = useActivation();
 
   /// Backend health probe + network-wide stats. Both ride the shared
   /// QueryClient cache, so navigating away and back doesn't re-blank the
@@ -229,7 +229,7 @@ export default function AppHome() {
       <MigrationBanner />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 lg:gap-16 items-center">
+        <div className="max-w-5xl">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot="live">
@@ -275,30 +275,28 @@ export default function AppHome() {
               )}
               <Link
                 href="/activity"
-                className="ms-1 inline-flex items-center gap-1.5 mono text-[12px] uppercase tracking-[0.08em] text-white/60 hover:text-white transition-colors"
+                className="hidden"
               >
                 {t.hero.viewActivityCta}
                 <span aria-hidden>→</span>
               </Link>
-              <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
-                <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
-                {shortAddress(profile.address)}
-              </span>
             </div>
           </div>
-          <div className="hidden lg:block fade-up fade-up-4">
-            <HeroAgentCard
-              dealsRunning={stats?.deals ?? null}
-              settled={stats?.settled ?? null}
-              usdcThrough={stats?.usdc ?? null}
-            />
-          </div>
+          {!activation.loading && activation.activated && (
+            <div className="fade-up fade-up-4 mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/10 pt-5">
+              <span className="mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+                {t.heroAgentCard.eyebrow}
+              </span>
+              <span className="inline-flex items-center gap-2 text-[13px] text-white/70">
+                <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
+                <strong className="font-semibold text-white">{t.heroAgentCard.statePrefix}</strong>
+                {t.heroAgentCard.stateActive}
+              </span>
+              <span className="text-[12px] text-white/45">{t.heroAgentCard.stateBody}</span>
+            </div>
+          )}
         </div>
       </Band>
-
-      {/* QUICK START. First-run orientation for brand-new users; hides once
-          agents are activated or the user dismisses it. */}
-      <QuickStartBand />
 
       {/* YOUR MONEY. First personal surface after the hero: where your money is
           and that it's safe, in plain dollars. The trust answer up front.
@@ -306,54 +304,47 @@ export default function AppHome() {
           spotlight fits the content, not the full-bleed band.) */}
       <MoneyStrip />
 
+      {/* QUICK START. First-run orientation for brand-new users; hides once
+          agents are activated or the user dismisses it. */}
+      <QuickStartBand />
+
       {/* PENDING MATCHES. surfaces here so users see them from the home page
           without having to navigate to /seller. Renders nothing when there
           are none, so the layout stays clean for buyers / fresh users. Open
           deals (your book) live on /profile, not here. */}
       <PendingMatchesBand tone="light" />
 
-      {/* THREE DOORS */}
+      {/* START HERE */}
       <Band tone="light">
-        <div className="flex items-center gap-2">
-          <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
-          <Hint glow side="bottom" align="start">{t.threeDoors.description}</Hint>
-        </div>
-        <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
-          {t.threeDoors.headlineTop}<Punc>.</Punc>
-          <br />
-          {t.threeDoors.headlineBottom}
-        </HeroHeadline>
-        <div data-guide="home-doors" className="mt-12 grid md:grid-cols-3 gap-5">
-          <div className="fade-up fade-up-1">
-            <FeatureCard
-              href="/buyer"
-              tone="cream"
-              eyebrow={t.threeDoors.buyerCard.eyebrow}
-              title={t.threeDoors.buyerCard.title}
-              body={t.threeDoors.buyerCard.body}
-              vignette={<BriefVignette />}
-            />
-          </div>
-          <div className="fade-up fade-up-2">
-            <FeatureCard
-              href="/seller"
-              tone="dark"
-              eyebrow={t.threeDoors.sellerCard.eyebrow}
-              title={t.threeDoors.sellerCard.title}
-              body={t.threeDoors.sellerCard.body}
-              vignette={<BidVignette />}
-            />
-          </div>
-          <div className="fade-up fade-up-3">
-            <FeatureCard
-              href="/activity"
-              tone="accent"
-              eyebrow={t.threeDoors.activityCard.eyebrow}
-              title={t.threeDoors.activityCard.title}
-              body={t.threeDoors.activityCard.body}
-              vignette={<StreamVignette />}
-            />
-          </div>
+        <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
+        <div data-guide="home-doors" className="mt-6 grid md:grid-cols-3 border-y border-[var(--lp-border-light)]">
+          {[
+            { href: '/buyer', card: t.threeDoors.buyerCard },
+            { href: '/seller', card: t.threeDoors.sellerCard },
+            { href: '/activity', card: t.threeDoors.activityCard },
+          ].map(({ href, card }, index) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                'group flex items-center justify-between gap-5 py-6 transition-colors hover:bg-black/[0.025]',
+                'md:px-6 md:first:ps-0 md:last:pe-0',
+                'max-md:border-b max-md:last:border-b-0 max-md:border-[var(--lp-border-light)]',
+                index > 0 && 'md:border-s md:border-[var(--lp-border-light)]',
+              )}
+            >
+              <div>
+                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                  {card.eyebrow}
+                </span>
+                <h3 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
+                  {card.title}
+                </h3>
+                <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">{card.body}</p>
+              </div>
+              <span aria-hidden className="mono text-[16px] text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-1">+</span>
+            </Link>
+          ))}
         </div>
       </Band>
 
@@ -916,4 +907,3 @@ function StreamVignette() {
     </div>
   );
 }
-

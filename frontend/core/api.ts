@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
@@ -2664,11 +2664,11 @@ export const api = {
       { method: 'POST', body: JSON.stringify({}) },
     ),
   termsStatus: (address?: string | null) =>
-    json<{ currentVersion: number; acceptedVersion: number | null }>(
+    json<{ currentVersion: string; acceptedVersion: string | null }>(
       `/api/terms/status${address ? `?address=${address}` : ''}`,
     ),
-  acceptTerms: (version: number, signature?: string) =>
-    json<{ ok: true; version: number }>(`/api/terms/accept`, {
+  acceptTerms: (version: string, signature?: string) =>
+    json<{ ok: true; version: string }>(`/api/terms/accept`, {
       method: 'POST',
       body: JSON.stringify(signature ? { version, signature } : { version }),
     }),
@@ -3582,6 +3582,8 @@ export const api = {
       /// var still registers whenever the backend has the contract wired.
       registryAddr?: string | null;
     }>(`/api/business/status/${address}`),
+  getVerificationEligibility: (address: string) =>
+    json<VerificationEligibilityResponse>(`/api/verification/eligibility/${address}`),
   /// Web3 path: the caller has signed submitRegistration locally and reports
   /// the tx hash. Backend records the company snapshot + the submitted state.
   registerBusiness: (body: BusinessRegisterBody) =>
@@ -3610,6 +3612,29 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 };
+
+export type VerificationState =
+  | { status: 'unverified' }
+  | { status: 'pending'; submittedAt: number }
+  | { status: 'verified'; verifiedAt: number; expiresAt?: number }
+  | { status: 'rejected'; reasonCode: string; message: string }
+  | { status: 'expired'; expiredAt: number }
+  | { status: 'revoked'; revokedAt: number; reasonCode: string };
+
+export interface VerificationEligibilityResponse {
+  address: string;
+  accountKind: 'individual' | 'business';
+  verification: VerificationState;
+  eligibility: {
+    directDeals: boolean;
+    agentMatching: boolean;
+    reputationEligible: boolean;
+    businessPerks: boolean;
+    reputationEligibleFrom?: number;
+    reasons: string[];
+    policyVersion: string;
+  };
+}
 
 export interface BusinessRegisterBody {
   address: string;

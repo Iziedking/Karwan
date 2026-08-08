@@ -22,7 +22,7 @@ export function ActivityStats({
   const t = useTranslations().activity.stats;
   const groups: EventGroup[] = ['jobs', 'negotiation', 'settlement', 'bridge'];
   return (
-    <section className="space-y-3">
+    <section className="space-y-3" data-guide="activity-stats">
       {/* The counters lead the page, and the money ledger sits below them. The
           eyebrow is what stops them reading as a summary of that ledger: they
           count the network's events, never the user's own money. */}
@@ -37,6 +37,7 @@ export function ActivityStats({
             key={g}
             type="button"
             onClick={() => onToggleGroup(g)}
+            aria-pressed={active}
             className={cn(
               'group relative overflow-hidden text-start p-5 transition-[transform,border-color,box-shadow] duration-300 ease-out',
               'hover:-translate-y-1 card-shimmer',

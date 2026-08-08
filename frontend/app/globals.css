@@ -562,8 +562,8 @@ html[data-theme="dark"] .form-input::placeholder {
   line-height: 1.5;
 }
 .form-input-num {
-  font-family: var(--font-mono);
-  font-feature-settings: "tnum";
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   font-weight: 600;
 }
@@ -602,8 +602,8 @@ html[data-theme="dark"] .form-input::placeholder {
   line-height: 1.5;
 }
 .form-input-num-dark {
-  font-family: var(--font-mono);
-  font-feature-settings: "tnum";
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   font-size: 20px;
   font-weight: 700;
 }

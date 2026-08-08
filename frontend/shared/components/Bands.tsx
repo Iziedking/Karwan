@@ -19,16 +19,22 @@ export function Band({
   overlay,
   className,
   compact,
+  id,
+  dataGuide,
 }: {
   tone: 'dark' | 'light';
   children: ReactNode;
   overlay?: ReactNode;
   className?: string;
   compact?: boolean;
+  id?: string;
+  dataGuide?: string;
 }) {
   const dark = tone === 'dark';
   return (
     <section
+      id={id}
+      data-guide={dataGuide}
       className={cn(
         'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden',
         dark ? 'bg-[var(--lp-band-dark)] text-white' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',

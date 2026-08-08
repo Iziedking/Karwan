@@ -9,7 +9,7 @@ import { useAuth } from './useAuth';
 /// The exact text a web3 user signs to accept the terms. MUST byte-for-byte
 /// match the backend builder in routes/terms.ts termsAcceptanceMessage, or the
 /// signature won't verify. Address lowercased so both sides build one string.
-function termsAcceptanceMessage(address: string, version: number): string {
+function termsAcceptanceMessage(address: string, version: string): string {
   return `Karwan Terms of Use\n\nI accept version ${version}.\n\nWallet: ${address.toLowerCase()}`;
 }
 
@@ -35,8 +35,8 @@ function cleanAcceptError(err: unknown): string {
 
 interface TermsState {
   loading: boolean;
-  currentVersion: number | null;
-  acceptedVersion: number | null;
+  currentVersion: string | null;
+  acceptedVersion: string | null;
   /// True when the user is signed in AND has not accepted the current version.
   /// Drives the first-signin modal gate.
   needsAcceptance: boolean;

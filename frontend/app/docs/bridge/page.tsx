@@ -31,6 +31,12 @@ export default function DocsBridgePage() {
         <DocsListItem>Arbitrum Sepolia</DocsListItem>
         <DocsListItem>Optimism Sepolia</DocsListItem>
         <DocsListItem>Polygon Amoy</DocsListItem>
+        <DocsListItem>Avalanche Fuji</DocsListItem>
+        <DocsListItem>Unichain Sepolia</DocsListItem>
+        <DocsListItem>Sei Testnet</DocsListItem>
+        <DocsListItem>Sonic Testnet</DocsListItem>
+        <DocsListItem>World Chain Sepolia</DocsListItem>
+        <DocsListItem>HyperEVM Testnet</DocsListItem>
         <DocsListItem>Solana Devnet</DocsListItem>
       </DocsList>
 

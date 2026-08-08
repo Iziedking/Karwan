@@ -24,6 +24,9 @@ import { AccountKindIcon } from '@/features/account/AccountKindIcon';
 
 type OnbStep = 'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady';
 
+const ONBOARDING_FIELD_CLASS =
+  'w-full rounded-xl border border-[var(--lp-border-light)] bg-white px-4 py-3.5 font-sans text-[15px] font-medium text-[var(--lp-dark)] shadow-[inset_0_1px_0_rgba(0,0,0,0.02)] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[var(--lp-text-muted)]/60 hover:border-black/20 focus:border-[var(--lp-accent-hover)] focus:ring-4 focus:ring-[var(--lp-accent)]/15';
+
 // Next.js 15 requires useSearchParams() to live inside a Suspense boundary
 // when the page is statically prerendered. Wrapping the inner component
 // satisfies that. The fallback is the same dark band we'd render once the
@@ -430,10 +433,10 @@ function OnboardingInner() {
       </Band>
 
       <Band tone="light" compact>
-        <div className="max-w-3xl mx-auto">
+        <div className={cn(step === 'profile' ? 'max-w-4xl' : 'max-w-3xl', 'mx-auto')}>
           {step === 'language' && (
-            <div className="space-y-6">
-              <p className="text-[15px] text-[var(--lp-text-sub)] max-w-[52ch]">
+            <div className="space-y-6 text-center">
+              <p className="mx-auto max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
                 {t.onboarding.languageStep.description}
               </p>
               <LanguagePicker
@@ -442,7 +445,7 @@ function OnboardingInner() {
                   // the choice so the rest of the onboarding renders in it.
                 }}
               />
-              <div className="pt-2">
+              <div className="flex justify-center pt-2">
                 <CTAPill onClick={() => setStep('accountType')}>{t.common.continue}</CTAPill>
               </div>
             </div>
@@ -899,22 +902,24 @@ function AccountCard({
   const t = useTranslations().onboarding.roleStep;
   const isSel = selected === kind;
   const surface =
-    tone === 'accent'
+    !isSel
+      ? 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]'
+      : tone === 'accent'
       ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
       : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
   const eyebrowColor =
-    tone === 'accent' ? 'text-[var(--lp-band-dark)]/70' : 'text-[var(--lp-text-muted)]';
+    isSel && tone === 'accent' ? 'text-[var(--lp-band-dark)]/70' : 'text-[var(--lp-text-muted)]';
   const muted =
-    tone === 'accent' ? 'text-[var(--lp-band-dark)]/90' : 'text-[var(--lp-text-sub)]';
+    isSel && tone === 'accent' ? 'text-[var(--lp-band-dark)]/90' : 'text-[var(--lp-text-sub)]';
   const tagColor =
-    tone === 'accent' ? 'text-[var(--lp-band-dark)]/75' : 'text-[var(--lp-text-muted)]';
+    isSel && tone === 'accent' ? 'text-[var(--lp-band-dark)]/75' : 'text-[var(--lp-text-muted)]';
 
   return (
     <button
       type="button"
       onClick={() => onSelect(kind)}
       className={cn(
-        'group block w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
@@ -928,7 +933,7 @@ function AccountCard({
         borderBottomRightRadius: 5,
       }}
     >
-      <div className="p-6">
+      <div className="flex h-full flex-col p-6">
         {/* The same mark the nav badge carries. Shown at full size here, where
             there is room to learn it next to the words it stands for. */}
         <span className="block mb-4">
@@ -942,7 +947,7 @@ function AccountCard({
         </h3>
         <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
         <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>{tagline}</p>
-        <div className="mt-5 flex items-center justify-between">
+        <div className="mt-auto flex items-center justify-between pt-5">
           <span
             className={cn(
               'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
@@ -950,9 +955,7 @@ function AccountCard({
                 ? tone === 'accent'
                   ? 'bg-[var(--lp-band-dark)] border-[var(--lp-dark)]'
                   : 'bg-[var(--lp-accent)] border-[var(--lp-accent)]'
-                : tone === 'accent'
-                  ? 'border-[var(--lp-dark)]/30'
-                  : 'border-[var(--lp-border-light)]',
+                : 'border-[var(--lp-border-light)]',
             )}
           >
             {isSel && (
@@ -1093,7 +1096,9 @@ function RoleCard({
   const t = useTranslations().onboarding.roleStep;
   const isSel = selected === role;
   const surface =
-    tone === 'dark'
+    !isSel
+      ? 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]'
+      : tone === 'dark'
       ? 'bg-[var(--lp-band-dark)] text-white'
       : tone === 'accent'
         ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
@@ -1103,19 +1108,25 @@ function RoleCard({
   // light in dark mode and leaves faint grey text on lime. Opacities are also
   // bumped so the caption reads on the muted lime.
   const eyebrowColor =
-    tone === 'dark'
+    !isSel
+      ? 'text-[var(--lp-text-muted)]'
+      : tone === 'dark'
       ? 'text-white/55'
       : tone === 'accent'
         ? 'text-[var(--lp-band-dark)]/70'
         : 'text-[var(--lp-text-muted)]';
   const muted =
-    tone === 'dark'
+    !isSel
+      ? 'text-[var(--lp-text-sub)]'
+      : tone === 'dark'
       ? 'text-white/65'
       : tone === 'accent'
         ? 'text-[var(--lp-band-dark)]/90'
         : 'text-[var(--lp-text-sub)]';
   const tagColor =
-    tone === 'dark'
+    !isSel
+      ? 'text-[var(--lp-text-muted)]'
+      : tone === 'dark'
       ? 'text-white/45'
       : tone === 'accent'
         ? 'text-[var(--lp-band-dark)]/75'
@@ -1126,7 +1137,7 @@ function RoleCard({
       type="button"
       onClick={() => onSelect(role)}
       className={cn(
-        'group block w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
@@ -1140,7 +1151,7 @@ function RoleCard({
         borderBottomRightRadius: 5,
       }}
     >
-      <div className="p-6">
+      <div className="flex h-full flex-col p-6">
         <div className="flex items-center justify-between">
           <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
             {eyebrow}
@@ -1166,7 +1177,7 @@ function RoleCard({
         <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>
           {tagline}
         </p>
-        <div className="mt-5 flex items-center justify-between">
+        <div className="mt-auto flex items-center justify-between pt-5">
           <span
             className={cn(
               'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
@@ -1174,11 +1185,7 @@ function RoleCard({
                 ? tone === 'accent'
                   ? 'bg-[var(--lp-band-dark)] border-[var(--lp-dark)]'
                   : 'bg-[var(--lp-accent)] border-[var(--lp-accent)]'
-                : tone === 'dark'
-                  ? 'border-white/30'
-                  : tone === 'accent'
-                    ? 'border-[var(--lp-dark)]/30'
-                    : 'border-[var(--lp-border-light)]',
+                : 'border-[var(--lp-border-light)]',
             )}
           >
             {isSel && (
@@ -1244,6 +1251,28 @@ function TradeTypeChooser({
   );
 }
 
+function ProfileProgress({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex items-center justify-center gap-4">
+      <span className="font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        Section {current} of {total}
+      </span>
+      <div className="flex gap-1.5">
+        {Array.from({ length: total }).map((_, index) => (
+          <span
+            key={index}
+            aria-hidden
+            className="h-1.5 w-7 rounded-full transition-colors"
+            style={{
+              background: index < current ? 'var(--lp-accent)' : 'var(--lp-border-light)',
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function BusinessProfileStep(props: {
   displayName: string;
   setDisplayName: (v: string) => void;
@@ -1265,19 +1294,31 @@ function BusinessProfileStep(props: {
 }) {
   const t = useTranslations().onboarding;
   const bs = t.businessProfileStep;
+  const [panel, setPanel] = useState(0);
+  const totalPanels = 3;
+  const panelValid =
+    panel === 0
+      ? props.displayName.trim().length > 0
+      : panel === 1
+        ? !!props.tradeType && props.skills.trim().length > 0 && props.bio.trim().length > 0
+        : props.dealMin > 0 && props.dealMax > props.dealMin;
   return (
     <div className="space-y-6 fade-up">
+      <ProfileProgress current={panel + 1} total={totalPanels} />
+      {panel === 0 && (
       <ProfileSection number="01" eyebrow={bs.companyEyebrow} title={bs.companyLabel}>
         <Field label={bs.companyLabel} hint={bs.companyHint}>
           <input
             value={props.displayName}
             onChange={(e) => props.setDisplayName(e.target.value)}
             maxLength={40}
-            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+            className={ONBOARDING_FIELD_CLASS}
           />
         </Field>
       </ProfileSection>
+      )}
 
+      {panel === 1 && (
       <ProfileSection number="02" eyebrow={bs.tradeEyebrow} title={bs.goodsLabel}>
         <Field label={bs.goodsLabel} hint={bs.tradeTypeHint}>
           <TradeTypeChooser
@@ -1294,7 +1335,7 @@ function BusinessProfileStep(props: {
           <input
             value={props.skills}
             onChange={(e) => props.setSkills(e.target.value)}
-            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+            className={ONBOARDING_FIELD_CLASS}
           />
         </Field>
         <Field label={bs.aboutLabel} hint={bs.aboutHint}>
@@ -1302,22 +1343,28 @@ function BusinessProfileStep(props: {
             value={props.bio}
             onChange={(e) => props.setBio(e.target.value)}
             rows={2}
-            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] resize-none transition-colors"
+            className={cn(ONBOARDING_FIELD_CLASS, 'min-h-28 resize-y leading-relaxed')}
           />
         </Field>
       </ProfileSection>
+      )}
 
+      {panel === 2 && (
       <ProfileSection number="03" title={bs.dealEyebrow}>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <NumField label={bs.minLabel} value={props.dealMin} setValue={props.setDealMin} />
           <NumField label={bs.maxLabel} value={props.dealMax} setValue={props.setDealMax} />
         </div>
       </ProfileSection>
+      )}
 
       <div className="flex justify-between items-center pt-4">
         <button
           type="button"
-          onClick={props.onBack}
+          onClick={() => {
+            if (panel === 0) props.onBack();
+            else setPanel((current) => current - 1);
+          }}
           className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
@@ -1325,8 +1372,19 @@ function BusinessProfileStep(props: {
           </span>
           {t.roleStep.backArrow}
         </button>
-        <CTAPill onClick={props.onSubmit} disabled={!props.canSubmit} tone="light">
-          {props.submitting ? t.profileStep.saving : t.profileStep.submit}
+        <CTAPill
+          onClick={() => {
+            if (panel < totalPanels - 1) setPanel((current) => current + 1);
+            else props.onSubmit();
+          }}
+          disabled={!panelValid || (panel === totalPanels - 1 && !props.canSubmit)}
+          tone="light"
+        >
+          {panel < totalPanels - 1
+            ? 'Next'
+            : props.submitting
+              ? t.profileStep.saving
+              : t.profileStep.submit}
         </CTAPill>
       </div>
       {props.error && (
@@ -1370,10 +1428,39 @@ function ProfileStep(props: {
   const ps = t.profileStep;
   const wantsSeller = props.role === 'seller' || props.role === 'both';
   const wantsBuyer = props.role === 'buyer' || props.role === 'both';
+  type ProfilePanel = 'identity' | 'sellerDetails' | 'sellerLimits' | 'buyer';
+  const panels: ProfilePanel[] = [
+    'identity',
+    ...(wantsSeller ? (['sellerDetails', 'sellerLimits'] as ProfilePanel[]) : []),
+    ...(wantsBuyer ? (['buyer'] as ProfilePanel[]) : []),
+  ];
+  const [panel, setPanel] = useState(0);
+  const currentPanel = panels[Math.min(panel, panels.length - 1)] ?? 'identity';
+  const splitValues = props.milestoneSplit
+    .split(',')
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isFinite(value));
+  const panelValid =
+    currentPanel === 'identity'
+      ? props.displayName.trim().length > 0
+      : currentPanel === 'sellerDetails'
+        ? props.skills.split(',').some((skill) => skill.trim()) && props.bio.trim().length > 0
+        : currentPanel === 'sellerLimits'
+          ? props.sellerMin > 0 &&
+            props.sellerMax > props.sellerMin &&
+            props.sellerMinDays > 0 &&
+            props.sellerMaxDays >= props.sellerMinDays
+          : props.buyerMax > 0 &&
+            props.buyerMinDays > 0 &&
+            props.buyerMaxDays >= props.buyerMinDays &&
+            splitValues.length > 0 &&
+            splitValues.reduce((sum, value) => sum + value, 0) === 100;
 
   return (
     <div className="space-y-6 fade-up">
-      <ProfileSection number="01" eyebrow={ps.identity.eyebrow} title={ps.identity.title}>
+      <ProfileProgress current={panel + 1} total={panels.length} />
+      {currentPanel === 'identity' && (
+      <ProfileSection number={String(panel + 1).padStart(2, '0')} eyebrow={ps.identity.eyebrow} title={ps.identity.title}>
         <Field
           label={ps.identity.displayNameLabel}
           hint={ps.identity.displayNameHint}
@@ -1382,18 +1469,19 @@ function ProfileStep(props: {
             value={props.displayName}
             onChange={(e) => props.setDisplayName(e.target.value)}
             maxLength={40}
-            className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+            className={ONBOARDING_FIELD_CLASS}
           />
         </Field>
       </ProfileSection>
+      )}
 
-      {wantsSeller && (
-        <ProfileSection number="02" eyebrow={ps.seller.eyebrow} title={ps.seller.title}>
+      {currentPanel === 'sellerDetails' && (
+        <ProfileSection number={String(panel + 1).padStart(2, '0')} eyebrow={ps.seller.eyebrow} title={ps.seller.title}>
           <Field label={ps.seller.skillsLabel} hint={ps.seller.skillsHint}>
             <input
               value={props.skills}
               onChange={(e) => props.setSkills(e.target.value)}
-              className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+              className={ONBOARDING_FIELD_CLASS}
             />
           </Field>
           <Field label={ps.seller.bioLabel} hint={ps.seller.bioHint}>
@@ -1401,10 +1489,15 @@ function ProfileStep(props: {
               value={props.bio}
               onChange={(e) => props.setBio(e.target.value)}
               rows={2}
-              className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] resize-none transition-colors"
+              className={cn(ONBOARDING_FIELD_CLASS, 'min-h-28 resize-y leading-relaxed')}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+        </ProfileSection>
+      )}
+
+      {currentPanel === 'sellerLimits' && (
+        <ProfileSection number={String(panel + 1).padStart(2, '0')} eyebrow={ps.seller.eyebrow} title={ps.seller.title}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <NumField
               label={ps.seller.minBudgetLabel}
               hint={ps.seller.minBudgetHint}
@@ -1433,13 +1526,13 @@ function ProfileStep(props: {
         </ProfileSection>
       )}
 
-      {wantsBuyer && (
+      {currentPanel === 'buyer' && (
         <ProfileSection
-          number={props.role === 'both' ? '03' : '02'}
+          number={String(panel + 1).padStart(2, '0')}
           eyebrow={ps.buyer.eyebrow}
           title={ps.buyer.title}
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <NumField
               label={ps.buyer.maxBudgetLabel}
               hint={ps.buyer.maxBudgetHint}
@@ -1466,7 +1559,7 @@ function ProfileStep(props: {
             <input
               value={props.milestoneSplit}
               onChange={(e) => props.setMilestoneSplit(e.target.value)}
-              className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+              className={cn(ONBOARDING_FIELD_CLASS, 'mono')}
             />
           </Field>
         </ProfileSection>
@@ -1475,7 +1568,10 @@ function ProfileStep(props: {
       <div className="flex justify-between items-center pt-4">
         <button
           type="button"
-          onClick={props.onBack}
+          onClick={() => {
+            if (panel === 0) props.onBack();
+            else setPanel((current) => current - 1);
+          }}
           className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
@@ -1483,8 +1579,19 @@ function ProfileStep(props: {
           </span>
           {t.roleStep.backArrow}
         </button>
-        <CTAPill onClick={props.onSubmit} disabled={!props.canSubmit} tone="light">
-          {props.submitting ? ps.saving : ps.submit}
+        <CTAPill
+          onClick={() => {
+            if (panel < panels.length - 1) setPanel((current) => current + 1);
+            else props.onSubmit();
+          }}
+          disabled={!panelValid || (panel === panels.length - 1 && !props.canSubmit)}
+          tone="light"
+        >
+          {panel < panels.length - 1
+            ? 'Next'
+            : props.submitting
+              ? ps.saving
+              : ps.submit}
         </CTAPill>
       </div>
       {props.error && (
@@ -1511,29 +1618,29 @@ function ProfileSection({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.08)',
+        borderTopLeftRadius: 26,
+        borderTopRightRadius: 26,
+        borderBottomLeftRadius: 26,
+        borderBottomRightRadius: 7,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 22px 54px -30px rgba(0,0,0,0.22)',
       }}
     >
-      <header className="px-6 pt-5 pb-4 border-b border-[var(--lp-border-light)]">
-        <div className="flex items-baseline gap-3">
-          <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]/30 leading-none">
+      <header className="border-b border-[var(--lp-border-light)] bg-[linear-gradient(135deg,rgba(175,201,91,0.10),transparent_62%)] px-6 py-5 sm:px-8 sm:py-6">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[var(--lp-band-dark)] font-sans text-[14px] font-extrabold tabular-nums text-[var(--lp-accent)]">
             {number}
           </span>
           {eyebrow && (
-            <span className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {eyebrow}
             </span>
           )}
         </div>
-        <h2 className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+        <h2 className="mt-4 font-sans text-[21px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">
           {title}
         </h2>
       </header>
-      <div className="px-6 py-5 space-y-4">{children}</div>
+      <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-7">{children}</div>
     </section>
   );
 }
@@ -1548,8 +1655,8 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="block space-y-2">
-      <span className="flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+    <label className="block space-y-2.5">
+      <span className="flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </span>
@@ -1585,8 +1692,8 @@ function NumField({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return (
-    <label className="block space-y-2">
-      <span className="flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+    <label className="block space-y-2.5">
+      <span className="flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </span>
@@ -1599,7 +1706,7 @@ function NumField({
           setText(t);
           setValue(t.trim() === '' ? NaN : Number(t));
         }}
-        className="w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm mono focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+        className={cn(ONBOARDING_FIELD_CLASS, 'mono tabular-nums')}
       />
     </label>
   );

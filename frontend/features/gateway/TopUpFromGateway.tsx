@@ -86,8 +86,14 @@ export function TopUpFromGateway({
           : t.fundPool;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 flex-wrap">
+    <div className="min-w-0 space-y-2">
+      <div
+        className={
+          asks
+            ? 'grid min-w-0 grid-cols-1 items-center gap-2 min-[390px]:grid-cols-[92px_minmax(0,1fr)]'
+            : 'flex min-w-0 items-center'
+        }
+      >
         {asks && (
           <input
             type="number"
@@ -98,7 +104,7 @@ export function TopUpFromGateway({
             onChange={(e) => setTyped(e.target.value)}
             disabled={phase === 'moving'}
             placeholder="0.00"
-            className="w-[92px] px-2.5 py-1.5 text-[13px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
+            className="w-full min-w-0 px-2.5 py-1.5 text-[13px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
             style={{
               background: 'var(--lp-light)',
               border: '1px solid var(--lp-border-light)',
@@ -110,7 +116,7 @@ export function TopUpFromGateway({
           type="button"
           onClick={() => void run()}
           disabled={phase === 'moving' || loading}
-          className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 transition-opacity disabled:opacity-50"
+          className="w-full min-w-0 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.08em] leading-tight transition-opacity disabled:opacity-50 sm:px-4 sm:text-[11px] sm:tracking-[0.1em]"
           style={{
             background: covers ? 'var(--lp-accent)' : 'transparent',
             color: 'var(--lp-dark)',

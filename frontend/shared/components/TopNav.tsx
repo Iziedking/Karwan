@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
@@ -53,6 +53,8 @@ export function TopNav() {
 
   const tradesActive =
     pathname.startsWith('/p2p') ||
+    pathname.startsWith('/b2b') ||
+    pathname.startsWith('/supply') ||
     pathname.startsWith('/buyer') ||
     pathname.startsWith('/seller') ||
     pathname.startsWith('/jobs') ||
@@ -132,18 +134,9 @@ export function TopNav() {
             >
               {t.nav.home}
             </NavLink>
-            <NavLink href={biz ? '/buyer' : '/p2p'} active={tradesActive}>
+            <NavLink href={biz ? '/b2b' : '/p2p'} active={tradesActive}>
               {biz ? 'B2B Trades' : t.nav.trades}
             </NavLink>
-            {biz && (
-              <NavLink
-                href="/supply"
-                active={pathname.startsWith('/supply')}
-                title="Publish what your company supplies"
-              >
-                Supply
-              </NavLink>
-            )}
             {biz && (
               <NavLink
                 href="/partners"
@@ -275,9 +268,11 @@ export function TopNav() {
             {/* The trades hub adapts to the rail: a business opens its B2B
                 trade flow, an individual opens the P2P desk picker. */}
             <MobileNavLink
-              href={biz ? '/buyer' : '/p2p'}
+              href={biz ? '/b2b' : '/p2p'}
               active={
                 pathname.startsWith('/p2p') ||
+                pathname.startsWith('/b2b') ||
+                pathname.startsWith('/supply') ||
                 pathname.startsWith('/buyer') ||
                 pathname.startsWith('/seller') ||
                 pathname.startsWith('/jobs') ||
@@ -625,7 +620,7 @@ function LaunchAppCTA() {
         borderBottomRightRadius: 3,
       }}
     >
-      Launch app
+      Open Karwan
       <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
         ↓
       </span>

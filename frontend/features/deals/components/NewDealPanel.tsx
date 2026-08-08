@@ -26,9 +26,11 @@ export function NewDealPanel() {
   const active = MODES.find((m) => m.value === mode)!;
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-7" id="deal-composer">
       <div>
         <div
+          role="tablist"
+          aria-label="Deal type"
           className="inline-flex p-1 gap-1"
           style={{
             background: 'var(--lp-light)',
@@ -45,6 +47,8 @@ export function NewDealPanel() {
               <button
                 key={m.value}
                 type="button"
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => setMode(m.value)}
                 className="px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
                 style={{

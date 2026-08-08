@@ -1261,9 +1261,9 @@ function BridgeSteps({
   const meta = bridgeChainMeta(bridge.sourceChainKey);
   const idx = stepIndexFor(bridge.phase);
   const errored = bridge.phase === 'error';
-  // Out-bridges prepare + send on ARC and land on the destination chain. The
-  // "~10-19 MIN" hint is an Ethereum-source finality estimate; Arc burns
-  // normally attest in seconds, so out records show no estimate.
+  // Circle's Forwarding Service normally completes the destination mint in
+  // seconds. Out records omit a time estimate because completion still depends
+  // on the source chain and Circle's current route.
   const isOut = bridge.direction === 'out';
   const prepChain = isOut ? 'Arc' : meta.shortName;
   const steps: Array<{ key: BridgePhase; label: string; hint?: string }> = [

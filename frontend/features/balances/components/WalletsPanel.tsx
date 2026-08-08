@@ -10,16 +10,6 @@ import type { Messages } from '@/shared/i18n/messages/en';
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
 type WalletsCopy = Messages['walletsPanel'];
 
-const CARD = {
-  background: 'var(--lp-card)',
-  border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
-  borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
-} as const;
-
 function fmt(v: string | null | undefined): string {
   if (v === null || v === undefined) return '—';
   const n = Number(v);
@@ -31,14 +21,39 @@ function short(addr?: string): string {
   return addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : '';
 }
 
+function WalletGlyph({ kind }: { kind: 'identity' | 'agent' }) {
+  return (
+    <span
+      aria-hidden
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] shadow-[0_8px_20px_-16px_rgba(16,15,14,0.45)]"
+    >
+      {kind === 'identity' ? (
+        <svg viewBox="0 0 32 32" className="h-[23px] w-[23px]" fill="none">
+          <path d="M6.25 10.25h17.5A2.75 2.75 0 0 1 26.5 13v10a2.75 2.75 0 0 1-2.75 2.75H7.5A3.5 3.5 0 0 1 4 22.25v-13A3.5 3.5 0 0 1 7.5 5.75h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M21 15.25h5.5v5.5H21a2.75 2.75 0 1 1 0-5.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="21.4" cy="18" r=".9" fill="currentColor" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 32 32" className="h-[24px] w-[24px]" fill="none">
+          <circle cx="11" cy="20.5" r="6.25" stroke="currentColor" strokeWidth="1.8" />
+          <path d="m15.4 16.1 9.85-9.85M21.25 10.25l2.5 2.5M24 7.5l2.5 2.5M8.8 20.5h4.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M25.35 4.6 27.4 6.65" stroke="var(--lp-accent)" strokeWidth="2.3" strokeLinecap="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 /// Click-to-copy address line. Copies the FULL address (not the truncated
 /// form) and flips the trailing label to a confirmation for ~1.5s so the user
 /// sees the copy landed.
 function CopyAddress({
   address,
+  copied,
   onCopied,
 }: {
   address: string;
+  copied: boolean;
   onCopied?: (addr: string) => void;
 }) {
   const wp = useTranslations().walletsPanel;
@@ -56,10 +71,23 @@ function CopyAddress({
     <button
       type="button"
       onClick={copy}
-      className="mt-0.5 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-text-sub)]"
+      aria-label={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
+      title={copied ? wp.copyAddress.copied : wp.copyAddress.idle}
+      className="group mt-1 inline-flex max-w-full items-center gap-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
     >
-      <span>{short(address)}</span>
-      <span>{wp.copyAddress.idle}</span>
+      <span className="truncate">{short(address)}</span>
+      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border border-transparent transition-[border-color,background,color] group-hover:border-[var(--lp-border-light)] group-hover:bg-[var(--lp-card)]">
+        {copied ? (
+          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
+            <path d="m5.25 10.25 3 3 6.5-7" stroke="var(--lp-accent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
+            <rect x="6.25" y="4.25" width="9.5" height="10.5" rx="1.75" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M13.75 15.75H5.5a1.25 1.25 0 0 1-1.25-1.25V7.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+        )}
+      </span>
     </button>
   );
 }
@@ -75,6 +103,7 @@ function Row({
   copiedAddr,
   onCopied,
   copiedLabel,
+  walletKind,
 }: {
   tag: string;
   title: string;
@@ -86,19 +115,20 @@ function Row({
   copiedAddr?: string | null;
   onCopied?: (addr: string) => void;
   copiedLabel?: string;
+  walletKind: 'identity' | 'agent';
 }) {
   // This row's address was the one just copied (via the address line or its
   // Get USDC button). Drives the inline confirmation under the action.
   const copied = !!address && copiedAddr === address;
   return (
     <li
-      className="relative overflow-hidden px-4 py-3 ps-5"
+      className="relative overflow-hidden px-3.5 py-3.5 ps-5 sm:px-4"
       style={{
         background: 'var(--lp-light)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
+        borderTopLeftRadius: 14,
+        borderTopRightRadius: 14,
+        borderBottomLeftRadius: 14,
         borderBottomRightRadius: 3,
       }}
     >
@@ -117,21 +147,24 @@ function Row({
           did not, so on a phone the three cards in one list rendered in two
           different shapes off the same component. A breakpoint decides it now,
           so every card in the list agrees at every width. */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{tag}:]
-          </span>
-          <p className="mt-0.5 flex items-center gap-1.5 font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            {title}
-            <LpHint>{purpose}</LpHint>
-          </p>
-          {address && <CopyAddress address={address} onCopied={onCopied} />}
+      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <WalletGlyph kind={walletKind} />
+          <div className="min-w-0">
+            <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+              [:{tag}:]
+            </span>
+            <p className="mt-0.5 flex items-center gap-1.5 font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+              {title}
+              <LpHint>{purpose}</LpHint>
+            </p>
+            {address && <CopyAddress address={address} copied={copied} onCopied={onCopied} />}
+          </div>
         </div>
         {/* Left-aligned while stacked, right-aligned once it is a column. A
             fixed text-end looked centred-ish and arbitrary on a phone, because
             the wrapped block hugs its content rather than filling the row. */}
-        <div className="text-start sm:text-end shrink-0">
+        <div className="shrink-0 text-start sm:text-end">
           <MoneyValue value={primary} size="sm" />
           {secondary && (
             <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
@@ -253,9 +286,10 @@ export function WalletsPanel({ address }: { address?: string }) {
   // between rows was a second frame's worth of air, and the third wallet fell
   // below the fold.
   return (
-    <section style={CARD} className="p-4 md:p-5">
-      <ul className="space-y-2">
+    <section>
+      <ul className="space-y-2.5">
         <Row
+          walletKind="identity"
           tag={wp.rows.identity.tag}
           title={wp.rows.identity.title}
           purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
@@ -276,6 +310,7 @@ export function WalletsPanel({ address }: { address?: string }) {
         {agents ? (
           <>
             <Row
+              walletKind="agent"
               tag={wp.rows.buyer.tag}
               title={wp.rows.buyer.title}
               purpose={wp.rows.buyer.purpose}
@@ -293,6 +328,7 @@ export function WalletsPanel({ address }: { address?: string }) {
               }
             />
             <Row
+              walletKind="agent"
               tag={wp.rows.seller.tag}
               title={wp.rows.seller.title}
               purpose={wp.rows.seller.purpose}

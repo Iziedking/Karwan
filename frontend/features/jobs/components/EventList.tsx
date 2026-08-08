@@ -315,7 +315,7 @@ export function EventList({
       runs.push({ e, repeat: 1 });
     }
     return (
-      <ol className="space-y-2.5">
+      <ol className="space-y-2">
         {runs.map(({ e, repeat }, i) => {
           const text = labelFor(e.type, el.eventTexts);
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
@@ -354,12 +354,12 @@ export function EventList({
                       ? e.payload?.detail
                       : undefined;
                 return typeof sub === 'string' && sub ? (
-                  <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+                  <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
                     {sub}
                   </p>
                 ) : null;
               })()}
-              <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              <div className="flex flex-wrap items-center gap-2 mt-2">
                 <ActorChip tone={tone} actor={e.actor} />
                 {showJobId && e.jobId && (
                   <span className="inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
@@ -429,13 +429,13 @@ export function EventList({
               {href ? (
                 <Link
                   href={href}
-                  className="group relative overflow-hidden block p-4 ps-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-px hover:shadow-[0_1px_0_rgba(0,0,0,0.04),0_10px_24px_-14px_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                  className="group relative overflow-hidden block p-3.5 ps-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-px hover:shadow-[0_1px_0_rgba(0,0,0,0.04),0_10px_24px_-14px_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
                   style={cardStyle}
                 >
                   {body}
                 </Link>
               ) : (
-                <div className="group relative overflow-hidden p-4 ps-5" style={cardStyle}>
+                <div className="group relative overflow-hidden p-3.5 ps-5" style={cardStyle}>
                   {body}
                 </div>
               )}

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,10 +25,13 @@ import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailBu
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { AccountKindBadge } from '@/features/account/AccountKindBadge';
+import { VerificationStatusCard } from '@/features/account/VerificationStatusCard';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
-import { ProfileDeck, type DeckPanel } from '@/shared/components/ProfileDeck';
+import { type DeckPanel } from '@/shared/components/ProfileDeck';
+import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PageTour } from '@/shared/guide/PageTour';
+import { useGuide } from '@/shared/guide/GuideProvider';
 import { PROFILE_TOUR_ID, buildProfileSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -41,7 +44,6 @@ import {
   HeroHeadline,
   Punc,
   Accent,
-  AddressPill,
   CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
@@ -67,6 +69,7 @@ function ProfilePageInner() {
   const activation = useActivation();
   const [activationOpen, setActivationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('identity');
+  const { active: activeTour } = useGuide();
   // Agent money is one surface with two modes, so only one card shows at a
   // time instead of two dense cards side by side.
   const [moneyMode, setMoneyMode] = useState<'add' | 'out'>('add');
@@ -107,6 +110,22 @@ function ProfilePageInner() {
     if (window.location.hash === `#${activeTab}`) return;
     window.history.replaceState(null, '', `#${activeTab}`);
   }, [activeTab]);
+
+  // Tour steps point into different deck panels. Select the owning panel before
+  // the overlay looks for its target so every spotlight lands on a real element.
+  useEffect(() => {
+    if (activeTour?.id !== PROFILE_TOUR_ID) return;
+    const target = activeTour.steps[activeTour.index]?.target;
+    const panel =
+      target === 'profile-wallets' || target === 'profile-balances'
+        ? 'wallets'
+        : target === 'profile-agents'
+          ? 'agents'
+          : target === 'profile-preferences'
+            ? 'preferences'
+            : 'identity';
+    setActiveTab(panel);
+  }, [activeTour?.id, activeTour?.index, activeTour?.steps]);
 
   // The scroll-spy that used to drive the tab strip is gone.
   //
@@ -226,26 +245,26 @@ function ProfilePageInner() {
         {/* ROLE + AGENT DETAILS */}
         {profile ? (
           <>
-            <div className="px-4 py-5 md:px-8 md:py-7">
+            <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
               {/* Copy left, control right, the same grid the activation band above
                   uses. Stacked, the picker sat under a 46ch column and left the
                   right half of a desktop empty; beside it the band reads as one
                   row and the page loses a screenful of scrolling. */}
-              <div className="grid md:grid-cols-[1fr_auto] gap-8 items-end">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                 <div className="max-w-[52ch]">
                   <SectionTag>{t.accountType.tag}</SectionTag>
-                  <HeroHeadline size="md">
+                  <h2 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold uppercase tracking-[-0.035em] leading-[0.95] text-[var(--lp-dark)]">
                     {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
                     <Punc>.</Punc>
-                  </HeroHeadline>
-                  <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+                  </h2>
+                  <p className="mt-2 text-[13px] sm:text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
                     {t.accountType.body}
                   </p>
                 </div>
                 {/* max-w-full keeps it in bounds on a phone, where the grid is
                     a single column again. */}
-                <PageCard className="w-fit max-w-full">
-                  <div className="p-4 md:p-8">
+                <PageCard className="w-full lg:w-fit max-w-full">
+                  <div className="p-3 sm:p-4">
                     <RoleToggle profile={profile} onUpdate={setProfile} />
                   </div>
                 </PageCard>
@@ -253,9 +272,14 @@ function ProfilePageInner() {
             </div>
 
             {(profile.buyer || profile.seller) && (
-              <div className="px-4 py-5 md:px-8 md:py-7">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <SectionTag>{t.agentProfiles.tag}</SectionTag>
+              <div className="border-t border-[var(--lp-border-light)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <SectionTag>{t.agentProfiles.tag}</SectionTag>
+                    <h2 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold uppercase tracking-[-0.035em] leading-[0.95] text-[var(--lp-dark)]">
+                      {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent><Punc>.</Punc>
+                    </h2>
+                  </div>
                   {/* The ranges editor is the same for a business and an individual.
                       A business's hero EDIT DETAILS opens the company trade card, so
                       this is the entry point that reaches the agent ranges for them
@@ -264,13 +288,6 @@ function ProfilePageInner() {
                     {t.agentProfiles.editRanges}
                   </CTAPill>
                 </div>
-                <HeroHeadline size="md">
-                  {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent>
-                  <Punc>.</Punc>
-                </HeroHeadline>
-                <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                  {t.agentProfiles.body}
-                </p>
                 {!activation.activated && (
                   <p
                     className="mt-3 mono text-[11px] uppercase tracking-[0.12em] leading-relaxed max-w-[52ch]"
@@ -279,7 +296,7 @@ function ProfilePageInner() {
                     [:{t.agentProfiles.headsUpEyebrow}:] {t.agentProfiles.headsUpBody}
                   </p>
                 )}
-                <div className="mt-10 grid md:grid-cols-2 gap-5">
+                <div className="mt-5 grid lg:grid-cols-2 gap-3 sm:gap-4">
                   {profile.buyer && (
                     <AgentBlock
                       eyebrow={t.agentProfiles.buyerEyebrow}
@@ -370,16 +387,16 @@ function ProfilePageInner() {
       content: (
         <>
         {/* HOLDINGS */}
-        <div className="px-4 py-5 md:px-8 md:py-7">
+        <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="flex items-center gap-2">
             <SectionTag>{t.holdings.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{t.holdings.body}</Hint>
           </div>
-          <HeroHeadline size="md">
+          <h2 className="mt-3 font-sans text-[28px] sm:text-[36px] font-extrabold uppercase tracking-[-0.035em] leading-none text-[var(--lp-dark)]">
             {t.holdings.headlinePrefix}<Accent>{t.holdings.headlineAccent}</Accent>
             <Punc>.</Punc>
-          </HeroHeadline>
-          <div className="mt-10" data-guide="profile-wallets">
+          </h2>
+          <div className="mt-5" data-guide="profile-wallets">
             <WalletsPanel address={address ?? undefined} />
           </div>
           {/* Multi-chain breakdown, folded by default: the same holdings spread
@@ -395,27 +412,26 @@ function ProfilePageInner() {
     {
       key: 'agents',
       label: t.tabs.agents,
-      tone: 'dark',
       content: (
         <>
         {/* FUND + WITHDRAW */}
-        <div className="px-4 py-5 md:px-8 md:py-7">
+        <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="flex items-center gap-2">
-            <SectionTag tone="dark">{t.agentTreasury.tag}</SectionTag>
+            <SectionTag>{t.agentTreasury.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{t.agentTreasury.body}</Hint>
           </div>
-          <HeroHeadline size="md">
-            {t.agentTreasury.headlineFund}<Punc>.</Punc> {t.agentTreasury.headlineWithdraw}<Punc>.</Punc>
-          </HeroHeadline>
+          <h2 className="mt-3 font-sans text-[28px] sm:text-[36px] font-extrabold uppercase tracking-[-0.035em] leading-none text-[var(--lp-dark)]">
+            Agent money<Punc>.</Punc>
+          </h2>
           {activation.activated ? (
             <>
               {/* One surface, two modes: a toggle swaps between adding money and
                   cashing out, so the page shows a single card, not two. */}
               <div
-                className="mt-8 inline-flex p-1 gap-1"
+                className="mt-8 grid w-full grid-cols-2 gap-1 p-1 sm:inline-grid sm:w-auto"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.14)',
+                  background: 'var(--lp-light)',
+                  border: '1px solid var(--lp-border-light)',
                   borderTopLeftRadius: 9,
                   borderTopRightRadius: 9,
                   borderBottomLeftRadius: 9,
@@ -430,8 +446,8 @@ function ProfilePageInner() {
                       type="button"
                       onClick={() => setMoneyMode(mode)}
                       aria-pressed={on}
-                      className={`px-4 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
-                        on ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'text-white/60 hover:text-white'
+                      className={`min-w-0 px-2.5 py-2 mono text-[10px] font-bold uppercase tracking-[0.07em] leading-tight transition-colors sm:px-4 sm:py-1.5 sm:text-[11px] sm:tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+                        on ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]'
                       }`}
                       style={{
                         borderTopLeftRadius: 7,
@@ -449,8 +465,8 @@ function ProfilePageInner() {
                   which left the right half of a desktop panel empty and pushed
                   research below the fold for no reason. items-start so the shorter
                   card does not stretch to match the taller one. */}
-              <div className="mt-5 grid gap-5 items-start lg:grid-cols-2">
-                <div data-guide="profile-agents">
+              <div className="mt-4 grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
+                <div className="min-w-0" data-guide="profile-agents">
                   {moneyMode === 'add' ? (
                     <ArcFundCard
                       buyerAgent={agents.buyer}
@@ -487,18 +503,18 @@ function ProfilePageInner() {
       content: (
         <>
         {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
-        <div className="px-4 py-5 md:px-8 md:py-7">
+        <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="flex items-center gap-2">
             <SectionTag>{t.preferences.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{t.preferences.body}</Hint>
           </div>
-          <HeroHeadline size="md">
+          <h2 className="mt-3 font-sans text-[28px] sm:text-[36px] font-extrabold uppercase tracking-[-0.035em] leading-none text-[var(--lp-dark)]">
             {t.preferences.headline}<Punc>.</Punc>
-          </HeroHeadline>
-          <div className="mt-8 flex flex-wrap items-center gap-3" data-guide="profile-preferences">
-            {address && <ProfileEmailButton address={address} tone="light" />}
-            <TelegramConnectButton address={address ?? undefined} tone="light" />
-            <ConnectXButton tone="light" />
+          </h2>
+          <div className="mt-5 grid gap-3 md:grid-cols-3" data-guide="profile-preferences">
+            <ConnectionCard label="Email">{address && <ProfileEmailButton address={address} tone="light" />}</ConnectionCard>
+            <ConnectionCard label="Telegram"><TelegramConnectButton address={address ?? undefined} tone="light" /></ConnectionCard>
+            <ConnectionCard label="X"><ConnectXButton tone="light" /></ConnectionCard>
           </div>
         </div>
         </>
@@ -506,12 +522,15 @@ function ProfilePageInner() {
     },
   ];
 
+  const activePanel =
+    deckPanels.find((panel) => panel.key === activeTab) ?? deckPanels[0]!;
+
   return (
     <FullBleed>
       <PageTour id={PROFILE_TOUR_ID} steps={buildProfileSteps(isCircleUser)} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-12 items-center">
+        <div className="max-w-5xl">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activation.activated ? 'live' : undefined}>
@@ -547,7 +566,6 @@ function ProfilePageInner() {
               </div>
             )}
             <div className="fade-up fade-up-2 mt-6 flex flex-wrap items-center gap-3">
-              {address && <AddressPill address={shortAddress(address)} tone="dark" />}
               {/* Detailed here: an unverified business says so in the badge
                   rather than hiding it behind a hover title. */}
               {profile && <AccountKindBadge profile={profile} detailed tone="dark" />}
@@ -556,13 +574,13 @@ function ProfilePageInner() {
                   href={`/credit-passport/${address}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-accent)] hover:underline"
+                  className="hidden"
                 >
                   {t.hero.publicPassport}
                 </a>
               )}
               {profile && (
-                <span className="mono text-[11px] uppercase tracking-[0.12em] text-white/45">
+                <span className="hidden">
                   {t.hero.updatedPrefix} {new Date(profile.updatedAt).toLocaleDateString()}
                 </span>
               )}
@@ -570,9 +588,12 @@ function ProfilePageInner() {
             <div className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3">
               {profile ? (
                 <>
-                  <CTAPill href={editHref} variant="secondary" tone="dark">
-                    {t.hero.editDetailsCta}
+                  <CTAPill href="/bridge" tone="dark">
+                    {navT.topUpWithdraw}
                   </CTAPill>
+                  <Link href={editHref} className="mono text-[11px] uppercase tracking-[0.12em] text-white/65 hover:text-white transition-colors">
+                    {t.hero.editDetailsCta}
+                  </Link>
                   {/* Company trade card is the business's second edit surface;
                       ?edit=company opens the band in edit mode and scrolls to it. */}
                   {isBusiness && (
@@ -593,8 +614,9 @@ function ProfilePageInner() {
             </div>
             {/* Persistent tier card. your reputation right at the top of the profile. */}
             <ProfileTierCard address={address} />
+            {address && <VerificationStatusCard address={address} />}
           </div>
-          <div className="fade-up fade-up-4 mt-8 lg:mt-0">
+          <div className="hidden">
             {/* The hero stays focused on identity + reputation. Agent status and
                 its wallet addresses live in the ACTIVATION + AGENT DETAILS bands
                 below (and the eyebrow's live dot already signals activation), so
@@ -641,6 +663,11 @@ function ProfilePageInner() {
           dark variant rendered as pure black where it overlapped the hero,
           which the user flagged as wrong. Cream-frosted surface reads as
           frosted on both backgrounds. */}
+      {/* PERSONAL OVERVIEW: money and actions appear before the settings deck. */}
+      <MoneyStrip />
+      <PendingMatchesBand tone="light" />
+      <PendingDealsBand tone="light" />
+
       <div data-guide="profile-nav" className="contents">
         <StickyTabStrip
           tabs={TABS}
@@ -654,20 +681,21 @@ function ProfilePageInner() {
         />
       </div>
 
-      {/* PENDING MATCHES + DEALS AWAITING ACTION. At-a-glance surfaces only.
-          The full book lives on /app home; profile keeps the action surfaces. */}
-      <PendingMatchesBand tone="light" />
-      <PendingDealsBand tone="light" />
-
-      {/* IDENTITY section anchor. Also contains ACTIVATION + ROLE blocks below. */}
-      {/* The four sections are a deck now, not a scroll. The tab strip
-          above drives it; the deck owns the motion. */}
+      {/* The tab strip is the only navigation control. Render one focused
+          panel instead of a stacked animated deck with duplicate controls. */}
       <Band tone="light" compact>
-        <ProfileDeck
-          panels={deckPanels}
-          activeKey={activeTab}
-          onChange={setActiveTab}
-        />
+        <section
+          id={activePanel.key}
+          aria-label={activePanel.label}
+          className={`mx-auto w-full max-w-[1040px] overflow-hidden border shadow-[0_16px_48px_rgba(16,15,14,0.08)] ${
+            activePanel.tone === 'dark'
+              ? 'border-white/10 bg-[var(--lp-ink)] text-white'
+              : 'border-[var(--lp-line)] bg-[var(--lp-paper)] text-[var(--lp-ink)]'
+          }`}
+          style={{ borderRadius: 20 }}
+        >
+          {activePanel.content}
+        </section>
       </Band>
 
       <ActivationModal
@@ -686,6 +714,15 @@ function ProfilePageInner() {
 
 type AgentRow = { label: string; value: string; mono?: boolean };
 
+function ConnectionCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-[112px] flex-col justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
+      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{label}</span>
+      <div className="flex min-w-0 max-w-full items-center [&>*]:max-w-full">{children}</div>
+    </div>
+  );
+}
+
 function AgentBlock({
   eyebrow,
   fallbackName,
@@ -701,28 +738,28 @@ function AgentBlock({
 }) {
   return (
     <div
-      className="group relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer hover:-translate-y-1"
+      className="group relative overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out"
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.10)',
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 4,
+        boxShadow: '0 10px 30px -24px rgba(0,0,0,0.20)',
       }}
     >
-      <div className="p-6 md:p-7">
-        <div className="flex items-start justify-between gap-4">
+      <div className="p-4 sm:p-5">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">
           <div className="min-w-0">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               [:{eyebrow}:]
             </span>
-            <h3 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+            <h3 className="mt-1.5 font-sans text-[18px] sm:text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
               {name || fallbackName}
             </h3>
           </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex max-w-full flex-col items-start gap-1.5 sm:shrink-0 sm:items-end">
             {agentAddress && (
               <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 {shortAddress(agentAddress)}
@@ -731,18 +768,18 @@ function AgentBlock({
             <ReputationBadge address={agentAddress} size="sm" withDetail />
           </div>
         </div>
-        <div className="mt-5 divide-y divide-[var(--lp-border-light)]">
+        <div className="mt-4 divide-y divide-[var(--lp-border-light)]">
           {rows.map((r) => (
             <div
               key={r.label}
-              className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0"
+              className="grid grid-cols-[minmax(88px,auto)_minmax(0,1fr)] items-baseline gap-3 py-2.5 first:pt-0 last:pb-0"
             >
               <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] shrink-0">
                 {r.label}
               </span>
               <span
-                className={`text-end text-[13px] text-[var(--lp-dark)] truncate ${
-                  r.mono ? 'mono tabular-nums font-medium' : 'font-sans'
+                className={`text-end text-[13px] text-[var(--lp-dark)] break-words ${
+                  r.mono ? 'font-sans tabular-nums font-semibold tracking-[-0.01em]' : 'font-sans'
                 }`}
               >
                 {r.value}
@@ -754,4 +791,3 @@ function AgentBlock({
     </div>
   );
 }
-

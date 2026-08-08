@@ -34,7 +34,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
             type="button"
             onClick={() => handle(l)}
             aria-pressed={active}
-            className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-colors"
+            className="relative overflow-hidden text-start ps-4 pe-3.5 py-3 transition-[transform,box-shadow,background-color] hover:-translate-y-0.5 hover:shadow-sm sm:last:odd:col-span-2 sm:last:odd:w-[calc(50%-0.3125rem)] sm:last:odd:justify-self-center"
             style={{
               background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
               color: 'var(--lp-dark)',

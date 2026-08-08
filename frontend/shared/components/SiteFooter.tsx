@@ -60,7 +60,7 @@ export function SiteFooter() {
             {/* RIGHT. three columns of links. Kept on ONE row from mobile up so
                 the footer stays compact; the type steps down a touch on small
                 screens so three columns don't feel cramped. */}
-            <div className="grid grid-cols-3 gap-x-4 sm:gap-x-8 gap-y-8 md:gap-y-10">
+            <div className="grid grid-cols-2 gap-x-7 gap-y-8 sm:grid-cols-3 sm:gap-x-8 md:gap-y-10">
               <FooterCol title={t.columns.product}>
                 <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
                 <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
@@ -84,7 +84,11 @@ export function SiteFooter() {
                   {t.networkLinks.faucet}
                 </FooterLink>
               </FooterCol>
-              <FooterCol title={t.columns.socials}>
+              <FooterCol
+                title={t.columns.socials}
+                className="col-span-2 sm:col-span-1"
+                linksClassName="flex-row flex-wrap gap-x-5 gap-y-2.5 sm:flex-col sm:gap-x-0"
+              >
                 <FooterSocialLink href="https://x.com/karwanBuild" label="X" glyph={<XGlyph />} />
                 <FooterSocialLink
                   href="https://www.linkedin.com"
@@ -176,7 +180,7 @@ function NewsletterSignup() {
       <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
         {t.blurb}
       </p>
-      <div className="flex items-stretch gap-2 max-w-[360px]">
+      <div className="flex max-w-[360px] flex-col items-stretch gap-2 min-[380px]:flex-row">
         <input
           type="email"
           value={email}
@@ -194,7 +198,7 @@ function NewsletterSignup() {
         <button
           type="submit"
           disabled={state === 'sending'}
-          className="shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform"
+          className="w-full shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform min-[380px]:w-auto"
           style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
         >
           {state === 'sending' ? t.sending : t.cta}
@@ -269,13 +273,23 @@ function OperationalPill() {
   );
 }
 
-function FooterCol({ title, children }: { title: string; children: ReactNode }) {
+function FooterCol({
+  title,
+  children,
+  className,
+  linksClassName,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+  linksClassName?: string;
+}) {
   return (
-    <div>
+    <div className={className}>
       <p className="mono text-[9px] sm:text-[10px] uppercase tracking-[0.16em] sm:tracking-[0.18em] text-[var(--lp-text-muted)] mb-3 sm:mb-4">
         {title}
       </p>
-      <div className="flex flex-col gap-2 sm:gap-2.5">{children}</div>
+      <div className={cn('flex flex-col gap-2 sm:gap-2.5', linksClassName)}>{children}</div>
     </div>
   );
 }

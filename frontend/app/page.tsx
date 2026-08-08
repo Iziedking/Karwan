@@ -18,7 +18,6 @@ const StatsTicker = dynamic(
   () => import('@/features/activity/components/StatsTicker').then((m) => m.StatsTicker),
   { ssr: false },
 );
-import { PartnerLogos } from '@/shared/components/PartnerLogos';
 import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
@@ -134,71 +133,9 @@ export default function HomePage() {
         </div>
       </Band>
 
-      {/* ECOSYSTEM. light */}
-      <Band tone="light" compact>
-        <div className="space-y-6">
-          <SectionTag>{lp.ecosystem.tag}</SectionTag>
-          <PartnerLogos />
-        </div>
-      </Band>
-
-      {/* DIRECT DEALS. light */}
-      <Band tone="light">
-        <Reveal>
-          <SectionTag>{lp.directDeals.tag}</SectionTag>
-          <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-            {lp.directDeals.title}
-          </h2>
-          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-xl">
-            {lp.directDeals.body}
-          </p>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <div className="mt-10 grid sm:grid-cols-2 gap-5">
-            <FeatureTile
-              glyph={<GlyphWallet />}
-              title={lp.directDeals.tile1Title}
-              body={lp.directDeals.tile1Body}
-            />
-            <FeatureTile
-              glyph={<GlyphTranches />}
-              title={lp.directDeals.tile2Title}
-              body={lp.directDeals.tile2Body}
-            />
-          </div>
-        </Reveal>
-      </Band>
-
-      {/* MANAGED DEALS. dark */}
-      <Band tone="dark">
-        <Reveal>
-          <SectionTag tone="dark">{lp.managedDeals.tag}</SectionTag>
-          <h2 className="mt-5 font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.98] text-balance text-[clamp(2.25rem,4.6vw,4rem)]">
-            {lp.managedDeals.title}
-          </h2>
-          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-xl">
-            {lp.managedDeals.body}
-          </p>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <div className="mt-10 grid sm:grid-cols-2 gap-5">
-            <FeatureTile
-              tone="dark"
-              glyph={<GlyphAuction />}
-              title={lp.managedDeals.tile1Title}
-              body={lp.managedDeals.tile1Body}
-            />
-            <FeatureTile
-              tone="dark"
-              glyph={<GlyphSettle />}
-              title={lp.managedDeals.tile2Title}
-              body={lp.managedDeals.tile2Body}
-            />
-          </div>
-        </Reveal>
-      </Band>
-
       <HowItWorksSection copy={lp.howItWorks} />
+      <DealPathsSection direct={lp.directDeals} managed={lp.managedDeals} />
+
       <FlowSection copy={lp.flow} />
       <TradeLanesSection copy={lp.tradeLanes} />
       <EarlyTradesSection copy={lp.earlyTrades} />
@@ -275,6 +212,34 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
           </motion.li>
         ))}
       </ol>
+    </Band>
+  );
+}
+
+function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeals']; managed: LandingCopy['managedDeals'] }) {
+  return (
+    <Band tone="dark">
+      <Reveal><SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag><h2 className="mt-6 font-sans text-5xl font-extrabold uppercase">Choose how the deal starts.</h2></Reveal>
+      <div className="mt-14 grid gap-0 lg:grid-cols-2">
+        <article className="border-b border-white/10 pb-10 lg:border-b-0 lg:border-e lg:pe-12">
+          <div className="mb-8 text-[var(--lp-accent)]"><GlyphWallet /></div>
+          <h3 className="font-sans text-3xl font-extrabold uppercase">{direct.title}</h3>
+          <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--lp-text-muted)]">{direct.body}</p>
+          <ul className="mt-8 space-y-4 text-sm text-white">
+            <li><strong>{direct.tile1Title}.</strong> <span className="text-[var(--lp-text-muted)]">{direct.tile1Body}</span></li>
+            <li><strong>{direct.tile2Title}.</strong> <span className="text-[var(--lp-text-muted)]">{direct.tile2Body}</span></li>
+          </ul>
+        </article>
+        <article className="pt-10 lg:ps-12 lg:pt-0">
+          <div className="mb-8 text-[var(--lp-accent)]"><GlyphAuction /></div>
+          <h3 className="font-sans text-3xl font-extrabold uppercase">{managed.title}</h3>
+          <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--lp-text-muted)]">{managed.body}</p>
+          <ul className="mt-8 space-y-4 text-sm text-white">
+            <li><strong>{managed.tile1Title}.</strong> <span className="text-[var(--lp-text-muted)]">{managed.tile1Body}</span></li>
+            <li><strong>{managed.tile2Title}.</strong> <span className="text-[var(--lp-text-muted)]">{managed.tile2Body}</span></li>
+          </ul>
+        </article>
+      </div>
     </Band>
   );
 }
@@ -520,12 +485,6 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
             {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span>{copy.titleEnd}
           </h2>
         </div>
-        <p
-          className="mono text-[11px] uppercase tracking-[0.1em] max-w-[260px]"
-          style={{ color: 'var(--lp-text-sub)' }}
-        >
-          {copy.footnote}
-        </p>
       </Reveal>
 
       <ul>

@@ -5,6 +5,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
+import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -22,6 +23,7 @@ import {
   Accent,
   AddressPill,
   CTAPill,
+  PageCard,
 } from '@/shared/components/Bands';
 
 /// The B2B sell side.
@@ -44,7 +46,7 @@ export default function SupplyPage() {
 function SupplyPageInner() {
   const { address } = useAuth();
   const { profile } = useUserProfile();
-  const { activated } = useActivation();
+  const { activated, agents } = useActivation();
   const sp = useTranslations().supplyPage;
 
   // An individual posts on the P2P desk; this is the company book.
@@ -113,8 +115,20 @@ function SupplyPageInner() {
       </div>
 
       <Band tone="light" compact>
-        <div id="post-supply" data-guide="supply-post" style={{ scrollMarginTop: 80 }}>
-          <ListingComposer />
+        <div
+          id="post-supply"
+          data-guide="supply-post"
+          className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-5 items-start"
+          style={{ scrollMarginTop: 80 }}
+        >
+          <PageCard tone="dark" className="min-w-0">
+            <div className="p-6 md:p-8">
+              <ListingComposer />
+            </div>
+          </PageCard>
+          <div className="space-y-4 lg:sticky lg:top-24">
+            <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
+          </div>
         </div>
       </Band>
     </FullBleed>

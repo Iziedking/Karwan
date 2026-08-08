@@ -9,10 +9,13 @@ import {
   HeroHeadline,
   Punc,
   Accent,
+  CTAPill,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
+import { PageTour } from '@/shared/guide/PageTour';
+import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
 import { UsycReservesWidget } from '@/features/reputation/components/UsycReservesWidget';
 import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPanel';
@@ -119,6 +122,7 @@ function StakePageInner() {
 
   return (
     <FullBleed>
+      <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] fade-up">
@@ -133,6 +137,9 @@ function StakePageInner() {
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
+          <div className="mt-7">
+            <CTAPill href="#vault">{sp.vault.heading}</CTAPill>
+          </div>
             {sp.hero.body}
           </p>
         </div>
@@ -184,7 +191,7 @@ function StakePageInner() {
       </Band>
 
       {/* NETWORK YIELD: protocol-wide accrual, three tiles + live chart. */}
-      <Band tone="light" compact>
+      <Band tone="light" compact dataGuide="stake-network-yield">
         <div className="flex items-center gap-2">
           <SectionTag>NETWORK YIELD</SectionTag>
           <Hint glow side="bottom" align="start">
@@ -204,7 +211,7 @@ function StakePageInner() {
       </Band>
 
       {/* PER-ACCOUNT YIELD: the connected wallet's slice + Claim CTA. */}
-      <Band tone="light" compact>
+      <Band tone="light" compact dataGuide="stake-your-yield">
         <div className="flex items-center gap-2">
           <SectionTag>YOUR YIELD</SectionTag>
           <Hint glow side="bottom" align="start">
@@ -221,14 +228,14 @@ function StakePageInner() {
       </Band>
 
       {/* STAKE INTERFACE: deposit + withdraw against the live KarwanVault. */}
-      <Band tone="light" compact>
+      <Band tone="light" compact id="vault" className="scroll-mt-24" dataGuide="stake-vault">
         <SectionTag>{sp.vault.tag}</SectionTag>
         <HeroHeadline size="md">
           {sp.vault.heading}
           <Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-10">
-          <StakeCard />
+          <StakeCard tour={false} />
           <LegacyStakeNudge />
         </div>
       </Band>
@@ -288,7 +295,7 @@ function StakePageInner() {
                       </p>
                       <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
                         {BREAKS[i]}
-                        {i < ORDER.length - 1 ? ` – ${BREAKS[i + 1] - 1}` : '+'}
+                        {i < ORDER.length - 1 ? ` - ${BREAKS[i + 1] - 1}` : '+'}
                       </span>
                     </div>
                     <p className="mt-1 text-[13px] leading-snug text-[var(--lp-text-sub)] max-w-[60ch]">

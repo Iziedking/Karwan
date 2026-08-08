@@ -101,7 +101,7 @@ export default function DocsDisputesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[var(--lp-border-light)]">
           {cells.map((cell) => (
             <div key={cell.label} className="px-4 py-3">
-              <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-snug">
+              <p className="min-h-[2.75em] mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] leading-snug">
                 {cell.label}
               </p>
               <p className="mt-1 mono text-[20px] font-semibold tabular-nums leading-none text-[var(--lp-dark)]">

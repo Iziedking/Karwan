@@ -15,9 +15,9 @@ import {
 /// it is never re-allocated per render. English literals (i18n-debt precedent
 /// for in-app marketing copy); translate alongside the rest of the hero later.
 const HERO_PILLARS = [
-  { index: '[:001]', title: 'Escrow in USDC', body: 'Funds lock on Arc the moment both sides agree the terms.' },
-  { index: '[:002]', title: 'Milestone release', body: 'Tranches pay out as the work lands, never before.' },
-  { index: '[:003]', title: 'On-chain proof', body: 'Every settlement is verifiable by anyone on Arc.' },
+  { index: '[:001]', title: 'Escrow in USDC', body: 'Funds are secured on Arc once both parties approve the terms.' },
+  { index: '[:002]', title: 'Milestone release', body: 'Payments release in agreed tranches as milestones are delivered.' },
+  { index: '[:003]', title: 'On-chain proof', body: 'Every settlement creates a transparent, verifiable record on Arc.' },
 ] as const;
 
 /// Shared sign-in prompt rendered by every gated page. The home page uses

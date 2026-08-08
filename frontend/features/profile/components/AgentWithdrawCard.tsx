@@ -25,11 +25,11 @@ const CARD_STYLE = {
   background: 'var(--lp-card)',
   color: 'var(--lp-dark)',
   border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
+  borderTopLeftRadius: 16,
+  borderTopRightRadius: 16,
+  borderBottomLeftRadius: 16,
   borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+  boxShadow: '0 12px 36px -28px rgba(0,0,0,0.28)',
 } as const;
 
 const TONE_COLOR = {
@@ -144,19 +144,19 @@ export function AgentWithdrawCard({
   return (
     <section
       style={CARD_STYLE}
-      className="p-6 md:p-8 h-full min-w-0 flex flex-col overflow-hidden"
+      className="p-4 sm:p-5 md:p-6 h-full min-w-0 flex flex-col overflow-hidden"
     >
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         {aw.header.eyebrow}
       </span>
-      <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+      <h2 className="mt-1.5 font-sans text-[19px] sm:text-[21px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
         {aw.header.title}
       </h2>
       <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {aw.header.subtitle}
       </p>
 
-      <form onSubmit={submit} className="mt-6 flex flex-1 flex-col gap-5">
+      <form onSubmit={submit} className="mt-5 flex flex-1 flex-col gap-4">
         <div>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {aw.form.fromEyebrow}

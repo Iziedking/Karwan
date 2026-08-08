@@ -140,7 +140,7 @@ export function IntakeShell({
 
   return (
     <div className="space-y-7">
-      <div className="inline-flex p-1 gap-1" style={CHOOSER_BG}>
+      <div role="tablist" aria-label="Input method" className="inline-flex p-1 gap-1" style={CHOOSER_BG}>
         <ChooserButton
           active={mode === 'form'}
           onClick={() => pickMode('form')}
@@ -279,6 +279,8 @@ function ChooserButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       title={tooltip}
       aria-label={tooltip}

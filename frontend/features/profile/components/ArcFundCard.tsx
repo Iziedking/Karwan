@@ -17,11 +17,11 @@ const CARD_STYLE = {
   background: 'var(--lp-card)',
   color: 'var(--lp-dark)',
   border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
+  borderTopLeftRadius: 16,
+  borderTopRightRadius: 16,
+  borderBottomLeftRadius: 16,
   borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+  boxShadow: '0 12px 36px -28px rgba(0,0,0,0.28)',
 } as const;
 
 const TONE_COLOR = {
@@ -186,14 +186,14 @@ export function ArcFundCard({
   return (
     <section
       style={CARD_STYLE}
-      className="p-6 md:p-8 h-full min-w-0 flex flex-col overflow-hidden"
+      className="p-4 sm:p-5 md:p-6 h-full min-w-0 flex flex-col overflow-hidden"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{af.header.eyebrow}:]
           </span>
-          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
+          <h2 className="mt-1.5 font-sans text-[19px] sm:text-[21px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
             {af.header.title}
           </h2>
           <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
@@ -255,7 +255,7 @@ export function ArcFundCard({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-1 flex-col gap-5">
+      <form onSubmit={handleSubmit} className="mt-5 flex min-w-0 w-full flex-1 flex-col gap-4">
         {/* RECIPIENT PICKER */}
         <div>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -275,7 +275,7 @@ export function ArcFundCard({
                   disabled={disabled}
                   aria-pressed={active}
                   className={cn(
-                    'relative overflow-hidden text-start p-4 transition-colors text-[var(--lp-dark)]',
+                    'relative w-full min-w-0 overflow-hidden text-start p-3.5 transition-colors text-[var(--lp-dark)] sm:p-4',
                     !active && !disabled && 'hover:-translate-y-0.5',
                   )}
                   style={{
@@ -303,12 +303,12 @@ export function ArcFundCard({
                       style={{ background: 'var(--lp-accent)' }}
                     />
                   )}
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <WalletAvatar address={o.address ?? '0x0'} size={24} />
                     <p className="min-w-0 flex-1 text-[13px] font-semibold tracking-[-0.01em] leading-tight truncate">
                       {o.label}
                     </p>
-                    <span className="inline-flex items-baseline gap-1 shrink-0">
+                    <span className="hidden shrink-0 items-baseline gap-1 min-[390px]:inline-flex">
                       <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
                         {o.address ? (balHuman ?? '-') : '-'}
                       </span>
@@ -384,7 +384,7 @@ export function ArcFundCard({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="group mt-auto w-full inline-flex items-center justify-center gap-2 px-5 py-4 mono text-[13px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          className="group mt-auto inline-flex w-full min-w-0 items-center justify-center gap-2 px-3 py-4 mono text-[11px] font-bold uppercase tracking-[0.06em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 sm:px-5 sm:text-[13px] sm:tracking-[0.08em]"
           style={{
             borderTopLeftRadius: 14,
             borderTopRightRadius: 14,
@@ -401,7 +401,7 @@ export function ArcFundCard({
             af.submit.transferInProgress
           ) : (
             <>
-              <span>
+              <span className="min-w-0 text-center leading-tight">
                 {onWrongChain
                   ? af.submit.switchToArc
                   : af.submit.sendToTemplate.replace(
