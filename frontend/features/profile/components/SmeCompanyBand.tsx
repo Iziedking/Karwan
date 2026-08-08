@@ -229,9 +229,9 @@ export function SmeCompanyBand({
         ) : null}
       </div>
 
-      <div className="mt-7 grid md:grid-cols-2 gap-5">
+      <div className="mt-4 max-w-[760px] grid md:grid-cols-2 gap-3">
         <PageCard>
-          <div className="p-5 md:p-6 space-y-3">
+          <div className="p-4 md:p-5 space-y-2.5">
             {editing ? (
               <SmeEditGrid
                 companyName={companyName}
@@ -336,7 +336,7 @@ export function SmeCompanyBand({
         </PageCard>
         {repayment && repayment.windowDealCount > 0 ? (
           <PageCard>
-            <div className="p-5 md:p-6">
+            <div className="p-4 md:p-5">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                 [:REPAYMENT BEHAVIOR:]
               </p>
