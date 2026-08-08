@@ -190,21 +190,21 @@ export function SmeCompanyBand({
 
   if (!loaded) {
     return (
-      <Band tone="light" compact>
+      <div className="relative">
         <SectionTag>COMPANY PROFILE</SectionTag>
         <HeroHeadline size="md">
           Loading<Punc>…</Punc>
         </HeroHeadline>
-      </Band>
+      </div>
     );
   }
 
   return (
-    <Band tone="light" compact>
+    <div className="relative">
       <div
         ref={cardRef}
         style={{ scrollMarginTop: 80 }}
-        className="flex items-end justify-between gap-4 flex-wrap"
+        className="flex w-full max-w-[760px] items-end justify-between gap-4 flex-wrap"
       >
         <div>
           <SectionTag dot={verifiedAt ? 'live' : undefined}>COMPANY PROFILE</SectionTag>
@@ -229,7 +229,7 @@ export function SmeCompanyBand({
         ) : null}
       </div>
 
-      <div className="mt-4 max-w-[760px] grid md:grid-cols-2 gap-3">
+      <div className="mt-4 grid w-full max-w-[760px] min-w-0 gap-3 md:grid-cols-2 [&>*]:min-w-0">
         <PageCard>
           <div className="p-4 md:p-5 space-y-2.5">
             {editing ? (
@@ -364,7 +364,7 @@ export function SmeCompanyBand({
           </PageCard>
         ) : null}
       </div>
-    </Band>
+    </div>
   );
 }
 
