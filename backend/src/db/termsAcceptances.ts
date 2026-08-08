@@ -10,7 +10,7 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'terms-acceptances.json');
 /// trail of who accepted what is worth keeping.
 export interface TermsAcceptance {
   address: string;
-  version: number;
+  version: string;
   acceptedAt: number;
   /// Optional. We do not log IP unless the operator opts into it via env;
   /// keeping the type wide lets us populate it later without a migration.
@@ -50,7 +50,7 @@ function persist(): void {
   }
 }
 
-function key(address: string, version: number): string {
+function key(address: string, version: string): string {
   return `${address.toLowerCase()}:${version}`;
 }
 
@@ -66,13 +66,13 @@ export function recordAcceptance(input: TermsAcceptance): TermsAcceptance {
 }
 
 /// Returns the most recent version this address has accepted, or null.
-export function highestAcceptedVersion(address: string): number | null {
+export function highestAcceptedVersion(address: string): string | null {
   load();
   const a = address.toLowerCase();
-  let highest: number | null = null;
+  let highest: string | null = null;
   for (const row of store.values()) {
     if (row.address === a) {
-      if (highest == null || row.version > highest) highest = row.version;
+      if (highest == null || row.acceptedAt > (store.get(key(a, highest))?.acceptedAt ?? 0)) highest = row.version;
     }
   }
   return highest;

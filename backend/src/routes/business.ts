@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+﻿import { Hono } from 'hono';
 import { z } from 'zod';
 import { readSession } from '../auth/session.js';
 import { accountKindOf } from '../profile/accountType.js';
@@ -153,11 +153,11 @@ async function recordSubmission(
     const opChat = supportOperatorChatId();
     if (opChat !== null) {
       const base = config.FRONTEND_BASE_URL?.replace(/\/$/, '');
-      const where = [company.sector, company.region].filter(Boolean).join(' · ');
+      const where = [company.sector, company.region].filter(Boolean).join(' Â· ');
       void sendTelegramMessage(
         opChat,
         `*New business review*\n${company.companyName}${where ? `\n${where}` : ''}\n` +
-          `Applicant: \`${address.slice(0, 6)}…${address.slice(-4)}\`\nDocument: ${docKind}`,
+          `Applicant: \`${address.slice(0, 6)}â€¦${address.slice(-4)}\`\nDocument: ${docKind}`,
         base ? [{ text: 'Open admin review', url: `${base}/admin/business` }] : undefined,
       );
     }
@@ -361,6 +361,14 @@ businessRoutes.get('/status/:address', async (c) => {
     accountType: profile.accountType ?? 'person',
     status: profile.business?.status ?? 'none',
     verifiedAt: profile.business?.verifiedAt,
+    issuer: profile.business?.issuer,
+    provenProperties: profile.business?.provenProperties,
+    evidenceCommitment: profile.business?.evidenceCommitment,
+    expiresAt: profile.business?.expiresAt,
+    revokedAt: profile.business?.revokedAt,
+    reasonCode: profile.business?.reasonCode,
+    message: profile.business?.message,
+    reviewedAt: profile.business?.reviewedAt,
     company: sme
       ? {
           companyName: sme.companyName,

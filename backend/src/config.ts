@@ -38,6 +38,12 @@ function envBool(name: string) {
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  SKILL_VERIFICATION_ENFORCED: envBool('SKILL_VERIFICATION_ENFORCED'),
+  BUSINESS_VERIFICATION_ENFORCED: envBool('BUSINESS_VERIFICATION_ENFORCED'),
+  VERIFIED_REPUTATION_ENFORCED: envBool('VERIFIED_REPUTATION_ENFORCED'),
+  VERIFIED_AGENT_MATCHING_ENFORCED: envBool('VERIFIED_AGENT_MATCHING_ENFORCED'),
+  UNVERIFIED_BUSINESS_PERKS_ENFORCED: envBool('UNVERIFIED_BUSINESS_PERKS_ENFORCED'),
+  VERIFICATION_POLICY_VERSION: z.string().trim().min(1).default('testnet-open-v1'),
   PORT: z.coerce.number().int().positive().default(8787),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
 
@@ -158,7 +164,7 @@ const envSchema = z.object({
   ),
   /// Base mainnet RPC, used ONLY to read the x402 external payer's USDC balance
   /// for the admin health probe (x402PayerHealth). Settlement never touches this
-  /// — the facilitator submits on chain — so a public endpoint is fine. Defaults
+  /// â€” the facilitator submits on chain â€” so a public endpoint is fine. Defaults
   /// to Base's public RPC when unset.
   BASE_RPC_URL: z.preprocess(blankToUndefined, z.string().url().default('https://mainnet.base.org')),
   /// Bypass the 24h per-address cache on external screens / market lookups.
@@ -314,7 +320,7 @@ const envSchema = z.object({
   // with it. Bump the default rather than setting the env per environment: an
   // env that goes unset silently keeps serving the old version while the
   // frontend footer already shows the new one.
-  TERMS_CURRENT_VERSION: z.coerce.number().int().positive().default(2),
+  TERMS_CURRENT_VERSION: z.string().regex(/^\\d+\\.\\d+\\.\\d+$/).default('2.1.0'),
   // Delay-appeal grace: how long after the first milestone is released before
   // the seller can raise a delay appeal. Gives the buyer a normal review
   // window before any pressure. 1 hour default; longer on mainnet.
@@ -334,7 +340,7 @@ const envSchema = z.object({
   // A dispute with a silent counterparty could sit forever: the propose/accept
   // exit needs the other side to click accept, and the arbiter resolve() is a
   // manual admin action. To guarantee money is never permanently stuck, the
-  // watcher auto-resolves any dispute older than this via the arbiter path —
+  // watcher auto-resolves any dispute older than this via the arbiter path â€”
   // to the seller if they delivered (buyer went silent on real work), else a
   // refund to the buyer. 7-day default gives an engaged party ample room to
   // propose a split first; lower it for demos via env. Requires
@@ -472,7 +478,7 @@ const envSchema = z.object({
   SUPERVISOR_LLM_MODEL: z.string().default('claude-haiku-4-5'),
   // Proactive supervisor: when on, every captured backend error is auto-diagnosed
   // as it lands instead of only on-demand via POST /api/admin/diagnose. OFF by
-  // default because each diagnosis is a paid Anthropic call — turn it on once the
+  // default because each diagnosis is a paid Anthropic call â€” turn it on once the
   // on-demand diagnoses look reliable. Guardrails below cap the cost.
   SUPERVISOR_PROACTIVE_ENABLED: envBool('SUPERVISOR_PROACTIVE_ENABLED'),
   // Rate cap for proactive mode: at most this many diagnoses per rolling window,
@@ -490,7 +496,7 @@ const envSchema = z.object({
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // The AUTHENTICATED assistant runs a tool-calling loop that can read the
   // signed-in user's OWN data (balance, deals). Because that data is private, it
-  // runs on the DIRECT Anthropic key ONLY — same privacy boundary as the
+  // runs on the DIRECT Anthropic key ONLY â€” same privacy boundary as the
   // supervisor, never a Conduit / OpenRouter hop. Null (feature off) when no key.
   // The anonymous, knowledge-only /chat path keeps its provider chain.
   ASSISTANT_AGENT_LLM_MODEL: z.string().default('claude-haiku-4-5'),
@@ -810,7 +816,7 @@ if (
 
 // The external x402 rail (Base) funds every paid market read. When its payer
 // key is unset, maybeResearchMarket / maybeSellerResearch silently no-op, so
-// the agents negotiate blind on on-platform signals alone — the exact "live
+// the agents negotiate blind on on-platform signals alone â€” the exact "live
 // intelligence never reaches the decision" gap the agentic-workflow work
 // closes. Make that state LOUD at boot instead of a silent degradation. The
 // payer-EOA-balance-too-low half of the check is async (needs an on-chain read)
