@@ -1,6 +1,6 @@
 # Karwan terms and conditions
 
-Last updated: 2026-07-25. Version: 2.
+Last updated: 2026-08-08. Version: 2.1.0.
 
 These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.
 
@@ -12,7 +12,7 @@ Karwan is a settlement layer for cross-border work between businesses, freelance
 - **Settlement in USDC.** All movement inside Karwan is in USDC, a dollar stablecoin issued by Circle.
 - **Local currency.** Karwan does not convert to or from your local currency inside the product today. Converting is your own decision, made outside Karwan. Local currency access is being enabled region by region. Where it becomes available, it is provided by a licensed partner under their own terms and their own identity checks, and what you can reach depends on the region your account is registered in. Nothing here is a commitment to a date or to a particular region.
 - **Invite by email.** You can open a deal with someone who has no account. They claim it from an emailed link with a one-time code, and get paid without ever installing a wallet.
-- **Moving money in and out.** USDC can be moved to Arc from Ethereum, Base, Arbitrum, Optimism, Polygon, and Solana, and back out to any of them, using Circle's Cross-Chain Transfer Protocol. Transfers within Arc are direct.
+- **Moving money in and out.** Use the deposit and withdrawal routes shown in the product. Available networks and transfer paths depend on the current Circle configuration. Transfers within Arc are direct.
 - **Reputation and the credit passport.** Your account carries a tier and a score built from settled deal history. Anyone with your address can read the on-chain part.
 - **Agents.** Optional buyer and seller agents find counterparties, score offers, and negotiate inside the limits you set. They negotiate. They do not move money on their own. Every movement is either approved by you or is one of the automatic outcomes in section 4.
 - **The assistant.** An in-product AI assistant answers questions and can prepare actions for you. Anything that moves money is shown to you and needs your confirmation before it runs. You can ask it for a person at any point, which opens a support ticket.
@@ -44,7 +44,7 @@ You take care of:
 - **Reviewing what you receive.** Look at the deliverable before you release the final milestone. Once released, the funds are with the seller.
 - **The deadlines you set.** If you give the seller two days, you cannot claim breach before that period has passed. If you do not set a deadline, the deal stays open until one of you closes it.
 - **Off-platform delivery.** If you and your counterparty agree to share files, links, or specs outside Karwan, we cannot help you recover funds released on those grounds.
-- **Who you deal with.** Karwan does not verify identity, licences, or the right to trade. A tier and a score describe settlement history, not trustworthiness.
+- **Who you deal with.** An individual skill can be self-declared and may not be verified. A business verification state covers only the submitted business evidence and enabled review path. Neither a badge nor a reputation tier confirms identity, licensing, solvency, performance, or safety.
 - **Currency.** Karwan does not convert currencies and does not apply an exchange rate. Amounts you enter are amounts in USDC. If local currency access reaches your region, the rate and the fee on that leg belong to the partner providing it, not to Karwan.
 
 ## 4. How a deal settles
@@ -55,7 +55,7 @@ Once escrow is funded, these are the rules that move the money.
 - **Automatic release.** Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.
 - **A missed deadline.** When a delivery deadline passes with nothing delivered, the buyer is alerted and can reclaim or grant an extension. If nobody acts and the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller.
 - **Cancelling.** A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.
-- **Disputes.** There is no human arbitration today. Where a dispute cannot be settled between the two of you, the contract logic and the recorded outcomes are the source of truth. Do not open a deal on Karwan expecting a third party to rule on it.
+- **Disputes.** A dispute freezes the unreleased escrow. The parties can agree a split themselves. If they do not, the configured arbiter can resolve the dispute by setting the release and refund proportions. The live deal and verified contract are the source of truth for the available path.
 
 The exact timings in force are published on the disputes page in the product, and they can change. The page shows the live values, not a copy of them.
 
@@ -73,7 +73,31 @@ The full formula lives in `docs/reputation-model.md`. Agents read the tier and a
 
 Reputation is written against the account that settled the deal. If you use an agent wallet, the record follows that wallet.
 
-## 6. Risk you carry
+## 6. Verification and account status
+
+Verification is an account capability, not a promise about a person, company, skill, license, solvency, or future performance.
+
+### Individual skill claims
+
+You may describe skills on an individual profile without verification. A self-declared skill is only a claim supplied by the account holder. It is not a credential and does not mean Karwan has tested, endorsed, or independently confirmed the skill.
+
+The individual skill-verification program is not fully available in the current build. Where a future verification path is enabled, it may ask for evidence tied to the claimed skill, such as an external work record, an attestation, or a structured review. The enabled product flow will state what evidence is collected, how long a verification remains valid, and whether it can be revoked or renewed. Do not submit evidence unless the product explicitly presents that flow.
+
+A skill-verification label, when shown, applies only to the named skill and the verification state shown in the product. It does not transfer to other skills, accounts, wallets, companies, or counterparties. Verification can expire, be rejected, or be revoked. You remain responsible for checking the seller's actual work and deal history.
+
+### Business verification
+
+A business account may submit registration and tax-document evidence when the business verification workflow is enabled for that account. The document is hashed in the browser and the document itself is not sent as the verification payload. The account may show an unverified, pending, verified, rejected, expired, or revoked state.
+
+Business verification confirms only that the enabled review and registry path accepted the submitted business evidence at the time shown. It does not confirm that the business is licensed for your transaction, that its goods or services exist, that it will perform, that it is solvent, or that it is safe to trade with. You must perform any legal, sanctions, tax, licensing, and counterparty checks that apply to you.
+
+When verification enforcement is enabled, the product may limit agent matching, rated reputation, or business perks for an unverified business. Direct deals remain available where the governing policy allows them. A verified badge does not guarantee access to every business feature, financing path, or market.
+
+### Policy and availability
+
+Verification rules, evidence requirements, review states, and capability effects can change with the enabled policy and the testnet configuration. The product and the current policy response are authoritative. Roadmap and design documents are not promises of a live verification feature.
+
+## 7. Risk you carry
 
 Stablecoin work has real risks. The ones that apply here:
 
@@ -83,10 +107,10 @@ Stablecoin work has real risks. The ones that apply here:
 - **Network outages.** Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.
 - **Cross-chain transfers.** Moving USDC between chains depends on infrastructure outside Karwan. A transfer can take longer than the product suggests, and a transfer that has left one chain but not yet arrived on another is not something Karwan can reverse.
 - **No fiat conversion guarantee.** If you sell USDC for local currency today, that transaction is solely between you and whoever you sell it to. Where local currency access arrives inside Karwan, it runs on a licensed partner. Availability, limits, rates, and identity checks are set by that partner, can change, and can be withdrawn in a region without notice to you from us.
-- **What is checked, and what is not.** Your money is protected by the escrow contract and every step is written to a record both sides can verify. What Karwan does not do today is screen the person on the other side: there are no sanctions, anti-money-laundering, or business identity checks on a deal. Choose who you work with the way you would anywhere else. Privacy-preserving counterparty screening is on the roadmap for mainnet. Where a licensed partner provides local currency access, that partner runs its own identity checks as part of their service.
+- **What is checked, and what is not.** Your money is protected by the escrow contract and every step is written to a record both sides can verify. Karwan does not run sanctions or anti-money-laundering screening for a deal today. Individual skill labels are self-declared unless the product shows an enabled, skill-specific verification state. Business verification, where enabled, checks submitted registration or tax evidence through the stated review path. It does not prove licensing, solvency, performance, or safety. A state can be pending, rejected, expired, or revoked. Choose who you work with the way you would anywhere else. Privacy-preserving counterparty screening is on the roadmap for mainnet. Where a licensed partner provides local currency access, that partner runs its own identity checks as part of their service.
 - **Geographic and regulatory compliance is yours.** Karwan does not check whether stablecoin payments are legal where you live. Some jurisdictions restrict stablecoin payments, agent-mediated work, or peer-to-peer escrow. You are responsible for knowing your own rules.
 
-## 7. Privacy snapshot
+## 8. Privacy snapshot
 
 What we store:
 
@@ -105,7 +129,7 @@ For accounts Karwan operates on your behalf, the signing capability is held in C
 
 You can ask us to delete your account record from `/settings`. Anything recorded on chain stays on chain. We cannot remove that.
 
-## 8. Account and acceptance
+## 9. Account and acceptance
 
 By accepting these terms in the product, you confirm:
 
@@ -117,6 +141,6 @@ These terms can change. When a material change ships, the version number on this
 
 If you are using the product through an organisation, you confirm that you have authority to bind that organisation to these terms.
 
-## 9. Contact
+## 10. Contact
 
 The fastest channel is the in-product feedback link at `/feedback`, or the assistant, which can open a support ticket for you. For matters that need a paper trail, email the address listed on `karwan.site` under "Contact". Every live chat and email opens a ticket with an id. Keep the id if you have one.

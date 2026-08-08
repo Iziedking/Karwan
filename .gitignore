@@ -59,6 +59,8 @@ backend/data/
 
 # internal, not for public repo
 PLAN.md
+docs/current-build.md
+docs/superpowers/
 USYC.md
 todo.md
 docs/ignyte-demo-runbook.md

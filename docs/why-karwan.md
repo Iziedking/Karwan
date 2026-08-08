@@ -87,7 +87,7 @@ Karwan ships two principal contracts, not one.
 - **`KarwanEscrow`** runs the deal. Milestone funding, 150-bps platform fee
   split evenly between buyer and seller, release in tranches, review-window
   auto-release, dispute path, mutual-cancel taxonomy.
-- **`KarwanVault`** runs the reputation stake. Users deposit USDC to lift their tier, deposits are withdrawable anytime with a 3-day cooling window for fraud checks. The vault routes through an ERC-4626 yield adapter, so stake principal earns alongside the reputation work it does.
+- **`KarwanVault`** runs the reputation stake. Users deposit USDC into a position that can contribute to their tier. Withdrawal follows the cooldown returned by the deployed vault, and the position shows when funds become claimable. The vault can route through an ERC-4626 yield adapter when that route is enabled.
 - **`KarwanTreasury`** holds platform fees and parks idle USDC in real Hashnote USYC on Arc. Subscribe and redeem run against Hashnote's ERC-4626 Teller interface, so on-chain accounting reads through to a real tokenized T-bill yield, not a mock.
 
 
@@ -142,7 +142,7 @@ The five languages cover several of the trade corridors where bank rails are slo
 
 ## A few notes for builders reading the source
 
-- **Standard CCTP V2 attestation takes 10-19 minutes** on Sepolia testnets. Fast Transfer would cut this to seconds for a small Circle fee. Karwan ships Standard today to keep the relay path simple.
+- **Cross-chain transfer time is not fixed.** The transfer view reports the current Circle attestation state. Network conditions and the configured route determine when funds arrive.
 - **The buyer-dispute-refund attack is closed.** A seller's active stake reserves against every accepted deal; a failed dispute outcome slashes the reservation to the buyer. Insurance, not just a reputation hit.
 
 ## What is shipped
