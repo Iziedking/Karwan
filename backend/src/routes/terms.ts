@@ -13,7 +13,7 @@ const addrSchema = z
 /// The exact text a web3 user signs to accept the terms. MUST byte-for-byte
 /// match the frontend builder in shared/hooks/useTerms.ts, or the signature
 /// won't verify. Address is lowercased so both sides build the identical string.
-export function termsAcceptanceMessage(address: string, version: number): string {
+export function termsAcceptanceMessage(address: string, version: string): string {
   return `Karwan Terms of Use\n\nI accept version ${version}.\n\nWallet: ${address.toLowerCase()}`;
 }
 
@@ -44,11 +44,11 @@ termsRoutes.post('/accept', async (c) => {
   if (!session) {
     return c.json({ error: 'sign in before accepting the terms' }, 401);
   }
-  let body: { version: number; signature?: string };
+  let body: { version: string; signature?: string };
   try {
     body = z
       .object({
-        version: z.number().int().positive(),
+        version: z.string().regex(/^\\d+\\.\\d+\\.\\d+$/),
         signature: z.string().regex(/^0x[a-fA-F0-9]+$/).optional(),
       })
       .parse(await c.req.json());
