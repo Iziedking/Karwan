@@ -320,7 +320,7 @@ const envSchema = z.object({
   // with it. Bump the default rather than setting the env per environment: an
   // env that goes unset silently keeps serving the old version while the
   // frontend footer already shows the new one.
-  TERMS_CURRENT_VERSION: z.string().regex(/^\\d+\\.\\d+\\.\\d+$/).default('2.1.0'),
+  TERMS_CURRENT_VERSION: z.string().regex(/^\d+\.\d+\.\d+$/).default('2.1.0'),
   // Delay-appeal grace: how long after the first milestone is released before
   // the seller can raise a delay appeal. Gives the buyer a normal review
   // window before any pressure. 1 hour default; longer on mainnet.

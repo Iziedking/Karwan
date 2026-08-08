@@ -48,7 +48,7 @@ termsRoutes.post('/accept', async (c) => {
   try {
     body = z
       .object({
-        version: z.string().regex(/^\\d+\\.\\d+\\.\\d+$/),
+        version: z.string().regex(/^\d+\.\d+\.\d+$/),
         signature: z.string().regex(/^0x[a-fA-F0-9]+$/).optional(),
       })
       .parse(await c.req.json());
