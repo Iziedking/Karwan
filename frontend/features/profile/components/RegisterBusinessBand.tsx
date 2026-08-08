@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useWriteContract } from 'wagmi';
 import { api, type BusinessRegisterBody } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
+import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
+import { Reveal } from '@/shared/components/Reveal';
 
 /// KarwanBusinessRegistry.submitRegistration, the only function a web3 user
 /// signs directly. The reviewer's approve/reject is backend-signed.
@@ -141,17 +142,23 @@ export function RegisterBusinessBand({ address }: { address: string }) {
 
   if (!loaded) {
     return (
-      <Band tone="light" compact>
+      <Reveal className={BAND_INSET}>
         <SectionTag>BUSINESS</SectionTag>
         <HeroHeadline size="md">
           Loading<Punc>…</Punc>
         </HeroHeadline>
-      </Band>
+      </Reveal>
     );
   }
 
   return (
-    <Band tone="light" compact>
+    /* Deliberately NOT a <Band>. Band is a full-bleed page section
+       (left-1/2 + w-bleed + -translate-x-1/2), and this renders inside the
+       max-w-[1040px] overflow-hidden identity panel. Nested there it became
+       100vw wide, centred on the panel, and the panel clipped roughly 128px
+       off BOTH sides, cutting words off the headline and the body copy.
+       Reveal is kept so the section still gets its scroll-in motion. */
+    <Reveal className={BAND_INSET}>
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <SectionTag dot={status === 'verified' ? 'live' : undefined}>BUSINESS</SectionTag>
@@ -248,9 +255,14 @@ export function RegisterBusinessBand({ address }: { address: string }) {
           </div>
         </PageCard>
       </div>
-    </Band>
+    </Reveal>
   );
 }
+
+/// Horizontal inset for blocks inside the /profile identity panel. Matches the
+/// px-4 / md:px-8 the other blocks in that panel already use, so the business
+/// and trade-card sections line up with everything above them.
+const BAND_INSET = 'px-4 py-7 md:px-8 md:py-9';
 
 const cornerStyle = {
   borderTopLeftRadius: 6,

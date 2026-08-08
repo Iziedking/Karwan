@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
-import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
+import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
 
 // Hoisted constants per Vercel `rendering-hoist-jsx`, never re-allocated
@@ -195,7 +195,7 @@ export function SmeCompanyBand({
 
   if (!loaded) {
     return (
-      <div className="relative">
+      <div className="relative px-4 pb-9 md:px-8 md:pb-11">
         <SectionTag>COMPANY PROFILE</SectionTag>
         <HeroHeadline size="md">
           Loading<Punc>…</Punc>
@@ -204,8 +204,10 @@ export function SmeCompanyBand({
     );
   }
 
+  // Same inset as the business block above. Without it the cards sat flush
+  // against the identity panel's edge while every other block was indented.
   return (
-    <div className="relative">
+    <div className="relative px-4 pb-9 md:px-8 md:pb-11">
       <div
         ref={cardRef}
         style={{ scrollMarginTop: 80 }}
