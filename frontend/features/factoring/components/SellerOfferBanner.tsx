@@ -86,20 +86,20 @@ export function SellerOfferBanner({
       return;
     }
     let cancelled = false;
-    api
-      .listOffersForInvoice(deal.jobId)
-      .then((r) => {
+    const refresh = () => {
+      api.listOffersForInvoice(deal.jobId).then((r) => {
         if (cancelled) return;
-        const open = r.offers.filter(
-          (o) => o.status === 'offered' && Date.now() < o.expiresAt,
-        );
-        setOffers(open);
-      })
-      .catch(() => {
+        setOffers(r.offers.filter((o) => o.status === 'offered' && Date.now() < o.expiresAt));
+      }).catch(() => {
         if (!cancelled) setOffers([]);
       });
+    };
+    refresh();
+    // Financiers can re-price while the seller keeps this deal open.
+    const poll = window.setInterval(refresh, 8000);
     return () => {
       cancelled = true;
+      window.clearInterval(poll);
     };
   }, [eligible, deal.jobId]);
 
