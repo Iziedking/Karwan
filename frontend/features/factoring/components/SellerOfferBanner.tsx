@@ -324,7 +324,18 @@ function OffersModal({
       });
       onAccepted(r.offer);
     } catch (e) {
-      setError((e as Error).message);
+      const raw = e instanceof ApiError
+        ? `${e.message}${typeof e.detail === 'string' ? `: ${e.detail}` : ''}`
+        : (e as Error).message;
+      const lower = raw.toLowerCase();
+      const friendly = lower.includes('authorization') || lower.includes('transferwithauthorization')
+        ? 'The financier authorization was rejected or expired. Ask the financier to re-price the offer, then try again.'
+        : lower.includes('alreadyassigned') || lower.includes('already assigned')
+          ? 'This invoice has already been assigned to a financier. Refresh the offer list before trying again.'
+          : lower.includes('podlocked') || lower.includes('delivery')
+            ? 'This invoice has moved past the factoring window and cannot be assigned.'
+            : raw;
+      setError(friendly);
       // A reputation-tiered stake shortfall: point the seller at staking. The
       // financier's default risk is backed by stake, so an elite is waived and
       // a new wallet must collateralize the advance.

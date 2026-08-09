@@ -70,6 +70,7 @@ export function BridgeOutCard() {
   /// The user's spendable Arc USDC (the identity wallet cash out draws from).
   /// Polled so a fresh top-up shows without a manual refresh.
   const [arcBalance, setArcBalance] = useState<string | null>(null);
+  const [knownKarwanWallets, setKnownKarwanWallets] = useState<string[]>([]);
   useEffect(() => {
     if (!auth.address) {
       setArcBalance(null);
@@ -80,7 +81,10 @@ export function BridgeOutCard() {
       api
         .walletOverview(auth.address as string)
         .then((r) => {
-          if (!cancelled) setArcBalance(r.identity.usdcBalance ?? '0');
+          if (!cancelled) {
+            setArcBalance(r.identity.usdcBalance ?? '0');
+            setKnownKarwanWallets([r.identity.address, r.agents?.buyer.address, r.agents?.seller.address].filter((a): a is string => !!a));
+          }
         })
         .catch(() => {
           /* keep the prior value; the field shows 0 until the first read */
@@ -122,7 +126,7 @@ export function BridgeOutCard() {
   /// back to a format check. The user's own address is trusted (no round-trip).
   const recipientCheck = useAddressKind(recipient, {
     enabled: isArcDest && recipientValid,
-    trustedAddresses: [auth.address],
+    trustedAddresses: [auth.address, ...knownKarwanWallets],
   });
   const recipientBlocked =
     isArcDest && (recipientCheck.kind === 'contract' || recipientCheck.kind === 'checking');

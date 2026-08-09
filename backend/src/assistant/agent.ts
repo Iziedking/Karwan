@@ -23,6 +23,8 @@ import { withLlmTimeout } from '../agents/llm-utils.js';
 import { KARWAN_ASSISTANT_SYSTEM } from './knowledge.js';
 import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
 import { arcTestnet, publicClient } from '../chain/client.js';
+import { vaultAbi } from '../chain/abis/vault.js';
+import { config } from '../config.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { listActivityForAddress } from '../db/activityLog.js';
@@ -1090,7 +1092,15 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             caller: address,
             amountUsdc,
             walletAfterUsdc: (balance - amountUsdc).toFixed(2),
-            cooldownLabel: '7 day',
+            cooldownLabel: await (async () => {
+              try {
+                if (!config.KARWAN_VAULT_ADDR) return '3 day';
+                const days = await publicClient.readContract({ address: config.KARWAN_VAULT_ADDR as `0x${string}`, abi: vaultAbi, functionName: 'COOLDOWN_DAYS' });
+                return `${Number(days)} day`;
+              } catch {
+                return '3 day';
+              }
+            })(),
           });
           if ('error' in built) return built;
           if (!hasEquivalentConfirm(actions, built)) actions.push(built);
