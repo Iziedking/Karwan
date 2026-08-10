@@ -30,13 +30,14 @@ export function CopyAddress({ value, className }: { value: string; className?: s
         if (e.key === 'Enter' || e.key === ' ') copy(e);
       }}
       title={t.copyAddressTooltip}
-      className={`inline-flex items-center gap-1 text-[10px] cursor-pointer transition-colors ${
+      aria-label={copied ? t.copiedLabel : t.copyLabel}
+      className={`grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-[6px] border border-transparent transition-[border-color,background,color] hover:border-[var(--lp-border-light)] hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${
         copied
           ? 'text-[var(--color-positive)]'
           : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]'
       } ${className ?? ''}`}
     >
-      <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
         {copied ? (
           <path
             d="M3.5 8.5l3 3 6-7"
@@ -57,7 +58,6 @@ export function CopyAddress({ value, className }: { value: string; className?: s
           </>
         )}
       </svg>
-      {copied ? t.copiedLabel : t.copyLabel}
     </span>
   );
 }

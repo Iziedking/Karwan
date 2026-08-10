@@ -22,6 +22,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { CopyAddress } from '@/shared/components/CopyAddress';
 import { formatUsdc, shortAddress, shortHash } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -902,9 +903,10 @@ function WalletPickerTile({
       <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {sub}
       </p>
-      <p className="mt-2 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
-        {address ? shortAddress(address) : notProvisionedLabel}
-      </p>
+      <div className="mt-2 flex min-w-0 items-center gap-1.5 mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">
+        <span className="truncate">{address ? shortAddress(address) : notProvisionedLabel}</span>
+        {address && <CopyAddress value={address} className="shrink-0" />}
+      </div>
       <p className="mt-1.5 font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-dark)]">
         {balanceUsdc ? formatUsdc(balanceUsdc) : '—'}
       </p>
