@@ -17,6 +17,7 @@ import type { OAuthClient, OAuthGrant } from './oauth.js';
 import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
+import type { IssuedAttestation } from './attestations.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -194,6 +195,28 @@ export const documentAnchors = pgTable(
   (t) => ({
     invoiceIdx: index('document_anchors_invoice_idx').on(t.invoiceId),
     anchoredAtIdx: index('document_anchors_anchored_at_idx').on(t.anchoredAt),
+  }),
+);
+
+/// Attestations Karwan has issued about settled deals. The id is derived from
+/// the deal and the role rather than generated, so re-running the sweep over a
+/// deal that already has one is a primary-key collision and not a duplicate
+/// statement. `subject` is the indexed column because that is the only lookup a
+/// consumer performs: given an address, what has Karwan said about it.
+export const attestations = pgTable(
+  'attestations',
+  {
+    id: text('id').primaryKey(),
+    subject: text('subject').notNull(),
+    dealRef: text('deal_ref').notNull(),
+    issuedAt: bigint('issued_at', { mode: 'number' }).notNull(),
+    revokedAt: bigint('revoked_at', { mode: 'number' }),
+    data: jsonb('data').$type<IssuedAttestation>().notNull(),
+  },
+  (t) => ({
+    subjectIdx: index('attestations_subject_idx').on(t.subject),
+    issuedAtIdx: index('attestations_issued_at_idx').on(t.issuedAt),
+    revokedAtIdx: index('attestations_revoked_at_idx').on(t.revokedAt),
   }),
 );
 

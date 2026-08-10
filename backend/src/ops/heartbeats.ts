@@ -62,6 +62,7 @@ const WATCHERS: WatcherDescriptor[] = [
   { name: 'poWatcher', label: 'PO financing watcher (release + repay on chain)', intervalMs: envInterval('PO_WATCHER_TICK_MS', MINUTE), enabled: () => !!config.KARWAN_PO_FINANCING_ADDR && !!config.cctpRelayWalletId },
   { name: 'jobExpiryWatcher', label: 'Job expiry watcher (stale jobs, deadline calls)', intervalMs: 30_000, enabled: () => true },
   { name: 'reputationReconciler', label: 'Reputation reconciler (replay settled deals)', intervalMs: 10 * MINUTE, enabled: () => config.REPUTATION_RECONCILER_ENABLED },
+  { name: 'attestationSweep', label: 'Attestation sweep (issue deal-settled credentials)', intervalMs: 60 * MINUTE, enabled: () => config.ATTESTATION_ISSUANCE_ENABLED },
   { name: 'trendScout', label: 'Trend scout (daily demand nudges)', intervalMs: envInterval('TREND_SCOUT_TICK_MS', 24 * 60 * MINUTE), enabled: () => config.TREND_NUDGES_ENABLED },
   { name: 'balanceWatcher', label: 'Balance watcher (wallet credit / debit)', intervalMs: envInterval('BALANCE_WATCHER_POLL_MS', MINUTE), enabled: () => true },
   { name: 'cooldownWatcher', label: 'Vault cooldown watcher', intervalMs: 5 * MINUTE, enabled: () => !!config.KARWAN_VAULT_ADDR },

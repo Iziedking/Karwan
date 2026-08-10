@@ -36,9 +36,13 @@ const nextConfig = {
         source: '/schemas/:path*',
         destination: `${BACKEND}/schemas/:path*`,
       },
+      // Every attestation path, not just the revocation list: the manifest
+      // publishes by-subject and by-id resolution templates on this domain, so a
+      // consumer that can read the manifest but not the documents it points at
+      // has been handed a schema and no evidence.
       {
-        source: '/attestations/revocations.json',
-        destination: `${BACKEND}/attestations/revocations.json`,
+        source: '/attestations/:path*',
+        destination: `${BACKEND}/attestations/:path*`,
       },
     ];
   },

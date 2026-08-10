@@ -86,6 +86,7 @@ import { startVaultScanWatcher } from './chain/vaultScanCache.js';
 import { backfillBusFromChain } from './chain/eventBackfill.js';
 import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
+import { startAttestationSweep } from './attestation/sweep.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
@@ -378,6 +379,20 @@ function bootAgents() {
     appLogger.warn(
       { err: (err as Error).message },
       'reputation reconciler not started',
+    );
+  }
+  try {
+    if (config.ATTESTATION_ISSUANCE_ENABLED) {
+      stopFns.push(startAttestationSweep());
+    } else {
+      appLogger.info(
+        'attestation sweep disabled via ATTESTATION_ISSUANCE_ENABLED',
+      );
+    }
+  } catch (err) {
+    appLogger.warn(
+      { err: (err as Error).message },
+      'attestation sweep not started',
     );
   }
   try {

@@ -720,6 +720,23 @@ const envSchema = z.object({
     blankToUndefined,
     z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
   ),
+  /// The signing key behind that address. Same raw-key shape as
+  /// USYC_OPERATOR_PRIVATE_KEY, and deliberately a key of its own: this one signs
+  /// statements rather than transactions, so it should hold no funds and no
+  /// entitlement, and rotating it must not require moving anything.
+  ///
+  /// Unset means issuance is off. Nothing is signed, the manifest keeps reporting
+  /// `"address": null`, and the subject endpoints serve empty lists. That is the
+  /// honest failure: an issuer with no key has issued nothing, and saying so is
+  /// better than serving unsigned documents that look like evidence.
+  ATTESTATION_ISSUER_PRIVATE_KEY: z.preprocess(
+    blankToUndefined,
+    z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+  ),
+  /// Periodic sweep that issues attestations for settled deals that have none.
+  /// Off by default: turning it on starts publishing signed statements about real
+  /// counterparties, which is a decision an operator should make deliberately.
+  ATTESTATION_ISSUANCE_ENABLED: envBool('ATTESTATION_ISSUANCE_ENABLED'),
 
   // Shared secret gating the admin surface (/api/admin/* and the feedback
   // list/status endpoints). Callers send it as the `X-Admin-Token` header.

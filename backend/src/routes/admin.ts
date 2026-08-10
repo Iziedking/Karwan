@@ -24,6 +24,9 @@ import {
   patchDeal,
 } from '../db/deals.js';
 import { reconcileReputationOnce } from '../reputation/reconciler.js';
+import { issueSettledOnce } from '../attestation/sweep.js';
+import { issuerAddress } from '../attestation/issuer.js';
+import { revokeAttestation } from '../db/attestations.js';
 import { backfillBusFromChain } from '../chain/eventBackfill.js';
 import { eventHistoryCount, adminQueryEvents } from '../events.js';
 import { deleteMatchProposalsInvolvingAddress } from '../db/matchProposals.js';
@@ -748,6 +751,65 @@ adminRoutes.post('/reputation/backfill', async (c) => {
     filterAddr,
     ...result,
   });
+});
+
+/// Run the attestation sweep by hand. The hourly timer covers steady state; this
+/// is for the first run on an existing history, where ?dry=1 shows the size of the
+/// back catalogue and ?limit=N walks it in batches instead of publishing every
+/// past deal on one tick.
+adminRoutes.post('/attestations/sweep', async (c) => {
+  const filterAddrRaw = c.req.query('address');
+  const filterAddr = filterAddrRaw?.toLowerCase() ?? null;
+  if (filterAddr && !addrSchema.safeParse(filterAddr).success) {
+    return c.json({ error: 'invalid address filter' }, 400);
+  }
+  const dryRun = c.req.query('dry') === '1';
+  const limitRaw = c.req.query('limit');
+  const limit = limitRaw === undefined ? undefined : Number(limitRaw);
+  if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0)) {
+    return c.json({ error: 'limit must be a positive integer' }, 400);
+  }
+
+  const result = await issueSettledOnce({ addressFilter: filterAddr, dryRun, limit });
+
+  logger.info(
+    {
+      filterAddr,
+      dryRun,
+      limit,
+      candidates: result.candidates,
+      issued: result.issued.length,
+      alreadyIssued: result.alreadyIssued.length,
+      failed: result.failed.length,
+      skipped: result.skipped.length,
+    },
+    'admin: attestation sweep complete',
+  );
+
+  return c.json({
+    ok: true,
+    dryRun,
+    filterAddr,
+    issuer: issuerAddress(),
+    ...result,
+  });
+});
+
+/// Withdraw one attestation. Deliberately manual and deliberately requires a
+/// reason: Paytag publishes a revocation count against the issuer profile, so
+/// every use of this costs standing and should be a decision someone made rather
+/// than something a job did.
+adminRoutes.post('/attestations/:id/revoke', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}) as Record<string, unknown>);
+  const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+  if (!reason) return c.json({ error: 'a reason is required to revoke' }, 400);
+
+  const revoked = await revokeAttestation(id, reason);
+  if (!revoked) return c.json({ error: 'unknown attestation' }, 404);
+
+  logger.warn({ id, reason }, 'admin: attestation revoked');
+  return c.json({ ok: true, attestation: revoked });
 });
 
 /// Force-replay the chain event backfill into the in-memory bus + persisted

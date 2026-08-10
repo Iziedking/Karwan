@@ -68,6 +68,28 @@ export function statusListUrl(): string {
   return `${docBase()}/attestations/revocations.json`;
 }
 
+/// Everything Karwan has attested about one address. The only lookup a consumer
+/// actually performs: Paytag holds a wallet, not a deal id, so an issuer they can
+/// query by subject is an issuer they can use, and one they cannot is a schema
+/// with nowhere to point.
+export function subjectUrl(address: string): string {
+  return `${docBase()}/attestations/by-subject/${address.toLowerCase()}.json`;
+}
+
+export function attestationUrl(id: string): string {
+  return `${docBase()}/attestations/${id}.json`;
+}
+
+/// URL templates, published in the manifest so resolution is discoverable rather
+/// than agreed over chat. RFC 6570 level-1 expansion, which is what every other
+/// well-known document in this codebase uses.
+export function resolutionTemplates() {
+  return {
+    bySubject: `${docBase()}/attestations/by-subject/{address}.json`,
+    byId: `${docBase()}/attestations/{id}.json`,
+  };
+}
+
 /// Amount bands rather than figures.
 ///
 /// The escrows are public, so an exact amount is derivable from chain by anyone who
@@ -102,6 +124,20 @@ export function amountBand(usdc: number): AmountBand {
 /// legitimately needs.
 export function dealRef(jobId: string): `0x${string}` {
   return keccak256(toHex(`karwan.deal:${jobId}`));
+}
+
+/// The attestation's id, derived rather than generated.
+///
+/// Two properties matter and a random id has neither. It has to be idempotent,
+/// because the sweep that issues these re-reads every settled deal on every tick
+/// and must recognise its own past work instead of signing a second statement
+/// about the same event. And it has to be stable across a restore from backup,
+/// because the revocation list names ids and a list pointing at ids nothing
+/// resolves to is worse than no list.
+///
+/// One path segment, no escaping, so it drops straight into a URL.
+export function attestationId(dealRef: string, role: 'buyer' | 'seller'): string {
+  return `deal-settled-v1-${dealRef.replace(/^0x/, '').toLowerCase()}-${role}`;
 }
 
 export interface DealSettledClaim {
@@ -166,6 +202,25 @@ export const DEAL_SETTLED_EIP712_TYPES = {
 
 export function eip712Domain(chainId: number) {
   return { name: 'Karwan Attestation', version: '1', chainId } as const;
+}
+
+/// The exact values the signature covers.
+///
+/// Built here, in the same module as the type array and the schema, so the digest
+/// is defined once. A signer that assembled its own message would verify against
+/// a struct nobody published, which is the failure mode where a proof checks out
+/// and still does not say what the document says.
+export function dealSettledMessage(subject: string, claim: DealSettledClaim) {
+  return {
+    subject: subject as `0x${string}`,
+    dealRef: claim.dealRef,
+    role: claim.role,
+    settledAt: claim.settledAt,
+    amountBand: claim.amountBand,
+    currency: claim.currency,
+    chainId: BigInt(claim.chainId),
+    viaDispute: claim.viaDispute,
+  } as const;
 }
 
 /// The JSON Schema the credential points at.
@@ -255,14 +310,18 @@ export function dealSettledSchema() {
 /// authorization-server metadata we serve at /.well-known, and the MCP server.json
 /// that points at a published schema. Neither was negotiated; both are validated
 /// mechanically. This is the same move aimed at Paytag.
-export function issuerManifest(chainId: number) {
+/// `issuerAddress` is passed in rather than read from config, because the address
+/// that matters is the one the signing key actually derives to. A manifest naming
+/// a key we do not hold publishes signatures that fail verification, which reads
+/// to a consumer as forgery rather than misconfiguration.
+export function issuerManifest(chainId: number, issuerAddress?: string | null) {
   return {
     schemaVersion: 1,
     issuer: {
       name: 'Karwan',
       type: 'cross-border settlement marketplace',
       domain: issuerDomain(),
-      address: config.ATTESTATION_ISSUER_ADDRESS ?? null,
+      address: issuerAddress ?? config.ATTESTATION_ISSUER_ADDRESS ?? null,
       description:
         'Karwan escrows cross-border trade in USDC and releases against delivery. It attests only to settlements it observed as the escrow.',
     },
@@ -279,6 +338,10 @@ export function issuerManifest(chainId: number) {
         },
       },
     ],
+    /// How to fetch what we have issued. Without this the manifest describes a
+    /// format and offers no way to obtain one, which is a specification rather
+    /// than an issuer.
+    resolution: resolutionTemplates(),
     statusListUrl: statusListUrl(),
     policy: {
       versioning:
