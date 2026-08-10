@@ -1882,7 +1882,7 @@ export const api = {
       headers: adminHeaders(),
     }),
   adminSetTeamMemberDisabled: (id: string, disabled: boolean) =>
-    json<{ member: TeamMemberView; revokedTokens: number; note: string }>(
+    json<{ member: TeamMemberView; revokedTokens: number; note: string; warning?: string | null }>(
       `/api/admin/team-members/${id}`,
       { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ disabled }) },
     ),

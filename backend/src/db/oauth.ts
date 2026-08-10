@@ -375,13 +375,23 @@ export async function redeemRefresh(input: {
 /// meaningful: without it a disabled person keeps a working token for an hour.
 export async function revokeForMember(memberId: string): Promise<number> {
   const all = await allGrants();
-  let n = 0;
-  for (const grant of all) {
-    if (grant.memberId !== memberId || grant.revokedAt) continue;
-    await persist({ ...grant, revokedAt: Date.now() });
-    n += 1;
+  const targets = all.filter((grant) => grant.memberId === memberId && !grant.revokedAt);
+  const revokedAt = Date.now();
+
+  if (pgEnabled) {
+    await Promise.all(
+      targets.map((grant) =>
+        db()
+          .update(oauthGrants)
+          .set({ data: { ...grant, revokedAt } })
+          .where(eq(oauthGrants.id, grant.id)),
+      ),
+    );
+    return targets.length;
   }
-  return n;
+
+  for (const grant of targets) await persist({ ...grant, revokedAt });
+  return targets.length;
 }
 
 /// Revoke every token descended from one authorization code.

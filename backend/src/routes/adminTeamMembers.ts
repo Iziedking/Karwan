@@ -155,12 +155,24 @@ adminTeamMemberRoutes.patch('/:id', async (c) => {
   if (!view) return c.json({ error: 'unknown member' }, 404);
 
   let revoked = 0;
-  if (body.disabled) revoked = await revokeForMember(view.id);
+  let revokeWarning: string | null = null;
+  if (body.disabled) {
+    try {
+      revoked = await revokeForMember(view.id);
+    } catch (err) {
+      revokeWarning = 'Access is disabled, but stored OAuth grants could not be marked revoked yet.';
+      logger.error(
+        { member: view.email, memberId: view.id, err: (err as Error).message },
+        'team member disabled; OAuth grant cleanup failed',
+      );
+    }
+  }
 
   logger.info({ member: view.email, disabled: body.disabled, revoked }, 'team member access changed');
   return c.json({
     member: view,
     revokedTokens: revoked,
+    warning: revokeWarning,
     note: body.disabled
       ? `Access ended. ${revoked} live token(s) were revoked, so every tool they connected stops now.`
       : 'Access restored. They can sign in again and reconnect their tools.',

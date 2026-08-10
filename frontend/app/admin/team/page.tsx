@@ -154,16 +154,15 @@ export default function AdminTeamPage() {
     }
     try {
       const r = await api.adminSetTeamMemberDisabled(member.id, disabling);
-      setErr(null);
+      setErr(r.warning ?? null);
       setIssued(null);
       load();
-      if (r.revokedTokens > 0) setErr(null);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : 'Could not change access');
     }
   }
 
-  const pending = invites.filter((i) => i.pending);
+  const openInvites = invites.filter((i) => !i.redeemedAt);
 
   return (
     <div>
@@ -240,13 +239,13 @@ export default function AdminTeamPage() {
         )}
       </form>
 
-      {pending.length > 0 && (
+      {openInvites.length > 0 && (
         <>
           <p className="mt-8 mono text-[10px] uppercase tracking-[0.14em] text-white/40">
-            Waiting to accept ({pending.length})
+            Invitations ({openInvites.length})
           </p>
           <div className="mt-3 space-y-2">
-            {pending.map((inv) => (
+            {openInvites.map((inv) => (
               <div
                 key={inv.id}
                 className="border border-white/10 rounded-xl p-4 bg-[#161616] flex items-start justify-between gap-3 flex-wrap"
@@ -259,7 +258,7 @@ export default function AdminTeamPage() {
                     </span>
                   </p>
                   <p className="mt-1 text-[12px] text-white/45">
-                    {inv.email} · expires {when(inv.expiresAt)}
+                    {inv.email} · {inv.pending ? `expires ${when(inv.expiresAt)}` : 'expired, issue a new link'}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -269,7 +268,7 @@ export default function AdminTeamPage() {
                     className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white"
                     title="Emails a fresh link. The old one stops working."
                   >
-                    Resend
+                    {inv.pending ? 'Resend' : 'Issue new link'}
                   </button>
                   <button
                     type="button"
