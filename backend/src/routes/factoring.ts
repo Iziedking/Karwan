@@ -18,6 +18,9 @@ import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
 import { listAllLines as listAllPOLines } from '../db/poFinancing.js';
 import { getUserByAddress } from '../db/users.js';
 import { deterministicIdempotencyKey, executeContractCall } from '../chain/txs.js';
+import { publicClient } from '../chain/client.js';
+import { invoiceRegistryV2Abi } from '../chain/abis/invoiceRegistryV2.js';
+import { assertFactoringAssignment } from '../chain/factoringIntegrity.js';
 import {
   verifyTransferAuthorization,
   splitSignature,
@@ -26,7 +29,7 @@ import {
 import { vault, readEscrow } from '../chain/contracts.js';
 import { claimableUsdc, claimableForDeals } from '../deals/claimable.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
-import { parseUnits, formatUnits } from 'viem';
+import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
 import { config } from '../config.js';
 import { bus } from '../events.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
@@ -598,6 +601,32 @@ factoringRoutes.get('/mine', async (c) => {
   return c.json({ asFinancier, asSeller });
 });
 
+factoringRoutes.get('/position/:offerId', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  const offer = await getFactoringOffer(c.req.param('offerId'));
+  if (!offer) return c.json({ error: 'unknown factoring position' }, 404);
+  const caller = session.address.toLowerCase();
+  if (caller !== offer.financier && caller !== offer.seller) {
+    return c.json({ error: 'caller is not a party to this position' }, 403);
+  }
+  const deal = await getDeal(offer.invoiceId);
+  let assignedPayee: string | null = null;
+  if (config.KARWAN_INVOICE_REGISTRY_ADDR) {
+    try {
+      assignedPayee = (await publicClient.readContract({
+        address: config.KARWAN_INVOICE_REGISTRY_ADDR as Address,
+        abi: invoiceRegistryV2Abi,
+        functionName: 'payeeOf',
+        args: [offer.invoiceId as Hex],
+      })) as Address;
+    } catch {
+      assignedPayee = null;
+    }
+  }
+  return c.json({ offer, deal, assignedPayee });
+});
+
 /// GET /api/factoring/open: every open offer on the platform. Internal
 /// helper for the expiry watcher and operator dashboards. Session-gated:
 /// the full offer book (every financier's terms against every invoice) is
@@ -880,6 +909,41 @@ factoringRoutes.post('/accept', async (c) => {
           502,
         );
       }
+    }
+
+    // Circle's COMPLETE state only means its transaction workflow finished; it
+    // can still carry a reverted on-chain receipt. A successful receipt also
+    // is not enough for factoring: the registry must expose the financier as
+    // the invoice payee before we persist an accepted position.
+    try {
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: advanceTxHash as Hex,
+      });
+      const payee = (await publicClient.readContract({
+        address: registryAddr as Address,
+        abi: invoiceRegistryV2Abi,
+        functionName: 'payeeOf',
+        args: [offer.invoiceId as Hex],
+      })) as Address;
+      assertFactoringAssignment(receipt.status, payee, offer.financier);
+    } catch (err) {
+      logger.warn(
+        {
+          offerId: offer.id,
+          invoiceId: offer.invoiceId,
+          advanceTxHash,
+          err: (err as Error).message,
+        },
+        'factoring: on-chain assignment verification failed; offer stays open',
+      );
+      return c.json(
+        {
+          error: 'advance and assignment were not confirmed on chain',
+          detail: (err as Error).message,
+          advanceTxHash,
+        },
+        502,
+      );
     }
 
     const now = Date.now();

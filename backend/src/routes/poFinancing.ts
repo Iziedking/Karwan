@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
-import { parseUnits, formatUnits } from 'viem';
+import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
 import { readSession } from '../auth/session.js';
 import { getProfile } from '../db/profiles.js';
 import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
@@ -20,6 +20,7 @@ import { executeContractCall } from '../chain/txs.js';
 import { vault } from '../chain/contracts.js';
 import { publicClient } from '../chain/client.js';
 import { poFinancingV2Abi } from '../chain/abis/poFinancingV2.js';
+import { assertPoFunded, assertPoTerminal, type PoChainLine } from '../chain/poIntegrity.js';
 import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { suggestPOStake } from '../profile/poStakePolicy.js';
 import { config } from '../config.js';
@@ -83,6 +84,50 @@ const defaultBodySchema = z.object({
 });
 
 export const poFinancingRoutes = new Hono();
+
+async function readPoChainLine(invoiceId: string): Promise<PoChainLine> {
+  const raw = (await publicClient.readContract({
+    address: config.KARWAN_PO_FINANCING_ADDR as Address,
+    abi: poFinancingV2Abi,
+    functionName: 'lines',
+    args: [invoiceId as Hex],
+  })) as readonly [Address, Address, bigint, bigint, bigint, bigint, bigint, number, bigint];
+  return {
+    financier: raw[0],
+    seller: raw[1],
+    principalUsdc: raw[2],
+    repayUsdc: raw[3],
+    state: raw[7],
+  };
+}
+
+async function verifyPoFund(
+  txHash: string,
+  financier: string,
+  seller: string,
+  invoiceId: string,
+  principalUsdc: bigint,
+  repayUsdc: bigint,
+): Promise<void> {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
+  const line = await readPoChainLine(invoiceId);
+  assertPoFunded(receipt.status, receipt.from, line, {
+    financier,
+    seller,
+    principalUsdc,
+    repayUsdc,
+  });
+}
+
+async function verifyPoTerminal(
+  txHash: string,
+  invoiceId: string,
+  expectedState: 2 | 3,
+): Promise<void> {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
+  const line = await readPoChainLine(invoiceId);
+  assertPoTerminal(receipt.status, line.state, expectedState);
+}
 
 /// GET /api/po-financing/available: deals open to PO financing.
 /// Accepted invoices without an existing PO line and not yet delivered.
@@ -254,6 +299,25 @@ poFinancingRoutes.post('/fund', async (c) => {
   }
 
   const now = Date.now();
+  try {
+    await verifyPoFund(
+      body.fundTxHash,
+      financier,
+      deal.seller,
+      body.invoiceId,
+      parseUnits(body.principalUsdc, USDC_DECIMALS),
+      parseUnits(body.repayUsdc, USDC_DECIMALS),
+    );
+  } catch (err) {
+    logger.warn(
+      { invoiceId: body.invoiceId, fundTxHash: body.fundTxHash, err: (err as Error).message },
+      'po-financing: submitted fund transaction failed verification',
+    );
+    return c.json(
+      { error: 'po funding was not confirmed on chain', detail: (err as Error).message },
+      502,
+    );
+  }
   const line = await createPOLine({
     id: randomUUID(),
     invoiceId: body.invoiceId,
@@ -416,6 +480,15 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       `poFinancing.fund(${body.invoiceId})`,
     );
 
+    await verifyPoFund(
+      fundResult.txHash,
+      caller,
+      deal.seller,
+      body.invoiceId,
+      principalWei,
+      repayWei,
+    );
+
     const now = Date.now();
     const line = await createPOLine({
       id: randomUUID(),
@@ -546,6 +619,15 @@ poFinancingRoutes.post('/claim', async (c) => {
     return c.json({ error: 'caller is not a party to this line' }, 403);
   }
 
+  try {
+    await verifyPoTerminal(body.repayTxHash, line.invoiceId, 2);
+  } catch (err) {
+    return c.json(
+      { error: 'repayment was not confirmed on chain', detail: (err as Error).message },
+      502,
+    );
+  }
+
   const updated = await patchPOLine(line.id, {
     state: 'repaid',
     repaidAt: Date.now(),
@@ -591,6 +673,15 @@ poFinancingRoutes.post('/default', async (c) => {
     return c.json({ error: 'only financier can mark default' }, 403);
   }
 
+  try {
+    await verifyPoTerminal(body.defaultTxHash, line.invoiceId, 3);
+  } catch (err) {
+    return c.json(
+      { error: 'default was not confirmed on chain', detail: (err as Error).message },
+      502,
+    );
+  }
+
   const updated = await patchPOLine(line.id, {
     state: 'defaulted',
     txHashes: { ...line.txHashes, default: body.defaultTxHash },
@@ -619,6 +710,35 @@ poFinancingRoutes.get('/mine', async (c) => {
   // needing the history reads the store or the chain.
   const live = (l: { archivedAt?: number }) => !l.archivedAt;
   return c.json({ asFinancier: allFinancier.filter(live), asSeller: allSeller.filter(live) });
+});
+
+poFinancingRoutes.get('/line/:lineId', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  const line = await getPOLine(c.req.param('lineId'));
+  if (!line) return c.json({ error: 'unknown po financing line' }, 404);
+  const caller = session.address.toLowerCase();
+  if (caller !== line.financier && caller !== line.seller) {
+    return c.json({ error: 'caller is not a party to this line' }, 403);
+  }
+  const deal = await getDeal(line.invoiceId);
+  let chainLine: PoChainLine | null = null;
+  try {
+    chainLine = await readPoChainLine(line.invoiceId);
+  } catch {
+    chainLine = null;
+  }
+  return c.json({
+    line,
+    deal,
+    chainLine: chainLine
+      ? {
+          ...chainLine,
+          principalUsdc: chainLine.principalUsdc.toString(),
+          repayUsdc: chainLine.repayUsdc.toString(),
+        }
+      : null,
+  });
 });
 
 /// GET /api/po-financing/open: lines in non-terminal state. The timeout watcher
