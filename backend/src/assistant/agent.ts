@@ -86,6 +86,7 @@ const CASH_OUT_CHAINS: Record<string, { key: string; label: string; solana?: boo
   solana: { key: 'solanaDevnet', label: 'Solana', solana: true },
 };
 import { logger } from '../logger.js';
+import { bridgeSourceHolders } from './bridgeInventory.js';
 
 /// Chains a Circle account can be topped up FROM without signing anything: the
 /// backend holds a per-user deposit DCW on each, so it signs the burn itself.
@@ -242,16 +243,23 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           const chainRows = await Promise.all(
             (Object.keys(TOP_UP_CHAINS) as Array<keyof typeof TOP_UP_CHAINS>).map(async (name) => {
               const cfg = TOP_UP_CHAINS[name];
-              const holder = isCircle
-                ? record?.bridgeWallets?.[cfg.circleBlockchain]?.address
-                : address;
-              if (!holder) return { chain: cfg.label, chainName: name, usdc: null, signer: mainSigner };
-              const bal = await readSourceUsdcBalance(cfg.key, holder).catch(() => null);
+              const holders = record
+                ? bridgeSourceHolders(method, address, record, cfg.circleBlockchain)
+                : method === 'web3'
+                  ? { main: { address, signer: 'user' as const }, buyerAgent: undefined, sellerAgent: undefined }
+                  : null;
+              const read = (holder?: { address: string; signer: 'user' | 'backend' }) =>
+                holder ? readSourceUsdcBalance(cfg.key, holder.address).catch(() => null) : Promise.resolve(null);
+              const [mainBal, buyerBal, sellerBal] = await Promise.all([
+                read(holders?.main), read(holders?.buyerAgent), read(holders?.sellerAgent),
+              ]);
               return {
                 chain: cfg.label,
                 chainName: name,
-                usdc: bal === null ? null : Number(bal).toFixed(2),
-                signer: mainSigner,
+                usdc: mainBal === null ? null : mainBal === undefined ? null : Number(mainBal).toFixed(2),
+                signer: holders?.main.signer ?? mainSigner,
+                buyerAgentUsdc: buyerBal === null ? null : buyerBal === undefined ? null : Number(buyerBal).toFixed(2),
+                sellerAgentUsdc: sellerBal === null ? null : sellerBal === undefined ? null : Number(sellerBal).toFixed(2),
               };
             }),
           );
@@ -261,9 +269,16 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             (buyerUsdc ?? 0) > 0,
             (sellerUsdc ?? 0) > 0,
             ...chainRows.map((r) => r.usdc !== null && Number(r.usdc) > 0),
+            ...chainRows.map((r) =>
+              (r.buyerAgentUsdc !== null && Number(r.buyerAgentUsdc) > 0) ||
+              (r.sellerAgentUsdc !== null && Number(r.sellerAgentUsdc) > 0)),
           ].some(Boolean);
 
           return {
+            accountType: isCircle ? 'email/passkey' : 'web3',
+            custodyRule: isCircle
+              ? 'Karwan signs the identity and agent wallets.'
+              : 'The user signs their identity wallet. Karwan signs both agent wallets, including agent bridges from external chains.',
             arcWallet: { label: 'Your main wallet (Arc)', usdc: arcMain.toFixed(2), signer: mainSigner },
             buyerAgent:
               record?.buyerAddress != null
@@ -1692,7 +1707,7 @@ function authenticatedPreamble(address: string, method: string): string {
     'Open offers, requests, agent bids -> get_my_market_activity. Factoring + PO financing -> get_my_financing.',
     'Past money moves, bridges, matches -> recall_activity. Profile/setup -> get_my_profile.',
     'Anything pending or "what should I do" -> whats_pending.',
-    'Money waiting on another chain -> check_top_up_sources, then propose_top_up to bring it to Arc.',
+    'Money waiting on another chain -> list_bridge_sources, then propose_bridge. If they named buyer agent or seller agent, pass that source directly and never use check_top_up_sources.',
     '',
     '# You can EXECUTE a whole deal, not just read it. Prepare the card, do not send them away.',
     'Approve or decline a match -> propose_match_decision. Seller accepting a deal -> propose_accept_deal.',
