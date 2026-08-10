@@ -817,9 +817,10 @@ factoringRoutes.post('/accept', async (c) => {
     // paid. assignReceivable relays the financier's signed authorization and
     // records the redirect atomically, or does neither.
     //
-    // It is seller-gated on chain. A web3 seller sends it themselves and hands
-    // back the hash; a Circle seller has it signed from their identity wallet
-    // here, so the flow stays invisible to them.
+    // It is seller-agent-gated on chain. The advance authorization still pays
+    // the seller identity wallet, but the transaction itself must be sent by
+    // the seller agent recorded in escrow. Using the Circle identity wallet
+    // here causes the registry's NotParty check to reject every assignment.
     if (!offer.advanceAuthorization) {
       return c.json(
         { error: 'offer has no advance instrument; ask the financier to re-offer' },
@@ -837,10 +838,9 @@ factoringRoutes.post('/accept', async (c) => {
       // enforced the seller gate, the atomicity and the single-sale rule.
       advanceTxHash = body.assignTxHash;
     } else {
-      const sellerUserForAssign = getUserByAddress(seller);
-      if (!sellerUserForAssign) {
+      if (!deal.sellerAgentWalletId || !deal.sellerAgentAddress) {
         return c.json(
-          { error: 'sign the assignment from your wallet and resubmit with assignTxHash' },
+          { error: 'seller agent wallet is not configured; sign the assignment from your wallet and resubmit with assignTxHash' },
           400,
         );
       }
@@ -849,7 +849,7 @@ factoringRoutes.post('/accept', async (c) => {
       try {
         const res = await executeContractCall(
           {
-            walletId: sellerUserForAssign.circleIdentityWalletId,
+            walletId: deal.sellerAgentWalletId,
             contractAddress: registryAddr,
             abiFunctionSignature:
               'assignReceivable(bytes32,address,uint128,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)',
