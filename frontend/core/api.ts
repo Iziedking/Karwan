@@ -2942,6 +2942,7 @@ export const api = {
     sourceChainKey: BridgeChainKey;
     amountUsdc: number;
     mintRecipient: string;
+    sourceKind?: 'identity' | 'buyerAgent' | 'sellerAgent';
   }) =>
     json<{
       accepted: true;

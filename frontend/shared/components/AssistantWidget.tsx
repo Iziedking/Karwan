@@ -923,6 +923,7 @@ async function runConfirmIntent(
       sourceChainKey: string;
       amountUsdc: number;
       mintRecipient: string;
+      sourceKind: 'identity' | 'buyerAgent' | 'sellerAgent';
     };
     const bridgeId = `chat-${action.id.replace(/[^a-zA-Z0-9._-]/g, '-')}`.slice(0, 120);
     await api.bridgeCircle({
@@ -931,6 +932,7 @@ async function runConfirmIntent(
       sourceChainKey: p.sourceChainKey as Parameters<typeof api.bridgeCircle>[0]['sourceChainKey'],
       amountUsdc: p.amountUsdc,
       mintRecipient: p.mintRecipient,
+      sourceKind: p.sourceKind,
     });
     // Same async shape as cash-out, but the source pipeline runs approve THEN
     // burn, so allow longer before falling back to the no-hash copy.
