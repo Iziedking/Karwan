@@ -1352,7 +1352,9 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   // carrier, it requires the seller to state who is carrying it and under what
   // reference, resolving to a page the buyer can open.
   let shipment: DirectDeal['shipment'] | undefined;
-  if (deal.tradeType === 'goods') {
+  const includesGoods = deal.tradeType === 'goods' || deal.tradeType === 'mixed';
+  const includesService = deal.tradeType !== 'goods';
+  if (includesGoods) {
     if (!body.shipment) {
       return c.json(
         {
@@ -1412,7 +1414,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       trackingUrl: url,
       dispatchedAt: Date.now(),
     };
-  } else {
+  }
+  if (includesService) {
     const proofUrls = extractUrls(body.deliveryProof ?? '');
     if (proofUrls.length === 0) {
       return c.json(

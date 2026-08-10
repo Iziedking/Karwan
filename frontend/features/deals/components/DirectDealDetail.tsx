@@ -54,12 +54,12 @@ const V2B_LIVE = process.env.NEXT_PUBLIC_ESCROW_V2B_ENABLED === 'true';
 // the existing service labels (the i18n bundle wins). Per Vercel
 // `rendering-hoist-jsx`.
 const INCOTERMS_GLOSS: Record<NonNullable<DirectDeal['incoterms']>, string> = {
-  EXW: 'Ex Works — buyer collects from factory.',
-  FCA: 'Free Carrier — seller delivers to a named carrier.',
-  FOB: 'Free on Board — seller loads on the named vessel.',
-  CIF: 'Cost Insurance Freight — seller pays freight + insurance to port.',
-  DAP: 'Delivered at Place — buyer clears customs.',
-  DDP: 'Delivered Duty Paid — seller delivers + clears customs.',
+  EXW: 'Ex Works. Buyer collects from the factory.',
+  FCA: 'Free Carrier. Seller delivers to a named carrier.',
+  FOB: 'Free on Board. Seller loads on the named vessel.',
+  CIF: 'Cost Insurance Freight. Seller pays freight and insurance to port.',
+  DAP: 'Delivered at Place. Buyer clears customs.',
+  DDP: 'Delivered Duty Paid. Seller delivers and clears customs.',
 };
 
 const PAYMENT_TERMS_LABEL: Record<NonNullable<DirectDeal['paymentTerms']>, string> = {
@@ -367,12 +367,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     setBusy(true);
     setErrorInfo(null);
     try {
-      const isGoods = deal?.tradeType === 'goods';
+      const includesGoods = deal?.tradeType === 'goods' || deal?.tradeType === 'mixed';
       await api.markDelivered(
         jobId,
         address,
         deliveryProof.trim() || undefined,
-        isGoods
+        includesGoods
           ? {
               carrier: shipment.carrier,
               trackingNumber: shipment.trackingNumber.trim(),
@@ -1382,7 +1382,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
               ) : null}
               {deal.tradeType === 'mixed' ? (
                 <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/20 text-[var(--lp-dark)]">
-                  GOODS + SERVICE
+                  GOODS AND SERVICES
                 </span>
               ) : null}
             </div>
@@ -1420,7 +1420,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
                 )}
               </div>
               <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                {[company?.sector, company?.region].filter(Boolean).join(' · ') || '—'}
+                {[company?.sector, company?.region].filter(Boolean).join(' / ') || '-'}
               </p>
             </div>
           </PageCard>
@@ -1713,6 +1713,7 @@ function ActionPanel({
   copy: Messages['directDealDetail']['actionPanel'];
 }) {
   if (stage === 'settled') {
+    const financed = Boolean(deal.factoringOfferId || deal.poFinancingId);
     const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
     const resolved = deal.cancelKind === 'resolved';
     // v2b arbiter ruling: show the split and who it favoured. English inline
@@ -1743,7 +1744,9 @@ function ActionPanel({
               ? copy.settled.releasedFromDispute
               : deal.autoReleasedAt
                 ? copy.settled.autoReleased
-                : copy.settled.normal}
+                : financed
+                  ? (copy.settled.financed ?? copy.settled.normal)
+                  : copy.settled.normal}
           </Body>
         )}
         {/* Settlement-speed receipt: approval to on-chain verification, from the
@@ -1757,9 +1760,26 @@ function ActionPanel({
             </span>
           </p>
         )}
-        {viewerIsSeller && (!resolved || sellerBps > 0) && (
+        {viewerIsSeller && !financed && (!resolved || sellerBps > 0) && (
           <Link href={`/cashout/${deal.jobId}`}>
-            <CTAPill>{copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc))}</CTAPill>
+            <CTAPill>{copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc, { withSuffix: false }))}</CTAPill>
+          </Link>
+        )}
+        {viewerIsBuyer && (
+          <Link
+            href={{
+              pathname: '/buyer',
+              query: {
+                brief: deal.terms,
+                budget: deal.dealAmountUsdc,
+                milestones: milestonePcts.join(', '),
+                ...(deal.tradeType ? { tradeType: deal.tradeType } : {}),
+                ...(deal.incoterms ? { incoterms: deal.incoterms } : {}),
+                ...(deal.paymentTerms ? { paymentTerms: deal.paymentTerms } : {}),
+              },
+            }}
+          >
+            <CTAPill variant={'secondary'} tone={'dark'}>{copy.settled.repeatDeal ?? 'Repeat this deal'}</CTAPill>
           </Link>
         )}
       </div>
@@ -1950,7 +1970,7 @@ function ActionPanel({
               }}
             />
           </label>
-          {deal.tradeType === 'goods' ? (
+          {deal.tradeType === 'goods' || deal.tradeType === 'mixed' ? (
             <GoodsShipmentFields
               shipment={shipment}
               onChange={onShipmentChange}
@@ -1961,7 +1981,7 @@ function ActionPanel({
             <CTAPill
               disabled={
                 busy ||
-                (deal.tradeType === 'goods' &&
+                ((deal.tradeType === 'goods' || deal.tradeType === 'mixed') &&
                   (!shipment.carrier || shipment.trackingNumber.trim().length < 3))
               }
               onClick={onMarkDelivered}

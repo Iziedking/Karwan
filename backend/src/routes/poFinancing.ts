@@ -14,7 +14,7 @@ import {
   listOpenLines,
   patchPOLine,
 } from '../db/poFinancing.js';
-import { getDeal, listAllDeals } from '../db/deals.js';
+import { getDeal, listAllDeals, patchDeal } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { vault } from '../chain/contracts.js';
@@ -332,6 +332,7 @@ poFinancingRoutes.post('/fund', async (c) => {
     requiredStakeUsdc: body.requiredStakeUsdc,
     txHashes: { fund: body.fundTxHash },
   });
+  await patchDeal(body.invoiceId, { poFinancingId: line.id });
 
   bus.emitEvent({
     type: 'po.funded',
@@ -504,6 +505,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       requiredStakeUsdc: body.requiredStakeUsdc,
       txHashes: { fund: fundResult.txHash },
     });
+    await patchDeal(body.invoiceId, { poFinancingId: line.id });
 
     bus.emitEvent({
       type: 'po.funded',

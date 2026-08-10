@@ -12,6 +12,7 @@ import { ChainLogo } from '@/shared/components/ChainLogo';
 import { formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
+import { isTrustedRecipient } from './recipientSafety';
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -61,7 +62,7 @@ export function BridgeOutCard() {
     (b) => b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning',
   );
 
-  const [destKey, setDestKey] = useState<DestKey>('arc');
+  const [destKey, setDestKey] = useState<DestKey>(WITHDRAW_DEST_KEYS[0]);
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | ''>('');
   const [recipient, setRecipient] = useState<string>(auth.address ?? '');
@@ -128,8 +129,10 @@ export function BridgeOutCard() {
     enabled: isArcDest && recipientValid,
     trustedAddresses: [auth.address, ...knownKarwanWallets],
   });
+  const trustedRecipient = isTrustedRecipient(recipient, [auth.address, ...knownKarwanWallets]);
   const recipientBlocked =
-    isArcDest && (recipientCheck.kind === 'contract' || recipientCheck.kind === 'checking');
+    isArcDest && !trustedRecipient && (recipientCheck.kind === 'contract' || recipientCheck.kind === 'checking');
+  const displayRecipientKind = trustedRecipient ? 'eoa' : recipientCheck.kind;
   const canSubmit =
     !!auth.address &&
     typeof amount === 'number' &&
@@ -385,9 +388,9 @@ export function BridgeOutCard() {
                   {t.form.addressInvalid}
                 </p>
               )}
-              {isArcDest && recipientValid && recipientCheck.kind !== 'idle' && (
+              {isArcDest && recipientValid && displayRecipientKind !== 'idle' && (
                 <div className="mt-2">
-                  <RecipientVerifyPill kind={recipientCheck.kind} copy={verifyCopy} />
+                  <RecipientVerifyPill kind={displayRecipientKind} copy={verifyCopy} />
                 </div>
               )}
             </div>

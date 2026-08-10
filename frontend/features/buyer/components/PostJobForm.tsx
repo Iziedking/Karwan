@@ -32,9 +32,9 @@ const INCOTERMS: ReadonlyArray<{ code: IncotermsCode; gloss: string }> = [
   { code: 'EXW', gloss: 'Buyer collects from factory.' },
   { code: 'FCA', gloss: 'Seller delivers to a named carrier.' },
   { code: 'FOB', gloss: 'Seller loads on the named vessel.' },
-  { code: 'CIF', gloss: 'Seller pays freight + insurance to port.' },
+  { code: 'CIF', gloss: 'Seller pays freight and insurance to port.' },
   { code: 'DAP', gloss: 'Seller delivers; buyer clears customs.' },
-  { code: 'DDP', gloss: 'Seller delivers + clears customs.' },
+  { code: 'DDP', gloss: 'Seller delivers and clears customs.' },
 ];
 
 const PAYMENT_TERMS: ReadonlyArray<{ code: PaymentTermsCode; label: string }> = [
@@ -134,6 +134,11 @@ export function PostJobForm() {
       ? Number(initialToleranceRaw)
       : null;
   const initialTrustedMatch = search.get('trustedMatch') === '1';
+  const initialSplit = search.get('milestones');
+  const parsedInitialSplit = initialSplit ? parseMilestoneSplit(initialSplit) : null;
+  const initialTradeType = search.get('tradeType');
+  const initialIncoterms = search.get('incoterms');
+  const initialPaymentTerms = search.get('paymentTerms');
   const [brief, setBrief] = useState(initialBrief);
   const [budget, setBudget] = useState<number | ''>(initialBudget ?? '');
   // Deadline split: a raw `value` and a `unit`. Submit converts to seconds.
@@ -147,14 +152,24 @@ export function PostJobForm() {
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
   // Custom milestone split. Off = the buyer profile default (50/50) stands.
   // On = these tranches are carried into escrow when the agent finds a deal.
-  const [customSplit, setCustomSplit] = useState(false);
-  const [splitText, setSplitText] = useState('50, 50');
+  const [customSplit, setCustomSplit] = useState(Boolean(parsedInitialSplit?.pcts));
+  const [splitText, setSplitText] = useState(parsedInitialSplit?.pcts?.join(', ') ?? '50, 50');
   // SME trade-finance state. Split into separate hooks per the Vercel
   // `rerender-split-combined-hooks` rule. Each picker mutates only its own
   // slice so a sector change never re-renders unrelated inputs.
-  const [tradeType, setTradeType] = useState<TradeType>('service');
-  const [incoterms, setIncoterms] = useState<IncotermsCode | null>(null);
-  const [paymentTerms, setPaymentTerms] = useState<PaymentTermsCode>('immediate');
+  const [tradeType, setTradeType] = useState<TradeType>(
+    initialTradeType === 'goods' || initialTradeType === 'mixed' ? initialTradeType : 'service',
+  );
+  const [incoterms, setIncoterms] = useState<IncotermsCode | null>(
+    INCOTERMS.some(({ code }) => code === initialIncoterms)
+      ? (initialIncoterms as IncotermsCode)
+      : null,
+  );
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTermsCode>(
+    PAYMENT_TERMS.some(({ code }) => code === initialPaymentTerms)
+      ? (initialPaymentTerms as PaymentTermsCode)
+      : 'immediate',
+  );
   // Sourcing profile: the KIND of supplier and WHERE, not a named counterparty.
   // This is an auction — the agent finds the partner — so there is no company
   // name here (that lives on the direct-deal flow). Sector + region drive the
@@ -424,7 +439,7 @@ export function PostJobForm() {
               tradeType === 'goods'
                 ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums, payment net 30.'
                 : tradeType === 'mixed'
-                  ? 'e.g. Equipment install on site, 2 weeks, includes shipping + commissioning.'
+                  ? 'e.g. Equipment install on site, 2 weeks, includes shipping and commissioning.'
                   : t.sectionWork.requestPlaceholder
             }
             className="form-input form-textarea"

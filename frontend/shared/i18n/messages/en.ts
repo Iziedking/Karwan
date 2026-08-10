@@ -2100,8 +2100,10 @@ interface MessagesShape {
         releasedFromDispute: string;
         autoReleased: string;
         normal: string;
+        financed?: string;
         cashoutTemplate: string;
         settleTimeEyebrow: string;
+        repeatDeal?: string;
       };
       cancelled: {
         preAccept: string;
@@ -6317,8 +6319,10 @@ export const en: MessagesShape = {
         releasedFromDispute: 'Settled via dispute resolution. The buyer released the escrow to the seller.',
         autoReleased: 'Settled. The review window passed, so the final milestone released automatically. Reputation is recorded on chain.',
         normal: 'Settled. The seller has been paid in full and reputation is recorded on chain.',
+        financed: 'Settled. The assigned receivable was paid to the financier and the financing record was closed on chain.',
         cashoutTemplate: 'Cash out {amount} USDC →',
         settleTimeEyebrow: 'settled on chain in',
+        repeatDeal: 'Repeat this deal',
       },
       cancelled: {
         preAccept: 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.',

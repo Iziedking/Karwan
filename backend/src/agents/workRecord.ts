@@ -129,7 +129,7 @@ function titleCase(s: string): string {
 function categoryLabel(d: DirectDeal): string {
   const kws = getBrief(d.jobId)?.keywords;
   if (kws && kws.length > 0) return titleCase(kws.slice(0, 2).join(' '));
-  return d.tradeType === 'goods' ? 'Goods' : d.tradeType === 'mixed' ? 'Goods + service' : 'Service';
+  return d.tradeType === 'goods' ? 'Goods' : d.tradeType === 'mixed' ? 'Goods and services' : 'Service';
 }
 
 function ageLabel(ts: number, now: number): string {
