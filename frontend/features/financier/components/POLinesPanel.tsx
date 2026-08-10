@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { api, type POFinancingLine } from '@/core/api';
+import Link from 'next/link';
 
 /// The user's purchase-order financing lines, as financier and as seller, with
 /// live status and on-chain proof. The advance reaches the seller in the
@@ -121,6 +122,7 @@ function LineRow({
               {proof.label}
             </a>
           ) : null}
+          <Link href={'/financier/po/' + line.id}>position details</Link>
         </div>
         {isLegacy ? (
           <div className="mt-2.5 pt-2.5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">

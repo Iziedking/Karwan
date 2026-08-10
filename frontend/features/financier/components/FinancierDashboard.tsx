@@ -24,6 +24,7 @@ import {
   serializeAuthorization,
 } from '@/features/factoring/usdcAuthorization';
 import { POLinesPanel } from './POLinesPanel';
+import { FactoringPositionsPanel } from './FactoringPositionsPanel';
 
 /// Actionable empty state for a funding lane (SKILL §5.3 bracket-message
 /// pattern): what the lane is, why it is empty, and one way to act. Replaces the
@@ -336,6 +337,7 @@ export function FinancierDashboard() {
 
       <Band tone="light" compact>
         {tab === 'factor' ? (
+          <>
           <FactorInvoicesTab
             available={available}
             loading={loading}
@@ -343,6 +345,8 @@ export function FinancierDashboard() {
             myOffers={myOffers}
             onOpenOffer={(deal) => setOfferTarget(deal)}
           />
+          <FactoringPositionsPanel />
+          </>
         ) : (
           <>
             <FundPOsTab

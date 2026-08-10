@@ -3212,6 +3212,10 @@ export const api = {
     json<{ asFinancier: FactoringOffer[]; asSeller: FactoringOffer[] }>(
       '/api/factoring/mine',
     ),
+  factoringPosition: (offerId: string) =>
+    json<{ offer: FactoringOffer; deal: DirectDeal | null; assignedPayee: string | null }>(
+      `/api/factoring/position/${offerId}`,
+    ),
   /// Arguments for registry.assignReceivable, which pays the seller the advance
   /// and assigns the receivable to the financier in one transaction. The call is
   /// seller-gated on chain, so a web3 seller sends it themselves.
@@ -3352,6 +3356,18 @@ export const api = {
     json<{ asFinancier: POFinancingLine[]; asSeller: POFinancingLine[] }>(
       '/api/po-financing/mine',
     ),
+  poFinancingLine: (lineId: string) =>
+    json<{
+      line: POFinancingLine;
+      deal: DirectDeal | null;
+      chainLine: {
+        financier: string;
+        seller: string;
+        principalUsdc: string | bigint;
+        repayUsdc: string | bigint;
+        state: number;
+      } | null;
+    }>(`/api/po-financing/line/${lineId}`),
   getPOLine: (id: string) =>
     json<{ line: POFinancingLine }>(`/api/po-financing/line/${id}`),
   // SME profile (Phase 2 Track 2). Public passport read (no auth) +
