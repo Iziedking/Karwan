@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { circleWalletsClient } from '../circle/wallets.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import type { Hex } from 'viem';
+import { publicClient } from './client.js';
 
 /// Deterministic UUID (v4 wire format) from a seed string. Circle's
 /// idempotencyKey must be a UUID, but the natural keys for our logical
@@ -67,6 +69,16 @@ export interface ContractCallResult {
 export interface TxState {
   state?: string;
   txHash?: string;
+}
+
+export function assertSuccessfulReceipt(
+  label: string,
+  txHash: string,
+  receipt: { status: 'success' | 'reverted' },
+): void {
+  if (receipt.status !== 'success') {
+    throw new Error(label + ': transaction ' + txHash + ' reverted on chain');
+  }
 }
 
 /// Pre-flight fee estimate. Best-effort: any failure is swallowed and the
@@ -178,6 +190,10 @@ export async function executeContractCall(
     if (state === 'COMPLETE') {
       if (!txHash) throw new Error(`${label}: completed without txHash`);
       const explorerUrl = `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`;
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: txHash as Hex,
+      });
+      assertSuccessfulReceipt(label, txHash, receipt);
       logger.info({ label, txHash, explorerUrl }, 'tx confirmed');
       return { txId, txHash, explorerUrl, estimatedFee };
     }
