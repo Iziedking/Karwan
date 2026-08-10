@@ -87,6 +87,7 @@ const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
 // exactly like the wallet events, and keep the jobId so the bell still links
 // to the deal. Mirrors FINANCE_RECIPIENTS in the email + Telegram notifiers.
 const FINANCE_RECIPIENT_KEYS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
+  'factoring.requested': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
   'factoring.settled': ['seller', 'financier'],
@@ -471,6 +472,8 @@ function summaryFor(
       const raw = (payload?.amountUsdc as string | undefined) ?? '0';
       return `Cashed out ${trimUsdcLabel(raw)} USDC to your wallet.`;
     }
+    case 'factoring.requested':
+      return 'A seller opened an invoice for early payout. Review it on the financier desk.';
     case 'factoring.offered': {
       const raw = (payload?.advance as string | undefined) ?? '';
       const bps = payload?.discountBps;

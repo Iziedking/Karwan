@@ -32,6 +32,10 @@ function passportUrl(address?: string): string | undefined {
   const b = base();
   return b && address ? `${b}/credit-passport/${address.toLowerCase()}` : undefined;
 }
+function financierUrl(): string | undefined {
+  const b = base();
+  return b ? `${b}/financier` : undefined;
+}
 
 // High-signal events only. Keep this list short on purpose.
 const EMAIL_RELEVANT = new Set([
@@ -47,6 +51,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.fund.insufficient',
   'deal.deadline.passed',
   'deal.match.raised',
+  'factoring.requested',
   'factoring.offered',
   'factoring.accepted',
   'factoring.settled',
@@ -63,6 +68,7 @@ const EMAIL_RELEVANT = new Set([
 /// recipient fallback below cannot route them. Each entry lists which payload
 /// addresses should hear about it.
 const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
+  'factoring.requested': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
   'factoring.settled': ['seller', 'financier'],
@@ -282,6 +288,17 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
+    case 'factoring.requested': {
+      const face = (e.payload?.faceValueUsdc as string | undefined) ?? '';
+      return {
+        eyebrow: 'INVOICE OPEN',
+        subject: 'A seller requested early payout on Karwan',
+        heading: 'A new invoice is open for financing',
+        body: `A verified seller opened an invoice${face ? ` worth ${face} USDC` : ''} for early-payout offers. Review the trade and price an offer from the financier desk.`,
+        ctaLabel: 'Open financier desk',
+        ctaUrl: financierUrl(),
+      };
+    }
     case 'factoring.offered': {
       const advanceRaw = (e.payload?.advance as string | undefined) ?? '';
       const advance = advanceRaw ? `${advanceRaw} USDC now` : 'early payout';

@@ -135,6 +135,7 @@ export type KarwanEventType =
   // SME trade-finance rail.
   | 'trade.document.anchored'
   | 'trade.pod.accepted'
+  | 'factoring.requested'
   | 'factoring.offered'
   | 'factoring.accepted'
   | 'factoring.rejected'

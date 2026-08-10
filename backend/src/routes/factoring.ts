@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { readSession } from '../auth/session.js';
-import { getProfile } from '../db/profiles.js';
+import { getProfile, listProfiles } from '../db/profiles.js';
 import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
 import {
   createFactoringOffer,
@@ -14,7 +14,7 @@ import {
   patchFactoringOffer,
   patchFactoringOfferIfStatus,
 } from '../db/factoring.js';
-import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
+import { getDeal, patchDeal, listAllDeals, type DirectDeal } from '../db/deals.js';
 import { listAllLines as listAllPOLines } from '../db/poFinancing.js';
 import { getUserByAddress } from '../db/users.js';
 import { deterministicIdempotencyKey, executeContractCall } from '../chain/txs.js';
@@ -104,6 +104,16 @@ function atomicUsdc(decimal: string): string {
   return parseUnits(decimal, USDC_DECIMALS).toString();
 }
 
+/// assignReceivable pays the seller recorded by escrow. Managed deals record
+/// the seller agent on chain while keeping the human identity in deal.seller,
+/// so the financier's EIP-3009 authorization must name that agent as recipient.
+/// Falling back keeps older direct-wallet deals compatible.
+export function factoringAdvanceRecipient(
+  deal: Pick<DirectDeal, 'seller' | 'sellerAgentAddress'>,
+): string {
+  return (deal.sellerAgentAddress ?? deal.seller).toLowerCase();
+}
+
 /// Per-invoice accept lock. The advance transfer takes seconds; without
 /// this, two accepts racing on different offers against the same invoice
 /// could both pass the factoringOfferId check and both pay an advance.
@@ -182,6 +192,23 @@ factoringRoutes.post('/request', async (c) => {
     factoringRequestedAt: Date.now(),
     factoringMinAdvanceUsdc: body.minAdvanceUsdc,
   });
+
+  // This is a marketplace request, so every approved financier should hear
+  // about it. Emit one private event per financier: the personal activity feed
+  // routes on payload.financier without publishing the invoice globally.
+  const financiers = (await listProfiles()).filter(isApprovedFinancier);
+  for (const financier of financiers) {
+    bus.emitEvent({
+      type: 'factoring.requested',
+      jobId: deal.jobId,
+      actor: 'seller',
+      payload: {
+        seller: caller,
+        financier: financier.address,
+        faceValueUsdc: deal.dealAmountUsdc,
+      },
+    });
+  }
 
   logger.info(
     { invoiceId: deal.jobId, seller: caller, minAdvanceUsdc: body.minAdvanceUsdc },
@@ -381,6 +408,7 @@ factoringRoutes.post('/offer', async (c) => {
   }
 
   const financier = session.address.toLowerCase();
+  const advanceRecipient = factoringAdvanceRecipient(deal);
   // A financier must be a third party. Block both sides of the deal so the
   // seller can't discount their own invoice to themselves and the buyer can't
   // front their own settlement (no real capital changes hands either way).
@@ -479,7 +507,7 @@ factoringRoutes.post('/offer', async (c) => {
   if (body.advanceAuthorization) {
     const problem = await verifyTransferAuthorization(body.advanceAuthorization, {
       from: financier,
-      to: deal.seller,
+      to: advanceRecipient,
       valueAtomic: atomicUsdc(body.offeredAdvanceUsdc),
       // Must cover the accept window plus an hour of margin.
       validUntil: Math.floor(expiresAt / 1000) + 3600,
@@ -500,7 +528,7 @@ factoringRoutes.post('/offer', async (c) => {
       advanceAuthorization = await signTransferAuthorizationWithCircle(
         financierUser.circleIdentityWalletId,
         financier,
-        deal.seller,
+        advanceRecipient,
         atomicUsdc(body.offeredAdvanceUsdc),
         // Outlive the offer with an hour of margin, matching the validity the
         // web3 path is checked against just above.

@@ -41,6 +41,10 @@ function passportUrl(address: string | undefined): string | null {
   if (!config.FRONTEND_BASE_URL || !address) return null;
   return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/credit-passport/${address.toLowerCase()}`;
 }
+function financierUrl(): string | null {
+  if (!config.FRONTEND_BASE_URL) return null;
+  return `${config.FRONTEND_BASE_URL.replace(/\/$/, '')}/financier`;
+}
 
 const TIER_BLURB: Record<string, string> = {
   COLD: 'Your track record is taking shape.',
@@ -89,6 +93,7 @@ const RELEVANT = new Set([
   'reputation.recorded',
   // Financing lifecycle. The financier is not a deal party, so these route
   // from the payload rather than the deal lookup.
+  'factoring.requested',
   'factoring.offered',
   'factoring.accepted',
   'factoring.settled',
@@ -130,6 +135,7 @@ interface Recipient {
 /// Which payload addresses hear about each financing event. Mirrors the email
 /// notifier's map; keep the two in step.
 const FINANCE_RECIPIENTS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
+  'factoring.requested': ['financier'],
   'factoring.offered': ['seller'],
   'factoring.accepted': ['financier'],
   'factoring.settled': ['seller', 'financier'],
@@ -582,6 +588,13 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         ? `*Tier up. you reached ${toTier} on Karwan.*\n${blurb}`
         : `*Tier up.* You reached ${toTier} on Karwan.`;
       return withLink(body, passportUrl(addr));
+    }
+    case 'factoring.requested': {
+      const face = (e.payload?.faceValueUsdc as string | undefined) ?? '';
+      return withLink(
+        `*A seller requested early payout.* A new invoice${face ? ` worth ${trimUsdcLabel(face)} USDC` : ''} is open for offers.`,
+        financierUrl(),
+      );
     }
     case 'factoring.offered': {
       const advanceRaw = (e.payload?.advance as string | undefined) ?? '';
