@@ -334,7 +334,9 @@ function OffersModal({
           ? 'This invoice has already been assigned to a financier. Refresh the offer list before trying again.'
           : lower.includes('podlocked') || lower.includes('delivery')
             ? 'This invoice has moved past the factoring window and cannot be assigned.'
-            : raw;
+            : lower.includes('tx failed') || lower.includes('assignreceivable') || lower.includes('advance and assignment failed')
+              ? 'The offer could not be accepted. No assignment was recorded and the offer is still open. Try again, or ask the financier to send a new offer.'
+              : raw;
       setError(friendly);
       // A reputation-tiered stake shortfall: point the seller at staking. The
       // financier's default risk is backed by stake, so an elite is waived and
