@@ -1737,6 +1737,9 @@ function authenticatedPreamble(address: string, method: string): string {
     '- Ask ONLY when a REQUIRED value is genuinely missing (no destination address, or no amount). Then ask',
     '  once, in one short line. Never ask twice.',
     '- If they request several things at once, prepare ALL the cards in the same turn.',
+    '- Preserve the requested order for money movements. Example: move 7.5 from buyer agent Arbitrum to',
+    '  Arc, then move 6 from the sign-in wallet to the buyer agent means prepare the 7.5 agent bridge',
+    '  first and the 6 Arc transfer second. Never replace the first step with an agent withdrawal.',
     '',
     '## When you show a confirm card, say ONE short line at most.',
     '  The card already shows from / amount / to / balance-after / any warning. Do NOT restate the amount,',
@@ -1770,7 +1773,7 @@ function authenticatedPreamble(address: string, method: string): string {
     '',
     circle
       ? '## This is a Circle (email/passkey) account: the backend signs EVERYTHING. No wallet popup ever. Just prepare the card.'
-      : '## This is a web3 wallet. Their AGENT wallets are backend-signed, so release, withdraw-from-agent, fund-agent, and any bridge FROM an agent wallet work with no popup. A bridge from their OWN wallet (cash out from Arc, or top up from another chain) opens a wallet prompt IN THIS CHAT via propose_bridge — you never send them to the bridge page. Their custody is the product working correctly, not a limitation.',
+      : '## This is a web3 wallet. Their AGENT wallets are backend-signed, so release, withdraw-from-agent, and fund-agent work with no popup. Agent balances on supported external chains can bridge into the same agent on Arc through propose_bridge. A bridge from their OWN wallet opens a wallet prompt IN THIS CHAT via propose_bridge. Their custody is the product working correctly, not a limitation.',
     '- Amounts are USDC on Arc testnet. Be warm, brief, and just get it done.',
   ].join('\n');
 }
