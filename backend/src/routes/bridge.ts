@@ -39,6 +39,7 @@ import {
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
+import { resolveCircleBridgeSource, type CircleBridgeSourceKind } from './bridgeSource.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
 
@@ -1077,6 +1078,7 @@ const circleBridgeSchema = z.object({
   /// wallet address (same as `address`), but accepted as a separate field
   /// so the user can route a bridge into their buyer agent in one step.
   mintRecipient: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
+  sourceKind: z.enum(['identity', 'buyerAgent', 'sellerAgent']).default('identity'),
 });
 
 bridgeRoutes.post('/circle-bridge', async (c) => {
@@ -1095,7 +1097,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   }
 
   const user = getUserByAddress(userAddress);
-  if (!user) {
+  if (!user && body.sourceKind === 'identity') {
     return c.json(
       {
         error: 'no Circle identity wallet for this address',
@@ -1104,6 +1106,8 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       409,
     );
   }
+  const ownerWallets = await getAgentWallets(userAddress);
+  if (!ownerWallets) return c.json({ error: 'user has no agent wallet record; activate first' }, 409);
 
   if (inFlight.has(body.bridgeId) || sourceInFlight.has(body.bridgeId)) {
     return c.json({ accepted: false, reason: 'bridge already in progress' }, 409);
@@ -1134,14 +1138,19 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       400,
     );
   }
-  let agentWallets = await getAgentWallets(userAddress);
-  if (!agentWallets) {
-    return c.json({ error: 'user has no agent wallet record; activate first' }, 409);
-  }
-  const existingBridge = agentWallets.bridgeWallets?.[circleChain];
+  let agentWallets = ownerWallets;
+  const existingBridge = body.sourceKind === 'identity' ? agentWallets.bridgeWallets?.[circleChain] : undefined;
   let bridgeWalletId: string;
   let bridgeWalletAddress: string;
-  if (existingBridge) {
+  if (body.sourceKind !== 'identity') {
+    try {
+      const source = resolveCircleBridgeSource(agentWallets, body.sourceKind as CircleBridgeSourceKind, circleChain, body.mintRecipient);
+      bridgeWalletId = source.walletId;
+      bridgeWalletAddress = source.address;
+    } catch (err) {
+      return c.json({ error: 'invalid agent bridge source', detail: (err as Error).message }, 400);
+    }
+  } else if (existingBridge) {
     bridgeWalletId = existingBridge.walletId;
     bridgeWalletAddress = existingBridge.address;
   } else {

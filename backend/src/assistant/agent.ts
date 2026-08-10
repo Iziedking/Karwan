@@ -1571,15 +1571,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           // clean one-step move. Bring it to the main wallet first (one backend
           // step, no popup), then bridge from there — a real path, not a dead
           // end.
-          if (src !== 'main') {
-            return {
-              error: `To bridge from the ${src === 'buyerAgent' ? 'buyer' : 'seller'} agent, first move that USDC to their main wallet with propose_withdraw, then bridge from the main wallet. Offer to do the withdraw now.`,
-            };
-          }
-
           if (direction === 'toArc') {
             const cfg = TOP_UP_CHAINS[chain];
-            if (method !== 'circle') {
+            if (method !== 'circle' && src === 'main') {
               // Web3: they hold it on that chain themselves and sign in the card.
               const builtW = buildWeb3TopUpConfirm({
                 sourceChainKey: cfg.key,
@@ -1596,7 +1590,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             if (!record) {
               return { error: 'They must activate their wallets first. Offer a button to their profile (destination "profile").' };
             }
-            const wallet = record.bridgeWallets?.[cfg.circleBlockchain];
+            const wallet = src === 'buyerAgent'
+              ? { walletId: record.buyerWalletId, address: record.buyerAddress }
+              : src === 'sellerAgent'
+                ? { walletId: record.sellerWalletId, address: record.sellerAddress }
+                : record.bridgeWallets?.[cfg.circleBlockchain];
             if (!wallet) {
               return { error: `They have no ${cfg.label} deposit wallet yet. Send them to top_up with propose_navigation so it gets created, then they fund it.` };
             }
@@ -1610,8 +1608,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               sourceChainKey: cfg.key,
               sourceChainLabel: cfg.label,
               amountUsdc,
-              mintRecipient: address,
-              destinationLabel: 'Your Arc wallet',
+              mintRecipient: src === 'buyerAgent' ? record.buyerAddress : src === 'sellerAgent' ? record.sellerAddress : address,
+              destinationLabel: src === 'main' ? 'Your Arc wallet' : `Your ${src === 'buyerAgent' ? 'buyer' : 'seller'} agent on Arc`,
+              sourceKind: src === 'main' ? 'identity' : src,
             });
             if ('error' in builtE) return builtE;
             if (!hasEquivalentConfirm(actions, builtE)) actions.push(builtE);
@@ -1619,6 +1618,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           }
 
           // direction === 'fromArc' (cash out)
+          if (src !== 'main') {
+            return { error: 'Direct agent-wallet cash-out is not available in this bridge path yet. Move it to the main wallet first.' };
+          }
           const outCfg = CASH_OUT_CHAINS[chain];
           if (!outCfg) return { error: 'That chain is not supported for cash-out.' };
           const to = (toAddress ?? address).trim();

@@ -195,6 +195,7 @@ export interface TopUpPayload {
   sourceChainKey: string;
   amountUsdc: number;
   mintRecipient: string;
+  sourceKind: 'identity' | 'buyerAgent' | 'sellerAgent';
 }
 
 interface ConfirmActionBase {
@@ -745,6 +746,7 @@ export function buildTopUpConfirm(i: {
   /// agent wallets when they asked to fund an agent in the same step.
   mintRecipient: string;
   destinationLabel: string;
+  sourceKind?: 'identity' | 'buyerAgent' | 'sellerAgent';
 }): TopUpConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   if (!/^0x[0-9a-fA-F]{40}$/.test(i.mintRecipient)) {
@@ -767,6 +769,7 @@ export function buildTopUpConfirm(i: {
       sourceChainKey: i.sourceChainKey,
       amountUsdc: i.amountUsdc,
       mintRecipient: i.mintRecipient.toLowerCase(),
+      sourceKind: i.sourceKind ?? 'identity',
     },
     confirmLabel: 'Move to Arc',
     cancelLabel: 'Not now',
