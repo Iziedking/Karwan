@@ -5,6 +5,7 @@ import { promisify } from 'node:util';
 import { eq } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { teamMembers, teamInvites } from './schema.js';
+import { durableEphemeralMap } from './ephemeral.js';
 import type { TeamRole } from './teamKeys.js';
 
 const scryptAsync = promisify(scrypt);
@@ -386,6 +387,132 @@ export async function deleteMember(id: string): Promise<TeamMember | null> {
   }
   saveInvites(invites);
   return member;
+}
+
+// ------------------------------------------------------- password resets
+
+/// An hour, against an invitation's week.
+///
+/// The two links look alike and are not alike. An invitation is expected to sit
+/// in an inbox until somebody gets round to it, and it can only ever create the
+/// account it was addressed to. A reset takes over an account that already
+/// exists, so its window is the time it takes to walk to your email and back.
+export const RESET_TTL_MS = 60 * 60 * 1000;
+
+interface PasswordReset {
+  id: string;
+  memberId: string;
+  tokenHash: string;
+  salt: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+/// Ephemeral rather than a table of its own: these are short-lived, single-use,
+/// and worthless once spent. The durable map already survives a restart (so a
+/// deploy mid-reset does not void a link somebody is holding) and sweeps its own
+/// expired rows.
+const resets = durableEphemeralMap<PasswordReset>('team-password-reset');
+
+/// Mint a reset link for a member. Returns null when there is nobody to reset,
+/// or when the account is disabled: an ended account must not be recoverable by
+/// whoever still has the mailbox.
+export async function createPasswordReset(
+  memberId: string,
+): Promise<{ rawToken: string; expiresAt: number } | null> {
+  const member = await getMember(memberId);
+  if (!member || member.disabledAt) return null;
+
+  // One live reset per member. Issuing a second link has to retire the first,
+  // or "I clicked the old email by mistake" becomes a way for a stale link to
+  // outlive the reason it was replaced.
+  for (const [key, row] of [...resets.entries()]) {
+    if (row.memberId === memberId) resets.delete(key);
+  }
+
+  const id = randomUUID();
+  const secret = randomBytes(32).toString('base64url');
+  const salt = randomBytes(16).toString('hex');
+  const expiresAt = Date.now() + RESET_TTL_MS;
+
+  resets.set(id, {
+    id,
+    memberId,
+    tokenHash: await hash(secret, salt),
+    salt,
+    createdAt: Date.now(),
+    expiresAt,
+  });
+
+  // Same three-part shape as an invite, and a different prefix on purpose: a
+  // reset token pasted into the invite route, or the reverse, must fail rather
+  // than half-work.
+  return { rawToken: `reset_${id}_${secret}`, expiresAt };
+}
+
+export interface ResetCheck {
+  valid: boolean;
+  member?: TeamMember;
+  reason?: 'malformed' | 'unknown' | 'expired' | 'disabled';
+}
+
+export async function checkPasswordReset(rawToken: string): Promise<ResetCheck> {
+  const first = rawToken.indexOf('_');
+  const second = first < 0 ? -1 : rawToken.indexOf('_', first + 1);
+  if (first < 0 || second < 0) return { valid: false, reason: 'malformed' };
+
+  const prefix = rawToken.slice(0, first);
+  const id = rawToken.slice(first + 1, second);
+  const secret = rawToken.slice(second + 1);
+  if (prefix !== 'reset' || !id || !secret) return { valid: false, reason: 'malformed' };
+
+  const row = resets.get(id);
+  // The map drops expired rows on read, so a missing row is either spent, timed
+  // out, or never existed. All three are "ask for another one", and telling them
+  // apart would only help somebody guessing.
+  if (!row) return { valid: false, reason: 'expired' };
+
+  const candidate = await hash(secret, row.salt);
+  if (!sameHash(candidate, row.tokenHash)) return { valid: false, reason: 'unknown' };
+
+  const member = await getMember(row.memberId);
+  if (!member) return { valid: false, reason: 'unknown' };
+  if (member.disabledAt) return { valid: false, reason: 'disabled' };
+
+  return { valid: true, member };
+}
+
+/// Spend the link and set the new password.
+///
+/// Clears the lockout as well as the password. Somebody who has been locked out
+/// by failed attempts is the single most likely person to be resetting, and a
+/// reset that leaves them locked out for another fifteen minutes has not
+/// actually let them in.
+export async function consumePasswordReset(
+  rawToken: string,
+  password: string,
+): Promise<
+  { ok: true; member: TeamMember } | { ok: false; reason: 'invalid' | 'disabled' | 'weak' }
+> {
+  const check = await checkPasswordReset(rawToken);
+  if (!check.valid || !check.member) {
+    return { ok: false, reason: check.reason === 'disabled' ? 'disabled' : 'invalid' };
+  }
+  if (password.length < MIN_PASSWORD_LENGTH) return { ok: false, reason: 'weak' };
+
+  const id = rawToken.slice(rawToken.indexOf('_') + 1, rawToken.indexOf('_', rawToken.indexOf('_') + 1));
+  resets.delete(id);
+
+  const salt = randomBytes(16).toString('hex');
+  const next: TeamMember = {
+    ...check.member,
+    salt,
+    passwordHash: await hash(password, salt),
+    failedLogins: 0,
+  };
+  delete next.lockedUntil;
+  await persistMember(next);
+  return { ok: true, member: next };
 }
 
 export async function changePassword(id: string, password: string): Promise<boolean> {

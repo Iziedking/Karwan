@@ -162,6 +162,19 @@ export default function AdminTeamPage() {
     }
   }
 
+  async function resetPassword(member: TeamMemberView) {
+    try {
+      const r = await api.adminResetTeamMemberPassword(member.id);
+      setErr(null);
+      // Shown the same way an invite link is: the email is a convenience, and
+      // the reason they need a reset at all may be that email is not reaching
+      // them.
+      setIssued({ link: r.link, note: r.note });
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Could not send a reset link');
+    }
+  }
+
   async function remove(member: TeamMemberView) {
     const ok = await confirm({
       title: 'Remove from the team',
@@ -358,6 +371,16 @@ export default function AdminTeamPage() {
             >
               {m.active ? 'End access' : 'Restore'}
             </button>
+            {m.active && (
+              <button
+                type="button"
+                onClick={() => resetPassword(m)}
+                className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white shrink-0"
+                title="Emails them a one-hour link to set a new password."
+              >
+                Reset password
+              </button>
+            )}
             {/* Removal sits next to the softer control rather than replacing it.
                 Ending access is reversible and is the right answer most of the
                 time; this one is for the address that should never have been

@@ -1888,6 +1888,11 @@ export const api = {
       method: 'DELETE',
       headers: adminHeaders(),
     }),
+  adminResetTeamMemberPassword: (id: string) =>
+    json<{ link: string; expiresAt: number; emailed: boolean; note: string }>(
+      `/api/admin/team-members/${id}/reset`,
+      { method: 'POST', headers: adminHeaders() },
+    ),
   adminRemoveTeamMember: (id: string) =>
     json<{
       ok: true;
@@ -3162,12 +3167,16 @@ export const api = {
       `/api/bridge/circle-bridge/wallet?address=${address}&sourceChainKey=${sourceChainKey}`,
     ),
   listMessages: (jobId: string, caller: string) =>
-    json<{ messages: ChatMessage[] }>(`/api/chat/${jobId}?caller=${caller}`),
+    json<ChatTranscript>(`/api/chat/${jobId}?caller=${caller}`),
   sendMessage: (jobId: string, caller: string, body: string) =>
     json<{ message: ChatMessage }>(`/api/chat/${jobId}`, {
       method: 'POST',
       body: JSON.stringify({ caller, body }),
     }),
+  listFinancingMessages: (kind: 'factoring' | 'po', positionId: string) =>
+    json<ChatTranscript>(`/api/financing-chat/${kind}/${positionId}`),
+  sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string) =>
+    json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body }) }),
   telegramStatus: (address: string) =>
     json<TelegramStatus>(`/api/telegram/status?address=${address}`),
   telegramLinkStart: (address: string) =>
@@ -3723,9 +3732,22 @@ export interface GatewayChainBalance {
 export interface ChatMessage {
   id: string;
   jobId: string;
+  channel?: 'trade' | 'financing';
+  channelKey?: string;
+  financingKind?: 'factoring' | 'po';
+  financingId?: string;
   sender: string;
+  kind?: 'participant' | 'system';
   body: string;
+  eventType?: string;
   ts: number;
+}
+
+export interface ChatTranscript {
+  messages: ChatMessage[];
+  writable: boolean;
+  closedAt?: number;
+  closedReason?: 'settled' | 'cancelled' | 'repaid' | 'defaulted';
 }
 
 export interface TelegramStatus {

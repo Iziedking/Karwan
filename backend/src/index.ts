@@ -32,6 +32,7 @@ import { legacyRoutes } from './routes/legacy.js';
 import { bridgeRoutes, resumePendingBridges } from './routes/bridge.js';
 import { gatewayRoutes } from './routes/gateway.js';
 import { chatRoutes } from './routes/chat.js';
+import { financingChatRoutes } from './routes/financingChat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
 import { adminDisputeRoutes } from './routes/adminDisputes.js';
@@ -248,6 +249,7 @@ app.route('/', attestationRoutes);
 app.route('/api/vault', vaultRoutes);
 app.route('/api/legacy', legacyRoutes);
 app.route('/api/chat', chatRoutes);
+app.route('/api/financing-chat', financingChatRoutes);
 app.route('/api/telegram', telegramRoutes);
 // Support-team router first: /api/admin/support is reachable by the scoped
 // support token, while the rest of /api/admin stays admin-only.

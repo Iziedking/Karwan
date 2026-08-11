@@ -36,6 +36,10 @@ const {
   getMemberByEmail,
   setMemberDisabled,
   changePassword,
+  createPasswordReset,
+  checkPasswordReset,
+  consumePasswordReset,
+  deleteMember,
   MIN_PASSWORD_LENGTH,
 } = await import('./teamMembers.js');
 
@@ -265,4 +269,122 @@ test('the stored record never holds the password', async () => {
   assert.equal(raw.includes(GOOD_PASSWORD), false, 'the password is in the store');
   assert.ok(raw.includes('passwordHash'));
   assert.ok(raw.includes('salt'));
+});
+
+// -------------------------------------------------------- password resets
+//
+// A reset link takes over an account that already exists, which makes it the
+// most dangerous thing this module mints. The tests below are almost entirely
+// about taking it away again: after one use, after a second is issued, and after
+// the account it belongs to is disabled.
+
+const NEW_PASSWORD = 'a different long passphrase';
+
+async function member(email = 'aisha@karwan.site') {
+  const redeemed = await redeemInvite(await invited('marketing', email), GOOD_PASSWORD);
+  assert.ok(redeemed.ok);
+  return redeemed.member;
+}
+
+test('a reset sets a new password and retires the old one', async () => {
+  const m = await member();
+  const reset = await createPasswordReset(m.id);
+  assert.ok(reset);
+
+  const result = await consumePasswordReset(reset.rawToken, NEW_PASSWORD);
+  assert.equal(result.ok, true);
+  assert.equal((await login(m.email, NEW_PASSWORD)).ok, true);
+  assert.equal((await login(m.email, GOOD_PASSWORD)).ok, false, 'the old password still works');
+});
+
+test('a reset link works exactly once', async () => {
+  const m = await member();
+  const reset = await createPasswordReset(m.id);
+  assert.ok(reset);
+
+  assert.equal((await consumePasswordReset(reset.rawToken, NEW_PASSWORD)).ok, true);
+  // Whoever else has the link, out of a forwarded email or a shared screen, must
+  // not be able to take the account back with it.
+  const second = await consumePasswordReset(reset.rawToken, 'yet another long password');
+  assert.equal(second.ok, false);
+  assert.equal((await login(m.email, NEW_PASSWORD)).ok, true);
+});
+
+test('issuing a second reset kills the first', async () => {
+  const m = await member();
+  const first = await createPasswordReset(m.id);
+  const second = await createPasswordReset(m.id);
+  assert.ok(first);
+  assert.ok(second);
+
+  assert.equal((await checkPasswordReset(first.rawToken)).valid, false);
+  assert.equal((await checkPasswordReset(second.rawToken)).valid, true);
+});
+
+test('a rejected password does not burn the link', async () => {
+  // Getting the length wrong is the most likely thing to happen on this form. If
+  // that spent the token, the honest mistake would cost them another round trip
+  // through their inbox.
+  const m = await member();
+  const reset = await createPasswordReset(m.id);
+  assert.ok(reset);
+
+  const weak = await consumePasswordReset(reset.rawToken, 'short');
+  assert.equal(weak.ok, false);
+  assert.equal(weak.ok === false && weak.reason, 'weak');
+  assert.equal((await consumePasswordReset(reset.rawToken, NEW_PASSWORD)).ok, true);
+});
+
+test('a disabled account cannot be reset into', async () => {
+  const m = await member();
+  // Minted while they were still active, then their access ends. The link has to
+  // die with the account, or ending access means nothing to anyone holding one.
+  const early = await createPasswordReset(m.id);
+  assert.ok(early);
+
+  await setMemberDisabled(m.id, true);
+  assert.equal(await createPasswordReset(m.id), null, 'a disabled account got a fresh link');
+
+  const check = await checkPasswordReset(early.rawToken);
+  assert.equal(check.valid, false);
+  assert.equal(check.reason, 'disabled');
+  assert.equal((await consumePasswordReset(early.rawToken, NEW_PASSWORD)).ok, false);
+});
+
+test('a reset clears a lockout', async () => {
+  // The person resetting is very often the person who just locked themselves
+  // out. A reset that leaves the lockout in place has not let them back in.
+  const m = await member();
+  for (let i = 0; i < 8; i++) await login(m.email, 'wrong password entirely');
+  assert.equal((await login(m.email, GOOD_PASSWORD)).reason, 'locked');
+
+  const reset = await createPasswordReset(m.id);
+  assert.ok(reset);
+  assert.equal((await consumePasswordReset(reset.rawToken, NEW_PASSWORD)).ok, true);
+  assert.equal((await login(m.email, NEW_PASSWORD)).ok, true);
+});
+
+test('an invite is not a reset and a reset is not an invite', async () => {
+  // Both are `prefix_id_secret` and both arrive by email. Without the prefix
+  // check one could be replayed into the other route, and redeeming an invite
+  // sets a ROLE, which is the thing an invitation exists to control.
+  const m = await member();
+  const reset = await createPasswordReset(m.id);
+  assert.ok(reset);
+
+  const inviteToken = await invited('dev', 'someone-else@karwan.site');
+  assert.equal((await checkPasswordReset(inviteToken)).reason, 'malformed');
+  assert.equal((await checkInvite(reset.rawToken)).reason, 'malformed');
+});
+
+test('removing a member takes their invitations with them', async () => {
+  const m = await member();
+  assert.equal((await listInvites()).some((i) => i.email === m.email), true);
+
+  const removed = await deleteMember(m.id);
+  assert.equal(removed?.email, m.email);
+  assert.equal(await getMemberByEmail(m.email), null);
+  assert.equal((await listInvites()).some((i) => i.email === m.email), false);
+  // The whole point: the address is free again.
+  await assert.doesNotReject(() => createInvite({ email: m.email, name: 'Aisha', role: 'dev' }));
 });

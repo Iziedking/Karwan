@@ -8,8 +8,13 @@ import {
   checkInvite,
   redeemInvite,
   getMember,
+  getMemberByEmail,
+  createPasswordReset,
+  checkPasswordReset,
+  consumePasswordReset,
   MIN_PASSWORD_LENGTH,
 } from '../db/teamMembers.js';
+import { sendTeamPasswordResetEmail } from '../emails/teamPasswordReset.js';
 import type { TeamRole } from '../db/teamKeys.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -94,7 +99,59 @@ ${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
     <input name="password" type="password" autocomplete="current-password" required></label>
   <button class="wide" type="submit">Sign in</button>
 </form>
+<p class="foot"><a href="/team/forgot">Forgot your password?</a></p>
 <p class="foot">No account? An admin has to invite you. Ask for a link.</p>`,
+    { center: true },
+  );
+}
+
+function forgotPage(sent?: boolean) {
+  if (sent) {
+    // Says the same thing whether or not that address has an account. Confirming
+    // it does would turn this form into a way to find out who works here, which
+    // is the exact thing the login page's single error message already avoids.
+    return page(
+      'Reset your password',
+      `<p class="eyebrow">[:KARWAN TEAM:]</p>
+<h1>Check your email</h1>
+<p>If that address belongs to a team account, a reset link is on its way. It
+works for one hour and can only be used once.</p>
+<p class="foot"><a href="/team">Back to sign in</a></p>`,
+      { center: true },
+    );
+  }
+
+  return page(
+    'Reset your password',
+    `<p class="eyebrow">[:KARWAN TEAM:]</p>
+<h1>Reset your password</h1>
+<p>Tell us the address you sign in with and we will email you a link to set a
+new password.</p>
+<form method="post" action="/team/forgot">
+  <label><span class="l">Email</span>
+    <input name="email" type="email" autocomplete="username" required autofocus></label>
+  <button class="wide" type="submit">Email me a link</button>
+</form>
+<p class="foot"><a href="/team">Back to sign in</a></p>`,
+    { center: true },
+  );
+}
+
+function resetPage(token: string, name: string, error?: string) {
+  return page(
+    'Choose a new password',
+    `<p class="eyebrow">[:KARWAN TEAM:]</p>
+<h1>New password, ${escapeHtml(name)}</h1>
+<p>Pick something you can remember. This link stops working once you use it.</p>
+${error ? `<p class="err">${escapeHtml(error)}</p>` : ''}
+<form method="post" action="/team/reset">
+  <input type="hidden" name="token" value="${escapeHtml(token)}">
+  <label><span class="l">Password (${MIN_PASSWORD_LENGTH} characters or more)</span>
+    <input name="password" type="password" autocomplete="new-password"
+      minlength="${MIN_PASSWORD_LENGTH}" required autofocus></label>
+  <button class="wide" type="submit">Set my password</button>
+</form>
+<p class="foot">Use a long phrase you can remember. A password manager is better still.</p>`,
     { center: true },
   );
 }
@@ -193,6 +250,13 @@ function mcpUrl(): string {
   return config.OAUTH_RESOURCES.split(',')[0]?.trim() ?? 'https://mcp.karwan.site/mcp';
 }
 
+/// The origin the portal is served from, so an emailed link points back here.
+/// Same source the admin invite route uses, deliberately: two ways of building
+/// the same URL is how one of them ends up pointing at the wrong host.
+function portalBase(): string {
+  return config.OAUTH_ISSUER.replace(/\/$/, '');
+}
+
 teamPortalRoutes.get('/', async (c) => {
   const id = readSession(c);
   if (!id) return loginPage();
@@ -236,6 +300,113 @@ teamPortalRoutes.post('/logout', (c) => {
   deleteCookie(c, COOKIE, { path: '/team' });
   return c.redirect('/team');
 });
+
+teamPortalRoutes.get('/forgot', () => forgotPage());
+
+/// Ask for a reset link.
+///
+/// Answers identically in every case: address unknown, account disabled, email
+/// provider down. The response is about what the requester is allowed to learn,
+/// not about what happened, and what they are allowed to learn is nothing.
+///
+/// Rate limited harder than login. A login attempt costs a scrypt hash; this
+/// sends mail to a third party, so an unthrottled form is a way to use Karwan's
+/// sending reputation to spam somebody.
+teamPortalRoutes.post(
+  '/forgot',
+  rateLimit({ windowMs: 15 * 60_000, max: 5, name: 'team-portal-forgot' }),
+  async (c) => {
+    const form = await c.req.parseBody();
+    const email = String(form.email ?? '').trim().toLowerCase();
+
+    const member = email ? await getMemberByEmail(email) : null;
+    if (member && !member.disabledAt) {
+      const reset = await createPasswordReset(member.id);
+      if (reset) {
+        const link = `${portalBase()}/team/reset?token=${encodeURIComponent(reset.rawToken)}`;
+        const sent = await sendTeamPasswordResetEmail({
+          to: member.email,
+          name: member.name,
+          resetUrl: link,
+          expiresLabel: 'This link works for one hour',
+        });
+        logger.info(
+          { member: member.email, delivered: sent.delivered },
+          'team password reset requested',
+        );
+      }
+    } else {
+      // Logged so a real person asking "I never got it" can be answered, without
+      // the page itself giving anything away.
+      logger.info({ email }, 'team password reset requested for unknown or disabled account');
+    }
+
+    return forgotPage(true);
+  },
+);
+
+teamPortalRoutes.get('/reset', async (c) => {
+  const token = c.req.query('token') ?? '';
+  const check = await checkPasswordReset(token);
+
+  if (!check.valid || !check.member) {
+    const why =
+      check.reason === 'disabled'
+        ? 'That account is no longer active. Talk to an admin.'
+        : 'That reset link has expired or has already been used. Ask for a new one.';
+    return page(
+      'Reset your password',
+      `<h1>Cannot use this link</h1><p>${escapeHtml(why)}</p>
+<p class="foot"><a href="/team/forgot">Send me another</a></p>`,
+      { status: 400, center: true },
+    );
+  }
+
+  return resetPage(token, check.member.name);
+});
+
+teamPortalRoutes.post(
+  '/reset',
+  rateLimit({ windowMs: 60_000, max: 12, name: 'team-portal-reset' }),
+  async (c) => {
+    const form = await c.req.parseBody();
+    const token = String(form.token ?? '');
+    const password = String(form.password ?? '');
+
+    const check = await checkPasswordReset(token);
+    if (!check.valid || !check.member) {
+      return page(
+        'Reset your password',
+        `<h1>Cannot use this link</h1><p>That reset link is no longer valid.</p>
+<p class="foot"><a href="/team/forgot">Send me another</a></p>`,
+        { status: 400, center: true },
+      );
+    }
+
+    const result = await consumePasswordReset(token, password);
+    if (!result.ok) {
+      if (result.reason === 'weak') {
+        return resetPage(
+          token,
+          check.member.name,
+          `Use at least ${MIN_PASSWORD_LENGTH} characters.`,
+        );
+      }
+      return page(
+        'Reset your password',
+        `<h1>Cannot use this link</h1><p>That reset link is no longer valid.</p>
+<p class="foot"><a href="/team/forgot">Send me another</a></p>`,
+        { status: 400, center: true },
+      );
+    }
+
+    logger.info({ member: result.member.email }, 'team password reset completed');
+    // Straight in. Making somebody who just proved control of the mailbox type
+    // the password they set four seconds ago is friction with nothing behind it.
+    setSession(c, result.member.id);
+    return c.redirect('/team');
+  },
+);
 
 teamPortalRoutes.get('/invite', async (c) => {
   const token = c.req.query('token') ?? '';

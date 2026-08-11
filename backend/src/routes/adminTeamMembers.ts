@@ -9,8 +9,11 @@ import {
   listMembers,
   setMemberDisabled,
   deleteMember,
+  getMember,
+  createPasswordReset,
   INVITE_TTL_MS,
 } from '../db/teamMembers.js';
+import { sendTeamPasswordResetEmail } from '../emails/teamPasswordReset.js';
 import { revokeForMember } from '../db/oauth.js';
 import { config } from '../config.js';
 import { sendTeamInviteEmail } from '../emails/teamInvite.js';
@@ -194,6 +197,42 @@ adminTeamMemberRoutes.patch('/:id', async (c) => {
     note: body.disabled
       ? `Access ended. ${revoked} live token(s) were revoked, so every tool they connected stops now.`
       : 'Access restored. They can sign in again and reconnect their tools.',
+  });
+});
+
+/// POST /api/admin/team-members/:id/reset: send somebody a password reset.
+///
+/// The portal has a self-service forgot form, and this exists anyway for the
+/// case it cannot cover: the person cannot receive the mail, or is standing in
+/// front of you, or has stopped trusting a link that arrived unprompted. Hands
+/// the link back like the invite routes do, so the admin can pass it on by
+/// whatever means, rather than the email being a hard dependency.
+adminTeamMemberRoutes.post('/:id/reset', async (c) => {
+  const id = c.req.param('id');
+  const reset = await createPasswordReset(id);
+  // createPasswordReset refuses a disabled account, which is the same answer as
+  // no such member from out here: neither should get a working link.
+  if (!reset) return c.json({ error: 'no such active member' }, 404);
+
+  const member = await getMember(id);
+  if (!member) return c.json({ error: 'no such active member' }, 404);
+
+  const link = `${portalBase()}/team/reset?token=${encodeURIComponent(reset.rawToken)}`;
+  const sent = await sendTeamPasswordResetEmail({
+    to: member.email,
+    name: member.name,
+    resetUrl: link,
+    expiresLabel: 'This link works for one hour',
+  });
+
+  logger.info({ member: member.email, delivered: sent.delivered }, 'team password reset issued by admin');
+  return c.json({
+    link,
+    expiresAt: reset.expiresAt,
+    emailed: sent.delivered,
+    note: sent.delivered
+      ? `Emailed to ${member.email}. It works for one hour and only once. The link is here too.`
+      : `Not emailed (${sent.reason ?? 'unknown'}). Send this link to them yourself. It works for one hour.`,
   });
 });
 
