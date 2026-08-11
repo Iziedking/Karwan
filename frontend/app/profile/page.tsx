@@ -669,6 +669,7 @@ function ProfilePageInner() {
       <PendingDealsBand tone="light" />
 
       <div data-guide="profile-nav" className="contents">
+        <p className={'md:hidden px-4 pb-2 text-end mono text-[9px] uppercase'}>Swipe tabs to view more sections</p>
         <StickyTabStrip
           tabs={TABS}
           active={activeTab}

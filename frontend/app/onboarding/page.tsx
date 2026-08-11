@@ -155,7 +155,8 @@ function OnboardingInner() {
     // rest of onboarding renders in it.
     if (isConnected && step === 'connect') {
       // Business accounts default to both roles, so skip the role step.
-      setStep(accountType === 'business' ? 'profile' : 'role');
+      setRole('both');
+      setStep('profile');
     }
   }, [isConnected, step, accountType]);
 
@@ -266,7 +267,8 @@ function OnboardingInner() {
         // Land on the role step so the user can change buyer/seller/both
         // (e.g. a seller adding buyer capability). The Continue button takes
         // them into the form with the new role's fields revealed.
-        setStep('role');
+        setRole('both');
+        setStep('profile');
         setProfileGate(false);
       })
       .catch(() => {
@@ -340,7 +342,7 @@ function OnboardingInner() {
 
   // Business skips the role step, so it has one fewer step than individual.
   // Both gain the closing "get ready" step (activate + claim USDC).
-  const totalSteps = accountType === 'business' ? 5 : 6;
+  const totalSteps = 5;
   const stepN =
     step === 'language'
       ? 1
@@ -348,12 +350,8 @@ function OnboardingInner() {
         ? 2
         : step === 'connect'
           ? 3
-          : step === 'role'
+          : step === 'profile'
             ? 4
-            : step === 'profile'
-              ? accountType === 'business'
-                ? 4
-                : 5
               : totalSteps;
 
   // Hold the body until the profile check resolves. Returning users with a
@@ -470,7 +468,7 @@ function OnboardingInner() {
               onSelect={(v) => {
                 setAccountType(v);
                 // Business defaults to both roles and skips the role step.
-                setRole(v === 'business' ? 'both' : null);
+                setRole('both');
               }}
               onBack={() => setStep('language')}
               onContinue={() => setStep('connect')}
@@ -553,7 +551,7 @@ function OnboardingInner() {
               canSubmit={canSubmit}
               submitting={submitting}
               error={error}
-              onBack={() => setStep('role')}
+              onBack={() => setStep('accountType')}
               onSubmit={submit}
             />
           )}

@@ -140,10 +140,10 @@ const TABS: ReadonlyArray<{ id: Tab; label: string; available: boolean }> = [
 /// willing to wait for PoD before reclaiming principal. Aligned to
 /// payment-term defaults from sme-design.md §9.2.
 const REPAYMENT_WINDOW_OPTIONS: ReadonlyArray<{ label: string; seconds: number }> = [
-  { label: '7 DAYS', seconds: 7 * 86_400 },
-  { label: '30 DAYS', seconds: 30 * 86_400 },
-  { label: '45 DAYS', seconds: 45 * 86_400 },
-  { label: '75 DAYS', seconds: 75 * 86_400 },
+  { label: '+7 DAYS', seconds: 7 * 86_400 },
+  { label: '+30 DAYS', seconds: 30 * 86_400 },
+  { label: '+45 DAYS', seconds: 45 * 86_400 },
+  { label: '+75 DAYS', seconds: 75 * 86_400 },
 ];
 
 const SECTOR_FILTERS: ReadonlyArray<string> = [
@@ -1092,11 +1092,13 @@ function FundModal({
   const requested = deal.poFinancingRequestedAdvanceUsdc
     ? Number(deal.poFinancingRequestedAdvanceUsdc)
     : face;
+  const settlementDelaySeconds = deal.deadlineUnix ? Math.max(0, deal.deadlineUnix - Math.floor(Date.now() / 1000)) : 0;
+  const minimumRepaymentWindowSeconds = Math.max(7 * 86_400, settlementDelaySeconds + 7 * 86_400);
   // Default principal at 80% of face, repay at 84% (5% fee on principal).
   // Matches the demo scenario in sme-design.md §17 (5% PO financing fee).
   const [principal, setPrincipal] = useState<number>(Math.round(requested * 0.8 * 100) / 100);
   const [repay, setRepay] = useState<number>(Math.round(requested * 0.84 * 100) / 100);
-  const [repaymentWindowSeconds, setRepaymentWindowSeconds] = useState<number>(30 * 86_400);
+  const [repaymentWindowSeconds, setRepaymentWindowSeconds] = useState<number>(minimumRepaymentWindowSeconds + 30 * 86_400);
   /// Seller stake reserved against this line and slashed to the financier if
   /// repayment never lands. Without it the only recovery is off-chain.
   const [collateral, setCollateral] = useState<number>(0);
@@ -1399,10 +1401,10 @@ function FundModal({
                   key={opt.seconds}
                   type="button"
                   disabled={submitting}
-                  onClick={() => setRepaymentWindowSeconds(opt.seconds)}
+                  onClick={() => setRepaymentWindowSeconds(minimumRepaymentWindowSeconds + opt.seconds)}
                   className={cn(
                     'mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
-                    repaymentWindowSeconds === opt.seconds
+                    repaymentWindowSeconds === minimumRepaymentWindowSeconds + opt.seconds
                       ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
                       : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                   )}

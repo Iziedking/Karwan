@@ -86,6 +86,11 @@ const defaultBodySchema = z.object({
 
 export const poFinancingRoutes = new Hono();
 
+function minimumRepaymentWindowSeconds(deal: { deadlineUnix?: number }): number {
+  const deliveryDelay = deal.deadlineUnix ? Math.max(0, deal.deadlineUnix - Math.floor(Date.now() / 1000)) : 0;
+  return Math.max(7 * 86_400, deliveryDelay + 7 * 86_400);
+}
+
 const poRequestBodySchema = z.object({
   invoiceId: hashSchema,
   requestedAdvanceUsdc: usdcAmountSchema,
@@ -309,6 +314,7 @@ poFinancingRoutes.post('/fund', async (c) => {
   }
   if (!deal.poFinancingRequestedAt || !deal.poFinancingRequestedAdvanceUsdc) return c.json({ error: 'seller has not requested PO financing' }, 409);
   if (Number(body.principalUsdc) > Number(deal.poFinancingRequestedAdvanceUsdc)) return c.json({ error: 'principal exceeds the seller requested amount' }, 400);
+  if (body.repaymentWindowSeconds < minimumRepaymentWindowSeconds(deal)) return c.json({ error: 'repayment window must extend beyond delivery and the buyer release buffer' }, 400);
 
   const existing = await getPOLineForInvoice(body.invoiceId);
   if (existing) {
@@ -449,6 +455,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
   }
   if (!deal.poFinancingRequestedAt || !deal.poFinancingRequestedAdvanceUsdc) return c.json({ error: 'seller has not requested PO financing' }, 409);
   if (Number(body.principalUsdc) > Number(deal.poFinancingRequestedAdvanceUsdc)) return c.json({ error: 'principal exceeds the seller requested amount' }, 400);
+  if (body.repaymentWindowSeconds < minimumRepaymentWindowSeconds(deal)) return c.json({ error: 'repayment window must extend beyond delivery and the buyer release buffer' }, 400);
   if (caller === deal.seller) {
     return c.json({ error: 'seller cannot fund their own PO' }, 403);
   }
