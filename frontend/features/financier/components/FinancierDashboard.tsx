@@ -1162,7 +1162,7 @@ function FundModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arcClient, deal.seller, deal.jobId]);
   const spread = repay - principal;
-  const validRepay = repay > principal && repay <= requested;
+  const validRepay = principal > 0 && principal <= requested && repay > principal && repay <= face;
 
   /// The desk's suggestion, capped at what the seller can actually reserve. A
   /// seller short of the suggested amount should not produce a form that cannot

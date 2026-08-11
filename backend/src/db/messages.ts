@@ -9,39 +9,54 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'messages.json');
 export interface ChatMessage {
   id: string;
   jobId: string;
+  channel?: 'trade' | 'financing';
+  channelKey?: string;
+  financingKind?: 'factoring' | 'po';
+  financingId?: string;
   sender: string;
+  kind?: 'participant' | 'system';
   body: string;
+  eventType?: string;
   ts: number;
 }
 
-export async function listMessages(jobId: string): Promise<ChatMessage[]> {
+function normalized(message: ChatMessage): ChatMessage {
+  return { ...message, channel: message.channel ?? 'trade', channelKey: message.channelKey ?? message.jobId, kind: message.kind ?? 'participant' };
+}
+
+export async function listMessages(jobId: string, channel: 'trade' | 'financing' = 'trade', channelKey = jobId): Promise<ChatMessage[]> {
   if (pgEnabled) {
     const rows = await db().select().from(messages).where(eq(messages.jobId, jobId));
-    return rows.map((r) => r.data).sort((a, b) => a.ts - b.ts);
+    return rows.map((r) => normalized(r.data)).filter((m) => m.channel === channel && m.channelKey === channelKey).sort((a, b) => a.ts - b.ts);
   }
   const store = loadFile();
   return Object.values(store)
-    .filter((m) => m.jobId === jobId)
+    .map(normalized)
+    .filter((m) => m.jobId === jobId && m.channel === channel && m.channelKey === channelKey)
     .sort((a, b) => a.ts - b.ts);
 }
 
 export async function addMessage(message: ChatMessage): Promise<ChatMessage> {
+  const next = normalized(message);
   if (pgEnabled) {
+    const existing = await db().select().from(messages).where(eq(messages.id, next.id));
+    if (existing[0]) return normalized(existing[0].data);
     await db()
       .insert(messages)
       .values({
-        id: message.id,
-        jobId: message.jobId,
-        sender: message.sender,
-        ts: message.ts,
-        data: message,
+        id: next.id,
+        jobId: next.jobId,
+        sender: next.sender,
+        ts: next.ts,
+        data: next,
       });
-    return message;
+    return next;
   }
   const store = loadFile();
-  store[message.id] = message;
+  if (store[next.id]) return normalized(store[next.id]);
+  store[next.id] = next;
   saveFile(store);
-  return message;
+  return next;
 }
 
 function ensureFile() {

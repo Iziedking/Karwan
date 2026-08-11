@@ -17,7 +17,7 @@ export function FactoringPositionsPanel() {
 }
 
 function statusLabel(status: FactoringOffer['status']): string {
-  return status === 'defaulted' ? 'Defaulted' : status === 'accepted' ? 'Accepted' : status === 'settled' ? 'Settled' : status;
+  return status === 'defaulted' ? 'Defaulted / ' : status === 'accepted' ? 'Accepted / ' : status === 'settled' ? 'Settled / ' : status;
 }
 function PositionList({ offers }: { offers: FactoringOffer[] }) {
   return <section>{offers.map(o => <Link key={o.id} href={'/financier/factoring/' + o.id}>{statusLabel(o.status)}</Link>)}</section>;

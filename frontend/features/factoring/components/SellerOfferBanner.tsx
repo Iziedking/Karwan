@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useDialog } from '@/shared/components/Dialog';
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
@@ -26,6 +27,7 @@ export function SellerOfferBanner({
   deal: DirectDeal;
   viewerIsSeller: boolean;
 }) {
+  const { prompt } = useDialog();
   const commonEligible =
     viewerIsSeller &&
     deal.tradeLane === 'finance' &&
@@ -56,8 +58,13 @@ export function SellerOfferBanner({
   }, [deal.factoringRequestedAt, deal.poFinancingRequestedAt]);
 
   async function askForEarlyPayout() {
-    const amount = window.prompt('How much USDC do you want paid early?', requestedAmount);
-    if (!amount) return;
+    const entered = await prompt({ title: 'Request early payout', message: 'How much USDC do you want paid early?', defaultValue: requestedAmount, confirmLabel: 'Request payout' });
+    if (entered === null) return;
+    const amount = entered.trim();
+    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || Number(amount) > Number(deal.dealAmountUsdc)) {
+      setRequestError(`Enter an amount between 0 and ${deal.dealAmountUsdc} USDC.`);
+      return;
+    }
     setRequestedAmount(amount);
     setRequestBusy(true);
     setRequestError(null);
@@ -72,8 +79,13 @@ export function SellerOfferBanner({
   }
 
   async function askForFulfilmentCapital() {
-    const amount = window.prompt('How much USDC do you need to fulfil this order?', requestedAmount);
-    if (!amount) return;
+    const entered = await prompt({ title: 'Request fulfilment capital', message: 'How much USDC do you need to fulfil this order?', defaultValue: requestedAmount, confirmLabel: 'Request capital' });
+    if (entered === null) return;
+    const amount = entered.trim();
+    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || Number(amount) > Number(deal.dealAmountUsdc)) {
+      setRequestError(`Enter an amount between 0 and ${deal.dealAmountUsdc} USDC.`);
+      return;
+    }
     setRequestedAmount(amount);
     setRequestBusy(true);
     setRequestError(null);
@@ -141,8 +153,8 @@ export function SellerOfferBanner({
         tone={poRequestedAt ? 'waiting' : 'idle'}
         tag={poRequestedAt ? '[:FULFILMENT CAPITAL REQUESTED:]' : '[:PO FINANCING:]'}
         line={poRequestedAt
-          ? `Financiers can fund up to ${formatUsdc(requestedAmount, { withSuffix: false })} USDC. This deal cannot later use invoice factoring.`
-          : 'Request working capital before delivery. Selecting this rail permanently excludes invoice factoring for this deal.'}
+          ? `Financiers can fund up to ${formatUsdc(requestedAmount, { withSuffix: false })} USDC.`
+          : 'Request working capital before delivery.'}
         cta={poRequestedAt ? 'Request sent' : requestBusy ? 'Sending...' : 'Request capital'}
         onClick={askForFulfilmentCapital}
         busy={requestBusy || !!poRequestedAt}
