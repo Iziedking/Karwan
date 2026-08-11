@@ -12,6 +12,7 @@ import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { TermsModal } from '@/shared/components/TermsModal';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
+import { DialogProvider } from '@/shared/components/Dialog';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 // Geist, Geist Mono, and Instrument Serif are self-hosted (woff2 in ./fonts)
@@ -153,16 +154,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               zoom, and leaving overflow visible lets the page show a real
               horizontal scrollbar when zoomed in far enough to clip content, so
               nothing is ever unreachable. */}
-          <ChromeFrame
-            topNav={<TopNav />}
-            profileNudge={<ProfileNudge />}
-            footer={<SiteFooter />}
-            notifications={<NotificationToasts />}
-            guide={<GuideWelcome />}
-            terms={<TermsModal />}
-          >
-            {children}
-          </ChromeFrame>
+          <DialogProvider>
+            <ChromeFrame
+              topNav={<TopNav />}
+              profileNudge={<ProfileNudge />}
+              footer={<SiteFooter />}
+              notifications={<NotificationToasts />}
+              guide={<GuideWelcome />}
+              terms={<TermsModal />}
+            >
+              {children}
+            </ChromeFrame>
+          </DialogProvider>
         </AppProviders>
         <SpeedInsights />
       </body>

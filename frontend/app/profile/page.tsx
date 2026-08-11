@@ -8,7 +8,6 @@ import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { ActivationModal } from '@/shared/components/ActivationModal';
 import { shortAddress } from '@/shared/utils/format';
-import { RoleToggle } from '@/features/profile/components/RoleToggle';
 import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
 import { AgentWithdrawCard } from '@/features/profile/components/AgentWithdrawCard';
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
@@ -245,25 +244,6 @@ function ProfilePageInner() {
         {/* ROLE + AGENT DETAILS */}
         {profile ? (
           <>
-            <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,440px)] lg:items-center">
-                <div className="max-w-[52ch]">
-                  <SectionTag>{t.accountType.tag}</SectionTag>
-                  <h2 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold uppercase tracking-[-0.035em] leading-[0.95] text-[var(--lp-dark)]">
-                    {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent><Punc>.</Punc>
-                  </h2>
-                  <p className="mt-2 text-[13px] sm:text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-                    {t.accountType.body}
-                  </p>
-                </div>
-                <PageCard className="w-full max-w-full">
-                  <div className="p-3 sm:p-4">
-                    <RoleToggle profile={profile} onUpdate={setProfile} />
-                  </div>
-                </PageCard>
-              </div>
-            </div>
-
             {(profile.buyer || profile.seller) && (
               <div className="border-t border-[var(--lp-border-light)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -289,7 +269,13 @@ function ProfilePageInner() {
                     [:{t.agentProfiles.headsUpEyebrow}:] {t.agentProfiles.headsUpBody}
                   </p>
                 )}
-                <div className="mt-5 grid lg:grid-cols-2 gap-3 sm:gap-4">
+                <div
+                  className={`mt-5 grid gap-3 sm:gap-4 ${
+                    profile.buyer && profile.seller
+                      ? 'lg:grid-cols-2'
+                      : 'mx-auto w-full max-w-[760px] grid-cols-1'
+                  }`}
+                >
                   {profile.buyer && (
                     <AgentBlock
                       eyebrow={t.agentProfiles.buyerEyebrow}

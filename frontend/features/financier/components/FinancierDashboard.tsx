@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWalletClient, usePublicClient, useChainId } from 'wagmi';
-import { parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type DirectDeal, type FactoringOffer, type POFinancingLine } from '@/core/api';
 import { Band, SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
@@ -17,6 +17,7 @@ import {
   ARC_USDC_ADDRESS,
   ARC_USDC_DECIMALS,
   KARWAN_PO_FINANCING_ADDRESS,
+  KARWAN_VAULT_ADDRESS,
 } from '@/features/profile/config';
 import {
   buildTransferAuthorization,
@@ -102,6 +103,23 @@ const poFinancingAbi = [
       { name: 'requiredStakeUsdc', type: 'uint128' },
     ],
     outputs: [],
+  },
+] as const;
+
+const vaultBalanceAbi = [
+  {
+    type: 'function',
+    name: 'activeStakeOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'freeStakeOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
   },
 ] as const;
 
@@ -1092,6 +1110,7 @@ function FundModal({
   // wiring is deployed; sending a non-zero stake makes the otherwise-valid fund
   // transaction revert inside vault.reserve().
   const collateral = 0;
+  const [stakeBalance, setStakeBalance] = useState<{ total: number; free: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'idle' | 'approving' | 'funding' | 'mirroring'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -1099,6 +1118,39 @@ function FundModal({
   const isCircleUser = auth.method === 'circle';
   const address = auth.address as `0x${string}` | undefined;
   const onWrongChain = !isCircleUser && !!address && chainId !== ARC_CHAIN_ID;
+
+  useEffect(() => {
+    if (!arcClient || !deal.seller) return;
+    let live = true;
+    Promise.all([
+      arcClient.readContract({
+        address: KARWAN_VAULT_ADDRESS,
+        abi: vaultBalanceAbi,
+        functionName: 'activeStakeOf',
+        args: [deal.seller as `0x${string}`],
+      }),
+      arcClient.readContract({
+        address: KARWAN_VAULT_ADDRESS,
+        abi: vaultBalanceAbi,
+        functionName: 'freeStakeOf',
+        args: [deal.seller as `0x${string}`],
+      }),
+    ])
+      .then(([totalWei, freeWei]) => {
+        if (live) {
+          setStakeBalance({
+            total: Number(formatUnits(totalWei as bigint, ARC_USDC_DECIMALS)),
+            free: Number(formatUnits(freeWei as bigint, ARC_USDC_DECIMALS)),
+          });
+        }
+      })
+      .catch(() => {
+        if (live) setStakeBalance(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [arcClient, deal.seller]);
 
   const spread = repay - principal;
   const validRepay = principal > 0 && principal <= requested && repay > principal && repay <= face;
@@ -1286,9 +1338,15 @@ function FundModal({
             </ModalField>
           </div>
 
-          <ModalField label="Seller collateral">
+          <ModalField label="Seller protection">
             <div className="border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[13px] text-[var(--lp-text-sub)]">
-              Unsecured on the live Arc testnet rail. Vault-backed collateral will appear when the PO contract is authorized as a reservation consumer.
+              {stakeBalance === null
+                ? 'Checking the seller’s available stake…'
+                : stakeBalance.total > 0
+                  ? stakeBalance.free > 0
+                    ? `The seller has ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC staked. This offer does not automatically use it if repayment is short.`
+                    : `The seller has ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC staked, but it is already committed elsewhere.`
+                  : 'The seller has no available stake to help cover a repayment shortfall.'}
             </div>
           </ModalField>
 
@@ -1362,11 +1420,7 @@ function FundModal({
             <ModalRow label="Your spread" value={`+${spread.toFixed(2)} USDC`} accent />
             <ModalRow
               label="If settlement falls short"
-              value={
-                collateral > 0
-                  ? `Slash the gap from collateral after ${formatDeadline((nowUnix + repaymentWindowSeconds) * 1000)}`
-                  : `Unsecured. Dispute only, after ${formatDeadline((nowUnix + repaymentWindowSeconds) * 1000)}`
-              }
+              value={`You can report the unpaid balance after ${formatDeadline((nowUnix + repaymentWindowSeconds) * 1000)}. Recovery is not automatic.`}
             />
           </dl>
 
