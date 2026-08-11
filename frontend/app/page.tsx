@@ -906,7 +906,7 @@ function CTAPill({
         base,
         tone === 'dark'
           ? 'border border-white/25 text-white hover:border-white/55 focus-visible:ring-offset-[var(--lp-dark)]'
-          : 'border border-black/20 text-[var(--lp-dark)] hover:border-black/45 focus-visible:ring-offset-[var(--lp-light)]',
+          : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] focus-visible:ring-offset-[var(--lp-light)]',
       )}
     >
       {children}

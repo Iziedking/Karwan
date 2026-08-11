@@ -73,7 +73,7 @@ export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   // whichever it sits on so it never washes out.
   const toneCls =
     tone === 'light'
-      ? 'border-black/15 text-[var(--lp-dark)]/70 hover:text-[var(--lp-dark)] hover:border-black/40 hover:bg-black/[0.04]'
+      ? 'border-[var(--lp-outline)] text-[var(--lp-dark)]/70 hover:text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] hover:bg-black/[0.04]'
       : 'border-white/20 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/5';
 
   return (

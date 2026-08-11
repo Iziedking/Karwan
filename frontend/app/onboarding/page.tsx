@@ -24,8 +24,13 @@ import { AccountKindIcon } from '@/features/account/AccountKindIcon';
 
 type OnbStep = 'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady';
 
+/// `bg-white` here was a literal, while the text beside it was `--lp-dark`, which
+/// inverts to #ededed under the dark theme. So every onboarding input rendered
+/// near-white text on a pure white field: 1.17:1, which is not "hard to read", it
+/// is a field the user cannot see themselves typing into. The field colour has to
+/// flip with the ink that sits on it, so both come from tokens now.
 const ONBOARDING_FIELD_CLASS =
-  'w-full rounded-xl border border-[var(--lp-border-light)] bg-white px-4 py-3.5 font-sans text-[15px] font-medium text-[var(--lp-dark)] shadow-[inset_0_1px_0_rgba(0,0,0,0.02)] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[var(--lp-text-muted)]/60 hover:border-black/20 focus:border-[var(--lp-accent-hover)] focus:ring-4 focus:ring-[var(--lp-accent)]/15';
+  'w-full rounded-xl border border-[var(--lp-field-border)] bg-[var(--lp-field)] px-4 py-3.5 font-sans text-[15px] font-medium text-[var(--lp-dark)] shadow-[inset_0_1px_0_rgba(0,0,0,0.02)] outline-none transition-[border-color,box-shadow,background-color] placeholder:text-[var(--lp-text-muted)]/60 hover:border-[var(--lp-outline-hover)] focus:border-[var(--lp-accent-hover)] focus:ring-4 focus:ring-[var(--lp-accent)]/15';
 
 // Next.js 15 requires useSearchParams() to live inside a Suspense boundary
 // when the page is statically prerendered. Wrapping the inner component

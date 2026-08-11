@@ -186,7 +186,7 @@ export function CTAPill({
       ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]'
       : tone === 'dark'
         ? 'border border-white/25 text-white hover:border-white/55'
-        : 'border border-black/20 text-[var(--lp-dark)] hover:border-black/45';
+        : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)]';
   const ringOffset =
     tone === 'dark'
       ? 'focus-visible:ring-offset-[var(--lp-dark)]'
@@ -336,7 +336,7 @@ export function AddressPill({ address, tone = 'dark' }: { address: string; tone?
         'inline-flex items-center gap-2 px-3 py-1.5 rounded-full mono text-[11px] uppercase tracking-[0.08em]',
         tone === 'dark'
           ? 'border border-white/15 text-white/65'
-          : 'border border-black/15 text-[var(--lp-dark)]/70',
+          : 'border border-[var(--lp-outline)] text-[var(--lp-dark)]/70',
       )}
     >
       <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />

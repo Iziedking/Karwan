@@ -134,7 +134,7 @@ function LineRow({
               type="button"
               onClick={dismiss}
               disabled={dismissing}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1.5 border border-black/20 disabled:opacity-50 shrink-0"
+              className="mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1.5 border border-[var(--lp-outline-strong)] disabled:opacity-50 shrink-0"
               style={{ borderRadius: 6 }}
             >
               {dismissing ? 'Dismissing…' : 'Dismiss'}

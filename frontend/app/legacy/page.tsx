@@ -1082,7 +1082,7 @@ function ActionButton({
         'px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
         tone === 'primary'
           ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)]'
-          : 'border border-black/20 text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-black/40',
+          : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-[var(--lp-outline-hover)]',
       )}
       style={{
         borderTopLeftRadius: 10,

@@ -520,7 +520,7 @@ function OfferRow({
         'p-4 border',
         isBest
           ? 'border-[var(--lp-accent)] bg-[var(--lp-bg)]'
-          : 'border-black/10 bg-[var(--lp-bg)]',
+          : 'border-[var(--lp-field-border)] bg-[var(--lp-bg)]',
       )}
       style={{
         borderTopLeftRadius: 10,
@@ -577,7 +577,7 @@ function OfferRow({
               'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
               isBest
                 ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-                : 'bg-transparent text-[var(--lp-dark)] border border-black/15 hover:border-black/40',
+                : 'bg-transparent text-[var(--lp-dark)] border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
             )}
             style={{
               borderTopLeftRadius: 6,
@@ -663,7 +663,7 @@ function FactoringRequestBand({
         className={cn(
           'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-50',
           waiting
-            ? 'bg-transparent text-[var(--lp-dark)] border border-black/20'
+            ? 'bg-transparent text-[var(--lp-dark)] border border-[var(--lp-outline-strong)]'
             : 'bg-[var(--lp-dark)] text-[var(--lp-bg)]',
         )}
         style={{

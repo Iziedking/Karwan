@@ -76,6 +76,23 @@ html[data-theme="dark"] {
   --lp-text-sub: #6b6b6b;
   --lp-border-subtle: rgba(255, 255, 255, 0.08);
   --lp-border-light: rgba(0, 0, 0, 0.08);
+  /* Form fields, split out from --lp-card because an input and the panel it sits
+     in want the SAME colour in light mode and different ones in dark. Light: a
+     white field on cream reads as a field. Dark: --lp-card and --lp-light are 8
+     RGB points apart, so a field painted with either disappears into the panel
+     (1.08:1 measured). These aliases keep light mode byte-identical and give the
+     dark override somewhere to land. */
+  --lp-field: var(--lp-card);
+  --lp-field-border: var(--lp-border-light);
+  /* Outlines on unselected chips, toggles and option rows. Previously written as
+     literal black/15 and black/40 at the call sites, which is invisible on a dark
+     surface: 1.03:1, i.e. the affordance is gone, not merely quiet. */
+  --lp-outline: rgba(0, 0, 0, 0.15);
+  /* Two resting weights, because the call sites had two (black/15 for chips,
+     black/20-25 for buttons and badges). Collapsing them to one would have
+     lightened every button outline in the light theme, which was not broken. */
+  --lp-outline-strong: rgba(0, 0, 0, 0.22);
+  --lp-outline-hover: rgba(0, 0, 0, 0.40);
 }
 
 /* SKILL.md tokens. load-bearing UI law per docs/SKILL.md. These run the new
@@ -159,6 +176,19 @@ html[data-theme="dark"] {
   /* Muted/sub text bumps brighter so 11–12px mono labels stay legible. */
   --lp-text-muted: #8a8a92;
   --lp-text-sub: #b8b8c0;
+  /* Fields RISE above both panel surfaces rather than receding. Recessing them
+     was tried on paper and measures worse: every colour darker than --lp-light
+     lands within 1.07:1 of it, because there is very little room left below
+     #14141a. Raising to #26262e reads 1.22:1 against the page and 1.13:1 against
+     a card, so a field is identifiable on either. */
+  --lp-field: #26262e;
+  /* The border is what actually carries the field, so it meets the 3:1 that WCAG
+     asks of a UI component boundary (3.05:1 measured against --lp-field). The
+     inherited 9% white hairline managed 1.29:1. */
+  --lp-field-border: rgba(255, 255, 255, 0.34);
+  --lp-outline: rgba(255, 255, 255, 0.28);
+  --lp-outline-strong: rgba(255, 255, 255, 0.38);
+  --lp-outline-hover: rgba(255, 255, 255, 0.55);
   /* --lp-band-dark, --lp-accent, --lp-accent-hover stay fixed (brand). */
 }
 
@@ -530,8 +560,8 @@ html[data-theme="dark"] {
    (light) and PostListingForm (dark). */
 .form-input {
   width: 100%;
-  background: var(--lp-card);
-  border: 1px solid var(--lp-border-light);
+  background: var(--lp-field);
+  border: 1px solid var(--lp-field-border);
   color: var(--lp-dark);
   padding: 12px 14px;
   font-size: 14px;

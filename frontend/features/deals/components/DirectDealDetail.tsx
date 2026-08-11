@@ -862,7 +862,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       type="button"
                       disabled={busy}
                       onClick={onConfirmArrived}
-                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-black/25 disabled:opacity-50"
+                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline-strong)] disabled:opacity-50"
                       style={{ borderRadius: 6 }}
                     >
                       {busy ? 'Working…' : 'Confirm goods arrived'}
@@ -1376,12 +1376,12 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
                 </span>
               ) : null}
               {deal.paymentTerms ? (
-                <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/20 text-[var(--lp-dark)]">
+                <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-[var(--lp-outline-strong)] text-[var(--lp-dark)]">
                   {PAYMENT_TERMS_LABEL[deal.paymentTerms]}
                 </span>
               ) : null}
               {deal.tradeType === 'mixed' ? (
-                <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/20 text-[var(--lp-dark)]">
+                <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-[var(--lp-outline-strong)] text-[var(--lp-dark)]">
                   GOODS AND SERVICES
                 </span>
               ) : null}
@@ -1432,7 +1432,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
               {docs.map((d) => (
                 <li
                   key={d.hash}
-                  className="flex items-center gap-3 px-3 py-2 border border-black/10 bg-[var(--lp-bg)]"
+                  className="flex items-center gap-3 px-3 py-2 border border-[var(--lp-field-border)] bg-[var(--lp-bg)]"
                   style={{
                     borderTopLeftRadius: 6,
                     borderTopRightRadius: 6,

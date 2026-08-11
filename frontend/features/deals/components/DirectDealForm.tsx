@@ -719,7 +719,7 @@ export function DirectDealForm() {
                   'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                   tradeType === opt
                     ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
-                    : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                    : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                 )}
                 style={{
                   borderTopLeftRadius: 6,
@@ -748,7 +748,7 @@ export function DirectDealForm() {
                       'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       incoterms === it.code
                         ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
                       borderTopLeftRadius: 6,
@@ -774,7 +774,7 @@ export function DirectDealForm() {
                       'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       paymentTerms === pt.code
                         ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
                       borderTopLeftRadius: 6,
@@ -863,7 +863,7 @@ export function DirectDealForm() {
                   {documentRefs.map((d) => (
                     <li
                       key={d.hash}
-                      className="flex items-center gap-3 px-3 py-2 border border-black/10 bg-[var(--lp-bg)]"
+                      className="flex items-center gap-3 px-3 py-2 border border-[var(--lp-field-border)] bg-[var(--lp-bg)]"
                       style={{
                         borderTopLeftRadius: 6,
                         borderTopRightRadius: 6,

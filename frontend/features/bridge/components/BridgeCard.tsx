@@ -1787,7 +1787,7 @@ function SolanaDepositBanner({
             <button
               type="button"
               onClick={() => setAttempt((n) => n + 1)}
-              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-black/15"
+              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity px-2 py-1 border border-[var(--lp-outline)]"
               style={{
                 borderTopLeftRadius: 6,
                 borderTopRightRadius: 6,
@@ -1802,7 +1802,7 @@ function SolanaDepositBanner({
               type="button"
               onClick={copyAddress}
               disabled={!address}
-              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-black/15"
+              className="shrink-0 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity disabled:opacity-50 px-2 py-1 border border-[var(--lp-outline)]"
               style={{
                 borderTopLeftRadius: 6,
                 borderTopRightRadius: 6,

@@ -843,7 +843,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               }
               className={cn(
                 'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] shrink-0 transition-colors',
-                'border border-black/20 text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-black/40',
+                'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:bg-black/[0.04] hover:border-[var(--lp-outline-hover)]',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
               style={{

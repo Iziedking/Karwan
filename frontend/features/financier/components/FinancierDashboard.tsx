@@ -289,7 +289,7 @@ export function FinancierDashboard() {
                 'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                 tab === t.id
                   ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
-                  : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                  : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                 !t.available && 'opacity-40 cursor-not-allowed',
               )}
               style={{
@@ -493,7 +493,7 @@ function InvoiceCard({
                 {deal.sellerTier.toUpperCase()}
               </span>
             ) : null}
-            <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-black/15 text-[var(--lp-dark)]">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] font-bold px-2.5 py-1 border border-[var(--lp-outline)] text-[var(--lp-dark)]">
               {settlementWindow}
             </span>
           </div>
@@ -805,7 +805,7 @@ function OfferModal({
                     'mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
                     discountBps === bps
                       ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
-                      : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                      : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                   )}
                   style={{
                     borderTopLeftRadius: 6,
@@ -851,7 +851,7 @@ function OfferModal({
                     setDiscountInput(clamped.toFixed(1));
                   }}
                   aria-label="Custom discount percent"
-                  className="w-[3.6rem] bg-transparent text-end mono text-[14px] tabular-nums font-extrabold text-[var(--lp-dark)] border-b border-black/15 focus:border-[var(--lp-accent)] focus:outline-none"
+                  className="w-[3.6rem] bg-transparent text-end mono text-[14px] tabular-nums font-extrabold text-[var(--lp-dark)] border-b border-[var(--lp-outline)] focus:border-[var(--lp-accent)] focus:outline-none"
                 />
                 <span className="mono text-[14px] font-extrabold text-[var(--lp-dark)]">%</span>
               </span>
@@ -1404,7 +1404,7 @@ function FundModal({
                     'mono text-[10px] uppercase tracking-[0.14em] font-bold px-2.5 py-1 border transition-colors',
                     repaymentWindowSeconds === opt.seconds
                       ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
-                      : 'bg-transparent text-[var(--lp-dark)] border-black/15 hover:border-black/40',
+                      : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                   )}
                   style={{
                     borderTopLeftRadius: 6,

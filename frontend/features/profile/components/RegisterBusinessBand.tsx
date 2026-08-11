@@ -238,7 +238,7 @@ export function RegisterBusinessBand({ address }: { address: string }) {
                     <button
                       type="button"
                       onClick={() => setEditing(true)}
-                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border border-black/15 hover:border-black/40 transition-colors"
+                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
                       style={cornerStyle}
                     >
                       {status === 'rejected' ? 'Re-submit' : 'Register as business'}
