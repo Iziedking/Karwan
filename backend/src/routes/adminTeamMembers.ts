@@ -8,6 +8,7 @@ import {
   revokeInvite,
   listMembers,
   setMemberDisabled,
+  deleteMember,
   INVITE_TTL_MS,
 } from '../db/teamMembers.js';
 import { revokeForMember } from '../db/oauth.js';
@@ -43,10 +44,27 @@ adminTeamMemberRoutes.get('/', async (c) => {
       redeemedAt: i.redeemedAt ?? null,
       // Never the token. It was shown once at creation and is a hash here.
       pending: !i.redeemedAt && i.expiresAt > Date.now(),
+      state: inviteState(i),
     })),
     inviteTtlHours: Math.round(INVITE_TTL_MS / 3_600_000),
   });
 });
+
+/// Cancelling an invitation is stored as `expiresAt: 0`, so that a revoked link
+/// stops working without vanishing from the audit trail. The side effect was that
+/// the admin UI, which only knew "not pending and not redeemed", reported every
+/// cancelled invitation as EXPIRED. An invitation cancelled minutes after it was
+/// sent then reads as a seven-day link that died the same day, which is a bug
+/// report about the wrong thing entirely.
+function inviteState(i: {
+  expiresAt: number;
+  redeemedAt?: number;
+}): 'redeemed' | 'cancelled' | 'expired' | 'pending' {
+  if (i.redeemedAt) return 'redeemed';
+  if (i.expiresAt === 0) return 'cancelled';
+  if (i.expiresAt < Date.now()) return 'expired';
+  return 'pending';
+}
 
 const inviteSchema = z.object({
   email: z.string().email().max(200),
@@ -176,5 +194,45 @@ adminTeamMemberRoutes.patch('/:id', async (c) => {
     note: body.disabled
       ? `Access ended. ${revoked} live token(s) were revoked, so every tool they connected stops now.`
       : 'Access restored. They can sign in again and reconnect their tools.',
+  });
+});
+
+/// DELETE /api/admin/team-members/:id: remove somebody entirely.
+///
+/// Stronger than disabling, and the escape hatch that was missing. Disabling
+/// leaves the account in place, and `createInvite` refuses an email that already
+/// belongs to a member, so someone invited to the wrong address, or who set a
+/// password and never signed in, could be neither re-invited nor removed. The
+/// only remedy was editing the database by hand.
+///
+/// Revokes their live tokens on the way out for the same reason the disable route
+/// does: an account that no longer exists must not leave a working token behind.
+adminTeamMemberRoutes.delete('/:id', async (c) => {
+  const id = c.req.param('id');
+
+  // Revoke BEFORE deleting. Afterwards there is no member to look grants up by,
+  // so a failure here would strand live tokens with nothing left to attach them
+  // to. If revocation fails the delete does not happen, and the admin can end
+  // access first and remove second.
+  let revoked = 0;
+  try {
+    revoked = await revokeForMember(id);
+  } catch (err) {
+    logger.error({ memberId: id, err: (err as Error).message }, 'team member delete: revoke failed');
+    return c.json(
+      { error: 'could not revoke their live tokens, so nothing was deleted. End access first, then remove.' },
+      500,
+    );
+  }
+
+  const removed = await deleteMember(id);
+  if (!removed) return c.json({ error: 'unknown member' }, 404);
+
+  logger.warn({ member: removed.email, memberId: id, revoked }, 'team member removed');
+  return c.json({
+    ok: true,
+    removed: { id: removed.id, email: removed.email, name: removed.name },
+    revokedTokens: revoked,
+    note: `${removed.name} was removed and ${revoked} live token(s) revoked. That email can be invited again.`,
   });
 });

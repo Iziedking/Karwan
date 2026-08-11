@@ -354,6 +354,40 @@ export async function setMemberDisabled(
   return toMemberView(next);
 }
 
+/// Remove an account outright, and every invitation that produced it.
+///
+/// Disabling was the only exit before this, and it is not always the right one.
+/// `createInvite` refuses an email that already belongs to a member, disabled or
+/// not, so anyone invited by mistake, or who set a password and never came back,
+/// became permanently unfixable: they could not be re-invited and could not be
+/// removed. The account existed but nobody was in it.
+///
+/// Their invitations go too. Leaving them would keep a redeemed invite pointing
+/// at an account that no longer exists, and would let an old link be reissued
+/// into a fresh account with the role the ORIGINAL invite carried rather than
+/// one anybody chose today.
+export async function deleteMember(id: string): Promise<TeamMember | null> {
+  const member = await getMember(id);
+  if (!member) return null;
+
+  if (pgEnabled) {
+    await db().delete(teamMembers).where(eq(teamMembers.id, id));
+    await db().delete(teamInvites).where(eq(teamInvites.email, member.email));
+    return member;
+  }
+
+  const members = loadMembers();
+  delete members[id];
+  saveMembers(members);
+
+  const invites = loadInvites();
+  for (const [key, invite] of Object.entries(invites)) {
+    if (invite.email === member.email) delete invites[key];
+  }
+  saveInvites(invites);
+  return member;
+}
+
 export async function changePassword(id: string, password: string): Promise<boolean> {
   if (password.length < MIN_PASSWORD_LENGTH) return false;
   const member = await getMember(id);

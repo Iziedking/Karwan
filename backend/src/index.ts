@@ -164,7 +164,13 @@ app.use(
   cors({
     origin: (origin) => (origin && isAllowedOrigin(origin) ? origin : null),
     credentials: true,
-    allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT'],
+    // PATCH belongs here even though nothing used it when this list was written.
+    // Two routes do now (team member access, newsletter edit), and a method
+    // missing from this list fails the browser's PREFLIGHT, so the real request
+    // is never sent. The client sees a rejected fetch rather than an HTTP error,
+    // which surfaces as a generic "could not do that" with no status to chase,
+    // while the same call over curl succeeds and makes it look like a UI fault.
+    allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
     allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token'],
     // Cache the CORS preflight for a day so the browser stops firing an OPTIONS
     // round-trip before every cross-origin API call. The allowed methods and

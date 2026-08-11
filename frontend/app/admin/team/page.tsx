@@ -162,7 +162,38 @@ export default function AdminTeamPage() {
     }
   }
 
+  async function remove(member: TeamMemberView) {
+    const ok = await confirm({
+      title: 'Remove from the team',
+      message: `${member.name} (${member.email}) is deleted, not just switched off. Every tool they connected stops working, and that email becomes free to invite again. This cannot be undone.`,
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await api.adminRemoveTeamMember(member.id);
+      setErr(null);
+      setIssued(null);
+      load();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Could not remove them');
+    }
+  }
+
   const openInvites = invites.filter((i) => !i.redeemedAt);
+
+  /// Says what actually happened to the link. Cancelling stores expiresAt as 0,
+  /// so the old "not pending means expired" reading turned every invitation the
+  /// admin cancelled into one that looked like it had timed out early. That is
+  /// how a seven-day link gets reported as dying in a day: it did not expire, it
+  /// was cancelled.
+  function inviteStatusLabel(inv: TeamInviteView): string {
+    const state = inv.state ?? (inv.pending ? 'pending' : 'expired');
+    if (state === 'pending') return `expires ${when(inv.expiresAt)}`;
+    if (state === 'cancelled') return 'cancelled, issue a new link to undo';
+    if (state === 'redeemed') return 'accepted';
+    return 'expired, issue a new link';
+  }
 
   return (
     <div>
@@ -258,7 +289,7 @@ export default function AdminTeamPage() {
                     </span>
                   </p>
                   <p className="mt-1 text-[12px] text-white/45">
-                    {inv.email} · {inv.pending ? `expires ${when(inv.expiresAt)}` : 'expired, issue a new link'}
+                    {inv.email} · {inviteStatusLabel(inv)}
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -326,6 +357,19 @@ export default function AdminTeamPage() {
               }`}
             >
               {m.active ? 'End access' : 'Restore'}
+            </button>
+            {/* Removal sits next to the softer control rather than replacing it.
+                Ending access is reversible and is the right answer most of the
+                time; this one is for the address that should never have been
+                invited, and it is the only thing that frees the email to be
+                invited again. */}
+            <button
+              type="button"
+              onClick={() => remove(m)}
+              className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-[#e0794f]/40 text-[#e0794f] shrink-0"
+              title="Deletes the account so the email can be invited again."
+            >
+              Remove
             </button>
           </div>
         ))}

@@ -1327,6 +1327,10 @@ export interface TeamInviteView {
   expiresAt: number;
   redeemedAt?: number | null;
   pending?: boolean;
+  /// Why an invitation is not pending. `pending` alone cannot tell a link that
+  /// ran out of time from one that was cancelled, and the UI was reporting both
+  /// as expired.
+  state?: 'redeemed' | 'cancelled' | 'expired' | 'pending';
 }
 
 export type IssueStatus = 'draft' | 'approved' | 'rejected' | 'sent';
@@ -1884,6 +1888,13 @@ export const api = {
       method: 'DELETE',
       headers: adminHeaders(),
     }),
+  adminRemoveTeamMember: (id: string) =>
+    json<{
+      ok: true;
+      removed: { id: string; email: string; name: string };
+      revokedTokens: number;
+      note: string;
+    }>(`/api/admin/team-members/${id}`, { method: 'DELETE', headers: adminHeaders() }),
   adminSetTeamMemberDisabled: (id: string, disabled: boolean) =>
     json<{ member: TeamMemberView; revokedTokens: number; note: string; warning?: string | null }>(
       `/api/admin/team-members/${id}`,
