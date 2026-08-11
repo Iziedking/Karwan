@@ -8,6 +8,7 @@ import { localScanProof } from '../security/localScan.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
 import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
+import { tradeChannelState } from '../chat/channelAccess.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -17,13 +18,6 @@ const postSchema = z.object({
   caller: addrSchema.optional(),
   body: z.string().min(1).max(2000),
 });
-
-async function callerIsParty(jobId: string, caller: string): Promise<boolean> {
-  const deal = await getDeal(jobId);
-  if (!deal) return false;
-  const a = caller.toLowerCase();
-  return deal.buyer === a || deal.seller === a;
-}
 
 export const chatRoutes = new Hono();
 
@@ -39,11 +33,12 @@ chatRoutes.get('/:jobId', async (c) => {
   }
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  if (!(await callerIsParty(jobId, caller))) {
+  const state = await tradeChannelState(jobId, caller);
+  if (!state.allowed) {
     return c.json({ error: 'only the buyer or seller of this deal can read its chat' }, 403);
   }
   const messages = await listMessages(jobId);
-  return c.json({ messages });
+  return c.json({ messages, writable: state.writable, closedAt: state.closedAt, closedReason: state.closedReason });
 });
 
 /// Append a message to one deal's chat. Same access rules as the read side.
@@ -64,9 +59,11 @@ chatRoutes.post('/:jobId', async (c) => {
   }
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  if (!(await callerIsParty(jobId, sender))) {
+  const state = await tradeChannelState(jobId, sender);
+  if (!state.allowed) {
     return c.json({ error: 'only the buyer or seller of this deal can post to its chat' }, 403);
   }
+  if (!state.writable) return c.json({ error: 'this conversation is closed', code: 'channel_closed' }, 409);
 
   const trimmed = body.body.trim();
   if (!trimmed) return c.json({ error: 'message body is empty' }, 400);
@@ -103,7 +100,10 @@ chatRoutes.post('/:jobId', async (c) => {
   const message = {
     id: `${jobId}-${Date.now()}-${randomBytes(4).toString('hex')}`,
     jobId,
+    channel: 'trade' as const,
+    channelKey: jobId,
     sender,
+    kind: 'participant' as const,
     body: trimmed,
     ts: Date.now(),
   };
@@ -117,6 +117,9 @@ chatRoutes.post('/:jobId', async (c) => {
       messageId: message.id,
       sender: message.sender,
       body: message.body,
+      channel: 'trade',
+      channelKey: jobId,
+      recipient: state.recipient,
       buyer: deal.buyer,
       seller: deal.seller,
     },

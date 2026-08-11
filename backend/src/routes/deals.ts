@@ -60,6 +60,7 @@ import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/d
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
+import { addSystemMessage } from '../chat/systemMessages.js';
 import { settleFactoringForDeal } from '../agents/factoringWatcher.js';
 import { settlePOFinancingForDeal } from '../agents/poWatcher.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
@@ -1637,6 +1638,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
   if (!isRedelivery) {
+    await addSystemMessage({ jobId, channel: 'trade', channelKey: jobId, eventType: 'deal.delivered', occurrenceKey: String(Date.now()), body: body.deliveryProof ? 'The seller submitted delivery proof and marked the deal delivered.' : 'The seller marked the deal delivered.' });
     bus.emitEvent({
       type: 'deal.delivered',
       jobId,

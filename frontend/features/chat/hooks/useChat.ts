@@ -11,6 +11,8 @@ export interface UseChatResult {
   sending: boolean;
   unreadCount: number;
   markRead: () => void;
+  writable: boolean;
+  closedReason?: string;
 }
 
 /// Per-deal chat: fetches the initial transcript, subscribes to live
@@ -27,6 +29,8 @@ export function useChat({
   const [fetchState, setFetchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [sending, setSending] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [writable, setWritable] = useState(true);
+  const [closedReason, setClosedReason] = useState<string | undefined>();
   const me = caller?.toLowerCase();
   const messagesRef = useRef<ChatMessage[]>([]);
   messagesRef.current = messages;
@@ -41,6 +45,8 @@ export function useChat({
       .then((r) => {
         if (cancelled) return;
         setMessages(r.messages);
+        setWritable(r.writable);
+        setClosedReason(r.closedReason);
         setFetchState('ready');
       })
       .catch(() => {
@@ -57,8 +63,10 @@ export function useChat({
     return subscribeLiveEvents((e) => {
       if (e.type !== 'chat.message' || e.jobId !== jobId) return;
       const payload = e.payload as
-        | { messageId?: string; sender?: string; body?: string }
+        | { messageId?: string; sender?: string; body?: string; channel?: string; channelKey?: string }
         | undefined;
+      if (payload?.channel && payload.channel !== 'trade') return;
+      if (payload?.channelKey && payload.channelKey !== jobId) return;
       if (!payload?.messageId || !payload.sender || typeof payload.body !== 'string') return;
       const next: ChatMessage = {
         id: payload.messageId,
@@ -100,5 +108,5 @@ export function useChat({
 
   const markRead = useCallback(() => setUnreadCount(0), []);
 
-  return { messages, fetchState, send, sending, unreadCount, markRead };
+  return { messages, fetchState, send, sending, unreadCount, markRead, writable, closedReason };
 }

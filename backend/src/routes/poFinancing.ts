@@ -15,6 +15,7 @@ import {
   patchPOLine,
 } from '../db/poFinancing.js';
 import { getDeal, listAllDeals, patchDeal } from '../db/deals.js';
+import { addSystemMessage } from '../chat/systemMessages.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { vault } from '../chain/contracts.js';
@@ -366,6 +367,7 @@ poFinancingRoutes.post('/fund', async (c) => {
     txHashes: { fund: body.fundTxHash },
   });
   await patchDeal(body.invoiceId, { poFinancingId: line.id });
+  await addSystemMessage({ jobId: body.invoiceId, channel: 'financing', channelKey: line.id, financingKind: 'po', financingId: line.id, eventType: 'po.funded', occurrenceKey: body.fundTxHash, body: 'The purchase-order financing line was funded and is now active.', ts: now });
 
   bus.emitEvent({
     type: 'po.funded',

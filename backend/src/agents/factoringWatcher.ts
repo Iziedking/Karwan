@@ -31,6 +31,7 @@ import {
 } from '../chain/usdc3009.js';
 import { deterministicIdempotencyKey } from '../chain/txs.js';
 import { bus } from '../events.js';
+import { addSystemMessage } from '../chat/systemMessages.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
@@ -114,6 +115,7 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
     settledAt: Date.now(),
     settleTxHash: txHash,
   });
+  await addSystemMessage({ jobId: offer.invoiceId, channel: 'financing', channelKey: offer.id, financingKind: 'factoring', financingId: offer.id, eventType: 'factoring.settled', occurrenceKey: txHash, body: 'The factoring position was repaid and is now closed.' });
 
   bus.emitEvent({
     type: 'factoring.settled',
@@ -145,6 +147,7 @@ async function markDefaulted(offer: FactoringOffer, reason: string): Promise<voi
     status: 'defaulted',
     lastSettleError: reason,
   });
+  await addSystemMessage({ jobId: offer.invoiceId, channel: 'financing', channelKey: offer.id, financingKind: 'factoring', financingId: offer.id, eventType: 'factoring.defaulted', occurrenceKey: String(Date.now()), body: 'The factoring position defaulted and is now closed.' });
   bus.emitEvent({
     type: 'factoring.defaulted',
     jobId: offer.invoiceId,

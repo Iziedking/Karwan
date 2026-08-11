@@ -53,7 +53,8 @@ export async function addMessage(message: ChatMessage): Promise<ChatMessage> {
     return next;
   }
   const store = loadFile();
-  if (store[next.id]) return normalized(store[next.id]);
+  const existing = store[next.id];
+  if (existing) return normalized(existing);
   store[next.id] = next;
   saveFile(store);
   return next;

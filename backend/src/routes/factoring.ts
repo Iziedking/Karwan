@@ -15,6 +15,7 @@ import {
   patchFactoringOfferIfStatus,
 } from '../db/factoring.js';
 import { getDeal, patchDeal, listAllDeals, type DirectDeal } from '../db/deals.js';
+import { addSystemMessage } from '../chat/systemMessages.js';
 import { listAllLines as listAllPOLines } from '../db/poFinancing.js';
 import { getUserByAddress } from '../db/users.js';
 import { deterministicIdempotencyKey, executeContractCall } from '../chain/txs.js';
@@ -1016,6 +1017,7 @@ factoringRoutes.post('/accept', async (c) => {
       );
     }
     await patchDeal(offer.invoiceId, { factoringOfferId: offer.id });
+    await addSystemMessage({ jobId: offer.invoiceId, channel: 'financing', channelKey: offer.id, financingKind: 'factoring', financingId: offer.id, eventType: 'factoring.accepted', occurrenceKey: advanceTxHash, body: 'The factoring offer was accepted and the financing position is now active.', ts: now });
 
     bus.emitEvent({
       type: 'factoring.accepted',

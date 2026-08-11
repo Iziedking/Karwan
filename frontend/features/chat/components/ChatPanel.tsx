@@ -27,7 +27,7 @@ export function ChatPanel({
   draftSeedKey?: number;
 }) {
   const cp = useTranslations().chatPanel;
-  const { messages, fetchState, send, sending } = useChat({ jobId, caller });
+  const { messages, fetchState, send, sending, writable } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const me = caller.toLowerCase();
@@ -127,6 +127,7 @@ export function ChatPanel({
           </p>
         )}
         {messages.map((m) => {
+          if (m.kind === 'system') return <p key={m.id}>{m.body}</p>;
           const mine = m.sender.toLowerCase() === me;
           return (
             <div key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
@@ -200,7 +201,7 @@ export function ChatPanel({
         />
         <button
           type="submit"
-          disabled={sending || !draft.trim()}
+          disabled={sending || !draft.trim() || !writable}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           style={{
             borderTopLeftRadius: 12,

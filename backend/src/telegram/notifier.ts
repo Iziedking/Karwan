@@ -229,6 +229,14 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     return seller ? [{ address: seller, role: 'self' }] : [];
   }
   if (e.type === 'chat.message') {
+    if (e.payload?.channel === 'financing') {
+      const sender = (e.payload?.sender as string | undefined)?.toLowerCase();
+      const recipient = (e.payload?.recipient as string | undefined)?.toLowerCase();
+      const out: Recipient[] = [];
+      if (sender) out.push({ address: sender, role: 'self' });
+      if (recipient && recipient !== sender) out.push({ address: recipient, role: 'self' });
+      return out;
+    }
     const jobId = e.jobId;
     if (!jobId) return [];
     const deal = await getDeal(jobId);

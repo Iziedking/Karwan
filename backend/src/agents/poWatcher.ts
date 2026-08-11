@@ -32,6 +32,7 @@ import { getDeal } from '../db/deals.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
+import { addSystemMessage } from '../chat/systemMessages.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
@@ -93,6 +94,7 @@ async function repayLine(line: POFinancingLine): Promise<void> {
     repaidAt: Date.now(),
     txHashes: { ...line.txHashes, repay: r.txHash },
   });
+  await addSystemMessage({ jobId: line.invoiceId, channel: 'financing', channelKey: line.id, financingKind: 'po', financingId: line.id, eventType: 'po.repaid', occurrenceKey: r.txHash, body: 'The purchase-order financing line was repaid and is now closed.' });
   repayAttempts.delete(line.id);
 
   bus.emitEvent({
@@ -116,6 +118,7 @@ async function repayLine(line: POFinancingLine): Promise<void> {
 
 async function markDefaulted(line: POFinancingLine, reason: string): Promise<void> {
   await patchPOLine(line.id, { state: 'defaulted', txHashes: { ...line.txHashes } });
+  await addSystemMessage({ jobId: line.invoiceId, channel: 'financing', channelKey: line.id, financingKind: 'po', financingId: line.id, eventType: 'po.defaulted', occurrenceKey: String(Date.now()), body: 'The purchase-order financing line defaulted and is now closed.' });
   repayAttempts.delete(line.id);
   bus.emitEvent({
     type: 'po.defaulted',

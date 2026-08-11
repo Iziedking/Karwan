@@ -202,6 +202,9 @@ activityRoutes.get('/', async (c) => {
     if (isParty(e, caller) && e.jobId) callerJobs.add(e.jobId.toLowerCase());
   }
   const events = base.filter((e) => {
+    if (e.type === 'chat.message' && e.payload?.channel === 'financing') {
+      return matchesKey(e, caller, ['sender', 'recipient']);
+    }
     const inScope =
       isParty(e, caller) ||
       isOwnMoney(e, caller) ||
