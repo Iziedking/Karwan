@@ -39,6 +39,14 @@ const TTL_MS = 12 * 60 * 60 * 1000;
 interface PortalSession {
   id: string;
   exp: number;
+  /// The member's `sessionEpoch` at the moment this cookie was minted. A cookie
+  /// whose stamp is older than the account's current epoch was issued before
+  /// something invalidated it, so it is refused however well it is signed.
+  ///
+  /// Absent on cookies minted before this field existed, and read as 0, which
+  /// matches the default for an account that has never been reset. Nobody is
+  /// signed out by deploying it.
+  ep?: number;
 }
 
 function secret(): string {
@@ -49,9 +57,17 @@ function sign(payload: string): string {
   return createHmac('sha256', secret()).update(payload).digest('base64url');
 }
 
-function setSession(c: Context, memberId: string) {
+/// Takes the member rather than an id so the cookie is always stamped with the
+/// epoch that was current when it was minted. Passing an id would mean fetching
+/// the account again here, and a caller that already has a freshly-written member
+/// would be one race away from stamping the value it just replaced.
+function setSession(c: Context, member: { id: string; sessionEpoch?: number }) {
   const payload = Buffer.from(
-    JSON.stringify({ id: memberId, exp: Date.now() + TTL_MS } satisfies PortalSession),
+    JSON.stringify({
+      id: member.id,
+      exp: Date.now() + TTL_MS,
+      ep: member.sessionEpoch ?? 0,
+    } satisfies PortalSession),
   ).toString('base64url');
   setCookie(c, COOKIE, `${payload}.${sign(payload)}`, {
     path: '/team',
@@ -62,7 +78,21 @@ function setSession(c: Context, memberId: string) {
   });
 }
 
-function readSession(c: Context): string | null {
+/// Carry cookies written onto the context across onto a hand-built Response.
+///
+/// `page()` returns a `new Response`, so anything `deleteCookie` wrote on the
+/// context was dropped on the floor. Every sign-out path through a rendered page
+/// looked like it cleared the session cookie and did not: the stale cookie sat in
+/// the browser until its own twelve-hour expiry. Not a hole, because the account
+/// is re-read and re-checked on every load, but it meant "signed out" was a claim
+/// the response never actually made.
+function withCookies(c: Context, res: Response): Response {
+  const cookie = c.res.headers.get('set-cookie');
+  if (cookie) res.headers.append('set-cookie', cookie);
+  return res;
+}
+
+function readSession(c: Context): { id: string; ep: number } | null {
   const raw = getCookie(c, COOKIE);
   if (!raw) return null;
 
@@ -77,7 +107,8 @@ function readSession(c: Context): string | null {
 
   try {
     const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as PortalSession;
-    return parsed.exp > Date.now() ? parsed.id : null;
+    if (parsed.exp <= Date.now()) return null;
+    return { id: parsed.id, ep: parsed.ep ?? 0 };
   } catch {
     return null;
   }
@@ -258,15 +289,23 @@ function portalBase(): string {
 }
 
 teamPortalRoutes.get('/', async (c) => {
-  const id = readSession(c);
-  if (!id) return loginPage();
+  const session = readSession(c);
+  if (!session) return loginPage();
 
   // Re-read the account on every page load rather than trusting the cookie: a
   // member disabled five minutes ago must not still see the guide.
-  const member = await getMember(id);
+  const member = await getMember(session.id);
   if (!member || member.disabledAt) {
     deleteCookie(c, COOKIE, { path: '/team' });
-    return loginPage('That account is no longer active.');
+    return withCookies(c, loginPage('That account is no longer active.'));
+  }
+
+  // Signed correctly, not expired, and still refused: the password changed after
+  // this cookie was handed out. This is the check that makes a reset mean
+  // something to whoever was already signed in.
+  if (session.ep < (member.sessionEpoch ?? 0)) {
+    deleteCookie(c, COOKIE, { path: '/team' });
+    return withCookies(c, loginPage('Your password changed. Sign in again.'));
   }
 
   return guide(member.name, member.role, mcpUrl());
@@ -291,7 +330,7 @@ teamPortalRoutes.post(
       return loginPage(message);
     }
 
-    setSession(c, result.member.id);
+    setSession(c, result.member);
     return c.redirect('/team');
   },
 );
@@ -403,7 +442,7 @@ teamPortalRoutes.post(
     logger.info({ member: result.member.email }, 'team password reset completed');
     // Straight in. Making somebody who just proved control of the mailbox type
     // the password they set four seconds ago is friction with nothing behind it.
-    setSession(c, result.member.id);
+    setSession(c, result.member);
     return c.redirect('/team');
   },
 );
@@ -454,7 +493,7 @@ teamPortalRoutes.post(
       { member: result.member.email, role: result.member.role },
       'team member account created',
     );
-    setSession(c, result.member.id);
+    setSession(c, result.member);
     return c.redirect('/team');
   },
 );

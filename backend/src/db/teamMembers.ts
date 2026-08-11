@@ -39,6 +39,18 @@ export interface TeamMember {
   failedLogins: number;
   /// Epoch ms until which login is refused regardless of the password.
   lockedUntil?: number;
+  /// Bumped whenever every existing sign-in should stop counting: a password
+  /// change, a reset, an admin ending access.
+  ///
+  /// The portal session is a signed cookie with no server-side record, so there
+  /// is nothing to delete when somebody needs to be thrown out. Stamping the
+  /// cookie with this value and comparing on each request turns the member row
+  /// into the revocation list, which is the smallest thing that works: no session
+  /// table, no lookup per request beyond the account read the portal already does.
+  ///
+  /// Absent means zero. Cookies minted before this existed carry no stamp and
+  /// also read as zero, so nobody is signed out by the deploy that adds it.
+  sessionEpoch?: number;
 }
 
 export interface TeamMemberView {
@@ -51,6 +63,10 @@ export interface TeamMemberView {
   disabledAt: number | null;
   active: boolean;
   locked: boolean;
+}
+
+function nextSessionEpoch(member: TeamMember): number {
+  return Math.max(Date.now(), (member.sessionEpoch ?? 0) + 1);
 }
 
 export function toMemberView(m: TeamMember): TeamMemberView {
@@ -346,8 +362,14 @@ export async function setMemberDisabled(
   if (disabled && member.disabledAt) return toMemberView(member);
 
   const next: TeamMember = { ...member, failedLogins: 0 };
-  if (disabled) next.disabledAt = Date.now();
-  else {
+  if (disabled) {
+    next.disabledAt = Date.now();
+    // The portal already refuses a disabled account on every page load, so this
+    // is belt and braces rather than the load-bearing check. It matters because
+    // re-enabling clears disabledAt: without the bump, restoring somebody would
+    // silently resurrect every cookie that was live when their access ended.
+    next.sessionEpoch = nextSessionEpoch(member);
+  } else {
     delete next.disabledAt;
     delete next.lockedUntil;
   }
@@ -509,6 +531,11 @@ export async function consumePasswordReset(
     salt,
     passwordHash: await hash(password, salt),
     failedLogins: 0,
+    // Everybody signed in as this member is signed out. Somebody resetting
+    // because they think another person is in their account is the whole reason
+    // this path exists, and leaving that person's cookie valid for another twelve
+    // hours would make the reset theatre.
+    sessionEpoch: nextSessionEpoch(check.member),
   };
   delete next.lockedUntil;
   await persistMember(next);
@@ -526,6 +553,9 @@ export async function changePassword(id: string, password: string): Promise<bool
     salt,
     passwordHash: await hash(password, salt),
     failedLogins: 0,
+    // A changed password means the old one is gone, and so should everything
+    // signed in under it.
+    sessionEpoch: nextSessionEpoch(member),
   });
   return true;
 }

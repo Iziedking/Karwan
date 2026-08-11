@@ -23,7 +23,9 @@ process.env.OAUTH_ISSUER = 'https://api.karwan.site';
 process.env.OAUTH_RESOURCES = 'https://mcp.karwan.site/mcp';
 
 const { teamPortalRoutes } = await import('./teamPortal.js');
-const { createInvite, setMemberDisabled, getMemberByEmail } = await import('../db/teamMembers.js');
+const { createInvite, setMemberDisabled, getMemberByEmail, createPasswordReset } = await import(
+  '../db/teamMembers.js'
+);
 
 const PASSWORD = 'correct horse battery staple';
 
@@ -34,23 +36,26 @@ after(() => {
   for (const p of [MEMBERS, INVITES]) if (existsSync(p)) rmSync(p);
 });
 
-function form(body: Record<string, string>) {
+/// The rate limiters key on the caller's IP and their windows outlive a single
+/// test, so tests that post more than a couple of times need an address of their
+/// own or they start failing each other with 429s.
+function form(body: Record<string, string>, ip = '10.0.0.1') {
   return {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '10.0.0.1' },
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': ip },
     body: new URLSearchParams(body).toString(),
   };
 }
 
 /// Walk the invite flow the way a new member would, and hold on to the cookie.
-async function joinAndSignIn(role: 'dev' | 'marketing' = 'marketing') {
+async function joinAndSignIn(role: 'dev' | 'marketing' = 'marketing', ip = '10.0.0.1') {
   const { rawToken } = await createInvite({ email: 'aisha@karwan.site', name: 'Aisha', role });
 
   const landing = await teamPortalRoutes.request(`/invite?token=${encodeURIComponent(rawToken)}`);
   assert.equal(landing.status, 200);
   assert.match(await landing.text(), /Welcome, Aisha/);
 
-  const created = await teamPortalRoutes.request('/invite', form({ token: rawToken, password: PASSWORD }));
+  const created = await teamPortalRoutes.request('/invite', form({ token: rawToken, password: PASSWORD }, ip));
   assert.equal(created.status, 302);
   const cookie = created.headers.get('set-cookie') ?? '';
   assert.match(cookie, /karwan_team=/);
@@ -132,6 +137,21 @@ test('disabling somebody logs them out of a session they already hold', async ()
   assert.equal(html.includes('Connect your tools'), false);
 });
 
+test('re-enabling somebody does not revive the cookie they held before disablement', async () => {
+  const { cookie } = await joinAndSignIn('marketing', '10.0.0.5');
+  const member = await getMemberByEmail('aisha@karwan.site');
+  assert.ok(member);
+
+  await setMemberDisabled(member.id, true);
+  await setMemberDisabled(member.id, false);
+
+  const res = await teamPortalRoutes.request('/', { headers: { cookie } });
+  const body = await res.text();
+  assert.match(body, /Sign in/);
+  assert.match(body, /password changed/i);
+  assert.match(res.headers.get('set-cookie') ?? '', /karwan_team=;|Max-Age=0/);
+});
+
 test('a used or tampered invite link says so instead of half working', async () => {
   const { rawToken } = await joinAndSignIn();
 
@@ -186,6 +206,72 @@ test('signing out clears the session', async () => {
   });
   assert.equal(out.status, 302);
   assert.match(out.headers.get('set-cookie') ?? '', /karwan_team=;|Max-Age=0/);
+});
+
+test('resetting the password logs out a session somebody already holds', async () => {
+  // The point of the whole reset flow. Somebody resetting because they think
+  // another person is in their account gains nothing if that person's cookie
+  // keeps working for the rest of its twelve hours.
+  const { cookie } = await joinAndSignIn('marketing', '10.0.0.2');
+  const member = await getMemberByEmail('aisha@karwan.site');
+  assert.ok(member);
+
+  const before = await teamPortalRoutes.request('/', { headers: { cookie } });
+  assert.match(await before.text(), /Aisha/, 'the intruder was not signed in to begin with');
+
+  const reset = await createPasswordReset(member.id);
+  assert.ok(reset);
+  const done = await teamPortalRoutes.request(
+    '/reset',
+    form({ token: reset.rawToken, password: 'a different long passphrase' }, '10.0.0.2'),
+  );
+  assert.equal(done.status, 302);
+
+  // Same cookie, still correctly signed, still inside its expiry, and now dead.
+  const after = await teamPortalRoutes.request('/', { headers: { cookie } });
+  const body = await after.text();
+  assert.match(body, /Sign in/);
+  assert.match(body, /password changed/i);
+  assert.match(after.headers.get('set-cookie') ?? '', /karwan_team=;|Max-Age=0/);
+});
+
+test('the person who did the reset stays signed in', async () => {
+  // The flip side. Invalidating everything and then signing them out too would
+  // mean the reset ends at a login form asking for the password they set a
+  // second ago.
+  await joinAndSignIn('marketing', '10.0.0.3');
+  const member = await getMemberByEmail('aisha@karwan.site');
+  assert.ok(member);
+
+  const reset = await createPasswordReset(member.id);
+  assert.ok(reset);
+  const done = await teamPortalRoutes.request(
+    '/reset',
+    form({ token: reset.rawToken, password: 'a different long passphrase' }, '10.0.0.3'),
+  );
+  const fresh = (done.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+
+  const page = await teamPortalRoutes.request('/', { headers: { cookie: fresh } });
+  assert.match(await page.text(), /Aisha/, 'the new cookie was stamped with a stale epoch');
+});
+
+test('a cookie minted before session epochs existed still works', async () => {
+  // The upgrade case. Every live cookie on the box carries no `ep` field, and a
+  // deploy that signed the whole team out would be a self-inflicted incident.
+  await joinAndSignIn('marketing', '10.0.0.4');
+  const member = await getMemberByEmail('aisha@karwan.site');
+  assert.ok(member);
+  const { createHmac } = await import('node:crypto');
+
+  const payload = Buffer.from(
+    JSON.stringify({ id: member.id, exp: Date.now() + 60_000 }),
+  ).toString('base64url');
+  const sig = createHmac('sha256', 'portal-test-secret').update(payload).digest('base64url');
+
+  const res = await teamPortalRoutes.request('/', {
+    headers: { cookie: `karwan_team=${payload}.${sig}` },
+  });
+  assert.match(await res.text(), /Aisha/);
 });
 
 test('the pages refuse to be framed or cached', async () => {
