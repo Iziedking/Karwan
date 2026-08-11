@@ -26,40 +26,63 @@ export function SellerOfferBanner({
   deal: DirectDeal;
   viewerIsSeller: boolean;
 }) {
-  // Eligibility gate. Mirrors the backend's factoring eligibility exactly
-  // (routes/factoring.ts: accepted, not settled/cancelled/disputed, not already
-  // factored). Delivery is NOT a gate: a seller who has delivered and is waiting
-  // on the buyer's release is precisely who wants early payout, and the backend
-  // both lists and lets a financier post offers on a delivered-not-settled deal,
-  // so requiring `!delivered` here hid the accept UI for a live, notified offer.
-  const eligible =
+  const commonEligible =
     viewerIsSeller &&
-    // Finance-lane only: factoring never applies to a P2P service deal.
     deal.tradeLane === 'finance' &&
     !!deal.acceptedAt &&
     !deal.settledAt &&
     !deal.cancelledAt &&
-    !deal.disputed &&
-    !deal.factoringOfferId;
+    !deal.disputed;
+  const poEligible = commonEligible && !deal.delivered && !deal.deliveryProof &&
+    !deal.poFinancingId && !deal.factoringRequestedAt && !deal.factoringOfferId;
+  const factoringEligible = commonEligible && deal.delivered && !!deal.deliveryProof &&
+    !deal.poFinancingRequestedAt && !deal.poFinancingId && !deal.factoringOfferId;
 
   const [offers, setOffers] = useState<FactoringOffer[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   /// Mirrors deal.factoringRequestedAt so the band flips the moment the seller
   /// acts, without waiting for the parent to refetch the deal.
   const [requestedAt, setRequestedAt] = useState<number | undefined>(deal.factoringRequestedAt);
+  const [poRequestedAt, setPoRequestedAt] = useState<number | undefined>(deal.poFinancingRequestedAt);
+  const [requestedAmount, setRequestedAmount] = useState(
+    deal.factoringRequestedAdvanceUsdc ?? deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc,
+  );
   const [requestBusy, setRequestBusy] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
 
   useEffect(() => {
     setRequestedAt(deal.factoringRequestedAt);
-  }, [deal.factoringRequestedAt]);
+    setPoRequestedAt(deal.poFinancingRequestedAt);
+  }, [deal.factoringRequestedAt, deal.poFinancingRequestedAt]);
 
   async function askForEarlyPayout() {
+    const amount = window.prompt('How much USDC do you want paid early?', requestedAmount);
+    if (!amount) return;
+    setRequestedAmount(amount);
     setRequestBusy(true);
     setRequestError(null);
     try {
-      const r = await api.requestFactoring({ invoiceId: deal.jobId });
+      const r = await api.requestFactoring({ invoiceId: deal.jobId, requestedAdvanceUsdc: amount });
       setRequestedAt(r.deal?.factoringRequestedAt ?? Date.now());
+    } catch (e) {
+      setRequestError(e instanceof ApiError ? e.message : 'Could not send the request.');
+    } finally {
+      setRequestBusy(false);
+    }
+  }
+
+  async function askForFulfilmentCapital() {
+    const amount = window.prompt('How much USDC do you need to fulfil this order?', requestedAmount);
+    if (!amount) return;
+    setRequestedAmount(amount);
+    setRequestBusy(true);
+    setRequestError(null);
+    try {
+      const r = await api.requestPOFinancing({
+        invoiceId: deal.jobId,
+        requestedAdvanceUsdc: amount,
+      });
+      setPoRequestedAt(r.deal?.poFinancingRequestedAt ?? Date.now());
     } catch (e) {
       setRequestError(e instanceof ApiError ? e.message : 'Could not send the request.');
     } finally {
@@ -81,7 +104,7 @@ export function SellerOfferBanner({
   }
 
   useEffect(() => {
-    if (!eligible) {
+    if (!factoringEligible) {
       setOffers(null);
       return;
     }
@@ -101,7 +124,7 @@ export function SellerOfferBanner({
       cancelled = true;
       window.clearInterval(poll);
     };
-  }, [eligible, deal.jobId]);
+  }, [factoringEligible, deal.jobId]);
 
   // Sort once per offers update, derive during render per
   // `rerender-derived-state-no-effect`.
@@ -112,7 +135,27 @@ export function SellerOfferBanner({
     );
   }, [offers]);
 
-  if (!eligible) return null;
+  if (poEligible || poRequestedAt) {
+    return (
+      <FactoringRequestBand
+        tone={poRequestedAt ? 'waiting' : 'idle'}
+        tag={poRequestedAt ? '[:FULFILMENT CAPITAL REQUESTED:]' : '[:PO FINANCING:]'}
+        line={poRequestedAt
+          ? `Financiers can fund up to ${formatUsdc(requestedAmount, { withSuffix: false })} USDC. This deal cannot later use invoice factoring.`
+          : 'Request working capital before delivery. Selecting this rail permanently excludes invoice factoring for this deal.'}
+        cta={poRequestedAt ? 'Request sent' : requestBusy ? 'Sending...' : 'Request capital'}
+        onClick={askForFulfilmentCapital}
+        busy={requestBusy || !!poRequestedAt}
+        error={requestError}
+        amount={requestedAmount}
+        onAmountChange={setRequestedAmount}
+        maxAmount={deal.dealAmountUsdc}
+        showAmount={!poRequestedAt}
+      />
+    );
+  }
+
+  if (!factoringEligible) return null;
 
   // Nothing is shown to financiers until the seller asks. Before that, this is
   // the only place the option appears at all.
@@ -126,6 +169,10 @@ export function SellerOfferBanner({
         onClick={askForEarlyPayout}
         busy={requestBusy}
         error={requestError}
+        amount={requestedAmount}
+        onAmountChange={setRequestedAmount}
+        maxAmount={deal.dealAmountUsdc}
+        showAmount
       />
     );
   }
@@ -566,6 +613,10 @@ function FactoringRequestBand({
   onClick,
   busy,
   error,
+  amount,
+  onAmountChange,
+  maxAmount,
+  showAmount = false,
 }: {
   tone: 'idle' | 'waiting';
   tag: string;
@@ -574,6 +625,10 @@ function FactoringRequestBand({
   onClick: () => void;
   busy: boolean;
   error: string | null;
+  amount?: string;
+  onAmountChange?: (value: string) => void;
+  maxAmount?: string;
+  showAmount?: boolean;
 }) {
   const waiting = tone === 'waiting';
   return (

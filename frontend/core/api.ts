@@ -617,6 +617,9 @@ export interface DirectDeal {
   /// Set when the seller has asked to be paid early. Until then the invoice is
   /// not shown to financiers at all, and no offer can be posted against it.
   factoringRequestedAt?: number;
+  factoringRequestedAdvanceUsdc?: string;
+  poFinancingRequestedAt?: number;
+  poFinancingRequestedAdvanceUsdc?: string;
   /// Optional floor the seller will consider, in USDC. Bids below it are
   /// refused at the write path.
   factoringMinAdvanceUsdc?: string;
@@ -3236,8 +3239,13 @@ export const api = {
     }>(`/api/factoring/offers/${offerId}/assignment`),
   /// The seller asks to be paid early on this invoice. Until they do, it is
   /// invisible to financiers and no offer can be posted against it.
-  requestFactoring: (body: { invoiceId: string; minAdvanceUsdc?: string }) =>
+  requestFactoring: (body: { invoiceId: string; requestedAdvanceUsdc?: string; minAdvanceUsdc?: string }) =>
     json<{ deal: DirectDeal | null }>('/api/factoring/request', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  requestPOFinancing: (body: { invoiceId: string; requestedAdvanceUsdc: string }) =>
+    json<{ deal: DirectDeal | null }>('/api/po-financing/request', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

@@ -140,6 +140,7 @@ export const factoringRoutes = new Hono();
 
 const requestBodySchema = z.object({
   invoiceId: hashSchema,
+  requestedAdvanceUsdc: usdcAmountSchema.optional(),
   /// Optional floor the seller will consider. Financiers see it; a bid below it
   /// is refused rather than shown.
   minAdvanceUsdc: usdcAmountSchema.optional(),
@@ -178,19 +179,28 @@ factoringRoutes.post('/request', async (c) => {
   if (deal.tradeLane !== 'finance') {
     return c.json({ error: 'factoring is only available on trade-finance deals' }, 409);
   }
-  if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
+  if (!deal.acceptedAt || !deal.delivered || !deal.deliveryProof || deal.settledAt || deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal not eligible for factoring' }, 409);
   }
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
   }
+  if (deal.poFinancingRequestedAt || deal.poFinancingId) {
+    return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
+  }
   if (body.minAdvanceUsdc && Number(body.minAdvanceUsdc) >= Number(deal.dealAmountUsdc)) {
     return c.json({ error: 'minimum advance must be below the invoice face value' }, 400);
+  }
+  const claimable = await claimableUsdc(deal.jobId);
+  if (claimable === null || Number(claimable) <= 0) return c.json({ error: 'nothing remains to factor' }, 409);
+  if (body.requestedAdvanceUsdc && Number(body.requestedAdvanceUsdc) > Number(claimable)) {
+    return c.json({ error: `requested advance must be at most ${claimable} USDC remaining` }, 400);
   }
 
   const updated = await patchDeal(deal.jobId, {
     factoringRequestedAt: Date.now(),
     factoringMinAdvanceUsdc: body.minAdvanceUsdc,
+    factoringRequestedAdvanceUsdc: body.requestedAdvanceUsdc ?? claimable,
   });
 
   // This is a marketplace request, so every approved financier should hear
@@ -291,6 +301,8 @@ factoringRoutes.get('/available', async (c) => {
       // accepted finance-lane deal, exposing counterparty, amount and timing to
       // every approved financier without the seller ever asking for an advance.
       d.factoringRequestedAt &&
+      d.delivered &&
+      d.deliveryProof &&
       d.acceptedAt &&
       !d.settledAt &&
       !d.cancelledAt &&
@@ -396,6 +408,9 @@ factoringRoutes.post('/offer', async (c) => {
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
   }
+  if (deal.poFinancingRequestedAt || deal.poFinancingId) {
+    return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
+  }
   // Consent is enforced at the write path too, not just by leaving the invoice
   // out of /available. A financier who kept a jobId from an earlier listing, or
   // guessed one, must not be able to put an offer in front of a seller who has
@@ -441,6 +456,9 @@ factoringRoutes.post('/offer', async (c) => {
   const advance = Number(body.offeredAdvanceUsdc);
   const expected = Number(body.expectedReturnUsdc);
   const claimableNum = Number(claimable);
+  if (deal.factoringRequestedAdvanceUsdc && advance > Number(deal.factoringRequestedAdvanceUsdc)) {
+    return c.json({ error: 'offer exceeds the seller requested advance amount', code: 'above-requested' }, 400);
+  }
 
   if (claimableNum <= 0) {
     return c.json(
@@ -754,6 +772,9 @@ factoringRoutes.post('/accept', async (c) => {
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
+  }
+  if (deal.poFinancingRequestedAt || deal.poFinancingId) {
+    return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
   }
 
   // The escrow must still hold enough to repay the financier.

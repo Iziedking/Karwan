@@ -85,6 +85,30 @@ const defaultBodySchema = z.object({
 
 export const poFinancingRoutes = new Hono();
 
+const poRequestBodySchema = z.object({
+  invoiceId: hashSchema,
+  requestedAdvanceUsdc: usdcAmountSchema,
+});
+
+poFinancingRoutes.post('/request', async (c) => {
+  const session = readSession(c);
+  if (!session) return c.json({ error: 'not authenticated' }, 401);
+  let body: z.infer<typeof poRequestBodySchema>;
+  try {
+    body = poRequestBodySchema.parse(await c.req.json());
+  } catch (e) {
+    return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  const deal = await getDeal(body.invoiceId);
+  if (!deal) return c.json({ error: 'unknown purchase order' }, 404);
+  if (session.address.toLowerCase() !== deal.seller.toLowerCase()) return c.json({ error: 'only the seller can request fulfilment capital' }, 403);
+  if (deal.tradeLane !== 'finance' || !deal.acceptedAt || deal.delivered || deal.settledAt || deal.cancelledAt || deal.disputed) return c.json({ error: 'deal not eligible for PO financing' }, 409);
+  if (deal.factoringRequestedAt || deal.factoringOfferId || deal.poFinancingRequestedAt || deal.poFinancingId) return c.json({ error: 'deal already selected a financing rail' }, 409);
+  if (Number(body.requestedAdvanceUsdc) > Number(deal.dealAmountUsdc)) return c.json({ error: 'requested advance cannot exceed the purchase-order value' }, 400);
+  const updated = await patchDeal(deal.jobId, { poFinancingRequestedAt: Date.now(), poFinancingRequestedAdvanceUsdc: body.requestedAdvanceUsdc });
+  return c.json({ deal: updated ? financierSafeDeal(updated) : null });
+});
+
 async function readPoChainLine(invoiceId: string): Promise<PoChainLine> {
   const raw = (await publicClient.readContract({
     address: config.KARWAN_PO_FINANCING_ADDR as Address,
@@ -152,6 +176,10 @@ poFinancingRoutes.get('/available', async (c) => {
       !d.settledAt &&
       !d.cancelledAt &&
       !d.disputed &&
+      !d.factoringRequestedAt &&
+      !d.factoringOfferId &&
+      d.poFinancingRequestedAt &&
+      d.poFinancingRequestedAdvanceUsdc &&
       !d.poFinancingId,
   );
   const filtered = available.filter((d) => {
@@ -272,9 +300,14 @@ poFinancingRoutes.post('/fund', async (c) => {
   if (deal.tradeLane !== 'finance') {
     return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
   }
-  if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
+  if (!deal.acceptedAt || deal.delivered || deal.settledAt || deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal not eligible for PO financing' }, 409);
   }
+  if (deal.factoringRequestedAt || deal.factoringOfferId) {
+    return c.json({ error: 'deal is already open on the invoice-factoring rail' }, 409);
+  }
+  if (!deal.poFinancingRequestedAt || !deal.poFinancingRequestedAdvanceUsdc) return c.json({ error: 'seller has not requested PO financing' }, 409);
+  if (Number(body.principalUsdc) > Number(deal.poFinancingRequestedAdvanceUsdc)) return c.json({ error: 'principal exceeds the seller requested amount' }, 400);
 
   const existing = await getPOLineForInvoice(body.invoiceId);
   if (existing) {
@@ -406,9 +439,14 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
   if (deal.tradeLane !== 'finance') {
     return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
   }
-  if (!deal.acceptedAt || deal.settledAt || deal.cancelledAt || deal.disputed) {
+  if (!deal.acceptedAt || deal.delivered || deal.settledAt || deal.cancelledAt || deal.disputed) {
     return c.json({ error: 'deal not eligible for PO financing' }, 409);
   }
+  if (deal.factoringRequestedAt || deal.factoringOfferId) {
+    return c.json({ error: 'deal is already open on the invoice-factoring rail' }, 409);
+  }
+  if (!deal.poFinancingRequestedAt || !deal.poFinancingRequestedAdvanceUsdc) return c.json({ error: 'seller has not requested PO financing' }, 409);
+  if (Number(body.principalUsdc) > Number(deal.poFinancingRequestedAdvanceUsdc)) return c.json({ error: 'principal exceeds the seller requested amount' }, 400);
   if (caller === deal.seller) {
     return c.json({ error: 'seller cannot fund their own PO' }, 403);
   }

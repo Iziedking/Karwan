@@ -406,6 +406,9 @@ export interface DirectDeal {
   /// bid at or above it; a lower bid is refused at the write path rather than
   /// wasting the seller's attention.
   factoringMinAdvanceUsdc?: string;
+  factoringRequestedAdvanceUsdc?: string;
+  poFinancingRequestedAt?: number;
+  poFinancingRequestedAdvanceUsdc?: string;
   /// Active PO financing line opened by a financier. References
   /// POFinancingLine.id; null/absent means no PO financing on this deal.
   poFinancingId?: string;

@@ -661,8 +661,12 @@ function OfferModal({
   // seller. The assignment can only pay out of what is left, so quoting off face
   // on a part-released invoice offers more than the escrow can ever return. The
   // backend refuses those, and would have let a financier lose the difference.
-  const claimable = deal.claimableUsdc ? Number(deal.claimableUsdc) : face;
-  const partlyReleased = claimable < face - 0.000001;
+  const escrowClaimable = deal.claimableUsdc ? Number(deal.claimableUsdc) : face;
+  const requested = deal.factoringRequestedAdvanceUsdc
+    ? Number(deal.factoringRequestedAdvanceUsdc)
+    : escrowClaimable;
+  const claimable = Math.min(escrowClaimable, requested);
+  const partlyReleased = escrowClaimable < face - 0.000001;
   // Re-pricing an existing quote opens on the rate you already offered, not
   // on the 2% default, so an edit starts from where you left it.
   const [discountBps, setDiscountBps] = useState<number>(existingOffer?.discountBps ?? 200);
@@ -1020,10 +1024,10 @@ function POCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:PO VALUE:]
+              [:CAPITAL REQUESTED:]
             </p>
             <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
+              {formatUsdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc, { withSuffix: false })}{' '}
               <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 USDC
               </span>
@@ -1085,10 +1089,13 @@ function FundModal({
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const refreshMoney = useMoneyRefresh();
   const face = Number(deal.dealAmountUsdc);
+  const requested = deal.poFinancingRequestedAdvanceUsdc
+    ? Number(deal.poFinancingRequestedAdvanceUsdc)
+    : face;
   // Default principal at 80% of face, repay at 84% (5% fee on principal).
   // Matches the demo scenario in sme-design.md §17 (5% PO financing fee).
-  const [principal, setPrincipal] = useState<number>(Math.round(face * 0.8 * 100) / 100);
-  const [repay, setRepay] = useState<number>(Math.round(face * 0.84 * 100) / 100);
+  const [principal, setPrincipal] = useState<number>(Math.round(requested * 0.8 * 100) / 100);
+  const [repay, setRepay] = useState<number>(Math.round(requested * 0.84 * 100) / 100);
   const [repaymentWindowSeconds, setRepaymentWindowSeconds] = useState<number>(30 * 86_400);
   /// Seller stake reserved against this line and slashed to the financier if
   /// repayment never lands. Without it the only recovery is off-chain.
@@ -1155,7 +1162,7 @@ function FundModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arcClient, deal.seller, deal.jobId]);
   const spread = repay - principal;
-  const validRepay = repay > principal && repay <= face;
+  const validRepay = repay > principal && repay <= requested;
 
   /// The desk's suggestion, capped at what the seller can actually reserve. A
   /// seller short of the suggested amount should not produce a form that cannot

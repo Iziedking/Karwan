@@ -15,6 +15,10 @@ export function FactoringPositionsPanel() {
   if (!offers.length) return null;
   return <PositionList offers={offers} />;
 }
+
+function statusLabel(status: FactoringOffer['status']): string {
+  return status === 'defaulted' ? 'Defaulted' : status === 'accepted' ? 'Accepted' : status === 'settled' ? 'Settled' : status;
+}
 function PositionList({ offers }: { offers: FactoringOffer[] }) {
-  return <section>{offers.map(o => <Link key={o.id} href={'/financier/factoring/' + o.id}>{o.status}</Link>)}</section>;
+  return <section>{offers.map(o => <Link key={o.id} href={'/financier/factoring/' + o.id}>{statusLabel(o.status)}</Link>)}</section>;
 }
