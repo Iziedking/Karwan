@@ -10,6 +10,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Locale } from '@/shared/i18n/locales';
+import { adoptPreferenceIfUnset, setThemePreference } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
 
 type Saver = (patch: UserSettings) => Promise<void>;
@@ -80,6 +81,11 @@ export function SettingsBand() {
       .then((r) => {
         if (!cancelled) {
           setSettings({ ...DEFAULT_SETTINGS, ...r.settings });
+          // Pick up the account preference on a device that has never expressed
+          // one, so signing in on a new machine honours the theme you saved
+          // instead of showing the OS default while this panel reads "Dark".
+          // Never overrides an existing local choice: see adoptPreferenceIfUnset.
+          if (r.settings?.theme) adoptPreferenceIfUnset(r.settings.theme);
         }
       })
       .catch(() => {
@@ -115,16 +121,12 @@ export function SettingsBand() {
 
   function onThemeChange(next: ThemePreference) {
     save({ theme: next });
-    // Mirror to the document attribute used by the existing theme system,
-    // so visual theme flips without a reload. 'system' clears the override.
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      if (next === 'system') {
-        root.removeAttribute('data-theme');
-      } else {
-        root.setAttribute('data-theme', next);
-      }
-    }
+    // Goes through the shared writer rather than setting data-theme directly.
+    // Writing only the attribute was the bug: the choice applied instantly and
+    // then died at the next navigation, because the pre-paint script reads
+    // localStorage and nothing had written it. It also leaves any other mounted
+    // switcher showing the theme the user just left.
+    setThemePreference(next);
   }
 
   return (
