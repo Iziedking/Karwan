@@ -20,27 +20,37 @@ export interface ChatMessage {
   ts: number;
 }
 
-function normalized(message: ChatMessage): ChatMessage {
-  return { ...message, channel: message.channel ?? 'trade', channelKey: message.channelKey ?? message.jobId, kind: message.kind ?? 'participant' };
+export function normalizeChatMessage(message: ChatMessage): ChatMessage {
+  const sender = typeof message.sender === 'string' ? message.sender : '';
+  const kind = message.kind === 'system' || !sender ? 'system' : 'participant';
+  return {
+    ...message,
+    sender,
+    body: typeof message.body === 'string' ? message.body : '',
+    ts: Number.isFinite(message.ts) ? message.ts : 0,
+    channel: message.channel ?? 'trade',
+    channelKey: message.channelKey ?? message.jobId,
+    kind,
+  };
 }
 
 export async function listMessages(jobId: string, channel: 'trade' | 'financing' = 'trade', channelKey = jobId): Promise<ChatMessage[]> {
   if (pgEnabled) {
     const rows = await db().select().from(messages).where(eq(messages.jobId, jobId));
-    return rows.map((r) => normalized(r.data)).filter((m) => m.channel === channel && m.channelKey === channelKey).sort((a, b) => a.ts - b.ts);
+    return rows.map((r) => normalizeChatMessage(r.data)).filter((m) => m.channel === channel && m.channelKey === channelKey).sort((a, b) => a.ts - b.ts);
   }
   const store = loadFile();
   return Object.values(store)
-    .map(normalized)
+    .map(normalizeChatMessage)
     .filter((m) => m.jobId === jobId && m.channel === channel && m.channelKey === channelKey)
     .sort((a, b) => a.ts - b.ts);
 }
 
 export async function addMessage(message: ChatMessage): Promise<ChatMessage> {
-  const next = normalized(message);
+  const next = normalizeChatMessage(message);
   if (pgEnabled) {
     const existing = await db().select().from(messages).where(eq(messages.id, next.id));
-    if (existing[0]) return normalized(existing[0].data);
+    if (existing[0]) return normalizeChatMessage(existing[0].data);
     await db()
       .insert(messages)
       .values({
@@ -54,7 +64,7 @@ export async function addMessage(message: ChatMessage): Promise<ChatMessage> {
   }
   const store = loadFile();
   const existing = store[next.id];
-  if (existing) return normalized(existing);
+  if (existing) return normalizeChatMessage(existing);
   store[next.id] = next;
   saveFile(store);
   return next;

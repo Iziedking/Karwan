@@ -127,8 +127,9 @@ export function ChatPanel({
           </p>
         )}
         {messages.map((m) => {
-          if (m.kind === 'system') return <p key={m.id}>{m.body}</p>;
-          const mine = m.sender.toLowerCase() === me;
+          const sender = typeof m.sender === 'string' ? m.sender : '';
+          if (m.kind === 'system' || !sender) return <p key={m.id}>{m.body}</p>;
+          const mine = sender.toLowerCase() === me;
           return (
             <div key={m.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}>
               <div

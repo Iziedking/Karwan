@@ -150,7 +150,7 @@ export function StickyTabStrip({
             <li
               key={t.id}
               role="presentation"
-              className="shrink-0 md:shrink"
+              className="w-[44vw] max-w-[176px] shrink-0 md:w-auto md:max-w-none md:shrink"
               style={{
                 borderInlineEnd: isLast
                   ? 'none'
@@ -231,6 +231,18 @@ export function StickyTabStrip({
           );
         })}
       </ul>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 end-0 flex w-11 items-center justify-end pe-2 md:hidden"
+        style={{
+          background: onDark
+            ? 'linear-gradient(90deg, transparent, var(--lp-band-dark) 72%)'
+            : 'linear-gradient(90deg, transparent, var(--lp-card) 72%)',
+          color: onDark ? 'var(--ink-2)' : 'var(--lp-text-muted)',
+        }}
+      >
+        <span className="text-[22px] leading-none">:</span>
+      </span>
     </nav>
   );
 }

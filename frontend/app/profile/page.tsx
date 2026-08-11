@@ -246,24 +246,17 @@ function ProfilePageInner() {
         {profile ? (
           <>
             <div className="px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-              {/* Copy left, control right, the same grid the activation band above
-                  uses. Stacked, the picker sat under a 46ch column and left the
-                  right half of a desktop empty; beside it the band reads as one
-                  row and the page loses a screenful of scrolling. */}
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,440px)] lg:items-center">
                 <div className="max-w-[52ch]">
                   <SectionTag>{t.accountType.tag}</SectionTag>
                   <h2 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold uppercase tracking-[-0.035em] leading-[0.95] text-[var(--lp-dark)]">
-                    {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent>
-                    <Punc>.</Punc>
+                    {t.accountType.headlinePrefix}<Accent>{t.accountType.headlineAccent}</Accent><Punc>.</Punc>
                   </h2>
                   <p className="mt-2 text-[13px] sm:text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
                     {t.accountType.body}
                   </p>
                 </div>
-                {/* max-w-full keeps it in bounds on a phone, where the grid is
-                    a single column again. */}
-                <PageCard className="w-full lg:w-fit max-w-full">
+                <PageCard className="w-full max-w-full">
                   <div className="p-3 sm:p-4">
                     <RoleToggle profile={profile} onUpdate={setProfile} />
                   </div>
@@ -669,7 +662,6 @@ function ProfilePageInner() {
       <PendingDealsBand tone="light" />
 
       <div data-guide="profile-nav" className="contents">
-        <p className={'md:hidden px-4 pb-2 text-end mono text-[9px] uppercase'}>Swipe tabs to view more sections</p>
         <StickyTabStrip
           tabs={TABS}
           active={activeTab}

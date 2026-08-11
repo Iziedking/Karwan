@@ -492,9 +492,11 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
 
   const principalWei = parseUnits(body.principalUsdc, USDC_DECIMALS);
   const repayWei = parseUnits(body.repayUsdc, USDC_DECIMALS);
-  const stakeWei = body.requiredStakeUsdc
-    ? parseUnits(body.requiredStakeUsdc, USDC_DECIMALS)
-    : 0n;
+  // The live Arc vault generation does not authorize PO financing as a
+  // reservation consumer. A non-zero value reaches vault.reserve() and reverts
+  // the whole funding call. Keep Circle funding on the capability the deployed
+  // contracts actually expose until the vault + PO wiring is redeployed.
+  const stakeWei = 0n;
 
   try {
     const approveResult = await executeContractCall(
@@ -549,7 +551,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       state: 'outstanding',
       fundedAt: now,
       repaymentTimeoutAt: now + body.repaymentWindowSeconds * 1000,
-      requiredStakeUsdc: body.requiredStakeUsdc,
+      requiredStakeUsdc: '0',
       txHashes: { fund: fundResult.txHash },
     });
     await patchDeal(body.invoiceId, { poFinancingId: line.id });
