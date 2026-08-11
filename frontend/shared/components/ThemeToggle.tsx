@@ -1,38 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useTheme } from '@/shared/hooks/useTheme';
 
-type Theme = 'light' | 'dark';
-
-function readTheme(): Theme {
-  if (typeof window === 'undefined') return 'light';
-  const stored = localStorage.getItem('karwan-theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme: Theme) {
-  if (typeof document === 'undefined') return;
-  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-  else document.documentElement.removeAttribute('data-theme');
-}
-
+/// The compact nav control. Read/persist/apply lives in useTheme so this and the
+/// onboarding picker cannot drift apart, and so both stay aligned with the
+/// pre-paint script in app/layout.tsx.
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const t = readTheme();
-    setTheme(t);
-    applyTheme(t);
-    setMounted(true);
-  }, []);
-
-  function toggle() {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    applyTheme(next);
-    localStorage.setItem('karwan-theme', next);
-  }
+  const { theme, toggle, mounted } = useTheme();
 
   if (!mounted) return <div className="w-7 h-7" aria-hidden />;
 
@@ -42,7 +15,10 @@ export function ThemeToggle() {
       onClick={toggle}
       title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
       aria-label="Toggle theme"
-      className="w-7 h-7 grid place-items-center rounded-md border border-[var(--color-line)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-line-strong)] transition-colors"
+      // Resting border is line-strong, not line: at 8% white the outline measured
+      // 1.2:1 against the dark nav, so the control read as a floating icon with no
+      // edge at all.
+      className="w-7 h-7 grid place-items-center rounded-md border border-[var(--color-line-strong)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink-dim)] transition-colors"
     >
       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
     </button>

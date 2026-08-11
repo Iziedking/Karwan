@@ -9,6 +9,7 @@ import { Hint } from '@/shared/components/Hint';
 import { FormError } from '@/shared/components/FormError';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
+import { ThemePicker } from '@/features/settings/components/ThemePicker';
 import {
   FullBleed,
   Band,
@@ -439,6 +440,13 @@ function OnboardingInner() {
 
       <Band tone="light" compact>
         <div className={cn(step === 'profile' ? 'max-w-4xl' : 'max-w-3xl', 'mx-auto')}>
+          {/* On every step, not just the language one. The steps that most need it
+              are the later ones: the profile step is where a user actually has to
+              read and type into fields, so a theme control that disappeared after
+              step one would vanish exactly when it starts to matter. */}
+          <div className="mb-7 flex justify-end">
+            <ThemePicker />
+          </div>
           {step === 'language' && (
             <div className="space-y-6 text-center">
               <p className="mx-auto max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
