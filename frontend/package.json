@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:i18n": "tsx scripts/check-i18n.ts"
   },
   "dependencies": {
     "@circle-fin/adapter-solana-kit": "^1.4.10",

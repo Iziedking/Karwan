@@ -386,7 +386,7 @@ export function AssistantWidget() {
                 <div className="flex items-center gap-2 pt-1">
                   <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
                   <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-                    {t.liveHeader ?? 'Live support'}
+                    {t.liveHeader}
                   </span>
                   <span className="h-px flex-1 bg-[var(--lp-border-light)]" />
                 </div>
@@ -405,7 +405,7 @@ export function AssistantWidget() {
                   <div key={`l${i}`}>
                     {m.role === 'operator' && (
                       <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-accent)] mb-1 ms-1">
-                        {t.operatorName ?? 'Support'}
+                        {t.operatorName}
                       </p>
                     )}
                     <Bubble role={m.role === 'user' ? 'user' : 'assistant'}>
@@ -442,7 +442,7 @@ export function AssistantWidget() {
                 disabled={loading}
                 className="w-full mb-2 mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2 rounded-[10px] border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:bg-black/[0.04] disabled:opacity-50 transition"
               >
-                {t.humanButton ?? 'Talk to a human'}
+                {t.humanButton}
               </button>
             )}
             {isLive && !liveClosed && (
@@ -452,7 +452,7 @@ export function AssistantWidget() {
                   onClick={endChat}
                   className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition"
                 >
-                  {t.endChat ?? 'End chat'}
+                  {t.endChat}
                 </button>
               </div>
             )}
@@ -462,7 +462,7 @@ export function AssistantWidget() {
                 onClick={resetToAssistant}
                 className="w-full mono text-[11px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 rounded-[10px] bg-[var(--lp-dark)] text-[var(--lp-bg)] transition"
               >
-                {t.backToAssistant ?? 'Back to assistant'}
+                {t.backToAssistant}
               </button>
             ) : (
               <>
@@ -471,7 +471,7 @@ export function AssistantWidget() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={onKeyDown}
-                    placeholder={isLive ? t.livePlaceholder ?? 'Message support...' : t.placeholder}
+                    placeholder={isLive ? t.livePlaceholder : t.placeholder}
                     rows={1}
                     className="form-input flex-1 resize-none max-h-28 text-[14px]"
                   />

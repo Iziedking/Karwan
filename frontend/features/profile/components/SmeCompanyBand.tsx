@@ -4,34 +4,27 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 // Hoisted constants per Vercel `rendering-hoist-jsx`, never re-allocated
 // per render. Static option lists for the native <select> inputs.
-const SECTOR_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: '', label: '—' },
-  { value: 'agriculture', label: 'Agriculture' },
-  { value: 'textiles', label: 'Textiles' },
-  { value: 'electronics', label: 'Electronics' },
-  { value: 'logistics', label: 'Logistics' },
-  { value: 'manufacturing', label: 'Manufacturing' },
-  { value: 'services', label: 'Services' },
-  { value: 'other', label: 'Other' },
-];
+// The VALUE is what the API stores and must never be translated. The label is
+// resolved from the locale at render, so these stay hoisted while the copy
+// follows the reader.
+const SECTOR_VALUES = [
+  'agriculture', 'textiles', 'electronics', 'logistics', 'manufacturing', 'services', 'other',
+] as const;
 
-const EMPLOYEE_BAND_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: '', label: '—' },
-  { value: 'micro', label: 'Micro (< 10)' },
-  { value: 'small', label: 'Small (10–50)' },
-  { value: 'medium', label: 'Medium (50–250)' },
-];
+const EMPLOYEE_BAND_VALUES = ['micro', 'small', 'medium'] as const;
 
-const VOLUME_BAND_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: '', label: '—' },
-  { value: 'under_100k', label: 'Under $100k' },
-  { value: '100k_1m', label: '$100k – $1M' },
-  { value: '1m_10m', label: '$1M – $10M' },
-  { value: 'over_10m', label: 'Over $10M' },
-];
+/// Stored value to message key. The stored values start with a digit, which is
+/// not a legal identifier, so the two cannot simply share a name.
+const VOLUME_BAND_KEYS = {
+  under_100k: 'under100k',
+  '100k_1m': 'from100kTo1m',
+  '1m_10m': 'from1mTo10m',
+  over_10m: 'over10m',
+} as const;
 
 type VolumeBand = 'under_100k' | '100k_1m' | '1m_10m' | 'over_10m';
 
@@ -193,12 +186,14 @@ export function SmeCompanyBand({
     leadTimeDays ||
     certifications;
 
+  const t = useTranslations().smeCompany;
+
   if (!loaded) {
     return (
       <div className="relative px-4 pb-9 md:px-8 md:pb-11">
-        <SectionTag>COMPANY PROFILE</SectionTag>
+        <SectionTag>{t.sectionTag}</SectionTag>
         <HeroHeadline size="md">
-          Loading<Punc>…</Punc>
+          {t.loading}<Punc>…</Punc>
         </HeroHeadline>
       </div>
     );
@@ -214,9 +209,9 @@ export function SmeCompanyBand({
         className="flex w-full items-end justify-between gap-4 flex-wrap"
       >
         <div>
-          <SectionTag dot={verifiedAt ? 'live' : undefined}>COMPANY PROFILE</SectionTag>
+          <SectionTag dot={verifiedAt ? 'live' : undefined}>{t.sectionTag}</SectionTag>
           <HeroHeadline size="md">
-            Trade card<Punc>.</Punc>
+            {t.headline}<Punc>.</Punc>
           </HeroHeadline>
         </div>
         {!editing ? (
@@ -231,7 +226,7 @@ export function SmeCompanyBand({
               borderBottomRightRadius: 2,
             }}
           >
-            {hasAny ? 'Edit' : 'Add company'}
+            {hasAny ? t.edit : t.addCompany}
           </button>
         ) : null}
       </div>
@@ -294,8 +289,7 @@ export function SmeCompanyBand({
               />
             ) : (
               <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
-                Add a company profile so financiers can review your sector and
-                region before they fund.
+{t.emptyBody}
               </p>
             )}
             {editing ? (
@@ -309,11 +303,10 @@ export function SmeCompanyBand({
                 />
                 <span className="min-w-0">
                   <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
-                    List in partner discovery
+                    {t.discovery.label}
                   </span>
                   <span className="mt-1 block text-[12px] leading-snug text-[var(--lp-text-sub)]">
-                    Let other businesses find you by sector and region. You can
-                    still post, bid, and deal with this off.
+{t.discovery.body}
                   </span>
                 </span>
               </label>
@@ -332,7 +325,7 @@ export function SmeCompanyBand({
                     borderBottomRightRadius: 2,
                   }}
                 >
-                  {saving ? 'Saving…' : 'Save'}
+                  {saving ? t.saving : t.save}
                 </button>
                 <button
                   type="button"
@@ -340,7 +333,7 @@ export function SmeCompanyBand({
                   disabled={saving}
                   className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
                 {error ? (
                   <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
@@ -358,24 +351,24 @@ export function SmeCompanyBand({
           <PageCard className="self-start">
             <div className="p-4 md:p-5">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:REPAYMENT BEHAVIOR:]
+                {t.repayment.eyebrow}
               </p>
               <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                last {repayment.windowDealCount} deals
+                {t.repayment.windowTemplate.replace('{count}', String(repayment.windowDealCount))}
               </p>
               <dl className="mt-5 space-y-3.5">
                 <RepayRow
-                  label="On-time rate"
+                  label={t.repayment.onTimeRate}
                   value={`${Math.round(repayment.onTimeRate * 100)}%`}
                   tone={repayment.onTimeRate >= 0.8 ? 'positive' : repayment.onTimeRate >= 0.5 ? 'neutral' : 'critical'}
                 />
                 <RepayRow
-                  label="Avg days to settle"
+                  label={t.repayment.avgDaysToSettle}
                   value={repayment.averageDaysToSettle.toFixed(1)}
                   tone="neutral"
                 />
                 <RepayRow
-                  label="Defaults"
+                  label={t.repayment.defaults}
                   value={String(repayment.defaultCount)}
                   tone={repayment.defaultCount === 0 ? 'positive' : 'critical'}
                 />
@@ -402,36 +395,46 @@ function SmeViewRows(props: {
   leadTimeDays: number | '';
   certifications: string;
 }) {
-  const volumeLabel =
-    VOLUME_BAND_OPTIONS.find((o) => o.value === props.annualVolumeBand)?.label ?? '';
+  const t = useTranslations().smeCompany;
+  const volumeKey = VOLUME_BAND_KEYS[props.annualVolumeBand as keyof typeof VOLUME_BAND_KEYS];
+  const volumeLabel = volumeKey ? t.volumeBands[volumeKey] : '';
+  // A stored sector or band renders in the reader's language; anything the
+  // lists no longer carry falls back to the raw value rather than vanishing.
+  const sectorLabel =
+    t.sectors[props.sector as keyof typeof t.sectors] ?? props.sector;
+  const sizeLabel =
+    t.employeeBands[props.employeeBand as keyof typeof t.employeeBands] ?? props.employeeBand;
   return (
     <dl className="space-y-3">
-      <ViewRow label="Name" value={props.companyName || '—'} />
-      <ViewRow label="Sector" value={props.sector || '—'} capitalize />
-      <ViewRow label="Region" value={props.region || '—'} />
-      {props.yearFounded ? <ViewRow label="Founded" value={String(props.yearFounded)} /> : null}
+      <ViewRow label={t.view.name} value={props.companyName || '—'} />
+      <ViewRow label={t.view.sector} value={props.sector ? sectorLabel : '—'} />
+      <ViewRow label={t.view.region} value={props.region || '—'} />
+      {props.yearFounded ? <ViewRow label={t.view.founded} value={String(props.yearFounded)} /> : null}
       {props.employeeBand ? (
-        <ViewRow label="Size" value={props.employeeBand} capitalize />
+        <ViewRow label={t.view.size} value={sizeLabel} />
       ) : null}
       {props.registrationId ? (
-        <ViewRow label="Reg / Tax ID" value={props.registrationId} />
+        <ViewRow label={t.view.regTaxId} value={props.registrationId} />
       ) : null}
       {props.primaryMarkets ? (
-        <ViewRow label="Markets" value={props.primaryMarkets} />
+        <ViewRow label={t.view.markets} value={props.primaryMarkets} />
       ) : null}
-      {volumeLabel ? <ViewRow label="Annual volume" value={volumeLabel} /> : null}
+      {volumeLabel ? <ViewRow label={t.view.annualVolume} value={volumeLabel} /> : null}
       {props.minOrderValue ? (
-        <ViewRow label="Min order" value={props.minOrderValue} />
+        <ViewRow label={t.view.minOrder} value={props.minOrderValue} />
       ) : null}
       {props.leadTimeDays ? (
-        <ViewRow label="Lead time" value={`${props.leadTimeDays} days`} />
+        <ViewRow
+          label={t.view.leadTime}
+          value={t.view.leadTimeTemplate.replace('{days}', String(props.leadTimeDays))}
+        />
       ) : null}
       {props.certifications ? (
-        <ViewRow label="Certifications" value={props.certifications} />
+        <ViewRow label={t.view.certifications} value={props.certifications} />
       ) : null}
       {props.websiteUrl ? (
         <ViewRow
-          label="Website"
+          label={t.view.website}
           value={
             <a
               href={props.websiteUrl}
@@ -501,48 +504,50 @@ function SmeEditGrid(props: {
   setCertifications: (v: string) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations().smeCompany;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <EditField label="Company name">
+      <EditField label={t.form.companyName}>
         <input
           type="text"
           value={props.companyName}
           disabled={props.disabled}
           onChange={(e) => props.setCompanyName(e.target.value)}
-          placeholder="e.g. Lagos Exporter Co"
+          placeholder={t.form.companyNamePlaceholder}
           maxLength={120}
           className="form-input"
         />
         <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          Editable to fix a misentry. Capped: once every 30 days, 5 lifetime.
+          {t.form.companyNameHint}
         </span>
       </EditField>
-      <EditField label="Sector">
+      <EditField label={t.form.sector}>
         <select
           value={props.sector}
           disabled={props.disabled}
           onChange={(e) => props.setSector(e.target.value as Sector | '')}
           className="form-input"
         >
-          {SECTOR_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
+          <option value="">—</option>
+          {SECTOR_VALUES.map((v) => (
+            <option key={v} value={v}>
+              {t.sectors[v]}
             </option>
           ))}
         </select>
       </EditField>
-      <EditField label="Region">
+      <EditField label={t.form.region}>
         <input
           type="text"
           value={props.region}
           disabled={props.disabled}
           onChange={(e) => props.setRegion(e.target.value)}
-          placeholder="e.g. Lagos, Nigeria"
+          placeholder={t.form.regionPlaceholder}
           maxLength={80}
           className="form-input"
         />
       </EditField>
-      <EditField label="Year founded">
+      <EditField label={t.form.yearFounded}>
         <input
           type="number"
           min={1800}
@@ -556,21 +561,22 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label="Employee band">
+      <EditField label={t.form.employeeBand}>
         <select
           value={props.employeeBand}
           disabled={props.disabled}
           onChange={(e) => props.setEmployeeBand(e.target.value as EmployeeBand | '')}
           className="form-input"
         >
-          {EMPLOYEE_BAND_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
+          <option value="">—</option>
+          {EMPLOYEE_BAND_VALUES.map((v) => (
+            <option key={v} value={v}>
+              {t.employeeBands[v]}
             </option>
           ))}
         </select>
       </EditField>
-      <EditField label="Website">
+      <EditField label={t.form.website}>
         <input
           type="url"
           value={props.websiteUrl}
@@ -581,54 +587,55 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label="Reg / Tax ID">
+      <EditField label={t.form.regTaxId}>
         <input
           type="text"
           value={props.registrationId}
           disabled={props.disabled}
           onChange={(e) => props.setRegistrationId(e.target.value)}
-          placeholder="e.g. trade-license / reg no."
+          placeholder={t.form.regTaxIdPlaceholder}
           maxLength={60}
           className="form-input"
         />
       </EditField>
-      <EditField label="Primary markets">
+      <EditField label={t.form.primaryMarkets}>
         <input
           type="text"
           value={props.primaryMarkets}
           disabled={props.disabled}
           onChange={(e) => props.setPrimaryMarkets(e.target.value)}
-          placeholder="e.g. MEASA, EU"
+          placeholder={t.form.primaryMarketsPlaceholder}
           maxLength={200}
           className="form-input"
         />
       </EditField>
-      <EditField label="Annual volume">
+      <EditField label={t.form.annualVolume}>
         <select
           value={props.annualVolumeBand}
           disabled={props.disabled}
           onChange={(e) => props.setAnnualVolumeBand(e.target.value as VolumeBand | '')}
           className="form-input"
         >
-          {VOLUME_BAND_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
+          <option value="">—</option>
+          {(Object.keys(VOLUME_BAND_KEYS) as Array<keyof typeof VOLUME_BAND_KEYS>).map((v) => (
+            <option key={v} value={v}>
+              {t.volumeBands[VOLUME_BAND_KEYS[v]]}
             </option>
           ))}
         </select>
       </EditField>
-      <EditField label="Min order">
+      <EditField label={t.form.minOrder}>
         <input
           type="text"
           value={props.minOrderValue}
           disabled={props.disabled}
           onChange={(e) => props.setMinOrderValue(e.target.value)}
-          placeholder="e.g. 500 units, or $5k"
+          placeholder={t.form.minOrderPlaceholder}
           maxLength={60}
           className="form-input"
         />
       </EditField>
-      <EditField label="Lead time (days)">
+      <EditField label={t.form.leadTimeDays}>
         <input
           type="number"
           min={0}
@@ -638,17 +645,17 @@ function SmeEditGrid(props: {
           onChange={(e) =>
             props.setLeadTimeDays(e.target.value === '' ? '' : Number(e.target.value))
           }
-          placeholder="e.g. 21"
+          placeholder={t.form.leadTimePlaceholder}
           className="form-input"
         />
       </EditField>
-      <EditField label="Certifications">
+      <EditField label={t.form.certifications}>
         <input
           type="text"
           value={props.certifications}
           disabled={props.disabled}
           onChange={(e) => props.setCertifications(e.target.value)}
-          placeholder="e.g. ISO 9001, GOTS"
+          placeholder={t.form.certificationsPlaceholder}
           maxLength={200}
           className="form-input"
         />

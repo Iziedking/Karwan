@@ -544,6 +544,9 @@ function SmePassportBand({
     } | null;
   } | null;
 }) {
+  // Same labels as the COMPANY PROFILE band on /profile, read from the same
+  // section so the two surfaces cannot drift apart.
+  const smeT = useTranslations().smeCompany;
   if (!sme) return null;
   const p = sme.smeProfile;
   const r = sme.repaymentBehavior;
@@ -573,14 +576,14 @@ function SmePassportBand({
               </p>
             ) : null}
             <dl className="space-y-2">
-              {p!.sector ? <PassportRow label="Sector" value={p!.sector} capitalize /> : null}
-              {p!.region ? <PassportRow label="Region" value={p!.region} /> : null}
-              {p!.primaryMarkets ? <PassportRow label="Markets" value={p!.primaryMarkets} /> : null}
-              {p!.minOrderValue ? <PassportRow label="Min order" value={p!.minOrderValue} /> : null}
-              {p!.leadTimeDays ? <PassportRow label="Lead time" value={`${p!.leadTimeDays} days`} /> : null}
-              {p!.certifications ? <PassportRow label="Certifications" value={p!.certifications} /> : null}
-              {p!.yearFounded ? <PassportRow label="Founded" value={String(p!.yearFounded)} /> : null}
-              {p!.employeeBand ? <PassportRow label="Size" value={p!.employeeBand} capitalize /> : null}
+              {p!.sector ? <PassportRow label={smeT.view.sector} value={smeT.sectors[p!.sector as keyof typeof smeT.sectors] ?? p!.sector} /> : null}
+              {p!.region ? <PassportRow label={smeT.view.region} value={p!.region} /> : null}
+              {p!.primaryMarkets ? <PassportRow label={smeT.view.markets} value={p!.primaryMarkets} /> : null}
+              {p!.minOrderValue ? <PassportRow label={smeT.view.minOrder} value={p!.minOrderValue} /> : null}
+              {p!.leadTimeDays ? <PassportRow label={smeT.view.leadTime} value={smeT.view.leadTimeTemplate.replace('{days}', String(p!.leadTimeDays))} /> : null}
+              {p!.certifications ? <PassportRow label={smeT.view.certifications} value={p!.certifications} /> : null}
+              {p!.yearFounded ? <PassportRow label={smeT.view.founded} value={String(p!.yearFounded)} /> : null}
+              {p!.employeeBand ? <PassportRow label={smeT.view.size} value={smeT.employeeBands[p!.employeeBand as keyof typeof smeT.employeeBands] ?? p!.employeeBand} /> : null}
               {p!.websiteUrl ? (
                 <PassportRow
                   label="Website"
@@ -607,24 +610,24 @@ function SmePassportBand({
         {hasRepay ? (
           <div className="space-y-3.5">
             <p className="mono text-[10px] uppercase tracking-[0.18em]" style={{ color: 'var(--color-ink-faint)' }}>
-              [:REPAYMENT BEHAVIOR:]
+              {smeT.repayment.eyebrow}
             </p>
             <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: 'var(--color-ink-faint)' }}>
-              last {r!.windowDealCount} deals
+              {smeT.repayment.windowTemplate.replace('{count}', String(r!.windowDealCount))}
             </p>
             <dl className="mt-2 space-y-3.5">
               <PassportStat
-                label="On-time rate"
+                label={smeT.repayment.onTimeRate}
                 value={`${Math.round(r!.onTimeRate * 100)}%`}
                 tone={r!.onTimeRate >= 0.8 ? 'positive' : r!.onTimeRate >= 0.5 ? 'neutral' : 'critical'}
               />
               <PassportStat
-                label="Avg days to settle"
+                label={smeT.repayment.avgDaysToSettle}
                 value={r!.averageDaysToSettle.toFixed(1)}
                 tone="neutral"
               />
               <PassportStat
-                label="Defaults"
+                label={smeT.repayment.defaults}
                 value={String(r!.defaultCount)}
                 tone={r!.defaultCount === 0 ? 'positive' : 'critical'}
               />
@@ -633,7 +636,7 @@ function SmePassportBand({
                   financier underwrites on, distinct from plain deal settlement. */}
               {financed > 0 ? (
                 <PassportStat
-                  label="Financing repaid"
+                  label={smeT.repayment.financingRepaid}
                   value={`${r!.financingsRepaid ?? 0}/${financed}`}
                   tone={
                     (r!.financingsDefaulted ?? 0) === 0

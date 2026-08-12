@@ -383,16 +383,18 @@ interface MessagesShape {
     greeting: string;
     error: string;
     disclaimer: string;
-    /// Live human-handoff strings. Optional so locales without them fall back
-    /// to the English copy inlined in the widget.
-    humanButton?: string;
-    liveHeader?: string;
-    liveBanner?: string;
-    liveClosed?: string;
-    livePlaceholder?: string;
-    endChat?: string;
-    backToAssistant?: string;
-    operatorName?: string;
+    /// Live human-handoff strings. Required: while these were optional, every
+    /// non-English locale simply never gained them and the widget fell back to
+    /// the English inlined at the call site, silently and forever. Required
+    /// makes tsc the thing that notices.
+    humanButton: string;
+    liveHeader: string;
+    liveBanner: string;
+    liveClosed: string;
+    livePlaceholder: string;
+    endChat: string;
+    backToAssistant: string;
+    operatorName: string;
   };
   countdown: {
     closed: string;
@@ -1407,6 +1409,81 @@ interface MessagesShape {
     reasonLabels: Record<string, string>;
     scopeLabels: Record<string, string>;
   };
+  /// COMPANY PROFILE band on /profile. The trade card a financier reads before
+  /// they fund, so every label here is counterparty-facing.
+  smeCompany: {
+    sectionTag: string;
+    headline: string;
+    loading: string;
+    edit: string;
+    addCompany: string;
+    emptyBody: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    discovery: { label: string; body: string };
+    repayment: {
+      eyebrow: string;
+      windowTemplate: string;
+      onTimeRate: string;
+      avgDaysToSettle: string;
+      defaults: string;
+      financingRepaid: string;
+    };
+    view: {
+      name: string;
+      sector: string;
+      region: string;
+      founded: string;
+      size: string;
+      regTaxId: string;
+      markets: string;
+      annualVolume: string;
+      minOrder: string;
+      leadTime: string;
+      leadTimeTemplate: string;
+      certifications: string;
+      website: string;
+    };
+    form: {
+      companyName: string;
+      companyNamePlaceholder: string;
+      companyNameHint: string;
+      sector: string;
+      region: string;
+      regionPlaceholder: string;
+      yearFounded: string;
+      employeeBand: string;
+      website: string;
+      regTaxId: string;
+      regTaxIdPlaceholder: string;
+      primaryMarkets: string;
+      primaryMarketsPlaceholder: string;
+      annualVolume: string;
+      minOrder: string;
+      minOrderPlaceholder: string;
+      leadTimeDays: string;
+      leadTimePlaceholder: string;
+      certifications: string;
+      certificationsPlaceholder: string;
+    };
+    sectors: {
+      agriculture: string;
+      textiles: string;
+      electronics: string;
+      logistics: string;
+      manufacturing: string;
+      services: string;
+      other: string;
+    };
+    employeeBands: { micro: string; small: string; medium: string };
+    volumeBands: {
+      under100k: string;
+      from100kTo1m: string;
+      from1mTo10m: string;
+      over10m: string;
+    };
+  };
   creditPassport: {
     eyebrow: string;
     fallbackName: string;
@@ -2100,10 +2177,10 @@ interface MessagesShape {
         releasedFromDispute: string;
         autoReleased: string;
         normal: string;
-        financed?: string;
+        financed: string;
         cashoutTemplate: string;
         settleTimeEyebrow: string;
-        repeatDeal?: string;
+        repeatDeal: string;
       };
       cancelled: {
         preAccept: string;
@@ -5613,6 +5690,86 @@ export const en: MessagesShape = {
       JobPosted: 'JobPosted handler crashed',
       CounterOfferIssued: 'CounterOfferIssued handler crashed',
       BidSubmitted: 'BidSubmitted handler crashed',
+    },
+  },
+  smeCompany: {
+    sectionTag: 'COMPANY PROFILE',
+    headline: 'Trade card',
+    loading: 'Loading',
+    edit: 'Edit',
+    addCompany: 'Add company',
+    emptyBody: 'Add a company profile so financiers can review your sector and region before they fund.',
+    save: 'Save',
+    saving: 'Saving…',
+    cancel: 'Cancel',
+    discovery: {
+      label: 'List in partner discovery',
+      body: 'Let other businesses find you by sector and region. You can still post, bid, and deal with this off.',
+    },
+    repayment: {
+      eyebrow: '[:REPAYMENT BEHAVIOR:]',
+      windowTemplate: 'last {count} deals',
+      onTimeRate: 'On-time rate',
+      avgDaysToSettle: 'Avg days to settle',
+      defaults: 'Defaults',
+      financingRepaid: 'Financing repaid',
+    },
+    view: {
+      name: 'Name',
+      sector: 'Sector',
+      region: 'Region',
+      founded: 'Founded',
+      size: 'Size',
+      regTaxId: 'Reg / Tax ID',
+      markets: 'Markets',
+      annualVolume: 'Annual volume',
+      minOrder: 'Min order',
+      leadTime: 'Lead time',
+      leadTimeTemplate: '{days} days',
+      certifications: 'Certifications',
+      website: 'Website',
+    },
+    form: {
+      companyName: 'Company name',
+      companyNamePlaceholder: 'e.g. Lagos Exporter Co',
+      companyNameHint: 'Editable to fix a misentry. Capped: once every 30 days, 5 lifetime.',
+      sector: 'Sector',
+      region: 'Region',
+      regionPlaceholder: 'e.g. Lagos, Nigeria',
+      yearFounded: 'Year founded',
+      employeeBand: 'Employee band',
+      website: 'Website',
+      regTaxId: 'Reg / Tax ID',
+      regTaxIdPlaceholder: 'e.g. trade-license / reg no.',
+      primaryMarkets: 'Primary markets',
+      primaryMarketsPlaceholder: 'e.g. MEASA, EU',
+      annualVolume: 'Annual volume',
+      minOrder: 'Min order',
+      minOrderPlaceholder: 'e.g. 500 units, or $5k',
+      leadTimeDays: 'Lead time (days)',
+      leadTimePlaceholder: 'e.g. 21',
+      certifications: 'Certifications',
+      certificationsPlaceholder: 'e.g. ISO 9001, GOTS',
+    },
+    sectors: {
+      agriculture: 'Agriculture',
+      textiles: 'Textiles',
+      electronics: 'Electronics',
+      logistics: 'Logistics',
+      manufacturing: 'Manufacturing',
+      services: 'Services',
+      other: 'Other',
+    },
+    employeeBands: {
+      micro: 'Micro (< 10)',
+      small: 'Small (10–50)',
+      medium: 'Medium (50–250)',
+    },
+    volumeBands: {
+      under100k: 'Under $100k',
+      from100kTo1m: '$100k – $1M',
+      from1mTo10m: '$1M – $10M',
+      over10m: 'Over $10M',
     },
   },
   creditPassport: {
