@@ -18,7 +18,8 @@
 /// retries on the next tick. After MAX_SETTLE_ATTEMPTS the offer flips to
 /// 'defaulted' (most common cause: the seller drained their wallet before
 /// the watcher fired, or a web3 authorization expired). The off-chain
-/// dispute path pursues remediation against the seller's stake.
+/// dispute path records the default for operational follow-up. The current
+/// invoice-registry contract does not reserve or automatically recover stake.
 
 import { parseUnits } from 'viem';
 import { publicClient } from '../chain/client.js';
@@ -82,8 +83,14 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
     return;
   }
 
+  const shortfallAtomic = BigInt(repayAtomic) - alreadyPaid;
+  if (offer.repayAuthorization && alreadyPaid > 0n) {
+    throw new Error(
+      'partial escrow repayment needs a new authorization for the remaining balance',
+    );
+  }
   let txHash: string;
-  if (offer.repayAuthorization) {
+  if (offer.repayAuthorization && alreadyPaid === 0n) {
     const r = await submitTransferWithAuthorization(
       offer.repayAuthorization,
       `factoring.repay(${offer.id})`,
@@ -99,7 +106,7 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
     const r = await transferFromCircleWallet(
       sellerUser.circleIdentityWalletId,
       offer.financier,
-      repayAtomic,
+      shortfallAtomic.toString(),
       `factoring.repay(${offer.id})`,
       // Namespaced idempotency key: a retry after an ambiguous failure cannot
       // double-charge the seller. Namespacing matters: the ADVANCE leg used
@@ -125,7 +132,7 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
       offerId: offer.id,
       financier: offer.financier,
       seller: offer.seller,
-      repayUsdc: offer.expectedReturnUsdc,
+      repayUsdc: (Number(shortfallAtomic) / 1_000_000).toFixed(6),
       settleTxHash: txHash,
     },
   });
@@ -174,7 +181,7 @@ async function processOffer(offer: FactoringOffer, deal: DirectDeal): Promise<vo
 
   // Buyer refunded the escrow after the seller took the advance. The seller was
   // never paid by the escrow, so the repayment instrument has nothing to draw
-  // on. Default and let the dispute path pursue the seller's stake.
+  // on. Record the default for operational follow-up.
   if (deal.cancelledAt && !deal.settledAt) {
     processing.add(offer.id);
     try {

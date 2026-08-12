@@ -70,7 +70,7 @@ const fundBodySchema = z.object({
   principalUsdc: usdcAmountSchema,
   repayUsdc: usdcAmountSchema,
   repaymentWindowSeconds: repaymentWindowSchema,
-  requiredStakeUsdc: usdcAmountSchema.optional(),
+  requiredStakeUsdc: usdcAmountSchema,
   fundTxHash: hashSchema,
 });
 
@@ -127,6 +127,7 @@ async function readPoChainLine(invoiceId: string): Promise<PoChainLine> {
     seller: raw[1],
     principalUsdc: raw[2],
     repayUsdc: raw[3],
+    requiredStakeUsdc: raw[8],
     state: raw[7],
   };
 }
@@ -138,6 +139,7 @@ async function verifyPoFund(
   invoiceId: string,
   principalUsdc: bigint,
   repayUsdc: bigint,
+  requiredStakeUsdc: bigint,
 ): Promise<void> {
   const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as Hex });
   const line = await readPoChainLine(invoiceId);
@@ -146,6 +148,7 @@ async function verifyPoFund(
     seller,
     principalUsdc,
     repayUsdc,
+    requiredStakeUsdc,
   });
 }
 
@@ -347,6 +350,7 @@ poFinancingRoutes.post('/fund', async (c) => {
       body.invoiceId,
       parseUnits(body.principalUsdc, USDC_DECIMALS),
       parseUnits(body.repayUsdc, USDC_DECIMALS),
+      parseUnits(body.requiredStakeUsdc, USDC_DECIMALS),
     );
   } catch (err) {
     logger.warn(
@@ -412,7 +416,7 @@ const fundCircleBodySchema = z.object({
   /// enforces its own minStakeBps floor and the vault reverts if the seller's
   /// free stake is below this, so the caller is expected to have checked
   /// freeStakeOf first.
-  requiredStakeUsdc: usdcAmountSchema.optional(),
+  requiredStakeUsdc: usdcAmountSchema,
 });
 
 /// POST /api/po-financing/fund-circle: Circle DCW-only sister route.
@@ -492,11 +496,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
 
   const principalWei = parseUnits(body.principalUsdc, USDC_DECIMALS);
   const repayWei = parseUnits(body.repayUsdc, USDC_DECIMALS);
-  // The live Arc vault generation does not authorize PO financing as a
-  // reservation consumer. A non-zero value reaches vault.reserve() and reverts
-  // the whole funding call. Keep Circle funding on the capability the deployed
-  // contracts actually expose until the vault + PO wiring is redeployed.
-  const stakeWei = 0n;
+  const stakeWei = parseUnits(body.requiredStakeUsdc, USDC_DECIMALS);
 
   try {
     const approveResult = await executeContractCall(
@@ -537,6 +537,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       body.invoiceId,
       principalWei,
       repayWei,
+      stakeWei,
     );
 
     const now = Date.now();
@@ -551,7 +552,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       state: 'outstanding',
       fundedAt: now,
       repaymentTimeoutAt: now + body.repaymentWindowSeconds * 1000,
-      requiredStakeUsdc: '0',
+      requiredStakeUsdc: body.requiredStakeUsdc,
       txHashes: { fund: fundResult.txHash },
     });
     await patchDeal(body.invoiceId, { poFinancingId: line.id });

@@ -3,6 +3,7 @@ export type PoChainLine = {
   seller: string;
   principalUsdc: bigint;
   repayUsdc: bigint;
+  requiredStakeUsdc: bigint;
   state: number;
 };
 
@@ -15,6 +16,7 @@ export function assertPoFunded(
     seller: string;
     principalUsdc: bigint;
     repayUsdc: bigint;
+    requiredStakeUsdc: bigint;
   },
 ): void {
   if (receiptStatus !== 'success') throw new Error('po funding transaction reverted on chain');
@@ -26,6 +28,7 @@ export function assertPoFunded(
     line.seller.toLowerCase() !== expected.seller.toLowerCase() ||
     line.principalUsdc !== expected.principalUsdc ||
     line.repayUsdc !== expected.repayUsdc ||
+    line.requiredStakeUsdc !== expected.requiredStakeUsdc ||
     line.state !== 1
   ) {
     throw new Error('po funding contract state mismatch');

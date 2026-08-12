@@ -312,7 +312,6 @@ function OffersModal({
   const { data: walletClient } = useWalletClient();
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [needsStake, setNeedsStake] = useState(false);
   const [qual, setQual] = useState<FactoringQualification | null>(null);
 
   // The seller's tier + free stake, so the requirement to take an advance shows
@@ -338,7 +337,6 @@ function OffersModal({
   async function accept(offer: FactoringOffer) {
     setAcceptingId(offer.id);
     setError(null);
-    setNeedsStake(false);
     try {
       // Accepting is one on-chain call: the registry relays the financier's
       // signed advance to the seller and assigns the receivable to them in the
@@ -397,12 +395,6 @@ function OffersModal({
               ? 'The offer could not be accepted. No assignment was recorded and the offer is still open. Try again, or ask the financier to send a new offer.'
               : raw;
       setError(friendly);
-      // A reputation-tiered stake shortfall: point the seller at staking. The
-      // financier's default risk is backed by stake, so an elite is waived and
-      // a new wallet must collateralize the advance.
-      if (e instanceof ApiError && e.code === 'INSUFFICIENT_STAKE') {
-        setNeedsStake(true);
-      }
       setAcceptingId(null);
     }
   }
@@ -458,9 +450,7 @@ function OffersModal({
             <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
               Your tier{' '}
               <span className="font-bold text-[var(--lp-dark)]">{qual.tier.toUpperCase()}</span>
-              {qual.requiredBps === 0
-                ? ' waives the stake requirement.'
-                : ` backs ${qual.requiredBps / 100}% of the advance.`}
+              {' helps financiers assess the offer.'}
               {qual.freeStakeUsdc != null
                 ? ` You have ${Number(qual.freeStakeUsdc).toFixed(2)} USDC staked.`
                 : ''}
@@ -481,14 +471,6 @@ function OffersModal({
           {error ? (
             <div className="space-y-1.5">
               <p className="text-[12px] leading-snug text-[var(--lp-critical)]">{error}</p>
-              {needsStake ? (
-                <Link
-                  href="/stake"
-                  className="inline-block mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] underline underline-offset-2"
-                >
-                  Stake to qualify →
-                </Link>
-              ) : null}
             </div>
           ) : null}
         </div>
@@ -525,7 +507,6 @@ function OfferRow({
   // Stake this advance needs at the seller's tier, and whether they're short.
   const requiredStake = qual && qual.requiredBps > 0 ? (advance * qual.requiredBps) / 10_000 : 0;
   const freeStake = qual?.freeStakeUsdc != null ? Number(qual.freeStakeUsdc) : null;
-  const stakeShort = requiredStake > 0 && freeStake != null && freeStake < requiredStake;
   return (
     <li
       className={cn(
@@ -562,13 +543,10 @@ function OfferRow({
           </p>
           {requiredStake > 0 ? (
             <p
-              className={cn(
-                'mt-0.5 mono text-[10px] uppercase tracking-[0.14em] tabular-nums',
-                stakeShort ? 'text-[var(--lp-critical)] font-bold' : 'text-[var(--lp-text-muted)]',
-              )}
+              className="mt-0.5 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]"
             >
-              Needs {requiredStake.toFixed(2)} USDC staked
-              {stakeShort && freeStake != null ? ` · you have ${freeStake.toFixed(2)}` : ''}
+              Suggested stake signal: {requiredStake.toFixed(2)} USDC
+              {freeStake != null ? ` · seller has ${freeStake.toFixed(2)}` : ''}
             </p>
           ) : null}
           <Link
@@ -583,8 +561,7 @@ function OfferRow({
           <button
             type="button"
             onClick={() => onAccept(offer)}
-            disabled={anyAccepting || stakeShort}
-            title={stakeShort ? 'Stake more to qualify at your tier' : undefined}
+            disabled={anyAccepting}
             className={cn(
               'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 disabled:opacity-60',
               isBest
@@ -600,14 +577,6 @@ function OfferRow({
           >
             {isAccepting ? 'Accepting…' : 'Accept'}
           </button>
-          {stakeShort ? (
-            <Link
-              href="/stake"
-              className="mono text-[9px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] underline underline-offset-2"
-            >
-              Stake to qualify →
-            </Link>
-          ) : null}
         </div>
       </div>
     </li>

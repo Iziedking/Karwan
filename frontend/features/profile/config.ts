@@ -24,7 +24,7 @@ export const ARC_USDC_DECIMALS = 6;
 // env swap; the fallback tracks whatever is live at time of writing, currently
 // the v2 bundle deployed 2026-07-25.
 export const KARWAN_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_KARWAN_VAULT_ADDRESS ??
-  '0xBEeE1D1da5D010F0F2a67B183361A5CD90A40E2A') as `0x${string}`;
+  '0xA600Bd772A032Ec2b96a9A44545024E270418927') as `0x${string}`;
 
 // KarwanYieldDistributor, per-address USDC claim contract that holds the
 // daily-credited yield for stakers. Read-only on chain for balances; the
@@ -61,10 +61,10 @@ export const KARWAN_ESCROW_LEGACY_ADDRESS_3 =
 // env swap, not a code change.
 export const KARWAN_INVOICE_REGISTRY_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_INVOICE_REGISTRY_ADDRESS ??
-    '0xf026b263e4f08C0091efdd912cfaD31101d22A11') as `0x${string}`;
+    '0xFb0Debd5E2618881699ED9b02CE0c9B718a1C649') as `0x${string}`;
 export const KARWAN_PO_FINANCING_ADDRESS =
   (process.env.NEXT_PUBLIC_KARWAN_PO_FINANCING_ADDRESS ??
-    '0xe6550216F1752147c960B5de1E797918B27AF406') as `0x${string}`;
+    '0xe87ef70e19fa8bbfdc04b9310371a7006b86b60a') as `0x${string}`;
 
 // SME Trades launch gate. The B2B rail (trade context on deals, invoice
 // factoring, PO financing, the financier desk) ships behind the SME Trades

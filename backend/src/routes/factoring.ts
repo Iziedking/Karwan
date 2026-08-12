@@ -120,11 +120,9 @@ export function factoringAdvanceRecipient(
 /// could both pass the factoringOfferId check and both pay an advance.
 const acceptingInvoices = new Set<string>();
 
-/// Stake a seller must hold to take a factoring advance, as basis points of the
-/// advance, by reputation tier. The financier's loss on a default (buyer refunds
-/// after the advance is paid) is the advance, so a proven elite is waived and a
-/// new wallet must fully collateralize. Reputation buys the collateral down:
-/// stake is the skin in the game a thin track record has not yet earned.
+/// Suggested seller stake signal by reputation tier. This is shown as risk
+/// context only on the current submitted invoice contract; it is not reserved
+/// for the invoice and does not gate offer acceptance.
 const FACTORING_STAKE_BPS: Record<RepTier, number> = {
   elite: 0,
   strong: 2_000,
@@ -825,45 +823,6 @@ factoringRoutes.post('/accept', async (c) => {
       { error: 'could not verify the escrow balance, try again shortly', code: 'escrow-unreadable' },
       503,
     );
-  }
-
-  // Reputation + stake gate. The financier's downside on a default is the
-  // advance, so the seller must hold free stake covering a tier-scaled fraction
-  // of it: a proven elite is waived, a new wallet posts the full amount. The
-  // existing default path slashes that stake to make the financier whole.
-  let repTier: RepTier = 'new';
-  try {
-    repTier = (await actorSignalsFor(seller)).repTier;
-  } catch {
-    repTier = 'new'; // conservative on a read failure: never waive the collateral
-  }
-  const requiredBps = FACTORING_STAKE_BPS[repTier];
-  if (requiredBps > 0) {
-    const requiredAtomic = (parseUnits(offer.offeredAdvanceUsdc, 6) * BigInt(requiredBps)) / 10_000n;
-    let freeWei: bigint;
-    try {
-      freeWei = (await vault.read.freeStakeOf([seller as `0x${string}`])) as bigint;
-    } catch {
-      return c.json(
-        { error: 'could not read your stake balance, try again', code: 'STAKE_READ_FAILED' },
-        503,
-      );
-    }
-    if (freeWei < requiredAtomic) {
-      const requiredUsdc = Number(formatUnits(requiredAtomic, 6)).toFixed(2);
-      const freeStakeUsdc = Number(formatUnits(freeWei, 6)).toFixed(2);
-      return c.json(
-        {
-          error: `You need ${requiredUsdc} USDC staked to take this advance at your ${repTier.toUpperCase()} tier (you have ${freeStakeUsdc}). Build reputation or stake to qualify.`,
-          code: 'INSUFFICIENT_STAKE',
-          tier: repTier,
-          requiredBps,
-          requiredUsdc,
-          freeStakeUsdc,
-        },
-        409,
-      );
-    }
   }
 
   if (acceptingInvoices.has(offer.invoiceId)) {

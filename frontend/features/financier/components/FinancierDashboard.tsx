@@ -1105,11 +1105,7 @@ function FundModal({
   const [principal, setPrincipal] = useState<number>(Math.round(requested * 0.8 * 100) / 100);
   const [repay, setRepay] = useState<number>(Math.round(requested * 0.84 * 100) / 100);
   const [repaymentWindowSeconds, setRepaymentWindowSeconds] = useState<number>(minimumRepaymentWindowSeconds + 30 * 86_400);
-  // The deployed Arc testnet PO contract is not authorized as a vault
-  // reservation consumer. Keep this rail unsecured until the compatible vault
-  // wiring is deployed; sending a non-zero stake makes the otherwise-valid fund
-  // transaction revert inside vault.reserve().
-  const collateral = 0;
+  const [collateral, setCollateral] = useState<number | null>(null);
   const [stakeBalance, setStakeBalance] = useState<{ total: number; free: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<'idle' | 'approving' | 'funding' | 'mirroring'>('idle');
@@ -1152,6 +1148,21 @@ function FundModal({
     };
   }, [arcClient, deal.seller]);
 
+  useEffect(() => {
+    let live = true;
+    api
+      .getPOStakePolicy({ invoiceId: deal.jobId, principalUsdc: principal.toFixed(6) })
+      .then((policy) => {
+        if (live) setCollateral(Number(policy.suggestedStakeUsdc));
+      })
+      .catch(() => {
+        if (live) setCollateral(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [deal.jobId, principal]);
+
   const spread = repay - principal;
   const validRepay = principal > 0 && principal <= requested && repay > principal && repay <= face;
 
@@ -1162,6 +1173,14 @@ function FundModal({
     }
     if (!validRepay) {
       setError('Repay must be greater than principal and at most the PO value.');
+      return;
+    }
+    if (collateral === null || collateral <= 0) {
+      setError('Seller protection is still being checked. Please try again in a moment.');
+      return;
+    }
+    if (stakeBalance && collateral > stakeBalance.free) {
+      setError('The seller does not have enough available stake for this offer.');
       return;
     }
     setSubmitting(true);
@@ -1187,6 +1206,7 @@ function FundModal({
         }
         const principalWei = parseUnits(principal.toFixed(6), ARC_USDC_DECIMALS);
         const repayWei = parseUnits(repay.toFixed(6), ARC_USDC_DECIMALS);
+        const collateralWei = parseUnits(collateral.toFixed(6), ARC_USDC_DECIMALS);
 
         // Allowance precheck. Only approve if the existing allowance is
         // short, so a repeat-funder doesn't pay gas for a redundant
@@ -1224,7 +1244,7 @@ function FundModal({
             principalWei,
             repayWei,
             BigInt(repaymentWindowSeconds),
-            0n,
+            collateralWei,
           ],
           account: address,
         });
@@ -1239,7 +1259,7 @@ function FundModal({
             principalWei,
             repayWei,
             BigInt(repaymentWindowSeconds),
-            0n,
+            collateralWei,
           ],
           chain: walletClient.chain,
           account: address,
@@ -1340,11 +1360,13 @@ function FundModal({
 
           <ModalField label="Seller protection">
             <div className="border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[13px] text-[var(--lp-text-sub)]">
-              {stakeBalance === null
+              {stakeBalance === null || collateral === null
                 ? 'Checking the seller’s available stake…'
                 : stakeBalance.total > 0
                   ? stakeBalance.free > 0
-                    ? `The seller has ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC staked. This offer does not automatically use it if repayment is short.`
+                    ? collateral <= stakeBalance.free
+                      ? `${collateral.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC will be set aside from the seller’s ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC stake. If repayment falls short, up to that amount can cover the unpaid balance.`
+                      : `This offer needs ${collateral.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC of seller protection, but only ${stakeBalance.free.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC is available.`
                     : `The seller has ${stakeBalance.total.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDC staked, but it is already committed elsewhere.`
                   : 'The seller has no available stake to help cover a repayment shortfall.'}
             </div>
