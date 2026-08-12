@@ -15,18 +15,22 @@ import type { Messages } from '@/shared/i18n/messages/en';
 // Arc (settlement) first, then the CCTP source chains we show a wallet balance
 // for. Each key doubles as the ChainLogo key, so the row map stays simple.
 //
-// Listed explicitly rather than derived from SOURCE_CHAINS. CCTP now also covers
-// Avalanche, Unichain, Sei, Sonic, World Chain and HyperEVM, but deriving from
-// it would silently add six more per-chain RPC reads to this panel on every
-// render, for chains a user almost never holds USDC on. Add a key here when a
-// chain earns a permanent row.
+// Listed explicitly rather than derived from SOURCE_CHAINS: these are the seven
+// chains a backend wallet can actually sign a CCTP burn on, which is exactly the
+// set an email account gets a deposit wallet for. Avalanche and Unichain earned
+// their rows the hard way — deposits landed there, swept nowhere, and the panel
+// that was meant to show a user where their money is did not list the chain it
+// was sitting on. Sei, Sonic, World Chain and HyperEVM stay off: Circle exposes
+// them as EOA-only, so no backend wallet holds USDC there to show.
 type RowKey =
   | 'arc'
   | 'baseSepolia'
   | 'sepolia'
   | 'arbitrumSepolia'
   | 'optimismSepolia'
-  | 'polygonAmoy';
+  | 'polygonAmoy'
+  | 'avalancheFuji'
+  | 'unichainSepolia';
 
 const ROW_KEYS: RowKey[] = [
   'arc',
@@ -35,6 +39,8 @@ const ROW_KEYS: RowKey[] = [
   'arbitrumSepolia',
   'optimismSepolia',
   'polygonAmoy',
+  'avalancheFuji',
+  'unichainSepolia',
 ];
 
 const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> = {
@@ -44,6 +50,8 @@ const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> =
   arbitrumSepolia: { name: 'Arbitrum', sub: 'Sepolia', key: 'arbitrumSepolia' },
   optimismSepolia: { name: 'Optimism', sub: 'Sepolia', key: 'optimismSepolia' },
   polygonAmoy: { name: 'Polygon', sub: 'Amoy', key: 'polygonAmoy' },
+  avalancheFuji: { name: 'Avalanche', sub: 'Fuji', key: 'avalancheFuji' },
+  unichainSepolia: { name: 'Unichain', sub: 'Sepolia', key: 'unichainSepolia' },
 };
 
 const CARD_STYLE = {
@@ -121,6 +129,18 @@ function useChainBalances(address: `0x${string}` | undefined, enabled: boolean) 
       address,
       chainId: SOURCE_CHAINS.polygonAmoy.chainId,
       token: SOURCE_CHAINS.polygonAmoy.usdc,
+      query: source,
+    }),
+    avalancheFuji: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.avalancheFuji.chainId,
+      token: SOURCE_CHAINS.avalancheFuji.usdc,
+      query: source,
+    }),
+    unichainSepolia: useBalance({
+      address,
+      chainId: SOURCE_CHAINS.unichainSepolia.chainId,
+      token: SOURCE_CHAINS.unichainSepolia.usdc,
       query: source,
     }),
   };

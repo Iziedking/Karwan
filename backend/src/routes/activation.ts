@@ -7,8 +7,11 @@ import {
   dripTestnetUsdc,
   BASE_SEPOLIA_BLOCKCHAIN,
   ETH_SEPOLIA_BLOCKCHAIN,
+  OP_SEPOLIA_BLOCKCHAIN,
   ARB_SEPOLIA_BLOCKCHAIN,
   POLYGON_AMOY_BLOCKCHAIN,
+  AVAX_FUJI_BLOCKCHAIN,
+  UNI_SEPOLIA_BLOCKCHAIN,
   SOL_DEVNET_BLOCKCHAIN,
   type BridgeBlockchain,
 } from '../circle/wallets.js';
@@ -445,17 +448,29 @@ activationRoutes.post('/activate', async (c) => {
     // refuses this at the source.
     let bridgeWallets: Record<string, { walletId: string; address: string }> = {};
     const isCircleAccount = !!getUserByAddress(userAddress)?.circleIdentityWalletId;
+    // EVERY chain a backend DCW can sign a CCTP burn on, not just the four the
+    // deposit card advertises. The deposit address is the same 0x on all EVM
+    // chains, so a user who sends on Optimism, Avalanche or Unichain lands at a
+    // real address either way. Whether the money then moves depended entirely on
+    // whether a wallet record existed for that chain, because depositWatcher
+    // indexes on `bridgeWallets` — so three chains silently swallowed deposits
+    // and never bridged. Sei, Sonic, World Chain and HyperEVM stay off this list
+    // on purpose: Circle exposes them as EOA-only, and a CCTP burn is a contract
+    // call, so no backend wallet can sign there. Those remain web3-only.
     const eagerBridgeChains: BridgeBlockchain[] = isCircleAccount
       ? [
           BASE_SEPOLIA_BLOCKCHAIN,
           ETH_SEPOLIA_BLOCKCHAIN,
+          OP_SEPOLIA_BLOCKCHAIN,
           ARB_SEPOLIA_BLOCKCHAIN,
           POLYGON_AMOY_BLOCKCHAIN,
+          AVAX_FUJI_BLOCKCHAIN,
+          UNI_SEPOLIA_BLOCKCHAIN,
           SOL_DEVNET_BLOCKCHAIN,
         ]
       : [];
 
-    // In parallel, so five chains cost the slowest one rather than the sum.
+    // In parallel, so eight chains cost the slowest one rather than the sum.
     // Safe to parallelise only because deriveOnly forbids the createWallets
     // fallback on the EVM chains, which is the one step that consumes a shared
     // index. Solana has no derive path and is the single create here by design.
