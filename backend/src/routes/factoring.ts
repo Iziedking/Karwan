@@ -33,6 +33,7 @@ import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
 import { config } from '../config.js';
 import { bus } from '../events.js';
+import { appendActivity } from '../db/activityLog.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
 
@@ -989,6 +990,38 @@ factoringRoutes.post('/accept', async (c) => {
         advanceUsdc: offer.offeredAdvanceUsdc,
         advanceTxHash,
       },
+    });
+
+    // Real USDC just moved from the financier to the seller, and until now
+    // neither party's transaction history said so. One row each: the ledger is
+    // keyed on address, so a single row would leave the other side blind.
+    void appendActivity({
+      address: offer.financier,
+      kind: 'financing_funded',
+      summary: `Funded a ${offer.offeredAdvanceUsdc} USDC advance against invoice ${offer.invoiceId}`,
+      params: {
+        t: 'advanceFunded',
+        amount: String(offer.offeredAdvanceUsdc),
+        job: String(offer.invoiceId),
+      },
+      amountUsdc: offer.offeredAdvanceUsdc,
+      txHash: advanceTxHash,
+      jobId: offer.invoiceId,
+      counterparty: seller?.toLowerCase(),
+    });
+    void appendActivity({
+      address: seller,
+      kind: 'financing_received',
+      summary: `Received a ${offer.offeredAdvanceUsdc} USDC advance against invoice ${offer.invoiceId}`,
+      params: {
+        t: 'advanceReceived',
+        amount: String(offer.offeredAdvanceUsdc),
+        job: String(offer.invoiceId),
+      },
+      amountUsdc: offer.offeredAdvanceUsdc,
+      txHash: advanceTxHash,
+      jobId: offer.invoiceId,
+      counterparty: offer.financier?.toLowerCase(),
     });
 
     logger.info(

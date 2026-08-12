@@ -2011,6 +2011,24 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       txHash,
       counterparty: deal.seller,
     });
+    // The other side of the same movement. One row per party, because the
+    // ledger is keyed on address: without this the seller's transaction
+    // history never mentioned a single payment they received.
+    if (deal.seller) {
+      void appendActivity({
+        address: deal.seller,
+        kind: 'payout',
+        summary: `Received payment for milestone ${releasedIndex + 1} on deal ${jobId}${settled ? ' (final release, deal settled)' : ''}`,
+        params: {
+          t: settled ? 'dealPayoutFinal' : 'dealPayout',
+          n: String(releasedIndex + 1),
+          job: String(jobId),
+        },
+        jobId,
+        txHash,
+        counterparty: deal.buyer?.toLowerCase(),
+      });
+    }
     return c.json({ accepted: true, jobId, txHash, settled, settledInMs }, 200);
   } catch (err) {
     const info = classifyAgentError(err);

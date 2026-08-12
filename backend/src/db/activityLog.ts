@@ -27,7 +27,18 @@ export type ActivityKind =
   | 'stake'
   | 'unstake'
   | 'agent_seed'
-  | 'agent_spend';
+  | 'agent_spend'
+  /// The RECEIVING side of a deal release. Every release used to write one row,
+  /// for the buyer who sent the money, so a seller's history was silent about
+  /// every payment they had ever been paid.
+  | 'payout'
+  /// Trade finance, which wrote no ledger rows at all until now. A financier
+  /// who funded an advance and was later repaid saw nothing in their own
+  /// history. `funded` and `repaid` are the financier's two sides; `received`
+  /// is the seller taking the advance.
+  | 'financing_funded'
+  | 'financing_received'
+  | 'financing_repaid';
 
 /// One recorded money movement on a user's account. `address` is always the
 /// session identity the route verified — never a client-supplied value — so a

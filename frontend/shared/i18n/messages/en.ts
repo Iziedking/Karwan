@@ -463,6 +463,11 @@ interface MessagesShape {
         agentTopUp: string;
         milestoneRelease: string;
         milestoneReleaseFinal: string;
+        dealPayout: string;
+        dealPayoutFinal: string;
+        advanceFunded: string;
+        advanceReceived: string;
+        financingRepaid: string;
         deadlineReclaim: string;
         disputeReceived: string;
         cancelRefund: string;
@@ -470,6 +475,7 @@ interface MessagesShape {
         gatewayDeposit: string;
         gatewayFundAgent: string;
         gatewayCashOut: string;
+        dealCashout: string;
         researchActivate: string;
         marketRead: string;
         staked: string;
@@ -1411,6 +1417,29 @@ interface MessagesShape {
   };
   /// COMPANY PROFILE band on /profile. The trade card a financier reads before
   /// they fund, so every label here is counterparty-facing.
+  /// Trade vocabulary shared by the request form, the direct-deal form and the
+  /// deal page. Incoterm CODES are an international standard and stay as they
+  /// are in every locale; the gloss beside them is what needs translating.
+  tradeTerms: {
+    sectionTitle: string;
+    tradeType: string;
+    types: { service: string; goods: string; mixed: string };
+    incoterms: string;
+    incotermsHint: string;
+    incotermGloss: { EXW: string; FCA: string; FOB: string; CIF: string; DAP: string; DDP: string };
+    paymentTerms: string;
+    paymentTermsHint: string;
+    paymentTermLabels: { immediate: string; net30: string; net60: string; net90: string };
+    sourcingSector: string;
+    sourcingSectorHint: string;
+    sourcingRegion: string;
+    sourcingRegionHint: string;
+    sourcingRegionPlaceholder: string;
+    counterpartyPlaceholder: string;
+    counterpartyRegionPlaceholder: string;
+    removeDocument: string;
+    milestoneSplitAria: string;
+  };
   smeCompany: {
     sectionTag: string;
     headline: string;
@@ -4595,6 +4624,11 @@ export const en: MessagesShape = {
         agentTopUp: 'Topped up the {agent} agent wallet with {amount} USDC from the sign-in wallet',
         milestoneRelease: 'Released milestone {n} on deal {job} to the seller',
         milestoneReleaseFinal: 'Released milestone {n} on deal {job} to the seller (final release, deal settled)',
+        dealPayout: 'Received payment for milestone {n} on deal {job}',
+        dealPayoutFinal: 'Received the final payment on deal {job}. Deal settled',
+        advanceFunded: 'Funded a {amount} USDC advance on {job}',
+        advanceReceived: 'Received a {amount} USDC advance on {job}',
+        financingRepaid: 'Repaid {amount} USDC on the financing for {job}',
         deadlineReclaim: 'Reclaimed {amount} USDC from the deal the seller did not deliver',
         disputeReceived: 'Received {amount} USDC from a resolved dispute',
         cancelRefund: 'Refunded {amount} USDC from a cancelled deal',
@@ -4602,6 +4636,7 @@ export const en: MessagesShape = {
         gatewayDeposit: 'Moved {amount} USDC from your {source} wallet into your balance',
         gatewayFundAgent: 'Funded the {agent} agent with {amount} USDC',
         gatewayCashOut: 'Cashed out {amount} USDC to {to} on {chain}',
+        dealCashout: 'Cashed out {amount} USDC to {to}',
         researchActivate: 'Paid {amount} USDC to activate agent market research',
         marketRead: 'Your scout agent paid {amount} USDC for a market read on {keywords}',
         staked: 'Staked {amount} USDC',
@@ -4654,7 +4689,7 @@ export const en: MessagesShape = {
       everyone: 'All',
       onlyMine: 'Me',
       moneyTag: 'YOUR MONEY',
-      moneyTitle: 'Deposits, cash-outs and receipts',
+      moneyTitle: 'Transaction history',
       moneyShow: 'Open',
       moneyHide: 'Close',
       streamEyebrow: 'EVENT STREAM',
@@ -5691,6 +5726,33 @@ export const en: MessagesShape = {
       CounterOfferIssued: 'CounterOfferIssued handler crashed',
       BidSubmitted: 'BidSubmitted handler crashed',
     },
+  },
+  tradeTerms: {
+    sectionTitle: 'Goods or service',
+    tradeType: 'Trade type',
+    types: { service: 'SERVICE', goods: 'GOODS', mixed: 'MIXED' },
+    incoterms: 'Incoterms 2020',
+    incotermsHint: 'The trade-rule each side commits to.',
+    incotermGloss: {
+      EXW: 'Buyer collects from factory.',
+      FCA: 'Seller delivers to a named carrier.',
+      FOB: 'Seller loads on the named vessel.',
+      CIF: 'Seller pays freight and insurance to port.',
+      DAP: 'Seller delivers; buyer clears customs.',
+      DDP: 'Seller delivers and clears customs.',
+    },
+    paymentTerms: 'Payment terms',
+    paymentTermsHint: 'When the buyer pays after delivery.',
+    paymentTermLabels: { immediate: 'IMMEDIATE', net30: 'NET 30', net60: 'NET 60', net90: 'NET 90' },
+    sourcingSector: 'Sourcing sector',
+    sourcingSectorHint: 'The kind of supplier you want. Your agent matches partners on this.',
+    sourcingRegion: 'Sourcing region',
+    sourcingRegionHint: 'Where you want to source from. Weighted in matching and shown to financiers.',
+    sourcingRegionPlaceholder: 'e.g. South Asia, or Dubai, AE',
+    counterpartyPlaceholder: 'e.g. Acme Imports Ltd',
+    counterpartyRegionPlaceholder: 'e.g. Dubai, AE',
+    removeDocument: 'Remove document',
+    milestoneSplitAria: 'Milestone split percentages, comma separated',
   },
   smeCompany: {
     sectionTag: 'COMPANY PROFILE',

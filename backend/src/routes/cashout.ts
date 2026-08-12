@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { parseUnits, formatUnits } from 'viem';
 import { getDeal } from '../db/deals.js';
+import { appendActivity } from '../db/activityLog.js';
 import { getUserByAddress } from '../db/users.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { createBridge } from '../db/bridges.js';
@@ -231,6 +232,23 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
           txHash,
           walletKind: body.walletKind,
         },
+      });
+      // Real USDC left the user's wallet. The instant-send path below records
+      // itself in the bridge store, which /activity/me merges in, but this deal
+      // cash-out wrote to neither store and so never reached their history.
+      void appendActivity({
+        address: session.address,
+        kind: 'withdraw',
+        summary: `Cashed out ${body.amountUsdc} USDC to ${body.recipient.toLowerCase()}`,
+        params: {
+          t: 'dealCashout',
+          amount: String(body.amountUsdc),
+          to: body.recipient.toLowerCase(),
+        },
+        amountUsdc: body.amountUsdc.toString(),
+        txHash,
+        jobId: body.jobId,
+        counterparty: body.recipient.toLowerCase(),
       });
       logger.info(
         {

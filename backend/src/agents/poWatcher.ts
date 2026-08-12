@@ -29,6 +29,7 @@ import {
   type POFinancingLine,
 } from '../db/poFinancing.js';
 import { getDeal } from '../db/deals.js';
+import { appendActivity } from '../db/activityLog.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
 import { bus } from '../events.js';
@@ -108,6 +109,19 @@ async function repayLine(line: POFinancingLine): Promise<void> {
       repayUsdc: line.repayUsdc,
       repayTxHash: r.txHash,
     },
+  });
+  // The watcher path claims repayment on chain without any route running, so
+  // the financier's ledger row has to be written here too or an auto-claimed
+  // repayment leaves no trace in their history.
+  void appendActivity({
+    address: line.financier,
+    kind: 'financing_repaid',
+    summary: `Repaid ${line.repayUsdc} USDC on purchase-order financing ${line.invoiceId}`,
+    params: { t: 'financingRepaid', amount: String(line.repayUsdc), job: String(line.invoiceId) },
+    amountUsdc: line.repayUsdc,
+    txHash: r.txHash,
+    jobId: line.invoiceId,
+    counterparty: line.seller?.toLowerCase(),
   });
 
   logger.info(

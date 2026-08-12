@@ -6,6 +6,7 @@ import { findWalletIdForAgent } from '../agents/agent-registry.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { sessionAddress } from '../auth/session.js';
 import { bus } from '../events.js';
+import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
 
 const releaseSchema = z.object({
@@ -56,8 +57,23 @@ milestonesRoutes.post('/release', async (c) => {
     return c.json({ error: 'no agent wallet on record for this job buyer' }, 409);
   }
 
+  // Both humans behind the two agent addresses, resolved once so the release
+  // loop can write a ledger row per party. This route released milestones and
+  // recorded NOTHING for anyone: the money left the buyer and reached the
+  // seller with no entry in either transaction history.
+  const sellerOwner = account.seller
+    ? await findAgentWalletByAgentAddress(account.seller).catch(() => null)
+    : null;
+
   inFlight.add(body.jobId);
-  releaseLoop(body.jobId, body.totalMilestones, account.milestonesReleased, walletId).finally(
+  releaseLoop(
+    body.jobId,
+    body.totalMilestones,
+    account.milestonesReleased,
+    walletId,
+    buyerAgents.userAddress,
+    sellerOwner?.userAddress ?? null,
+  ).finally(
     () => {
       inFlight.delete(body.jobId);
     },
@@ -66,10 +82,36 @@ milestonesRoutes.post('/release', async (c) => {
   return c.json({ accepted: true, jobId: body.jobId, totalMilestones: body.totalMilestones }, 202);
 });
 
-async function releaseLoop(jobId: string, total: number, startIndex: number, walletId: string) {
+async function releaseLoop(
+  jobId: string,
+  total: number,
+  startIndex: number,
+  walletId: string,
+  buyerOwner: string,
+  sellerOwner: string | null,
+) {
   for (let i = startIndex; i < total; i++) {
     try {
       await releaseMilestone(jobId, i, walletId);
+      const settled = i === total - 1;
+      void appendActivity({
+        address: buyerOwner,
+        kind: 'release',
+        summary: `Released milestone ${i + 1} on deal ${jobId} to the seller${settled ? ' (final release, deal settled)' : ''}`,
+        params: { t: settled ? 'milestoneReleaseFinal' : 'milestoneRelease', n: String(i + 1), job: String(jobId) },
+        jobId,
+        ...(sellerOwner ? { counterparty: sellerOwner.toLowerCase() } : {}),
+      });
+      if (sellerOwner) {
+        void appendActivity({
+          address: sellerOwner,
+          kind: 'payout',
+          summary: `Received payment for milestone ${i + 1} on deal ${jobId}${settled ? ' (final release, deal settled)' : ''}`,
+          params: { t: settled ? 'dealPayoutFinal' : 'dealPayout', n: String(i + 1), job: String(jobId) },
+          jobId,
+          counterparty: buyerOwner.toLowerCase(),
+        });
+      }
     } catch (err) {
       logger.error({ jobId, i, err: (err as Error).message }, 'release failed');
       bus.emitEvent({

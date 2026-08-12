@@ -134,8 +134,53 @@ for (const [file, list] of ranked) {
   }
 }
 
-if (parityBroken) {
-  console.log('\nPARITY BROKEN');
+/// 3. LEDGER TEMPLATES. Every row the backend writes to the activity log names
+///    a client template in `params.t`, and the transaction-history panel renders
+///    it from `activity.myMoney.text`. A backend row whose template has no entry
+///    there silently falls back to the English `summary` written at record time,
+///    which is exactly the "why is this row in English" bug nobody reports.
+///    This walks the backend for the names it emits and checks each one exists.
+/// `t` is often a ternary (`t: settled ? 'dealPayoutFinal' : 'dealPayout'`), so
+/// match the whole expression after `t:` and pull every literal out of it. A
+/// regex that only accepted a bare literal silently skipped those rows, which
+/// made the gate report a clean run while missing half the templates.
+const TEMPLATE_RE = /params:\s*\{\s*t:\s*([\s\S]{0,240}?)(?:,\s*\n|\}\s*,)/g;
+const LITERAL_RE = /'([A-Za-z][A-Za-z0-9_]*)'/g;
+const emitted = new Set<string>();
+function walkTs(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    if (entry === 'node_modules' || entry === 'dist') continue;
+    const p = join(dir, entry);
+    if (statSync(p).isDirectory()) walkTs(p, out);
+    else if (p.endsWith('.ts')) out.push(p);
+  }
+  return out;
+}
+const backendSrc = join('..', 'backend', 'src');
+let templatesBroken = false;
+try {
+  for (const file of walkTs(backendSrc)) {
+    for (const m of readFileSync(file, 'utf8').matchAll(TEMPLATE_RE)) {
+      // Drop comparison operands: `fn === 'claim' ? 'unstakeClaim' : ...` names
+      // a template in each BRANCH, never in the test, and counting the operand
+      // reported a missing template that was never referenced.
+      const expr = m[1]!.replace(/[=!]==?\s*'[^']*'/g, '');
+      for (const lit of expr.matchAll(LITERAL_RE)) emitted.add(lit[1]!);
+    }
+  }
+  const known = new Set(Object.keys((en as unknown as Node).activity as Node ? ((en.activity as unknown as { myMoney: { text: Record<string, string> } }).myMoney.text) : {}));
+  const orphans = [...emitted].filter((t) => !known.has(t));
+  console.log(`
+[:LEDGER TEMPLATES:] backend emits ${emitted.size}, messages define ${known.size}`);
+  for (const o of orphans) console.log(`      NO TEMPLATE  ${o}`);
+  if (orphans.length) templatesBroken = true;
+} catch (err) {
+  console.log(`
+[:LEDGER TEMPLATES:] skipped (${(err as Error).message})`);
+}
+
+if (parityBroken || templatesBroken) {
+  console.log(parityBroken ? '\nPARITY BROKEN' : '\nLEDGER TEMPLATE MISSING');
   process.exit(1);
 }
-console.log('\nparity ok');
+console.log('\nparity ok, ledger templates ok');

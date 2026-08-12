@@ -28,21 +28,10 @@ type IncotermsCode = 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
 type PaymentTermsCode = 'immediate' | 'net30' | 'net60' | 'net90';
 type DocumentKind = 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
 
-const INCOTERMS: ReadonlyArray<{ code: IncotermsCode; gloss: string }> = [
-  { code: 'EXW', gloss: 'Buyer collects from factory.' },
-  { code: 'FCA', gloss: 'Seller delivers to a named carrier.' },
-  { code: 'FOB', gloss: 'Seller loads on the named vessel.' },
-  { code: 'CIF', gloss: 'Seller pays freight and insurance to port.' },
-  { code: 'DAP', gloss: 'Seller delivers; buyer clears customs.' },
-  { code: 'DDP', gloss: 'Seller delivers and clears customs.' },
-];
-
-const PAYMENT_TERMS: ReadonlyArray<{ code: PaymentTermsCode; label: string }> = [
-  { code: 'immediate', label: 'IMMEDIATE' },
-  { code: 'net30', label: 'NET 30' },
-  { code: 'net60', label: 'NET 60' },
-  { code: 'net90', label: 'NET 90' },
-];
+// Incoterm codes are an international standard and read the same in every
+// language. Only the gloss beside them is translated, so these stay as codes.
+const INCOTERM_CODES = ['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP'] as const;
+const PAYMENT_TERM_CODES = ['immediate', 'net30', 'net60', 'net90'] as const;
 
 const SECTORS: ReadonlyArray<string> = [
   'agriculture',
@@ -109,6 +98,7 @@ const SPLIT_PRESETS = ['50, 50', '30, 70', '40, 30, 30'] as const;
 
 export function PostJobForm() {
   const t = useTranslations().postJob;
+  const tt = useTranslations().tradeTerms;
   const errCopy = useTranslations().chainErrors;
   const router = useRouter();
   const auth = useAuth();
@@ -161,12 +151,12 @@ export function PostJobForm() {
     initialTradeType === 'goods' || initialTradeType === 'mixed' ? initialTradeType : 'service',
   );
   const [incoterms, setIncoterms] = useState<IncotermsCode | null>(
-    INCOTERMS.some(({ code }) => code === initialIncoterms)
+    INCOTERM_CODES.some((code) => code === initialIncoterms)
       ? (initialIncoterms as IncotermsCode)
       : null,
   );
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermsCode>(
-    PAYMENT_TERMS.some(({ code }) => code === initialPaymentTerms)
+    PAYMENT_TERM_CODES.some((code) => code === initialPaymentTerms)
       ? (initialPaymentTerms as PaymentTermsCode)
       : 'immediate',
   );
@@ -450,8 +440,8 @@ export function PostJobForm() {
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
           for individuals so the P2P request stays the simple service flow. */}
       {SME_TRADES_ENABLED && isBusiness && (
-      <FieldSection eyebrow="[:TRADE CONTEXT:]" title="Goods or service">
-        <FormLabel label="Trade type">
+      <FieldSection eyebrow="[:TRADE CONTEXT:]" title={tt.sectionTitle}>
+        <FormLabel label={tt.tradeType}>
           <div className="flex gap-2 flex-wrap">
             {(['service', 'goods', 'mixed'] as const).map((opt) => (
               <button
@@ -472,25 +462,25 @@ export function PostJobForm() {
                   borderBottomRightRadius: 2,
                 }}
               >
-                {opt}
+                {tt.types[opt]}
               </button>
             ))}
           </div>
         </FormLabel>
         {tradeType !== 'service' ? (
           <>
-            <FormLabel label="Incoterms 2020" hint="The trade-rule each side commits to.">
+            <FormLabel label={tt.incoterms} hint={tt.incotermsHint}>
               <div className="flex gap-2 flex-wrap">
-                {INCOTERMS.map((it) => (
+                {INCOTERM_CODES.map((code) => (
                   <button
-                    key={it.code}
+                    key={code}
                     type="button"
                     disabled={submitting}
-                    title={it.gloss}
-                    onClick={() => setIncoterms(it.code)}
+                    title={tt.incotermGloss[code]}
+                    onClick={() => setIncoterms(code)}
                     className={cn(
                       'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                      incoterms === it.code
+                      incoterms === code
                         ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
@@ -501,22 +491,22 @@ export function PostJobForm() {
                       borderBottomRightRadius: 2,
                     }}
                   >
-                    {it.code}
+                    {code}
                   </button>
                 ))}
               </div>
             </FormLabel>
-            <FormLabel label="Payment terms" hint="When the buyer pays after delivery.">
+            <FormLabel label={tt.paymentTerms} hint={tt.paymentTermsHint}>
               <div className="flex gap-2 flex-wrap">
-                {PAYMENT_TERMS.map((pt) => (
+                {PAYMENT_TERM_CODES.map((code) => (
                   <button
-                    key={pt.code}
+                    key={code}
                     type="button"
                     disabled={submitting}
-                    onClick={() => setPaymentTerms(pt.code)}
+                    onClick={() => setPaymentTerms(code)}
                     className={cn(
                       'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                      paymentTerms === pt.code
+                      paymentTerms === code
                         ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
@@ -527,15 +517,15 @@ export function PostJobForm() {
                       borderBottomRightRadius: 2,
                     }}
                   >
-                    {pt.label}
+                    {tt.paymentTermLabels[code]}
                   </button>
                 ))}
               </div>
             </FormLabel>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormLabel
-                label="Sourcing sector"
-                hint="The kind of supplier you want. Your agent matches partners on this."
+                label={tt.sourcingSector}
+                hint={tt.sourcingSectorHint}
               >
                 <select
                   value={companySector}
@@ -552,15 +542,15 @@ export function PostJobForm() {
                 </select>
               </FormLabel>
               <FormLabel
-                label="Sourcing region"
-                hint="Where you want to source from. Weighted in matching and shown to financiers."
+                label={tt.sourcingRegion}
+                hint={tt.sourcingRegionHint}
               >
                 <input
                   type="text"
                   value={companyRegion}
                   disabled={submitting}
                   onChange={(e) => setCompanyRegion(e.target.value)}
-                  placeholder="e.g. South Asia, or Dubai, AE"
+                  placeholder={tt.sourcingRegionPlaceholder}
                   className="form-input"
                   maxLength={80}
                 />
@@ -625,7 +615,7 @@ export function PostJobForm() {
                           setDocumentRefs((prev) => prev.filter((x) => x.hash !== d.hash))
                         }
                         className="text-[14px] leading-none px-1 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
-                        aria-label="Remove document"
+                        aria-label={tt.removeDocument}
                       >
                         ×
                       </button>
@@ -843,7 +833,7 @@ export function PostJobForm() {
               onChange={(e) => setSplitText(e.target.value)}
               placeholder="50, 50"
               aria-invalid={!split.pcts}
-              aria-label="Milestone split percentages, comma separated"
+              aria-label={tt.milestoneSplitAria}
               className="form-input"
             />
             {split.pcts ? (

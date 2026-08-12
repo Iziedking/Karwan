@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
 import { readSession } from '../auth/session.js';
 import { getProfile } from '../db/profiles.js';
+import { appendActivity } from '../db/activityLog.js';
 import { isApprovedFinancier, financierSafeDeal } from '../profile/financier.js';
 import {
   createPOLine,
@@ -391,6 +392,30 @@ poFinancingRoutes.post('/fund', async (c) => {
       repayUsdc: body.repayUsdc,
     },
   });
+  // The advance leaving the financier and landing with the seller. One row per
+  // party: PO financing wrote nothing to either ledger before this.
+  void appendActivity({
+    address: financier,
+    kind: 'financing_funded',
+    summary: `Funded a ${body.principalUsdc} USDC purchase-order advance on ${body.invoiceId}`,
+    params: { t: 'advanceFunded', amount: String(body.principalUsdc), job: String(body.invoiceId) },
+    amountUsdc: body.principalUsdc,
+    txHash: body.fundTxHash,
+    jobId: body.invoiceId,
+    counterparty: deal.seller?.toLowerCase(),
+  });
+  if (deal.seller) {
+    void appendActivity({
+      address: deal.seller,
+      kind: 'financing_received',
+      summary: `Received a ${body.principalUsdc} USDC purchase-order advance on ${body.invoiceId}`,
+      params: { t: 'advanceReceived', amount: String(body.principalUsdc), job: String(body.invoiceId) },
+      amountUsdc: body.principalUsdc,
+      txHash: body.fundTxHash,
+      jobId: body.invoiceId,
+      counterparty: financier?.toLowerCase(),
+    });
+  }
 
   logger.info(
     {
@@ -569,6 +594,30 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
         repayUsdc: body.repayUsdc,
       },
     });
+    // The advance leaving the financier and landing with the seller. One row per
+    // party: PO financing wrote nothing to either ledger before this.
+    void appendActivity({
+      address: caller,
+      kind: 'financing_funded',
+      summary: `Funded a ${body.principalUsdc} USDC purchase-order advance on ${body.invoiceId}`,
+      params: { t: 'advanceFunded', amount: String(body.principalUsdc), job: String(body.invoiceId) },
+      amountUsdc: body.principalUsdc,
+      txHash: fundResult.txHash,
+      jobId: body.invoiceId,
+      counterparty: deal.seller?.toLowerCase(),
+    });
+    if (deal.seller) {
+      void appendActivity({
+        address: deal.seller,
+        kind: 'financing_received',
+        summary: `Received a ${body.principalUsdc} USDC purchase-order advance on ${body.invoiceId}`,
+        params: { t: 'advanceReceived', amount: String(body.principalUsdc), job: String(body.invoiceId) },
+        amountUsdc: body.principalUsdc,
+        txHash: fundResult.txHash,
+        jobId: body.invoiceId,
+        counterparty: caller?.toLowerCase(),
+      });
+    }
 
     logger.info(
       {
@@ -696,6 +745,17 @@ poFinancingRoutes.post('/claim', async (c) => {
       seller: line.seller,
       repayUsdc: line.repayUsdc,
     },
+  });
+  // The financier's principal plus spread coming back.
+  void appendActivity({
+    address: line.financier,
+    kind: 'financing_repaid',
+    summary: `Repaid ${line.repayUsdc} USDC on purchase-order financing ${line.invoiceId}`,
+    params: { t: 'financingRepaid', amount: String(line.repayUsdc), job: String(line.invoiceId) },
+    amountUsdc: line.repayUsdc,
+    txHash: body.repayTxHash,
+    jobId: line.invoiceId,
+    counterparty: line.seller?.toLowerCase(),
   });
   return c.json({ line: updated });
 });
