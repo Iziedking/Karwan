@@ -17,6 +17,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// seller desks each get a card; clicking one routes to its surface. Mirrors the
 /// onboarding account-kind picker (cream + lime accent, asymmetric corners).
 export default function B2BHubPage() {
+  const pb = useTranslations().pageBits;
   const t = useTranslations().nav;
   const p = { eyebrow: 'B2B TRADES', title: 'Pick a desk', lede: 'Two ways in. Buy through a managed request, or publish what your company supplies.' };
   return (
@@ -49,7 +50,7 @@ export default function B2BHubPage() {
             <DeskCard
               href="/supply"
               tone="accent"
-              title="Supply desk"
+              title={pb.supplyDesk}
               sub="Publish an offer. Let buyers and agents find your company."
             />
           </div>

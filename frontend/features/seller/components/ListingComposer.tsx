@@ -1,5 +1,6 @@
 'use client';
 import { api, ApiError } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
   IntakeShell,
@@ -32,6 +33,7 @@ function missingFields(e: ExtractedDeal): string[] {
 }
 
 export function ListingComposer() {
+  const pb = useTranslations().pageBits;
   const { address } = useAuth();
   const { recordAction } = useGuide();
 
@@ -83,7 +85,7 @@ export function ListingComposer() {
       surface="listing"
       storageKey="karwan-intake-mode-listing"
       helper="Describe what you offer in your own words. Karwan parses it and posts immediately. You can edit the offer from your seller page if anything looks off."
-      placeholder="Example: Solidity audit for ERC-4626 vaults. 1500 USDC fixed, 7 days turnaround, plus or minus 20% on price, listing open for 14 days."
+      placeholder={pb.examples.listing}
       textTooltip="Describe in plain words. Karwan parses your sentence and posts the offer right away."
       formTooltip="Pick each field yourself. No LLM in the path."
       directPost={directPost}

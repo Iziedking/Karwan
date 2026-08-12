@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { use } from 'react';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
@@ -93,6 +94,7 @@ function Inline({ text }: { text: string }) {
 }
 
 export default function NewsletterIssuePage({ params }: { params: Promise<{ slug: string }> }) {
+  const pb = useTranslations().pageBits;
   const { slug } = use(params);
   const [issue, setIssue] = useState<Issue | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -107,7 +109,7 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
   if (err === 'notfound') {
     return (
       <main className="mx-auto max-w-[680px] px-5 py-24">
-        <h1 className="font-sans text-[22px] font-extrabold">No such issue</h1>
+        <h1 className="font-sans text-[22px] font-extrabold">{pb.newsletter.noSuchIssue}</h1>
         <p className="mt-3 text-[15px] text-[var(--ink)]/60">
           This one has either not gone out or never existed.
         </p>
@@ -121,7 +123,7 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
   if (err) {
     return (
       <main className="mx-auto max-w-[680px] px-5 py-24">
-        <p className="text-[15px] text-[var(--ink)]/60">Could not load this issue.</p>
+        <p className="text-[15px] text-[var(--ink)]/60">{pb.newsletter.couldNotLoadIssue}</p>
       </main>
     );
   }

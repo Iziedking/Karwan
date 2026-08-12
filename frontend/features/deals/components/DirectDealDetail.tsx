@@ -1353,12 +1353,13 @@ function CardHead({ label }: { label: string }) {
 /// carries the SME fields (tradeType !== 'service'). Top-level component
 /// per the Vercel `rerender-no-inline-components` rule.
 function TradeContextBand({ deal }: { deal: DirectDeal }) {
+  const pb = useTranslations().pageBits;
   const docs = deal.documentRefs ?? [];
   const company = deal.counterpartyCompany;
   const hasCompany = company && (company.name || company.sector || company.region);
   return (
     <Band tone="light" compact>
-      <SectionTag>TRADE CONTEXT</SectionTag>
+      <SectionTag>{pb.dealDetail.tradeContext}</SectionTag>
       <HeroHeadline size="md">
         Trade rails<Punc>.</Punc>
       </HeroHeadline>
@@ -1427,7 +1428,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
         ) : null}
         {docs.length > 0 ? (
           <PageCard className="md:col-span-2">
-            <CardHead label="ANCHORED DOCUMENTS" />
+            <CardHead label={pb.dealDetail.anchoredDocuments} />
             <ul className="p-5 md:p-6 space-y-2">
               {docs.map((d) => (
                 <li
@@ -3097,6 +3098,7 @@ function GoodsShipmentFields({
   onChange: (v: { carrier: string; trackingNumber: string; trackingUrl: string }) => void;
   carriers: Array<{ slug: string; name: string; needsUrl: boolean }>;
 }) {
+  const pb = useTranslations().pageBits;
   const selected = carriers.find((c) => c.slug === shipment.carrier);
   const field =
     'w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] border border-white/10 focus:outline-none focus:border-[var(--lp-accent)]';
@@ -3144,7 +3146,7 @@ function GoodsShipmentFields({
         <input
           value={shipment.trackingNumber}
           onChange={(e) => onChange({ ...shipment, trackingNumber: e.target.value })}
-          placeholder="Container or waybill reference"
+          placeholder={pb.dealDetail.containerRefPlaceholder}
           className={field}
           style={radius}
         />

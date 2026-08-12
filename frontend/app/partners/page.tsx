@@ -1,5 +1,6 @@
 'use client';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
@@ -23,6 +24,7 @@ export default function PartnersPage() {
 }
 
 function PartnersInner() {
+  const pb = useTranslations().pageBits;
   const { profile } = useUserProfile();
   const isBusiness = isBusinessAccount(profile);
 
@@ -43,7 +45,7 @@ function PartnersInner() {
               browse the market for offers instead.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <CTAPill href="/profile">Register a business</CTAPill>
+              <CTAPill href="/profile">{pb.registerABusiness}</CTAPill>
               <CTAPill href="/market" variant="secondary" tone="dark">
                 Browse the market
               </CTAPill>

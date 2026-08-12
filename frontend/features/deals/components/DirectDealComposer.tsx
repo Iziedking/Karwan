@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
@@ -47,6 +48,7 @@ function missingFields(e: ExtractedDeal): string[] {
 }
 
 export function DirectDealComposer() {
+  const pb = useTranslations().pageBits;
   const router = useRouter();
   const { address } = useAuth();
   const { recordAction } = useGuide();
@@ -126,7 +128,7 @@ export function DirectDealComposer() {
       surface="direct"
       storageKey="karwan-intake-mode-direct"
       helper="Describe the deal in your own words. Karwan parses it and opens the escrow immediately. You can edit anything from the deal page if it looks off."
-      placeholder="Example: 500 USDC to 0x1234...abcd for a landing page redesign, 7 days, 50/50 milestone split, trusted."
+      placeholder={pb.examples.directDeal}
       textTooltip="Describe in plain words. Karwan parses your sentence and opens the deal right away."
       formTooltip="Pick each field yourself. No LLM in the path."
       directPost={directPost}

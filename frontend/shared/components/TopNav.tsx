@@ -31,6 +31,7 @@ const DARK_NAV_VARS = {
 } as React.CSSProperties;
 
 export function TopNav() {
+  const a11y = useTranslations().a11y;
   const pathname = usePathname();
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
   const [menuOpen, setMenuOpen] = useState(false);
@@ -141,7 +142,7 @@ export function TopNav() {
               <NavLink
                 href="/partners"
                 active={pathname.startsWith('/partners')}
-                title="Find businesses to trade with, by sector and region"
+                title={a11y.findBusinesses}
               >
                 Partners
               </NavLink>
@@ -157,7 +158,7 @@ export function TopNav() {
               <NavLink
                 href="/financier"
                 active={pathname.startsWith('/financier')}
-                title="Fund factoring and purchase orders"
+                title={a11y.fundFactoringAndPos}
               >
                 Financier
               </NavLink>
@@ -165,7 +166,7 @@ export function TopNav() {
               <NavLinkSoon
                 href="/financier"
                 active={pathname.startsWith('/financier')}
-                title="Fund factoring and purchase orders"
+                title={a11y.fundFactoringAndPos}
                 soonLabel={t.nav.soonBadge}
               >
                 Financier

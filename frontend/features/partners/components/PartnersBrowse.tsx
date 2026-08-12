@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import { api, type Partner } from '@/core/api';
 import { shortAddress } from '@/shared/utils/format';
@@ -31,6 +32,7 @@ type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 /// sector + region and opens a direct deal with one. Distinct from the P2P
 /// listings feed (which lists individual offers); this lists COMPANIES.
 export function PartnersBrowse() {
+  const pb = useTranslations().partnersBrowse;
   const [sector, setSector] = useState('');
   const [region, setRegion] = useState('');
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -62,11 +64,11 @@ export function PartnersBrowse() {
     <FullBleed>
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <div className="fade-up">
-          <SectionTag tone="dark">FIND PARTNERS</SectionTag>
+          <SectionTag tone="dark">{pb.sectionTag}</SectionTag>
         </div>
         <div className="fade-up fade-up-1">
           <HeroHeadline size="sm">
-            Source a <Accent>business partner</Accent>
+            Source a <Accent>{pb.headlineAccent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
         </div>
@@ -88,7 +90,7 @@ export function PartnersBrowse() {
               onChange={(e) => setSector(e.target.value)}
               className="form-input min-w-[180px]"
             >
-              <option value="">All sectors</option>
+              <option value="">{pb.allSectors}</option>
               {SECTORS.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -104,7 +106,7 @@ export function PartnersBrowse() {
               type="text"
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              placeholder="e.g. Dubai, or South Asia"
+              placeholder={pb.regionPlaceholder}
               className="form-input min-w-[220px]"
               maxLength={80}
             />
@@ -156,6 +158,7 @@ export function PartnersBrowse() {
 }
 
 function PartnerCard({ partner: p }: { partner: Partner }) {
+  const sme = useTranslations().smeCompany;
   return (
     <PageCard>
       <div className="p-5 md:p-6">
@@ -196,9 +199,9 @@ function PartnerCard({ partner: p }: { partner: Partner }) {
         {(p.minOrderValue || p.leadTimeDays || p.certifications || p.primaryMarkets) && (
           <dl className="mt-4 space-y-2 border-t border-[var(--lp-border-light)] pt-3.5">
             {p.primaryMarkets && <CapRow label="Markets" value={p.primaryMarkets} />}
-            {p.minOrderValue && <CapRow label="Min order" value={p.minOrderValue} />}
-            {p.leadTimeDays ? <CapRow label="Lead time" value={`${p.leadTimeDays} days`} /> : null}
-            {p.certifications && <CapRow label="Certifications" value={p.certifications} />}
+            {p.minOrderValue && <CapRow label={sme.view.minOrder} value={p.minOrderValue} />}
+            {p.leadTimeDays ? <CapRow label={sme.view.leadTime} value={`${p.leadTimeDays} days`} /> : null}
+            {p.certifications && <CapRow label={sme.view.certifications} value={p.certifications} />}
           </dl>
         )}
 

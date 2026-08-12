@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 
@@ -72,6 +73,7 @@ export function IntakeShell({
   directPost,
   renderForm,
 }: IntakeShellProps) {
+  const a11y = useTranslations().a11y;
   const router = useRouter();
   const search = useSearchParams();
 
@@ -140,7 +142,7 @@ export function IntakeShell({
 
   return (
     <div className="space-y-7">
-      <div role="tablist" aria-label="Input method" className="inline-flex p-1 gap-1" style={CHOOSER_BG}>
+      <div role="tablist" aria-label={a11y.inputMethod} className="inline-flex p-1 gap-1" style={CHOOSER_BG}>
         <ChooserButton
           active={mode === 'form'}
           onClick={() => pickMode('form')}

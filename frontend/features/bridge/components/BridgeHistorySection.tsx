@@ -68,6 +68,7 @@ export function BridgeHistoryModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const a11y = useTranslations().a11y;
   const t = useTranslations().bridgeCard;
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [page, setPage] = useState(1);
@@ -116,7 +117,7 @@ export function BridgeHistoryModal({
       {/* Backdrop. Clicking off the panel closes. */}
       <button
         type="button"
-        aria-label="Close history"
+        aria-label={a11y.closeHistory}
         onClick={onClose}
         className="absolute inset-0 cursor-default"
         style={{
@@ -151,7 +152,7 @@ export function BridgeHistoryModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close history"
+            aria-label={a11y.closeHistory}
             className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--ink-2)] hover:bg-[rgba(255,255,255,0.06)] transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>

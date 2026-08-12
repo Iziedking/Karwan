@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import { api, ApiError, type ApiMarketRead } from '@/core/api';
 import { MarketReadCard, type MarketReadData } from '@/shared/components/MarketReadCard';
@@ -51,6 +52,7 @@ function requestHref(query: string, read: ApiMarketRead): string {
 }
 
 export function MarketScout() {
+  const pb = useTranslations().pageBits;
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [read, setRead] = useState<ApiMarketRead | null>(null);
@@ -111,7 +113,7 @@ export function MarketScout() {
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runScout();
         }}
         rows={2}
-        placeholder="2,000 units custom packaging, Lagos to Dubai"
+        placeholder={pb.examples.scout}
         className="mt-3 w-full resize-none rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-bg)] px-3 py-2 text-[13px] leading-snug text-[var(--lp-dark)] outline-none focus:border-[var(--lp-accent)]"
       />
       <button

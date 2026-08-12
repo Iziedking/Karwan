@@ -407,6 +407,7 @@ function VolumeChart({
   series: Array<{ t: number; v: number }>;
   emptyLabel: string;
 }) {
+  const a11y = useTranslations().a11y;
   const W = 720;
   const H = 200;
   const PAD = 6;
@@ -444,7 +445,7 @@ function VolumeChart({
       height={H}
       preserveAspectRatio="none"
       role="img"
-      aria-label="Cumulative trade volume"
+      aria-label={a11y.cumulativeTradeVolume}
     >
       {[0.25, 0.5, 0.75].map((g) => (
         <line

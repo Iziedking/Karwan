@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import { api, ApiError } from '@/core/api';
 
@@ -17,6 +18,7 @@ interface Row {
 }
 
 export default function NewsletterArchivePage() {
+  const pb = useTranslations().pageBits;
   const [issues, setIssues] = useState<Row[] | null>(null);
   const [err, setErr] = useState(false);
 
@@ -39,7 +41,7 @@ export default function NewsletterArchivePage() {
 
       <div className="mt-10 space-y-6">
         {issues === null && !err && <p className="text-[14px] text-[var(--ink)]/40">Loading</p>}
-        {err && <p className="text-[14px] text-[var(--ink)]/50">Could not load the archive.</p>}
+        {err && <p className="text-[14px] text-[var(--ink)]/50">{pb.newsletter.couldNotLoadArchive}</p>}
         {issues?.length === 0 && (
           <p className="text-[14px] text-[var(--ink)]/50">
             Nothing yet. The first issue goes out when there is something worth your inbox.

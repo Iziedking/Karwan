@@ -307,6 +307,7 @@ function MarketCard({
   copy: Messages['listingsBrowse']['card'];
   variant?: CardVariant;
 }) {
+  const a11y = useTranslations().a11y;
   const isSummary = variant === 'summary';
   const isHiring = variant === 'hiring';
   const statusLabel = isHiring
@@ -395,7 +396,7 @@ function MarketCard({
       <div
         className="relative overflow-hidden block"
         style={{ ...cardStyle, opacity: 0.9 }}
-        aria-label="Business deal, view only"
+        aria-label={a11y.businessDealViewOnly}
       >
         {inner}
       </div>

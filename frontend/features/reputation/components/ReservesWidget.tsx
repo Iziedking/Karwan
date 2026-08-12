@@ -1,5 +1,6 @@
 'use client';
 import { MoneyCard, MoneyValue } from '@/shared/components/Money';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
 
@@ -99,6 +100,7 @@ export function ReservesWidget() {
 /// 360px = 0.36x scale on text), so the 10px axis labels rendered at ~3.6
 /// CSS pixels on mobile and were illegible.
 function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: boolean }) {
+  const a11y = useTranslations().a11y;
   const padded = useMemo(() => {
     if (history.length === 0) return [];
     if (history.length === 1) {
@@ -203,7 +205,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
         className="block w-full"
         style={{ height: 220 }}
         role="img"
-        aria-label="Cumulative USDC distributed to stakers over time"
+        aria-label={a11y.cumulativeYieldDistributed}
       >
         {/* Y grid */}
         {yTicks.map((t, i) => {

@@ -9,6 +9,7 @@ import { DirectDealComposer } from './DirectDealComposer';
 type Mode = 'managed' | 'direct';
 
 export function NewDealPanel() {
+  const a11y = useTranslations().a11y;
   const t = useTranslations().dealPanel;
   const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
     { value: 'managed', label: t.managedLabel, blurb: t.managedBlurb },
@@ -30,7 +31,7 @@ export function NewDealPanel() {
       <div>
         <div
           role="tablist"
-          aria-label="Deal type"
+          aria-label={a11y.dealType}
           className="inline-flex p-1 gap-1"
           style={{
             background: 'var(--lp-light)',

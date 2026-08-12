@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { DirectDeal } from '@/core/api';
 import { FinancingChatPanel } from '@/features/chat/components/FinancingChatPanel';
 import { shortAddress } from '@/shared/utils/format';
@@ -36,6 +37,7 @@ export function FinancingPositionWorkspace(props: {
   deal: DirectDeal | null;
   protectionUsdc?: string;
 }) {
+  const fw = useTranslations().financingWorkspace;
   const status = STATUS[props.status];
   const progress = dealProgress(props.deal);
   const steps = props.kind === 'po'
@@ -52,7 +54,7 @@ export function FinancingPositionWorkspace(props: {
         <header className="mt-5 border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7" style={{ borderRadius: 18 }}>
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl">
-              <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">Private financing workspace</p>
+              <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{fw.title}</p>
               <h1 className="mt-2 text-2xl font-semibold text-[var(--lp-dark)] sm:text-3xl">
                 {props.kind === 'po' ? 'Purchase order financing' : 'Invoice early payment'}
               </h1>
@@ -72,23 +74,23 @@ export function FinancingPositionWorkspace(props: {
         <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="space-y-4">
             <section className="border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6" style={{ borderRadius: 16 }}>
-              <h2 className="text-lg font-semibold text-[var(--lp-dark)]">Position summary</h2>
+              <h2 className="text-lg font-semibold text-[var(--lp-dark)]">{fw.positionSummary}</h2>
               <dl className="mt-4 grid grid-cols-2 gap-3">
                 <div className="border border-[var(--lp-border-light)] bg-white/45 p-3">
-                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">Amount financed</dt>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.amountFinanced}</dt>
                   <dd className="mt-1 text-lg font-semibold tabular-nums text-[var(--lp-dark)]">{props.advanceUsdc} USDC</dd>
                 </div>
                 <div className="border border-[var(--lp-border-light)] bg-white/45 p-3">
-                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">Expected repayment</dt>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.expectedRepayment}</dt>
                   <dd className="mt-1 text-lg font-semibold tabular-nums text-[var(--lp-dark)]">{props.expectedReturnUsdc} USDC</dd>
                 </div>
                 {props.protectionUsdc ? <div className="col-span-2 border border-[var(--lp-border-light)] bg-white/45 p-3">
-                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">Seller protection reserved</dt>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.sellerProtectionReserved}</dt>
                   <dd className="mt-1 font-semibold tabular-nums text-[var(--lp-dark)]">{props.protectionUsdc} USDC</dd>
                 </div> : null}
               </dl>
               <div className="mt-5 border-t border-[var(--lp-border-light)] pt-4">
-                <p className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">Participants</p>
+                <p className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-text-muted)]">{fw.participants}</p>
                 <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                   <p><span className="text-[var(--lp-text-muted)]">Seller</span><br /><span className="font-semibold text-[var(--lp-dark)]">{shortAddress(props.seller)}</span></p>
                   <p><span className="text-[var(--lp-text-muted)]">Financier</span><br /><span className="font-semibold text-[var(--lp-dark)]">{shortAddress(props.financier)}</span></p>
@@ -98,7 +100,7 @@ export function FinancingPositionWorkspace(props: {
 
             <section className="border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6" style={{ borderRadius: 16 }}>
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-[var(--lp-dark)]">Deal progress</h2>
+                <h2 className="text-lg font-semibold text-[var(--lp-dark)]">{fw.dealProgress}</h2>
                 <span className="text-xs font-medium text-[var(--lp-text-sub)]">{progress.label}</span>
               </div>
               <ol className="mt-5 space-y-4">
@@ -106,7 +108,7 @@ export function FinancingPositionWorkspace(props: {
                   const complete = index + 1 <= progress.step;
                   return <li key={step} className="flex gap-3">
                     <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: complete ? 'var(--lp-dark)' : 'transparent', color: complete ? 'white' : 'var(--lp-text-muted)', border: '1px solid var(--lp-border-light)' }}>{complete ? '✓' : index + 1}</span>
-                    <div><p className="text-sm font-medium text-[var(--lp-dark)]">{step}</p>{index + 1 === progress.step && props.status === 'active' ? <p className="mt-0.5 text-xs text-[var(--lp-text-muted)]">Current stage</p> : null}</div>
+                    <div><p className="text-sm font-medium text-[var(--lp-dark)]">{step}</p>{index + 1 === progress.step && props.status === 'active' ? <p className="mt-0.5 text-xs text-[var(--lp-text-muted)]">{fw.currentStage}</p> : null}</div>
                   </li>;
                 })}
               </ol>

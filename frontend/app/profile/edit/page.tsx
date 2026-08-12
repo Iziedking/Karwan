@@ -38,6 +38,7 @@ export default function ProfileEditPage() {
 }
 
 function ProfileEditInner() {
+  const pe = useTranslations().profileEdit;
   const router = useRouter();
   const t = useTranslations().profile;
   const ob = useTranslations().onboarding;
@@ -183,7 +184,7 @@ function ProfileEditInner() {
 
           {showIdentity && (
             <Section number="01" title="Identity">
-              <FieldLabel label="Display name">
+              <FieldLabel label={pe.displayName}>
                 <input
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -218,22 +219,22 @@ function ProfileEditInner() {
                 <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} className={cn(INPUT_CLS, 'resize-none')} />
               </FieldLabel>
               <div className="grid grid-cols-2 gap-3">
-                <NumberField label="Min budget (USDC)" value={sellerMin} onChange={setSellerMin} />
-                <NumberField label="Max budget (USDC)" value={sellerMax} onChange={setSellerMax} />
-                <NumberField label="Min days" value={sellerMinDays} onChange={setSellerMinDays} />
-                <NumberField label="Max days" value={sellerMaxDays} onChange={setSellerMaxDays} />
+                <NumberField label={pe.minBudget} value={sellerMin} onChange={setSellerMin} />
+                <NumberField label={pe.maxBudget} value={sellerMax} onChange={setSellerMax} />
+                <NumberField label={pe.minDays} value={sellerMinDays} onChange={setSellerMinDays} />
+                <NumberField label={pe.maxDays} value={sellerMaxDays} onChange={setSellerMaxDays} />
               </div>
             </Section>
           )}
 
           {wantsBuyer && (
-            <Section number={buyerNo} title="As a buyer">
+            <Section number={buyerNo} title={pe.asBuyer}>
               <div className="grid grid-cols-2 gap-3">
-                <NumberField label="Max budget (USDC)" value={buyerMax} onChange={setBuyerMax} />
-                <NumberField label="Min days" value={buyerMinDays} onChange={setBuyerMinDays} />
-                <NumberField label="Max days" value={buyerMaxDays} onChange={setBuyerMaxDays} />
+                <NumberField label={pe.maxBudget} value={buyerMax} onChange={setBuyerMax} />
+                <NumberField label={pe.minDays} value={buyerMinDays} onChange={setBuyerMinDays} />
+                <NumberField label={pe.maxDays} value={buyerMaxDays} onChange={setBuyerMaxDays} />
               </div>
-              <FieldLabel label="Milestone split (must total 100)">
+              <FieldLabel label={pe.milestoneSplit}>
                 <input value={milestoneSplit} onChange={(e) => setMilestoneSplit(e.target.value)} className={cn(INPUT_CLS, 'mono')} />
               </FieldLabel>
             </Section>

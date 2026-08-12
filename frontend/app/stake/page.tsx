@@ -102,6 +102,7 @@ export default function StakePage() {
 }
 
 function StakePageInner() {
+  const pb = useTranslations().pageBits;
   const { address } = useAuth();
   const { data } = useReputation(address);
   const sp = useTranslations().stakePage;
@@ -193,14 +194,14 @@ function StakePageInner() {
       {/* NETWORK YIELD: protocol-wide accrual, three tiles + live chart. */}
       <Band tone="light" compact dataGuide="stake-network-yield">
         <div className="flex items-center gap-2">
-          <SectionTag>NETWORK YIELD</SectionTag>
+          <SectionTag>{pb.stake.networkYield}</SectionTag>
           <Hint glow side="bottom" align="start">
             Idle stake earns real yield through Hashnote USYC, tokenized US
             Treasuries. Settled on Arc, provable on chain.
           </Hint>
         </div>
         <HeroHeadline size="md">
-          Tokenized T-bills<Punc>.</Punc> Verified yield<Punc>.</Punc>
+          {pb.stake.tokenizedTbills}<Punc>.</Punc> {pb.stake.verifiedYield}<Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-9">
           <UsycReservesWidget />
@@ -213,14 +214,14 @@ function StakePageInner() {
       {/* PER-ACCOUNT YIELD: the connected wallet's slice + Claim CTA. */}
       <Band tone="light" compact dataGuide="stake-your-yield">
         <div className="flex items-center gap-2">
-          <SectionTag>YOUR YIELD</SectionTag>
+          <SectionTag>{pb.stake.yourYield}</SectionTag>
           <Hint glow side="bottom" align="start">
             Your share of the protocol&apos;s yield. Claim to your wallet
             anytime, non-custodial.
           </Hint>
         </div>
         <HeroHeadline size="md">
-          Earned by you<Punc>.</Punc> Claimable by you<Punc>.</Punc>
+          {pb.stake.earnedByYou}<Punc>.</Punc> {pb.stake.claimableByYou}<Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-9">
           <YieldClaimPanel />

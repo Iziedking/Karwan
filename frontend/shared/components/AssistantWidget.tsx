@@ -49,6 +49,7 @@ const SUPPORT_STORAGE_KEY = 'karwan.support.convo';
 /// operator over Telegram, and polls for the replies. The AI history stays
 /// visible above the live thread so the operator's context is the user's too.
 export function AssistantWidget() {
+  const a11y = useTranslations().a11y;
   const t = useTranslations().assistant;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -294,7 +295,7 @@ export function AssistantWidget() {
         >
           {unread && (
             <span
-              aria-label="New reply"
+              aria-label={a11y.newReply}
               className="absolute -top-1 -end-1 inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--lp-critical)] text-white text-[9px] font-bold"
             >
               1
@@ -959,6 +960,7 @@ function ConfirmCard({
   action: AssistantConfirmAction;
   onNavigate: () => void;
 }) {
+  const pb = useTranslations().pageBits;
   const router = useRouter();
   const { startAppKitBridge, startWeb3Out } = useBridges();
   const { address: wagmiAddress, connector } = useAccount();
@@ -1156,7 +1158,7 @@ function ConfirmCard({
           </a>
         ) : result.refId ? (
           <div className="mt-2 flex items-baseline justify-between gap-3" title={result.refId}>
-            <span className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Transfer ref</span>
+            <span className="shrink-0 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.assistant.transferRef}</span>
             <span className="min-w-0 mono text-[11px] text-[var(--lp-dark)] tabular-nums truncate">
               {result.refId.slice(0, 8)}…{result.refId.slice(-6)}
             </span>

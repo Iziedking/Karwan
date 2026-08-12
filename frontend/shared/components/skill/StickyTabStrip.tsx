@@ -1,5 +1,6 @@
 'use client';
 import { motion, useReducedMotion } from 'motion/react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
@@ -69,6 +70,7 @@ export function StickyTabStrip({
   /// it by a couple of hundred pixels.
   contentMaxWidth?: number;
 }) {
+  const a11y = useTranslations().a11y;
   // Backdrop blur kicks in once the strip is past the top nav.
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
@@ -259,7 +261,7 @@ export function StickyTabStrip({
         /// row above or below.
         clipPath: 'inset(0 -100vmax)',
       }}
-      aria-label="Section navigation"
+      aria-label={a11y.sectionNavigation}
     >
       <ul
         ref={listRef}

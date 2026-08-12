@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import { api, type FactoringOffer } from '@/core/api';
 import { shortAddress } from '@/shared/utils/format';
@@ -17,6 +18,7 @@ function dateLabel(offer: FactoringOffer): string {
 }
 
 export function FactoringPositionsPanel() {
+  const pb = useTranslations().pageBits;
   const [offers, setOffers] = useState<FactoringOffer[]>([]);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function FactoringPositionsPanel() {
           <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             Invoice financing
           </p>
-          <h2 className="mt-1 text-[20px] font-semibold text-[var(--lp-dark)]">Your positions</h2>
+          <h2 className="mt-1 text-[20px] font-semibold text-[var(--lp-dark)]">{pb.financierPanels.yourPositions}</h2>
         </div>
         <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
           {offers.length} {offers.length === 1 ? 'position' : 'positions'}
@@ -74,7 +76,7 @@ export function FactoringPositionsPanel() {
 
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--lp-border-light)] pt-3 text-[11px]">
                 <div>
-                  <dt className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Expected return</dt>
+                  <dt className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{pb.financierPanels.expectedReturn}</dt>
                   <dd className="mt-1 font-semibold tabular-nums text-[var(--lp-dark)]">{offer.expectedReturnUsdc} USDC</dd>
                 </div>
                 <div>

@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api, type POFinancingLine } from '@/core/api';
 import Link from 'next/link';
 
@@ -61,6 +62,7 @@ function LineRow({
   side: 'financier' | 'seller';
   onDismissed: () => void;
 }) {
+  const pb = useTranslations().pageBits;
   const proof = proofFor(line);
   const tone = STATE_TONE[line.state];
   const counterparty = side === 'financier' ? line.seller : line.financier;
@@ -98,7 +100,7 @@ function LineRow({
             <span
               className="mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded shrink-0"
               style={{ color: '#6b6b6b', background: '#6b6b6b1f' }}
-              title="Opened on the previous PO contract, retired 2026-07-27. Settled off the desk."
+              title={pb.financierPanels.retiredContract}
             >
               RETIRED RAIL
             </span>
@@ -122,7 +124,7 @@ function LineRow({
               {proof.label}
             </a>
           ) : null}
-          <Link href={'/financier/po/' + line.id}>position details</Link>
+          <Link href={'/financier/po/' + line.id}>{pb.financierPanels.positionDetails}</Link>
         </div>
         {isLegacy ? (
           <div className="mt-2.5 pt-2.5 border-t border-[var(--lp-border-light)] flex items-center justify-between gap-3 flex-wrap">

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import Link from 'next/link';
 import { useWalletClient } from 'wagmi';
 import {
@@ -27,6 +28,7 @@ export function SellerOfferBanner({
   deal: DirectDeal;
   viewerIsSeller: boolean;
 }) {
+  const pb = useTranslations().pageBits;
   const { prompt } = useDialog();
   const commonEligible =
     viewerIsSeller &&
@@ -159,8 +161,8 @@ export function SellerOfferBanner({
       <div className="mx-auto w-full max-w-[760px] border border-[var(--lp-border-light)] bg-white/45 px-5 py-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">Private financing position</p>
-            <p className="mt-1 text-[14px] text-[var(--lp-dark)]">Track repayment and speak privately with your financier.</p>
+            <p className="mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{pb.sellerOffer.privatePosition}</p>
+            <p className="mt-1 text-[14px] text-[var(--lp-dark)]">{pb.sellerOffer.trackRepayment}</p>
           </div>
           <Link href={`/financier/${kind}/${positionId}`} className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4">
             Open position →

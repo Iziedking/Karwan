@@ -1,10 +1,12 @@
 'use client';
 import { useTheme } from '@/shared/hooks/useTheme';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The compact nav control. Read/persist/apply lives in useTheme so this and the
 /// onboarding picker cannot drift apart, and so both stay aligned with the
 /// pre-paint script in app/layout.tsx.
 export function ThemeToggle() {
+  const a11y = useTranslations().a11y;
   const { theme, toggle, mounted } = useTheme();
 
   if (!mounted) return <div className="w-7 h-7" aria-hidden />;
@@ -14,7 +16,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-      aria-label="Toggle theme"
+      aria-label={a11y.toggleTheme}
       // Resting border is line-strong, not line: at 8% white the outline measured
       // 1.2:1 against the dark nav, so the control read as a floating icon with no
       // edge at all.

@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api, ApiError } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
@@ -110,6 +111,7 @@ function humanizeError(raw: unknown): string {
 }
 
 export function BriefComposer() {
+  const pb = useTranslations().pageBits;
   const router = useRouter();
   const { address } = useAuth();
   const { recordAction } = useGuide();
@@ -183,7 +185,7 @@ export function BriefComposer() {
       surface="brief"
       storageKey="karwan-intake-mode-brief"
       helper="Describe the request in your own words. Karwan parses it and posts immediately. You can edit the deal from the job page if anything looks off."
-      placeholder="Example: I need a backend engineer to build an API endpoint. Budget 120 USDC, 2 days, plus or minus 15% on price, prefer a trusted seller."
+      placeholder={pb.examples.brief}
       textTooltip="Describe in plain words. Karwan parses your sentence and posts the request right away."
       formTooltip="Pick each field yourself. No LLM in the path."
       directPost={directPost}

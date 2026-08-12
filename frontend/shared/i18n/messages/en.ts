@@ -1423,6 +1423,101 @@ interface MessagesShape {
   /// The financier desk. Money labels here are read while committing capital,
   /// so "you pay" and "you receive" must never be able to swap places in a
   /// translation: each side is its own key rather than one reused string.
+  /// Screen-reader labels and hover titles for controls whose visible content
+  /// is an icon or a glyph. Cross-cutting, so they live together rather than
+  /// scattered through a dozen feature sections.
+  /// The editable half of /profile.
+  /// Copy that belongs to one page or one small panel and does not justify a
+  /// section of its own. Grouped by the surface it appears on.
+  pageBits: {
+    stake: {
+      networkYield: string;
+      tokenizedTbills: string;
+      verifiedYield: string;
+      yourYield: string;
+      earnedByYou: string;
+      claimableByYou: string;
+    };
+    dealDetail: { tradeContext: string; anchoredDocuments: string; containerRefPlaceholder: string };
+    sellerOffer: { privatePosition: string; trackRepayment: string };
+    financierPanels: {
+      yourPositions: string;
+      expectedReturn: string;
+      retiredContract: string;
+      positionDetails: string;
+      smeTrades: string;
+      openFinancierDesk: string;
+      loadingPosition: string;
+    };
+    newsletter: { noSuchIssue: string; couldNotLoadIssue: string; couldNotLoadArchive: string };
+    assistant: { transferRef: string };
+    /// Worked examples in the free-text composers. Translating them matters
+    /// more than most copy: they are what a first-time user copies.
+    examples: { brief: string; directDeal: string; scout: string; listing: string };
+    supplyDesk: string;
+    chooseHowDealStarts: string;
+    registerABusiness: string;
+  };
+  profileEdit: {
+    displayName: string;
+    minBudget: string;
+    maxBudget: string;
+    minDays: string;
+    maxDays: string;
+    asBuyer: string;
+    milestoneSplit: string;
+  };
+  /// Verified-business registration band.
+  registerBusiness: {
+    legalCompanyName: string;
+    documentType: string;
+    businessRegistration: string;
+    taxCertificate: string;
+  };
+  partnersBrowse: {
+    sectionTag: string;
+    headlineAccent: string;
+    allSectors: string;
+    regionPlaceholder: string;
+  };
+  /// Seller and financier only. The buyer never sees this channel, so the copy
+  /// says so plainly rather than leaving it to be inferred.
+  financingChat: {
+    title: string;
+    privateConversation: string;
+    coordinateBody: string;
+    startTitle: string;
+    startBody: string;
+    cancelReply: string;
+    placeholder: string;
+    closedTitle: string;
+    closedBody: string;
+  };
+  financingWorkspace: {
+    title: string;
+    positionSummary: string;
+    amountFinanced: string;
+    expectedRepayment: string;
+    sellerProtectionReserved: string;
+    participants: string;
+    dealProgress: string;
+    currentStage: string;
+  };
+  a11y: {
+    closeHistory: string;
+    sectionNavigation: string;
+    toggleTheme: string;
+    inputMethod: string;
+    dealType: string;
+    newReply: string;
+    cumulativeTradeVolume: string;
+    businessDealViewOnly: string;
+    cumulativeYieldDistributed: string;
+    findBusinesses: string;
+    fundFactoringAndPos: string;
+    sendFeedback: string;
+    turnOffTips: string;
+  };
   financierDashboard: {
     sectionTag: string;
     headline: string;
@@ -5788,6 +5883,106 @@ export const en: MessagesShape = {
       CounterOfferIssued: 'CounterOfferIssued handler crashed',
       BidSubmitted: 'BidSubmitted handler crashed',
     },
+  },
+  pageBits: {
+    stake: {
+      networkYield: 'NETWORK YIELD',
+      tokenizedTbills: 'Tokenized T-bills',
+      verifiedYield: 'Verified yield',
+      yourYield: 'YOUR YIELD',
+      earnedByYou: 'Earned by you',
+      claimableByYou: 'Claimable by you',
+    },
+    dealDetail: {
+      tradeContext: 'TRADE CONTEXT',
+      anchoredDocuments: 'ANCHORED DOCUMENTS',
+      containerRefPlaceholder: 'Container or waybill reference',
+    },
+    sellerOffer: {
+      privatePosition: 'Private financing position',
+      trackRepayment: 'Track repayment and speak privately with your financier.',
+    },
+    financierPanels: {
+      yourPositions: 'Your positions',
+      expectedReturn: 'Expected return',
+      retiredContract: 'Opened on the previous PO contract, retired 2026-07-27. Settled off the desk.',
+      positionDetails: 'position details',
+      smeTrades: 'SME TRADES',
+      openFinancierDesk: 'Open the financier desk',
+      loadingPosition: 'Loading position\u2026',
+    },
+    newsletter: {
+      noSuchIssue: 'No such issue',
+      couldNotLoadIssue: 'Could not load this issue.',
+      couldNotLoadArchive: 'Could not load the archive.',
+    },
+    assistant: { transferRef: 'Transfer ref' },
+    examples: {
+      brief: 'Example: I need a backend engineer to build an API endpoint. Budget 120 USDC, 2 days, plus or minus 15% on price, prefer a trusted seller.',
+      directDeal: 'Example: 500 USDC to 0x1234...abcd for a landing page redesign, 7 days, 50/50 milestone split, trusted.',
+      scout: '2,000 units custom packaging, Lagos to Dubai',
+      listing: 'Example: Solidity audit for ERC-4626 vaults. 1500 USDC fixed, 7 days turnaround, plus or minus 20% on price, listing open for 14 days.',
+    },
+    supplyDesk: 'Supply desk',
+    chooseHowDealStarts: 'Choose how the deal starts.',
+    registerABusiness: 'Register a business',
+  },
+  profileEdit: {
+    displayName: 'Display name',
+    minBudget: 'Min budget (USDC)',
+    maxBudget: 'Max budget (USDC)',
+    minDays: 'Min days',
+    maxDays: 'Max days',
+    asBuyer: 'As a buyer',
+    milestoneSplit: 'Milestone split (must total 100)',
+  },
+  registerBusiness: {
+    legalCompanyName: 'Legal company name',
+    documentType: 'Document type',
+    businessRegistration: 'Business registration',
+    taxCertificate: 'Tax certificate',
+  },
+  partnersBrowse: {
+    sectionTag: 'FIND PARTNERS',
+    headlineAccent: 'business partner',
+    allSectors: 'All sectors',
+    regionPlaceholder: 'e.g. Dubai, or South Asia',
+  },
+  financingChat: {
+    title: 'Seller \u2194 financier',
+    privateConversation: 'Private conversation',
+    coordinateBody: 'Coordinate financing and repayment here. This chat is not shared with the buyer.',
+    startTitle: 'Start the financing conversation',
+    startBody: 'Use this private space to confirm timing, delivery progress, and repayment questions.',
+    cancelReply: 'Cancel reply',
+    placeholder: 'Write a private message\u2026',
+    closedTitle: 'Conversation closed.',
+    closedBody: 'The full record remains available to the seller and financier.',
+  },
+  financingWorkspace: {
+    title: 'Private financing workspace',
+    positionSummary: 'Position summary',
+    amountFinanced: 'Amount financed',
+    expectedRepayment: 'Expected repayment',
+    sellerProtectionReserved: 'Seller protection reserved',
+    participants: 'Participants',
+    dealProgress: 'Deal progress',
+    currentStage: 'Current stage',
+  },
+  a11y: {
+    closeHistory: 'Close history',
+    sectionNavigation: 'Section navigation',
+    toggleTheme: 'Toggle theme',
+    inputMethod: 'Input method',
+    dealType: 'Deal type',
+    newReply: 'New reply',
+    cumulativeTradeVolume: 'Cumulative trade volume',
+    businessDealViewOnly: 'Business deal, view only',
+    cumulativeYieldDistributed: 'Cumulative USDC distributed to stakers over time',
+    findBusinesses: 'Find businesses to trade with, by sector and region',
+    fundFactoringAndPos: 'Fund factoring and purchase orders',
+    sendFeedback: 'Send feedback or report a bug',
+    turnOffTips: 'Turn off tips everywhere. You can re-enable them in Settings.',
   },
   financierDashboard: {
     sectionTag: 'FINANCIER',

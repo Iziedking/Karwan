@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
 import { isLandingRoute } from '@/shared/utils/routes';
@@ -358,6 +359,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 /// launcher (the click forces the tour open). Feedback shows everywhere (it
 /// also lives in the footer).
 function FloatingActions() {
+  const a11y = useTranslations().a11y;
   const { currentTour, startTour, hasActive } = useGuide();
   const pathname = usePathname();
   if (hasActive) return null;
@@ -407,8 +409,8 @@ function FloatingActions() {
         href="/feedback"
         className={`fixed bottom-4 sm:bottom-5 end-4 sm:end-5 ${pill}`}
         style={corner}
-        title="Send feedback or report a bug"
-        aria-label="Send feedback or report a bug"
+        title={a11y.sendFeedback}
+        aria-label={a11y.sendFeedback}
       >
         <span
           aria-hidden
@@ -431,6 +433,7 @@ function prefersReducedMotion(): boolean {
 }
 
 function GuideOverlay() {
+  const a11y = useTranslations().a11y;
   const { active, next, prev, close, dismissAll } = useGuide();
   const pathname = usePathname();
   const step = active ? active.steps[active.index] : undefined;
@@ -562,7 +565,7 @@ function GuideOverlay() {
               type="button"
               onClick={dismissAll}
               className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-              title="Turn off tips everywhere. You can re-enable them in Settings."
+              title={a11y.turnOffTips}
             >
               Skip all tips
             </button>

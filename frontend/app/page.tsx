@@ -217,9 +217,10 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
 }
 
 function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeals']; managed: LandingCopy['managedDeals'] }) {
+  const pb = useTranslations().pageBits;
   return (
     <Band tone="dark">
-      <Reveal><SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag><h2 className="mt-6 font-sans text-5xl font-extrabold uppercase">Choose how the deal starts.</h2></Reveal>
+      <Reveal><SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag><h2 className="mt-6 font-sans text-5xl font-extrabold uppercase">{pb.chooseHowDealStarts}</h2></Reveal>
       <div className="mt-14 grid gap-0 lg:grid-cols-2">
         <article className="border-b border-white/10 pb-10 lg:border-b-0 lg:border-e lg:pe-12">
           <div className="mb-8 text-[var(--lp-accent)]"><GlyphWallet /></div>

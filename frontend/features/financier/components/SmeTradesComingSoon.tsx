@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Band, SectionTag, HeroHeadline, Punc, CTAPill } from '@/shared/components/Bands';
 
 /// Holding surface for the SME Trades rail before launch. The /financier
@@ -25,10 +26,11 @@ const PILLARS: ReadonlyArray<{ tag: string; title: string; body: string }> = [
 ];
 
 export function SmeTradesComingSoon() {
+  const pb = useTranslations().pageBits;
   return (
     <main className="min-h-[70vh]">
       <Band tone="light">
-        <SectionTag>SME TRADES</SectionTag>
+        <SectionTag>{pb.financierPanels.smeTrades}</SectionTag>
         <HeroHeadline size="lg">
           Trade finance, on Arc<Punc>.</Punc>
         </HeroHeadline>
@@ -56,7 +58,7 @@ export function SmeTradesComingSoon() {
         </div>
 
         <div className="mt-12 flex items-center gap-4 flex-wrap">
-          <CTAPill href="/financier">Open the financier desk</CTAPill>
+          <CTAPill href="/financier">{pb.financierPanels.openFinancierDesk}</CTAPill>
           <Link
             href="/docs"
             className="mono text-[11px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"

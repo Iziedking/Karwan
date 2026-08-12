@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWriteContract } from 'wagmi';
 import { api, type BusinessRegisterBody } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -302,15 +303,17 @@ function RegisterForm(props: {
   fileName: string | null;
   disabled?: boolean;
 }) {
+  const rb = useTranslations().registerBusiness;
+  const sme = useTranslations().smeCompany;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-      <Field label="Legal company name">
+      <Field label={rb.legalCompanyName}>
         <input
           type="text"
           value={props.companyName}
           disabled={props.disabled}
           onChange={(e) => props.setCompanyName(e.target.value)}
-          placeholder="e.g. Lagos Exporter Co"
+          placeholder={sme.form.companyNamePlaceholder}
           maxLength={120}
           className="form-input"
         />
@@ -335,20 +338,20 @@ function RegisterForm(props: {
           value={props.region}
           disabled={props.disabled}
           onChange={(e) => props.setRegion(e.target.value)}
-          placeholder="e.g. Lagos, Nigeria"
+          placeholder={sme.form.regionPlaceholder}
           maxLength={80}
           className="form-input"
         />
       </Field>
-      <Field label="Document type">
+      <Field label={rb.documentType}>
         <select
           value={props.docKind}
           disabled={props.disabled}
           onChange={(e) => props.setDocKind(e.target.value as 'registration' | 'tax')}
           className="form-input"
         >
-          <option value="registration">Business registration</option>
-          <option value="tax">Tax certificate</option>
+          <option value="registration">{rb.businessRegistration}</option>
+          <option value="tax">{rb.taxCertificate}</option>
         </select>
       </Field>
       <Field label="Document">
