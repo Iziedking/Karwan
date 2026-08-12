@@ -12,6 +12,11 @@ export interface ChannelState {
   closedReason?: 'settled' | 'cancelled' | 'repaid' | 'defaulted';
 }
 
+export function isFinancingParty(caller: string, seller: string, financier: string): boolean {
+  const who = caller.toLowerCase();
+  return who === seller.toLowerCase() || who === financier.toLowerCase();
+}
+
 export async function tradeChannelState(jobId: string, caller: string): Promise<ChannelState> {
   const deal = await getDeal(jobId);
   if (!deal || !deal.acceptedAt) return { allowed: false, writable: false };
@@ -28,7 +33,7 @@ export async function financingChannelState(kind: 'factoring' | 'po', id: string
   if (kind === 'factoring') {
     const offer = await getFactoringOffer(id);
     if (!offer || !['accepted', 'settled', 'defaulted'].includes(offer.status)) return { allowed: false, writable: false };
-    if (who !== offer.seller && who !== offer.financier) return { allowed: false, writable: false };
+    if (!isFinancingParty(who, offer.seller, offer.financier)) return { allowed: false, writable: false };
     const recipient = who === offer.seller ? offer.financier : offer.seller;
     if (offer.status === 'settled') return { allowed: true, writable: false, jobId: offer.invoiceId, channelKey: id, recipient, closedAt: offer.settledAt, closedReason: 'repaid' };
     if (offer.status === 'defaulted') return { allowed: true, writable: false, jobId: offer.invoiceId, channelKey: id, recipient, closedReason: 'defaulted' };
@@ -36,7 +41,7 @@ export async function financingChannelState(kind: 'factoring' | 'po', id: string
   }
   const line = await getPOLine(id);
   if (!line || !['outstanding', 'repaid', 'defaulted'].includes(line.state)) return { allowed: false, writable: false };
-  if (who !== line.seller && who !== line.financier) return { allowed: false, writable: false };
+  if (!isFinancingParty(who, line.seller, line.financier)) return { allowed: false, writable: false };
   const recipient = who === line.seller ? line.financier : line.seller;
   if (line.state === 'repaid') return { allowed: true, writable: false, jobId: line.invoiceId, channelKey: id, recipient, closedAt: line.repaidAt, closedReason: 'repaid' };
   if (line.state === 'defaulted') return { allowed: true, writable: false, jobId: line.invoiceId, channelKey: id, recipient, closedReason: 'defaulted' };

@@ -28,3 +28,18 @@ test('participant messages retain their sender', () => {
   assert.equal(message.sender, '0xSeller');
   assert.equal(message.kind, 'participant');
 });
+
+test('financing replies retain their same-channel reference', () => {
+  const message = normalizeChatMessage({
+    id: 'reply',
+    jobId: 'job-1',
+    channel: 'financing',
+    channelKey: 'position-1',
+    sender: '0xFinancier',
+    body: 'I can confirm that date.',
+    replyToId: 'original',
+    ts: 3,
+  });
+
+  assert.equal(message.replyToId, 'original');
+});

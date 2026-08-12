@@ -147,6 +147,29 @@ export function SellerOfferBanner({
     );
   }, [offers]);
 
+  // Financing is private between the seller and financier. Request fields are
+  // present on the shared deal record, so explicitly stop buyers before any
+  // requested or funded state can render.
+  if (!viewerIsSeller) return null;
+
+  if (deal.poFinancingId || deal.factoringOfferId) {
+    const kind = deal.poFinancingId ? 'po' : 'factoring';
+    const positionId = deal.poFinancingId ?? deal.factoringOfferId!;
+    return (
+      <div className="mx-auto w-full max-w-[760px] border border-[var(--lp-border-light)] bg-white/45 px-5 py-4 sm:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="mono text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">Private financing position</p>
+            <p className="mt-1 text-[14px] text-[var(--lp-dark)]">Track repayment and speak privately with your financier.</p>
+          </div>
+          <Link href={`/financier/${kind}/${positionId}`} className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)] underline underline-offset-4">
+            Open position →
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (poEligible || poRequestedAt) {
     return (
       <FactoringRequestBand

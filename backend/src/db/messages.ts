@@ -16,6 +16,7 @@ export interface ChatMessage {
   sender: string;
   kind?: 'participant' | 'system';
   body: string;
+  replyToId?: string;
   eventType?: string;
   ts: number;
 }
@@ -68,6 +69,15 @@ export async function addMessage(message: ChatMessage): Promise<ChatMessage> {
   store[next.id] = next;
   saveFile(store);
   return next;
+}
+
+export async function getMessage(id: string): Promise<ChatMessage | null> {
+  if (pgEnabled) {
+    const rows = await db().select().from(messages).where(eq(messages.id, id));
+    return rows[0] ? normalizeChatMessage(rows[0].data) : null;
+  }
+  const message = loadFile()[id];
+  return message ? normalizeChatMessage(message) : null;
 }
 
 function ensureFile() {

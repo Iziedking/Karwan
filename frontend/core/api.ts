@@ -3175,8 +3175,8 @@ export const api = {
     }),
   listFinancingMessages: (kind: 'factoring' | 'po', positionId: string) =>
     json<ChatTranscript>(`/api/financing-chat/${kind}/${positionId}`),
-  sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string) =>
-    json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body }) }),
+  sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string, replyToId?: string) =>
+    json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body, replyToId }) }),
   telegramStatus: (address: string) =>
     json<TelegramStatus>(`/api/telegram/status?address=${address}`),
   telegramLinkStart: (address: string) =>
@@ -3739,6 +3739,7 @@ export interface ChatMessage {
   sender: string;
   kind?: 'participant' | 'system';
   body: string;
+  replyToId?: string;
   eventType?: string;
   ts: number;
 }

@@ -81,6 +81,11 @@ export const LARGE_ADVANCE_USDC = envInt('PO_LARGE_ADVANCE_USDC', 5_000, 0, 100_
 /// Env: PO_LARGE_ADVANCE_FLOOR_BPS.
 export const LARGE_ADVANCE_FLOOR_BPS = envInt('PO_LARGE_ADVANCE_FLOOR_BPS', 2_500, 0, 10_000);
 
+/// Every PO advance must carry meaningful seller protection regardless of
+/// reputation tier. Reputation may raise the requirement, but never reduce it
+/// below 60% of the financier's principal exposure.
+export const PO_MIN_PROTECTION_BPS = envInt('PO_MIN_PROTECTION_BPS', 6_000, 6_000, 10_000);
+
 export interface POStakeSuggestion {
   tier: RepTier;
   /// Basis points of principal, after the large-advance floor is applied.
@@ -96,7 +101,7 @@ export interface POStakeSuggestion {
 export function suggestPOStake(tier: RepTier, principalUsdc: number): POStakeSuggestion {
   const tierBps = PO_STAKE_BPS[tier];
   const sizeBps = principalUsdc > LARGE_ADVANCE_USDC ? LARGE_ADVANCE_FLOOR_BPS : 0;
-  const suggestedBps = Math.max(tierBps, sizeBps);
+  const suggestedBps = Math.max(PO_MIN_PROTECTION_BPS, tierBps, sizeBps);
 
   const raw = (principalUsdc * suggestedBps) / 10_000;
   const suggested = Math.ceil(raw * 100) / 100;
@@ -115,5 +120,5 @@ export function describePOStakePolicy(): string {
   const ladder = (Object.keys(PO_STAKE_BPS) as RepTier[])
     .map((t) => `${t}=${PO_STAKE_BPS[t] / 100}%`)
     .join(' ');
-  return `${ladder} | >${LARGE_ADVANCE_USDC} USDC floors at ${LARGE_ADVANCE_FLOOR_BPS / 100}%`;
+  return `${ladder} | minimum=${PO_MIN_PROTECTION_BPS / 100}% | >${LARGE_ADVANCE_USDC} USDC floors at ${LARGE_ADVANCE_FLOOR_BPS / 100}%`;
 }

@@ -2,11 +2,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '@/core/api';
-import { FinancingChatPanel } from '@/features/chat/components/FinancingChatPanel';
+import { FinancingPositionWorkspace } from '@/features/financier/components/FinancingPositionWorkspace';
 export default function Page() {
   const { offerId } = useParams<{ offerId: string }>();
   const [p, setP] = useState<any>();
   useEffect(() => { api.factoringPosition(offerId).then(setP); }, [offerId]);
-  if (!p) return <main>loading...</main>;
-  return <main><a>back to financier</a><h1>invoice position: {p.offer.status}</h1><p>advance {p.offer.offeredAdvanceUsdc} usdc; return {p.offer.expectedReturnUsdc} usdc</p><p>deal {p.deal?.status ?? 'unavailable'}; payee {p.assignedPayee ?? 'unavailable'}</p><FinancingChatPanel kind={'factoring'} positionId={offerId} /></main>;
+  if (!p) return <main className="min-h-screen bg-[var(--lp-bg)] p-6 text-sm text-[var(--lp-text-muted)]">Loading position…</main>;
+  const status = p.offer.status === 'accepted' ? 'active' : p.offer.status === 'settled' ? 'repaid' : p.offer.status === 'defaulted' ? 'review' : p.offer.status === 'expired' ? 'expired' : p.offer.status === 'rejected' ? 'declined' : 'pending';
+  return <FinancingPositionWorkspace kind="factoring" positionId={offerId} status={status} seller={p.offer.seller} financier={p.offer.financier} advanceUsdc={p.offer.offeredAdvanceUsdc} expectedReturnUsdc={p.offer.expectedReturnUsdc} deal={p.deal} />;
 }
