@@ -599,18 +599,31 @@ interface ConfirmResult {
 /// route accepts (202) and signs the Arc burn in the background, so the hash
 /// exists a beat later. Bounded so a slow burn never hangs the card: returns
 /// null and the caller falls back to "track it on /bridge".
-async function pollBurnTxHash(bridgeId: string, attempts = 6): Promise<string | undefined> {
+/// What actually happened to a bridge we just queued.
+///
+/// Three outcomes, and they must stay distinguishable. The previous version
+/// returned `string | undefined` and collapsed "it failed" into the same
+/// `undefined` as "not confirmed yet", so the caller reported success for a
+/// bridge the backend had already marked errored. The failure carries the
+/// backend's own reason, because "something went wrong" tells a user holding
+/// money nothing they can act on.
+type BridgeOutcome =
+  | { state: 'burned'; txHash: string }
+  | { state: 'failed'; reason: string | null }
+  | { state: 'pending' };
+
+async function pollBridgeOutcome(bridgeId: string, attempts = 6): Promise<BridgeOutcome> {
   for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, 1500));
     try {
       const s = await api.bridgeStatus(bridgeId);
-      if (s.sourceTxHash) return s.sourceTxHash;
-      if (s.status === 'error') return undefined;
+      if (s.sourceTxHash) return { state: 'burned', txHash: s.sourceTxHash };
+      if (s.status === 'error') return { state: 'failed', reason: s.error };
     } catch {
       // Record not visible yet, or a transient read failure. Keep waiting.
     }
   }
-  return undefined;
+  return { state: 'pending' };
 }
 
 /// Run a confirm action against the SAME session-gated route the UI uses. Each
@@ -807,14 +820,19 @@ async function runConfirmIntent(
     // show yet. Wait briefly for the Arc burn to land so the card carries a real
     // verifiable receipt like every other intent. If it hasn't landed in time
     // the cash-out is still running fine — the card just points at /bridge.
-    const burnTxHash = await pollBurnTxHash(bridgeId);
+    const outcome = await pollBridgeOutcome(bridgeId);
+    if (outcome.state === 'failed') {
+      throw new Error(outcome.reason ?? 'The cash-out failed before the Arc burn. Your USDC has not moved.');
+    }
     return {
-      successText: burnTxHash
+      successText: outcome.state === 'burned'
         ? 'Cash out started. The Arc burn is confirmed; the destination mint follows in a few minutes.'
-        : 'Cash out started. It lands on the destination chain in a few minutes.',
+        // Queued, not yet confirmed. Say that, rather than promising an arrival
+        // we have no evidence of.
+        : 'Cash out queued. It has not confirmed yet, so check it before you count on it.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
-      ...(burnTxHash ? { txHash: burnTxHash } : {}),
+      ...(outcome.state === 'burned' ? { txHash: outcome.txHash } : {}),
     };
   }
   if (action.intent === 'approve_match') {
@@ -937,14 +955,17 @@ async function runConfirmIntent(
     });
     // Same async shape as cash-out, but the source pipeline runs approve THEN
     // burn, so allow longer before falling back to the no-hash copy.
-    const burnTxHash = await pollBurnTxHash(bridgeId, 10);
+    const outcome = await pollBridgeOutcome(bridgeId, 10);
+    if (outcome.state === 'failed') {
+      throw new Error(outcome.reason ?? 'The bridge failed before the burn. Your USDC has not moved.');
+    }
     return {
-      successText: burnTxHash
+      successText: outcome.state === 'burned'
         ? 'On its way. The burn is confirmed; your USDC lands on Arc in a few minutes.'
-        : 'On its way. Your USDC lands on Arc in a few minutes.',
+        : 'Queued. It has not confirmed yet, so check it before you count on it.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
-      ...(burnTxHash ? { txHash: burnTxHash } : {}),
+      ...(outcome.state === 'burned' ? { txHash: outcome.txHash } : {}),
     };
   }
   throw new Error('Unknown action');
