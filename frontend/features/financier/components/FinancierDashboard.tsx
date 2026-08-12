@@ -10,6 +10,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tours';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import {
   ARC_CHAIN_ID,
@@ -135,15 +136,21 @@ const SELLER_TIER_HUE: Record<string, string> = {
   elite: '#39e08a',
 };
 
-const TABS: ReadonlyArray<{ id: Tab; label: string; available: boolean }> = [
-  { id: 'factor', label: 'Factor invoices', available: true },
-  { id: 'po', label: 'Fund POs', available: true },
+const TABS: ReadonlyArray<{ id: Tab; available: boolean }> = [
+  { id: 'factor', available: true },
+  { id: 'po', available: true },
 ];
 
-const REPAYMENT_EXTENSION_OPTIONS: ReadonlyArray<{ label: string; detail: string; seconds: number }> = [
-  { label: '7 more days', detail: 'Short cushion', seconds: 7 * 86_400 },
-  { label: '30 more days', detail: 'Standard', seconds: 30 * 86_400 },
-  { label: '45 more days', detail: 'Extended', seconds: 45 * 86_400 },
+/// `seconds` is the data; the label and the detail beside it are copy and are
+/// resolved from the locale at render.
+const REPAYMENT_EXTENSION_OPTIONS: ReadonlyArray<{
+  labelKey: 'days7' | 'days30' | 'days45';
+  detailKey: 'shortCushion' | 'standard' | 'extended';
+  seconds: number;
+}> = [
+  { labelKey: 'days7', detailKey: 'shortCushion', seconds: 7 * 86_400 },
+  { labelKey: 'days30', detailKey: 'standard', seconds: 30 * 86_400 },
+  { labelKey: 'days45', detailKey: 'extended', seconds: 45 * 86_400 },
 ];
 
 function formatDeadline(timestampMs: number): string {
@@ -171,6 +178,7 @@ const TIER_DISCOUNT_HINT: Record<string, number> = {
 };
 
 export function FinancierDashboard() {
+  const t = useTranslations().financierDashboard;
   const auth = useAuth();
   const [tab, setTab] = useState<Tab>('factor');
   const [sectorFilter, setSectorFilter] = useState('');
@@ -272,29 +280,27 @@ export function FinancierDashboard() {
     <main className="min-h-[70vh]">
       <PageTour id={FINANCIER_DESK_TOUR_ID} steps={FINANCIER_DESK_STEPS} />
       <Band tone="light" compact>
-        <SectionTag>FINANCIER</SectionTag>
+        <SectionTag>{t.sectionTag}</SectionTag>
         <HeroHeadline size="md">
-          Fund real trade<Punc>.</Punc>
+          {t.headline}<Punc>.</Punc>
         </HeroHeadline>
         <p className="mt-5 max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-          Browse SME invoices and POs open to early payout. Every deal carries a
-          credit passport, an on-chain settlement path, and a verifiable
-          repayment record.
+{t.intro}
         </p>
         {/* TAB BAR */}
         <div className="mt-7 flex gap-2 flex-wrap" data-guide="financier-tabs">
-          {TABS.map((t) => (
+          {TABS.map((tab_) => (
             <button
-              key={t.id}
+              key={tab_.id}
               type="button"
-              disabled={!t.available}
-              onClick={() => t.available && setTab(t.id)}
+              disabled={!tab_.available}
+              onClick={() => tab_.available && setTab(tab_.id)}
               className={cn(
                 'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
-                tab === t.id
+                tab === tab_.id
                   ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
                   : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                !t.available && 'opacity-40 cursor-not-allowed',
+                !tab_.available && 'opacity-40 cursor-not-allowed',
               )}
               style={{
                 borderTopLeftRadius: 6,
@@ -303,8 +309,8 @@ export function FinancierDashboard() {
                 borderBottomRightRadius: 2,
               }}
             >
-              {t.label}
-              {!t.available ? <span className="ms-2 opacity-60">soon</span> : null}
+              {t.tabs[tab_.id]}
+              {!tab_.available ? <span className="ms-2 opacity-60">{t.soon}</span> : null}
             </button>
           ))}
         </div>
@@ -312,16 +318,16 @@ export function FinancierDashboard() {
         {tab === 'factor' ? (
           <div className="mt-6 flex gap-3 flex-wrap items-center" data-guide="financier-filters">
             <FilterSelect
-              label="Sector"
+              label={t.filters.sector}
               value={sectorFilter}
               onChange={setSectorFilter}
               options={SECTOR_FILTERS}
             />
             <FilterText
-              label="Region"
+              label={t.filters.region}
               value={regionFilter}
               onChange={setRegionFilter}
-              placeholder="e.g. Lagos"
+              placeholder={t.filters.regionPlaceholder}
             />
             {sectorFilter || regionFilter ? (
               <button
@@ -332,7 +338,7 @@ export function FinancierDashboard() {
                 }}
                 className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
               >
-                Clear
+                {t.filters.clear}
               </button>
             ) : null}
           </div>
@@ -420,6 +426,7 @@ function FactorInvoicesTab({
   myOffers: Map<string, FactoringOffer>;
   onOpenOffer: (deal: DirectDeal) => void;
 }) {
+  const t = useTranslations().financierDashboard;
   if (loading && available === null) {
     return <SkeletonGrid />;
   }
@@ -433,8 +440,8 @@ function FactorInvoicesTab({
   if (!available || available.length === 0) {
     return (
       <DeskEmpty
-        tag="NO OPEN FACTORING"
-        body="Nothing to fund right now. Invoices appear here the moment a seller raises one on an accepted deal."
+        tag={t.emptyFactoring.tag}
+        body={t.emptyFactoring.body}
       />
     );
   }
@@ -461,6 +468,7 @@ function InvoiceCard({
   existingOffer: FactoringOffer | null;
   onOpenOffer: () => void;
 }) {
+  const t = useTranslations().financierDashboard;
   const settlementWindow =
     deal.paymentTerms === 'net30'
       ? 'NET 30'
@@ -492,7 +500,7 @@ function InvoiceCard({
                   border: `1px solid ${SELLER_TIER_HUE[deal.sellerTier] ?? '#9a9a9a'}`,
                   color: 'var(--lp-dark)',
                 }}
-                title="Seller reputation tier. Drives the discount floor and the stake the seller must post to take the advance."
+                title={t.sellerTierTitle}
               >
                 {deal.sellerTier.toUpperCase()}
               </span>
@@ -510,12 +518,12 @@ function InvoiceCard({
             data-guide="financier-passport"
             className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
-            Seller passport ↗
+            {t.sellerPassport} ↗
           </Link>
           <div className="flex items-center gap-2.5">
             {existingOffer ? (
               <span className="mono text-[9.5px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)]">
-                Your offer · {(existingOffer.discountBps / 100).toFixed(1)}%
+                {t.yourOffer} · {(existingOffer.discountBps / 100).toFixed(1)}%
               </span>
             ) : null}
             <button
@@ -530,7 +538,7 @@ function InvoiceCard({
                 borderBottomRightRadius: 2,
               }}
             >
-              {existingOffer ? 'Edit offer' : 'Make offer'}
+              {existingOffer ? t.editOffer : t.makeOffer}
             </button>
           </div>
         </div>
@@ -656,6 +664,7 @@ function OfferModal({
   onClose: () => void;
   onPosted: (offer: FactoringOffer) => void;
 }) {
+  const t = useTranslations().financierDashboard;
   const auth = useAuth();
   const { data: walletClient } = useWalletClient();
   const face = Number(deal.dealAmountUsdc);
@@ -773,7 +782,7 @@ function OfferModal({
             type="button"
             onClick={onClose}
             className="text-[18px] leading-none text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
-            aria-label="Close"
+            aria-label={t.close}
           >
             ×
           </button>
@@ -781,7 +790,7 @@ function OfferModal({
         <div className="p-5 md:p-6 space-y-5">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              FACE VALUE
+              {t.offer.faceValue}
             </p>
             <p className="mt-1 serif text-[28px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
@@ -794,7 +803,7 @@ function OfferModal({
           {/* Tier-default presets per sme-design.md §8.2 */}
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mb-2">
-              Quick discount
+              {t.offer.quickDiscount}
             </p>
             <div className="flex gap-2 flex-wrap">
               {Object.entries(TIER_DISCOUNT_HINT).map(([tier, bps]) => (
@@ -827,7 +836,7 @@ function OfferModal({
           <div>
             <div className="flex items-baseline justify-between gap-3 mb-2">
               <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                Custom discount
+                {t.offer.customDiscount}
               </span>
               {/* Typable as well as draggable. The slider steps 0.5% and can
                   never express a rate a financier actually quoted, like 2.4%.
@@ -854,7 +863,7 @@ function OfferModal({
                     setDiscountBps(Math.round(clamped * 100));
                     setDiscountInput(clamped.toFixed(1));
                   }}
-                  aria-label="Custom discount percent"
+                  aria-label={t.offer.customDiscountAria}
                   className="w-[3.6rem] bg-transparent text-end mono text-[14px] tabular-nums font-extrabold text-[var(--lp-dark)] border-b border-[var(--lp-outline)] focus:border-[var(--lp-accent)] focus:outline-none"
                 />
                 <span className="mono text-[14px] font-extrabold text-[var(--lp-dark)]">%</span>
@@ -881,22 +890,22 @@ function OfferModal({
           <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
             {partlyReleased ? (
               <>
-                <ModalRow label="Invoice face" value={`${face.toFixed(2)} USDC`} />
-                <ModalRow label="Still claimable" value={`${claimable.toFixed(2)} USDC`} bold />
+                <ModalRow label={t.offer.invoiceFace} value={`${face.toFixed(2)} USDC`} />
+                <ModalRow label={t.offer.stillClaimable} value={`${claimable.toFixed(2)} USDC`} bold />
               </>
             ) : (
-              <ModalRow label="Invoice face" value={`${face.toFixed(2)} USDC`} />
+              <ModalRow label={t.offer.invoiceFace} value={`${face.toFixed(2)} USDC`} />
             )}
-            <ModalRow label="You pay seller now" value={`${advance.toFixed(2)} USDC`} />
-            <ModalRow label="You receive on settlement" value={`${repay.toFixed(2)} USDC`} bold />
+            <ModalRow label={t.offer.youPayNow} value={`${advance.toFixed(2)} USDC`} />
+            <ModalRow label={t.offer.youReceiveOnSettlement} value={`${repay.toFixed(2)} USDC`} bold />
             <ModalRow
-              label="Your spread"
+              label={t.offer.yourSpread}
               value={`+${profit.toFixed(2)} USDC`}
               accent
             />
             {sellerFloor !== null ? (
               <ModalRow
-                label="Seller will not go below"
+                label={t.offer.sellerFloor}
                 value={`${sellerFloor.toFixed(2)} USDC`}
               />
             ) : null}
@@ -938,10 +947,10 @@ function OfferModal({
             {submitting
               ? 'Posting…'
               : !isAuthed
-                ? 'Sign in to post'
+                ? t.signInToPost
                 : existingOffer
-                  ? 'Replace offer · 24h'
-                  : 'Post offer · 24h'}
+                  ? `${t.offer.replaceOffer} · 24h`
+                  : `${t.offer.postOffer} · 24h`}
           </button>
         </div>
       </div>
@@ -988,6 +997,7 @@ function FundPOsTab({
   error: string | null;
   onOpenFund: (deal: DirectDeal) => void;
 }) {
+  const t = useTranslations().financierDashboard;
   if (loading && available === null) {
     return <SkeletonGrid />;
   }
@@ -1001,8 +1011,8 @@ function FundPOsTab({
   if (!available || available.length === 0) {
     return (
       <DeskEmpty
-        tag="NO OPEN PO LINES"
-        body="Nothing to fund right now. Lines appear here as sellers draw against accepted purchase orders."
+        tag={t.emptyPo.tag}
+        body={t.emptyPo.body}
       />
     );
   }
@@ -1022,6 +1032,7 @@ function POCard({
   deal: DirectDeal;
   onOpenFund: () => void;
 }) {
+  const t = useTranslations().financierDashboard;
   return (
     <PageCard>
       <div className="p-5 md:p-6 space-y-4">
@@ -1039,10 +1050,10 @@ function POCard({
           </div>
           <div className="text-end">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              REPAY ON PoD
+              {t.po.repayOnPod}
             </p>
             <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-dark)]">
-              BUYER OR ATTESTER
+              {t.po.buyerOrAttester}
             </p>
           </div>
         </div>
@@ -1053,7 +1064,7 @@ function POCard({
             target="_blank"
             className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
-            Seller passport ↗
+            {t.sellerPassport} ↗
           </Link>
           <button
             type="button"
@@ -1087,6 +1098,7 @@ function FundModal({
   onClose: () => void;
   onFunded: (line: POFinancingLine) => void;
 }) {
+  const t = useTranslations().financierDashboard;
   const auth = useAuth();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
@@ -1334,7 +1346,7 @@ function FundModal({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <ModalField label="Principal you fund">
+            <ModalField label={t.po.principal}>
               <input
                 type="number"
                 min={0}
@@ -1345,7 +1357,7 @@ function FundModal({
                 className="form-input form-input-num"
               />
             </ModalField>
-            <ModalField label="Repay on settlement">
+            <ModalField label={t.po.repayOnSettlement}>
               <input
                 type="number"
                 min={0}
@@ -1358,7 +1370,7 @@ function FundModal({
             </ModalField>
           </div>
 
-          <ModalField label="Seller protection">
+          <ModalField label={t.po.sellerProtection}>
             <div className="border border-[var(--lp-border-light)] bg-white/55 px-3 py-3 text-[13px] text-[var(--lp-text-sub)]">
               {stakeBalance === null || collateral === null
                 ? 'Checking the seller’s available stake…'
@@ -1372,20 +1384,20 @@ function FundModal({
             </div>
           </ModalField>
 
-          <ModalField label="Repayment deadline">
+          <ModalField label={t.po.repaymentDeadline}>
             <div className="border border-[var(--lp-border-light)] bg-white/55 p-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    Expected delivery
+                    {t.po.expectedDelivery}
                   </p>
                   <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">
-                    {deal.deadlineUnix ? formatDeadline(deal.deadlineUnix * 1000) : 'Not dated'}
+                    {deal.deadlineUnix ? formatDeadline(deal.deadlineUnix * 1000) : t.po.notDated}
                   </p>
                 </div>
                 <div>
                   <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    Earliest repayment
+                    {t.po.earliestRepayment}
                   </p>
                   <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">
                     {formatDeadline(minimumRepaymentAtMs)}
@@ -1393,7 +1405,7 @@ function FundModal({
                 </div>
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
-                The earliest date follows the deal delivery deadline and includes seven days for buyer review and release.
+                {t.po.earliestNote}
               </p>
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
@@ -1417,7 +1429,7 @@ function FundModal({
                   }}
                 >
                   <span className="block mono text-[9px] uppercase tracking-[0.1em] font-bold">
-                    {opt.label}
+                    {t.extensions[opt.labelKey]}
                   </span>
                   <span className={cn(
                     'mt-1 block text-[10px]',
@@ -1433,15 +1445,15 @@ function FundModal({
           </ModalField>
 
           <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-            <ModalRow label="Seller receives now" value={`${principal.toFixed(2)} USDC`} />
+            <ModalRow label={t.po.sellerReceivesNow} value={`${principal.toFixed(2)} USDC`} />
             <ModalRow
-              label="You receive on settlement"
+              label={t.po.youReceiveOnSettlement}
               value={`${repay.toFixed(2)} USDC`}
               bold
             />
-            <ModalRow label="Your spread" value={`+${spread.toFixed(2)} USDC`} accent />
+            <ModalRow label={t.po.yourSpread} value={`+${spread.toFixed(2)} USDC`} accent />
             <ModalRow
-              label="If settlement falls short"
+              label={t.po.ifSettlementFallsShort}
               value={`You can report the unpaid balance after ${formatDeadline((nowUnix + repaymentWindowSeconds) * 1000)}. Recovery is not automatic.`}
             />
           </dl>
@@ -1471,12 +1483,12 @@ function FundModal({
                 : step === 'mirroring'
                   ? 'Confirming…'
                   : submitting
-                    ? 'Working…'
+                    ? t.working
                     : onWrongChain
-                      ? 'Switch to Arc'
+                      ? t.switchToArc
                       : isAuthed
-                        ? 'Fund line'
-                        : 'Sign in to fund'}
+                        ? t.po.fundLine
+                        : t.signInToFund}
           </button>
         </div>
       </div>

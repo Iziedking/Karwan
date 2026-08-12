@@ -1420,6 +1420,68 @@ interface MessagesShape {
   /// Trade vocabulary shared by the request form, the direct-deal form and the
   /// deal page. Incoterm CODES are an international standard and stay as they
   /// are in every locale; the gloss beside them is what needs translating.
+  /// The financier desk. Money labels here are read while committing capital,
+  /// so "you pay" and "you receive" must never be able to swap places in a
+  /// translation: each side is its own key rather than one reused string.
+  financierDashboard: {
+    sectionTag: string;
+    headline: string;
+    intro: string;
+    tabs: { factor: string; po: string };
+    soon: string;
+    filters: { sector: string; region: string; regionPlaceholder: string; clear: string; allSectors: string };
+    sellerTierTitle: string;
+    sellerPassport: string;
+    yourOffer: string;
+    editOffer: string;
+    makeOffer: string;
+    emptyFactoring: { tag: string; body: string };
+    emptyPo: { tag: string; body: string };
+    close: string;
+    signInToPost: string;
+    signInToFund: string;
+    working: string;
+    switchToArc: string;
+    offer: {
+      faceValue: string;
+      quickDiscount: string;
+      customDiscount: string;
+      customDiscountAria: string;
+      invoiceFace: string;
+      stillClaimable: string;
+      youPayNow: string;
+      youReceiveOnSettlement: string;
+      yourSpread: string;
+      sellerFloor: string;
+      replaceOffer: string;
+      postOffer: string;
+    };
+    po: {
+      repayOnPod: string;
+      buyerOrAttester: string;
+      fundLine: string;
+      principal: string;
+      repayOnSettlement: string;
+      sellerProtection: string;
+      repaymentDeadline: string;
+      expectedDelivery: string;
+      earliestRepayment: string;
+      earliestNote: string;
+      notDated: string;
+      sellerReceivesNow: string;
+      youReceiveOnSettlement: string;
+      yourSpread: string;
+      ifSettlementFallsShort: string;
+    };
+    extensions: {
+      days7: string;
+      days30: string;
+      days45: string;
+      shortCushion: string;
+      standard: string;
+      extended: string;
+    };
+  };
   tradeTerms: {
     sectionTitle: string;
     tradeType: string;
@@ -5725,6 +5787,71 @@ export const en: MessagesShape = {
       JobPosted: 'JobPosted handler crashed',
       CounterOfferIssued: 'CounterOfferIssued handler crashed',
       BidSubmitted: 'BidSubmitted handler crashed',
+    },
+  },
+  financierDashboard: {
+    sectionTag: 'FINANCIER',
+    headline: 'Fund real trade',
+    intro: 'Browse SME invoices and POs open to early payout. Every deal carries a credit passport, an on-chain settlement path, and a verifiable repayment record.',
+    tabs: { factor: 'Factor invoices', po: 'Fund POs' },
+    soon: 'soon',
+    filters: { sector: 'Sector', region: 'Region', regionPlaceholder: 'e.g. Lagos', clear: 'Clear', allSectors: 'All sectors' },
+    sellerTierTitle: 'Seller reputation tier. Drives the discount floor and the stake the seller must post to take the advance.',
+    sellerPassport: 'Seller passport',
+    yourOffer: 'Your offer',
+    editOffer: 'Edit offer',
+    makeOffer: 'Make offer',
+    emptyFactoring: {
+      tag: 'NO OPEN FACTORING',
+      body: 'Nothing to fund right now. Invoices appear here the moment a seller raises one on an accepted deal.',
+    },
+    emptyPo: {
+      tag: 'NO OPEN PO LINES',
+      body: 'Nothing to fund right now. Lines appear here as sellers draw against accepted purchase orders.',
+    },
+    close: 'Close',
+    signInToPost: 'Sign in to post',
+    signInToFund: 'Sign in to fund',
+    working: 'Working…',
+    switchToArc: 'Switch to Arc',
+    offer: {
+      faceValue: 'FACE VALUE',
+      quickDiscount: 'Quick discount',
+      customDiscount: 'Custom discount',
+      customDiscountAria: 'Custom discount percent',
+      invoiceFace: 'Invoice face',
+      stillClaimable: 'Still claimable',
+      youPayNow: 'You pay seller now',
+      youReceiveOnSettlement: 'You receive on settlement',
+      yourSpread: 'Your spread',
+      sellerFloor: 'Seller will not go below',
+      replaceOffer: 'Replace offer',
+      postOffer: 'Post offer',
+    },
+    po: {
+      repayOnPod: 'REPAY ON PoD',
+      buyerOrAttester: 'BUYER OR ATTESTER',
+      fundLine: 'Fund line',
+      principal: 'Principal you fund',
+      repayOnSettlement: 'Repay on settlement',
+      sellerProtection: 'Seller protection',
+      repaymentDeadline: 'Repayment deadline',
+      expectedDelivery: 'Expected delivery',
+      earliestRepayment: 'Earliest repayment',
+      earliestNote: 'The earliest date follows the deal delivery deadline and includes seven days for buyer review and release.',
+      notDated: 'Not dated',
+      sellerReceivesNow: 'Seller receives now',
+      youReceiveOnSettlement: 'You receive on settlement',
+      yourSpread: 'Your spread',
+      ifSettlementFallsShort: 'If settlement falls short',
+    },
+    extensions: {
+      days7: '7 more days',
+      days30: '30 more days',
+      days45: '45 more days',
+      shortCushion: 'Short cushion',
+      standard: 'Standard',
+      extended: 'Extended',
     },
   },
   tradeTerms: {
