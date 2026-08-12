@@ -195,7 +195,13 @@ export interface TopUpPayload {
   sourceChainKey: string;
   amountUsdc: number;
   mintRecipient: string;
-  sourceKind: 'identity' | 'buyerAgent' | 'sellerAgent';
+  /// Only ever the identity rail, and typed that way so a future call site
+  /// cannot quietly widen it. On the source chain the user has one wallet
+  /// Karwan can sign for. An agent wallet's address is the same on every EVM
+  /// chain and so can hold money there, but its Circle wallet id is bound to
+  /// Arc and signs nothing anywhere else; naming one here produced a card that
+  /// reported a move while the money never left.
+  sourceKind: 'identity';
 }
 
 interface ConfirmActionBase {
@@ -746,7 +752,6 @@ export function buildTopUpConfirm(i: {
   /// agent wallets when they asked to fund an agent in the same step.
   mintRecipient: string;
   destinationLabel: string;
-  sourceKind?: 'identity' | 'buyerAgent' | 'sellerAgent';
 }): TopUpConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   if (!/^0x[0-9a-fA-F]{40}$/.test(i.mintRecipient)) {
@@ -769,7 +774,7 @@ export function buildTopUpConfirm(i: {
       sourceChainKey: i.sourceChainKey,
       amountUsdc: i.amountUsdc,
       mintRecipient: i.mintRecipient.toLowerCase(),
-      sourceKind: i.sourceKind ?? 'identity',
+      sourceKind: 'identity',
     },
     confirmLabel: 'Move to Arc',
     cancelLabel: 'Not now',
@@ -1033,6 +1038,11 @@ export function buildWeb3TopUpConfirm(i: {
   sourceChainLabel: string;
   amountUsdc: number;
   mintRecipient: string;
+  /// Where it lands, in the user's words. Reads off `mintRecipient` and must
+  /// agree with it: this card is the last thing shown before they sign, so a
+  /// label that says "your Arc wallet" while the mint goes to an agent is the
+  /// one lie that cannot be walked back.
+  destinationLabel?: string;
 }): Web3TopUpConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   return {
@@ -1044,7 +1054,7 @@ export function buildWeb3TopUpConfirm(i: {
     fields: [
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       { label: 'From', value: `${i.sourceChainLabel} · your wallet` },
-      { label: 'To', value: 'Your Arc wallet' },
+      { label: 'To', value: i.destinationLabel ?? 'Your Arc wallet' },
     ],
     payload: {
       sourceChainKey: i.sourceChainKey,

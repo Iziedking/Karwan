@@ -39,7 +39,6 @@ import {
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
-import { resolveCircleBridgeSource, type CircleBridgeSourceKind } from './bridgeSource.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
 
@@ -1078,6 +1077,9 @@ const circleBridgeSchema = z.object({
   /// wallet address (same as `address`), but accepted as a separate field
   /// so the user can route a bridge into their buyer agent in one step.
   mintRecipient: z.string().regex(/^0x[a-fA-F0-9]{40}$/, '0x address required'),
+  /// Kept for older clients and rejected below unless it is 'identity'. The burn
+  /// this route signs happens on the SOURCE chain, and an agent wallet exists
+  /// only on Arc, so naming one here has never been able to work.
   sourceKind: z.enum(['identity', 'buyerAgent', 'sellerAgent']).default('identity'),
 });
 
@@ -1094,6 +1096,25 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   // BE that user, or anyone could move a victim's funds by naming their address.
   if (!isSessionSelf(c, userAddress)) {
     return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
+  }
+
+  // An agent wallet cannot be the source of an INBOUND bridge. Its SCA address
+  // is the same on every EVM chain, so it can hold USDC on the source chain, but
+  // its Circle wallet id is bound to Arc and signs nothing anywhere else. This
+  // used to be accepted: the bridge row was created, the burn had no wallet to
+  // come from, and the user was told their money had moved. Money that stays
+  // put must never be reported as money that went somewhere. The bridge OUT of
+  // Arc is the direction where an agent source is real, and that is a different
+  // route.
+  if (body.sourceKind !== 'identity') {
+    return c.json(
+      {
+        error: 'agent_wallet_cannot_be_bridge_source',
+        detail:
+          'An agent wallet only exists on Arc, so it cannot send money from another chain. Bring the money in through your own wallet, then fund the agent from it.',
+      },
+      400,
+    );
   }
 
   const user = getUserByAddress(userAddress);
@@ -1139,18 +1160,13 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     );
   }
   let agentWallets = ownerWallets;
-  const existingBridge = body.sourceKind === 'identity' ? agentWallets.bridgeWallets?.[circleChain] : undefined;
+  // The user's own deposit wallet on that chain. It is the only wallet this
+  // route can burn from, which is why the sourceKind check above leaves nothing
+  // else to resolve.
+  const existingBridge = agentWallets.bridgeWallets?.[circleChain];
   let bridgeWalletId: string;
   let bridgeWalletAddress: string;
-  if (body.sourceKind !== 'identity') {
-    try {
-      const source = resolveCircleBridgeSource(agentWallets, body.sourceKind as CircleBridgeSourceKind, circleChain, body.mintRecipient);
-      bridgeWalletId = source.walletId;
-      bridgeWalletAddress = source.address;
-    } catch (err) {
-      return c.json({ error: 'invalid agent bridge source', detail: (err as Error).message }, 400);
-    }
-  } else if (existingBridge) {
+  if (existingBridge) {
     bridgeWalletId = existingBridge.walletId;
     bridgeWalletAddress = existingBridge.address;
   } else {
