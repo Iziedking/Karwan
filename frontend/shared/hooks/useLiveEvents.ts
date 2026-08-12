@@ -1,13 +1,25 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, type ChainEvent } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
-// Identifying-party keys on the event payload. The client-side filter mirrors
-// the server-side filter in routes/activity.ts so live SSE events for a job
-// the caller is a party to also pass through, even if the event's payload
-// itself doesn't restate buyer/seller (e.g. follow-up escrow.* events).
-const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy'];
+/// Did the server hand this event over in full, or as a pulse?
+///
+/// The live stream is projected per session by `projectFor` in
+/// backend/src/routes/events.ts: full detail for what it proved the caller
+/// owns, and `{ type, actor, ts, payload: {} }` for everything else. A pulse
+/// carries no jobId and no payload, so detail present IS the server's answer
+/// and there is nothing for the browser to decide.
+///
+/// This replaced a client-side rescan of buyer/seller/postedBy payload keys.
+/// That scan was a second, narrower guess at a question the server had already
+/// answered, and it had no key at all for money that moves outside a deal (a
+/// bridge, a top up, a stake, a yield claim), so those were dropped here after
+/// the backend had granted them. They appeared on refresh, from the backfill,
+/// and never live.
+function hasServerDetail(event: ChainEvent): boolean {
+  return !!event.jobId || Object.keys(event.payload ?? {}).length > 0;
+}
 
 /// Event types that are plumbing, not history, and never belong on a timeline.
 ///
@@ -36,49 +48,20 @@ function isTimelineEvent(event: ChainEvent): boolean {
   return !HIDDEN_FROM_TIMELINE.has(event.type);
 }
 
-function isPartyMatch(event: ChainEvent, caller: string): boolean {
-  const payload = event.payload as Record<string, unknown> | undefined;
-  if (!payload) return false;
-  for (const k of PARTY_KEYS) {
-    const v = payload[k];
-    if (typeof v === 'string' && v.toLowerCase() === caller) return true;
-  }
-  return false;
-}
-
 export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) {
   const [events, setEvents] = useState<ChainEvent[]>([]);
-  // Track jobIds the caller is a party to (learned from backfill + live events),
-  // so follow-up events on those jobs pass the client-side filter.
-  const callerJobsRef = useRef<Set<string>>(new Set());
   const callerLower = caller?.toLowerCase();
 
   useEffect(() => {
-    callerJobsRef.current = new Set();
     api
       .activity(max, filterJobId, caller)
-      .then(({ events: raw }) => {
-        // Party tracking still learns from the plumbing rows before they are
-        // dropped: they carry jobIds the caller is genuinely a party to, and
-        // discarding them first would narrow the live filter below.
-        const events = raw.filter(isTimelineEvent);
-        if (callerLower) {
-          // The caller-scoped backfill is filtered server-side by the signed
-          // session and returns only the caller's own events, so every jobId in
-          // it is a job the caller is a party to. Payload matching alone would
-          // miss auction events, which carry agent addresses.
-          for (const e of raw) {
-            if (e.jobId) callerJobsRef.current.add(e.jobId.toLowerCase());
-          }
-        }
-        setEvents(events);
-      })
+      .then(({ events: raw }) => setEvents(raw.filter(isTimelineEvent)))
       .catch(() => {});
-  }, [filterJobId, max, caller, callerLower]);
+  }, [filterJobId, max, caller]);
 
   useEffect(() => {
     return subscribeLiveEvents((parsed) => {
-      // Dropped before the party checks below so a webhook can never be the row
+      // Dropped before the scope checks below so a webhook can never be the row
       // that lands on a timeline mid-session.
       if (!isTimelineEvent(parsed)) return;
       if (filterJobId) {
@@ -89,14 +72,11 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
         // carry agent addresses rather than the signed-in identity.
         if (parsed.jobId !== filterJobId) return;
       } else if (callerLower) {
-        const tracked = parsed.jobId
-          ? callerJobsRef.current.has(parsed.jobId.toLowerCase())
-          : false;
-        const party = isPartyMatch(parsed, callerLower);
-        if (!tracked && !party) return;
-        if (party && parsed.jobId) {
-          callerJobsRef.current.add(parsed.jobId.toLowerCase());
-        }
+        // Personal feed: keep what the server projected in full, drop the
+        // pulses it sent for everybody else's activity. Same trust as the
+        // per-job branch above, and the only test that covers a deal event and
+        // a bare money movement alike.
+        if (!hasServerDetail(parsed)) return;
       }
       setEvents((prev) => [parsed, ...prev].slice(0, max));
     });

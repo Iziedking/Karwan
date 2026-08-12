@@ -4,6 +4,7 @@ import { AppKit } from '@circle-fin/app-kit';
 import { sessionAddress } from '../auth/session.js';
 import { getUserByAddress } from '../db/users.js';
 import { appendActivity } from '../db/activityLog.js';
+import { bus } from '../events.js';
 import { depositToGateway, readUserGatewayBalance, sweepToUnifiedBalance } from '../gateway/balance.js';
 import { fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
@@ -215,6 +216,20 @@ gatewayRoutes.post('/deposit', async (c) => {
   try {
     const result = await depositToGateway(address, body.amountUsdc, source);
     cache.delete(address); // bust the read cache so the new balance shows on next poll
+    // Both axes, the way the yield route does it: the event drives the live
+    // balance toast and the personal feed, the entry is the permanent receipt.
+    // `address` is an OWNER_KEY, so the SSE projection delivers this to the
+    // depositor intact instead of as an empty pulse.
+    bus.emitEvent({
+      type: 'gateway.deposited',
+      actor: 'buyer',
+      payload: {
+        address,
+        amountUsdc: result.amountUsd.toString(),
+        source: String(result.source),
+        ...(result.depositTxHash ? { txHash: result.depositTxHash } : {}),
+      },
+    });
     void appendActivity({
       address,
       kind: 'gateway_deposit',
@@ -289,6 +304,16 @@ gatewayRoutes.post('/fund-agent', async (c) => {
   try {
     const result = await fundAgentFromGateway(address, body.agent, body.amountUsdc);
     cache.delete(address); // unified balance dropped; bust the read cache
+    bus.emitEvent({
+      type: 'gateway.agent.funded',
+      actor: 'buyer',
+      payload: {
+        address,
+        agent: String(result.agent),
+        amountUsdc: result.amountUsd.toString(),
+        ...(result.txHash ? { txHash: result.txHash } : {}),
+      },
+    });
     void appendActivity({
       address,
       kind: 'gateway_fund_agent',
@@ -337,6 +362,17 @@ gatewayRoutes.post('/cash-out', async (c) => {
   try {
     const result = await cashOutFromGateway(address, body.destChainKey, body.recipient, body.amountUsdc);
     cache.delete(address);
+    bus.emitEvent({
+      type: 'gateway.cashed.out',
+      actor: 'buyer',
+      payload: {
+        address,
+        amountUsdc: result.amountUsd.toString(),
+        chain: String(result.destChainKey),
+        recipient: result.recipientAddress.toLowerCase(),
+        ...(result.txHash ? { txHash: result.txHash } : {}),
+      },
+    });
     void appendActivity({
       address,
       kind: 'gateway_cash_out',

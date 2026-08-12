@@ -47,7 +47,11 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // Two subscriptions rather than relaxing the strip on one. The public feed
   // never gains a code path that could leak, and the browser is never the thing
   // deciding what somebody may see.
-  const myRawEvents = useLiveEvents(address, 200);
+  // `caller` is the THIRD argument. Passing the address positionally sent it as
+  // `filterJobId`, so the backfill asked for events whose jobId equalled a
+  // wallet address (never any) and the live branch dropped everything whose
+  // jobId did not equal one. ME had returned zero events since it shipped.
+  const myRawEvents = useLiveEvents(undefined, 200, address);
   const myEvents = useMemo(() => myRawEvents.filter(isOwnEvent), [myRawEvents]);
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the

@@ -21,7 +21,20 @@ export const eventsRoutes = new Hono();
 // text). So a raw-stream reader cannot harvest other people's deal detail. The
 // caller is the authenticated session (an HMAC-signed cookie), never a
 // spoofable query param.
-const PARTY_KEYS = ['buyer', 'seller', 'sellerUser', 'buyerUser', 'postedBy'] as const;
+/// `financier` is a party to the FINANCING events on a deal (po.*, factoring.*)
+/// without being a party to the deal itself, so the tracked-jobs pass never
+/// reaches them. routes/activity.ts has carried this key since the finance lane
+/// shipped and this list had not, so a financier watched their own advances and
+/// repayments arrive as empty pulses on the live stream while the very same
+/// events appeared in the backfill. The two lists have to move together.
+const PARTY_KEYS = [
+  'buyer',
+  'seller',
+  'sellerUser',
+  'buyerUser',
+  'postedBy',
+  'financier',
+] as const;
 
 /// Keys that name the SINGLE user an event belongs to, for money that moves
 /// outside any deal: wallet credits/debits (`owner`), agent funding and

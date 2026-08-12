@@ -111,6 +111,10 @@ const MONEY_DIRECT_OWNER_KEY: Record<string, 'address' | 'user'> = {
   'agent.funded': 'user',
   'agent.withdrawal': 'user',
   'yield.claimed': 'address',
+  // Unified-balance moves: deposits in, agent funding out, cash-outs off Arc.
+  'gateway.deposited': 'address',
+  'gateway.agent.funded': 'address',
+  'gateway.cashed.out': 'address',
   // Reputation tier-up routes to the subject address, same shape as vault.
   'reputation.tier-up': 'address',
 };

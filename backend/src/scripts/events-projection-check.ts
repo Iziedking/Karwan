@@ -43,6 +43,24 @@ const cases: Array<{ name: string; e: KarwanEvent; caller: string | null; bridge
   // Deal scoping must be untouched by the new branch.
   { name: 'my deal as buyer', e: ev('escrow.released', { buyer: ME, amountUsdc: '5' }), caller: ME, bridges: [], full: true },
   { name: "another user's deal", e: ev('escrow.released', { buyer: THEM, amountUsdc: '5' }), caller: ME, bridges: [], full: false },
+  // A financier is a party to the FINANCING events on a deal (po.*, factoring.*)
+  // without being a party to the deal itself, so the tracked-jobs pass never
+  // covers them. routes/activity.ts has keyed on `financier` since the finance
+  // lane shipped; this file had not, so a financier's own advances and
+  // repayments reached them as pulses on the live stream while the same events
+  // showed up in the backfill. The two key lists have to stay in step.
+  { name: 'my PO advance as financier', e: ev('po.advanced', { financier: ME, amountUsdc: '900' }), caller: ME, bridges: [], full: true },
+  { name: 'my factoring offer as financier', e: ev('factoring.offer.accepted', { financier: ME, amountUsdc: '400' }), caller: ME, bridges: [], full: true },
+  { name: 'my repayment as financier', e: ev('po.repaid', { financier: ME, amountUsdc: '950' }), caller: ME, bridges: [], full: true },
+  { name: "another financier's advance", e: ev('po.advanced', { financier: THEM, amountUsdc: '900' }), caller: ME, bridges: [], full: false },
+  { name: "another financier's factoring offer", e: ev('factoring.offer.accepted', { financier: THEM, amountUsdc: '400' }), caller: ME, bridges: [], full: false },
+  // Unified-balance moves. These emitted nothing at all until now, so they
+  // could not reach the personal feed however the projection behaved.
+  { name: 'my gateway deposit', e: ev('gateway.deposited', { address: ME, amountUsdc: '100' }), caller: ME, bridges: [], full: true },
+  { name: 'my gateway agent funding', e: ev('gateway.agent.funded', { address: ME, amountUsdc: '25' }), caller: ME, bridges: [], full: true },
+  { name: 'my gateway cash-out', e: ev('gateway.cashed.out', { address: ME, amountUsdc: '60' }), caller: ME, bridges: [], full: true },
+  { name: "another user's gateway deposit", e: ev('gateway.deposited', { address: THEM, amountUsdc: '100' }), caller: ME, bridges: [], full: false },
+  { name: "another user's gateway cash-out", e: ev('gateway.cashed.out', { address: THEM, amountUsdc: '60' }), caller: ME, bridges: [], full: false },
 ];
 
 let failed = 0;

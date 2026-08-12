@@ -125,6 +125,14 @@ export type KarwanEventType =
   /// projection recognises it as their own money.
   | 'yield.claimed'
   | 'cashout.arc.completed'
+  /// Unified-balance movements. Each carries `address` (the account whose money
+  /// moved) so the SSE projection reads it as their own and hands it over in
+  /// full. These three routes wrote a ledger entry and emitted nothing for as
+  /// long as they have existed, so a Gateway deposit or cash-out reached
+  /// neither the personal event feed nor the live balance toast.
+  | 'gateway.deposited'
+  | 'gateway.agent.funded'
+  | 'gateway.cashed.out'
   | 'wallet.credited'
   | 'wallet.debited'
   | 'circle.webhook'
