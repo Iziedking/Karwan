@@ -69,12 +69,17 @@ export interface ActivityEntry {
 /// Append one entry. Never throws: recording memory must never fail the money
 /// move that just succeeded, so errors are logged and swallowed. Call sites
 /// use `void appendActivity(...)`.
+///
+/// `id` is optional and normally left to us. Pass one derived from the thing
+/// being recorded when the writer can run twice over the same movement (a
+/// watcher that rescans a block window after a restart, say); the insert then
+/// no-ops on the second pass instead of showing the user their money twice.
 export async function appendActivity(
-  input: Omit<ActivityEntry, 'id' | 'ts'>,
+  input: Omit<ActivityEntry, 'id' | 'ts'> & { id?: string },
 ): Promise<void> {
   const entry: ActivityEntry = {
     ...input,
-    id: randomUUID(),
+    id: input.id ?? randomUUID(),
     address: input.address.toLowerCase(),
     ts: Date.now(),
   };
@@ -85,7 +90,7 @@ export async function appendActivity(
         address: entry.address,
         ts: entry.ts,
         data: entry,
-      });
+      }).onConflictDoNothing();
       return;
     }
     const store = loadFile();

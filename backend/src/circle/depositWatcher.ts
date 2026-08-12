@@ -268,6 +268,8 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
     'deposit credited from webhook',
   );
 
+  const originChain = friendlyChainName(n.blockchain);
+
   // `address` is what proves ownership to the SSE projection: events.ts
   // matches on owner/user/address and pulses everything else to {}. Without
   // it this event would reach the user's own feed stripped of its amount.
@@ -281,7 +283,7 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
       chain: n.blockchain,
       // The chain a person recognises. `chain` above is Circle's code
       // (BASE-SEPOLIA) and no interface should be printing that.
-      chainName: friendlyChainName(n.blockchain),
+      chainName: originChain,
       // Lets a client tie the hop's bridge events back to THIS deposit, so a
       // list of deposits can each carry their own progress instead of the newest
       // one overwriting the rest. Already client-visible via /api/bridge/list.
@@ -301,11 +303,21 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
   void appendActivity({
     address: owner,
     kind: 'deposit',
-    summary: `Deposited ${amountUsdc} USDC`,
+    summary: `Deposited ${amountUsdc} USDC from ${originChain}`,
     // Structured too, so the reader's locale decides the wording rather than
-    // this file's English. The summary stays as the fallback.
-    params: { t: 'depositCredited', amount: amountUsdc },
+    // this file's English. The summary stays as the fallback. The chain name is
+    // a proper noun and is not translated.
+    params: { t: 'depositCreditedFrom', amount: amountUsdc, chain: originChain },
     amountUsdc,
+    // The hop that carries this deposit to Arc, named the same way the router
+    // names it. /activity/me drops this row when that hop has a record of its
+    // own, because the bridge record says the same thing and also knows whether
+    // the money landed. Without the link the user saw one deposit as two rows,
+    // one bare and one with its origin. The row survives when there is no hop
+    // (below the auto-bridge floor, or a chain the backend cannot sign for),
+    // which is exactly when naming the chain matters most: the money is still
+    // sitting there.
+    refId: bridgeIdForDeposit(n.id),
     ...(n.txHash ? { txHash: n.txHash } : {}),
   });
 }

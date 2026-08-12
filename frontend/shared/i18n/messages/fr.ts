@@ -483,6 +483,7 @@ export const fr: Messages = {
         disputeReceived: '{amount} USDC recus d un litige resolu',
         cancelRefund: '{amount} USDC rembourses d une transaction annulee',
         depositCredited: '{amount} USDC deposes',
+        depositCreditedFrom: '{amount} USDC deposes depuis {chain}',
         gatewayDeposit: '{amount} USDC transférés de votre portefeuille {source} vers votre solde',
         gatewayFundAgent: 'Agent {agent} approvisionne de {amount} USDC',
         gatewayCashOut: '{amount} USDC retires vers {to} sur {chain}',

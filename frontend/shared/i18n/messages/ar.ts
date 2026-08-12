@@ -483,6 +483,7 @@ export const ar: Messages = {
         disputeReceived: 'تم استلام {amount} USDC من نزاع تمت تسويته',
         cancelRefund: 'تم رد {amount} USDC من صفقة ملغاة',
         depositCredited: 'تم إيداع {amount} USDC',
+        depositCreditedFrom: 'تم إيداع {amount} USDC من {chain}',
         gatewayDeposit: 'تم نقل {amount} USDC من محفظة {source} إلى رصيدك',
         gatewayFundAgent: 'تم تمويل الوكيل {agent} بمبلغ {amount} USDC',
         gatewayCashOut: 'تم سحب {amount} USDC إلى {to} على {chain}',

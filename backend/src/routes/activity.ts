@@ -232,6 +232,32 @@ activityRoutes.get('/finance-jobids', async (c) => {
   return c.json({ jobIds: [...ids] });
 });
 
+/// One deposit, one row.
+///
+/// A deposit from another chain leaves two marks. The deposit watcher logs the
+/// credit the moment Circle reports it, and the hop that carries the money on to
+/// Arc keeps a bridge record of its own. Both describe the same movement of the
+/// same money, and a user reading their history saw it as two arrivals: one
+/// bare, one naming the chain it came from, and no way to tell they were one
+/// thing. Which of the two is dropped is not arbitrary. The bridge record is the
+/// only one that knows whether the money actually landed, so it is the one kept.
+///
+/// A deposit made straight onto Arc has no hop and so no bridge record. Its
+/// ledger row survives and reads without an origin chain, which is right: Arc is
+/// where the money already was.
+///
+/// Rows written before deposits carried `refId` have nothing to match on and
+/// still appear twice. Nothing can be inferred for them after the fact, and
+/// rewriting history to tidy a display is worse than the duplicate.
+export function dropRoutedDeposits<T extends { kind: string; refId?: string }>(
+  entries: readonly T[],
+  bridgeIds: ReadonlySet<string>,
+): T[] {
+  return entries.filter(
+    (e) => !(e.kind === 'deposit' && e.refId && bridgeIds.has(e.refId)),
+  );
+}
+
 /// THE USER'S OWN MONEY LEDGER. Every USDC movement on this account, newest
 /// first, in one list.
 ///
@@ -278,8 +304,10 @@ activityRoutes.get('/me', async (c) => {
     logger.warn({ address, err: (err as Error).message }, 'activity/me: bridge read failed');
   }
 
+  const ledger = dropRoutedDeposits(entries, new Set(bridges.map((b) => b.bridgeId)));
+
   const items: PersonalActivityItem[] = [
-    ...entries.map((e) => ({
+    ...ledger.map((e) => ({
       id: e.id,
       ts: e.ts,
       kind: e.kind as string,

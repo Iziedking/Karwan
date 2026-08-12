@@ -2,6 +2,8 @@ import { parseAbiItem, formatUnits, type Hex } from 'viem';
 import { publicClient } from './client.js';
 import { usdc as USDC_ADDR } from './contracts.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
+import { appendActivity } from '../db/activityLog.js';
+import { config } from '../config.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
@@ -29,6 +31,40 @@ const REGISTRY_REFRESH_MS = 60_000;
 // USDC moves below this threshold are skipped to keep notifications useful
 // during agent fee-collection traffic.
 const MIN_NOTIFY_USDC = 0.005;
+
+/// Addresses the platform itself pays out of. USDC arriving from one of these
+/// is a release, a refund, a returned stake, a yield claim or a bridge mint, and
+/// each of those is already written to the ledger by the route that performed
+/// it. Recording them here as well would show the user the same money twice.
+///
+/// The zero address covers the bridge: a CCTP arrival on Arc is a mint, and the
+/// hop that produced it already has a record with a status attached. If a mint
+/// on Arc ever shows a `from` that is not the zero address, that address belongs
+/// in this list, or every cross-chain deposit will be recorded twice.
+const PLATFORM_SENDERS: ReadonlySet<string> = new Set(
+  [
+    '0x0000000000000000000000000000000000000000',
+    config.CCTP_MESSAGE_TRANSMITTER_ADDR,
+    config.KARWAN_ESCROW_ADDR,
+    config.KARWAN_ESCROW_LEGACY_ADDR,
+    config.KARWAN_ESCROW_LEGACY_ADDR_2,
+    config.KARWAN_ESCROW_LEGACY_ADDR_3,
+    config.KARWAN_VAULT_ADDR,
+    config.KARWAN_VAULT_LEGACY_ADDR,
+    config.KARWAN_VAULT_LEGACY_ADDR_2,
+    config.KARWAN_VAULT_LEGACY_ADDR_3,
+    config.KARWAN_JOBBOARD_ADDR,
+    config.KARWAN_PO_FINANCING_ADDR,
+    config.KARWAN_INVOICE_REGISTRY_ADDR,
+    config.KARWAN_TREASURY_ADDR,
+    config.KARWAN_TREASURY_CONTRACT_ADDR,
+    config.KARWAN_TREASURY_USYC_ADDR,
+    config.KARWAN_TREASURY_V3_ADDR,
+    config.KARWAN_YIELD_DISTRIBUTOR_ADDR,
+  ]
+    .filter((a): a is string => !!a)
+    .map((a) => a.toLowerCase()),
+);
 
 type WalletRole = 'identity' | 'buyerAgent' | 'sellerAgent';
 
@@ -160,7 +196,11 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
     // the outside).
     if (recipient && sender && recipient.owner === sender.owner) continue;
 
-    const amountUsdc = Number(formatUnits(value, USDC_DECIMALS));
+    // Exact, as the token reports it. `amountUsdc` below is a Number for the
+    // threshold comparison and the notification; anything written to the ledger
+    // uses this string, so a deposit is never shown back to its owner rounded.
+    const amountExact = formatUnits(value, USDC_DECIMALS);
+    const amountUsdc = Number(amountExact);
     if (!Number.isFinite(amountUsdc) || amountUsdc < MIN_NOTIFY_USDC) continue;
 
     const txHash = log.transactionHash ?? '0x';
@@ -182,6 +222,36 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
           txHash,
         },
       });
+
+      // Money landing on Arc from outside the platform is a deposit, and until
+      // now it was announced once and then forgotten. The transaction history
+      // is written by the routes that move money, and nothing routes a faucet
+      // drip or a transfer someone sends themselves from an exchange, so a
+      // deposit made straight onto Arc left no trace in it at all.
+      //
+      // Three conditions keep this from double-counting. Only the identity
+      // wallet, because an agent wallet is funded from the identity wallet and
+      // that top-up writes its own row. Only when the sender is not one of our
+      // wallets, which excludes every internal transfer. And only when the
+      // sender is not a platform contract, which excludes releases, refunds,
+      // stake returns and bridge mints.
+      //
+      // The id is derived from the transfer, not random: the watcher rescans
+      // the last 600 blocks on every restart, and a random id would append the
+      // same deposit again on each one.
+      if (recipient.role === 'identity' && !sender && !PLATFORM_SENDERS.has(from)) {
+        void appendActivity({
+          id: `arc-credit:${dedupeKey}`,
+          address: recipient.owner,
+          kind: 'deposit',
+          // No origin chain, deliberately. This arrived on Arc, which is where
+          // it was already going.
+          summary: `Deposited ${amountExact} USDC`,
+          params: { t: 'depositCredited', amount: amountExact },
+          amountUsdc: amountExact,
+          txHash,
+        });
+      }
       continue;
     }
 

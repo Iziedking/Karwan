@@ -483,6 +483,7 @@ export const hi: Messages = {
         disputeReceived: 'सुलझे विवाद से {amount} USDC मिले',
         cancelRefund: 'रद्द डील से {amount} USDC वापस किए गए',
         depositCredited: '{amount} USDC जमा किए गए',
+        depositCreditedFrom: '{chain} से {amount} USDC जमा किए गए',
         gatewayDeposit: 'आपके {source} वॉलेट से {amount} USDC आपके बैलेंस में ले जाया गया',
         gatewayFundAgent: '{agent} एजेंट को {amount} USDC दिए गए',
         gatewayCashOut: '{chain} पर {to} को {amount} USDC निकाले गए',

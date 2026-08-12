@@ -141,7 +141,15 @@ test('writes one activity row the reader can render in their own language', asyn
   assert.equal(row.amountUsdc, '25.5');
   // The template name is what lets a non-English reader see this row in their
   // language; the English summary is only the fallback for rows without one.
-  assert.equal((row.params as Record<string, string> | undefined)?.t, 'depositCredited');
+  const params = row.params as Record<string, string> | undefined;
+  assert.equal(params?.t, 'depositCreditedFrom');
+  // The chain the money came from. A deposit that says only "Deposited 25.5
+  // USDC" reads as a second, separate deposit next to the hop that carries it
+  // to Arc, which is how one deposit came to look like two.
+  assert.equal(params?.chain, 'Base');
+  // Names the hop, so /activity/me can tell that this row and that bridge are
+  // the same movement and show only the richer of the two.
+  assert.equal(row.refId, 'deposit-tx-1');
 });
 
 test('the same transaction redelivered does not credit twice', async () => {
