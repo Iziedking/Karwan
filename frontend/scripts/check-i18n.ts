@@ -214,6 +214,27 @@ for (const h of rtlHits) {
   console.log(`      ${h.file}:${h.line}  ${h.cls} -> ${LOGICAL_HINT[h.cls] ?? 'logical equivalent'}`);
 }
 
+// --- GATE: useTranslations needs a client boundary ---
+//
+// `useTranslations` is a hook, so a component calling it is a client component
+// whether or not it says so. Omitting the directive is invisible for as long as
+// only client components import it — it inherits their boundary — and then a
+// server component imports it one day and the build dies while PRERENDERING,
+// not while compiling. That is exactly how /financier broke: it compiled clean,
+// typechecked clean, and failed on `Generating static pages`.
+//
+// Cheap to state, and it turns a deploy-time failure into a one-line check.
+const clientless: string[] = [];
+for (const file of walk('app').concat(walk('features'), walk('shared'))) {
+  if (!file.endsWith('.tsx')) continue;
+  const src = readFileSync(file, 'utf8');
+  if (!src.includes('useTranslations')) continue;
+  if (/^\s*(['"])use client\1/.test(src)) continue;
+  clientless.push(file);
+}
+console.log(`\n[:CLIENT BOUNDARY:] ${clientless.length} component${clientless.length === 1 ? '' : 's'} call useTranslations without 'use client'`);
+for (const f of clientless) console.log(`      ${f}`);
+
 // --- GATE: French text that lost its diacritics ---
 //
 // Not a translation-quality check. A shell heredoc once mangled escapes while
@@ -246,13 +267,14 @@ frLines.forEach((line, i) => {
 console.log(`\n[:FRENCH TEXT:] ${frHits.length} string${frHits.length === 1 ? '' : 's'} missing accents or apostrophes`);
 for (const h of frHits) console.log(`      fr.ts:${h.line}  ${h.text}`);
 
-if (parityBroken || templatesBroken || rtlHits.length || frHits.length) {
+if (parityBroken || templatesBroken || rtlHits.length || frHits.length || clientless.length) {
   console.log(
     parityBroken ? '\nPARITY BROKEN'
     : templatesBroken ? '\nLEDGER TEMPLATE MISSING'
     : rtlHits.length ? '\nRTL LAYOUT BROKEN'
+    : clientless.length ? '\nCLIENT BOUNDARY MISSING'
     : '\nFRENCH TEXT BROKEN',
   );
   process.exit(1);
 }
-console.log('\nparity ok, ledger templates ok, rtl ok, french ok');
+console.log('\nparity ok, ledger templates ok, rtl ok, client boundaries ok, french ok');

@@ -1,3 +1,4 @@
+'use client';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export type StepKey =

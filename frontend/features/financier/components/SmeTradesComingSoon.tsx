@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Band, SectionTag, HeroHeadline, Punc, CTAPill } from '@/shared/components/Bands';
