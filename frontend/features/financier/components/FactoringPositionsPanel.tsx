@@ -69,7 +69,7 @@ export function FactoringPositionsPanel() {
                   </span>
                   <p className="mt-2 text-[12px] text-[var(--lp-text-sub)]">{status.detail}</p>
                 </div>
-                <p className="shrink-0 text-right text-[18px] font-semibold tabular-nums text-[var(--lp-dark)]">
+                <p className="shrink-0 text-end text-[18px] font-semibold tabular-nums text-[var(--lp-dark)]">
                   {offer.offeredAdvanceUsdc} USDC
                 </p>
               </div>

@@ -467,7 +467,7 @@ function ViewRow({
       </dt>
       <dd
         className={cn(
-          'text-[13.5px] text-[var(--lp-dark)] text-right',
+          'text-[13.5px] text-[var(--lp-dark)] text-end',
           capitalize && 'capitalize',
         )}
       >

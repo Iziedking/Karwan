@@ -254,7 +254,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
   return (
     <th
       className={`mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)] pb-2.5 ${
-        right ? 'text-right' : 'text-left'
+        right ? 'text-end' : 'text-start'
       }`}
     >
       {children}
@@ -265,7 +265,7 @@ function Th({ children, right }: { children: React.ReactNode; right?: boolean })
 function ContractRow({ c, explorer }: { c: LifetimeContract; explorer: string }) {
   return (
     <tr className="border-b border-[var(--lp-border-light)] last:border-0">
-      <td className="py-2.5 pr-4">
+      <td className="py-2.5 pe-4">
         <a
           href={`${explorer}/address/${c.address}`}
           target="_blank"
@@ -274,14 +274,14 @@ function ContractRow({ c, explorer }: { c: LifetimeContract; explorer: string })
         >
           {c.address.slice(0, 10)}…{c.address.slice(-6)}
         </a>
-        <span className="ml-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <span className="ms-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {c.name.replace('Karwan', '')}
         </span>
       </td>
-      <td className="py-2.5 pr-4 text-right tabular-nums text-[13px] text-[var(--lp-ink)]">
+      <td className="py-2.5 pe-4 text-end tabular-nums text-[13px] text-[var(--lp-ink)]">
         {count(c.deals)}
       </td>
-      <td className="py-2.5 text-right tabular-nums text-[13px] font-bold text-[var(--lp-ink)]">
+      <td className="py-2.5 text-end tabular-nums text-[13px] font-bold text-[var(--lp-ink)]">
         {usdc(c.fundedUsdc)}
       </td>
     </tr>

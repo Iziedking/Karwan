@@ -231,7 +231,7 @@ function MoneyTile({ open, onToggle }: { open: boolean; onToggle: () => void }) 
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-[var(--lp-wash)] transition"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-start hover:bg-[var(--lp-wash)] transition"
       >
         <span className="min-w-0">
           <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">

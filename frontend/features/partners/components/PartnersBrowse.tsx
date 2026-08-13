@@ -258,7 +258,7 @@ function CapRow({ label, value }: { label: string; value: string }) {
       <dt className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] shrink-0">
         {label}
       </dt>
-      <dd className="text-[13px] text-[var(--lp-dark)] text-right">{value}</dd>
+      <dd className="text-[13px] text-[var(--lp-dark)] text-end">{value}</dd>
     </div>
   );
 }

@@ -35,7 +35,7 @@ function Body({ text }: { text: string }) {
         if (block.trim().startsWith('- ')) {
           const items = block.split('\n').filter((l) => l.trim().startsWith('- '));
           return (
-            <ul key={i} className="mt-4 space-y-2 list-disc pl-5">
+            <ul key={i} className="mt-4 space-y-2 list-disc ps-5">
               {items.map((item, j) => (
                 <li key={j} className="text-[15px] leading-[1.7] text-[var(--ink)]/80">
                   <Inline text={item.replace(/^\s*-\s*/, '')} />

@@ -670,7 +670,7 @@ function PassportRow({
         {label}
       </dt>
       <dd
-        className={`text-[13px] text-right ${capitalize ? 'capitalize' : ''}`}
+        className={`text-[13px] text-end ${capitalize ? 'capitalize' : ''}`}
         style={{ color: 'var(--color-ink)' }}
       >
         {value}

@@ -179,8 +179,80 @@ try {
 [:LEDGER TEMPLATES:] skipped (${(err as Error).message})`);
 }
 
-if (parityBroken || templatesBroken) {
-  console.log(parityBroken ? '\nPARITY BROKEN' : '\nLEDGER TEMPLATE MISSING');
+// --- GATE: RTL-safe layout ---
+//
+// Arabic flips the whole page via `document.documentElement.dir`, and almost all
+// of this app flips with it for free because the layout is flex, grid and gap.
+// The exceptions are physical directional utilities: `ml-2` is "left" in every
+// language, so it stays pinned to the wrong side in Arabic while everything
+// around it moves. Logical utilities (`ms-`, `pe-`, `border-s-`, `text-end`)
+// mean "start" and "end" and follow the direction.
+//
+// Cheap to enforce, and it is the only RTL defect that is detectable without
+// rendering the page. `admin` is out of scope for i18n and so out of scope here.
+const PHYSICAL_RE =
+  /(?:^|["'\s])(?:ml|mr|pl|pr|border-l|border-r|rounded-l|rounded-r)-[0-9a-z[]|(?:^|["'\s])text-(?:left|right)\b/;
+const LOGICAL_HINT: Record<string, string> = {
+  ml: 'ms', mr: 'me', pl: 'ps', pr: 'pe',
+  'border-l': 'border-s', 'border-r': 'border-e',
+  'rounded-l': 'rounded-s', 'rounded-r': 'rounded-e',
+  'text-left': 'text-start', 'text-right': 'text-end',
+};
+const rtlHits: Array<{ file: string; line: number; cls: string }> = [];
+for (const file of walk('app').concat(walk('features'), walk('shared'))) {
+  if (!file.endsWith('.tsx')) continue;
+  readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+    if (!PHYSICAL_RE.test(line)) return;
+    const cls = Object.keys(LOGICAL_HINT).find((k) =>
+      new RegExp(`(?:^|["'\\s])${k}-[0-9a-z[]|(?:^|["'\\s])${k}\\b`).test(line),
+    );
+    rtlHits.push({ file, line: i + 1, cls: cls ?? '?' });
+  });
+}
+console.log(`\n[:RTL LAYOUT:] ${rtlHits.length} physical directional class${rtlHits.length === 1 ? '' : 'es'} outside admin`);
+for (const h of rtlHits) {
+  console.log(`      ${h.file}:${h.line}  ${h.cls} -> ${LOGICAL_HINT[h.cls] ?? 'logical equivalent'}`);
+}
+
+// --- GATE: French text that lost its diacritics ---
+//
+// Not a translation-quality check. A shell heredoc once mangled escapes while
+// these strings were being written, and the fix at the time was to strip the
+// characters that broke it: accents and elided apostrophes both went. The
+// result reads as broken French to anyone who speaks it, and it is invisible to
+// the type system because the string is still a string.
+//
+// Only forms that are ALWAYS accented in French are listed, so `Annuler`,
+// `Remboursement` and masculine `premier` do not trip it.
+const FR_STRIPPED =
+  /\b(premiere|premieres|regle|reglee|libere|liberation|recuperes?|recus|resolu|annulee|livree|deposes|rembourses|payes|eclaireur|reclames|deployes|retires|deplaces|dote|approvisionne|debut|bientot|reessay|activite|securite|priorite|numero|echeance|deja|apres)\b/i;
+const frLines = readFileSync(join('shared', 'i18n', 'messages', 'fr.ts'), 'utf8').split('\n');
+const frHits: Array<{ line: number; text: string }> = [];
+frLines.forEach((line, i) => {
+  const m = line.match(/: *(['"])((?:(?!\1).){4,})\1/);
+  if (!m) return;
+  const s = m[2]!;
+  // An elided apostrophe rendered as a space: `l agent`, `n a pas`, `d un`.
+  //
+  // Anchored on whitespace rather than \b on purpose. JavaScript's \w is ASCII
+  // only, so every accented letter creates a word boundary beside it and `\bs `
+  // matches the tail of `réglés ou` — which flagged two dozen perfectly good
+  // strings the first time this ran.
+  const bareElision = /(?:^|[\s(“"])(?:d|l|n|s|j|c|qu) [aeiouyàâéèêëîïôûùh]/.test(s);
+  if (/[éèêëàâîïôûùçÉÈÊÀÂÎÔÛÙÇ]/.test(s) && !bareElision) return;
+  if (!FR_STRIPPED.test(s) && !bareElision) return;
+  frHits.push({ line: i + 1, text: s.slice(0, 78) });
+});
+console.log(`\n[:FRENCH TEXT:] ${frHits.length} string${frHits.length === 1 ? '' : 's'} missing accents or apostrophes`);
+for (const h of frHits) console.log(`      fr.ts:${h.line}  ${h.text}`);
+
+if (parityBroken || templatesBroken || rtlHits.length || frHits.length) {
+  console.log(
+    parityBroken ? '\nPARITY BROKEN'
+    : templatesBroken ? '\nLEDGER TEMPLATE MISSING'
+    : rtlHits.length ? '\nRTL LAYOUT BROKEN'
+    : '\nFRENCH TEXT BROKEN',
+  );
   process.exit(1);
 }
-console.log('\nparity ok, ledger templates ok');
+console.log('\nparity ok, ledger templates ok, rtl ok, french ok');
