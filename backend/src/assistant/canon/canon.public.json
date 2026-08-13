@@ -1,0 +1,637 @@
+{
+  "canonVersion": "0.1.0",
+  "canonUpdated": "2026-08-05",
+  "docs": [
+    {
+      "id": "brand-colour",
+      "title": "Colour",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "brand",
+        "tokens"
+      ],
+      "path": "public/brand/colour.md",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "These are the values the product actually ships, read from the live stylesheet.\n\n```\naccent          #AFC95B    muted lime\naccent hover    #9DB84B\nink / dark      #0E0E0E    primary ink and dark surface\ntext muted      #9A9A9A\ntext sub        #6B6B6B\nhairline        rgba(0, 0, 0, 0.08)\n```\n\nThe accent is a muted lime, not an electric one. It was softened deliberately so\ngreen fills stop glaring and dark text stays legible on top of them. An earlier\ninternal design note still carries the brighter `#D8FF3D`; the shipped value is\n`#AFC95B` and that is the one to use. Where a document and the stylesheet\ndisagree, the stylesheet is what people actually see.\n\nUse the accent for one thing per screen. A page with three lime elements has no\nprimary action, it has three competing ones."
+    },
+    {
+      "id": "brand-logo",
+      "title": "Logo usage",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "brand"
+      ],
+      "path": "public/brand/logo-usage.md",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Two assets: a wordmark and a mark, each in a light and a dark variant, shipped as\nboth SVG and PNG. Prefer the SVG anywhere it will render.\n\nPick the variant by the surface behind it, not by taste. The dark wordmark goes\non light surfaces, the light wordmark on dark. Never place either on the accent.\n\nDo not recolour, rotate, outline, add a gradient, or set it against a busy\nphotograph. Give it clear space on all sides equal to the height of the mark.\n\nCommunity use is welcome under these rules. What is not welcome is any use that\nimplies Karwan endorses a product, or any placement that could read as Karwan\nhaving issued a statement it did not."
+    },
+    {
+      "id": "brand-principles",
+      "title": "Brand principles",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "brand"
+      ],
+      "path": "public/brand/principles.md",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Six rules, in order of how often they get broken.\n\n**Editorial, not dashboard-y.** Karwan is a working desk, but the register is\ncloser to a financial-times editorial layout than a SaaS admin panel. Generous\nwhitespace, monumental headings, monospaced metadata.\n\n**Two-tier hierarchy.** Display for intent, in caps with tight tracking. Mono for\nsystem metadata, uppercase and bracketed. Body text stays quiet.\n\n**One accent, used sparingly.** Lime is reserved for the primary call to action,\na LIVE status, positive value movement, and one focal indicator per screen. Never\ndecorate with it.\n\n**Motion is identity.** Every transition has intent. Nothing snaps.\n\n**No default component-library feel.** If a component looks like an unmodified\ndefault, rounded cards and generic muted descriptions, it is wrong. Re-skin every\nprimitive.\n\n**Domain semantics over generic labels.** Not \"Item 1\". `[:MILESTONE 01]`,\n`[:ESCROW]`, `[:SETTLE]`, `[:DISPUTE]`. Trade vocabulary is part of the design."
+    },
+    {
+      "id": "brand-typography",
+      "title": "Typography",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "brand",
+        "tokens"
+      ],
+      "path": "public/brand/typography.md",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Three faces, each with one job.\n\n**Display.** A neo-grotesque, weight 700, tracking `-0.02em`, line height `0.95`,\nuppercase. Used for intent: page titles and section headings.\n\n**Mono.** Uppercase, letterspaced, bracketed. Used for system metadata and\nstatus, never for prose. This is what makes a Karwan surface read as an\ninstrument rather than a marketing page.\n\n**Serif.** Reserved for the instrument-readout register on deal surfaces.\n\nNumbers are always tabular. Any digit cluster that can change, a balance, an\namount, a countdown, sets `font-variant-numeric: tabular-nums` so it does not\njitter as it updates.\n\nFonts are self-hosted. Do not add a CDN font link."
+    },
+    {
+      "id": "credit-passport",
+      "title": "The credit passport",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "reputation"
+      ],
+      "path": "public/product/credit-passport.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/reputation",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "A public page per business, built from settled deals, repayment behaviour and\ncounterparty concentration. It follows the wallet, not the platform.\n\nStanding has to be earned in completed work. Stake, tenure and activity all raise\nthe score on their own, which is deliberate, but they cannot carry a tier without\nsettled deals behind it. Concentration caps the tier when most of those deals are\nwith a single counterparty, so trading in a circle cannot manufacture a record.\n\nBoth matter because the tier is not cosmetic. It decides financing eligibility\nand how much collateral a supplier posts against an advance, and a ladder that is\ncheap to climb makes the financing gate cheap to fake.\n\nIt is also a paid endpoint. Any lender can pay a fraction of a cent over x402 and\nread a verifiable settled-deal record without asking Karwan for permission."
+    },
+    {
+      "id": "delivery-proof",
+      "title": "What counts as delivery",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "delivery",
+        "goods"
+      ],
+      "path": "public/product/delivery-proof.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Delivery has to be against something the buyer can check.\n\nA service delivers a link, and the host has to resolve in DNS before the delivery\nis accepted. Carrying an https scheme proved nothing on its own: an invented\ndomain satisfied every earlier check.\n\nPhysical goods deliver a carrier and a tracking reference that opens a page the\nbuyer can read. The buyer then confirms arrival as a separate act from releasing\nthe money, because arrival is a fact about the shipment and release is a decision\nabout the money.\n\nKarwan does not verify the shipment with the carrier. What it requires is that\nthe claim is specific and on the record rather than absent."
+    },
+    {
+      "id": "deposit-and-withdraw",
+      "title": "Deposit and withdraw",
+      "status": "live",
+      "updated": "2026-08-05",
+      "tags": [
+        "money",
+        "deposit"
+      ],
+      "path": "public/product/deposit-and-withdraw.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/bridge",
+          "date": "2026-08-05"
+        }
+      ],
+      "body": "Money moves in and out of Arc on one screen. What that screen asks for depends on\nwho holds the funds, and the difference is the point rather than an inconsistency.\n\nAn account that signs in with email or a passkey gets one address. Copy it, send\nUSDC from Ethereum, Base, Arbitrum or Polygon, and the balance updates itself.\nThere is no chain to choose, no amount to declare and no wallet to connect,\nbecause Circle derives every deposit wallet from that user's identity anchor, so\nthe same address serves all four. Solana has its own address on the same screen: a\ndifferent signature curve cannot share one.\n\nAn account that connects its own wallet keeps the explicit flow. It holds the\nfunds, so it picks the chain the USDC is on and signs the transfer.\n\nWithdrawals reach Ethereum, Base, Arbitrum, Optimism, Polygon and Solana, and\nnever require that chain's gas token to receive.\n\nThe word for this is Deposit and Withdraw. Not top up, not add money, not cash\nout, and never the name of the transfer protocol underneath: which rail carries a\nmove is not something a person sending money needs to hold in their head."
+    },
+    {
+      "id": "faq-money-safe",
+      "title": "What stops the other side taking my money",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "faq"
+      ],
+      "path": "public/faq/is-my-money-safe.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "The money sits in an escrow contract, not with Karwan and not with your\ncounterparty. A buyer funds it before work starts, so a supplier can see the\nmoney exists before shipping. A supplier cannot take it early, and a buyer cannot\nwithdraw it once the deal is accepted.\n\nThe final tranche always needs an explicit buyer click. Nothing settles the last\nportion on a timer.\n\nIf the two sides disagree, either can raise a dispute, which freezes the escrow.\nA dispute is resolved by an arbiter that splits the unreleased funds by\nproportion rather than picking a winner, and that arbiter is a 2-of-3 Safe, so no\nsingle person can move a disputed deal."
+    },
+    {
+      "id": "glossary-core",
+      "title": "Core terms",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "glossary"
+      ],
+      "path": "public/glossary/terms.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "**Escrow.** A contract that holds the buyer's money while the work happens. It\nreleases against delivery, in milestones, and nobody can pull funds out of turn.\n\n**Milestone.** One slice of a deal. A deal splits into two to five. The last one\nalways needs the buyer to click.\n\n**Credit passport.** A public page built from a business's settled deals and\nrepayment behaviour. It belongs to the wallet, so it moves with the business\nrather than living on the platform.\n\n**Factoring.** Selling an invoice for less than face to be paid now instead of on\nsettlement. The discount is the cost of the wait.\n\n**Purchase-order financing.** Working capital advanced before delivery, against a\npurchase order whose escrow is already funded.\n\n**Receivable assignment.** Recording, on the escrow, that a financier is paid\nahead of the supplier at settlement. It is what makes financing non-recourse: the\nfinancier is repaid by the contract rather than by chasing the supplier.\n\n**x402.** A payment standard for machine-to-machine calls, used here so an agent\ncan pay a fraction of a cent for a single piece of data.\n\n**USYC.** A tokenised T-bill fund. Idle balance is parked in it so capital earns\nwhile it waits."
+    },
+    {
+      "id": "invoice-factoring",
+      "title": "Invoice factoring",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "financing"
+      ],
+      "path": "public/product/invoice-factoring.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/financier",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "The supplier asks to be paid early, naming a floor if they want one. Financiers\nthen bid a discount against the supplier's reputation tier, and the supplier\naccepts one or ignores them all.\n\nNothing reaches a financier until that request exists. An invoice is never listed\nfor funding on the strength of the supplier having opened a deal, because that\nwould publish their counterparty, amount and timing to every approved financier\nwithout anybody asking to be funded.\n\nOffers are priced against what the escrow can still pay, not the invoice face.\nFace includes the platform fee and every tranche already released, and the\nfinancier is only ever repaid out of what is left. On settlement the escrow pays\nthe financier ahead of the supplier, so repayment is not something anyone chases."
+    },
+    {
+      "id": "milestone-escrow",
+      "title": "Milestone escrow",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "escrow",
+        "settlement"
+      ],
+      "path": "public/product/milestone-escrow.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "A deal splits into two to five milestones. The supplier marks a milestone\ndelivered, the buyer reviews and releases that portion.\n\nThe final milestone always needs an explicit buyer click and never releases on a\ntimer. That is the buyer protection the rest of the product rests on, and it is\nenforced in the contract rather than in the interface.\n\nA missed deadline lets the buyer reclaim, and the miss lands on the supplier's\nrecord. A cancel or extension both sides agree to carries no penalty and refunds\nin full. The platform fee is 1.5 percent of the deal, split evenly between the\ntwo sides."
+    },
+    {
+      "id": "po-financing",
+      "title": "Purchase-order financing",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "financing"
+      ],
+      "path": "public/product/po-financing.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/financier",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Working capital advanced against an accepted purchase order whose escrow the\nbuyer has already funded.\n\nThe advance goes straight to the supplier, in the same transaction that redirects\nthat deal's settlement to the financier. That atomicity is the whole design.\nThere is no state in which the redirect is live and the supplier has not been\npaid, so nothing can strand the advance, and the supplier can spend the capital\nimmediately. An advance they cannot touch until after they deliver is not working\ncapital.\n\nOn settlement the escrow pays the financier ahead of the supplier. If the deal\nsettles short, the shortfall alone is recovered from the supplier's staked\ncollateral, and the rest of the bond returns to them."
+    },
+    {
+      "id": "proof-network",
+      "title": "Network and contracts",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "proof"
+      ],
+      "path": "public/proof/network.md",
+      "sources": [
+        {
+          "url": "https://testnet.arcscan.app",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.\n\nEvery contract in the live bundle is verified on the explorer. The escrow's\narbiter is a 2-of-3 Safe, so a disputed escrow cannot be resolved by one key.\n\nContract addresses are published and readable by anyone. Treat the explorer as\nthe source of truth on any disagreement with a document: the chain is the record,\nand a page describing it is a copy."
+    },
+    {
+      "id": "release-timing",
+      "title": "Review windows and release timing",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "escrow",
+        "timing"
+      ],
+      "path": "public/product/release-timing.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "The review window is not one fixed number.\n\nIt grows with the size of the deal and shrinks as two parties build a settled\nhistory together. On a goods deal it cannot expire while the shipment is still in\ntransit, and agreed Net terms hold it open for the full term. Marking goods\ndelivered means dispatched, not arrived.\n\nThe same window governs the unattended release and the seller's own claim. When\nthose two disagreed, the protection was one button wide: a Net 30 deal held off\nthe automatic release for thirty days while the seller could force the payout on\nday one.\n\nNothing in the window keys off quality. The contract cannot observe whether the\nwork was any good, and a timer that pretended to would be a slower way of\nguessing."
+    },
+    {
+      "id": "what-karwan-is",
+      "title": "What Karwan is",
+      "status": "live",
+      "updated": "2026-07-27",
+      "tags": [
+        "overview"
+      ],
+      "path": "public/product/what-karwan-is.md",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "body": "Karwan is a settlement and credit layer for cross-border SME trade. Money sits in\nmilestone escrow and releases against delivery. Every settled deal writes to a\ncredit record that belongs to the business and travels with it, so a supplier\nfinishes their first shipment with cash in hand and a credit file a financier can\nread.\n\nIt runs on Arc, where USDC is the gas token, so a business never buys a second\nasset to move its own money.\n\nThe escrow underneath does not care who is trading. It is the same whether a\nsupplier in Karachi ships cotton to a wholesaler in Dubai or a designer in Lagos\nsells a logo to a buyer in Berlin. Two parties agree, the money waits, the work\nlands, the money moves. What changes is the surface on top: SME Trades carries\ninvoice factoring, purchase-order financing and the credit passport, while P2P\nTrades is the same escrow without the trade-finance machinery."
+    }
+  ],
+  "facts": [
+    {
+      "id": "brand-colour",
+      "title": "Colour",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "brand",
+        "tokens"
+      ],
+      "summary": "These are the values the product actually ships, read from the live stylesheet.",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/brand/colour.md"
+    },
+    {
+      "id": "brand-logo",
+      "title": "Logo usage",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "brand"
+      ],
+      "summary": "Two assets: a wordmark and a mark, each in a light and a dark variant, shipped as both SVG and PNG. Prefer the SVG anywhere it will render.",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/brand/logo-usage.md"
+    },
+    {
+      "id": "brand-principles",
+      "title": "Brand principles",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "brand"
+      ],
+      "summary": "Six rules, in order of how often they get broken.",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/brand/principles.md"
+    },
+    {
+      "id": "brand-typography",
+      "title": "Typography",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "brand",
+        "tokens"
+      ],
+      "summary": "Three faces, each with one job.",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/brand/typography.md"
+    },
+    {
+      "id": "credit-passport",
+      "title": "The credit passport",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "reputation"
+      ],
+      "summary": "A public page per business, built from settled deals, repayment behaviour and counterparty concentration. It follows the wallet, not the platform.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/reputation",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "grep",
+        "note": "Concentration caps the tier, so a record built on one counterparty cannot buy standing.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/product/credit-passport.md"
+    },
+    {
+      "id": "delivery-proof",
+      "title": "What counts as delivery",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "delivery",
+        "goods"
+      ],
+      "summary": "Delivery has to be against something the buyer can check.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "grep",
+        "note": "Goods deliveries are refused without a carrier and tracking reference.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/product/delivery-proof.md"
+    },
+    {
+      "id": "deposit-and-withdraw",
+      "title": "Deposit and withdraw",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "money",
+        "deposit"
+      ],
+      "summary": "Money moves in and out of Arc on one screen. What that screen asks for depends on who holds the funds, and the difference is the point rather than an inconsistency.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/bridge",
+          "date": "2026-08-05"
+        }
+      ],
+      "check": {
+        "kind": "grep",
+        "note": "Returns at most two DISTINCT addresses and no Circle blockchain code, so the chain vocabulary cannot reach a user.",
+        "lastVerified": ""
+      },
+      "updated": "2026-08-05",
+      "path": "public/product/deposit-and-withdraw.md"
+    },
+    {
+      "id": "faq-money-safe",
+      "title": "What stops the other side taking my money",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "faq"
+      ],
+      "summary": "The money sits in an escrow contract, not with Karwan and not with your counterparty. A buyer funds it before work starts, so a supplier can see the money exists before shipping. A supplier cannot take it early, and a buyer cannot withdraw it once the deal is accepted.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/faq/is-my-money-safe.md"
+    },
+    {
+      "id": "glossary-core",
+      "title": "Core terms",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "glossary"
+      ],
+      "summary": "**Escrow.** A contract that holds the buyer's money while the work happens. It releases against delivery, in milestones, and nobody can pull funds out of turn.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/glossary/terms.md"
+    },
+    {
+      "id": "invoice-factoring",
+      "title": "Invoice factoring",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "financing"
+      ],
+      "summary": "The supplier asks to be paid early, naming a floor if they want one. Financiers then bid a discount against the supplier's reputation tier, and the supplier accepts one or ignores them all.",
+      "sources": [
+        {
+          "url": "https://karwan.site/financier",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "grep",
+        "note": "An invoice reaches no financier until the seller has asked.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/product/invoice-factoring.md"
+    },
+    {
+      "id": "milestone-escrow",
+      "title": "Milestone escrow",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "escrow",
+        "settlement"
+      ],
+      "summary": "A deal splits into two to five milestones. The supplier marks a milestone delivered, the buyer reviews and releases that portion.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "grep",
+        "note": "The final release is a distinct buyer-called path, never reachable from a timer.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/product/milestone-escrow.md"
+    },
+    {
+      "id": "po-financing",
+      "title": "Purchase-order financing",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "financing"
+      ],
+      "summary": "Working capital advanced against an accepted purchase order whose escrow the buyer has already funded.",
+      "sources": [
+        {
+          "url": "https://karwan.site/financier",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "contract",
+        "note": "fund() pays the seller and assigns the receivable in one transaction.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/product/po-financing.md"
+    },
+    {
+      "id": "proof-network",
+      "title": "Network and contracts",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "proof"
+      ],
+      "summary": "Karwan runs on Arc Testnet, chain 5042002, where USDC is the gas token.",
+      "sources": [
+        {
+          "url": "https://testnet.arcscan.app",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "contract",
+        "note": "Reads the deployed escrow, so a stale address cannot pass.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/proof/network.md"
+    },
+    {
+      "id": "release-timing",
+      "title": "Review windows and release timing",
+      "status": "live",
+      "publishable": true,
+      "blockedBy": "",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "escrow",
+        "timing"
+      ],
+      "summary": "The review window is not one fixed number.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/deals",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": {
+        "kind": "grep",
+        "note": "One window governs both the unattended release and the seller claim.",
+        "lastVerified": ""
+      },
+      "updated": "2026-07-27",
+      "path": "public/product/release-timing.md"
+    },
+    {
+      "id": "what-karwan-is",
+      "title": "What Karwan is",
+      "status": "live",
+      "publishable": false,
+      "blockedBy": "not-a-capability",
+      "capability": false,
+      "audience": "all",
+      "tags": [
+        "overview"
+      ],
+      "summary": "Karwan is a settlement and credit layer for cross-border SME trade. Money sits in milestone escrow and releases against delivery. Every settled deal writes to a credit record that belongs to the business and travels with it, so a supplier finishes their first shipment with cash in hand and a credit file a financier can read.",
+      "sources": [
+        {
+          "url": "https://karwan.site",
+          "date": "2026-07-27"
+        }
+      ],
+      "check": null,
+      "updated": "2026-07-27",
+      "path": "public/product/what-karwan-is.md"
+    }
+  ]
+}

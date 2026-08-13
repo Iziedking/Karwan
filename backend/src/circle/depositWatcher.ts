@@ -5,6 +5,10 @@ import { logger } from '../logger.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { routeDepositToArc, bridgeIdForDeposit } from './depositRouter.js';
+/// Base58, so it cannot live in CCTP_CHAINS, which types `usdc` as a hex
+/// address. Shared with the Solana balance reader so one mint address decides
+/// both what counts as a deposit and what counts as a balance.
+import { SOL_DEVNET_USDC_MINT } from '../chain/solanaBalances.js';
 
 /// Credit a cross-chain deposit the moment Circle tells us it landed.
 ///
@@ -68,13 +72,6 @@ interface CircleTxNotification {
   destinationAddress?: string;
   txHash?: string;
 }
-
-/// Solana Devnet's USDC mint, from Circle's own contract-address table:
-/// https://developers.circle.com/stablecoins/usdc-contract-addresses
-///
-/// It lives here rather than in CCTP_CHAINS because that table types `usdc` as a
-/// hex address and this is base58.
-const SOL_DEVNET_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 
 /// The one contract on this chain whose tokens are dollars, or null if the chain
 /// is not one we take deposits on.

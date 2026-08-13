@@ -41,6 +41,10 @@ import { listOffersBySeller, listOffersByFinancier } from '../db/factoring.js';
 import { listLinesBySeller, listLinesByFinancier } from '../db/poFinancing.js';
 import { getProfile } from '../db/profiles.js';
 import { readSourceUsdcBalance } from '../chain/cctpClients.js';
+import { readSolanaHolding } from '../chain/solanaBalances.js';
+import { findFacts, findDocs, isStatable, canonVersion, canonUpdated } from './canon.js';
+import { summariseSkills } from '../verification/skillSummary.js';
+import { policyFlags, verificationPolicyVersion, businessVerificationState } from '../verification/policy.js';
 import { depositWalletsByChainKey, type CctpChainKey } from '../chain/cctpChains.js';
 import { resolveSellerProfile, resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { readSpendable, pickRoute, gatewayCanReach, insufficientMessage } from '../gateway/router.js';
@@ -215,7 +219,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     list_bridge_sources: tool({
       description:
-        "Read EVERY place this user holds USDC that could fund a bridge, so you can show them the options and ask which one to move from. Call this FIRST whenever they want to bridge, cash out, top up, or move USDC across chains and have NOT already named a source. Returns their Arc wallet, their buyer and seller agent wallets, and their USDC on each other chain (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain), each with a balance and a `signer` field. `signer: 'user'` means they sign it in their own wallet (a web3 user's own funds); `signer: 'backend'` means Karwan signs it for them with no popup (email accounts, and everyone's agent wallets). Present the ones with a balance, with amounts, and ask which to bridge from. Then call propose_bridge.",
+        "Read EVERY place this user holds USDC that could fund a bridge, so you can show them the options and ask which one to move from. Call this FIRST whenever they want to bridge, cash out, top up, or move USDC across chains and have NOT already named a source. Returns their Arc wallet, their buyer and seller agent wallets, their USDC on each other chain (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain), and a `solana` entry for email accounts, each with a balance and a `signer` field. When `solana.canMove` is false, report the balance as theirs and safe, give `solana.blockedReason` in your own words, and do NOT offer to bridge it. `signer: 'user'` means they sign it in their own wallet (a web3 user's own funds); `signer: 'backend'` means Karwan signs it for them with no popup (email accounts, and everyone's agent wallets). Present the ones with a balance, with amounts, and ask which to bridge from. Then call propose_bridge.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -264,10 +268,36 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             }),
           );
 
+          // Solana sits outside the EVM table above and so was outside this
+          // answer entirely: the assistant used to tell a user with 20 USDC on
+          // Solana that they had no Solana wallet. Only email accounts have one
+          // (a web3 user's Solana funds are in their own wallet, which we cannot
+          // see and do not custody).
+          const solanaDeposit = isCircle ? record?.bridgeWallets?.['SOL-DEVNET'] : undefined;
+          const solana = solanaDeposit
+            ? await readSolanaHolding(solanaDeposit.address).then((h) => ({
+                chain: 'Solana',
+                chainName: 'solana',
+                address: solanaDeposit.address,
+                usdc: h.usdc === null ? null : Number(h.usdc).toFixed(2),
+                signer: 'backend' as const,
+                // Circle sponsors gas on its EVM wallets and does not on Solana,
+                // so this wallet can hold dollars and still be unable to spend
+                // one. Saying so is the whole point: proposing a move that
+                // cannot be paid for is how a user gets told their money went
+                // somewhere it did not.
+                canMove: h.canMove,
+                blockedReason: h.canMove
+                  ? null
+                  : 'This wallet has no SOL to pay the network fee, so Karwan cannot move it off Solana yet. The money is theirs and it is safe. Do not offer to bridge it and never say it has moved.',
+              }))
+            : null;
+
           const funded = [
             arcMain > 0,
             (buyerUsdc ?? 0) > 0,
             (sellerUsdc ?? 0) > 0,
+            solana !== null && solana.usdc !== null && Number(solana.usdc) > 0,
             ...chainRows.map((r) => r.usdc !== null && Number(r.usdc) > 0),
             ...chainRows.map((r) =>
               (r.buyerAgentUsdc !== null && Number(r.buyerAgentUsdc) > 0) ||
@@ -289,6 +319,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
                 ? { label: 'Your seller agent', usdc: sellerUsdc?.toFixed(2) ?? '0', signer: 'backend' }
                 : null,
             otherChains: chainRows,
+            solana,
             note: funded
               ? 'Show the funded ones with amounts and ask which to bridge from, unless they already named a source. Then call propose_bridge with that source. Agent-wallet and email sources move with no popup; a web3 user signs their own wallet in the chat card.'
               : 'No USDC anywhere yet. Tell them plainly, and offer to help them add some (propose_navigation destination "add_money", or point a web3 user at their own wallet).',
@@ -749,6 +780,104 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    get_product_facts: tool({
+      description:
+        "The published canon of what Karwan actually does. Call this BEFORE answering any question of the form 'does Karwan do X', 'can I use it for Y', 'how does Z work', or before describing a capability you are not certain has shipped. Answering those from memory is how a product gets described that does not exist. Each entry says whether it may be stated in the present tense: `statable: false` means DO NOT claim it, no matter how reasonable it sounds. If nothing matches, Karwan does not claim it, so say you are not sure rather than inventing it. `body` is the canonical wording; prefer it to your own. This is product knowledge only, never the user's own data.",
+      inputSchema: z.object({
+        q: z
+          .string()
+          .max(120)
+          .optional()
+          .describe('Search terms. Every term must match, so fewer terms find more.'),
+        liveOnly: z
+          .boolean()
+          .optional()
+          .describe('Only capabilities that have shipped. Use when they ask what they can do now.'),
+      }),
+      execute: async ({ q, liveOnly }) => {
+        try {
+          const facts = findFacts({ ...(q ? { q } : {}), ...(liveOnly ? { liveOnly } : {}) });
+          if (facts.length === 0) {
+            return {
+              facts: [],
+              canonVersion,
+              note: 'Nothing published matches that. Karwan does not claim it, so do not state it. Say you are not certain and offer to point them at something you can confirm.',
+            };
+          }
+          const bodies = new Map(findDocs(facts.map((f) => f.id)).map((d) => [d.id, d.body]));
+          return {
+            canonVersion,
+            canonUpdated,
+            facts: facts.map((f) => ({
+              id: f.id,
+              title: f.title,
+              summary: f.summary,
+              statable: isStatable(f),
+              blockedBy: isStatable(f) ? null : f.blockedBy,
+              tags: f.tags,
+              updated: f.updated,
+              body: bodies.get(f.id) ?? null,
+            })),
+            note: 'Use the canonical wording where it fits. Never state an entry whose `statable` is false, and never soften that into a maybe.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_product_facts failed');
+          return { error: 'Could not read the product canon right now. Answer only what you are certain of.' };
+        }
+      },
+    }),
+
+    get_my_skills: tool({
+      description:
+        "What the signed-in user is VERIFIED in, as opposed to what they merely listed. Use for 'what am I verified in', 'why is my agent not getting matched', 'does my certificate still count', 'what would get me better work', and before advising a seller on how to win more requests. Returns each declared skill with its own verification status and ISSUER, plus what the account is currently eligible for. A declared skill and a verified skill are different claims: never describe a declared skill as verified, and always name the issuer when you call something verified. `unlistedVerified` is verification they hold for a skill missing from their profile, which is worth telling them about because adding it back is one edit. Use get_my_profile for the rest of the profile.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const p = await getProfile(address);
+          if (!p) {
+            return {
+              profile: null,
+              note: 'No profile yet, so nothing is declared and nothing can be verified. Setting up a profile at /profile with seller skills is the first step.',
+            };
+          }
+          const isBusiness =
+            p.accountKind === 'business' ||
+            p.accountType === 'business' ||
+            (p.business !== undefined && p.business.status !== 'none');
+          const summary = summariseSkills(
+            {
+              accountKind: isBusiness ? 'business' : 'individual',
+              declaredSkills: p.seller?.skills ?? [],
+              verifications: p.skillVerifications,
+              ...(isBusiness ? { businessVerification: businessVerificationState(p.business) } : {}),
+            },
+            policyFlags,
+            verificationPolicyVersion,
+          );
+          const blocked = summary.eligibility.reasons.length > 0;
+          return {
+            ...summary,
+            note: [
+              summary.declared.length === 0
+                ? 'They have listed no skills at all. Their seller agent bids on requests matched to those skills, so an empty list is why nothing is coming in.'
+                : summary.verifiedCount === 0
+                  ? 'Nothing is verified yet. Say what they listed is what they claim, not what anyone has confirmed, and that verification is what a counterparty can check.'
+                  : 'When you name a verified skill, name its issuer with it. A verification is only worth what the issuer behind it is worth.',
+              blocked
+                ? 'Their account is limited until they verify: see `eligibility` for exactly what is off. Direct deals always keep working, so lead with that rather than with what is blocked.'
+                : 'Nothing is gated on verification for this account right now.',
+              summary.unlistedVerified.length
+                ? 'They hold verification for a skill that is not on their profile. Point it out; adding it back is one edit and it is already theirs.'
+                : '',
+            ].filter(Boolean).join(' '),
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_skills failed');
+          return { error: 'Could not read the verification record right now. Try again shortly.' };
+        }
+      },
+    }),
+
     check_top_up_sources: tool({
       description:
         "EMAIL/PASSKEY ACCOUNTS ONLY. Check what USDC is already sitting in the user's own deposit wallets on other chains (Base, Ethereum, Optimism, Arbitrum, Polygon, Avalanche, Unichain) — the wallets Karwan holds for them. Call this BEFORE proposing a top-up, and whenever they say 'move X from <chain> to Arc' or ask why their money hasn't arrived. Money in one of these wallets can be moved to Arc with no action from them at all; money in an outside wallet has to be sent to the deposit address first, because Karwan cannot touch a wallet it does not hold. For a web3 user this tool returns an error: they hold their own USDC and bridge it themselves.",
@@ -806,6 +935,19 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               };
             }),
           );
+          // Solana is not in TOP_UP_CHAINS (that table is the EVM auto-bridge
+          // set), so it was absent from this answer too. A user's Solana deposit
+          // is still a deposit and still theirs.
+          const solWallet = record.bridgeWallets?.['SOL-DEVNET'];
+          const solana = solWallet
+            ? await readSolanaHolding(solWallet.address).then((h) => ({
+                chain: 'Solana',
+                depositAddress: solWallet.address,
+                usdc: h.usdc,
+                canMove: h.canMove,
+              }))
+            : null;
+
           const positive = (v: string | null) => v !== null && Number(v) > 0;
           const funded = rows.filter((r) => positive(r.usdc));
           const agentFunded = rows.filter(
@@ -813,14 +955,18 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           );
           return {
             wallets: rows,
+            solana,
             note: [
               funded.length
                 ? 'Chains with a `usdc` balance can be moved to Arc right now with propose_top_up — no signing, no wallet popup. Do that instead of sending them to a page.'
                 : 'No USDC waiting in a DEPOSIT wallet. To bring money in from an outside wallet or exchange, they send USDC to the deposit address for that chain (give them the address for the chain they named), and once it lands you can move it to Arc for them. If a deposit address is null, send them to top_up to have it created.',
+              solana && Number(solana.usdc ?? '0') > 0 && !solana.canMove
+                ? 'IMPORTANT: they also hold USDC on SOLANA (see `solana`). It is theirs and it is safe, but that wallet has no SOL for the network fee, so Karwan cannot move it off Solana yet. Say that plainly, do not offer to bridge it, and never report it as moved.'
+                : '',
               agentFunded.length
                 ? 'IMPORTANT: their buyer and/or seller AGENT is holding USDC on other chains too (see buyerAgentUsdc / sellerAgentUsdc). Never tell them they have nothing on other chains while those are above zero. That money is theirs and it is safe, but Karwan cannot move it off that chain: an agent wallet can only be signed for on Arc. Say so plainly, do not offer to bridge it, and never report it as moved. What they CAN move is anything sitting in the deposit wallet for that chain.'
                 : 'Neither agent holds USDC on another chain either, so "nothing on other chains" is a true statement here.',
-            ].join(' '),
+            ].filter(Boolean).join(' '),
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant check_top_up_sources failed');
@@ -1776,8 +1922,15 @@ function authenticatedPreamble(address: string, method: string): string {
     'Reputation score/tier -> get_my_reputation. Deals -> list_my_deals / get_deal_status.',
     'Open offers, requests, agent bids -> get_my_market_activity. Factoring + PO financing -> get_my_financing.',
     'Past money moves, bridges, matches -> recall_activity. Profile/setup -> get_my_profile.',
+    'Verified skills, why matching is limited, what a certificate unlocks -> get_my_skills.',
     'Anything pending or "what should I do" -> whats_pending.',
     'Money waiting on another chain -> list_bridge_sources, then propose_bridge. If they named buyer agent or seller agent, pass that source directly and never use check_top_up_sources.',
+    '',
+    '# What the PRODUCT does is not something you remember. It is something you look up.',
+    'Any "does Karwan do X", "can I use it for Y", "how does Z work" -> get_product_facts FIRST.',
+    'It is the published canon and it says which claims may be stated. Never state one marked statable:false,',
+    'and never soften it into a maybe. Nothing found means Karwan does not claim it: say you are not sure.',
+    'This is the difference between describing this product and describing a plausible one.',
     '',
     '# You can EXECUTE a whole deal, not just read it. Prepare the card, do not send them away.',
     'Approve or decline a match -> propose_match_decision. Seller accepting a deal -> propose_accept_deal.',
