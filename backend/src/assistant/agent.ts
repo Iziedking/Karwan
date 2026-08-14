@@ -289,7 +289,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
                 canMove: h.canMove,
                 blockedReason: h.canMove
                   ? null
-                  : 'This wallet has no SOL to pay the network fee, so Karwan cannot move it off Solana yet. The money is theirs and it is safe. Do not offer to bridge it and never say it has moved.',
+                  : 'Solana needs a token account opened before this can move, and that is a setup step on Karwan\'s side, not something they did wrong. Their money is safe and it stays theirs. Say it is not movable YET and that it is on us, do not offer to bridge it, and never say it has moved.',
               }))
             : null;
 
@@ -961,10 +961,10 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
                 ? 'Chains with a `usdc` balance can be moved to Arc right now with propose_top_up — no signing, no wallet popup. Do that instead of sending them to a page.'
                 : 'No USDC waiting in a DEPOSIT wallet. To bring money in from an outside wallet or exchange, they send USDC to the deposit address for that chain (give them the address for the chain they named), and once it lands you can move it to Arc for them. If a deposit address is null, send them to top_up to have it created.',
               solana && Number(solana.usdc ?? '0') > 0 && !solana.canMove
-                ? 'IMPORTANT: they also hold USDC on SOLANA (see `solana`). It is theirs and it is safe, but that wallet has no SOL for the network fee, so Karwan cannot move it off Solana yet. Say that plainly, do not offer to bridge it, and never report it as moved.'
+                ? 'IMPORTANT: they also hold USDC on SOLANA (see `solana`). It is theirs and it is safe. Solana needs a token account opened before it can move, which is a setup step on Karwan\'s side. Say it is not movable yet and that it is on us, do not offer to bridge it, and never report it as moved.'
                 : '',
               agentFunded.length
-                ? 'IMPORTANT: their buyer and/or seller AGENT is holding USDC on other chains too (see buyerAgentUsdc / sellerAgentUsdc). Never tell them they have nothing on other chains while those are above zero. That money is theirs and it is safe, but Karwan cannot move it off that chain: an agent wallet can only be signed for on Arc. Say so plainly, do not offer to bridge it, and never report it as moved. What they CAN move is anything sitting in the deposit wallet for that chain.'
+                ? 'IMPORTANT: their buyer and/or seller AGENT is holding USDC on other chains too (see buyerAgentUsdc / sellerAgentUsdc). Never tell them they have nothing on other chains while those are above zero, and never tell them it cannot be moved. It CAN: use propose_bridge with direction "toArc" and source "buyerAgent" or "sellerAgent". Karwan signs it and the gas is covered, so it costs them nothing and needs no signature. It lands back in that same agent wallet.'
                 : 'Neither agent holds USDC on another chain either, so "nothing on other chains" is a true statement here.',
             ].filter(Boolean).join(' '),
           };
@@ -1726,7 +1726,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     propose_bridge: tool({
       description:
-        "THE bridge tool. Prepare a confirm card that moves USDC between Arc and another chain, and does the WHOLE thing in the chat — no sending them to another screen. Call it after list_bridge_sources, once you know the amount and the other chain. `direction` 'toArc' brings money from another chain INTO Arc; 'fromArc' sends Arc money OUT to another chain. On the other chain a user has exactly ONE wallet, so 'toArc' has nothing to choose: use `to` to say which of their Arc wallets it should land in, and leave `source` alone. `source` is for 'fromArc' only. When the card is tapped: an email account moves with no popup (backend-signed) and returns a receipt; a web3 user's OWN wallet opens a wallet prompt right in the chat for them to sign. Always shows a confirm card first, whichever the case.",
+        "THE bridge tool. Prepare a confirm card that moves USDC between Arc and another chain, and does the WHOLE thing in the chat — no sending them to another screen. Call it after list_bridge_sources, once you know the amount and the other chain. `direction` 'toArc' brings money from another chain INTO Arc; 'fromArc' sends Arc money OUT to another chain. `source` is which wallet it LEAVES: 'main' (their own deposit wallet on that chain), 'buyerAgent' or 'sellerAgent'. An agent holding USDC on another chain CAN be moved — Karwan signs it and the gas is covered — and it lands back in that same agent, so for an agent source leave `to` alone. `to` names a different landing wallet and only works from 'main'. When the card is tapped: an email account moves with no popup (backend-signed) and returns a receipt; a web3 user's OWN wallet opens a wallet prompt right in the chat for them to sign. Always shows a confirm card first, whichever the case.",
       inputSchema: z.object({
         direction: z.enum(['toArc', 'fromArc']).describe('toArc = bring money into Arc; fromArc = send Arc money out.'),
         chain: z
@@ -1753,20 +1753,19 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
           if (direction === 'toArc') {
             const cfg = TOP_UP_CHAINS[chain];
-            // On the source chain a user has ONE wallet Karwan can sign for:
-            // their deposit wallet, or their own wallet if they brought one.
-            // What `source` used to do here was name an AGENT wallet as the burn
-            // source. An agent's SCA address is the same string on every EVM
-            // chain, so it can genuinely hold USDC on Base, but its Circle wallet
-            // id is bound to Arc and cannot sign a burn anywhere else. The card
-            // was accepted, the burn had no wallet to come from, and the user was
-            // told their money had moved when nothing had.
+            // Three wallets can hold USDC for this user on the source chain: the
+            // deposit wallet, the buyer agent, and the seller agent. All three
+            // share one address per user, and Karwan can sign for any of them —
+            // the agents' wallets on this chain are derived on demand and their
+            // gas is sponsored.
             //
-            // A wallet named here is therefore the DESTINATION, which is also
-            // what a user means by it: money leaving their buyer agent's side of
-            // things should come back to their buyer agent unless they say
+            // `source` names which one it leaves. `to` names where it lands on
+            // Arc, and when only `source` is given the money goes back to the
+            // wallet it came from, which is what a user means by it: their buyer
+            // agent's money should return to their buyer agent unless they say
             // otherwise.
-            const dest = toWallet ?? source ?? 'main';
+            const from = source ?? 'main';
+            const dest = toWallet ?? from;
             const mintRecipient =
               dest === 'buyerAgent'
                 ? record?.buyerAddress
@@ -1781,6 +1780,15 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
                   : 'Your Arc wallet';
             if (!mintRecipient) {
               return { error: `They have no ${dest === 'buyerAgent' ? 'buyer' : 'seller'} agent wallet yet. Offer a button to their profile (destination "profile") to activate it.` };
+            }
+            // An agent's cross-chain money comes back to that same agent. Landing
+            // it somewhere else is two moves, not one, and the second happens on
+            // Arc where it is instant and free. Refusing here is better than
+            // building a card the bridge route will reject.
+            if (from !== 'main' && dest !== from) {
+              return {
+                error: `Money leaving their ${from === 'buyerAgent' ? 'buyer' : 'seller'} agent comes back to that same agent. Bring it to Arc first with source "${from}" and no destination, then move it on Arc with propose_withdraw or propose_fund_agent. Explain it as two quick steps, not a restriction.`,
+              };
             }
 
             if (method !== 'circle') {
@@ -1801,18 +1809,32 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             if (!record) {
               return { error: 'They must activate their wallets first. Offer a button to their profile (destination "profile").' };
             }
-            const wallet = record.bridgeWallets?.[cfg.circleBlockchain];
-            if (!wallet) {
-              return { error: `They have no ${cfg.label} deposit wallet yet. Send them to top_up with propose_navigation so it gets created, then they fund it.` };
+            // Whichever wallet it leaves. An agent's address on this chain is the
+            // same as its Arc address, so the balance can be read before any
+            // wallet has been derived there; the derivation happens when the card
+            // is tapped, inside the bridge route.
+            const wallet =
+              from === 'buyerAgent' ? { address: record.buyerAddress }
+              : from === 'sellerAgent' ? { address: record.sellerAddress }
+              : record.bridgeWallets?.[cfg.circleBlockchain];
+            if (!wallet?.address) {
+              return from === 'main'
+                ? { error: `They have no ${cfg.label} deposit wallet yet. Send them to top_up with propose_navigation so it gets created, then they fund it.` }
+                : { error: `They have no ${from === 'buyerAgent' ? 'buyer' : 'seller'} agent wallet yet. Offer a button to their profile (destination "profile").` };
             }
             const bal = await readSourceUsdcBalance(cfg.key, wallet.address);
             if (bal === null) return { error: `Could not read their ${cfg.label} balance right now. Ask them to try again shortly.` };
             if (Number(bal) < amountUsdc) {
-              // Before telling them to send more, check whether the money is
-              // already theirs and simply parked somewhere we cannot sign from.
-              // An agent's address is the same on every EVM chain, so USDC sent
-              // to "their buyer agent" on Base really is sitting there, and
-              // saying "you have nothing on Base" would be false.
+              // Before telling them to send more, check the other two wallets
+              // they own on this chain. An agent's address is the same on every
+              // EVM chain, so USDC sent to "their buyer agent" on Base really is
+              // sitting there, and "you have nothing on Base" would be false.
+              // Only worth checking when they asked to move from the deposit
+              // wallet; if they already named an agent, suggesting an agent is
+              // circular.
+              if (from !== 'main') {
+                return { error: `Their ${from === 'buyerAgent' ? 'buyer' : 'seller'} agent holds ${bal} USDC on ${cfg.label}, less than the ${amountUsdc} they asked to move. Tell them the real figure.` };
+              }
               const [buyerOnChain, sellerOnChain] = await Promise.all([
                 record.buyerAddress
                   ? readSourceUsdcBalance(cfg.key, record.buyerAddress).catch(() => null)
@@ -1821,10 +1843,12 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
                   ? readSourceUsdcBalance(cfg.key, record.sellerAddress).catch(() => null)
                   : Promise.resolve(null),
               ]);
-              const stranded = Math.max(Number(buyerOnChain ?? 0), Number(sellerOnChain ?? 0));
-              if (stranded > 0) {
+              const buyerHas = Number(buyerOnChain ?? 0);
+              const sellerHas = Number(sellerOnChain ?? 0);
+              if (buyerHas >= amountUsdc || sellerHas >= amountUsdc) {
+                const which = buyerHas >= amountUsdc ? 'buyerAgent' : 'sellerAgent';
                 return {
-                  error: `Their ${cfg.label} deposit wallet holds ${bal} USDC, but their agent wallet is holding ${stranded} USDC on ${cfg.label}. Tell them that money is theirs and is safe, that Karwan cannot move it off ${cfg.label} yet, and that anything they send to their ${cfg.label} deposit address (${wallet.address}) can be moved right away. Do not offer to move the agent's ${cfg.label} balance and do not say it has moved.`,
+                  error: `Their own ${cfg.label} deposit wallet only holds ${bal} USDC, but their ${which === 'buyerAgent' ? 'buyer' : 'seller'} agent is holding ${which === 'buyerAgent' ? buyerHas : sellerHas} USDC on ${cfg.label}. Move it from there instead: call propose_bridge with direction "toArc", chain "${chain}", and source "${which}". Karwan signs it and the gas is covered. Do NOT tell them it is stuck.`,
                 };
               }
               return { error: `Their ${cfg.label} deposit wallet holds ${bal} USDC, less than ${amountUsdc}. Money in an outside wallet has to be sent to their ${cfg.label} deposit address (${wallet.address}) first — Karwan can only move what it holds.` };
@@ -1836,6 +1860,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               amountUsdc,
               mintRecipient,
               destinationLabel,
+              sourceKind: from === 'main' ? 'identity' : from,
+              sourceLabel:
+                from === 'main'
+                  ? `Your ${cfg.label} wallet`
+                  : `Your ${from === 'buyerAgent' ? 'buyer' : 'seller'} agent on ${cfg.label}`,
             });
             if ('error' in builtE) return builtE;
             if (!hasEquivalentConfirm(actions, builtE)) actions.push(builtE);

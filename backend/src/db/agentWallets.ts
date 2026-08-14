@@ -29,6 +29,22 @@ export interface AgentWallets {
   /// Lets the backend sign the CCTP burn from the source-chain DCW so
   /// Circle-auth users can bridge end-to-end without a web3 wallet.
   bridgeWallets?: Record<string, { walletId: string; address: string }>;
+  /// Per-chain wallets for the BUYER and SELLER agents, keyed the same way as
+  /// `bridgeWallets` above.
+  ///
+  /// An agent's SCA address is identical on every EVM chain, so an agent can
+  /// receive USDC on Base whether or not Circle has a wallet record there. What
+  /// it cannot do is SIGN there without one, and the absence of that record was
+  /// read as a permanent limit: the assistant told users their agent's
+  /// cross-chain balance could never be moved. It can. `PUT /wallets/{id}/
+  /// blockchains/{chain}` derives a wallet at the SAME address on the new
+  /// chain, and Circle's Gas Station sponsors the gas there, so the burn costs
+  /// the user nothing and needs no signature from them.
+  ///
+  /// Derived on demand rather than at activation: two agents times seven chains
+  /// is fourteen wallets per user, nearly all of which would never be used.
+  buyerBridgeWallets?: Record<string, { walletId: string; address: string }>;
+  sellerBridgeWallets?: Record<string, { walletId: string; address: string }>;
   /// Deposit wallets SUPERSEDED by the address-unification backfill, keyed the
   /// same way. Never deleted: these are real Circle wallets that may still hold
   /// USDC a user sent before the switch, and their walletId is the only way to

@@ -195,13 +195,12 @@ export interface TopUpPayload {
   sourceChainKey: string;
   amountUsdc: number;
   mintRecipient: string;
-  /// Only ever the identity rail, and typed that way so a future call site
-  /// cannot quietly widen it. On the source chain the user has one wallet
-  /// Karwan can sign for. An agent wallet's address is the same on every EVM
-  /// chain and so can hold money there, but its Circle wallet id is bound to
-  /// Arc and signs nothing anywhere else; naming one here produced a card that
-  /// reported a move while the money never left.
-  sourceKind: 'identity';
+  /// Which of the user's wallets the burn leaves on the source chain. All three
+  /// share one address per user, and Karwan can sign for any of them: an agent's
+  /// wallet on the source chain is derived on demand at the same address, with
+  /// gas sponsored. An agent source must mint back to that same agent, which the
+  /// bridge route enforces.
+  sourceKind: 'identity' | 'buyerAgent' | 'sellerAgent';
 }
 
 interface ConfirmActionBase {
@@ -752,6 +751,14 @@ export function buildTopUpConfirm(i: {
   /// agent wallets when they asked to fund an agent in the same step.
   mintRecipient: string;
   destinationLabel: string;
+  /// Which of the user's wallets the burn leaves on the source chain. Defaults
+  /// to the identity rail (their deposit wallet). An agent source is signed from
+  /// that agent's wallet on the source chain, derived on demand at the same
+  /// address, and must land back in that same agent.
+  sourceKind?: 'identity' | 'buyerAgent' | 'sellerAgent';
+  /// What the money is leaving, in the user's words. "Your Base wallet" is wrong
+  /// when it is the buyer agent's money.
+  sourceLabel?: string;
 }): TopUpConfirm | { error: string } {
   if (!(i.amountUsdc > 0)) return { error: 'The amount must be greater than 0.' };
   if (!/^0x[0-9a-fA-F]{40}$/.test(i.mintRecipient)) {
@@ -765,7 +772,7 @@ export function buildTopUpConfirm(i: {
     summary: `Bring ${i.amountUsdc} USDC from your ${i.sourceChainLabel} wallet over to Arc. I sign it for you.`,
     fields: [
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
-      { label: 'From', value: `Your ${i.sourceChainLabel} wallet` },
+      { label: 'From', value: i.sourceLabel ?? `Your ${i.sourceChainLabel} wallet` },
       { label: 'To', value: i.destinationLabel },
       { label: 'Takes', value: 'A few minutes' },
     ],
@@ -774,7 +781,7 @@ export function buildTopUpConfirm(i: {
       sourceChainKey: i.sourceChainKey,
       amountUsdc: i.amountUsdc,
       mintRecipient: i.mintRecipient.toLowerCase(),
-      sourceKind: 'identity',
+      sourceKind: i.sourceKind ?? 'identity',
     },
     confirmLabel: 'Move to Arc',
     cancelLabel: 'Not now',

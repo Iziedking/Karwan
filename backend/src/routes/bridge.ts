@@ -16,6 +16,7 @@ import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
+import { ensureAgentBridgeWallet } from '../circle/agentBridgeWallet.js';
 import {
   APP_KIT_SOURCE_CHAINS,
   APP_KIT_SOURCE_CHAIN_KEYS,
@@ -1098,25 +1099,6 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
   }
 
-  // An agent wallet cannot be the source of an INBOUND bridge. Its SCA address
-  // is the same on every EVM chain, so it can hold USDC on the source chain, but
-  // its Circle wallet id is bound to Arc and signs nothing anywhere else. This
-  // used to be accepted: the bridge row was created, the burn had no wallet to
-  // come from, and the user was told their money had moved. Money that stays
-  // put must never be reported as money that went somewhere. The bridge OUT of
-  // Arc is the direction where an agent source is real, and that is a different
-  // route.
-  if (body.sourceKind !== 'identity') {
-    return c.json(
-      {
-        error: 'agent_wallet_cannot_be_bridge_source',
-        detail:
-          'An agent wallet only exists on Arc, so it cannot send money from another chain. Bring the money in through your own wallet, then fund the agent from it.',
-      },
-      400,
-    );
-  }
-
   const user = getUserByAddress(userAddress);
   if (!user && body.sourceKind === 'identity') {
     return c.json(
@@ -1160,13 +1142,53 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     );
   }
   let agentWallets = ownerWallets;
-  // The user's own deposit wallet on that chain. It is the only wallet this
-  // route can burn from, which is why the sourceKind check above leaves nothing
-  // else to resolve.
-  const existingBridge = agentWallets.bridgeWallets?.[circleChain];
-  let bridgeWalletId: string;
-  let bridgeWalletAddress: string;
-  if (existingBridge) {
+  let bridgeWalletId: string | null = null;
+  let bridgeWalletAddress: string | null = null;
+
+  // An agent source is real, not a mistake to refuse. The agent's SCA address is
+  // identical on every EVM chain, so it can already be holding USDC here;
+  // deriving its wallet on this chain is what lets us sign the burn, and it
+  // comes back at the same address. Gas Station covers the gas, so the move
+  // costs the agent nothing and asks the user for nothing.
+  //
+  // The mint recipient is checked against the source: an agent's money must
+  // come back to that same agent unless the user says otherwise, and this route
+  // is not where "otherwise" is decided.
+  if (body.sourceKind !== 'identity') {
+    const agentAddress =
+      body.sourceKind === 'buyerAgent' ? agentWallets.buyerAddress : agentWallets.sellerAddress;
+    if (!agentAddress || agentAddress.toLowerCase() !== body.mintRecipient.toLowerCase()) {
+      return c.json(
+        {
+          error: 'agent_bridge_must_mint_to_same_agent',
+          detail: 'An agent bridge has to land back in that same agent wallet.',
+        },
+        400,
+      );
+    }
+    try {
+      const agentSource = await ensureAgentBridgeWallet(userAddress, body.sourceKind, circleChain);
+      bridgeWalletId = agentSource.walletId;
+      bridgeWalletAddress = agentSource.address;
+    } catch (err) {
+      logger.error(
+        { userAddress, blockchain: circleChain, kind: body.sourceKind, err: (err as Error).message },
+        'could not derive an agent bridge wallet',
+      );
+      return c.json(
+        { error: 'could not provision agent bridge wallet', detail: (err as Error).message },
+        502,
+      );
+    }
+  }
+
+  // The user's own deposit wallet on that chain. Skipped entirely when an agent
+  // source resolved above; from here down the two paths are identical, because
+  // a burn is a burn whichever of the user's wallets it leaves.
+  const existingBridge = bridgeWalletId ? null : agentWallets.bridgeWallets?.[circleChain];
+  if (bridgeWalletId && bridgeWalletAddress) {
+    // Already resolved from the agent's derived wallet.
+  } else if (existingBridge) {
     bridgeWalletId = existingBridge.walletId;
     bridgeWalletAddress = existingBridge.address;
   } else {
@@ -1195,6 +1217,15 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
         502,
       );
     }
+  }
+
+  // Every branch above either assigns a source wallet or returns. This proves
+  // it to the compiler rather than leaning on the `as 0x${string}` casts below,
+  // which would happily turn a null into a hex address and fail later as an
+  // unreadable balance instead of a clear refusal here.
+  if (!bridgeWalletId || !bridgeWalletAddress) {
+    logger.error({ userAddress, blockchain: circleChain }, 'no source wallet resolved for bridge');
+    return c.json({ error: 'could not resolve a source wallet for this bridge' }, 500);
   }
 
   // Pre-flight balance check. The most common failure mode for fresh Circle
