@@ -79,7 +79,7 @@ On Arc, USDC is the native gas token, so no second asset is needed.
 
 ```bash
 npm run contracts:build
-npm run contracts:test            # 375 passing
+npm run contracts:test            # 423 passing across 36 suites
 ```
 
 To deploy your own set instead of using the addresses in the README, run the
