@@ -110,28 +110,30 @@ export const STAGE_META: Record<
 export function StageBadge({ stage }: { stage: DealStage }) {
   const m = STAGE_META[stage];
   const label = useTranslations().dealStage.labels[stage];
+  // The state pill, per docs/SKILL.md §4.9: a leading round dot in the semantic
+  // colour, the label in mono caps, and the colour carried as a tint rather than
+  // as a block.
+  //
+  // It used to be a two-part chip: a solid slab of the state colour holding a
+  // white 5px SQUARE, welded to the label. At a glance the slab read as a
+  // missing-image placeholder rather than as a status, and the square plus the
+  // 2px clipped corner plus a drop shadow gave every row three competing
+  // shapes. One dot, one outline, one radius.
   return (
     <span
-      className="inline-flex items-stretch overflow-hidden text-[10px] mono font-bold uppercase tracking-[0.18em] leading-none"
+      className="inline-flex items-center gap-1.5 rounded-full ps-2 pe-2.5 py-1 text-[10px] mono font-bold uppercase tracking-[0.14em] leading-none whitespace-nowrap"
       style={{
-        background: 'var(--lp-card)',
-        border: `1px solid ${m.chipFg}33`,
+        background: `${m.chipFg}14`,
+        border: `1px solid ${m.chipFg}2b`,
         color: m.chipFg,
-        borderTopLeftRadius: 5,
-        borderTopRightRadius: 5,
-        borderBottomLeftRadius: 5,
-        borderBottomRightRadius: 2,
-        boxShadow: `0 1px 0 ${m.chipFg}1f`,
       }}
     >
       <span
         aria-hidden
-        className="flex items-center justify-center px-1.5"
+        className="block w-1.5 h-1.5 rounded-full shrink-0"
         style={{ background: m.chipFg }}
-      >
-        <span className="block w-[5px] h-[5px] bg-white" />
-      </span>
-      <span className="px-2 py-[7px]">{label}</span>
+      />
+      {label}
     </span>
   );
 }

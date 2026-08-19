@@ -192,7 +192,7 @@ export function PartnersBrowse() {
                 type="button"
                 aria-pressed={verifiedOnly}
                 onClick={() => setVerifiedOnly((value) => !value)}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+                className="mb-1 inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
                 style={{
                   borderColor: verifiedOnly ? 'var(--color-positive)' : 'var(--lp-border-light)',
                   background: verifiedOnly ? 'var(--color-positive-soft)' : 'var(--lp-card)',
@@ -272,7 +272,7 @@ function FilterGroup({ label, children }: { label: string; children: React.React
       <legend className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </legend>
-      <div className="mt-2 flex max-w-full gap-1 overflow-x-auto pb-1">{children}</div>
+      <div className="mt-2 flex max-w-full items-center gap-1 overflow-x-auto pb-1">{children}</div>
     </fieldset>
   );
 }
@@ -291,7 +291,7 @@ function FilterButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+      className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
         borderColor: pressed ? 'var(--lp-dark)' : 'var(--lp-border-light)',
         background: pressed ? 'var(--lp-dark)' : 'var(--lp-card)',
