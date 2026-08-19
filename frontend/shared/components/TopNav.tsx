@@ -71,24 +71,24 @@ export function TopNav() {
       className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
     >
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
-        {/* LEFT. Brand returns to the current surface's natural home. */}
+        {/* LEFT. The mark alone, and it always goes to the landing page.
+            It used to sit beside a KARWAN wordmark and route to /app inside the
+            product, which made the one element every page shares mean two
+            different things depending on where you were. */}
         <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
-          <Link href={showAppChrome ? '/app' : '/'} className="group inline-flex items-center gap-2.5 shrink-0">
+          <Link href="/" aria-label="Karwan" className="group inline-flex items-center shrink-0">
             <span
               aria-hidden
-              className="inline-flex items-center justify-center w-11 h-11 border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center w-14 h-14 border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5"
               style={{
                 background: '#0e0e0e',
-                borderTopLeftRadius: 11,
-                borderTopRightRadius: 11,
-                borderBottomLeftRadius: 11,
-                borderBottomRightRadius: 3,
+                borderTopLeftRadius: 14,
+                borderTopRightRadius: 14,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 4,
               }}
             >
               <Logo />
-            </span>
-            <span className="hidden min-[360px]:inline font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--color-ink)]">
-              Karwan
             </span>
           </Link>
         </div>
@@ -505,7 +505,7 @@ function LaunchAppCTA() {
 
 function Logo() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M7 17 L10 7 L12 13 L14 7 L17 17"
         stroke="currentColor"
