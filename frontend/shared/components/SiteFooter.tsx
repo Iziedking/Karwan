@@ -91,7 +91,7 @@ export function SiteFooter() {
               >
                 <FooterSocialLink href="https://x.com/karwanBuild" label="X" glyph={<XGlyph />} />
                 <FooterSocialLink
-                  href="https://www.linkedin.com"
+                  href="https://www.linkedin.com/company/karwanbuild"
                   label="LinkedIn"
                   glyph={<LIGlyph />}
                 />
