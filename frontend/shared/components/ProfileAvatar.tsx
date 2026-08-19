@@ -52,9 +52,8 @@ export function ProfileAvatar() {
     <Link
       href="/profile"
       aria-label={nav.hints.profile}
-      title={nav.hints.profile}
       className={cn(
-        'inline-flex shrink-0 items-center gap-2 rounded-full border p-1 transition-colors',
+        'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-1.5 py-1 transition-colors',
         active
           ? 'border-[var(--lp-accent)] bg-[var(--color-surface-2)]'
           : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)]',

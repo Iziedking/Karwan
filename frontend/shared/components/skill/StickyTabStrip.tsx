@@ -133,8 +133,8 @@ export function StickyTabStrip({
     const base = (el.children[0] as HTMLElement).offsetLeft;
     const target = Math.max(0, Math.min(max, cell.offsetLeft - base));
     if (Math.abs(target - el.scrollLeft) < 8) return;
-    el.scrollTo({ left: target, behavior: 'smooth' });
-  }, [active, tabs]);
+    el.scrollTo({ left: target, behavior: reduced ? 'auto' : 'smooth' });
+  }, [active, reduced, tabs]);
 
   /// The peek. Once per session per strip, only from a resting position, only
   /// when something is actually hidden, never under reduced motion. It waits
@@ -200,7 +200,10 @@ export function StickyTabStrip({
   const page = (dir: 'start' | 'end') => {
     const el = listRef.current;
     if (!el) return;
-    el.scrollBy({ left: (dir === 'end' ? 1 : -1) * el.clientWidth * 0.68, behavior: 'smooth' });
+    el.scrollBy({
+      left: (dir === 'end' ? 1 : -1) * el.clientWidth * 0.68,
+      behavior: reduced ? 'auto' : 'smooth',
+    });
   };
 
   /// Frosted surface: dark hero tone at rest, near-opaque on scroll so
@@ -316,7 +319,9 @@ export function StickyTabStrip({
                   onChange?.(t.id);
                   if (t.hash) {
                     const el = document.getElementById(t.hash);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (el) {
+                      el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+                    }
                   }
                 }}
                 className={cn(

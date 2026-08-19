@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { isLandingRoute } from '@/shared/utils/routes';
+import { isPublicEditorialRoute } from '@/shared/utils/routes';
 import {
   subscribeSplash,
   getSplashActive,
@@ -46,7 +46,7 @@ export function TermsModal() {
 
   // The landing routes are decoupled from account state: the Terms gate never
   // shows there, even after a wallet account switch flips the connected user.
-  if (isLandingRoute(pathname)) return null;
+  if (isPublicEditorialRoute(pathname)) return null;
   if (!isAuthenticated) return null;
   // Splash-first, always: the gate holds until the brand loader has fully lifted
   // so the sequence reads SIWE -> splash -> terms, never terms before the splash.

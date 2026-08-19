@@ -221,51 +221,70 @@ export function ReputationBadge({
   // Composite score is meaningful from day one (stake + time terms), so show it
   // whenever we have it; legacy bps only made sense with settled deals.
   const showScore = useComposite ? true : data.totalDeals > 0;
+  const accessibleLabel = `${tier.label}. ${(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}`;
+  const badgeCells = (
+    <>
+      <span aria-hidden className="w-[3px]" style={{ background: tier.color }} />
+      <span
+        className={`flex items-center ${cellPad} mono uppercase tracking-[0.18em] font-semibold ${labelSize}`}
+        style={{ color: tier.color }}
+      >
+        {tier.label}
+      </span>
+      {showScore ? (
+        <>
+          <span
+            aria-hidden
+            className="w-px self-stretch"
+            style={{ background: tier.border }}
+          />
+          <span
+            className={`flex items-center ${cellPad} mono tabular-nums ${scoreSize}`}
+            style={{ color: 'var(--color-ink-dim)' }}
+          >
+            {score}
+          </span>
+        </>
+      ) : null}
+    </>
+  );
 
-  return (
-    <span className="inline-block">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={withDetail ? () => setOpen((s) => !s) : undefined}
-        disabled={!withDetail}
-        aria-haspopup={withDetail ? 'dialog' : undefined}
-        aria-expanded={withDetail ? open : undefined}
-        title={`${tier.label} · ${(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}`}
-        className={`group inline-flex items-stretch border transition-colors ${
-          withDetail ? 'hover:brightness-95' : 'cursor-default'
-        }`}
+  if (!withDetail) {
+    return (
+      <span
+        aria-label={accessibleLabel}
+        className="inline-flex cursor-default items-stretch border"
         style={{
           borderColor: tier.border,
           background: 'var(--color-surface)',
           borderRadius: 2,
         }}
       >
-        <span aria-hidden className="w-[3px]" style={{ background: tier.color }} />
-        <span
-          className={`flex items-center ${cellPad} mono uppercase tracking-[0.18em] font-semibold ${labelSize}`}
-          style={{ color: tier.color }}
-        >
-          {tier.label}
-        </span>
-        {showScore && (
-          <>
-            <span
-              aria-hidden
-              className="w-px self-stretch"
-              style={{ background: tier.border }}
-            />
-            <span
-              className={`flex items-center ${cellPad} mono tabular-nums ${scoreSize}`}
-              style={{ color: 'var(--color-ink-dim)' }}
-            >
-              {score}
-            </span>
-          </>
-        )}
+        {badgeCells}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-block">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={accessibleLabel}
+        className="group inline-flex min-h-11 items-stretch border transition-colors hover:brightness-95"
+        style={{
+          borderColor: tier.border,
+          background: 'var(--color-surface)',
+          borderRadius: 2,
+        }}
+      >
+        {badgeCells}
       </button>
 
-      {withDetail && open && mounted && pos &&
+      {open && mounted && pos &&
         createPortal(
           <div
             ref={popoverRef}
@@ -340,4 +359,3 @@ function StatRow({
     </div>
   );
 }
-

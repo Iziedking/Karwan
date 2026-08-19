@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/shared/utils/cn';
@@ -36,10 +36,11 @@ export function ModularCard({
   topRight?: ReactNode;
   className?: string;
 }) {
+  const reduced = useReducedMotion();
   const body = (
     <motion.div
-      whileHover={{ y: -1.5 }}
-      transition={{ duration: dur.fast, ease: ease.out }}
+      whileHover={reduced ? undefined : { y: -1.5 }}
+      transition={{ duration: reduced ? 0 : dur.fast, ease: ease.out }}
       className={cn(
         'group relative flex flex-col overflow-hidden',
         wide ? 'aspect-[16/9]' : 'aspect-[4/5]',
@@ -102,7 +103,7 @@ export function ModularCard({
         </div>
         <span
           aria-hidden
-          className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-[var(--dur-fast)] group-hover:translate-x-1"
+          className="nudge-fwd shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full transition-transform duration-[var(--dur-fast)]"
           style={{
             background: onDark ? 'rgba(255,255,255,0.06)' : 'rgba(10,10,11,0.05)',
             color: onDark ? 'var(--ink-1)' : 'var(--ink-inv-0)',
@@ -124,7 +125,10 @@ export function ModularCard({
 
   if (!href) return body;
   return (
-    <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 rounded-[14px]">
+    <Link
+      href={href}
+      className="block rounded-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+    >
       {body}
     </Link>
   );

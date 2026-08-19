@@ -27,6 +27,8 @@ interface MessagesShape {
     profile: string;
     deals: string;
     market: string;
+    finance: string;
+    reputation: string;
     bridge: string;
     topUpWithdraw: string;
     topUpBlurb: string;
@@ -112,6 +114,7 @@ interface MessagesShape {
     };
     signUpTag: string;
     stepIndicator: string;
+    profileProgress: string;
     accountTypeStep: {
       headlinePrefix: string;
       headlineAccent: string;
@@ -150,6 +153,7 @@ interface MessagesShape {
       headlinePrefix: string;
       headlineAccent: string;
       connectedAs: string;
+      secureAccount: string;
       description: string;
       continueArrow: string;
       backArrow: string;
@@ -202,7 +206,21 @@ interface MessagesShape {
       };
       saving: string;
       submit: string;
+      error: string;
       defaultDisplayName: string;
+    };
+    getReadyStep: {
+      headlinePrefix: string;
+      headlineAccent: string;
+      body: string;
+      checklist: string;
+      doneBody: string;
+      activate: string;
+      activating: string;
+      retry: string;
+      continue: string;
+      skip: string;
+      error: string;
     };
     validation: {
       displayName: string;
@@ -240,6 +258,21 @@ interface MessagesShape {
       titleIndividual: string;
       titleBusiness: string;
       titleVerified: string;
+    };
+    verification: {
+      eyebrow: string;
+      title: string;
+      status: Record<'unverified' | 'pending' | 'verified' | 'rejected' | 'expired' | 'revoked', string>;
+      body: Record<'unverified' | 'pending' | 'verified' | 'rejected' | 'expired' | 'revoked', string>;
+      capabilities: {
+        directDeals: string;
+        matching: string;
+        reputation: string;
+        business: string;
+        available: string;
+        verificationRequired: string;
+      };
+      reviewBusiness: string;
     };
   };
   banners: {
@@ -521,6 +554,44 @@ interface MessagesShape {
       colContract: string;
       colDeals: string;
       colFunded: string;
+      liveTag: string;
+      blockLabel: string;
+      updatedNow: string;
+      updatedAgo: string;
+      settlementTag: string;
+      financingTag: string;
+      stakingTag: string;
+      treasuryTag: string;
+      registryTag: string;
+      settlementBody: string;
+      financingBody: string;
+      stakingBody: string;
+      advancedLabel: string;
+      repaidLabel: string;
+      financingsLabel: string;
+      defaultsLabel: string;
+      stakedLabel: string;
+      slashedLabel: string;
+      yieldLabel: string;
+      jobsPostedLabel: string;
+      currentTag: string;
+      currentBody: string;
+      custodiedLabel: string;
+      liveCountLabel: string;
+      colBalance: string;
+      colStatus: string;
+      colDeployed: string;
+      colReplaced: string;
+      colEvents: string;
+      colMoved: string;
+      statusLive: string;
+      statusMissing: string;
+      ledgerTag: string;
+      ledgerBody: string;
+      generationsOne: string;
+      generationsMany: string;
+      neverUsed: string;
+      notApplicable: string;
       backToActivity: string;
     };
     view: {
@@ -1475,11 +1546,49 @@ interface MessagesShape {
     businessRegistration: string;
     taxCertificate: string;
   };
+  discovery: {
+    navLabel: string;
+    requestsAndOffers: string;
+    businesses: string;
+  };
   partnersBrowse: {
     sectionTag: string;
     headlineAccent: string;
     allSectors: string;
     regionPlaceholder: string;
+    heroBody: string;
+    pilotBody: string;
+    directoryTitle: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    sectorLabel: string;
+    verifiedOnly: string;
+    sortLabel: string;
+    sortTrust: string;
+    sortName: string;
+    clear: string;
+    resultsOne: string;
+    resultsMany: string;
+    refreshing: string;
+    errorTitle: string;
+    errorBody: string;
+    retry: string;
+    emptyTitle: string;
+    emptyBody: string;
+    identityVerified: string;
+    identityNote: string;
+    listedDetailsNote: string;
+    supplies: string;
+    markets: string;
+    minimumOrder: string;
+    leadTime: string;
+    leadTimeTemplate: string;
+    listedCertifications: string;
+    viewTrustProfile: string;
+    openDeal: string;
+    signInToTrade: string;
+    registerBusiness: string;
+    pilotOnly: string;
   };
   /// Seller and financier only. The buyer never sees this channel, so the copy
   /// says so plainly rather than leaving it to be inferred.
@@ -1828,6 +1937,43 @@ interface MessagesShape {
       offers: string;
       briefs: string;
     };
+    findTag: string;
+    findTitle: string;
+    findBody: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    typeFilterLabel: string;
+    scopeFilterLabel: string;
+    scope: {
+      all: string;
+      services: string;
+      business: string;
+    };
+    sortFilterLabel: string;
+    sort: {
+      newest: string;
+      lowestPrice: string;
+      highestPrice: string;
+    };
+    clearFilters: string;
+    resultsOne: string;
+    resultsMany: string;
+    refreshing: string;
+    retry: string;
+    partial: {
+      offers: string;
+      requests: string;
+      all: string;
+    };
+    sections: {
+      personalTitle: string;
+      personalNote: string;
+      hiringTitle: string;
+      hiringNote: string;
+      businessTitle: string;
+      businessNote: string;
+      businessViewOnlyNote: string;
+    };
     liveCaption: string;
     businessFilterNote: string;
     error: string;
@@ -1835,6 +1981,8 @@ interface MessagesShape {
     emptyAllBody: string;
     emptyFilteredTag: string;
     emptyFilteredTemplate: string;
+    emptyFilteredTitle: string;
+    emptyFilteredBody: string;
     card: {
       statusMatched: string;
       statusOffer: string;
@@ -1848,6 +1996,13 @@ interface MessagesShape {
       metaBidsTemplate: string;
       metaAwaitingBids: string;
       priceUnitTemplate: string;
+      matchedBefore: string;
+      availableUntilTemplate: string;
+      dueTemplate: string;
+      individualSeller: string;
+      businessSeller: string;
+      individualBuyer: string;
+      businessBuyer: string;
     };
   };
   agentWithdrawCard: {
@@ -2296,9 +2451,15 @@ interface MessagesShape {
     };
     funding: {
       cardLabel: string;
+      dealAmount: string;
       buyerFunds: string;
       sellerReceives: string;
       platformFee: string;
+      settlementCurrency: string;
+      feePending: string;
+      totalPending: string;
+      quoteLoading: string;
+      noLocalConversion: string;
       onDeliveryTemplate: string;
       onVerificationTemplate: string;
       protectedEyebrow: string;
@@ -2307,6 +2468,8 @@ interface MessagesShape {
       settled: string;
       awaitingAcceptanceBuyer: string;
       awaitingAcceptanceSeller: string;
+      awaitingFundingBuyer: string;
+      awaitingFundingSeller: string;
       activeBuyer: string;
       activeSeller: string;
     };
@@ -2332,6 +2495,7 @@ interface MessagesShape {
     };
     progressTrack: {
       opened: string;
+      sellerApproved: string;
       accepted: string;
       delivered: string;
       firstReleasedTemplate: string;
@@ -2351,6 +2515,48 @@ interface MessagesShape {
     };
     fundingTxLabel: string;
     refundTxLabel: string;
+    settlementRecord: {
+      title: string;
+      body: string;
+      loadingLabel: string;
+      errorBody: string;
+      retry: string;
+      kinds: { escrow_funding: string; milestone_payout: string };
+      states: {
+        created: string;
+        preparing: string;
+        submitted: string;
+        verifying: string;
+        completed: string;
+        needs_attention: string;
+        cancelled: string;
+      };
+      nextLabel: string;
+      next: {
+        buyer: string;
+        seller: string;
+        counterparty: string;
+        karwan: string;
+        support: string;
+        none: string;
+      };
+      copyReference: string;
+      showProof: string;
+      hideProof: string;
+      legStates: {
+        planned: string;
+        submitted: string;
+        confirmed: string;
+        verified: string;
+        failed: string;
+      };
+      providerReference: string;
+      openProof: string;
+      legacyTitle: string;
+      legacyBody: string;
+      legacyFunding: string;
+      legacyRefund: string;
+    };
     chat: {
       eyebrow: string;
       titleLead: string;
@@ -2398,6 +2604,16 @@ interface MessagesShape {
         acceptBusy: string;
         buyerWaiting: string;
         buyerWaitingInviteTemplate: string;
+        editTermsCta: string;
+        cancelCta: string;
+        cancelBusy: string;
+      };
+      awaitingFunding: {
+        buyerIntro: string;
+        sellerIntro: string;
+        reviewCta: string;
+        quoteBusy: string;
+        retryQuoteCta: string;
         editTermsCta: string;
         cancelCta: string;
         cancelBusy: string;
@@ -2522,6 +2738,20 @@ interface MessagesShape {
       confirmBusy: string;
       cancelCta: string;
     };
+    fundingConsentModal: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      dealAmount: string;
+      buyerFee: string;
+      total: string;
+      sellerReceives: string;
+      settlement: string;
+      noConversion: string;
+      confirmCta: string;
+      confirmBusy: string;
+      cancelCta: string;
+    };
     cancelProposalBanner: {
       kindReleaseToSeller: string;
       kindRefundBuyer: string;
@@ -2584,6 +2814,9 @@ interface MessagesShape {
       insufficientStakeLink: string;
       insufficientStakeSuffix: string;
       acceptEscrowFailedTitle: string;
+      approvalFailed: string;
+      fundingFailed: string;
+      quoteChanged: string;
     };
   };
   walletsPanel: {
@@ -4086,6 +4319,7 @@ interface MessagesShape {
   dealStage: {
     labels: {
       'awaiting-acceptance': string;
+      'awaiting-funding': string;
       'awaiting-delivery': string;
       'awaiting-first-release': string;
       'awaiting-final-release': string;
@@ -4137,6 +4371,8 @@ interface MessagesShape {
       inlineSubtitle: string;
       headline: string;
       body: string;
+      loadError: string;
+      retry: string;
     };
     deals: {
       sectionTag: string;
@@ -4150,10 +4386,15 @@ interface MessagesShape {
       contextDeal: string;
       unit: string;
       open: string;
+      dueTemplate: string;
     };
     chips: {
       acceptToFund: string;
+      agreeTerms: string;
       awaitingSeller: string;
+      awaitingBuyer: string;
+      reviewPriceChange: string;
+      reviewFunding: string;
       markDelivered: string;
       waitingOnSeller: string;
       waitingOnBuyer: string;
@@ -4215,6 +4456,7 @@ interface MessagesShape {
   auth: {
     walletPill: {
       logIn: string;
+      finishSignIn: string;
       wrongNetwork: string;
       networkTooltip: string;
       fallbackChain: string;
@@ -4223,11 +4465,17 @@ interface MessagesShape {
     };
     signInGate: {
       defaultTag: string;
+      heroTag: string;
       heroTitle: string;
       pageTitle: string;
       heroBody: string;
       pageBody: string;
       button: string;
+      pillars: {
+        protection: { title: string; body: string };
+        milestones: { title: string; body: string };
+        receipt: { title: string; body: string };
+      };
     };
     modal: {
       aria: {
@@ -4258,6 +4506,11 @@ interface MessagesShape {
       pickMethod: {
         continueEmail: string;
         connectWallet: string;
+        continueWallet: string;
+        preparingWallet: string;
+        checkWallet: string;
+        verifyingWallet: string;
+        walletRetry: string;
         or: string;
         emailNotConfigured: string;
       };
@@ -4326,12 +4579,14 @@ export const en: MessagesShape = {
     stake: 'Stake',
     profile: 'Profile',
     deals: 'Deals',
-    market: 'Market',
+    market: 'Discover',
+    finance: 'Finance',
+    reputation: 'Reputation',
     bridge: 'Bridge',
     topUpWithdraw: 'Deposit / Withdraw',
     topUpBlurb: 'Move USDC in and out of Arc.',
     smeTrades: 'SME Trades',
-    trades: 'P2P Trades',
+    trades: 'Trade',
     tradesGroupEyebrow: 'P2P Trades',
     soonBadge: 'soon',
     hints: {
@@ -4412,6 +4667,7 @@ export const en: MessagesShape = {
     },
     signUpTag: 'SIGN UP',
     stepIndicator: 'SIGN UP · STEP {step} OF {total}',
+    profileProgress: 'Section {current} of {total}',
     accountTypeStep: {
       headlinePrefix: 'Set up your ',
       headlineAccent: 'account',
@@ -4423,7 +4679,7 @@ export const en: MessagesShape = {
         tagline: 'For freelancers, consultants, and independent traders.',
       },
       business: {
-        eyebrow: 'VERIFIED',
+        eyebrow: 'BUSINESS',
         title: 'Business',
         body: 'Operate as a company, manage both sides of trade, and access business tools after verification.',
         tagline: 'For registered companies and cross-border SMEs.',
@@ -4450,16 +4706,17 @@ export const en: MessagesShape = {
       maxLabel: 'Typical max (USDC)',
     },
     connectStep: {
-      headlinePrefix: 'Connect your ',
-      headlineAccent: 'wallet',
-      bodyText: 'Karwan identifies you by a wallet. Connect an EVM wallet, or sign in with email and Circle provisions one for you.',
-      loginButton: 'Log in',
-      fineprint: 'Wallet or email. Both land you with an Arc address.',
+      headlinePrefix: 'Secure your ',
+      headlineAccent: 'account',
+      bodyText: 'Use email for the simplest setup. If you already use a compatible wallet, you can connect it instead.',
+      loginButton: 'Sign in',
+      fineprint: 'Your account stays yours. Add a passkey later for faster sign-in.',
     },
     roleStep: {
       headlinePrefix: 'How will you use ',
       headlineAccent: 'Karwan',
-      connectedAs: 'Connected as',
+      connectedAs: 'Signed in as',
+      secureAccount: 'Secure Karwan account',
       description: 'Choose what you want to do first. You can enable the other role later from your profile.',
       continueArrow: 'Continue →',
       backArrow: 'Back',
@@ -4467,23 +4724,23 @@ export const en: MessagesShape = {
         seller: {
           eyebrow: 'TAKE WORK',
           title: 'Sell your services',
-          body: 'Your seller agent monitors matching requests and prepares bids within the limits you set.',
+          body: 'Karwan watches relevant requests and prepares suitable matches. You decide which opportunities to pursue.',
           tagline: 'For freelancers, specialists, and service providers.',
         },
         buyer: {
           eyebrow: 'HIRE SOMEONE',
           title: 'Hire through Karwan',
-          body: 'Post a request. Your buyer agent compares bids, negotiates within your limits, and presents the best terms for approval.',
+          body: 'Post a request. Karwan compares suitable counterparties and terms. You approve who to work with.',
           tagline: 'For founders, teams, and procurement.',
         },
         both: {
           eyebrow: 'BOTH',
           title: 'Buy and sell',
-          body: 'Manage requests and offers from one account, with one reputation across both roles.',
+          body: 'Manage requests and offers from one account. You approve every deal before anything moves.',
           tagline: 'Best for businesses and active marketplace users.',
         },
       },
-      topBadge: '★ TOP',
+      topBadge: 'RECOMMENDED',
       selected: 'selected',
     },
     profileStep: {
@@ -4503,7 +4760,7 @@ export const en: MessagesShape = {
         bioLabel: 'Bio',
         bioHint: 'One or two sentences shown to buyers.',
         minBudgetLabel: 'Min budget (USDC)',
-        minBudgetHint: 'Smallest job you will take, in USDC. Requests priced below this are filtered out before your agent bids.',
+        minBudgetHint: 'Smallest job you will take, in USDC. Requests below this stay out of your matches.',
         maxBudgetLabel: 'Max budget (USDC)',
         maxBudgetHint: 'Largest job you will take, in USDC. Requests priced above this are skipped.',
         minDeadlineLabel: 'Min deadline (days)',
@@ -4515,9 +4772,9 @@ export const en: MessagesShape = {
         eyebrow: 'HIRE SOMEONE',
         title: 'Buyer profile',
         maxBudgetLabel: 'Max budget per job (USDC)',
-        maxBudgetHint: 'The most you will pay for one job, in USDC. Your agent never bids or settles above this.',
-        bidWindowLabel: 'Bid window (sec)',
-        bidWindowHint: 'Seconds your agent collects seller bids before it scores them and picks. 30 is fine for testing. Raise it to gather more bids.',
+        maxBudgetHint: 'The most you will pay for one job, in USDC. Karwan does not present terms above this limit.',
+        bidWindowLabel: 'Offer window (sec)',
+        bidWindowHint: 'Time Karwan gathers offers before presenting the strongest matches.',
         minDeadlineLabel: 'Min deadline (days)',
         minDeadlineHint: 'Shortest delivery time you would give a seller for a job.',
         maxDeadlineLabel: 'Max deadline (days)',
@@ -4526,8 +4783,22 @@ export const en: MessagesShape = {
         splitHint: 'Comma-separated percentages that total 100. Example: 50,50 or 30,40,30.',
       },
       saving: 'Saving…',
-      submit: 'Save & activate ↗',
+      submit: 'Save profile →',
+      error: 'We could not save your profile. Check your connection and try again.',
       defaultDisplayName: 'Karwan user {shortAddress}',
+    },
+    getReadyStep: {
+      headlinePrefix: 'Ready to ',
+      headlineAccent: 'begin',
+      body: 'Enable matching so Karwan can surface suitable counterparties and prepare terms for your review. You approve every deal.',
+      checklist: 'Matching workspace enabled',
+      doneBody: 'Your workspace is ready. Complete verification when required, or start exploring counterparties.',
+      activate: 'Enable matching →',
+      activating: 'Preparing workspace…',
+      retry: 'Try again',
+      continue: 'View profile →',
+      skip: 'Skip for now',
+      error: 'Setup could not finish. Try again, or enable matching later from your profile.',
     },
     validation: {
       displayName: 'Add a display name.',
@@ -4538,7 +4809,7 @@ export const en: MessagesShape = {
       sellerMinDeadline: 'Seller minimum deadline must be at least 1 day.',
       sellerMaxDeadline: 'Seller max deadline must be at least the min.',
       buyerMaxBudget: 'Set a buyer max budget above 0.',
-      bidWindow: 'Bid window must be at least 10 seconds.',
+      bidWindow: 'Offer window must be at least 10 seconds.',
       buyerMinDeadline: 'Buyer minimum deadline must be at least 1 day.',
       buyerMaxDeadline: 'Buyer max deadline must be at least the min.',
       splitEmpty: 'Milestone split needs at least one number.',
@@ -4566,6 +4837,35 @@ export const en: MessagesShape = {
       // Never let the badge imply a verification that has not happened.
       titleBusiness: 'Business account. Not verified yet.',
       titleVerified: 'Verified business account',
+    },
+    verification: {
+      eyebrow: 'ACCOUNT CHECKS',
+      title: 'Verification',
+      status: {
+        unverified: 'Not verified',
+        pending: 'Under review',
+        verified: 'Verified',
+        rejected: 'Needs attention',
+        expired: 'Expired',
+        revoked: 'Revoked',
+      },
+      body: {
+        unverified: 'Direct deals remain available. Verification may unlock matching, reputation, and business tools.',
+        pending: 'Your evidence is being reviewed. You can continue with any available direct-deal actions.',
+        verified: 'The submitted evidence passed the current review policy. This does not guarantee future performance.',
+        rejected: 'The submitted evidence did not pass review. Check the business section before resubmitting.',
+        expired: 'The previous verification is no longer current. Submit updated evidence to restore access.',
+        revoked: 'This verification is no longer active. Contact support before relying on it.',
+      },
+      capabilities: {
+        directDeals: 'Direct deals',
+        matching: 'Counterparty matching',
+        reputation: 'Reputation access',
+        business: 'Business tools',
+        available: 'Available',
+        verificationRequired: 'Verification required',
+      },
+      reviewBusiness: 'Review business verification →',
     },
   },
   banners: {
@@ -4840,6 +5140,44 @@ export const en: MessagesShape = {
       colContract: 'CONTRACT',
       colDeals: 'DEALS',
       colFunded: 'VOLUME',
+      liveTag: 'LIVE',
+      blockLabel: 'BLOCK {block}',
+      updatedNow: 'Updated just now',
+      updatedAgo: 'Updated {n}s ago',
+      settlementTag: 'SETTLEMENT',
+      financingTag: 'TRADE FINANCE',
+      stakingTag: 'STAKING',
+      treasuryTag: 'TREASURY',
+      registryTag: 'REGISTRIES',
+      settlementBody: 'Buyers funding escrow, and money released as delivery was accepted.',
+      financingBody: 'Financiers paying suppliers ahead of settlement, against an invoice or a purchase order.',
+      stakingBody: 'Sellers locking capital behind their deals, and what a lost dispute took from it.',
+      advancedLabel: 'CAPITAL ADVANCED',
+      repaidLabel: 'ADVANCES REPAID',
+      financingsLabel: 'ADVANCES',
+      defaultsLabel: 'DEFAULTED',
+      stakedLabel: 'STAKE LOCKED',
+      slashedLabel: 'STAKE SLASHED',
+      yieldLabel: 'YIELD CLAIMED',
+      jobsPostedLabel: 'REQUESTS POSTED',
+      currentTag: 'IN SERVICE NOW',
+      currentBody: 'The contracts this deployment is wired to, with what each one holds. Read from the chain, refreshed daily.',
+      custodiedLabel: 'HELD IN CONTRACTS',
+      liveCountLabel: 'LIVE CONTRACTS',
+      colBalance: 'HOLDS',
+      colStatus: 'STATUS',
+      colDeployed: 'DEPLOYED',
+      colReplaced: 'REPLACED',
+      colEvents: 'EVENTS',
+      colMoved: 'MOVED',
+      statusLive: 'LIVE',
+      statusMissing: 'NO CODE',
+      ledgerTag: 'EVERY GENERATION',
+      ledgerBody: 'Each contract Karwan has deployed, grouped by what it does. Retired ones stay listed: their totals are part of the number above.',
+      generationsOne: '1 generation',
+      generationsMany: '{n} generations',
+      neverUsed: 'Never used',
+      notApplicable: 'n/a',
       backToActivity: 'BACK TO ACTIVITY',
     },
     view: {
@@ -5300,11 +5638,11 @@ export const en: MessagesShape = {
       termsPlaceholder: 'e.g. Logo redesign with 2 revision rounds. Final files in SVG + PNG.',
     },
     funding: {
-      header: 'FUNDING BREAKDOWN · 1.5% FEE, SPLIT EVENLY',
-      youFundLabel: 'You fund',
+      header: 'FUNDING SUMMARY',
+      youFundLabel: 'Deal amount',
       sellerReceivesLabel: 'Seller receives',
       platformFeeLabel: 'Platform fee',
-      footerTemplate: '↳ {delivery}% on delivery · {verification}% on verification · funds when seller accepts',
+      footerTemplate: 'The current fee and exact total appear after the seller agrees. Nothing is funded when you open this deal. Karwan settles in USDC; local-currency conversion is not included.',
     },
     trustedMatch: {
       eyebrow: '[:TRUSTED MATCH:]',
@@ -5316,9 +5654,9 @@ export const en: MessagesShape = {
     submit: {
       opening: 'Opening deal...',
       open: 'Open deal',
-      fundsCaption: '↳ funds when seller accepts',
+      fundsCaption: '↳ sends terms for seller agreement; you fund only after reviewing the exact total',
     },
-    errorPrefix: "Couldn't open deal:",
+    errorPrefix: 'Could not open this deal. Review the details and try again.',
     deadlineUnitAria: 'Deadline unit',
     unitPickerLabels: {
       min: 'MIN',
@@ -5944,11 +6282,49 @@ export const en: MessagesShape = {
     businessRegistration: 'Business registration',
     taxCertificate: 'Tax certificate',
   },
+  discovery: {
+    navLabel: 'Discovery sections',
+    requestsAndOffers: 'Requests and offers',
+    businesses: 'Businesses',
+  },
   partnersBrowse: {
     sectionTag: 'FIND PARTNERS',
     headlineAccent: 'business partner',
     allSectors: 'All sectors',
     regionPlaceholder: 'e.g. Dubai, or South Asia',
+    heroBody: 'Browse real business profiles by sector, market, and location. Identity checks and trading history stay visible before you decide who to contact.',
+    pilotBody: 'Business deal tools are currently available to approved pilot accounts. The directory and public trust profiles remain open to everyone.',
+    directoryTitle: 'Browse business profiles',
+    searchLabel: 'Search businesses',
+    searchPlaceholder: 'Name, market, location, or certification',
+    sectorLabel: 'Sector',
+    verifiedOnly: 'Identity verified',
+    sortLabel: 'Sort',
+    sortTrust: 'Verified first',
+    sortName: 'Name',
+    clear: 'Clear filters',
+    resultsOne: '1 business found',
+    resultsMany: '{n} businesses found',
+    refreshing: 'Refreshing directory',
+    errorTitle: 'Business profiles are unavailable.',
+    errorBody: 'We could not reach the directory. Your filters are preserved.',
+    retry: 'Try again',
+    emptyTitle: 'No businesses match these filters.',
+    emptyBody: 'Clear a filter or search another market. Karwan will not invent a result when no profile matches.',
+    identityVerified: 'Business identity verified',
+    identityNote: 'Karwan reviewed the business identity. This is not a performance guarantee.',
+    listedDetailsNote: 'Business-supplied profile details',
+    supplies: 'Can supply',
+    markets: 'Markets',
+    minimumOrder: 'Minimum order',
+    leadTime: 'Lead time',
+    leadTimeTemplate: '{n} day lead time',
+    listedCertifications: 'Listed certifications',
+    viewTrustProfile: 'View trust profile',
+    openDeal: 'Open a deal',
+    signInToTrade: 'Sign in to trade',
+    registerBusiness: 'Register a business',
+    pilotOnly: 'Business trading pilot',
   },
   financingChat: {
     title: 'Seller \u2194 financier',
@@ -6315,6 +6691,43 @@ export const en: MessagesShape = {
       offers: 'Offers',
       briefs: 'Requests',
     },
+    findTag: 'DISCOVER',
+    findTitle: 'Find the right trade.',
+    findBody: 'Search real requests and offers, then narrow by transaction type and price. Match proposals always require a person to review the terms.',
+    searchLabel: 'Search requests and offers',
+    searchPlaceholder: 'What do you need, sell, or deliver?',
+    typeFilterLabel: 'Type',
+    scopeFilterLabel: 'Market',
+    scope: {
+      all: 'All markets',
+      services: 'Services',
+      business: 'Business',
+    },
+    sortFilterLabel: 'Sort',
+    sort: {
+      newest: 'Newest',
+      lowestPrice: 'Lowest price',
+      highestPrice: 'Highest price',
+    },
+    clearFilters: 'Clear filters',
+    resultsOne: '1 result',
+    resultsMany: '{n} results',
+    refreshing: 'Refreshing market',
+    retry: 'Try again',
+    partial: {
+      offers: 'Offers could not be refreshed. Current requests are still shown.',
+      requests: 'Requests could not be refreshed. Current offers are still shown.',
+      all: 'The market could not be refreshed. Try again when your connection returns.',
+    },
+    sections: {
+      personalTitle: 'Open trades',
+      personalNote: 'Requests and offers from individuals.',
+      hiringTitle: 'Businesses hiring',
+      hiringNote: 'Service requests and offers involving a business.',
+      businessTitle: 'Business trades',
+      businessNote: 'Open trade-finance requests and offers.',
+      businessViewOnlyNote: 'Visible here. A business account is required to act.',
+    },
     liveCaption: 'LIVE FROM KARWAN',
     businessFilterNote: 'BUSINESS TRADES ONLY',
     error: "Couldn't load the marketplace.",
@@ -6322,6 +6735,8 @@ export const en: MessagesShape = {
     emptyAllBody: 'No offers or requests yet. Post one to start the network.',
     emptyFilteredTag: 'NO MATCH',
     emptyFilteredTemplate: 'No {side} right now.',
+    emptyFilteredTitle: 'No results match these filters.',
+    emptyFilteredBody: 'Clear a filter or try a broader search. Karwan will not invent a result when nothing matches.',
     card: {
       statusMatched: 'MATCHED',
       statusOffer: 'OFFER',
@@ -6335,6 +6750,13 @@ export const en: MessagesShape = {
       metaBidsTemplate: '{n} bids',
       metaAwaitingBids: 'awaiting bids',
       priceUnitTemplate: 'USDC {label}',
+      matchedBefore: 'Matched before',
+      availableUntilTemplate: 'Available {time}',
+      dueTemplate: 'Due {time}',
+      individualSeller: 'Individual seller',
+      businessSeller: 'Business seller',
+      individualBuyer: 'Individual buyer',
+      businessBuyer: 'Business buyer',
     },
   },
   agentWithdrawCard: {
@@ -6796,18 +7218,26 @@ export const en: MessagesShape = {
       youSuffix: 'you',
     },
     funding: {
-      cardLabel: 'Funding · 1.5% fee, split evenly',
+      cardLabel: 'Funding summary',
+      dealAmount: 'Deal amount',
       buyerFunds: 'Buyer funds',
       sellerReceives: 'Seller receives',
       platformFee: 'Platform fee',
+      settlementCurrency: 'Settlement currency',
+      feePending: 'Confirmed after seller agrees',
+      totalPending: 'Not authorized yet',
+      quoteLoading: 'Checking the current fee',
+      noLocalConversion: 'Karwan settles this deal in USDC. Local-currency conversion is not included in this quote.',
       onDeliveryTemplate: 'On delivery · {pct}%',
       onVerificationTemplate: 'On verification · {pct}%',
       protectedEyebrow: 'PROTECTED',
     },
     fundingSafety: {
       settled: 'Settled on chain. The escrow paid out in full.',
-      awaitingAcceptanceBuyer: 'When the seller accepts, your payment locks in escrow on Arc. Released only as milestones clear, only when you say so.',
-      awaitingAcceptanceSeller: "Accept and the buyer's payment locks in escrow on Arc. It becomes yours as you deliver.",
+      awaitingAcceptanceBuyer: 'Waiting for the seller to agree. No money has moved, and you will review the exact total before funding.',
+      awaitingAcceptanceSeller: 'Agreeing confirms the terms. The buyer reviews the exact total and funds escrow afterward.',
+      awaitingFundingBuyer: 'The seller agreed. No money has moved. Review the exact total before you fund escrow.',
+      awaitingFundingSeller: 'You agreed to the terms. No buyer money has moved. Work starts after the buyer funds escrow.',
       activeBuyer: 'Your payment is locked in escrow on Arc. The seller is paid only as milestones clear, and only when you release.',
       activeSeller: "The buyer's payment is locked in escrow on Arc. It becomes yours as milestones clear. No one can pull it back on a whim.",
     },
@@ -6833,7 +7263,8 @@ export const en: MessagesShape = {
     },
     progressTrack: {
       opened: 'Deal opened',
-      accepted: 'Seller accepted · escrow funded',
+      sellerApproved: 'Seller agreed to terms',
+      accepted: 'Buyer funded escrow',
       delivered: 'Seller marked delivered',
       firstReleasedTemplate: 'First {pct}% released',
       finalReleasedTemplate: 'Final {pct}% released',
@@ -6852,6 +7283,51 @@ export const en: MessagesShape = {
     },
     fundingTxLabel: 'FUNDING TX',
     refundTxLabel: 'REFUND TX',
+    settlementRecord: {
+      title: 'Settlement record',
+      body: 'One reference follows each money movement from request to verified completion.',
+      loadingLabel: 'Checking settlement records',
+      errorBody: 'Settlement records are unavailable right now. Your deal details are unchanged.',
+      retry: 'Try again',
+      kinds: {
+        escrow_funding: 'Escrow funding',
+        milestone_payout: 'Milestone payout',
+      },
+      states: {
+        created: 'Request recorded',
+        preparing: 'Preparing payment',
+        submitted: 'Payment submitted',
+        verifying: 'Verifying completion',
+        completed: 'Completed',
+        needs_attention: 'Needs attention',
+        cancelled: 'Cancelled',
+      },
+      nextLabel: 'Next',
+      next: {
+        buyer: 'Buyer action required',
+        seller: 'Seller action required',
+        counterparty: 'Counterparty action required',
+        karwan: 'Karwan is checking the movement',
+        support: 'Support review required',
+        none: 'No action required',
+      },
+      copyReference: 'Copy settlement reference {reference}',
+      showProof: 'Show proof',
+      hideProof: 'Hide proof',
+      legStates: {
+        planned: 'Recorded',
+        submitted: 'Submitted',
+        confirmed: 'Receipt confirmed',
+        verified: 'Effect verified',
+        failed: 'Did not complete',
+      },
+      providerReference: 'Provider reference',
+      openProof: 'Open proof',
+      legacyTitle: 'EARLIER RECEIPT',
+      legacyBody: 'This deal predates Karwan settlement references. Its original receipt remains available.',
+      legacyFunding: 'Funding receipt',
+      legacyRefund: 'Refund receipt',
+    },
     chat: {
       eyebrow: 'CHAT',
       titleLead: 'Talk to your',
@@ -6871,7 +7347,7 @@ export const en: MessagesShape = {
         repeatDeal: 'Repeat this deal',
       },
       cancelled: {
-        preAccept: 'Cancelled. The buyer withdrew before the seller accepted, so no escrow was funded.',
+        preAccept: 'Cancelled before funding. No money moved and neither side takes a reputation impact.',
         unilateral: 'Cancelled. The deadline passed without delivery, so the escrow was refunded to the buyer in full.',
         refundFromDisputePrefix: 'Closed via dispute resolution. {tail}',
         refundFromDisputePartialTailTemplate: 'The first {firstPct}% had already been released; the remaining {remainPct}% refunded to the buyer.',
@@ -6891,14 +7367,24 @@ export const en: MessagesShape = {
         releaseBody: 'The seller is paid the full escrow.',
       },
       awaitingAcceptance: {
-        sellerIntro: 'Review terms and the funding split. Accepting agrees to deliver on these terms and funds the escrow.',
+        sellerIntro: 'Review the terms. Agreeing confirms that you will deliver on them. The buyer reviews the exact total and funds escrow afterward.',
         trustedMatchPrefix: 'Trusted match. You need',
         trustedMatchMiddleTemplate: 'free in your stake to accept ({pct}% of {amount}).',
         trustedMatchSuffix: 'It releases back when the deal settles, or slashes to the buyer if you lose a dispute.',
-        acceptCta: 'Accept deal',
-        acceptBusy: 'Confirming on Arc…',
-        buyerWaiting: 'Waiting for the seller to accept. Nothing is funded yet. You can cancel anytime until they accept.',
+        acceptCta: 'Agree to terms',
+        acceptBusy: 'Recording agreement…',
+        buyerWaiting: 'Waiting for the seller to agree. Nothing is funded yet. You can edit or cancel before they agree.',
         buyerWaitingInviteTemplate: 'Waiting for {email} to claim the invite link. Nothing is funded yet.',
+        editTermsCta: 'Edit terms',
+        cancelCta: 'Cancel deal',
+        cancelBusy: 'Working…',
+      },
+      awaitingFunding: {
+        buyerIntro: 'The seller agreed. Review the current fee and exact amount before you authorize escrow funding.',
+        sellerIntro: 'You agreed to the terms. The buyer is reviewing the current fee and exact total. No funds are locked yet.',
+        reviewCta: 'Review and fund',
+        quoteBusy: 'Checking current fee…',
+        retryQuoteCta: 'Retry quote',
         editTermsCta: 'Edit terms',
         cancelCta: 'Cancel deal',
         cancelBusy: 'Working…',
@@ -6976,10 +7462,10 @@ export const en: MessagesShape = {
       },
       acceptanceCountdown: {
         openSellerPrefix: 'You have',
-        openSellerSuffix: 'to accept before the deal auto-expires.',
-        openBuyerPrefix: "Seller's window:",
-        openBuyerSuffix: 'before the deal auto-expires (pre-accept, no rep hit).',
-        expired: 'Acceptance window passed. The agent will mark this deal cancelled (pre-accept) on the next tick.',
+        openSellerSuffix: 'to agree before the deal auto-expires.',
+        openBuyerPrefix: "Seller's agreement window:",
+        openBuyerSuffix: 'before the deal auto-expires (no funds moved, no reputation impact).',
+        expired: 'The agreement window passed. The agent will mark this deal cancelled on the next check.',
       },
       extensionDuration: {
         dayTemplate: '{n} day',
@@ -7018,10 +7504,24 @@ export const en: MessagesShape = {
     acceptConsentModal: {
       eyebrow: 'CIRCLE WALLETS',
       title: 'An agent wallet will be created',
-      body: 'Accepting provisions a Circle agent wallet pair tied to your wallet. Buyer escrow funds against it. Your seller agent receives payouts. One-time setup.',
-      confirmCta: 'Proceed & accept',
+      body: 'Agreeing may prepare a Circle agent wallet for your payouts. It does not move buyer money. The buyer reviews and funds escrow separately.',
+      confirmCta: 'Set up and agree',
       confirmBusy: 'Setting up your wallet…',
       cancelCta: 'Not now',
+    },
+    fundingConsentModal: {
+      eyebrow: 'FINAL REVIEW',
+      title: 'Fund this deal',
+      body: 'Review the exact amount below. Confirming authorizes only this total. If the fee changes first, Karwan stops and asks you to review again.',
+      dealAmount: 'Deal amount',
+      buyerFee: 'Your fee',
+      total: 'Total to fund',
+      sellerReceives: 'Seller receives',
+      settlement: 'Settlement currency',
+      noConversion: 'Karwan settles in USDC. Local-currency conversion is not included.',
+      confirmCta: 'Confirm and fund',
+      confirmBusy: 'Funding escrow…',
+      cancelCta: 'Go back',
     },
     cancelProposalBanner: {
       kindReleaseToSeller: 'RELEASE TO SELLER',
@@ -7076,15 +7576,18 @@ export const en: MessagesShape = {
       cancelCta: 'Not now',
     },
     errors: {
-      insufficientBalanceTitle: "Buyer agent doesn't have enough USDC on Arc.",
-      insufficientBalanceBuyerPrefix: 'Top up the buyer agent from your profile, then the seller can accept.',
+      insufficientBalanceTitle: 'Your account needs more USDC to fund this deal.',
+      insufficientBalanceBuyerPrefix: 'Add funds to your buyer account, then try again.',
       insufficientBalanceBuyerLink: 'Fund agent',
-      insufficientBalanceSeller: 'The buyer has been notified. Try accepting again once funded.',
-      insufficientGas: "The buyer agent doesn't have enough native gas on Arc to send this transaction.",
-      insufficientStakeTitle: "Your seller agent doesn't have enough free stake to backstop this deal.",
+      insufficientBalanceSeller: 'The buyer needs to add funds before escrow can start.',
+      insufficientGas: 'Karwan could not cover the transaction cost. Try again shortly or contact support.',
+      insufficientStakeTitle: 'The seller needs more available stake before this trusted deal can be funded.',
       insufficientStakeLink: 'Stake more',
-      insufficientStakeSuffix: 'then return here to accept.',
-      acceptEscrowFailedTitle: 'Could not accept the escrow on chain.',
+      insufficientStakeSuffix: 'then return here and try again.',
+      acceptEscrowFailedTitle: 'Escrow activation did not finish. The deal is not active. Retry is safe because existing funding is checked first.',
+      approvalFailed: 'Karwan could not record the seller agreement. Try again.',
+      fundingFailed: 'Karwan could not confirm escrow activation. The deal was not marked active. Retry is safe because Karwan checks the existing escrow before any new transfer.',
+      quoteChanged: 'The fee changed before confirmation. Review the refreshed total before trying again.',
     },
   },
   walletsPanel: {
@@ -7988,7 +8491,7 @@ export const en: MessagesShape = {
       lede: 'Choose based on whether you already know who is on the other side.',
       direct: {
         label: 'Direct deal.',
-        body: 'You already have a counterparty. Name their wallet or email, set the deal terms, then send it for acceptance. Escrow funds after acceptance.',
+        body: 'You already have a counterparty. Name their wallet or email, set the terms, and send them for agreement. After the seller agrees, you review the live fee and exact total before funding escrow.',
       },
       matched: {
         label: 'Agent-matched deal.',
@@ -8166,7 +8669,7 @@ export const en: MessagesShape = {
     lifecycle: {
       heading: 'The lifecycle',
       open: { label: 'Open.', body: 'A buyer opens a direct deal or approves a proposal from the matching flow.' },
-      acceptFund: { label: 'Accept and fund.', body: 'The seller accepts the terms. The escrow funds with the deal amount and the buyer\'s half of the platform fee. A portion of the seller\'s stake reserves against the deal as insurance.' },
+      acceptFund: { label: 'Agree, then fund.', body: 'The seller agrees to the terms first. The buyer then reviews the live fee and exact total before funding escrow. On a trusted deal, seller stake reserves only when funding is activated.' },
       deliver: { label: 'Deliver.', body: 'The seller marks delivery against proof the buyer can check. For goods, dispatch and arrival are separate events. The buyer reviews the proof before releasing a milestone.' },
       release: { label: 'Release.', body: 'The buyer releases the first milestone, then verifies and releases the rest. The escrow settles, the reservation returns to the seller\'s free stake, and the reputation registry records a clean outcome.' },
       summary: 'The deal page tracks every stage with a progress strip on top and a next-move panel below it, so both sides always know exactly where the deal is and what they can do.',
@@ -8349,8 +8852,8 @@ export const en: MessagesShape = {
       eyebrow: 'Direct deal',
       title: 'When you already have a counterparty',
       body: 'You agreed with someone off-platform. Karwan just secures the money while the work gets done.',
-      step1: { title: 'Open the deal', cta: 'Open buyer dashboard', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet address, the amount, a deadline, and how much releases on delivery. The escrow funds on Arc, naming that seller directly.' },
-      step2: { title: 'Seller delivers', body: 'The seller signs in with the wallet you named. The deal is waiting on their dashboard. When the work is done, they mark it delivered, which unlocks your releases.' },
+      step1: { title: 'Agree and fund', cta: 'Open buyer dashboard', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet or email, the amount, deadline, and milestones. The seller agrees first. You then review the current fee and exact total before funding escrow.' },
+      step2: { title: 'Seller delivers', body: 'Work starts only after the deal shows escrow funded. When the work is done, the seller marks it delivered, which unlocks your releases.' },
       step3: { title: 'Release in tranches', body: 'You release the first slice, then verify the work and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
     },
     managedDeal: {
@@ -8788,6 +9291,7 @@ export const en: MessagesShape = {
   dealStage: {
     labels: {
       'awaiting-acceptance': 'Pending acceptance',
+      'awaiting-funding': 'Ready to fund',
       'awaiting-delivery': 'Awaiting delivery',
       'awaiting-first-release': 'Delivered',
       'awaiting-final-release': 'Releasing',
@@ -8836,9 +9340,11 @@ export const en: MessagesShape = {
     matches: {
       sectionTag: 'PENDING MATCHES',
       inlineEyebrow: 'PENDING MATCHES',
-      inlineSubtitle: 'OPEN ANY TO ACT',
+      inlineSubtitle: 'REVIEW BEFORE CONFIRMING',
       headline: 'Pending matches',
-      body: "Open one to act. The seller accepts; the buyer's agent funds escrow automatically.",
+      body: 'An agent found a possible fit. Open it to review the price, timing, counterparty signals, and what confirmation will do.',
+      loadError: 'We could not check your pending matches. Existing cards may be out of date.',
+      retry: 'Try again',
     },
     deals: {
       sectionTag: 'OPEN DEALS',
@@ -8852,10 +9358,15 @@ export const en: MessagesShape = {
       contextDeal: 'DEAL',
       unit: 'USDC',
       open: 'OPEN',
+      dueTemplate: 'DUE {date}',
     },
     chips: {
-      acceptToFund: 'ACCEPT TO FUND',
-      awaitingSeller: 'AWAITING SELLER',
+      acceptToFund: 'REVIEW MATCH',
+      agreeTerms: 'AGREE TO TERMS',
+      awaitingSeller: 'SELLER REVIEWING',
+      awaitingBuyer: 'BUYER REVIEWING',
+      reviewPriceChange: 'REVIEW PRICE CHANGE',
+      reviewFunding: 'REVIEW FUNDING',
       markDelivered: 'MARK DELIVERED',
       waitingOnSeller: 'WAITING ON SELLER',
       waitingOnBuyer: 'WAITING ON BUYER',
@@ -8925,6 +9436,7 @@ export const en: MessagesShape = {
   auth: {
     walletPill: {
       logIn: 'Sign in',
+      finishSignIn: 'Finish sign in',
       wrongNetwork: 'Wrong network',
       networkTooltip: 'On {chain}. Tap to switch or manage.',
       fallbackChain: 'unknown network',
@@ -8933,11 +9445,26 @@ export const en: MessagesShape = {
     },
     signInGate: {
       defaultTag: 'SIGN IN',
-      heroTitle: 'Settle cross-border trade in minutes',
+      heroTag: 'SECURE TRADE',
+      heroTitle: 'Trade securely across borders',
       pageTitle: 'Sign in to continue',
-      heroBody: 'USDC is held in milestone escrow on Arc and released as agreed work is delivered. Agents coordinate matching and negotiation; you approve the final terms. Sign in with email or wallet to begin.',
+      heroBody: 'Karwan secures each payment, releases it as agreed work is delivered, and keeps a receipt both sides can verify. Agents help find and assess counterparties. You approve the final terms.',
       pageBody: 'Sign in with email or wallet to continue securely across Karwan.',
       button: 'Sign in',
+      pillars: {
+        protection: {
+          title: 'Payment protection',
+          body: 'Funds are secured after both sides approve the terms.',
+        },
+        milestones: {
+          title: 'Milestone release',
+          body: 'Payments release in agreed parts as work is delivered.',
+        },
+        receipt: {
+          title: 'Verifiable receipt',
+          body: 'Every completed payment creates a receipt both sides can check.',
+        },
+      },
     },
     modal: {
       aria: {
@@ -8959,15 +9486,20 @@ export const en: MessagesShape = {
         checkInbox: 'Check your inbox',
       },
       subtitle: {
-        pickMethod: 'Karwan identifies you by a wallet. Pick a path. We provision the rest.',
-        lookup: "We'll check if you already have an account and pick the right sign-in path.",
+        pickMethod: 'Continue with email, or use a compatible wallet if you already have one.',
+        lookup: "We'll check whether this email already has a Karwan account.",
         signingInAs: 'Signing in as',
-        creatingAccount: 'Your wallet is provisioned automatically.',
+        creatingAccount: 'Your secure account is created automatically.',
         codeSentTo: 'Code sent. Enter the 6 digits.',
       },
       pickMethod: {
         continueEmail: 'Continue with email',
         connectWallet: 'Connect a wallet',
+        continueWallet: 'Continue with wallet',
+        preparingWallet: 'Preparing secure sign in…',
+        checkWallet: 'Confirm in your wallet',
+        verifyingWallet: 'Verifying…',
+        walletRetry: "We couldn't finish sign in. Try again.",
         or: 'OR',
         emailNotConfigured: 'Email login is not configured on this backend.',
       },

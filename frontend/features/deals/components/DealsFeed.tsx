@@ -11,6 +11,7 @@ type Filter = 'all' | 'active' | 'completed';
 
 const ACTIVE_STAGES: DealStage[] = [
   'awaiting-acceptance',
+  'awaiting-funding',
   'awaiting-delivery',
   'awaiting-first-release',
   'awaiting-final-release',

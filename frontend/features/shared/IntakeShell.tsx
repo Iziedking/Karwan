@@ -286,7 +286,7 @@ function ChooserButton({
       onClick={onClick}
       title={tooltip}
       aria-label={tooltip}
-      className="px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
+      className="min-h-11 px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
       style={{
         background: active ? 'var(--lp-dark)' : 'transparent',
         color: active ? 'var(--lp-accent)' : 'var(--lp-text-sub)',

@@ -449,6 +449,7 @@ function short(address: string): string {
 // notifier's relevant set so the catch-up speaks the same vocabulary.
 const CATCHUP_TYPES = new Set([
   'deal.direct.created',
+  'deal.seller-approved',
   'deal.accepted',
   'deal.delivered',
   'deal.review.started',
@@ -470,9 +471,13 @@ function catchupLine(e: KarwanEvent, address: string): string | null {
     case 'deal.direct.created':
       return role === 'seller'
         ? 'A new deal was offered to you'
-        : 'You opened a deal, awaiting seller acceptance';
+        : 'You opened a deal, awaiting seller agreement';
+    case 'deal.seller-approved':
+      return role === 'buyer'
+        ? 'The seller agreed; review the exact total before funding'
+        : 'You agreed to the terms; awaiting buyer funding';
     case 'deal.accepted':
-      return 'A deal was accepted and the escrow funded';
+      return 'The buyer funded escrow and the deal is active';
     case 'deal.delivered':
       return role === 'buyer' ? 'The seller marked the work delivered' : 'You marked a deal delivered';
     case 'deal.review.started':

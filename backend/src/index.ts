@@ -84,6 +84,7 @@ import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startDepositWatcher } from './circle/depositWatcher.js';
 import { startCooldownWatcher } from './chain/cooldownWatcher.js';
 import { startVaultScanWatcher } from './chain/vaultScanCache.js';
+import { startCurrentContractsWatcher } from './chain/currentContracts.js';
 import { backfillBusFromChain } from './chain/eventBackfill.js';
 import { syncBridgeEventsToBus } from './chain/bridgeEventSync.js';
 import { startReputationReconciler } from './reputation/reconciler.js';
@@ -446,6 +447,19 @@ function bootAgents() {
     appLogger.warn(
       { err: (err as Error).message },
       'vault scan watcher not started',
+    );
+  }
+
+  /// Daily re-read of what the live contracts hold, for /activity/all-time.
+  /// In-process rather than a system cron: the VM image ships without cron, so
+  /// a schedule that lives outside the process is a schedule that quietly does
+  /// not run.
+  try {
+    stopFns.push(startCurrentContractsWatcher());
+  } catch (err) {
+    appLogger.warn(
+      { err: (err as Error).message },
+      'current contracts watcher not started',
     );
   }
 

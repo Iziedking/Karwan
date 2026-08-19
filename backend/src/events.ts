@@ -36,6 +36,7 @@ export type KarwanEventType =
   | 'reputation.recorded'
   | 'deal.direct.created'
   | 'deal.direct.edited'
+  | 'deal.seller-approved'
   | 'deal.accepted'
   | 'deal.delivered'
   | 'deal.delivery.flagged'

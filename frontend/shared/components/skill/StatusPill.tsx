@@ -12,11 +12,11 @@ import { cn } from '@/shared/utils/cn';
 export type StatusPillVariant = 'pos' | 'warn' | 'neg' | 'info' | 'neutral';
 
 const COLOR: Record<StatusPillVariant, string> = {
-  pos: '#6BE39A',
-  warn: '#FFC857',
-  neg: '#FF6A6A',
-  info: '#7CC2FF',
-  neutral: '#9A9A95',
+  pos: 'var(--pos)',
+  warn: 'var(--warn)',
+  neg: 'var(--neg)',
+  info: 'var(--info)',
+  neutral: 'var(--ink-2)',
 };
 
 export function StatusPill({
@@ -36,9 +36,8 @@ export function StatusPill({
         className,
       )}
       style={{
-        // hexToRgba for the 8% bg and 16% border.
-        background: `${c}14`,   // 0x14 / 255 ≈ 0.078
-        border: `1px solid ${c}29`, // 0x29 / 255 ≈ 0.16
+        background: `color-mix(in srgb, ${c} 8%, transparent)`,
+        border: `1px solid color-mix(in srgb, ${c} 16%, transparent)`,
         color: c,
       }}
     >

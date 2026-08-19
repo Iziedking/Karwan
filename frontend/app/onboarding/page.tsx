@@ -4,12 +4,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { LoginModal } from '@/shared/components/LoginModal';
-import { api, ApiError, type UserRole } from '@/core/api';
+import { api, type UserRole } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { FormError } from '@/shared/components/FormError';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { LanguagePicker } from '@/features/settings/components/LanguagePicker';
-import { ThemePicker } from '@/features/settings/components/ThemePicker';
 import {
   FullBleed,
   Band,
@@ -22,8 +21,11 @@ import {
 } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
 import { AccountKindIcon } from '@/features/account/AccountKindIcon';
-
-type OnbStep = 'language' | 'accountType' | 'connect' | 'role' | 'profile' | 'getReady';
+import {
+  onboardingProgress,
+  stepAfterAuthentication,
+  type OnboardingStep,
+} from '@/features/onboarding/journey';
 
 /// `bg-white` here was a literal, while the text beside it was `--lp-dark`, which
 /// inverts to #ededed under the dark theme. So every onboarding input rendered
@@ -81,13 +83,12 @@ function OnboardingInner() {
   const address = auth.address ?? undefined;
   const isConnected = auth.isAuthenticated;
   const [loginOpen, setLoginOpen] = useState(false);
-  const [step, setStep] = useState<OnbStep>('language');
+  const [step, setStep] = useState<OnboardingStep>('language');
   const t = useTranslations();
   const [role, setRole] = useState<UserRole | null>(null);
-  // Personal vs business is an intent picked right after language. Business is
-  // a verified status granted later (doc anchor + review), so choosing it here
-  // just routes the user to the register-business surface after onboarding;
-  // accountType in the DB stays 'person' until Karwan approves.
+  // Personal vs business is the account identity picked after language and
+  // persisted as accountKind. Business verification remains a separate status
+  // granted later through document evidence and review.
   const [accountType, setAccountType] = useState<'person' | 'business' | null>(null);
   const [displayName, setDisplayName] = useState('');
 
@@ -154,9 +155,8 @@ function OnboardingInner() {
     // wallet still needs to confirm or change their language before the
     // rest of onboarding renders in it.
     if (isConnected && step === 'connect') {
-      // Business accounts default to both roles, so skip the role step.
-      setRole('both');
-      setStep('profile');
+      if (accountType === 'business') setRole('both');
+      setStep(stepAfterAuthentication(accountType));
     }
   }, [isConnected, step, accountType]);
 
@@ -184,7 +184,7 @@ function OnboardingInner() {
   }, [accountType]);
   useEffect(() => {
     if (editMode || typeof window === 'undefined') return;
-    const prevOf = (s: OnbStep): OnbStep | null => {
+    const prevOf = (s: OnboardingStep): OnboardingStep | null => {
       switch (s) {
         case 'language':
           return null;
@@ -248,6 +248,7 @@ function OnboardingInner() {
         // Edit mode: hydrate the form fields from the saved profile so the
         // user is editing what they have rather than starting from blank.
         const p = res.profile;
+        setAccountType(p.accountKind ?? 'person');
         setRole(p.role);
         setDisplayName(p.displayName ?? '');
         if (p.seller) {
@@ -264,10 +265,8 @@ function OnboardingInner() {
           setBuyerMaxDays(p.buyer.maxDeadlineDays);
           setMilestoneSplit(p.buyer.milestonePcts.join(','));
         }
-        // Land on the role step so the user can change buyer/seller/both
-        // (e.g. a seller adding buyer capability). The Continue button takes
-        // them into the form with the new role's fields revealed.
-        setRole('both');
+        // The dedicated editor owns role changes. This legacy edit entry keeps
+        // the saved role instead of silently expanding every account to both.
         setStep('profile');
         setProfileGate(false);
       })
@@ -329,30 +328,17 @@ function OnboardingInner() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('karwan:profile-saved'));
       }
-      // Profile saved. Hand off to the "get ready" step (activate agents + claim
-      // test USDC) so a new user arrives ready to trade instead of on an empty
-      // desk. That step routes onward to the app (or the business verify page).
+      // Profile saved. Hand off to workspace setup, then route onward to the
+      // app or the business verification page.
       setStep('getReady');
       setSubmitting(false);
-    } catch (err) {
-      setError(prettifyError(err));
+    } catch {
+      setError(t.onboarding.profileStep.error);
       setSubmitting(false);
     }
   }
 
-  // Business skips the role step, so it has one fewer step than individual.
-  // Both gain the closing "get ready" step (activate + claim USDC).
-  const totalSteps = 5;
-  const stepN =
-    step === 'language'
-      ? 1
-      : step === 'accountType'
-        ? 2
-        : step === 'connect'
-          ? 3
-          : step === 'profile'
-            ? 4
-              : totalSteps;
+  const { current: stepN, total: totalSteps } = onboardingProgress(step, accountType);
 
   // Hold the body until the profile check resolves. Returning users with a
   // cached wallet would otherwise see the language step flash before the
@@ -424,7 +410,8 @@ function OnboardingInner() {
               )}
               {step === 'getReady' && (
                 <>
-                  Almost <Accent>ready</Accent>
+                  {t.onboarding.getReadyStep.headlinePrefix}
+                  <Accent>{t.onboarding.getReadyStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
@@ -438,16 +425,9 @@ function OnboardingInner() {
 
       <Band tone="light" compact>
         <div className={cn(step === 'profile' ? 'max-w-4xl' : 'max-w-3xl', 'mx-auto')}>
-          {/* On every step, not just the language one. The steps that most need it
-              are the later ones: the profile step is where a user actually has to
-              read and type into fields, so a theme control that disappeared after
-              step one would vanish exactly when it starts to matter. */}
-          <div className="mb-7 flex justify-end">
-            <ThemePicker />
-          </div>
           {step === 'language' && (
-            <div className="space-y-6 text-center">
-              <p className="mx-auto max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+            <div className="space-y-6">
+              <p className="mx-auto max-w-[52ch] text-start text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
                 {t.onboarding.languageStep.description}
               </p>
               <LanguagePicker
@@ -467,8 +447,9 @@ function OnboardingInner() {
               selected={accountType}
               onSelect={(v) => {
                 setAccountType(v);
-                // Business defaults to both roles and skips the role step.
-                setRole('both');
+                // A business operates on both sides of trade. An individual
+                // still makes an explicit role decision after signing in.
+                setRole(v === 'business' ? 'both' : null);
               }}
               onBack={() => setStep('language')}
               onContinue={() => setStep('connect')}
@@ -484,7 +465,7 @@ function OnboardingInner() {
 
           {step === 'role' && (
             <RoleStep
-              address={address}
+              identityLabel={auth.email}
               role={role}
               onSelect={setRole}
               onContinue={() => setStep('profile')}
@@ -551,7 +532,7 @@ function OnboardingInner() {
               canSubmit={canSubmit}
               submitting={submitting}
               error={error}
-              onBack={() => setStep('accountType')}
+              onBack={() => setStep('role')}
               onSubmit={submit}
             />
           )}
@@ -567,7 +548,11 @@ function OnboardingInner() {
           )}
         </div>
       </Band>
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        postAuthHref={null}
+      />
     </FullBleed>
   );
 }
@@ -631,7 +616,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
           <button
             type="button"
             onClick={onLogin}
-            className="inline-flex items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+            className="inline-flex min-h-11 items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
             style={{
               borderTopLeftRadius: 12,
               borderTopRightRadius: 12,
@@ -651,7 +636,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
@@ -663,10 +648,9 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
   );
 }
 
-/// Closing onboarding step: bring the agents online and drop test USDC into the
-/// user's wallets in one tap, so they land in the app ready to post a deal
-/// rather than on an empty desk. Skippable. The checklist fills lime as each
-/// piece lands, so the motion carries the progress instead of status paragraphs.
+/// Closing onboarding step. The backend activation contract is preserved, but
+/// the UI describes the user outcome: a matching workspace that is ready for
+/// use. Funding remains a separate, explicit action on the account surface.
 function GetReadyStep({
   address,
   onDone,
@@ -676,7 +660,9 @@ function GetReadyStep({
   onDone: () => void;
   onBack: () => void;
 }) {
-  const back = useTranslations().onboarding.roleStep.backArrow;
+  const onboarding = useTranslations().onboarding;
+  const back = onboarding.roleStep.backArrow;
+  const t = onboarding.getReadyStep;
   const [phase, setPhase] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [agentsOnline, setAgentsOnline] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -686,20 +672,18 @@ function GetReadyStep({
     setPhase('running');
     setError(null);
     try {
-      // Provisions the buyer + seller agents. The backend seeds them from the
-      // operator wallet, not a public faucet (the testnet faucet is rate-limited
-      // and there is no faucet on mainnet), so we never claim funding the user
-      // did not actually receive.
+        // Preserve the existing activation contract while the interface frames
+        // the outcome as enabling matching, with every deal requiring approval.
       await api.activate(address);
       setAgentsOnline(true);
       setPhase('done');
-    } catch (err) {
-      setError(prettifyError(err));
+    } catch {
+      setError(t.error);
       setPhase('error');
     }
   }
 
-  const checks = [{ label: 'Buyer and seller agents online', done: agentsOnline }];
+  const checks = [{ label: t.checklist, done: agentsOnline }];
 
   return (
     <div className="fade-up max-w-2xl mx-auto">
@@ -716,11 +700,10 @@ function GetReadyStep({
         }}
       >
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          Your agents run the auction and hold escrow. One tap brings them online
-          so you can post your first deal.
+          {t.body}
         </p>
 
-        <ul className="mt-8 space-y-3.5">
+        <ul className="mt-8 space-y-3.5" aria-live="polite">
           {checks.map((c, i) => {
             const active = phase === 'running' && !c.done && (i === 0 || checks[i - 1].done);
             return (
@@ -763,43 +746,37 @@ function GetReadyStep({
           })}
         </ul>
 
-        {/* Activation leaves the account at zero, and the next screen is the
-            profile, where the faucet lives. Say so, otherwise the balance
-            reads as broken rather than empty. */}
         {phase === 'done' && (
           <p className="mt-8 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-            Your account starts empty. Next screen has a one tap button to get
-            test USDC, then you can post your first deal.
+            {t.doneBody}
           </p>
         )}
 
         <div className="mt-9 flex items-center gap-5">
           {phase === 'done' ? (
             <CTAPill onClick={onDone} tone="light">
-              Add money →
+              {t.continue}
             </CTAPill>
           ) : (
             <CTAPill onClick={run} disabled={phase === 'running'} tone="light">
               {phase === 'running'
-                ? 'Setting up…'
+                ? t.activating
                 : phase === 'error'
-                  ? 'Try again'
-                  : 'Set me up →'}
+                  ? t.retry
+                  : t.activate}
             </CTAPill>
           )}
           <button
             type="button"
             onClick={onDone}
-            className="mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="inline-flex min-h-11 items-center mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
-            Skip for now
+            {t.skip}
           </button>
         </div>
 
         {error && (
-          <FormError className="mt-5">
-            Setup could not finish. {error} You can activate later from your profile.
-          </FormError>
+          <FormError className="mt-5">{error}</FormError>
         )}
       </div>
       {phase !== 'running' && phase !== 'done' && (
@@ -807,7 +784,7 @@ function GetReadyStep({
           <button
             type="button"
             onClick={onBack}
-            className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+            className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
               ←
@@ -835,8 +812,8 @@ function AccountTypeStep({
   const ats = t.accountTypeStep;
   return (
     <div className="space-y-8">
-      <div className="fade-up text-center">
-        <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
+      <div className="fade-up">
+        <p className="text-start text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
           {ats.description}
         </p>
       </div>
@@ -868,7 +845,7 @@ function AccountTypeStep({
         </div>
       </div>
 
-      <p className="text-center mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] max-w-[52ch] mx-auto">
+      <p className="text-start mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] max-w-[52ch] mx-auto">
         {ats.note}
       </p>
 
@@ -876,7 +853,7 @@ function AccountTypeStep({
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
@@ -929,6 +906,7 @@ function AccountCard({
     <button
       type="button"
       onClick={() => onSelect(kind)}
+      aria-pressed={isSel}
       className={cn(
         'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
@@ -953,9 +931,9 @@ function AccountCard({
         <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
           {eyebrow}
         </span>
-        <h3 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
+        <h2 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
           {title}
-        </h3>
+        </h2>
         <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
         <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>{tagline}</p>
         <div className="mt-auto flex items-center justify-between pt-5">
@@ -997,13 +975,13 @@ function AccountCard({
 }
 
 function RoleStep({
-  address,
+  identityLabel,
   role,
   onSelect,
   onContinue,
   onBack,
 }: {
-  address: string | undefined;
+  identityLabel?: string;
   role: UserRole | null;
   onSelect: (r: UserRole) => void;
   onContinue: () => void;
@@ -1012,14 +990,12 @@ function RoleStep({
   const t = useTranslations().onboarding.roleStep;
   return (
     <div className="space-y-8">
-      <div className="fade-up text-center">
+      <div className="fade-up max-w-[50ch] mx-auto text-start">
         <p className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {t.connectedAs}{' '}
-          <span className="text-[var(--lp-dark)]">
-            {address?.slice(0, 6)}…{address?.slice(-4)}
-          </span>
+          <span className="text-[var(--lp-dark)]">{identityLabel ?? t.secureAccount}</span>
         </p>
-        <p className="mt-4 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
+        <p className="mt-4 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
           {t.description}
         </p>
       </div>
@@ -1068,7 +1044,7 @@ function RoleStep({
         <button
           type="button"
           onClick={onBack}
-          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
@@ -1147,6 +1123,7 @@ function RoleCard({
     <button
       type="button"
       onClick={() => onSelect(role)}
+      aria-pressed={isSel}
       className={cn(
         'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
@@ -1181,9 +1158,9 @@ function RoleCard({
             </span>
           )}
         </div>
-        <h3 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
+        <h2 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
           {title}
-        </h3>
+        </h2>
         <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
         <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>
           {tagline}
@@ -1248,7 +1225,7 @@ function TradeTypeChooser({
             onClick={() => onChange(o.value)}
             aria-pressed={sel}
             className={cn(
-              'rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
+              'min-h-11 rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
               sel
                 ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-accent)]'
                 : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
@@ -1263,10 +1240,13 @@ function TradeTypeChooser({
 }
 
 function ProfileProgress({ current, total }: { current: number; total: number }) {
+  const label = useTranslations().onboarding.profileProgress
+    .replace('{current}', String(current))
+    .replace('{total}', String(total));
   return (
     <div className="flex items-center justify-center gap-4">
       <span className="font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-        Section {current} of {total}
+        {label}
       </span>
       <div className="flex gap-1.5">
         {Array.from({ length: total }).map((_, index) => (
@@ -1304,6 +1284,7 @@ function BusinessProfileStep(props: {
   onSubmit: () => void;
 }) {
   const t = useTranslations().onboarding;
+  const common = useTranslations().common;
   const bs = t.businessProfileStep;
   const [panel, setPanel] = useState(0);
   const totalPanels = 3;
@@ -1376,7 +1357,7 @@ function BusinessProfileStep(props: {
             if (panel === 0) props.onBack();
             else setPanel((current) => current - 1);
           }}
-          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
@@ -1392,7 +1373,7 @@ function BusinessProfileStep(props: {
           tone="light"
         >
           {panel < totalPanels - 1
-            ? 'Next'
+            ? common.next
             : props.submitting
               ? t.profileStep.saving
               : t.profileStep.submit}
@@ -1436,6 +1417,7 @@ function ProfileStep(props: {
   onSubmit: () => void;
 }) {
   const t = useTranslations().onboarding;
+  const common = useTranslations().common;
   const ps = t.profileStep;
   const wantsSeller = props.role === 'seller' || props.role === 'both';
   const wantsBuyer = props.role === 'buyer' || props.role === 'both';
@@ -1583,7 +1565,7 @@ function ProfileStep(props: {
             if (panel === 0) props.onBack();
             else setPanel((current) => current - 1);
           }}
-          className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+          className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
           <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
             ←
@@ -1599,7 +1581,7 @@ function ProfileStep(props: {
           tone="light"
         >
           {panel < panels.length - 1
-            ? 'Next'
+            ? common.next
             : props.submitting
               ? ps.saving
               : ps.submit}
@@ -1721,20 +1703,4 @@ function NumField({
       />
     </label>
   );
-}
-
-function prettifyError(err: unknown): string {
-  const raw =
-    err instanceof ApiError ? (err.detail as unknown) ?? err.message : (err as Error).message;
-  if (Array.isArray(raw)) {
-    return raw
-      .map((it: { path?: string[]; message?: string }) => {
-        const path = (it?.path ?? []).join('.');
-        const msg = it?.message ?? 'Invalid value';
-        return path ? `${path}: ${msg}` : msg;
-      })
-      .join('; ');
-  }
-  if (typeof raw === 'string') return raw;
-  return JSON.stringify(raw);
 }

@@ -32,7 +32,7 @@ export function CopyId({
       onClick={copy}
       title={`Copy ${value}`}
       aria-label={`Copy ID ${value}`}
-      className={`group inline-flex items-center gap-1.5 mono tabular-nums hover:opacity-80 transition ${className}`}
+      className={`group inline-flex min-h-11 items-center gap-1.5 px-1 mono tabular-nums hover:opacity-80 transition ${className}`}
     >
       <span className={`text-start ${label ? 'whitespace-nowrap' : 'break-all'}`}>
         {label ?? value}

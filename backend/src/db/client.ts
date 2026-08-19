@@ -63,6 +63,32 @@ export async function ensureSchema(): Promise<void> {
       bridge_id TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS money_movements (
+      reference TEXT PRIMARY KEY,
+      operation_key TEXT NOT NULL UNIQUE,
+      kind TEXT NOT NULL,
+      state TEXT NOT NULL,
+      job_id TEXT,
+      version BIGINT NOT NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS money_movements_operation_key_idx
+      ON money_movements (operation_key);
+    CREATE INDEX IF NOT EXISTS money_movements_job_created_idx
+      ON money_movements (job_id, created_at);
+    CREATE INDEX IF NOT EXISTS money_movements_state_updated_idx
+      ON money_movements (state, updated_at);
+    CREATE TABLE IF NOT EXISTS money_movement_parties (
+      reference TEXT NOT NULL,
+      address TEXT NOT NULL,
+      role TEXT NOT NULL,
+      created_at BIGINT NOT NULL,
+      PRIMARY KEY (reference, address, role)
+    );
+    CREATE INDEX IF NOT EXISTS money_movement_parties_address_created_idx
+      ON money_movement_parties (address, created_at);
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       job_id TEXT NOT NULL,

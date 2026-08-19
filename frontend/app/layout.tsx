@@ -13,6 +13,7 @@ import { TermsModal } from '@/shared/components/TermsModal';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
 import { DialogProvider } from '@/shared/components/Dialog';
+import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 // Geist, Geist Mono, and Instrument Serif are self-hosted (woff2 in ./fonts)
@@ -159,6 +160,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               topNav={<TopNav />}
               profileNudge={<ProfileNudge />}
               footer={<SiteFooter />}
+              bottomNav={<WorkspaceBottomNav />}
               notifications={<NotificationToasts />}
               guide={<GuideWelcome />}
               terms={<TermsModal />}

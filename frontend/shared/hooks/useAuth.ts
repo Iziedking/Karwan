@@ -1,11 +1,26 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAccount, useDisconnect } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, setApiCaller, type UserProfile } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { clearPersistedCache } from '@/core/queryPersister';
 import { requestSplash } from '@/shared/utils/splashSignal';
+import { isPublicAccessRoute } from '@/shared/utils/routes';
+import { useSiweStatus } from '@/shared/auth/siweState';
+import {
+  sessionMatchesWallet,
+  shouldWaitForWalletSession,
+} from '@/shared/auth/authPresentation';
+import {
+  getAuthSessionServerSnapshot,
+  getAuthSessionSnapshot,
+  loadAuthSessionOnce,
+  publishAuthSession,
+  subscribeAuthSession,
+  type SharedAuthSession,
+} from '@/shared/auth/sessionStore';
 
 export type AuthMethod = 'web3' | 'circle';
 
@@ -20,13 +35,6 @@ export interface AuthState {
   hasPasskey: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
-}
-
-interface Session {
-  address: string;
-  method: 'circle' | 'web3';
-  email?: string;
-  hasPasskey: boolean;
 }
 
 /// Window event fired whenever the auth state changes (sign in or sign out).
@@ -67,50 +75,63 @@ export function useAuth(): AuthState & {
 } {
   const { address: wagmiAddress, isConnected: wagmiConnected, status: wagmiStatus } = useAccount();
   const { disconnectAsync } = useDisconnect();
+  const pathname = usePathname();
+  const siwe = useSiweStatus();
   const qc = useQueryClient();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const { session, loaded } = useSyncExternalStore(
+    subscribeAuthSession,
+    getAuthSessionSnapshot,
+    getAuthSessionServerSnapshot,
+  );
 
   const refresh = useCallback(async () => {
-    try {
-      let user: { address: string; method: string; email?: string; hasPasskey?: boolean } | null;
-      let profile: UserProfile | null = null;
+    const result = await loadAuthSessionOnce(async () => {
       try {
-        // Fast path: one round-trip for session + profile, so the page resolves
-        // both at once instead of authMe then getProfile serially.
-        const r = await api.bootstrap();
-        user = r.user;
-        profile = r.profile;
+        let user: { address: string; method: string; email?: string; hasPasskey?: boolean } | null;
+        let profile: UserProfile | null = null;
+        try {
+          // Fast path: one round-trip for session + profile, so the page resolves
+          // both at once instead of authMe then getProfile serially.
+          const r = await api.bootstrap();
+          user = r.user;
+          profile = r.profile;
+        } catch {
+          // The bootstrap endpoint may not be on the backend yet (the frontend
+          // deploys ahead of the API on a split deploy). Fall back to authMe so
+          // auth NEVER breaks on a deploy-order skew; the profile then loads via
+          // useUserProfile's own query, the same as before.
+          const r = await api.authMe();
+          user = r.user;
+        }
+        const nextSession: SharedAuthSession | null = user
+          ? {
+              address: user.address,
+              method: user.method as 'circle' | 'web3',
+              email: user.email,
+              hasPasskey: !!user.hasPasskey,
+            }
+          : null;
+        return { session: nextSession, profile };
       } catch {
-        // The bootstrap endpoint may not be on the backend yet (the frontend
-        // deploys ahead of the API on a split deploy). Fall back to authMe so
-        // auth NEVER breaks on a deploy-order skew; the profile then loads via
-        // useUserProfile's own query, the same as before.
-        const r = await api.authMe();
-        user = r.user;
+        return { session: null };
       }
-      if (user) {
-        setSession({
-          address: user.address,
-          method: user.method as 'circle' | 'web3',
-          email: user.email,
-          hasPasskey: !!user.hasPasskey,
-        });
-        // Seed the profile cache so useUserProfile resolves without a second
-        // request (only present on the bootstrap fast path).
-        if (profile) qc.setQueryData(qk.profile.me(user.address), profile);
-      } else {
-        setSession(null);
-      }
-    } catch {
-      setSession(null);
-    } finally {
-      setLoaded(true);
+    });
+    publishAuthSession(result.session);
+    // Seed the profile cache so useUserProfile resolves without a second
+    // request (only present on the bootstrap fast path).
+    if (result.session && result.profile) {
+      qc.setQueryData(
+        qk.profile.me(result.session.address),
+        result.profile as UserProfile,
+      );
     }
   }, [qc]);
 
   useEffect(() => {
-    refresh();
+    // The shared store prevents each of the many useAuth consumers from making
+    // its own bootstrap request. A full page load fetches once; later mounts use
+    // the same authoritative snapshot.
+    if (!getAuthSessionSnapshot().loaded) refresh();
   }, [refresh]);
 
   // Re-check the backend session whenever wagmi reports a new connected address.
@@ -132,7 +153,7 @@ export function useAuth(): AuthState & {
     if (!session) return;
     if (session.method !== 'web3') return;
     if (wagmiStatus !== 'disconnected') return;
-    setSession(null);
+    publishAuthSession(null);
     qc.clear();
     clearPersistedCache();
     api.authLogout().catch(() => {
@@ -154,8 +175,7 @@ export function useAuth(): AuthState & {
       // flicker where some chrome was still "signed in" for a beat.
       const signedOut = (e as CustomEvent<{ signedOut?: boolean } | undefined>).detail?.signedOut;
       if (signedOut) {
-        setSession(null);
-        setLoaded(true);
+        publishAuthSession(null);
       } else {
         refresh();
       }
@@ -179,7 +199,7 @@ export function useAuth(): AuthState & {
     } catch {
       /* clear local state regardless */
     }
-    setSession(null);
+    publishAuthSession(null);
     // Drop the account's cached + persisted private data (profile, balances)
     // so it can't linger at rest or rehydrate for the next account that signs
     // in on this browser. Public queries (status, network stats) just refetch.
@@ -196,8 +216,14 @@ export function useAuth(): AuthState & {
     emitAuthChanged({ signedOut: true });
   }, [wagmiConnected, disconnectAsync, qc]);
 
-  const address = session?.address ?? null;
-  const method: AuthMethod | null = session?.method ?? null;
+  const effectiveSession = sessionMatchesWallet(session, {
+    connected: wagmiConnected,
+    address: wagmiAddress,
+  })
+    ? session
+    : null;
+  const address = effectiveSession?.address ?? null;
+  const method: AuthMethod | null = effectiveSession?.method ?? null;
 
   // Hold the loading state while wagmi is still auto-reconnecting on first
   // paint. Without this, a returning web3 user whose session cookie has lapsed
@@ -207,6 +233,13 @@ export function useAuth(): AuthState & {
   // jank we want to avoid. wagmi's 'reconnecting' status always resolves to
   // 'connected' or 'disconnected' within a bounded window, so this can't hang.
   const wagmiResolving = wagmiStatus === 'connecting' || wagmiStatus === 'reconnecting';
+  const walletSessionResolving = shouldWaitForWalletSession({
+    isPublicRoute: isPublicAccessRoute(pathname),
+    walletAddress: wagmiAddress,
+    walletConnected: wagmiConnected,
+    session,
+    siwe,
+  });
 
   // Mirror the address into the API client. Web3 users now hold a real session
   // cookie (SIWE on connect), so the backend resolves identity from the cookie
@@ -219,13 +252,16 @@ export function useAuth(): AuthState & {
   return {
     address,
     method,
-    email: session?.email,
-    hasPasskey: !!session?.hasPasskey,
-    isAuthenticated: !!session,
+    email: effectiveSession?.email,
+    hasPasskey: !!effectiveSession?.hasPasskey,
+    isAuthenticated: !!effectiveSession,
     // Loading until the first authMe() resolves, and stay loading while wagmi
     // is still auto-reconnecting with no session yet (the web3 reconnect + SIWE
     // window) so gated chrome holds a skeleton instead of flashing "sign in".
-    isLoading: !loaded || (wagmiResolving && !session),
+    isLoading:
+      !loaded ||
+      (wagmiResolving && !effectiveSession) ||
+      walletSessionResolving,
     signOut,
     refresh,
   };

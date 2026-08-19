@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/shared/utils/cn';
 
 export function Card({
   title,
@@ -20,18 +21,18 @@ export function Card({
   interactive?: boolean;
 }) {
   const baseStyle =
-    'rounded-xl bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-card)] transition-[transform,border-color,box-shadow] duration-200';
+    'overflow-hidden rounded-t-[16px] rounded-bl-[16px] rounded-br-[4px] bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-card)] transition-[transform,border-color,box-shadow] duration-[var(--dur-fast)]';
   const interactiveStyle = interactive
     ? 'hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)]'
     : '';
   return (
-    <section className={`${baseStyle} ${interactiveStyle} ${className ?? ''}`}>
+    <section className={cn(baseStyle, interactiveStyle, className)}>
       {(title || eyebrow || action) && (
         <header className="px-5 pt-4 pb-3 flex items-start justify-between gap-4 border-b border-[var(--color-line)]">
           <div className="min-w-0">
             {eyebrow && (
-              <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] mb-0.5">
-                {eyebrow}
+              <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] mb-1">
+                • [:{eyebrow}:]
               </p>
             )}
             {title && <h2 className="text-[15px] font-medium text-[var(--color-ink)] tracking-tight truncate">{title}</h2>}

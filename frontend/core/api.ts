@@ -395,6 +395,58 @@ export interface DirectDealOnChain {
   claimDeadlineMs?: number | null;
 }
 
+export interface DirectDealFundingQuote {
+  settlementCurrency: 'USDC';
+  localCurrencyConversion: 'not-provided';
+  dealAmountUsdc: string;
+  buyerFeeUsdc: string;
+  sellerFeeUsdc: string;
+  feeTotalUsdc: string;
+  fundedAmountUsdc: string;
+  sellerNetUsdc: string;
+  feeBps: number;
+  quotedAt: number;
+  quoteFingerprint: `0x${string}`;
+}
+
+export type MoneyMovementState =
+  | 'created'
+  | 'preparing'
+  | 'submitted'
+  | 'verifying'
+  | 'completed'
+  | 'needs_attention'
+  | 'cancelled';
+
+export interface MoneyMovementView {
+  reference: string;
+  kind: 'escrow_funding' | 'milestone_payout';
+  state: MoneyMovementState;
+  currency: 'USDC';
+  amountUsdc: string;
+  summary: string;
+  nextActor: 'buyer' | 'seller' | 'counterparty' | 'karwan' | 'support' | 'none';
+  expectedArrivalAt?: number;
+  jobId?: string;
+  milestoneIndex?: number;
+  failureCode?: string;
+  createdAt: number;
+  updatedAt: number;
+  completedAt?: number;
+  legs: Array<{
+    key: string;
+    label: string;
+    rail: 'circle_wallets' | 'arc_contract' | 'gateway' | 'cctp' | 'database';
+    state: 'planned' | 'submitted' | 'confirmed' | 'verified' | 'failed';
+    providerId?: string;
+    txHash?: string;
+    explorerUrl?: string;
+    submittedAt?: number;
+    confirmedAt?: number;
+    verifiedAt?: number;
+  }>;
+}
+
 export interface DirectDeal {
   jobId: string;
   buyer: string;
@@ -416,6 +468,9 @@ export interface DirectDeal {
   /// cancel; only mutual cancel or appeal.
   deadlineUnix?: number;
   terms: string;
+  /// Seller agreed to the current terms. No buyer funds have moved yet.
+  sellerApprovedAt?: number;
+  /// Escrow is funded and verified Accepted onchain.
   acceptedAt?: number;
   delivered: boolean;
   deliveredAt?: number;
@@ -721,7 +776,8 @@ export interface MatchProposal {
   /// Balance awareness from the buyer agent at propose time. fundable=false
   /// means the agent agreed within the buyer's authorized cap but its wallet is
   /// short by topUpNeededUsdc, so the buyer must top up before the seller's
-  /// accept can fund escrow. undefined on legacy proposals (treat as unknown).
+  /// Seller agreement deadline. Buyer funding is a separate later action.
+  /// Undefined on legacy proposals (treat as unknown).
   fundable?: boolean;
   agentBalanceUsdc?: string;
   fundedAmountUsdc?: string;
@@ -871,23 +927,84 @@ export interface NetworkOnchainDayPoint {
   refunded: number;
 }
 
+/// What a contract does. Groups the all-time breakdown so a list of fifty-odd
+/// addresses reads as a report rather than a dump.
+export type ContractKind = 'settlement' | 'financing' | 'staking' | 'treasury' | 'registry';
+
+/// Every USDC measure the all-time scan produces, as decimal strings.
+export interface LifetimeVolumes {
+  fundedUsdc: string;
+  releasedUsdc: string;
+  settledUsdc: string;
+  refundedUsdc: string;
+  feesUsdc: string;
+  /// Financier capital paid to a supplier ahead of settlement, from invoice
+  /// factoring and purchase-order advances together.
+  advancedUsdc: string;
+  repaidUsdc: string;
+  /// Seller stake taken by a counterparty: lost disputes, and collateral
+  /// forfeited on a defaulted advance.
+  slashedUsdc: string;
+  stakedUsdc: string;
+  yieldUsdc: string;
+}
+
+export interface LifetimeKindRollup {
+  kind: ContractKind;
+  contracts: number;
+  contractsWithActivity: number;
+  events: number;
+  deals: number;
+  financings: number;
+  defaults: number;
+  jobsPosted: number;
+  volumes: LifetimeVolumes;
+}
+
 /// One contract generation's share of the all-time totals. USDC fields are
 /// decimal strings, matching the top-level `volumes`.
-export interface LifetimeContract {
+export interface LifetimeContract extends LifetimeVolumes {
   name: string;
+  kind: ContractKind;
   address: string;
   deployBlock: string;
   scannedTo: string;
   events: number;
   undecodedEvents: number;
   deals: number;
-  fundedUsdc: string;
-  releasedUsdc: string;
-  settledUsdc: string;
-  refundedUsdc: string;
-  feesUsdc: string;
+  financings: number;
+  defaults: number;
+  jobsPosted: number;
   firstActivityBlock: string | null;
   lastActivityBlock: string | null;
+}
+
+/// One contract the running deployment is wired to, read at head rather than
+/// summed from history.
+export interface CurrentContract {
+  name: string;
+  kind: ContractKind;
+  address: string;
+  deployBlock: string | null;
+  /// Has bytecode at head. False means the env points at an address with no
+  /// contract on it, which the page should say rather than render as empty.
+  live: boolean;
+  /// USDC held right now. Null for contracts that never custody money, so the
+  /// cell can stay blank instead of printing a misleading zero.
+  usdcBalance: string | null;
+  supersededGenerations: number;
+}
+
+export interface CurrentContractsSnapshot {
+  chainId: number;
+  atBlock: string;
+  contracts: CurrentContract[];
+  totals: {
+    live: number;
+    configured: number;
+    custodiedUsdc: string;
+  };
+  readAt: number;
 }
 
 /// All-time totals across every contract generation, including retired ones.
@@ -903,14 +1020,13 @@ export interface LifetimeStats {
     events: number;
     undecodedEvents: number;
     deals: number;
+    financings: number;
+    defaults: number;
+    jobsPosted: number;
   };
-  volumes: {
-    fundedUsdc: string;
-    releasedUsdc: string;
-    settledUsdc: string;
-    refundedUsdc: string;
-    feesUsdc: string;
-  };
+  volumes: LifetimeVolumes;
+  /// One row per kind, in a fixed order, including kinds that moved nothing.
+  byKind: LifetimeKindRollup[];
   contracts: LifetimeContract[];
   scannedAt: number;
 }
@@ -1629,6 +1745,10 @@ export const api = {
   /// script, so this is a fast read; it 503s until that first scan has run.
   networkLifetime: (init?: RequestInit) =>
     json<LifetimeStats>('/api/network/lifetime', init),
+  /// What the contracts in service right now hold, read at head. Cheap enough
+  /// to build on demand, so unlike the lifetime sweep it never 503s.
+  networkContracts: (init?: RequestInit) =>
+    json<CurrentContractsSnapshot>('/api/network/contracts', init),
   /// Finance-lane (business) jobIds. The /activity page strips these events to
   /// bare on the public feed: the event still shows, the amount and parties do
   /// not. Business trade is sensitive, so only the fact of activity is public.
@@ -2695,15 +2815,50 @@ export const api = {
     json<{ deals: DirectDeal[] }>(`/api/deals/direct?address=${address}`),
   directDeal: (jobId: string, caller?: string | null) =>
     json<{ deal: DirectDeal }>(withCaller(`/api/deals/direct/${jobId}`, caller)),
+  directDealMovements: (jobId: string, caller?: string | null) =>
+    json<{ movements: MoneyMovementView[] }>(
+      withCaller(`/api/deals/direct/${jobId}/movements`, caller),
+    ),
   counterpartyReport: (jobId: string, caller?: string | null) =>
     json<CounterpartyReport>(
       withCaller(`/api/deals/direct/${jobId}/counterparty-report`, caller),
     ),
   acceptDirectDeal: (jobId: string, caller: string) =>
-    json<{ accepted: boolean; jobId: string }>(
+    json<{
+      accepted: boolean;
+      jobId: string;
+      status: 'seller-approved' | 'funded';
+      sellerApprovedAt?: number;
+    }>(
       `/api/deals/direct/${jobId}/accept`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  directDealFundingQuote: (jobId: string, caller: string) =>
+    json<{ quote: DirectDealFundingQuote }>(
+      withCaller(`/api/deals/direct/${jobId}/funding-quote`, caller),
+    ),
+  fundDirectDeal: (
+    jobId: string,
+    body: {
+      caller: string;
+      expectedFeeBps: number;
+      maxFundedAmountUsdc: string;
+      quoteFingerprint: string;
+    },
+  ) =>
+    json<{
+      accepted: boolean;
+      jobId: string;
+      status: 'funded';
+      txHash?: string;
+      recovered?: boolean;
+      reference?: string;
+      receiptPending?: boolean;
+      quote?: DirectDealFundingQuote;
+    }>(`/api/deals/direct/${jobId}/fund`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   /// Carriers offered by the goods-delivery form. Static list, public.
   listCarriers: () =>
     json<{ carriers: Array<{ slug: string; name: string; needsUrl: boolean }> }>(
@@ -2736,7 +2891,17 @@ export const api = {
       body: JSON.stringify({ caller }),
     }),
   releaseDirectDeal: (jobId: string, caller: string) =>
-    json<{ accepted: boolean; jobId: string; txHash: string; settled: boolean; settledInMs?: number }>(
+    json<{
+      accepted: boolean;
+      jobId: string;
+      txHash?: string;
+      settled: boolean;
+      settledInMs?: number;
+      reference?: string;
+      amountUsdc?: string;
+      recovered?: boolean;
+      receiptPending?: boolean;
+    }>(
       `/api/deals/direct/${jobId}/release`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
@@ -3125,12 +3290,14 @@ export const api = {
         ts: number;
         kind: string;
         summary: string;
+        params?: Record<string, string> | null;
         amountUsdc: string | null;
         txHash: string | null;
         refId: string | null;
         chain: string | null;
         jobId: string | null;
         status: 'done' | 'pending' | 'failed';
+        movementState?: MoneyMovementState | null;
       }>;
     }>(`/api/activity/me?limit=${limit}`),
   /// Record a bridge that completed client-side via the App Kit Forwarding

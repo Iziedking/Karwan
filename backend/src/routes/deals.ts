@@ -13,6 +13,7 @@ import {
   LEGACY_ESCROW_STATE,
   invalidateEscrowCache,
   readUsdcBalance,
+  readUsdcAllowance,
   getEscrowFeeBps,
   computeFunding,
 } from '../chain/contracts.js';
@@ -52,6 +53,27 @@ import {
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
+import {
+  getMoneyMovementByOperationKey,
+  listMoneyMovementsForJobParty,
+} from '../db/moneyMovements.js';
+import {
+  completeMoneyMovement,
+  currentMoneyMovement,
+  ensureMoneyMovement,
+  markMoneyMovementNeedsAttention,
+  markMoneyMovementVerifying,
+  prepareMoneyMovementContractLeg,
+  verifyConfirmedMoneyMovementLegByKey,
+  verifyMoneyMovementLeg,
+  type MoneyMovement,
+} from '../money/service.js';
+import { formatUsdcMicros } from '../money/model.js';
+import {
+  expectedMilestonePayout,
+  findAdvancedUnfinishedPayout,
+  fundingEscrowMatches,
+} from '../money/escrowProjection.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
@@ -82,9 +104,48 @@ import { verifyDeliverable } from '../security/requirementCheck.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
 import { extractUrls } from '../security/extractUrls.js';
 import { unresolvableHosts } from '../security/hostCheck.js';
+import {
+  buildDirectDealFundingQuote,
+  fundingAuthorizationMatches,
+} from '../deals/fundingQuote.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
+
+const fundingMovementKey = (jobId: string) => `escrow_funding:${jobId.toLowerCase()}`;
+const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
+  `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
+
+function publicMoneyMovement(movement: MoneyMovement) {
+  return {
+    reference: movement.reference,
+    kind: movement.kind,
+    state: movement.state,
+    currency: movement.currency,
+    amountUsdc: formatUsdcMicros(movement.amountMicros),
+    summary: movement.summary,
+    nextActor: movement.nextActor,
+    expectedArrivalAt: movement.expectedArrivalAt,
+    jobId: movement.jobId,
+    milestoneIndex: movement.milestoneIndex,
+    failureCode: movement.failureCode,
+    createdAt: movement.createdAt,
+    updatedAt: movement.updatedAt,
+    completedAt: movement.completedAt,
+    legs: movement.legs.map((leg) => ({
+      key: leg.key,
+      label: leg.label,
+      rail: leg.rail,
+      state: leg.state,
+      providerId: leg.providerId,
+      txHash: leg.txHash,
+      explorerUrl: leg.explorerUrl,
+      submittedAt: leg.submittedAt,
+      confirmedAt: leg.confirmedAt,
+      verifiedAt: leg.verifiedAt,
+    })),
+  };
+}
 
 const addrSchema = z
   .string()
@@ -220,6 +281,14 @@ const editSchema = z
   );
 
 const callerSchema = z.object({ caller: addrSchema });
+const fundSchema = z.object({
+  caller: addrSchema,
+  expectedFeeBps: z.number().int().min(0).max(10_000),
+  maxFundedAmountUsdc: z
+    .string()
+    .regex(/^\d+(?:\.\d{1,6})?$/, 'expected a positive USDC amount with at most 6 decimals'),
+  quoteFingerprint: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+});
 const deliveredSchema = z.object({
   caller: addrSchema,
   deliveryProof: z.string().min(1).max(600).optional(),
@@ -244,8 +313,8 @@ const inFlight = new Set<string>();
 export const dealsRoutes = new Hono();
 
 /// Create a direct deal. The escrow is not funded here: the deal sits in
-/// awaiting-seller until the named seller accepts. The buyer must have activated
-/// their agent wallets; the seller activates lazily on accept.
+/// awaiting-seller until the named seller agrees. The buyer must have activated
+/// their agent wallets; the seller activates lazily on agreement.
 dealsRoutes.post('/direct', async (c) => {
   let body;
   try {
@@ -264,8 +333,8 @@ dealsRoutes.post('/direct', async (c) => {
     return c.json({ error: 'You can only open a deal as your own wallet.', code: 'forbidden' }, 403);
   }
 
-  // The buyer agent funds the escrow when the seller accepts, so the buyer must
-  // be activated now. The seller is not required to be activated yet.
+  // The buyer agent funds escrow only after the seller agrees and the buyer
+  // confirms a live quote, so it must exist now. The seller activates lazily.
   const buyerAgents = await getAgentWallets(body.buyerAddress);
   if (!buyerAgents) {
     return c.json({ error: 'activate your agent wallets before opening a deal' }, 409);
@@ -449,7 +518,7 @@ dealsRoutes.post('/direct', async (c) => {
 
   logger.info(
     { jobId, buyer: body.buyerAddress, seller: sellerAddress, invited: !!body.sellerEmail },
-    'direct deal created, awaiting seller',
+    'direct deal created, awaiting seller agreement',
   );
   return c.json(
     {
@@ -466,8 +535,8 @@ dealsRoutes.post('/direct', async (c) => {
   );
 });
 
-/// Buyer-side pre-accept edit. Lets the buyer rework deal terms while the seller
-/// hasn't accepted yet. Refused after deal.acceptedAt because at that point the
+/// Buyer-side pre-funding edit. Lets the buyer rework deal terms while no money
+/// has moved. Refused after deal.acceptedAt because at that point the
 /// escrow is funded on chain and dealAmountUsdc / firstReleasePct are locked in
 /// the milestone array. Counterparty is intentionally not editable: changing
 /// who the deal is for is a different deal. When the buyer touches
@@ -534,6 +603,12 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
 
   if (Object.keys(patch).length === 0) {
     return c.json({ error: 'no changes provided' }, 400);
+  }
+
+  // Agreement applies to one exact version of the commercial terms. Any
+  // buyer edit before funding sends the revised deal back to seller review.
+  if (deal.sellerApprovedAt) {
+    patch.sellerApprovedAt = undefined;
   }
 
   const updated = await patchDeal(jobId, patch);
@@ -854,6 +929,24 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   return c.json({ deal: shaped });
 });
 
+/// Party-scoped settlement records. Internal wallet ids, idempotency keys,
+/// contract addresses, and participant indexes never leave the backend.
+dealsRoutes.get('/direct/:jobId/movements', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const caller = viewerAddress(c);
+  const isParty =
+    !!caller &&
+    (caller === deal.buyer.toLowerCase() || caller === deal.seller.toLowerCase());
+  if (!caller || !isParty) {
+    return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
+  }
+  c.header('Cache-Control', 'no-store');
+  const movements = await listMoneyMovementsForJobParty(jobId, caller);
+  return c.json({ movements: movements.map(publicMoneyMovement) });
+});
+
 /// The counterparty's real work record: the granular, DB-private view a buyer
 /// pays the internal pull to see, not the aggregate tier on the public passport.
 /// Party-gated. Unlocked when agent research was paid for this deal (the same
@@ -925,9 +1018,44 @@ async function paidPullReceipt(
   return { amountUsd: Number.isFinite(amountUsd) ? amountUsd : 0, txHash };
 }
 
-/// Seller accepts the deal terms. This lazily provisions the seller's agent
-/// wallets if they have not activated, then the buyer agent funds the escrow
-/// naming the seller agent. The deal moves to awaiting-delivery.
+/// Exact, read-only escrow quote for the current deal and contract fee. The
+/// buyer must echo the economic terms back to the fund endpoint, which prevents
+/// an owner-settable fee from changing silently between review and execution.
+dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  const caller = c.req.query('caller');
+  if (!caller || !addrSchema.safeParse(caller).success || !isSessionSelf(c, caller)) {
+    return c.json({ error: 'You can only view a funding quote as yourself.', code: 'forbidden' }, 403);
+  }
+  const normalizedCaller = caller.toLowerCase();
+  if (normalizedCaller !== deal.buyer && normalizedCaller !== deal.seller) {
+    return c.json({ error: 'only a party to this deal can view its funding quote' }, 403);
+  }
+  if (deal.cancelledAt) {
+    return c.json({ error: 'this deal was cancelled', code: 'CANCELLED' }, 409);
+  }
+  if (deal.acceptedAt) {
+    return c.json({ error: 'this deal is already funded', code: 'ALREADY_FUNDED' }, 409);
+  }
+  if (!deal.sellerApprovedAt) {
+    return c.json(
+      { error: 'the seller must agree to the terms before funding', code: 'SELLER_APPROVAL_REQUIRED' },
+      409,
+    );
+  }
+
+  const feeBps = await getEscrowFeeBps({ fresh: true });
+  return c.json({
+    quote: buildDirectDealFundingQuote({ jobId, dealAmountUsdc: deal.dealAmountUsdc, feeBps }),
+  });
+});
+
+/// Seller agrees to the current commercial terms. This may provision their
+/// agent identity, but it never approves, transfers, or locks the buyer's USDC.
+/// The buyer performs the separate, exact-amount funding authorization below.
 dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
@@ -943,7 +1071,110 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   if (body.caller.toLowerCase() !== deal.seller) {
-    return c.json({ error: 'only the named seller can accept this deal' }, 403);
+    return c.json({ error: 'only the named seller can agree to this deal' }, 403);
+  }
+  if (deal.tradeLane === 'finance') {
+    const sellerType = await accountTypeOf(deal.seller);
+    if (sellerType !== 'business') {
+      return c.json(
+        {
+          error: 'finance-lane deals require a verified business',
+          detail: 'This is an SME trade-finance deal. Only a verified business can agree to it.',
+        },
+        403,
+      );
+    }
+  }
+  if (deal.acceptedAt) {
+    return c.json({ accepted: true, jobId, status: 'funded' as const }, 200);
+  }
+  if (deal.cancelledAt) {
+    return c.json({ error: 'this deal was cancelled' }, 409);
+  }
+  if (deal.acceptanceDeadlineUnix && deal.acceptanceDeadlineUnix < Math.floor(Date.now() / 1000)) {
+    return c.json(
+      { error: 'the acceptance window has ended', code: 'ACCEPTANCE_EXPIRED' },
+      409,
+    );
+  }
+  if (deal.sellerApprovedAt) {
+    return c.json({ accepted: true, jobId, status: 'seller-approved' as const }, 200);
+  }
+  if (inFlight.has(jobId)) {
+    return c.json({ error: 'an action is already in progress for this deal' }, 409);
+  }
+
+  inFlight.add(jobId);
+  try {
+    let sellerAgents = await getAgentWallets(deal.seller);
+    if (!sellerAgents) {
+      const provisioned = await provisionUserAgentWallets(deal.seller);
+      sellerAgents = await saveAgentWallets({ userAddress: deal.seller, ...provisioned });
+      void seedAgentFromOperator(sellerAgents.buyerAddress, {
+        owner: sellerAgents.userAddress,
+        agent: 'buyer',
+      });
+      void seedAgentFromOperator(sellerAgents.sellerAddress, {
+        owner: sellerAgents.userAddress,
+        agent: 'seller',
+      });
+      bus.emitEvent({
+        type: 'agent.activated',
+        actor: 'platform',
+        payload: {
+          user: deal.seller,
+          buyer: sellerAgents.buyerAddress,
+          seller: sellerAgents.sellerAddress,
+        },
+      });
+    }
+
+    const sellerApprovedAt = Date.now();
+    await patchDeal(jobId, {
+      sellerApprovedAt,
+      sellerAgentWalletId: sellerAgents.sellerWalletId,
+      sellerAgentAddress: sellerAgents.sellerAddress,
+    });
+    bus.emitEvent({
+      type: 'deal.seller-approved',
+      jobId,
+      actor: 'seller',
+      payload: {
+        seller: deal.seller,
+        buyer: deal.buyer,
+        dealAmountUsdc: deal.dealAmountUsdc,
+      },
+    });
+    logger.info({ jobId, seller: deal.seller }, 'seller agreed to direct deal terms');
+    return c.json({ accepted: true, jobId, status: 'seller-approved' as const, sellerApprovedAt }, 200);
+  } catch (err) {
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'seller approval failed');
+    return c.json({ error: 'approval failed', code: info.code }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
+/// Buyer authorizes the exact current total and funds the escrow. The existing
+/// chain verification and retry logic stays here so acceptedAt continues to
+/// mean the escrow is funded and Accepted onchain.
+dealsRoutes.post('/direct/:jobId/fund', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = fundSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.buyer) {
+    return c.json({ error: 'only the buyer can fund this deal' }, 403);
   }
   // Finance-lane (SME/B2B) deals require the accepting seller to be a verified
   // business. Catches the pending-invite case where the counterparty wasn't
@@ -961,7 +1192,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     }
   }
   if (deal.acceptedAt) {
-    return c.json({ error: 'deal already accepted' }, 409);
+    return c.json({ accepted: true, jobId, status: 'funded' as const }, 200);
   }
   if (deal.cancelledAt) {
     return c.json({ error: 'this deal was cancelled' }, 409);
@@ -969,11 +1200,18 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   if (!deal.buyerAgentWalletId || !deal.buyerAgentAddress) {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
+  if (!deal.sellerApprovedAt) {
+    return c.json(
+      { error: 'the seller must agree to the terms before funding', code: 'SELLER_APPROVAL_REQUIRED' },
+      409,
+    );
+  }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
   inFlight.add(jobId);
+  let movementReference: string | undefined;
   try {
     // Lazily provision the seller's agent wallets on first accept.
     let sellerAgents = await getAgentWallets(deal.seller);
@@ -995,6 +1233,12 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       });
     }
 
+    const milestonePcts = dealMilestonePcts(deal);
+    const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
+    const operationKey = fundingMovementKey(jobId);
+    const existingMovement = await getMoneyMovementByOperationKey(operationKey);
+    movementReference = existingMovement?.reference;
+
     // Recovery / idempotency: if a prior attempt already funded the escrow on
     // chain but failed to record acceptedAt (a crash or transient read between
     // the fund tx and the DB write), the agent's USDC is ALREADY locked in
@@ -1009,9 +1253,45 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     //     skip fundEscrow but still need to call acceptEscrow.
     //   - Accepted: seller already accepted; just record acceptedAt.
     if (preEscrow.state === ESCROW_FUNDED || preEscrow.state === ESCROW_ACCEPTED) {
+      if (
+        !fundingEscrowMatches(preEscrow, {
+          buyerAgent: deal.buyerAgentAddress,
+          sellerAgent: sellerAgents.sellerAddress,
+          dealAmount: dealAmountWei,
+          milestonePcts,
+        })
+      ) {
+        logger.error({ jobId, escrowState: preEscrow.state }, 'existing escrow does not match deal');
+        return c.json(
+          { error: 'the protected funds do not match this deal', code: 'ESCROW_MISMATCH' },
+          409,
+        );
+      }
+
+      if (movementReference) {
+        await verifyConfirmedMoneyMovementLegByKey(movementReference, 'approve');
+        await verifyConfirmedMoneyMovementLegByKey(movementReference, 'fund');
+      }
+
       if (preEscrow.state === ESCROW_FUNDED) {
         try {
-          await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
+          if (movementReference) {
+            const activation = await prepareMoneyMovementContractLeg(movementReference, {
+              key: 'activate',
+              label: 'Activate escrow protection',
+              rail: 'circle_wallets',
+              walletId: sellerAgents.sellerWalletId,
+              signerAddress: sellerAgents.sellerAddress,
+              contractAddress: escrow.address,
+            });
+            await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId, {
+              idempotencyKey: activation.idempotencyKey,
+              lifecycle: activation.lifecycle,
+            });
+            await verifyMoneyMovementLeg(movementReference, activation.leg.id);
+          } else {
+            await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
+          }
           invalidateEscrowCache(jobId);
         } catch (err) {
           const message = (err as Error).message;
@@ -1024,35 +1304,157 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
             : 'ACCEPT_ESCROW_FAILED';
           const detail = isInsufficientStake
             ? `Your seller agent needs more stake to backstop this deal. Stake more in /stake and retry.`
-            : `acceptEscrow reverted: ${message}`;
-          return c.json({ error: detail, code, detail: message }, 502);
+            : 'Escrow activation did not complete. Retry is safe because Karwan checks the existing escrow before another transfer.';
+          logger.error({ jobId, err: message, code }, 'escrow activation recovery failed');
+          if (movementReference) {
+            await markMoneyMovementNeedsAttention(
+              movementReference,
+              code,
+              isInsufficientStake ? 'seller' : 'karwan',
+            ).catch(() => undefined);
+          }
+          return c.json({ error: detail, code }, 502);
         }
       }
+
+      invalidateEscrowCache(jobId);
+      const recoveredAccount = await readEscrow(jobId);
+      if (
+        recoveredAccount.state !== ESCROW_ACCEPTED ||
+        !fundingEscrowMatches(recoveredAccount, {
+          buyerAgent: deal.buyerAgentAddress,
+          sellerAgent: sellerAgents.sellerAddress,
+          dealAmount: dealAmountWei,
+          milestonePcts,
+        })
+      ) {
+        if (movementReference) {
+          await markMoneyMovementNeedsAttention(
+            movementReference,
+            'ACCEPT_NOT_CONFIRMED',
+            'karwan',
+          ).catch(() => undefined);
+        }
+        return c.json(
+          { error: 'escrow activation is still being verified', code: 'ACCEPT_NOT_CONFIRMED' },
+          502,
+        );
+      }
+
+      if (movementReference) {
+        await verifyConfirmedMoneyMovementLegByKey(movementReference, 'activate');
+        await markMoneyMovementVerifying(movementReference);
+      }
+      const recoveredProof = movementReference
+        ? await currentMoneyMovement(movementReference)
+        : null;
+      const recoveredFundHash = recoveredProof?.legs.find(
+        (leg) => leg.key === 'fund' && leg.txHash,
+      )?.txHash;
       await patchDeal(jobId, {
         acceptedAt: deal.acceptedAt ?? Date.now(),
         sellerAgentWalletId: sellerAgents.sellerWalletId,
         sellerAgentAddress: sellerAgents.sellerAddress,
+        ...(recoveredFundHash && !deal.fundTxHash ? { fundTxHash: recoveredFundHash } : {}),
       });
+      let receiptPending = false;
+      if (movementReference) {
+        try {
+          await completeMoneyMovement(movementReference, {
+            amountMicros: recoveredProof?.amountMicros ?? '0',
+            summary: 'Escrow funded and protection activated',
+          });
+        } catch (err) {
+          receiptPending = true;
+          logger.warn(
+            { jobId, reference: movementReference, err: (err as Error).message },
+            'escrow recovered but movement proof remains incomplete',
+          );
+          await markMoneyMovementNeedsAttention(
+            movementReference,
+            'RECEIPT_RECONCILIATION_REQUIRED',
+            'karwan',
+          ).catch(() => undefined);
+        }
+      }
       bus.emitEvent({
         type: 'deal.accepted',
         jobId,
-        actor: 'seller',
+        actor: 'buyer',
         payload: { seller: deal.seller, buyer: deal.buyer },
       });
       logger.info(
         { jobId, escrowState: preEscrow.state },
         'escrow already past Funded; marked accepted (idempotent recovery)',
       );
-      return c.json({ accepted: true, jobId, recovered: true }, 200);
+      return c.json(
+        {
+          accepted: true,
+          jobId,
+          status: 'funded' as const,
+          recovered: true,
+          ...(movementReference ? { reference: movementReference, receiptPending } : {}),
+        },
+        200,
+      );
     }
 
     // Fund the escrow now: the buyer agent approves, then funds it naming the
     // seller agent as the on-chain seller. A managed deal may carry a stored
     // N-part split; direct deals resolve to the two-part shape.
-    const milestonePcts = dealMilestonePcts(deal);
-    const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
-    const feeBps = await getEscrowFeeBps();
+    const feeBps = await getEscrowFeeBps({ fresh: true });
     const { fundedAmount } = computeFunding(dealAmountWei, feeBps);
+    const currentQuote = buildDirectDealFundingQuote({
+      jobId,
+      dealAmountUsdc: deal.dealAmountUsdc,
+      feeBps,
+    });
+    if (!fundingAuthorizationMatches(currentQuote, body)) {
+      return c.json(
+        {
+          error: 'the funding total changed before confirmation',
+          code: 'QUOTE_CHANGED',
+          quote: currentQuote,
+        },
+        409,
+      );
+    }
+
+    // Trusted deals reserve seller stake during acceptEscrow. Check it before
+    // any buyer approval or transfer so a known seller shortfall cannot strand
+    // buyer USDC in the intermediate Funded state. The contract still enforces
+    // this again, covering state changes after the preflight.
+    const reservationBps = deal.requireStake
+      ? Math.round((deal.requireStakePct ?? 50) * 100)
+      : 0;
+    if (reservationBps > 0) {
+      try {
+        const reservationWei = (dealAmountWei * BigInt(reservationBps)) / 10000n;
+        const sellerFreeWei = (await vault.read.freeStakeOf([
+          deal.seller as `0x${string}`,
+        ])) as bigint;
+        if (sellerFreeWei < reservationWei) {
+          const reservationUsdc = formatUnits(reservationWei, USDC_DECIMALS);
+          const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
+          const message = `Seller needs ${reservationUsdc} USDC available in stake for this deal and currently has ${freeUsdc} USDC. No buyer funds moved.`;
+          bus.emitEvent({
+            type: 'agent.error',
+            jobId,
+            actor: 'seller',
+            payload: { scope: 'acceptEscrow.preflight', message, code: 'INSUFFICIENT_STAKE' },
+          });
+          return c.json({ error: message, code: 'INSUFFICIENT_STAKE' }, 409);
+        }
+      } catch (err) {
+        // A read failure is not proof of a shortfall. The contract remains the
+        // authority and the idempotent recovery path handles an intermediate
+        // Funded state if stake changes before acceptEscrow executes.
+        logger.warn(
+          { jobId, err: (err as Error).message },
+          'seller stake preflight unavailable; proceeding with contract enforcement',
+        );
+      }
+    }
 
     // Preflight the buyer agent's USDC. A Circle wallet is an ERC-4337 SCA, so a
     // fundEscrow whose inner transferFrom reverts for insufficient USDC still
@@ -1082,33 +1484,101 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       );
     }
 
+    const ensuredMovement = await ensureMoneyMovement({
+      operationKey,
+      kind: 'escrow_funding',
+      amountMicros: fundedAmount,
+      initiatedBy: deal.buyer,
+      participants: [
+        { address: deal.buyer, role: 'buyer' },
+        { address: deal.seller, role: 'seller' },
+      ],
+      summary: 'Fund escrow and activate protection',
+      nextActor: 'karwan',
+      jobId,
+    });
+    movementReference = ensuredMovement.movement.reference;
+    if (
+      ensuredMovement.movement.kind !== 'escrow_funding' ||
+      BigInt(ensuredMovement.movement.amountMicros) !== fundedAmount
+    ) {
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        'FUNDING_TERMS_CHANGED',
+        'buyer',
+      ).catch(() => undefined);
+      return c.json(
+        { error: 'the funding terms changed before submission', code: 'QUOTE_CHANGED' },
+        409,
+      );
+    }
+
+    const approval = await prepareMoneyMovementContractLeg(movementReference, {
+      key: 'approve',
+      label: 'Authorize the exact escrow total',
+      rail: 'circle_wallets',
+      walletId: deal.buyerAgentWalletId,
+      signerAddress: deal.buyerAgentAddress,
+      sourceAddress: deal.buyerAgentAddress,
+      destinationAddress: escrow.address,
+      contractAddress: usdcAddress,
+      amountMicros: fundedAmount,
+    });
     await executeContractCall(
       {
         walletId: deal.buyerAgentWalletId,
         contractAddress: usdcAddress,
         abiFunctionSignature: 'approve(address,uint256)',
         abiParameters: [escrow.address, fundedAmount.toString()],
+        idempotencyKey: approval.idempotencyKey,
+        lifecycle: approval.lifecycle,
       },
       `usdc.approve(escrow, direct ${jobId})`,
     );
-    // Per-deal reservationBps. Casual deals (default) pass 0 so the v2.E
-    // escrow's acceptEscrow skips vault.reserve entirely. Trusted-match
-    // deals translate the buyer's slider pct to bps (50% = 5000, 100% =
-    // 10000). The contract enforces the [5000, 10000] band on values > 0.
-    const reservationBps = deal.requireStake
-      ? Math.round((deal.requireStakePct ?? 50) * 100)
-      : 0;
+    const allowance = await readUsdcAllowance(deal.buyerAgentAddress, escrow.address);
+    if (allowance < fundedAmount) {
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        'APPROVAL_NOT_CONFIRMED',
+        'karwan',
+      );
+      return c.json(
+        {
+          error: 'the escrow authorization did not confirm. Retry is safe.',
+          code: 'APPROVAL_NOT_CONFIRMED',
+          reference: movementReference,
+        },
+        409,
+      );
+    }
+    await verifyMoneyMovementLeg(movementReference, approval.leg.id);
+
+    const funding = await prepareMoneyMovementContractLeg(movementReference, {
+      key: 'fund',
+      label: 'Protect funds in escrow',
+      rail: 'circle_wallets',
+      walletId: deal.buyerAgentWalletId,
+      signerAddress: deal.buyerAgentAddress,
+      sourceAddress: deal.buyerAgentAddress,
+      destinationAddress: escrow.address,
+      contractAddress: escrow.address,
+      amountMicros: fundedAmount,
+    });
     const fundResult = await executeContractCall(
-      buildFundEscrowCall(
-        deal.buyerAgentWalletId,
-        escrow.address,
-        jobId,
-        sellerAgents.sellerAddress,
-        dealAmountWei,
-        milestonePcts,
-        reservationBps,
-        deal.deadlineUnix,
-      ),
+      {
+        ...buildFundEscrowCall(
+          deal.buyerAgentWalletId,
+          escrow.address,
+          jobId,
+          sellerAgents.sellerAddress,
+          dealAmountWei,
+          milestonePcts,
+          reservationBps,
+          deal.deadlineUnix,
+        ),
+        idempotencyKey: funding.idempotencyKey,
+        lifecycle: funding.lifecycle,
+      },
       `fundEscrow(direct ${jobId})`,
     );
 
@@ -1118,7 +1588,15 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     // guard is what stops an "accepted" deal from sitting on an empty escrow.
     invalidateEscrowCache(jobId);
     const fundedAccount = await readEscrow(jobId);
-    if (fundedAccount.state !== ESCROW_FUNDED) {
+    if (
+      fundedAccount.state !== ESCROW_FUNDED ||
+      !fundingEscrowMatches(fundedAccount, {
+        buyerAgent: deal.buyerAgentAddress,
+        sellerAgent: sellerAgents.sellerAddress,
+        dealAmount: dealAmountWei,
+        milestonePcts,
+      })
+    ) {
       logger.error(
         { jobId, escrowState: fundedAccount.state, fundTxHash: fundResult.txHash },
         'fundEscrow tx landed but escrow is not Funded (inner userOp likely reverted)',
@@ -1135,49 +1613,22 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
           code: 'FUND_NOT_CONFIRMED',
         },
       });
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        'FUND_NOT_CONFIRMED',
+        'karwan',
+      );
       return c.json(
         {
           error:
             'escrow funding did not confirm on chain. The buyer agent may be short on USDC for this amount plus fee. Top it up and retry.',
           code: 'FUND_NOT_CONFIRMED',
+          reference: movementReference,
         },
         409,
       );
     }
-
-    // Pre-flight the seller's free stake on the vault. v2.E: the bps in
-    // scope above (set at fundEscrow time) is the per-deal value that the
-    // contract will enforce on acceptEscrow. Casual deals (bps=0) skip
-    // vault.reserve entirely so no stake is required.
-    if (reservationBps > 0) {
-      try {
-        const reservationWei =
-          (dealAmountWei * BigInt(reservationBps)) / 10000n;
-        // deal.seller is the identity wallet; stake lives there, not on the agent.
-        const sellerFreeWei = (await vault.read.freeStakeOf([
-          deal.seller as `0x${string}`,
-        ])) as bigint;
-        if (sellerFreeWei < reservationWei) {
-          const reservationUsdc = formatUnits(reservationWei, USDC_DECIMALS);
-          const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
-          const message = `You need ${reservationUsdc} USDC staked to accept this deal (${reservationBps / 100}% of ${deal.dealAmountUsdc}). You currently have ${freeUsdc} USDC free. Top up at /stake and retry.`;
-          bus.emitEvent({
-            type: 'agent.error',
-            jobId,
-            actor: 'seller',
-            payload: { scope: 'acceptEscrow.preflight', message, code: 'INSUFFICIENT_STAKE' },
-          });
-          return c.json({ error: message, code: 'INSUFFICIENT_STAKE' }, 409);
-        }
-      } catch (err) {
-        // Read failure on the vault is not blocking. Fall through to the
-        // chain call which will revert with the same constraint if needed.
-        logger.warn(
-          { jobId, err: (err as Error).message },
-          'freeStake preflight read failed; proceeding to acceptEscrow',
-        );
-      }
-    }
+    await verifyMoneyMovementLeg(movementReference, funding.leg.id);
 
     // v2.D: the seller agent signs acceptEscrow which transitions the
     // escrow from Funded to Accepted and locks an insurance reservation
@@ -1186,7 +1637,18 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     // back to the seller as actionable errors, most commonly
     // "insufficient stake" if the seller agent hasn't deposited enough.
     try {
-      const acceptTx = await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId);
+      const activation = await prepareMoneyMovementContractLeg(movementReference, {
+        key: 'activate',
+        label: 'Activate escrow protection',
+        rail: 'circle_wallets',
+        walletId: sellerAgents.sellerWalletId,
+        signerAddress: sellerAgents.sellerAddress,
+        contractAddress: escrow.address,
+      });
+      const acceptTx = await acceptEscrowOnChain(jobId, sellerAgents.sellerWalletId, {
+        idempotencyKey: activation.idempotencyKey,
+        lifecycle: activation.lifecycle,
+      });
       logger.info({ jobId, acceptTx }, 'seller accepted escrow on chain (v2.E)');
       // ERC-4337 inner-revert guard: handleOps can land as a successful tx
       // even when the inner acceptEscrow userOp reverted (eg vault.reserve
@@ -1197,14 +1659,22 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       // seller see "tx FAILED" later on Mark Delivered.
       invalidateEscrowCache(jobId);
       const acceptedAccount = await readEscrow(jobId);
-      if (acceptedAccount.state !== ESCROW_ACCEPTED) {
+      if (
+        acceptedAccount.state !== ESCROW_ACCEPTED ||
+        !fundingEscrowMatches(acceptedAccount, {
+          buyerAgent: deal.buyerAgentAddress,
+          sellerAgent: sellerAgents.sellerAddress,
+          dealAmount: dealAmountWei,
+          milestonePcts,
+        })
+      ) {
         const reservationUsdc = formatUnits(
           (dealAmountWei * BigInt(reservationBps)) / 10000n,
           USDC_DECIMALS,
         );
         const message =
           reservationBps > 0
-            ? `Accept didn't land on chain. This usually means your stake check failed — you need ${reservationUsdc} USDC free in your stake. Top up at /stake and retry.`
+            ? `Escrow activation did not complete. You need ${reservationUsdc} USDC available in stake. Top up at /stake and retry.`
             : `Accept didn't land on chain. Retry; if the second attempt also fails, ask the buyer to refund via Propose Cancellation.`;
         bus.emitEvent({
           type: 'agent.error',
@@ -1217,11 +1687,17 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
             chainState: acceptedAccount.state,
           },
         });
+        await markMoneyMovementNeedsAttention(
+          movementReference,
+          'ACCEPT_NOT_CONFIRMED',
+          'karwan',
+        );
         return c.json(
-          { error: message, code: 'ACCEPT_NOT_CONFIRMED' },
+          { error: message, code: 'ACCEPT_NOT_CONFIRMED', reference: movementReference },
           502,
         );
       }
+      await verifyMoneyMovementLeg(movementReference, activation.leg.id);
     } catch (err) {
       const message = (err as Error).message;
       const lower = message.toLowerCase();
@@ -1236,7 +1712,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         : 'ACCEPT_ESCROW_FAILED';
       const detail = isInsufficientStake
         ? `Your seller agent needs more stake to backstop a deal of ${deal.dealAmountUsdc} USDC. Stake more in /stake and retry.`
-        : `acceptEscrow reverted: ${message}`;
+        : 'Escrow activation did not complete. Retry is safe because Karwan checks the existing escrow before another transfer.';
       logger.error({ jobId, err: message, code }, 'acceptEscrow on chain failed');
       bus.emitEvent({
         type: 'agent.error',
@@ -1244,12 +1720,17 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         actor: 'seller',
         payload: { scope: 'acceptEscrow', message, code },
       });
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        code,
+        isInsufficientStake ? 'seller' : 'karwan',
+      ).catch(() => undefined);
       // The escrow stays in Funded state on chain, the buyer's USDC is
       // locked there. The buyer can dispute + refund to recover (which
       // skips slash since reservedAmount is still 0). We return the error
       // so the seller knows; off-chain state stays clean (no acceptedAt
       // set, no deal.accepted event).
-      return c.json({ error: detail, code, detail: message }, 502);
+      return c.json({ error: detail, code, reference: movementReference }, 502);
     }
     invalidateEscrowCache(jobId);
 
@@ -1275,10 +1756,14 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       fundTxHash: fundResult.txHash,
       ...reanchor,
     });
+    await completeMoneyMovement(movementReference, {
+      amountMicros: fundedAmount,
+      summary: 'Escrow funded and protection activated',
+    });
     bus.emitEvent({
       type: 'deal.accepted',
       jobId,
-      actor: 'seller',
+      actor: 'buyer',
       payload: { seller: deal.seller, buyer: deal.buyer },
     });
     bus.emitEvent({
@@ -1287,11 +1772,41 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       actor: 'buyer',
       payload: { seller: sellerAgents.sellerAddress, txHash: fundResult.txHash },
     });
-    logger.info({ jobId, ...fundResult }, 'direct deal accepted and escrow funded');
-    return c.json({ accepted: true, jobId, txHash: fundResult.txHash }, 200);
+    logger.info({ jobId, ...fundResult }, 'direct deal funded and accepted onchain');
+    return c.json(
+      {
+        accepted: true,
+        jobId,
+        status: 'funded' as const,
+        txHash: fundResult.txHash,
+        reference: movementReference,
+        quote: currentQuote,
+      },
+      200,
+    );
   } catch (err) {
     const info = classifyAgentError(err);
-    logger.error({ jobId, code: info.code, err: info.raw }, 'direct deal accept failed');
+    logger.error({ jobId, code: info.code, err: info.raw }, 'direct deal funding failed');
+    if (movementReference) {
+      const nextActor =
+        info.code === 'INSUFFICIENT_AGENT_BALANCE' || info.code === 'INSUFFICIENT_AGENT_GAS'
+          ? 'buyer'
+          : 'karwan';
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        info.code,
+        nextActor,
+      ).catch((movementError) => {
+        logger.error(
+          {
+            jobId,
+            reference: movementReference,
+            err: (movementError as Error).message,
+          },
+          'failed to persist funding movement recovery state',
+        );
+      });
+    }
     // Emit a notification event so the buyer sees this in the bell. They need
     // to top the buyer agent up before the seller can accept.
     if (info.code === 'INSUFFICIENT_AGENT_BALANCE' || info.code === 'INSUFFICIENT_AGENT_GAS') {
@@ -1309,7 +1824,14 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
       });
     }
     const status = info.code === 'INSUFFICIENT_AGENT_BALANCE' ? 409 : 502;
-    return c.json({ error: 'accept failed', code: info.code, detail: info.message }, status);
+    return c.json(
+      {
+        error: 'funding failed',
+        code: info.code,
+        ...(movementReference ? { reference: movementReference } : {}),
+      },
+      status,
+    );
   } finally {
     inFlight.delete(jobId);
   }
@@ -1825,6 +2347,91 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   }
 });
 
+async function projectMilestonePayout(input: {
+  deal: DirectDeal;
+  milestoneIndex: number;
+  amountMicros: bigint | string;
+  reference: string;
+  txHash?: string;
+  settledInMs?: number;
+  confirmedAt?: number;
+}): Promise<boolean> {
+  const { deal, milestoneIndex, reference, txHash } = input;
+  const paidAt = input.confirmedAt ?? Date.now();
+  const settled = await finalizeIfSettled(deal.jobId);
+  if (settled) {
+    await patchDeal(deal.jobId, {
+      settledAt: deal.settledAt ?? paidAt,
+      lastReleaseAt: paidAt,
+      ...(input.settledInMs != null ? { lastSettleMs: input.settledInMs } : {}),
+    });
+    void settleFactoringForDeal(deal.jobId);
+    void settlePOFinancingForDeal(deal.jobId);
+  } else if (milestoneIndex === 0) {
+    const startedAt = deal.reviewWindowStartedAt ?? paidAt;
+    await patchDeal(deal.jobId, {
+      reviewWindowStartedAt: startedAt,
+      lastReleaseAt: paidAt,
+      ...(input.settledInMs != null ? { lastSettleMs: input.settledInMs } : {}),
+    });
+    if (!deal.reviewWindowStartedAt) {
+      bus.emitEvent({
+        type: 'deal.review.started',
+        jobId: deal.jobId,
+        actor: 'buyer',
+        payload: {
+          buyer: deal.buyer,
+          seller: deal.seller,
+          windowMs: config.DEAL_REVIEW_WINDOW_MS,
+          startedAt,
+        },
+      });
+    }
+  } else {
+    await patchDeal(deal.jobId, {
+      lastReleaseAt: paidAt,
+      ...(input.settledInMs != null ? { lastSettleMs: input.settledInMs } : {}),
+    });
+  }
+
+  const amountUsdc = formatUsdcMicros(input.amountMicros);
+  void appendActivity({
+    id: `${reference}:buyer`,
+    address: deal.buyer,
+    kind: 'release',
+    summary: `Released milestone ${milestoneIndex + 1} on deal ${deal.jobId} to the seller${settled ? ' (final release, deal settled)' : ''}`,
+    params: {
+      t: settled ? 'milestoneReleaseFinal' : 'milestoneRelease',
+      n: String(milestoneIndex + 1),
+      job: String(deal.jobId),
+    },
+    amountUsdc,
+    jobId: deal.jobId,
+    txHash,
+    refId: reference,
+    counterparty: deal.seller,
+  });
+  if (deal.seller) {
+    void appendActivity({
+      id: `${reference}:seller`,
+      address: deal.seller,
+      kind: 'payout',
+      summary: `Received payment for milestone ${milestoneIndex + 1} on deal ${deal.jobId}${settled ? ' (final release, deal settled)' : ''}`,
+      params: {
+        t: settled ? 'dealPayoutFinal' : 'dealPayout',
+        n: String(milestoneIndex + 1),
+        job: String(deal.jobId),
+      },
+      amountUsdc,
+      jobId: deal.jobId,
+      txHash,
+      refId: reference,
+      counterparty: deal.buyer.toLowerCase(),
+    });
+  }
+  return settled;
+}
+
 dealsRoutes.post('/direct/:jobId/release', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
@@ -1957,6 +2564,74 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     }
   }
 
+  // If a prior request advanced the contract but crashed before updating the
+  // deal projection, reconcile that exact movement first. Never infer that a
+  // second click means "release the next milestone" while an earlier payout
+  // still lacks a completed receipt.
+  const unfinishedPayout = findAdvancedUnfinishedPayout(
+    await listMoneyMovementsForJobParty(jobId, deal.buyer),
+    account.milestonesReleased,
+  );
+
+  if (unfinishedPayout?.milestoneIndex != null) {
+    const payoutLegBefore = unfinishedPayout.legs.find(
+      (leg) => leg.attempt === unfinishedPayout.attempt && leg.key === 'release',
+    );
+    await verifyConfirmedMoneyMovementLegByKey(
+      unfinishedPayout.reference,
+      'release',
+      { amountMicros: unfinishedPayout.amountMicros },
+    );
+    await markMoneyMovementVerifying(unfinishedPayout.reference);
+    const payoutProof = await currentMoneyMovement(unfinishedPayout.reference);
+    const payoutLeg = payoutProof.legs.find(
+      (leg) => leg.attempt === payoutProof.attempt && leg.key === 'release',
+    ) ?? payoutLegBefore;
+    const settled = await projectMilestonePayout({
+      deal,
+      milestoneIndex: unfinishedPayout.milestoneIndex,
+      amountMicros: unfinishedPayout.amountMicros,
+      reference: unfinishedPayout.reference,
+      txHash: payoutLeg?.txHash,
+      confirmedAt: payoutLeg?.confirmedAt,
+    });
+    let receiptPending = false;
+    try {
+      await completeMoneyMovement(unfinishedPayout.reference, {
+        amountMicros: unfinishedPayout.amountMicros,
+        summary: `Milestone ${unfinishedPayout.milestoneIndex + 1} paid`,
+      });
+    } catch (err) {
+      receiptPending = true;
+      logger.warn(
+        {
+          jobId,
+          reference: unfinishedPayout.reference,
+          err: (err as Error).message,
+        },
+        'payout reached escrow state but provider proof remains incomplete',
+      );
+      await markMoneyMovementNeedsAttention(
+        unfinishedPayout.reference,
+        'RECEIPT_RECONCILIATION_REQUIRED',
+        'karwan',
+      ).catch(() => undefined);
+    }
+    return c.json(
+      {
+        accepted: true,
+        jobId,
+        recovered: true,
+        settled,
+        reference: unfinishedPayout.reference,
+        amountUsdc: formatUsdcMicros(unfinishedPayout.amountMicros),
+        receiptPending,
+        ...(payoutLeg?.txHash ? { txHash: payoutLeg.txHash } : {}),
+      },
+      200,
+    );
+  }
+
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json(
       { error: `escrow state must be Accepted(2), got ${account.state}. Releases run after the seller accepts the escrow.` },
@@ -1965,75 +2640,143 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   }
 
   inFlight.add(jobId);
+  let movementReference: string | undefined;
   try {
     const releasedIndex = account.milestonesReleased;
+    const expectedAmount = expectedMilestonePayout(account, releasedIndex);
+    const ensuredMovement = await ensureMoneyMovement({
+      operationKey: payoutMovementKey(jobId, releasedIndex),
+      kind: 'milestone_payout',
+      amountMicros: expectedAmount,
+      initiatedBy: deal.buyer,
+      participants: [
+        { address: deal.buyer, role: 'buyer' },
+        { address: deal.seller, role: 'recipient' },
+      ],
+      summary: `Pay milestone ${releasedIndex + 1}`,
+      nextActor: 'karwan',
+      jobId,
+      milestoneIndex: releasedIndex,
+    });
+    movementReference = ensuredMovement.movement.reference;
+    if (
+      ensuredMovement.movement.kind !== 'milestone_payout' ||
+      ensuredMovement.movement.milestoneIndex !== releasedIndex ||
+      BigInt(ensuredMovement.movement.amountMicros) !== expectedAmount
+    ) {
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        'PAYOUT_TERMS_CHANGED',
+        'karwan',
+      ).catch(() => undefined);
+      return c.json(
+        {
+          error: 'the milestone amount changed before submission',
+          code: 'PAYOUT_TERMS_CHANGED',
+          reference: movementReference,
+        },
+        409,
+      );
+    }
+
+    const payout = await prepareMoneyMovementContractLeg(movementReference, {
+      key: 'release',
+      label: `Pay milestone ${releasedIndex + 1}`,
+      rail: 'circle_wallets',
+      walletId: deal.buyerAgentWalletId,
+      sourceAddress: escrow.address,
+      contractAddress: escrow.address,
+      amountMicros: expectedAmount,
+    });
     // Approval-to-verified duration. releaseMilestone re-reads escrow state
     // after the tx lands, so the stamp means "money verifiably moved on Arc",
     // not "request submitted". Persisted per deal and returned to the client:
     // seconds, where marketplaces hold cleared funds for days.
     const releaseStartedAt = Date.now();
-    const txHash = await releaseMilestone(jobId, releasedIndex, deal.buyerAgentWalletId);
-    const settledInMs = Date.now() - releaseStartedAt;
-    const settled = await finalizeIfSettled(jobId);
-    if (settled) {
-      await patchDeal(jobId, { settledAt: Date.now(), lastReleaseAt: Date.now(), lastSettleMs: settledInMs });
-      // The seller's escrow funds have just landed. Pull any factoring or PO
-      // repayment now, while the money is still in their wallet, rather than
-      // waiting up to a poll interval for the watcher. Fire-and-forget: both
-      // helpers catch internally and the periodic watchers remain the safety net.
-      void settleFactoringForDeal(jobId);
-      void settlePOFinancingForDeal(jobId);
-    } else if (releasedIndex === 0) {
-      // First milestone is out. Open the buyer's review window for the rest.
-      const startedAt = Date.now();
-      await patchDeal(jobId, { reviewWindowStartedAt: startedAt, lastReleaseAt: startedAt, lastSettleMs: settledInMs });
-      bus.emitEvent({
-        type: 'deal.review.started',
-        jobId,
-        actor: 'buyer',
-        payload: {
-          buyer: deal.buyer,
-          seller: deal.seller,
-          windowMs: config.DEAL_REVIEW_WINDOW_MS,
-          startedAt,
-        },
-      });
-    } else {
-      // Intermediate milestone on a 3+ part deal. Anchors the next window.
-      await patchDeal(jobId, { lastReleaseAt: Date.now(), lastSettleMs: settledInMs });
-    }
-    void appendActivity({
-      address: deal.buyer,
-      kind: 'release',
-      summary: `Released milestone ${releasedIndex + 1} on deal ${jobId} to the seller${settled ? ' (final release, deal settled)' : ''}`,
-      params: {t: settled ? 'milestoneReleaseFinal' : 'milestoneRelease', n: String(releasedIndex + 1), job: String(jobId)},
+    const txHash = await releaseMilestone(
       jobId,
-      txHash,
-      counterparty: deal.seller,
-    });
-    // The other side of the same movement. One row per party, because the
-    // ledger is keyed on address: without this the seller's transaction
-    // history never mentioned a single payment they received.
-    if (deal.seller) {
-      void appendActivity({
-        address: deal.seller,
-        kind: 'payout',
-        summary: `Received payment for milestone ${releasedIndex + 1} on deal ${jobId}${settled ? ' (final release, deal settled)' : ''}`,
-        params: {
-          t: settled ? 'dealPayoutFinal' : 'dealPayout',
-          n: String(releasedIndex + 1),
-          job: String(jobId),
+      releasedIndex,
+      deal.buyerAgentWalletId,
+      { idempotencyKey: payout.idempotencyKey, lifecycle: payout.lifecycle },
+    );
+    const settledInMs = Date.now() - releaseStartedAt;
+    invalidateEscrowCache(jobId);
+    const afterRelease = await readEscrow(jobId);
+    const actualAmount = afterRelease.released - account.released;
+    if (
+      afterRelease.milestonesReleased <= releasedIndex ||
+      actualAmount <= 0n ||
+      actualAmount !== expectedAmount
+    ) {
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        'PAYOUT_NOT_CONFIRMED',
+        'karwan',
+      );
+      return c.json(
+        {
+          error: 'the milestone payment is still being verified',
+          code: 'PAYOUT_NOT_CONFIRMED',
+          reference: movementReference,
         },
+        502,
+      );
+    }
+    await verifyMoneyMovementLeg(movementReference, payout.leg.id, {
+      amountMicros: actualAmount,
+    });
+    const settled = await projectMilestonePayout({
+      deal,
+      milestoneIndex: releasedIndex,
+      amountMicros: actualAmount,
+      reference: movementReference,
+      txHash,
+      settledInMs,
+    });
+    await completeMoneyMovement(movementReference, {
+      amountMicros: actualAmount,
+      summary: `Milestone ${releasedIndex + 1} paid`,
+    });
+    return c.json(
+      {
+        accepted: true,
         jobId,
         txHash,
-        counterparty: deal.buyer?.toLowerCase(),
-      });
-    }
-    return c.json({ accepted: true, jobId, txHash, settled, settledInMs }, 200);
+        settled,
+        settledInMs,
+        reference: movementReference,
+        amountUsdc: formatUsdcMicros(actualAmount),
+      },
+      200,
+    );
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'release failed');
-    return c.json({ error: 'release failed', code: info.code, detail: info.message }, 502);
+    if (movementReference) {
+      await markMoneyMovementNeedsAttention(
+        movementReference,
+        info.code,
+        info.code === 'INSUFFICIENT_AGENT_GAS' ? 'buyer' : 'karwan',
+      ).catch((movementError) => {
+        logger.error(
+          {
+            jobId,
+            reference: movementReference,
+            err: (movementError as Error).message,
+          },
+          'failed to persist payout movement recovery state',
+        );
+      });
+    }
+    return c.json(
+      {
+        error: 'release failed',
+        code: info.code,
+        detail: info.message,
+        ...(movementReference ? { reference: movementReference } : {}),
+      },
+      502,
+    );
   } finally {
     inFlight.delete(jobId);
   }
@@ -2497,7 +3240,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
   }
 });
 
-/// Buyer cancels the deal. Before the seller accepts, this is a plain state
+/// Buyer cancels the deal. Before escrow is funded, this is a plain state
 /// change with no escrow to unwind. After acceptance, once the deadline passes
 /// without delivery, it moves the escrow Disputed then Refunded on chain via the
 /// buyer agent, returning the full escrow balance to the buyer.
@@ -2525,7 +3268,8 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     return c.json({ error: 'this deal is no longer cancellable' }, 409);
   }
 
-  // Before the seller accepts, no escrow exists yet, so cancel is a plain state
+  // Before the buyer funds escrow, no on-chain deal exists yet, so cancel is a
+  // plain state change even if the seller already agreed to the terms.
   // change with nothing to refund on chain.
   if (!deal.acceptedAt) {
     // Defensive: the escrow could be funded on chain even with acceptedAt unset
@@ -2545,7 +3289,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
         409,
       );
     }
-    const reason = 'buyer withdrew before the seller accepted';
+    const reason = 'buyer withdrew before escrow was funded';
     await patchDeal(jobId, {
       cancelledAt: Date.now(),
       cancelKind: 'pre-accept',
@@ -3056,7 +3800,7 @@ async function enrich(deal: DirectDeal) {
     delayAppealResponseWindowMs: config.DEAL_DELAY_APPEAL_RESPONSE_MS,
     delayAppealGraceMs: config.DEAL_DELAY_APPEAL_GRACE_MS,
   };
-  // No escrow exists on chain until the seller accepts.
+  // No escrow exists on chain until the seller agrees and the buyer funds.
   if (!deal.acceptedAt) return { ...base, onChain: null };
   try {
     const account = await readEscrow(deal.jobId);

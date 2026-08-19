@@ -56,7 +56,7 @@ function updateInnerHtml(input: DealUpdateEmailInput): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td width="50%" style="padding:12px 14px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 3px;vertical-align:top;">
-                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Accept by</div>
+                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Agree by</div>
                     <div style="font-size:14px;font-weight:700;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.acceptanceLabel ?? '—')}</div>
                   </td>
                   <td width="12" style="font-size:0;line-height:0;">&nbsp;</td>
@@ -81,7 +81,7 @@ function updateInnerHtml(input: DealUpdateEmailInput): string {
               </p>
               <a href="${escapeHtml(input.claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">Review updated terms</a>
               <p style="margin:18px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                Funds are not moved until you accept. The link still works.
+                Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. The link still works.
               </p>
             </td>
           </tr>
@@ -128,11 +128,11 @@ export async function sendDealUpdateEmail(
     lines.push('');
   }
   if (input.acceptanceLabel || input.deliveryLabel) {
-    lines.push(`Accept by: ${input.acceptanceLabel ?? '—'}`);
+    lines.push(`Agree by: ${input.acceptanceLabel ?? '—'}`);
     lines.push(`Deliver by: ${input.deliveryLabel ?? 'Open-ended'}`);
     lines.push('');
   }
-  lines.push('Funds are not moved until you accept. The link still works.');
+  lines.push('Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. The link still works.');
   const text = lines.join('\n');
   try {
     const { data, error } = await client.emails.send({

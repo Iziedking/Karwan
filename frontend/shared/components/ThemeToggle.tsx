@@ -9,7 +9,7 @@ export function ThemeToggle() {
   const a11y = useTranslations().a11y;
   const { theme, toggle, mounted } = useTheme();
 
-  if (!mounted) return <div className="w-7 h-7" aria-hidden />;
+  if (!mounted) return <div className="w-11 h-11" aria-hidden />;
 
   return (
     <button
@@ -20,7 +20,7 @@ export function ThemeToggle() {
       // Resting border is line-strong, not line: at 8% white the outline measured
       // 1.2:1 against the dark nav, so the control read as a floating icon with no
       // edge at all.
-      className="w-7 h-7 grid place-items-center rounded-md border border-[var(--color-line-strong)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink-dim)] transition-colors"
+      className="w-11 h-11 grid place-items-center rounded-full border border-[var(--color-line-strong)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink-dim)] transition-colors"
     >
       {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
     </button>

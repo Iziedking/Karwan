@@ -45,6 +45,17 @@ export interface ContractCallInput {
   /// entirely, e.g. for the Arc fast path where USDC-as-gas is predictable and
   /// the extra round-trip would double user-facing latency.
   estimate?: boolean;
+  /// Optional durable lifecycle sink. MoneyMovement uses this to persist the
+  /// Circle transaction id immediately after submission and the verified hash
+  /// after the receipt succeeds. Existing callers omit it and keep the same
+  /// behavior.
+  lifecycle?: ContractCallLifecycle;
+}
+
+export interface ContractCallLifecycle {
+  onSubmitted?: (event: { txId: string; estimatedFee: FeeEstimate | null }) => Promise<void>;
+  onConfirmed?: (event: ContractCallResult) => Promise<void>;
+  onFailed?: (event: { txId: string; state?: string; error: Error }) => Promise<void>;
 }
 
 export interface FeeEstimate {
@@ -180,26 +191,55 @@ export async function executeContractCall(
   label: string,
 ): Promise<ContractCallResult> {
   const { txId, estimatedFee } = await submitContractCall(input, label);
+  // Deliberately outside the transaction-failure catch below. If persistence
+  // fails here, Circle may already hold the request. The caller must retry the
+  // same persisted idempotency key, not mark the provider leg failed.
+  await input.lifecycle?.onSubmitted?.({ txId, estimatedFee });
 
   // Circle typically settles testnet txs in < 20s. We poll every 2s up to the
   // configured attempt cap (default 45 = ~90s).
   const attempts = input.pollAttempts ?? 45;
-  for (let i = 0; i < attempts; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    const { state, txHash } = await getTxState(txId);
-    if (state === 'COMPLETE') {
-      if (!txHash) throw new Error(`${label}: completed without txHash`);
-      const explorerUrl = `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`;
-      const receipt = await publicClient.getTransactionReceipt({
-        hash: txHash as Hex,
-      });
-      assertSuccessfulReceipt(label, txHash, receipt);
-      logger.info({ label, txHash, explorerUrl }, 'tx confirmed');
-      return { txId, txHash, explorerUrl, estimatedFee };
+  let lastState: string | undefined;
+  let result: ContractCallResult;
+  try {
+    let confirmed: ContractCallResult | null = null;
+    for (let i = 0; i < attempts; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const { state, txHash } = await getTxState(txId);
+      lastState = state;
+      if (state === 'COMPLETE') {
+        if (!txHash) throw new Error(`${label}: completed without txHash`);
+        const explorerUrl = `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`;
+        const receipt = await publicClient.getTransactionReceipt({
+          hash: txHash as Hex,
+        });
+        assertSuccessfulReceipt(label, txHash, receipt);
+        logger.info({ label, txHash, explorerUrl }, 'tx confirmed');
+        confirmed = { txId, txHash, explorerUrl, estimatedFee };
+        break;
+      }
+      if (state === 'FAILED' || state === 'CANCELLED' || state === 'DENIED') {
+        throw new Error(`${label}: tx ${state}`);
+      }
     }
-    if (state === 'FAILED' || state === 'CANCELLED' || state === 'DENIED') {
-      throw new Error(`${label}: tx ${state}`);
+    if (!confirmed) {
+      throw new Error(`${label}: tx did not settle within ${attempts * 2}s`);
     }
+    result = confirmed;
+  } catch (cause) {
+    const error = cause instanceof Error ? cause : new Error(String(cause));
+    try {
+      await input.lifecycle?.onFailed?.({ txId, state: lastState, error });
+    } catch (lifecycleError) {
+      logger.error(
+        { label, txId, err: (lifecycleError as Error).message },
+        'tx failure lifecycle persistence failed',
+      );
+    }
+    throw error;
   }
-  throw new Error(`${label}: tx did not settle within ${attempts * 2}s`);
+  // Also outside the provider-failure catch. The money is confirmed; if this
+  // durable write fails, recovery must re-read the same tx and chain state.
+  await input.lifecycle?.onConfirmed?.(result);
+  return result;
 }

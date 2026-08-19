@@ -35,7 +35,12 @@ export function BracketTag({
   className?: string;
   onDark?: boolean;
 }) {
-  const dotColor = DOT_COLOR[variant];
+  const dotColor =
+    variant === 'muted'
+      ? onDark
+        ? 'rgba(255,255,255,0.24)'
+        : 'rgba(10,10,11,0.24)'
+      : DOT_COLOR[variant];
   const textColor = onDark ? 'var(--ink-2)' : 'var(--ink-inv-2)';
   return (
     <span
@@ -50,7 +55,7 @@ export function BracketTag({
           <span
             aria-hidden
             className="absolute inset-0 rounded-[1px] motion-safe:animate-ping"
-            style={{ background: dotColor, opacity: 0.55, animationDuration: '1.6s' }}
+            style={{ background: dotColor, opacity: 0.55, animationDuration: '1.2s' }}
           />
         )}
         <span

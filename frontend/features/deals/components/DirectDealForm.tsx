@@ -3,10 +3,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { api, ApiError, type Partner } from '@/core/api';
+import { api, type Partner } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
-import { feeBreakdown } from '../config';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { formatUsdc } from '@/shared/utils/format';
@@ -276,7 +275,6 @@ export function DirectDealForm() {
     termsValid &&
     !submitting;
 
-  const fee = amountValid ? feeBreakdown(amount as number) : null;
   const previewAmount = typeof amount === 'number' ? amount : 0;
   const previewPct = typeof firstPct === 'number' ? firstPct : 0;
   const previewDeadlineValue = typeof deadlineValue === 'number' ? deadlineValue : 0;
@@ -343,9 +341,8 @@ export function DirectDealForm() {
       // form-bound invite banner was easy to scroll past on a long-form page
       // so the buyer would tap Open Deal and never realise the link existed.
       router.push(`/deals/${r.deal.jobId}`);
-    } catch (err) {
-      if (err instanceof ApiError && err.detail) setError(String(err.detail));
-      else setError((err as Error).message);
+    } catch {
+      setError(dd.errorPrefix);
       setSubmitting(false);
     }
   }
@@ -439,7 +436,7 @@ export function DirectDealForm() {
               ? dd.counterparty.helperWallet
               : dd.counterparty.helperEmail}
           </p>
-          <label className="inline-flex items-center gap-2 shrink-0 cursor-pointer">
+          <label className="inline-flex min-h-11 items-center gap-2 px-2 shrink-0 cursor-pointer">
             <input
               type="checkbox"
               checked={counterpartyMode === 'email'}
@@ -654,7 +651,7 @@ export function DirectDealForm() {
                     type="button"
                     disabled={submitting}
                     onClick={() => setAcceptanceHours(opt.value)}
-                    className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: active ? 'var(--lp-dark)' : 'var(--lp-light)',
                       color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
@@ -686,7 +683,7 @@ export function DirectDealForm() {
               tradeType === 'goods'
                 ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums.'
                 : tradeType === 'mixed'
-                  ? 'e.g. Equipment install on site — includes shipping + commissioning.'
+                  ? 'e.g. Equipment install on site, including shipping and commissioning.'
                   : dd.deliverable.termsPlaceholder
             }
             className="form-input form-textarea"
@@ -891,8 +888,10 @@ export function DirectDealForm() {
       </FieldSection>
       )}
 
-      {/* FUNDING BREAKDOWN */}
-      {fee && (
+      {/* FUNDING SUMMARY. The contract fee is owner-settable, so the proposal
+          must not present a hardcoded total as authoritative. The buyer sees
+          and authorizes the live quote only after the seller agrees. */}
+      {amountValid && (
         <div
           className="overflow-hidden"
           style={{
@@ -910,14 +909,12 @@ export function DirectDealForm() {
             </p>
           </div>
           <div className="px-5 py-4 space-y-2.5">
-            <FeeLine label={dd.funding.youFundLabel} value={fee.fundedAmount} strong />
-            <FeeLine label={dd.funding.sellerReceivesLabel} value={fee.sellerNet} />
-            <FeeLine label={dd.funding.platformFeeLabel} value={fee.feeTotal} faint />
-          </div>
-          <div className="px-5 py-3 border-t border-[var(--lp-border-light)] mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-            {dd.funding.footerTemplate
-              .replace('{delivery}', String(previewPct))
-              .replace('{verification}', String(100 - previewPct))}
+            <FeeLine label={dd.funding.youFundLabel} value={previewAmount} strong />
+            <p className="text-[12.5px] leading-relaxed text-[var(--lp-text-sub)]">
+              {dd.funding.footerTemplate
+                .replace('{delivery}', String(previewPct))
+                .replace('{verification}', String(100 - previewPct))}
+            </p>
           </div>
         </div>
       )}
@@ -1049,7 +1046,7 @@ export function DirectDealForm() {
 
       {error && (
         <p className="mono text-[12px] text-[#7a1f1a]">
-          {dd.errorPrefix} {error}
+          {error}
         </p>
       )}
 
@@ -1152,7 +1149,7 @@ function DeadlineUnitPicker({
             aria-checked={active}
             disabled={disabled}
             onClick={() => onChange(o.key)}
-            className="px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="min-h-11 min-w-11 px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: active ? 'var(--lp-dark)' : 'transparent',
               color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',

@@ -1,16 +1,22 @@
 import { cn } from '@/shared/utils/cn';
 
-/// A structural loading placeholder. Pulses opacity only (GPU-friendly) and
-/// goes still under prefers-reduced-motion. Pass sizing via className.
+/// Structural loading placeholder. SKILL.md forbids generic "Loading..." copy
+/// and pulse-only blocks. A quiet surface reserves the final layout while a
+/// one-pixel lime progress line communicates active work. Reduced-motion users
+/// see the same stable geometry without the sweep.
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden
       className={cn(
-        'animate-pulse motion-reduce:animate-none rounded-md bg-[var(--color-surface-2)]',
+        'relative overflow-hidden rounded-[10px] bg-[var(--color-surface-2)]',
         className,
       )}
-    />
+    >
+      <span
+        className="skeleton-sweep motion-reduce:hidden absolute inset-x-0 bottom-0 h-px w-1/3 bg-[var(--accent)]"
+      />
+    </div>
   );
 }
 

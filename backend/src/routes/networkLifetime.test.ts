@@ -41,6 +41,9 @@ test('a scanned deployment serves the totals, with USDC as strings', async () =>
   row.events = 4;
 
   const acc = {
+    // Stamped, or the route refuses the fixture the same way it refuses a
+    // snapshot built before a contract was added to the ledger.
+    ledgerFingerprint: lifetime.LEDGER_FINGERPRINT,
     cursor: '54000000',
     perContract: { [ESCROW.address]: row },
     transactions: 3,
@@ -76,6 +79,9 @@ test('the route is public, and exposes no per-user detail', async () => {
   // addresses they came from. If a field ever appears here that names a
   // counterparty or a deal, that decision has to be made on purpose.
   const acc = {
+    // Stamped, or the route refuses the fixture the same way it refuses a
+    // snapshot built before a contract was added to the ledger.
+    ledgerFingerprint: lifetime.LEDGER_FINGERPRINT,
     cursor: '54000000',
     perContract: { [ESCROW.address]: lifetime.emptyContract(ESCROW) },
     transactions: 0,

@@ -7,14 +7,13 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 // Tokens, not hex. `primary` inverts ink/surface so it reads correctly in both
 // the light and dark themes, which the old hardcoded #0c0e10 buttons did not.
 const BASE =
-  'inline-flex items-center justify-center gap-2 rounded-md font-semibold tracking-tight ' +
-  'transition-[opacity,background-color,border-color,color] duration-150 ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ' +
-  'focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] ' +
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] font-mono font-semibold uppercase tracking-[0.06em] ' +
+  'transition-[opacity,background-color,border-color,color,transform] duration-[var(--dur-fast)] active:scale-[0.98] motion-reduce:active:scale-100 ' +
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ' +
   'disabled:opacity-40 disabled:cursor-not-allowed';
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-[var(--color-ink)] text-[var(--color-surface)] hover:opacity-90',
+  primary: 'bg-[var(--accent)] text-[var(--accent-ink)] hover:bg-[var(--accent-deep)]',
   outline:
     'border border-[var(--color-line-strong)] text-[var(--color-ink)] ' +
     'hover:bg-[var(--color-surface-2)] hover:border-[var(--color-ink-dim)]',
@@ -25,9 +24,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-[12px]',
-  md: 'px-4 py-2.5 text-[13px]',
-  lg: 'px-5 py-2.5 text-[14px]',
+  sm: 'min-h-9 px-3 py-1.5 text-[10px]',
+  md: 'px-4 py-2.5 text-[11px]',
+  lg: 'px-5 py-3 text-[12px]',
 };
 
 /// The shared class string. Use this to style a Link or anchor as a button

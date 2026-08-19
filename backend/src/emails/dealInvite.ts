@@ -51,7 +51,7 @@ function inviteInnerHtml(input: DealInviteEmailInput): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td width="50%" style="padding:12px 14px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 3px;vertical-align:top;">
-                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Accept by</div>
+                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Agree by</div>
                     <div style="font-size:14px;font-weight:700;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.acceptanceLabel ?? '—')}</div>
                   </td>
                   <td width="12" style="font-size:0;line-height:0;">&nbsp;</td>
@@ -65,8 +65,8 @@ function inviteInnerHtml(input: DealInviteEmailInput): string {
           </tr>`
     : '';
   const trailingNote = hasTwoDeadlines
-    ? `Funds are not moved until you accept. Invite link itself ${escapeHtml(input.expiresLabel.toLowerCase())}.`
-    : `${escapeHtml(input.expiresLabel)}. Funds are not moved until you accept.`;
+    ? `Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. Invite link itself ${escapeHtml(input.expiresLabel.toLowerCase())}.`
+    : `${escapeHtml(input.expiresLabel)}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.`;
   return `
           <tr>
             <td style="padding:36px 28px 8px 28px;text-align:center;">
@@ -131,13 +131,13 @@ export async function sendDealInviteEmail(
   const subject = `You have a Karwan deal to review (${input.dealAmountUsdc} USDC)`;
   const deadlineLines =
     input.acceptanceLabel || input.deliveryLabel
-      ? `Accept by: ${input.acceptanceLabel ?? '—'}\nDeliver by: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
+      ? `Agree by: ${input.acceptanceLabel ?? '—'}\nDeliver by: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
       : '';
   const text =
     `${input.inviterMasked} opened a Karwan deal with you for ${input.dealAmountUsdc} USDC.\n\n` +
     `Review and claim: ${input.claimUrl}\n\n` +
     deadlineLines +
-    `${input.expiresLabel}. Funds are not moved until you accept.\n` +
+    `${input.expiresLabel}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.\n` +
     `If you weren't expecting this invite, ignore the email.`;
   try {
     const { data, error } = await client.emails.send({

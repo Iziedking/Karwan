@@ -247,7 +247,7 @@ export function EditDealModal({
                     type="button"
                     disabled={busy}
                     onClick={() => setAcceptanceHours(opt.value)}
-                    className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: active ? 'var(--lp-dark)' : 'var(--lp-light)',
                       color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
@@ -446,7 +446,7 @@ function UnitPicker({
             aria-checked={active}
             disabled={disabled}
             onClick={() => onChange(o.key)}
-            className="px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="min-h-11 min-w-11 px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: active ? 'var(--lp-dark)' : 'transparent',
               color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',

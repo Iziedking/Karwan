@@ -1,20 +1,23 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 import {
   startRegistration,
   startAuthentication,
   browserSupportsWebAuthn,
 } from '@simplewebauthn/browser';
-import { api, ApiError } from '@/core/api';
+import { api } from '@/core/api';
 import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
+import { useSiwe } from '@/shared/hooks/useSiwe';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  postAuthHref?: string | null;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -37,8 +40,10 @@ interface AuthPlan {
   pref: 'passkey' | 'otp';
 }
 
-export function LoginModal({ open, onClose }: Props) {
+export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   const { refresh, isAuthenticated } = useAuth();
+  const { address: walletAddress, isConnected: walletConnected } = useAccount();
+  const siwe = useSiwe();
   const router = useRouter();
   const tAll = useTranslations();
   const t = tAll.auth.modal;
@@ -63,6 +68,30 @@ export function LoginModal({ open, onClose }: Props) {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpDevHint, setOtpDevHint] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const busyRef = useRef(busy);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (open || typeof document === 'undefined') return;
+    const rememberFocus = () => {
+      if (document.activeElement instanceof HTMLElement) {
+        openerRef.current = document.activeElement;
+      }
+    };
+    rememberFocus();
+    document.addEventListener('focusin', rememberFocus);
+    return () => document.removeEventListener('focusin', rememberFocus);
+  }, [open]);
 
   // Reset when the modal opens.
   useEffect(() => {
@@ -78,7 +107,9 @@ export function LoginModal({ open, onClose }: Props) {
     api
       .authStatus()
       .then((r) => setPasskeyConfigured(r.configured))
-      .catch(() => setPasskeyConfigured(false));
+      // A network failure is not proof that email sign-in is unavailable.
+      // Leave the method enabled and let its own request show a recovery state.
+      .catch(() => setPasskeyConfigured(null));
   }, [open]);
 
   // Auto-close once authentication actually lands (covers both the Circle
@@ -89,9 +120,9 @@ export function LoginModal({ open, onClose }: Props) {
   useEffect(() => {
     if (open && isAuthenticated) {
       onClose();
-      router.push('/app');
+      if (postAuthHref) router.push(postAuthHref);
     }
-  }, [open, isAuthenticated, onClose, router]);
+  }, [open, isAuthenticated, onClose, postAuthHref, router]);
 
   // Fetch the right WebAuthn options ahead of the tap. Stored so runPasskey can
   // fire the ceremony with no await in between (the iOS activation fix). A fresh
@@ -125,8 +156,74 @@ export function LoginModal({ open, onClose }: Props) {
     void prefetchPasskey();
   }, [stage, plan, otpSent, prefetchPasskey]);
 
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return;
+    const previous =
+      openerRef.current ??
+      (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busyRef.current) {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'input:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previous?.focus();
+      window.requestAnimationFrame(() => {
+        if (previous?.isConnected) previous.focus();
+      });
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || typeof document === 'undefined') return;
+    const focusTimer = window.setTimeout(() => {
+      const target = dialogRef.current?.querySelector<HTMLElement>(
+        '[data-auth-primary]:not([disabled]), input:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      );
+      target?.focus();
+    }, 50);
+    return () => window.clearTimeout(focusTimer);
+  }, [open, stage, otpSent, passkeyConfigured]);
+
   if (!open) return null;
   if (typeof document === 'undefined') return null;
+
+  const walletProofInProgress =
+    siwe.state === 'checking-session' ||
+    siwe.state === 'awaiting-signature' ||
+    siwe.state === 'verifying';
+  const walletActionLabel = (() => {
+    if (!walletConnected || !walletAddress) return t.pickMethod.connectWallet;
+    if (siwe.state === 'checking-session') return t.pickMethod.preparingWallet;
+    if (siwe.state === 'awaiting-signature') return t.pickMethod.checkWallet;
+    if (siwe.state === 'verifying') return t.pickMethod.verifyingWallet;
+    return t.pickMethod.continueWallet;
+  })();
 
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault();
@@ -153,10 +250,8 @@ export function LoginModal({ open, onClose }: Props) {
       setEmail(trimmed);
       setPlan({ exists: r.exists, hasPasskey: r.hasPasskey, supportsWebAuthn, pref });
       setStage('auth');
-    } catch (err) {
-      const detail =
-        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail || t.errors.lookupFailed);
+    } catch {
+      setError(t.errors.lookupFailed);
     } finally {
       setBusy(false);
     }
@@ -202,11 +297,7 @@ export function LoginModal({ open, onClose }: Props) {
             ? t.errors.passkeyCancelledSignIn
             : t.errors.passkeyCancelledCreate,
         );
-      } else {
-        const detail =
-          err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-        setError(detail || t.errors.passkeyGeneric);
-      }
+      } else setError(t.errors.passkeyGeneric);
     } finally {
       setBusy(false);
     }
@@ -228,10 +319,8 @@ export function LoginModal({ open, onClose }: Props) {
         (window.location.hostname === 'localhost' ||
           window.location.hostname === '127.0.0.1');
       setOtpDevHint(isLocalhost ? r.devCode ?? null : null);
-    } catch (err) {
-      const detail =
-        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail || t.errors.otpSendFailed);
+    } catch {
+      setError(t.errors.otpSendFailed);
     } finally {
       setBusy(false);
     }
@@ -251,10 +340,8 @@ export function LoginModal({ open, onClose }: Props) {
       await refresh();
       emitAuthChanged();
       onClose();
-    } catch (err) {
-      const detail =
-        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail || t.errors.codeRejected);
+    } catch {
+      setError(t.errors.codeRejected);
     } finally {
       setBusy(false);
     }
@@ -262,24 +349,21 @@ export function LoginModal({ open, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-end justify-center overflow-hidden md:items-stretch md:justify-end"
       style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
       onClick={() => !busy && onClose()}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={t.aria.dialog}
+        aria-labelledby="karwan-auth-title"
+        aria-describedby="karwan-auth-description"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[420px] overflow-hidden fade-up"
+        className="auth-sheet w-full max-h-[calc(100dvh-24px)] overflow-y-auto rounded-t-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_-18px_64px_-28px_rgba(0,0,0,0.45)] md:h-full md:max-h-none md:max-w-[480px] md:rounded-none md:rounded-s-[24px] md:shadow-[-18px_0_64px_-28px_rgba(0,0,0,0.45)]"
         style={{
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 22px 64px -22px rgba(0,0,0,0.38)',
+          overscrollBehavior: 'contain',
         }}
       >
         {/* Header */}
@@ -305,7 +389,7 @@ export function LoginModal({ open, onClose }: Props) {
                   setError(null);
                 }}
                 aria-label={t.aria.back}
-                className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path
@@ -328,7 +412,7 @@ export function LoginModal({ open, onClose }: Props) {
             type="button"
             onClick={() => !busy && onClose()}
             aria-label={t.aria.close}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
@@ -343,13 +427,13 @@ export function LoginModal({ open, onClose }: Props) {
 
         {/* Title block, fixed height keeps the modal from jumping between stages */}
         <div className="px-6 pt-2 pb-5">
-          <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)] leading-tight">
+          <h2 id="karwan-auth-title" className="font-sans text-[26px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-tight">
             {stage === 'pick-method' && t.title.signIn}
             {stage === 'enter-email' && t.title.askEmail}
             {stage === 'auth' && plan?.exists && (otpSent ? t.title.checkInbox : t.title.welcomeBack)}
             {stage === 'auth' && !plan?.exists && (otpSent ? t.title.checkInbox : t.title.createAccount)}
           </h2>
-          <p className="mt-2 text-[13px] leading-snug text-[var(--lp-text-sub)] max-w-[36ch]">
+          <p id="karwan-auth-description" className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[38ch]">
             {stage === 'pick-method' && t.subtitle.pickMethod}
             {stage === 'enter-email' && t.subtitle.lookup}
             {stage === 'auth' && plan?.exists && !otpSent && (
@@ -370,12 +454,14 @@ export function LoginModal({ open, onClose }: Props) {
             <>
               <button
                 type="button"
+                data-auth-primary
+                autoFocus={passkeyConfigured !== false}
                 onClick={() => {
                   setStage('enter-email');
                   setError(null);
                 }}
                 disabled={passkeyConfigured === false}
-                className="w-full inline-flex items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -407,9 +493,18 @@ export function LoginModal({ open, onClose }: Props) {
                 {({ openConnectModal, mounted }) => (
                   <button
                     type="button"
-                    disabled={!mounted}
-                    onClick={openConnectModal}
-                    className="w-full inline-flex items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-transparent text-[var(--lp-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-auth-primary={passkeyConfigured === false ? true : undefined}
+                    autoFocus={passkeyConfigured === false}
+                    disabled={!mounted || walletProofInProgress}
+                    onClick={() => {
+                      setError(null);
+                      if (walletConnected && walletAddress) {
+                        void siwe.promptSign();
+                      } else {
+                        openConnectModal();
+                      }
+                    }}
+                    className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-transparent text-[var(--lp-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 12,
@@ -420,12 +515,17 @@ export function LoginModal({ open, onClose }: Props) {
                   >
                     <span className="inline-flex items-center gap-2.5">
                       <WalletIcon />
-                      {t.pickMethod.connectWallet}
+                      {walletActionLabel}
                     </span>
                     <span aria-hidden>→</span>
                   </button>
                 )}
               </ConnectButton.Custom>
+              {walletConnected && siwe.state === 'error' && (
+                <p className="border-s border-[var(--neg)] ps-3 mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
+                  {t.pickMethod.walletRetry}
+                </p>
+              )}
             </>
           )}
 
@@ -450,7 +550,7 @@ export function LoginModal({ open, onClose }: Props) {
               <button
                 type="submit"
                 disabled={busy || !email}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-[13px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-center gap-2 px-5 py-[13px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -467,9 +567,10 @@ export function LoginModal({ open, onClose }: Props) {
             <div className="space-y-3">
               <button
                 type="button"
+                data-auth-primary
                 onClick={runPasskey}
                 disabled={busy}
-                className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -486,7 +587,7 @@ export function LoginModal({ open, onClose }: Props) {
                 type="button"
                 onClick={sendOtp}
                 disabled={busy}
-                className="w-full mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 w-full items-center justify-center mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50 transition-colors"
               >
                 {t.authStep.useCodeInstead}
               </button>
@@ -502,9 +603,10 @@ export function LoginModal({ open, onClose }: Props) {
               )}
               <button
                 type="button"
+                data-auth-primary
                 onClick={sendOtp}
                 disabled={busy}
-                className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -546,7 +648,7 @@ export function LoginModal({ open, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => setOtpCode(otpDevHint)}
-                  className="group w-full inline-flex items-center justify-between gap-2 px-3 py-2 text-start transition-colors"
+                  className="group w-full inline-flex min-h-11 items-center justify-between gap-2 px-3 py-2 text-start transition-colors"
                   style={{
                     background: 'rgba(175, 201, 91,0.12)',
                     border: '1px dashed rgba(175, 201, 91,0.55)',
@@ -555,7 +657,7 @@ export function LoginModal({ open, onClose }: Props) {
                     borderBottomLeftRadius: 8,
                     borderBottomRightRadius: 2,
                   }}
-                  title={t.otp.devTooltip}
+                  aria-label={`${t.otp.devTapToAutofill} ${otpDevHint}`}
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <span
@@ -585,14 +687,14 @@ export function LoginModal({ open, onClose }: Props) {
                   type="button"
                   onClick={sendOtp}
                   disabled={busy}
-                  className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
+                  className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
                 >
                   {t.otp.resend}
                 </button>
                 <button
                   type="submit"
                   disabled={busy || otpCode.length !== 6}
-                  className="inline-flex items-center gap-2 px-5 py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                  className="inline-flex min-h-11 items-center gap-2 px-5 py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                   style={{
                     borderTopLeftRadius: 12,
                     borderTopRightRadius: 12,

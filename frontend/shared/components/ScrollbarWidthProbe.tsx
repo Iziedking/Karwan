@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 /// `--scrollbar-width` on <html>. The full-bleed `.w-bleed` bands subtract it
 /// so they fill the viewport content box exactly instead of over-shooting by
 /// the scrollbar width (which would force a spurious horizontal scrollbar at
-/// normal zoom). Recomputes on resize/zoom. Renders nothing.
+/// normal zoom). Recomputes when content, the viewport, or zoom changes.
 export function ScrollbarWidthProbe() {
   useEffect(() => {
     const root = document.documentElement;
@@ -13,9 +13,20 @@ export function ScrollbarWidthProbe() {
       const w = Math.max(0, window.innerWidth - root.clientWidth);
       root.style.setProperty('--scrollbar-width', `${w}px`);
     };
+
     set();
+    const frame = window.requestAnimationFrame(set);
+    const observer = new ResizeObserver(set);
+    observer.observe(document.body);
     window.addEventListener('resize', set);
-    return () => window.removeEventListener('resize', set);
+    window.visualViewport?.addEventListener('resize', set);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener('resize', set);
+      window.visualViewport?.removeEventListener('resize', set);
+    };
   }, []);
   return null;
 }

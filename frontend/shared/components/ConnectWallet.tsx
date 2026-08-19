@@ -44,7 +44,7 @@ function NavBalance() {
         }}
         aria-pressed={hidden}
         aria-label={hidden ? bc.reveal : bc.hide}
-        className="inline-flex items-center justify-center text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-full transition-colors"
+        className="-mx-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] transition-colors"
       >
         {hidden ? (
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -80,14 +80,14 @@ function IdentityPill({
   onOpen: () => void;
 }) {
   return (
-    <div className="inline-flex items-center gap-1.5 ps-2.5 pe-2.5 py-1 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] whitespace-nowrap shrink-0 hover:bg-[var(--color-surface-2)] transition-colors">
+    <div className="inline-flex min-h-11 items-center gap-1.5 ps-2.5 pe-2.5 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] whitespace-nowrap shrink-0 hover:bg-[var(--color-surface-2)] transition-colors">
       <NavBalance />
       <button
         type="button"
         onClick={onOpen}
         suppressHydrationWarning
-        title={title}
-        className="inline-flex items-center gap-1.5 mono text-[11px] tabular-nums text-[var(--color-ink)]"
+        aria-label={title}
+        className="inline-flex min-h-11 items-center gap-1.5 mono text-[11px] tabular-nums text-[var(--color-ink)]"
       >
         {leading}
         <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">{name}</span>
@@ -151,11 +151,14 @@ export function ConnectWalletButton() {
     );
   }
 
-  // Arc mark + live dot: the leading visual for the Circle and web3-session
-  // identity pills, both of which resolve to an Arc identity address.
-  const arcLeading = (
+  // Account state, not infrastructure. The identity pill deliberately avoids a
+  // chain logo in its resting state; network detail only appears when a wallet
+  // actually needs attention.
+  const accountLeading = (
     <>
-      <ChainLogo chain="arc" size={16} />
+      <span aria-hidden className="grid h-4 w-4 place-items-center rounded-[5px] border border-[var(--color-line-strong)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--lp-accent)]" />
+      </span>
       <span
         aria-hidden
         className="w-[6px] h-[6px] rounded-full"
@@ -171,7 +174,7 @@ export function ConnectWalletButton() {
     return (
       <>
         <IdentityPill
-          leading={arcLeading}
+          leading={accountLeading}
           name={auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
           title={auth.email ?? auth.address}
           onOpen={() => setAccountOpen(true)}
@@ -209,7 +212,7 @@ export function ConnectWalletButton() {
                   if (auth.isAuthenticated && auth.address) {
                     return (
                       <IdentityPill
-                        leading={arcLeading}
+                        leading={accountLeading}
                         name={auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
                         title={auth.email ?? auth.address}
                         onOpen={() => setAccountOpen(true)}
@@ -221,7 +224,7 @@ export function ConnectWalletButton() {
                       onClick={() => setOpen(true)}
                       type="button"
                       suppressHydrationWarning
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full mono text-[11px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                      className="inline-flex min-h-11 items-center gap-1.5 px-4 py-1.5 rounded-full mono text-[11px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
                     >
                       <svg
                         width="11"
@@ -250,13 +253,28 @@ export function ConnectWalletButton() {
                     </button>
                   );
                 }
+                // A wallet connection is transport, not authentication. Until
+                // the signed proof has created a Karwan session, never present
+                // the address pill as if the account were already signed in.
+                if (!auth.isAuthenticated) {
+                  return (
+                    <button
+                      onClick={() => setOpen(true)}
+                      type="button"
+                      suppressHydrationWarning
+                      className="inline-flex min-h-11 items-center gap-1.5 px-4 py-1.5 rounded-full mono text-[11px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                    >
+                      {t.finishSignIn}
+                    </button>
+                  );
+                }
                 if (chain.unsupported) {
                   return (
                     <button
                       onClick={openChainModal}
                       type="button"
                       suppressHydrationWarning
-                      className="inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(176,61,58,0.06)]"
+                      className="inline-flex min-h-11 items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(176,61,58,0.06)]"
                       style={{
                         background: 'var(--color-surface)',
                         color: '#b03d3a',
@@ -275,8 +293,8 @@ export function ConnectWalletButton() {
                       disabled={switching}
                       type="button"
                       suppressHydrationWarning
-                      title={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(201,96,48,0.08)] disabled:opacity-60"
+                      aria-label={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
+                      className="inline-flex min-h-11 items-center gap-1.5 px-3.5 py-[7px] rounded-full mono text-[10.5px] uppercase tracking-[0.10em] font-bold transition-colors hover:bg-[rgba(201,96,48,0.08)] disabled:opacity-60"
                       style={{
                         background: 'var(--color-surface)',
                         color: '#c96030',
@@ -288,24 +306,11 @@ export function ConnectWalletButton() {
                     </button>
                   );
                 }
-                const chainKey = chainKeyFromId(chain.id);
                 return (
                   <IdentityPill
-                    leading={
-                      // Current chain mark; updates the moment the wallet
-                      // switches because RainbowKit re-renders with the new chain.
-                      chainKey ? (
-                        <ChainLogo chain={chainKey} size={16} />
-                      ) : (
-                        <span
-                          aria-hidden
-                          className="w-[6px] h-[6px] rounded-full"
-                          style={{ background: '#0a7553' }}
-                        />
-                      )
-                    }
+                    leading={accountLeading}
                     name={account.displayName}
-                    title={t.networkTooltip.replace('{chain}', chain.name ?? t.fallbackChain)}
+                    title={account.displayName}
                     onOpen={openAccountModal}
                   />
                 );

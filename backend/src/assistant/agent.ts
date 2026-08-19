@@ -142,7 +142,8 @@ export function dealPhase(deal: DirectDeal): string {
   if (deal.disputed) return 'in dispute';
   if (deal.delivered && !deal.settledAt) return 'delivered, awaiting your release';
   if (deal.pendingCounterparty) return 'waiting for the invited counterparty to join';
-  if (!deal.acceptedAt) return 'waiting for the seller to accept';
+  if (deal.sellerApprovedAt && !deal.acceptedAt) return 'seller agreed, awaiting buyer funding';
+  if (!deal.acceptedAt) return 'waiting for the seller to agree to the terms';
   return 'in progress, awaiting delivery';
 }
 
@@ -625,9 +626,17 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               waitingOnOthers.push(
                 `Deal ${d.jobId}: you delivered; waiting for the buyer to review and release ${d.dealAmountUsdc} USDC.`,
               );
+            } else if (d.sellerApprovedAt && !d.acceptedAt && isBuyer) {
+              actionNeeded.push(
+                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC): the seller agreed. Review the current fee and exact total before funding escrow.`,
+              );
+            } else if (d.sellerApprovedAt && !d.acceptedAt && !isBuyer) {
+              waitingOnOthers.push(
+                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC): you agreed to the terms. Waiting for the buyer to review and fund escrow.`,
+              );
             } else if (!d.acceptedAt && !isBuyer && !d.pendingCounterparty) {
               actionNeeded.push(
-                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is waiting for you to accept the escrow.`,
+                `Deal ${d.jobId} (${d.dealAmountUsdc} USDC) is waiting for you to agree to the terms. Buyer funding happens afterward.`,
               );
             } else if (
               !isBuyer &&
@@ -1145,7 +1154,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     propose_accept_deal: tool({
       description:
-        "Prepare a confirm card for the SELLER to accept a direct deal that is waiting on them. Accepting funds the escrow on chain and reserves part of their stake against the deal. Use for 'accept the deal', 'take that job', 'yes to that offer'.",
+        "Prepare a confirm card for the SELLER to agree to a direct deal that is waiting on them. Agreement confirms the commercial terms and may prepare their agent wallet, but does not move buyer money. The buyer reviews the current fee and funds afterward. Use for 'accept the deal', 'take that job', 'yes to that offer'.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id to accept.'),
       }),
@@ -1157,7 +1166,10 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           if (deal.seller !== address) {
             return { error: 'Only the seller accepts a deal. They are the buyer on this one.' };
           }
-          if (deal.acceptedAt) return { error: 'They already accepted that deal. It is in progress.' };
+          if (deal.acceptedAt) return { error: 'That deal is already funded and in progress.' };
+          if (deal.sellerApprovedAt) {
+            return { error: 'They already agreed to that deal. It is waiting for the buyer to fund.' };
+          }
           if (deal.cancelledAt) return { error: 'That deal was cancelled.' };
           const built = buildAcceptDealConfirm({
             caller: address,

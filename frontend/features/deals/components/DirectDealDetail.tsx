@@ -1,9 +1,15 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { api, ApiError, type DirectDeal } from '@/core/api';
+import {
+  api,
+  ApiError,
+  type DirectDeal,
+  type DirectDealFundingQuote,
+  type MoneyMovementView,
+} from '@/core/api';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { PageTour } from '@/shared/guide/PageTour';
 import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
@@ -15,16 +21,25 @@ import { SellerOfferBanner } from '@/features/factoring/components/SellerOfferBa
 import { BuyerPodPanel } from '@/features/trade/components/BuyerPodPanel';
 import { ExtensionRequestModal } from './ExtensionRequestModal';
 import { EditDealModal } from './EditDealModal';
+import {
+  SettlementRecord,
+  type SettlementRecordFetchState,
+} from './SettlementRecord';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
-  feeBreakdown,
   REVIEW_WINDOW_MS,
   REVIEW_EXTENSION_MS,
   MAX_REVIEW_EXTENSIONS,
 } from '../config';
+import {
+  formatExactUsdc,
+  formatFeeRate,
+  onChainFundingSummary,
+  portionOfUsdc,
+} from '../fundingPresentation';
 import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { CopyId } from '@/shared/components/CopyId';
 import { MarketReadCard } from '@/shared/components/MarketReadCard';
@@ -90,6 +105,7 @@ const GOODS_PROGRESS_LABELS = {
 // stays consistent between the list row and the detail view.
 const STAGE_RAIL: Record<DealStage, string> = {
   'awaiting-acceptance': '#4a5aa3',
+  'awaiting-funding': '#9a6c1d',
   'awaiting-delivery': '#4a5aa3',
   'awaiting-first-release': '#c96030',
   'awaiting-final-release': '#c96030',
@@ -98,10 +114,9 @@ const STAGE_RAIL: Record<DealStage, string> = {
   disputed: '#92294a',
 };
 
-/// One reassuring line on the funding card, by stage + viewer side. Keeps the
-/// web3 vocabulary (escrow, on Arc, on chain) on purpose. Karwan is a web3
-/// product and the chain is the reason the money is safe. Returns null for
-/// terminal/dispute states, which have their own copy.
+/// One reassuring line on the funding card, by stage + viewer side. The copy
+/// explains the outcome and recovery path; infrastructure detail stays behind
+/// the transaction references unless it is necessary for troubleshooting.
 function fundingSafetyLine(
   stage: string,
   viewerIsBuyer: boolean,
@@ -110,6 +125,9 @@ function fundingSafetyLine(
   if (stage === 'settled') return copy.settled;
   if (stage === 'awaiting-acceptance') {
     return viewerIsBuyer ? copy.awaitingAcceptanceBuyer : copy.awaitingAcceptanceSeller;
+  }
+  if (stage === 'awaiting-funding') {
+    return viewerIsBuyer ? copy.awaitingFundingBuyer : copy.awaitingFundingSeller;
   }
   if (
     stage === 'awaiting-delivery' ||
@@ -131,6 +149,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [busy, setBusy] = useState(false);
   const [errorInfo, setErrorInfo] = useState<{ code?: string; message: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [settlementMovements, setSettlementMovements] = useState<MoneyMovementView[]>([]);
+  const [settlementFetchState, setSettlementFetchState] =
+    useState<SettlementRecordFetchState>('loading');
+  const [settlementReloadKey, setSettlementReloadKey] = useState(0);
 
   // Notifications append #action when they want the user to land on the action
   // card (e.g. "Match accepted, deliver when ready"). Scroll once the deal data
@@ -169,7 +191,68 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       live = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isConnected || !address || !deal) {
+      setSettlementMovements([]);
+      setSettlementFetchState('unavailable');
+      return;
+    }
+    let live = true;
+    setSettlementFetchState((current) => (current === 'ready' ? current : 'loading'));
+    api
+      .directDealMovements(jobId, address)
+      .then(({ movements }) => {
+        if (!live) return;
+        setSettlementMovements(movements);
+        setSettlementFetchState('ready');
+      })
+      .catch((err) => {
+        if (!live) return;
+        // Local UI review currently reaches the deployed API. Until this
+        // backend route ships, preserve the original receipts without
+        // inventing Karwan references in the browser.
+        setSettlementFetchState(
+          err instanceof ApiError && err.status === 404 ? 'unavailable' : 'error',
+        );
+      });
+    return () => {
+      live = false;
+    };
+  }, [address, deal, isConnected, jobId, settlementReloadKey]);
+
   const [showAcceptConsent, setShowAcceptConsent] = useState(false);
+  const [showFundingConsent, setShowFundingConsent] = useState(false);
+  const [fundingQuote, setFundingQuote] = useState<DirectDealFundingQuote | null>(null);
+  const [fundingQuoteState, setFundingQuoteState] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle');
+
+  useEffect(() => {
+    if (!address || !deal?.sellerApprovedAt || deal.acceptedAt) {
+      setFundingQuote(null);
+      setFundingQuoteState('idle');
+      return;
+    }
+
+    let live = true;
+    setFundingQuote(null);
+    setFundingQuoteState('loading');
+    api
+      .directDealFundingQuote(jobId, address)
+      .then(({ quote }) => {
+        if (!live) return;
+        setFundingQuote(quote);
+        setFundingQuoteState('ready');
+      })
+      .catch(() => {
+        if (!live) return;
+        setFundingQuoteState('error');
+      });
+    return () => {
+      live = false;
+    };
+  }, [address, deal?.acceptedAt, deal?.sellerApprovedAt, jobId]);
   // Optional pre-filled chat draft, used by a couple of softer surfaces. The
   // formal extension flow no longer touches it; this stays for future hooks.
   const [chatDraftSeed] = useState<string | undefined>(undefined);
@@ -278,7 +361,15 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const stage = stageOf(deal);
   const viewerIsBuyer = !!address && address.toLowerCase() === deal.buyer;
   const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
-  const fee = feeBreakdown(Number(deal.dealAmountUsdc));
+  const fundingSummary =
+    fundingQuote ??
+    (deal.onChain
+      ? onChainFundingSummary({
+          dealAmountWei: deal.onChain.dealAmountWei,
+          sellerNetWei: deal.onChain.sellerNetWei,
+          feeTotalWei: deal.onChain.feeTotalWei,
+        })
+      : null);
   // Milestone split. The on-chain escrow is the source of truth once funded; a
   // managed deal can carry 2 to 5 milestones. Direct deals (and the brief
   // window before the escrow is read) resolve to the two-part shape implied by
@@ -349,9 +440,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
-      const message =
-        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setErrorInfo({ code, message });
+      setErrorInfo({ code, message: dd.errors.approvalFailed });
     } finally {
       setBusy(false);
     }
@@ -360,6 +449,48 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   function requestAccept() {
     if (activated) doAccept();
     else setShowAcceptConsent(true);
+  }
+
+  async function reloadFundingQuote() {
+    if (!address) return;
+    setFundingQuoteState('loading');
+    setFundingQuote(null);
+    try {
+      const { quote } = await api.directDealFundingQuote(jobId, address);
+      setFundingQuote(quote);
+      setFundingQuoteState('ready');
+    } catch {
+      setFundingQuoteState('error');
+    }
+  }
+
+  async function doFund() {
+    if (!address || !fundingQuote) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.fundDirectDeal(jobId, {
+        caller: address,
+        expectedFeeBps: fundingQuote.feeBps,
+        maxFundedAmountUsdc: fundingQuote.fundedAmountUsdc,
+        quoteFingerprint: fundingQuote.quoteFingerprint,
+      });
+      sfx.send();
+      setShowFundingConsent(false);
+      await refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      setShowFundingConsent(false);
+      if (code === 'QUOTE_CHANGED') {
+        setErrorInfo({ code, message: dd.errors.quoteChanged });
+        await reloadFundingQuote();
+      } else {
+        setErrorInfo({ code, message: dd.errors.fundingFailed });
+      }
+    } finally {
+      setSettlementReloadKey((key) => key + 1);
+      setBusy(false);
+    }
   }
 
   async function onMarkDelivered() {
@@ -425,6 +556,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
       setErrorInfo({ code, message });
     } finally {
+      setSettlementReloadKey((key) => key + 1);
       setBusy(false);
     }
   }
@@ -756,7 +888,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 <button
                   type="button"
                   onClick={() => setReportOpen(true)}
-                  className="w-full mt-1 flex items-center justify-between gap-2 text-start hover:opacity-80 transition-opacity"
+                  className="w-full min-h-11 mt-1 flex items-center justify-between gap-2 text-start hover:opacity-80 transition-opacity"
                 >
                   <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     Agent read on the counterparty
@@ -772,27 +904,70 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           <PageCard>
             <CardHead label={dd.funding.cardLabel} />
             <div className="p-5 md:p-6 space-y-2.5">
-              <MoneyRow label={dd.funding.buyerFunds} value={fee.fundedAmount} />
-              <MoneyRow label={dd.funding.sellerReceives} value={fee.sellerNet} strong />
-              <MoneyRow label={dd.funding.platformFee} value={fee.feeTotal} faint />
-              <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-                {milestonePcts.map((pct, i) => {
-                  const isFirst = i === 0;
-                  const isLast = i === milestonePcts.length - 1;
-                  const label = isFirst
-                    ? dd.funding.onDeliveryTemplate.replace('{pct}', String(pct))
-                    : isLast
-                      ? dd.funding.onVerificationTemplate.replace('{pct}', String(pct))
-                      : `Milestone ${i + 1} · ${pct}%`;
-                  return (
-                    <MoneyRow
-                      key={i}
-                      label={label}
-                      value={(fee.sellerNet * pct) / 100}
-                    />
-                  );
-                })}
-              </div>
+              {fundingSummary ? (
+                <>
+                  <MoneyRow
+                    label={dd.funding.dealAmount}
+                    value={formatExactUsdc(fundingSummary.dealAmountUsdc)}
+                  />
+                  <MoneyRow
+                    label={dd.funding.buyerFunds}
+                    value={formatExactUsdc(fundingSummary.fundedAmountUsdc)}
+                    strong
+                  />
+                  <MoneyRow
+                    label={dd.funding.sellerReceives}
+                    value={formatExactUsdc(fundingSummary.sellerNetUsdc)}
+                  />
+                  <MoneyRow
+                    label={`${dd.funding.platformFee}${
+                      fundingQuote ? ` · ${formatFeeRate(fundingQuote.feeBps)}` : ''
+                    }`}
+                    value={formatExactUsdc(fundingSummary.feeTotalUsdc)}
+                    faint
+                  />
+                  <TextRow label={dd.funding.settlementCurrency} value="USDC" />
+                  <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
+                    {milestonePcts.map((pct, i) => {
+                      const isFirst = i === 0;
+                      const isLast = i === milestonePcts.length - 1;
+                      const label = isFirst
+                        ? dd.funding.onDeliveryTemplate.replace('{pct}', String(pct))
+                        : isLast
+                          ? dd.funding.onVerificationTemplate.replace('{pct}', String(pct))
+                          : `Milestone ${i + 1} · ${pct}%`;
+                      return (
+                        <MoneyRow
+                          key={i}
+                          label={label}
+                          value={portionOfUsdc(fundingSummary.sellerNetUsdc, pct)}
+                        />
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MoneyRow
+                    label={dd.funding.dealAmount}
+                    value={formatExactUsdc(deal.dealAmountUsdc)}
+                    strong
+                  />
+                  <TextRow
+                    label={dd.funding.platformFee}
+                    value={
+                      fundingQuoteState === 'loading'
+                        ? dd.funding.quoteLoading
+                        : dd.funding.feePending
+                    }
+                  />
+                  <TextRow label={dd.funding.buyerFunds} value={dd.funding.totalPending} />
+                  <TextRow label={dd.funding.settlementCurrency} value="USDC" />
+                </>
+              )}
+              <p className="mt-3 pt-3 border-t border-[var(--lp-border-light)] text-[12px] leading-snug text-[var(--lp-text-muted)]">
+                {dd.funding.noLocalConversion}
+              </p>
               {fundingSafetyLine(stage, viewerIsBuyer, dd.fundingSafety) && (
                 <div className="mt-3 pt-3 border-t border-[var(--lp-border-light)]">
                   <p
@@ -814,7 +989,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {/* TERMS + (optional) DELIVERY PROOF */}
       <Band tone="light" compact>
         <SectionTag>{dd.terms.eyebrow}</SectionTag>
-        <HeroHeadline size="md">
+        <HeroHeadline as="h2" size="md">
           {dd.terms.title}<Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-8 grid md:grid-cols-2 gap-5">
@@ -846,7 +1021,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     href={deal.shipment.trackingUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-block mono text-[11px] uppercase tracking-[0.14em] underline"
+                    className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] underline"
                   >
                     track shipment ↗
                   </a>
@@ -862,7 +1037,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       type="button"
                       disabled={busy}
                       onClick={onConfirmArrived}
-                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline-strong)] disabled:opacity-50"
+                      className="min-h-11 mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline-strong)] disabled:opacity-50"
                       style={{ borderRadius: 6 }}
                     >
                       {busy ? 'Working…' : 'Confirm goods arrived'}
@@ -1066,7 +1241,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <SectionTag dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
           {dd.progress.eyebrow}
         </SectionTag>
-        <HeroHeadline size="md">
+        <HeroHeadline as="h2" size="md">
           {dd.progress.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.progress.titleAccent}</span>
           <Punc>.</Punc>
         </HeroHeadline>
@@ -1094,7 +1269,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             <SectionTag tone="dark" dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
               {dd.actions.eyebrow}
             </SectionTag>
-            <HeroHeadline size="md">
+            <HeroHeadline as="h2" size="md">
               {dd.actions.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.actions.titleAccent}</span>
               <Punc>.</Punc>
             </HeroHeadline>
@@ -1145,6 +1320,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onShipmentChange={setShipment}
               carriers={carriers}
               onAccept={requestAccept}
+              fundingQuoteState={fundingQuoteState}
+              hasFundingQuote={!!fundingQuote}
+              onFund={() => setShowFundingConsent(true)}
+              onRetryQuote={reloadFundingQuote}
               onMarkDelivered={onMarkDelivered}
               onRelease={onRelease}
               onClaim={onClaim}
@@ -1187,44 +1366,20 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             )}
           </div>
         </div>
-        {(deal.fundTxHash || deal.refundTxHash) && (
-          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-1.5 text-[11px]">
-            {deal.fundTxHash && (
-              <a
-                href={ARC_EXPLORER_TX(deal.fundTxHash)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
-              >
-                <span>{dd.fundingTxLabel}</span>
-                <span className="tabular-nums">{shortHash(deal.fundTxHash)}</span>
-                <ExternalIcon />
-              </a>
-            )}
-            {/* The money coming BACK needs a receipt at least as much as the
-                money going in. This hash used to exist only in the response to
-                the cancel request, so it was gone the moment the page reloaded. */}
-            {deal.refundTxHash && (
-              <a
-                href={ARC_EXPLORER_TX(deal.refundTxHash)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 mono uppercase tracking-[0.14em] text-white/55 hover:text-[var(--lp-accent)] transition-colors"
-              >
-                <span>{dd.refundTxLabel}</span>
-                <span className="tabular-nums">{shortHash(deal.refundTxHash)}</span>
-                <ExternalIcon />
-              </a>
-            )}
-          </div>
-        )}
+        <SettlementRecord
+          movements={settlementMovements}
+          fetchState={settlementFetchState}
+          fundTxHash={deal.fundTxHash}
+          refundTxHash={deal.refundTxHash}
+          onRetry={() => setSettlementReloadKey((key) => key + 1)}
+        />
       </Band>
 
       {/* CHAT */}
       {address && (
         <Band tone="light" compact>
           <SectionTag>{dd.chat.eyebrow}</SectionTag>
-          <HeroHeadline size="md">
+          <HeroHeadline as="h2" size="md">
             {dd.chat.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.chat.titleAccent}</span>
             <Punc>.</Punc>
           </HeroHeadline>
@@ -1255,6 +1410,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           onConfirm={doAccept}
           onClose={() => setShowAcceptConsent(false)}
           copy={dd.acceptConsentModal}
+        />
+      )}
+
+      {showFundingConsent && fundingQuote && (
+        <FundingConsentModal
+          busy={busy}
+          quote={fundingQuote}
+          onConfirm={doFund}
+          onClose={() => setShowFundingConsent(false)}
+          copy={dd.fundingConsentModal}
         />
       )}
 
@@ -1326,7 +1491,7 @@ function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
             // hover rule): flips with the theme — near-black on a light card,
             // soft-white on a dark card — and stays legible in both. The old
             // --lp-band-dark fallback was near-black and vanished on dark.
-            className="underline underline-offset-2 break-all font-medium text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)]"
+            className="inline-flex min-h-11 items-center underline underline-offset-2 break-all font-medium text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)]"
           >
             {part}
           </a>
@@ -1360,7 +1525,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
   return (
     <Band tone="light" compact>
       <SectionTag>{pb.dealDetail.tradeContext}</SectionTag>
-      <HeroHeadline size="md">
+      <HeroHeadline as="h2" size="md">
         Trade rails<Punc>.</Punc>
       </HeroHeadline>
       <div className="mt-8 grid md:grid-cols-2 gap-5">
@@ -1452,7 +1617,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
                       href={ARC_EXPLORER_TX(d.txHash)}
                       target="_blank"
                       rel="noreferrer"
-                      className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                      className="inline-flex min-h-11 items-center mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                     >
                       {d.hash.slice(0, 10)}…{d.hash.slice(-6)} ↗
                     </a>
@@ -1521,7 +1686,7 @@ function MoneyRow({
   faint,
 }: {
   label: string;
-  value: number;
+  value: string;
   strong?: boolean;
   faint?: boolean;
 }) {
@@ -1539,7 +1704,18 @@ function MoneyRow({
             : 'text-[13px] text-[var(--lp-dark)]'
         }`}
       >
-        {formatUsdc(value)}
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function TextRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-[13px] text-[var(--lp-text-sub)]">{label}</span>
+      <span className="max-w-[55%] text-end text-[12.5px] font-semibold text-[var(--lp-dark)]">
+        {value}
       </span>
     </div>
   );
@@ -1578,14 +1754,19 @@ function ProgressTrack({
   const steps = [
     { key: 'opened', label: copy.opened, done: true },
     {
+      key: 'seller-approved',
+      label: copy.sellerApproved,
+      done: past('awaiting-acceptance'),
+    },
+    {
       key: 'accepted',
       label: copy.accepted,
-      done: past('awaiting-acceptance'),
+      done: past('awaiting-acceptance', 'awaiting-funding'),
     },
     {
       key: 'delivered',
       label: copy.delivered,
-      done: past('awaiting-acceptance', 'awaiting-delivery'),
+      done: past('awaiting-acceptance', 'awaiting-funding', 'awaiting-delivery'),
     },
     ...releaseSteps,
   ];
@@ -1668,6 +1849,10 @@ function ActionPanel({
   onShipmentChange,
   carriers,
   onAccept,
+  fundingQuoteState,
+  hasFundingQuote,
+  onFund,
+  onRetryQuote,
   onMarkDelivered,
   onRelease,
   onClaim,
@@ -1700,6 +1885,10 @@ function ActionPanel({
   }) => void;
   carriers: Array<{ slug: string; name: string; needsUrl: boolean }>;
   onAccept: () => void;
+  fundingQuoteState: 'idle' | 'loading' | 'ready' | 'error';
+  hasFundingQuote: boolean;
+  onFund: () => void;
+  onRetryQuote: () => void;
   onMarkDelivered: () => void;
   onRelease: () => void;
   onClaim: () => void;
@@ -1762,12 +1951,12 @@ function ActionPanel({
           </p>
         )}
         {viewerIsSeller && !financed && (!resolved || sellerBps > 0) && (
-          <Link href={`/cashout/${deal.jobId}`}>
-            <CTAPill>{copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc, { withSuffix: false }))}</CTAPill>
-          </Link>
+          <CTAPill href={`/cashout/${deal.jobId}`}>
+            {copy.settled.cashoutTemplate.replace('{amount}', formatUsdc(deal.dealAmountUsdc, { withSuffix: false }))}
+          </CTAPill>
         )}
         {viewerIsBuyer && (
-          <Link
+          <CTAPill
             href={{
               pathname: '/buyer',
               query: {
@@ -1779,9 +1968,11 @@ function ActionPanel({
                 ...(deal.paymentTerms ? { paymentTerms: deal.paymentTerms } : {}),
               },
             }}
+            variant="secondary"
+            tone="dark"
           >
-            <CTAPill variant={'secondary'} tone={'dark'}>{copy.settled.repeatDeal ?? 'Repeat this deal'}</CTAPill>
-          </Link>
+            {copy.settled.repeatDeal ?? 'Repeat this deal'}
+          </CTAPill>
         )}
       </div>
     );
@@ -1876,10 +2067,7 @@ function ActionPanel({
       // shipped. The v2.E escrow honours this exact percentage at acceptEscrow
       // via the per-deal reservationBps stored at fund time.
       const RESERVATION_PCT = deal.requireStakePct ?? 50;
-      const reservedAmount = (
-        (Number(deal.dealAmountUsdc) * RESERVATION_PCT) /
-        100
-      ).toFixed(2);
+      const reservedAmount = portionOfUsdc(deal.dealAmountUsdc, RESERVATION_PCT);
       return (
         <div className="space-y-4">
           <Body>{copy.awaitingAcceptance.sellerIntro}</Body>
@@ -1894,7 +2082,7 @@ function ActionPanel({
               }}
             >
               {copy.awaitingAcceptance.trustedMatchPrefix}{' '}
-              <span className="font-bold tabular-nums">{reservedAmount} USDC</span>{' '}
+              <span className="font-bold tabular-nums">{reservedAmount}</span>{' '}
               {copy.awaitingAcceptance.trustedMatchMiddleTemplate
                 .replace('{pct}', String(RESERVATION_PCT))
                 .replace('{amount}', String(deal.dealAmountUsdc))}{' '}
@@ -1932,6 +2120,39 @@ function ActionPanel({
         </div>
       </div>
     );
+  }
+
+  if (stage === 'awaiting-funding') {
+    if (viewerIsBuyer) {
+      return (
+        <div className="space-y-4">
+          <Body>{copy.awaitingFunding.buyerIntro}</Body>
+          <div className="flex flex-wrap gap-2">
+            {fundingQuoteState === 'error' ? (
+              <CTAPill onClick={onRetryQuote} disabled={busy}>
+                {copy.awaitingFunding.retryQuoteCta}
+              </CTAPill>
+            ) : (
+              <CTAPill
+                onClick={onFund}
+                disabled={busy || fundingQuoteState !== 'ready' || !hasFundingQuote}
+              >
+                {fundingQuoteState === 'loading' || fundingQuoteState === 'idle'
+                  ? copy.awaitingFunding.quoteBusy
+                  : copy.awaitingFunding.reviewCta}
+              </CTAPill>
+            )}
+            <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
+              {copy.awaitingFunding.editTermsCta}
+            </CTAPill>
+            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+              {busy ? copy.awaitingFunding.cancelBusy : copy.awaitingFunding.cancelCta}
+            </CTAPill>
+          </div>
+        </div>
+      );
+    }
+    return <Body>{copy.awaitingFunding.sellerIntro}</Body>;
   }
 
   if (stage === 'awaiting-delivery') {
@@ -2680,6 +2901,133 @@ function AcceptConsentModal({
   );
 }
 
+function FundingConsentModal({
+  busy,
+  quote,
+  onConfirm,
+  onClose,
+  copy,
+}: {
+  busy: boolean;
+  quote: DirectDealFundingQuote;
+  onConfirm: () => void;
+  onClose: () => void;
+  copy: Messages['directDealDetail']['fundingConsentModal'];
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialogRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, []);
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape' && !busy) {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ background: 'rgba(14,14,14,0.62)' }}
+      onClick={() => !busy && onClose()}
+      onKeyDown={onKeyDown}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="funding-consent-title"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+        className="w-full max-w-lg max-h-[92dvh] overflow-y-auto outline-none"
+        style={{
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          borderBottomLeftRadius: 5,
+          borderBottomRightRadius: 5,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 24px 72px -24px rgba(0,0,0,0.48)',
+        }}
+      >
+        <div className="px-5 sm:px-6 pt-6 pb-4 border-b border-[var(--lp-border-light)]">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{copy.eyebrow}:]
+          </span>
+          <h2
+            id="funding-consent-title"
+            className="mt-2 font-sans text-[24px] font-extrabold tracking-[-0.03em] leading-tight text-[var(--lp-dark)]"
+          >
+            {copy.title}<span style={{ color: 'var(--lp-accent)' }}>.</span>
+          </h2>
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{copy.body}</p>
+        </div>
+        <div className="px-5 sm:px-6 py-5 space-y-3">
+          <MoneyRow label={copy.dealAmount} value={formatExactUsdc(quote.dealAmountUsdc)} />
+          <MoneyRow
+            label={`${copy.buyerFee} · ${formatFeeRate(quote.feeBps)}`}
+            value={formatExactUsdc(quote.buyerFeeUsdc)}
+          />
+          <MoneyRow
+            label={copy.sellerReceives}
+            value={formatExactUsdc(quote.sellerNetUsdc)}
+          />
+          <TextRow label={copy.settlement} value={quote.settlementCurrency} />
+          <div
+            className="mt-4 px-4 py-4 flex items-end justify-between gap-4"
+            style={{
+              background: 'color-mix(in oklab, var(--lp-accent) 13%, var(--lp-card))',
+              border: '1px solid color-mix(in oklab, var(--lp-accent) 45%, var(--lp-border-light))',
+              borderTopLeftRadius: 14,
+              borderTopRightRadius: 14,
+              borderBottomLeftRadius: 14,
+              borderBottomRightRadius: 4,
+            }}
+          >
+            <span className="text-[13px] font-semibold text-[var(--lp-dark)]">{copy.total}</span>
+            <span className="mono text-[19px] font-extrabold tabular-nums text-[var(--lp-dark)] text-end">
+              {formatExactUsdc(quote.fundedAmountUsdc)}
+            </span>
+          </div>
+          <p className="text-[12px] leading-snug text-[var(--lp-text-muted)]">{copy.noConversion}</p>
+        </div>
+        <div className="px-5 sm:px-6 pb-6 flex flex-col-reverse sm:flex-row gap-3">
+          <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
+            {copy.cancelCta}
+          </CTAPill>
+          <CTAPill onClick={onConfirm} disabled={busy}>
+            {busy ? copy.confirmBusy : copy.confirmCta}
+          </CTAPill>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CancelProposalBanner({
   proposal,
   viewerIsCounterparty,
@@ -3055,29 +3403,25 @@ function DealErrorNote({
     );
   }
   if (info.code === 'INSUFFICIENT_STAKE') {
-    // v2.D: seller agent's free stake is below the insurance reservation.
-    // Surface a clear "stake more" CTA. Only seller sees this; the buyer
-    // never triggers the accept call.
+    // The buyer discovers this during funding because that is when the escrow
+    // reserves seller stake. Never expose the raw contract detail. A seller who
+    // later sees the same state gets the direct recovery link.
     return wrap(
       <div className="space-y-1.5">
         <p className="font-medium">{copy.insufficientStakeTitle}</p>
-        <p className="text-[11px] opacity-90">{info.message}</p>
-        <p className="text-[11px] opacity-90">
-          <Link href="/stake" className="underline font-medium">
-            {copy.insufficientStakeLink}
-          </Link>
-          {' '}{copy.insufficientStakeSuffix}
-        </p>
+        {!viewerIsBuyer && (
+          <p className="text-[11px] opacity-90">
+            <Link href="/stake" className="underline font-medium">
+              {copy.insufficientStakeLink}
+            </Link>{' '}
+            {copy.insufficientStakeSuffix}
+          </p>
+        )}
       </div>,
     );
   }
-  if (info.code === 'ACCEPT_ESCROW_FAILED') {
-    return wrap(
-      <div className="space-y-1.5">
-        <p className="font-medium">{copy.acceptEscrowFailedTitle}</p>
-        <p className="text-[11px] opacity-90">{info.message}</p>
-      </div>,
-    );
+  if (info.code === 'ACCEPT_ESCROW_FAILED' || info.code === 'ACCEPT_NOT_CONFIRMED') {
+    return wrap(<p className="font-medium">{copy.acceptEscrowFailedTitle}</p>);
   }
   return wrap(info.message);
 }

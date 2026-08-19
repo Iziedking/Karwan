@@ -109,8 +109,13 @@ export interface DirectDeal {
     /// Seller agent's paid pull of the BUYER's passport.
     buyer?: PassportPull;
   };
-  // The seller has confirmed they agree to the deal terms. A deal cannot be
-  // marked delivered until it is accepted.
+  // The seller has agreed to the current off-chain commercial terms. No buyer
+  // money has moved yet. A buyer edit clears this marker so the seller must
+  // approve the revised terms again.
+  sellerApprovedAt?: number;
+  // The escrow has been funded and verified Accepted on chain. Downstream
+  // delivery, financing, settlement, and reputation code relies on this funded
+  // meaning, so it remains distinct from sellerApprovedAt.
   acceptedAt?: number;
   delivered: boolean;
   deliveredAt?: number;
@@ -200,7 +205,7 @@ export interface DirectDeal {
   ///                           Contract path is releaseFromDispute().
   /// - 'unilateral'          : buyer cancel after deadline passed without delivery;
   ///                           rep against the seller (the existing /cancel path).
-  /// - 'pre-accept'          : buyer withdrew before the seller accepted; no escrow, no rep.
+  /// - 'pre-accept'          : buyer withdrew before escrow funding; no escrow, no rep.
   cancelKind?:
     | 'mutual'
     | 'platform-attributed'
@@ -260,7 +265,7 @@ export interface DirectDeal {
     newDeadlineUnix?: number;
   }[];
   /// Acceptance window cutoff. Unix seconds. Deals that pass this point with
-  /// no seller acceptance are expired by dealWatcher and marked cancelled
+  /// no seller agreement are expired by dealWatcher and marked cancelled
   /// (kind 'pre-accept'). Required on every new direct deal so a request never
   /// sits in limbo indefinitely; the buyer can re-shop the work elsewhere.
   acceptanceDeadlineUnix?: number;
@@ -318,10 +323,10 @@ export interface DirectDeal {
   /// None=0, Funded=1, Settled=2, Disputed=3, Refunded=4.
   legacyState?: number;
   /// Trusted-match flag chosen by the buyer at create time. When true, the
-  /// seller's accept panel surfaces a "you must stake X USDC" requirement and
+  /// seller agreement panel surfaces a "you must stake X USDC" requirement and
   /// the seller is expected to back the deal with slashable insurance. When
   /// false or undefined, the deal is casual: no stake messaging and no
-  /// vault.reserve call on accept (on v2.E+ escrows).
+  /// vault.reserve call when the buyer funds (on v2.E+ escrows).
   requireStake?: boolean;
   /// Per-deal stake percentage when requireStake is true. 50..100 in 5%
   /// steps from the buyer's slider. Translates to on-chain reservationBps:

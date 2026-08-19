@@ -1,5 +1,5 @@
 ﻿'use client';
-import Link from 'next/link';
+import Link, { type LinkProps } from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { Reveal } from './Reveal';
@@ -121,10 +121,12 @@ export function HeroHeadline({
   children,
   className,
   size = 'lg',
+  as = 'h1',
 }: {
   children: ReactNode;
   className?: string;
   size?: 'lg' | 'md' | 'sm';
+  as?: 'h1' | 'h2';
 }) {
   const sizeClass =
     size === 'lg'
@@ -132,8 +134,9 @@ export function HeroHeadline({
       : size === 'md'
         ? 'text-[clamp(2rem,4.6vw,3.75rem)]'
         : 'text-[clamp(1.75rem,3.6vw,2.75rem)]';
+  const Heading = as;
   return (
-    <h1
+    <Heading
       className={cn(
         'mt-7 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance',
         sizeClass,
@@ -141,7 +144,7 @@ export function HeroHeadline({
       )}
     >
       {children}
-    </h1>
+    </Heading>
   );
 }
 
@@ -162,7 +165,7 @@ export function CTAPill({
   type,
   disabled,
 }: {
-  href?: string;
+  href?: LinkProps['href'];
   children: ReactNode;
   variant?: 'primary' | 'secondary';
   tone?: 'dark' | 'light';

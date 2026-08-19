@@ -13,6 +13,8 @@ import { reportError } from '../errorTracker.js';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
+export type SettlementCallOptions = Pick<ContractCallInput, 'idempotencyKey' | 'lifecycle'>;
+
 /// KarwanReputation.Outcome enum: None=0, Success=1, DisputeResolved=2, Failed=3.
 export const OUTCOME_SUCCESS = 1;
 export const OUTCOME_DISPUTE_RESOLVED = 2;
@@ -67,7 +69,11 @@ async function assertEscrowState(
 /// signs acceptEscrow(jobId), which transitions the escrow to Accepted and
 /// locks the insurance reservation on the vault. Without this, releases
 /// are blocked. Called by the deal accept route.
-export async function acceptEscrow(jobId: string, sellerAgentWalletId: string): Promise<string> {
+export async function acceptEscrow(
+  jobId: string,
+  sellerAgentWalletId: string,
+  operation: SettlementCallOptions = {},
+): Promise<string> {
   if (!sellerAgentWalletId) throw new Error('acceptEscrow requires a seller agent wallet id');
   const result = await executeContractCall(
     {
@@ -75,6 +81,7 @@ export async function acceptEscrow(jobId: string, sellerAgentWalletId: string): 
       contractAddress: escrow.address,
       abiFunctionSignature: 'acceptEscrow(bytes32)',
       abiParameters: [jobId],
+      ...operation,
     },
     `acceptEscrow(${jobId})`,
   );
@@ -95,6 +102,7 @@ export async function releaseMilestone(
   jobId: string,
   index: number,
   walletId: string,
+  operation: SettlementCallOptions = {},
 ): Promise<string> {
   if (!walletId) throw new Error('release requires a buyer agent wallet id');
   const result = await executeContractCall(
@@ -103,6 +111,7 @@ export async function releaseMilestone(
       contractAddress: escrow.address,
       abiFunctionSignature: 'releaseProgress(bytes32,uint8)',
       abiParameters: [jobId, index.toString()],
+      ...operation,
     },
     `releaseProgress(${jobId}, ${index})`,
   );

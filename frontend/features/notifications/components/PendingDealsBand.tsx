@@ -28,7 +28,11 @@ function labelFor(
     case 'awaiting-acceptance':
       return isBuyer
         ? { kind: 'wait', text: chips.waitingOnSeller }
-        : { kind: 'action', text: chips.acceptToFund };
+        : { kind: 'action', text: chips.agreeTerms };
+    case 'awaiting-funding':
+      return isBuyer
+        ? { kind: 'action', text: chips.reviewFunding }
+        : { kind: 'wait', text: chips.waitingOnBuyer };
     case 'awaiting-delivery':
       return isBuyer
         ? { kind: 'wait', text: chips.waitingOnSeller }

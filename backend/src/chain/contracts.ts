@@ -408,9 +408,11 @@ let _reservationBpsCache: number | null = null;
 const FEE_BPS_TTL_MS = 60_000;
 let _feeBpsCache: { value: number; expiresAt: number } | null = null;
 
-export async function getEscrowFeeBps(): Promise<number> {
+export async function getEscrowFeeBps(options?: { fresh?: boolean }): Promise<number> {
   const now = Date.now();
-  if (_feeBpsCache && _feeBpsCache.expiresAt > now) return _feeBpsCache.value;
+  if (!options?.fresh && _feeBpsCache && _feeBpsCache.expiresAt > now) {
+    return _feeBpsCache.value;
+  }
   const value = Number(await escrow.read.feeBps());
   _feeBpsCache = { value, expiresAt: now + FEE_BPS_TTL_MS };
   return value;
@@ -542,12 +544,22 @@ export async function readEscrow(jobId: string): Promise<EscrowAccount> {
   return value;
 }
 
-const erc20BalanceAbi = [
+const erc20ReadAbi = [
   {
     type: 'function',
     name: 'balanceOf',
     stateMutability: 'view',
     inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'allowance',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
     outputs: [{ name: '', type: 'uint256' }],
   },
 ] as const;
@@ -590,8 +602,20 @@ export async function readPostedJobId(txHash: string): Promise<string | null> {
 export async function readUsdcBalance(owner: string): Promise<bigint> {
   return (await publicClient.readContract({
     address: usdc,
-    abi: erc20BalanceAbi,
+    abi: erc20ReadAbi,
     functionName: 'balanceOf',
     args: [owner as `0x${string}`],
+  })) as bigint;
+}
+
+/// Reads the exact ERC-20 allowance. Circle COMPLETE and a successful outer
+/// ERC-4337 receipt are not enough to prove the inner approve call changed
+/// token state, so escrow funding verifies this before fundEscrow.
+export async function readUsdcAllowance(owner: string, spender: string): Promise<bigint> {
+  return (await publicClient.readContract({
+    address: usdc,
+    abi: erc20ReadAbi,
+    functionName: 'allowance',
+    args: [owner as `0x${string}`, spender as `0x${string}`],
   })) as bigint;
 }

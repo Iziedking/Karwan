@@ -42,7 +42,7 @@ export function ThemePicker() {
               type="button"
               onClick={() => setTheme(o.value)}
               aria-pressed={active}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-[background-color,border-color,color]"
+              className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-[background-color,border-color,color]"
               style={{
                 background: active ? 'rgba(175, 201, 91, 0.10)' : 'var(--lp-card)',
                 color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',

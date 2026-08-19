@@ -50,7 +50,7 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((s) => !s)}
         aria-label={t.aria}
-        className="relative inline-flex items-center justify-center w-8 h-8 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+        className="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
           <path

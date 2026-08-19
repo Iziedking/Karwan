@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getNetworkStats } from '../chain/networkStats.js';
 import { getLifetimeStats } from '../chain/lifetimeStats.js';
+import { getCurrentContracts } from '../chain/currentContracts.js';
 import { config } from '../config.js';
 
 export const networkRoutes = new Hono();
@@ -56,4 +57,22 @@ networkRoutes.get('/lifetime', async (c) => {
     );
   }
   return c.json(stats);
+});
+
+/// What the contracts in service right now hold, read at head rather than
+/// summed from history. Public and uncached at the edge: the page polls it, and
+/// a cached copy of a balance is worse than a slightly slower live one.
+///
+/// `?fresh=1` skips the serve-TTL. Used after a deploy, when waiting up to the
+/// refresh interval to see the new address would be its own small outage.
+networkRoutes.get('/contracts', async (c) => {
+  try {
+    const snapshot = await getCurrentContracts(c.req.query('fresh') === '1');
+    return c.json(snapshot);
+  } catch (err) {
+    return c.json(
+      { error: 'contract state unavailable', detail: (err as Error).message },
+      502,
+    );
+  }
 });

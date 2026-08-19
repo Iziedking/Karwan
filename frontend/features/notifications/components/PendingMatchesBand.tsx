@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { api, type MatchProposal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Button } from '@/shared/components/Button';
 import {
   Band,
   SectionTag,
@@ -30,31 +31,9 @@ export function PendingMatchesBand({ tone = 'light', headline }: Props) {
   const t = useTranslations().pending;
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
-  const [matches, setMatches] = useState<MatchProposal[]>([]);
+  const { matches, state, retry } = usePendingMatches(isAuthed, address);
 
-  useEffect(() => {
-    if (!isAuthed || !address) {
-      setMatches([]);
-      return;
-    }
-    let cancelled = false;
-    function refresh() {
-      api
-        .matchesFor(address!)
-        .then((d) => {
-          if (!cancelled) setMatches(d.proposals);
-        })
-        .catch(() => {});
-    }
-    refresh();
-    const id = setInterval(refresh, 10_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [address, isAuthed]);
-
-  if (matches.length === 0) return null;
+  if (matches.length === 0 && state !== 'error') return null;
 
   const dark = tone === 'dark';
   const computedHeadline = headline ?? t.matches.headline;
@@ -74,6 +53,9 @@ export function PendingMatchesBand({ tone = 'light', headline }: Props) {
       >
         {t.matches.body}
       </p>
+      {state === 'error' ? (
+        <MatchLoadError label={t.matches.loadError} retryLabel={t.matches.retry} onRetry={retry} />
+      ) : null}
       <ul className="mt-8 space-y-3">
         {matches.map((p) => (
           <MatchRow
@@ -106,12 +88,21 @@ function MatchRow({
   // Normalize the price display so a backend that stores 50.000000 reads as
   // 50, and a true 50.49 stays at 50.49. Drops trailing zeros and keeps a
   // 2-decimal floor when fractional.
-  const priceDisplay = formatUsdcDisplay(proposal.agreedPriceUsdc);
-  // Sellers get the action chip; buyers get the read-only awaiting chip.
-  const chipLabel = isSeller ? t.chips.acceptToFund : t.chips.awaitingSeller;
-  const chipFg = isSeller ? '#0a7553' : '#b25425';
-  const chipBg = isSeller ? 'rgba(10,117,83,0.10)' : 'rgba(178,84,37,0.10)';
-  const chipBorder = isSeller ? 'rgba(10,117,83,0.35)' : 'rgba(178,84,37,0.40)';
+  const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
+  const viewerMustAct = pendingRaise ? !isSeller : isSeller;
+  const priceDisplay = formatUsdcDisplay(
+    pendingRaise ? proposal.raisedPriceUsdc! : proposal.agreedPriceUsdc,
+  );
+  const chipLabel = pendingRaise
+    ? isSeller
+      ? t.chips.awaitingBuyer
+      : t.chips.reviewPriceChange
+    : isSeller
+      ? t.chips.acceptToFund
+      : t.chips.awaitingSeller;
+  const chipFg = viewerMustAct ? '#0a7553' : '#b25425';
+  const chipBg = viewerMustAct ? 'rgba(10,117,83,0.10)' : 'rgba(178,84,37,0.10)';
+  const chipBorder = viewerMustAct ? 'rgba(10,117,83,0.35)' : 'rgba(178,84,37,0.40)';
   const dark = tone === 'dark';
 
   return (
@@ -171,6 +162,21 @@ function MatchRow({
             >
               {counterRole} {counterparty.slice(0, 8)}…{counterparty.slice(-6)}
             </p>
+            {proposal.deadlineUnix ? (
+              <p
+                className="mt-1 mono text-[9px] uppercase tracking-[0.11em]"
+                style={{ color: dark ? 'rgba(255,255,255,0.48)' : 'var(--lp-text-muted)' }}
+              >
+                {t.card.dueTemplate.replace(
+                  '{date}',
+                  new Intl.DateTimeFormat(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  }).format(proposal.deadlineUnix * 1000),
+                )}
+              </p>
+            ) : null}
           </div>
           <div className="text-end shrink-0">
             <span
@@ -228,31 +234,9 @@ export function PendingMatchesInline() {
   const t = useTranslations().pending.matches;
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
-  const [matches, setMatches] = useState<MatchProposal[]>([]);
+  const { matches, state, retry } = usePendingMatches(isAuthed, address);
 
-  useEffect(() => {
-    if (!isAuthed || !address) {
-      setMatches([]);
-      return;
-    }
-    let cancelled = false;
-    function refresh() {
-      api
-        .matchesFor(address!)
-        .then((d) => {
-          if (!cancelled) setMatches(d.proposals);
-        })
-        .catch(() => {});
-    }
-    refresh();
-    const id = setInterval(refresh, 10_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [address, isAuthed]);
-
-  if (matches.length === 0) return null;
+  if (matches.length === 0 && state !== 'error') return null;
 
   return (
     <div className="space-y-3">
@@ -264,11 +248,77 @@ export function PendingMatchesInline() {
           {t.inlineSubtitle}
         </p>
       </div>
+      {state === 'error' ? (
+        <MatchLoadError label={t.loadError} retryLabel={t.retry} onRetry={retry} />
+      ) : null}
       <ul className="space-y-2.5">
         {matches.map((p) => (
           <MatchRow key={p.jobId} proposal={p} viewerAddress={address!} tone="light" />
         ))}
       </ul>
+    </div>
+  );
+}
+
+type PendingFetchState = 'idle' | 'ready' | 'error';
+
+function usePendingMatches(isAuthenticated: boolean, address?: string | null) {
+  const [matches, setMatches] = useState<MatchProposal[]>([]);
+  const [state, setState] = useState<PendingFetchState>('idle');
+  const [retryToken, setRetryToken] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated || !address) {
+      setMatches([]);
+      setState('idle');
+      return;
+    }
+    let cancelled = false;
+    function refresh() {
+      api
+        .matchesFor(address!)
+        .then((data) => {
+          if (cancelled) return;
+          setMatches(data.proposals);
+          setState('ready');
+        })
+        .catch(() => {
+          if (!cancelled) setState('error');
+        });
+    }
+    refresh();
+    const id = window.setInterval(refresh, 10_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [address, isAuthenticated, retryToken]);
+
+  return {
+    matches,
+    state,
+    retry: () => setRetryToken((value) => value + 1),
+  };
+}
+
+function MatchLoadError({
+  label,
+  retryLabel,
+  onRetry,
+}: {
+  label: string;
+  retryLabel: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      role="status"
+      className="mt-4 flex flex-col gap-3 border-s-[3px] border-[var(--color-warning)] bg-[var(--color-warning-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+    >
+      <p className="text-[13px] leading-relaxed text-[var(--lp-dark)]">{label}</p>
+      <Button type="button" variant="outline" onClick={onRetry} className="shrink-0 self-start sm:self-auto">
+        {retryLabel}
+      </Button>
     </div>
   );
 }

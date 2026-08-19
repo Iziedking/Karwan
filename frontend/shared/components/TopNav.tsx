@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -14,8 +14,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { isBusinessAccount } from '@/features/account/accountKind';
-import { AccountKindBadge } from '@/features/account/AccountKindBadge';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
+import { getShellSurface } from '@/shared/utils/routes';
 
 // Landing routes are forced dark via these var overrides, so every embedded
 // child (bell, toggles, ConnectWalletButton) picks up dark mode without each
@@ -33,8 +33,6 @@ const DARK_NAV_VARS = {
 export function TopNav() {
   const a11y = useTranslations().a11y;
   const pathname = usePathname();
-  const isApp = pathname !== '/' && pathname !== '/how-it-works';
-  const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslations();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { profile } = useUserProfile();
@@ -44,13 +42,14 @@ export function TopNav() {
   // the account as a person so the nav never flashes business items to an
   // individual.
   const biz = isBusinessAccount(profile);
-  const showAppChrome = isApp && isAuthenticated;
-  // Onboarding is a focused setup flow: strip the nav rail and the control
-  // cluster down to just the connected wallet + balance chip, so nothing invites
-  // the user away mid-signup. The full chrome returns once they finish and land
-  // in the app.
-  const isOnboarding = pathname.startsWith('/onboarding');
-  const showFullChrome = showAppChrome && !isOnboarding;
+  const shell = getShellSurface(pathname, isAuthenticated);
+  const publicSurface = shell === 'public';
+  const workspaceSurface = shell === 'workspace' || shell === 'admin';
+  const focusedSurface = shell === 'focused';
+  const showAppChrome = (workspaceSurface || focusedSurface) && isAuthenticated;
+  // Onboarding is a focused setup flow: strip the nav rail down to identity and
+  // the compact theme control. The full chrome returns once setup is complete.
+  const showFullChrome = workspaceSurface && isAuthenticated;
 
   const tradesActive =
     pathname.startsWith('/p2p') ||
@@ -60,50 +59,24 @@ export function TopNav() {
     pathname.startsWith('/seller') ||
     pathname.startsWith('/jobs') ||
     pathname.startsWith('/deals');
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+  const discoverHref = biz ? '/partners' : '/market';
+  const discoverActive =
+    pathname.startsWith('/market') ||
+    pathname.startsWith('/listings') ||
+    pathname.startsWith('/partners');
 
   return (
     <header
-      style={isApp ? undefined : DARK_NAV_VARS}
+      style={publicSurface ? DARK_NAV_VARS : undefined}
       className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
     >
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
-        {/* LEFT. mobile toggle + logo */}
+        {/* LEFT. Brand returns to the current surface's natural home. */}
         <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
-          {showFullChrome && (
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-label={menuOpen ? t.nav.menuCloseAria : t.nav.menuOpenAria}
-              aria-expanded={menuOpen}
-              className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-md border border-[var(--color-line)] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors shrink-0"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                {menuOpen ? (
-                  <path
-                    d="M3 3l10 10M13 3L3 13"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                ) : (
-                  <path
-                    d="M2 4h12M2 8h12M2 12h12"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                )}
-              </svg>
-            </button>
-          )}
-          <Link href="/" className="group inline-flex items-center gap-2.5 shrink-0">
+          <Link href={showAppChrome ? '/app' : '/'} className="group inline-flex items-center gap-2.5 shrink-0">
             <span
               aria-hidden
-              className="inline-flex items-center justify-center w-10 h-10 border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center w-11 h-11 border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5"
               style={{
                 background: '#0e0e0e',
                 borderTopLeftRadius: 11,
@@ -114,20 +87,31 @@ export function TopNav() {
             >
               <Logo />
             </span>
-            <span className="font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--color-ink)]">
+            <span className="hidden min-[360px]:inline font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--color-ink)]">
               Karwan
             </span>
           </Link>
         </div>
 
-        {/* CENTER. floating pill nav (app only, signed-in only). Hides the
-            full app surface until the user has actually signed in so the
-            shell stays minimal while the SignInGate is the only thing on
-            the page. */}
+        {publicSurface && (
+          <nav className="mx-auto hidden h-full items-center gap-7 md:flex">
+            <PublicNavLink href="/how-it-works" active={pathname.startsWith('/how-it-works')}>
+              {t.footer.productLinks.howItWorks}
+            </PublicNavLink>
+            <PublicNavLink href="/market" active={discoverActive}>
+              {t.nav.market}
+            </PublicNavLink>
+            <PublicNavLink href="/docs" active={pathname.startsWith('/docs')}>
+              {t.footer.productLinks.docs}
+            </PublicNavLink>
+          </nav>
+        )}
+
+        {/* Desktop workspace navigation is task-based and flat. The active
+            indicator slides between destinations without turning the header
+            into a row of nested pills. Mobile uses WorkspaceBottomNav. */}
         {showFullChrome && (
-          <nav
-            className="hidden md:inline-flex items-center gap-0.5 mx-auto px-1.5 py-1.5 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-14px_rgba(0,0,0,0.18)]"
-          >
+          <nav className="mx-auto hidden h-full items-center gap-1 lg:flex">
             <NavLink
               href="/app"
               active={pathname === '/app'}
@@ -136,20 +120,11 @@ export function TopNav() {
               {t.nav.home}
             </NavLink>
             <NavLink href={biz ? '/b2b' : '/p2p'} active={tradesActive}>
-              {biz ? 'B2B Trades' : t.nav.trades}
+              {t.nav.trades}
             </NavLink>
-            {biz && (
-              <NavLink
-                href="/partners"
-                active={pathname.startsWith('/partners')}
-                title={a11y.findBusinesses}
-              >
-                Partners
-              </NavLink>
-            )}
             <NavLink
-              href="/market"
-              active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
+              href={discoverHref}
+              active={discoverActive}
               title={t.nav.hints.market}
             >
               {t.nav.market}
@@ -160,7 +135,7 @@ export function TopNav() {
                 active={pathname.startsWith('/financier')}
                 title={a11y.fundFactoringAndPos}
               >
-                Financier
+                {t.nav.finance}
               </NavLink>
             ) : (
               <NavLinkSoon
@@ -169,7 +144,7 @@ export function TopNav() {
                 title={a11y.fundFactoringAndPos}
                 soonLabel={t.nav.soonBadge}
               >
-                Financier
+                {t.nav.finance}
               </NavLinkSoon>
             )}
             <NavLink
@@ -179,26 +154,25 @@ export function TopNav() {
             >
               {t.nav.activity}
             </NavLink>
-            <NavLink
-              href="/stake"
-              active={pathname.startsWith('/stake')}
-              title={t.nav.hints.stake}
-            >
-              {t.nav.stake}
-            </NavLink>
-            {/* Profile lives on the avatar (always top-right), so it is not
-                repeated here. One fewer nav item keeps the rail scannable. */}
           </nav>
         )}
 
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
-          {showAppChrome ? (
-            isOnboarding ? (
-              // Onboarding: only the connected wallet + balance chip. No live dot,
-              // bell, settings, or profile — nothing to pull the user off setup.
-              <ConnectWalletButton />
-            ) : (
+          {focusedSurface ? (
+            <>
+              <ThemeToggle />
+              {authLoading ? (
+                <span
+                  aria-hidden
+                  className="inline-block rounded-full bg-[var(--color-surface-2)] motion-safe:animate-pulse motion-reduce:animate-none"
+                  style={{ width: 132, height: 36 }}
+                />
+              ) : (
+                <ConnectWalletButton />
+              )}
+            </>
+          ) : showAppChrome ? (
               <>
                 <div className="hidden md:inline-flex">
                   <LiveDot />
@@ -216,18 +190,9 @@ export function TopNav() {
                   <NotificationBell />
                 </div>
                 <ConnectWalletButton />
-                {/* Which rail you are operating in, on every app screen. Hidden
-                    below lg: the cluster is already tight and the profile hero
-                    carries the same badge in full. */}
-                {profile && (
-                  <span className="hidden lg:inline-flex">
-                    <AccountKindBadge profile={profile} />
-                  </span>
-                )}
-                <ProfileAvatar />
+                <span className="hidden md:inline-flex"><ProfileAvatar /></span>
               </>
-            )
-          ) : isApp ? (
+          ) : !publicSurface ? (
             // Signed-out app chrome: just the Sign in button. Don't tease the
             // app surface (nav rail, balance, bell, settings) before the user
             // has signed in. While auth is still resolving, reserve the same
@@ -256,106 +221,7 @@ export function TopNav() {
           )}
         </div>
       </div>
-
-      {showFullChrome && menuOpen && (
-        <div
-          className="md:hidden absolute start-0 end-0 top-full bg-[var(--color-surface)] border-b border-[var(--color-line)] shadow-sm fade-up"
-          onClick={() => setMenuOpen(false)}
-        >
-          <nav className="px-4 py-3 flex flex-col text-[14px]">
-            <MobileNavLink href="/app" active={pathname === '/app'}>
-              {t.nav.home}
-            </MobileNavLink>
-            {/* The trades hub adapts to the rail: a business opens its B2B
-                trade flow, an individual opens the P2P desk picker. */}
-            <MobileNavLink
-              href={biz ? '/b2b' : '/p2p'}
-              active={
-                pathname.startsWith('/p2p') ||
-                pathname.startsWith('/b2b') ||
-                pathname.startsWith('/supply') ||
-                pathname.startsWith('/buyer') ||
-                pathname.startsWith('/seller') ||
-                pathname.startsWith('/jobs') ||
-                pathname.startsWith('/deals')
-              }
-            >
-              {biz ? 'B2B Trades' : t.nav.trades}
-            </MobileNavLink>
-            {biz && (
-              <MobileNavLink href="/partners" active={pathname.startsWith('/partners')}>
-                Partners
-              </MobileNavLink>
-            )}
-            <div className="my-1.5 border-t border-[var(--color-line)]" />
-            <MobileNavLink
-              href="/market"
-              active={pathname.startsWith('/market') || pathname.startsWith('/listings')}
-            >
-              {t.nav.market}
-            </MobileNavLink>
-            {SME_TRADES_ENABLED ? (
-              <MobileNavLink href="/financier" active={pathname.startsWith('/financier')}>
-                Financier
-              </MobileNavLink>
-            ) : (
-              <MobileNavLinkSoon
-                href="/financier"
-                active={pathname.startsWith('/financier')}
-                soonLabel={t.nav.soonBadge}
-              >
-                Financier
-              </MobileNavLinkSoon>
-            )}
-            <MobileNavLink href="/activity" active={pathname.startsWith('/activity')}>
-              {t.nav.activity}
-            </MobileNavLink>
-            <MobileNavLink href="/stake" active={pathname.startsWith('/stake')}>
-              {t.nav.stake}
-            </MobileNavLink>
-            <MobileNavLink href="/profile" active={pathname.startsWith('/profile')}>
-              {t.nav.profile}
-            </MobileNavLink>
-            <div className="my-1.5 border-t border-[var(--color-line)]" />
-            <MobileNavLink href="/how-it-works" active={pathname.startsWith('/how-it-works')}>
-              {t.nav.help}
-            </MobileNavLink>
-            <div className="mt-2 pt-2 border-t border-[var(--color-line)] flex items-center justify-around text-[12px] text-[var(--color-ink-dim)]">
-              <SoundToggle />
-              <ThemeToggle />
-              {isAuthenticated && (
-                <SettingsIconLink active={pathname.startsWith('/settings')} />
-              )}
-              <LiveDot />
-            </div>
-          </nav>
-        </div>
-      )}
     </header>
-  );
-}
-
-function MobileNavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'px-3 py-2.5 rounded-md font-medium transition-colors',
-        active
-          ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
-          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
-      )}
-    >
-      {children}
-    </Link>
   );
 }
 
@@ -368,34 +234,31 @@ function NavLink({
   href: string;
   active: boolean;
   children: React.ReactNode;
-  /// Plain-language hover hint. Crypto and trade terms (Bridge, Stake, Market)
-  /// are opaque to first-time users; the tooltip says what each one does in
-  /// normal words without changing the rail's look.
+  /// Plain-language accessible name for labels that benefit from more context.
+  /// Browser-default tooltips are intentionally avoided.
   title?: string;
 }) {
   return (
     <Link
       href={href}
-      title={title}
+      aria-label={title}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors',
+        'relative flex h-full items-center px-3 text-[12px] font-semibold tracking-[0.01em] transition-colors',
         active
-          ? 'text-[var(--color-surface)]'
-          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+          ? 'text-[var(--color-ink)]'
+          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]',
       )}
     >
-      {/* Shared-layout pill: it SLIDES from the previously active item to this
-          one on navigation, so motion tells the user where they just moved
-          instead of the highlight snapping in place. */}
       {active && (
         <motion.span
           layoutId="topnav-active"
           aria-hidden
-          className="absolute inset-0 rounded-full bg-[var(--color-ink)] shadow-[0_2px_0_rgba(0,0,0,0.15)]"
+          className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--lp-accent)]"
           transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
         />
       )}
-      <span className="relative z-10">{children}</span>
+      <span>{children}</span>
     </Link>
   );
 }
@@ -421,25 +284,26 @@ function NavLinkSoon({
   return (
     <Link
       href={href}
-      title={title}
+      aria-label={title}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative px-4 py-1.5 rounded-full text-[13px] font-semibold tracking-[-0.005em] transition-colors inline-flex items-center gap-1.5 whitespace-nowrap',
+        'relative inline-flex h-full items-center gap-1.5 whitespace-nowrap px-3 text-[12px] font-semibold tracking-[0.01em] transition-colors',
         active
-          ? 'text-[var(--color-surface)]'
-          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+          ? 'text-[var(--color-ink)]'
+          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)]',
       )}
     >
       {active && (
         <motion.span
           layoutId="topnav-active"
           aria-hidden
-          className="absolute inset-0 rounded-full bg-[var(--color-ink)] shadow-[0_2px_0_rgba(0,0,0,0.15)]"
+          className="absolute inset-x-3 bottom-0 h-0.5 bg-[var(--lp-accent)]"
           transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
         />
       )}
-      <span className="relative z-10 whitespace-nowrap">{children}</span>
+      <span className="whitespace-nowrap">{children}</span>
       <span
-        className="relative z-10 mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px] whitespace-nowrap"
+        className="mono whitespace-nowrap px-1.5 py-[2px] text-[8px] font-bold uppercase tracking-[0.12em]"
         style={{
           background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
           color: 'var(--lp-accent)',
@@ -452,38 +316,33 @@ function NavLinkSoon({
   );
 }
 
-function MobileNavLinkSoon({
+function PublicNavLink({
   href,
   active,
   children,
-  soonLabel,
 }: {
   href: string;
   active: boolean;
   children: React.ReactNode;
-  soonLabel: string;
 }) {
   return (
     <Link
       href={href}
+      aria-current={active ? 'page' : undefined}
       className={cn(
-        'px-3 py-2.5 rounded-md font-medium transition-colors inline-flex items-center justify-between',
-        active
-          ? 'bg-[var(--color-ink)] text-[var(--color-surface)]'
-          : 'text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]',
+        'relative flex h-full items-center mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors',
+        active ? 'text-white' : 'text-white/56 hover:text-white',
       )}
     >
-      <span>{children}</span>
-      <span
-        className="mono text-[8.5px] font-bold uppercase tracking-[0.12em] px-1.5 py-[2px]"
-        style={{
-          background: 'color-mix(in oklab, var(--lp-accent) 14%, transparent)',
-          color: 'var(--lp-accent)',
-          borderRadius: 3,
-        }}
-      >
-        {soonLabel}
-      </span>
+      {children}
+      {active ? (
+        <motion.span
+          layoutId="public-nav-active"
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--lp-accent)]"
+          transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
+        />
+      ) : null}
     </Link>
   );
 }
@@ -510,7 +369,7 @@ function QuickControls({
         aria-label={t.preferencesAria}
         aria-expanded={open}
         className={cn(
-          'inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors',
+          'inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors',
           open || settingsActive
             ? 'bg-[var(--color-surface-2)] text-[var(--color-ink)]'
             : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
@@ -554,6 +413,8 @@ function QuickControls({
             {isAuthenticated && (
               <>
                 <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
+                <MenuLink href="/profile">{t.profile}</MenuLink>
+                <MenuLink href="/stake">{t.reputation}</MenuLink>
                 <Link
                   href="/settings"
                   className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
@@ -569,6 +430,19 @@ function QuickControls({
         </div>
       )}
     </div>
+  );
+}
+
+function MenuLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between gap-3 px-2.5 py-2 text-[13px] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)]"
+      style={{ borderRadius: 8 }}
+    >
+      <span>{children}</span>
+      <span aria-hidden className="text-[var(--color-ink-faint)]">→</span>
+    </Link>
   );
 }
 
@@ -613,7 +487,7 @@ function LaunchAppCTA() {
   return (
     <Link
       href="/app"
-      className="group inline-flex items-center gap-1.5 px-4 sm:px-5 py-2.5 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 shadow-[0_3px_0_rgba(0,0,0,0.22)] whitespace-nowrap"
+      className="group inline-flex min-h-11 items-center gap-1.5 px-4 sm:px-5 py-2.5 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 shadow-[0_3px_0_rgba(0,0,0,0.22)] whitespace-nowrap"
       style={{
         borderTopLeftRadius: 12,
         borderTopRightRadius: 12,

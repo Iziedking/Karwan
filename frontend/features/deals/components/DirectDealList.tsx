@@ -11,6 +11,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export type DealStage =
   | 'awaiting-acceptance'
+  | 'awaiting-funding'
   | 'awaiting-delivery'
   | 'awaiting-first-release'
   | 'awaiting-final-release'
@@ -52,6 +53,7 @@ export function stageOf(deal: DirectDeal): DealStage {
   if (released >= 1 || deal.firstAutoReleased) return 'awaiting-final-release';
   if (deal.delivered || deal.deliveredAt) return 'awaiting-first-release';
   if (deal.acceptedAt) return 'awaiting-delivery';
+  if (deal.sellerApprovedAt) return 'awaiting-funding';
   return 'awaiting-acceptance';
 }
 
@@ -67,6 +69,11 @@ export const STAGE_META: Record<
     rail: '#4a5aa3',
     chipBg: 'rgba(60, 74, 138, 0.10)',
     chipFg: '#3a4a85',
+  },
+  'awaiting-funding': {
+    rail: '#9a6c1d',
+    chipBg: 'rgba(154, 108, 29, 0.12)',
+    chipFg: '#7d5717',
   },
   'awaiting-delivery': {
     rail: '#4a5aa3',

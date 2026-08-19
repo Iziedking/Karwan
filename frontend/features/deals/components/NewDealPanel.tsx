@@ -51,7 +51,7 @@ export function NewDealPanel() {
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setMode(m.value)}
-                className="px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
+                className="min-h-11 px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
                 style={{
                   background: isActive ? 'var(--lp-dark)' : 'transparent',
                   color: isActive ? 'var(--lp-accent)' : 'var(--lp-text-sub)',

@@ -1,5 +1,5 @@
 'use client';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { ease, dur, wordReveal } from '@/shared/motion/tokens';
@@ -41,6 +41,7 @@ export function DisplayHeadline({
   animate?: boolean;
   as?: 'h1' | 'h2' | 'h3';
 }) {
+  const reduced = useReducedMotion();
   const base = cn(
     'font-sans font-bold uppercase text-balance',
     SIZE_CLASSES[size],
@@ -51,10 +52,10 @@ export function DisplayHeadline({
   return (
     <motion.div
       className={base}
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={reduced ? false : { opacity: 0, y: 16 }}
+      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.4 }}
-      transition={{ duration: dur.hero, ease: ease.out }}
+      transition={{ duration: reduced ? 0 : dur.hero, ease: ease.out }}
     >
       <Tag className="contents">{children}</Tag>
     </motion.div>
@@ -72,7 +73,9 @@ export function LimePunc({ children = '.' }: { children?: ReactNode }) {
 /// each word animates in with 80ms stagger and the dur.hero curve. Treat
 /// it as a drop-in replacement for the children of <DisplayHeadline animate>.
 export function SplitText({ text }: { text: string }) {
+  const reduced = useReducedMotion();
   const words = text.split(' ');
+  if (reduced) return <span>{text}</span>;
   return (
     <span
       className="inline-flex flex-wrap gap-x-[0.25em]"

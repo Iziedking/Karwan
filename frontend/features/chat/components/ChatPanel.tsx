@@ -191,7 +191,7 @@ export function ChatPanel({
           }}
           placeholder={cp.inputPlaceholder}
           maxLength={2000}
-          className="chat-input flex-1 bg-[var(--lp-light)] px-4 py-2.5 text-[13px] focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] transition-shadow"
+          className="chat-input min-h-11 flex-1 bg-[var(--lp-light)] px-4 py-2.5 text-[13px] focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] transition-shadow"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 12,
@@ -203,7 +203,7 @@ export function ChatPanel({
         <button
           type="submit"
           disabled={sending || !draft.trim() || !writable}
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          className="inline-flex min-h-11 items-center gap-1.5 px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           style={{
             borderTopLeftRadius: 12,
             borderTopRightRadius: 12,

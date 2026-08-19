@@ -18,6 +18,7 @@ import type { DocumentAnchor } from './documentAnchors.js';
 import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
 import type { IssuedAttestation } from './attestations.js';
+import type { MoneyMovement } from '../money/model.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -64,6 +65,48 @@ export const bridges = pgTable('bridges', {
   bridgeId: text('bridge_id').primaryKey(),
   data: jsonb('data').$type<BridgeRelay>().notNull(),
 });
+
+/// One logical movement of money, issued before any chain interaction. The
+/// reference is the user-facing receipt key; operationKey is the idempotency
+/// boundary that makes retries recover this row instead of creating another
+/// transfer. JSONB carries the full leg proof while surfaced columns power the
+/// hot support and per-deal lookups.
+export const moneyMovements = pgTable(
+  'money_movements',
+  {
+    reference: text('reference').primaryKey(),
+    operationKey: text('operation_key').notNull().unique(),
+    kind: text('kind').notNull(),
+    state: text('state').notNull(),
+    jobId: text('job_id'),
+    version: bigint('version', { mode: 'number' }).notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<MoneyMovement>().notNull(),
+  },
+  (t) => ({
+    operationKeyIdx: uniqueIndex('money_movements_operation_key_idx').on(t.operationKey),
+    jobCreatedIdx: index('money_movements_job_created_idx').on(t.jobId, t.createdAt),
+    stateUpdatedIdx: index('money_movements_state_updated_idx').on(t.state, t.updatedAt),
+  }),
+);
+
+/// Party index kept separate from the movement JSON so a sensitive ledger read
+/// never scans or unpacks every movement. A movement may have more than two
+/// parties once financing adapters land.
+export const moneyMovementParties = pgTable(
+  'money_movement_parties',
+  {
+    reference: text('reference').notNull(),
+    address: text('address').notNull(),
+    role: text('role').notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.reference, t.address, t.role] }),
+    addressCreatedIdx: index('money_movement_parties_address_created_idx').on(t.address, t.createdAt),
+  }),
+);
 
 export const messages = pgTable(
   'messages',

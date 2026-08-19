@@ -146,7 +146,7 @@ function BuyerPageInner() {
           <SectionTag>{bh.newDeal.sectionTag}</SectionTag>
           <Hint glow side="bottom" align="start">{bh.newDeal.description}</Hint>
         </div>
-        <HeroHeadline size="md">
+        <HeroHeadline as="h2" size="md">
           {bh.newDeal.headline}
           <Punc>.</Punc>
         </HeroHeadline>
@@ -175,7 +175,7 @@ function BuyerPageInner() {
               </SectionTag>
               <Hint glow side="bottom" align="start">{bh.managedDeals.description}</Hint>
             </div>
-            <HeroHeadline size="md">
+            <HeroHeadline as="h2" size="md">
               {bh.managedDeals.headline}
               {sortedJobs.length > 0 && (
                 <>

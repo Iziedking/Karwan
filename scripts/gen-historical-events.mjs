@@ -19,15 +19,28 @@
 // Re-run it after changing any event in the contracts, and commit the result.
 
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'backend', 'src', 'chain', 'abis', 'historicalEvents.ts');
 
-/// The contracts whose logs the lifetime scan decodes.
-const SOURCES = ['contracts/src/KarwanEscrow.sol', 'contracts/src/KarwanVault.sol'];
+/// The contracts whose logs the lifetime scan decodes. Must stay in step with
+/// TRACKED in gen-deploy-ledger.mjs: a contract in the ledger whose sources are
+/// not walked here has its retired generations' logs land in `undecodedEvents`,
+/// which is visible but still means money missing from a total.
+const SOURCES = [
+  'contracts/src/KarwanEscrow.sol',
+  'contracts/src/KarwanVault.sol',
+  'contracts/src/KarwanInvoiceRegistry.sol',
+  'contracts/src/KarwanPOFinancing.sol',
+  'contracts/src/KarwanTreasury.sol',
+  'contracts/src/KarwanYieldDistributor.sol',
+  'contracts/src/KarwanJobBoard.sol',
+  'contracts/src/KarwanReputation.sol',
+  'contracts/src/KarwanBusinessRegistry.sol',
+];
 
 function git(args) {
   return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -49,6 +62,20 @@ function stripComments(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
 }
 
+/// Enum names declared anywhere in the walked sources, across all revisions.
+///
+/// Solidity lets an event take an enum, and the source then reads
+/// `Outcome outcome`. There is no such ABI type: an enum is encoded as uint8,
+/// and `CompletionRecorded(bytes32,address,address,uint8,uint256)` is what
+/// keccak actually hashes into topic0. Copying the source text through gives a
+/// signature abitype rejects outright, which took the whole generated module
+/// down on import, and would have produced the wrong topic even if it parsed.
+const ENUM_TYPES = new Set();
+
+function collectEnums(src) {
+  for (const m of src.matchAll(/\benum\s+(\w+)\s*\{/g)) ENUM_TYPES.add(m[1]);
+}
+
 /// Normalise a parameter list to the canonical human-readable ABI form viem
 /// parses: one space between tokens, and `indexed` preserved. Dropping
 /// `indexed` would leave a decoder that reads topics as data and returns
@@ -58,7 +85,16 @@ function normaliseParams(raw) {
   if (!cleaned) return '';
   return cleaned
     .split(',')
-    .map((p) => p.trim().replace(/\s+/g, ' '))
+    .map((p) => {
+      const parts = p.trim().replace(/\s+/g, ' ').split(' ');
+      // An enum in position zero is the parameter's type. Arrays of enums keep
+      // their suffix, so Outcome[2] becomes uint8[2].
+      const base = parts[0]?.replace(/\[.*$/, '');
+      if (base && ENUM_TYPES.has(base)) {
+        parts[0] = parts[0].replace(base, 'uint8');
+      }
+      return parts.join(' ');
+    })
     .filter(Boolean)
     .join(', ');
 }
@@ -85,6 +121,18 @@ function topicIdentity(name, params) {
 const signatures = new Map(); // human-readable signature -> first revision seen
 const byTopic = new Map(); // topic identity -> the signature already kept for it
 
+// Seed the enum names from every current source before walking any history.
+// An enum declared in one contract can appear in another's event, and a
+// revision is scanned for events the moment it is read, so waiting to learn the
+// name from the file that declares it would be a race the ordering decides.
+for (const path of SOURCES) {
+  try {
+    collectEnums(stripComments(readFileSync(join(ROOT, path), 'utf8')));
+  } catch {
+    // A source that no longer exists still has history worth walking.
+  }
+}
+
 for (const path of SOURCES) {
   let revs;
   try {
@@ -100,7 +148,11 @@ for (const path of SOURCES) {
     } catch {
       continue; // the file did not exist at that revision
     }
-    for (const m of stripComments(src).matchAll(EVENT_RE)) {
+    const clean = stripComments(src);
+    // Revisions can declare an enum that later revisions dropped. Learn it
+    // before this revision's events are read, not after.
+    collectEnums(clean);
+    for (const m of clean.matchAll(EVENT_RE)) {
       const name = m[1];
       const params = normaliseParams(m[2]);
       // A declaration whose parameters still contain a paren or a brace is not

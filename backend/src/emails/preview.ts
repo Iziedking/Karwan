@@ -66,7 +66,7 @@ const inviteInner = (() => {
               </p>
               <a href="${escapeHtml(claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">Review and claim</a>
               <p style="margin:18px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                ${escapeHtml(expiresLabel)}. Funds are not moved until you accept.
+                ${escapeHtml(expiresLabel)}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.
               </p>
             </td>
           </tr>

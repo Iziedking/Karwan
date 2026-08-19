@@ -25,6 +25,7 @@ import {
   buildPairHistory,
   pairKey,
 } from '../deals/releaseWindow.js';
+import { sellerAgreementExpired } from '../deals/lifecycle.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -230,18 +231,16 @@ async function tick() {
       await maybeAutoResolveDispute(deal, now);
       continue;
     }
-    // Acceptance window expiry. Seller never accepted in time. Mark cancelled
+    // Acceptance window expiry. Seller never agreed in time. Once the seller
+    // agrees, the commercial acceptance window has done its job and the buyer
+    // gets a separate opportunity to review the live fee before funding.
     // with kind 'pre-accept' so reputation isn't touched on either side; the
     // buyer is freed up to open a fresh deal elsewhere.
-    if (
-      !deal.acceptedAt &&
-      deal.acceptanceDeadlineUnix &&
-      now > deal.acceptanceDeadlineUnix * 1000
-    ) {
+    if (sellerAgreementExpired(deal, now)) {
       await patchDeal(deal.jobId, {
         cancelledAt: now,
         cancelKind: 'pre-accept',
-        cancelReason: 'acceptance window expired with no seller acceptance',
+        cancelReason: 'acceptance window expired with no seller agreement',
       });
       bus.emitEvent({
         type: 'deal.acceptance.expired',
@@ -255,11 +254,12 @@ async function tick() {
       });
       logger.info(
         { jobId: deal.jobId, acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix },
-        'acceptance window expired, marking deal cancelled (pre-accept)',
+        'acceptance window expired with no seller agreement, marking deal cancelled (pre-accept)',
       );
       continue;
     }
-    // No escrow exists until the seller accepts, so there is nothing to watch.
+    // No escrow exists until the buyer funds after seller agreement, so there
+    // is nothing for the on-chain watcher to inspect before acceptedAt.
     if (!deal.acceptedAt) continue;
     if (processing.has(deal.jobId)) continue;
     const parties = { buyer: deal.buyer, seller: deal.seller };

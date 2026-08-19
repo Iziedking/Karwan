@@ -851,8 +851,9 @@ export function buildDeclineMatchConfirm(i: {
   };
 }
 
-/// Seller accepts a direct deal. The backend funds the escrow and calls
-/// acceptEscrow, which RESERVES part of their stake against the deal.
+/// Seller agrees to a direct deal. This records the commercial agreement and
+/// may prepare their payout wallet. Buyer funding and stake reservation happen
+/// only after the buyer reviews the live quote in the deal workspace.
 export function buildAcceptDealConfirm(i: {
   caller: string;
   jobId: string;
@@ -865,16 +866,16 @@ export function buildAcceptDealConfirm(i: {
     kind: 'confirm',
     id: `accept_deal:${i.jobId}:${confirmNonce()}`,
     intent: 'accept_deal',
-    title: 'Accept this deal',
-    summary: `Take on ${i.counterpartyLabel}'s ${i.amountUsdc} USDC deal and start the clock.`,
-    warning: 'Accepting reserves part of your stake against this deal and commits you to the deadline. Missing it lets the buyer reclaim, which costs reputation.',
+    title: 'Agree to this deal',
+    summary: `Agree to deliver ${i.counterpartyLabel}'s ${i.amountUsdc} USDC deal. The buyer funds escrow afterward.`,
+    warning: 'Agreement confirms the terms but does not move buyer money. Start work only after the deal shows escrow funded.',
     fields: [
       { label: 'Amount', value: `${i.amountUsdc} USDC` },
       { label: 'Buyer', value: i.counterpartyLabel },
       { label: 'Deliver by', value: i.deadlineLabel },
     ],
     payload: { jobId: i.jobId, caller: i.caller },
-    confirmLabel: 'Accept deal',
+    confirmLabel: 'Agree to terms',
     cancelLabel: 'Not now',
   };
 }

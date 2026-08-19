@@ -5,33 +5,22 @@ import { listAllDeals } from '../db/deals.js';
 import { sessionAddress } from '../auth/session.js';
 import { callerJobIds, buyerJobIds, AUCTION_INTERNAL_TYPES } from '../auth/partyScope.js';
 import { listActivityForAddress } from '../db/activityLog.js';
+import { listMoneyMovementsForAddress } from '../db/moneyMovements.js';
 import { listBridgesForUser } from '../db/bridges.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { chainLabel, depositWalletsByChainKey } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
+import {
+  mergeMovementLedger,
+  type PersonalLedgerItem,
+} from './activityMovementLedger.js';
 
 export const activityRoutes = new Hono();
 
 /// One row of a user's personal money ledger, normalised across the two stores
 /// that record movements. `status` exists because bridges are the only entries
 /// that can still be in flight; everything else is recorded after it settled.
-export interface PersonalActivityItem {
-  id: string;
-  ts: number;
-  kind: string;
-  /// English, written at record time. Kept as the fallback for rows whose kind
-  /// the client cannot render, and for every row written before `params`.
-  summary: string;
-  /// Structured fields the client formats per locale. `t` names the template.
-  /// Absent on historical rows, which is why `summary` has to stay.
-  params: Record<string, string> | null;
-  amountUsdc: string | null;
-  txHash: string | null;
-  refId: string | null;
-  chain: string | null;
-  jobId: string | null;
-  status: 'done' | 'pending' | 'failed';
-}
+export interface PersonalActivityItem extends PersonalLedgerItem {}
 
 // Finance-lane jobIds, cached so the public feed can strip business deals to
 // bare events on every poll without re-scanning briefs + deals each time.
@@ -286,8 +275,9 @@ activityRoutes.get('/me', async (c) => {
   // the real bound.
   const since = 0;
 
-  const [entries, wallets] = await Promise.all([
+  const [entries, movements, wallets] = await Promise.all([
     listActivityForAddress(address, since, limit),
+    listMoneyMovementsForAddress(address, limit),
     getAgentWallets(address).catch(() => null),
   ]);
 
@@ -306,8 +296,7 @@ activityRoutes.get('/me', async (c) => {
 
   const ledger = dropRoutedDeposits(entries, new Set(bridges.map((b) => b.bridgeId)));
 
-  const items: PersonalActivityItem[] = [
-    ...ledger.map((e) => ({
+  const legacyItems: PersonalActivityItem[] = ledger.map((e) => ({
       id: e.id,
       ts: e.ts,
       kind: e.kind as string,
@@ -319,8 +308,10 @@ activityRoutes.get('/me', async (c) => {
       chain: e.chain ?? null,
       jobId: e.jobId ?? null,
       status: 'done' as const,
-    })),
-    ...bridges.map((b) => {
+      movementState: null,
+    }));
+
+  const bridgeItems: PersonalActivityItem[] = bridges.map((b) => {
       const out = b.direction === 'out';
       const chain = (out ? b.destChainKey : b.sourceChainKey) ?? null;
       return {
@@ -350,9 +341,22 @@ activityRoutes.get('/me', async (c) => {
           b.status === 'minted' ? ('done' as const)
           : b.status === 'error' ? ('failed' as const)
           : ('pending' as const),
+        movementState: null,
       };
-    }),
-  ].sort((a, b) => b.ts - a.ts);
+    });
+
+  // Movement records are authoritative for new escrow funding and payouts.
+  // Keep enough merged rows for bridge entries before applying the final route
+  // limit, otherwise a newly completed bridge could hide an older movement that
+  // should still be in the response window.
+  const mergedLedger = mergeMovementLedger(
+    legacyItems,
+    movements,
+    limit + bridgeItems.length,
+  );
+  const items = [...mergedLedger, ...bridgeItems]
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, limit);
 
   return c.json({ items: items.slice(0, limit) });
 });

@@ -16,6 +16,10 @@ const { DEPLOY_LEDGER } = await import('./deployLedger.js');
 
 const ESCROW = DEPLOY_LEDGER.find((c) => c.name === 'KarwanEscrow')!;
 const VAULT = DEPLOY_LEDGER.find((c) => c.name === 'KarwanVault')!;
+const PO_FINANCING = DEPLOY_LEDGER.find((c) => c.name === 'KarwanPOFinancing')!;
+const INVOICE_REGISTRY = DEPLOY_LEDGER.find((c) => c.name === 'KarwanInvoiceRegistry')!;
+const TREASURY = DEPLOY_LEDGER.find((c) => c.name === 'KarwanTreasury')!;
+const YIELD_DISTRIBUTOR = DEPLOY_LEDGER.find((c) => c.name === 'KarwanYieldDistributor')!;
 
 /// 1 USDC in base units. Escrow math is 6 decimals on Arc, not 18.
 const ONE = 1_000_000n;
@@ -230,5 +234,173 @@ test('the ledger holds every generation, not just the live one', () => {
   for (const c of DEPLOY_LEDGER) {
     assert.match(c.address, /^0x[0-9a-f]{40}$/, `${c.address} is not a lowercase address`);
     assert.ok(c.deployBlock > 0n, `${c.address} has no deploy block`);
+  }
+});
+
+// --- Trade finance -----------------------------------------------------------
+//
+// The rail the page was missing entirely. Two contracts, two event names, one
+// meaning: a financier put capital in front of a supplier before the buyer
+// settled. Getting the bucketing wrong here is invisible in the arithmetic and
+// wrong in the story, because an advance folded into fundedUsdc reports the
+// same trade twice.
+
+test('a purchase-order advance counts as financing, not as new deal volume', () => {
+  const po = emptyContract(PO_FINANCING);
+  fold(po, 'POFunded', {
+    principalUsdc: 900n * ONE,
+    repayUsdc: 990n * ONE,
+    repaymentTimeoutAt: 1n,
+  });
+
+  assert.equal(po.financings, 1);
+  assert.equal(po.advancedUsdc, (900n * ONE).toString());
+  // principalUsdc is what left the financier's wallet. repayUsdc is what the
+  // supplier owes back and has not paid yet, so counting it here would report
+  // money that has not moved.
+  assert.equal(po.repaidUsdc, '0');
+  // The deal already counted its value when the escrow was funded. Adding the
+  // advance on top would report one trade as two.
+  assert.equal(po.fundedUsdc, '0');
+  assert.equal(po.deals, 0);
+});
+
+test('an invoice factored lands in the same bucket as a PO advance', () => {
+  const registry = emptyContract(INVOICE_REGISTRY);
+  fold(registry, 'ReceivableAssigned', { advanceUsdc: 400n * ONE, repayUsdc: 430n * ONE });
+
+  assert.equal(registry.financings, 1);
+  assert.equal(registry.advancedUsdc, (400n * ONE).toString());
+});
+
+test('repayment and default are tracked apart from the advance', () => {
+  const po = emptyContract(PO_FINANCING);
+  fold(po, 'POFunded', { principalUsdc: 500n * ONE, repayUsdc: 550n * ONE });
+  fold(po, 'PORepaid', { repayUsdc: 550n * ONE });
+  fold(po, 'PODefaulted', {});
+  fold(po, 'CollateralSlashed', { amount: 100n * ONE });
+
+  assert.equal(po.advancedUsdc, (500n * ONE).toString());
+  assert.equal(po.repaidUsdc, (550n * ONE).toString());
+  assert.equal(po.defaults, 1);
+  // Forfeited collateral is the same movement as a lost dispute: stake the
+  // seller posted went to the other side.
+  assert.equal(po.slashedUsdc, (100n * ONE).toString());
+});
+
+// --- Colliding event names ---------------------------------------------------
+
+test('the vault and the treasury both emit Deposited, and only one is staking', () => {
+  // Different shapes, different topic0, so both decode. But fold() switches on
+  // the NAME, so without the kind check the treasury moving its own fee balance
+  // would be reported as a seller staking collateral.
+  const vault = emptyContract(VAULT);
+  fold(vault, 'Deposited', { positionId: 1n, owner: '0xabc', principal: 300n * ONE });
+  assert.equal(vault.stakedUsdc, (300n * ONE).toString());
+
+  const treasury = emptyContract(TREASURY);
+  fold(treasury, 'Deposited', { from: '0xabc', amount: 300n * ONE });
+  assert.equal(treasury.stakedUsdc, '0');
+});
+
+test('yield counts when it is claimed, not when it is credited', () => {
+  const dist = emptyContract(YIELD_DISTRIBUTOR);
+  fold(dist, 'YieldCredited', { staker: '0xabc', amount: 50n * ONE, day: 1 });
+  assert.equal(dist.yieldUsdc, '0', 'a credit is an accrual, not a payment');
+
+  fold(dist, 'YieldClaimed', { staker: '0xabc', to: '0xabc', amount: 20n * ONE });
+  assert.equal(dist.yieldUsdc, (20n * ONE).toString());
+});
+
+// --- Rollups -----------------------------------------------------------------
+
+test('the kind rollup splits settlement from financing and sums to the total', () => {
+  const escrow = emptyContract(ESCROW);
+  fold(escrow, 'EscrowFunded', { dealAmount: 1_000n * ONE });
+  const po = emptyContract(PO_FINANCING);
+  fold(po, 'POFunded', { principalUsdc: 700n * ONE });
+  const registry = emptyContract(INVOICE_REGISTRY);
+  fold(registry, 'ReceivableAssigned', { advanceUsdc: 300n * ONE });
+  for (const r of [escrow, po, registry]) r.events = 1;
+
+  const stats = projectFromAcc(
+    {
+      cursor: '54000000',
+      perContract: {
+        [ESCROW.address]: escrow,
+        [PO_FINANCING.address]: po,
+        [INVOICE_REGISTRY.address]: registry,
+      },
+      transactions: 3,
+      scannedAt: 1,
+    },
+    54_000_000n,
+  );
+
+  const settlement = stats.byKind.find((k) => k.kind === 'settlement')!;
+  const financing = stats.byKind.find((k) => k.kind === 'financing')!;
+
+  assert.equal(settlement.volumes.fundedUsdc, '1000');
+  assert.equal(settlement.volumes.advancedUsdc, '0');
+  // Both financing contracts roll into one row, which is the point of grouping.
+  assert.equal(financing.volumes.advancedUsdc, '1000');
+  assert.equal(financing.contracts, 2);
+
+  // The headline is still the sum of the parts.
+  assert.equal(stats.volumes.fundedUsdc, '1000');
+  assert.equal(stats.volumes.advancedUsdc, '1000');
+  assert.equal(stats.totals.financings, 2);
+});
+
+test('every kind is present even when it moved nothing', () => {
+  // A missing row and a zero row look the same on a page that renders only what
+  // it is given, and they mean different things: "we do not run that" versus
+  // "nobody has used it yet".
+  const stats = projectFromAcc(
+    { cursor: '54000000', perContract: {}, transactions: 0, scannedAt: 1 },
+    54_000_000n,
+  );
+  const kinds = stats.byKind.map((k) => k.kind);
+  for (const expected of ['settlement', 'financing', 'staking', 'treasury', 'registry']) {
+    assert.ok(kinds.includes(expected as never), `${expected} missing from the rollup`);
+  }
+});
+
+test('every money field is converted out of base units, none left behind', () => {
+  // The failure this catches: a field added to the row and to the sum but
+  // forgotten in the formatting step renders a million times too large, and
+  // reads as a wildly successful platform.
+  const row = emptyContract(PO_FINANCING);
+  fold(row, 'POFunded', { principalUsdc: 3n * ONE });
+  fold(row, 'PORepaid', { repayUsdc: 3n * ONE });
+  fold(row, 'CollateralSlashed', { amount: 3n * ONE });
+  const vault = emptyContract(VAULT);
+  fold(vault, 'Deposited', { principal: 3n * ONE });
+  const dist = emptyContract(YIELD_DISTRIBUTOR);
+  fold(dist, 'YieldClaimed', { amount: 3n * ONE });
+  const escrow = emptyContract(ESCROW);
+  fold(escrow, 'EscrowFunded', { dealAmount: 3n * ONE });
+  fold(escrow, 'ProgressReleased', { amount: 3n * ONE });
+  fold(escrow, 'EscrowSettled', { sellerTotal: 3n * ONE });
+  fold(escrow, 'EscrowRefunded', { amount: 3n * ONE });
+  fold(escrow, 'FeeCollected', { amount: 3n * ONE });
+
+  const stats = projectFromAcc(
+    {
+      cursor: '54000000',
+      perContract: {
+        [ESCROW.address]: escrow,
+        [PO_FINANCING.address]: row,
+        [VAULT.address]: vault,
+        [YIELD_DISTRIBUTOR.address]: dist,
+      },
+      transactions: 1,
+      scannedAt: 1,
+    },
+    54_000_000n,
+  );
+
+  for (const [key, value] of Object.entries(stats.volumes)) {
+    assert.equal(value, '3', `${key} did not come out of base units`);
   }
 });

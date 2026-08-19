@@ -43,6 +43,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.match.approved',
   'listing.matched',
   'deal.direct.created',
+  'deal.seller-approved',
   'deal.accepted',
   'deal.delivered',
   'escrow.settled',
@@ -211,16 +212,27 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
             eyebrow: 'NEW DEAL',
             subject: `A buyer opened a deal with you${amountSuffix}`,
             heading: 'A buyer opened a deal with you',
-            body: `A buyer opened a deal with you${amountSuffix}. Accept and your agent funds escrow.`,
+            body: `A buyer opened a deal with you${amountSuffix}. Review the terms and agree if they work for you. The buyer funds only after you agree.`,
             ctaLabel: 'Review the deal',
             ctaUrl: dealUrl(e.jobId),
           }
         : null; // buyer initiated it; no email to self
+    case 'deal.seller-approved':
+      return role === 'buyer'
+        ? {
+            eyebrow: 'READY TO FUND',
+            subject: `The seller agreed to your Karwan deal${amountSuffix}`,
+            heading: 'Review the final funding total',
+            body: 'The seller agreed to the terms. Review the current fee and exact total before you fund escrow.',
+            ctaLabel: 'Review and fund',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : null;
     case 'deal.accepted':
       return {
-        eyebrow: 'DEAL ACCEPTED',
-        subject: `Deal accepted, escrow funded${amountSuffix}`,
-        heading: 'Deal accepted',
+        eyebrow: 'ESCROW FUNDED',
+        subject: `Escrow funded${amountSuffix}`,
+        heading: 'Escrow is funded',
         body: 'The escrow is funded and the seller can begin the work.',
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),

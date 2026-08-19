@@ -11,15 +11,6 @@ import {
   Punc,
 } from '@/shared/components/Bands';
 
-/// What Karwan does, in three lines, for the signed-out /app hero. Hoisted so
-/// it is never re-allocated per render. English literals (i18n-debt precedent
-/// for in-app marketing copy); translate alongside the rest of the hero later.
-const HERO_PILLARS = [
-  { index: '[:001]', title: 'Escrow in USDC', body: 'Funds are secured on Arc once both parties approve the terms.' },
-  { index: '[:002]', title: 'Milestone release', body: 'Payments release in agreed tranches as milestones are delivered.' },
-  { index: '[:003]', title: 'On-chain proof', body: 'Every settlement creates a transparent, verifiable record on Arc.' },
-] as const;
-
 /// Shared sign-in prompt rendered by every gated page. The home page uses
 /// `variant="hero"` for the full landing-grade headline; every other page
 /// passes `variant="page"` which dials the typography down a notch but keeps
@@ -45,8 +36,13 @@ export function SignInGate({
   // The hero gate is the signed-out /app landing. Lead with what Karwan does,
   // not "sign in", so a first-time visitor understands the product before the
   // wallet step (the sign-in button sits below the story).
-  const resolvedTag = tag ?? (isHero ? 'SETTLEMENT NETWORK' : t.auth.signInGate.defaultTag);
+  const resolvedTag = tag ?? (isHero ? t.auth.signInGate.heroTag : t.auth.signInGate.defaultTag);
   const resolvedButton = buttonLabel ?? t.auth.signInGate.button;
+  const heroPillars = [
+    { index: '[:001]', ...t.auth.signInGate.pillars.protection },
+    { index: '[:002]', ...t.auth.signInGate.pillars.milestones },
+    { index: '[:003]', ...t.auth.signInGate.pillars.receipt },
+  ];
 
   const titleNode: ReactNode =
     title ??
@@ -67,7 +63,11 @@ export function SignInGate({
 
   return (
     <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band
+        tone="dark"
+        overlay={<GridOverlay />}
+        className={isHero ? 'min-h-[calc(100vh-68px)]' : undefined}
+      >
         <div className={isHero ? '' : 'max-w-[52ch]'}>
           <div className="fade-up">
             <SectionTag tone="dark" dot="live">
@@ -88,7 +88,7 @@ export function SignInGate({
           </p>
           {isHero && (
             <div className="fade-up fade-up-3 mt-10 grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl">
-              {HERO_PILLARS.map((p) => (
+              {heroPillars.map((p) => (
                 <div key={p.index} className="border-t border-white/15 pt-3.5">
                   <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
                     {p.index}

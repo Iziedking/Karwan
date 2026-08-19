@@ -55,6 +55,7 @@ const MANAGED_TYPES = new Set([
 const DIRECT_TYPES = new Set([
   'deal.direct.created',
   'deal.invite.claimed',
+  'deal.seller-approved',
   'deal.accepted',
   'deal.delivered',
   'deal.delivery.flagged',
@@ -126,6 +127,7 @@ const MONEY_DIRECT_TYPES = new Set(Object.keys(MONEY_DIRECT_OWNER_KEY));
 const ACTION_TYPES = new Set([
   'deal.match.approved',
   'deal.direct.created',
+  'deal.seller-approved',
   'deal.delivered',
   'deal.delivery.flagged',
   'deal.delivery.cleared',
@@ -150,6 +152,7 @@ const NOTIFY_TYPES = new Set([
 const TOAST_TYPES = new Set([
   'deal.matched',
   'deal.match.approved',
+  'deal.seller-approved',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
   'negotiation.near-miss',
@@ -187,7 +190,8 @@ const RECIPIENT: Record<string, Role | 'both'> = {
   // Direct flow.
   'deal.direct.created': 'seller', // buyer just created it; the seller must act
   'deal.invite.claimed': 'seller', // the claimer is the seller; surface "deal is yours" in their bell post-claim
-  'deal.accepted': 'buyer', // the seller knows they accepted; the buyer's agent funded
+  'deal.seller-approved': 'buyer', // seller agreed; buyer now reviews and funds
+  'deal.accepted': 'both', // escrow is now funded and active
   'deal.delivered': 'buyer', // the buyer verifies and releases
   'deal.delivery.flagged': 'both', // seller fixes the link, buyer learns release is paused
   'deal.delivery.cleared': 'both', // both learn the hold lifted
@@ -377,19 +381,22 @@ function summaryFor(
     case 'deal.direct.created':
       // Seller-facing: the buyer opened the deal and is waiting on the seller.
       return dealAmount
-        ? `A buyer opened a deal with you at ${dealAmount} USDC. Accept to proceed.`
-        : 'A buyer opened a deal with you. Accept to proceed.';
+        ? `A buyer opened a deal with you at ${dealAmount} USDC. Review and agree to the terms.`
+        : 'A buyer opened a deal with you. Review and agree to the terms.';
     case 'deal.invite.claimed':
       // Fires after the recipient verifies their email and binds the deal.
       // Surfaces as the seller's first in-app cue. The deal create event
       // already fired before they were on Karwan, so this is the equivalent
       // welcome ping for them.
       return dealAmount
-        ? `Deal bound to your wallet at ${dealAmount} USDC. Accept to proceed.`
-        : 'Deal bound to your wallet. Accept to proceed.';
+        ? `Deal bound to your wallet at ${dealAmount} USDC. Review and agree to the terms.`
+        : 'Deal bound to your wallet. Review and agree to the terms.';
+    case 'deal.seller-approved':
+      return 'Seller agreed to the terms. Review the exact total and fund escrow when ready.';
     case 'deal.accepted':
-      // Buyer-facing: their agent funded the escrow after the seller accepted.
-      return 'Seller accepted. Your agent funded the escrow.';
+      return role === 'seller'
+        ? 'The buyer funded escrow. You can begin the work.'
+        : 'Escrow is funded. The seller can begin the work.';
     case 'deal.delivered':
       // Buyer-facing: the buyer verifies and releases.
       return 'Seller marked the work delivered. Release the first milestone.';

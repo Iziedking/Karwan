@@ -66,7 +66,6 @@ export function AccountKindBadge({
 
   return (
     <span
-      title={title}
       // The words are the label for a screen reader either way; sighted users in
       // the nav get the mark alone, which is why the same mark heads the account
       // cards at sign-up.

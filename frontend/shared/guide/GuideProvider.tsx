@@ -14,7 +14,6 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
 import { isLandingRoute } from '@/shared/utils/routes';
-import Link from 'next/link';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
 /// spotlights its tools one at a time with a plain-language line. Tours open
@@ -351,15 +350,10 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/// The two always-available helpers, one in each bottom corner: Tour (left,
-/// launches the current page's guide) and Feedback (right, to /feedback). Both
-/// match the Karwan pill grammar, visible but quiet. Hidden while a tour runs
-/// so the spotlight owns the screen. The Tour pill shows whenever the page
-/// registered a tour, even if auto-tips are turned off, since it is a MANUAL
-/// launcher (the click forces the tour open). Feedback shows everywhere (it
-/// also lives in the footer).
+/// On-demand tour helper. Feedback already lives in the public footer and the
+/// signed-in assistant owns support inside the workspace, so a second floating
+/// feedback control would compete with the mobile task navigation.
 function FloatingActions() {
-  const a11y = useTranslations().a11y;
   const { currentTour, startTour, hasActive } = useGuide();
   const pathname = usePathname();
   if (hasActive) return null;
@@ -374,7 +368,7 @@ function FloatingActions() {
   // round button so it stops covering hero copy at the bottom of the fold.
   // Desktop keeps the wide pill with the label since there's plenty of room.
   const pill =
-    'z-[60] inline-flex items-center justify-center sm:justify-start gap-0 sm:gap-1.5 p-2 sm:px-3 sm:py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors';
+    'z-[60] inline-flex min-h-11 min-w-11 items-center justify-center sm:justify-start gap-0 sm:gap-1.5 p-2 sm:px-3 sm:py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors';
   const corner = {
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
@@ -383,45 +377,25 @@ function FloatingActions() {
     boxShadow: '0 6px 18px -10px rgba(0,0,0,0.3)',
   } as const;
 
-  return (
-    <>
-      {showTour && currentTour && (
-        <button
-          type="button"
-          onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
-          className={`fixed bottom-4 sm:bottom-5 start-4 sm:start-5 ${pill}`}
-          style={corner}
-          title={`Take a guided tour: ${currentTour.label}`}
-          aria-label={`Take a guided tour: ${currentTour.label}`}
-        >
-          <span
-            aria-hidden
-            className="inline-flex items-center justify-center w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full text-[10px] sm:text-[9px] font-bold"
-            style={{ background: 'var(--lp-accent)', color: 'var(--lp-band-dark)' }}
-          >
-            ?
-          </span>
-          <span className="hidden sm:inline">{currentTour.label}</span>
-        </button>
-      )}
+  if (!showTour || !currentTour) return null;
 
-      <Link
-        href="/feedback"
-        className={`fixed bottom-4 sm:bottom-5 end-4 sm:end-5 ${pill}`}
-        style={corner}
-        title={a11y.sendFeedback}
-        aria-label={a11y.sendFeedback}
+  return (
+    <button
+      type="button"
+      onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
+      className={`fixed bottom-24 start-4 md:bottom-5 md:start-5 ${pill}`}
+      style={corner}
+      aria-label={`Take a guided tour: ${currentTour.label}`}
+    >
+      <span
+        aria-hidden
+        className="inline-flex items-center justify-center w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full text-[10px] sm:text-[9px] font-bold"
+        style={{ background: 'var(--lp-accent)', color: 'var(--lp-band-dark)' }}
       >
-        <span
-          aria-hidden
-          className="inline-flex items-center justify-center w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full text-[10px] sm:text-[9px] font-bold"
-          style={{ background: 'var(--lp-dark)', color: 'var(--lp-card)' }}
-        >
-          !
-        </span>
-        <span className="hidden sm:inline">Feedback</span>
-      </Link>
-    </>
+        ?
+      </span>
+      <span className="hidden sm:inline">{currentTour.label}</span>
+    </button>
   );
 }
 

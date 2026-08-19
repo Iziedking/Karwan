@@ -44,7 +44,7 @@ export function DataRow({
   const body = (
     <div
       className={cn(
-        'group flex items-center gap-6 px-6 min-h-[64px] py-4 transition-colors duration-[var(--dur-fast)]',
+        'group flex min-h-[64px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 sm:flex-nowrap sm:gap-6 sm:px-6 transition-colors duration-[var(--dur-fast)]',
         onDark
           ? 'hover:bg-[rgba(255,255,255,0.03)]'
           : 'hover:bg-[rgba(10,10,11,0.03)]',
@@ -52,7 +52,7 @@ export function DataRow({
       )}
     >
       {/* id column */}
-      <div className="shrink-0 min-w-[140px] space-y-1.5">
+      <div className="min-w-0 flex-1 space-y-1.5 sm:min-w-[140px] sm:flex-none">
         <BracketTag variant={tagVariant} onDark={onDark}>
           {tag}
         </BracketTag>
@@ -67,7 +67,7 @@ export function DataRow({
       </div>
 
       {/* title column */}
-      <div className="flex-1 min-w-0 space-y-1">
+      <div className="order-3 min-w-0 basis-full space-y-1 sm:order-none sm:flex-1 sm:basis-auto">
         <div
           className={cn(
             'font-sans text-[15px] font-medium tracking-[-0.005em] leading-tight truncate',
@@ -112,7 +112,7 @@ export function DataRow({
       {/* chevron */}
       <span
         aria-hidden
-        className="shrink-0 transition-transform duration-[var(--dur-fast)] group-hover:translate-x-1"
+        className="nudge-fwd shrink-0 transition-transform duration-[var(--dur-fast)]"
         style={{
           color: onDark ? 'var(--ink-3)' : 'var(--ink-inv-2)',
           fontSize: 18,
@@ -128,7 +128,7 @@ export function DataRow({
     return (
       <Link
         href={href}
-        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset"
+        className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       >
         {body}
       </Link>
@@ -139,7 +139,7 @@ export function DataRow({
       <button
         type="button"
         onClick={onClick}
-        className="block w-full text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset"
+        className="block w-full text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       >
         {body}
       </button>

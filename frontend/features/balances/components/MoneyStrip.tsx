@@ -16,8 +16,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 ///   Available  : spendable now (summed across the account's wallets)
 ///   In escrow  : locked in active deals, can't be touched until release
 ///   Earned     : settled deals where you were paid
-const ACTIVE_STAGES: DealStage[] = [
-  'awaiting-acceptance',
+const FUNDED_STAGES: DealStage[] = [
   'awaiting-delivery',
   'awaiting-first-release',
   'awaiting-final-release',
@@ -151,7 +150,7 @@ export function MoneyStrip() {
     for (const d of deals) {
       const amt = Number(d.dealAmountUsdc) || 0;
       const stage = stageOf(d);
-      if (ACTIVE_STAGES.includes(stage)) esc += amt;
+      if (FUNDED_STAGES.includes(stage)) esc += amt;
       else if (stage === 'settled' && d.seller.toLowerCase() === me) earn += amt;
     }
     return { inEscrow: esc, earned: earn };

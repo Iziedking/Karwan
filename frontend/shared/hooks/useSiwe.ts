@@ -1,10 +1,33 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAccount, useChainId, useSignMessage } from 'wagmi';
 import { api } from '@/core/api';
 import { isLandingRoute } from '@/shared/utils/routes';
 import { emitAuthChanged } from './useAuth';
+import {
+  getSiweSnapshot,
+  publishSiweSnapshot,
+  resetSiweSnapshot,
+  useSiweStatus,
+  type SiweError,
+  type SiwePhase,
+} from '@/shared/auth/siweState';
+
+let inFlight: { address: string; promise: Promise<void> } | null = null;
+
+function classifySiweError(error: unknown): SiweError {
+  const candidate = error as { name?: string; code?: number; message?: string };
+  if (
+    candidate?.name === 'UserRejectedRequestError' ||
+    candidate?.name === 'AbortError' ||
+    candidate?.code === 4001 ||
+    /rejected|declined|cancelled|canceled/i.test(candidate?.message ?? '')
+  ) {
+    return 'cancelled';
+  }
+  return 'unavailable';
+}
 
 /// Sign-In With Ethereum bridge.
 ///
@@ -24,61 +47,72 @@ import { emitAuthChanged } from './useAuth';
 /// The signing prompt body is written for a real person reading the wallet
 /// popup. No transaction. No gas. The text says so plainly.
 export function useSiwe(): {
-  state: 'idle' | 'awaiting-signature' | 'verifying' | 'error';
-  error: string | null;
+  state: SiwePhase;
+  error: SiweError;
   promptSign: () => Promise<void>;
 } {
   const { address, isConnected, status: accountStatus } = useAccount();
   const chainId = useChainId();
   const { signMessageAsync } = useSignMessage();
   const pathname = usePathname();
+  const status = useSiweStatus();
 
-  const stateRef = useRef<{
-    inFlight: boolean;
-    signedAddress: string | null;
-    state: 'idle' | 'awaiting-signature' | 'verifying' | 'error';
-    error: string | null;
-  }>({ inFlight: false, signedAddress: null, state: 'idle', error: null });
+  const runSiwe = useCallback(
+    async (target: string): Promise<void> => {
+      const normalized = target.toLowerCase();
+      if (inFlight?.address === normalized) return inFlight.promise;
+      if (inFlight) await inFlight.promise;
 
-  const runSiwe = async (target: string): Promise<void> => {
-    if (stateRef.current.inFlight) return;
-    if (stateRef.current.signedAddress === target.toLowerCase()) return;
-    stateRef.current.inFlight = true;
-    stateRef.current.state = 'awaiting-signature';
-    stateRef.current.error = null;
-    try {
-      // Confirm we don't already have a matching backend session. A user
-      // who logged in earlier this run shouldn't re-sign on every page nav.
-      const me = await api.authMe().catch(() => ({ user: null }));
-      if (me.user && me.user.address.toLowerCase() === target.toLowerCase()) {
-        stateRef.current.signedAddress = target.toLowerCase();
-        stateRef.current.state = 'idle';
-        return;
+      const task = (async () => {
+        publishSiweSnapshot({
+          phase: 'checking-session',
+          address: normalized,
+          error: null,
+        });
+        try {
+          // Confirm we don't already have a matching backend session. A user
+          // who logged in earlier this run shouldn't re-sign on every page nav.
+          const me = await api.authMe().catch(() => ({ user: null }));
+          if (me.user && me.user.address.toLowerCase() === normalized) {
+            publishSiweSnapshot({ phase: 'idle', address: normalized, error: null });
+            return;
+          }
+          // A Circle-session user who connects an external wallet is using it as
+          // a signer for an explicit action, not switching account identity.
+          if (me.user && me.user.method === 'circle') {
+            publishSiweSnapshot({ phase: 'idle', address: normalized, error: null });
+            return;
+          }
+
+          const { message } = await api.siweNonce(target, chainId);
+          publishSiweSnapshot({
+            phase: 'awaiting-signature',
+            address: normalized,
+            error: null,
+          });
+          const signature = await signMessageAsync({ message });
+          publishSiweSnapshot({ phase: 'verifying', address: normalized, error: null });
+          await api.siweVerify(target, signature);
+          publishSiweSnapshot({ phase: 'idle', address: normalized, error: null });
+          emitAuthChanged();
+        } catch (error) {
+          publishSiweSnapshot({
+            phase: 'error',
+            address: normalized,
+            error: classifySiweError(error),
+          });
+        }
+      })();
+
+      inFlight = { address: normalized, promise: task };
+      try {
+        await task;
+      } finally {
+        if (inFlight?.promise === task) inFlight = null;
       }
-      // A Circle-session user who connects an external wallet is using it as a
-      // signer (e.g. to fund a top-up from their own wallet), not switching
-      // accounts. Auto-SIWE would silently replace their Circle session with a
-      // web3 one and lose their identity context, so leave the session intact.
-      // A wallet user switching accounts still re-signs (method is 'web3').
-      if (me.user && me.user.method === 'circle') {
-        stateRef.current.state = 'idle';
-        return;
-      }
-
-      const { message } = await api.siweNonce(target, chainId);
-      const signature = await signMessageAsync({ message });
-      stateRef.current.state = 'verifying';
-      await api.siweVerify(target, signature);
-      stateRef.current.signedAddress = target.toLowerCase();
-      stateRef.current.state = 'idle';
-      emitAuthChanged();
-    } catch (err) {
-      stateRef.current.state = 'error';
-      stateRef.current.error = (err as Error).message ?? 'sign-in failed';
-    } finally {
-      stateRef.current.inFlight = false;
-    }
-  };
+    },
+    [chainId, signMessageAsync],
+  );
 
   useEffect(() => {
     // Landing routes are decoupled from account state: a wallet connecting or
@@ -88,23 +122,22 @@ export function useSiwe(): {
     if (isLandingRoute(pathname)) return;
     if (accountStatus !== 'connected') return;
     if (!isConnected || !address) return;
+    const current = getSiweSnapshot();
+    if (current.phase === 'error' && current.address === address.toLowerCase()) return;
     void runSiwe(address);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address, accountStatus, pathname]);
+  }, [isConnected, address, accountStatus, pathname, runSiwe]);
 
   // Reset the signed-address pin when the wallet disconnects so a future
   // reconnect re-runs the handshake.
   useEffect(() => {
     if (!isConnected) {
-      stateRef.current.signedAddress = null;
-      stateRef.current.state = 'idle';
-      stateRef.current.error = null;
+      resetSiweSnapshot();
     }
   }, [isConnected]);
 
   return {
-    state: stateRef.current.state,
-    error: stateRef.current.error,
+    state: status.phase,
+    error: status.error,
     promptSign: async () => {
       if (address) await runSiwe(address);
     },

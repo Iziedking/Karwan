@@ -17,7 +17,7 @@ import { stripMarkdown } from '@/shared/utils/format';
 import { ARC_EXPLORER_TX, ARC_CHAIN_ID, ARC_NATIVE_DECIMALS } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { isLandingRoute } from '@/shared/utils/routes';
+import { isPublicEditorialRoute } from '@/shared/utils/routes';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -272,7 +272,7 @@ export function AssistantWidget() {
   // isLoading avoids flashing the launcher during the web3 reconnect window
   // and then pulling it away. Hooks above all run either way so the poll state
   // stays intact once the user does sign in.
-  if (isLandingRoute(pathname)) return null;
+  if (isPublicEditorialRoute(pathname)) return null;
   if (auth.isLoading || !auth.isAuthenticated) return null;
 
   return (
@@ -285,7 +285,7 @@ export function AssistantWidget() {
             setOpen(true);
           }}
           aria-label={t.launcherAria}
-          className="fixed z-[60] end-4 sm:end-5 bottom-16 sm:bottom-20 inline-flex items-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 transition"
+          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 transition md:end-5 md:bottom-5"
           style={{
             borderTopLeftRadius: 12,
             borderTopRightRadius: 12,
@@ -858,7 +858,7 @@ async function runConfirmIntent(
     const p = action.payload as { jobId: string; caller: string };
     await api.acceptDirectDeal(p.jobId, p.caller);
     return {
-      successText: 'Deal accepted. The escrow is funded and the clock is running.',
+      successText: 'Terms agreed. The buyer will review the exact total and fund escrow next.',
       viewHref: `/deals/${p.jobId}`,
       viewLabel: 'Open the deal',
     };
@@ -1111,7 +1111,7 @@ function ConfirmCard({
               : action.intent === 'decline_match'
                 ? 'Declining…'
                 : action.intent === 'accept_deal'
-                  ? 'Accepting…'
+                  ? 'Recording agreement…'
                   : action.intent === 'mark_delivered'
                     ? 'Marking…'
                     : action.intent === 'cancel_request' || action.intent === 'cancel_listing'

@@ -1235,14 +1235,13 @@ function SegmentedProgress({
               }}
             />
             {active && (
-              <span
-                aria-hidden
-                className="absolute inset-y-0 start-0 w-1/2"
-                style={{
-                  background: `linear-gradient(90deg, transparent 0%, ${fillColor} 50%, transparent 100%)`,
-                  animation: 'bridgeShimmer 1.6s ease-in-out infinite',
-                }}
-              />
+               <span
+                 aria-hidden
+                 className="bridge-shimmer absolute inset-y-0 start-0 w-1/2"
+                 style={{
+                   background: `linear-gradient(90deg, transparent 0%, ${fillColor} 50%, transparent 100%)`,
+                 }}
+               />
             )}
           </div>
         );

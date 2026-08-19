@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
-    "check:i18n": "tsx scripts/check-i18n.ts"
+    "check:i18n": "tsx scripts/check-i18n.ts",
+    "check:shell": "tsx scripts/check-shell.ts",
+    "test:onboarding": "tsx --test features/onboarding/journey.test.ts",
+    "test:auth": "tsx --test shared/auth/authPresentation.test.ts shared/auth/sessionStore.test.ts",
+    "test:discovery": "tsx --test features/discovery/model.test.ts",
+    "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts"
   },
   "dependencies": {
     "@circle-fin/adapter-solana-kit": "^1.4.10",

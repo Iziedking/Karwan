@@ -37,6 +37,7 @@ function writeSnapshot(cursor: string) {
   row.events = 259;
   lifetime.fold(row, 'EscrowFunded', { dealAmount: 1_000_000n });
   const acc = {
+    ledgerFingerprint: lifetime.LEDGER_FINGERPRINT,
     cursor,
     perContract: { [ESCROW.address]: row },
     transactions: 161,
@@ -113,6 +114,24 @@ test('a corrupt snapshot is refused rather than half adopted', async () => {
 
   assert.equal(await lifetime.__resumePointForTest(), null);
   assert.equal(await lifetime.getLifetimeStats(), null);
+});
+
+test('a snapshot from a different contract ledger is refused, not resumed', async () => {
+  // The failure this guards against is silent and permanent. Once a seed
+  // finishes, the cursor sits at head. Add a contract to the ledger after that
+  // and a resume starts at head+1, so the new contract's entire history is
+  // skipped and it reports zero for good. Every number on the page still looks
+  // reasonable; a whole rail is just missing from it.
+  //
+  // Refusing means a 503 and a re-seed, which somebody notices.
+  writeSnapshot('54000000');
+  const stored = JSON.parse(readFileSync(STORE, 'utf8')) as { acc: { ledgerFingerprint: string } };
+  stored.acc.ledgerFingerprint = 'built-from-an-older-ledger';
+  writeFileSync(STORE, JSON.stringify(stored), 'utf8');
+  lifetime.__resetLifetimeStatsForTest({ allowHydrate: true });
+
+  assert.equal(await lifetime.getLifetimeStats(), null);
+  assert.equal(await lifetime.__resumePointForTest(), null);
 });
 
 test('the snapshot on disk keeps the cursor as a plain string', async () => {

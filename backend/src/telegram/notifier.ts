@@ -78,6 +78,7 @@ const RELEVANT = new Set([
   'deal.direct.created',
   'deal.direct.edited',
   'deal.invite.claimed',
+  'deal.seller-approved',
   'deal.accepted',
   'deal.delivered',
   'deal.review.started',
@@ -185,6 +186,10 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     if (!e.jobId) return [];
     const deal = await getDeal(e.jobId);
     return deal ? [{ address: deal.seller, role: 'self' }] : [];
+  }
+  if (e.type === 'deal.seller-approved') {
+    const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
   // Match-proposal events fire before any deal row exists, so resolve recipients
   // straight from the payload (the agent already resolved both user addresses).
@@ -350,8 +355,8 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
     case 'deal.direct.created':
       return withLink(
         role === 'seller'
-          ? `*A buyer opened a deal with you*${amount ? ` at ${amount} USDC` : ''}. Tap to accept; your agent funds escrow on accept.`
-          : `*Deal opened* with ${short(e.payload?.seller)}${amount ? ` at ${amount} USDC` : ''}. Waiting for them to accept.`,
+          ? `*A buyer opened a deal with you*${amount ? ` at ${amount} USDC` : ''}. Review and agree to the terms. The buyer funds afterward.`
+          : `*Deal opened* with ${short(e.payload?.seller)}${amount ? ` at ${amount} USDC` : ''}. Waiting for them to agree.`,
         url,
       );
     case 'deal.invite.claimed':
@@ -361,8 +366,8 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
       /// the same "you have a deal" call to action.
       return withLink(
         role === 'seller'
-          ? `*Deal bound to your wallet*${amount ? ` at ${amount} USDC` : ''}. Tap to accept; your agent funds escrow on accept.`
-          : `*Your invited counterparty just joined*${amount ? ` (${amount} USDC deal)` : ''}. Waiting for them to accept.`,
+          ? `*Deal bound to your wallet*${amount ? ` at ${amount} USDC` : ''}. Review and agree to the terms. The buyer funds escrow afterward.`
+          : `*Your invited counterparty just joined*${amount ? ` (${amount} USDC deal)` : ''}. Waiting for them to agree to the terms.`,
         url,
       );
     case 'deal.direct.edited': {
@@ -382,8 +387,13 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         url,
       );
     }
+    case 'deal.seller-approved':
+      return withLink(
+        '*Seller agreed to the terms.* Review the current fee and exact total, then fund escrow when ready.',
+        url,
+      );
     case 'deal.accepted':
-      return withLink('*Deal accepted*. The escrow is funded and the seller can start.', url);
+      return withLink('*Escrow funded.* The seller can start the work.', url);
     case 'deal.delivered':
       return withLink(
         role === 'buyer'

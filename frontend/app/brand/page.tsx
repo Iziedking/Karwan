@@ -2,15 +2,17 @@
 import { useState, type ReactNode } from 'react';
 import {
   FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-  CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
+import {
+  BracketTag,
+  DisplayHeadline,
+  LimePunc,
+  PrimaryCTA,
+  SecondaryCTA,
+  Section,
+  SectionGrid,
+} from '@/shared/components/skill';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Public brand page. Press, partners, and anyone embedding Karwan in their
@@ -22,25 +24,27 @@ export default function BrandPage() {
   return (
     <FullBleed>
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Section tone="dark">
+        <SectionGrid />
         <div className="fade-up">
-          <SectionTag tone="dark">{t.hero.tag}</SectionTag>
+          <BracketTag>{t.hero.tag}</BracketTag>
         </div>
-        <HeroHeadline className="fade-up fade-up-1 mt-6">
-          {t.hero.headlineLead} <Accent>{t.hero.headlineAccent}</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
+        <DisplayHeadline size="lg" className="fade-up fade-up-1 mt-6">
+          {t.hero.headlineLead}{' '}
+          <span className="text-[var(--accent)]">{t.hero.headlineAccent}</span>
+          <LimePunc />
+        </DisplayHeadline>
         <p className="fade-up fade-up-2 mt-7 max-w-[52ch] text-[15px] leading-relaxed text-white/65">
           {t.hero.body}
         </p>
-      </Band>
+      </Section>
 
       {/* LOGO DOWNLOADS */}
-      <Band tone="light" compact>
-        <SectionTag>{t.logo.tag}</SectionTag>
-        <HeroHeadline size="md" className="mt-4">
-          {t.logo.headline}<Punc>.</Punc>
-        </HeroHeadline>
+      <Section tone="light" compact>
+        <BracketTag onDark={false}>{t.logo.tag}</BracketTag>
+        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
+          {t.logo.headline}.
+        </DisplayHeadline>
         <p className="mt-6 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
           {t.logo.body}
         </p>
@@ -104,14 +108,14 @@ export default function BrandPage() {
             }
           />
         </div>
-      </Band>
+      </Section>
 
       {/* COLOR PALETTE */}
-      <Band tone="light" compact>
-        <SectionTag>{t.palette.tag}</SectionTag>
-        <HeroHeadline size="md" className="mt-4">
-          {t.palette.headline}<Punc>.</Punc>
-        </HeroHeadline>
+      <Section tone="light" compact>
+        <BracketTag onDark={false}>{t.palette.tag}</BracketTag>
+        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
+          {t.palette.headline}.
+        </DisplayHeadline>
         <p className="mt-6 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
           {t.palette.body}
         </p>
@@ -121,14 +125,14 @@ export default function BrandPage() {
           <ColorChip name={t.palette.brandInk} hex="#0E0E0E" labelTone="light" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
           <ColorChip name={t.palette.creamSurface} hex="#FAF8F2" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
         </div>
-      </Band>
+      </Section>
 
       {/* VOICE RULES */}
-      <Band tone="light" compact>
-        <SectionTag>{t.voice.tag}</SectionTag>
-        <HeroHeadline size="md" className="mt-4">
-          {t.voice.headline}<Punc>.</Punc>
-        </HeroHeadline>
+      <Section tone="light" compact>
+        <BracketTag onDark={false}>{t.voice.tag}</BracketTag>
+        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
+          {t.voice.headline}.
+        </DisplayHeadline>
         <p className="mt-6 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
           {t.voice.body}
         </p>
@@ -155,24 +159,24 @@ export default function BrandPage() {
             </div>
           </PageCard>
         </div>
-      </Band>
+      </Section>
 
       {/* PARTNER CO-MARK */}
-      <Band tone="light" compact>
-        <SectionTag>{t.partner.tag}</SectionTag>
-        <HeroHeadline size="md" className="mt-4">
-          {t.partner.headline}<Punc>.</Punc>
-        </HeroHeadline>
+      <Section tone="light" compact>
+        <BracketTag onDark={false}>{t.partner.tag}</BracketTag>
+        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
+          {t.partner.headline}.
+        </DisplayHeadline>
         <p className="mt-6 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
           {t.partner.body}
         </p>
 
         <div className="mt-10">
           <PageCard>
-            <div className="p-7 flex items-center justify-center gap-10">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 p-5 sm:gap-6 sm:p-7 md:gap-10">
               <span
-                className="font-sans font-extrabold tracking-[-0.025em]"
-                style={{ fontSize: 36, color: 'var(--lp-dark)' }}
+                className="min-w-0 truncate text-end font-sans font-extrabold tracking-[-0.025em]"
+                style={{ fontSize: 'clamp(18px, 5vw, 36px)', color: 'var(--lp-dark)' }}
               >
                 KARWAN<span style={{ color: 'var(--lp-accent)' }}>.</span>
               </span>
@@ -182,23 +186,25 @@ export default function BrandPage() {
                 style={{ background: 'var(--lp-border-light)' }}
               />
               <span
-                className="font-sans font-bold tracking-tight"
-                style={{ fontSize: 30, color: 'var(--lp-text-sub)' }}
+                className="min-w-0 truncate text-start font-sans font-bold tracking-tight"
+                style={{ fontSize: 'clamp(18px, 4.5vw, 30px)', color: 'var(--lp-text-sub)' }}
               >
                 {t.partner.partnerLabel}
               </span>
             </div>
           </PageCard>
         </div>
-      </Band>
+      </Section>
 
       {/* CONTACT */}
-      <Band tone="dark" overlay={<GridOverlay />} compact>
-        <SectionTag tone="dark">{t.contact.tag}</SectionTag>
-        <HeroHeadline size="md" className="mt-4">
-          {t.contact.headlineLead} <Accent>{t.contact.headlineAccent}</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
+      <Section tone="dark" compact>
+        <SectionGrid />
+        <BracketTag>{t.contact.tag}</BracketTag>
+        <DisplayHeadline as="h2" size="md" className="mt-4">
+          {t.contact.headlineLead}{' '}
+          <span className="text-[var(--accent)]">{t.contact.headlineAccent}</span>
+          .
+        </DisplayHeadline>
         <p className="mt-6 max-w-[52ch] text-[15px] leading-relaxed text-white/65">
           {t.contact.body}
         </p>
@@ -208,15 +214,15 @@ export default function BrandPage() {
               page), support@ for product-side questions. Both addresses
               are enrolled. The bd@ pill leads (primary lime) because it
               matches the page's "Press and partners" framing. */}
-          <CTAPill href="mailto:bd@karwan.site">bd@karwan.site</CTAPill>
-          <CTAPill href="mailto:support@karwan.site" variant="secondary" tone="dark">
+          <PrimaryCTA href="mailto:bd@karwan.site" icon="↗">bd@karwan.site</PrimaryCTA>
+          <SecondaryCTA href="mailto:support@karwan.site" onDark icon="↗">
             support@karwan.site
-          </CTAPill>
-          <CTAPill href="/" variant="secondary" tone="dark">
+          </SecondaryCTA>
+          <SecondaryCTA href="/" onDark>
             {t.contact.backHome}
-          </CTAPill>
+          </SecondaryCTA>
         </div>
-      </Band>
+      </Section>
     </FullBleed>
   );
 }
@@ -248,18 +254,18 @@ function LogoCard({
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{label.toUpperCase()}:]
           </p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="flex flex-wrap items-center gap-1">
             <a
               href={href}
               download
-              className="mono text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent)] transition-colors underline underline-offset-2"
+              className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               SVG
             </a>
             <a
               href={pngHref}
               download
-              className="mono text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent)] transition-colors underline underline-offset-2"
+              className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               PNG
             </a>
@@ -322,7 +328,7 @@ function ColorChip({
             {brandLabel}
           </span>
         </div>
-        <div className="px-5 py-4 flex items-baseline justify-between gap-3">
+        <div className="px-5 py-4 flex items-center justify-between gap-3">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
               [:{name.toUpperCase()}:]
@@ -334,7 +340,7 @@ function ColorChip({
           <button
             type="button"
             onClick={copy}
-            className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] underline underline-offset-2"
+            className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] underline underline-offset-2 transition-colors hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {copied ? copiedLabel : copyLabel}
           </button>
