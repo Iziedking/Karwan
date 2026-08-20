@@ -1025,6 +1025,10 @@ export interface LifetimeStats {
     jobsPosted: number;
   };
   volumes: LifetimeVolumes;
+  /// Every USDC that entered a Karwan contract since day one: escrow funding,
+  /// financier advances, and stake locked. Released, settled, refunded and
+  /// yield are excluded, because they are the same dollars leaving again.
+  totalMovedUsdc: string;
   /// One row per kind, in a fixed order, including kinds that moved nothing.
   byKind: LifetimeKindRollup[];
   contracts: LifetimeContract[];

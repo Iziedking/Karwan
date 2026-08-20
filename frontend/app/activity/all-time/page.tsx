@@ -330,9 +330,16 @@ function Totals({
 
   return (
     <div className="space-y-10">
-      {/* The headline pair. Volume is the one lime figure on the page. */}
+      {/* The headline pair. Volume is the one lime figure on the page.
+
+          It reads every USDC that ENTERED a Karwan contract: escrow funding,
+          financier advances, and stake locked. It used to be escrow funding
+          alone, which quietly told a reader that the financing and staking
+          rails below it were not money. The out-legs stay out, since counting
+          a dollar arriving and the same dollar leaving reports the trade
+          twice. */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Headline label={t.volumeLabel} value={usdc(volumes.fundedUsdc)} suffix="USDC" accent />
+        <Headline label={t.volumeLabel} value={usdc(stats.totalMovedUsdc)} suffix="USDC" accent />
         <Headline label={t.txnsLabel} value={count(totals.transactions)} />
       </div>
 

@@ -404,3 +404,35 @@ test('every money field is converted out of base units, none left behind', () =>
     assert.equal(value, '3', `${key} did not come out of base units`);
   }
 });
+
+test('total moved is every inflow, and counts no dollar twice', () => {
+  // A buyer funds escrow, a financier advances against it, a seller stakes
+  // behind it. Three different people putting money in, so three inflows.
+  const escrow = emptyContract(ESCROW);
+  fold(escrow, 'EscrowFunded', { dealAmount: 1_000n * ONE });
+  fold(escrow, 'ProgressReleased', { amount: 600n * ONE });
+  fold(escrow, 'EscrowSettled', { sellerTotal: 400n * ONE });
+  const po = emptyContract(PO_FINANCING);
+  fold(po, 'POFunded', { principalUsdc: 200n * ONE });
+  const vault = emptyContract(VAULT);
+  fold(vault, 'Deposited', { principal: 50n * ONE });
+
+  const stats = projectFromAcc(
+    {
+      cursor: '54000000',
+      perContract: {
+        [ESCROW.address]: escrow,
+        [PO_FINANCING.address]: po,
+        [VAULT.address]: vault,
+      },
+      transactions: 3,
+      scannedAt: 1,
+    },
+    54_000_000n,
+  );
+
+  // 1000 in + 200 advanced + 50 staked. The 600 released and 400 settled are
+  // the same dollars leaving, and adding them would report 2,250 for a
+  // platform that took 1,250.
+  assert.equal(stats.totalMovedUsdc, '1250');
+});

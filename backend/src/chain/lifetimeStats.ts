@@ -224,6 +224,18 @@ export interface LifetimeStats {
     jobsPosted: number;
   };
   volumes: LifetimeVolumes;
+  /// Every USDC that entered a Karwan contract, since day one.
+  ///
+  /// Derived rather than a bucket of its own, so it cannot drift from the parts
+  /// it is made of. Three inflows, because they are three different people
+  /// putting money in: a buyer funding escrow, a financier advancing against a
+  /// deal, and a seller locking stake behind one.
+  ///
+  /// Released, settled and refunded are deliberately NOT added. They are the
+  /// same dollars leaving escrow that were already counted arriving, and adding
+  /// both ends would report every trade at roughly twice its size. Yield is out
+  /// for the same reason: it is paid from a balance already counted going in.
+  totalMovedUsdc: string;
   /// One row per kind, in a fixed order, including kinds that moved nothing.
   byKind: KindRollup[];
   contracts: ContractLifetime[];
@@ -757,6 +769,16 @@ export function projectFromAcc(acc: Acc, head: bigint): LifetimeStats {
       jobsPosted: contracts.reduce((t, c) => t + c.jobsPosted, 0),
     },
     volumes: volumesOf(rows),
+    // Summed in base units off the accumulator rows, not by re-parsing the
+    // formatted strings beside it, so the headline is exact rather than the
+    // sum of three roundings.
+    totalMovedUsdc: formatUnits(
+      rows.reduce(
+        (t, c) => t + BigInt(c.fundedUsdc) + BigInt(c.advancedUsdc) + BigInt(c.stakedUsdc),
+        0n,
+      ),
+      USDC_DECIMALS,
+    ),
     byKind,
     contracts,
     scannedAt: acc.scannedAt,
@@ -901,8 +923,44 @@ interface Persisted {
   snapshot: { value: LifetimeStats; builtAt: number };
 }
 
+/// Never move the stored cursor backwards.
+///
+/// Two processes sweep the same snapshot. The ops script is one; the API is the
+/// other, because `getLifetimeStats` kicks off a background refresh once its
+/// copy is older than the serve-TTL. Both call this.
+///
+/// That is fine while they stay roughly in step and fatal when they do not. On
+/// the first full re-seed the API adopted an early checkpoint, started its own
+/// sweep from there, and was still down at block 42.2M when the ops script
+/// finished the whole range. The API's next checkpoint then overwrote a
+/// complete snapshot with its own stale partial, and the page went from correct
+/// totals back to four contracts and 129 transactions with nothing logged.
+///
+/// A write that would rewind the cursor is refused. The scan that is further
+/// ahead wins regardless of which process it belongs to, and the loser simply
+/// finds the newer state on its next hydrate.
+function storedCursor(): bigint | null {
+  try {
+    if (!existsSync(STATE_PATH)) return null;
+    const raw = JSON.parse(readFileSync(STATE_PATH, 'utf8')) as Persisted;
+    if (raw?.acc?.ledgerFingerprint !== LEDGER_FINGERPRINT) return null;
+    return BigInt(raw.acc.cursor);
+  } catch {
+    return null;
+  }
+}
+
 function persist(p: Persisted): void {
   try {
+    const onDisk = storedCursor();
+    if (onDisk !== null && onDisk > BigInt(p.acc.cursor)) {
+      logger.warn(
+        { ours: p.acc.cursor, stored: onDisk.toString() },
+        'lifetime stats: refusing to persist, the stored snapshot is further ahead. ' +
+          'Another process is sweeping the same range.',
+      );
+      return;
+    }
     mkdirSync(dirname(STATE_PATH), { recursive: true });
     writeFileSync(STATE_PATH, JSON.stringify(p), 'utf8');
   } catch (err) {
