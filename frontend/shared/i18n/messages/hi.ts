@@ -519,7 +519,7 @@ export const hi: Messages = {
       receiptStatus: 'स्थिति',
       receiptDate: 'तारीख',
       receiptProof: 'नेटवर्क प्रमाण',
-      receiptHistorical: 'पुराना ट्रांसफ़र। इस मूवमेंट के लिए Karwan संदर्भ दर्ज नहीं था।',
+      receiptHistorical: 'Karwan संदर्भ शुरू होने से पहले पूरा हुआ। इस मूवमेंट के लिए कोई संदर्भ दर्ज नहीं था।',
       receiptExportPdf: 'प्रिंट / PDF में सेव करें',
       receiptExportImage: 'इमेज डाउनलोड करें',
       receiptSharedNote: 'वॉलेट पते दिखाए बिना मूवमेंट विवरण साझा करने के लिए यह रसीद भेजें।',

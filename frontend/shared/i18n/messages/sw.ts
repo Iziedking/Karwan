@@ -555,7 +555,7 @@ export const sw: Messages = {
       receiptStatus: 'HALI',
       receiptDate: 'TAREHE',
       receiptProof: 'UTHIBITISHO WA MTANDAO',
-      receiptHistorical: 'Uhamisho wa zamani. Rejea ya Karwan haikuhifadhiwa kwa uhamisho huu.',
+      receiptHistorical: 'Ulikamilika kabla ya marejeo ya Karwan kuwezeshwa. Hakuna rejea iliyohifadhiwa kwa uhamisho huu.',
       receiptExportPdf: 'CHAPISHA / HIFADHI PDF',
       receiptExportImage: 'PAKUA PICHA',
       receiptSharedNote: 'Shiriki risiti hii kuonyesha maelezo ya uhamisho bila kufichua anwani za pochi.',

@@ -113,25 +113,60 @@ export default function HomePage() {
             transition={{ duration: dur.slow, ease: ease.out }}
           >
             <SectionTag tone="dark">{lp.hero.tag}</SectionTag>
-            <h1 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]">
-              {lp.hero.titleLine1}<br />{lp.hero.titleLine2}{' '}
-              <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
-            </h1>
-            <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md">
+            <motion.h1
+              className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: reduce ? 0 : 0.1, delayChildren: reduce ? 0 : 0.08 } },
+              }}
+            >
+              <motion.span
+                className="block"
+                variants={{ hidden: { opacity: 0, y: reduce ? 0 : 30 }, visible: { opacity: 1, y: 0 } }}
+                transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
+              >
+                {lp.hero.titleLine1}
+              </motion.span>
+              <motion.span
+                className="block"
+                variants={{ hidden: { opacity: 0, y: reduce ? 0 : 30 }, visible: { opacity: 1, y: 0 } }}
+                transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
+              >
+                {lp.hero.titleLine2}{' '}
+                <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
+              </motion.span>
+            </motion.h1>
+            <motion.p
+              className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md"
+              initial={{ opacity: 0, y: reduce ? 0 : 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduce ? 0.18 : dur.slow, ease: ease.out, delay: reduce ? 0 : 0.28 }}
+            >
               {lp.hero.body}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
+            </motion.p>
+            <motion.div
+              className="flex flex-wrap items-center gap-3"
+              initial={{ opacity: 0, y: reduce ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reduce ? 0.18 : dur.slow, ease: ease.out, delay: reduce ? 0 : 0.38 }}
+            >
               <CTAPill href="/app">{lp.hero.ctaPrimary}</CTAPill>
               <CTAPill href="/how-it-works" variant="secondary" tone="dark">
                 {lp.hero.ctaSecondary}
               </CTAPill>
-            </div>
+            </motion.div>
           </motion.div>
           <motion.div
             className="lg:justify-self-end w-full max-w-md lg:max-w-none"
-            style={{ y: heroVisualY, opacity: heroVisualOpacity }}
+            initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduce ? 0.2 : dur.hero, ease: ease.out, delay: reduce ? 0 : 0.18 }}
           >
-            <HeroFlow />
+            <motion.div style={{ y: heroVisualY, opacity: heroVisualOpacity }}>
+              <HeroFlow />
+            </motion.div>
           </motion.div>
         </div>
         {/* Sits in the whitespace under the hero: the two-column lg layout leaves

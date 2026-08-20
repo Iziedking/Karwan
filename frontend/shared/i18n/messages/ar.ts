@@ -519,7 +519,7 @@ export const ar: Messages = {
       receiptStatus: 'الحالة',
       receiptDate: 'التاريخ',
       receiptProof: 'إثبات الشبكة',
-      receiptHistorical: 'تحويل سابق. لم يُسجَّل مرجع Karwan لهذه الحركة.',
+      receiptHistorical: 'اكتملت هذه الحركة قبل تفعيل مراجع Karwan. لم يُسجَّل مرجع لها.',
       receiptExportPdf: 'طباعة / حفظ PDF',
       receiptExportImage: 'تنزيل الصورة',
       receiptSharedNote: 'شارك هذا الإيصال لعرض تفاصيل الحركة دون كشف عناوين المحافظ.',

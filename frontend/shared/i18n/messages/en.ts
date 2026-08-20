@@ -5129,7 +5129,7 @@ export const en: MessagesShape = {
       receiptStatus: 'STATUS',
       receiptDate: 'DATE',
       receiptProof: 'NETWORK PROOF',
-      receiptHistorical: 'Historical transfer. A Karwan reference was not recorded for this movement.',
+      receiptHistorical: 'Completed before Karwan references were enabled. No reference was recorded for this movement.',
       receiptExportPdf: 'PRINT / SAVE PDF',
       receiptExportImage: 'DOWNLOAD IMAGE',
       receiptSharedNote: 'Share this receipt to show the movement details without exposing wallet addresses.',

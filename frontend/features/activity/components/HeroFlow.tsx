@@ -22,8 +22,8 @@ const PATH = [
   { x: 300, y: 100, label: 'SELLER' }, // 2 → Seller agent
 ] as const;
 
-const STAGE_DURATION = 1.6; // seconds the coin holds at each station
-const TRAVEL_DURATION = 0.9; // seconds in transit between stations
+const STAGE_DURATION = 1.25; // seconds the coin holds at each station
+const TRAVEL_DURATION = 1.05; // seconds in transit between stations
 
 export function HeroFlow() {
   const t = useTranslations().heroFlow;
@@ -64,6 +64,22 @@ export function HeroFlow() {
         {/* Top horizontal line between Buyer and Seller. */}
         <line x1="60" y1="100" x2="300" y2="100" stroke={STROKE} strokeWidth="1" />
         <line x1="60" y1="100" x2="300" y2="100" stroke="url(#lineGrad)" strokeWidth="2" />
+        {/* A low-contrast signal sweeps the route continuously. It gives the
+            diagram a readable sense of live settlement without adding noise
+            or changing the underlying state model. */}
+        <motion.line
+          x1="60"
+          y1="100"
+          x2="300"
+          y2="100"
+          stroke={ACCENT}
+          strokeWidth="3"
+          strokeLinecap="round"
+          pathLength="1"
+          initial={{ pathLength: reduce ? 1 : 0, opacity: reduce ? 0.35 : 0 }}
+          animate={reduce ? { pathLength: 1, opacity: 0.35 } : { pathLength: [0, 0.8, 0], opacity: [0, 0.8, 0] }}
+          transition={reduce ? { duration: 0 } : { duration: 2.8, ease: 'easeInOut', repeat: Infinity, repeatDelay: 0.25 }}
+        />
 
         {/* Drop line connecting the top track to the Escrow pill. */}
         <line x1="180" y1="100" x2="180" y2="165" stroke={STROKE} strokeWidth="1" />
@@ -170,6 +186,14 @@ export function HeroFlow() {
         <span>{t.caption.buyerAgent}</span>
         <span style={{ color: ACCENT }}>{t.caption.routesThroughEscrow}</span>
         <span>{t.caption.sellerAgent}</span>
+      </div>
+      <div className="mt-3 h-px overflow-hidden rounded-full bg-white/10" aria-hidden>
+        <motion.span
+          className="block h-full w-1/4 rounded-full bg-[var(--lp-accent)]"
+          initial={{ x: '-120%' }}
+          animate={reduce ? { x: '0%' } : { x: ['-120%', '420%'] }}
+          transition={reduce ? { duration: 0 } : { duration: 2.4, ease: 'linear', repeat: Infinity, repeatDelay: 0.3 }}
+        />
       </div>
     </div>
   );
