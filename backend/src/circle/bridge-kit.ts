@@ -369,6 +369,11 @@ export interface AppKitBridgeOutInput {
   amountUsdc: string;
   /// Address on the destination chain that receives the minted USDC.
   recipient: string;
+  /// Optional durable movement callbacks. The bridge row remains the legacy
+  /// progress projection; these callbacks make the Karwan receipt authoritative.
+  onBurn?: (txHash: string) => Promise<unknown>;
+  onMint?: (txHash?: string) => Promise<unknown>;
+  onError?: (failureCode: string) => Promise<unknown>;
 }
 
 /// Withdraw from Arc to any supported chain, for a Circle (email/passkey) user.
@@ -407,6 +412,9 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
       'appkit bridge-out.burn',
     );
     if (values?.state === 'success' && values.txHash) {
+      void Promise.resolve(input.onBurn?.(values.txHash)).catch((err) =>
+        logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out burn movement update failed'),
+      );
       void patchBridge(input.bridgeId, {
         status: 'relaying',
         sourceTxHash: values.txHash,
@@ -438,6 +446,9 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
     // The forwarder reports the mint as 'forwarded' (it submitted the tx), so
     // treat that as terminal too, exactly as the in-direction client path does.
     if (values?.state === 'success' || values?.state === 'forwarded') {
+      void Promise.resolve(input.onMint?.(values.txHash)).catch((err) =>
+        logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out mint movement update failed'),
+      );
       void patchBridge(input.bridgeId, {
         status: 'minted',
         mintTxHash: values.txHash,
@@ -495,6 +506,9 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
         'appkit bridge-out errored',
       );
       await patchBridge(input.bridgeId, { status: 'error', error: message });
+      void Promise.resolve(input.onError?.('APP_KIT_BRIDGE_FAILED')).catch((err) =>
+        logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out failure movement update failed'),
+      );
       bus.emitEvent({
         type: 'bridge.error',
         actor: 'buyer',
@@ -505,6 +519,18 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
         },
       });
     } else {
+      const burnHash = result.steps?.find?.((step) => step.name === 'burn')?.txHash;
+      const mintHash = result.steps?.find?.((step) => step.name === 'mint')?.txHash;
+      if (burnHash) {
+        void Promise.resolve(input.onBurn?.(burnHash)).catch((err) =>
+          logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out burn result update failed'),
+        );
+      }
+      if (mintHash) {
+        void Promise.resolve(input.onMint?.(mintHash)).catch((err) =>
+          logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out mint result update failed'),
+        );
+      }
       logger.info(
         { bridgeId: input.bridgeId, destChainKey: input.destChainKey },
         'appkit bridge-out succeeded',
@@ -514,6 +540,9 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
     const message = (err as Error).message;
     logger.error({ bridgeId: input.bridgeId, err: message }, 'appkit bridge-out threw');
     await patchBridge(input.bridgeId, { status: 'error', error: message });
+    void Promise.resolve(input.onError?.('APP_KIT_BRIDGE_ERROR')).catch((err) =>
+      logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'cash-out error movement update failed'),
+    );
     bus.emitEvent({
       type: 'bridge.error',
       actor: 'buyer',

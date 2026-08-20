@@ -16,6 +16,9 @@ export type BridgeStatus = 'approving' | 'burning' | 'relaying' | 'minted' | 'er
 
 export interface BridgeRelay {
   bridgeId: string;
+  /// Durable Karwan money movement that owns this bridge. Optional for rows
+  /// created before the movement spine; new cash-outs set it before submit.
+  movementReference?: string;
   sourceDomain: number;
   /// Empty until the burn lands. The web3 path supplies it up front; the
   /// Circle path fills it once the backend-signed depositForBurn confirms.

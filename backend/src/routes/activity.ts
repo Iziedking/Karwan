@@ -334,7 +334,7 @@ activityRoutes.get('/me', async (c) => {
         // The burn is the receipt the user can verify first; the mint hash
         // lands later and is the better one once it exists.
         txHash: b.mintTxHash || b.sourceTxHash || null,
-        refId: null,
+        refId: b.movementReference ?? null,
         chain,
         jobId: null,
         status:
@@ -354,7 +354,13 @@ activityRoutes.get('/me', async (c) => {
     movements,
     limit + bridgeItems.length,
   );
-  const items = [...mergedLedger, ...bridgeItems]
+  const durableReferences = new Set(
+    movements.map((movement) => movement.reference.toUpperCase()),
+  );
+  const nonDuplicatedBridgeItems = bridgeItems.filter(
+    (item) => !item.refId || !durableReferences.has(item.refId.toUpperCase()),
+  );
+  const items = [...mergedLedger, ...nonDuplicatedBridgeItems]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, limit);
 

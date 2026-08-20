@@ -14,10 +14,17 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { createBridge } from '../db/bridges.js';
 import { ARC_DOMAIN } from '../chain/cctpChains.js';
 import { readUsdcBalance, usdc as ARC_USDC } from '../chain/contracts.js';
-import { executeContractCall, deterministicIdempotencyKey } from '../chain/txs.js';
+import { executeContractCall } from '../chain/txs.js';
+import {
+  completeMoneyMovement,
+  prepareMoneyMovementContractLeg,
+  verifyMoneyMovementLeg,
+} from '../money/service.js';
+import { ensureCashoutMovement } from '../money/cashout.js';
 import { readSession } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 
 const USDC_DECIMALS = 6;
 const addrSchema = z
@@ -207,6 +214,43 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
       );
     }
 
+    // Allocate the Karwan receipt before Circle sees a transfer. The request
+    // id is the client submission identity; callers that omit it still get a
+    // one-shot operation key, while normal retries reuse the same reference.
+    const requestKey = body.requestId ?? randomUUID();
+    const { movement } = await ensureCashoutMovement({
+      operationKey: `cashout:arc-withdraw:${session.address.toLowerCase()}:${requestKey}`,
+      amountUsdc: body.amountUsdc.toString(),
+      initiatedBy: session.address,
+      recipient: body.recipient,
+      summary: `Cashed out ${body.amountUsdc} USDC to ${body.recipient.toLowerCase()}`,
+      jobId: body.jobId,
+    });
+    const existingLeg = movement.legs.find(
+      (leg) => leg.attempt === movement.attempt && leg.key === 'arc_transfer',
+    );
+    if (movement.state === 'completed' && existingLeg?.txHash) {
+      return c.json({
+        ok: true,
+        txHash: existingLeg.txHash,
+        explorerUrl: existingLeg.explorerUrl ?? `${config.ARC_TESTNET_EXPLORER_URL}/tx/${existingLeg.txHash}`,
+        reference: movement.reference,
+        movementState: movement.state,
+      });
+    }
+
+    const prepared = await prepareMoneyMovementContractLeg(movement.reference, {
+      key: 'arc_transfer',
+      label: 'Arc USDC cash-out',
+      rail: 'circle_wallets',
+      walletId: source.walletId,
+      signerAddress: source.address,
+      sourceAddress: source.address,
+      destinationAddress: body.recipient,
+      contractAddress: ARC_USDC,
+      amountMicros: amountWei,
+    });
+
     try {
       const { txHash, explorerUrl } = await executeContractCall(
         {
@@ -216,12 +260,13 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
           abiParameters: [body.recipient, amountWei.toString()],
           // Same submission retried (network blip, double-submit that slipped
           // past the client) dedupes at Circle instead of paying twice.
-          ...(body.requestId
-            ? { idempotencyKey: deterministicIdempotencyKey(`cashout-arc:${body.requestId}`) }
-            : {}),
+          idempotencyKey: prepared.idempotencyKey,
+          lifecycle: prepared.lifecycle,
         },
         `cashout-arc-${body.jobId.slice(0, 10)}`,
       );
+      await verifyMoneyMovementLeg(movement.reference, prepared.leg.id);
+      const completed = await completeMoneyMovement(movement.reference);
       bus.emitEvent({
         type: 'cashout.arc.completed',
         jobId: body.jobId,
@@ -237,6 +282,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
       // itself in the bridge store, which /activity/me merges in, but this deal
       // cash-out wrote to neither store and so never reached their history.
       void appendActivity({
+        id: `${completed.reference}:activity`,
         address: session.address,
         kind: 'withdraw',
         summary: `Cashed out ${body.amountUsdc} USDC to ${body.recipient.toLowerCase()}`,
@@ -247,6 +293,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
         },
         amountUsdc: body.amountUsdc.toString(),
         txHash,
+        refId: completed.reference,
         jobId: body.jobId,
         counterparty: body.recipient.toLowerCase(),
       });
@@ -260,14 +307,28 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
         },
         'cashout Arc transfer ok',
       );
-      return c.json({ ok: true, txHash, explorerUrl });
+      return c.json({
+        ok: true,
+        txHash,
+        explorerUrl,
+        reference: completed.reference,
+        movementState: completed.state,
+      });
     } catch (err) {
       const message = (err as Error).message;
       logger.warn(
         { jobId: body.jobId, walletKind: body.walletKind, err: message },
         'cashout Arc transfer failed',
       );
-      return c.json({ error: 'withdraw failed', detail: message }, 502);
+      return c.json(
+        {
+          error: 'withdraw failed',
+          detail: message,
+          reference: movement.reference,
+          movementState: 'needs_attention',
+        },
+        502,
+      );
     }
   } finally {
     cashoutInFlight.delete(source.walletId);
@@ -331,6 +392,39 @@ cashoutRoutes.post('/arc-send', async (c) => {
     );
   }
 
+  const bridgeId = body.bridgeId ?? `arc-send-${session.address}-${randomUUID()}`;
+  const { movement } = await ensureCashoutMovement({
+    operationKey: `cashout:arc-send:${session.address.toLowerCase()}:${bridgeId}`,
+    amountUsdc: body.amountUsdc.toString(),
+    initiatedBy: session.address,
+    recipient: body.recipient,
+    summary: `Sent ${body.amountUsdc} USDC to ${body.recipient.toLowerCase()}`,
+  });
+  const existingLeg = movement.legs.find(
+    (leg) => leg.attempt === movement.attempt && leg.key === 'arc_transfer',
+  );
+  if (movement.state === 'completed' && existingLeg?.txHash) {
+    return c.json({
+      ok: true,
+      txHash: existingLeg.txHash,
+      explorerUrl: existingLeg.explorerUrl ?? `${config.ARC_TESTNET_EXPLORER_URL}/tx/${existingLeg.txHash}`,
+      reference: movement.reference,
+      movementState: movement.state,
+    });
+  }
+
+  const prepared = await prepareMoneyMovementContractLeg(movement.reference, {
+    key: 'arc_transfer',
+    label: 'Arc USDC cash-out',
+    rail: 'circle_wallets',
+    walletId: user.circleIdentityWalletId,
+    signerAddress: user.address,
+    sourceAddress: user.address,
+    destinationAddress: body.recipient,
+    contractAddress: ARC_USDC,
+    amountMicros: amountWei,
+  });
+
   try {
     const { txHash, explorerUrl } = await executeContractCall(
       {
@@ -338,14 +432,14 @@ cashoutRoutes.post('/arc-send', async (c) => {
         contractAddress: ARC_USDC,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [body.recipient, amountWei.toString()],
-        // The client's bridge record id is stable across retries of this one
-        // send, so Circle dedupes a replay instead of transferring twice.
-        ...(body.bridgeId
-          ? { idempotencyKey: deterministicIdempotencyKey(`arc-send:${body.bridgeId}`) }
-          : {}),
+        // The movement leg owns the stable idempotency key for this send.
+        idempotencyKey: prepared.idempotencyKey,
+        lifecycle: prepared.lifecycle,
       },
       `cashout-arc-send-${session.address.slice(0, 10)}`,
     );
+    await verifyMoneyMovementLeg(movement.reference, prepared.leg.id);
+    const completed = await completeMoneyMovement(movement.reference);
     logger.info(
       { from: session.address, recipient: body.recipient, amount: body.amountUsdc, txHash },
       'cashout Arc instant send ok',
@@ -354,7 +448,6 @@ cashoutRoutes.post('/arc-send', async (c) => {
     // and the main /activity feed, like the CCTP and App Kit bridges. A same-
     // chain Arc send has a single tx, so burn == mint == the transfer hash.
     try {
-      const bridgeId = body.bridgeId ?? `arc-send-${session.address}-${randomUUID()}`;
       const amountUsdc = String(body.amountUsdc);
       await createBridge({
         bridgeId,
@@ -367,6 +460,7 @@ cashoutRoutes.post('/arc-send', async (c) => {
         mintTxHash: txHash,
         bridgeWalletAddress: session.address.toLowerCase(),
         sourceChainKey: 'arc' as never,
+        movementReference: completed.reference,
       });
       bus.emitEvent({
         type: 'bridge.minted',
@@ -382,14 +476,28 @@ cashoutRoutes.post('/arc-send', async (c) => {
     } catch (recErr) {
       logger.warn({ err: (recErr as Error).message }, 'arc-send record failed (send still succeeded)');
     }
-    return c.json({ ok: true, txHash, explorerUrl });
+    return c.json({
+      ok: true,
+      txHash,
+      explorerUrl,
+      reference: completed.reference,
+      movementState: completed.state,
+    });
   } catch (err) {
     const message = (err as Error).message;
     logger.warn(
       { from: session.address, recipient: body.recipient, err: message },
       'cashout Arc instant send failed',
     );
-    return c.json({ error: 'send failed', detail: message }, 502);
+    return c.json(
+      {
+        error: 'send failed',
+        detail: message,
+        reference: movement.reference,
+        movementState: 'needs_attention',
+      },
+      502,
+    );
   }
   } finally {
     cashoutInFlight.delete(user.circleIdentityWalletId);

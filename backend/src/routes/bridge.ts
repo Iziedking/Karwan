@@ -12,6 +12,7 @@ import {
   listPendingBridges,
   listBridgesForUser,
 } from '../db/bridges.js';
+import { getMoneyMovement } from '../db/moneyMovements.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf, sessionAddress } from '../auth/session.js';
@@ -40,6 +41,12 @@ import {
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
+import {
+  ensureCashoutMovement,
+  markCashoutFailed,
+  prepareCashoutLeg,
+  recordCashoutLeg,
+} from '../money/cashout.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
 
@@ -1597,8 +1604,13 @@ bridgeRoutes.get('/:bridgeId', async (c) => {
   if (!isSessionSelf(c, bridgeOwnerFor(record) ?? '')) {
     return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
   }
+  const movement = record.movementReference
+    ? await getMoneyMovement(record.movementReference).catch(() => null)
+    : null;
   return c.json({
     bridgeId: record.bridgeId,
+    reference: record.movementReference ?? null,
+    movementState: movement?.state ?? null,
     direction: record.direction ?? 'in',
     status: record.status,
     amountUsdc: record.amountUsdc,
@@ -2047,8 +2059,46 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     );
   }
 
+  // Allocate the user-facing receipt before App Kit starts its burn. The
+  // movement owns both source burn and destination mint legs; the bridge row
+  // remains a compatibility/progress projection for existing UI surfaces.
+  const { movement } = await ensureCashoutMovement({
+    operationKey: `cashout:bridge-out:${userAddress}:${body.bridgeId}`,
+    amountUsdc: body.amountUsdc.toString(),
+    initiatedBy: userAddress,
+    recipient: body.recipient,
+    summary: `Cashed out ${body.amountUsdc} USDC to ${body.destChainKey === 'solanaDevnet' ? 'another chain' : body.destChainKey}`,
+  });
+  if (movement.state === 'completed') {
+    return c.json({
+      accepted: true,
+      bridgeId: body.bridgeId,
+      status: 'minted',
+      direction: 'out',
+      reference: movement.reference,
+      movementState: movement.state,
+    });
+  }
+  await prepareCashoutLeg(movement.reference, {
+    key: 'burn',
+    label: 'Source-chain cash-out',
+    rail: 'cctp',
+    amountMicros: amountWei.toString(),
+    walletId: sourceWalletId,
+    signerAddress: sourceWalletAddress,
+    sourceAddress: sourceWalletAddress,
+  });
+  await prepareCashoutLeg(movement.reference, {
+    key: 'mint',
+    label: 'Destination-chain delivery',
+    rail: 'cctp',
+    amountMicros: amountWei.toString(),
+    destinationAddress: body.recipient,
+  });
+
   await createBridge({
     bridgeId: body.bridgeId,
+    movementReference: movement.reference,
     direction: 'out',
     // Ownership binds to the user's identity. mintRecipient is the destination
     // recipient (not the user's Arc address), so auth reads owner, not it.
@@ -2075,10 +2125,24 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
     sourceWalletAddress,
     amountUsdc: body.amountUsdc.toString(),
     recipient: body.recipient,
+    onBurn: (txHash) => recordCashoutLeg(movement.reference, 'burn', { txHash }),
+    onMint: (txHash) => recordCashoutLeg(
+      movement.reference,
+      'mint',
+      txHash ? { txHash } : { submitted: true },
+    ),
+    onError: (failureCode) => markCashoutFailed(movement.reference, failureCode),
   });
 
   return c.json(
-    { accepted: true, bridgeId: body.bridgeId, status: 'burning', direction: 'out' },
+    {
+      accepted: true,
+      bridgeId: body.bridgeId,
+      status: 'burning',
+      direction: 'out',
+      reference: movement.reference,
+      movementState: movement.state,
+    },
     202,
   );
 });

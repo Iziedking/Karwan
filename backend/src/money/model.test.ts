@@ -156,3 +156,37 @@ test('reuses unknown attempts but rotates after a terminal leg failure', () => {
   current = transitionMoneyMovementLeg(current, id, 'failed', { failureCode: 'FAILED' }, 230);
   assert.equal(shouldReuseMoneyMovementAttempt(current), false);
 });
+
+test('cash-out movement keeps burn and mint proof separate', () => {
+  let current = createMoneyMovement(
+    'KWN-2345-6789-ABCD',
+    {
+      operationKey: 'cashout:bridge-out:test',
+      kind: 'cash_out',
+      amountMicros: 3_000_000n,
+      initiatedBy: '0x1111111111111111111111111111111111111111',
+      participants: [
+        { address: '0x1111111111111111111111111111111111111111', role: 'owner' },
+        { address: '0x2222222222222222222222222222222222222222', role: 'recipient' },
+      ],
+      summary: 'Cashed out 3 USDC to another chain',
+    },
+    100,
+  );
+  current = startMoneyMovementAttempt(current, 110);
+  current = planMoneyMovementLeg(current, { key: 'burn', label: 'Source burn', rail: 'cctp' }, 120);
+  current = planMoneyMovementLeg(current, { key: 'mint', label: 'Destination mint', rail: 'cctp' }, 121);
+  const burnId = current.legs.find((leg) => leg.key === 'burn')!.id;
+  const mintId = current.legs.find((leg) => leg.key === 'mint')!.id;
+  current = transitionMoneyMovementLeg(current, burnId, 'submitted', {}, 130);
+  current = transitionMoneyMovementLeg(current, burnId, 'confirmed', { txHash: '0xburn' }, 131);
+  current = transitionMoneyMovementLeg(current, burnId, 'verified', {}, 132);
+  current = transitionMoneyMovement(current, 'submitted', {}, 133);
+  current = transitionMoneyMovement(current, 'verifying', {}, 134);
+  current = transitionMoneyMovementLeg(current, mintId, 'submitted', {}, 140);
+  current = transitionMoneyMovementLeg(current, mintId, 'confirmed', { txHash: '0xmint' }, 141);
+  current = transitionMoneyMovementLeg(current, mintId, 'verified', {}, 142);
+  assert.equal(current.legs.find((leg) => leg.key === 'burn')!.txHash, '0xburn');
+  assert.equal(current.legs.find((leg) => leg.key === 'mint')!.txHash, '0xmint');
+  assert.equal(current.state, 'verifying');
+});
