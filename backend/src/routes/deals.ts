@@ -55,6 +55,7 @@ import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import {
   getMoneyMovementByOperationKey,
+  listMoneyMovementsForAddress,
   listMoneyMovementsForJobParty,
 } from '../db/moneyMovements.js';
 import {
@@ -889,7 +890,26 @@ dealsRoutes.get('/direct', async (c) => {
   }
 
   const deals = await listDealsForAddress(parsed.data);
-  const enriched = await Promise.all(deals.map((d) => enrich(d)));
+  // Read the party-scoped movement index once, then join by job id. The deal
+  // list is a read path and must not turn into one database query per row.
+  const partyMovements = await listMoneyMovementsForAddress(parsed.data, 200).catch(() => []);
+  const referencesByJob = new Map<string, string[]>();
+  for (const movement of partyMovements) {
+    if (!movement.jobId) continue;
+    const key = movement.jobId.toLowerCase();
+    const refs = referencesByJob.get(key) ?? [];
+    if (!refs.includes(movement.reference)) refs.push(movement.reference);
+    referencesByJob.set(key, refs);
+  }
+  const enriched = await Promise.all(
+    deals.map(async (d) => {
+      const deal = await enrich(d);
+      // Attach only the signed-in party's durable movement references. The
+      // deal list must never fall back to wallet addresses or raw tx hashes.
+      const receiptReferences = referencesByJob.get(d.jobId.toLowerCase()) ?? [];
+      return receiptReferences.length ? { ...deal, receiptReferences } : deal;
+    }),
+  );
   // Legacy deals live on the dedicated /legacy recovery page; filtering
   // them here kills the false "release first" buttons on activity / buyer
   // / seller dashboards that otherwise show pre-v2.D escrow state.
