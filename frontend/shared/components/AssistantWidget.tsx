@@ -16,6 +16,10 @@ import {
 import { stripMarkdown } from '@/shared/utils/format';
 import { ARC_EXPLORER_TX, ARC_CHAIN_ID, ARC_NATIVE_DECIMALS } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import {
+  useFloatingClearance,
+  floatingClearanceStyle,
+} from '@/shared/hooks/useFloatingClearance';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { isPublicEditorialRoute } from '@/shared/utils/routes';
 
@@ -53,6 +57,8 @@ export function AssistantWidget() {
   const t = useTranslations().assistant;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  /// Fold the launcher away while it would sit on top of a control.
+  const clearance = useFloatingClearance();
   const [expanded, setExpanded] = useState(false);
   const auth = useAuth();
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -285,8 +291,9 @@ export function AssistantWidget() {
             setOpen(true);
           }}
           aria-label={t.launcherAria}
-          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 transition md:end-5 md:bottom-5"
+          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 md:end-5 md:bottom-5"
           style={{
+            ...floatingClearanceStyle(clearance),
             borderTopLeftRadius: 12,
             borderTopRightRadius: 12,
             borderBottomLeftRadius: 12,

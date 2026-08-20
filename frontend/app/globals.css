@@ -85,6 +85,29 @@ html[data-theme="dark"] {
      the ink they asked for, and it meant none of them tracked the dark-mode
      flip. Aliasing fixes all five and makes them theme-aware. */
   --lp-ink: var(--lp-dark);
+  /* Alias of --lp-light, and the third of these. --lp-paper is the paper side
+     of the ink/paper pair: text-[var(--lp-paper)] on bg-[var(--lp-ink)] in
+     /profile and the activity Everyone/Me toggle. It was never defined either,
+     which stayed invisible only because --lp-ink was also undefined, so the
+     button had no fill for the missing text to disappear into. Defining --lp-ink
+     alone gave it one. Both halves of a pair have to exist or neither works. */
+  --lp-paper: var(--lp-light);
+  /* The rest of the undefined --lp-* names, found by auditing every var(--lp-*)
+     in the app against this block. An undefined custom property makes the whole
+     declaration invalid, so each of these was a style silently doing nothing:
+     a border with no colour, a red that was not red. They were quiet only
+     because the fallback happened to look acceptable, which is not the same as
+     being right, and the Everyone/Me toggle is what happens when one of a pair
+     gets defined and the other does not.
+
+     Each is aliased to the token it was obviously reaching for, so they now
+     track the dark-mode flip like everything else. */
+  --lp-border: var(--lp-border-light);
+  --lp-line: var(--lp-border-light);
+  --lp-cream: var(--lp-light);
+  --lp-wash: var(--lp-card);
+  --lp-critical: var(--color-critical);
+  --lp-positive: var(--color-positive);
   --lp-card: var(--paper-1);       /* card surface over --lp-light */
   --lp-band-dark: var(--surface-0);/* fixed dark bands and dark CTAs */
   --lp-accent: var(--accent);      /* compatibility alias */

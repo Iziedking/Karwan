@@ -1227,7 +1227,7 @@ function TradeTypeChooser({
             className={cn(
               'min-h-11 rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
               sel
-                ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-accent)]'
+                ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
                 : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
             )}
           >

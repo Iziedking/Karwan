@@ -9,6 +9,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import {
+  useFloatingClearance,
+  floatingClearanceStyle,
+} from '@/shared/hooks/useFloatingClearance';
 import { createPortal } from 'react-dom';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { usePathname } from 'next/navigation';
@@ -363,6 +367,9 @@ function FloatingActions() {
   // null there (the page registers no tour), but a stale registration from the
   // previous page can linger for a navigation frame; this makes it unconditional.
   const showTour = !!currentTour && !isNoTourRoute(pathname);
+  /// Folds away in step with the assistant launcher, so the two never leave one
+  /// of them sitting alone on top of a pager.
+  const clearance = useFloatingClearance();
 
   // On mobile the labels are hidden and the pill collapses to an icon-only
   // round button so it stops covering hero copy at the bottom of the fold.
@@ -384,7 +391,7 @@ function FloatingActions() {
       type="button"
       onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
       className={`fixed bottom-24 start-4 md:bottom-5 md:start-5 ${pill}`}
-      style={corner}
+      style={{ ...corner, ...floatingClearanceStyle(clearance) }}
       aria-label={`Take a guided tour: ${currentTour.label}`}
     >
       <span

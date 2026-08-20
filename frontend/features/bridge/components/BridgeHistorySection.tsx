@@ -303,7 +303,7 @@ function FilterChip({
       aria-pressed={active}
       className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
       style={{
-        background: active ? 'var(--lp-dark)' : 'transparent',
+        background: active ? 'var(--lp-band-dark)' : 'transparent',
         color: active ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
       }}
     >

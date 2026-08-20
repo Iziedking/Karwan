@@ -219,7 +219,10 @@ export function DealsFeed() {
           })}
         </ul>
         {pageCount > 1 && (
-          <div className="px-5 md:px-8 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-[var(--lp-border-light)]">
+          <div
+            data-floating-avoid
+            className="px-5 md:px-8 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-[var(--lp-border-light)]"
+          >
             <p className="min-w-0 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
               {tr.pager.pageOf
                 .replace('{page}', String(safePage + 1))

@@ -249,7 +249,7 @@ export function EditDealModal({
                     onClick={() => setAcceptanceHours(opt.value)}
                     className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      background: active ? 'var(--lp-dark)' : 'var(--lp-light)',
+                      background: active ? 'var(--lp-band-dark)' : 'var(--lp-light)',
                       color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 7,
@@ -448,7 +448,7 @@ function UnitPicker({
             onClick={() => onChange(o.key)}
             className="min-h-11 min-w-11 px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: active ? 'var(--lp-dark)' : 'transparent',
+              background: active ? 'var(--lp-band-dark)' : 'transparent',
               color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
               borderTopLeftRadius: 7,
               borderTopRightRadius: 7,

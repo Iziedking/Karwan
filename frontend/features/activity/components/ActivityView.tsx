@@ -187,7 +187,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
               aria-pressed={onlyMine === v}
               className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition ${
                 onlyMine === v
-                  ? 'bg-[var(--lp-ink)] text-[var(--lp-paper)] border-[var(--lp-ink)] font-bold'
+                  ? 'bg-[var(--lp-band-dark)] text-[var(--lp-accent)] border-[var(--lp-band-dark)] font-bold'
                   : 'border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)]'
               }`}
             >

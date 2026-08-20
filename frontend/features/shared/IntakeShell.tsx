@@ -288,7 +288,7 @@ function ChooserButton({
       aria-label={tooltip}
       className="min-h-11 px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
       style={{
-        background: active ? 'var(--lp-dark)' : 'transparent',
+        background: active ? 'var(--lp-band-dark)' : 'transparent',
         color: active ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
         boxShadow: active ? '0 2px 0 rgba(0,0,0,0.18)' : 'none',
         ...CHOOSER_RADII,
