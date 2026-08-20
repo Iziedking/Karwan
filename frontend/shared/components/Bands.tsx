@@ -264,11 +264,11 @@ export function BigStatTile({
           )}
         />
       ) : (
-        <div className="mt-3 flex items-baseline gap-1.5">
+        <div className="mt-3 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-1">
           <span
             className={cn(
               'font-sans font-extrabold tabular-nums tracking-[-0.02em] leading-none',
-              'text-[clamp(2rem,3.4vw,2.75rem)]',
+              'min-w-0 max-w-full text-[clamp(1.75rem,8vw,2.75rem)]',
               isDark ? 'text-white' : 'text-[var(--lp-dark)]',
             )}
           >
@@ -277,7 +277,12 @@ export function BigStatTile({
           {unit && (
             <span
               className={cn(
-                'mono text-[10px] uppercase tracking-[0.12em]',
+                // Keep the currency visible at narrow widths. A long tabular
+                // amount can consume the whole tile, so the unit gets its own
+                // line on mobile instead of being clipped by the card's
+                // intentional overflow boundary. Desktop keeps the compact
+                // inline treatment.
+                'mono shrink-0 basis-full text-[10px] uppercase tracking-[0.12em] sm:basis-auto',
                 isDark ? 'text-white/55' : 'text-[var(--lp-text-muted)]',
               )}
             >

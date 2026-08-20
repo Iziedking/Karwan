@@ -5,7 +5,7 @@ import type { DirectDeal } from '@/core/api';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { useDismissed } from '@/shared/hooks/useDismissed';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
+import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -133,7 +133,10 @@ export function StageBadge({ stage }: { stage: DealStage }) {
 }
 
 export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
-  const t = useTranslations().directDealList;
+  const translations = useTranslations();
+  const t = translations.directDealList;
+  const receiptReferenceLabel = translations.activity.myMoney.receiptReference;
+  const receiptPending = translations.directDealDetail.settlementRecord.next.karwan;
   const auth = useAuth();
   const address = auth.address ?? undefined;
   const { deals, fetchState } = useDirectDeals();
@@ -187,7 +190,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
       {visible.map((deal) => {
         const stage = stageOf(deal);
         const isBuyer = address?.toLowerCase() === deal.buyer;
-        const counterparty = isBuyer ? deal.seller : deal.buyer;
+        const receiptReference = deal.receiptReferences?.find((value) => value.trim()) ?? null;
         const meta = STAGE_META[stage];
         const dismissable = stage === 'cancelled' || stage === 'settled' || stage === 'disputed';
         return (
@@ -242,10 +245,10 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                       className="w-[5px] h-[5px]"
                       style={{ background: 'var(--lp-accent)' }}
                     />
-                    {shortAddress(counterparty)}
+                    {receiptReference ?? receiptPending}
                   </span>
-                  <p className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
-                    {shortHash(deal.jobId, 6, 4)}
+                  <p className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
+                    {receiptReferenceLabel}
                   </p>
                   {((deal.tradeLane ?? 'service') === 'finance' ||
                     deal.tradeType === 'goods' ||

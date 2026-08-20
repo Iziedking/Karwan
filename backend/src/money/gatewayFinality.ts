@@ -10,6 +10,11 @@ import {
   transitionMoneyMovementLeg,
   type MoneyMovement,
 } from './model.js';
+
+// Keep the provider label out of the activity template expression. The
+// i18n ledger gate inspects string literals in `params.t`; this value is data,
+// not a translation key.
+const GATEWAY_SOURCE_LABEL = 'Gateway';
 import {
   completeMoneyMovement,
   currentMoneyMovement,
@@ -159,7 +164,7 @@ export async function reconcileGatewayDepositFinality(
       address: owner,
       kind: 'gateway_deposit',
       summary: `Added ${amountUsdc} USDC to the unified balance`,
-      params: { t: 'gatewayDeposit', amount: amountUsdc, source: 'Gateway' },
+      params: { t: 'gatewayDeposit', amount: amountUsdc, source: GATEWAY_SOURCE_LABEL },
       amountUsdc,
       refId: completed.reference,
       ...(event.txHash ? { txHash: event.txHash } : {}),

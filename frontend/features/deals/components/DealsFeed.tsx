@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { stageOf, StageBadge, STAGE_META, type DealStage } from './DirectDealList';
 import { useDirectDeals } from '../hooks/useDirectDeals';
 import { cn } from '@/shared/utils/cn';
-import { formatUsdc, shortAddress, shortHash, relativeTime } from '@/shared/utils/format';
+import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Filter = 'all' | 'active' | 'completed';
@@ -22,7 +22,10 @@ const ACTIVE_STAGES: DealStage[] = [
 /// lives in the NetworkTicker, that one shows masked network-wide activity
 /// and stays as the public surface. Renders inside a PageCard.
 export function DealsFeed() {
-  const tr = useTranslations().dealsFeed;
+  const translations = useTranslations();
+  const tr = translations.dealsFeed;
+  const receiptReferenceLabel = translations.activity.myMoney.receiptReference;
+  const receiptPending = translations.directDealDetail.settlementRecord.next.karwan;
   const { deals, fetchState: hookState } = useDirectDeals();
   // Map the shared hook's states onto this component's prior tri-state so the
   // existing branches below stay untouched. 'idle' (signed-out) reads as
@@ -148,6 +151,7 @@ export function DealsFeed() {
         <ul className="divide-y divide-[var(--lp-border-light)]">
           {pageRows.map(({ deal, stage }) => {
             const meta = STAGE_META[stage];
+            const receiptReference = deal.receiptReferences?.find((value) => value.trim()) ?? null;
             return (
               <li key={deal.jobId} className="relative">
                 <Link
@@ -196,13 +200,11 @@ export function DealsFeed() {
                   {/* Mobile row 2 / desktop col 3: parties (left) + chevron (right) */}
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-5 md:shrink-0">
                     <div className="text-start md:text-end min-w-0">
-                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-none truncate">
-                        {shortAddress(deal.buyer)}
-                        <span className="mx-1 text-[var(--lp-text-muted)]">→</span>
-                        {shortAddress(deal.seller)}
+                      <p className="mono text-[11px] tabular-nums text-[var(--lp-dark)] leading-snug break-all">
+                        {receiptReference ?? receiptPending}
                       </p>
-                      <p className="mt-1.5 mono text-[10px] tabular-nums uppercase tracking-[0.08em] text-[var(--lp-text-muted)] truncate">
-                        {shortHash(deal.jobId, 6, 4)}
+                      <p className="mt-1.5 mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)]">
+                        {receiptReferenceLabel}
                       </p>
                     </div>
                     <span
@@ -221,7 +223,7 @@ export function DealsFeed() {
         {pageCount > 1 && (
           <div
             data-floating-avoid
-            className="px-5 md:px-8 py-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-[var(--lp-border-light)]"
+            className="grid w-full max-w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 py-5 border-t border-[var(--lp-border-light)] md:flex md:flex-wrap md:justify-between md:gap-x-4 md:gap-y-3 md:px-8"
           >
             <p className="min-w-0 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
               {tr.pager.pageOf
@@ -233,7 +235,7 @@ export function DealsFeed() {
                 String(shown.length),
               )}
             </p>
-            <div className="shrink-0 flex items-center gap-2">
+            <div className="shrink-0 justify-self-end flex items-center gap-2">
               <PagerButton
                 direction="prev"
                 disabled={!canPrev}
@@ -272,7 +274,7 @@ function PagerButton({
       disabled={disabled}
       aria-label={direction === 'prev' ? tr.prevAria : tr.nextAria}
       className={cn(
-        'group inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
+        'group inline-flex items-center justify-center min-w-11 min-h-11 w-11 h-11 rounded-full transition-all duration-150',
         'border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
         disabled
           ? 'cursor-not-allowed opacity-30'
