@@ -161,6 +161,13 @@ export async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS event_history_ts_idx ON event_history (ts);
     CREATE INDEX IF NOT EXISTS event_history_job_ts_idx ON event_history (job_id, ts);
+    CREATE TABLE IF NOT EXISTS circle_webhook_notifications (
+      notification_id TEXT PRIMARY KEY,
+      notification_type TEXT,
+      received_at BIGINT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS circle_webhook_notifications_received_at_idx
+      ON circle_webhook_notifications (received_at);
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
       address TEXT NOT NULL,

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { formatUnits } from 'viem';
 import { executeContractCall } from '../chain/txs.js';
 import { circleWalletsClient, ARC_TESTNET_BLOCKCHAIN } from '../circle/wallets.js';
@@ -7,6 +8,14 @@ import { getUserByAddress } from '../db/users.js';
 import { readUsdcBalance } from '../chain/contracts.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import {
+  ensureGatewayDepositMovement,
+  gatewayDepositLeg,
+  gatewayLegTx,
+  prepareGatewayDepositMovement,
+} from '../money/gateway.js';
+import { currentMoneyMovement, verifyMoneyMovementLeg } from '../money/service.js';
+import type { MoneyMovementState } from '../money/model.js';
 
 /// Karwan's unified Gateway balance (autonomy backbone, Stage 2 = deposit + read).
 ///
@@ -74,10 +83,25 @@ export async function ensureGatewayWallet(record: AgentWallets): Promise<Gateway
 }
 
 export interface GatewayDepositResult {
-  depositTxHash: string;
+  depositTxHash?: string;
+  approveTxHash?: string;
   gatewayAddress: string;
   amountUsd: number;
   source: GatewayDepositSource;
+  reference: string;
+  movementState: MoneyMovementState;
+}
+
+export class GatewayDepositError extends Error {
+  constructor(
+    message: string,
+    readonly reference: string,
+    readonly movementState: MoneyMovementState,
+    readonly depositTxHash?: string,
+  ) {
+    super(message);
+    this.name = 'GatewayDepositError';
+  }
 }
 
 /// Which of the user's own Circle DCWs the deposited USDC comes from:
@@ -120,6 +144,7 @@ export async function depositToGateway(
   userAddress: string,
   amountUsd: number,
   source: GatewayDepositSource = 'identity',
+  requestId?: string,
 ): Promise<GatewayDepositResult> {
   if (!(amountUsd > 0)) throw new Error('amount must be greater than 0');
   const key = userAddress.toLowerCase();
@@ -127,44 +152,138 @@ export async function depositToGateway(
   if (!record) throw new Error('no agent wallets on record; activate first');
 
   const from = await resolveDepositSource(key, record, source);
-  const gateway = await ensureGatewayWallet(record);
   const amountAtomic = BigInt(Math.round(amountUsd * 10 ** USDC_DECIMALS));
+  const operationKey = `gateway:deposit:${key}:${requestId ?? randomUUID()}`;
+  const { movement } = await ensureGatewayDepositMovement({
+    operationKey,
+    amountUsdc: formatUnits(amountAtomic, USDC_DECIMALS),
+    initiatedBy: key,
+    sourceAddress: from.address,
+    summary: `Added ${amountUsd} USDC to the unified balance from the ${source} wallet`,
+  });
 
-  // Preflight: the source wallet must hold the USDC.
-  const balance = await readUsdcBalance(from.address);
-  if (balance < amountAtomic) {
-    const label = source === 'identity' ? 'Your wallet' : `Your ${source} agent`;
-    throw new Error(
-      `${label} holds ${formatUnits(balance, USDC_DECIMALS)} USDC, less than ${amountUsd}. Lower the amount and try again.`,
-    );
+  const current = await currentMoneyMovement(movement.reference);
+  const completedDepositTx = gatewayLegTx(current, 'gateway_deposit');
+  if (current.state === 'completed' && completedDepositTx) {
+    return {
+      depositTxHash: completedDepositTx,
+      approveTxHash: gatewayLegTx(current, 'gateway_approve'),
+      gatewayAddress: record.gatewayWallet?.address ?? '',
+      amountUsd,
+      source,
+      reference: current.reference,
+      movementState: current.state,
+    };
   }
+
+  try {
+    const gateway = await ensureGatewayWallet(record);
+    await prepareGatewayDepositMovement(movement.reference, {
+    sourceAddress: from.address,
+    gatewayContractAddress: GATEWAY_WALLET_ADDR,
+    sourceWalletId: from.walletId,
+    amountMicros: amountAtomic,
+    usdcAddress: config.USDC_ADDR,
+    gatewayWalletAddress: gateway.address,
+    });
+
+    const latest = await currentMoneyMovement(movement.reference);
+    const hasProgress = latest.legs.some(
+    (leg) => leg.attempt === latest.attempt && leg.key === 'gateway_approve' && leg.state !== 'planned',
+    );
+    if (!hasProgress) {
+    // Preflight only before the first source-chain write. A retry after an
+    // accepted approval must not fail because the source balance already fell.
+      const balance = await readUsdcBalance(from.address);
+      if (balance < amountAtomic) {
+        const label = source === 'identity' ? 'Your wallet' : `Your ${source} agent`;
+        throw new Error(
+          `${label} holds ${formatUnits(balance, USDC_DECIMALS)} USDC, less than ${amountUsd}. Lower the amount and try again.`,
+        );
+      }
+    }
 
   // Approve the Gateway Wallet to pull USDC from the source wallet, then
   // depositFor crediting the user's Gateway EOA as the unified-balance depositor.
-  await executeContractCall(
-    {
-      walletId: from.walletId,
-      contractAddress: config.USDC_ADDR,
-      abiFunctionSignature: 'approve(address,uint256)',
-      abiParameters: [GATEWAY_WALLET_ADDR, amountAtomic.toString()],
-    },
-    'gateway.deposit.approve',
-  );
-  const deposit = await executeContractCall(
-    {
-      walletId: from.walletId,
-      contractAddress: GATEWAY_WALLET_ADDR,
-      abiFunctionSignature: 'depositFor(address,address,uint256)',
-      abiParameters: [config.USDC_ADDR, gateway.address, amountAtomic.toString()],
-    },
-    'gateway.deposit.depositFor',
-  );
+    const approve = await gatewayDepositLeg(movement.reference, 'gateway_approve', {
+    sourceAddress: from.address,
+    gatewayContractAddress: GATEWAY_WALLET_ADDR,
+    sourceWalletId: from.walletId,
+    amountMicros: amountAtomic,
+    usdcAddress: config.USDC_ADDR,
+    gatewayWalletAddress: gateway.address,
+    });
+    let latestMovement = await currentMoneyMovement(movement.reference);
+    if (approve.leg.state !== 'verified') {
+      const result = await executeContractCall(
+      {
+        walletId: from.walletId,
+        contractAddress: config.USDC_ADDR,
+        abiFunctionSignature: 'approve(address,uint256)',
+        abiParameters: [GATEWAY_WALLET_ADDR, amountAtomic.toString()],
+        idempotencyKey: approve.idempotencyKey,
+        lifecycle: approve.lifecycle,
+      },
+      'gateway.deposit.approve',
+      );
+      await verifyMoneyMovementLeg(movement.reference, approve.leg.id);
+      latestMovement = await currentMoneyMovement(movement.reference);
+      logger.debug({ txHash: result.txHash }, 'gateway deposit approval verified');
+    }
 
-  logger.info(
-    { userAddress: key, gatewayAddress: gateway.address, amountUsd, source, depositTx: deposit.txHash },
+    const deposit = await gatewayDepositLeg(movement.reference, 'gateway_deposit', {
+    sourceAddress: from.address,
+    gatewayContractAddress: GATEWAY_WALLET_ADDR,
+    sourceWalletId: from.walletId,
+    amountMicros: amountAtomic,
+    usdcAddress: config.USDC_ADDR,
+    gatewayWalletAddress: gateway.address,
+    });
+    if (deposit.leg.state !== 'verified') {
+      await executeContractCall(
+      {
+        walletId: from.walletId,
+        contractAddress: GATEWAY_WALLET_ADDR,
+        abiFunctionSignature: 'depositFor(address,address,uint256)',
+        abiParameters: [config.USDC_ADDR, gateway.address, amountAtomic.toString()],
+        idempotencyKey: deposit.idempotencyKey,
+        lifecycle: deposit.lifecycle,
+      },
+      'gateway.deposit.depositFor',
+      );
+      await verifyMoneyMovementLeg(movement.reference, deposit.leg.id);
+      latestMovement = await currentMoneyMovement(movement.reference);
+    }
+
+    logger.info(
+    {
+      userAddress: key,
+      gatewayAddress: gateway.address,
+      amountUsd,
+      source,
+      reference: movement.reference,
+      depositTx: gatewayLegTx(latestMovement, 'gateway_deposit'),
+    },
     'gateway: deposited into unified balance',
-  );
-  return { depositTxHash: deposit.txHash, gatewayAddress: gateway.address, amountUsd, source };
+    );
+    return {
+    depositTxHash: gatewayLegTx(latestMovement, 'gateway_deposit'),
+    approveTxHash: gatewayLegTx(latestMovement, 'gateway_approve'),
+    gatewayAddress: gateway.address,
+    amountUsd,
+    source,
+    reference: latestMovement.reference,
+    movementState: latestMovement.state,
+    };
+  } catch (cause) {
+    const failed = await currentMoneyMovement(movement.reference).catch(() => movement);
+    throw new GatewayDepositError(
+      cause instanceof Error ? cause.message : 'gateway deposit failed',
+      movement.reference,
+      failed.state,
+      gatewayLegTx(failed, 'gateway_deposit'),
+    );
+  }
 }
 
 /// Sweep loose USDC from the user's identity wallet into their unified Gateway

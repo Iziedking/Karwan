@@ -34,7 +34,8 @@ export type MoneyMovementPartyRole =
   | 'seller'
   | 'counterparty'
   | 'financier'
-  | 'recipient';
+  | 'recipient'
+  | 'source';
 
 export type MoneyMovementRail =
   | 'circle_wallets'

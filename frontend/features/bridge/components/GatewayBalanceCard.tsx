@@ -249,6 +249,7 @@ export function GatewayBalanceCard() {
   // Live stage map for the current move, and the tx receipts for both actions.
   const [moveSteps, setMoveSteps] = useState<StepMap>({});
   const [poolTx, setPoolTx] = useState<string | null>(null);
+  const [poolReference, setPoolReference] = useState<string | null>(null);
   const [moveTx, setMoveTx] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -314,6 +315,24 @@ export function GatewayBalanceCard() {
       setTimeout(() => {
         void api.refreshGatewayBalance().then(load).catch(() => {});
       }, 12_000);
+    } catch (err) {
+      setPhase('error');
+      setError(chainErrorMessage(err, errCopy, t.failed));
+    }
+  }
+
+  async function poolCircle() {
+    setError(null);
+    setPhase('depositing');
+    try {
+      const requestId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-circle`;
+      const receipt = await api.gatewayDeposit(parsed, 'identity', requestId);
+      if (!receipt.reference) throw new Error('receipt reference unavailable');
+      setPoolReference(receipt.reference);
+      await api.refreshGatewayBalance().catch(() => {});
+      setPhase('done');
+      setAmount('');
+      load();
     } catch (err) {
       setPhase('error');
       setError(chainErrorMessage(err, errCopy, t.failed));
@@ -429,7 +448,7 @@ export function GatewayBalanceCard() {
     }
   }
 
-  // Gateway accepts only EOA signatures on a burn intent; a Circle account's
+  // Browser Gateway spends require an EOA; custodial Circle accounts use the
   // wallets are smart accounts, whose EIP-1271 signatures it rejects. So this
   // rail genuinely cannot work for an email user, and the card used to end on
   // "Connect a wallet to pool USDC" — asking the one kind of user who signed up
@@ -459,6 +478,54 @@ export function GatewayBalanceCard() {
           <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
             {t.soonBody}
           </p>
+          <label className="mt-5 block">
+            <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+              {t.amount}
+            </span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={busy}
+              placeholder="0.00"
+              className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
+              style={{
+                background: 'var(--lp-light)',
+                border: '1px solid var(--lp-border-light)',
+                borderRadius: 10,
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void poolCircle()}
+            disabled={busy || !amountValid}
+            className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
+            style={{
+              background: 'var(--lp-band-dark)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 12,
+            }}
+          >
+            {phase === 'depositing' ? t.depositing : t.cta}
+          </button>
+          {phase === 'done' && (
+            <StatusLine tone="ok" onDismiss={() => setPhase('idle')} label={t.dismiss}>
+              {t.pooled}
+              {poolReference && (
+                <span className="ms-1 mono text-[10px] tracking-[0.08em]">{poolReference}</span>
+              )}
+            </StatusLine>
+          )}
+          {phase === 'error' && (
+            <StatusLine tone="bad" onDismiss={() => setPhase('idle')} label={t.dismiss}>
+              {error ?? t.failed}
+            </StatusLine>
+          )}
         </div>
       </div>
     );

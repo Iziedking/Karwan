@@ -5,7 +5,12 @@ import { sessionAddress } from '../auth/session.js';
 import { getUserByAddress } from '../db/users.js';
 import { appendActivity } from '../db/activityLog.js';
 import { bus } from '../events.js';
-import { depositToGateway, readUserGatewayBalance, sweepToUnifiedBalance } from '../gateway/balance.js';
+import {
+  depositToGateway,
+  GatewayDepositError,
+  readUserGatewayBalance,
+  sweepToUnifiedBalance,
+} from '../gateway/balance.js';
 import { fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
 
@@ -163,6 +168,9 @@ gatewayRoutes.post('/refresh', async (c) => {
 
 const depositSchema = z.object({
   amountUsdc: z.number().positive().max(5_000_000),
+  /// Client-generated retry identity. Reusing it returns the same Karwan
+  /// movement instead of allocating a second deposit on a network retry.
+  requestId: z.string().trim().min(8).max(128).optional(),
   /// Which of the user's own wallets funds the deposit. 'identity' is Circle-only;
   /// 'buyer'/'seller' agent wallets work for every account type (the web3 path).
   source: z.enum(['identity', 'buyer', 'seller']).optional(),
@@ -214,7 +222,7 @@ gatewayRoutes.post('/deposit', async (c) => {
   }
   depositInFlight.add(address);
   try {
-    const result = await depositToGateway(address, body.amountUsdc, source);
+    const result = await depositToGateway(address, body.amountUsdc, source, body.requestId);
     cache.delete(address); // bust the read cache so the new balance shows on next poll
     // Both axes, the way the yield route does it: the event drives the live
     // balance toast and the personal feed, the entry is the permanent receipt.
@@ -228,6 +236,7 @@ gatewayRoutes.post('/deposit', async (c) => {
         amountUsdc: result.amountUsd.toString(),
         source: String(result.source),
         ...(result.depositTxHash ? { txHash: result.depositTxHash } : {}),
+        reference: result.reference,
       },
     });
     void appendActivity({
@@ -236,11 +245,32 @@ gatewayRoutes.post('/deposit', async (c) => {
       summary: `Added ${result.amountUsd} USDC to the unified balance from the ${result.source} wallet`,
       params: {t: 'gatewayDeposit', amount: String(result.amountUsd), source: String(result.source)},
       amountUsdc: result.amountUsd.toString(),
-      txHash: result.depositTxHash,
+      ...(result.depositTxHash ? { txHash: result.depositTxHash } : {}),
+      refId: result.reference,
     });
     return c.json({ ok: true, ...result });
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway deposit failed');
+    if (err instanceof GatewayDepositError) {
+      void appendActivity({
+        address,
+        kind: 'gateway_deposit',
+        summary: `Adding ${body.amountUsdc} USDC to the unified balance needs attention`,
+        params: {t: 'gatewayDeposit', amount: String(body.amountUsdc), source: String(source)},
+        amountUsdc: String(body.amountUsdc),
+        ...(err.depositTxHash ? { txHash: err.depositTxHash } : {}),
+        refId: err.reference,
+      });
+      return c.json(
+        {
+          error: 'deposit failed',
+          detail: (err as Error).message,
+          reference: err.reference,
+          movementState: err.movementState,
+        },
+        502,
+      );
+    }
     return c.json({ error: 'deposit failed', detail: (err as Error).message }, 502);
   } finally {
     depositInFlight.delete(address);

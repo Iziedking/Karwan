@@ -215,6 +215,42 @@ export async function listMoneyMovementsForAddress(
     .slice(0, safeLimit);
 }
 
+/**
+ * Find a Gateway deposit by a provider correlation value. Gateway webhooks do
+ * not carry a Karwan reference in every event version, so the reconciler may
+ * use the submitted transaction id or hash persisted on the current leg.
+ * This is intentionally bounded and deposit-only. A missing or ambiguous
+ * match is safer than attaching finality to another movement.
+ */
+export async function findGatewayDepositByCorrelation(
+  correlation: string,
+): Promise<MoneyMovement | null> {
+  const needle = correlation.trim().toLowerCase();
+  if (!needle) return null;
+  const candidates: MoneyMovement[] = pgEnabled
+    ? (
+        await db()
+          .select({ data: moneyMovements.data })
+          .from(moneyMovements)
+          .where(eq(moneyMovements.kind, 'deposit'))
+          .orderBy(desc(moneyMovements.updatedAt))
+          .limit(500)
+      ).map((row) => row.data)
+    : Object.values(loadFile().byReference)
+        .filter((movement) => movement.kind === 'deposit')
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, 500);
+
+  const matches = candidates.filter((movement) =>
+    movement.legs.some((leg) =>
+      [leg.providerId, leg.txHash].some(
+        (value) => typeof value === 'string' && value.toLowerCase() === needle,
+      ),
+    ),
+  );
+  return matches.length === 1 ? matches[0]! : null;
+}
+
 function rowFor(movement: MoneyMovement) {
   return {
     reference: movement.reference,

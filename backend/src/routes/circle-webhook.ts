@@ -6,6 +6,11 @@ import {
   verifyWebhookSignature,
   isDuplicateNotification,
 } from '../circle/webhooks.js';
+import { claimCircleNotification } from '../db/circleWebhookNotifications.js';
+import {
+  parseGatewayFinalityEvent,
+  reconcileGatewayDepositFinality,
+} from '../money/gatewayFinality.js';
 
 export const circleWebhookRoutes = new Hono();
 
@@ -87,9 +92,9 @@ circleWebhookRoutes.post('/webhook', async (c) => {
     return c.json({ error: 'invalid json' }, 400);
   }
 
-  if (isDuplicateNotification(envelope.notificationId)) {
-    // A retry. Already processed; respond 200 so Circle stops retrying.
-    return c.json({ ok: true, dedup: true });
+  if (!envelope.notificationId) {
+    logger.warn({ notificationType: envelope.notificationType }, 'circle webhook: missing notification id');
+    return c.json({ error: 'missing notification id' }, 400);
   }
 
   // Anti-replay window. timestamp is ISO 8601 per Circle's docs example.
@@ -105,6 +110,21 @@ circleWebhookRoutes.post('/webhook', async (c) => {
         return c.json({ error: 'stale' }, 401);
       }
     }
+  }
+
+  // The in-memory check above keeps hot retries cheap. This durable claim is
+  // the restart-safe boundary required by Circle's at-least-once delivery.
+  if (!(await claimCircleNotification({
+    notificationId: envelope.notificationId,
+    notificationType: envelope.notificationType,
+  }))) {
+    return c.json({ ok: true, dedup: true });
+  }
+
+  if (isDuplicateNotification(envelope.notificationId)) {
+    // A hot-process retry. The durable claim above remains the source of truth
+    // across restarts; this branch only avoids re-emitting the same event.
+    return c.json({ ok: true, dedup: true });
   }
 
   logger.info(
@@ -130,6 +150,27 @@ circleWebhookRoutes.post('/webhook', async (c) => {
       timestamp: envelope.timestamp,
     },
   });
+
+  if (envelope.notificationType === 'gateway.deposit.finalized') {
+    const finality = parseGatewayFinalityEvent(
+      envelope.notificationId,
+      envelope.notificationType,
+      envelope.notification,
+    );
+    if (finality) {
+      void reconcileGatewayDepositFinality(finality).catch((err) =>
+        logger.warn(
+          { notificationId: envelope.notificationId, err: (err as Error).message },
+          'gateway finality reconciliation failed',
+        ),
+      );
+    } else {
+      logger.warn(
+        { notificationId: envelope.notificationId },
+        'gateway finality notification had no usable correlation fields',
+      );
+    }
+  }
 
   return c.json({ ok: true });
 });

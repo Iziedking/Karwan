@@ -7051,8 +7051,8 @@ export const en: MessagesShape = {
   },
   gatewayCard: {
     connectCta: 'Connect wallet',
-    soonTag: 'COMING SOON',
-    soonBody: 'Not ready for email accounts yet. Deposits still work as normal.',
+    soonTag: 'CUSTODIAL RAIL',
+    soonBody: 'Add USDC from your Karwan account. Your receipt reference appears as the movement is recorded.',
     tag: '[:POOLED BALANCE:]',
     title: 'One balance, any chain',
     confirmed: 'Confirmed',

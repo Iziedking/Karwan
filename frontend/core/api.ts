@@ -3676,6 +3676,31 @@ export const api = {
   // the user deposits. Session-scoped, so no address argument.
   getGatewayBalance: () =>
     json<{ balance: GatewayBalance; stale?: boolean }>('/api/gateway/balance'),
+  /// Server-side Circle-account deposit. Browser-controlled web3 deposits use
+  /// the App Kit rail; this adapter is the durable receipt path for custodial
+  /// identity/agent wallets.
+  gatewayDeposit: (
+    amountUsdc: number,
+    source: 'identity' | 'buyer' | 'seller' = 'identity',
+    requestId?: string,
+  ) =>
+    json<{
+      ok: true;
+      depositTxHash?: string;
+      approveTxHash?: string;
+      gatewayAddress: string;
+      amountUsd: number;
+      source: 'identity' | 'buyer' | 'seller';
+      reference: string;
+      movementState: MoneyMovementState;
+    }>('/api/gateway/deposit', {
+      method: 'POST',
+      body: JSON.stringify({
+        amountUsdc,
+        source,
+        ...(requestId ? { requestId } : {}),
+      }),
+    }),
   // Drop the server's 30s cache right after a deposit lands, so the panel does
   // not keep serving the pre-deposit zero.
   refreshGatewayBalance: () =>

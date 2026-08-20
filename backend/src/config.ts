@@ -393,8 +393,9 @@ const envSchema = z.object({
   ),
   // Circle webhook subscription ID for the dev-controlled-wallets event stream.
   // Created in the Circle Developer Console (Webhooks tab) once per environment.
-  // When unset, POST /api/circle/webhook returns 503 "not configured" and the
-  // polling path in chain/txs.ts is the only completion signal. When set, the
+  // When unset, POST /api/circle/webhook acknowledges the console connectivity
+  // probe but does not process notifications. The polling path in chain/txs.ts
+  // is the only completion signal. When set, the
   // backend additionally receives signed event push notifications for faster
   // terminal-state propagation (the polling stays as fallback).
   CIRCLE_WEBHOOK_SUBSCRIPTION_ID: optionalString,

@@ -155,6 +155,22 @@ export const eventHistory = pgTable(
   }),
 );
 
+/// Circle webhook notification ids are the durable replay boundary. The
+/// in-memory cache in circle/webhooks.ts is only a hot-path optimisation; this
+/// row survives a restart so an at-least-once delivery cannot run a money
+/// reconciler twice after a deploy.
+export const circleWebhookNotifications = pgTable(
+  'circle_webhook_notifications',
+  {
+    notificationId: text('notification_id').primaryKey(),
+    notificationType: text('notification_type'),
+    receivedAt: bigint('received_at', { mode: 'number' }).notNull(),
+  },
+  (t) => ({
+    receivedAtIdx: index('circle_webhook_notifications_received_at_idx').on(t.receivedAt),
+  }),
+);
+
 // Agent-proposed match awaiting human approval. Indexed by buyer + seller
 // user address so the proposal list endpoints stay fast as the table grows.
 export const matchProposals = pgTable(
