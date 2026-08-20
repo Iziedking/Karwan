@@ -25,14 +25,13 @@
   --color-critical-soft: rgba(122, 31, 26, 0.08);
 
   --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  /* Reading face for paragraphs and small print. Separate from --font-sans on
-     purpose: --font-sans is the DISPLAY voice and stays General Sans, which is
-     the brand. Body copy set in the display face is what made the small
-     write-ups feel noisy. Applied via .body-copy and the prose defaults below,
-     never to headings, buttons, or mono metadata. */
-  --font-body: var(--font-newsreader), var(--font-instrument-serif), Georgia, "Times New Roman", serif;
+  /* Product copy stays in the same clear sans family as the display voice.
+     Hierarchy comes from size and weight, not a different reading face. */
+  --font-body: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-serif: var(--font-instrument-serif), "Instrument Serif", Georgia, serif;
+  /* Legacy serif call sites resolve to the product sans so every user-facing
+     write-up keeps the same Robinhood-style voice. */
+  --font-serif: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
 
   --shadow-card: 0 1px 0 rgba(12, 14, 16, 0.04), 0 12px 28px -16px rgba(12, 14, 16, 0.08);
   --shadow-card-hover: 0 1px 0 rgba(12, 14, 16, 0.06), 0 20px 40px -18px rgba(12, 14, 16, 0.12);
@@ -344,16 +343,14 @@ html[data-theme="dark"] {
 }
 
 .mono { font-family: var(--font-mono); font-feature-settings: "calt" 0; }
-/* Reading face. Opt-in per element rather than a blanket p{} rule, because the
+/* Product copy. Opt-in per element rather than a blanket p{} rule, because the
    app sets plenty of <p> that is metadata rather than prose (mono tags, stat
    values, address strings) and those must stay where they are. */
 .body-copy {
   font-family: var(--font-body);
   letter-spacing: 0;
-  /* Newsreader runs a touch small for its point size next to General Sans, and
-     a serif needs more leading than a grotesque to stay readable. */
-  font-size: 1.03em;
-  line-height: 1.65;
+  font-size: 1em;
+  line-height: 1.55;
 }
 .serif { font-family: var(--font-serif); }
 
@@ -373,11 +370,20 @@ html[data-theme="dark"] {
   0% { opacity: 0; transform: translateX(24px); }
   100% { opacity: 1; transform: translateX(0); }
 }
+@keyframes karwan-cta-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 .fade-up { animation: fade-up var(--dur-slow) var(--ease-out) both; }
 .fade-up-1 { animation-delay: 0.04s; }
 .fade-up-2 { animation-delay: 0.10s; }
 .fade-up-3 { animation-delay: 0.16s; }
 .fade-up-4 { animation-delay: 0.22s; }
+.karwan-cta { animation: karwan-cta-in var(--dur-slow) var(--ease-out) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .karwan-cta { animation: none; }
+}
 .slide-in { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .auth-sheet { animation: auth-sheet-up var(--dur-base) var(--ease-out) both; }
 @media (min-width: 768px) {

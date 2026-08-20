@@ -44,12 +44,16 @@ export function NotificationBell() {
 
   if (!isConnected) return null;
 
+  const unreadLabel = unreadCount > 0
+    ? `${t.aria}, ${unreadCount} unread`
+    : t.aria;
+
   return (
     <div ref={wrapRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        aria-label={t.aria}
+        aria-label={unreadLabel}
         className="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -68,8 +72,8 @@ export function NotificationBell() {
         </svg>
         {unreadCount > 0 && (
           <span
-            aria-hidden
-            className="absolute -top-0.5 -end-0.5 min-w-[14px] h-[14px] px-1 rounded-full mono text-[9px] font-bold flex items-center justify-center text-[var(--lp-dark)]"
+            aria-live="polite"
+            className="absolute -top-1 -end-1 z-10 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] px-1 mono text-[9px] font-bold leading-none text-[var(--lp-dark)]"
             style={{ background: 'var(--lp-accent)' }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}

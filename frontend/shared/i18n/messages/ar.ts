@@ -3210,7 +3210,7 @@ export const ar: Messages = {
       body: 'كانت الفواتير العابرة للحدود تنتظر أسابيع على القضبان المصرفية. يسوّيها Karwan في دقائق. تجلس USDC في ضمان المراحل على Arc؛ تُحرَّر الشرائح مع إنجاز العمل.',
       ctaPrimary: 'افتح Karwan ↓',
       ctaSecondary: 'كيف يعمل ←',
-      footnote: 'مباشر على Arc Testnet. عقود حقيقية، USDC اختباري، لا رأس مال فعلي تحت المخاطر.',
+      footnote: 'مباشر على Arc Testnet',
     },
     ecosystem: { tag: 'مبني على' },
     directDeals: {

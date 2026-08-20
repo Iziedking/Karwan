@@ -3210,7 +3210,7 @@ export const fr: Messages = {
       body: "Les factures transfrontalières attendaient des semaines sur les rails bancaires. Karwan les règle en quelques minutes. Les USDC restent en séquestre par jalons sur Arc; les tranches se libèrent au fur et à mesure des livraisons.",
       ctaPrimary: "Ouvrir Karwan ↓",
       ctaSecondary: 'Comment ça marche →',
-      footnote: 'Live sur Arc Testnet. Vrais contrats, USDC de testnet, aucun capital réel en jeu.',
+      footnote: 'EN DIRECT SUR ARC TESTNET',
     },
     ecosystem: { tag: 'CONSTRUIT SUR' },
     directDeals: {

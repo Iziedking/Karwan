@@ -1,38 +1,20 @@
 'use client';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
 import type { Messages } from '@/shared/i18n/messages/en';
-/// HeroFlow drives the landing hero animation; StatsTicker lives below the
-/// fold. Dynamically imported so the motion-heavy bundles do not block first
-/// paint on `/`. SSR off because both run animation effects only on the
-/// client.
-const HeroFlow = dynamic(
-  () => import('@/features/activity/components/HeroFlow').then((m) => m.HeroFlow),
-  { ssr: false },
-);
-const StatsTicker = dynamic(
-  () => import('@/features/activity/components/StatsTicker').then((m) => m.StatsTicker),
-  { ssr: false },
-);
 import { cn } from '@/shared/utils/cn';
 import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
+import { RealityHero } from '@/features/home/components/RealityHero';
 
 type LandingCopy = Messages['landingPage'];
 
 export default function HomePage() {
   const lp = useTranslations().landingPage;
   const [active, setActive] = useState<string>('overview');
-  const reduce = useReducedMotion();
-  const { scrollY } = useScroll();
-  // Keep a small amount of depth on the product visual as the hero leaves the
-  // viewport. The range is intentionally restrained for a financial interface.
-  const heroVisualY = useTransform(scrollY, [0, 720], [0, reduce ? 0 : 28]);
-  const heroVisualOpacity = useTransform(scrollY, [0, 720], [1, reduce ? 1 : 0.78]);
 
   const tabs: Tab[] = [
     { id: 'overview', label: lp.tabs.overview, hash: 'overview' },
@@ -78,105 +60,16 @@ export default function HomePage() {
 
   return (
     <div className="-mt-10 -mb-10">
-      <StatsTicker />
-
       <StickyTabStrip tabs={tabs} active={active} onChange={setActive} onDark />
 
-      {/* HERO. dark, anchored as OVERVIEW */}
-      <Band
-        id="overview"
-        tone="dark"
-        overlay={
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-50"
-            style={{
-              backgroundImage:
-                'linear-gradient(var(--lp-border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--lp-border-subtle) 1px, transparent 1px)',
-              backgroundSize: '80px 80px',
-              maskImage: 'radial-gradient(ellipse 90% 80% at 50% 0%, black, transparent 75%)',
-              WebkitMaskImage:
-                'radial-gradient(ellipse 90% 80% at 50% 0%, black, transparent 75%)',
-            }}
-          />
-        }
-      >
-        {/* Extra bottom padding below lg reserves a clean lane under the stacked
-            flow diagram for the scroll cue, so it sits neatly instead of on top
-            of the diagram's bottom label. The two-column lg layout already has
-            room, so no padding there. */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center pb-24 lg:pb-0">
-          <motion.div
-            className="space-y-7"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: dur.slow, ease: ease.out }}
-          >
-            <SectionTag tone="dark">{lp.hero.tag}</SectionTag>
-            <motion.h1
-              className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[0.95] text-balance text-[clamp(2.75rem,7vw,5.75rem)]"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: {},
-                visible: { transition: { staggerChildren: reduce ? 0 : 0.1, delayChildren: reduce ? 0 : 0.08 } },
-              }}
-            >
-              <motion.span
-                className="block"
-                variants={{ hidden: { opacity: 0, y: reduce ? 0 : 30 }, visible: { opacity: 1, y: 0 } }}
-                transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
-              >
-                {lp.hero.titleLine1}
-              </motion.span>
-              <motion.span
-                className="block"
-                variants={{ hidden: { opacity: 0, y: reduce ? 0 : 30 }, visible: { opacity: 1, y: 0 } }}
-                transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
-              >
-                {lp.hero.titleLine2}{' '}
-                <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
-              </motion.span>
-            </motion.h1>
-            <motion.p
-              className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-md"
-              initial={{ opacity: 0, y: reduce ? 0 : 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduce ? 0.18 : dur.slow, ease: ease.out, delay: reduce ? 0 : 0.28 }}
-            >
-              {lp.hero.body}
-            </motion.p>
-            <motion.div
-              className="flex flex-wrap items-center gap-3"
-              initial={{ opacity: 0, y: reduce ? 0 : 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduce ? 0.18 : dur.slow, ease: ease.out, delay: reduce ? 0 : 0.38 }}
-            >
-              <CTAPill href="/app">{lp.hero.ctaPrimary}</CTAPill>
-              <CTAPill href="/how-it-works" variant="secondary" tone="dark">
-                {lp.hero.ctaSecondary}
-              </CTAPill>
-            </motion.div>
-          </motion.div>
-          <motion.div
-            className="lg:justify-self-end w-full max-w-md lg:max-w-none"
-            initial={{ opacity: 0, y: reduce ? 0 : 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.2 : dur.hero, ease: ease.out, delay: reduce ? 0 : 0.18 }}
-          >
-            <motion.div style={{ y: heroVisualY, opacity: heroVisualOpacity }}>
-              <HeroFlow />
-            </motion.div>
-          </motion.div>
-        </div>
-        {/* Sits in the whitespace under the hero: the two-column lg layout leaves
-            it below both columns, and the pb-24 on the stacked grid above opens
-            the same lane on mobile so it clears the flow diagram. */}
+      {/* HERO. A real trade-lane film carries the emotional weight; the copy
+          remains centered, sparse, and readable over a controlled scrim. */}
+      <Band id="overview" tone="dark" className="!max-w-none !px-0 !py-0">
+        <RealityHero />
         <div className="absolute inset-x-0 bottom-[clamp(16px,3vw,30px)] flex justify-center">
           <ScrollCue label="Scroll" />
         </div>
       </Band>
-
       <HowItWorksSection copy={lp.howItWorks} />
       <DealPathsSection direct={lp.directDeals} managed={lp.managedDeals} />
 
@@ -217,45 +110,51 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
     { n: '003', title: copy.rail3Title, body: copy.rail3Body },
   ];
   return (
-    <Band id="how-it-works" tone="light">
-      <Reveal>
-        <SectionTag>{copy.tag}</SectionTag>
-        <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-          {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span> {copy.titleEnd}
-        </h2>
-      </Reveal>
-      <ol className="mt-14 grid md:grid-cols-3 gap-0">
-        {rails.map((r, i) => (
-          <motion.li
-            key={r.n}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: dur.slow, ease: ease.out, delay: i * 0.08 }}
-            className="relative pt-6 px-6 first:ps-0 last:pe-0"
-            style={{ borderTop: '1px solid var(--lp-border-light)' }}
-          >
-            <span
-              className="mono text-[11px] font-semibold uppercase tracking-[0.1em]"
-              style={{ color: 'var(--lp-text-sub)' }}
-            >
-              [:{r.n}]
-            </span>
-            <h3
-              className="mt-5 font-sans font-bold uppercase tracking-[-0.025em] leading-[1.0]"
-              style={{ fontSize: 'clamp(28px, 3vw, 44px)', color: 'var(--lp-dark)' }}
-            >
-              {r.title}
-            </h3>
-            <p
-              className="mt-5 text-[15px] leading-[1.55] max-w-[34ch]"
-              style={{ color: 'var(--lp-text-sub)' }}
-            >
-              {r.body}
+    <Band id="how-it-works" tone="light" className="!px-0 !py-0">
+      <div className="relative isolate overflow-hidden border-y border-[var(--lp-border-light)]" style={{ background: 'var(--lp-light)' }}>
+        <div className="relative mx-auto grid min-h-[620px] max-w-[1440px] lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+          <div className="relative min-h-[360px] overflow-hidden lg:min-h-[620px]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(180,210,82,0.18),transparent_58%)]" aria-hidden="true" />
+            <img
+              src="/media/landing/escrow-cutout.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute bottom-0 start-1/2 h-[74%] w-[112%] max-w-none -translate-x-1/2 object-contain object-center sm:h-[80%] lg:h-[86%]"
+            />
+          </div>
+          <div className="relative z-10 flex flex-col justify-center px-[clamp(20px,5vw,72px)] py-[clamp(56px,8vw,112px)] lg:ps-[clamp(28px,4vw,68px)]">
+            <Reveal>
+            <SectionTag>{copy.tag}</SectionTag>
+            <h2 className="mt-6 max-w-[11ch] font-sans text-[clamp(2.7rem,5.4vw,5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.035em] text-balance">
+              {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span> {copy.titleEnd}
+            </h2>
+            <p className="mt-7 max-w-[38ch] text-[15px] leading-[1.6] text-[var(--lp-text-sub)]">
+              Funds, delivery, and proof stay in one visible settlement path.
             </p>
-          </motion.li>
-        ))}
-      </ol>
+            </Reveal>
+            <ol className="mt-12 grid border-t border-[var(--lp-border-light)]">
+            {rails.map((r, i) => (
+              <motion.li
+                key={r.n}
+                initial={{ opacity: 0, x: 18 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: dur.slow, ease: ease.out, delay: i * 0.08 }}
+                className="grid grid-cols-[52px_1fr] gap-4 border-b border-[var(--lp-border-light)] py-5 sm:grid-cols-[64px_1fr] sm:gap-5 sm:py-6"
+              >
+                <span className="mono pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">[:{r.n}]</span>
+                <div>
+                  <h3 className="font-sans text-[clamp(1.35rem,2.6vw,2.1rem)] font-bold uppercase leading-[0.98] tracking-[-0.025em] text-[var(--lp-dark)]">
+                    {r.title}
+                  </h3>
+                  <p className="mt-3 max-w-[42ch] text-[14px] leading-[1.5] text-[var(--lp-text-sub)]">{r.body}</p>
+                </div>
+              </motion.li>
+            ))}
+            </ol>
+          </div>
+        </div>
+      </div>
     </Band>
   );
 }
@@ -322,6 +221,14 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
     };
   }, []);
   const volume = stats ? compactUsdc(stats.volumeUsdc) : null;
+  const reduce = useReducedMotion();
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    if (reduce) return;
+    const timer = window.setInterval(() => setActiveStep((step) => (step + 1) % 6), 2600);
+    return () => window.clearInterval(timer);
+  }, [reduce]);
 
   const steps: Array<{
     tag: string;
@@ -375,7 +282,10 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: dur.base, ease: ease.out, delay: i * 0.07 }}
                 className="relative px-4 py-6"
+                data-flow-active={activeStep === i ? 'true' : undefined}
+                animate={reduce ? undefined : { opacity: activeStep === i ? 1 : 0.58, y: activeStep === i ? 0 : 2 }}
                 style={{
+                  boxShadow: activeStep === i ? 'inset 0 -2px 0 var(--lp-accent)' : undefined,
                   borderInlineEnd:
                     i < steps.length - 1 && (i + 1) % 6 !== 0
                       ? '1px solid var(--lp-border-subtle)'
@@ -522,12 +432,16 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
     { id: `${copy.laneIdPrefix} 006`, from: copy.cities.darEsSalaam, to: copy.cities.mumbai, vol: '41K', avg: `4 ${copy.minutesUnit}` },
   ];
   return (
-    <Band tone="light">
+    <Band tone="dark" className="!max-w-none !px-0 !py-0">
+      <div className="relative isolate overflow-hidden border-y border-white/10">
+        <img src="/media/landing/africaa-map.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-center opacity-60" />
+        <div className="absolute inset-0 bg-[#0a0a0b]/75" />
+        <div className="relative mx-auto grid min-h-[680px] max-w-[1440px] items-center gap-14 px-[clamp(20px,5vw,72px)] py-[clamp(64px,9vw,132px)] lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
       <Reveal className="flex items-end justify-between gap-6 flex-wrap mb-14">
         <div>
-          <SectionTag>{copy.tag}</SectionTag>
-          <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
-            {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span>{copy.titleEnd}
+          <SectionTag tone="dark">{copy.tag}</SectionTag>
+          <h2 className="mt-6 max-w-[12ch] font-sans text-[clamp(2.7rem,5.4vw,5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.035em] text-balance">
+            {copy.titleStart}{' '}<span className="text-[var(--lp-accent)]">{copy.titleAccent}</span>{copy.titleEnd}
           </h2>
         </div>
       </Reveal>
@@ -540,22 +454,18 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}
             transition={{ duration: dur.base, ease: ease.out, delay: i * 0.04 }}
-            className="group flex flex-col md:grid md:grid-cols-[150px_1fr_120px_120px] gap-2 md:gap-6 md:items-baseline py-4 md:py-5"
+            className="group grid gap-2 border-b border-white/15 py-5 sm:grid-cols-[100px_1fr_auto] sm:items-baseline sm:gap-6 sm:py-6"
             style={{
-              borderTop: '1px solid var(--lp-border-light)',
-              borderBottom:
-                i === lanes.length - 1 ? '1px solid var(--lp-border-light)' : undefined,
+              borderTop: i === 0 ? '1px solid rgba(255,255,255,0.18)' : undefined,
             }}
           >
             <span
-              className="mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.08em]"
-              style={{ color: 'var(--lp-text-sub)' }}
+              className="mono text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55"
             >
               [:{l.id}]
             </span>
             <span
-              className="font-sans font-bold uppercase tracking-[-0.02em] leading-tight md:leading-none"
-              style={{ fontSize: 'clamp(18px, 2vw, 28px)', color: 'var(--lp-dark)' }}
+              className="font-sans text-[clamp(1.25rem,2.4vw,2rem)] font-bold uppercase leading-tight tracking-[-0.025em] text-white"
             >
               {l.from}{' '}
               <span style={{ color: 'var(--lp-text-sub)' }} aria-label={copy.toAria}>
@@ -564,20 +474,17 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
               {l.to}
             </span>
             <span
-              className="md:text-end mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
-              style={{ color: 'var(--lp-text-sub)' }}
+              className="flex items-center gap-3 mono text-[10px] uppercase tracking-[0.08em] text-white/62 sm:justify-self-end sm:text-right"
             >
-              {l.vol} USDC
-            </span>
-            <span
-              className="md:text-end mono text-[11px] md:text-[12px] tabular-nums uppercase tracking-[0.06em]"
-              style={{ color: 'var(--lp-text-sub)' }}
-            >
-              {copy.avgPrefix} {l.avg}
+              <span className="tabular-nums">{l.vol} USDC</span>
+              <span className="text-white/30">·</span>
+              <span className="tabular-nums">{copy.avgPrefix} {l.avg}</span>
             </span>
           </motion.li>
         ))}
       </ul>
+        </div>
+      </div>
     </Band>
   );
 }
@@ -615,7 +522,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
           {copy.title}
         </h2>
       </Reveal>
-      <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] sm:grid sm:grid-cols-2 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
         {cards.map((c, i) => (
           <motion.div
             key={c.tag}
@@ -624,7 +531,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: dur.base, ease: ease.out, delay: i * 0.06 }}
             whileHover={{ y: -2 }}
-            className="group relative flex flex-col p-7 aspect-[4/5]"
+            className="group relative flex min-w-[calc(100vw-40px)] snap-start flex-col p-7 aspect-[4/5] sm:min-w-0"
             style={{
               background: 'var(--surface-1)',
               border: '1px solid var(--lp-border-subtle)',
@@ -697,15 +604,22 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
   ];
   const [open, setOpen] = useState<string | null>('001');
   return (
-    <Band id="get-started" tone="light">
-      <Reveal>
+    <Band id="get-started" tone="light" className="!max-w-none !px-0 !py-0">
+      <div className="relative isolate overflow-hidden border-y border-black/10">
+        <div className="relative mx-auto grid min-h-[620px] max-w-[1440px] items-center gap-14 px-[clamp(20px,5vw,72px)] py-[clamp(64px,9vw,132px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+       <div className="relative min-h-[320px] overflow-hidden lg:min-h-[620px]">
+         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(180,210,82,0.16),transparent_58%)]" aria-hidden="true" />
+         <img src="/media/landing/onboard-cutout.png" alt="" aria-hidden="true" className="absolute bottom-0 start-1/2 h-[86%] w-[112%] max-w-none -translate-x-1/2 object-contain object-center lg:h-[92%]" />
+       </div>
+       <div className="relative z-10">
+       <Reveal>
         <SectionTag>{copy.tag}</SectionTag>
         <h2 className="mt-6 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] max-w-[18ch]">
           {copy.title}
         </h2>
       </Reveal>
 
-      <ul className="mt-14">
+      <ul className="mt-14 lg:mt-0">
         {steps.map((s, i) => {
           const isOpen = open === s.n;
           return (
@@ -757,7 +671,7 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
                     className="overflow-hidden"
                   >
                     <p
-                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ms-[100px]"
+                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ms-0 sm:ms-[100px]"
                       style={{ color: 'var(--lp-text-sub)' }}
                     >
                       {s.body}
@@ -768,7 +682,10 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
             </li>
           );
         })}
-      </ul>
+       </ul>
+       </div>
+         </div>
+      </div>
     </Band>
   );
 }

@@ -174,7 +174,7 @@ export function CTAPill({
   disabled?: boolean;
 }) {
   const base =
-    'inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] ' +
+    'group karwan-cta inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] ' +
     'transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ' +
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0';
@@ -200,6 +200,7 @@ export function CTAPill({
     return (
       <Link href={href} style={corners} className={className}>
         {children}
+        <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
       </Link>
     );
   }
@@ -212,6 +213,7 @@ export function CTAPill({
       className={className}
     >
       {children}
+      <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
     </button>
   );
 }

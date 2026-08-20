@@ -21,7 +21,7 @@ export function SoundToggle() {
       }}
       aria-label={muted ? 'Enable sound' : 'Mute sound'}
       title={muted ? 'Enable sound' : 'Mute sound'}
-      className="inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
     >
       {muted ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>

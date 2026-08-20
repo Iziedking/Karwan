@@ -1,6 +1,5 @@
 ﻿import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { Newsreader } from 'next/font/google';
 import { DEFAULT_LOCALE } from '@/shared/i18n/locales';
 import './globals.css';
 import { TopNav } from '@/shared/components/TopNav';
@@ -56,29 +55,6 @@ const generalSans = localFont({
   variable: '--font-general-sans',
   display: 'swap',
   adjustFontFallback: 'Arial',
-});
-
-/// Reading face for body copy, chosen 2026-08-20.
-///
-/// General Sans still carries every headline: it is the brand at 40px
-/// extrabold. It was also carrying the paragraphs, and the wide apertures and
-/// tall x-height that make it confident on a hero make it restless at 14px, so
-/// the small write-ups read as busy rather than quiet.
-///
-/// Newsreader is an editorial serif with optical sizing, so the 13px note is a
-/// different drawing from the 15px lede rather than the same one shrunk. A
-/// serif reading face under a bold sans display is what stops a settlement page
-/// looking like a product dashboard.
-///
-/// next/font/google self-hosts at build time, so this is same-origin with a
-/// metric-matched fallback. No third-party stylesheet, same as General Sans.
-const newsreader = Newsreader({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
-  variable: '--font-newsreader',
-  display: 'swap',
-  adjustFontFallback: true,
 });
 
 const SITE_URL = 'https://karwan.site';
@@ -143,7 +119,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable} ${newsreader.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable}`}
       suppressHydrationWarning
     >
       <head>

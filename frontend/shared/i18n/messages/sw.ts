@@ -3210,7 +3210,7 @@ export const sw: Messages = {
       body: 'Ankara za mipakani zilikuwa zikisubiri majuma kwenye reli za benki. Karwan inazimaliza kwa dakika. USDC inakaa ndani ya eskrow ya hatua kwenye Arc; sehemu hutolewa kazi inapokamilika.',
       ctaPrimary: 'Fungua Karwan ↓',
       ctaSecondary: 'Inavyofanya kazi →',
-      footnote: 'Hai kwenye Arc Testnet. Mikataba halisi, USDC ya testnet, hakuna mtaji halisi unaohatarishwa.',
+      footnote: 'LIVE KWENYE ARC TESTNET',
     },
     ecosystem: { tag: 'IMEJENGWA JUU YA' },
     directDeals: {

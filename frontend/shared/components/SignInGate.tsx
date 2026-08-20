@@ -1,5 +1,6 @@
 ﻿'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
@@ -32,7 +33,14 @@ export function SignInGate({
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
+  const reduce = useReducedMotion();
+  const [activePillar, setActivePillar] = useState(0);
   const isHero = variant === 'hero';
+  useEffect(() => {
+    if (!isHero || reduce) return;
+    const timer = window.setInterval(() => setActivePillar((index) => (index + 1) % 3), 2400);
+    return () => window.clearInterval(timer);
+  }, [isHero, reduce]);
   // The hero gate is the signed-out /app landing. Lead with what Karwan does,
   // not "sign in", so a first-time visitor understands the product before the
   // wallet step (the sign-in button sits below the story).
@@ -88,8 +96,21 @@ export function SignInGate({
           </p>
           {isHero && (
             <div className="fade-up fade-up-3 mt-10 grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl">
-              {heroPillars.map((p) => (
-                <div key={p.index} className="border-t border-white/15 pt-3.5">
+              {heroPillars.map((p, index) => (
+                <motion.div
+                  key={p.index}
+                  animate={
+                    reduce
+                      ? undefined
+                      : {
+                          opacity: activePillar === index ? 1 : 0.56,
+                          y: activePillar === index ? 0 : 2,
+                        }
+                  }
+                  transition={{ duration: reduce ? 0 : 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="border-t pt-3.5"
+                  style={{ borderTopColor: activePillar === index ? 'var(--lp-accent)' : 'rgba(255,255,255,0.15)' }}
+                >
                   <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
                     {p.index}
                   </span>
@@ -97,7 +118,7 @@ export function SignInGate({
                     {p.title}
                   </p>
                   <p className="mt-1.5 text-[12.5px] leading-snug text-white/60">{p.body}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
@@ -107,8 +128,8 @@ export function SignInGate({
               onClick={() => setOpen(true)}
               className={
                 isHero
-                  ? 'inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]'
-                  : 'inline-flex items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.45)] hover:shadow-[0_4px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]'
+                  ? 'group inline-flex min-h-11 items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]'
+                  : 'group inline-flex min-h-11 items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.45)] hover:shadow-[0_4px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]'
               }
               style={{
                 borderTopLeftRadius: isHero ? 14 : 12,
@@ -118,7 +139,7 @@ export function SignInGate({
               }}
             >
               {resolvedButton}
-              <span aria-hidden>→</span>
+              <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">→</span>
             </button>
           </div>
         </div>

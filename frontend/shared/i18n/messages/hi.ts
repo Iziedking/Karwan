@@ -3210,7 +3210,7 @@ export const hi: Messages = {
       body: 'क्रॉस-बॉर्डर इनवॉइस पहले बैंक रेल्स पर हफ़्तों इंतज़ार करते थे. Karwan उन्हें मिनटों में सेटल करता है. USDC Arc पर माइलस्टोन एस्क्रो में रहता है; काम पूरा होते ही किस्तें रिलीज़ होती हैं.',
       ctaPrimary: 'Karwan खोलें ↓',
       ctaSecondary: 'यह कैसे काम करता है →',
-      footnote: 'Arc Testnet पर लाइव. असली कॉन्ट्रैक्ट, टेस्टनेट USDC, कोई असली पूंजी जोखिम में नहीं.',
+      footnote: 'ARC TESTNET पर लाइव',
     },
     ecosystem: { tag: 'किस पर बना' },
     directDeals: {

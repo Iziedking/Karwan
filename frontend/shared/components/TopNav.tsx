@@ -1,10 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
-import { LiveDot } from './LiveDot';
 import { ConnectWalletButton } from './ConnectWallet';
 import { ThemeToggle } from './ThemeToggle';
 import { SoundToggle } from './SoundToggle';
@@ -174,9 +173,6 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
-                <div className="hidden md:inline-flex">
-                  <LiveDot />
-                </div>
                 <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
                   <NotificationBell />
                   <QuickControls
@@ -184,10 +180,15 @@ export function TopNav() {
                     settingsActive={pathname.startsWith('/settings')}
                   />
                 </div>
-                {/* Mobile keeps only the bell up top. Settings moves into the menu
-                    footer (below) so the wallet pill isn't squeezed off-screen. */}
+                {/* Mobile keeps the high-signal bell and a compact preferences
+                    menu. Theme, sound, reputation, profile, help, and settings
+                    remain one thumb away instead of disappearing at small widths. */}
                 <div className="md:hidden inline-flex items-center gap-0.5">
                   <NotificationBell />
+                  <QuickControls
+                    isAuthenticated={isAuthenticated}
+                    settingsActive={pathname.startsWith('/settings')}
+                  />
                 </div>
                 <ConnectWalletButton />
                 <span className="hidden md:inline-flex"><ProfileAvatar /></span>
@@ -211,9 +212,9 @@ export function TopNav() {
           ) : (
             <>
               <div className="hidden sm:inline-flex">
-                <SoundToggle />
+                <ThemeToggle />
               </div>
-              <div className="hidden sm:inline-flex">
+              <div className="md:hidden inline-flex">
                 <ThemeToggle />
               </div>
               <LaunchAppCTA />
@@ -361,13 +362,33 @@ function QuickControls({
 }) {
   const t = useTranslations().nav;
   const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={t.preferencesAria}
         aria-expanded={open}
+        aria-controls={menuId}
         className={cn(
           'inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors',
           open || settingsActive
@@ -382,9 +403,13 @@ function QuickControls({
         </svg>
       </button>
       {open && (
-        <div className="absolute end-0 top-full pt-2 z-40">
+        <div
+          id={menuId}
+          className="absolute end-0 top-full z-50 pt-2 max-md:fixed max-md:inset-x-4 max-md:top-[76px] max-md:w-auto"
+        >
           <div
-            className="w-[224px] p-2 border bg-[var(--color-surface)] fade-up"
+            role="menu"
+            className="w-[min(302px,calc(100vw-32px))] p-2 border bg-[var(--color-surface)] fade-up"
             style={{
               borderColor: 'var(--color-line)',
               borderTopLeftRadius: 16,
@@ -403,7 +428,7 @@ function QuickControls({
             <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
             <Link
               href="/how-it-works"
-              className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+              className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
             >
               <span>{t.help}</span>
               <span aria-hidden className="text-[var(--color-ink-faint)]">
@@ -437,7 +462,7 @@ function MenuLink({ href, children }: { href: string; children: React.ReactNode 
   return (
     <Link
       href={href}
-      className="flex items-center justify-between gap-3 px-2.5 py-2 text-[13px] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)]"
+      className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 text-[13px] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)]"
       style={{ borderRadius: 8 }}
     >
       <span>{children}</span>
@@ -448,7 +473,7 @@ function MenuLink({ href, children }: { href: string; children: React.ReactNode 
 
 function ControlRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-lg">
+    <div role="menuitem" className="flex min-h-12 items-center justify-between gap-3 px-2.5 py-1.5 rounded-lg">
       <span className="text-[13px] text-[var(--color-ink-dim)]">{label}</span>
       {children}
     </div>
