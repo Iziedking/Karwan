@@ -12,6 +12,7 @@
     "test:onboarding": "tsx --test features/onboarding/journey.test.ts",
     "test:auth": "tsx --test shared/auth/authPresentation.test.ts shared/auth/sessionStore.test.ts",
     "test:discovery": "tsx --test features/discovery/model.test.ts",
+    "test:activity": "tsx --test features/activity/ledgerPresentation.test.ts",
     "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts"
   },
   "dependencies": {

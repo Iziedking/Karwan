@@ -5,6 +5,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { ledgerReferenceLabel, ledgerStatusTone } from '../ledgerPresentation';
 
 /// The user's own money, in one list.
 ///
@@ -85,6 +86,7 @@ export function MyMoneyLedger() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [copiedReference, setCopiedReference] = useState<string | null>(null);
 
   const rows = useMemo(() => (items ? collapse(items, t.text) : []), [items, t.text]);
   const visible = expanded ? rows : rows.slice(0, VISIBLE);
@@ -113,6 +115,16 @@ export function MyMoneyLedger() {
     [load],
   );
 
+  async function copyReference(reference: string) {
+    try {
+      await navigator.clipboard.writeText(reference);
+      setCopiedReference(reference);
+      window.setTimeout(() => setCopiedReference(null), 1500);
+    } catch {
+      // The complete reference remains selectable when clipboard access is unavailable.
+    }
+  }
+
   if (failed && !items) return null;
 
   return (
@@ -129,7 +141,13 @@ export function MyMoneyLedger() {
       </div>
 
       {items === null ? (
-        <p className="text-[13px] text-[var(--lp-text-muted)]">{t.loading}</p>
+        <div
+          role="status"
+          aria-label={t.loading}
+          className="h-1 w-full overflow-hidden bg-[var(--lp-border-light)]"
+        >
+          <span className="block h-full w-1/3 bg-[var(--lp-accent)] motion-safe:animate-pulse" />
+        </div>
       ) : items.length === 0 ? (
         <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
           {t.empty}
@@ -139,15 +157,15 @@ export function MyMoneyLedger() {
           {visible.map(({ item, repeat }) => {
             const href = explorerFor(item);
             return (
-              <li key={item.id} className="py-3 flex items-baseline justify-between gap-4">
-                <div className="min-w-0">
+              <li key={item.id} className="flex items-baseline justify-between gap-4 py-3">
+                <div className="min-w-0 flex-1">
                   <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{lineFor(item, t.text)}</p>
                   <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                     {when(item.ts, t.justNow)}
                     {item.status !== 'done' && (
                       <>
                         {' · '}
-                        <span style={{ color: item.status === 'failed' ? TONE.failed : TONE.pending }}>
+                        <span style={{ color: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending }}>
                           {item.status === 'failed' ? t.failed : t.pending}
                         </span>
                       </>
@@ -167,7 +185,7 @@ export function MyMoneyLedger() {
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    className="inline-flex min-h-11 shrink-0 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                   >
                     {t.receipt}
                   </a>
@@ -175,11 +193,21 @@ export function MyMoneyLedger() {
                   // A pooled-balance move has a Circle transfer id and no chain
                   // transaction, so there is nothing to link. Show the reference
                   // rather than an empty gap, so the row is still traceable.
-                  item.refId && (
-                    <span className="shrink-0 mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)]">
-                      {item.refId.slice(0, 10)}
-                    </span>
-                  )
+                  (() => {
+                    const reference = ledgerReferenceLabel(item.refId);
+                    if (!reference) return null;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => copyReference(reference)}
+                        aria-label={`${t.receipt}: ${reference}`}
+                        className="inline-flex min-h-11 max-w-[48%] shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)]"
+                      >
+                        <span className="break-all text-start">{reference}</span>
+                        <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
+                      </button>
+                    );
+                  })()
                 )}
               </li>
             );
@@ -191,7 +219,7 @@ export function MyMoneyLedger() {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+          className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
         >
           {/* No count here. The header already states how many moves there
               were; a second number counting collapsed rows instead read as a
