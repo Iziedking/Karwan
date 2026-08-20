@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { MoneyMovementState, MoneyMovementView } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Skeleton } from '@/shared/components/Skeleton';
+import { PortableReceipt, type PortableReceiptItem } from '@/features/activity/components/PortableReceipt';
 
 export type SettlementRecordFetchState = 'loading' | 'ready' | 'error' | 'unavailable';
 
@@ -55,9 +56,12 @@ export function SettlementRecord({
   refundTxHash?: string;
   onRetry: () => void;
 }) {
-  const copy = useTranslations().directDealDetail.settlementRecord;
+  const translations = useTranslations();
+  const copy = translations.directDealDetail.settlementRecord;
+  const receiptCopy = translations.activity.myMoney;
   const [openReference, setOpenReference] = useState<string | null>(null);
   const [copiedReference, setCopiedReference] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<PortableReceiptItem | null>(null);
   const hasFundingMovement = movements.some((movement) => movement.kind === 'escrow_funding');
   const legacyReceipts: LegacyReceipt[] = [
     ...(fundTxHash && !hasFundingMovement
@@ -139,6 +143,20 @@ export function SettlementRecord({
             const nextAction = movement.nextActor === 'none'
               ? copy.next.none
               : copy.next[movement.nextActor];
+            const receiptItem: PortableReceiptItem = {
+              ts: movement.completedAt ?? movement.updatedAt,
+              summary: movement.summary,
+              amountUsdc: movement.amountUsdc,
+              refId: movement.reference,
+              txHash: movement.legs.find((leg) => leg.txHash)?.txHash ?? null,
+              chain: 'arc',
+              status: movement.state === 'completed'
+                ? 'done'
+                : movement.state === 'needs_attention' || movement.state === 'cancelled'
+                  ? 'failed'
+                  : 'pending',
+            };
+            const proofHref = movement.legs.find((leg) => leg.explorerUrl && leg.txHash)?.explorerUrl ?? null;
             return (
               <article key={movement.reference} className="rounded-[12px] border border-white/[0.08] bg-white/[0.025] p-4 sm:p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -177,16 +195,25 @@ export function SettlementRecord({
                       {copy.nextLabel}: {nextAction}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    aria-expanded={expanded}
-                    aria-controls={`proof-${movement.reference}`}
-                    onClick={() => setOpenReference(expanded ? null : movement.reference)}
-                    className="inline-flex min-h-11 items-center justify-between gap-5 rounded-[10px] border border-white/15 px-4 mono text-[11px] uppercase tracking-[0.14em] text-white/70 transition-colors hover:border-white/30 hover:text-white"
-                  >
-                    {expanded ? copy.hideProof : copy.showProof}
-                    <span aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}>›</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReceipt(receiptItem)}
+                      className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-accent)]/45 px-4 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-accent)] transition-colors hover:border-[var(--lp-accent)] hover:bg-[var(--lp-accent)]/10"
+                    >
+                      {receiptCopy.viewReceipt}
+                    </button>
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={`proof-${movement.reference}`}
+                      onClick={() => setOpenReference(expanded ? null : movement.reference)}
+                      className="inline-flex min-h-11 items-center justify-between gap-5 rounded-[10px] border border-white/15 px-4 mono text-[11px] uppercase tracking-[0.14em] text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                    >
+                      {expanded ? copy.hideProof : copy.showProof}
+                      <span aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}>›</span>
+                    </button>
+                  </div>
                 </div>
 
                 {expanded && (
@@ -247,6 +274,18 @@ export function SettlementRecord({
             ))}
           </div>
         </div>
+      )}
+
+      {selectedReceipt && (
+        <PortableReceipt
+          item={selectedReceipt}
+          copy={receiptCopy}
+          closeLabel={translations.common.close}
+          proofHref={movements
+            .flatMap((movement) => movement.legs)
+            .find((leg) => leg.txHash === selectedReceipt.txHash)?.explorerUrl ?? null}
+          onClose={() => setSelectedReceipt(null)}
+        />
       )}
     </section>
   );

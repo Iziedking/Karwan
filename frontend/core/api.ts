@@ -3010,14 +3010,26 @@ export const api = {
     /// the backend/Circle dedupe the transfer instead of paying twice.
     requestId?: string;
   }) =>
-    json<{ ok: true; txHash: string; explorerUrl: string }>(
+    json<{
+      ok: true;
+      txHash: string;
+      explorerUrl: string;
+      reference: string;
+      movementState: string;
+    }>(
       '/api/cashout/arc-withdraw',
       { method: 'POST', body: JSON.stringify(input) },
     ),
   /// Instant same-chain Arc send: USDC.transfer from the signed-in user's
   /// Karwan identity wallet to any Arc address. No CCTP, settles in one step.
   cashoutArcSend: (input: { recipient: string; amountUsdc: number; bridgeId?: string }) =>
-    json<{ ok: true; txHash: string; explorerUrl: string }>(
+    json<{
+      ok: true;
+      txHash: string;
+      explorerUrl: string;
+      reference: string;
+      movementState: string;
+    }>(
       '/api/cashout/arc-send',
       { method: 'POST', body: JSON.stringify(input) },
     ),
@@ -3187,7 +3199,14 @@ export const api = {
     sourceKind?: 'identity' | 'sellerAgent' | 'buyerAgent';
     sourceJobId?: string;
   }) =>
-    json<{ accepted: true; bridgeId: string; status: string; direction: 'out' }>(
+    json<{
+      accepted: true;
+      bridgeId: string;
+      status: string;
+      direction: 'out';
+      reference: string;
+      movementState: string;
+    }>(
       '/api/bridge/circle-bridge-out',
       { method: 'POST', body: JSON.stringify(input) },
     ),
@@ -3233,6 +3252,8 @@ export const api = {
   bridgeStatus: (bridgeId: string) =>
     json<{
       bridgeId: string;
+      reference: string | null;
+      movementState: 'created' | 'preparing' | 'submitted' | 'verifying' | 'completed' | 'needs_attention' | 'cancelled' | null;
       direction: 'in' | 'out';
       status: string;
       amountUsdc: string;

@@ -37,6 +37,7 @@ import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, BRIDGE_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { completedBridgeLabel } from './bridgeHistoryPresentation';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
@@ -1056,7 +1057,15 @@ export function BridgeRow({
             retired entirely. Terminal phases show just the label. */}
         <StatusPill
           tone={tone}
-          label={phaseLabel(bridge.phase, copy.phase, meta.shortName)}
+          // A completed inbound bridge adds USDC to Arc; a completed outbound
+          // bridge sends it away. Reusing the inbound phase label here made
+          // every cash-out look like an "Added" deposit in Transfer history.
+          label={completedBridgeLabel({
+            phase: bridge.phase,
+            direction: isOut ? 'out' : 'in',
+            receivedLabel: phaseLabel(bridge.phase, copy.phase, meta.shortName),
+            sentLabel: copy.mintLabelOutTemplate.replace('{chain}', meta.shortName.toUpperCase()),
+          })}
           stepIdx={idx + 1}
           totalSteps={STEP_ORDER.length}
           isInflight={

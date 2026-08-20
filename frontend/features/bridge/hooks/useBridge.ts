@@ -259,23 +259,30 @@ function loadFromStorage(address: `0x${string}` | null | undefined): BridgeRecor
     return arr
       .filter((b) => (b.updatedAt ?? b.startedAt ?? 0) > cutoff)
       .map((b) => {
+        // Older same-chain Arc sends predated the explicit direction field.
+        // `arc` cannot be an inbound source, so recover the safe outbound
+        // meaning instead of presenting a withdrawal as an added deposit.
+        const normalised =
+          !b.direction && (b.sourceChainKey as string) === 'arc'
+            ? { ...b, direction: 'out' as const }
+            : b;
         // Circle bridges run approve+burn on the backend, so they keep
         // progressing after a reload. Leave them in place; the auto-resume
         // effect re-syncs them with the backend and SSE animates the rest.
-        if (isCircleBridgeId(b.id)) return b;
+        if (isCircleBridgeId(normalised.id)) return normalised;
         if (
-          b.phase === 'switching' ||
-          b.phase === 'approving' ||
-          b.phase === 'burning' ||
-          b.phase === 'relaying'
+          normalised.phase === 'switching' ||
+          normalised.phase === 'approving' ||
+          normalised.phase === 'burning' ||
+          normalised.phase === 'relaying'
         ) {
           return {
-            ...b,
+            ...normalised,
             phase: 'error' as const,
-            error: b.error ?? 'Interrupted on reload. Retry to resume.',
+            error: normalised.error ?? 'Interrupted on reload. Retry to resume.',
           };
         }
-        return b;
+        return normalised;
       });
   } catch {
     return [];
@@ -389,7 +396,7 @@ function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): Brid
     // client keeps both in `sourceChainKey` (for an out-bridge that means the
     // destination). Reading only r.sourceChainKey discarded every cash-out as
     // "unrenderable", which is why they never came back in Transfer history.
-    const chainKey = r.direction === 'out' ? r.destChainKey : r.sourceChainKey;
+    const chainKey = r.direction === 'out' ? (r.destChainKey ?? r.sourceChainKey) : r.sourceChainKey;
     if (!chainKey) continue; // missing chain context, unrenderable
     /// The mintRecipient is the eventual mint destination. For 'in'
     /// bridges that's the user's Arc wallet (the row needs it to render

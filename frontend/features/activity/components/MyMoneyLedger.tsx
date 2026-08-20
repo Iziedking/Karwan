@@ -6,6 +6,8 @@ import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { ledgerReferenceLabel, ledgerStatusTone } from '../ledgerPresentation';
+import { redactWalletAddresses } from '../receiptPresentation';
+import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 
 /// The user's own money, in one list.
 ///
@@ -23,7 +25,7 @@ const TONE = {
 
 /// A cross-chain move settles on its own chain, so the receipt has to point at
 /// that chain's explorer. Anything else happened on Arc.
-function explorerFor(item: Item): string | null {
+function explorerFor(item: Pick<Item, 'txHash' | 'chain'>): string | null {
   if (!item.txHash) return null;
   const chain = item.chain ? SOURCE_CHAINS[item.chain as keyof typeof SOURCE_CHAINS] : undefined;
   return chain ? chain.explorerTx(item.txHash) : ARC_EXPLORER_TX(item.txHash);
@@ -43,8 +45,11 @@ type Row = { item: Item; repeat: number };
 function lineFor(item: Item, texts: Record<string, string>): string {
   const p = (item as { params?: Record<string, string> | null }).params;
   const tpl = p?.t ? texts[p.t] : undefined;
-  if (!tpl || !p) return item.summary;
-  return tpl.replace(/\{(\w+)\}/g, (whole, key: string) => p[key] ?? whole);
+  if (!tpl || !p) return redactWalletAddresses(item.summary);
+  return redactWalletAddresses(tpl.replace(/\{(\w+)\}/g, (whole, key: string) => {
+    const value = p[key] ?? whole;
+    return key === 'to' && value.length > 12 ? 'counterparty' : value;
+  }));
 }
 
 /// A bridge that failed and retried twenty-four times is one thing that went
@@ -82,11 +87,13 @@ function when(ts: number, justNow: string): string {
 }
 
 export function MyMoneyLedger() {
-  const t = useTranslations().activity.myMoney;
+  const translations = useTranslations();
+  const t = translations.activity.myMoney;
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [copiedReference, setCopiedReference] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<PortableReceiptItem | null>(null);
 
   const rows = useMemo(() => (items ? collapse(items, t.text) : []), [items, t.text]);
   const visible = expanded ? rows : rows.slice(0, VISIBLE);
@@ -180,20 +187,18 @@ export function MyMoneyLedger() {
                     )}
                   </p>
                 </div>
-                {href ? (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-11 shrink-0 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-                  >
-                    {t.receipt}
-                  </a>
-                ) : (
-                  // A pooled-balance move has a Circle transfer id and no chain
-                  // transaction, so there is nothing to link. Show the reference
-                  // rather than an empty gap, so the row is still traceable.
-                  (() => {
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                  {href && (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    >
+                      {t.receipt}
+                    </a>
+                  )}
+                  {(() => {
                     const reference = ledgerReferenceLabel(item.refId);
                     if (!reference) return null;
                     return (
@@ -201,14 +206,21 @@ export function MyMoneyLedger() {
                         type="button"
                         onClick={() => copyReference(reference)}
                         aria-label={`${t.receipt}: ${reference}`}
-                        className="inline-flex min-h-11 max-w-[48%] shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)]"
+                        className="inline-flex min-h-11 max-w-[48%] items-center gap-1 mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                       >
                         <span className="break-all text-start">{reference}</span>
                         <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
                       </button>
                     );
-                  })()
-                )}
+                  })()}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReceipt(item)}
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                  >
+                    {t.viewReceipt}
+                  </button>
+                </div>
               </li>
             );
           })}
@@ -226,6 +238,16 @@ export function MyMoneyLedger() {
               contradiction (43 moves, "see all 20"). */}
           {expanded ? t.showLess : t.showAll}
         </button>
+      )}
+
+      {selectedReceipt && (
+        <PortableReceipt
+          item={selectedReceipt}
+          copy={t}
+          closeLabel={translations.common.close}
+          proofHref={explorerFor(selectedReceipt)}
+          onClose={() => setSelectedReceipt(null)}
+        />
       )}
     </section>
   );

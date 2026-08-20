@@ -48,16 +48,33 @@ function isTimelineEvent(event: ChainEvent): boolean {
   return !HIDDEN_FROM_TIMELINE.has(event.type);
 }
 
-export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) {
+export type LiveEventsStatus = 'loading' | 'ready' | 'error';
+
+export interface LiveEventsState {
+  events: ChainEvent[];
+  status: LiveEventsStatus;
+}
+
+export function useLiveEventsState(
+  filterJobId?: string,
+  max = 100,
+  caller?: string,
+  retryKey = 0,
+): LiveEventsState {
   const [events, setEvents] = useState<ChainEvent[]>([]);
+  const [status, setStatus] = useState<LiveEventsStatus>('loading');
   const callerLower = caller?.toLowerCase();
 
   useEffect(() => {
+    setStatus('loading');
     api
       .activity(max, filterJobId, caller)
-      .then(({ events: raw }) => setEvents(raw.filter(isTimelineEvent)))
-      .catch(() => {});
-  }, [filterJobId, max, caller]);
+      .then(({ events: raw }) => {
+        setEvents(raw.filter(isTimelineEvent));
+        setStatus('ready');
+      })
+      .catch(() => setStatus('error'));
+  }, [filterJobId, max, caller, retryKey]);
 
   useEffect(() => {
     return subscribeLiveEvents((parsed) => {
@@ -82,5 +99,10 @@ export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) 
     });
   }, [filterJobId, max, callerLower]);
 
+  return { events, status };
+}
+
+export function useLiveEvents(filterJobId?: string, max = 100, caller?: string) {
+  const { events } = useLiveEventsState(filterJobId, max, caller);
   return events;
 }

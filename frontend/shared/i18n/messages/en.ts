@@ -525,6 +525,17 @@ interface MessagesShape {
       pending: string;
       failed: string;
       receipt: string;
+      viewReceipt: string;
+      receiptTitle: string;
+      receiptReference: string;
+      receiptAmount: string;
+      receiptStatus: string;
+      receiptDate: string;
+      receiptProof: string;
+      receiptHistorical: string;
+      receiptExportPdf: string;
+      receiptExportImage: string;
+      receiptSharedNote: string;
       justNow: string;
       repeated: string;
       showAll: string;
@@ -5111,6 +5122,17 @@ export const en: MessagesShape = {
       pending: 'IN FLIGHT',
       failed: 'FAILED',
       receipt: 'RECEIPT',
+      viewReceipt: 'VIEW RECEIPT',
+      receiptTitle: 'Karwan receipt',
+      receiptReference: 'KARWAN REFERENCE',
+      receiptAmount: 'AMOUNT',
+      receiptStatus: 'STATUS',
+      receiptDate: 'DATE',
+      receiptProof: 'NETWORK PROOF',
+      receiptHistorical: 'Historical transfer. A Karwan reference was not recorded for this movement.',
+      receiptExportPdf: 'PRINT / SAVE PDF',
+      receiptExportImage: 'DOWNLOAD IMAGE',
+      receiptSharedNote: 'Share this receipt to show the movement details without exposing wallet addresses.',
       justNow: 'just now',
       repeated: '×{n}',
       showAll: 'SEE ALL',
@@ -6901,7 +6923,7 @@ export const en: MessagesShape = {
       stale: 'STALE',
       burnLabelTemplate: 'SENT · {chain}',
       mintLabel: 'ADDED · ARC',
-      mintLabelOutTemplate: 'ADDED · {chain}',
+      mintLabelOutTemplate: 'SENT · {chain}',
       routeFromTemplate: 'from {chain}',
       routeToTemplate: 'to {chain}',
       stuckNote: 'This bridge has been waiting far longer than the usual 10 to 19 minutes. The relay was likely interrupted, or the mint already landed and this card missed the event. Dismissing it only clears the card. The burn on chain and any mint are unaffected.',

@@ -7,6 +7,7 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { api, ApiError, type BridgeChainKey, type AppKitBridgeChainKey } from '@/core/api';
 import { useBridges } from '@/features/bridge/hooks/useBridge';
 import { BridgeActivityStrip } from '@/features/bridge/components/BridgeActivityStrip';
+import { PortableReceipt } from '@/features/activity/components/PortableReceipt';
 import { useHiddenActivityBridgeIds } from '@/features/bridge/components/BridgeCard';
 import type { CctpChainKey } from '@/features/bridge/config';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -92,7 +93,8 @@ function CashoutPageInner() {
   const params = useParams<{ jobId: string }>();
   const jobId = params?.jobId ?? '';
   const auth = useAuth();
-  const cp = useTranslations().cashoutPage;
+  const messages = useTranslations();
+  const cp = messages.cashoutPage;
   const [info, setInfo] = useState<CashoutInfo | null>(null);
   const [fetchState, setFetchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -233,6 +235,8 @@ function CashoutContent({
 }
 
 function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) {
+  const messages = useTranslations();
+  const receiptCopy = messages.activity.myMoney;
   const isWeb3Account = info.accountKind === 'wallet';
   const bridge = useBridges();
   const { address: connectedAddress, isConnected, connector } = useAccount();
@@ -268,8 +272,18 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ txHash: string; explorerUrl: string } | null>(null);
-  const [bridgeResult, setBridgeResult] = useState<{ bridgeId: string } | null>(null);
+  const [result, setResult] = useState<{
+    txHash: string;
+    explorerUrl: string;
+    reference: string;
+    amountUsdc: string;
+    summary: string;
+  } | null>(null);
+  const [bridgeResult, setBridgeResult] = useState<{
+    bridgeId: string;
+    reference: string;
+  } | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Web3 own-wallet out isn't wired for Solana yet (no wagmi Solana connector),
@@ -342,7 +356,13 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           // Circle instead of transferring twice.
           requestId: crypto.randomUUID(),
         });
-        setResult({ txHash: r.txHash, explorerUrl: r.explorerUrl });
+        setResult({
+          txHash: r.txHash,
+          explorerUrl: r.explorerUrl,
+          reference: r.reference,
+          amountUsdc: amountNum.toString(),
+          summary: `Cashed out ${amountNum} USDC to a counterparty`,
+        });
       } else if (dest === 'solanaDevnet') {
         setError(copy.errors.solanaRoadmap);
       } else {
@@ -356,7 +376,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           sourceKind: walletKind,
           ...(walletKind === 'sellerAgent' ? { sourceJobId: info.jobId } : {}),
         });
-        setBridgeResult({ bridgeId: r.bridgeId });
+        setBridgeResult({ bridgeId: r.bridgeId, reference: r.reference });
       }
     } catch (err) {
       const message =
@@ -391,6 +411,13 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           <CTAPill
             variant="secondary"
             tone="light"
+            onClick={() => setReceiptOpen(true)}
+          >
+            {receiptCopy.viewReceipt}
+          </CTAPill>
+          <CTAPill
+            variant="secondary"
+            tone="light"
             onClick={() => {
               setResult(null);
               setAmount('');
@@ -400,6 +427,23 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
             {copy.sent.sendMore}
           </CTAPill>
         </div>
+        {receiptOpen && (
+          <PortableReceipt
+            item={{
+              ts: Date.now(),
+              summary: result.summary,
+              amountUsdc: result.amountUsdc,
+              refId: result.reference,
+              txHash: result.txHash,
+              chain: 'arc',
+              status: 'done',
+            }}
+            copy={receiptCopy}
+            closeLabel={messages.common.close}
+            proofHref={result.explorerUrl}
+            onClose={() => setReceiptOpen(false)}
+          />
+        )}
       </PageCard>
     );
   }
@@ -408,6 +452,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
     return (
       <BridgeProgressCard
         bridgeId={bridgeResult.bridgeId}
+        reference={bridgeResult.reference}
         amount={amount}
         destLabel={destLabel(dest)}
         onSendMore={() => {
@@ -416,6 +461,8 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           setRecipient('');
         }}
         copy={copy}
+        receiptCopy={receiptCopy}
+        closeLabel={messages.common.close}
       />
     );
   }
@@ -683,23 +730,30 @@ function bridgeStageCopy(
 
 interface BridgeProgressCardProps {
   bridgeId: string;
+  reference: string;
   amount: string;
   destLabel: string;
   onSendMore: () => void;
   copy: CashoutCopy;
+  receiptCopy: Messages['activity']['myMoney'];
+  closeLabel: string;
 }
 
 /// Inline bridge progress card. Polls every 4s, exposes the burn and mint
 /// tx hashes as they land. Keeps the cashout flow on a single page.
 function BridgeProgressCard({
   bridgeId,
+  reference,
   amount,
   destLabel,
   onSendMore,
   copy,
+  receiptCopy,
+  closeLabel,
 }: BridgeProgressCardProps) {
   const [status, setStatus] = useState<Awaited<ReturnType<typeof api.bridgeStatus>> | null>(null);
   const [pollError, setPollError] = useState<string | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -726,7 +780,14 @@ function BridgeProgressCard({
     };
   }, [bridgeId, copy.bridgeProgress.couldNotCheck]);
 
-  const stage = bridgeStageCopy(status?.status ?? 'burning', copy.bridgeStage);
+  const stage = bridgeStageCopy(
+    status?.movementState === 'completed'
+      ? 'minted'
+      : status?.movementState === 'needs_attention'
+        ? 'error'
+        : status?.status ?? 'burning',
+    copy.bridgeStage,
+  );
 
   return (
     <PageCard className="p-6 sm:p-8">
@@ -805,10 +866,32 @@ function BridgeProgressCard({
 
       {(stage.done || stage.failed) && (
         <div className="mt-7 flex flex-wrap gap-3">
+          {stage.done && (
+            <CTAPill onClick={() => setReceiptOpen(true)}>
+              {receiptCopy.viewReceipt}
+            </CTAPill>
+          )}
           <CTAPill onClick={onSendMore}>
             {stage.done ? copy.bridgeProgress.sendMore : copy.bridgeProgress.tryAgain}
           </CTAPill>
         </div>
+      )}
+      {receiptOpen && stage.done && (
+        <PortableReceipt
+          item={{
+            ts: status?.updatedAt ?? Date.now(),
+            summary: `Cashed out ${amount} USDC to ${destLabel}`,
+            amountUsdc: amount,
+            refId: status?.reference ?? reference,
+            txHash: status?.sourceTxHash ?? status?.mintTxHash ?? null,
+            chain: 'arc',
+            status: 'done',
+          }}
+          copy={receiptCopy}
+          closeLabel={closeLabel}
+          proofHref={status?.sourceTxHash ? `https://testnet.arcscan.app/tx/${status.sourceTxHash}` : null}
+          onClose={() => setReceiptOpen(false)}
+        />
       )}
     </PageCard>
   );

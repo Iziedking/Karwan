@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useLiveEvents } from '@/shared/hooks/useLiveEvents';
+import { useLiveEventsState } from '@/shared/hooks/useLiveEvents';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { EventList } from '@/features/jobs/components/EventList';
 import { ActivityStats } from './ActivityStats';
@@ -21,20 +21,22 @@ const PAGE_SIZE = 20;
 
 export function ActivityView({ explorer }: { explorer: string }) {
   const t = useTranslations().activity.view;
+  const messages = useTranslations();
   const auth = useAuth();
   const address = auth.address ?? undefined;
   const isAuthed = auth.isAuthenticated;
   // Platform-wide stream: every deal moving across Karwan, not just the caller's.
   // Passing no caller returns the global feed. The page itself stays sign-in
   // gated below.
-  const rawEvents = useLiveEvents(undefined, 200);
+  const [retryKey, setRetryKey] = useState(0);
+  const publicFeed = useLiveEventsState(undefined, 200, undefined, retryKey);
   // General feed = a privacy PULSE: it shows that activity is happening and of
   // what kind, never who, how much, or which deal. publicizeEvents drops every
   // party, amount, deal id, and free-form field (the live SSE stream carries raw
   // payloads, so the strip happens here, mirroring the backend's pulse). A user
   // still sees full detail of their OWN deals on the deal page; this network
   // feed is deliberately detail-free.
-  const events = useMemo(() => publicizeEvents(rawEvents), [rawEvents]);
+  const events = useMemo(() => publicizeEvents(publicFeed.events), [publicFeed.events]);
 
   // The caller's own events, as a SEPARATE subscription.
   //
@@ -51,8 +53,8 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // `filterJobId`, so the backfill asked for events whose jobId equalled a
   // wallet address (never any) and the live branch dropped everything whose
   // jobId did not equal one. ME had returned zero events since it shipped.
-  const myRawEvents = useLiveEvents(undefined, 200, address);
-  const myEvents = useMemo(() => myRawEvents.filter(isOwnEvent), [myRawEvents]);
+  const myFeed = useLiveEventsState(undefined, 200, address, retryKey);
+  const myEvents = useMemo(() => myFeed.events.filter(isOwnEvent), [myFeed.events]);
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the
   // user signs in.
@@ -65,6 +67,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // The caller's own rows do, and become links. The difference is the backend's
   // decision, surfaced rather than made here.
   const source = onlyMine ? myEvents : events;
+  const sourceStatus = onlyMine ? myFeed.status : publicFeed.status;
   const filters: Filters = useMemo(
     () => ({ groups, actors, jobIdSearch }),
     [groups, actors, jobIdSearch],
@@ -85,6 +88,8 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * PAGE_SIZE;
   const pageEvents = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const streamLoading = sourceStatus === 'loading' && source.length === 0;
+  const streamError = sourceStatus === 'error' && source.length === 0;
 
   function goToPage(p: number) {
     setPage(p);
@@ -185,7 +190,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
               type="button"
               onClick={() => setOnlyMine(v)}
               aria-pressed={onlyMine === v}
-              className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition ${
+              className={`inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
                 onlyMine === v
                   ? 'bg-[var(--lp-band-dark)] text-[var(--lp-accent)] border-[var(--lp-band-dark)] font-bold'
                   : 'border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)]'
@@ -208,10 +213,79 @@ export function ActivityView({ explorer }: { explorer: string }) {
           showSearch={false}
         />
 
-        <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
+        {streamLoading ? (
+          <StreamSkeleton label={messages.common.loading} />
+        ) : streamError ? (
+          <StreamError
+            body={messages.activity.allTime.errorBody}
+            retryLabel={messages.directDealDetail.settlementRecord.retry}
+            onRetry={() => setRetryKey((value) => value + 1)}
+          />
+        ) : (
+          <>
+            {sourceStatus === 'error' && source.length > 0 && (
+              <StreamRefreshNotice
+                body={messages.activity.allTime.errorBody}
+                retryLabel={messages.directDealDetail.settlementRecord.retry}
+                onRetry={() => setRetryKey((value) => value + 1)}
+              />
+            )}
+            <EventList events={pageEvents} explorer={explorer} variant="card" collapseRepeats />
+          </>
+        )}
 
         <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
       </div>
+    </div>
+  );
+}
+
+function StreamSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="space-y-2" data-testid="activity-stream-loading">
+      {[80, 64, 72].map((width, index) => (
+        <div
+          key={index}
+          aria-hidden
+          className="h-16 rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)] motion-safe:animate-pulse"
+          style={{ opacity: 0.82 - index * 0.12 }}
+        >
+          <div className="h-full flex items-center px-5">
+            <span className="h-2 rounded-full bg-[var(--lp-border-light)]" style={{ width: `${width}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StreamError({ body, retryLabel, onRetry }: { body: string; retryLabel: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="rounded-xl border border-[var(--lp-border-light)] p-5 text-center space-y-3">
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">[:UNAVAILABLE:]</p>
+      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch] mx-auto">{body}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex min-h-11 items-center justify-center px-4 rounded-md border border-[var(--lp-border-light)] mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      >
+        {retryLabel}
+      </button>
+    </div>
+  );
+}
+
+function StreamRefreshNotice({ body, retryLabel, onRetry }: { body: string; retryLabel: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2">
+      <p className="text-[12px] leading-snug text-[var(--lp-text-sub)]">{body}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex min-h-11 items-center px-3 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      >
+        {retryLabel}
+      </button>
     </div>
   );
 }
@@ -231,7 +305,7 @@ function MoneyTile({ open, onToggle }: { open: boolean; onToggle: () => void }) 
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-start hover:bg-[var(--lp-wash)] transition"
+        className="w-full min-h-16 flex items-center justify-between gap-3 px-4 py-3.5 text-start hover:bg-[var(--lp-wash)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
       >
         <span className="min-w-0">
           <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
@@ -295,7 +369,7 @@ function Pager({
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
         aria-label={t.prevAria}
-        className="mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         ←
@@ -316,7 +390,7 @@ function Pager({
             type="button"
             onClick={() => onPage(it)}
             aria-current={it === page ? 'page' : undefined}
-            className="mono text-[11px] tabular-nums px-3 py-1.5 border transition-colors"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             style={
               it === page
                 ? { background: 'var(--lp-accent)', borderColor: 'var(--lp-accent)', color: 'var(--lp-dark)', ...radius }
@@ -333,7 +407,7 @@ function Pager({
         onClick={() => onPage(page + 1)}
         disabled={page >= totalPages}
         aria-label={t.nextAria}
-        className="mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)]"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] px-2.5 py-1.5 border transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         style={{ borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }}
       >
         →

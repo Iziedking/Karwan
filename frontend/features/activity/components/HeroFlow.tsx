@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Dark-native palette. This visual sits on the landing hero which is always
@@ -27,15 +27,17 @@ const TRAVEL_DURATION = 0.9; // seconds in transit between stations
 
 export function HeroFlow() {
   const t = useTranslations().heroFlow;
+  const reduce = useReducedMotion();
   // Cycle: 0 → 1 → 2 → 0 → 1 → 2 → ...
   const [stage, setStage] = useState<0 | 1 | 2>(0);
   useEffect(() => {
+    if (reduce) return;
     const id = setInterval(
       () => setStage((s) => (((s + 1) % PATH.length) as 0 | 1 | 2)),
       (TRAVEL_DURATION + STAGE_DURATION) * 1000,
     );
     return () => clearInterval(id);
-  }, []);
+  }, [reduce]);
 
   const pos = PATH[stage];
   const atEscrow = stage === 1;
@@ -71,6 +73,7 @@ export function HeroFlow() {
           label={t.nodes.buyerLabel}
           sublabel={t.nodes.agentSublabel}
           active={stage === 0}
+          reduce={reduce}
           variant="left"
         />
         <Node
@@ -78,6 +81,7 @@ export function HeroFlow() {
           label={t.nodes.sellerLabel}
           sublabel={t.nodes.agentSublabel}
           active={atSeller}
+          reduce={reduce}
           variant="right"
         />
 
@@ -103,7 +107,7 @@ export function HeroFlow() {
             animate={{
               strokeOpacity: atEscrow ? 1 : 0.35,
             }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: reduce ? 0 : 0.3 }}
           />
           <motion.text
             textAnchor="middle"
@@ -112,7 +116,7 @@ export function HeroFlow() {
             fontWeight="700"
             fill={ACCENT}
             animate={{ opacity: atEscrow ? 1 : 0.6 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: reduce ? 0 : 0.3 }}
           >
             {atEscrow ? t.escrow.settling : t.escrow.idle}
           </motion.text>
@@ -124,14 +128,14 @@ export function HeroFlow() {
           r="22"
           fill="url(#coinGlow)"
           animate={{ cx: pos.x, cy: pos.y }}
-          transition={{ duration: TRAVEL_DURATION, ease: [0.45, 0, 0.2, 1] }}
+          transition={reduce ? { duration: 0 } : { duration: TRAVEL_DURATION, ease: [0.45, 0, 0.2, 1] }}
         />
 
         {/* THE COIN. Lime fill, dark $ inscription. Big enough that the eye
             tracks it without trying. Drop shadow gives it a tactile lift. */}
         <motion.g
           animate={{ x: pos.x, y: pos.y }}
-          transition={{ duration: TRAVEL_DURATION, ease: [0.45, 0, 0.2, 1] }}
+          transition={reduce ? { duration: 0 } : { duration: TRAVEL_DURATION, ease: [0.45, 0, 0.2, 1] }}
         >
           <circle
             r="12"
@@ -176,12 +180,14 @@ function Node({
   label,
   sublabel,
   active,
+  reduce,
   variant,
 }: {
   x: number;
   label: string;
   sublabel: string;
   active: boolean;
+  reduce: boolean | null;
   variant: 'left' | 'right';
 }) {
   const color = INK_ACTIVE;
@@ -200,7 +206,7 @@ function Node({
           strokeWidth="1.2"
           initial={{ scale: 1, opacity: 0.45 }}
           animate={{ scale: 1.9, opacity: 0 }}
-          transition={{ duration: 1.6, ease: 'easeOut', repeat: Infinity }}
+          transition={reduce ? { duration: 0 } : { duration: 1.6, ease: 'easeOut', repeat: Infinity }}
           style={{ transformOrigin: `${x}px 100px` }}
         />
       )}

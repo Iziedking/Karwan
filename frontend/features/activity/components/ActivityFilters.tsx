@@ -44,7 +44,7 @@ export function ActivityFilters({
               type="button"
               onClick={() => onToggleActor(a)}
               aria-pressed={active}
-              className="relative inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors"
+              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
               style={{
                 background: active ? 'var(--lp-card)' : 'transparent',
                 color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
@@ -87,7 +87,7 @@ export function ActivityFilters({
           value={jobIdSearch}
           onChange={(e) => onJobIdSearch(e.target.value)}
           placeholder={t.searchPlaceholder}
-          className="activity-search w-full bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
+          className="activity-search w-full min-h-11 bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
           style={{
             border: '1px solid var(--lp-border-light)',
             borderTopLeftRadius: 9,
@@ -100,7 +100,7 @@ export function ActivityFilters({
           <button
             type="button"
             onClick={() => onJobIdSearch('')}
-            className="absolute end-2.5 top-1/2 -translate-y-1/2 text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute end-1 top-1/2 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             aria-label={t.clearSearchAria}
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
@@ -126,7 +126,7 @@ export function ActivityFilters({
         <button
           type="button"
           onClick={onClear}
-          className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+          className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         >
           {t.clearFilters}
         </button>

@@ -27,6 +27,12 @@ type LandingCopy = Messages['landingPage'];
 export default function HomePage() {
   const lp = useTranslations().landingPage;
   const [active, setActive] = useState<string>('overview');
+  const reduce = useReducedMotion();
+  const { scrollY } = useScroll();
+  // Keep a small amount of depth on the product visual as the hero leaves the
+  // viewport. The range is intentionally restrained for a financial interface.
+  const heroVisualY = useTransform(scrollY, [0, 720], [0, reduce ? 0 : 28]);
+  const heroVisualOpacity = useTransform(scrollY, [0, 720], [1, reduce ? 1 : 0.78]);
 
   const tabs: Tab[] = [
     { id: 'overview', label: lp.tabs.overview, hash: 'overview' },
@@ -121,9 +127,12 @@ export default function HomePage() {
               </CTAPill>
             </div>
           </motion.div>
-          <div className="lg:justify-self-end w-full max-w-md lg:max-w-none">
+          <motion.div
+            className="lg:justify-self-end w-full max-w-md lg:max-w-none"
+            style={{ y: heroVisualY, opacity: heroVisualOpacity }}
+          >
             <HeroFlow />
-          </div>
+          </motion.div>
         </div>
         {/* Sits in the whitespace under the hero: the two-column lg layout leaves
             it below both columns, and the pb-24 on the stacked grid above opens
