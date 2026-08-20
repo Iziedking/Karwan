@@ -129,7 +129,7 @@ export default function AllTimePage() {
               <Accent>{t.headlineAccent}</Accent>
             </HeroHeadline>
           </div>
-          <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
+          <p className="body-copy fade-up fade-up-2 mt-6 text-pretty text-[15px] text-[var(--lp-text-muted)] max-w-[44ch]">
             {t.description}
           </p>
           {state === 'ready' && stats && (
@@ -227,7 +227,7 @@ function BracketMessage({ tag, body }: { tag: string; body?: string }) {
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:{tag}:]
       </p>
-      {body && <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>}
+      {body && <p className="body-copy text-[14px] text-[var(--lp-text-sub)]">{body}</p>}
     </div>
   );
 }
@@ -413,7 +413,7 @@ function Section({
         [:{tag}:]
       </span>
       {body && (
-        <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[62ch]">{body}</p>
+        <p className="body-copy text-[13px] text-[var(--lp-text-sub)] max-w-[62ch]">{body}</p>
       )}
       <div className="pt-1">{children}</div>
     </section>
@@ -445,13 +445,13 @@ function CurrentContracts({
       </div>
 
       <div className="overflow-x-auto -mx-2 px-2">
-        <table className="w-full min-w-[520px] border-collapse">
+        <table className="w-full min-w-[520px] table-fixed border-collapse">
           <thead>
             <tr className="border-b border-[var(--lp-border-light)]">
               <Th>{t.colContract}</Th>
-              <Th>{t.colStatus}</Th>
-              <Th right>{t.colReplaced}</Th>
-              <Th right>{t.colBalance}</Th>
+              <Th width="7.5rem">{t.colStatus}</Th>
+              <Th right width="6rem">{t.colReplaced}</Th>
+              <Th right width="9rem">{t.colBalance}</Th>
             </tr>
           </thead>
           <tbody>
@@ -583,12 +583,12 @@ function Ledger({
               </span>
             </div>
             <div className="overflow-x-auto -mx-2 px-2">
-              <table className="w-full min-w-[460px] border-collapse">
+              <table className="w-full min-w-[460px] table-fixed border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--lp-border-light)]">
                     <Th>{t.colContract}</Th>
-                    <Th right>{t.colEvents}</Th>
-                    <Th right>{t.colMoved}</Th>
+                    <Th right width="6rem">{t.colEvents}</Th>
+                    <Th right width="9rem">{t.colMoved}</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -713,9 +713,25 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Th({ children, right }: { children: React.ReactNode; right?: boolean }) {
+function Th({
+  children,
+  right,
+  width,
+}: {
+  children: React.ReactNode;
+  right?: boolean;
+  /// Explicit width on the measured columns.
+  ///
+  /// Without it the table shares the leftover space out between every column,
+  /// so a status pill and a four-digit number drift apart on a wide screen and
+  /// the header stops sitting over its own values. Pinning the narrow columns
+  /// lets the contract name take the slack instead, which is the only column
+  /// that wants it.
+  width?: string;
+}) {
   return (
     <th
+      style={width ? { width } : undefined}
       className={`mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)] pb-2.5 ${
         right ? 'text-end' : 'text-start'
       }`}

@@ -44,8 +44,13 @@ export function ChromeFrame({
 
   const workspace = shell === 'workspace' || shell === 'admin';
   const focused = shell === 'focused';
+  // 9rem, not 6rem. The bottom nav is only the first thing in the way: the
+  // guide and assistant buttons float above it, so 6rem cleared the nav and
+  // left the last row of a page sitting underneath them. Measured against the
+  // tallest stack, nav plus a floating button plus the gaps either side.
+  // md:py-10 drops it again on desktop, where the nav is hidden anyway.
   const mainClass = workspace
-    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-8 md:py-10'
+    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-8 md:py-10'
     : 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 py-10';
 
   return (

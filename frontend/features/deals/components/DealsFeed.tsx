@@ -170,7 +170,7 @@ export function DealsFeed() {
                     </div>
                     {/* Amount appears here on mobile, hidden on desktop (renders below as its own col) */}
                     <div className="flex md:hidden items-baseline gap-1.5 shrink-0">
-                      <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
+                      <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)] text-end">
                         {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
                       </span>
                       <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
@@ -180,8 +180,12 @@ export function DealsFeed() {
                   </div>
 
                   {/* Desktop col 2: amount (hidden on mobile, already shown above) */}
+                  {/* The numeral is right-aligned inside a fixed measure so the
+                      USDC suffix lands at the same x on every row. Left-aligned,
+                      a 100 and a 216.44 pushed the suffix to two different
+                      places and the column read as ragged. */}
                   <div className="hidden md:flex min-w-0 items-baseline gap-2">
-                    <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
+                    <span className="font-sans text-[28px] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-dark)] text-end min-w-[6.5ch]">
                       {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
                     </span>
                     <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">

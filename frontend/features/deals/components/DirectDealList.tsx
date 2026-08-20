@@ -110,29 +110,23 @@ export const STAGE_META: Record<
 export function StageBadge({ stage }: { stage: DealStage }) {
   const m = STAGE_META[stage];
   const label = useTranslations().dealStage.labels[stage];
-  // The state pill, per docs/SKILL.md §4.9: a leading round dot in the semantic
-  // colour, the label in mono caps, and the colour carried as a tint rather than
-  // as a block.
+  // Flat, sharp, unfilled.
   //
-  // It used to be a two-part chip: a solid slab of the state colour holding a
-  // white 5px SQUARE, welded to the label. At a glance the slab read as a
-  // missing-image placeholder rather than as a status, and the square plus the
-  // 2px clipped corner plus a drop shadow gave every row three competing
-  // shapes. One dot, one outline, one radius.
+  // Two earlier attempts were wrong in opposite directions. The first welded a
+  // solid slab of the state colour holding a white square to the label, which
+  // read as a missing-image placeholder. The second replaced it with a soft
+  // tinted capsule and a round dot, which is the house style of every generic
+  // dashboard and reads as glassy against an editorial-brutalist page.
+  //
+  // This is the brand's own register instead: mono caps, one hairline, square
+  // corners, no fill and no shine. The row already carries a solid rail in the
+  // same colour, so the state is legible before the words are read and the
+  // label does not need to shout it a second time.
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full ps-2 pe-2.5 py-1 text-[10px] mono font-bold uppercase tracking-[0.14em] leading-none whitespace-nowrap"
-      style={{
-        background: `${m.chipFg}14`,
-        border: `1px solid ${m.chipFg}2b`,
-        color: m.chipFg,
-      }}
+      className="inline-flex items-center rounded-[2px] px-2 py-[5px] text-[10px] mono font-bold uppercase tracking-[0.16em] leading-none whitespace-nowrap"
+      style={{ border: `1px solid ${m.chipFg}59`, color: m.chipFg }}
     >
-      <span
-        aria-hidden
-        className="block w-1.5 h-1.5 rounded-full shrink-0"
-        style={{ background: m.chipFg }}
-      />
       {label}
     </span>
   );
@@ -175,7 +169,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           {scoped.length === 0 ? t.empty.noDealsTag : t.empty.allDismissedTag}
         </p>
-        <p className="text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto leading-relaxed">
+        <p className="body-copy text-[13px] text-[var(--lp-text-sub)] max-w-[40ch] mx-auto">
           {scoped.length === 0
             ? role === 'seller'
               ? t.empty.promptSeller

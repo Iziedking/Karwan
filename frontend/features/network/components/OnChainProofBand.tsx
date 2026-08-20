@@ -207,6 +207,23 @@ interface DailyAreaChartProps {
 /// of x-axis day markers so the eye has anchors without clutter. A hover
 /// layer reads the cursor x and surfaces a day-detail card so a reader can
 /// pull exact counts without us crowding the chart with labels.
+/// Series colours, validated rather than chosen by eye.
+///
+/// Checked with the dataviz validator against the dark chart surface: all three
+/// sit inside the OKLCH lightness band for dark mode, clear the chroma floor,
+/// and hold contrast. The previous set failed twice over. Its lime was too
+/// light for the surface, and its "funded" grey had almost no chroma at all, so
+/// it read as an absence of colour rather than as a series.
+///
+/// The worst adjacent pair lands at CVD deltaE 6.6, inside the floor band that
+/// is only legal with a secondary encoding. The bar gaps and the legend below
+/// are that encoding; do not remove either without re-running the validator.
+const SERIES = {
+  funded: '#4C86C7',
+  settled: '#7CA22C',
+  bad: '#C05C2C',
+} as const;
+
 function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartProps) {
   const t = useTranslations().onChainProof.chart;
   const VIEW_W = 1000;
@@ -280,7 +297,6 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
   }
 
   const n = series.length;
-  const xFor = (i: number) => PAD.left + (i * chartW) / Math.max(1, n - 1);
   const yFor = (v: number) =>
     PAD.top + chartH - (v / Math.max(1, maxY)) * chartH;
 
@@ -292,8 +308,9 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
     const rect = svg.getBoundingClientRect();
     if (rect.width <= 0) return 0;
     const xView = ((clientX - rect.left) / rect.width) * VIEW_W;
-    const stride = chartW / Math.max(1, n - 1);
-    const raw = Math.round((xView - PAD.left) / Math.max(1, stride));
+    // Floor into the slot the pointer is over, not round to the nearest
+    // vertex: a bar owns a band of x, not a point on one.
+    const raw = Math.floor((xView - PAD.left) / Math.max(1, chartW / Math.max(1, n)));
     return Math.max(0, Math.min(n - 1, raw));
   }
 
@@ -307,18 +324,49 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
     setHoverIdx(indexFromClientX(t.clientX, e.currentTarget));
   }
 
-  const areaPath = (values: number[]) => {
-    if (values.length === 0) return '';
-    const pts = values.map((v, i) => `${xFor(i)},${yFor(v)}`).join(' L ');
-    const start = `${xFor(0)},${PAD.top + chartH}`;
-    const end = `${xFor(values.length - 1)},${PAD.top + chartH}`;
-    return `M ${start} L ${pts} L ${end} Z`;
-  };
+  /// Grouped-bar geometry.
+  ///
+  /// Each day owns a slot; the three series sit side by side inside it with a
+  /// gap between them. The gap is not decoration: the palette's worst adjacent
+  /// pair sits in the 6-8 CVD band, which is only legal alongside a secondary
+  /// encoding, and separated marks plus the legend are that encoding.
+  const slotW = chartW / Math.max(1, n);
+  const GROUP_PAD = 0.22; // share of the slot left empty either side
+  const barsW = slotW * (1 - GROUP_PAD * 2);
+  const barW = Math.max(1.5, barsW / 3 - 1.5);
+  const slotX = (i: number) => PAD.left + i * slotW;
+  /// Middle of a day's slot. Labels and the tooltip anchor here rather than at
+  /// the plot edges: spreading the first and last day flush to the edges is
+  /// line-chart geometry, and against bars it drifted every label by half a
+  /// slot so none sat under its own column.
+  const slotMid = (i: number) => slotX(i) + slotW / 2;
+  const barX = (i: number, sIdx: number) =>
+    slotX(i) + slotW * GROUP_PAD + sIdx * (barW + 1.5);
 
-  const linePath = (values: number[]) => {
-    if (values.length === 0) return '';
-    return values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(v)}`).join(' ');
-  };
+  /// A count of zero draws nothing. A 1px stub for "no activity" reads as
+  /// activity at a glance, and most days here are genuinely empty.
+  function Bars({ values, fill, sIdx }: { values: number[]; fill: string; sIdx: number }) {
+    return (
+      <>
+        {values.map((v, i) => {
+          if (v <= 0) return null;
+          const y = yFor(v);
+          const h = PAD.top + chartH - y;
+          return (
+            <rect
+              key={`${sIdx}-${i}`}
+              x={barX(i, sIdx)}
+              y={y}
+              width={barW}
+              height={h}
+              rx={Math.min(2, barW / 2)}
+              fill={fill}
+            />
+          );
+        })}
+      </>
+    );
+  }
 
   // Day markers: first, middle, last (compact, fast to read).
   const xMarkers = [0, Math.floor(n / 2), n - 1];
@@ -356,14 +404,6 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
           style={{ cursor: 'crosshair', touchAction: 'pan-y' }}
         >
           <defs>
-            <linearGradient id="fundedFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </linearGradient>
-            <linearGradient id="settledFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(175,201,91,0.38)" />
-              <stop offset="100%" stopColor="rgba(175,201,91,0)" />
-            </linearGradient>
             <linearGradient id="gridFade" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
               <stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
@@ -386,34 +426,21 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
             );
           })}
 
-          {/* Funded area (muted white). */}
-          <path d={areaPath(funded)} fill="url(#fundedFill)" />
-          <path d={linePath(funded)} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth={1.5} />
+          {/* Three series, side by side, one bar per day.
 
-          {/* Settled area (lime accent). */}
-          <path d={areaPath(settled)} fill="url(#settledFill)" />
-          <path
-            d={linePath(settled)}
-            fill="none"
-            stroke="var(--lp-accent, #afc95b)"
-            strokeWidth={1.75}
-          />
+              This was two filled areas with straight lines drawn between the
+              daily points and a dot layer on top. Every part of that was
+              telling a small lie about the data: these are discrete counts of
+              events, capped around four a day and zero on most days, and a
+              line between Tuesday's 4 and Thursday's 0 draws a Wednesday that
+              never happened. The fills then occluded each other wherever both
+              series moved, so the series in front decided what you could see.
 
-          {/* Disputes/refunds as small dots so a quiet day reads as quiet. */}
-          {badEvents.map((v, i) => {
-            if (v === 0) return null;
-            return (
-              <circle
-                key={`bad-${i}`}
-                cx={xFor(i)}
-                cy={yFor(v)}
-                r={3.5}
-                fill="#c96030"
-                stroke="rgba(14,14,14,0.65)"
-                strokeWidth={1}
-              />
-            );
-          })}
+              Bars say what the numbers are: a day either had events or it did
+              not, and the height is the count rather than a vertex on a slope. */}
+          <Bars values={funded} fill={SERIES.funded} sIdx={0} />
+          <Bars values={settled} fill={SERIES.settled} sIdx={1} />
+          <Bars values={badEvents} fill={SERIES.bad} sIdx={2} />
 
           {/* X-axis day markers (first / mid / last). */}
           {xMarkers.map((i) => {
@@ -421,7 +448,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
             return (
               <text
                 key={`xm-${i}`}
-                x={xFor(i)}
+                x={slotMid(i)}
                 y={VIEW_H - 8}
                 textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}
                 fill="rgba(255,255,255,0.45)"
@@ -437,41 +464,13 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
           {/* Hover guide + per-series dots at the active day. */}
           {hoverIdx !== null && (
             <g pointerEvents="none">
-              <line
-                x1={xFor(hoverIdx)}
-                x2={xFor(hoverIdx)}
-                y1={PAD.top}
-                y2={PAD.top + chartH}
-                stroke="rgba(255,255,255,0.32)"
-                strokeWidth={1}
-                strokeDasharray="2 3"
+              <rect
+                x={slotX(hoverIdx)}
+                y={PAD.top}
+                width={slotW}
+                height={chartH}
+                fill="rgba(255,255,255,0.06)"
               />
-              <circle
-                cx={xFor(hoverIdx)}
-                cy={yFor(funded[hoverIdx])}
-                r={4}
-                fill="rgba(255,255,255,0.95)"
-                stroke="rgba(14,14,14,0.85)"
-                strokeWidth={1.5}
-              />
-              <circle
-                cx={xFor(hoverIdx)}
-                cy={yFor(settled[hoverIdx])}
-                r={4}
-                fill="var(--lp-accent, #afc95b)"
-                stroke="rgba(14,14,14,0.85)"
-                strokeWidth={1.5}
-              />
-              {badEvents[hoverIdx] > 0 && (
-                <circle
-                  cx={xFor(hoverIdx)}
-                  cy={yFor(badEvents[hoverIdx])}
-                  r={4}
-                  fill="#c96030"
-                  stroke="rgba(14,14,14,0.85)"
-                  strokeWidth={1.5}
-                />
-              )}
             </g>
           )}
         </svg>
@@ -482,14 +481,14 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         {hoverIdx !== null && (
           <HoverTooltip
             point={series[hoverIdx]}
-            xPct={(xFor(hoverIdx) / VIEW_W) * 100}
+            xPct={(slotMid(hoverIdx) / VIEW_W) * 100}
           />
         )}
       </div>
       <figcaption className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <LegendDot color="rgba(255,255,255,0.55)" label={t.legend.funded} />
-        <LegendDot color="var(--lp-accent, #afc95b)" label={t.legend.settled} />
-        <LegendDot color="#c96030" label={t.legend.disputedOrRefunded} />
+        <LegendDot color={SERIES.funded} label={t.legend.funded} />
+        <LegendDot color={SERIES.settled} label={t.legend.settled} />
+        <LegendDot color={SERIES.bad} label={t.legend.disputedOrRefunded} />
       </figcaption>
     </figure>
   );
@@ -526,11 +525,9 @@ function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: nu
         {formatTooltipDate(point.ts)}
       </p>
       <div className="mt-2 space-y-1.5">
-        <TipRow color="rgba(255,255,255,0.85)" label={t.funded} value={point.funded} />
-        <TipRow color="var(--lp-accent, #afc95b)" label={t.settled} value={point.settled} />
-        {bad > 0 && (
-          <TipRow color="#c96030" label={t.disputedRefunded} value={bad} />
-        )}
+        <TipRow color={SERIES.funded} label={t.funded} value={point.funded} />
+        <TipRow color={SERIES.settled} label={t.settled} value={point.settled} />
+        {bad > 0 && <TipRow color={SERIES.bad} label={t.disputedRefunded} value={bad} />}
       </div>
     </div>
   );
