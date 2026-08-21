@@ -398,7 +398,7 @@ function Pager({
             className="inline-flex min-h-11 min-w-11 items-center justify-center mono text-[11px] tabular-nums px-3 py-1.5 border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             style={
               it === page
-                ? { background: 'var(--lp-accent)', borderColor: 'var(--lp-accent)', color: 'var(--lp-dark)', ...radius }
+                ? { background: 'var(--lp-accent)', borderColor: 'var(--lp-accent)', color: 'var(--accent-ink)', ...radius }
                 : { borderColor: 'var(--lp-border-light)', color: 'var(--lp-text-sub)', ...radius }
             }
           >

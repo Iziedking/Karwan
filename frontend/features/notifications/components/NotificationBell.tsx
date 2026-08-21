@@ -73,7 +73,7 @@ export function NotificationBell() {
         {unreadCount > 0 && (
           <span
             aria-live="polite"
-            className="absolute -top-1 -end-1 z-10 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] px-1 mono text-[9px] font-bold leading-none text-[var(--lp-dark)]"
+            className="absolute -top-1 -end-1 z-10 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] px-1 mono text-[9px] font-bold leading-none tabular-nums text-[var(--accent-ink)]"
             style={{ background: 'var(--lp-accent)' }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}

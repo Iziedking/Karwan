@@ -550,7 +550,7 @@ function OfferRow({
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           {isBest ? (
-            <span className="inline-block mono text-[9px] uppercase tracking-[0.18em] font-bold px-1.5 py-0.5 mb-2 bg-[var(--lp-accent)] text-[var(--lp-dark)]">
+            <span className="inline-block mono text-[9px] uppercase tracking-[0.18em] font-bold px-1.5 py-0.5 mb-2 bg-[var(--lp-accent)] text-[var(--accent-ink)]">
               BEST
             </span>
           ) : null}

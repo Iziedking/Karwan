@@ -3,6 +3,7 @@ import Link, { type LinkProps } from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { Reveal } from './Reveal';
+import { withoutTrailingArrow } from './CtaArrow';
 
 /// Phantom-grade landing primitives for the in-app routes. Full-bleed band
 /// sections, uppercase extrabold display headlines with lime-accent punctuation,
@@ -196,10 +197,16 @@ export function CTAPill({
       : 'focus-visible:ring-offset-[var(--lp-light)]';
   const className = cn(base, fill, ringOffset);
 
+  /// The pill renders its own arrow, and several CTA strings carry one inline
+  /// ('Post a request →'), which showed as two arrows on every card using them.
+  /// Stripped here rather than in the copy, because the same strings are also
+  /// used where the inline arrow IS the arrow.
+  const label = typeof children === 'string' ? withoutTrailingArrow(children) : children;
+
   if (href) {
     return (
       <Link href={href} style={corners} className={className}>
-        {children}
+        {label}
         <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
       </Link>
     );
@@ -212,7 +219,7 @@ export function CTAPill({
       style={corners}
       className={className}
     >
-      {children}
+      {label}
       <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
     </button>
   );

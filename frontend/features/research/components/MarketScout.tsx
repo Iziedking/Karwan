@@ -120,7 +120,7 @@ export function MarketScout() {
         type="button"
         onClick={runScout}
         disabled={loading || query.trim().length === 0}
-        className="mt-3 w-full rounded-lg bg-[var(--lp-accent)] px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)] transition disabled:opacity-45"
+        className="mt-3 w-full rounded-lg bg-[var(--lp-accent)] px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent-ink)] transition disabled:opacity-45"
       >
         {loading ? 'scouting…' : 'scout demand'}
       </button>

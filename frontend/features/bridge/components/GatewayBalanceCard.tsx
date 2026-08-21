@@ -471,7 +471,7 @@ export function GatewayBalanceCard() {
         >
           <span
             className="inline-flex mono text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-1"
-            style={{ background: 'var(--lp-accent)', color: 'var(--lp-dark)', borderRadius: 4 }}
+            style={{ background: 'var(--lp-accent)', color: 'var(--accent-ink)', borderRadius: 4 }}
           >
             {t.soonTag}
           </span>
