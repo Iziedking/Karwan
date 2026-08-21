@@ -3204,6 +3204,7 @@ export const fr: Messages = {
   },
   landingPage: {
     tabs: { overview: 'APERÇU', howItWorks: 'RÉSUMÉ DU FLUX', flow: 'FLUX', getStarted: 'COMMENCER' },
+    scrollCue: 'Défiler',
     hero: {
       tag: 'RÉSEAU DE RÈGLEMENT',
       titleLine1: 'Convenir. Bloquer.',

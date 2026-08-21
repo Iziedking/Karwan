@@ -3024,6 +3024,9 @@ interface MessagesShape {
   };
   landingPage: {
     tabs: { overview: string; howItWorks: string; flow: string; getStarted: string };
+    /// Label on the cue that advances one row. Was a hardcoded English
+    /// "Scroll" until the landing became a stack of panels.
+    scrollCue: string;
     hero: {
       tag: string;
       titleLine1: string;
@@ -7808,6 +7811,7 @@ export const en: MessagesShape = {
   },
   landingPage: {
     tabs: { overview: 'OVERVIEW', howItWorks: 'WORKFLOW SUMMARY', flow: 'FLOW', getStarted: 'GET STARTED' },
+    scrollCue: 'Scroll',
     hero: {
       tag: 'SETTLEMENT NETWORK',
       titleLine1: 'Agree. Escrow.',

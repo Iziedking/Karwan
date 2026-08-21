@@ -3204,6 +3204,7 @@ export const sw: Messages = {
   },
   landingPage: {
     tabs: { overview: 'MUHTASARI', howItWorks: 'MUHTASARI WA MTIRIRIKO', flow: 'MTIRIRIKO', getStarted: 'ANZA' },
+    scrollCue: 'Sogeza',
     hero: {
       tag: 'MTANDAO WA MALIPO',
       titleLine1: 'Kubaliana. Weka kwenye eskrow.',

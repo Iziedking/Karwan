@@ -26,13 +26,13 @@ export interface Tab {
 
 const LAYOUT_ID = 'skill-tab-strip-indicator';
 
-/// TopNav owns the first 68px of the viewport (`sticky top-0 z-30`, see
+/// TopNav owns the top of the viewport (`sticky top-0 z-30`, see
 /// shared/components/TopNav.tsx). The tab strip docks immediately below it
 /// so the two stack instead of fighting for the same `top: 0` slot,
 /// without this anchor the strip slid behind the TopNav and read as
-/// "vanishing on scroll" to the user. Mobile keeps the same offset; the
-/// TopNav is the same height on small screens.
-const TOPNAV_OFFSET_PX = 68;
+/// "vanishing on scroll" to the user. The bar publishes its measured height as
+/// `--lp-nav-h`; the literal is only the fallback for the first frame.
+const TOPNAV_OFFSET = 'var(--lp-nav-h, 68px)';
 
 /// Mobile shows two tabs and a sliver of the third. Three signals tell the user
 /// the rest of the set exists and is reachable, none of them a sentence of copy:
@@ -86,6 +86,30 @@ export function StickyTabStrip({
   const slide = { duration: reduced ? 0 : dur.base, ease: ease.out };
 
   const navRef = useRef<HTMLElement>(null);
+
+  /// The strip is the second half of the sticky chrome, and the landing sizes
+  /// its rows against both halves (globals.css, "Landing panels"). Measured
+  /// rather than assumed: the row wraps to two lines in locales with longer
+  /// labels, and the mobile position rail is only there below `md`.
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const publish = () => {
+      root.style.setProperty(
+        '--lp-strip-h',
+        `${Math.round(el.getBoundingClientRect().height)}px`,
+      );
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty('--lp-strip-h');
+    };
+  }, []);
+
   const listRef = useRef<HTMLUListElement>(null);
   const tabKey = tabs.map((t) => t.id).join(',');
 
@@ -253,7 +277,7 @@ export function StickyTabStrip({
       style={{
         // Below the TopNav so they stack; z-20 keeps the TopNav (z-30)
         // visually on top if any margin ever overlaps.
-        top: TOPNAV_OFFSET_PX,
+        top: TOPNAV_OFFSET,
         background: surface,
         backdropFilter: 'blur(14px) saturate(160%)',
         WebkitBackdropFilter: 'blur(14px) saturate(160%)',

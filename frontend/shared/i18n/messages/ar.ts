@@ -3204,6 +3204,7 @@ export const ar: Messages = {
   },
   landingPage: {
     tabs: { overview: 'نظرة عامة', howItWorks: 'ملخص سير العمل', flow: 'المسار', getStarted: 'ابدأ الآن' },
+    scrollCue: 'مرّر',
     hero: {
       tag: 'شبكة التسوية',
       titleLine1: 'اتفق. احجز.',

@@ -3204,6 +3204,7 @@ export const hi: Messages = {
   },
   landingPage: {
     tabs: { overview: 'अवलोकन', howItWorks: 'वर्कफ़्लो सारांश', flow: 'प्रवाह', getStarted: 'शुरू करें' },
+    scrollCue: 'स्क्रॉल करें',
     hero: {
       tag: 'सेटलमेंट नेटवर्क',
       titleLine1: 'तय करें. एस्क्रो में रखें.',

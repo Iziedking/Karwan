@@ -1,16 +1,28 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 
-/** A cinematic full-bleed landing hero for Karwan's trade-lane footage. */
+/** A cinematic full-bleed landing hero for Karwan's trade-lane footage.
+ *
+ * The film fills the screen exactly: the free height between the sticky chrome
+ * and the bottom of the viewport, published as `--lp-panel-h` (globals.css,
+ * "Landing panels"). It used to guess at `100svh - 4rem`, which on most phones
+ * left the cream band under it showing a centimetre of itself along the bottom
+ * edge, and the hero read as a cropped mistake rather than a frame.
+ *
+ * The film also drifts and dims as the row leaves, so the row arriving is the
+ * brighter of the two and the change of row is something you see, not just
+ * something that happens.
+ */
 export function RealityHero() {
   const lp = useTranslations().landingPage;
   const reduce = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -25,29 +37,48 @@ export function RealityHero() {
     }
   }, [reduce]);
 
+  const { scrollYProgress } = useScroll({ target: frameRef, offset: ['start start', 'end start'] });
+  const filmY = useTransform(scrollYProgress, [0, 1], [0, 70]);
+  const filmScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
+  const filmDim = useTransform(scrollYProgress, [0, 0.85], [1, 0.35]);
+  const copyY = useTransform(scrollYProgress, [0, 1], [0, -48]);
+  const copyFade = useTransform(scrollYProgress, [0, 0.62], [1, 0]);
+
   return (
-    <div className="relative isolate min-h-[min(760px,calc(100svh-4rem))] overflow-hidden bg-[#0a0a0b] text-white">
-      <video
-        ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        autoPlay={!reduce}
-        muted
-        loop
-        playsInline
-        preload={reduce ? 'none' : 'metadata'}
-        poster="/media/karwan-reality-poster.jpg"
-        aria-hidden="true"
-        tabIndex={-1}
+    <div
+      ref={frameRef}
+      className="relative isolate overflow-hidden bg-[#0a0a0b] text-white"
+      style={{ minHeight: 'var(--lp-panel-h)' }}
+    >
+      <motion.div
+        className="absolute inset-0"
+        style={reduce ? undefined : { y: filmY, scale: filmScale, opacity: filmDim }}
       >
-        <source src="/media/karwan-reality.mp4" type="video/mp4" />
-      </video>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          autoPlay={!reduce}
+          muted
+          loop
+          playsInline
+          preload={reduce ? 'none' : 'metadata'}
+          poster="/media/karwan-reality-poster.jpg"
+          aria-hidden="true"
+          tabIndex={-1}
+        >
+          <source src="/media/karwan-reality.mp4" type="video/mp4" />
+        </video>
+      </motion.div>
       <div
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
         style={{ background: 'linear-gradient(180deg, rgba(10,10,11,0.84) 0%, rgba(10,10,11,0.33) 42%, rgba(10,10,11,0.7) 100%)' }}
       />
 
-      <div className="relative z-10 flex min-h-[min(760px,calc(100svh-4rem))] items-center justify-center px-5 py-24 sm:px-8 lg:px-16">
+      <motion.div
+        className="relative z-10 flex items-center justify-center px-5 py-20 sm:px-8 sm:py-24 lg:px-16"
+        style={{ minHeight: 'var(--lp-panel-h)', ...(reduce ? {} : { y: copyY, opacity: copyFade }) }}
+      >
         <motion.div
           className="mx-auto w-full max-w-4xl text-center"
           initial={{ opacity: 0, y: reduce ? 0 : 22 }}
@@ -89,9 +120,9 @@ export function RealityHero() {
             {lp.hero.footnote}
           </motion.p>
         </motion.div>
-      </div>
+      </motion.div>
 
-      <div className="pointer-events-none absolute inset-x-5 bottom-6 z-10 flex items-end justify-between gap-4 mono text-[10px] uppercase tracking-[0.14em] text-white/60 sm:inset-x-8 lg:inset-x-16">
+      <div className="pointer-events-none absolute inset-x-5 bottom-5 z-10 flex items-end justify-between gap-4 mono text-[10px] uppercase tracking-[0.14em] text-white/60 sm:inset-x-8 lg:inset-x-16">
         <span>[:KARWAN REALITY]</span>
         <span className="hidden sm:inline">CROSS-BORDER WORK IN MOTION</span>
       </div>
