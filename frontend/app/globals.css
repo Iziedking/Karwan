@@ -423,6 +423,76 @@ html[data-theme="dark"] {
    you can pan left/right to reach it. */
 .w-bleed { width: calc(100vw - var(--scrollbar-width, 0px)); }
 
+/* ---- Rail change (features/deposit/components/RailSlider.tsx) -------------
+   One panel becoming the next. The outgoing panel darkens, a lime edge crosses
+   it, the incoming panel resolves. It runs for one change and then the element
+   is gone, which is why a full-bleed sweep is acceptable here and a standing
+   gradient is not: this is motion, not decoration.
+
+   Kept in CSS rather than in a motion library because it is two keyframes over
+   a pseudo-layer, and a spring would fight the fixed 420ms the component uses
+   to unmount it. */
+@keyframes rail-wipe {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  22% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rail-panel-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.rail-wipe {
+  position: absolute;
+  inset: -2px;
+  z-index: 20;
+  pointer-events: none;
+  border-radius: 22px;
+  /* Ink first, then the lime edge riding its leading side. Two stops, no soft
+     blobs: the band has a hard edge so the eye can follow it across. */
+  background:
+    linear-gradient(
+      100deg,
+      transparent 0%,
+      var(--lp-band-dark) 18%,
+      var(--lp-band-dark) 52%,
+      var(--lp-accent) 56%,
+      transparent 60%
+    );
+  animation: rail-wipe 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rail-panel-in {
+  animation: rail-panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail-wipe {
+    display: none;
+  }
+  .rail-panel-in {
+    animation: none;
+  }
+}
+
 /* Theme handover. The theme now changes without anyone pressing anything: the
    machine's own setting, or the hour on its clock (see shared/hooks/useTheme).
    A page that swaps every surface between two frames reads as a glitch, so the

@@ -1944,6 +1944,22 @@ interface MessagesShape {
     moved: string;
     moveFailed: string;
   };
+  depositRails: {
+    chooserAria: string;
+    soon: string;
+    direct: { tab: string; tag: string; title: string; blurb: string };
+    gateway: { tab: string; tag: string; title: string; blurb: string };
+    cctp: { tab: string; tag: string; title: string; blurb: string };
+    onramp: {
+      tab: string;
+      tag: string;
+      title: string;
+      blurb: string;
+      body: string;
+      inLabel: string;
+      outLabel: string;
+    };
+  };
   chatPanel: {
     withCounterpartyTemplate: string;
     telegramNote: string;
@@ -6758,6 +6774,37 @@ export const en: MessagesShape = {
     moving: 'Moving...',
     moved: 'Moved',
     moveFailed: 'That transfer did not go through. Try again.',
+  },
+  depositRails: {
+    chooserAria: 'Choose how money moves',
+    soon: 'SOON',
+    direct: {
+      tab: 'Direct',
+      tag: 'DIRECT DEPOSIT',
+      title: 'One address, any chain',
+      blurb: 'Send USDC to this address from any chain you hold it on. It reaches Arc on its own and shows up as spendable.',
+    },
+    gateway: {
+      tab: 'Pooled',
+      tag: 'POOLED BALANCE',
+      title: 'Hold across chains, spend on one',
+      blurb: 'Keep one balance that spans chains and spend it wherever you need, on a single signature and with no bridge wait.',
+    },
+    cctp: {
+      tab: 'Transfer',
+      tag: 'CHAIN TRANSFER',
+      title: 'Move between two chains',
+      blurb: 'Burns on the chain you are sending from and mints on the one you are sending to. The right tool for a one-off move.',
+    },
+    onramp: {
+      tab: 'Card & bank',
+      tag: 'CARD AND BANK',
+      title: 'Buy and cash out in your currency',
+      blurb: 'Fund the account from a card or a bank transfer, and cash out the same way.',
+      body: 'This one is not open yet. Every other route on this page settles in USDC, and this is the one that turns your own currency into it and back again. It arrives with the licensing that lets us hold the other side of that trade.',
+      inLabel: 'Buy USDC',
+      outLabel: 'Cash out to a bank',
+    },
   },
   chatPanel: {
     withCounterpartyTemplate: '[:WITH {name}:]',

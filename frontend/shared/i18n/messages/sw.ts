@@ -2129,6 +2129,37 @@ export const sw: Messages = {
     moved: 'Imehamishwa',
     moveFailed: 'Uhamisho huu haukufanikiwa. Jaribu tena.',
   },
+  depositRails: {
+    chooserAria: 'Chagua jinsi fedha zinasafiri',
+    soon: 'HIVI KARIBUNI',
+    direct: {
+      tab: 'Moja kwa moja',
+      tag: 'AMANA YA MOJA KWA MOJA',
+      title: 'Anwani moja, mtandao wowote',
+      blurb: 'Tuma USDC kwenye anwani hii kutoka mtandao wowote unaoshikilia. Zinafika Arc zenyewe na kuwa tayari kutumika.',
+    },
+    gateway: {
+      tab: 'Pamoja',
+      tag: 'SALIO LA PAMOJA',
+      title: 'Shikilia mitandao mingi, tumia kwenye mmoja',
+      blurb: 'Weka salio moja linalovuka mitandao na ulitumie unapohitaji, kwa saini moja na bila kusubiri daraja.',
+    },
+    cctp: {
+      tab: 'Uhamisho',
+      tag: 'UHAMISHO WA MTANDAO',
+      title: 'Hamisha kati ya mitandao miwili',
+      blurb: 'Huchoma kwenye mtandao unaotuma kutoka na kutengeneza kwenye unaotuma kwake. Njia sahihi kwa uhamisho wa mara moja.',
+    },
+    onramp: {
+      tab: 'Kadi na benki',
+      tag: 'KADI NA BENKI',
+      title: 'Nunua na toa kwa sarafu yako',
+      blurb: 'Weka fedha kwa kadi au uhamisho wa benki, na utoe kwa njia hiyo hiyo.',
+      body: 'Njia hii haijafunguliwa bado. Njia zote nyingine kwenye ukurasa huu hukamilika kwa USDC, na hii ni ile inayobadilisha sarafu yako kuwa USDC na kurudi. Itafika pamoja na leseni zinazoturuhusu kushikilia upande mwingine wa biashara hiyo.',
+      inLabel: 'Nunua USDC',
+      outLabel: 'Toa kwenda benki',
+    },
+  },
   chatPanel: {
     withCounterpartyTemplate: '[:NA {name}:]',
     telegramNote: 'Pia inawasilishwa Telegram ikiwa imeunganishwa',

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -10,6 +10,13 @@ import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySe
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { LpHint } from '@/shared/components/LpHint';
+import { RailSlider } from '@/features/deposit/components/RailSlider';
+import {
+  defaultRail,
+  railsFor,
+  reconcileRail,
+  type DepositRail,
+} from '@/features/deposit/railModel';
 
 /// BridgeOutCard ships its own form, balance polling, and Solana branch, a
 /// chunky module that's never visible until the user toggles direction. Lazy
@@ -50,7 +57,6 @@ import {
 } from '@/shared/components/Bands';
 
 type Direction = 'in' | 'out';
-type Rail = 'gateway' | 'cctp';
 
 /// One rail at a time, Gateway first.
 ///
@@ -73,25 +79,33 @@ function BridgePageInner() {
   const { agents } = useActivation();
   const { method } = useAuth();
   const params = useSearchParams();
-  // Circle accounts do not choose a rail. They have one address that every chain
-  // can pay into, so the rail switch, the direction toggle and the source-chain
-  // form are all questions about our plumbing that they should never see. Web3
-  // accounts keep the old flow: they hold their own funds and genuinely have to
-  // pick a chain and sign from it.
-  const circleAccount = method === 'circle';
-  // CCTP is the default: it works for every account today, while Gateway is
-  // coming-soon for email users and only usable by a connected web3 wallet.
-  // Landing on Gateway showed most users a rail they cannot use.
-  const [rail, setRail] = useState<Rail>('cctp');
   const [direction, setDirection] = useState<Direction>('in');
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // ?rail=gateway deep-links the Gateway view (the web3 pool buttons use it);
-  // ?rail=cctp is the default. Honour either so existing links keep working.
+  // Which rails exist for this account and this direction lives in railModel,
+  // not here. Both account types get the same chooser now: an email account used
+  // to see no choice at all, which meant the pooled balance and the card route
+  // were invisible to the people most likely to want them.
+  const rails = useMemo(
+    () => railsFor({ method: method === 'circle' ? 'circle' : method ? 'web3' : null, direction }),
+    [method, direction],
+  );
+
+  const [rail, setRail] = useState<DepositRail>(() => defaultRail(rails));
+
+  // A deep link (?rail=gateway from the agent-funding tiles) wins when the rail
+  // is usable, and is ignored when it is not, so nobody lands on a coming-soon
+  // notice as the first thing on the page.
   useEffect(() => {
-    const r = params.get('rail');
-    if (r === 'cctp' || r === 'gateway') setRail(r);
+    setRail((current) => defaultRail(rails, params.get('rail') ?? current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
+
+  // Flipping direction can retire the current rail: there is no direct-deposit
+  // address on the way out.
+  useEffect(() => {
+    setRail((current) => reconcileRail(current, rails));
+  }, [rails]);
 
   return (
     <FullBleed>
@@ -108,44 +122,36 @@ function BridgePageInner() {
 
       <Band tone="light" compact>
         <div className="max-w-xl">
-          {circleAccount ? (
-            <div className="fade-up">
-              {/* Deposit replaced the whole page for Circle accounts, which took
-                  the direction toggle with it and left them no way OUT. Money
-                  has two directions and a wallet that can only be filled is
-                  not a wallet. */}
-              <div className="mb-6">
-                <div
-                  className="inline-flex p-1"
-                  style={{
-                    background: 'var(--lp-card)',
-                    border: '1px solid var(--lp-border-light)',
-                    borderRadius: 999,
-                  }}
-                >
-                  <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
-                    {t.directions.toArc}
-                  </DirToggle>
-                  <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-                    {t.directions.fromArc}
-                  </DirToggle>
-                </div>
-              </div>
-              {direction === 'in' ? <DepositCard /> : <BridgeOutCard />}
-              <div className="mt-6 flex justify-end">
-                <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
-              </div>
+          {/* Direction first, rail second. Which way the money goes is the
+              question every account has; which rail carries it depends on the
+              answer, and two of the four only exist in one direction. */}
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div
+              className="inline-flex p-1"
+              style={{
+                background: 'var(--lp-card)',
+                border: '1px solid var(--lp-border-light)',
+                borderRadius: 999,
+              }}
+            >
+              <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
+                {t.directions.toArc}
+              </DirToggle>
+              <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
+                {t.directions.fromArc}
+              </DirToggle>
             </div>
-          ) : (
-            <Web3BridgeFlow
+            <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
+          </div>
+
+          <RailSlider rails={rails} active={rail} onChange={setRail}>
+            <RailPanel
               rail={rail}
-              onRail={setRail}
               direction={direction}
-              onDirection={setDirection}
-              onHistory={() => setHistoryOpen(true)}
+              state={rails.find((option) => option.id === rail)?.state ?? 'ready'}
               agents={agents ?? undefined}
             />
-          )}
+          </RailSlider>
         </div>
       </Band>
 
@@ -154,63 +160,74 @@ function BridgePageInner() {
   );
 }
 
-/// The web3 path, unchanged.
-///
-/// A connected wallet holds its own USDC, so picking a source chain and signing
-/// a burn from it is real work the user has to do, not plumbing we can hide.
-/// Everything Circle accounts no longer see lives here.
-function Web3BridgeFlow({
+/// The panel for one rail. Every branch is a component that already owns that
+/// movement, including its own balance reads and its own errors; nothing is
+/// re-implemented here to fit the chooser.
+function RailPanel({
   rail,
-  onRail,
   direction,
-  onDirection,
-  onHistory,
+  state,
   agents,
 }: {
-  rail: Rail;
-  onRail: (r: Rail) => void;
+  rail: DepositRail;
   direction: Direction;
-  onDirection: (d: Direction) => void;
-  onHistory: () => void;
+  state: 'ready' | 'soon';
   agents: Parameters<typeof BridgeCard>[0]['agents'];
 }) {
-  const t = useTranslations().bridge;
-  const c = useTranslations().bridgeChooser;
-  const gateway = rail === 'gateway';
-  return (
-    <>
-      <RailSwitch rail={rail} onChange={onRail} copy={c} />
+  const copy = useTranslations().depositRails;
 
-      {/* key on the rail so the card remounts and the fade-up actually replays
-          on every switch instead of only the first. */}
-      <div key={rail} className="mt-6 fade-up">
-        {gateway ? (
-          <GatewayBalanceCard />
-        ) : (
-          <>
-            <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-              <div
-                className="inline-flex p-1"
-                style={{
-                  background: 'var(--lp-card)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderRadius: 999,
-                }}
-              >
-                <DirToggle active={direction === 'in'} onClick={() => onDirection('in')}>
-                  {t.directions.toArc}
-                </DirToggle>
-                <DirToggle active={direction === 'out'} onClick={() => onDirection('out')}>
-                  {t.directions.fromArc}
-                </DirToggle>
-              </div>
-              <HistoryButton onClick={onHistory} label={c.transferHistory} />
-            </div>
-            {direction === 'in' ? <BridgeCard agents={agents} tour /> : <BridgeOutCard />}
-          </>
-        )}
-      </div>
-    </>
+  if (rail === 'onramp') {
+    return (
+      <ComingSoonPanel
+        body={copy.onramp.body}
+        action={direction === 'in' ? copy.onramp.inLabel : copy.onramp.outLabel}
+        soon={copy.soon}
+      />
+    );
+  }
+  if (rail === 'direct') return <DepositCard />;
+  if (rail === 'gateway') return <GatewayBalanceCard />;
+  // CCTP, both ways. The out card carries its own Solana branch.
+  if (state === 'soon') {
+    return <ComingSoonPanel body={copy.cctp.blurb} action={copy.cctp.title} soon={copy.soon} />;
+  }
+  return direction === 'in' ? <BridgeCard agents={agents} tour /> : <BridgeOutCard />;
+}
+
+/// A rail that is real and not open yet. It says what it will do and offers no
+/// control, because a disabled form is a worse lie than an honest sentence.
+function ComingSoonPanel({
+  body,
+  action,
+  soon,
+}: {
+  body: string;
+  action: string;
+  soon: string;
+}) {
+  return (
+    <div
+      className="p-6"
+      style={{
+        background: 'var(--lp-card)',
+        border: '1px solid var(--lp-border-light)',
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 5,
+      }}
+    >
+      <span
+        className="inline-flex mono text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-1"
+        style={{ background: 'var(--lp-accent)', color: 'var(--accent-ink)', borderRadius: 4 }}
+      >
+        {soon}
+      </span>
+      <p className="mt-4 text-[15px] font-bold tracking-[-0.01em] text-[var(--lp-dark)]">{action}</p>
+      <p className="mt-2 max-w-[46ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+        {body}
+      </p>
+    </div>
   );
 }
 
@@ -228,112 +245,6 @@ function HistoryButton({ onClick, label }: { onClick: () => void; label: string 
       }}
     >
       {label}
-    </button>
-  );
-}
-
-/// The rail switch. Two labelled halves with a sliding lozenge behind the active
-/// one, so moving between rails reads as one control rather than two buttons.
-function RailSwitch({
-  rail,
-  onChange,
-  copy,
-}: {
-  rail: Rail;
-  onChange: (r: Rail) => void;
-  copy: ReturnType<typeof useTranslations>['bridgeChooser'];
-}) {
-  const gateway = rail === 'gateway';
-  return (
-    <div>
-      <div
-        className="relative inline-flex p-1 w-full max-w-[420px]"
-        style={{
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          borderRadius: 999,
-        }}
-      >
-        {/* The lozenge itself. Absolutely positioned and translated, so the
-            active state slides between the halves rather than cutting. */}
-        <span
-          aria-hidden
-          className="absolute top-1 bottom-1 transition-transform duration-300 ease-out motion-reduce:transition-none"
-          style={{
-            width: 'calc(50% - 4px)',
-            left: 4,
-            borderRadius: 999,
-            background: gateway ? 'var(--lp-accent)' : 'var(--lp-band-dark)',
-            transform: gateway ? 'translateX(0)' : 'translateX(100%)',
-          }}
-        />
-        <RailHalf active={gateway} dark={false} onClick={() => onChange('gateway')}>
-          {copy.gateway.protocol}
-        </RailHalf>
-        <RailHalf active={!gateway} dark onClick={() => onChange('cctp')}>
-          {copy.cctp.protocol}
-        </RailHalf>
-      </div>
-
-      <div className="mt-5">
-        <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-          {gateway ? copy.gateway.tag : copy.cctp.tag}
-        </span>
-        {/* The rail explanation rides on the title as a hint rather than a
-            standing banner: it is context you want once, not a permanent block
-            of prose above the form. LpHint opens on hover, tap and focus, so it
-            still works on touch. */}
-        <h2 className="mt-2 flex items-center gap-2 text-[26px] leading-[1.1] font-extrabold uppercase tracking-tight text-[var(--lp-dark)]">
-          {gateway ? copy.gateway.title : copy.cctp.title}
-          <LpHint>{gateway ? copy.gateway.nudge : copy.cctp.nudge}</LpHint>
-        </h2>
-        <div className="mt-2 flex items-center gap-2">
-          <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-            {copy.poweredBy}
-          </span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/circle-logo.png"
-            alt="Circle"
-            width={14}
-            height={14}
-            className="rounded-full shrink-0"
-          />
-          <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-dark)]">
-            {gateway ? copy.gateway.protocol : copy.cctp.protocol}
-          </span>
-        </div>
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          {gateway ? copy.gateway.blurb : copy.cctp.blurb}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function RailHalf({
-  active,
-  dark,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  dark: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="relative z-10 flex-1 px-5 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors"
-      style={{
-        background: 'transparent',
-        color: active ? (dark ? 'white' : 'var(--lp-dark)') : 'var(--lp-text-sub)',
-      }}
-    >
-      {children}
     </button>
   );
 }

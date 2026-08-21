@@ -2129,6 +2129,37 @@ export const fr: Messages = {
     moved: 'Déplacé',
     moveFailed: "Ce transfert n'a pas abouti. Réessayez.",
   },
+  depositRails: {
+    chooserAria: 'Choisissez comment déplacer les fonds',
+    soon: 'BIENTÔT',
+    direct: {
+      tab: 'Direct',
+      tag: 'DÉPÔT DIRECT',
+      title: 'Une adresse, toutes les chaînes',
+      blurb: "Envoyez des USDC à cette adresse depuis n'importe quelle chaîne. Ils rejoignent Arc tout seuls et deviennent disponibles.",
+    },
+    gateway: {
+      tab: 'Groupé',
+      tag: 'SOLDE GROUPÉ',
+      title: 'Détenez sur plusieurs chaînes, dépensez sur une',
+      blurb: 'Gardez un solde unique réparti sur plusieurs chaînes et dépensez-le où vous voulez, en une signature et sans attente de passerelle.',
+    },
+    cctp: {
+      tab: 'Transfert',
+      tag: 'TRANSFERT DE CHAÎNE',
+      title: 'Déplacer entre deux chaînes',
+      blurb: "Brûle sur la chaîne de départ et émet sur celle d'arrivée. L'outil adapté à un transfert ponctuel.",
+    },
+    onramp: {
+      tab: 'Carte et banque',
+      tag: 'CARTE ET BANQUE',
+      title: 'Achetez et retirez dans votre monnaie',
+      blurb: 'Alimentez le compte par carte ou virement, et retirez de la même façon.',
+      body: "Cette route n'est pas encore ouverte. Toutes les autres sur cette page se règlent en USDC, et celle-ci est celle qui convertit votre monnaie en USDC et inversement. Elle arrivera avec les agréments qui nous permettent de tenir l'autre côté de cette opération.",
+      inLabel: 'Acheter des USDC',
+      outLabel: 'Retirer vers une banque',
+    },
+  },
   chatPanel: {
     withCounterpartyTemplate: '[:AVEC {name}:]',
     telegramNote: 'Aussi livré sur Telegram quand lié',
