@@ -5,7 +5,12 @@ export interface ReceiptExportData {
   amount: string | null;
   status: string;
   date: string;
-  proofLabel?: string;
+  /// The transaction the movement settled in, already shortened, with its label
+  /// so the exported image and the panel agree in every locale. An exported
+  /// image cannot carry a link, so the hash itself has to be on the paper.
+  transaction?: { label: string; value: string };
+  referenceLabel: string;
+  referenceNone: string;
   historicalNote: string;
   sharedNote: string;
 }
@@ -30,10 +35,16 @@ export function shortenDealIds(value: string): string {
   // 40-digit wallet address (that is the redactor's job and it runs first), and
   // an id that reaches this text a few digits short of a full hash should still
   // be shortened rather than printed whole.
-  return value.replace(
-    /\b0x[a-fA-F0-9]{48,}\b/g,
-    (hash) => `${hash.slice(0, 8)}…${hash.slice(-4)}`,
-  );
+  return value.replace(/\b0x[a-fA-F0-9]{48,}\b/g, shortenHash);
+}
+
+/// One hash on its own, head and tail. Shares its formatting with the
+/// in-sentence shortener above so a deal id quoted in prose and the same id
+/// shown as a field value can never be abbreviated two different ways.
+export function shortenHash(hash: string): string {
+  const value = hash.trim();
+  if (value.length <= 14) return value;
+  return `${value.slice(0, 8)}…${value.slice(-4)}`;
 }
 
 /// The one text pipeline for anything written at record time: strip the wallet
@@ -54,10 +65,26 @@ function escapeSvg(value: string): string {
 }
 
 export function buildReceiptSvg(data: ReceiptExportData): string {
+  // A movement with no Karwan reference is not a movement with no identity: it
+  // settled in a transaction, and that hash is what a reader can verify. So the
+  // identifier row falls back to the hash, and the apology for the missing
+  // reference leaves the value slot entirely.
+  //
+  // The row this replaces printed "NETWORK PROOF" as both the label and the
+  // value, because the label was being passed in as the value. A field whose
+  // value is its own name is worse than no field.
   const rows: [string, string][] = [
     ['MOVEMENT', readableMovementText(data.summary)],
-    [data.reference ? 'KARWAN REFERENCE' : 'REFERENCE', data.reference ?? data.historicalNote],
-    ...(data.proofLabel ? [['NETWORK PROOF', data.proofLabel] as [string, string]] : []),
+    data.reference
+      ? [data.referenceLabel, data.reference]
+      : data.transaction
+        ? [data.transaction.label, data.transaction.value]
+        : [data.referenceLabel, data.referenceNone],
+    // Both, when both exist: the Karwan reference is what support quotes, the
+    // hash is what anyone can check on chain.
+    ...(data.reference && data.transaction
+      ? [[data.transaction.label, data.transaction.value] as [string, string]]
+      : []),
   ];
   let detailY = 432;
   const detailMarkup = rows

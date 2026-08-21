@@ -6,6 +6,7 @@ import type { Messages } from '@/shared/i18n/messages/en';
 import {
   downloadReceiptImage,
   readableMovementText,
+  shortenHash,
   type ReceiptExportData,
 } from '../receiptPresentation';
 
@@ -39,6 +40,15 @@ export function PortableReceipt({
   const reference = item.refId?.trim() || null;
   const status = item.status === 'done' ? 'COMPLETED' : item.status === 'pending' ? copy.pending : copy.failed;
   const date = new Date(item.ts).toLocaleString();
+  /// A movement recorded before Karwan minted references has no reference and
+  /// never will: one is created with the movement, so there is nothing to
+  /// recover and nothing honest to invent. It does have the transaction it
+  /// settled in, which is the identifier a reader can actually verify, so that
+  /// takes the slot instead of a three-line apology sitting where an identifier
+  /// belongs.
+  const transaction = item.txHash
+    ? { label: copy.receiptTransaction, value: shortenHash(item.txHash) }
+    : undefined;
   const data = useMemo<ReceiptExportData>(
     () => ({
       title: copy.receiptTitle,
@@ -47,11 +57,13 @@ export function PortableReceipt({
       amount: item.amountUsdc ? `${item.amountUsdc} USDC` : null,
       status,
       date,
-      proofLabel: proofHref ? copy.receiptProof : undefined,
+      transaction,
+      referenceLabel: copy.receiptReference,
+      referenceNone: copy.receiptReferenceNone,
       historicalNote: copy.receiptHistorical,
       sharedNote: copy.receiptSharedNote,
     }),
-    [copy, date, item.amountUsdc, item.summary, proofHref, reference, status],
+    [copy, date, item.amountUsdc, item.summary, proofHref, reference, status, transaction],
   );
 
   useEffect(() => {
@@ -122,11 +134,30 @@ export function PortableReceipt({
           <p className="mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{readableMovementText(item.summary)}</p>
 
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <ReceiptField label={copy.receiptReference} value={reference ?? copy.receiptHistorical} mono={Boolean(reference)} />
+            {reference || !transaction ? (
+              <ReceiptField
+                label={copy.receiptReference}
+                value={reference ?? copy.receiptReferenceNone}
+                mono={Boolean(reference)}
+              />
+            ) : (
+              /* No reference was ever minted for this movement, so the
+                 transaction it settled in is the identifier. The proof link
+                 below opens the same hash on the explorer. */
+              <ReceiptField label={transaction.label} value={transaction.value} mono />
+            )}
             <ReceiptField label={copy.receiptAmount} value={item.amountUsdc ? `${item.amountUsdc} USDC` : '—'} mono />
             <ReceiptField label={copy.receiptStatus} value={status} />
             <ReceiptField label={copy.receiptDate} value={date} />
           </dl>
+
+          {/* Why there is no Karwan reference, as a footnote rather than as the
+              value of the field that should hold one. */}
+          {!reference && (
+            <p className="mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+              {copy.receiptHistorical}
+            </p>
+          )}
 
           {proofHref && (
             <a

@@ -532,6 +532,11 @@ interface MessagesShape {
       receiptStatus: string;
       receiptDate: string;
       receiptProof: string;
+      /// Label for the identifier a receipt falls back to when no Karwan
+      /// reference was ever minted for the movement: the transaction it
+      /// settled in.
+      receiptTransaction: string;
+      receiptReferenceNone: string;
       receiptHistorical: string;
       receiptExportPdf: string;
       receiptExportImage: string;
@@ -5134,6 +5139,8 @@ export const en: MessagesShape = {
       receiptStatus: 'STATUS',
       receiptDate: 'DATE',
       receiptProof: 'NETWORK PROOF',
+      receiptTransaction: 'TRANSACTION',
+      receiptReferenceNone: 'Not recorded',
       receiptHistorical: 'Completed before Karwan references were enabled. No reference was recorded for this movement.',
       receiptExportPdf: 'PRINT / SAVE PDF',
       receiptExportImage: 'DOWNLOAD IMAGE',

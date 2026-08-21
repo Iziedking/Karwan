@@ -519,6 +519,8 @@ export const hi: Messages = {
       receiptStatus: 'स्थिति',
       receiptDate: 'तारीख',
       receiptProof: 'नेटवर्क प्रमाण',
+      receiptTransaction: 'लेनदेन',
+      receiptReferenceNone: 'दर्ज नहीं है',
       receiptHistorical: 'Karwan संदर्भ शुरू होने से पहले पूरा हुआ। इस मूवमेंट के लिए कोई संदर्भ दर्ज नहीं था।',
       receiptExportPdf: 'प्रिंट / PDF में सेव करें',
       receiptExportImage: 'इमेज डाउनलोड करें',

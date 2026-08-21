@@ -519,6 +519,8 @@ export const ar: Messages = {
       receiptStatus: 'الحالة',
       receiptDate: 'التاريخ',
       receiptProof: 'إثبات الشبكة',
+      receiptTransaction: 'المعاملة',
+      receiptReferenceNone: 'غير مسجَّل',
       receiptHistorical: 'اكتملت هذه الحركة قبل تفعيل مراجع Karwan. لم يُسجَّل مرجع لها.',
       receiptExportPdf: 'طباعة / حفظ PDF',
       receiptExportImage: 'تنزيل الصورة',

@@ -555,6 +555,8 @@ export const fr: Messages = {
       receiptStatus: 'STATUT',
       receiptDate: 'DATE',
       receiptProof: 'PREUVE RESEAU',
+      receiptTransaction: 'TRANSACTION',
+      receiptReferenceNone: 'Non enregistré',
       receiptHistorical: 'Terminé avant l’activation des références Karwan. Aucune référence n’a été enregistrée pour ce mouvement.',
       receiptExportPdf: 'IMPRIMER / ENREGISTRER EN PDF',
       receiptExportImage: 'TELECHARGER L IMAGE',
