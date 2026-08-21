@@ -27,7 +27,7 @@ export function ChatPanel({
   draftSeedKey?: number;
 }) {
   const cp = useTranslations().chatPanel;
-  const { messages, fetchState, send, sending, writable } = useChat({ jobId, caller });
+  const { messages, fetchState, fetchError, send, sending, writable } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const me = caller.toLowerCase();
@@ -118,7 +118,9 @@ export function ChatPanel({
               borderBottomRightRadius: 3,
             }}
           >
-            {cp.loadError}
+            {/* The server's own reason when it gave one: a refusal and an
+                unreachable API are not the same thing to read. */}
+            {fetchError ?? cp.loadError}
           </div>
         )}
         {fetchState === 'ready' && messages.length === 0 && (

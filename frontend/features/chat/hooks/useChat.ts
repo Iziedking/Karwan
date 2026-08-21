@@ -1,12 +1,14 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, type ChainEvent, type ChatMessage } from '@/core/api';
+import { ApiError, api, type ChainEvent, type ChatMessage } from '@/core/api';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 
 export interface UseChatResult {
   messages: ChatMessage[];
   fetchState: 'idle' | 'loading' | 'ready' | 'error';
+  /// The server's own reason for refusing, when it gave one.
+  fetchError: string | null;
   send: (body: string) => Promise<void>;
   sending: boolean;
   unreadCount: number;
@@ -27,6 +29,10 @@ export function useChat({
 }): UseChatResult {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [fetchState, setFetchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  /// Why the load failed, when the server said why. A generic "could not load
+  /// chat history" on a 403 tells the reader nothing: they were being refused,
+  /// not failing to reach the server.
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [writable, setWritable] = useState(true);
@@ -47,10 +53,13 @@ export function useChat({
         setMessages(r.messages);
         setWritable(r.writable);
         setClosedReason(r.closedReason);
+        setFetchError(null);
         setFetchState('ready');
       })
-      .catch(() => {
-        if (!cancelled) setFetchState('error');
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setFetchError(err instanceof ApiError ? err.message : null);
+        setFetchState('error');
       });
     return () => {
       cancelled = true;
@@ -108,5 +117,5 @@ export function useChat({
 
   const markRead = useCallback(() => setUnreadCount(0), []);
 
-  return { messages, fetchState, send, sending, unreadCount, markRead, writable, closedReason };
+  return { messages, fetchState, fetchError, send, sending, unreadCount, markRead, writable, closedReason };
 }
