@@ -28,12 +28,19 @@ export function PortableReceipt({
   closeLabel,
   proofHref,
   onClose,
+  /// Whether this viewer may take the receipt away with them. Reading and
+  /// sharing are different rights: on a deal the payer issues the proof of
+  /// payment, so the seller can open the record and verify it but the exports
+  /// belong to the buyer. Defaults to true, which is right for a viewer looking
+  /// at their own money.
+  canShare = true,
 }: {
   item: PortableReceiptItem;
   copy: Copy;
   closeLabel: string;
   proofHref: string | null;
   onClose: () => void;
+  canShare?: boolean;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -189,6 +196,12 @@ export function PortableReceipt({
           </p>
         </article>
 
+        {!canShare && (
+          <p className="karwan-receipt-actions mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+            {copy.receiptShareBuyerOnly}
+          </p>
+        )}
+        {canShare && (
         <div className="karwan-receipt-actions mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -231,6 +244,7 @@ export function PortableReceipt({
             {copy.receiptExportImage}
           </button>
         </div>
+        )}
 
         {/* Print. The receipt is ONE page.
 

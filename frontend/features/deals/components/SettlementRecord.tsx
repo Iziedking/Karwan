@@ -49,12 +49,16 @@ export function SettlementRecord({
   fundTxHash,
   refundTxHash,
   onRetry,
+  /// The buyer paid, so the buyer issues the proof. The seller reads the same
+  /// record and verifies the same hashes, without the exports.
+  canShareReceipts = true,
 }: {
   movements: MoneyMovementView[];
   fetchState: SettlementRecordFetchState;
   fundTxHash?: string;
   refundTxHash?: string;
   onRetry: () => void;
+  canShareReceipts?: boolean;
 }) {
   const translations = useTranslations();
   const copy = translations.directDealDetail.settlementRecord;
@@ -278,6 +282,7 @@ export function SettlementRecord({
 
       {selectedReceipt && (
         <PortableReceipt
+          canShare={canShareReceipts}
           item={selectedReceipt}
           copy={receiptCopy}
           closeLabel={translations.common.close}

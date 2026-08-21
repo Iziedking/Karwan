@@ -1372,6 +1372,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           fundTxHash={deal.fundTxHash}
           refundTxHash={deal.refundTxHash}
           onRetry={() => setSettlementReloadKey((key) => key + 1)}
+          canShareReceipts={viewerIsBuyer}
         />
       </Band>
 
