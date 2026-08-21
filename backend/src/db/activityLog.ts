@@ -126,6 +126,74 @@ export async function listActivityForAddress(
     .slice(0, limit);
 }
 
+/// Every recorded movement of the given kinds that carries no amount, newest
+/// first. Exists for the amount backfill (scripts/backfill-release-amounts.ts):
+/// managed releases were recorded without one, so those rows render a dash where
+/// the money should be and their shareable receipt has nothing to show.
+export async function listActivityMissingAmount(
+  kinds: readonly ActivityKind[],
+  limit = 1000,
+): Promise<ActivityEntry[]> {
+  const wanted = new Set<string>(kinds);
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(activityLog)
+      .orderBy(desc(activityLog.ts))
+      .limit(limit);
+    return rows
+      .map((r) => r.data)
+      .filter((e) => wanted.has(e.kind) && !e.amountUsdc);
+  }
+  return Object.values(loadFile())
+    .filter((e) => wanted.has(e.kind) && !e.amountUsdc)
+    .sort((x, y) => y.ts - x.ts)
+    .slice(0, limit);
+}
+
+/// Fill in fields on one recorded movement, by id. Deliberately narrow: only
+/// fields that were never written get set, so a backfill can never rewrite an
+/// amount a route already recorded. Returns whether a row changed.
+export async function fillActivityGaps(
+  id: string,
+  patch: Partial<Pick<ActivityEntry, 'amountUsdc' | 'txHash' | 'refId'>>,
+): Promise<boolean> {
+  const keys = Object.keys(patch) as (keyof typeof patch)[];
+  if (!keys.length) return false;
+
+  if (pgEnabled) {
+    const [row] = await db().select().from(activityLog).where(eq(activityLog.id, id)).limit(1);
+    if (!row) return false;
+    const next = { ...row.data };
+    let changed = false;
+    for (const key of keys) {
+      const value = patch[key];
+      if (value && !next[key]) {
+        next[key] = value;
+        changed = true;
+      }
+    }
+    if (!changed) return false;
+    await db().update(activityLog).set({ data: next }).where(eq(activityLog.id, id));
+    return true;
+  }
+
+  const store = loadFile();
+  const entry = store[id];
+  if (!entry) return false;
+  let changed = false;
+  for (const key of keys) {
+    const value = patch[key];
+    if (value && !entry[key]) {
+      entry[key] = value;
+      changed = true;
+    }
+  }
+  if (!changed) return false;
+  saveFile(store);
+  return true;
+}
+
 // --- flat-file fallback ---
 
 function ensureFile() {

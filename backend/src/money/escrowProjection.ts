@@ -37,6 +37,32 @@ export function expectedMilestonePayout(
     : (account.sellerNet * BigInt(account.milestonePcts[milestoneIndex]!)) / 100n;
 }
 
+/// The whole seller payout schedule of an escrow, in USDC micros, one entry per
+/// milestone. Same arithmetic as KarwanEscrow._payMilestone: a percentage of
+/// sellerNet for every milestone but the last, and the remainder for the last so
+/// integer division can never leave dust locked in the contract.
+///
+/// `expectedMilestonePayout` answers "what does the NEXT release pay" and needs
+/// the live `released` counter to do it, which makes it useless for a settled
+/// escrow (released == sellerNet, so the final milestone reads as zero). This
+/// answers "what did milestone N pay" for any milestone at any time, which is
+/// what a receipt written after the fact needs.
+export function milestonePayoutSchedule(
+  account: Pick<EscrowAccount, 'sellerNet' | 'milestonePcts'>,
+): bigint[] {
+  const amounts: bigint[] = [];
+  let paid = 0n;
+  for (let index = 0; index < account.milestonePcts.length; index++) {
+    const isFinal = index === account.milestonePcts.length - 1;
+    const amount = isFinal
+      ? account.sellerNet - paid
+      : (account.sellerNet * BigInt(account.milestonePcts[index]!)) / 100n;
+    amounts.push(amount);
+    paid += amount;
+  }
+  return amounts;
+}
+
 /**
  * Returns the latest unfinished payout whose effect is already visible in the
  * escrow counter. A retry must reconcile this movement before it may create a

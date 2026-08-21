@@ -4,6 +4,7 @@ import {
   expectedMilestonePayout,
   findAdvancedUnfinishedPayout,
   fundingEscrowMatches,
+  milestonePayoutSchedule,
 } from './escrowProjection.js';
 import { createMoneyMovement } from './model.js';
 
@@ -67,4 +68,33 @@ test('reconciles an advanced unfinished payout before the next milestone', () =>
   );
   assert.equal(findAdvancedUnfinishedPayout([next, first], 1)?.reference, first.reference);
   assert.equal(findAdvancedUnfinishedPayout([next, first], 0), undefined);
+});
+
+test('the payout schedule sums to sellerNet and leaves no dust on the last milestone', () => {
+  // 33/33/34 of a figure that does not divide: the contract floors each
+  // percentage cut and sweeps the remainder on the final milestone, so a
+  // schedule that merely applied the percentages would strand micros.
+  const account = { sellerNet: 9_999_999n, milestonePcts: [33, 33, 34] };
+  const schedule = milestonePayoutSchedule(account);
+  assert.deepEqual(schedule, [3_299_999n, 3_299_999n, 3_400_001n]);
+  assert.equal(
+    schedule.reduce((total, amount) => total + amount, 0n),
+    account.sellerNet,
+  );
+});
+
+test('the payout schedule reads a settled escrow the live projection cannot', () => {
+  // A settled escrow has released == sellerNet, which makes the live projection
+  // report the final milestone as zero. This is why receipts written after the
+  // fact use the schedule instead.
+  const account = { sellerNet: 4_000_000n, milestonePcts: [40, 60] };
+  assert.equal(expectedMilestonePayout({ ...account, released: account.sellerNet }, 1), 0n);
+  assert.deepEqual(milestonePayoutSchedule(account), [1_600_000n, 2_400_000n]);
+});
+
+test('a single-milestone escrow pays the whole seller net at once', () => {
+  assert.deepEqual(
+    milestonePayoutSchedule({ sellerNet: 12_400_000n, milestonePcts: [100] }),
+    [12_400_000n],
+  );
 });

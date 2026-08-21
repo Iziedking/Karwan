@@ -5,7 +5,12 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
-import { ledgerReferenceLabel, ledgerStatusTone } from '../ledgerPresentation';
+import {
+  ledgerAmountLabel,
+  ledgerDirection,
+  ledgerReferenceLabel,
+  ledgerStatusTone,
+} from '../ledgerPresentation';
 import { redactWalletAddresses } from '../receiptPresentation';
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 
@@ -164,7 +169,7 @@ export function MyMoneyLedger() {
           {visible.map(({ item, repeat }) => {
             const href = explorerFor(item);
             return (
-              <li key={item.id} className="flex items-baseline justify-between gap-4 py-3">
+              <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{lineFor(item, t.text)}</p>
                   <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
@@ -187,6 +192,28 @@ export function MyMoneyLedger() {
                     )}
                   </p>
                 </div>
+                {/* The amount, on the row. It was only ever on the receipt, so
+                    the list of everything that happened to your money never
+                    showed how much: "Released milestone 2 on deal 0x…" and a
+                    timestamp. Signed by direction, because one list holds both
+                    money in and money out. */}
+                {(() => {
+                  const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
+                  if (!amount) return null;
+                  return (
+                    <span
+                      className="shrink-0 mono text-[12px] font-semibold tabular-nums tracking-[0.02em]"
+                      style={{
+                        color:
+                          ledgerDirection(item.kind) === 'in'
+                            ? 'var(--lp-accent)'
+                            : 'var(--lp-dark)',
+                      }}
+                    >
+                      {amount}
+                    </span>
+                  );
+                })()}
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                   {href && (
                     <a
