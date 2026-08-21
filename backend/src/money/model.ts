@@ -11,6 +11,7 @@ export type MoneyMovementKind =
   | 'escrow_funding'
   | 'milestone_payout'
   | 'escrow_refund'
+  | 'agent_funding'
   | 'deposit'
   | 'bridge'
   | 'cash_out'
@@ -170,6 +171,11 @@ export function createKarwanReference(): string {
 export function isKarwanReference(value: string): boolean {
   const chars = KARWAN_REFERENCE_ALPHABET.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`^${KARWAN_REFERENCE_PREFIX}-[${chars}]{4}-[${chars}]{4}-[${chars}]{4}$`).test(value);
+}
+
+/** A completed movement must point at a real chain transaction, not only a provider id. */
+export function hasOnchainProof(leg: MoneyMovementLeg): boolean {
+  return typeof leg.txHash === 'string' && leg.txHash.trim().length > 0;
 }
 
 export function parseUsdcMicros(value: string): bigint {

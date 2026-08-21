@@ -2230,6 +2230,7 @@ export const hi: Messages = {
     },
     success: {
       message: 'भेज दिया गया।',
+      referenceLabel: 'Karwan संदर्भ',
     },
     errors: {
       invalidAddress: 'मान्य 20-बाइट पता नहीं.',
@@ -3193,6 +3194,7 @@ export const hi: Messages = {
       slow: 'धीमा',
       viewOnArcscan: 'Arcscan पर देखें',
       errorLabel: 'त्रुटि',
+      reference: 'Karwan संदर्भ',
       recipient: 'प्राप्तकर्ता',
       txArc: 'Tx · Arc',
       stuckNote: 'यह ट्रांसफर कुछ देर से पुष्टि नहीं हुआ है. संभवतः एक छूटी हुई tx. नई भेजने के लिए पुनः प्रयास करें, या इसे ख़ारिज करें.',

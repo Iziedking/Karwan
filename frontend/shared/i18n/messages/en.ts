@@ -2050,6 +2050,7 @@ interface MessagesShape {
     };
     success: {
       message: string;
+      referenceLabel: string;
     };
     errors: {
       invalidAddress: string;
@@ -3013,6 +3014,7 @@ interface MessagesShape {
       slow: string;
       viewOnArcscan: string;
       errorLabel: string;
+      reference: string;
       recipient: string;
       txArc: string;
       stuckNote: string;
@@ -6815,6 +6817,7 @@ export const en: MessagesShape = {
     },
     success: {
       message: 'On its way.',
+      referenceLabel: 'Karwan reference',
     },
     errors: {
       invalidAddress: 'Not a valid 20-byte address.',
@@ -7795,6 +7798,7 @@ export const en: MessagesShape = {
       slow: 'SLOW',
       viewOnArcscan: 'View on Arcscan',
       errorLabel: 'ERROR',
+      reference: 'Karwan reference',
       recipient: 'Recipient',
       txArc: 'Tx · Arc',
       stuckNote: 'This transfer has not confirmed in a while. Likely a dropped tx. Retry to send a fresh one, or dismiss it.',

@@ -11,7 +11,7 @@ import {
   readUserGatewayBalance,
   sweepToUnifiedBalance,
 } from '../gateway/balance.js';
-import { fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
+import { GatewaySpendError, fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
 
 /// Circle Gateway unified balance (read side).
@@ -309,6 +309,7 @@ gatewayRoutes.post('/sweep', async (c) => {
 const fundAgentSchema = z.object({
   agent: z.enum(['buyer', 'seller']),
   amountUsdc: z.number().positive().max(5_000_000),
+  requestId: z.string().trim().min(8).max(128).optional(),
 });
 
 // One spend at a time per user, so a double-click can't fire two burn intents.
@@ -332,7 +333,9 @@ gatewayRoutes.post('/fund-agent', async (c) => {
   }
   spendInFlight.add(address);
   try {
-    const result = await fundAgentFromGateway(address, body.agent, body.amountUsdc);
+    const requestId = body.requestId ?? c.req.header('Idempotency-Key');
+    if (!requestId) return c.json({ error: 'requestId or Idempotency-Key is required' }, 400);
+    const result = await fundAgentFromGateway(address, body.agent, body.amountUsdc, requestId);
     cache.delete(address); // unified balance dropped; bust the read cache
     bus.emitEvent({
       type: 'gateway.agent.funded',
@@ -342,6 +345,8 @@ gatewayRoutes.post('/fund-agent', async (c) => {
         agent: String(result.agent),
         amountUsdc: result.amountUsd.toString(),
         ...(result.txHash ? { txHash: result.txHash } : {}),
+        reference: result.reference,
+        movementState: result.movementState,
       },
     });
     void appendActivity({
@@ -350,16 +355,40 @@ gatewayRoutes.post('/fund-agent', async (c) => {
       // Plain past tense with no plumbing in it: the user has one balance and
       // one wallet, and where the USDC physically sat is not their concern.
       summary: `Funded the ${result.agent} agent with ${result.amountUsd} USDC`,
-      params: {t: 'gatewayFundAgent', agent: String(result.agent), amount: String(result.amountUsd)},
+        params: {
+          t: 'gatewayFundAgent',
+          agent: String(result.agent),
+          amount: String(result.amountUsd),
+          state: result.movementState,
+        },
       amountUsdc: result.amountUsd.toString(),
-      // Prefer the mined hash, which resolves on an explorer. transferId is a
-      // Circle-internal reference and only a fallback.
+      // Prefer the mined hash for explorer proof. The KWN reference is the
+      // product receipt; Circle transfer ids remain provider-only metadata.
       ...(result.txHash ? { txHash: result.txHash } : {}),
-      refId: result.transferId,
+      refId: result.reference,
     });
-    return c.json({ ok: true, ...result });
+    return c.json({ ok: true, requestId, ...result });
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway fund-agent failed');
+    if (err instanceof GatewaySpendError) {
+      void appendActivity({
+        address,
+        kind: 'gateway_fund_agent',
+        summary: `Funding the ${body.agent} agent needs attention`,
+        params: {
+          t: 'gatewayFundAgent',
+          agent: body.agent,
+          amount: String(body.amountUsdc),
+          state: err.movementState,
+        },
+        amountUsdc: String(body.amountUsdc),
+        refId: err.reference,
+      });
+      return c.json(
+        { error: 'transfer failed', detail: err.message, reference: err.reference, movementState: err.movementState },
+        502,
+      );
+    }
     return c.json({ error: 'transfer failed', detail: (err as Error).message }, 502);
   } finally {
     spendInFlight.delete(address);
@@ -370,6 +399,7 @@ const cashOutSchema = z.object({
   destChainKey: z.enum(['baseSepolia', 'arbitrumSepolia', 'optimismSepolia', 'sepolia', 'polygonAmoy']),
   recipient: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   amountUsdc: z.number().positive().max(5_000_000),
+  requestId: z.string().trim().min(8).max(128).optional(),
 });
 
 /// Cash out from the caller's unified balance to another chain (cross-chain
@@ -390,7 +420,15 @@ gatewayRoutes.post('/cash-out', async (c) => {
   }
   spendInFlight.add(address);
   try {
-    const result = await cashOutFromGateway(address, body.destChainKey, body.recipient, body.amountUsdc);
+    const requestId = body.requestId ?? c.req.header('Idempotency-Key');
+    if (!requestId) return c.json({ error: 'requestId or Idempotency-Key is required' }, 400);
+    const result = await cashOutFromGateway(
+      address,
+      body.destChainKey,
+      body.recipient,
+      body.amountUsdc,
+      requestId,
+    );
     cache.delete(address);
     bus.emitEvent({
       type: 'gateway.cashed.out',
@@ -401,22 +439,52 @@ gatewayRoutes.post('/cash-out', async (c) => {
         chain: String(result.destChainKey),
         recipient: result.recipientAddress.toLowerCase(),
         ...(result.txHash ? { txHash: result.txHash } : {}),
+        reference: result.reference,
+        movementState: result.movementState,
       },
     });
     void appendActivity({
       address,
       kind: 'gateway_cash_out',
       summary: `Cashed out ${result.amountUsd} USDC to ${result.recipientAddress.toLowerCase()} on ${result.destChainKey}`,
-      params: {t: 'gatewayCashOut', amount: String(result.amountUsd), to: result.recipientAddress.toLowerCase(), chain: String(result.destChainKey)},
+        params: {
+          t: 'gatewayCashOut',
+          amount: String(result.amountUsd),
+          to: result.recipientAddress.toLowerCase(),
+          chain: String(result.destChainKey),
+          state: result.movementState,
+        },
       amountUsdc: result.amountUsd.toString(),
       ...(result.txHash ? { txHash: result.txHash } : {}),
-      refId: result.transferId,
+      refId: result.reference,
       chain: result.destChainKey,
       counterparty: result.recipientAddress.toLowerCase(),
     });
-    return c.json({ ok: true, ...result });
+    return c.json({ ok: true, requestId, ...result });
   } catch (err) {
     logger.warn({ address, err: (err as Error).message }, 'gateway cash-out failed');
+    if (err instanceof GatewaySpendError) {
+      void appendActivity({
+        address,
+        kind: 'gateway_cash_out',
+        summary: 'Cashing out from the unified balance needs attention',
+        params: {
+          t: 'gatewayCashOut',
+          amount: String(body.amountUsdc),
+          to: body.recipient.toLowerCase(),
+          chain: body.destChainKey,
+          state: err.movementState,
+        },
+        amountUsdc: String(body.amountUsdc),
+        refId: err.reference,
+        chain: body.destChainKey,
+        counterparty: body.recipient.toLowerCase(),
+      });
+      return c.json(
+        { error: 'cash-out failed', detail: err.message, reference: err.reference, movementState: err.movementState },
+        502,
+      );
+    }
     return c.json({ error: 'cash-out failed', detail: (err as Error).message }, 502);
   } finally {
     spendInFlight.delete(address);

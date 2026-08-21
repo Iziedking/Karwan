@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits } from 'viem';
 import {
   provisionUserAgentWallets,
@@ -32,6 +33,15 @@ import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
 import { invalidateDepositIndex } from '../circle/depositWatcher.js';
 import { logger } from '../logger.js';
+import {
+  completeMoneyMovement,
+  currentMoneyMovement,
+  markMoneyMovementNeedsAttention,
+  prepareMoneyMovementContractLeg,
+  verifyMoneyMovementLeg,
+} from '../money/service.js';
+import { ensureCashoutMovement } from '../money/cashout.js';
+import { ensureAgentFundingMovement, prepareAgentFundingLeg } from '../money/agentFunding.js';
 
 // USDC on Arc exposes a 6-decimal ERC-20 interface. Withdrawals move funds
 // through that interface, the same one the escrow uses.
@@ -84,12 +94,18 @@ const withdrawSchema = z.object({
   agent: z.enum(['buyer', 'seller']),
   toAddress: addrSchema,
   amountUsdc: z.number().positive(),
+  /// Client-generated retry identity. Reusing it returns the same movement
+  /// reference and Circle idempotency key instead of risking a second spend.
+  requestId: z.string().trim().min(8).max(128).optional(),
 });
 
 const fundAgentSchema = z.object({
   address: addrSchema,
   agent: z.enum(['buyer', 'seller']),
   amountUsdc: z.number().positive(),
+  /// Client-generated retry identity. Reusing it returns the same movement
+  /// reference and Circle idempotency key instead of risking a second spend.
+  requestId: z.string().trim().min(8).max(128).optional(),
 });
 
 // One withdrawal at a time per user+agent, so a double-click cannot fire two
@@ -624,6 +640,9 @@ activationRoutes.post('/withdraw', async (c) => {
     body.agent === 'buyer' ? wallets.buyerWalletId : wallets.sellerWalletId;
   const agentAddress =
     body.agent === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+  if (!walletId || !agentAddress) {
+    return c.json({ error: `${body.agent} agent wallet is not available`, code: 'NO_AGENT_WALLET' }, 409);
+  }
 
   // Balance precheck so an over-withdrawal returns a clear "insufficient
   // balance" with the available amount, not a raw Circle/chain revert. An SCA
@@ -657,16 +676,64 @@ activationRoutes.post('/withdraw', async (c) => {
   }
 
   withdrawInFlight.add(key);
+  let movementReference: string | undefined;
   try {
+    const requestKey = body.requestId ?? randomUUID();
+    const { movement } = await ensureCashoutMovement({
+      operationKey: `cashout:agent-withdraw:${userAddress}:${body.agent}:${requestKey}`,
+      amountUsdc: body.amountUsdc.toString(),
+      initiatedBy: userAddress,
+      recipient: body.toAddress,
+      summary: `Withdrew ${body.amountUsdc} USDC from the ${body.agent} agent wallet to ${body.toAddress.toLowerCase()}`,
+    });
+    movementReference = movement.reference;
+    const current = await currentMoneyMovement(movement.reference);
+    const existingLeg = current.legs.find(
+      (leg) => leg.attempt === current.attempt && leg.key === 'arc_transfer',
+    );
+    if (current.state === 'completed' && existingLeg?.txHash) {
+      return c.json({
+        accepted: true,
+        alreadyRecorded: true,
+        txHash: existingLeg.txHash,
+        explorerUrl: existingLeg.explorerUrl ?? null,
+        reference: current.reference,
+        movementState: current.state,
+      }, 200);
+    }
+    if (current.state === 'needs_attention') {
+      return c.json({
+        accepted: false,
+        error: 'withdrawal needs attention',
+        reference: current.reference,
+        movementState: current.state,
+      }, 409);
+    }
+
+    const prepared = await prepareMoneyMovementContractLeg(movement.reference, {
+      key: 'arc_transfer',
+      label: `Arc USDC withdrawal from ${body.agent} agent`,
+      rail: 'circle_wallets',
+      walletId,
+      signerAddress: agentAddress,
+      sourceAddress: agentAddress,
+      destinationAddress: body.toAddress,
+      contractAddress: usdcAddress,
+      amountMicros: amountWei,
+    });
     const result = await executeContractCall(
       {
         walletId,
         contractAddress: usdcAddress,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [body.toAddress, amountWei.toString()],
+        idempotencyKey: prepared.idempotencyKey,
+        lifecycle: prepared.lifecycle,
       },
       `withdraw(${body.agent} agent -> ${body.toAddress})`,
     );
+    await verifyMoneyMovementLeg(movement.reference, prepared.leg.id);
+    const completed = await completeMoneyMovement(movement.reference);
     bus.emitEvent({
       type: 'agent.withdrawal',
       actor: 'platform',
@@ -676,6 +743,8 @@ activationRoutes.post('/withdraw', async (c) => {
         toAddress: body.toAddress.toLowerCase(),
         amountUsdc: body.amountUsdc.toString(),
         txHash: result.txHash,
+        reference: completed.reference,
+        movementState: completed.state,
       },
     });
     void appendActivity({
@@ -685,15 +754,31 @@ activationRoutes.post('/withdraw', async (c) => {
       params: {t: 'agentWithdraw', agent: body.agent, amount: String(body.amountUsdc), to: body.toAddress.toLowerCase()},
       amountUsdc: body.amountUsdc.toString(),
       txHash: result.txHash,
+      refId: completed.reference,
       counterparty: body.toAddress.toLowerCase(),
     });
     logger.info(
       { userAddress, agent: body.agent, toAddress: body.toAddress, txHash: result.txHash },
       'agent wallet withdrawal sent',
     );
-    return c.json({ accepted: true, txHash: result.txHash }, 200);
+    return c.json({
+      accepted: true,
+      txHash: result.txHash,
+      reference: completed.reference,
+      movementState: completed.state,
+    }, 200);
   } catch (err) {
     logger.error({ userAddress, err: (err as Error).message }, 'withdrawal failed');
+    const reference = movementReference;
+    if (reference) {
+      const attention = await markMoneyMovementNeedsAttention(reference, 'AGENT_WITHDRAW_UNKNOWN_OUTCOME').catch(() => null);
+      return c.json({
+        error: 'withdrawal needs attention',
+        detail: (err as Error).message,
+        reference,
+        movementState: attention?.state ?? 'needs_attention',
+      }, 502);
+    }
     return c.json({ error: 'withdrawal failed', detail: (err as Error).message }, 502);
   } finally {
     withdrawInFlight.delete(key);
@@ -746,17 +831,64 @@ activationRoutes.post('/fund-agent', async (c) => {
   }
 
   fundInFlight.add(key);
+  let movementReference: string | undefined;
   try {
     const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+    const requestKey = body.requestId ?? randomUUID();
+    const { movement } = await ensureAgentFundingMovement({
+      operationKey: `agent-funding:identity-to-agent:${userAddress}:${body.agent}:${requestKey}`,
+      amountUsdc: body.amountUsdc.toString(),
+      initiatedBy: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: agentAddress,
+      summary: `Funded the ${body.agent} agent wallet with ${body.amountUsdc} USDC from the identity wallet`,
+    });
+    movementReference = movement.reference;
+    const current = await currentMoneyMovement(movement.reference);
+    const existingLeg = current.legs.find(
+      (leg) => leg.attempt === current.attempt && leg.key === 'arc_transfer',
+    );
+    if (current.state === 'completed' && existingLeg?.txHash) {
+      return c.json({
+        accepted: true,
+        alreadyRecorded: true,
+        txHash: existingLeg.txHash,
+        explorerUrl: existingLeg.explorerUrl ?? null,
+        agentAddress,
+        reference: current.reference,
+        movementState: current.state,
+      }, 200);
+    }
+    if (current.state === 'needs_attention') {
+      return c.json({
+        accepted: false,
+        error: 'fund transfer needs attention',
+        agentAddress,
+        reference: current.reference,
+        movementState: current.state,
+      }, 409);
+    }
+    const prepared = await prepareAgentFundingLeg(movement.reference, {
+      walletId: user.circleIdentityWalletId,
+      signerAddress: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: agentAddress,
+      contractAddress: usdcAddress,
+      amountMicros: amountWei,
+    });
     const result = await executeContractCall(
       {
         walletId: user.circleIdentityWalletId,
         contractAddress: usdcAddress,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [agentAddress, amountWei.toString()],
+        idempotencyKey: prepared.idempotencyKey,
+        lifecycle: prepared.lifecycle,
       },
       `fund-agent(${body.agent} <- identity ${userAddress})`,
     );
+    const verified = await verifyMoneyMovementLeg(movement.reference, prepared.leg.id);
+    const completed = await completeMoneyMovement(verified.reference);
     bus.emitEvent({
       type: 'agent.funded',
       actor: 'platform',
@@ -766,6 +898,8 @@ activationRoutes.post('/fund-agent', async (c) => {
         agentAddress: agentAddress.toLowerCase(),
         amountUsdc: body.amountUsdc.toString(),
         txHash: result.txHash,
+        reference: completed.reference,
+        movementState: completed.state,
       },
     });
     void appendActivity({
@@ -775,6 +909,7 @@ activationRoutes.post('/fund-agent', async (c) => {
       params: {t: 'agentTopUp', agent: body.agent, amount: String(body.amountUsdc)},
       amountUsdc: body.amountUsdc.toString(),
       txHash: result.txHash,
+      refId: completed.reference,
     });
     logger.info(
       {
@@ -786,12 +921,30 @@ activationRoutes.post('/fund-agent', async (c) => {
       },
       'agent wallet funded from identity DCW',
     );
-    return c.json({ accepted: true, txHash: result.txHash, agentAddress }, 200);
+    return c.json({
+      accepted: true,
+      txHash: result.txHash,
+      agentAddress,
+      reference: completed.reference,
+      movementState: completed.state,
+    }, 200);
   } catch (err) {
     logger.error(
       { userAddress, agent: body.agent, err: (err as Error).message },
       'fund-agent failed',
     );
+    if (movementReference) {
+      const attention = await markMoneyMovementNeedsAttention(
+        movementReference,
+        'AGENT_FUNDING_UNKNOWN_OUTCOME',
+      ).catch(() => null);
+      return c.json({
+        error: 'fund transfer needs attention',
+        detail: (err as Error).message,
+        reference: movementReference,
+        movementState: attention?.state ?? 'needs_attention',
+      }, 502);
+    }
     return c.json({ error: 'fund-agent failed', detail: (err as Error).message }, 502);
   } finally {
     fundInFlight.delete(key);
@@ -875,17 +1028,58 @@ async function transferFromIdentity(
   agent: 'buyer' | 'seller',
 ): Promise<void> {
   if (amountUsdc < 0.5) return; // skip dust transfers
+  let movementReference: string | undefined;
   try {
     const amountWei = parseUnits(amountUsdc.toFixed(USDC_DECIMALS), USDC_DECIMALS);
+    const amountLabel = amountUsdc.toFixed(USDC_DECIMALS);
+    const { movement } = await ensureAgentFundingMovement({
+      operationKey: `agent-seed:identity-to-agent:${userAddress}:${agent}:${amountLabel}`,
+      amountUsdc: amountLabel,
+      initiatedBy: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: toAddress,
+      summary: `Seeded the ${agent} agent wallet with ${amountLabel} USDC from the identity wallet`,
+    });
+    movementReference = movement.reference;
+    const current = await currentMoneyMovement(movement.reference);
+    const existingLeg = current.legs.find(
+      (leg) => leg.attempt === current.attempt && leg.key === 'arc_transfer',
+    );
+    if (current.state === 'completed' && existingLeg?.txHash) {
+      logger.info(
+        { userAddress, agent, amountUsdc, txHash: existingLeg.txHash, reference: current.reference },
+        'agent seed already recorded',
+      );
+      return;
+    }
+    if (current.state === 'needs_attention') {
+      logger.warn(
+        { userAddress, agent, amountUsdc, reference: current.reference },
+        'agent seed needs attention; refusing blind retry',
+      );
+      return;
+    }
+    const prepared = await prepareAgentFundingLeg(movement.reference, {
+      walletId: identityWalletId,
+      signerAddress: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: toAddress,
+      contractAddress: usdcAddress,
+      amountMicros: amountWei,
+    });
     const result = await executeContractCall(
       {
         walletId: identityWalletId,
         contractAddress: usdcAddress,
         abiFunctionSignature: 'transfer(address,uint256)',
         abiParameters: [toAddress, amountWei.toString()],
+        idempotencyKey: prepared.idempotencyKey,
+        lifecycle: prepared.lifecycle,
       },
       `seed-agent(${agent} <- identity ${userAddress})`,
     );
+    const verified = await verifyMoneyMovementLeg(movement.reference, prepared.leg.id);
+    const completed = await completeMoneyMovement(verified.reference);
     bus.emitEvent({
       type: 'agent.funded',
       actor: 'platform',
@@ -895,6 +1089,8 @@ async function transferFromIdentity(
         agentAddress: toAddress.toLowerCase(),
         amountUsdc: amountUsdc.toString(),
         txHash: result.txHash,
+        reference: completed.reference,
+        movementState: completed.state,
         seed: true,
       },
     });
@@ -905,11 +1101,18 @@ async function transferFromIdentity(
       params: {t: 'setupMove', agent: String(agent), amount: String(amountUsdc)},
       amountUsdc: amountUsdc.toString(),
       txHash: result.txHash,
+      refId: completed.reference,
     });
-    logger.info({ userAddress, agent, amountUsdc, txHash: result.txHash }, 'agent seeded from identity');
+    logger.info(
+      { userAddress, agent, amountUsdc, txHash: result.txHash, reference: completed.reference },
+      'agent seeded from identity',
+    );
   } catch (err) {
+    if (movementReference) {
+      await markMoneyMovementNeedsAttention(movementReference, 'AGENT_SEED_UNKNOWN_OUTCOME').catch(() => null);
+    }
     logger.warn(
-      { userAddress, agent, err: (err as Error).message },
+      { userAddress, agent, reference: movementReference, err: (err as Error).message },
       'agent seed transfer failed (non-fatal)',
     );
   }

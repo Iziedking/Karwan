@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
@@ -82,7 +82,9 @@ export function AgentWithdrawCard({
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [reference, setReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef<string | null>(null);
 
   const selectedAgent = options.find((o) => o.key === selected);
   const selectedBalance = selected === 'buyer' ? buyerBalance : sellerBalance;
@@ -123,14 +125,20 @@ export function AgentWithdrawCard({
     setPhase('sending');
     setError(null);
     setTxHash(null);
+    setReference(null);
     try {
+      const requestId = requestIdRef.current ?? crypto.randomUUID();
+      requestIdRef.current = requestId;
       const r = await api.withdrawFromAgent({
         address,
         agent: selected,
         toAddress: dest.trim(),
         amountUsdc: amount as number,
+        requestId,
       });
       setTxHash(r.txHash);
+      setReference(r.reference);
+      requestIdRef.current = null;
       setPhase('done');
       buyerBalance.refetch();
       sellerBalance.refetch();
@@ -176,7 +184,11 @@ export function AgentWithdrawCard({
                 <button
                   key={o.key}
                   type="button"
-                  onClick={() => o.address && setSelected(o.key)}
+                  onClick={() => {
+                    if (!o.address) return;
+                    requestIdRef.current = null;
+                    setSelected(o.key);
+                  }}
                   disabled={disabled}
                   aria-pressed={active}
                   className={cn(
@@ -264,7 +276,10 @@ export function AgentWithdrawCard({
               min={0}
               step="any"
               value={amount}
-              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) => {
+                requestIdRef.current = null;
+                setAmount(e.target.value === '' ? '' : Number(e.target.value));
+              }}
               className="no-spinner flex-1 bg-transparent font-sans text-[34px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] min-w-0"
               placeholder={aw.form.amountPlaceholder}
             />
@@ -296,7 +311,10 @@ export function AgentWithdrawCard({
           <input
             type="text"
             value={dest}
-            onChange={(e) => setDest(e.target.value)}
+            onChange={(e) => {
+              requestIdRef.current = null;
+              setDest(e.target.value);
+            }}
             placeholder={aw.form.destinationPlaceholder}
             className="withdraw-dest w-full bg-[var(--lp-light)] px-4 py-3 text-[13px] mono tabular-nums focus:outline-none transition-shadow text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)]"
             style={{
@@ -391,7 +409,7 @@ export function AgentWithdrawCard({
 
         {phase === 'done' && txHash && (
           <div
-            className="relative flex items-center justify-between gap-3 ps-4 pe-3 py-2.5 overflow-hidden"
+            className="relative flex flex-wrap items-center justify-between gap-3 ps-4 pe-3 py-2.5 overflow-hidden"
             style={{
               background: 'var(--lp-card)',
               color: 'var(--lp-dark)',
@@ -407,14 +425,26 @@ export function AgentWithdrawCard({
               className="absolute start-0 top-0 bottom-0 w-[3px]"
               style={{ background: TONE_COLOR.positive }}
             />
-            <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold">
-              <span
-                aria-hidden
-                className="inline-block w-[6px] h-[6px]"
-                style={{ background: TONE_COLOR.positive, borderRadius: 1 }}
-              />
-              {aw.success.message}
-            </span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <span className="inline-flex items-center gap-2 text-[12.5px] font-semibold">
+                <span
+                  aria-hidden
+                  className="inline-block w-[6px] h-[6px]"
+                  style={{ background: TONE_COLOR.positive, borderRadius: 1 }}
+                />
+                {aw.success.message}
+              </span>
+              {reference && (
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                    {aw.success.referenceLabel}
+                  </span>
+                  <span className="mono text-[11px] font-bold tracking-[0.08em] text-[var(--lp-dark)] break-all">
+                    {reference}
+                  </span>
+                </div>
+              )}
+            </div>
             <a
               href={ARC_EXPLORER_TX(txHash)}
               target="_blank"

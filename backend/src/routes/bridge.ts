@@ -47,6 +47,7 @@ import {
   prepareCashoutLeg,
   recordCashoutLeg,
 } from '../money/cashout.js';
+import { ensureBridgeMovement } from '../money/bridge.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
 
@@ -217,6 +218,7 @@ bridgeRoutes.get('/list', async (c) => {
   return c.json({
     bridges: records.map((b) => ({
       bridgeId: b.bridgeId,
+      reference: b.movementReference ?? null,
       status: b.status,
       amountUsdc: b.amountUsdc,
       sourceChainKey: b.sourceChainKey ?? null,
@@ -237,9 +239,10 @@ bridgeRoutes.get('/list', async (c) => {
 /// Record a bridge that already completed CLIENT-SIDE via Circle's App Kit
 /// Forwarding Service. The user signs the source burn in their own wallet and
 /// the forwarder mints on Arc, so the backend never sees the flow. This
-/// endpoint persists a 'minted' record (durable history) and emits
-/// bridge.minted so it shows in the main /activity feed under Top Up /
-/// Withdraw. Idempotent by bridgeId. No funds move here; it is a ledger write.
+/// endpoint persists a durable bridge projection and emits bridge.minted for
+/// completed proofs so it shows in the main /activity feed under Top Up /
+/// Withdraw. Missing client-side proofs remain pending instead of being shown
+/// as completed. Idempotent by bridgeId. No funds move here; it is a ledger write.
 const recordSchema = z.object({
   bridgeId: z.string().min(1),
   sourceChainKey: z.string().min(1),
@@ -263,9 +266,115 @@ bridgeRoutes.post('/record', async (c) => {
   const owner = sessionAddress(c);
   if (!owner) return c.json({ error: 'sign in first' }, 401);
 
+  const ownerAddress = owner.toLowerCase();
+  const direction = body.direction ?? 'in';
+  const amountUsdc = String(body.amountUsdc);
+  let amountMicros: bigint;
+  try {
+    amountMicros = parseUnits(amountUsdc, USDC_DECIMALS);
+  } catch {
+    return c.json({ error: 'amountUsdc must be a non-negative USDC amount with at most 6 decimals' }, 400);
+  }
+  if (amountMicros <= 0n) {
+    return c.json({ error: 'amountUsdc must be greater than zero' }, 400);
+  }
+
+  const operationKey = `bridge:record:${ownerAddress}:${body.bridgeId}`;
+
   // Idempotent: a resubmit (retry, double-click, reload) must not double-record.
   const existing = await getBridge(body.bridgeId);
-  if (existing) return c.json({ ok: true, alreadyRecorded: true });
+  if (existing && !isSessionSelf(c, bridgeOwnerFor(existing) ?? '')) {
+    return c.json({ error: 'not your bridge', code: 'forbidden' }, 403);
+  }
+  if (existing?.movementReference) {
+    const existingMovement = await getMoneyMovement(existing.movementReference);
+    if (!existingMovement) {
+      return c.json(
+        {
+          error: 'bridge movement record is unavailable; contact support',
+          reference: existing.movementReference,
+        },
+        409,
+      );
+    }
+    if (existingMovement.amountMicros !== amountMicros.toString()) {
+      return c.json(
+        {
+          error: 'bridge amount does not match the existing movement',
+          reference: existingMovement.reference,
+        },
+        409,
+      );
+    }
+    const existingRecipient = existingMovement.participants.find(
+      (party) => party.role === 'recipient',
+    )?.address;
+    if (existingRecipient && existingRecipient.toLowerCase() !== body.mintRecipient.toLowerCase()) {
+      return c.json(
+        {
+          error: 'bridge recipient does not match the existing movement',
+          reference: existingMovement.reference,
+        },
+        409,
+      );
+    }
+    const existingBurnLeg = existingMovement.legs.find(
+      (leg) => leg.attempt === existingMovement.attempt && leg.key === 'burn',
+    );
+    const existingMintLeg = existingMovement.legs.find(
+      (leg) => leg.attempt === existingMovement.attempt && leg.key === 'mint',
+    );
+    if (
+      (existing?.sourceTxHash && body.burnTxHash && existing.sourceTxHash.toLowerCase() !== body.burnTxHash.toLowerCase()) ||
+      (existingBurnLeg?.txHash && body.burnTxHash && existingBurnLeg.txHash.toLowerCase() !== body.burnTxHash.toLowerCase()) ||
+      (existing?.mintTxHash && body.mintTxHash && existing.mintTxHash.toLowerCase() !== body.mintTxHash.toLowerCase()) ||
+      (existingMintLeg?.txHash && body.mintTxHash && existingMintLeg.txHash.toLowerCase() !== body.mintTxHash.toLowerCase())
+    ) {
+      return c.json(
+        { error: 'bridge proof does not match the existing movement', reference: existingMovement.reference },
+        409,
+      );
+    }
+    if (existingMovement.state === 'completed') {
+      return c.json({
+        ok: true,
+        alreadyRecorded: true,
+        reference: existingMovement.reference,
+        movementState: existingMovement.state,
+      });
+    }
+  } else if (existing) {
+    // Rows written before the money-movement spine are historical. Do not
+    // fabricate a reference for them merely because a client retried /record.
+    return c.json({ ok: true, alreadyRecorded: true });
+  }
+
+  let movement;
+  try {
+    const ensured = await ensureBridgeMovement({
+      operationKey,
+      amountUsdc,
+      initiatedBy: ownerAddress,
+      recipient: body.mintRecipient,
+      summary:
+        direction === 'out'
+          ? `Sent ${amountUsdc} USDC from Arc to ${body.sourceChainKey}`
+          : `Added ${amountUsdc} USDC from ${body.sourceChainKey} to Arc`,
+    });
+    movement = ensured.movement;
+    if (movement.amountMicros !== amountMicros.toString()) {
+      return c.json(
+        {
+          error: 'bridge amount does not match the existing movement',
+          reference: movement.reference,
+        },
+        409,
+      );
+    }
+  } catch (err) {
+    logger.error({ err, bridgeId: body.bridgeId }, 'bridge movement allocation failed');
+    return c.json({ error: 'could not allocate a Karwan bridge reference' }, 500);
+  }
 
   const key = body.sourceChainKey;
   // Solana's CCTP domain is 5; EVM domains come from the registry. An 'out'
@@ -280,45 +389,93 @@ bridgeRoutes.post('/record', async (c) => {
         : isCctpChainKey(key)
           ? CCTP_CHAINS[key].domain
           : 0;
-  const amountUsdc = String(body.amountUsdc);
+  await prepareCashoutLeg(movement.reference, {
+    key: 'burn',
+    label: direction === 'out' ? 'Arc source burn' : 'Source-chain burn',
+    rail: 'cctp',
+    amountMicros: amountMicros.toString(),
+    ...(direction === 'out' ? { sourceAddress: ownerAddress } : {}),
+    ...(direction === 'out' ? { destinationAddress: body.mintRecipient } : {}),
+  });
+  await prepareCashoutLeg(movement.reference, {
+    key: 'mint',
+    label: direction === 'out' ? 'Destination-chain mint' : 'Arc destination mint',
+    rail: 'cctp',
+    amountMicros: amountMicros.toString(),
+    destinationAddress: body.mintRecipient,
+  });
 
-  await createBridge({
-    bridgeId: body.bridgeId,
+  let latestMovement = (await getMoneyMovement(movement.reference)) ?? movement;
+  if (body.burnTxHash) {
+    latestMovement = await recordCashoutLeg(movement.reference, 'burn', { txHash: body.burnTxHash });
+  }
+  if (body.mintTxHash) {
+    latestMovement = await recordCashoutLeg(movement.reference, 'mint', { txHash: body.mintTxHash });
+  }
+
+  const bridgePatch = {
     sourceDomain,
-    sourceTxHash: body.burnTxHash ?? '',
+    sourceTxHash: body.burnTxHash ?? existing?.sourceTxHash ?? '',
     amountUsdc,
     mintRecipient: body.mintRecipient,
-    status: 'minted',
-    direction: body.direction ?? 'in',
+    // A client-side forwarder can report success without returning the Arc
+    // mint hash. Keep the bridge projection relaying until the movement has
+    // both verified legs; the durable receipt is the source of truth.
+    status: (latestMovement.state === 'completed' ? 'minted' : 'relaying') as 'minted' | 'relaying',
+    direction,
     appKit: true,
     // Bind ownership to `owner`, NOT by writing the identity address into
     // bridgeWalletAddress. That field is matched against other users' deposit
     // wallet addresses, and a deposit wallet can sit at another user's identity
     // address (Circle's per-chain index counter), so using it as an ownership
     // key is what leaked one user's bridge history to another.
-    owner: owner.toLowerCase(),
+    owner: ownerAddress,
     sourceChainKey: key as never,
+    movementReference: movement.reference,
     ...(body.mintTxHash ? { mintTxHash: body.mintTxHash } : {}),
-  });
+  };
+  if (existing) {
+    await patchBridge(body.bridgeId, bridgePatch);
+  } else {
+    await createBridge({ bridgeId: body.bridgeId, ...bridgePatch });
+  }
 
-  // Mirrors markBridgeMinted's emit so /activity renders it the same way.
-  bus.emitEvent({
-    type: 'bridge.minted',
-    actor: 'buyer',
-    payload: {
-      bridgeId: body.bridgeId,
-      amountUsdc,
-      mintRecipient: body.mintRecipient,
-      sourceTxHash: body.burnTxHash ?? '',
-      ...(body.mintTxHash ? { txHash: body.mintTxHash } : { alreadyMinted: true }),
-    },
-  });
+  // Mirrors markBridgeMinted only after both proof legs are complete. A
+  // client-side forwarder result without a mint hash remains a durable
+  // pending movement, not a successful bridge event.
+  if (latestMovement.state === 'completed') {
+    bus.emitEvent({
+      type: 'bridge.minted',
+      actor: 'buyer',
+      payload: {
+        bridgeId: body.bridgeId,
+        amountUsdc,
+        mintRecipient: body.mintRecipient,
+        sourceTxHash: body.burnTxHash ?? '',
+        ...(body.mintTxHash ? { txHash: body.mintTxHash } : { alreadyMinted: true }),
+        reference: latestMovement.reference,
+        movementState: latestMovement.state,
+      },
+    });
+  }
 
   logger.info(
-    { owner, bridgeId: body.bridgeId, sourceChainKey: key, amountUsdc },
+    {
+      owner,
+      bridgeId: body.bridgeId,
+      sourceChainKey: key,
+      amountUsdc,
+      reference: latestMovement.reference,
+      movementState: latestMovement.state,
+    },
     'recorded app kit forwarder bridge',
   );
-  return c.json({ ok: true });
+  return c.json({
+    ok: true,
+    ...(existing ? { alreadyRecorded: true } : {}),
+    reference: latestMovement.reference,
+    movementState: latestMovement.state,
+  });
 });
 
 bridgeRoutes.post('/relay', async (c) => {
@@ -449,6 +606,7 @@ export async function resumePendingBridges(): Promise<void> {
           amountUsdc: b.amountUsdc,
           recipient: b.mintRecipient,
           destWalletId: b.bridgeWalletId,
+          ...(b.movementReference ? { movementReference: b.movementReference } : {}),
         });
       }
       continue;
@@ -526,6 +684,50 @@ async function markBridgeMinted(input: RelayInput, txHash?: string): Promise<boo
       return false;
     }
   }
+  const bridge = await getBridge(input.bridgeId);
+  if (bridge?.movementReference) {
+    try {
+      const movement = await recordCashoutLeg(
+        bridge.movementReference,
+        'mint',
+        txHash ? { txHash } : { submitted: true },
+      );
+      if (movement.state !== 'completed') {
+        await patchBridge(input.bridgeId, {
+          status: 'relaying',
+          ...(txHash ? { mintTxHash: txHash } : {}),
+        });
+        return true;
+      }
+      await patchBridge(input.bridgeId, {
+        status: 'minted',
+        ...(txHash ? { mintTxHash: txHash } : {}),
+      });
+      bus.emitEvent({
+        type: 'bridge.minted',
+        actor: 'buyer',
+        payload: {
+          bridgeId: input.bridgeId,
+          amountUsdc: input.amountUsdc,
+          mintRecipient: input.mintRecipient,
+          ...(txHash ? { txHash } : { alreadyMinted: true }),
+          reference: movement.reference,
+          movementState: movement.state,
+        },
+      });
+      return true;
+    } catch (err) {
+      const message = `Could not persist bridge receipt: ${(err as Error).message}`;
+      await markCashoutFailed(bridge.movementReference, 'BRIDGE_MINT_RECEIPT_PERSIST_FAILED');
+      await patchBridge(input.bridgeId, { status: 'error', error: message });
+      bus.emitEvent({
+        type: 'bridge.error',
+        actor: 'buyer',
+        payload: { bridgeId: input.bridgeId, scope: 'receipt', message },
+      });
+      return false;
+    }
+  }
   await patchBridge(input.bridgeId, { status: 'minted', ...(txHash ? { mintTxHash: txHash } : {}) });
   bus.emitEvent({
     type: 'bridge.minted',
@@ -579,6 +781,10 @@ async function relayLoop(input: RelayInput) {
       bridgeId: input.bridgeId,
       sourceTxHash: input.sourceTxHash,
     });
+    const record = await getBridge(input.bridgeId);
+    if (record?.movementReference) {
+      await markCashoutFailed(record.movementReference, 'BRIDGE_ATTESTATION_TIMEOUT');
+    }
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
@@ -626,6 +832,10 @@ async function relayLoop(input: RelayInput) {
       return;
     }
     reportError('bridge.relay.receiveMessage', err, { bridgeId: input.bridgeId });
+    const record = await getBridge(input.bridgeId);
+    if (record?.movementReference) {
+      await markCashoutFailed(record.movementReference, 'BRIDGE_MINT_FAILED');
+    }
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
@@ -710,6 +920,13 @@ async function waitForCircleTx(txId: string, label: string): Promise<WaitResult>
 }
 
 async function failSource(bridgeId: string, scope: string, message: string) {
+  const record = await getBridge(bridgeId);
+  if (record?.movementReference) {
+    await markCashoutFailed(
+      record.movementReference,
+      `BRIDGE_${scope.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`,
+    ).catch((err) => logger.warn({ bridgeId, err }, 'could not mark bridge movement attention'));
+  }
   await patchBridge(bridgeId, { status: 'error', error: message });
   bus.emitEvent({
     type: 'bridge.error',
@@ -740,6 +957,24 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
       mintRecipient: record.mintRecipient,
     });
     return;
+  }
+
+  if (record.movementReference) {
+    await prepareCashoutLeg(record.movementReference, {
+      key: 'burn',
+      label: 'Source-chain burn',
+      rail: 'cctp',
+      amountMicros: amountStr,
+      sourceAddress: input.bridgeWalletAddress,
+      destinationAddress: input.mintRecipient,
+    });
+    await prepareCashoutLeg(record.movementReference, {
+      key: 'mint',
+      label: 'Arc destination mint',
+      rail: 'cctp',
+      amountMicros: amountStr,
+      destinationAddress: input.mintRecipient,
+    });
   }
 
   try {
@@ -848,6 +1083,12 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
       burnTxId = txId;
       await patchBridge(input.bridgeId, { burnTxId });
     }
+    if (record.movementReference) {
+      await recordCashoutLeg(record.movementReference, 'burn', {
+        submitted: true,
+        providerId: burnTxId,
+      });
+    }
     const br = await waitForCircleTx(burnTxId, `circle-bridge.burn(${input.bridgeId})`);
     if (!br.ok) {
       if (br.failed) await failSource(input.bridgeId, 'depositForBurn', br.reason ?? 'burn failed');
@@ -863,6 +1104,12 @@ async function sourcePipelineLoop(input: SourcePipelineInput) {
     if (!br.txHash) {
       await failSource(input.bridgeId, 'depositForBurn', 'burn completed without a tx hash');
       return;
+    }
+    if (record.movementReference) {
+      await recordCashoutLeg(record.movementReference, 'burn', {
+        providerId: burnTxId,
+        txHash: br.txHash,
+      });
     }
 
     // STAGE 3, hand off to the mint relay.
@@ -952,6 +1199,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
       amountUsdc: record.amountUsdc,
       recipient: record.mintRecipient,
       destWalletId: record.bridgeWalletId,
+      ...(record.movementReference ? { movementReference: record.movementReference } : {}),
     });
     return c.json({ status: 'relaying', detail: 'destination mint relay resumed' });
   }
@@ -1006,7 +1254,14 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
       amountUsdc: record.amountUsdc,
       mintRecipient: record.mintRecipient,
     });
-    return c.json({ status: 'minted', detail: 'message was already received on chain' });
+    const fresh = await getBridge(bridgeId);
+    const movement = fresh?.movementReference ? await getMoneyMovement(fresh.movementReference) : null;
+    return c.json({
+      status: fresh?.status ?? 'minted',
+      detail: 'message was already received on chain',
+      reference: fresh?.movementReference ?? null,
+      movementState: movement?.state ?? null,
+    });
   }
 
   inFlight.add(bridgeId);
@@ -1040,7 +1295,14 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
         502,
       );
     }
-    return c.json({ status: 'minted', mintTxHash: result.txHash });
+    const fresh = await getBridge(bridgeId);
+    const movement = fresh?.movementReference ? await getMoneyMovement(fresh.movementReference) : null;
+    return c.json({
+      status: fresh?.status ?? 'minted',
+      mintTxHash: fresh?.mintTxHash ?? result.txHash,
+      reference: fresh?.movementReference ?? null,
+      movementState: movement?.state ?? null,
+    });
   } catch (err) {
     const message = (err as Error).message;
     if (attestation.eventNonce && (await isMessageAlreadyReceived(attestation.eventNonce))) {
@@ -1051,7 +1313,14 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
         amountUsdc: record.amountUsdc,
         mintRecipient: record.mintRecipient,
       });
-      return c.json({ status: 'minted', detail: 'message was already received on chain' });
+      const fresh = await getBridge(bridgeId);
+      const movement = fresh?.movementReference ? await getMoneyMovement(fresh.movementReference) : null;
+      return c.json({
+        status: fresh?.status ?? 'minted',
+        detail: 'message was already received on chain',
+        reference: fresh?.movementReference ?? null,
+        movementState: movement?.state ?? null,
+      });
     }
     reportError('bridge.recheck.receiveMessage', err, { bridgeId });
     await patchBridge(bridgeId, { status: 'error', error: message });
@@ -1105,6 +1374,15 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   if (!isSessionSelf(c, userAddress)) {
     return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
   }
+
+  const amountUsdc = body.amountUsdc.toString();
+  let amountMicros: bigint;
+  try {
+    amountMicros = parseUnits(amountUsdc, USDC_DECIMALS);
+  } catch {
+    return c.json({ error: 'amountUsdc must use at most 6 decimal places' }, 400);
+  }
+  if (amountMicros <= 0n) return c.json({ error: 'amountUsdc must be greater than zero' }, 400);
 
   const user = getUserByAddress(userAddress);
   if (!user && body.sourceKind === 'identity') {
@@ -1251,7 +1529,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       }) as Promise<bigint>,
       sourceClient.getBalance({ address: bridgeWalletAddress as `0x${string}` }),
     ]);
-    const neededUsdc = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
+    const neededUsdc = amountMicros;
     if (usdcBalance < neededUsdc) {
       return c.json(
         {
@@ -1337,11 +1615,44 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   // the process dies between submit-accepted-at-Circle and our patch persisting
   // the txId, the next attempt re-uses the same key and Circle dedupes server-
   // side, so no second tx is submitted.
+  let movement;
+  try {
+    movement = (
+      await ensureBridgeMovement({
+        operationKey: `bridge:circle-bridge:${userAddress}:${body.bridgeId}`,
+        amountUsdc,
+        initiatedBy: userAddress,
+        recipient: body.mintRecipient,
+        sourceAddress: bridgeWalletAddress,
+        summary: `Added ${amountUsdc} USDC from ${body.sourceChainKey} to Arc`,
+      })
+    ).movement;
+    await prepareCashoutLeg(movement.reference, {
+      key: 'burn',
+      label: 'Source-chain burn',
+      rail: 'cctp',
+      amountMicros: amountMicros.toString(),
+      sourceAddress: bridgeWalletAddress,
+      destinationAddress: body.mintRecipient,
+    });
+    await prepareCashoutLeg(movement.reference, {
+      key: 'mint',
+      label: 'Arc destination mint',
+      rail: 'cctp',
+      amountMicros: amountMicros.toString(),
+      destinationAddress: body.mintRecipient,
+    });
+  } catch (err) {
+    logger.error({ bridgeId: body.bridgeId, err }, 'circle bridge movement allocation failed');
+    return c.json({ error: 'could not allocate a Karwan bridge reference' }, 500);
+  }
+
   await createBridge({
     bridgeId: body.bridgeId,
+    movementReference: movement.reference,
     sourceDomain: chainCfg.domain,
     sourceTxHash: '',
-    amountUsdc: body.amountUsdc.toString(),
+    amountUsdc,
     mintRecipient: body.mintRecipient,
     status: 'approving',
     sourceChainKey: body.sourceChainKey,
@@ -1356,7 +1667,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
     sourceChainKey: body.sourceChainKey,
     bridgeWalletId,
     bridgeWalletAddress,
-    amountUsdc: body.amountUsdc.toString(),
+    amountUsdc,
     mintRecipient: body.mintRecipient,
   });
 
@@ -1365,6 +1676,8 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
       accepted: true,
       bridgeId: body.bridgeId,
       status: 'approving',
+      reference: movement.reference,
+      movementState: 'preparing',
       sourceAddress: bridgeWalletAddress,
       sourceDomain: chainCfg.domain,
     },
@@ -1406,6 +1719,14 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
   if (!isSessionSelf(c, userAddress)) {
     return c.json({ error: 'You can only bridge your own funds.', code: 'forbidden' }, 403);
   }
+  const amountUsdc = body.amountUsdc.toString();
+  let amountMicros: bigint;
+  try {
+    amountMicros = parseUnits(amountUsdc, USDC_DECIMALS);
+  } catch {
+    return c.json({ error: 'amountUsdc must use at most 6 decimal places' }, 400);
+  }
+  if (amountMicros <= 0n) return c.json({ error: 'amountUsdc must be greater than zero' }, 400);
   const user = getUserByAddress(userAddress);
   if (!user) {
     return c.json(
@@ -1541,11 +1862,44 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
   // UI consumers persist it in their JSON payload.
   const sourceDomain = chain.isSolana ? 5 : CCTP_CHAINS[body.sourceChainKey as CctpChainKey].domain;
 
+  let movement;
+  try {
+    movement = (
+      await ensureBridgeMovement({
+        operationKey: `bridge:circle-bridge-app-kit:${userAddress}:${body.bridgeId}`,
+        amountUsdc,
+        initiatedBy: userAddress,
+        recipient: body.mintRecipient,
+        sourceAddress: bridgeWalletAddress,
+        summary: `Added ${amountUsdc} USDC from ${body.sourceChainKey} to Arc`,
+      })
+    ).movement;
+    await prepareCashoutLeg(movement.reference, {
+      key: 'burn',
+      label: 'Source-chain burn',
+      rail: 'cctp',
+      amountMicros: amountMicros.toString(),
+      sourceAddress: bridgeWalletAddress,
+      destinationAddress: body.mintRecipient,
+    });
+    await prepareCashoutLeg(movement.reference, {
+      key: 'mint',
+      label: 'Arc destination mint',
+      rail: 'cctp',
+      amountMicros: amountMicros.toString(),
+      destinationAddress: body.mintRecipient,
+    });
+  } catch (err) {
+    logger.error({ bridgeId: body.bridgeId, err }, 'app-kit bridge movement allocation failed');
+    return c.json({ error: 'could not allocate a Karwan bridge reference' }, 500);
+  }
+
   await createBridge({
     bridgeId: body.bridgeId,
+    movementReference: movement.reference,
     sourceDomain,
     sourceTxHash: '',
-    amountUsdc: body.amountUsdc.toString(),
+    amountUsdc,
     mintRecipient: body.mintRecipient,
     status: 'approving',
     sourceChainKey: body.sourceChainKey,
@@ -1561,8 +1915,11 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
     bridgeId: body.bridgeId,
     sourceChainKey: body.sourceChainKey,
     bridgeWalletAddress,
-    amountUsdc: body.amountUsdc.toString(),
+    amountUsdc,
     mintRecipient: body.mintRecipient,
+    onBurn: (txHash) => recordCashoutLeg(movement.reference, 'burn', { txHash }),
+    onMint: (txHash) => recordCashoutLeg(movement.reference, 'mint', { txHash }),
+    onError: (failureCode) => markCashoutFailed(movement.reference, failureCode),
   });
 
   return c.json(
@@ -1570,6 +1927,8 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
       accepted: true,
       bridgeId: body.bridgeId,
       status: 'approving',
+      reference: movement.reference,
+      movementState: 'preparing',
       sourceAddress: bridgeWalletAddress,
       sourceChainKey: body.sourceChainKey,
       via: 'app-kit',
@@ -2031,6 +2390,7 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   // The Arc side is unchanged: the burn is still signed by a Circle DCW, and Arc
   // IS a Circle-supported chain, so that keeps working for the destinations
   // Circle itself cannot reach.
+  const amountUsdc = body.amountUsdc.toString();
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
 
   // Preflight: the chosen source wallet must hold enough Arc USDC (which is
@@ -2064,7 +2424,7 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   // remains a compatibility/progress projection for existing UI surfaces.
   const { movement } = await ensureCashoutMovement({
     operationKey: `cashout:bridge-out:${userAddress}:${body.bridgeId}`,
-    amountUsdc: body.amountUsdc.toString(),
+    amountUsdc,
     initiatedBy: userAddress,
     recipient: body.recipient,
     summary: `Cashed out ${body.amountUsdc} USDC to ${body.destChainKey === 'solanaDevnet' ? 'another chain' : body.destChainKey}`,
@@ -2249,10 +2609,71 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
     );
   }
 
+  // The user-signed burn is already on chain, but this server-side relay still
+  // needs a durable receipt before it provisions a relay wallet or submits the
+  // destination mint. The burn hash is retained as the first leg's proof;
+  // completion waits for a real destination mint hash.
+  const { movement } = await ensureCashoutMovement({
+    operationKey: `cashout:web3-bridge-out:${userAddress}:${body.bridgeId}`,
+    amountUsdc: body.amountUsdc.toString(),
+    initiatedBy: userAddress,
+    recipient: body.recipient,
+    summary: `Cashed out ${body.amountUsdc} USDC to ${body.destChainKey}`,
+  });
+  const expectedAmountMicros = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS).toString();
+  const existingBurn = movement.legs.find(
+    (leg) => leg.attempt === movement.attempt && leg.key === 'burn',
+  );
+  const existingRecipient = movement.participants.find((party) => party.role === 'recipient')?.address;
+  if (
+    movement.amountMicros !== expectedAmountMicros ||
+    existingRecipient?.toLowerCase() !== body.recipient.toLowerCase() ||
+    (existingBurn?.txHash && existingBurn.txHash.toLowerCase() !== body.sourceTxHash.toLowerCase())
+  ) {
+    return c.json(
+      {
+        error: 'bridge id is already bound to different movement terms',
+        reference: movement.reference,
+      },
+      409,
+    );
+  }
+  if (movement.state === 'completed') {
+    return c.json({
+      accepted: true,
+      bridgeId: body.bridgeId,
+      status: 'minted',
+      direction: 'out',
+      reference: movement.reference,
+      movementState: movement.state,
+    });
+  }
+  await prepareCashoutLeg(movement.reference, {
+    key: 'burn',
+    label: 'Source-chain cash-out',
+    rail: 'cctp',
+    amountMicros: expectedAmountMicros,
+    signerAddress: userAddress,
+    sourceAddress: userAddress,
+  });
+  await prepareCashoutLeg(movement.reference, {
+    key: 'mint',
+    label: 'Destination-chain delivery',
+    rail: 'cctp',
+    amountMicros: expectedAmountMicros,
+    destinationAddress: body.recipient,
+  });
+  const burned = await recordCashoutLeg(movement.reference, 'burn', {
+    txHash: body.sourceTxHash,
+  });
+
   // The destination bridge DCW relays the mint and pays its gas. Provision it
   // lazily on the user's first bridge to that chain, exactly like the Circle path.
   const wallets = await getAgentWallets(userAddress);
-  if (!wallets) return c.json({ error: 'no agent wallets — activate first' }, 409);
+  if (!wallets) {
+    await markCashoutFailed(movement.reference, 'BRIDGE_RELAY_WALLET_UNAVAILABLE');
+    return c.json({ error: 'no agent wallets — activate first', reference: movement.reference }, 409);
+  }
   let destWallet = wallets.bridgeWallets?.[destCircleChain];
   if (!destWallet) {
     try {
@@ -2266,8 +2687,13 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
         },
       });
     } catch (err) {
+      await markCashoutFailed(movement.reference, 'BRIDGE_RELAY_WALLET_PROVISION_FAILED');
       return c.json(
-        { error: 'destination wallet provisioning failed', detail: (err as Error).message },
+        {
+          error: 'destination wallet provisioning failed',
+          detail: (err as Error).message,
+          reference: movement.reference,
+        },
         502,
       );
     }
@@ -2280,6 +2706,7 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
 
   await createBridge({
     bridgeId: body.bridgeId,
+    movementReference: movement.reference,
     direction: 'out',
     owner: userAddress,
     sourceDomain: ARC_DOMAIN,
@@ -2312,10 +2739,18 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
     amountUsdc: body.amountUsdc.toString(),
     recipient: body.recipient,
     destWalletId: destWallet.walletId,
+    movementReference: movement.reference,
   });
 
   return c.json(
-    { accepted: true, bridgeId: body.bridgeId, status: 'relaying', direction: 'out' },
+    {
+      accepted: true,
+      bridgeId: body.bridgeId,
+      status: 'relaying',
+      direction: 'out',
+      reference: movement.reference,
+      movementState: burned.state,
+    },
     202,
   );
 });
@@ -2335,6 +2770,7 @@ interface OutRelayInput {
   amountUsdc: string;
   recipient: string;
   destWalletId: string;
+  movementReference?: string;
 }
 
 function startOutRelay(input: OutRelayInput) {
@@ -2378,6 +2814,9 @@ async function markOutMinted(
       });
       if (receipt.status !== 'success') {
         const message = `Destination mint ${txHash} reverted on ${input.destChainKey}`;
+        if (input.movementReference) {
+          await markCashoutFailed(input.movementReference, 'BRIDGE_MINT_REVERTED');
+        }
         await patchBridge(input.bridgeId, { status: 'error', error: message });
         bus.emitEvent({
           type: 'bridge.error',
@@ -2396,6 +2835,38 @@ async function markOutMinted(
       return;
     }
   }
+  let movementState: string | undefined;
+  if (input.movementReference) {
+    try {
+      const movement = await recordCashoutLeg(
+        input.movementReference,
+        'mint',
+        txHash ? { txHash } : { submitted: true },
+      );
+      movementState = movement.state;
+      // A consumed CCTP message without a destination transaction hash is
+      // correlation, not completion proof. Keep the bridge relayable until a
+      // reconciler can attach the actual mint hash.
+      if (movement.state !== 'completed') {
+        await patchBridge(input.bridgeId, {
+          status: 'relaying',
+          ...(txHash ? { mintTxHash: txHash } : {}),
+        });
+        return;
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'could not persist bridge receipt';
+      await markCashoutFailed(input.movementReference, 'BRIDGE_RECEIPT_PERSIST_FAILED');
+      await patchBridge(input.bridgeId, { status: 'error', error: message });
+      bus.emitEvent({
+        type: 'bridge.error',
+        actor: 'buyer',
+        payload: { bridgeId: input.bridgeId, scope: 'receipt', message },
+      });
+      return;
+    }
+
+  }
   await patchBridge(input.bridgeId, {
     status: 'minted',
     ...(txHash ? { mintTxHash: txHash } : {}),
@@ -2411,6 +2882,7 @@ async function markOutMinted(
       mintRecipient: input.recipient,
       sourceTxHash: input.sourceTxHash,
       ...(txHash ? { txHash } : { alreadyMinted: true }),
+      ...(input.movementReference ? { reference: input.movementReference, movementState } : {}),
     },
   });
 }
@@ -2452,6 +2924,9 @@ async function outRelayLoop(input: OutRelayInput) {
   if (!attestation) {
     const message = 'Attestation did not arrive within poll window';
     reportError('bridge.out.attestation', new Error(message), { bridgeId: input.bridgeId });
+    if (input.movementReference) {
+      await markCashoutFailed(input.movementReference, 'BRIDGE_ATTESTATION_TIMEOUT');
+    }
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',
@@ -2490,6 +2965,9 @@ async function outRelayLoop(input: OutRelayInput) {
     }
     const message = (err as Error).message;
     reportError('bridge.out.receiveMessage', err, { bridgeId: input.bridgeId });
+    if (input.movementReference) {
+      await markCashoutFailed(input.movementReference, 'BRIDGE_MINT_FAILED');
+    }
     await patchBridge(input.bridgeId, { status: 'error', error: message });
     bus.emitEvent({
       type: 'bridge.error',

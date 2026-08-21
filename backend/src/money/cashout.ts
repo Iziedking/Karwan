@@ -75,6 +75,7 @@ export async function recordCashoutLeg(
   key: string,
   input: {
     txHash?: string;
+    explorerUrl?: string;
     providerId?: string;
     submitted?: boolean;
     failureCode?: string;
@@ -118,6 +119,7 @@ export async function recordCashoutLeg(
     if (input.txHash && leg.state === 'submitted') {
       next = transitionMoneyMovementLeg(next, active.id, 'confirmed', {
         txHash: input.txHash,
+        ...(input.explorerUrl ? { explorerUrl: input.explorerUrl } : {}),
         ...(input.providerId ? { providerId: input.providerId } : {}),
       });
       leg = next.legs.find((candidate) => candidate.id === active.id)!;
@@ -125,10 +127,12 @@ export async function recordCashoutLeg(
     if (input.txHash && leg.state === 'planned') {
       next = transitionMoneyMovementLeg(next, active.id, 'submitted', {
         txHash: input.txHash,
+        ...(input.explorerUrl ? { explorerUrl: input.explorerUrl } : {}),
         ...(input.providerId ? { providerId: input.providerId } : {}),
       });
       next = transitionMoneyMovementLeg(next, active.id, 'confirmed', {
         txHash: input.txHash,
+        ...(input.explorerUrl ? { explorerUrl: input.explorerUrl } : {}),
         ...(input.providerId ? { providerId: input.providerId } : {}),
       });
       leg = next.legs.find((candidate) => candidate.id === active.id)!;
@@ -136,6 +140,7 @@ export async function recordCashoutLeg(
     if (input.txHash && leg.state === 'confirmed') {
       next = transitionMoneyMovementLeg(next, active.id, 'verified', {
         txHash: input.txHash,
+        ...(input.explorerUrl ? { explorerUrl: input.explorerUrl } : {}),
         ...(input.providerId ? { providerId: input.providerId } : {}),
       });
     }

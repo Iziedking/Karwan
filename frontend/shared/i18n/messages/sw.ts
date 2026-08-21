@@ -2230,6 +2230,7 @@ export const sw: Messages = {
     },
     success: {
       message: 'Iko njiani.',
+      referenceLabel: 'Rejea ya Karwan',
     },
     errors: {
       invalidAddress: 'Si anwani halali ya baiti 20.',
@@ -3193,6 +3194,7 @@ export const sw: Messages = {
       slow: 'POLEPOLE',
       viewOnArcscan: 'Tazama kwenye Arcscan',
       errorLabel: 'HITILAFU',
+      reference: 'Rejea ya Karwan',
       recipient: 'Mpokeaji',
       txArc: 'Tx · Arc',
       stuckNote: 'Uhamisho huu haujathibitishwa kwa muda. Huenda ni tx iliyodondoka. Jaribu tena kutuma mpya, au uondoe.',

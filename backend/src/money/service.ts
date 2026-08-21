@@ -12,6 +12,7 @@ import {
   transitionMoneyMovement,
   transitionMoneyMovementAndLeg,
   transitionMoneyMovementLeg,
+  hasOnchainProof,
   type CreateMoneyMovementInput,
   type MoneyMovement,
   type MoneyMovementLeg,
@@ -193,6 +194,9 @@ export async function completeMoneyMovement(
     }
     if (currentAttemptLegs.some((leg) => leg.state !== 'verified')) {
       throw new Error('cannot complete a movement with unverified legs');
+    }
+    if (currentAttemptLegs.some((leg) => !hasOnchainProof(leg))) {
+      throw new Error('cannot complete a movement without an on-chain transaction hash');
     }
     return transitionMoneyMovement(current, 'completed', {
       ...(patch.amountMicros != null ? { amountMicros: BigInt(patch.amountMicros).toString() } : {}),

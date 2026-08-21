@@ -2424,8 +2424,16 @@ export const api = {
     agent: 'buyer' | 'seller';
     toAddress: string;
     amountUsdc: number;
+    requestId?: string;
   }) =>
-    json<{ accepted: boolean; txHash: string }>('/api/activation/withdraw', {
+    json<{
+      accepted: boolean;
+      alreadyRecorded?: boolean;
+      txHash: string;
+      explorerUrl?: string | null;
+      reference: string;
+      movementState: string;
+    }>('/api/activation/withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -2436,8 +2444,17 @@ export const api = {
     address: string;
     agent: 'buyer' | 'seller';
     amountUsdc: number;
+    requestId?: string;
   }) =>
-    json<{ accepted: boolean; txHash: string; agentAddress: string }>(
+    json<{
+      accepted: boolean;
+      alreadyRecorded?: boolean;
+      txHash: string;
+      agentAddress: string;
+      explorerUrl?: string | null;
+      reference: string;
+      movementState: string;
+    }>(
       '/api/activation/fund-agent',
       {
         method: 'POST',
@@ -3158,6 +3175,8 @@ export const api = {
       burnTxHash?: string;
       sourceAddress: string;
       sourceDomain: number;
+      reference?: string;
+      movementState?: MoneyMovementState;
     }>('/api/bridge/circle-bridge', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -3180,6 +3199,8 @@ export const api = {
       bridgeId: string;
       sourceAddress: string;
       sourceChainKey: AppKitBridgeChainKey;
+      reference?: string;
+      movementState?: MoneyMovementState;
     }>('/api/bridge/circle-bridge-app-kit', {
       method: 'POST',
       body: JSON.stringify(input),
@@ -3340,7 +3361,12 @@ export const api = {
     mintTxHash?: string;
     direction?: 'in' | 'out';
   }) =>
-    json<{ ok: boolean; alreadyRecorded?: boolean }>('/api/bridge/record', {
+    json<{
+      ok: boolean;
+      alreadyRecorded?: boolean;
+      reference?: string;
+      movementState?: MoneyMovementState;
+    }>('/api/bridge/record', {
       method: 'POST',
       body: JSON.stringify(input),
     }),
@@ -3717,7 +3743,7 @@ export const api = {
   //
   // Fund a buyer/seller agent wallet from the pooled balance (same-chain Arc
   // spend, backend-signed). Session-scoped.
-  gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number) =>
+  gatewayFundAgent: (agent: 'buyer' | 'seller', amountUsdc: number, requestId: string) =>
     json<{
       ok: true;
       agent: 'buyer' | 'seller';
@@ -3726,9 +3752,11 @@ export const api = {
       txHash?: string;
       explorerUrl?: string;
       transferId?: string;
+      reference: string;
+      movementState: 'created' | 'preparing' | 'submitted' | 'verifying' | 'completed' | 'needs_attention' | 'cancelled';
     }>(
       '/api/gateway/fund-agent',
-      { method: 'POST', body: JSON.stringify({ agent, amountUsdc }) },
+      { method: 'POST', body: JSON.stringify({ agent, amountUsdc, requestId }) },
     ),
   // Cash out from the pooled balance to another chain (cross-chain Gateway spend,
   // backend-signed). Works for every account type. Session-scoped.
@@ -3736,6 +3764,7 @@ export const api = {
     destChainKey: 'baseSepolia' | 'arbitrumSepolia' | 'optimismSepolia' | 'sepolia' | 'polygonAmoy',
     recipient: string,
     amountUsdc: number,
+    requestId: string,
   ) =>
     json<{
       ok: true;
@@ -3745,9 +3774,11 @@ export const api = {
       txHash?: string;
       explorerUrl?: string;
       transferId?: string;
+      reference: string;
+      movementState: 'created' | 'preparing' | 'submitted' | 'verifying' | 'completed' | 'needs_attention' | 'cancelled';
     }>(
       '/api/gateway/cash-out',
-      { method: 'POST', body: JSON.stringify({ destChainKey, recipient, amountUsdc }) },
+      { method: 'POST', body: JSON.stringify({ destChainKey, recipient, amountUsdc, requestId }) },
     ),
 
   // Recent events for a job (public, durable ring snapshot). Used to seed the

@@ -121,6 +121,12 @@ export interface AppKitBridgeInput {
   amountUsdc: string;
   /// Arc destination address that receives the minted USDC.
   mintRecipient: string;
+  /// Optional durable money-movement callbacks. The bridge row is only a
+  /// projection; callers use these to attach the source burn and destination
+  /// mint proofs to the Karwan receipt.
+  onBurn?: (txHash: string) => Promise<unknown>;
+  onMint?: (txHash: string) => Promise<unknown>;
+  onError?: (failureCode: string) => Promise<unknown>;
 }
 
 /// Run an in-direction bridge (source chain -> Arc Testnet) through App Kit
@@ -197,6 +203,9 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
       'appkit bridge.burn',
     );
     if (values?.state === 'success' && values?.txHash) {
+      void Promise.resolve(input.onBurn?.(values.txHash)).catch((err) =>
+        logger.warn({ bridgeId: input.bridgeId, err: (err as Error).message }, 'app-kit inbound burn movement update failed'),
+      );
       void patchBridge(input.bridgeId, {
         status: 'burning',
         sourceTxHash: values.txHash,
@@ -239,19 +248,36 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
       'appkit bridge.mint',
     );
     if (values?.state === 'success' && values?.txHash) {
-      void patchBridge(input.bridgeId, {
-        status: 'minted',
-        mintTxHash: values.txHash,
-      });
-      bus.emitEvent({
-        type: 'bridge.minted',
-        actor: 'buyer',
-        payload: {
-          bridgeId: input.bridgeId,
-          amountUsdc: input.amountUsdc,
-          mintRecipient: input.mintRecipient,
-          txHash: values.txHash,
-        },
+      const txHash = values.txHash;
+      void (async () => {
+        const movement = await input.onMint?.(txHash);
+        const movementState = (movement as { state?: string } | undefined)?.state;
+        if (movementState && movementState !== 'completed') {
+          await patchBridge(input.bridgeId, { status: 'relaying', mintTxHash: txHash });
+          return;
+        }
+        await patchBridge(input.bridgeId, {
+          status: 'minted',
+          mintTxHash: txHash,
+        });
+        bus.emitEvent({
+          type: 'bridge.minted',
+          actor: 'buyer',
+          payload: {
+            bridgeId: input.bridgeId,
+            amountUsdc: input.amountUsdc,
+            mintRecipient: input.mintRecipient,
+            txHash,
+            ...(movementState ? { movementState } : {}),
+          },
+        });
+      })().catch(async (err) => {
+        logger.error({ bridgeId: input.bridgeId, err: (err as Error).message }, 'app-kit inbound mint movement update failed');
+        await input.onError?.('BRIDGE_MINT_RECEIPT_PERSIST_FAILED');
+        await patchBridge(input.bridgeId, {
+          status: 'error',
+          error: (err as Error).message,
+        });
       });
     }
   });
@@ -288,6 +314,7 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
             : stepError != null
               ? JSON.stringify(stepError)
               : 'bridge failed without a step-level error';
+      await input.onError?.('BRIDGE_APP_KIT_FAILED');
       logger.error(
         { bridgeId: input.bridgeId, failedStep: failedStep?.name, message },
         'appkit bridge errored',
@@ -310,6 +337,7 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
     }
   } catch (err) {
     const message = (err as Error).message;
+    await input.onError?.('BRIDGE_APP_KIT_FAILED');
     logger.error(
       { bridgeId: input.bridgeId, err: message },
       'appkit bridge threw',

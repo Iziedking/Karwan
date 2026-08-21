@@ -16,6 +16,7 @@ export interface CircleFundRecord {
   agentAddress: `0x${string}`;
   amountUsdc: string;
   txHash?: `0x${string}`;
+  reference?: string;
   error?: string;
   startedAt: number;
   updatedAt: number;
@@ -113,11 +114,13 @@ export function useCircleFund(address: string | null | undefined) {
           address,
           agent: record.agentKey,
           amountUsdc: Number(record.amountUsdc),
+          requestId: record.id,
         });
         patch(record.id, (r) => ({
           ...r,
           phase: 'done',
           txHash: res.txHash as `0x${string}`,
+          reference: res.reference,
         }));
       } catch (err) {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyError(err) }));
@@ -137,6 +140,7 @@ export function useCircleFund(address: string | null | undefined) {
         agentKey: input.agentKey,
         agentAddress: input.agentAddress,
         amountUsdc: input.amountUsdc.toString(),
+        reference: undefined,
         startedAt: now,
         updatedAt: now,
       };

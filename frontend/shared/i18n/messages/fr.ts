@@ -2230,6 +2230,7 @@ export const fr: Messages = {
     },
     success: {
       message: 'En route.',
+      referenceLabel: 'Référence Karwan',
     },
     errors: {
       invalidAddress: 'Adresse 20 octets invalide.',
@@ -3193,6 +3194,7 @@ export const fr: Messages = {
       slow: 'LENT',
       viewOnArcscan: 'Voir sur Arcscan',
       errorLabel: 'ERREUR',
+      reference: 'Référence Karwan',
       recipient: 'Destinataire',
       txArc: 'Tx · Arc',
       stuckNote: "Ce transfert n'a pas été confirmé depuis un moment. Probablement une tx perdue. Réessayez pour en envoyer une nouvelle, ou ignorez-la.",

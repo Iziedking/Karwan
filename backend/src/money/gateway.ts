@@ -21,6 +21,59 @@ export interface GatewayDepositMovementInput {
   summary: string;
 }
 
+export interface GatewaySpendMovementInput {
+  operationKey: string;
+  kind: 'agent_funding' | 'cash_out';
+  amountUsdc: string;
+  initiatedBy: string;
+  sourceAddress: string;
+  destinationAddress: string;
+  summary: string;
+}
+
+/** Allocate the receipt before a Gateway unified-balance spend. */
+export async function ensureGatewaySpendMovement(
+  input: GatewaySpendMovementInput,
+): Promise<{ movement: MoneyMovement; created: boolean }> {
+  return ensureMoneyMovement({
+    operationKey: input.operationKey,
+    kind: input.kind,
+    amountMicros: parseUsdcMicros(input.amountUsdc),
+    initiatedBy: input.initiatedBy,
+    participants: [
+      { address: input.initiatedBy, role: 'owner' },
+      { address: input.sourceAddress, role: 'source' },
+      { address: input.destinationAddress, role: 'recipient' },
+    ],
+    summary: input.summary,
+    nextActor: 'karwan',
+  });
+}
+
+/** Plan the one externally observable mint leg for a Gateway spend. */
+export async function prepareGatewaySpendMovement(
+  reference: string,
+  input: {
+    sourceAddress: string;
+    destinationAddress: string;
+    amountMicros: bigint | string;
+    destinationChain: string;
+  },
+): Promise<MoneyMovement> {
+  await beginOrResumeMoneyMovement(reference);
+  await updateMoneyMovement(reference, (current) =>
+    planMoneyMovementLeg(current, {
+      key: 'gateway_mint',
+      label: `Gateway mint on ${input.destinationChain}`,
+      rail: 'gateway',
+      sourceAddress: input.sourceAddress,
+      destinationAddress: input.destinationAddress,
+      amountMicros: input.amountMicros,
+    }),
+  );
+  return currentMoneyMovement(reference);
+}
+
 /** Allocate the receipt before any Gateway contract write. */
 export async function ensureGatewayDepositMovement(
   input: GatewayDepositMovementInput,

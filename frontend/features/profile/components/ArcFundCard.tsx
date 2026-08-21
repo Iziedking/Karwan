@@ -698,6 +698,16 @@ function FundRow({
           )}
 
           <div className="space-y-1.5">
+            {'reference' in record && record.reference && (
+              <div className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)]">
+                <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  {copy.row.reference}
+                </span>
+                <span className="mono font-bold tracking-[0.06em] break-all text-end">
+                  {record.reference}
+                </span>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)]">
               <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 {copy.row.recipient}

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -33,13 +33,16 @@ export function FundAgentFromBalance({
   const refreshMoney = useMoneyRefresh();
   const [phase, setPhase] = useState<'idle' | 'moving' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef<string | null>(null);
 
   async function run() {
     if (!address || phase === 'moving') return;
     setPhase('moving');
     setError(null);
     try {
-      await api.fundAgent({ address, agent, amountUsdc });
+      requestIdRef.current ??= crypto.randomUUID();
+      await api.fundAgent({ address, agent, amountUsdc, requestId: requestIdRef.current });
+      requestIdRef.current = null;
       setPhase('done');
       refreshMoney();
       onFunded?.();

@@ -36,6 +36,7 @@ export interface GatewayFinalityEvent {
 export type GatewayFinalityResult =
   | { status: 'completed'; reference: string; movement: MoneyMovement }
   | { status: 'already_completed'; reference: string; movement: MoneyMovement }
+  | { status: 'pending'; reference: string; movement: MoneyMovement; reason: string }
   | { status: 'unmatched' | 'ignored'; reason: string };
 
 /** Parse only the fields needed for finality. Unknown Circle fields are kept out. */
@@ -127,6 +128,37 @@ export async function reconcileGatewayDepositFinality(
     return { status: 'ignored', reason: 'finality transaction does not match deposit leg' };
   }
 
+  // A provider notification without a chain hash is useful correlation, but
+  // it is not a network proof. Keep the finality leg confirmed and the
+  // movement pending until a later webhook or reconciler supplies the hash.
+  if (!event.txHash) {
+    const pending = await updateMoneyMovement(movement.reference, (current) => {
+      const finality = current.legs.find(
+        (leg) => leg.attempt === current.attempt && leg.key === 'gateway_finality',
+      );
+      if (!finality || finality.state === 'verified') return current;
+      let next = current;
+      const patch = { providerId: event.correlation ?? event.notificationId };
+      if (finality.state === 'planned') {
+        next = transitionMoneyMovementLeg(next, finality.id, 'submitted', patch);
+      }
+      const submitted = next.legs.find((leg) => leg.id === finality.id)!;
+      if (submitted.state === 'submitted') {
+        next = transitionMoneyMovementLeg(next, finality.id, 'confirmed', patch);
+      }
+      if (next.state !== 'verifying' && canTransitionMovement(next.state, 'verifying')) {
+        next = transitionMoneyMovement(next, 'verifying', { nextActor: 'karwan' });
+      }
+      return next;
+    });
+    return {
+      status: 'pending',
+      reference: pending.reference,
+      movement: pending,
+      reason: 'Gateway finality did not include an on-chain transaction hash',
+    };
+  }
+
   const updated = await updateMoneyMovement(movement.reference, (current) => {
     const finality = current.legs.find(
       (leg) => leg.attempt === current.attempt && leg.key === 'gateway_finality',
@@ -134,8 +166,8 @@ export async function reconcileGatewayDepositFinality(
     if (!finality) return current;
     let next = current;
     const patch = {
-      // A signed notification id is the provider proof when a Gateway event
-      // version omits its transaction hash. It is never shown as a wallet id.
+      // The notification/correlation value is retained for reconciliation;
+      // the transaction hash below is the only completion proof.
       providerId: event.correlation ?? event.notificationId,
       ...(event.txHash ? { txHash: event.txHash } : {}),
     };

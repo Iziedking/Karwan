@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { requireAppKit } from '../chain/appKit.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { gatewayAvailableUsd } from '../x402/buyerClient.js';
@@ -5,6 +6,16 @@ import { createBridge } from '../db/bridges.js';
 import { ARC_DOMAIN, type CctpChainKey } from '../chain/cctpChains.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import {
+  ensureGatewaySpendMovement,
+  prepareGatewaySpendMovement,
+} from '../money/gateway.js';
+import {
+  currentMoneyMovement,
+  markMoneyMovementNeedsAttention,
+} from '../money/service.js';
+import { recordCashoutLeg } from '../money/cashout.js';
+import { parseUsdcMicros, type MoneyMovement } from '../money/model.js';
 
 /// Karwan's unified Gateway balance — SPEND side (autonomy Stage 3).
 ///
@@ -83,6 +94,23 @@ interface SpendOutcome {
   txHash?: string;
   explorerUrl?: string;
   transferId?: string;
+  steps?: Array<{
+    name?: string;
+    state?: string;
+    txHash?: string;
+    explorerUrl?: string;
+  }>;
+}
+
+export class GatewaySpendError extends Error {
+  constructor(
+    message: string,
+    readonly reference: string,
+    readonly movementState: MoneyMovement['state'],
+  ) {
+    super(message);
+    this.name = 'GatewaySpendError';
+  }
 }
 
 export interface FundAgentResult {
@@ -92,6 +120,8 @@ export interface FundAgentResult {
   txHash?: string;
   explorerUrl?: string;
   transferId?: string;
+  reference: string;
+  movementState: MoneyMovement['state'];
 }
 
 /// Spend from the user's unified Gateway balance to fund one of their agent
@@ -102,6 +132,7 @@ export async function fundAgentFromGateway(
   userAddress: string,
   agent: 'buyer' | 'seller',
   amountUsd: number,
+  requestId?: string,
 ): Promise<FundAgentResult> {
   if (!(amountUsd > 0)) throw new Error('amount must be greater than 0');
   const key = userAddress.toLowerCase();
@@ -110,14 +141,49 @@ export async function fundAgentFromGateway(
   const gw = record.gatewayWallet;
   if (!gw) throw new Error('you have no unified balance yet; add money to it first');
 
+  const recipientAddress = agent === 'buyer' ? record.buyerAddress : record.sellerAddress;
+  const operationKey = `gateway:agent-funding:${key}:${agent}:${requestId ?? randomUUID()}`;
+  const ensured = await ensureGatewaySpendMovement({
+    operationKey,
+    kind: 'agent_funding',
+    amountUsdc: amountUsd.toString(),
+    initiatedBy: key,
+    sourceAddress: gw.address,
+    destinationAddress: recipientAddress,
+    summary: `Funded the ${agent} agent with ${amountUsd} USDC`,
+  });
+  const existing = await currentMoneyMovement(ensured.movement.reference);
+  const existingLeg = existing.legs.find(
+    (leg) => leg.attempt === existing.attempt && leg.key === 'gateway_mint',
+  );
+  if (
+    existing.state === 'completed' ||
+    existing.state === 'needs_attention' ||
+    existingLeg?.providerId
+  ) {
+    return {
+      agent,
+      recipientAddress,
+      amountUsd,
+      ...(existingLeg?.txHash ? { txHash: existingLeg.txHash } : {}),
+      ...(existingLeg?.explorerUrl ? { explorerUrl: existingLeg.explorerUrl } : {}),
+      ...(existingLeg?.providerId ? { transferId: existingLeg.providerId } : {}),
+      reference: existing.reference,
+      movementState: existing.state,
+    };
+  }
   const available = await gatewayAvailableUsd(gw.address);
   if (available < amountUsd) {
     throw new Error(
       `Your unified balance is ${available.toFixed(2)} USDC, less than ${amountUsd}. Add money first or lower the amount.`,
     );
   }
-
-  const recipientAddress = agent === 'buyer' ? record.buyerAddress : record.sellerAddress;
+  await prepareGatewaySpendMovement(ensured.movement.reference, {
+    sourceAddress: gw.address,
+    destinationAddress: recipientAddress,
+    amountMicros: parseUsdcMicros(amountUsd.toString()),
+    destinationChain: ARC_APP_KIT_CHAIN,
+  });
   const { kit, circleAdapter } = requireAppKit();
   const params = buildSpendParams({
     adapter: circleAdapter,
@@ -125,9 +191,47 @@ export async function fundAgentFromGateway(
     recipientAddress,
     amountUsd,
   });
-  const result = (await kit.unifiedBalance.spend(params as never)) as SpendOutcome;
+  let result: SpendOutcome;
+  try {
+    result = (await kit.unifiedBalance.spend(params as never)) as SpendOutcome;
+  } catch (error) {
+    // An SDK error can occur after Gateway has accepted the intent. Preserve
+    // the current attempt for reconciliation instead of marking the leg
+    // terminal and making a blind retry that could spend twice.
+    const attention = await markMoneyMovementNeedsAttention(
+      ensured.movement.reference,
+      'GATEWAY_SPEND_UNKNOWN_OUTCOME',
+    );
+    throw new GatewaySpendError(
+      error instanceof Error ? error.message : 'Gateway spend outcome is unknown',
+      attention.reference,
+      attention.state,
+    );
+  }
+  const mintStep = result.steps?.find((step) => step.name === 'mint' && step.state === 'success');
+  const effectiveTxHash = result.txHash ?? mintStep?.txHash;
+  const effectiveExplorerUrl = result.explorerUrl ?? mintStep?.explorerUrl;
+  let finalized: MoneyMovement;
+  try {
+    finalized = await recordCashoutLeg(ensured.movement.reference, 'gateway_mint', {
+      submitted: true,
+      ...(result.transferId ? { providerId: result.transferId } : {}),
+      ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
+      ...(effectiveExplorerUrl ? { explorerUrl: effectiveExplorerUrl } : {}),
+    });
+  } catch (error) {
+    const failed = await markMoneyMovementNeedsAttention(
+      ensured.movement.reference,
+      'GATEWAY_RECEIPT_PERSIST_FAILED',
+    );
+    throw new GatewaySpendError(
+      error instanceof Error ? error.message : 'Could not persist Gateway receipt',
+      failed.reference,
+      failed.state,
+    );
+  }
   logger.info(
-    { userAddress: key, agent, recipientAddress, amountUsd, txHash: result?.txHash },
+    { userAddress: key, agent, recipientAddress, amountUsd, txHash: effectiveTxHash },
     'gateway: funded agent from unified balance',
   );
   // The same event the direct wallet-to-agent path emits, keyed on `user` so
@@ -141,16 +245,20 @@ export async function fundAgentFromGateway(
       agent,
       address: recipientAddress,
       amountUsdc: amountUsd.toString(),
-      ...(result?.txHash ? { txHash: result.txHash } : {}),
+      reference: finalized.reference,
+      movementState: finalized.state,
+      ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
     },
   });
   return {
     agent,
     recipientAddress,
     amountUsd,
-    txHash: result?.txHash,
-    explorerUrl: result?.explorerUrl,
+    ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
+    ...(effectiveExplorerUrl ? { explorerUrl: effectiveExplorerUrl } : {}),
     transferId: result?.transferId,
+    reference: finalized.reference,
+    movementState: finalized.state,
   };
 }
 
@@ -161,6 +269,8 @@ export interface GatewayCashOutResult {
   txHash?: string;
   explorerUrl?: string;
   transferId?: string;
+  reference: string;
+  movementState: MoneyMovement['state'];
 }
 
 /// Spend from the user's unified Gateway balance to a recipient on ANOTHER chain
@@ -173,6 +283,7 @@ export async function cashOutFromGateway(
   destChainKey: string,
   recipientAddress: string,
   amountUsd: number,
+  requestId?: string,
 ): Promise<GatewayCashOutResult> {
   if (!(amountUsd > 0)) throw new Error('amount must be greater than 0');
   if (!/^0x[0-9a-fA-F]{40}$/.test(recipientAddress)) throw new Error('recipient must be a valid 0x address');
@@ -185,12 +296,48 @@ export async function cashOutFromGateway(
   const gw = record.gatewayWallet;
   if (!gw) throw new Error('you have no unified balance yet; add money to it first');
 
+  const operationKey = `gateway:cash-out:${key}:${destChainKey}:${recipientAddress.toLowerCase()}:${requestId ?? randomUUID()}`;
+  const ensured = await ensureGatewaySpendMovement({
+    operationKey,
+    kind: 'cash_out',
+    amountUsdc: amountUsd.toString(),
+    initiatedBy: key,
+    sourceAddress: gw.address,
+    destinationAddress: recipientAddress,
+    summary: `Cashed out ${amountUsd} USDC to another chain`,
+  });
+  const existing = await currentMoneyMovement(ensured.movement.reference);
+  const existingLeg = existing.legs.find(
+    (leg) => leg.attempt === existing.attempt && leg.key === 'gateway_mint',
+  );
+  if (
+    existing.state === 'completed' ||
+    existing.state === 'needs_attention' ||
+    existingLeg?.providerId
+  ) {
+    return {
+      destChainKey,
+      recipientAddress: recipientAddress.toLowerCase(),
+      amountUsd,
+      ...(existingLeg?.txHash ? { txHash: existingLeg.txHash } : {}),
+      ...(existingLeg?.explorerUrl ? { explorerUrl: existingLeg.explorerUrl } : {}),
+      ...(existingLeg?.providerId ? { transferId: existingLeg.providerId } : {}),
+      reference: existing.reference,
+      movementState: existing.state,
+    };
+  }
   const available = await gatewayAvailableUsd(gw.address);
   if (available < amountUsd) {
     throw new Error(
       `Your unified balance is ${available.toFixed(2)} USDC, less than ${amountUsd}. Add money first or lower the amount.`,
     );
   }
+  await prepareGatewaySpendMovement(ensured.movement.reference, {
+    sourceAddress: gw.address,
+    destinationAddress: recipientAddress,
+    amountMicros: parseUsdcMicros(amountUsd.toString()),
+    destinationChain: destChain,
+  });
 
   const { kit, circleAdapter } = requireAppKit();
   const params = buildSpendParams({
@@ -200,7 +347,42 @@ export async function cashOutFromGateway(
     amountUsd,
     destChain,
   });
-  const result = (await kit.unifiedBalance.spend(params as never)) as SpendOutcome;
+  let result: SpendOutcome;
+  try {
+    result = (await kit.unifiedBalance.spend(params as never)) as SpendOutcome;
+  } catch (error) {
+    const attention = await markMoneyMovementNeedsAttention(
+      ensured.movement.reference,
+      'GATEWAY_SPEND_UNKNOWN_OUTCOME',
+    );
+    throw new GatewaySpendError(
+      error instanceof Error ? error.message : 'Gateway spend outcome is unknown',
+      attention.reference,
+      attention.state,
+    );
+  }
+  const mintStep = result.steps?.find((step) => step.name === 'mint' && step.state === 'success');
+  const effectiveTxHash = result.txHash ?? mintStep?.txHash;
+  const effectiveExplorerUrl = result.explorerUrl ?? mintStep?.explorerUrl;
+  let finalized: MoneyMovement;
+  try {
+    finalized = await recordCashoutLeg(ensured.movement.reference, 'gateway_mint', {
+      submitted: true,
+      ...(result.transferId ? { providerId: result.transferId } : {}),
+      ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
+      ...(effectiveExplorerUrl ? { explorerUrl: effectiveExplorerUrl } : {}),
+    });
+  } catch (error) {
+    const failed = await markMoneyMovementNeedsAttention(
+      ensured.movement.reference,
+      'GATEWAY_RECEIPT_PERSIST_FAILED',
+    );
+    throw new GatewaySpendError(
+      error instanceof Error ? error.message : 'Could not persist Gateway receipt',
+      failed.reference,
+      failed.state,
+    );
+  }
   const dest = recipientAddress.toLowerCase();
   logger.info(
     { userAddress: key, destChainKey, recipientAddress: dest, amountUsd, txHash: result?.txHash },
@@ -216,6 +398,7 @@ export async function cashOutFromGateway(
   try {
     await createBridge({
       bridgeId: `gateway-out-${key}-${result?.transferId ?? result?.txHash ?? Date.now()}`,
+      movementReference: finalized.reference,
       direction: 'out',
       owner: key,
       sourceDomain: ARC_DOMAIN,
@@ -223,8 +406,8 @@ export async function cashOutFromGateway(
       amountUsdc: amountUsd.toString(),
       mintRecipient: dest,
       destChainKey: destChainKey as CctpChainKey,
-      status: result?.txHash ? 'minted' : 'relaying',
-      ...(result?.txHash ? { mintTxHash: result.txHash } : {}),
+      status: effectiveTxHash ? 'minted' : 'relaying',
+      ...(effectiveTxHash ? { mintTxHash: effectiveTxHash } : {}),
       appKit: true,
     });
   } catch (err) {
@@ -236,26 +419,36 @@ export async function cashOutFromGateway(
     );
   }
 
-  bus.emitEvent({
-    type: 'bridge.minted',
-    actor: 'buyer',
-    payload: {
-      owner: key,
-      destChainKey,
-      amountUsdc: amountUsd.toString(),
-      mintRecipient: dest,
-      ...(result?.txHash ? { txHash: result.txHash } : { alreadyMinted: true }),
-      circle: true,
-      appKit: true,
-    },
-  });
+  // A provider transfer id is correlation metadata, not network proof. Keep
+  // the bridge projection and the Gateway-specific event visible while the
+  // movement is pending, but do not emit the terminal `bridge.minted` event
+  // until the destination leg has a verified transaction hash.
+  if (finalized.state === 'completed') {
+    bus.emitEvent({
+      type: 'bridge.minted',
+      actor: 'buyer',
+      payload: {
+        owner: key,
+        destChainKey,
+        amountUsdc: amountUsd.toString(),
+        mintRecipient: dest,
+        ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
+        reference: finalized.reference,
+        movementState: finalized.state,
+        circle: true,
+        appKit: true,
+      },
+    });
+  }
 
   return {
     destChainKey,
     recipientAddress: dest,
     amountUsd,
-    txHash: result?.txHash,
-    explorerUrl: result?.explorerUrl,
+    ...(effectiveTxHash ? { txHash: effectiveTxHash } : {}),
+    ...(effectiveExplorerUrl ? { explorerUrl: effectiveExplorerUrl } : {}),
     transferId: result?.transferId,
+    reference: finalized.reference,
+    movementState: finalized.state,
   };
 }

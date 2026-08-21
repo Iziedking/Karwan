@@ -798,6 +798,7 @@ async function runConfirmIntent(
         p.destChainKey as Parameters<typeof api.gatewayCashOut>[0],
         p.recipient,
         p.amountUsdc,
+        crypto.randomUUID(),
       );
       return {
         successText: 'Cash out sent. It lands on the destination chain in seconds.',
@@ -927,7 +928,7 @@ async function runConfirmIntent(
     // One "fund my agent" for the user; the backend chose which pocket it comes
     // out of. Both land the same USDC in the same agent wallet.
     if (p.route === 'unified') {
-      const r = await api.gatewayFundAgent(p.agent, p.amountUsdc);
+      const r = await api.gatewayFundAgent(p.agent, p.amountUsdc, crypto.randomUUID());
       return {
         successText: `Your ${p.agent} agent is funded.`,
         viewHref: '/profile#agents',
@@ -935,12 +936,18 @@ async function runConfirmIntent(
         ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
       };
     }
-    const r = await api.fundAgent({ address: p.address, agent: p.agent, amountUsdc: p.amountUsdc });
+    const r = await api.fundAgent({
+      address: p.address,
+      agent: p.agent,
+      amountUsdc: p.amountUsdc,
+      requestId: crypto.randomUUID(),
+    });
     return {
       successText: `Your ${p.agent} agent is funded.`,
       viewHref: '/profile#agents',
       viewLabel: 'Your wallets',
       txHash: r.txHash,
+      refId: r.reference,
     };
   }
   if (action.intent === 'top_up_to_arc') {

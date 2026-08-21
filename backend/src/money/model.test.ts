@@ -6,6 +6,7 @@ import {
   createMoneyMovement,
   formatKarwanReference,
   formatUsdcMicros,
+  hasOnchainProof,
   isKarwanReference,
   movementIdempotencyKey,
   parseUsdcMicros,
@@ -155,6 +156,50 @@ test('reuses unknown attempts but rotates after a terminal leg failure', () => {
 
   current = transitionMoneyMovementLeg(current, id, 'failed', { failureCode: 'FAILED' }, 230);
   assert.equal(shouldReuseMoneyMovementAttempt(current), false);
+});
+
+test('agent funding movement keeps the identity source and agent recipient explicit', () => {
+  const identity = '0x1111111111111111111111111111111111111111';
+  const agent = '0x2222222222222222222222222222222222222222';
+  const current = createMoneyMovement(
+    'KWN-2345-6789-ABCD',
+    {
+      operationKey: 'agent-funding:identity-to-agent:request-1',
+      kind: 'agent_funding',
+      amountMicros: 2_500_000n,
+      initiatedBy: identity,
+      participants: [
+        { address: identity, role: 'owner' },
+        { address: identity, role: 'source' },
+        { address: agent, role: 'recipient' },
+      ],
+      summary: 'Funded the buyer agent with 2.5 USDC',
+    },
+    100,
+  );
+
+  assert.equal(current.kind, 'agent_funding');
+  assert.equal(current.amountMicros, '2500000');
+  assert.deepEqual(current.participants.map((party) => party.role), ['owner', 'source', 'recipient']);
+  assert.equal(current.participants.at(-1)?.address, agent);
+});
+
+test('distinguishes a provider correlation id from on-chain proof', () => {
+  let current = startMoneyMovementAttempt(movement(), 200);
+  current = planMoneyMovementLeg(
+    current,
+    { key: 'mint', label: 'Mint funds', rail: 'gateway' },
+    210,
+  );
+  assert.equal(hasOnchainProof(current.legs[0]!), false);
+  current = transitionMoneyMovementLeg(current, current.legs[0]!.id, 'submitted', {
+    providerId: 'circle-transfer-1',
+  }, 220);
+  assert.equal(hasOnchainProof(current.legs[0]!), false);
+  current = transitionMoneyMovementLeg(current, current.legs[0]!.id, 'confirmed', {
+    txHash: '0xabc',
+  }, 230);
+  assert.equal(hasOnchainProof(current.legs[0]!), true);
 });
 
 test('cash-out movement keeps burn and mint proof separate', () => {

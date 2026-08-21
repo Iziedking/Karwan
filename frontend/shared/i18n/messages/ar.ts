@@ -2230,6 +2230,7 @@ export const ar: Messages = {
     },
     success: {
       message: 'في الطريق.',
+      referenceLabel: 'مرجع Karwan',
     },
     errors: {
       invalidAddress: 'العنوان غير صالح (20 بايت).',
@@ -3193,6 +3194,7 @@ export const ar: Messages = {
       slow: 'بطيء',
       viewOnArcscan: 'عرض على Arcscan',
       errorLabel: 'خطأ',
+      reference: 'مرجع Karwan',
       recipient: 'المستلم',
       txArc: 'المعاملة · Arc',
       stuckNote: 'لم يتم تأكيد هذا التحويل منذ فترة. على الأرجح معاملة مُسقطة. أعد المحاولة لإرسال واحدة جديدة، أو تجاهلها.',
