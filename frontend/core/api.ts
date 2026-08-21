@@ -2461,6 +2461,46 @@ export const api = {
         body: JSON.stringify(body),
       },
     ),
+  /// Web3-only top-up intent. The backend allocates the Karwan reference
+  /// before the browser signs the ERC-20 transfer on Arc.
+  fundAgentWeb3Intent: (body: {
+    address: string;
+    agent: 'buyer' | 'seller';
+    amountUsdc: string;
+    requestId: string;
+  }) =>
+    json<{
+      accepted: boolean;
+      alreadyRecorded?: boolean;
+      txHash?: string;
+      agentAddress: string;
+      amountUsdc: string;
+      reference: string;
+      movementState: string;
+    }>('/api/activation/fund-agent-web3/intent', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  /// Web3-only completion. The backend re-reads the Arc receipt and Transfer
+  /// event before completing the movement and writing the activity projection.
+  fundAgentWeb3Complete: (body: {
+    address: string;
+    agent: 'buyer' | 'seller';
+    amountUsdc: string;
+    requestId: string;
+    txHash: string;
+  }) =>
+    json<{
+      accepted: boolean;
+      alreadyRecorded?: boolean;
+      txHash: string;
+      agentAddress: string;
+      reference: string;
+      movementState: string;
+    }>('/api/activation/fund-agent-web3/complete', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   /// One call for the Wallets panel: the logged-in wallet's Arc USDC (identity
   /// hub) plus each agent's Arc USDC. `agents` is null before activation.
   walletOverview: (address: string) =>

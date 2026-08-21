@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAccount, useChainId, useSwitchChain, useWalletClient } from 'wagmi';
+import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
+import { erc20Abi, parseUnits } from 'viem';
 import { GATEWAY_CHAINS } from '@/features/bridge/config';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useBridges } from '@/features/bridge/hooks/useBridge';
@@ -14,7 +15,12 @@ import {
   type AssistantConfirmAction,
 } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
-import { ARC_EXPLORER_TX, ARC_CHAIN_ID, ARC_NATIVE_DECIMALS } from '@/features/profile/config';
+import {
+  ARC_EXPLORER_TX,
+  ARC_CHAIN_ID,
+  ARC_USDC_ADDRESS,
+  ARC_USDC_DECIMALS,
+} from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   useFloatingClearance,
@@ -654,7 +660,12 @@ interface ConfirmDeps {
   /// Pooling into the unified balance is signed by the user's own EOA (Gateway
   /// rejects an SCA's EIP-1271), so it runs client-side like the two above.
   startGatewayDeposit?: (input: { sourceChainKey: string; amountUsdc: number }) => Promise<void>;
-  startFundAgentWeb3?: (input: { toAddress: string; amountUsdc: number }) => Promise<void>;
+  startFundAgentWeb3?: (input: {
+    agent: 'buyer' | 'seller';
+    toAddress: string;
+    amountUsdc: number;
+    requestId: string;
+  }) => Promise<void>;
 }
 
 async function runConfirmIntent(
@@ -709,8 +720,10 @@ async function runConfirmIntent(
     // the source wallet. The agent wallet is a Circle DCW, so nothing else here
     // needs a signature.
     await deps.startFundAgentWeb3({
+      agent: p.agent === 'seller' ? 'seller' : 'buyer',
       toAddress: p.toAddress,
       amountUsdc: p.amountUsdc,
+      requestId: action.id,
     });
     return {
       successText: `Sent. Your ${p.agent} agent is funded.`,
@@ -1002,6 +1015,7 @@ function ConfirmCard({
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
+  const arcPublicClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const { openConnectModal } = useConnectModal();
   // Only the web3 top-up needs a client-side executor: the user signs the burn
   // in their own wallet, which no backend route can do for them. Connecting is
@@ -1042,30 +1056,72 @@ function ConfirmCard({
   // Pooling into the unified balance. Same shape again, but the deposit is signed
   // ON the source chain rather than relayed, so the wallet has to be switched
   // there first or Gateway signs against the wrong chain's USDC.
-  // Funding an agent from a web3 user's own Arc wallet. USDC IS Arc's native
-  // asset, so this is a plain value transfer at 18 decimals, not an ERC-20
-  // call: the recipient's native balance is exactly what the app and backend
-  // read as the agent's USDC. Mirrors useArcFund, which drives the same move
-  // from the profile screen.
+  // Funding an agent from a web3 user's own Arc wallet. The product rail uses
+  // Arc's six-decimal USDC ERC-20 interface, while the backend allocates the
+  // KWN reference before signing and verifies the receipt before completion.
   const startFundAgentWeb3 = useCallback(
-    async (input: { toAddress: string; amountUsdc: number }) => {
+    async (input: {
+      agent: 'buyer' | 'seller';
+      toAddress: string;
+      amountUsdc: number;
+      requestId: string;
+    }) => {
       if (!wagmiAddress || !connector) {
         openConnectModal?.();
         throw new Error('Connect your wallet, then confirm again.');
       }
+      const amountUsdc = String(input.amountUsdc);
+      const intent = await api.fundAgentWeb3Intent({
+        address: wagmiAddress,
+        agent: input.agent,
+        amountUsdc,
+        requestId: input.requestId,
+      });
+      if (intent.alreadyRecorded && intent.txHash) return;
       if (chainId !== ARC_CHAIN_ID) {
         await switchChainAsync({ chainId: ARC_CHAIN_ID });
       }
-      if (!walletClient) throw new Error('Wallet client unavailable');
-      const { parseUnits } = await import('viem');
-      await walletClient.sendTransaction({
-        to: input.toAddress as `0x${string}`,
-        value: parseUnits(String(input.amountUsdc), ARC_NATIVE_DECIMALS),
+      if (!walletClient || !arcPublicClient) throw new Error('Wallet client unavailable');
+      const amountMicros = parseUnits(amountUsdc, ARC_USDC_DECIMALS);
+      const balance = (await arcPublicClient.readContract({
+        address: ARC_USDC_ADDRESS,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [wagmiAddress],
+      })) as bigint;
+      if (balance < amountMicros) throw new Error('Not enough USDC on Arc');
+      const txHash = await walletClient.writeContract({
+        address: ARC_USDC_ADDRESS,
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [input.toAddress as `0x${string}`, amountMicros],
         chain: walletClient.chain,
         account: wagmiAddress,
       });
+      const receipt = await arcPublicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: 60_000,
+        pollingInterval: 1500,
+        retryCount: 8,
+      });
+      if (receipt.status !== 'success') throw new Error('Transaction reverted on chain');
+      await api.fundAgentWeb3Complete({
+        address: wagmiAddress,
+        agent: input.agent,
+        amountUsdc,
+        requestId: input.requestId,
+        txHash,
+      });
     },
-    [wagmiAddress, connector, openConnectModal, chainId, switchChainAsync, walletClient],
+    [
+      wagmiAddress,
+      connector,
+      openConnectModal,
+      chainId,
+      switchChainAsync,
+      walletClient,
+      arcPublicClient,
+    ],
   );
   const startGatewayDeposit = useCallback(
     async (input: { sourceChainKey: string; amountUsdc: number }) => {

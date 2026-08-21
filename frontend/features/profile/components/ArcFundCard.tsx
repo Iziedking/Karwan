@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useBalance, useChainId, useSwitchChain } from 'wagmi';
+import { useChainId, useReadContract, useSwitchChain } from 'wagmi';
+import { erc20Abi } from 'viem';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
-import { ARC_CHAIN_ID, ARC_EXPLORER_TX } from '../config';
+import { ARC_CHAIN_ID, ARC_EXPLORER_TX, ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
 import { useCircleFund, type CircleFundRecord } from '../hooks/useCircleFund';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -30,11 +31,6 @@ const TONE_COLOR = {
   live: 'var(--lp-accent)',
   warning: '#b25425',
 } as const;
-
-function formatBalance(data: { value: bigint; decimals: number } | undefined): string {
-  if (!data) return '-';
-  return formatUsdc(formatUnits(data.value, data.decimals), { withSuffix: false });
-}
 
 interface AgentOption {
   key: 'buyer' | 'seller';
@@ -65,17 +61,29 @@ export function ArcFundCard({
   const onWrongChain = !isCircleUser && isConnected && walletChainId !== ARC_CHAIN_ID;
   // Balance reads target Arc directly via the wagmi public RPC, not the
   // wallet, so they remain accurate even when the wallet is on another chain.
-  const arcBalance = useBalance({ address, chainId: ARC_CHAIN_ID });
-  const buyerArcBalance = useBalance({
-    address: (buyerAgent as `0x${string}`) || undefined,
+  const arcBalance = useReadContract({
+    address: ARC_USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
     chainId: ARC_CHAIN_ID,
   });
-  const sellerArcBalance = useBalance({
-    address: (sellerAgent as `0x${string}`) || undefined,
+  const buyerArcBalance = useReadContract({
+    address: ARC_USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: buyerAgent ? [buyerAgent as `0x${string}`] : undefined,
     chainId: ARC_CHAIN_ID,
   });
-  // Two completely separate fund flows: wagmi-signed native transfer on Arc
-  // for web3 users, server-side Circle DCW transfer for Circle users. Both
+  const sellerArcBalance = useReadContract({
+    address: ARC_USDC_ADDRESS,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: sellerAgent ? [sellerAgent as `0x${string}`] : undefined,
+    chainId: ARC_CHAIN_ID,
+  });
+  // Two completely separate fund flows: wagmi-signed Arc USDC transfer for
+  // web3 users, server-side Circle DCW transfer for Circle users. Both
   // hooks expose the same record shape, so the activity list below is shared.
   const wagmiFund = useArcFund();
   const circleFund = useCircleFund(address);
@@ -180,7 +188,7 @@ export function ArcFundCard({
 
   const arcHuman =
     arcBalance.data && !arcBalance.isLoading
-      ? formatUnits(arcBalance.data.value, arcBalance.data.decimals)
+      ? formatUnits(arcBalance.data, ARC_USDC_DECIMALS)
       : null;
 
   return (
@@ -266,7 +274,10 @@ export function ArcFundCard({
               const active = selected === o.key;
               const disabled = !o.address;
               const bal = o.key === 'buyer' ? buyerArcBalance : sellerArcBalance;
-              const balHuman = bal.data && !bal.isLoading ? formatBalance(bal.data) : null;
+              const balHuman =
+                bal.data && !bal.isLoading
+                  ? formatUsdc(formatUnits(bal.data, ARC_USDC_DECIMALS), { withSuffix: false })
+                  : null;
               return (
                 <button
                   key={o.key}

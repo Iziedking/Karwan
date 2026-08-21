@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { parseUnits } from 'viem';
+import { erc20Abi, parseUnits } from 'viem';
 import {
   useAccount,
   useChainId,
@@ -8,7 +8,8 @@ import {
   useSwitchChain,
   useWalletClient,
 } from 'wagmi';
-import { ARC_CHAIN_ID, ARC_NATIVE_DECIMALS } from '../config';
+import { ARC_CHAIN_ID, ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from '../config';
+import { api } from '@/core/api';
 
 export type FundPhase =
   | 'switching'
@@ -23,6 +24,7 @@ export interface FundRecord {
   agentKey: 'buyer' | 'seller';
   agentAddress: `0x${string}`;
   amountUsdc: string;
+  reference?: string;
   txHash?: `0x${string}`;
   error?: string;
   startedAt: number;
@@ -152,23 +154,47 @@ export function useArcFund() {
   // for the receipt. The tx is already on chain; we just need to learn its fate.
   useEffect(() => {
     if (!arcClient || hydratedFor !== (address?.toLowerCase() ?? '')) return;
+    if (!address) return;
+    const userAddress = address;
     for (const r of records) {
       if (r.phase !== 'confirming' || !r.txHash) continue;
       if (resumeStartedRef.current.has(r.id)) continue;
       resumeStartedRef.current.add(r.id);
+      const txHash = r.txHash;
       arcClient
         .waitForTransactionReceipt({
-          hash: r.txHash,
+          hash: txHash,
           timeout: 60_000,
           pollingInterval: 1500,
           retryCount: 8,
         })
         .then((receipt) => {
-          patch(r.id, (cur) =>
-            receipt.status === 'success'
-              ? { ...cur, phase: 'done' }
-              : { ...cur, phase: 'error', error: 'Transaction reverted on chain' },
-          );
+          if (receipt.status !== 'success') {
+            patch(r.id, (cur) => ({ ...cur, phase: 'error', error: 'Transaction reverted on chain' }));
+            return;
+          }
+          void api
+            .fundAgentWeb3Complete({
+              address: userAddress,
+              agent: r.agentKey,
+              amountUsdc: r.amountUsdc,
+              requestId: r.id,
+              txHash,
+            })
+            .then((completed) => {
+              patch(r.id, (cur) => ({
+                ...cur,
+                phase: 'done',
+                reference: completed.reference,
+              }));
+            })
+            .catch((err: unknown) => {
+              patch(r.id, (cur) => ({
+                ...cur,
+                phase: 'error',
+                error: err instanceof Error ? err.message : 'Receipt reconciliation needs attention',
+              }));
+            });
         })
         .catch((err: unknown) => {
           patch(r.id, (cur) => ({
@@ -186,7 +212,7 @@ export function useArcFund() {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: 'Connect your wallet first' }));
         return;
       }
-      const amountWei = parseUnits(record.amountUsdc, ARC_NATIVE_DECIMALS);
+      const amountMicros = parseUnits(record.amountUsdc, ARC_USDC_DECIMALS);
       // Track which phase the wallet was in when an error was thrown so the
       // error message can be phase-specific (eg. "chain switch declined" vs
       // "transfer cancelled in wallet"). Both originate as user-rejection
@@ -194,6 +220,51 @@ export function useArcFund() {
       let activePhase: FundPhase = 'switching';
 
       try {
+        // A submitted transaction is never sent again. Reconcile its receipt
+        // and the backend movement instead, including after a page reload or
+        // a temporary API failure.
+        if (record.txHash) {
+          activePhase = 'confirming';
+          patch(record.id, (r) => ({ ...r, phase: 'confirming' }));
+          const receipt = await arcClient.waitForTransactionReceipt({
+            hash: record.txHash,
+            timeout: 60_000,
+            pollingInterval: 1500,
+            retryCount: 8,
+          });
+          if (receipt.status !== 'success') throw new Error('Transaction reverted on chain');
+          const completed = await api.fundAgentWeb3Complete({
+            address,
+            agent: record.agentKey,
+            amountUsdc: record.amountUsdc,
+            requestId: record.id,
+            txHash: record.txHash,
+          });
+          patch(record.id, (r) => ({
+            ...r,
+            phase: 'done',
+            reference: completed.reference,
+          }));
+          return;
+        }
+
+        const intent = await api.fundAgentWeb3Intent({
+          address,
+          agent: record.agentKey,
+          amountUsdc: record.amountUsdc,
+          requestId: record.id,
+        });
+        patch(record.id, (r) => ({ ...r, reference: intent.reference }));
+        if (intent.alreadyRecorded && intent.txHash) {
+          patch(record.id, (r) => ({
+            ...r,
+            phase: 'done',
+            txHash: intent.txHash as `0x${string}`,
+            reference: intent.reference,
+          }));
+          return;
+        }
+
         if (chainId !== ARC_CHAIN_ID) {
           // Make sure the record is in 'switching' before the wallet pops.
           // If a retry came in from an 'error' state, the record was patched
@@ -203,19 +274,23 @@ export function useArcFund() {
           await switchChainAsync({ chainId: ARC_CHAIN_ID });
         }
 
-        // USDC is Arc's native asset, so check the native balance, not an ERC-20 view.
-        const balance = await arcClient.getBalance({ address });
-        if (balance < amountWei) {
+        const balance = (await arcClient.readContract({
+          address: ARC_USDC_ADDRESS,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [address],
+        })) as bigint;
+        if (balance < amountMicros) {
           throw new Error('Not enough USDC on Arc');
         }
 
         activePhase = 'signing';
         patch(record.id, (r) => ({ ...r, phase: 'signing' }));
-        // Plain native value transfer. The recipient's native balance is exactly
-        // what the app and backend read as the agent's USDC holdings.
-        const hash = await walletClient.sendTransaction({
-          to: record.agentAddress,
-          value: amountWei,
+        const hash = await walletClient.writeContract({
+          address: ARC_USDC_ADDRESS,
+          abi: erc20Abi,
+          functionName: 'transfer',
+          args: [record.agentAddress, amountMicros],
           chain: walletClient.chain,
           account: address,
         });
@@ -230,15 +305,19 @@ export function useArcFund() {
           pollingInterval: 1500,
           retryCount: 8,
         });
-        if (receipt.status === 'success') {
-          patch(record.id, (r) => ({ ...r, phase: 'done' }));
-        } else {
-          patch(record.id, (r) => ({
-            ...r,
-            phase: 'error',
-            error: 'Transaction reverted on chain',
-          }));
-        }
+        if (receipt.status !== 'success') throw new Error('Transaction reverted on chain');
+        const completed = await api.fundAgentWeb3Complete({
+          address,
+          agent: record.agentKey,
+          amountUsdc: record.amountUsdc,
+          requestId: record.id,
+          txHash: hash,
+        });
+        patch(record.id, (r) => ({
+          ...r,
+          phase: 'done',
+          reference: completed.reference,
+        }));
       } catch (err) {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyFundError(err, activePhase) }));
       }
@@ -275,7 +354,6 @@ export function useArcFund() {
         ...cur,
         phase: 'switching',
         error: undefined,
-        txHash: undefined,
         startedAt: now,
         updatedAt: now,
       };

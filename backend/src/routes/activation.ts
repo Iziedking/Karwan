@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
-import { parseUnits, formatUnits } from 'viem';
+import { erc20Abi, formatUnits, parseEventLogs, parseUnits } from 'viem';
 import {
   provisionUserAgentWallets,
   provisionUserBridgeWallet,
@@ -28,11 +28,13 @@ import { appendActivity } from '../db/activityLog.js';
 import { isSessionSelf } from '../auth/session.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
+import { publicClient } from '../chain/client.js';
 import { executeContractCall } from '../chain/txs.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
 import { invalidateDepositIndex } from '../circle/depositWatcher.js';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 import {
   completeMoneyMovement,
   currentMoneyMovement,
@@ -41,7 +43,12 @@ import {
   verifyMoneyMovementLeg,
 } from '../money/service.js';
 import { ensureCashoutMovement } from '../money/cashout.js';
-import { ensureAgentFundingMovement, prepareAgentFundingLeg } from '../money/agentFunding.js';
+import {
+  ensureAgentFundingMovement,
+  matchesAgentFundingTransfer,
+  prepareAgentFundingLeg,
+} from '../money/agentFunding.js';
+import { parseUsdcMicros } from '../money/model.js';
 
 // USDC on Arc exposes a 6-decimal ERC-20 interface. Withdrawals move funds
 // through that interface, the same one the escrow uses.
@@ -106,6 +113,20 @@ const fundAgentSchema = z.object({
   /// Client-generated retry identity. Reusing it returns the same movement
   /// reference and Circle idempotency key instead of risking a second spend.
   requestId: z.string().trim().min(8).max(128).optional(),
+});
+
+const web3FundAgentSchema = z.object({
+  address: addrSchema,
+  agent: z.enum(['buyer', 'seller']),
+  amountUsdc: z.union([
+    z.string().trim().regex(/^(0|[1-9]\d*)(?:\.\d{1,6})?$/),
+    z.number().positive().finite(),
+  ]),
+  requestId: z.string().trim().min(8).max(128),
+});
+
+const web3FundAgentCompleteSchema = web3FundAgentSchema.extend({
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
 });
 
 // One withdrawal at a time per user+agent, so a double-click cannot fire two
@@ -948,6 +969,241 @@ activationRoutes.post('/fund-agent', async (c) => {
     return c.json({ error: 'fund-agent failed', detail: (err as Error).message }, 502);
   } finally {
     fundInFlight.delete(key);
+  }
+});
+
+/// Allocate a receipt before a connected web3 wallet signs an ERC-20 USDC
+/// transfer to its agent. The browser owns the signing step, so this route
+/// only prepares the durable movement and returns the recipient/reference.
+activationRoutes.post('/fund-agent-web3/intent', async (c) => {
+  let body;
+  try {
+    body = web3FundAgentSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only fund your own agent wallet.', code: 'forbidden' }, 403);
+  }
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) return c.json({ error: 'no agent wallets — activate agents first' }, 409);
+  const agentAddress = body.agent === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+  const amountUsdc = String(body.amountUsdc);
+  let movementReference: string | undefined;
+  try {
+    const amountMicros = parseUsdcMicros(amountUsdc);
+    if (amountMicros <= 0n) return c.json({ error: 'amount must be greater than zero' }, 400);
+    const ensured = await ensureAgentFundingMovement({
+      operationKey: `agent-funding:web3:${userAddress}:${body.agent}:${body.requestId}`,
+      amountUsdc,
+      initiatedBy: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: agentAddress,
+      summary: `Funded the ${body.agent} agent wallet with ${amountUsdc} USDC from the connected wallet`,
+    });
+    movementReference = ensured.movement.reference;
+    const current = await currentMoneyMovement(movementReference);
+    const existingLeg = current.legs.find(
+      (leg) => leg.attempt === current.attempt && leg.key === 'arc_transfer',
+    );
+    if (current.state === 'completed' && existingLeg?.txHash) {
+      return c.json({
+        accepted: true,
+        alreadyRecorded: true,
+        txHash: existingLeg.txHash,
+        explorerUrl: existingLeg.explorerUrl ?? null,
+        agentAddress,
+        reference: current.reference,
+        movementState: current.state,
+      }, 200);
+    }
+    if (current.state === 'needs_attention') {
+      return c.json({
+        accepted: false,
+        error: 'fund transfer needs attention',
+        agentAddress,
+        reference: current.reference,
+        movementState: current.state,
+      }, 409);
+    }
+    const prepared = await prepareAgentFundingLeg(movementReference, {
+      signerAddress: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: agentAddress,
+      contractAddress: usdcAddress,
+      amountMicros,
+    });
+    return c.json({
+      accepted: true,
+      agentAddress,
+      amountUsdc,
+      reference: prepared.movement.reference,
+      movementState: prepared.movement.state,
+    }, 200);
+  } catch (err) {
+    logger.error({ userAddress, agent: body.agent, err: (err as Error).message }, 'web3 fund intent failed');
+    if (movementReference) {
+      const attention = await markMoneyMovementNeedsAttention(
+        movementReference,
+        'WEB3_AGENT_FUNDING_INTENT_FAILED',
+      ).catch(() => null);
+      return c.json({
+        error: 'fund transfer needs attention',
+        reference: movementReference,
+        movementState: attention?.state ?? 'needs_attention',
+      }, 502);
+    }
+    return c.json({ error: 'fund transfer intent failed' }, 502);
+  }
+});
+
+/// Reconcile the tx signed by a connected wallet. Completion is accepted only
+/// when Arc confirms a successful ERC-20 transfer from the session address to
+/// the selected agent for the exact six-decimal USDC amount.
+activationRoutes.post('/fund-agent-web3/complete', async (c) => {
+  let body;
+  try {
+    body = web3FundAgentCompleteSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+  }
+  const userAddress = body.address.toLowerCase();
+  if (!isSessionSelf(c, userAddress)) {
+    return c.json({ error: 'You can only fund your own agent wallet.', code: 'forbidden' }, 403);
+  }
+  const wallets = await getAgentWallets(userAddress);
+  if (!wallets) return c.json({ error: 'no agent wallets — activate agents first' }, 409);
+  const agentAddress = body.agent === 'buyer' ? wallets.buyerAddress : wallets.sellerAddress;
+  const amountUsdc = String(body.amountUsdc);
+  const amountMicros = parseUsdcMicros(amountUsdc);
+  const operationKey = `agent-funding:web3:${userAddress}:${body.agent}:${body.requestId}`;
+  let movementReference: string | undefined;
+  try {
+    const ensured = await ensureAgentFundingMovement({
+      operationKey,
+      amountUsdc,
+      initiatedBy: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: agentAddress,
+      summary: `Funded the ${body.agent} agent wallet with ${amountUsdc} USDC from the connected wallet`,
+    });
+    movementReference = ensured.movement.reference;
+    let movement = await currentMoneyMovement(movementReference);
+    if (movement.amountMicros !== amountMicros.toString()) {
+      return c.json({ error: 'amount does not match the original funding intent', code: 'amount_mismatch' }, 409);
+    }
+    const currentLeg = movement.legs.find(
+      (leg) => leg.attempt === movement.attempt && leg.key === 'arc_transfer',
+    );
+    if (!currentLeg) return c.json({ error: 'funding intent is not prepared' }, 409);
+    if (movement.state === 'completed' && currentLeg.txHash) {
+      return c.json({
+        accepted: true,
+        alreadyRecorded: true,
+        txHash: currentLeg.txHash,
+        explorerUrl: currentLeg.explorerUrl ?? null,
+        agentAddress,
+        reference: movement.reference,
+        movementState: movement.state,
+      }, 200);
+    }
+    if (movement.state === 'needs_attention') {
+      return c.json({
+        accepted: false,
+        error: 'fund transfer needs attention',
+        reference: movement.reference,
+        movementState: movement.state,
+      }, 409);
+    }
+
+    const receipt = await publicClient.getTransactionReceipt({ hash: body.txHash as `0x${string}` });
+    if (receipt.status !== 'success' || receipt.to?.toLowerCase() !== usdcAddress.toLowerCase()) {
+      const attention = await markMoneyMovementNeedsAttention(
+        movement.reference,
+        receipt.status === 'reverted' ? 'WEB3_AGENT_FUNDING_REVERTED' : 'WEB3_AGENT_FUNDING_RECEIPT_INVALID',
+      );
+      return c.json({
+        error: 'fund transfer did not confirm on Arc',
+        reference: movement.reference,
+        movementState: attention.state,
+      }, 502);
+    }
+    const transfers = parseEventLogs({
+      abi: erc20Abi,
+      eventName: 'Transfer',
+      logs: receipt.logs,
+      strict: false,
+    });
+    const matchingTransfer = transfers.find((entry) =>
+      matchesAgentFundingTransfer(entry.args as { from?: string; to?: string; value?: bigint }, {
+        sourceAddress: userAddress,
+        destinationAddress: agentAddress,
+        amountMicros,
+      }),
+    );
+    if (!matchingTransfer || receipt.from.toLowerCase() !== userAddress) {
+      return c.json({ error: 'transaction proof does not match this funding intent', code: 'proof_mismatch' }, 409);
+    }
+
+    const prepared = await prepareAgentFundingLeg(movement.reference, {
+      signerAddress: userAddress,
+      sourceAddress: userAddress,
+      destinationAddress: agentAddress,
+      contractAddress: usdcAddress,
+      amountMicros,
+    });
+    await prepared.lifecycle.onSubmitted?.({ txId: body.txHash, estimatedFee: null });
+    await prepared.lifecycle.onConfirmed?.({
+      txId: body.txHash,
+      txHash: body.txHash,
+      explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${body.txHash}`,
+    });
+    await verifyMoneyMovementLeg(movement.reference, prepared.leg.id, { amountMicros });
+    movement = await completeMoneyMovement(movement.reference);
+    bus.emitEvent({
+      type: 'agent.funded',
+      actor: 'platform',
+      payload: {
+        user: userAddress,
+        agent: body.agent,
+        agentAddress: agentAddress.toLowerCase(),
+        amountUsdc,
+        txHash: body.txHash,
+        reference: movement.reference,
+        movementState: movement.state,
+      },
+    });
+    void appendActivity({
+      address: userAddress,
+      kind: 'agent_topup',
+      summary: `Topped up the ${body.agent} agent wallet with ${amountUsdc} USDC from the connected wallet`,
+      params: { t: 'agentTopUp', agent: body.agent, amount: amountUsdc },
+      amountUsdc,
+      txHash: body.txHash,
+      refId: movement.reference,
+    });
+    return c.json({
+      accepted: true,
+      txHash: body.txHash,
+      agentAddress,
+      reference: movement.reference,
+      movementState: movement.state,
+    }, 200);
+  } catch (err) {
+    logger.error({ userAddress, agent: body.agent, txHash: body.txHash, err: (err as Error).message }, 'web3 fund completion failed');
+    if (movementReference) {
+      const attention = await markMoneyMovementNeedsAttention(
+        movementReference,
+        'WEB3_AGENT_FUNDING_UNKNOWN_OUTCOME',
+      ).catch(() => null);
+      return c.json({
+        error: 'fund transfer needs attention',
+        reference: movementReference,
+        movementState: attention?.state ?? 'needs_attention',
+      }, 502);
+    }
+    return c.json({ error: 'fund transfer completion failed' }, 502);
   }
 });
 

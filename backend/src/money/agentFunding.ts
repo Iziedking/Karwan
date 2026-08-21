@@ -11,6 +11,18 @@ export interface AgentFundingMovementInput {
   summary: string;
 }
 
+/** Match the exact ERC-20 transfer proof expected for a browser-wallet top-up. */
+export function matchesAgentFundingTransfer(
+  transfer: { from?: string; to?: string; value?: bigint },
+  expected: { sourceAddress: string; destinationAddress: string; amountMicros: bigint },
+): boolean {
+  return (
+    transfer.from?.toLowerCase() === expected.sourceAddress.toLowerCase() &&
+    transfer.to?.toLowerCase() === expected.destinationAddress.toLowerCase() &&
+    transfer.value === expected.amountMicros
+  );
+}
+
 /** Allocate the KWN receipt before an identity-to-agent transfer is submitted. */
 export async function ensureAgentFundingMovement(
   input: AgentFundingMovementInput,
@@ -37,7 +49,7 @@ export async function prepareAgentFundingLeg(
     sourceAddress: string;
     destinationAddress: string;
     amountMicros: bigint | string;
-    walletId: string;
+    walletId?: string;
     signerAddress: string;
     contractAddress: string;
   },
@@ -46,7 +58,7 @@ export async function prepareAgentFundingLeg(
     key: 'arc_transfer',
     label: 'Arc USDC transfer to agent',
     rail: 'circle_wallets',
-    walletId: input.walletId,
+    ...(input.walletId ? { walletId: input.walletId } : {}),
     signerAddress: input.signerAddress,
     sourceAddress: input.sourceAddress,
     destinationAddress: input.destinationAddress,
