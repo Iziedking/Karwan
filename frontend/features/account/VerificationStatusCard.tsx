@@ -99,6 +99,28 @@ export function VerificationStatusCard({ address }: { address: string }) {
               </span>
             </div>
           ))}
+          {/* The passport is what this list adds up to: the page a counterparty
+              or a financier actually reads. An individual account has three
+              capabilities, so the fourth cell of the grid was simply empty. */}
+          <a
+            href={`/credit-passport/${address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex min-h-11 items-center justify-between gap-4 border-t border-white/10 py-2.5 transition-colors hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          >
+            <span className="text-[12px] text-white/70 group-hover:text-white">
+              <span className="me-2 mono text-[9px] text-white/35">
+                [:{String(capabilities.length + 1).padStart(2, '0')}]
+              </span>
+              {t.publicPassport}
+            </span>
+            <span
+              aria-hidden
+              className="mono text-[11px] text-[var(--lp-accent)] transition-transform group-hover:translate-x-0.5"
+            >
+              ↗
+            </span>
+          </a>
         </div>
 
         {canReviewBusiness && (

@@ -144,7 +144,12 @@ export function ActivityView({ explorer }: { explorer: string }) {
           amounts and receipts, then the network pulse. The pulse has every
           amount and party stripped, so it can never answer "what did I do";
           the ledger above it is what answers that. */}
-      <ActivityStats counts={counts} activeGroups={groups} onToggleGroup={toggleGroup} />
+      <ActivityStats
+        counts={counts}
+        activeGroups={groups}
+        onToggleGroup={toggleGroup}
+        windowSize={events.length}
+      />
 
       <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 

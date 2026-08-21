@@ -14,10 +14,17 @@ export function ActivityStats({
   counts,
   activeGroups,
   onToggleGroup,
+  /// How many events these counters were computed from. They count a sliding
+  /// WINDOW of recent network events, not all-time totals, so the split moves
+  /// as new events arrive and older ones fall out of the window. Stating the
+  /// window is what makes a number that changes an honest number rather than a
+  /// total that appears to wobble.
+  windowSize,
 }: {
   counts: GroupCounts;
   activeGroups: Set<EventGroup>;
   onToggleGroup: (g: EventGroup) => void;
+  windowSize: number;
 }) {
   const t = useTranslations().activity.stats;
   const groups: EventGroup[] = ['jobs', 'negotiation', 'settlement', 'bridge'];
@@ -26,9 +33,14 @@ export function ActivityStats({
       {/* The counters lead the page, and the money ledger sits below them. The
           eyebrow is what stops them reading as a summary of that ledger: they
           count the network's events, never the user's own money. */}
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{t.eyebrow}:]
-      </span>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          [:{t.eyebrow}:]
+        </span>
+        <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]">
+          {t.window.replace('{n}', String(windowSize))}
+        </span>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {groups.map((g, i) => {
         const active = activeGroups.has(g);

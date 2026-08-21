@@ -1,6 +1,7 @@
 'use client';
 import { MoneyCard, MoneyValue } from '@/shared/components/Money';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { pickAxisLabelIndices } from '../axisLabels';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
 
@@ -179,11 +180,15 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
     .join(' ');
   const areaPath = `${linePath} L ${xs[xs.length - 1].toFixed(1)} ${height - padY} L ${xs[0].toFixed(1)} ${height - padY} Z`;
 
-  /// Sparse x-labels: first, last, and every nth in between so the strip
-  /// stays readable even for long series. On narrow screens we step the
-  /// cadence further so labels don't collide.
+  /// Sparse x-labels: first, last, and as many in between as there is ROOM
+  /// for. A cadence alone was not enough. `floor(79 / 4)` labelled index 76,
+  /// the last index is 78, and the two were drawn six pixels apart: "08-04"
+  /// and "08-18" printed over each other and read as "0808-2418". The gap is
+  /// measured in pixels now, and the final label always survives a collision.
   const labelTarget = width < 480 ? 4 : 6;
-  const labelEvery = Math.max(1, Math.floor(padded.length / labelTarget));
+  const labelIndices = new Set(
+    pickAxisLabelIndices(xs, { target: labelTarget, minGap: width < 480 ? 44 : 56 }),
+  );
   const yGrid = 4;
   const yTicks = Array.from({ length: yGrid + 1 }, (_, i) => (maxV * i) / yGrid);
 
@@ -248,7 +253,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
 
         {/* X labels */}
         {padded.map((p, i) => {
-          if (i !== 0 && i !== padded.length - 1 && i % labelEvery !== 0) return null;
+          if (!labelIndices.has(i)) return null;
           if (!p.day) return null;
           return (
             <text
