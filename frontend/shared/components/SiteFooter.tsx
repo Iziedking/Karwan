@@ -14,7 +14,8 @@ const SUPPORT_EMAIL = 'support@karwan.site';
 /// the landing-page palette so the bottom of every route resolves to the
 /// same visual chord.
 export function SiteFooter() {
-  const t = useTranslations().footer;
+  const messages = useTranslations();
+  const t = messages.footer;
   return (
     <footer className="bg-[var(--lp-light)] text-[var(--lp-dark)]">
       <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] pt-[clamp(40px,6vw,80px)] pb-[clamp(28px,4vw,52px)]">
@@ -62,6 +63,10 @@ export function SiteFooter() {
                 screens so three columns don't feel cramped. */}
             <div className="grid grid-cols-2 gap-x-7 gap-y-8 sm:grid-cols-3 sm:gap-x-8 md:gap-y-10">
               <FooterCol title={t.columns.product}>
+                {/* Discover reuses the nav's own label rather than minting a
+                    second string for the same destination, so the footer and
+                    the nav can never disagree about what it is called. */}
+                <FooterLink href="/market">{messages.nav.market}</FooterLink>
                 <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
                 <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
                 <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>

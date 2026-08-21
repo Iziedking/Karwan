@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { ConnectWalletButton } from './ConnectWallet';
+import { ThemeControl } from './ThemeControl';
 import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { ProfileAvatar } from './ProfileAvatar';
@@ -112,20 +113,6 @@ export function TopNav() {
           </Link>
         </div>
 
-        {publicSurface && (
-          <nav className="mx-auto hidden h-full items-center gap-7 md:flex">
-            <PublicNavLink href="/how-it-works" active={pathname.startsWith('/how-it-works')}>
-              {t.footer.productLinks.howItWorks}
-            </PublicNavLink>
-            <PublicNavLink href="/market" active={discoverActive}>
-              {t.nav.market}
-            </PublicNavLink>
-            <PublicNavLink href="/docs" active={pathname.startsWith('/docs')}>
-              {t.footer.productLinks.docs}
-            </PublicNavLink>
-          </nav>
-        )}
-
         {/* Desktop workspace navigation is task-based and flat. The active
             indicator slides between destinations without turning the header
             into a row of nested pills. Mobile uses WorkspaceBottomNav. */}
@@ -180,6 +167,10 @@ export function TopNav() {
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {focusedSurface ? (
             <>
+              {/* Sign-in and onboarding have no preferences menu yet, and they
+                  are the screens with the most reading and form-filling on
+                  them. The control rides in the nav there instead. */}
+              <ThemeControl />
               {authLoading ? (
                 <span
                   aria-hidden
@@ -213,21 +204,25 @@ export function TopNav() {
                 <span className="hidden md:inline-flex"><ProfileAvatar /></span>
               </>
           ) : !publicSurface ? (
-            // Signed-out app chrome: just the Sign in button. Don't tease the
-            // app surface (nav rail, balance, bell, settings) before the user
-            // has signed in. While auth is still resolving, reserve the same
-            // approximate width so the bar doesn't shift content once the
-            // button paints. This was one of the dominant CLS contributors
-            // across every app route (RES dashboard, last 7 days).
-            authLoading ? (
-              <span
-                aria-hidden
-                className="inline-block rounded-full bg-[var(--color-surface-2)] motion-safe:animate-pulse motion-reduce:animate-none"
-                style={{ width: 132, height: 36 }}
-              />
-            ) : (
-              <ConnectWalletButton />
-            )
+            // Signed-out app chrome: the sign-in button and the theme control,
+            // nothing else. Don't tease the app surface (nav rail, balance,
+            // bell, settings) before the user has signed in. While auth is
+            // still resolving, reserve the same approximate width so the bar
+            // doesn't shift content once the button paints. This was one of the
+            // dominant CLS contributors across every app route (RES dashboard,
+            // last 7 days).
+            <>
+              <ThemeControl />
+              {authLoading ? (
+                <span
+                  aria-hidden
+                  className="inline-block rounded-full bg-[var(--color-surface-2)] motion-safe:animate-pulse motion-reduce:animate-none"
+                  style={{ width: 132, height: 36 }}
+                />
+              ) : (
+                <ConnectWalletButton />
+              )}
+            </>
           ) : (
             <LaunchAppCTA />
           )}
@@ -328,36 +323,6 @@ function NavLinkSoon({
   );
 }
 
-function PublicNavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        'relative flex h-full items-center mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors',
-        active ? 'text-white' : 'text-white/56 hover:text-white',
-      )}
-    >
-      {children}
-      {active ? (
-        <motion.span
-          layoutId="public-nav-active"
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--lp-accent)]"
-          transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
-        />
-      ) : null}
-    </Link>
-  );
-}
 
 /// Collapses the low-frequency controls (theme, sound, settings) behind a single
 /// overflow button so the top bar shows fewer icons. Theme and sound also live
@@ -430,6 +395,9 @@ function QuickControls({
               boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
             }}
           >
+            <ControlRow label={t.controlLabels.theme}>
+              <ThemeControl />
+            </ControlRow>
             <ControlRow label={t.controlLabels.sound}>
               <SoundToggle />
             </ControlRow>
