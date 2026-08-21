@@ -236,6 +236,12 @@ export function isCctpChainKey(v: string): v is CctpChainKey {
 /// rather than in CCTP_CHAINS because it is not an EVM chain and carries none of
 /// the contract addresses that interface requires. Anything unrecognised splits
 /// its camelCase into words rather than showing the key.
+/// The keys clients use for Arc itself. Arc is not a CCTP source chain (it is
+/// the destination every bridge mints on), so it has no entry in CCTP_CHAINS and
+/// there was nothing to compare against when a request named it. A cash-out that
+/// names Arc as its destination never leaves the chain.
+export const ARC_CHAIN_KEYS = new Set(['arc', 'arctestnet', 'arc-testnet', 'arcTestnet'.toLowerCase()]);
+
 export function chainLabel(key: string): string {
   if (isCctpChainKey(key)) return CCTP_CHAINS[key].name;
   if (key === 'solanaDevnet') return 'Solana Devnet';

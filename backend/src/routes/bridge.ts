@@ -33,6 +33,8 @@ import {
   TOKEN_MESSENGER_V2,
   MESSAGE_TRANSMITTER_V2,
   ARC_DOMAIN,
+  ARC_CHAIN_KEYS,
+  chainLabel,
   FINALITY_THRESHOLD_FAST,
   addressToBytes32,
   isCctpChainKey,
@@ -349,6 +351,17 @@ bridgeRoutes.post('/record', async (c) => {
     return c.json({ ok: true, alreadyRecorded: true });
   }
 
+  /// An Arc-to-Arc cash-out is a single transfer that never leaves the chain,
+  /// which the schema on `direction` already allows for. It is recorded here
+  /// because this is where cash-outs live, not because anything is bridged.
+  ///
+  /// Two things were wrong for it. The row read "Sent 150 USDC from Arc to arc",
+  /// naming the same chain twice off a raw key. And it stayed IN FLIGHT forever
+  /// on a transfer that had already succeeded, because a cash-out completes only
+  /// when every planned leg is verified and the second leg, a destination-chain
+  /// mint, does not exist when there is no destination chain. One hop, one leg.
+  const sameChain = direction === 'out' && ARC_CHAIN_KEYS.has(body.sourceChainKey.toLowerCase());
+
   let movement;
   try {
     const ensured = await ensureBridgeMovement({
@@ -356,10 +369,11 @@ bridgeRoutes.post('/record', async (c) => {
       amountUsdc,
       initiatedBy: ownerAddress,
       recipient: body.mintRecipient,
-      summary:
-        direction === 'out'
-          ? `Sent ${amountUsdc} USDC from Arc to ${body.sourceChainKey}`
-          : `Added ${amountUsdc} USDC from ${body.sourceChainKey} to Arc`,
+      summary: sameChain
+        ? `Sent ${amountUsdc} USDC on Arc`
+        : direction === 'out'
+          ? `Sent ${amountUsdc} USDC from Arc to ${chainLabel(body.sourceChainKey)}`
+          : `Added ${amountUsdc} USDC from ${chainLabel(body.sourceChainKey)} to Arc`,
     });
     movement = ensured.movement;
     if (movement.amountMicros !== amountMicros.toString()) {
@@ -391,19 +405,25 @@ bridgeRoutes.post('/record', async (c) => {
           : 0;
   await prepareCashoutLeg(movement.reference, {
     key: 'burn',
-    label: direction === 'out' ? 'Arc source burn' : 'Source-chain burn',
+    label: sameChain
+      ? 'Arc transfer'
+      : direction === 'out'
+        ? 'Arc source burn'
+        : 'Source-chain burn',
     rail: 'cctp',
     amountMicros: amountMicros.toString(),
     ...(direction === 'out' ? { sourceAddress: ownerAddress } : {}),
     ...(direction === 'out' ? { destinationAddress: body.mintRecipient } : {}),
   });
-  await prepareCashoutLeg(movement.reference, {
-    key: 'mint',
-    label: direction === 'out' ? 'Destination-chain mint' : 'Arc destination mint',
-    rail: 'cctp',
-    amountMicros: amountMicros.toString(),
-    destinationAddress: body.mintRecipient,
-  });
+  if (!sameChain) {
+    await prepareCashoutLeg(movement.reference, {
+      key: 'mint',
+      label: direction === 'out' ? 'Destination-chain mint' : 'Arc destination mint',
+      rail: 'cctp',
+      amountMicros: amountMicros.toString(),
+      destinationAddress: body.mintRecipient,
+    });
+  }
 
   let latestMovement = (await getMoneyMovement(movement.reference)) ?? movement;
   if (body.burnTxHash) {

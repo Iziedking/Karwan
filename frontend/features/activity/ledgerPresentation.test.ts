@@ -35,3 +35,12 @@ test('renders nothing when a row carries no amount', () => {
   assert.equal(ledgerAmountLabel('', 'release'), null);
   assert.equal(ledgerAmountLabel('   ', 'release'), null);
 });
+
+test('a Karwan seed is money arriving, not leaving', () => {
+  // The first two rows of every new account were "-0.5 USDC": Karwan funding
+  // the agent wallets was classified as the user spending.
+  assert.equal(ledgerDirection('agent_seed'), 'in');
+  assert.equal(ledgerAmountLabel('0.5', 'agent_seed'), '+0.5 USDC');
+  // A top up is the user's own money moving out of the sign-in wallet.
+  assert.equal(ledgerAmountLabel('100', 'agent_topup'), '-100 USDC');
+});

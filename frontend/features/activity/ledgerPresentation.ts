@@ -29,6 +29,10 @@ const INBOUND = new Set([
   'unstake',
   'financing_received',
   'gateway_deposit',
+  // Karwan's own USDC arriving in the user's agent wallet at onboarding, so the
+  // agent can pay for its first transactions. Nothing leaves the user, and it
+  // was signed as if it did: the first two rows of a new account read "-0.5".
+  'agent_seed',
 ]);
 
 const OUTBOUND = new Set([
@@ -36,8 +40,8 @@ const OUTBOUND = new Set([
   'cash_out',
   'release',
   'stake',
+  // The user's own USDC moving from the sign-in wallet into their agent.
   'agent_topup',
-  'agent_seed',
   'agent_spend',
   'gateway_fund_agent',
   'gateway_cash_out',
