@@ -311,6 +311,7 @@ export const sw: Messages = {
         verificationRequired: 'Uthibitishaji unahitajika',
       },
       reviewBusiness: 'Kagua uthibitishaji wa biashara →',
+      publicPassport: 'Tazama pasi ya umma',
     },
   },
   banners: {
@@ -502,6 +503,7 @@ export const sw: Messages = {
     },
     stats: {
       eyebrow: 'SHUGHULI ZA MTANDAO',
+      window: 'MATUKIO {n} YA MWISHO',
       groups: {
         jobs: 'Kazi',
         negotiation: 'Mazungumzo',
@@ -3181,6 +3183,7 @@ export const sw: Messages = {
       switching: 'Inabadilisha kwenda Arc',
       signing: 'Saini katika pochi',
       confirming: 'Inathibitisha kwenye Arc',
+      unconfirmed: 'Imetumwa, inasubiri uthibitisho',
       sending: 'Inahamisha kwenye Arc',
       done: 'Imetumwa',
       error: 'Imeshindwa',

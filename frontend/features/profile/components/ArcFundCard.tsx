@@ -503,6 +503,8 @@ function phaseLabel(
       return copy.confirming;
     case 'sending':
       return copy.sending;
+    case 'unconfirmed':
+      return copy.unconfirmed;
     case 'done':
       return copy.done;
     case 'error':
@@ -513,6 +515,8 @@ function phaseLabel(
 function phaseTone(phase: AnyFundPhase): 'live' | 'positive' | 'critical' {
   if (phase === 'done') return 'positive';
   if (phase === 'error') return 'critical';
+  // 'unconfirmed' is deliberately NOT critical. The transfer is on chain and
+  // may well have settled; painting it red was the whole complaint.
   return 'live';
 }
 
@@ -548,7 +552,9 @@ function FundRow({
     record.phase === 'confirming' || record.phase === 'sending';
   const isSlow = inFlightConfirming && elapsedSec > 15;
   const isStuck = inFlightConfirming && elapsedSec > 120;
-  const canRetry = record.phase === 'error' || isStuck;
+  // Retry on an unconfirmed record re-reads the receipt for the hash it already
+  // has; runFlow never re-sends a transaction that was submitted.
+  const canRetry = record.phase === 'error' || record.phase === 'unconfirmed' || isStuck;
   const canDismiss = record.phase === 'done' || record.phase === 'error' || isStuck;
   const textColor =
     tone === 'positive'

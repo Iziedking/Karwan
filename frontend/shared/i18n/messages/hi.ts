@@ -311,6 +311,7 @@ export const hi: Messages = {
         verificationRequired: 'सत्यापन आवश्यक',
       },
       reviewBusiness: 'व्यवसाय सत्यापन देखें →',
+      publicPassport: 'सार्वजनिक पासपोर्ट देखें',
     },
   },
   banners: {
@@ -502,6 +503,7 @@ export const hi: Messages = {
     },
     stats: {
       eyebrow: 'नेटवर्क गतिविधि',
+      window: 'पिछली {n} घटनाएँ',
       groups: {
         jobs: 'कार्य',
         negotiation: 'बातचीत',
@@ -3181,6 +3183,7 @@ export const hi: Messages = {
       switching: 'Arc पर स्विच हो रहा है',
       signing: 'वॉलेट में साइन करें',
       confirming: 'Arc पर पुष्टि हो रही है',
+      unconfirmed: 'भेजा गया, पुष्टि की प्रतीक्षा',
       sending: 'Arc पर ट्रांसफर हो रहा है',
       done: 'भेजा गया',
       error: 'विफल',

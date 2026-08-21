@@ -15,7 +15,9 @@
     "test:bridge": "tsx --test features/bridge/components/bridgeHistoryPresentation.test.ts",
     "test:activity": "tsx --test features/activity/ledgerPresentation.test.ts",
     "test:receipts": "tsx --test features/activity/receiptPresentation.test.ts",
-    "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts"
+    "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts",
+    "test:charts": "tsx --test features/reputation/axisLabels.test.ts",
+    "test:chain": "tsx --test shared/chain/confirmTx.test.ts"
   },
   "dependencies": {
     "@circle-fin/adapter-solana-kit": "^1.4.10",

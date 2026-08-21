@@ -311,6 +311,7 @@ export const fr: Messages = {
         verificationRequired: 'Vérification requise',
       },
       reviewBusiness: 'Examiner la vérification entreprise →',
+      publicPassport: 'Voir le passeport public',
     },
   },
   banners: {
@@ -502,6 +503,7 @@ export const fr: Messages = {
     },
     stats: {
       eyebrow: 'ACTIVITÉ DU RÉSEAU',
+      window: '{n} DERNIERS ÉVÉNEMENTS',
       groups: {
         jobs: 'Missions',
         negotiation: 'Négociation',
@@ -3181,6 +3183,7 @@ export const fr: Messages = {
       switching: 'Bascule vers Arc',
       signing: 'Signer dans le portefeuille',
       confirming: 'Confirmation sur Arc',
+      unconfirmed: 'Envoyé, en attente de confirmation',
       sending: 'Transfert sur Arc',
       done: 'Envoyé',
       error: 'Échec',

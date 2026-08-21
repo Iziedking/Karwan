@@ -273,6 +273,10 @@ interface MessagesShape {
         verificationRequired: string;
       };
       reviewBusiness: string;
+      /// The account's own public passport: the page a counterparty or financier
+      /// sees. It sits with the capability list because it is what those
+      /// capabilities add up to.
+      publicPassport: string;
     };
   };
   banners: {
@@ -474,6 +478,10 @@ interface MessagesShape {
     };
     stats: {
       eyebrow: string;
+      /// The counters count a WINDOW of recent events, not network totals, and
+      /// the window slides as new events arrive. Saying so is what stops the
+      /// numbers reading as totals that mysteriously change. {n} is the count.
+      window: string;
       groups: {
         jobs: string;
         negotiation: string;
@@ -3005,6 +3013,10 @@ interface MessagesShape {
       signing: string;
       confirming: string;
       sending: string;
+      /// Submitted and on chain, confirmation not seen yet. NOT a failure: the
+      /// state exists because a confirmation watcher timing out was being shown
+      /// to users as a failed transfer that had in fact settled.
+      unconfirmed: string;
       done: string;
       error: string;
     };
@@ -4887,6 +4899,7 @@ export const en: MessagesShape = {
         verificationRequired: 'Verification required',
       },
       reviewBusiness: 'Review business verification →',
+      publicPassport: 'View public passport',
     },
   },
   banners: {
@@ -5084,6 +5097,7 @@ export const en: MessagesShape = {
     },
     stats: {
       eyebrow: 'NETWORK ACTIVITY',
+      window: 'LAST {n} EVENTS',
       groups: {
         jobs: 'Jobs',
         negotiation: 'Negotiation',
@@ -7793,6 +7807,7 @@ export const en: MessagesShape = {
       switching: 'Switching to Arc',
       signing: 'Sign in wallet',
       confirming: 'Confirming on Arc',
+      unconfirmed: 'Submitted, awaiting confirmation',
       sending: 'Transferring on Arc',
       done: 'Sent',
       error: 'Failed',

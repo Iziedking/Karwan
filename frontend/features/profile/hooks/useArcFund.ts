@@ -10,11 +10,19 @@ import {
 } from 'wagmi';
 import { ARC_CHAIN_ID, ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from '../config';
 import { api } from '@/core/api';
+import { confirmTransaction } from '@/shared/chain/confirmTx';
 
 export type FundPhase =
   | 'switching'
   | 'signing'
   | 'confirming'
+  /// Submitted, on chain, and not yet confirmed as far as this RPC can see.
+  /// A separate state from 'error' on purpose: the transfer that produced this
+  /// state in the field had landed on Arc with hundreds of confirmations while
+  /// the app told the user it had FAILED, because a confirmation wait timing
+  /// out was being recorded as the transfer failing. A watcher giving up is not
+  /// an outcome.
+  | 'unconfirmed'
   | 'done'
   | 'error';
 
@@ -157,20 +165,18 @@ export function useArcFund() {
     if (!address) return;
     const userAddress = address;
     for (const r of records) {
-      if (r.phase !== 'confirming' || !r.txHash) continue;
+      if ((r.phase !== 'confirming' && r.phase !== 'unconfirmed') || !r.txHash) continue;
       if (resumeStartedRef.current.has(r.id)) continue;
       resumeStartedRef.current.add(r.id);
       const txHash = r.txHash;
-      arcClient
-        .waitForTransactionReceipt({
-          hash: txHash,
-          timeout: 60_000,
-          pollingInterval: 1500,
-          retryCount: 8,
-        })
-        .then((receipt) => {
-          if (receipt.status !== 'success') {
+      confirmTransaction(arcClient, txHash)
+        .then((outcome) => {
+          if (outcome.state === 'reverted') {
             patch(r.id, (cur) => ({ ...cur, phase: 'error', error: 'Transaction reverted on chain' }));
+            return;
+          }
+          if (outcome.state === 'pending') {
+            patch(r.id, (cur) => ({ ...cur, phase: 'unconfirmed', error: undefined }));
             return;
           }
           void api
@@ -226,13 +232,12 @@ export function useArcFund() {
         if (record.txHash) {
           activePhase = 'confirming';
           patch(record.id, (r) => ({ ...r, phase: 'confirming' }));
-          const receipt = await arcClient.waitForTransactionReceipt({
-            hash: record.txHash,
-            timeout: 60_000,
-            pollingInterval: 1500,
-            retryCount: 8,
-          });
-          if (receipt.status !== 'success') throw new Error('Transaction reverted on chain');
+          const outcome = await confirmTransaction(arcClient, record.txHash);
+          if (outcome.state === 'reverted') throw new Error('Transaction reverted on chain');
+          if (outcome.state === 'pending') {
+            patch(record.id, (r) => ({ ...r, phase: 'unconfirmed', error: undefined }));
+            return;
+          }
           const completed = await api.fundAgentWeb3Complete({
             address,
             agent: record.agentKey,
@@ -296,16 +301,16 @@ export function useArcFund() {
         });
         activePhase = 'confirming';
         patch(record.id, (r) => ({ ...r, phase: 'confirming', txHash: hash }));
-        // Cap the wait so a flaky RPC doesn't strand the UI. If we time out,
-        // the resume effect will pick this record back up on next page load and
-        // a one-click Retry continues polling.
-        const receipt = await arcClient.waitForTransactionReceipt({
-          hash,
-          timeout: 60_000,
-          pollingInterval: 1500,
-          retryCount: 8,
-        });
-        if (receipt.status !== 'success') throw new Error('Transaction reverted on chain');
+        // The wait is capped so a flaky RPC cannot strand the UI, and running
+        // out of time is reported as UNCONFIRMED, never as a failure: the money
+        // has left the wallet either way, and the record keeps its hash so
+        // resume and Check again can finish the job.
+        const outcome = await confirmTransaction(arcClient, hash);
+        if (outcome.state === 'reverted') throw new Error('Transaction reverted on chain');
+        if (outcome.state === 'pending') {
+          patch(record.id, (r) => ({ ...r, phase: 'unconfirmed', error: undefined }));
+          return;
+        }
         const completed = await api.fundAgentWeb3Complete({
           address,
           agent: record.agentKey,

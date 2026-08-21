@@ -311,6 +311,7 @@ export const ar: Messages = {
         verificationRequired: 'التحقق مطلوب',
       },
       reviewBusiness: 'مراجعة تحقق الشركة ←',
+      publicPassport: 'عرض جواز السفر العام',
     },
   },
   banners: {
@@ -502,6 +503,7 @@ export const ar: Messages = {
     },
     stats: {
       eyebrow: 'نشاط الشبكة',
+      window: 'آخر {n} حدثًا',
       groups: {
         jobs: 'الأعمال',
         negotiation: 'التفاوض',
@@ -3181,6 +3183,7 @@ export const ar: Messages = {
       switching: 'جارٍ التبديل إلى Arc',
       signing: 'وقّع في المحفظة',
       confirming: 'جارٍ التأكيد على Arc',
+      unconfirmed: 'تم الإرسال، في انتظار التأكيد',
       sending: 'جارٍ التحويل على Arc',
       done: 'تم الإرسال',
       error: 'فشل',
