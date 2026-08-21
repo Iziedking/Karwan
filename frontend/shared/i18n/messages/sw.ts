@@ -1706,6 +1706,7 @@ export const sw: Messages = {
     },
     supplyDesk: 'Dawati la ugavi',
     chooseHowDealStarts: 'Chagua jinsi deal inavyoanza.',
+    railDotTemplate: 'Onyesha kadi {n} kati ya {total}',
     registerABusiness: 'Sajili biashara',
   },
   profileEdit: {

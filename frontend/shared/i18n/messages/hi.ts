@@ -1706,6 +1706,7 @@ export const hi: Messages = {
     },
     supplyDesk: 'सप्लाई डेस्क',
     chooseHowDealStarts: 'चुनें कि डील कैसे शुरू हो.',
+    railDotTemplate: '{total} में से कार्ड {n} दिखाएँ',
     registerABusiness: 'व्यवसाय पंजीकृत करें',
   },
   profileEdit: {

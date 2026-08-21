@@ -1552,6 +1552,8 @@ interface MessagesShape {
     examples: { brief: string; directDeal: string; scout: string; listing: string };
     supplyDesk: string;
     chooseHowDealStarts: string;
+    /// Accessible name for one dot of a horizontal card rail. {n} of {total}.
+    railDotTemplate: string;
     registerABusiness: string;
   };
   profileEdit: {
@@ -6313,6 +6315,7 @@ export const en: MessagesShape = {
     },
     supplyDesk: 'Supply desk',
     chooseHowDealStarts: 'Choose how the deal starts.',
+    railDotTemplate: 'Show card {n} of {total}',
     registerABusiness: 'Register a business',
   },
   profileEdit: {

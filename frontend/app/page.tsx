@@ -516,6 +516,33 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
 
 // Early trades. modular cards grid (testimonial-style, big number visual)
 function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
+  /// Which card the rail is resting on, read from scroll position rather than
+  /// tracked on click, so a swipe and a dot press agree.
+  const railRef = useRef<HTMLDivElement>(null);
+  const [railIndex, setRailIndex] = useState(0);
+  const onRailScroll = () => {
+    const el = railRef.current;
+    if (!el) return;
+    const first = el.children[0] as HTMLElement | undefined;
+    if (!first) return;
+    // Card width plus the gap. Measured from the DOM because the card width is
+    // a clamp of the viewport, not a constant.
+    const second = el.children[1] as HTMLElement | undefined;
+    const stride = second ? second.offsetLeft - first.offsetLeft : first.offsetWidth;
+    if (stride <= 0) return;
+    setRailIndex(Math.round(el.scrollLeft / stride));
+  };
+  const scrollToCard = (index: number) => {
+    const el = railRef.current;
+    const target = el?.children[index] as HTMLElement | undefined;
+    if (!el || !target) return;
+    const base = (el.children[0] as HTMLElement).offsetLeft;
+    el.scrollTo({
+      left: target.offsetLeft - base,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+  };
+
   const cards = [
     {
       tag: `${copy.cards.buyerLagos.role} · ${copy.cards.buyerLagos.city}`,
@@ -547,7 +574,11 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
           {copy.title}
         </h2>
       </PanelContent>
-      <div className="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] sm:grid sm:grid-cols-2 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+      <div
+        ref={railRef}
+        onScroll={onRailScroll}
+        className="mt-12 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] sm:grid sm:grid-cols-2 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden"
+      >
         {cards.map((c, i) => (
           <PanelContent
             key={c.tag}
@@ -613,7 +644,58 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
           </PanelContent>
         ))}
       </div>
+      <RailDots count={cards.length} active={railIndex} onSelect={scrollToCard} />
     </Band>
+  );
+}
+
+/// Position dots for a horizontal card rail.
+///
+/// The rail is a swipe on a phone and a grid from `sm` up, so the dots exist
+/// only below that breakpoint: above it every card is already on screen and a
+/// pager would be pointing at nothing. A peeking next card says "there is more
+/// this way" but not how much more, which is what the dots add.
+function RailDots({
+  count,
+  active,
+  onSelect,
+}: {
+  count: number;
+  active: number;
+  onSelect: (index: number) => void;
+}) {
+  const pb = useTranslations().pageBits;
+  if (count <= 1) return null;
+  return (
+    <div className="mt-4 flex items-center justify-center gap-2 sm:hidden">
+      {Array.from({ length: count }, (_, index) => {
+        const current = index === active;
+        return (
+          <button
+            key={index}
+            type="button"
+            onClick={() => onSelect(index)}
+            aria-label={pb.railDotTemplate
+              .replace('{n}', String(index + 1))
+              .replace('{total}', String(count))}
+            aria-current={current ? 'true' : undefined}
+            // 44px tap target around a 7px dot: the dot is the mark, the button
+            // is the thing a thumb can actually hit.
+            className="grid h-11 w-7 place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          >
+            <span
+              aria-hidden
+              className="block rounded-full transition-[width,background-color,opacity] duration-[var(--dur-base)]"
+              style={{
+                width: current ? 18 : 7,
+                height: 7,
+                background: current ? 'var(--lp-accent)' : 'rgba(255,255,255,0.32)',
+              }}
+            />
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

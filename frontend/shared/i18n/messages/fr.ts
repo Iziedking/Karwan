@@ -1706,6 +1706,7 @@ export const fr: Messages = {
     },
     supplyDesk: 'Desk approvisionnement',
     chooseHowDealStarts: 'Choisissez comment le deal démarre.',
+    railDotTemplate: 'Afficher la carte {n} sur {total}',
     registerABusiness: 'Enregistrer une entreprise',
   },
   profileEdit: {

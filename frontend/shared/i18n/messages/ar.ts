@@ -1706,6 +1706,7 @@ export const ar: Messages = {
     },
     supplyDesk: 'مكتب التوريد',
     chooseHowDealStarts: 'اختر كيف تبدأ الصفقة.',
+    railDotTemplate: 'إظهار البطاقة {n} من {total}',
     registerABusiness: 'سجّل شركة',
   },
   profileEdit: {
