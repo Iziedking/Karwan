@@ -9,6 +9,7 @@ import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
+import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -95,6 +96,60 @@ function parseMilestoneSplit(text: string): { pcts: number[] | null; error: stri
 }
 
 const SPLIT_PRESETS = ['50, 50', '30, 70', '40, 30, 30'] as const;
+
+/// One request option: a tick, a bracket label, and its explanation in a
+/// tooltip rather than as a paragraph on the card.
+///
+/// The paragraph was the problem. Two options meant two tall blocks stacked
+/// down the form to carry two booleans, and the copy was read once and then
+/// re-read on every visit. One line each, side by side, with the same words a
+/// tap away.
+function OptionTick({
+  label,
+  tooltip,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  tooltip: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        'flex min-h-11 cursor-pointer items-center gap-2.5 px-3.5 py-2.5 transition-colors',
+        checked
+          ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
+          : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+      )}
+      style={{
+        border: '1px solid',
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 3,
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        className="w-4 h-4 shrink-0 cursor-pointer accent-[var(--lp-accent)]"
+      />
+      <span
+        className="inline-flex min-w-0 items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em]"
+        style={{ color: checked ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+      >
+        <span className="truncate">[:{label}:]</span>
+        <Hint>{tooltip}</Hint>
+      </span>
+    </label>
+  );
+}
 
 export function PostJobForm() {
   const t = useTranslations().postJob;
@@ -481,7 +536,7 @@ export function PostJobForm() {
                     className={cn(
                       'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       incoterms === code
-                        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
+                        ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
@@ -507,7 +562,7 @@ export function PostJobForm() {
                     className={cn(
                       'mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border transition-colors',
                       paymentTerms === code
-                        ? 'bg-[var(--lp-accent)] text-[var(--lp-dark)] border-[var(--lp-accent)]'
+                        ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)] border-[var(--lp-accent)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
                     )}
                     style={{
@@ -706,58 +761,34 @@ export function PostJobForm() {
         </div>
       </FieldSection>
 
-      {/* TRUSTED MATCH toggle. The agent loop flips ranking to reputation +
-          stake first, price second, and gates bids on the seller's free
-          stake covering this deal's insurance reservation. Off by default
-          (Normal mode is fine for sub-$50 day-to-day deals). */}
-      <label
-        className={cn(
-          'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
-          trustedMatch
-            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
-            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
-        )}
-        style={{
-          border: '1px solid',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
-        }}
-      >
-        <input
-          type="checkbox"
+      {/* The two request options, side by side, one line each.
+          Each carried a paragraph of explanation on the card, which made two
+          tall blocks stacked down the form for two ticks. The explanation is
+          the same words, in the tooltip, where it is read once and then never
+          again. Trusted match flips agent ranking to reputation and stake
+          first and gates bids on the seller's free stake; custom split sets
+          how escrow releases in tranches instead of the profile's 50/50. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <OptionTick
+          label={t.trustedMatch.eyebrow}
+          tooltip={t.trustedMatch.body}
           checked={trustedMatch}
-          onChange={(e) => setTrustedMatch(e.target.checked)}
           disabled={submitting}
-          className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
-          aria-describedby="trusted-match-help"
+          onChange={setTrustedMatch}
         />
-        <div className="min-w-0">
-          <span
-            className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
-            style={{ color: trustedMatch ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
-          >
-            [:{t.trustedMatch.eyebrow}:]
-          </span>
-          <p
-            id="trusted-match-help"
-            className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
-          >
-            {t.trustedMatch.body}
-          </p>
-        </div>
-      </label>
+        <OptionTick
+          label={t.customSplit.eyebrow}
+          tooltip={t.customSplit.tooltip}
+          checked={customSplit}
+          disabled={submitting}
+          onChange={setCustomSplit}
+        />
+      </div>
 
-      {/* CUSTOM MILESTONE SPLIT. Off by default = the buyer profile split
-          (50/50) stands. On = the buyer sets how escrow releases in tranches
-          as the work lands; carried into escrow when the agent finds a deal. */}
       <div
         className={cn(
-          'px-4 py-3 transition-colors',
-          customSplit
-            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
-            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+          customSplit ? 'px-4 py-3 transition-colors' : 'hidden',
+          'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]',
         )}
         style={{
           border: '1px solid',
@@ -767,37 +798,7 @@ export function PostJobForm() {
           borderBottomRightRadius: 3,
         }}
       >
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={customSplit}
-            onChange={(e) => setCustomSplit(e.target.checked)}
-            disabled={submitting}
-            className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
-            aria-describedby="milestone-split-help"
-          />
-          <div className="min-w-0">
-            <span
-              className="inline-flex items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.16em]"
-              style={{ color: customSplit ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
-            >
-              [:CUSTOM MILESTONE SPLIT:]
-              <Hint>
-                Milestone split sets how your payment releases in stages as the work lands. 50, 50 pays
-                half at the first milestone and half on final delivery. The parts must add up to 100.
-              </Hint>
-            </span>
-            <p
-              id="milestone-split-help"
-              className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
-            >
-              Off, deals release 50 then 50. Tick to set your own stages, applied when a deal is found.
-            </p>
-          </div>
-        </label>
-
-        {customSplit && (
-          <div className="mt-3.5 sm:ms-7 space-y-2.5">
+        <div className="space-y-2.5">
             <div className="flex flex-wrap gap-2">
               {SPLIT_PRESETS.map((preset) => {
                 const active = splitText.replace(/\s/g, '') === preset.replace(/\s/g, '');
@@ -852,8 +853,7 @@ export function PostJobForm() {
             ) : (
               <p className="mono text-[10px] uppercase tracking-[0.12em] text-[#7a1f1a]">{split.error}</p>
             )}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
@@ -965,21 +965,17 @@ export function PostJobForm() {
             {t.errors.insufficientBalanceTitle}
           </p>
           <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug">{error}</p>
-          {/* One click into the buyer agent. For an email account the money is
-              already on Arc, because deposits auto-route to the identity wallet,
-              so this is one backend-signed transfer with no bridge and no
-              prompt. A web3 account keeps the pooled-balance path: they have a
-              wallet to sign a spend with, and a pool they funded themselves. */}
-          {circleAccount && typeof budget === 'number' ? (
-            <FundAgentFromBalance
+          {/* The routes to the money, as a choice rather than one route picked
+              for the user. Each tile is an icon and a label with its
+              explanation in a tooltip; the action for the chosen route appears
+              under the row and owns its own balance check and error. */}
+          {typeof budget === 'number' ? (
+            <FundAgentOptions
               agent="buyer"
+              recipient={buyerAgent ?? null}
+              otherAgentAddress={agents?.seller ?? null}
               amountUsdc={budget}
-              onFunded={() => setInsufficientBalance(false)}
-            />
-          ) : buyerAgent && typeof budget === 'number' ? (
-            <TopUpFromGateway
-              recipient={buyerAgent}
-              amount={budget}
+              circleAccount={circleAccount}
               onFunded={() => setInsufficientBalance(false)}
             />
           ) : (

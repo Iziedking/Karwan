@@ -559,6 +559,7 @@ export const fr: Messages = {
       receiptProof: 'PREUVE RESEAU',
       receiptTransaction: 'TRANSACTION',
       receiptReferenceNone: 'Non enregistré',
+      receiptShareBuyerOnly: 'Seul l’acheteur peut partager ce reçu.',
       receiptHistorical: 'Terminé avant l’activation des références Karwan. Aucune référence n’a été enregistrée pour ce mouvement.',
       receiptExportPdf: 'IMPRIMER / ENREGISTRER EN PDF',
       receiptExportImage: 'TELECHARGER L IMAGE',
@@ -2098,6 +2099,35 @@ export const fr: Messages = {
     sending: 'Envoi…',
     send: 'Envoyer la demande',
     cancel: 'Annuler',
+  },
+  fundAgentOptions: {
+    eyebrow: 'FINANCER DEPUIS',
+    wallet: {
+      label: 'Solde du portefeuille',
+      tooltip: "Paie depuis le solde de votre portefeuille de connexion. C'est la route la plus courte quand les fonds sont déjà sur Arc.",
+      web3Note: "Votre portefeuille vous demandera d'approuver le transfert.",
+    },
+    otherAgent: {
+      labelSeller: 'Agent vendeur',
+      labelBuyer: 'Agent acheteur',
+      tooltip: "Déplace des USDC entre vos deux portefeuilles d'agent. Les deux vous appartiennent, rien ne quitte votre compte.",
+    },
+    gateway: {
+      label: 'Solde groupé',
+      tooltip: 'Dépense depuis le solde que vous détenez sur plusieurs chaînes. Il se règle sur Arc sans attente de passerelle.',
+      fundCta: 'Alimenter le solde groupé',
+      noRecipient: "Cet agent n'a pas encore de portefeuille enregistré, il n'y a donc nulle part où envoyer les fonds.",
+    },
+    chain: {
+      label: 'Autre chaîne',
+      tooltip: "Fait venir des USDC d'une autre chaîne où vous en détenez. Ils arrivent sur Arc et rejoignent votre solde.",
+      cta: 'Ouvrir le dépôt',
+      note: "Un dépôt depuis une autre chaîne prend quelques minutes, lancez-le avant d'avoir besoin des fonds.",
+    },
+    moveCta: 'Déplacer {amount} USDC',
+    moving: 'Déplacement...',
+    moved: 'Déplacé',
+    moveFailed: "Ce transfert n'a pas abouti. Réessayez.",
   },
   chatPanel: {
     withCounterpartyTemplate: '[:AVEC {name}:]',
@@ -4517,6 +4547,10 @@ export const fr: Messages = {
     trustedMatch: {
       eyebrow: 'TRUSTED MATCH',
       body: 'L’agent privilégie la réputation et le stake du vendeur sur le prix. Les vendeurs sans stake ne peuvent pas enchérir. Idéal pour les deals à plus forte valeur ou non répétables.',
+    },
+    customSplit: {
+      eyebrow: 'RÉPARTITION PERSONNALISÉE',
+      tooltip: 'Définit comment votre paiement se libère par étapes. Désactivé, il paie la moitié au premier jalon et la moitié à la livraison. Vos étapes doivent totaliser 100.',
     },
     intentWarning: {
       eyebrow: 'ATTENDEZ. EST-CE UNE DEMANDE OU UNE OFFRE ?',

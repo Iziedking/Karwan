@@ -559,6 +559,7 @@ export const sw: Messages = {
       receiptProof: 'UTHIBITISHO WA MTANDAO',
       receiptTransaction: 'MUAMALA',
       receiptReferenceNone: 'Haijarekodiwa',
+      receiptShareBuyerOnly: 'Mnunuzi peke yake anaweza kushiriki risiti hii.',
       receiptHistorical: 'Ulikamilika kabla ya marejeo ya Karwan kuwezeshwa. Hakuna rejea iliyohifadhiwa kwa uhamisho huu.',
       receiptExportPdf: 'CHAPISHA / HIFADHI PDF',
       receiptExportImage: 'PAKUA PICHA',
@@ -2098,6 +2099,35 @@ export const sw: Messages = {
     sending: 'Inatuma…',
     send: 'Tuma ombi',
     cancel: 'Ghairi',
+  },
+  fundAgentOptions: {
+    eyebrow: 'FADHILI KUTOKA',
+    wallet: {
+      label: 'Salio la pochi',
+      tooltip: 'Hulipa kutoka salio la pochi unayotumia kuingia. Hii ni njia fupi zaidi ikiwa fedha ziko Arc tayari.',
+      web3Note: 'Pochi yako itakuomba kuidhinisha uhamisho.',
+    },
+    otherAgent: {
+      labelSeller: 'Wakala wa muuzaji',
+      labelBuyer: 'Wakala wa mnunuzi',
+      tooltip: 'Huhamisha USDC kati ya pochi zako mbili za wakala. Zote ni zako, hakuna kinachotoka kwenye akaunti yako.',
+    },
+    gateway: {
+      label: 'Salio la pamoja',
+      tooltip: 'Hutumia salio unaloshikilia kwenye mitandao mingi. Hukamilika kwenye Arc bila kusubiri daraja.',
+      fundCta: 'Ongeza kwenye salio la pamoja',
+      noRecipient: 'Wakala huyu hana pochi iliyorekodiwa, hivyo hakuna pa kutuma fedha.',
+    },
+    chain: {
+      label: 'Mtandao mwingine',
+      tooltip: 'Huleta USDC kutoka mtandao mwingine unaoshikilia. Hufika Arc na kuingia kwenye salio lako.',
+      cta: 'Fungua amana',
+      note: 'Amana kutoka mtandao mwingine huchukua dakika kadhaa, hivyo anza kabla ya kuhitaji fedha.',
+    },
+    moveCta: 'Hamisha {amount} USDC',
+    moving: 'Inahamisha...',
+    moved: 'Imehamishwa',
+    moveFailed: 'Uhamisho huu haukufanikiwa. Jaribu tena.',
   },
   chatPanel: {
     withCounterpartyTemplate: '[:NA {name}:]',
@@ -4517,6 +4547,10 @@ export const sw: Messages = {
     trustedMatch: {
       eyebrow: 'MATCH YA KUAMINIWA',
       body: 'Wakala anatangulia sifa na steki ya muuzaji juu ya bei. Wauzaji wasio na steki hawawezi kutoa zabuni. Inafaa zaidi kwa biashara za thamani kubwa au zisizoweza kurudiwa.',
+    },
+    customSplit: {
+      eyebrow: 'MGAWANYO MAALUM WA HATUA',
+      tooltip: 'Huamua jinsi malipo yako yanatolewa hatua kwa hatua kazi ikiendelea. Ikiwa imezimwa, hulipa nusu kwenye hatua ya kwanza na nusu wakati wa kuwasilisha. Hatua zako lazima zifikie 100.',
     },
     intentWarning: {
       eyebrow: 'SUBIRI. HII NI OMBI AU OFA?',

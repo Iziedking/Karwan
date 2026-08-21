@@ -523,6 +523,7 @@ export const ar: Messages = {
       receiptProof: 'إثبات الشبكة',
       receiptTransaction: 'المعاملة',
       receiptReferenceNone: 'غير مسجَّل',
+      receiptShareBuyerOnly: 'المشتري وحده يمكنه مشاركة هذا الإيصال.',
       receiptHistorical: 'اكتملت هذه الحركة قبل تفعيل مراجع Karwan. لم يُسجَّل مرجع لها.',
       receiptExportPdf: 'طباعة / حفظ PDF',
       receiptExportImage: 'تنزيل الصورة',
@@ -2098,6 +2099,35 @@ export const ar: Messages = {
     sending: 'جاري الإرسال…',
     send: 'إرسال الطلب',
     cancel: 'إلغاء',
+  },
+  fundAgentOptions: {
+    eyebrow: 'التمويل من',
+    wallet: {
+      label: 'رصيد المحفظة',
+      tooltip: 'يدفع من رصيد محفظة تسجيل الدخول. هذا أقصر طريق عندما تكون الأموال على Arc بالفعل.',
+      web3Note: 'ستطلب محفظتك الموافقة على التحويل.',
+    },
+    otherAgent: {
+      labelSeller: 'وكيل البائع',
+      labelBuyer: 'وكيل المشتري',
+      tooltip: 'ينقل USDC بين محفظتي وكيليك. كلتاهما لك، فلا يخرج شيء من حسابك.',
+    },
+    gateway: {
+      label: 'الرصيد المجمّع',
+      tooltip: 'يصرف من رصيدك الموزّع على عدة شبكات. تُسوّى على Arc دون انتظار جسر.',
+      fundCta: 'أضف إلى الرصيد المجمّع',
+      noRecipient: 'لا توجد محفظة مسجّلة لهذا الوكيل بعد، فلا مكان لإرسال الأموال إليه.',
+    },
+    chain: {
+      label: 'شبكة أخرى',
+      tooltip: 'يجلب USDC من شبكة أخرى تحتفظ به عليها. يصل إلى Arc ويدخل رصيدك.',
+      cta: 'افتح الإيداع',
+      note: 'الإيداع من شبكة أخرى يستغرق دقائق، فابدأه قبل أن تحتاج الأموال.',
+    },
+    moveCta: 'انقل {amount} USDC',
+    moving: 'جارٍ النقل...',
+    moved: 'تم النقل',
+    moveFailed: 'لم يتم التحويل. حاول مرة أخرى.',
   },
   chatPanel: {
     withCounterpartyTemplate: '[:مع {name}:]',
@@ -4517,6 +4547,10 @@ export const ar: Messages = {
     trustedMatch: {
       eyebrow: 'مطابقة موثوقة',
       body: 'يعطي الوكيل الأولوية لسمعة البائع وإيداعه على السعر. البائعون بلا إيداع لا يمكنهم تقديم عرض. الأنسب للصفقات الأعلى قيمة أو غير القابلة للإعادة.',
+    },
+    customSplit: {
+      eyebrow: 'تقسيم مخصص للمراحل',
+      tooltip: 'يحدد كيف يُصرف دفعك على مراحل مع تقدم العمل. عند الإيقاف، يُدفع النصف عند المرحلة الأولى والنصف عند التسليم. يجب أن يكون مجموع مراحلك 100.',
     },
     intentWarning: {
       eyebrow: 'انتظر. هل هذا طلب أم عرض؟',

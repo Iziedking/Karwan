@@ -545,6 +545,10 @@ interface MessagesShape {
       /// settled in.
       receiptTransaction: string;
       receiptReferenceNone: string;
+      /// Shown in place of the export buttons for a viewer who may read a
+      /// receipt but not share it. The payer is the one who issues proof of
+      /// payment, which is how a bank statement works.
+      receiptShareBuyerOnly: string;
       receiptHistorical: string;
       receiptExportPdf: string;
       receiptExportImage: string;
@@ -1928,6 +1932,17 @@ interface MessagesShape {
     sending: string;
     send: string;
     cancel: string;
+  };
+  fundAgentOptions: {
+    eyebrow: string;
+    wallet: { label: string; tooltip: string; web3Note: string };
+    otherAgent: { labelSeller: string; labelBuyer: string; tooltip: string };
+    gateway: { label: string; tooltip: string; fundCta: string; noRecipient: string };
+    chain: { label: string; tooltip: string; cta: string; note: string };
+    moveCta: string;
+    moving: string;
+    moved: string;
+    moveFailed: string;
   };
   chatPanel: {
     withCounterpartyTemplate: string;
@@ -4232,6 +4247,12 @@ interface MessagesShape {
       eyebrow: string;
       body: string;
     };
+    /// The custom-split option, beside Trusted match. Both were paragraphs on
+    /// their card; the paragraph is a tooltip now and the card is one line.
+    customSplit: {
+      eyebrow: string;
+      tooltip: string;
+    };
     intentWarning: {
       eyebrow: string;
       bodyStart: string;
@@ -5157,6 +5178,7 @@ export const en: MessagesShape = {
       receiptProof: 'NETWORK PROOF',
       receiptTransaction: 'TRANSACTION',
       receiptReferenceNone: 'Not recorded',
+      receiptShareBuyerOnly: 'Only the buyer can share this receipt.',
       receiptHistorical: 'Completed before Karwan references were enabled. No reference was recorded for this movement.',
       receiptExportPdf: 'PRINT / SAVE PDF',
       receiptExportImage: 'DOWNLOAD IMAGE',
@@ -6707,6 +6729,35 @@ export const en: MessagesShape = {
     sending: 'Sending…',
     send: 'Send request',
     cancel: 'Cancel',
+  },
+  fundAgentOptions: {
+    eyebrow: 'FUND FROM',
+    wallet: {
+      label: 'Wallet balance',
+      tooltip: 'Pays from the balance on your sign-in wallet. This is the shortest route when the money is already on Arc.',
+      web3Note: 'Your wallet will ask you to approve the transfer.',
+    },
+    otherAgent: {
+      labelSeller: 'Seller agent',
+      labelBuyer: 'Buyer agent',
+      tooltip: 'Moves USDC between your own two agent wallets. Both belong to you, so nothing leaves your account.',
+    },
+    gateway: {
+      label: 'Pooled balance',
+      tooltip: 'Spends from the balance you hold across chains. It settles on Arc without a bridge wait.',
+      fundCta: 'Add to pooled balance',
+      noRecipient: 'This agent has no wallet on record yet, so there is nowhere to send the money.',
+    },
+    chain: {
+      label: 'Another chain',
+      tooltip: 'Brings USDC over from another chain you hold it on. It arrives on Arc and lands in your balance.',
+      cta: 'Open deposit',
+      note: 'Deposits from another chain take a few minutes to arrive, so start this before you need the funds.',
+    },
+    moveCta: 'Move {amount} USDC',
+    moving: 'Moving...',
+    moved: 'Moved',
+    moveFailed: 'That transfer did not go through. Try again.',
   },
   chatPanel: {
     withCounterpartyTemplate: '[:WITH {name}:]',
@@ -9223,6 +9274,10 @@ export const en: MessagesShape = {
     trustedMatch: {
       eyebrow: 'TRUSTED MATCH',
       body: "Agent prioritizes seller reputation and stake over price. Sellers with no stake cannot bid. Best for higher-value or one-shot deals you can't redo.",
+    },
+    customSplit: {
+      eyebrow: 'CUSTOM MILESTONE SPLIT',
+      tooltip: 'Sets how your payment releases in stages as work lands. Off, it pays half at the first milestone and half on delivery. Your stages must add up to 100.',
     },
     intentWarning: {
       eyebrow: 'WAIT. IS THIS A REQUEST OR AN OFFER?',
