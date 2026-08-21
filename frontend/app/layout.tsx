@@ -127,12 +127,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             or the page paints one theme and swaps to the other.
 
             The stored value is a PREFERENCE, so 'system' is a legal entry and
-            has to fall through to the media query. The earlier `if(!t)` test
-            only caught an absent key, so a user who chose System in Settings got
-            light forced on them no matter what their OS said. */}
+            has to fall through to the automatic rule: the machine's own dark
+            setting first, then the hour on its clock (dark from 19:00 to 07:00
+            local). Keep the two boundary hours identical to the hook. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(window.matchMedia('(prefers-color-scheme: dark)').matches||h>=19||h<7)?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
           }}
         />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and

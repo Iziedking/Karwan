@@ -1,46 +1,60 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { useTheme, type Theme } from '@/shared/hooks/useTheme';
+import {
+  readPreference,
+  setThemePreference,
+  useTheme,
+  type ThemePreference,
+} from '@/shared/hooks/useTheme';
 
-/// An explicit two-option theme control, for surfaces where the nav's icon
-/// toggle is not available.
+/// The theme control, for surfaces where there is no other one.
 ///
-/// Onboarding suppresses the nav's control cluster (`showFullChrome` is false
-/// there, deliberately, so the wizard stays focused), which left the theme
-/// unreachable for the whole of first run. That is the worst place to lose it:
-/// a new user meeting the product in a theme they cannot change, on the exact
-/// screens where they have to read and fill forms.
+/// There is no nav toggle any more: the app runs on Automatic, which reads the
+/// machine's own dark setting and, failing that, the hour on its clock. This
+/// picker exists so that decision is visible and reversible, not so it has to
+/// be made. Automatic is listed first because it is where every device starts.
 ///
-/// Shows both states rather than toggling between them, matching LanguagePicker
-/// beside it. A toggle asks the user to work out which state the icon represents;
-/// a picker shows them where they are and what the alternative is.
+/// Shows all three states rather than cycling through them. A toggle asks the
+/// user to work out which state the icon represents; a picker shows them where
+/// they are and what the alternatives are.
 export function ThemePicker() {
   const t = useTranslations();
-  const { theme, setTheme, mounted } = useTheme();
+  const { theme, mounted } = useTheme();
+  const [preference, setPreference] = useState<ThemePreference>('system');
 
-  // Reuses the settings vocabulary rather than minting its own. These strings are
-  // already translated in all five locales, and a second set would drift.
-  const options: { value: Theme; icon: React.ReactNode; label: string }[] = [
+  // The stored preference is unreadable during SSR, so it is adopted on mount
+  // for the same reason `mounted` exists.
+  useEffect(() => {
+    setPreference(readPreference());
+  }, []);
+
+  function choose(next: ThemePreference) {
+    setThemePreference(next);
+    setPreference(next);
+  }
+
+  const options: { value: ThemePreference; icon: React.ReactNode; label: string }[] = [
+    { value: 'system', icon: <AutoIcon />, label: t.settings.themeSystem },
     { value: 'light', icon: <SunIcon />, label: t.settings.themeLight },
     { value: 'dark', icon: <MoonIcon />, label: t.settings.themeDark },
   ];
 
   return (
-    <div className="inline-flex items-center gap-2.5">
+    <div className="inline-flex flex-wrap items-center gap-2.5">
       <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
         {t.settings.theme}
       </span>
       <div role="group" aria-label={t.settings.theme} className="inline-flex gap-1.5">
         {options.map((o) => {
-          // Before mount the stored theme is unreadable, so neither option is
-          // marked current. Painting one as active would be a guess that flips
-          // under anyone whose theme is not the default.
-          const active = mounted && theme === o.value;
+          // Before mount nothing is marked current. Painting one as active
+          // would be a guess that flips under anyone not on the default.
+          const active = mounted && preference === o.value;
           return (
             <button
               key={o.value}
               type="button"
-              onClick={() => setTheme(o.value)}
+              onClick={() => choose(o.value)}
               aria-pressed={active}
               className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-[background-color,border-color,color]"
               style={{
@@ -57,11 +71,28 @@ export function ThemePicker() {
             >
               {o.icon}
               {o.label}
+              {/* Automatic resolves to one of the other two, and which one is
+                  worth stating: the row otherwise reads as three equal choices
+                  with no clue what the active one produced. */}
+              {active && o.value === 'system' && mounted && (
+                <span aria-hidden className="text-[var(--lp-text-muted)]">
+                  {theme === 'dark' ? '· ' + t.settings.themeDark : '· ' + t.settings.themeLight}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
     </div>
+  );
+}
+
+function AutoIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="8" cy="8" r="5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8 3a5 5 0 0 0 0 10z" fill="currentColor" />
+    </svg>
   );
 }
 

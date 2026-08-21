@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { ConnectWalletButton } from './ConnectWallet';
-import { ThemeToggle } from './ThemeToggle';
 import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { ProfileAvatar } from './ProfileAvatar';
@@ -46,8 +45,8 @@ export function TopNav() {
   const workspaceSurface = shell === 'workspace' || shell === 'admin';
   const focusedSurface = shell === 'focused';
   const showAppChrome = (workspaceSurface || focusedSurface) && isAuthenticated;
-  // Onboarding is a focused setup flow: strip the nav rail down to identity and
-  // the compact theme control. The full chrome returns once setup is complete.
+  // Onboarding is a focused setup flow: strip the nav rail down to identity.
+  // The full chrome returns once setup is complete.
   const showFullChrome = workspaceSurface && isAuthenticated;
 
   const tradesActive =
@@ -64,8 +63,29 @@ export function TopNav() {
     pathname.startsWith('/listings') ||
     pathname.startsWith('/partners');
 
+  // The landing sizes its rows against the real chrome (see globals.css
+  // "Landing panels"), so the bar publishes its own height instead of the page
+  // hardcoding 68px. It changes with type scale, and a wrong number there is a
+  // visible sliver of the next row under the current one.
+  const barRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const publish = () => {
+      document.documentElement.style.setProperty(
+        '--lp-nav-h',
+        `${Math.round(el.getBoundingClientRect().height)}px`,
+      );
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <header
+      ref={barRef}
       style={publicSurface ? DARK_NAV_VARS : undefined}
       className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
     >
@@ -160,7 +180,6 @@ export function TopNav() {
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
           {focusedSurface ? (
             <>
-              <ThemeToggle />
               {authLoading ? (
                 <span
                   aria-hidden
@@ -181,8 +200,8 @@ export function TopNav() {
                   />
                 </div>
                 {/* Mobile keeps the high-signal bell and a compact preferences
-                    menu. Theme, sound, reputation, profile, help, and settings
-                    remain one thumb away instead of disappearing at small widths. */}
+                    menu. Sound, reputation, profile, help, and settings remain
+                    one thumb away instead of disappearing at small widths. */}
                 <div className="md:hidden inline-flex items-center gap-0.5">
                   <NotificationBell />
                   <QuickControls
@@ -210,15 +229,7 @@ export function TopNav() {
               <ConnectWalletButton />
             )
           ) : (
-            <>
-              <div className="hidden sm:inline-flex">
-                <ThemeToggle />
-              </div>
-              <div className="md:hidden inline-flex">
-                <ThemeToggle />
-              </div>
-              <LaunchAppCTA />
-            </>
+            <LaunchAppCTA />
           )}
         </div>
       </div>
@@ -419,9 +430,6 @@ function QuickControls({
               boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
             }}
           >
-            <ControlRow label={t.controlLabels.theme}>
-              <ThemeToggle />
-            </ControlRow>
             <ControlRow label={t.controlLabels.sound}>
               <SoundToggle />
             </ControlRow>
