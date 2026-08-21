@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   downloadReceiptImage,
-  redactWalletAddresses,
+  readableMovementText,
   type ReceiptExportData,
 } from '../receiptPresentation';
 
@@ -42,7 +42,7 @@ export function PortableReceipt({
   const data = useMemo<ReceiptExportData>(
     () => ({
       title: copy.receiptTitle,
-      summary: redactWalletAddresses(item.summary),
+      summary: readableMovementText(item.summary),
       reference,
       amount: item.amountUsdc ? `${item.amountUsdc} USDC` : null,
       status,
@@ -119,7 +119,7 @@ export function PortableReceipt({
             </div>
           </div>
 
-          <p className="mt-5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{redactWalletAddresses(item.summary)}</p>
+          <p className="mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{readableMovementText(item.summary)}</p>
 
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             <ReceiptField label={copy.receiptReference} value={reference ?? copy.receiptHistorical} mono={Boolean(reference)} />

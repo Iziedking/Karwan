@@ -321,7 +321,7 @@ function MoneyTile({ open, onToggle }: { open: boolean; onToggle: () => void }) 
       </button>
       {open && (
         <div className="border-t border-[var(--lp-border-light)] p-4">
-          <MyMoneyLedger />
+          <MyMoneyLedger nested />
         </div>
       )}
     </div>

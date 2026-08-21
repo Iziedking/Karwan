@@ -11,7 +11,7 @@ import {
   ledgerReferenceLabel,
   ledgerStatusTone,
 } from '../ledgerPresentation';
-import { redactWalletAddresses } from '../receiptPresentation';
+import { readableMovementText } from '../receiptPresentation';
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 
 /// The user's own money, in one list.
@@ -50,8 +50,8 @@ type Row = { item: Item; repeat: number };
 function lineFor(item: Item, texts: Record<string, string>): string {
   const p = (item as { params?: Record<string, string> | null }).params;
   const tpl = p?.t ? texts[p.t] : undefined;
-  if (!tpl || !p) return redactWalletAddresses(item.summary);
-  return redactWalletAddresses(tpl.replace(/\{(\w+)\}/g, (whole, key: string) => {
+  if (!tpl || !p) return readableMovementText(item.summary);
+  return readableMovementText(tpl.replace(/\{(\w+)\}/g, (whole, key: string) => {
     const value = p[key] ?? whole;
     return key === 'to' && value.length > 12 ? 'counterparty' : value;
   }));
@@ -91,7 +91,14 @@ function when(ts: number, justNow: string): string {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export function MyMoneyLedger() {
+export function MyMoneyLedger({
+  /// Set when the ledger sits inside a panel that already carries the
+  /// `[:YOUR MONEY:]` label. The tile on /activity did, so the phrase appeared
+  /// twice, two lines apart, which on a phone read as a rendering fault.
+  nested = false,
+}: {
+  nested?: boolean;
+} = {}) {
   const translations = useTranslations();
   const t = translations.activity.myMoney;
   const [items, setItems] = useState<Item[] | null>(null);
@@ -142,11 +149,13 @@ export function MyMoneyLedger() {
   return (
     <section className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{t.eyebrow}:]
-        </span>
+        {!nested && (
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            [:{t.eyebrow}:]
+          </span>
+        )}
         {items && items.length > 0 && (
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="ms-auto mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {t.count.replace('{n}', String(items.length))}
           </span>
         )}
@@ -214,7 +223,7 @@ export function MyMoneyLedger() {
                     </span>
                   );
                 })()}
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+                <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-x-3 gap-y-1 sm:w-auto sm:justify-end sm:gap-1">
                   {href && (
                     <a
                       href={href}
@@ -222,7 +231,7 @@ export function MyMoneyLedger() {
                       rel="noopener noreferrer"
                       className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                     >
-                      {t.receipt}
+                      {t.receiptProof}
                     </a>
                   )}
                   {(() => {

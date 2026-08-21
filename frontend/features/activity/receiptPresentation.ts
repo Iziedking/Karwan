@@ -16,6 +16,34 @@ export function redactWalletAddresses(value: string): string {
   return value.replace(/\b0x[a-fA-F0-9]{40}\b/g, 'counterparty');
 }
 
+/// Deal ids are 32-byte hashes, and printing all 66 characters of one inside a
+/// sentence is what broke the ledger on a phone: "Released milestone 2 on deal
+/// 0x6087..." ran to three wrapped lines and pushed the actions off the row, and
+/// the same sentence overflowed the shared receipt. Shortened to head and tail,
+/// which is how the id is quoted everywhere else in the product and still enough
+/// to match a deal against its page.
+///
+/// Distinct from redaction: nothing is hidden here. A 32-byte deal id is public
+/// on chain, it is simply too long to read inside a sentence.
+export function shortenDealIds(value: string): string {
+  // 48 hex digits and up, deliberately not exactly 64: it must not touch a
+  // 40-digit wallet address (that is the redactor's job and it runs first), and
+  // an id that reaches this text a few digits short of a full hash should still
+  // be shortened rather than printed whole.
+  return value.replace(
+    /\b0x[a-fA-F0-9]{48,}\b/g,
+    (hash) => `${hash.slice(0, 8)}…${hash.slice(-4)}`,
+  );
+}
+
+/// The one text pipeline for anything written at record time: strip the wallet
+/// addresses, shorten the hashes. Every surface that renders a movement summary
+/// goes through this, so the ledger row, the receipt panel and the exported
+/// image can never disagree about what the sentence says.
+export function readableMovementText(value: string): string {
+  return shortenDealIds(redactWalletAddresses(value));
+}
+
 function escapeSvg(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -27,7 +55,7 @@ function escapeSvg(value: string): string {
 
 export function buildReceiptSvg(data: ReceiptExportData): string {
   const rows: [string, string][] = [
-    ['MOVEMENT', redactWalletAddresses(data.summary)],
+    ['MOVEMENT', readableMovementText(data.summary)],
     [data.reference ? 'KARWAN REFERENCE' : 'REFERENCE', data.reference ?? data.historicalNote],
     ...(data.proofLabel ? [['NETWORK PROOF', data.proofLabel] as [string, string]] : []),
   ];

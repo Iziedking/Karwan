@@ -99,37 +99,51 @@ export function NetworkTicker() {
 
   return (
     <div
-      className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden"
+      className="relative left-1/2 w-bleed -translate-x-1/2"
       style={{ background: 'var(--lp-band-dark)' }}
     >
-      {/* Side fades use --lp-band-dark (always #0e0e0e) so they match the band
-          in both light + dark themes. --lp-dark flips to #ededed in dark mode,
-          which painted a bright veil over the cards (tester feedback). */}
-      <span
-        aria-hidden
-        className="absolute inset-y-0 start-0 z-10 w-16 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(90deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
-        }}
-      />
-      <span
-        aria-hidden
-        className="absolute inset-y-0 end-0 z-10 w-16 pointer-events-none"
-        style={{
-          background:
-            'linear-gradient(270deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
-        }}
-      />
-      <div
-        className="flex w-max items-stretch gap-4 py-8 px-6 ticker-track"
-        style={{
-          animation: `marquee ${seconds}s linear infinite`,
-        }}
-      >
-        {loop.map((c, i) => (
-          <TickerCardView key={`${c.jobId}-${i}`} card={c} muted={track === fallback} />
-        ))}
+      {/* The band is full-bleed, the movement is not. The track used to run
+          edge to edge of the viewport while every other row on the page sits in
+          the 1440px measure, so cards slid out from under the window frame
+          instead of out of the column of content. The measure and the padding
+          are the same ones `Band` uses, so the first card lines up with the stat
+          tiles above it. */}
+      <div className="relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)]">
+        <div className="relative overflow-hidden">
+          {/* Side fades use --lp-band-dark (always #0e0e0e) so they match the
+              band in both light + dark themes. --lp-dark flips to #ededed in
+              dark mode, which painted a bright veil over the cards (tester
+              feedback). */}
+          <span
+            aria-hidden
+            className="absolute inset-y-0 start-0 z-10 w-12 pointer-events-none sm:w-16"
+            style={{
+              background:
+                'linear-gradient(90deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
+            }}
+          />
+          <span
+            aria-hidden
+            className="absolute inset-y-0 end-0 z-10 w-12 pointer-events-none sm:w-16"
+            style={{
+              background:
+                'linear-gradient(270deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
+            }}
+          />
+          {/* No horizontal padding on the track: it would offset the loop
+              boundary that translateX(-50%) depends on, and the measure around
+              it already provides the inset. */}
+          <div
+            className="flex w-max items-stretch gap-4 py-8 ticker-track"
+            style={{
+              animation: `marquee ${seconds}s linear infinite`,
+            }}
+          >
+            {loop.map((c, i) => (
+              <TickerCardView key={`${c.jobId}-${i}`} card={c} muted={track === fallback} />
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
