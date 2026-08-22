@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { confirmTransaction, isPendingReceiptError, type ReceiptReader } from './confirmTx';
+import {
+  ConfirmationPending,
+  confirmTransaction,
+  isConfirmationPending,
+  isPendingReceiptError,
+  requireConfirmedTx,
+  type ReceiptReader,
+} from './confirmTx';
 
 const HASH = '0x322c6e8d8660e91652015f7509fc12a3591bbfd16a7506ff7fd105769c616e09' as const;
 
@@ -93,4 +100,43 @@ test('a broken RPC still throws rather than reading as pending', async () => {
     },
   };
   await assert.rejects(() => confirmTransaction(broken, HASH), /503/);
+});
+
+// ------------------------------------------------- the three-state wrapper
+
+test('a confirmed transaction returns its block', async () => {
+  const block = await requireConfirmedTx(reader(['success']), HASH, 'reverted');
+  assert.equal(block, 58120502n);
+});
+
+test('a reverted transaction throws the caller words, not a chain error', async () => {
+  await assert.rejects(
+    () => requireConfirmedTx(reader(['reverted']), HASH, 'The network rejected it.'),
+    (err: Error) => {
+      assert.equal(err.message, 'The network rejected it.');
+      assert.equal(isConfirmationPending(err), false);
+      return true;
+    },
+  );
+});
+
+test('an unconfirmed transaction throws something a caller can recognise', async () => {
+  // The distinction the whole module is for: this must not read as a failure.
+  await assert.rejects(
+    () => requireConfirmedTx(reader(['missing', 'missing']), HASH, 'reverted'),
+    (err: Error) => {
+      assert.ok(isConfirmationPending(err));
+      assert.equal((err as ConfirmationPending).txHash, HASH);
+      return true;
+    },
+  );
+});
+
+test('pending is recognised across a module boundary', () => {
+  // Bundlers can duplicate a class, so `instanceof` alone is not enough to
+  // decide whether a money record gets marked failed.
+  const impostor = Object.assign(new Error('nope'), { name: 'ConfirmationPending' });
+  assert.ok(isConfirmationPending(impostor));
+  assert.equal(isConfirmationPending(new Error('nope')), false);
+  assert.equal(isConfirmationPending(null), false);
 });

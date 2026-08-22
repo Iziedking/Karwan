@@ -114,3 +114,47 @@ async function lookup(
     throw err;
   }
 }
+
+/// A transaction that is submitted and not confirmed yet.
+///
+/// Its own class because a caller has to be able to tell it apart from a
+/// failure. Every flow here shares one catch for the whole signing sequence, and
+/// a plain Error would land in the same branch as "you have no USDC" and get
+/// written into the record as failed. That is the bug this module exists to stop,
+/// so the distinction is carried in the type rather than in a string.
+export class ConfirmationPending extends Error {
+  readonly txHash: `0x${string}`;
+  constructor(txHash: `0x${string}`) {
+    super(`transaction ${txHash} is not confirmed yet`);
+    this.name = 'ConfirmationPending';
+    this.txHash = txHash;
+  }
+}
+
+/// `instanceof` across a bundle boundary is not reliable, and this decides
+/// whether a money record is marked failed, so it checks the name too.
+export function isConfirmationPending(err: unknown): err is ConfirmationPending {
+  if (err instanceof ConfirmationPending) return true;
+  return (err as { name?: string } | null)?.name === 'ConfirmationPending';
+}
+
+/// Wait for a transaction and insist on an answer.
+///
+/// Returns the block on success. Throws `revertedMessage` when the chain
+/// rejected it, which is a real failure. Throws `ConfirmationPending` when
+/// nothing is confirmed yet, which is not.
+///
+/// `revertedMessage` is a string rather than a code because every caller already
+/// holds translated copy for this, and a reverted transaction is one of the few
+/// chain outcomes worth saying plainly.
+export async function requireConfirmedTx(
+  client: ReceiptReader,
+  hash: `0x${string}`,
+  revertedMessage: string,
+  options: ConfirmOptions = {},
+): Promise<bigint> {
+  const outcome = await confirmTransaction(client, hash, options);
+  if (outcome.state === 'success') return outcome.blockNumber;
+  if (outcome.state === 'reverted') throw new Error(revertedMessage);
+  throw new ConfirmationPending(hash);
+}
