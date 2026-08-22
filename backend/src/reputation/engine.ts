@@ -68,12 +68,18 @@ export interface ReputationResult {
   modelVersion: number;
 }
 
-/// Apply the formula. Pure function for testability.
-export function compute(inputs: ReputationInputs): ReputationResult {
+/// Apply the formula.
+///
+/// Pure, now that it is. Two of the six factors read the wall clock (tenure
+/// counts days since registration, decay counts days since the last action), so
+/// the docstring claiming purity was wrong and neither factor could be tested
+/// at a known point in time. `now` is injected, defaulting to the real clock, so
+/// callers are unchanged and a test can stand a wallet at exactly one half-life.
+export function compute(inputs: ReputationInputs, now = Date.now()): ReputationResult {
   const stake = stakeScore(inputs);
   const completion = completionScore(inputs);
   const volume = volumeScore(inputs);
-  const tenure = tenureScore(inputs);
+  const tenure = tenureScore(inputs, now);
   const activity = activityScore(inputs);
   const referral = referralScore(inputs);
 
@@ -105,7 +111,7 @@ export function compute(inputs: ReputationInputs): ReputationResult {
     ),
   );
 
-  const decay = decayMultiplier(inputs.lastActionAt);
+  const decay = decayMultiplier(inputs.lastActionAt, now);
   const score = clamp(0, 1000, Math.round(1000 * base * (1 - penalty) * decay));
 
   // The score says how much standing has been earned. The ceilings say how much
@@ -195,9 +201,13 @@ export function volumeScore(i: ReputationInputs): number {
 }
 
 /// Days since registration. Linear ramp to full over tenureFullDays.
-export function tenureScore(i: ReputationInputs): number {
+///
+/// A registration timestamp in the FUTURE yields no credit rather than negative
+/// days: clamp01 already floors it, and saying so here is cheaper than
+/// rediscovering why a clock-skewed profile scored zero on tenure.
+export function tenureScore(i: ReputationInputs, now = Date.now()): number {
   if (!i.registeredAt) return 0;
-  const days = (Date.now() - i.registeredAt) / MS_PER_DAY;
+  const days = (now - i.registeredAt) / MS_PER_DAY;
   return clamp01(days / Math.max(1, repConfig.tenureFullDays));
 }
 
@@ -219,9 +229,9 @@ export function referralScore(i: ReputationInputs): number {
 /// every multiple (0.135 against 0.25 at a year). Every idle wallet was being
 /// faded about a quarter harder than the model documented. `Math.LN2` is what
 /// turns a time constant into a half-life.
-export function decayMultiplier(lastActionAt: number): number {
+export function decayMultiplier(lastActionAt: number, now = Date.now()): number {
   if (!lastActionAt) return 1;
-  const days = (Date.now() - lastActionAt) / MS_PER_DAY;
+  const days = (now - lastActionAt) / MS_PER_DAY;
   if (!Number.isFinite(days) || days <= 0) return 1;
   const halflife = Math.max(1, repConfig.decayHalflifeDays);
   return clamp01(Math.exp(-Math.LN2 * (days / halflife)));
