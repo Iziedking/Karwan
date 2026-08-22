@@ -24,6 +24,7 @@ import { brandedEmailHtml } from '../emails/brand.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { publicSkillCredentials, type PublicSkillCredential } from '../verification/policy.js';
 
 const USDC_DECIMALS = 6;
 
@@ -91,7 +92,16 @@ profileRoutes.get('/', async (c) => {
       }
     }
   }
-  return c.json({ profile: profile && !callerFor(c, parsed.data) ? publicView(profile) : profile });
+  // The owner gets their whole profile, and it does NOT contain
+  // `skillCredentials`: that field is built by the public projection. Without
+  // this the passport showed verified skills to everyone EXCEPT the person they
+  // belong to, which is the one reader guaranteed to check it.
+  if (!profile) return c.json({ profile: null });
+  if (!callerFor(c, parsed.data)) return c.json({ profile: publicView(profile) });
+  const skillCredentials = publicSkillCredentials(profile.skillVerifications);
+  return c.json({
+    profile: skillCredentials.length ? { ...profile, skillCredentials } : profile,
+  });
 });
 
 /// What a non-owner may read. This route is address-keyed and unauthenticated
@@ -108,7 +118,8 @@ profileRoutes.get('/', async (c) => {
 /// document hash and the submitting tx; the financier eligibility snapshot,
 /// which is stake and reputation at approval time; the prepaid research credit;
 /// and the name-edit ledger.
-function publicView(p: UserProfile): Partial<UserProfile> {
+function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?: PublicSkillCredential[] } {
+  const skills = publicSkillCredentials(p.skillVerifications);
   const sme = p.smeProfile
     ? (({ taxIdEncrypted: _drop, ...rest }) => rest)(p.smeProfile)
     : undefined;
@@ -127,6 +138,10 @@ function publicView(p: UserProfile): Partial<UserProfile> {
     ...(sme ? { smeProfile: sme } : {}),
     // Verification status is public; the evidence behind it is not.
     ...(p.business ? { business: { status: p.business.status, verifiedAt: p.business.verifiedAt } } : {}),
+    // Same line for skills: what they are verified to do and when it was
+    // verified, never the issuer, the evidence type, the commitment, or any
+    // record that is not currently verified. See publicSkillCredentials.
+    ...(skills.length ? { skillCredentials: skills } : {}),
     ...(p.financier ? { financier: { status: p.financier.status } } : {}),
   };
 }

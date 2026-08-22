@@ -103,7 +103,7 @@ test('capability flags do not restrict access unless account verification enforc
   assert.equal(decision.reputationEligible, true);
   assert.deepEqual(decision.reasons, []);
 });
-import { businessVerificationState, skillVerificationState } from './policy.js';
+import { businessVerificationState, publicSkillCredentials, skillVerificationState } from './policy.js';
 
 test('stored business submitted status normalizes to pending', () => {
   assert.deepEqual(
@@ -132,4 +132,98 @@ test('verified evidence expired by time normalizes to expired', () => {
     ),
     { status: 'expired', expiredAt: 200 },
   );
+});
+
+const NOW = 1_700_000_000_000;
+const DAY = 86_400_000;
+
+test('a public credential carries the skill and its date, and nothing else', () => {
+  const [credential] = publicSkillCredentials(
+    [
+      {
+        skillId: 'typescript',
+        status: 'verified',
+        verifiedAt: NOW - DAY,
+        issuer: 'karwan',
+        evidenceType: 'attestation',
+        commitment: '0xdeadbeef',
+      } as never,
+    ],
+    NOW,
+  );
+  assert.deepEqual(credential, { skillId: 'typescript', verifiedAt: NOW - DAY });
+  // The evidence trail must not survive the projection: a commitment is a hash
+  // of something the holder submitted privately.
+  assert.ok(!('commitment' in (credential as object)));
+  assert.ok(!('issuer' in (credential as object)));
+  assert.ok(!('evidenceType' in (credential as object)));
+});
+
+test('only a currently verified credential is public', () => {
+  const records = [
+    { skillId: 'pending-one', status: 'pending' as const, submittedAt: NOW },
+    { skillId: 'rejected-one', status: 'rejected' as const, reasonCode: 'no-evidence' },
+    { skillId: 'revoked-one', status: 'revoked' as const, verifiedAt: NOW - DAY },
+    { skillId: 'lapsed', status: 'verified' as const, verifiedAt: NOW - 10 * DAY, expiresAt: NOW - DAY },
+    { skillId: 'current', status: 'verified' as const, verifiedAt: NOW - DAY, expiresAt: NOW + DAY },
+  ];
+  assert.deepEqual(
+    publicSkillCredentials(records, NOW).map((c) => c.skillId),
+    ['current'],
+  );
+});
+
+test('an undated verification is not published', () => {
+  // A credential with no date cannot be judged, and an undated claim on a
+  // public page is worse than no claim.
+  assert.deepEqual(publicSkillCredentials([{ skillId: 'x', status: 'verified' }], NOW), []);
+});
+
+test('re-verification shows the current credential, not the history', () => {
+  const credentials = publicSkillCredentials(
+    [
+      { skillId: 'solidity', status: 'verified', verifiedAt: NOW - 30 * DAY },
+      { skillId: 'solidity', status: 'verified', verifiedAt: NOW - DAY },
+    ],
+    NOW,
+  );
+  assert.equal(credentials.length, 1);
+  assert.equal(credentials[0]!.verifiedAt, NOW - DAY);
+});
+
+test('credentials are newest first', () => {
+  const credentials = publicSkillCredentials(
+    [
+      { skillId: 'older', status: 'verified', verifiedAt: NOW - 5 * DAY },
+      { skillId: 'newest', status: 'verified', verifiedAt: NOW - DAY },
+      { skillId: 'middle', status: 'verified', verifiedAt: NOW - 3 * DAY },
+    ],
+    NOW,
+  );
+  assert.deepEqual(credentials.map((c) => c.skillId), ['newest', 'middle', 'older']);
+});
+
+test('nothing verified means nothing published', () => {
+  assert.deepEqual(publicSkillCredentials(undefined, NOW), []);
+  assert.deepEqual(publicSkillCredentials([], NOW), []);
+});
+
+test('one rejected skill does not make the whole account unverified', () => {
+  // The bug: the general lookup returned whichever record was written first, so
+  // an account holding a rejected skill alongside verified ones reported
+  // rejected and lost agent matching and reputation eligibility with it.
+  const records = [
+    { skillId: 'rejected-one', status: 'rejected' as const, reasonCode: 'no-evidence' },
+    { skillId: 'typescript', status: 'verified' as const, verifiedAt: NOW - DAY },
+  ];
+  assert.equal(skillVerificationState(records, undefined, NOW).status, 'verified');
+  // Asking about the rejected skill by name still answers honestly.
+  assert.equal(skillVerificationState(records, 'rejected-one', NOW).status, 'rejected');
+});
+
+test('an expired credential does not count as verified for the account either', () => {
+  const records = [
+    { skillId: 'lapsed', status: 'verified' as const, verifiedAt: NOW - 10 * DAY, expiresAt: NOW - DAY },
+  ];
+  assert.equal(skillVerificationState(records, undefined, NOW).status, 'expired');
 });
