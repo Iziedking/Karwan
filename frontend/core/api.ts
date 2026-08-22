@@ -2702,8 +2702,16 @@ export const api = {
     }),
   /// Circle-only vault writes. Web3 users sign deposit/withdraw/claim
   /// directly from the wallet via wagmi `writeContract`.
-  vaultDeposit: (body: { address: string; amountUsdc: number }) =>
-    json<{ ok: true; approveTxHash: string; depositTxHash: string }>(
+  vaultDeposit: (body: { address: string; amountUsdc: number; requestId?: string }) =>
+    json<{
+      ok: true;
+      approveTxHash: string | null;
+      depositTxHash: string | null;
+      amountUsdc: string;
+      reference: string;
+      movementState: MoneyMovementState;
+      positionId: string | null;
+    }>(
       '/api/vault/deposit',
       { method: 'POST', body: JSON.stringify(body) },
     ),

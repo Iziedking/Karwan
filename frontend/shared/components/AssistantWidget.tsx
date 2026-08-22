@@ -913,12 +913,16 @@ async function runConfirmIntent(
   }
   if (action.intent === 'stake_usdc') {
     const p = action.payload as { address: string; amountUsdc: number };
-    const r = await api.vaultDeposit({ address: p.address, amountUsdc: p.amountUsdc });
+    const r = await api.vaultDeposit({
+      address: p.address,
+      amountUsdc: p.amountUsdc,
+      requestId: crypto.randomUUID(),
+    });
     return {
       successText: 'Staked. It starts earning yield from the next daily credit.',
       viewHref: '/stake',
       viewLabel: 'Your stake',
-      txHash: r.depositTxHash,
+      ...(r.depositTxHash ? { txHash: r.depositTxHash } : {}),
     };
   }
   if (action.intent === 'claim_yield') {

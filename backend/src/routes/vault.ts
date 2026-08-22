@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { erc20Abi, formatUnits, parseEventLogs, parseUnits } from 'viem';
+import { erc20Abi, formatUnits, parseEventLogs } from 'viem';
 import { config } from '../config.js';
 import { alertIfClaimLiquidityShort } from '../chain/claimLiquidityAlert.js';
 import { publicClient } from '../chain/client.js';
@@ -15,12 +16,15 @@ import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf } from '../auth/session.js';
 import { bus } from '../events.js';
 import { appendActivity } from '../db/activityLog.js';
+import { getMoneyMovementByOperationKey } from '../db/moneyMovements.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import {
   parseVaultStakeHint,
   proveVaultStake,
   recordVaultStakeMovement,
+  executeCircleVaultStake,
+  vaultDepositEventAbi,
 } from '../money/vaultStake.js';
 import { fillActivityGaps } from '../db/activityLog.js';
 
@@ -37,6 +41,7 @@ const addrSchema = z
 const depositSchema = z.object({
   address: addrSchema,
   amountUsdc: z.number().positive(),
+  requestId: z.string().trim().min(1).max(120).optional(),
 });
 
 const positionActionSchema = z.object({
@@ -87,18 +92,6 @@ const vaultAbi = [
     stateMutability: 'view',
     inputs: [{ name: 'owner', type: 'address' }],
     outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const;
-
-const vaultDepositEventAbi = [
-  {
-    type: 'event',
-    name: 'Deposited',
-    inputs: [
-      { name: 'positionId', type: 'uint256', indexed: true },
-      { name: 'owner', type: 'address', indexed: true },
-      { name: 'principal', type: 'uint256', indexed: false },
-    ],
   },
 ] as const;
 
@@ -308,56 +301,52 @@ vaultRoutes.post('/deposit', async (c) => {
     );
   }
 
+  const requestKey = body.requestId ?? c.req.header('Idempotency-Key') ?? randomUUID();
   const key = `${body.address.toLowerCase()}:deposit`;
+  const operationKey = `vault:stake:circle:${body.address.toLowerCase()}:${requestKey}`;
   if (inFlight.has(key)) {
     return c.json({ error: 'a deposit is already in progress for this address' }, 409);
   }
 
   inFlight.add(key);
   try {
-    const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
-    const approveResult = await executeContractCall(
-      {
-        walletId: user.circleIdentityWalletId,
-        contractAddress: usdcAddress,
-        abiFunctionSignature: 'approve(address,uint256)',
-        abiParameters: [vault, amountWei.toString()],
-      },
-      `vault.approve(${body.address})`,
-    );
-    const depositResult = await executeContractCall(
-      {
-        walletId: user.circleIdentityWalletId,
-        contractAddress: vault,
-        abiFunctionSignature: 'deposit(uint256)',
-        abiParameters: [amountWei.toString()],
-      },
-      `vault.deposit(${body.address}, ${body.amountUsdc})`,
-    );
+    const amountMicros = parseVaultStakeHint(body.amountUsdc);
+    const result = await executeCircleVaultStake({
+      operationKey,
+      ownerAddress: body.address,
+      walletId: user.circleIdentityWalletId,
+      vaultAddress: vault,
+      usdcAddress,
+      amountMicros,
+    });
+    const amountUsdc = formatUnits(amountMicros, USDC_DECIMALS);
 
     bus.emitEvent({
       type: 'vault.deposit',
       actor: 'platform',
       payload: {
         address: body.address.toLowerCase(),
-        amountUsdc: body.amountUsdc.toString(),
-        approveTxHash: approveResult.txHash,
-        depositTxHash: depositResult.txHash,
+        amountUsdc,
+        approveTxHash: result.approveTxHash,
+        depositTxHash: result.depositTxHash,
+        reference: result.movement.reference,
       },
     });
     // /stake reads live positions off chain, which answers "how much is
     // staked" but not "when did I stake it, and for how much". Without a
     // durable row the deposit had no history the user could revisit.
     void appendActivity({
+      id: `vault-stake:circle:${body.address.toLowerCase()}:${requestKey}`,
       address: body.address,
       kind: 'stake',
-      summary: `Staked ${body.amountUsdc} USDC`,
-      params: {t: 'staked', amount: String(body.amountUsdc)},
-      amountUsdc: body.amountUsdc.toString(),
-      txHash: depositResult.txHash,
+      summary: `Staked ${amountUsdc} USDC in Karwan Vault`,
+      params: {t: 'staked', amount: amountUsdc},
+      amountUsdc,
+      txHash: result.depositTxHash ?? undefined,
+      refId: result.movement.reference,
     });
     logger.info(
-      { address: body.address, amountUsdc: body.amountUsdc, depositTxHash: depositResult.txHash },
+      { address: body.address, amountUsdc, depositTxHash: result.depositTxHash, reference: result.movement.reference },
       'vault deposit confirmed (Circle identity DCW)',
     );
     /// Refresh the shared scan cache so the next /positions read for this
@@ -369,15 +358,25 @@ vaultRoutes.post('/deposit', async (c) => {
 
     return c.json({
       ok: true,
-      approveTxHash: approveResult.txHash,
-      depositTxHash: depositResult.txHash,
+      approveTxHash: result.approveTxHash,
+      depositTxHash: result.depositTxHash,
+      amountUsdc,
+      reference: result.movement.reference,
+      movementState: result.movement.state,
+      positionId: result.positionId?.toString() ?? null,
     });
   } catch (err) {
+    const failed = await getMoneyMovementByOperationKey(operationKey).catch(() => null);
     logger.error(
-      { address: body.address, err: (err as Error).message },
+      { address: body.address, reference: failed?.reference, movementState: failed?.state, err: (err as Error).message },
       'vault deposit failed',
     );
-    return c.json({ error: 'deposit failed', detail: (err as Error).message }, 502);
+    return c.json({
+      error: 'deposit failed',
+      reference: failed?.reference,
+      movementState: failed?.state,
+      detail: (err as Error).message,
+    }, 502);
   } finally {
     inFlight.delete(key);
   }

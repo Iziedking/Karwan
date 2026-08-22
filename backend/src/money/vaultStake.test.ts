@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { proveVaultStake, parseVaultStakeHint } from './vaultStake.js';
+import {
+  proveVaultStake,
+  proveVaultStakeApproval,
+  parseVaultStakeHint,
+} from './vaultStake.js';
 
 const OWNER = '0x0000000000000000000000000000000000000001';
 const VAULT = '0x0000000000000000000000000000000000000002';
@@ -56,4 +60,48 @@ test('rejects a successful vault call without a matching deposit event', () => {
 
 test('parses the client amount only as a precise comparison hint', () => {
   assert.equal(parseVaultStakeHint('20.000001'), 20_000_001n);
+});
+
+test('proves an exact Circle approval for the vault and amount', () => {
+  assert.doesNotThrow(() =>
+    proveVaultStakeApproval({
+      receiptTo: USDC,
+      receiptFrom: OWNER,
+      usdcAddress: USDC,
+      ownerAddress: OWNER,
+      vaultAddress: VAULT,
+      expectedAmountMicros: 20_000_000n,
+      approvals: [
+        {
+          tokenAddress: USDC,
+          owner: OWNER,
+          spender: VAULT,
+          value: 20_000_000n,
+        },
+      ],
+    }),
+  );
+});
+
+test('rejects a Circle approval for a different spender or amount', () => {
+  assert.throws(
+    () =>
+      proveVaultStakeApproval({
+        receiptTo: USDC,
+        receiptFrom: OWNER,
+        usdcAddress: USDC,
+        ownerAddress: OWNER,
+        vaultAddress: VAULT,
+        expectedAmountMicros: 20_000_000n,
+        approvals: [
+          {
+            tokenAddress: USDC,
+            owner: OWNER,
+            spender: '0x0000000000000000000000000000000000000004',
+            value: 20_000_000n,
+          },
+        ],
+      }),
+    /unique allowance/,
+  );
 });

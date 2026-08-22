@@ -36,6 +36,7 @@ interface ActionLog {
   positionId?: string;
   amountUsdc?: string;
   txHash?: string;
+  reference?: string;
   status: 'pending' | 'done' | 'failed';
   error?: string;
 }
@@ -288,8 +289,16 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
     let deposited = false;
     try {
       if (isCircleUser) {
-        const r = await api.vaultDeposit({ address, amountUsdc });
-        patchLog(logId, { status: 'done', txHash: r.depositTxHash });
+        const r = await api.vaultDeposit({
+          address,
+          amountUsdc,
+          requestId: crypto.randomUUID(),
+        });
+        patchLog(logId, {
+          status: 'done',
+          txHash: r.depositTxHash ?? undefined,
+          reference: r.reference,
+        });
       } else {
         if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
         // Allowance precheck.
@@ -980,6 +989,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
                 <span className="uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
                   {sc.recent.kinds[entry.kind]}
                   {entry.positionId ? ` #${entry.positionId}` : ''}
+                  {entry.reference ? ` / ${entry.reference}` : ''}
                   {entry.amountUsdc ? ` · ${entry.amountUsdc} USDC` : ''}
                 </span>
                 <span
