@@ -140,7 +140,7 @@ export function compute(inputs: ReputationInputs): ReputationResult {
     tier,
     scoreTier,
     tierCappedBy,
-    dealsToNextTier: dealsToNext(inputs.completedDeals, tier, scoreTier),
+    dealsToNextTier: dealsToNext(inputs.completedDeals, tierCappedBy),
     terms: { stake, completion, volume, tenure, activity, referral, base, penalty, decay, rates },
     inputs,
     modelVersion: repConfig.modelVersion,
@@ -148,10 +148,19 @@ export function compute(inputs: ReputationInputs): ReputationResult {
 }
 
 /// How many more settled deals unlock the next tier, when deals are what is
-/// holding the wallet back. Null when the score is the binding constraint, so
-/// the UI never tells someone to close deals that would not move them.
-function dealsToNext(completedDeals: number, tier: Tier, scoreTier: Tier): number | null {
-  if (tier === scoreTier) return null;
+/// holding the wallet back.
+///
+/// Null unless DEALS are the binding ceiling. It used to take the tier and the
+/// score tier and answer whenever the two differed, which meant a wallet held
+/// at COLD by counterparty concentration was told to close more deals: true
+/// that some higher tier needs them, false that closing them would move this
+/// wallet anywhere. Advice that cannot work is worse than no advice, because
+/// the reader acts on it.
+function dealsToNext(
+  completedDeals: number,
+  tierCappedBy: 'deals' | 'concentration' | null,
+): number | null {
+  if (tierCappedBy !== 'deals') return null;
   const order: Array<Exclude<Tier, 'NEW'>> = ['COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
   for (const t of order) {
     const need = TIER_MIN_DEALS[t];
@@ -202,11 +211,20 @@ export function referralScore(i: ReputationInputs): number {
   return satLog(i.referredCount, repConfig.referralCap);
 }
 
+/// Idle fade. A wallet that stops trading should read as less current, and the
+/// config calls the knob a HALF-LIFE, so the curve has to be one.
+///
+/// It was `exp(-days / halflife)`, which decays on a TIME CONSTANT: at 180 days
+/// that returns 0.368, not the 0.5 the name promises, and the gap widens at
+/// every multiple (0.135 against 0.25 at a year). Every idle wallet was being
+/// faded about a quarter harder than the model documented. `Math.LN2` is what
+/// turns a time constant into a half-life.
 export function decayMultiplier(lastActionAt: number): number {
   if (!lastActionAt) return 1;
   const days = (Date.now() - lastActionAt) / MS_PER_DAY;
-  if (days <= 0) return 1;
-  return Math.exp(-(days / Math.max(1, repConfig.decayHalflifeDays)));
+  if (!Number.isFinite(days) || days <= 0) return 1;
+  const halflife = Math.max(1, repConfig.decayHalflifeDays);
+  return clamp01(Math.exp(-Math.LN2 * (days / halflife)));
 }
 
 // helpers
