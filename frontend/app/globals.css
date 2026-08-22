@@ -424,64 +424,69 @@ html[data-theme="dark"] {
 .w-bleed { width: calc(100vw - var(--scrollbar-width, 0px)); }
 
 /* ---- Rail change (features/deposit/components/RailSlider.tsx) -------------
-   One panel becoming the next. The outgoing panel darkens, a lime edge crosses
-   it, the incoming panel resolves. It runs for one change and then the element
-   is gone, which is why a full-bleed sweep is acceptable here and a standing
-   gradient is not: this is motion, not decoration.
+   One panel becoming the next.
 
-   Kept in CSS rather than in a motion library because it is two keyframes over
-   a pseudo-layer, and a spring would fight the fixed 420ms the component uses
-   to unmount it. */
-@keyframes rail-wipe {
+   The first version of this blacked the panel out: an ink band with a lime
+   leading edge sweeping across it. On a light page that is a full-bleed dark
+   rectangle crossing content mid-read, and it looked like a rendering fault
+   rather than a transition. The band is gone.
+
+   What replaces it is the idiom this product already uses for "something is
+   happening here": a 2px lime line travelling across the top of the panel while
+   the panel itself rises and resolves. It reads on both themes because the only
+   painted thing is the accent, and it cannot be mistaken for broken layout
+   because it never covers anything. */
+@keyframes rail-sweep {
   0% {
+    transform: scaleX(0);
+    transform-origin: left;
     opacity: 0;
-    transform: translateX(-100%);
   }
-  22% {
+  10% {
     opacity: 1;
   }
-  78% {
-    opacity: 1;
+  55% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  56% {
+    transform: scaleX(1);
+    transform-origin: right;
   }
   100% {
-    opacity: 0;
-    transform: translateX(100%);
+    transform: scaleX(0);
+    transform-origin: right;
+    opacity: 1;
   }
 }
 
 @keyframes rail-panel-in {
   0% {
     opacity: 0;
-    transform: translateY(10px) scale(0.995);
+    transform: translateY(8px);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
+/* Sits ON the panel's top edge, never over its content. */
 .rail-wipe {
   position: absolute;
-  inset: -2px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
   z-index: 20;
   pointer-events: none;
-  border-radius: 22px;
-  /* Ink first, then the lime edge riding its leading side. Two stops, no soft
-     blobs: the band has a hard edge so the eye can follow it across. */
-  background:
-    linear-gradient(
-      100deg,
-      transparent 0%,
-      var(--lp-band-dark) 18%,
-      var(--lp-band-dark) 52%,
-      var(--lp-accent) 56%,
-      transparent 60%
-    );
-  animation: rail-wipe 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  border-radius: 2px;
+  background: var(--lp-accent);
+  animation: rail-sweep 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .rail-panel-in {
-  animation: rail-panel-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: rail-panel-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -491,103 +496,6 @@ html[data-theme="dark"] {
   .rail-panel-in {
     animation: none;
   }
-}
-
-/* Theme handover. The theme now changes without anyone pressing anything: the
-   machine's own setting, or the hour on its clock (see shared/hooks/useTheme).
-   A page that swaps every surface between two frames reads as a glitch, so the
-   swap is painted over 380ms and only while it is happening. The class is added
-   by applyTheme for the duration and removed again, which is why the blunt
-   descendant selector is acceptable here: it is never live during normal use,
-   so it cannot slow down hover or scroll.
-
-   Transform and opacity are deliberately absent: motion belongs to the
-   components that own it, and including them here would drag every in-flight
-   animation into this duration. */
-html.theme-shifting,
-html.theme-shifting *,
-html.theme-shifting *::before,
-html.theme-shifting *::after {
-  transition:
-    background-color 380ms var(--ease-out, ease),
-    border-color 380ms var(--ease-out, ease),
-    color 380ms var(--ease-out, ease),
-    fill 380ms var(--ease-out, ease),
-    stroke 380ms var(--ease-out, ease),
-    box-shadow 380ms var(--ease-out, ease) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.theme-shifting,
-  html.theme-shifting *,
-  html.theme-shifting *::before,
-  html.theme-shifting *::after {
-    transition: none !important;
-  }
-}
-
-/* ---- Landing panels ----------------------------------------------------
-   The landing is read one row at a time on a phone, so a row is exactly one
-   screen tall: the free height between the sticky chrome and the bottom of the
-   viewport. Anything less and the next row shows a sliver of itself under the
-   current one, which is what made the film hero read as a cropped mistake.
-
-   The two chrome heights are published by the components that own them
-   (TopNav, StickyTabStrip) rather than hardcoded here, because both change with
-   type scale and locale: an Arabic or Hindi label wraps the strip to two lines
-   and a fixed 52px would be wrong by a whole row of text.
-
-   `svh` deliberately, not `dvh`: the small viewport height is the stable one.
-   With `dvh` the panel resizes every time a mobile browser retracts its own
-   toolbar, so the row grows under the reader's thumb mid-scroll.
-
-   Behaviour lives behind the `md` breakpoint. Above it more than one row is in
-   frame at a time and forcing screen-tall rows would only add whitespace. */
-:root {
-  --lp-nav-h: 68px;
-  --lp-strip-h: 0px;
-  --lp-chrome-h: calc(var(--lp-nav-h) + var(--lp-strip-h));
-  --lp-panel-h: calc(100svh - var(--lp-chrome-h));
-}
-
-.lp-panel { scroll-snap-align: start; }
-
-@media (max-width: 767px) {
-  .lp-panel {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: var(--lp-panel-h);
-  }
-  /* A row's content is centred by making the row a flex column, and a flex item
-     with auto inline margins (every band's `mx-auto` measure) opts out of
-     stretching and sizes to its own content instead. On a 360px screen that
-     widened the measure to 914px and cut the headlines in half. The bleed lives
-     on the row itself, never on these children, so pinning them to the row's
-     width is safe. */
-  .lp-panel > * { width: 100%; }
-  /* Rows whose content is honestly taller than a screen keep the floor and
-     lose the ceiling, so nothing is ever clipped to make the grid work. */
-  .lp-panel-grow { justify-content: flex-start; }
-}
-
-/* Snapping is proximity, never mandatory: a panel taller than the screen has to
-   stay scrollable a line at a time. The class is added by the landing while it
-   is mounted, so no other route inherits it. */
-html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
-@media (max-width: 767px) {
-  html.lp-snap { scroll-snap-type: y proximity; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html.lp-snap { scroll-snap-type: none; }
-}
-
-/* The media layer of a panel. The wrapper is the clip; the moving child inside
-   it is what drifts, so the drift never paints outside the row. */
-.lp-panel-media {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
 }
 
 @keyframes stat-sweep {

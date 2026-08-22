@@ -8,14 +8,16 @@ import type { DepositRail, RailOption } from '../railModel';
 ///
 /// Four routes on one track. The active one carries a lozenge that SLIDES
 /// between them rather than cutting, which is the only thing that makes a row of
-/// buttons read as one control, and the panel underneath changes with a blackout
-/// wipe: the outgoing panel darkens out, a lime edge crosses it, the incoming
-/// one resolves. The wipe is the point. A panel that swaps between frames leaves
-/// the reader checking whether they pressed the thing they meant to.
+/// buttons read as one control, and the panel underneath rises into place behind
+/// a lime line travelling across its top edge.
 ///
-/// The radiant is motion, not decoration: it exists for the ~420ms of the
-/// change and then it is gone. Under `prefers-reduced-motion` the whole thing
-/// collapses to an opacity change and the lozenge stops sliding.
+/// That line replaced a blackout: the first version swept an ink band with a
+/// lime edge across the whole panel, which on a light page is a dark rectangle
+/// crossing content mid-read. It looked broken. The line says the same thing
+/// (something changed, here) without ever covering what the reader came for.
+///
+/// Under `prefers-reduced-motion` the sweep is not painted at all and the
+/// lozenge stops sliding.
 
 /// Must match the CSS in globals.css (`.rail-wipe`).
 const WIPE_MS = 420;
@@ -132,9 +134,9 @@ export function RailSlider({
         </p>
       </div>
 
-      {/* The panel, and the wipe over it. The wipe layer is a sibling rather
-          than a wrapper so it never becomes a containing block for anything
-          inside the panel (a sticky header, a portalled tooltip). */}
+      {/* The panel, and the sweep on its top edge. A sibling rather than a
+          wrapper so it never becomes a containing block for anything inside the
+          panel (a sticky header, a portalled tooltip). */}
       <div className="relative mt-6">
         <div key={active} className={cn(wiping ? 'rail-panel-in' : undefined)}>
           {children}

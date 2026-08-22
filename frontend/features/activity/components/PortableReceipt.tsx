@@ -191,7 +191,11 @@ export function PortableReceipt({
             </a>
           )}
 
-          <p className="mt-5 border-t border-[var(--lp-border-light)] pt-4 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
+          {/* No rule above this. On the printed sheet the divider landed right
+              where the watermark sits, so the two crossed and read as a
+              rendering fault. The note is the last thing on the receipt; it does
+              not need a line to say so. */}
+          <p className="mt-5 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
             {copy.receiptSharedNote}
           </p>
         </article>

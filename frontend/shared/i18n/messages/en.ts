@@ -525,6 +525,8 @@ interface MessagesShape {
         unstakeStart: string;
         unstakeCancel: string;
         yieldClaim: string;
+        /// The daily distribution arriving. Not the same as claiming it out.
+        yieldAccrued: string;
       };
       eyebrow: string;
       count: string;
@@ -5177,6 +5179,7 @@ export const en: MessagesShape = {
         unstakeStart: 'Started unstaking {amount} USDC',
         unstakeCancel: 'Cancelled unstaking {amount} USDC',
         yieldClaim: 'Claimed {amount} USDC of earned yield',
+        yieldAccrued: 'Earned {amount} USDC of staking yield',
       },
       eyebrow: 'YOUR MONEY',
       count: '{n} MOVES',
@@ -6274,6 +6277,7 @@ export const en: MessagesShape = {
       'vault.claimed': 'Stake claimed',
       'vault.cooldown.completed': 'Cool-down finished',
       'yield.claimed': 'Yield claimed',
+      'yield.credited': 'Yield earned',
       'gateway.deposited': 'Added to balance',
       'gateway.agent.funded': 'Agent funded',
       'gateway.cashed.out': 'Cashed out',
@@ -6799,9 +6803,9 @@ export const en: MessagesShape = {
     onramp: {
       tab: 'Card & bank',
       tag: 'CARD AND BANK',
-      title: 'Buy and cash out in your currency',
-      blurb: 'Fund the account from a card or a bank transfer, and cash out the same way.',
-      body: 'This one is not open yet. Every other route on this page settles in USDC, and this is the one that turns your own currency into it and back again. It arrives with the licensing that lets us hold the other side of that trade.',
+      title: 'Your local currency',
+      blurb: 'Deposit, spend and withdraw in your local currency. Card or bank transfer, both ways.',
+      body: 'Not open yet. Every other route here settles in USDC. This one converts your currency to USDC on the way in, and back on the way out.',
       inLabel: 'Buy USDC',
       outLabel: 'Cash out to a bank',
     },

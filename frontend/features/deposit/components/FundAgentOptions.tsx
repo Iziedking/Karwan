@@ -134,9 +134,15 @@ export function FundAgentOptions({
         <TopUpFromGateway recipient={recipient} amount={amountUsdc} onFunded={onFunded} />
       )}
       {route === 'gateway' && !recipient && (
-        <FundGatewayCallout label={copy.gateway.fundCta} note={copy.gateway.noRecipient} />
+        <FundGatewayCallout
+          label={copy.gateway.fundCta}
+          note={copy.gateway.noRecipient}
+          rail="gateway"
+        />
       )}
-      {route === 'chain' && <FundGatewayCallout label={copy.chain.cta} note={copy.chain.note} />}
+      {route === 'chain' && (
+        <FundGatewayCallout label={copy.chain.cta} note={copy.chain.note} rail="cctp" />
+      )}
 
       {/* The Circle path is the only one that needs no wallet at all, so say so
           once rather than repeating it in four tooltips. */}
@@ -215,13 +221,24 @@ function MoveFromOtherAgent({
   );
 }
 
-/// The way out when the chosen source is empty: the page that fills it.
-function FundGatewayCallout({ label, note }: { label: string; note: string }) {
+/// The way out when the chosen source is empty: the page that fills it, on the
+/// rail this tile names. Both callouts used to land on the pooled rail, so
+/// "another chain" sent the reader to the wrong panel and they had to find the
+/// transfer themselves.
+function FundGatewayCallout({
+  label,
+  note,
+  rail,
+}: {
+  label: string;
+  note: string;
+  rail: 'gateway' | 'cctp';
+}) {
   return (
     <div className="space-y-2">
       <p className="text-[12px] leading-snug text-[var(--lp-text-sub)]">{note}</p>
       <a
-        href="/bridge?rail=gateway"
+        href={`/bridge?rail=${rail}`}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex min-h-11 items-center gap-2 border border-[var(--lp-outline-strong)] px-4 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
