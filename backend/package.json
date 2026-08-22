@@ -13,6 +13,7 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
     "scan:lifetime": "tsx --env-file=../.env src/scripts/scan-lifetime.ts",
+    "money:reconcile": "tsx --env-file=../.env src/scripts/reconcile-stuck-movements.ts",
     "check:events-projection": "tsx src/scripts/events-projection-check.ts",
     "sync:canon": "tsx src/scripts/sync-canon.ts",
     "solana:bridge-smoke": "tsx --env-file=../.env src/scripts/solana-bridge-smoke.ts",
