@@ -171,7 +171,10 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
   /// two surfaces (eg /profile + /stake) never disagree.
   const { data: vault, isLoading: vaultLoading, refresh: refreshVault } =
     useVaultPositions(address);
-  const positions = vault?.positions ?? [];
+  // Older API deployments can omit positions while a vault scan is warming
+  // up. Keep the page render-safe instead of allowing a malformed response to
+  // call `.filter()` in CoolingList and take down the whole route.
+  const positions = Array.isArray(vault?.positions) ? vault.positions : [];
   const totalActive = vault?.totalActiveUsdc ?? '0';
   const totalCooling = vault?.totalCoolingUsdc ?? '0';
   /// v2.D insurance: amount of active stake locked against open deals.
@@ -592,7 +595,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
 
   // -------------------- derived --------------------
 
-  const tier = rep?.tier as keyof typeof TIER_TONE | undefined;
+  // Reputation is a read from a separately deployed backend. Treat an
+  // unknown/legacy tier as NEW for presentation; never dereference an
+  // undefined tone during the initial authenticated render.
+  const rawTier = rep?.tier;
+  const tier = rawTier && rawTier in TIER_TONE
+    ? (rawTier as keyof typeof TIER_TONE)
+    : undefined;
   const tone = tier ? TIER_TONE[tier] : TIER_TONE.NEW;
 
   const stakeBoost = useMemo(() => {

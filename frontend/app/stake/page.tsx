@@ -109,7 +109,10 @@ function StakePageInner() {
   const sp = useTranslations().stakePage;
   const tp = useTranslations().tierProgress;
 
-  const tier = (data?.tier ?? 'NEW') as Tier;
+  const rawTier = data?.tier;
+  const tier: Tier = rawTier && ORDER.includes(rawTier as Tier)
+    ? (rawTier as Tier)
+    : 'NEW';
   const score = Math.round(data?.score ?? 0);
   /// Points are not the only gate, and the backend already knows which one is
   /// binding. This page handled the DEALS ceiling and then fell through to the
@@ -144,11 +147,11 @@ function StakePageInner() {
             <Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
+            {sp.hero.body}
+          </p>
           <div className="mt-7">
             <CTAPill href="#vault">{sp.vault.heading}</CTAPill>
           </div>
-            {sp.hero.body}
-          </p>
         </div>
 
         {/* POSITION READOUT: count-up score + tier. The tier column has a
