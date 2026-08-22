@@ -1,9 +1,12 @@
-import { AppKit, BridgeChain } from '@circle-fin/app-kit';
-import { createCircleWalletsAdapter } from '@circle-fin/adapter-circle-wallets';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { patchBridge } from '../db/bridges.js';
+import { appKit, circleWalletsAdapter } from './sdkCompat.js';
+
+const { AppKit, BridgeChain } = appKit;
+const { createCircleWalletsAdapter } = circleWalletsAdapter;
+type AppKitBridgeChain = import('@circle-fin/app-kit').BridgeChain;
 /// Source-chain keys supported by the App Kit bridge path.
 ///
 /// Listed explicitly rather than derived from CctpChainKey. This path signs with
@@ -22,7 +25,7 @@ export type AppKitSourceChainKey =
 
 interface AppKitSourceChain {
   /// App Kit's chain identifier, fed to kit.bridge({ from: { chain } }).
-  blockchain: BridgeChain;
+  blockchain: AppKitBridgeChain;
   /// Circle DCW createWallets blockchain code (hyphen-uppercase) used to
   /// provision the per-user source-chain wallet. EVM testnets are SCAs;
   /// Solana is EOA (DCW SCAs are EVM-only per Circle's account-types doc).
@@ -359,7 +362,7 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
 /// mint instead, so no destination wallet exists to constrain us, and all eleven
 /// non-Arc chains become valid. Verified: every one reports
 /// cctp.forwarderSupported.destination = true.
-export const APP_KIT_DEST_CHAINS: Record<string, BridgeChain> = {
+export const APP_KIT_DEST_CHAINS: Record<string, AppKitBridgeChain> = {
   sepolia: BridgeChain.Ethereum_Sepolia,
   optimismSepolia: BridgeChain.Optimism_Sepolia,
   arbitrumSepolia: BridgeChain.Arbitrum_Sepolia,

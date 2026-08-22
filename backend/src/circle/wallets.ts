@@ -1,7 +1,9 @@
-import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-controlled-wallets';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getUserByAddress } from '../db/users.js';
+import { developerWallets } from './sdkCompat.js';
+
+const { initiateDeveloperControlledWalletsClient } = developerWallets;
 
 /// Idempotency note. The DCW SDK auto-generates a fresh UUID v4 idempotency key
 /// per request when `idempotencyKey` is not supplied (see WithIdempotencyKey in

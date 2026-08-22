@@ -1,7 +1,9 @@
 import { mkdirSync } from 'node:fs';
-import { registerEntitySecretCiphertext } from '@circle-fin/developer-controlled-wallets';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { developerWallets } from '../circle/sdkCompat.js';
+
+const { registerEntitySecretCiphertext } = developerWallets;
 
 async function main() {
   if (!config.CIRCLE_API_KEY) throw new Error('CIRCLE_API_KEY is required');
