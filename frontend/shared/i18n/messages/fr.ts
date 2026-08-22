@@ -2145,10 +2145,11 @@ export const fr: Messages = {
       tag: 'DÉPÔT DIRECT',
       title: 'Une adresse, toutes les chaînes',
       blurb: "Envoyez des USDC à cette adresse depuis n'importe quelle chaîne. Ils rejoignent Arc tout seuls et deviennent disponibles.",
+      walletOnly: "Une adresse directe est réservée aux comptes e-mail et passkey. Avec un portefeuille connecté, vous détenez déjà les fonds : utilisez Transfert et signez vous-même.",
     },
     gateway: {
-      tab: 'Groupé',
-      tag: 'SOLDE GROUPÉ',
+      tab: 'Gateway',
+      tag: 'SOLDE GATEWAY',
       title: 'Détenez sur plusieurs chaînes, dépensez sur une',
       blurb: 'Gardez un solde unique réparti sur plusieurs chaînes et dépensez-le où vous voulez, en une signature et sans attente de passerelle.',
     },

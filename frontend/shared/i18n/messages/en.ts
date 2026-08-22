@@ -1958,7 +1958,16 @@ interface MessagesShape {
   depositRails: {
     chooserAria: string;
     soon: string;
-    direct: { tab: string; tag: string; title: string; blurb: string };
+    direct: {
+      tab: string;
+      tag: string;
+      title: string;
+      blurb: string;
+      /// Shown to a connected wallet, which cannot have a direct deposit
+      /// address: provisioning one advances a shared per-chain index counter
+      /// and that is what collides deposit addresses between users.
+      walletOnly: string;
+    };
     gateway: { tab: string; tag: string; title: string; blurb: string };
     cctp: { tab: string; tag: string; title: string; blurb: string };
     onramp: {
@@ -6812,10 +6821,11 @@ export const en: MessagesShape = {
       tag: 'DIRECT DEPOSIT',
       title: 'One address, any chain',
       blurb: 'Send USDC to this address from any chain you hold it on. It reaches Arc on its own and shows up as spendable.',
+      walletOnly: 'A direct address is for email and passkey accounts. With a connected wallet you already hold the funds, so use Transfer and sign the move yourself.',
     },
     gateway: {
-      tab: 'Pooled',
-      tag: 'POOLED BALANCE',
+      tab: 'Gateway',
+      tag: 'GATEWAY BALANCE',
       title: 'Hold across chains, spend on one',
       blurb: 'Keep one balance that spans chains and spend it wherever you need, on a single signature and with no bridge wait.',
     },

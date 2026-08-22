@@ -42,17 +42,28 @@ export function railsFor(input: {
 
   if (direction === 'in') {
     return [
-      // One address, any chain, lands on Arc. Offered to both account types:
-      // a wallet user sending from an exchange has the same problem an email
-      // user does, and the card says so itself when nothing is provisioned.
-      { id: 'direct', state: 'ready' },
-      // Gateway needs a wallet to sign a burn intent, so an email account
-      // cannot use it yet. The card already says exactly this.
-      { id: 'gateway', state: circle ? 'soon' : 'ready' },
+      // One address, any chain, lands on Arc. Only an email or passkey account
+      // has one: the backend refuses to provision deposit wallets for a
+      // connected wallet on purpose, because doing so advances a shared
+      // per-chain index counter and that is what collides one user's deposit
+      // address with another's (routes/deposit.ts). So this is not "not built
+      // yet for wallets", it is a route that cannot exist for them today, and
+      // offering it as ready produced a card reading "deposits are being set up
+      // for your account" at someone for whom nothing was being set up.
+      { id: 'direct', state: circle ? 'ready' : 'soon' },
       // CCTP inbound asks for a source chain, an amount, and a signature. For
       // an email account that is the direct address with extra steps, so it is
       // not offered rather than offered as a second way to do one thing.
+      //
+      // It sits ahead of the pooled balance because `defaultRail` lands on the
+      // first ready rail, and a wallet account arriving here wants "move my
+      // USDC from that chain onto Arc". The pooled balance is a different
+      // question (hold across chains, spend on one) and a poor first answer to
+      // the one they came with.
       ...(circle ? [] : [{ id: 'cctp' as const, state: 'ready' as const }]),
+      // Gateway needs a wallet to sign a burn intent, so an email account
+      // cannot use it yet. The card already says exactly this.
+      { id: 'gateway', state: circle ? 'soon' : 'ready' },
       { id: 'onramp', state: 'soon' },
     ];
   }

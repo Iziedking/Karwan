@@ -5,14 +5,28 @@ import { defaultRail, railsFor, reconcileRail } from './railModel';
 const ids = (method: 'circle' | 'web3', direction: 'in' | 'out') =>
   railsFor({ method, direction }).map((rail) => rail.id);
 
-test('both account types are offered a way in, and it is the same first rail', () => {
+test('both account types are offered a way in, and both see every rail', () => {
   // The complaint this answers: an email account saw no rail choice at all.
   assert.deepEqual(ids('circle', 'in'), ['direct', 'gateway', 'onramp']);
-  assert.deepEqual(ids('web3', 'in'), ['direct', 'gateway', 'cctp', 'onramp']);
-  assert.equal(ids('circle', 'in')[0], ids('web3', 'in')[0]);
+  assert.deepEqual(ids('web3', 'in'), ['direct', 'cctp', 'gateway', 'onramp']);
 });
 
-test('an email account is never dropped onto a rail it cannot use', () => {
+test('a connected wallet has no direct deposit address, and is not offered one', () => {
+  // The backend refuses to provision deposit wallets for a web3 account because
+  // it advances a shared per-chain index counter, which collides one user's
+  // address with another's. Showing the rail as ready got them a card saying
+  // "deposits are being set up for your account" when nothing was.
+  const web3 = railsFor({ method: 'web3', direction: 'in' });
+  assert.equal(web3.find((r) => r.id === 'direct')?.state, 'soon');
+  // So a wallet account lands on the rail it can actually sign from.
+  assert.equal(defaultRail(web3), 'cctp');
+  // An email account still gets the address, and lands on it.
+  const circle = railsFor({ method: 'circle', direction: 'in' });
+  assert.equal(circle.find((r) => r.id === 'direct')?.state, 'ready');
+  assert.equal(defaultRail(circle), 'direct');
+});
+
+test('neither account type is dropped onto a rail it cannot use', () => {
   const rails = railsFor({ method: 'circle', direction: 'in' });
   assert.equal(defaultRail(rails), 'direct');
   // Gateway needs a wallet to sign with, so it is shown as coming, not as broken.

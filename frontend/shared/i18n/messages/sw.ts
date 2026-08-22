@@ -2145,10 +2145,11 @@ export const sw: Messages = {
       tag: 'AMANA YA MOJA KWA MOJA',
       title: 'Anwani moja, mtandao wowote',
       blurb: 'Tuma USDC kwenye anwani hii kutoka mtandao wowote unaoshikilia. Zinafika Arc zenyewe na kuwa tayari kutumika.',
+      walletOnly: 'Anwani ya moja kwa moja ni kwa akaunti za barua pepe na passkey. Kwa pochi iliyounganishwa fedha ziko kwako, hivyo tumia Uhamisho na utie saini mwenyewe.',
     },
     gateway: {
-      tab: 'Pamoja',
-      tag: 'SALIO LA PAMOJA',
+      tab: 'Gateway',
+      tag: 'SALIO LA GATEWAY',
       title: 'Shikilia mitandao mingi, tumia kwenye mmoja',
       blurb: 'Weka salio moja linalovuka mitandao na ulitumie unapohitaji, kwa saini moja na bila kusubiri daraja.',
     },

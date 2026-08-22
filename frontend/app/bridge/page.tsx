@@ -185,7 +185,17 @@ function RailPanel({
       />
     );
   }
-  if (rail === 'direct') return <DepositCard />;
+  if (rail === 'direct') {
+    // A connected wallet cannot be given a deposit address (see railModel), and
+    // DepositCard would tell them one is "being set up" when nothing is. Say
+    // what is true and point at the rail they can actually use.
+    if (state === 'soon') {
+      return (
+        <ComingSoonPanel body={copy.direct.walletOnly} action={copy.direct.title} soon={copy.soon} />
+      );
+    }
+    return <DepositCard />;
+  }
   if (rail === 'gateway') return <GatewayBalanceCard />;
   // CCTP, both ways. The out card carries its own Solana branch.
   if (state === 'soon') {
