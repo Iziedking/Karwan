@@ -270,6 +270,16 @@ export interface UserProfile {
     status: 'none' | 'submitted' | 'verified' | 'rejected';
     verifiedAt?: number;
   };
+  /// Skills this wallet is verified to do, as a reader of the PUBLIC profile
+  /// sees them: the skill and when it was verified, never the issuer, the
+  /// evidence type, or the commitment. Only currently-verified records appear,
+  /// so a pending or rejected verification is absent rather than shown as a
+  /// state. Built by publicSkillCredentials in the backend.
+  skillCredentials?: Array<{
+    skillId: string;
+    verifiedAt: number;
+    expiresAt?: number;
+  }>;
   /// Financier capability. Only an `approved` financier can fund factoring / PO
   /// lines. Anyone may apply from the SME rail once eligible.
   financier?: {

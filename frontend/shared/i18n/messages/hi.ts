@@ -2012,6 +2012,12 @@ export const hi: Messages = {
       tenure: 'अवधि',
       tenureDaysSuffix: ' दिन',
     },
+    skills: {
+      eyebrow: 'सत्यापित कौशल',
+      caption: 'Karwan द्वारा जाँचा गया',
+      verifiedOn: '{date} को सत्यापित',
+      expires: '{date} को नवीनीकरण',
+    },
     factors: {
       eyebrow: 'स्कोर कारक',
       scaleCaption: 'प्रत्येक 0 से 100',

@@ -2012,6 +2012,12 @@ export const sw: Messages = {
       tenure: 'Urefu wa muda',
       tenureDaysSuffix: ' siku',
     },
+    skills: {
+      eyebrow: 'Ujuzi uliothibitishwa',
+      caption: 'Imethibitishwa na Karwan',
+      verifiedOn: 'Ilithibitishwa {date}',
+      expires: 'Inasasishwa {date}',
+    },
     factors: {
       eyebrow: 'Vipengele vya alama',
       scaleCaption: 'kila moja 0 hadi 100',

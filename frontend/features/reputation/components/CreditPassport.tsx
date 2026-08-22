@@ -9,6 +9,7 @@ import {
   type CompositeTier,
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
+import { skillDateLabel, skillLabel } from '../skillCredentials';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -204,6 +205,10 @@ export function CreditPassport({ address }: { address: string }) {
       ? Math.max(0, Math.floor((Date.now() - registeredAt) / 86_400_000))
       : null;
 
+  /// Verified skills as the public profile reports them. The passport already
+  /// loads the profile, so this costs no extra request.
+  const skillCredentials = profile?.skillCredentials ?? [];
+
   async function copyAddress() {
     try {
       await navigator.clipboard.writeText(address);
@@ -376,6 +381,56 @@ export function CreditPassport({ address }: { address: string }) {
               <TermBar key={r.label} label={r.label} value={r.value} hue={hue} />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* VERIFIED SKILLS. What this wallet is verified to DO, which is the one
+          thing the passport could not say: it carried deal history, stake and
+          tenure, and nothing about capability.
+
+          Only complete verifications reach the client at all (the public
+          profile projection drops everything else, see publicSkillCredentials),
+          so there is nothing to filter here and no state to render. No empty
+          state either: "no verified skills" is not a fact worth a panel, and an
+          absent panel says it more honestly than an empty one. */}
+      {skillCredentials.length > 0 && (
+        <section
+          className="mt-5 rounded-xl border p-6"
+          style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="eyebrow">{cp.skills.eyebrow}</p>
+            <p className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+              {cp.skills.caption}
+            </p>
+          </div>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {skillCredentials.map((credential) => (
+              <li
+                key={credential.skillId}
+                className="inline-flex items-center gap-2 border px-2.5 py-1.5"
+                style={{
+                  borderColor: 'var(--color-line-strong)',
+                  background: 'var(--color-surface-2)',
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                  borderBottomRightRadius: 3,
+                }}
+                title={skillDateLabel(credential, cp.skills)}
+              >
+                <span aria-hidden style={{ color: 'var(--lp-accent)' }}>
+                  <CheckGlyph />
+                </span>
+                <span className="text-[13px] font-semibold text-[var(--color-ink)]">
+                  {skillLabel(credential.skillId)}
+                </span>
+                <span className="mono text-[9px] uppercase tracking-[0.12em] tabular-nums text-[var(--color-ink-faint)]">
+                  {skillDateLabel(credential, cp.skills)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
@@ -703,5 +758,19 @@ function PassportStat({
         {value}
       </dd>
     </div>
+  );
+}
+
+function CheckGlyph() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M2.5 8.5 6 12l7.5-8"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

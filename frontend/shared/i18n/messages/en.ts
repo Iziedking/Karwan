@@ -1845,6 +1845,15 @@ interface MessagesShape {
       tenure: string;
       tenureDaysSuffix: string;
     };
+    /// Skills this wallet is verified to do. Present on the passport only when
+    /// at least one verification is complete; there is no empty state, because
+    /// "no verified skills" is not a fact worth a panel.
+    skills: {
+      eyebrow: string;
+      caption: string;
+      verifiedOn: string;
+      expires: string;
+    };
     factors: {
       eyebrow: string;
       scaleCaption: string;
@@ -6659,6 +6668,12 @@ export const en: MessagesShape = {
       settled: 'Settled',
       tenure: 'Tenure',
       tenureDaysSuffix: 'd',
+    },
+    skills: {
+      eyebrow: 'Verified skills',
+      caption: 'Checked by Karwan',
+      verifiedOn: 'Verified {date}',
+      expires: 'Renews {date}',
     },
     factors: {
       eyebrow: 'Score factors',

@@ -2012,6 +2012,12 @@ export const fr: Messages = {
       tenure: 'Ancienneté',
       tenureDaysSuffix: 'j',
     },
+    skills: {
+      eyebrow: 'Compétences vérifiées',
+      caption: 'Vérifié par Karwan',
+      verifiedOn: 'Vérifié le {date}',
+      expires: 'Renouvellement le {date}',
+    },
     factors: {
       eyebrow: 'Facteurs de score',
       scaleCaption: '0 à 100 chacun',

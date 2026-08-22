@@ -2012,6 +2012,12 @@ export const ar: Messages = {
       tenure: 'المدّة',
       tenureDaysSuffix: ' يوم',
     },
+    skills: {
+      eyebrow: 'مهارات موثّقة',
+      caption: 'تم التحقق بواسطة Karwan',
+      verifiedOn: 'تم التحقق في {date}',
+      expires: 'يُجدَّد في {date}',
+    },
     factors: {
       eyebrow: 'عوامل النتيجة',
       scaleCaption: '0 إلى 100 لكل عامل',
