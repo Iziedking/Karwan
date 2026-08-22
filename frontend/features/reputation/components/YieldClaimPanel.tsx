@@ -4,6 +4,9 @@ import { useYieldMe } from '../hooks/useYield';
 import { useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { chainErrorMessage } from '@/shared/utils/chainError';
+import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -47,6 +50,7 @@ export function YieldClaimPanel() {
   const arcClient = usePublicClient({ chainId: ARC_CHAIN_ID });
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const chainCopy = useTranslations().chainErrors;
 
   const { data: yieldData, isLoading: yieldLoading, refresh } = useYieldMe(address);
   const claimable = yieldData?.configured ? yieldData.claimableUsdc : '0';
@@ -88,16 +92,15 @@ export function YieldClaimPanel() {
           account: address,
         });
         setLastTx(hash);
-        await arcClient.waitForTransactionReceipt({ hash });
+        await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
       }
       await refetch();
     } catch (err) {
-      const msg = (err as Error).message ?? 'claim failed';
-      setError(msg.length > 140 ? msg.slice(0, 140) + '...' : msg);
+      setError(chainErrorMessage(err, chainCopy, 'Could not claim right now. Try again.'));
     } finally {
       setBusy(false);
     }
-  }, [address, claimableNum, isCircleUser, walletClient, arcClient, chainId, switchChainAsync, refetch]);
+  }, [address, claimableNum, isCircleUser, walletClient, arcClient, chainId, switchChainAsync, refetch, chainCopy]);
 
   if (!address) {
     return (

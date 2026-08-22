@@ -11,6 +11,9 @@ import { FINANCIER_DESK_TOUR_ID, FINANCIER_DESK_STEPS } from '@/shared/guide/tou
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { chainErrorMessage } from '@/shared/utils/chainError';
+import { requireConfirmedTx } from '@/shared/chain/confirmTx';
+import type { Messages } from '@/shared/i18n/messages/en';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import {
   ARC_CHAIN_ID,
@@ -53,7 +56,9 @@ function DeskEmpty({ tag, body }: { tag: string; body: string }) {
 /// Turn a thrown signing/submit error into one short human line. A wallet
 /// rejection is the common case and should read calmly, never dump the raw
 /// viem string (with its "Version: viem@x" tag) into the modal.
-function friendlyError(e: unknown): string {
+function friendlyError(e: unknown, chainCopy: Messages['chainErrors']): string {
+  // An ApiError's detail is written for a person by our own backend, so it is
+  // the one message worth passing through.
   if (e instanceof ApiError) {
     return typeof e.detail === 'string' && e.detail.trim() ? e.detail : e.message;
   }
@@ -61,8 +66,11 @@ function friendlyError(e: unknown): string {
   if (/user rejected|user denied|rejected the request|denied (the )?signature/i.test(msg)) {
     return 'You declined the signature, so the offer was not posted.';
   }
-  const firstLine = msg.split('\n')[0]?.replace(/\s*Version:\s*viem@[\d.]+\s*$/i, '').trim();
-  return firstLine || 'Could not post the offer. Please try again.';
+  // Everything else goes through the shared mapper. It used to return the first
+  // line of the raw message, which put viem's own sentences on the card and,
+  // for a confirmation that had not arrived yet, told the financier their
+  // funding had failed when the transaction was on chain.
+  return chainErrorMessage(e, chainCopy, 'Could not post the offer. Please try again.');
 }
 
 // USDC + KarwanPOFinancing ABIs. Hoisted to module scope per Vercel
@@ -665,6 +673,7 @@ function OfferModal({
   onPosted: (offer: FactoringOffer) => void;
 }) {
   const t = useTranslations().financierDashboard;
+  const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const { data: walletClient } = useWalletClient();
   const face = Number(deal.dealAmountUsdc);
@@ -750,7 +759,7 @@ function OfferModal({
       });
       onPosted(r.offer);
     } catch (e) {
-      setError(friendlyError(e));
+      setError(friendlyError(e, chainCopy));
     } finally {
       setSubmitting(false);
     }
@@ -1099,6 +1108,7 @@ function FundModal({
   onFunded: (line: POFinancingLine) => void;
 }) {
   const t = useTranslations().financierDashboard;
+  const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
@@ -1240,7 +1250,7 @@ function FundModal({
             chain: walletClient.chain,
             account: address,
           });
-          await arcClient.waitForTransactionReceipt({ hash: approveHash });
+          await requireConfirmedTx(arcClient, approveHash, chainCopy.reverted);
         }
 
         // Do not ask the wallet to broadcast a transaction the live contracts
@@ -1276,7 +1286,7 @@ function FundModal({
           chain: walletClient.chain,
           account: address,
         });
-        await arcClient.waitForTransactionReceipt({ hash: fundHash });
+        await requireConfirmedTx(arcClient, fundHash, chainCopy.reverted);
         // Principal has left the financier's wallet in this transaction, so
         // the balance on screen is already stale. Do not make them wait for
         // the backend to tell us what the receipt just did.
@@ -1294,7 +1304,7 @@ function FundModal({
         onFunded(r.line);
       }
     } catch (e) {
-      setError(friendlyError(e));
+      setError(friendlyError(e, chainCopy));
     } finally {
       setSubmitting(false);
       setStep('idle');

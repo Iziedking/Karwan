@@ -12,6 +12,7 @@ import {
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
+import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 
 /// Buyer-side PoD acceptance band. Buyer signs registry.acceptPoD on the
 /// KarwanInvoiceRegistry contract, then the PO financing watcher releases
@@ -108,7 +109,7 @@ function BuyerPodPanelInner({
           chain: walletClient.chain,
           account: address,
         });
-        await arcClient.waitForTransactionReceipt({ hash });
+        await requireConfirmedTx(arcClient, hash, errCopy.reverted);
         // Mirror the off-chain record so the deal page reads delivered
         // immediately without waiting for the next snapshot poll.
         await api.acceptTradePod({

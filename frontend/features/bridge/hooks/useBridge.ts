@@ -10,6 +10,11 @@ import {
 } from 'wagmi';
 import { api, ApiError, type ChainEvent, type AppKitBridgeChainKey } from '@/core/api';
 import {
+  confirmTransaction,
+  isConfirmationPending,
+  requireConfirmedTx,
+} from '@/shared/chain/confirmTx';
+import {
   ARC_TESTNET,
   SOURCE_CHAINS,
   APP_KIT_SOURCES,
@@ -66,6 +71,14 @@ function errorToString(err: unknown): string {
 }
 
 function friendlyBridgeError(err: unknown, source: SourceChainConfig, phase?: BridgePhase): string {
+  // A confirmation that has not arrived says nothing about the transaction. It
+  // used to land in the `timeout` branch below and read as "Request timed out",
+  // or fall through to "did not go through", which is the opposite of what
+  // happened: the transfer is on chain and nobody has watched it long enough.
+  if (isConfirmationPending(err)) {
+    if (phase === 'approving') return 'Approval sent. Waiting for the network. Retry once it lands.';
+    return 'Sent. Waiting for the network to confirm it. Nothing is lost.';
+  }
   const raw = errorToString(err);
   const lower = raw.toLowerCase();
   const rejected =
@@ -771,8 +784,17 @@ export function useBridges() {
             chain: walletClient.chain,
             account: address,
           });
-          await sourcePublicClient.waitForTransactionReceipt({ hash: approveHash });
+          // The hash goes on the record BEFORE the wait, so a retry after a
+          // slow confirmation still has it. The burn beside this needs the
+          // allowance to be readable, so an unconfirmed approve stops the run
+          // rather than signing a burn that would revert; the allowance check
+          // above skips the approve entirely once it lands.
           patch(record.id, (b) => ({ ...b, approveTxHash: approveHash }));
+          await requireConfirmedTx(
+            sourcePublicClient,
+            approveHash,
+            `The approval was rejected on ${source.name}.`,
+          );
         }
 
         activePhase = 'burning';
@@ -793,7 +815,16 @@ export function useBridges() {
           chain: walletClient.chain,
           account: address,
         });
-        await sourcePublicClient.waitForTransactionReceipt({ hash: burnHash });
+        // The burn is what CCTP attests against, and it attests from the chain,
+        // not from our confirmation. So a confirmation we did not see is no
+        // reason to fail the bridge: record the hash and hand it to the relay,
+        // which is what would have happened a second later anyway. Only a revert
+        // stops here. This is the case that stranded real bridges: the burn
+        // landed, the wait expired, and the record was written as failed.
+        const burnOutcome = await confirmTransaction(sourcePublicClient, burnHash);
+        if (burnOutcome.state === 'reverted') {
+          throw new Error(`The burn was rejected on ${source.name}.`);
+        }
         sfx.send();
         activePhase = 'relaying';
         patch(record.id, (b) => ({ ...b, burnTxHash: burnHash, phase: 'relaying' }));
@@ -1767,11 +1798,28 @@ export function useBridges() {
           chain: walletClient.chain,
           account: address,
         });
-        await arcClient.waitForTransactionReceipt({ hash });
+        const outcome = await confirmTransaction(arcClient, hash);
+        if (outcome.state === 'reverted') {
+          // Handled here rather than thrown, so the hash lands on the record and
+          // the shared catch below is not asked to tell a revert apart from a
+          // declined signature by pattern-matching a string.
+          patch(id, (b) => ({
+            ...b,
+            phase: 'error',
+            burnTxHash: hash,
+            error: 'The network rejected this send. Nothing was charged.',
+          }));
+          return;
+        }
         // Same-chain transfer: the single tx is both the burn and the mint.
+        //
+        // An unconfirmed send is recorded and left relaying rather than called
+        // done or called failed. Both hashes still go down, so the movement the
+        // backend opens below can be settled from the chain; claiming 'done'
+        // here would put a settled receipt behind a send nobody has confirmed.
         patch(id, (b) => ({
           ...b,
-          phase: 'done',
+          phase: outcome.state === 'success' ? 'done' : 'relaying',
           mintTxHash: hash,
           burnTxHash: hash,
           error: undefined,

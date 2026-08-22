@@ -15,6 +15,7 @@ import {
   type AssistantConfirmAction,
 } from '@/core/api';
 import { stripMarkdown } from '@/shared/utils/format';
+import { confirmTransaction } from '@/shared/chain/confirmTx';
 import {
   ARC_EXPLORER_TX,
   ARC_CHAIN_ID,
@@ -1102,13 +1103,12 @@ function ConfirmCard({
         chain: walletClient.chain,
         account: wagmiAddress,
       });
-      const receipt = await arcPublicClient.waitForTransactionReceipt({
-        hash: txHash,
-        timeout: 60_000,
-        pollingInterval: 1500,
-        retryCount: 8,
-      });
-      if (receipt.status !== 'success') throw new Error('Transaction reverted on chain');
+      // A confirmation that has not arrived is not a rejection. The transfer is
+      // on chain and the backend verifies it from the hash, so hand the hash
+      // over either way; only a revert stops here. The 60 second wait used to
+      // throw its own timeout, which reported a landed transfer as failed.
+      const outcome = await confirmTransaction(arcPublicClient, txHash);
+      if (outcome.state === 'reverted') throw new Error('The network rejected this transfer.');
       await api.fundAgentWeb3Complete({
         address: wagmiAddress,
         agent: input.agent,

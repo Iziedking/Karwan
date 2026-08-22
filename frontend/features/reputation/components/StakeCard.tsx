@@ -13,6 +13,7 @@ import { useGuide } from '@/shared/guide/GuideProvider';
 import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
+import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
@@ -142,6 +143,7 @@ const TIER_TONE: Record<
 /// Profile tour (which already mentions staking) doesn't collide with it.
 export function StakeCard({ tour = true }: { tour?: boolean }) {
   const sc = useTranslations().stakeCard;
+  const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const address = auth.address as `0x${string}` | undefined;
   const isCircleUser = auth.method === 'circle';
@@ -324,7 +326,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           chain: walletClient.chain,
           account: address,
         });
-        await arcClient.waitForTransactionReceipt({ hash: approvalTxHash });
+        await requireConfirmedTx(arcClient, approvalTxHash, chainCopy.reverted);
         const depositHash = await walletClient.writeContract({
           address: KARWAN_VAULT_ADDRESS,
           abi: vaultAbi,
@@ -333,7 +335,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           chain: walletClient.chain,
           account: address,
         });
-        await arcClient.waitForTransactionReceipt({ hash: depositHash });
+        await requireConfirmedTx(arcClient, depositHash, chainCopy.reverted);
         const completed = await api.vaultDepositComplete({
           address,
           amountUsdc: depositAmount,
@@ -346,7 +348,15 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       recordAction('stake-deposit');
       deposited = true;
     } catch (err) {
-      patchLog(logId, { status: 'failed', error: (err as Error).message });
+      if (isConfirmationPending(err)) {
+        // Not a failure. The transaction is on chain and its confirmation has
+        // not been seen yet, so the row keeps its pending status and gains the
+        // hash. Marking it failed here is a lie that outlives the transaction:
+        // the money has moved and no later read corrects the record.
+        patchLog(logId, { txHash: err.txHash });
+      } else {
+        patchLog(logId, { status: 'failed', error: (err as Error).message });
+      }
     } finally {
       setBusyKind(null);
     }
@@ -491,12 +501,16 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             chain: walletClient.chain,
             account: address,
           });
-          await arcClient.waitForTransactionReceipt({ hash });
+          await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
           const completed = await api.vaultActionComplete({ address, positionId: p.positionId, action: 'requestWithdraw', requestId, txHash: hash });
           patchLog(logId, { status: 'done', txHash: hash, reference: completed.reference });
         }
       } catch (err) {
-        patchLog(logId, { status: 'failed', error: (err as Error).message });
+        if (isConfirmationPending(err)) {
+          patchLog(logId, { txHash: err.txHash });
+        } else {
+          patchLog(logId, { status: 'failed', error: (err as Error).message });
+        }
         // Don't continue cooling more positions after a failure; the user
         // can re-try with the remaining amount.
         break;
@@ -571,12 +585,16 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             chain: walletClient.chain,
             account: address,
           });
-          await arcClient.waitForTransactionReceipt({ hash });
+          await requireConfirmedTx(arcClient, hash, chainCopy.reverted);
           const completed = await api.vaultActionComplete({ address, positionId, action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim', requestId, txHash: hash });
           patchLog(logId, { status: 'done', txHash: hash, reference: completed.reference });
         }
       } catch (err) {
-        patchLog(logId, { status: 'failed', error: (err as Error).message });
+        if (isConfirmationPending(err)) {
+          patchLog(logId, { txHash: err.txHash });
+        } else {
+          patchLog(logId, { status: 'failed', error: (err as Error).message });
+        }
         setBusyKind(null);
         return;
       }
@@ -590,7 +608,7 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         /* the polling cadence picks it up */
       }
     },
-    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays, sc],
+    [address, isCircleUser, chainId, switchToArc, walletClient, arcClient, refetchPositions, refetchRep, pushLog, patchLog, cooldownDays, sc, chainCopy],
   );
 
   // -------------------- derived --------------------
