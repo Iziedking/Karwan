@@ -1,11 +1,16 @@
 import { createWalletClient, parseUnits, formatUnits, erc20Abi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet, arcTransport } from './client.js';
+import { arcTestnet, arcTransport, publicClient } from './client.js';
 import { usdc, readUsdcBalance } from './contracts.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { appendActivity } from '../db/activityLog.js';
+import { ensureAgentFundingMovement, prepareAgentFundingLeg } from '../money/agentFunding.js';
+import {
+  completeMoneyMovement,
+  verifyMoneyMovementLeg,
+} from '../money/service.js';
 
 const USDC_DECIMALS = 6;
 
@@ -74,6 +79,29 @@ export async function seedAgentFromOperator(
     }
 
     const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
+    const movement = meta
+      ? await ensureAgentFundingMovement({
+          // The observed balance is part of the logical seed cycle. A later
+          // refill after the agent spends funds must receive a new KWN
+          // movement, while a retry before the balance changes reuses the
+          // same movement and cannot double-submit.
+          operationKey: `agent-seed:${ownerKey(meta.owner)}:${meta.agent}:${to.toLowerCase()}:${have.toString()}:${value.toString()}`,
+          amountUsdc: String(amount),
+          initiatedBy: meta.owner,
+          sourceAddress: account.address,
+          destinationAddress: to,
+          summary: `Karwan seeded your ${meta.agent} agent with ${amount} USDC to cover its first transactions`,
+        })
+      : null;
+    const plannedLeg = movement
+      ? await prepareAgentFundingLeg(movement.movement.reference, {
+          sourceAddress: account.address,
+          destinationAddress: to,
+          amountMicros: value,
+          signerAddress: account.address,
+          contractAddress: usdc,
+        })
+      : null;
     const txHash = await runOnOperator(() =>
       wallet.writeContract({
         account,
@@ -84,6 +112,38 @@ export async function seedAgentFromOperator(
         args: [to, value],
       }),
     );
+    if (plannedLeg) {
+      await plannedLeg.lifecycle.onSubmitted?.({ txId: txHash, estimatedFee: null });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== 'success') {
+        await plannedLeg.lifecycle.onFailed?.({
+          txId: txHash,
+          state: 'FAILED',
+          error: new Error('agent seed transaction reverted on Arc'),
+        });
+        return { ok: false, txHash, reason: 'agent seed transaction reverted' };
+      }
+      await plannedLeg.lifecycle.onConfirmed?.({
+        txId: txHash,
+        txHash,
+        explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`,
+      });
+      await verifyMoneyMovementLeg(movement!.movement.reference, plannedLeg.leg.id, {
+        amountMicros: value,
+      });
+      const completed = await completeMoneyMovement(movement!.movement.reference, {
+        amountMicros: value,
+      });
+      await appendActivity({
+        id: `agent-seed:${txHash}`,
+        address: meta!.owner,
+        kind: 'agent_seed',
+        summary: completed.summary,
+        amountUsdc: String(amount),
+        txHash,
+        refId: completed.reference,
+      });
+    }
     logger.info({ to, amountUsdc: amount, txHash }, 'agent seeded from operator wallet');
     if (meta) {
       const owner = meta.owner.toLowerCase();
@@ -99,18 +159,14 @@ export async function seedAgentFromOperator(
           seed: true,
         },
       });
-      void appendActivity({
-        address: owner,
-        kind: 'agent_seed',
-        summary: `Karwan seeded your ${meta.agent} agent with ${amount} USDC to cover its first transactions`,
-        params: {t: 'seededByKarwan', agent: String(meta.agent), amount: String(amount)},
-        amountUsdc: String(amount),
-        txHash,
-      });
     }
     return { ok: true, txHash };
   } catch (err) {
     logger.warn({ to, err: (err as Error).message }, 'agent seed transfer failed');
     return { ok: false, reason: (err as Error).message };
   }
+}
+
+function ownerKey(owner: string): string {
+  return owner.trim().toLowerCase();
 }

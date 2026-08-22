@@ -1,4 +1,5 @@
 import { parseAbiItem, formatUnits, type Hex } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { publicClient } from './client.js';
 import { usdc as USDC_ADDR } from './contracts.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
@@ -7,6 +8,10 @@ import { config } from '../config.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
+import {
+  observedArcDepositOperationKey,
+  recordObservedArcDeposit,
+} from '../money/observedDeposit.js';
 
 // USDC on Arc is exposed both as a 6-decimal ERC-20 and an 18-decimal native
 // asset. Transfer events emit at 6 decimals on the ERC-20 surface, which is
@@ -61,10 +66,20 @@ const PLATFORM_SENDERS: ReadonlySet<string> = new Set(
     config.KARWAN_TREASURY_USYC_ADDR,
     config.KARWAN_TREASURY_V3_ADDR,
     config.KARWAN_YIELD_DISTRIBUTOR_ADDR,
+    seedOperatorAddress(),
   ]
     .filter((a): a is string => !!a)
     .map((a) => a.toLowerCase()),
 );
+
+function seedOperatorAddress(): string | undefined {
+  if (!config.AGENT_SEED_PRIVATE_KEY) return undefined;
+  try {
+    return privateKeyToAccount(config.AGENT_SEED_PRIVATE_KEY as `0x${string}`).address;
+  } catch {
+    return undefined;
+  }
+}
 
 type WalletRole = 'identity' | 'buyerAgent' | 'sellerAgent';
 
@@ -157,6 +172,10 @@ function roleLabel(role: WalletRole): string {
   return 'seller agent wallet';
 }
 
+function observedRole(role: WalletRole): 'identity' | 'buyerAgent' | 'sellerAgent' {
+  return role;
+}
+
 async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> {
   if (fromBlock > toBlock) return;
   const reg = await refreshRegistry();
@@ -203,7 +222,10 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
     const amountUsdc = Number(amountExact);
     if (!Number.isFinite(amountUsdc) || amountUsdc < MIN_NOTIFY_USDC) continue;
 
-    const txHash = log.transactionHash ?? '0x';
+    // A receipt hash is mandatory for a completed MoneyMovement. A malformed
+    // provider log without one is not safe to project as a Karwan receipt.
+    const txHash = log.transactionHash;
+    if (!txHash) continue;
     const logIndex = log.logIndex ?? 0;
     const dedupeKey = `${txHash}:${logIndex}`;
 
@@ -223,34 +245,44 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
         },
       });
 
-      // Money landing on Arc from outside the platform is a deposit, and until
-      // now it was announced once and then forgotten. The transaction history
-      // is written by the routes that move money, and nothing routes a faucet
-      // drip or a transfer someone sends themselves from an exchange, so a
-      // deposit made straight onto Arc left no trace in it at all.
-      //
-      // Three conditions keep this from double-counting. Only the identity
-      // wallet, because an agent wallet is funded from the identity wallet and
-      // that top-up writes its own row. Only when the sender is not one of our
-      // wallets, which excludes every internal transfer. And only when the
-      // sender is not a platform contract, which excludes releases, refunds,
-      // stake returns and bridge mints.
-      //
-      // The id is derived from the transfer, not random: the watcher rescans
-      // the last 600 blocks on every restart, and a random id would append the
-      // same deposit again on each one.
-      if (recipient.role === 'identity' && !sender && !PLATFORM_SENDERS.has(from)) {
-        void appendActivity({
-          id: `arc-credit:${dedupeKey}`,
-          address: recipient.owner,
-          kind: 'deposit',
-          // No origin chain, deliberately. This arrived on Arc, which is where
-          // it was already going.
-          summary: `Deposited ${amountExact} USDC`,
-          params: { t: 'depositCredited', amount: amountExact },
-          amountUsdc: amountExact,
-          txHash,
-        });
+      // Money landing on Arc from outside the platform is a deposit. Record
+      // every tracked destination (identity, buyer agent, or seller agent),
+      // not only the identity wallet. The immutable transfer log is the
+      // operation key, so a watcher restart cannot create a second receipt.
+      // Internal wallet transfers and platform-owned sends are intentionally
+      // left to their route-specific movement writers below.
+      if (!sender && !PLATFORM_SENDERS.has(from)) {
+        const ledgerKey = `ledger:${observedArcDepositOperationKey(txHash, logIndex)}`;
+        if (rememberTransfer(ledgerKey)) {
+          void recordObservedArcDeposit({
+            txHash,
+            logIndex,
+            amountMicros: value,
+            owner: recipient.owner,
+            sourceAddress: from,
+            destinationAddress: recipient.address,
+            walletRole: observedRole(recipient.role),
+          })
+            .then((movement) =>
+              appendActivity({
+                id: `arc-credit:${dedupeKey}`,
+                address: recipient.owner,
+                kind: 'deposit',
+                summary: movement.summary,
+                amountUsdc: amountExact,
+                txHash,
+                refId: movement.reference,
+              }),
+            )
+            .catch((err) => {
+              // Allow a later poll/replay to retry a transient database error.
+              seenTransfers.delete(ledgerKey);
+              logger.warn(
+                { err: (err as Error).message, txHash, logIndex },
+                'balance watcher: observed deposit ledger write failed',
+              );
+            });
+        }
       }
       continue;
     }
