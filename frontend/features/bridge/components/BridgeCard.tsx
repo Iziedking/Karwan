@@ -853,7 +853,7 @@ export function BridgeCard({
               className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
-                color: 'var(--lp-dark)',
+                color: 'var(--accent-ink)',
                 borderTopLeftRadius: 14,
                 borderTopRightRadius: 14,
                 borderBottomLeftRadius: 14,
@@ -877,7 +877,7 @@ export function BridgeCard({
               className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
-                color: 'var(--lp-dark)',
+                color: 'var(--accent-ink)',
                 borderTopLeftRadius: 14,
                 borderTopRightRadius: 14,
                 borderBottomLeftRadius: 14,
@@ -1164,7 +1164,7 @@ export function BridgeRow({
                 className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors"
                 style={{
                   background: 'var(--lp-accent)',
-                  color: 'var(--lp-dark)',
+                  color: 'var(--accent-ink)',
                   borderTopLeftRadius: 8,
                   borderTopRightRadius: 8,
                   borderBottomLeftRadius: 8,

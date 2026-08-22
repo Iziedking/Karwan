@@ -200,7 +200,7 @@ export function DepositCard() {
             className="group mt-4 inline-flex items-center gap-2 px-5 py-3 mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors"
             style={{
               background: copied ? 'var(--lp-band-dark)' : 'var(--lp-accent)',
-              color: copied ? 'white' : 'var(--lp-dark)',
+              color: copied ? 'white' : 'var(--accent-ink)',
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
               borderBottomLeftRadius: 10,

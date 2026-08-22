@@ -402,7 +402,7 @@ export function BridgeOutCard() {
               className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               style={{
                 background: 'var(--lp-accent)',
-                color: 'var(--lp-dark)',
+                color: 'var(--accent-ink)',
                 borderTopLeftRadius: 14,
                 borderTopRightRadius: 14,
                 borderBottomLeftRadius: 14,

@@ -1150,7 +1150,7 @@ function RoleCard({
               style={{
                 background:
                   tone === 'accent' ? 'var(--lp-band-dark)' : 'var(--lp-accent)',
-                color: tone === 'accent' ? 'var(--lp-accent)' : 'var(--lp-dark)',
+                color: tone === 'accent' ? 'var(--lp-accent)' : 'var(--accent-ink)',
                 borderRadius: 3,
               }}
             >

@@ -575,7 +575,7 @@ export function GatewayBalanceCard() {
               className="px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               style={{
                 background: 'var(--lp-accent)',
-                color: 'var(--lp-dark)',
+                color: 'var(--accent-ink)',
                 borderTopLeftRadius: 12,
                 borderTopRightRadius: 12,
                 borderBottomLeftRadius: 12,
@@ -796,7 +796,7 @@ export function GatewayBalanceCard() {
             className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
             style={{
               background: 'var(--lp-accent)',
-              color: 'var(--lp-dark)',
+              color: 'var(--accent-ink)',
               border: 'none',
               borderRadius: 12,
             }}

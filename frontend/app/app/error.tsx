@@ -43,7 +43,7 @@ export default function AppError({
             className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 transition-colors"
             style={{
               background: 'var(--lp-accent)',
-              color: 'var(--lp-dark)',
+              color: 'var(--accent-ink)',
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
               borderBottomLeftRadius: 10,
