@@ -125,6 +125,10 @@ export type KarwanEventType =
   /// Yield paid out to a staker. Carries `address` (the claimant) so the SSE
   /// projection recognises it as their own money.
   | 'yield.claimed'
+  /// The daily distribution crediting one staker. Distinct from
+  /// 'yield.claimed', which is the staker taking the credit out: yield accrues
+  /// without anyone doing anything, and that arrival is what had no alert.
+  | 'yield.credited'
   | 'cashout.arc.completed'
   /// Unified-balance movements. Each carries `address` (the account whose money
   /// moved) so the SSE projection reads it as their own and hands it over in

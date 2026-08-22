@@ -112,6 +112,9 @@ const MONEY_DIRECT_OWNER_KEY: Record<string, 'address' | 'user'> = {
   'agent.funded': 'user',
   'agent.withdrawal': 'user',
   'yield.claimed': 'address',
+  // Yield ARRIVING, from the daily distribution. It used to land silently: the
+  // number on /stake had grown and nothing said so.
+  'yield.credited': 'address',
   // Unified-balance moves: deposits in, agent funding out, cash-outs off Arc.
   'gateway.deposited': 'address',
   'gateway.agent.funded': 'address',

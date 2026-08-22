@@ -320,6 +320,15 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         });
         await arcClient.waitForTransactionReceipt({ hash: depositHash });
         patchLog(logId, { status: 'done', txHash: depositHash });
+        // Staking is a money path, so it belongs in transaction history and it
+        // should raise an alert like every other movement. A wallet-signed
+        // deposit is invisible to the backend until we say so: the position
+        // showed up on this page and nowhere else. Best-effort on purpose, the
+        // money has already moved and a failed record must not read as a failed
+        // stake; the row is keyed to the hash so a later retry lands once.
+        void api
+          .recordStake({ address, amountUsdc: depositAmount, txHash: depositHash })
+          .catch(() => undefined);
       }
       recordAction('stake-deposit');
       deposited = true;

@@ -2419,6 +2419,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, ...names }),
     }),
+  /// Record a stake a web3 wallet signed for itself. The Circle path records
+  /// itself server-side; a wallet-signed deposit is invisible to the backend
+  /// until this call, which is why staking was missing from transaction history
+  /// and raised no alert. Verified against the chain before anything is written.
+  recordStake: (body: { address: string; amountUsdc: number | string; txHash: string }) =>
+    json<{ recorded: boolean }>('/api/vault/record-stake', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   withdrawFromAgent: (body: {
     address: string;
     agent: 'buyer' | 'seller';

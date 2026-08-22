@@ -71,6 +71,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { arcChain as buildArcChain, arcRpcUrls, arcTransport } from './arcRpc.js';
+import { appendActivity } from '../db/activityLog.js';
+import { bus } from '../events.js';
 import 'dotenv/config';
 
 const FLAGS = new Set(process.argv.slice(2));
@@ -489,6 +491,37 @@ async function run(): Promise<void> {
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash: creditHash });
   console.log(`bulkCredit tx: ${creditHash} (block ${receipt.blockNumber})`);
+
+  // ── 5b. Tell each staker ───────────────────────────────────────────
+  //
+  // The credit landed on chain and nobody was told. A staker's yield appeared
+  // as a number that had quietly grown on /stake: no row in transaction
+  // history, which is the one surface that is supposed to hold every movement,
+  // and no alert. Yield is money arriving, so it gets both.
+  //
+  // Keyed on the tx hash and the owner, so a re-run of the same distribution
+  // cannot pay a staker twice in their history. Best-effort per staker: a
+  // failed row must never make a landed credit look unpaid.
+  for (let i = 0; i < stakers.length; i += 1) {
+    const owner = stakers[i]!;
+    const micros = amounts[i] ?? 0n;
+    if (micros <= 0n) continue;
+    const amountUsdc = formatUnits(micros, USDC_DECIMALS);
+    void appendActivity({
+      id: `yield-credit:${creditHash.toLowerCase()}:${owner.toLowerCase()}`,
+      address: owner,
+      kind: 'yield_claim',
+      summary: `Earned ${amountUsdc} USDC of staking yield`,
+      params: { t: 'yieldAccrued', amount: amountUsdc },
+      amountUsdc,
+      txHash: creditHash,
+    });
+    bus.emitEvent({
+      type: 'yield.credited',
+      actor: 'platform',
+      payload: { address: owner.toLowerCase(), amountUsdc, txHash: creditHash },
+    });
+  }
 
   // ── 6. Persist daily lockout ───────────────────────────────────────
   saveState({
