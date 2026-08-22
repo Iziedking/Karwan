@@ -29,6 +29,12 @@ import { config } from '../config.js';
 import { bus } from '../events.js';
 import { shouldHoldPOFunding } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
+import {
+  financingOperationKey,
+  readEscrowAssignmentPaid,
+  recordEscrowAssignedFinancingMovement,
+  recordVerifiedFinancingMovement,
+} from '../money/financing.js';
 
 const USDC_DECIMALS = 6;
 
@@ -270,7 +276,6 @@ poFinancingRoutes.get('/stake-policy', async (c) => {
       'po stake policy: on-chain floor read failed; suggesting the tier figure alone',
     );
   }
-
   const raisedByContractFloor =
     onChainFloorUsdc !== null && Number(onChainFloorUsdc) > Number(suggestion.suggestedStakeUsdc);
   const suggestedStakeUsdc = raisedByContractFloor
@@ -363,6 +368,25 @@ poFinancingRoutes.post('/fund', async (c) => {
       502,
     );
   }
+  let advanceReference: string;
+  try {
+    const movement = await recordVerifiedFinancingMovement({
+      operationKey: financingOperationKey('po', body.invoiceId, 'advance', body.fundTxHash),
+      kind: 'financing_advance',
+      positionId: body.invoiceId,
+      amountUsdc: body.principalUsdc,
+      initiatedBy: financier,
+      sourceAddress: financier,
+      destinationAddress: deal.seller,
+      txHash: body.fundTxHash,
+      contractAddress: config.KARWAN_PO_FINANCING_ADDR,
+      summary: `Purchase-order advance of ${body.principalUsdc} USDC on ${body.invoiceId}`,
+    });
+    advanceReference = movement.reference;
+  } catch (err) {
+    return c.json({ error: 'PO funding was confirmed but its Karwan receipt could not be reconciled', detail: (err as Error).message }, 502);
+  }
+
   const line = await createPOLine({
     id: randomUUID(),
     invoiceId: body.invoiceId,
@@ -403,6 +427,7 @@ poFinancingRoutes.post('/fund', async (c) => {
     txHash: body.fundTxHash,
     jobId: body.invoiceId,
     counterparty: deal.seller?.toLowerCase(),
+    refId: advanceReference,
   });
   if (deal.seller) {
     void appendActivity({
@@ -414,6 +439,7 @@ poFinancingRoutes.post('/fund', async (c) => {
       txHash: body.fundTxHash,
       jobId: body.invoiceId,
       counterparty: financier?.toLowerCase(),
+      refId: advanceReference,
     });
   }
 
@@ -426,7 +452,7 @@ poFinancingRoutes.post('/fund', async (c) => {
     },
     'po-financing: funded',
   );
-  return c.json({ line });
+  return c.json({ line, reference: advanceReference, movementState: 'completed' });
 });
 
 const fundCircleBodySchema = z.object({
@@ -565,6 +591,24 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       stakeWei,
     );
 
+    let advanceReference: string;
+    try {
+      const movement = await recordVerifiedFinancingMovement({
+        operationKey: financingOperationKey('po', body.invoiceId, 'advance', fundResult.txHash),
+        kind: 'financing_advance',
+        positionId: body.invoiceId,
+        amountUsdc: body.principalUsdc,
+        initiatedBy: caller,
+        sourceAddress: caller,
+        destinationAddress: deal.seller,
+        txHash: fundResult.txHash,
+        contractAddress: financingAddr,
+        summary: `Purchase-order advance of ${body.principalUsdc} USDC on ${body.invoiceId}`,
+      });
+      advanceReference = movement.reference;
+    } catch (err) {
+      return c.json({ error: 'PO funding was confirmed but its Karwan receipt could not be reconciled', detail: (err as Error).message }, 502);
+    }
     const now = Date.now();
     const line = await createPOLine({
       id: randomUUID(),
@@ -605,6 +649,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       txHash: fundResult.txHash,
       jobId: body.invoiceId,
       counterparty: deal.seller?.toLowerCase(),
+      refId: advanceReference,
     });
     if (deal.seller) {
       void appendActivity({
@@ -616,6 +661,7 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
         txHash: fundResult.txHash,
         jobId: body.invoiceId,
         counterparty: caller?.toLowerCase(),
+        refId: advanceReference,
       });
     }
 
@@ -634,6 +680,8 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
       line,
       approveTxHash: approveResult.txHash,
       fundTxHash: fundResult.txHash,
+      reference: advanceReference,
+      movementState: 'completed',
     });
   } catch (err) {
     logger.error(
@@ -729,6 +777,50 @@ poFinancingRoutes.post('/claim', async (c) => {
     );
   }
 
+  const repaymentReferences: Array<{ reference: string; amountUsdc: string; txHash: string }> = [];
+  try {
+    let alreadyPaid = 0n;
+    try {
+      alreadyPaid = await readEscrowAssignmentPaid(line.invoiceId);
+    } catch {
+      // Legacy escrow deployments have no assignment view; the claim receipt
+      // remains the only repayment proof in that environment.
+    }
+    const repayAtomic = parseUnits(line.repayUsdc, USDC_DECIMALS);
+    const escrowPaid = alreadyPaid > repayAtomic ? repayAtomic : alreadyPaid;
+    const shortfall = repayAtomic - escrowPaid;
+    if (escrowPaid > 0n) {
+      const assigned = await recordEscrowAssignedFinancingMovement({
+        operationKey: financingOperationKey('po', line.id, 'repayment-escrow', `escrow:${line.invoiceId}:${escrowPaid}`),
+        positionId: line.invoiceId,
+        amountMicros: escrowPaid,
+        initiatedBy: line.financier,
+        financierAddress: line.financier,
+        jobId: line.invoiceId,
+        summary: `Purchase-order repayment of ${formatUnits(escrowPaid, USDC_DECIMALS)} USDC from escrow on ${line.invoiceId}`,
+      });
+      repaymentReferences.push({ reference: assigned.movement.reference, amountUsdc: formatUnits(escrowPaid, USDC_DECIMALS), txHash: assigned.txHash });
+    }
+    if (shortfall > 0n) {
+      const direct = await recordVerifiedFinancingMovement({
+        operationKey: financingOperationKey('po', line.id, 'repayment', body.repayTxHash),
+        kind: 'financing_repayment',
+        positionId: line.invoiceId,
+        amountUsdc: formatUnits(shortfall, USDC_DECIMALS),
+        initiatedBy: line.financier,
+        sourceAddress: line.seller,
+        destinationAddress: line.financier,
+        txHash: body.repayTxHash,
+        contractAddress: config.KARWAN_PO_FINANCING_ADDR,
+        summary: `Purchase-order repayment of ${formatUnits(shortfall, USDC_DECIMALS)} USDC on ${line.invoiceId}`,
+      });
+      repaymentReferences.push({ reference: direct.reference, amountUsdc: formatUnits(shortfall, USDC_DECIMALS), txHash: body.repayTxHash });
+    }
+    if (repaymentReferences.length === 0) throw new Error('claim completed without an escrow or seller repayment transfer');
+  } catch (err) {
+    return c.json({ error: 'repayment was confirmed but its Karwan receipt could not be reconciled', detail: (err as Error).message }, 502);
+  }
+
   const updated = await patchPOLine(line.id, {
     state: 'repaid',
     repaidAt: Date.now(),
@@ -747,17 +839,20 @@ poFinancingRoutes.post('/claim', async (c) => {
     },
   });
   // The financier's principal plus spread coming back.
-  void appendActivity({
-    address: line.financier,
-    kind: 'financing_repaid',
-    summary: `Repaid ${line.repayUsdc} USDC on purchase-order financing ${line.invoiceId}`,
-    params: { t: 'financingRepaid', amount: String(line.repayUsdc), job: String(line.invoiceId) },
-    amountUsdc: line.repayUsdc,
-    txHash: body.repayTxHash,
-    jobId: line.invoiceId,
-    counterparty: line.seller?.toLowerCase(),
-  });
-  return c.json({ line: updated });
+  for (const repayment of repaymentReferences) {
+    void appendActivity({
+      address: line.financier,
+      kind: 'financing_repaid',
+      summary: `Repaid ${repayment.amountUsdc} USDC on purchase-order financing ${line.invoiceId}`,
+      params: { t: 'financingRepaid', amount: repayment.amountUsdc, job: String(line.invoiceId) },
+      amountUsdc: repayment.amountUsdc,
+      txHash: repayment.txHash,
+      jobId: line.invoiceId,
+      counterparty: line.seller?.toLowerCase(),
+      refId: repayment.reference,
+    });
+  }
+  return c.json({ line: updated, reference: repaymentReferences[0]!.reference, references: repaymentReferences.map((item) => item.reference), movementState: 'completed' });
 });
 
 /// POST /api/po-financing/default: financier writes off the line after

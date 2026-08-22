@@ -21,7 +21,7 @@
 /// MAX_REPAY_ATTEMPTS (most often the seller moved their settlement out before
 /// the watcher fired). The off-chain dispute path pursues remediation.
 
-import { parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
 import {
   listOpenLines,
   getPOLineForInvoice,
@@ -37,6 +37,12 @@ import { addSystemMessage } from '../chat/systemMessages.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
+import {
+  financingOperationKey,
+  readEscrowAssignmentPaid,
+  recordEscrowAssignedFinancingMovement,
+  recordVerifiedFinancingMovement,
+} from '../money/financing.js';
 
 const TICK_MS = Number(process.env.PO_WATCHER_TICK_MS ?? 60_000);
 const MAX_REPAY_ATTEMPTS = 5;
@@ -90,6 +96,48 @@ async function repayLine(line: POFinancingLine): Promise<void> {
     `poFinancing.claimRepayment(${line.invoiceId})`,
   );
 
+  const repayAtomic = parseUnits(line.repayUsdc, USDC_DECIMALS);
+  let alreadyPaid = 0n;
+  try {
+    alreadyPaid = await readEscrowAssignmentPaid(line.invoiceId);
+  } catch {
+    // Older escrow deployments have no assignment view. In that case the
+    // claim receipt itself remains the only usable repayment proof.
+  }
+  const escrowPaid = alreadyPaid > repayAtomic ? repayAtomic : alreadyPaid;
+  const shortfall = repayAtomic - escrowPaid;
+  const repaymentMovements: Array<{ reference: string; amountUsdc: string; txHash: string }> = [];
+  if (escrowPaid > 0n) {
+    const assigned = await recordEscrowAssignedFinancingMovement({
+      operationKey: financingOperationKey('po', line.id, 'repayment-escrow', `escrow:${line.invoiceId}:${escrowPaid}`),
+      positionId: line.invoiceId,
+      amountMicros: escrowPaid,
+      initiatedBy: line.financier,
+      financierAddress: line.financier,
+      jobId: line.invoiceId,
+      summary: `Purchase-order repayment of ${formatUnits(escrowPaid, USDC_DECIMALS)} USDC from escrow on ${line.invoiceId}`,
+    });
+    repaymentMovements.push({ reference: assigned.movement.reference, amountUsdc: formatUnits(escrowPaid, USDC_DECIMALS), txHash: assigned.txHash });
+  }
+  if (shortfall > 0n) {
+    const direct = await recordVerifiedFinancingMovement({
+      operationKey: financingOperationKey('po', line.id, 'repayment', r.txHash),
+      kind: 'financing_repayment',
+      positionId: line.invoiceId,
+      amountUsdc: formatUnits(shortfall, USDC_DECIMALS),
+      initiatedBy: line.financier,
+      sourceAddress: line.seller,
+      destinationAddress: line.financier,
+      txHash: r.txHash,
+      contractAddress: poAddr,
+      summary: `Purchase-order repayment of ${formatUnits(shortfall, USDC_DECIMALS)} USDC on ${line.invoiceId}`,
+    });
+    repaymentMovements.push({ reference: direct.reference, amountUsdc: formatUnits(shortfall, USDC_DECIMALS), txHash: r.txHash });
+  }
+  if (repaymentMovements.length === 0) {
+    throw new Error('PO claim completed without an escrow or seller repayment transfer');
+  }
+
   await patchPOLine(line.id, {
     state: 'repaid',
     repaidAt: Date.now(),
@@ -113,16 +161,19 @@ async function repayLine(line: POFinancingLine): Promise<void> {
   // The watcher path claims repayment on chain without any route running, so
   // the financier's ledger row has to be written here too or an auto-claimed
   // repayment leaves no trace in their history.
-  void appendActivity({
-    address: line.financier,
-    kind: 'financing_repaid',
-    summary: `Repaid ${line.repayUsdc} USDC on purchase-order financing ${line.invoiceId}`,
-    params: { t: 'financingRepaid', amount: String(line.repayUsdc), job: String(line.invoiceId) },
-    amountUsdc: line.repayUsdc,
-    txHash: r.txHash,
-    jobId: line.invoiceId,
-    counterparty: line.seller?.toLowerCase(),
-  });
+  for (const repayment of repaymentMovements) {
+    void appendActivity({
+      address: line.financier,
+      kind: 'financing_repaid',
+      summary: `Repaid ${repayment.amountUsdc} USDC on purchase-order financing ${line.invoiceId}`,
+      params: { t: 'financingRepaid', amount: repayment.amountUsdc, job: String(line.invoiceId) },
+      amountUsdc: repayment.amountUsdc,
+      txHash: repayment.txHash,
+      jobId: line.invoiceId,
+      counterparty: line.seller?.toLowerCase(),
+      refId: repayment.reference,
+    });
+  }
 
   logger.info(
     { lineId: line.id, invoiceId: line.invoiceId, financier: line.financier, repayTxHash: r.txHash },

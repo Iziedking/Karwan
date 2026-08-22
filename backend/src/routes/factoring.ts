@@ -36,6 +36,7 @@ import { bus } from '../events.js';
 import { appendActivity } from '../db/activityLog.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
+import { financingOperationKey, recordVerifiedFinancingMovement } from '../money/financing.js';
 
 /// Invoice factoring routes.
 ///
@@ -956,6 +957,26 @@ factoringRoutes.post('/accept', async (c) => {
       );
     }
 
+    let advanceReference: string;
+    try {
+      const movement = await recordVerifiedFinancingMovement({
+        operationKey: financingOperationKey('factoring', offer.id, 'advance', advanceTxHash),
+        kind: 'financing_advance',
+        positionId: offer.invoiceId,
+        amountUsdc: offer.offeredAdvanceUsdc,
+        initiatedBy: seller,
+        sourceAddress: offer.financier,
+        destinationAddress: seller,
+        txHash: advanceTxHash,
+        contractAddress: registryAddr,
+        summary: `Financing advance of ${offer.offeredAdvanceUsdc} USDC for invoice ${offer.invoiceId}`,
+      });
+      advanceReference = movement.reference;
+    } catch (err) {
+      logger.warn({ offerId: offer.id, advanceTxHash, err: (err as Error).message }, 'factoring: advance receipt could not be mapped to a Karwan movement');
+      return c.json({ error: 'advance was confirmed but its Karwan receipt could not be reconciled', advanceTxHash }, 502);
+    }
+
     const now = Date.now();
     // Compare-and-set: the flip only lands while the offer is still
     // 'offered', so a racing duplicate accept (multi-tab, replay, a second
@@ -1008,6 +1029,7 @@ factoringRoutes.post('/accept', async (c) => {
       txHash: advanceTxHash,
       jobId: offer.invoiceId,
       counterparty: seller?.toLowerCase(),
+      refId: advanceReference,
     });
     void appendActivity({
       address: seller,
@@ -1022,6 +1044,7 @@ factoringRoutes.post('/accept', async (c) => {
       txHash: advanceTxHash,
       jobId: offer.invoiceId,
       counterparty: offer.financier?.toLowerCase(),
+      refId: advanceReference,
     });
 
     logger.info(
@@ -1034,7 +1057,7 @@ factoringRoutes.post('/accept', async (c) => {
       },
       'factoring: offer accepted, advance paid',
     );
-    return c.json({ offer: accepted });
+    return c.json({ offer: accepted, reference: advanceReference, movementState: 'completed' });
   } finally {
     acceptingInvoices.delete(offer.invoiceId);
   }

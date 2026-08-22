@@ -216,6 +216,33 @@ export async function listMoneyMovementsForAddress(
 }
 
 /**
+ * Lists all durable movements for a job, including movements whose current
+ * participant projection does not yet include the eventual on-chain payee.
+ * This is intentionally a bounded, internal reconciliation seam; party-scoped
+ * reads should continue using listMoneyMovementsForJobParty instead.
+ */
+export async function listMoneyMovementsForJob(
+  jobId: string,
+  limit = 100,
+): Promise<MoneyMovement[]> {
+  const normalizedJobId = jobId.toLowerCase();
+  const safeLimit = Math.min(200, Math.max(1, Math.floor(limit) || 100));
+  if (pgEnabled) {
+    const rows = await db()
+      .select({ data: moneyMovements.data })
+      .from(moneyMovements)
+      .where(eq(moneyMovements.jobId, normalizedJobId))
+      .orderBy(desc(moneyMovements.updatedAt))
+      .limit(safeLimit);
+    return rows.map((row) => row.data);
+  }
+  return Object.values(loadFile().byReference)
+    .filter((movement) => movement.jobId === normalizedJobId)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, safeLimit);
+}
+
+/**
  * Find a Gateway deposit by a provider correlation value. Gateway webhooks do
  * not carry a Karwan reference in every event version, so the reconciler may
  * use the submitted transaction id or hash persisted on the current leg.

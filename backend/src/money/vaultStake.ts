@@ -137,6 +137,133 @@ export function vaultStakeOperationKey(ownerAddress: string, txHash: string): st
   return `vault:stake:web3:${ownerAddress.toLowerCase()}:${txHash.toLowerCase()}`;
 }
 
+/** Stable idempotency boundary for a browser-signed two-leg vault deposit. */
+export function vaultStakeIntentOperationKey(ownerAddress: string, requestId: string): string {
+  return `vault:stake:web3-intent:${ownerAddress.toLowerCase()}:${requestId}`;
+}
+
+/**
+ * Allocate the receipt and both expected legs before a browser wallet signs.
+ * The server never submits these calls; it only gives the UI a durable
+ * reference and an idempotent place to reconcile the two user-signed hashes.
+ */
+export async function prepareWeb3VaultStakeIntent(input: {
+  operationKey: string;
+  ownerAddress: string;
+  vaultAddress: string;
+  usdcAddress: string;
+  amountMicros: bigint;
+}) {
+  const amount = formatUsdcMicros(input.amountMicros);
+  const ensured = await ensureMoneyMovement({
+    operationKey: input.operationKey,
+    kind: 'stake',
+    amountMicros: input.amountMicros,
+    initiatedBy: input.ownerAddress,
+    participants: [
+      { address: input.ownerAddress, role: 'owner' },
+      { address: input.ownerAddress, role: 'source' },
+      { address: input.vaultAddress, role: 'recipient' },
+    ],
+    summary: `Staked ${amount} USDC in Karwan Vault`,
+    nextActor: 'karwan',
+  });
+  const reference = ensured.movement.reference;
+  if (ensured.movement.state === 'needs_attention') {
+    throw new Error(`vault stake needs attention (${reference})`);
+  }
+  const approve = await prepareMoneyMovementContractLeg(reference, {
+    key: 'approve',
+    label: 'Browser wallet vault USDC approval',
+    rail: 'arc_contract',
+    signerAddress: input.ownerAddress,
+    sourceAddress: input.ownerAddress,
+    destinationAddress: input.vaultAddress,
+    contractAddress: input.usdcAddress,
+    amountMicros: input.amountMicros,
+  });
+  const deposit = await prepareMoneyMovementContractLeg(reference, {
+    key: 'deposit',
+    label: 'Browser wallet vault USDC deposit',
+    rail: 'arc_contract',
+    signerAddress: input.ownerAddress,
+    sourceAddress: input.ownerAddress,
+    destinationAddress: input.vaultAddress,
+    contractAddress: input.vaultAddress,
+    amountMicros: input.amountMicros,
+  });
+  return {
+    movement: deposit.movement,
+    approveLegId: approve.leg.id,
+    depositLegId: deposit.leg.id,
+  };
+}
+
+/** Reconcile both browser-signed vault legs, proving the exact events first. */
+export async function completeWeb3VaultStake(input: {
+  reference: string;
+  ownerAddress: string;
+  vaultAddress: string;
+  usdcAddress: string;
+  amountMicros: bigint;
+  approvalTxHash: string;
+  depositTxHash: string;
+}) {
+  const movement = await currentMoneyMovement(input.reference);
+  if (movement.state === 'completed') return { movement, positionId: null };
+  if (movement.amountMicros !== input.amountMicros.toString()) {
+    throw new Error('vault stake amount does not match the original intent');
+  }
+  const approval = movement.legs.find((leg) => leg.attempt === movement.attempt && leg.key === 'approve');
+  const deposit = movement.legs.find((leg) => leg.attempt === movement.attempt && leg.key === 'deposit');
+  if (!approval || !deposit) throw new Error('vault stake intent is not prepared');
+  try {
+    const approvalReceipt = await publicClient.getTransactionReceipt({ hash: input.approvalTxHash as `0x${string}` });
+    if (approvalReceipt.status !== 'success') throw new Error('approval transaction reverted');
+    const approvals = parseEventLogs({ abi: erc20Abi, eventName: 'Approval', logs: approvalReceipt.logs, strict: false })
+      .map((entry) => ({ tokenAddress: entry.address, ...(entry.args as { owner?: string; spender?: string; value?: bigint }) }));
+    proveVaultStakeApproval({
+      receiptTo: approvalReceipt.to,
+      receiptFrom: approvalReceipt.from,
+      usdcAddress: input.usdcAddress,
+      ownerAddress: input.ownerAddress,
+      vaultAddress: input.vaultAddress,
+      expectedAmountMicros: input.amountMicros,
+      approvals,
+    });
+    const approvalPlan = await prepareMoneyMovementContractLeg(input.reference, {
+      key: 'approve', label: 'Browser wallet vault USDC approval', rail: 'arc_contract',
+      signerAddress: input.ownerAddress, sourceAddress: input.ownerAddress,
+      destinationAddress: input.vaultAddress, contractAddress: input.usdcAddress,
+      amountMicros: input.amountMicros,
+    });
+    await approvalPlan.lifecycle.onSubmitted?.({ txId: input.approvalTxHash, estimatedFee: null });
+    await approvalPlan.lifecycle.onConfirmed?.({ txId: input.approvalTxHash, txHash: input.approvalTxHash, explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.approvalTxHash}` });
+    await verifyMoneyMovementLeg(input.reference, approval.id, { amountMicros: input.amountMicros });
+
+    const depositReceipt = await publicClient.getTransactionReceipt({ hash: input.depositTxHash as `0x${string}` });
+    if (depositReceipt.status !== 'success') throw new Error('deposit transaction reverted');
+    const transfers = parseEventLogs({ abi: erc20Abi, eventName: 'Transfer', logs: depositReceipt.logs, strict: false })
+      .map((entry) => ({ tokenAddress: entry.address, ...(entry.args as { from?: string; to?: string; value?: bigint }) }));
+    const deposits = parseEventLogs({ abi: vaultDepositEventAbi, eventName: 'Deposited', logs: depositReceipt.logs, strict: false })
+      .map((entry) => entry.args as { owner?: string; principal?: bigint; positionId?: bigint });
+    const proof = proveVaultStake({ receiptTo: depositReceipt.to, receiptFrom: depositReceipt.from, vaultAddress: input.vaultAddress, ownerAddress: input.ownerAddress, usdcAddress: input.usdcAddress, expectedAmountMicros: input.amountMicros, transfers, deposits });
+    const depositPlan = await prepareMoneyMovementContractLeg(input.reference, {
+      key: 'deposit', label: 'Browser wallet vault USDC deposit', rail: 'arc_contract',
+      signerAddress: input.ownerAddress, sourceAddress: input.ownerAddress,
+      destinationAddress: input.vaultAddress, contractAddress: input.vaultAddress,
+      amountMicros: input.amountMicros,
+    });
+    await depositPlan.lifecycle.onSubmitted?.({ txId: input.depositTxHash, estimatedFee: null });
+    await depositPlan.lifecycle.onConfirmed?.({ txId: input.depositTxHash, txHash: input.depositTxHash, explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.depositTxHash}` });
+    await verifyMoneyMovementLeg(input.reference, deposit.id, { amountMicros: proof.amountMicros });
+    return { movement: await completeMoneyMovement(input.reference, { amountMicros: input.amountMicros }), positionId: proof.positionId ?? null };
+  } catch (error) {
+    await markMoneyMovementNeedsAttention(input.reference, 'VAULT_WEB3_PROOF_MISMATCH');
+    throw error;
+  }
+}
+
 export async function recordVaultStakeMovement(input: {
   ownerAddress: string;
   txHash: string;

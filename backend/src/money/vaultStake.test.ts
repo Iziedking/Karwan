@@ -4,6 +4,7 @@ import {
   proveVaultStake,
   proveVaultStakeApproval,
   parseVaultStakeHint,
+  vaultStakeIntentOperationKey,
 } from './vaultStake.js';
 
 const OWNER = '0x0000000000000000000000000000000000000001';
@@ -25,6 +26,11 @@ function validProof() {
 
 test('proves an exact vault stake from both token and vault events', () => {
   assert.deepEqual(validProof(), { amountMicros: 20_000_000n, positionId: 7n });
+});
+
+test('browser vault intent keys are stable and request-scoped', () => {
+  assert.equal(vaultStakeIntentOperationKey(OWNER, 'req-1'), `vault:stake:web3-intent:${OWNER}:req-1`);
+  assert.notEqual(vaultStakeIntentOperationKey(OWNER, 'req-1'), vaultStakeIntentOperationKey(OWNER, 'req-2'));
 });
 
 test('rejects a client amount that differs from the transfer', () => {

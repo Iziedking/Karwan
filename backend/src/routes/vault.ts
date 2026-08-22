@@ -25,8 +25,18 @@ import {
   recordVaultStakeMovement,
   executeCircleVaultStake,
   vaultDepositEventAbi,
+  prepareWeb3VaultStakeIntent,
+  completeWeb3VaultStake,
+  vaultStakeIntentOperationKey,
 } from '../money/vaultStake.js';
 import { fillActivityGaps } from '../db/activityLog.js';
+import {
+  ensureVaultActionMovement,
+  executeVaultActionMovement,
+  vaultActionOperationKey,
+  prepareWeb3VaultActionIntent,
+  completeWeb3VaultAction,
+} from '../money/vaultActions.js';
 
 /// USDC is exposed as a 6-decimal ERC-20 on Arc. Same scale the escrow uses.
 const USDC_DECIMALS = 6;
@@ -47,6 +57,28 @@ const depositSchema = z.object({
 const positionActionSchema = z.object({
   address: addrSchema,
   positionId: z.union([z.string(), z.number()]),
+  requestId: z.string().trim().min(1).max(120).optional(),
+});
+
+const web3DepositIntentSchema = z.object({
+  address: addrSchema,
+  amountUsdc: z.union([z.number(), z.string()]),
+  requestId: z.string().trim().min(1).max(120),
+});
+
+const web3DepositCompleteSchema = web3DepositIntentSchema.extend({
+  approvalTxHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  depositTxHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+});
+
+const web3VaultActionIntentSchema = z.object({
+  address: addrSchema,
+  positionId: z.union([z.string(), z.number()]),
+  action: z.enum(['requestWithdraw', 'cancelWithdraw', 'claim']),
+  requestId: z.string().trim().min(1).max(120),
+});
+const web3VaultActionCompleteSchema = web3VaultActionIntentSchema.extend({
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
 });
 
 const inFlight = new Set<string>();
@@ -272,6 +304,81 @@ vaultRoutes.get('/positions', async (c) => {
 
 /// Circle-only path: identity DCW approves USDC and deposits into the vault
 /// in two transactions. Web3 users sign these themselves from the frontend.
+/// Browser-wallet deposits are a two-leg flow. Allocate the KWN receipt and
+/// expected approval/deposit legs before opening the wallet so a rejected,
+/// dropped, or ambiguous signature remains recoverable instead of becoming an
+/// untracked vault movement.
+vaultRoutes.post('/deposit/intent', async (c) => {
+  let body;
+  try {
+    body = web3DepositIntentSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.address)) return c.json({ error: 'You can only stake from your own wallet.', code: 'forbidden' }, 403);
+  const vault = vaultAddress();
+  if (!vault || !usdcAddress) return c.json({ error: 'staking is not configured on this deployment' }, 503);
+  let amountMicros: bigint;
+  try {
+    amountMicros = parseVaultStakeHint(body.amountUsdc);
+    if (amountMicros <= 0n) throw new Error('amount must be positive');
+  } catch {
+    return c.json({ error: 'stake amount must be a valid USDC amount', code: 'invalid-amount' }, 400);
+  }
+  const operationKey = vaultStakeIntentOperationKey(body.address, body.requestId);
+  try {
+    const result = await prepareWeb3VaultStakeIntent({ operationKey, ownerAddress: body.address, vaultAddress: vault, usdcAddress, amountMicros });
+    return c.json({
+      accepted: true,
+      reference: result.movement.reference,
+      movementState: result.movement.state,
+      amountUsdc: formatUnits(amountMicros, USDC_DECIMALS),
+      vaultAddress: vault,
+      usdcAddress,
+    });
+  } catch (err) {
+    logger.error({ address: body.address, operationKey, err: (err as Error).message }, 'web3 vault deposit intent failed');
+    return c.json({ error: 'vault deposit intent failed', detail: (err as Error).message }, 502);
+  }
+});
+
+vaultRoutes.post('/deposit/complete', async (c) => {
+  let body;
+  try {
+    body = web3DepositCompleteSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.address)) return c.json({ error: 'You can only complete your own vault deposit.', code: 'forbidden' }, 403);
+  const vault = vaultAddress();
+  if (!vault || !usdcAddress) return c.json({ error: 'staking is not configured on this deployment' }, 503);
+  let amountMicros: bigint;
+  try { amountMicros = parseVaultStakeHint(body.amountUsdc); } catch { return c.json({ error: 'stake amount must be a valid USDC amount', code: 'invalid-amount' }, 400); }
+  const operationKey = vaultStakeIntentOperationKey(body.address, body.requestId);
+  const existing = await getMoneyMovementByOperationKey(operationKey).catch(() => null);
+  if (!existing) return c.json({ error: 'vault deposit intent not found; start again before signing', code: 'intent_not_found' }, 409);
+  try {
+    const result = await completeWeb3VaultStake({ reference: existing.reference, ownerAddress: body.address, vaultAddress: vault, usdcAddress, amountMicros, approvalTxHash: body.approvalTxHash, depositTxHash: body.depositTxHash });
+    const amountUsdc = formatUnits(amountMicros, USDC_DECIMALS);
+    void appendActivity({
+      id: `vault-stake:web3:${body.requestId}`,
+      address: body.address,
+      kind: 'stake',
+      summary: `Staked ${amountUsdc} USDC in Karwan Vault`,
+      params: { t: 'staked', amount: amountUsdc },
+      amountUsdc,
+      txHash: body.depositTxHash,
+      refId: result.movement.reference,
+    });
+    void refreshVaultScan().catch((err) => logger.warn({ err: (err as Error).message }, 'post-web3-vault-deposit refresh failed'));
+    return c.json({ ok: true, reference: result.movement.reference, movementState: result.movement.state, approvalTxHash: body.approvalTxHash, depositTxHash: body.depositTxHash, amountUsdc, positionId: result.positionId?.toString() ?? null });
+  } catch (err) {
+    const movement = await getMoneyMovementByOperationKey(operationKey).catch(() => null);
+    logger.warn({ address: body.address, reference: movement?.reference, err: (err as Error).message }, 'web3 vault deposit completion failed');
+    return c.json({ error: 'vault deposit proof failed', reference: movement?.reference, movementState: movement?.state, detail: (err as Error).message }, 409);
+  }
+});
+
 vaultRoutes.post('/deposit', async (c) => {
   let body;
   try {
@@ -423,6 +530,7 @@ async function positionActionRoute(
   }
 
   inFlight.add(key);
+  let operationKeyForError: string | undefined;
   /// Read the position before the contract call so the event payload can
   /// carry the principal. The notifier needs the amount to write "Cooldown
   /// started on 50 USDC" rather than asking the user to open the app.
@@ -446,15 +554,31 @@ async function positionActionRoute(
   }
 
   try {
-    const result = await executeContractCall(
-      {
-        walletId: user.circleIdentityWalletId,
+    if (principalUsdc === null) return c.json({ error: 'could not read vault position principal; try again' }, 503);
+    const amountMicros = parseVaultStakeHint(principalUsdc);
+    const requestId = body.requestId ?? randomUUID();
+    const operationKey = vaultActionOperationKey(body.address, fn, positionIdStr, requestId);
+    operationKeyForError = operationKey;
+    const ensured = await ensureVaultActionMovement({ operationKey, action: fn, ownerAddress: body.address, vaultAddress: vault, positionId: positionIdStr, amountMicros });
+    const result = await executeVaultActionMovement({
+      reference: ensured.movement.reference,
+      action: fn,
+      ownerAddress: body.address,
+      vaultAddress: vault,
+      usdcAddress,
+      positionId: positionIdStr,
+      amountMicros,
+      walletId: user.circleIdentityWalletId,
+      signature,
+      execute: (options) => executeContractCall({
+        walletId: options.walletId,
         contractAddress: vault,
         abiFunctionSignature: signature,
         abiParameters: [positionIdStr],
-      },
-      `vault.${fn}(${body.address}, ${positionIdStr})`,
-    );
+        idempotencyKey: options.idempotencyKey,
+        lifecycle: options.lifecycle,
+      }, `vault.${fn}(${body.address}, ${positionIdStr})`),
+    });
 
     bus.emitEvent({
       type: eventType,
@@ -463,6 +587,7 @@ async function positionActionRoute(
         address: body.address.toLowerCase(),
         positionId: positionIdStr,
         txHash: result.txHash,
+        reference: result.movement.reference,
         ...(principalUsdc !== null ? { principalUsdc } : {}),
       },
     });
@@ -500,7 +625,8 @@ async function positionActionRoute(
           }
         : {}),
       ...(principalUsdc !== null ? { amountUsdc: principalUsdc } : {}),
-      txHash: result.txHash,
+      ...(result.txHash ? { txHash: result.txHash } : {}),
+      refId: result.movement.reference,
     });
 
     // A withdrawal request is the only advance warning that a claim is coming.
@@ -516,13 +642,16 @@ async function positionActionRoute(
       'vault action confirmed (Circle identity DCW)',
     );
 
-    return c.json({ ok: true, txHash: result.txHash });
+    return c.json({ ok: true, txHash: result.txHash ?? null, reference: result.movement.reference, movementState: result.movement.state });
   } catch (err) {
     logger.error(
       { address: body.address, positionId: positionIdStr, fn, err: (err as Error).message },
       'vault action failed',
     );
-    return c.json({ error: `${fn} failed`, detail: (err as Error).message }, 502);
+    const failed = operationKeyForError
+      ? await getMoneyMovementByOperationKey(operationKeyForError).catch(() => null)
+      : null;
+    return c.json({ error: `${fn} failed`, reference: failed?.reference, movementState: failed?.state, detail: (err as Error).message }, 502);
   } finally {
     inFlight.delete(key);
   }
@@ -676,6 +805,49 @@ vaultRoutes.post('/record-stake', async (c) => {
     movementState: recorded.movement.state,
     positionId: proof.positionId?.toString() ?? null,
   });
+});
+
+async function readVaultPrincipal(positionId: string): Promise<bigint> {
+  const vault = vaultAddress();
+  if (!vault) throw new Error('vault not configured');
+  const tuple = (await publicClient.readContract({ address: vault, abi: vaultAbi, functionName: 'positions', args: [BigInt(positionId)] })) as readonly [`0x${string}`, bigint, bigint, bigint, bigint, number];
+  return tuple[1];
+}
+
+vaultRoutes.post('/action/intent', async (c) => {
+  let body;
+  try { body = web3VaultActionIntentSchema.parse(await c.req.json()); } catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.address)) return c.json({ error: 'You can only act on your own vault positions.', code: 'forbidden' }, 403);
+  const vault = vaultAddress();
+  if (!vault || !usdcAddress) return c.json({ error: 'staking is not configured on this deployment' }, 503);
+  try {
+    const amountMicros = await readVaultPrincipal(String(body.positionId));
+    if (amountMicros <= 0n) return c.json({ error: 'vault position is empty', code: 'empty-position' }, 409);
+    const operationKey = vaultActionOperationKey(body.address, body.action, String(body.positionId), body.requestId);
+    const result = await prepareWeb3VaultActionIntent({ operationKey, action: body.action, ownerAddress: body.address, vaultAddress: vault, positionId: String(body.positionId), amountMicros });
+    return c.json({ accepted: true, reference: result.movement.reference, movementState: result.movement.state, amountUsdc: formatUnits(amountMicros, USDC_DECIMALS) });
+  } catch (err) { return c.json({ error: 'vault action intent failed', detail: (err as Error).message }, 502); }
+});
+
+vaultRoutes.post('/action/complete', async (c) => {
+  let body;
+  try { body = web3VaultActionCompleteSchema.parse(await c.req.json()); } catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.address)) return c.json({ error: 'You can only complete your own vault action.', code: 'forbidden' }, 403);
+  const vault = vaultAddress();
+  if (!vault || !usdcAddress) return c.json({ error: 'staking is not configured on this deployment' }, 503);
+  const operationKey = vaultActionOperationKey(body.address, body.action, String(body.positionId), body.requestId);
+  const existing = await getMoneyMovementByOperationKey(operationKey).catch(() => null);
+  if (!existing) return c.json({ error: 'vault action intent not found; start again before signing', code: 'intent_not_found' }, 409);
+  try {
+    const amountMicros = await readVaultPrincipal(String(body.positionId));
+    const movement = await completeWeb3VaultAction({ reference: existing.reference, action: body.action, ownerAddress: body.address, vaultAddress: vault, usdcAddress, positionId: String(body.positionId), amountMicros, txHash: body.txHash });
+    void appendActivity({ id: `vault-action:web3:${body.requestId}`, address: body.address, kind: body.action === 'claim' ? 'unstake' : 'stake', summary: body.action === 'claim' ? `Claimed ${formatUnits(amountMicros, USDC_DECIMALS)} USDC of unstaked principal` : body.action === 'requestWithdraw' ? `Started unstaking ${formatUnits(amountMicros, USDC_DECIMALS)} USDC` : `Cancelled unstaking ${formatUnits(amountMicros, USDC_DECIMALS)} USDC`, amountUsdc: formatUnits(amountMicros, USDC_DECIMALS), txHash: body.txHash, refId: movement.reference });
+    void refreshVaultScan().catch(() => undefined);
+    return c.json({ ok: true, reference: movement.reference, movementState: movement.state, txHash: body.txHash });
+  } catch (err) {
+    const failed = await getMoneyMovementByOperationKey(operationKey).catch(() => null);
+    return c.json({ error: 'vault action proof failed', reference: failed?.reference, movementState: failed?.state, detail: (err as Error).message }, 409);
+  }
 });
 
 vaultRoutes.post('/request-withdraw', (c) =>

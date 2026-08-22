@@ -21,8 +21,7 @@
 /// dispute path records the default for operational follow-up. The current
 /// invoice-registry contract does not reserve or automatically recover stake.
 
-import { parseUnits } from 'viem';
-import { publicClient } from '../chain/client.js';
+import { formatUnits, parseUnits } from 'viem';
 import { listAllDeals, getDeal, type DirectDeal } from '../db/deals.js';
 import { appendActivity } from '../db/activityLog.js';
 import { listAcceptedOffers, patchFactoringOffer, type FactoringOffer } from '../db/factoring.js';
@@ -37,6 +36,12 @@ import { addSystemMessage } from '../chat/systemMessages.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
+import {
+  financingOperationKey,
+  readEscrowAssignmentPaid,
+  recordEscrowAssignedFinancingMovement,
+  recordVerifiedFinancingMovement,
+} from '../money/financing.js';
 
 const TICK_MS = Number(process.env.FACTORING_WATCHER_TICK_MS ?? 60_000);
 const MAX_SETTLE_ATTEMPTS = 5;
@@ -55,33 +60,80 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
   // generated escrow ABI being regenerated first.
   let alreadyPaid = 0n;
   try {
-    const [, , paid] = (await publicClient.readContract({
-      address: config.KARWAN_ESCROW_ADDR as `0x${string}`,
-      abi: [
-        {
-          type: 'function',
-          name: 'assignmentOf',
-          stateMutability: 'view',
-          inputs: [{ type: 'bytes32' }],
-          outputs: [{ type: 'address' }, { type: 'uint128' }, { type: 'uint128' }],
-        },
-      ] as const,
-      functionName: 'assignmentOf',
-      args: [offer.invoiceId as `0x${string}`],
-    })) as readonly [string, bigint, bigint];
-    alreadyPaid = paid;
+    alreadyPaid = await readEscrowAssignmentPaid(offer.invoiceId);
   } catch {
     // Pre-assignment escrow generation, or an unreachable node. Fall through to
     // the pull, which is what those offers were accepted under.
   }
 
   if (alreadyPaid >= BigInt(repayAtomic)) {
+    const assigned = await recordEscrowAssignedFinancingMovement({
+      operationKey: financingOperationKey('factoring', offer.id, 'repayment', `escrow:${offer.invoiceId}`),
+      positionId: offer.invoiceId,
+      amountMicros: BigInt(repayAtomic),
+      initiatedBy: offer.seller,
+      financierAddress: offer.financier,
+      jobId: offer.invoiceId,
+      summary: `Financing repayment of ${formatUnits(BigInt(repayAtomic), USDC_DECIMALS)} USDC for invoice ${offer.invoiceId}`,
+    });
     logger.info(
-      { offerId: offer.id, alreadyPaid: alreadyPaid.toString() },
-      'factoring: escrow already paid the financier, nothing to pull',
+      { offerId: offer.id, alreadyPaid: alreadyPaid.toString(), txHash: assigned.txHash, reference: assigned.movement.reference },
+      'factoring: escrow already paid the financier; linked the exact payout receipt',
     );
-    await patchFactoringOffer(offer.id, { status: 'settled', settledAt: Date.now() });
+    await patchFactoringOffer(offer.id, { status: 'settled', settledAt: Date.now(), settleTxHash: assigned.txHash });
+    await addSystemMessage({ jobId: offer.invoiceId, channel: 'financing', channelKey: offer.id, financingKind: 'factoring', financingId: offer.id, eventType: 'factoring.settled', occurrenceKey: assigned.txHash, body: 'The factoring position was repaid from escrow and is now closed.' });
+    bus.emitEvent({
+      type: 'factoring.settled',
+      jobId: offer.invoiceId,
+      actor: 'platform',
+      payload: {
+        offerId: offer.id,
+        financier: offer.financier,
+        seller: offer.seller,
+        repayUsdc: formatUnits(BigInt(repayAtomic), USDC_DECIMALS),
+        settleTxHash: assigned.txHash,
+        reference: assigned.movement.reference,
+      },
+    });
+    void appendActivity({
+      address: offer.financier,
+      kind: 'financing_repaid',
+      summary: `Repaid ${formatUnits(BigInt(repayAtomic), USDC_DECIMALS)} USDC on invoice ${offer.invoiceId}`,
+      params: { t: 'financingRepaid', amount: formatUnits(BigInt(repayAtomic), USDC_DECIMALS), job: String(offer.invoiceId) },
+      amountUsdc: formatUnits(BigInt(repayAtomic), USDC_DECIMALS),
+      txHash: assigned.txHash,
+      jobId: offer.invoiceId,
+      counterparty: offer.seller?.toLowerCase(),
+      refId: assigned.movement.reference,
+    });
     return;
+  }
+
+  let assignedReference: string | undefined;
+  let assignedTxHash: string | undefined;
+  if (alreadyPaid > 0n) {
+    const assigned = await recordEscrowAssignedFinancingMovement({
+      operationKey: financingOperationKey('factoring', offer.id, 'repayment-escrow', `escrow:${offer.invoiceId}:${alreadyPaid}`),
+      positionId: offer.invoiceId,
+      amountMicros: alreadyPaid,
+      initiatedBy: offer.seller,
+      financierAddress: offer.financier,
+      jobId: offer.invoiceId,
+      summary: `Financing repayment of ${formatUnits(alreadyPaid, USDC_DECIMALS)} USDC from escrow for invoice ${offer.invoiceId}`,
+    });
+    assignedReference = assigned.movement.reference;
+    assignedTxHash = assigned.txHash;
+    void appendActivity({
+      address: offer.financier,
+      kind: 'financing_repaid',
+      summary: `Repaid ${formatUnits(alreadyPaid, USDC_DECIMALS)} USDC from escrow on invoice ${offer.invoiceId}`,
+      params: { t: 'financingRepaid', amount: formatUnits(alreadyPaid, USDC_DECIMALS), job: String(offer.invoiceId) },
+      amountUsdc: formatUnits(alreadyPaid, USDC_DECIMALS),
+      txHash: assignedTxHash,
+      jobId: offer.invoiceId,
+      counterparty: offer.seller?.toLowerCase(),
+      refId: assignedReference,
+    });
   }
 
   const shortfallAtomic = BigInt(repayAtomic) - alreadyPaid;
@@ -116,6 +168,25 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
       deterministicIdempotencyKey(`factoring-repay:${offer.id}`),
     );
     txHash = r.txHash;
+  }
+
+  let repaymentReference: string | undefined;
+  try {
+    const movement = await recordVerifiedFinancingMovement({
+      operationKey: financingOperationKey('factoring', offer.id, 'repayment', txHash),
+      kind: 'financing_repayment',
+      positionId: offer.invoiceId,
+      amountUsdc: (Number(shortfallAtomic) / 1_000_000).toFixed(6),
+      initiatedBy: offer.seller,
+      sourceAddress: offer.seller,
+      destinationAddress: offer.financier,
+      txHash,
+      summary: `Financing repayment of ${(Number(shortfallAtomic) / 1_000_000).toFixed(6)} USDC for invoice ${offer.invoiceId}`,
+    });
+    repaymentReference = movement.reference;
+  } catch (err) {
+    logger.warn({ offerId: offer.id, txHash, err: (err as Error).message }, 'factoring: repayment confirmed but receipt reconciliation failed');
+    throw err;
   }
 
   await patchFactoringOffer(offer.id, {
@@ -154,6 +225,7 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
     txHash,
     jobId: offer.invoiceId,
     counterparty: offer.seller?.toLowerCase(),
+    refId: repaymentReference,
   });
 
   logger.info(
