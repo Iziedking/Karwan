@@ -5,6 +5,7 @@ import { config } from '../config.js';
 import { highestAcceptedVersion, recordAcceptance } from '../db/termsAcceptances.js';
 import { readSession } from '../auth/session.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const addrSchema = z
   .string()
@@ -53,7 +54,7 @@ termsRoutes.post('/accept', async (c) => {
       })
       .parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (body.version !== config.TERMS_CURRENT_VERSION) {
     return c.json(

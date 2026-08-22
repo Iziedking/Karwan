@@ -25,6 +25,7 @@ import { readSession } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { config } from '../config.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const USDC_DECIMALS = 6;
 const addrSchema = z
@@ -116,7 +117,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
   try {
     body = arcWithdrawSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'sign in to withdraw' }, 401);
@@ -344,7 +345,7 @@ cashoutRoutes.post('/arc-send', async (c) => {
   try {
     body = arcSendSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'sign in to cash out' }, 401);

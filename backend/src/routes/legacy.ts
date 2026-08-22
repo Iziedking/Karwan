@@ -19,6 +19,7 @@ import { listDealsForAddress, patchDeal, type DirectDeal } from '../db/deals.js'
 import { isSessionSelf } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 /// 30-day recovery surface for the pre-v2.D escrow + vault contracts.
 ///
@@ -356,7 +357,7 @@ legacyRoutes.post('/deals/:jobId/refund', async (c) => {
   try {
     body = dealActionSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (body.role !== 'buyer') {
     return c.json({ error: 'refund is buyer-only' }, 403);
@@ -457,7 +458,7 @@ legacyRoutes.post('/deals/:jobId/release-final', async (c) => {
   try {
     body = dealActionSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (body.role !== 'buyer') {
     return c.json({ error: 'release-final is buyer-only' }, 403);
@@ -484,7 +485,7 @@ legacyRoutes.post('/deals/:jobId/cancel-propose', async (c) => {
   try {
     body = proposeCancelSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   const jobId = c.req.param('jobId');
@@ -542,7 +543,7 @@ legacyRoutes.post('/deals/:jobId/cancel-accept', async (c) => {
   try {
     body = dealActionSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   return callLegacyEscrowFn(
     c,
@@ -731,7 +732,7 @@ async function callLegacyVaultFn(
   try {
     body = positionActionSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   // These sign requestWithdraw / cancelWithdraw / claim from the NAMED user's

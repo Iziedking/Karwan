@@ -13,6 +13,7 @@ import {
 } from '../gateway/balance.js';
 import { GatewaySpendError, fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 /// Circle Gateway unified balance (read side).
 ///
@@ -202,7 +203,7 @@ gatewayRoutes.post('/deposit', async (c) => {
   try {
     body = depositSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const source = body.source ?? 'identity';
   // The identity source signs the identity SCA, which only Circle accounts have.
@@ -325,7 +326,7 @@ gatewayRoutes.post('/fund-agent', async (c) => {
   try {
     body = fundAgentSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   if (spendInFlight.has(address)) {
@@ -412,7 +413,7 @@ gatewayRoutes.post('/cash-out', async (c) => {
   try {
     body = cashOutSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   if (spendInFlight.has(address)) {

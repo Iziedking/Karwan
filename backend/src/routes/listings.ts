@@ -29,6 +29,7 @@ import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const addrSchema = z
   .string()
@@ -142,7 +143,7 @@ listingsRoutes.post('/:id/cancel', async (c) => {
   try {
     body = cancelSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const listing = getListing(id);
   if (!listing) return c.json({ error: 'listing not found' }, 404);
@@ -188,7 +189,7 @@ listingsRoutes.post('/:id/edit', async (c) => {
   try {
     body = editSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const listing = getListing(id);
   if (!listing) return c.json({ error: 'listing not found' }, 404);
@@ -251,7 +252,7 @@ listingsRoutes.post('/', async (c) => {
   try {
     body = createSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Authorization: a Circle session may only post a listing as its own wallet.
   // Matches the gate on jobs/deals/profile writes; web3 users have no session

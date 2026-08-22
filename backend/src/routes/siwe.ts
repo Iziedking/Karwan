@@ -7,6 +7,7 @@ import { durableEphemeralMap } from '../db/ephemeral.js';
 import { setSessionCookie } from '../auth/session.js';
 import { publicClient } from '../chain/client.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const NONCE_TTL_MS = 10 * 60 * 1000;
 
@@ -79,7 +80,7 @@ siweRoutes.post(
     try {
       body = nonceSchema.parse(await c.req.json());
     } catch (err) {
-      return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+      return c.json({ error: invalidBodyMessage(err) }, 400);
     }
     purgeStale();
     const address = getAddress(body.address);
@@ -130,7 +131,7 @@ siweRoutes.post(
     try {
       body = verifySchema.parse(await c.req.json());
     } catch (err) {
-      return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+      return c.json({ error: invalidBodyMessage(err) }, 400);
     }
     const address = getAddress(body.address);
     const key = address.toLowerCase();

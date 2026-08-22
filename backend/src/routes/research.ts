@@ -238,11 +238,18 @@ researchRoutes.post('/scout', async (c) => {
     // Small, but it is still the user's USDC leaving an agent wallet, and the
     // x402 panel that renders it is transient. A row keeps it accountable.
     if (read.paidUsd) {
+      // `String(keywords)` on an array joins with commas and no spaces, so a
+      // ten-keyword read wrote one unbroken run of words across the user's
+      // history: "product designer,product design,designer,design,ux,ui,...".
+      // Three keywords and a count says the same thing and can be read.
+      const keywordLabel =
+        keywords.slice(0, 3).join(', ') +
+        (keywords.length > 3 ? ` +${keywords.length - 3}` : '');
       void appendActivity({
         address: key,
         kind: 'agent_spend',
-        summary: `Your scout agent paid ${read.paidUsd} USDC for a market read on "${keywords}"`,
-        params: {t: 'marketRead', amount: String(read.paidUsd), keywords: String(keywords)},
+        summary: `Your scout agent paid ${read.paidUsd} USDC for a market read on ${keywordLabel}`,
+        params: {t: 'marketRead', amount: String(read.paidUsd), keywords: keywordLabel},
         amountUsdc: String(read.paidUsd),
         ...(read.txHash ? { txHash: read.txHash } : {}),
       });

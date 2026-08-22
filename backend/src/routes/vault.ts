@@ -16,6 +16,7 @@ import { isSessionSelf } from '../auth/session.js';
 import { bus } from '../events.js';
 import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 /// USDC is exposed as a 6-decimal ERC-20 on Arc. Same scale the escrow uses.
 const USDC_DECIMALS = 6;
@@ -265,7 +266,7 @@ vaultRoutes.post('/deposit', async (c) => {
   try {
     body = depositSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // This moves the named user's USDC via their Circle wallet, so the session
   // must BE that user. Without this, anyone could stake from a victim's wallet.
@@ -374,7 +375,7 @@ async function positionActionRoute(
   try {
     body = positionActionSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Moves the named user's staked funds via their Circle wallet — the session
   // must BE that user, or anyone could withdraw/claim against a victim's stake.
@@ -509,6 +510,85 @@ async function positionActionRoute(
     inFlight.delete(key);
   }
 }
+
+/// Record a stake a WEB3 wallet signed for itself.
+///
+/// Staking is a money path, and for a connected wallet it had no record at all.
+/// The Circle path goes through /deposit above, which emits the event and writes
+/// the history row; a web3 user signs `deposit` on the vault from their own
+/// wallet and the backend never heard about it. So the money moved, the position
+/// appeared on /stake, and nothing else knew: no alert, and nothing in
+/// transaction history for the one surface that is supposed to hold every
+/// movement.
+///
+/// The client's word is not enough for a money row, so the transaction is read
+/// off Arc before anything is written: it has to exist, to have succeeded, and
+/// to have been sent to the vault by the caller. `id` is derived from the hash,
+/// so a retry or a double-mount records once.
+const recordStakeSchema = z.object({
+  address: addrSchema,
+  amountUsdc: z.union([z.number(), z.string()]),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'expected a transaction hash'),
+});
+
+vaultRoutes.post('/record-stake', async (c) => {
+  let body;
+  try {
+    body = recordStakeSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only record a stake for your own wallet.', code: 'forbidden' }, 403);
+  }
+  const vault = vaultAddress();
+  if (!vault) return c.json({ error: 'staking is not configured on this deployment' }, 503);
+
+  const hash = body.txHash as `0x${string}`;
+  let receipt;
+  try {
+    receipt = await publicClient.getTransactionReceipt({ hash });
+  } catch {
+    // Not mined yet, as far as this RPC can see. A pending hash is not a
+    // failure and not a record either; the client retries.
+    return c.json({ error: 'that transaction is not confirmed yet', code: 'not-confirmed' }, 409);
+  }
+  if (receipt.status !== 'success') {
+    return c.json({ error: 'that transaction did not succeed', code: 'reverted' }, 409);
+  }
+  if ((receipt.to ?? '').toLowerCase() !== vault.toLowerCase()) {
+    return c.json({ error: 'that transaction is not a stake on this vault', code: 'wrong-target' }, 409);
+  }
+  if ((receipt.from ?? '').toLowerCase() !== body.address.toLowerCase()) {
+    return c.json({ error: 'that transaction was not sent by this wallet', code: 'wrong-sender' }, 409);
+  }
+
+  const amountUsdc = String(body.amountUsdc);
+  bus.emitEvent({
+    type: 'vault.deposit',
+    actor: 'platform',
+    payload: {
+      address: body.address.toLowerCase(),
+      amountUsdc,
+      depositTxHash: hash,
+    },
+  });
+  void appendActivity({
+    // One row per transaction, whatever the client does.
+    id: `vault-stake:${hash.toLowerCase()}`,
+    address: body.address,
+    kind: 'stake',
+    summary: `Staked ${amountUsdc} USDC`,
+    params: { t: 'staked', amount: amountUsdc },
+    amountUsdc,
+    txHash: hash,
+  });
+  void refreshVaultScan().catch((err) =>
+    logger.warn({ err: (err as Error).message }, 'post-record vault scan refresh failed'),
+  );
+  logger.info({ address: body.address, amountUsdc, txHash: hash }, 'recorded web3 vault stake');
+  return c.json({ recorded: true });
+});
 
 vaultRoutes.post('/request-withdraw', (c) =>
   positionActionRoute(c, 'requestWithdraw', 'requestWithdraw(uint256)', 'vault.withdraw.requested'),

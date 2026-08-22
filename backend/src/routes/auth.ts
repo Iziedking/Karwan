@@ -34,6 +34,7 @@ import {
   setSessionCookie,
 } from '../auth/session.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
@@ -312,7 +313,7 @@ authRoutes.post('/lookup', async (c) => {
   try {
     body = lookupSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const user = getUserByEmail(body.email);
   return c.json({
@@ -381,7 +382,7 @@ authRoutes.post('/passkey/add/verify', async (c) => {
   try {
     body = passkeyAddVerifySchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Guard against the body email diverging from the session email. A user
   // can only add a passkey to their own account.
@@ -473,7 +474,7 @@ authRoutes.post('/register/options', async (c) => {
   try {
     body = startSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   purgeStale();
   const existing = getUserByEmail(body.email);
@@ -529,7 +530,7 @@ authRoutes.post('/register/verify', async (c) => {
   try {
     body = verifyRegisterSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Same gate as /register/options: the challenge alone proves possession of a
   // browser, never possession of the email.
@@ -655,7 +656,7 @@ authRoutes.post('/login/options', async (c) => {
   try {
     body = startSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   purgeStale();
   const user = getUserByEmail(body.email);
@@ -690,7 +691,7 @@ authRoutes.post('/login/verify', async (c) => {
   try {
     body = verifyLoginSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const challenge = pending.get(body.email);
   if (!challenge || challenge.kind !== 'login') {
@@ -771,7 +772,7 @@ authRoutes.post('/otp/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, na
   try {
     body = otpRequestSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   purgeStaleOtps();
   const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -810,7 +811,7 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
   try {
     body = otpVerifySchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const entry = otps.get(body.email);
   if (!entry) return c.json({ error: 'no code pending for this email' }, 400);

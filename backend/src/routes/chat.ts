@@ -9,6 +9,7 @@ import { recordLinkOffense } from '../security/linkOffenses.js';
 import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { tradeChannelState } from '../chat/channelAccess.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -48,7 +49,7 @@ chatRoutes.post('/:jobId', async (c) => {
   try {
     body = postSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Sender identity is the signed session, never the client-supplied
   // body.caller, so a request can't post AS another party by naming their

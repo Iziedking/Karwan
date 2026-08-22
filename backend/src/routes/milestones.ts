@@ -9,6 +9,7 @@ import { bus } from '../events.js';
 import { appendActivity } from '../db/activityLog.js';
 import { formatUsdcMicros } from '../money/model.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const releaseSchema = z.object({
   jobId: z.string().startsWith('0x'),
@@ -24,7 +25,7 @@ milestonesRoutes.post('/release', async (c) => {
   try {
     body = releaseSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   if (inFlight.has(body.jobId)) {

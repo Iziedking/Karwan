@@ -23,6 +23,7 @@ import { resendClient } from '../emails/resend.js';
 import { brandedEmailHtml } from '../emails/brand.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const USDC_DECIMALS = 6;
 
@@ -135,7 +136,7 @@ profileRoutes.post('/', async (c) => {
   try {
     body = profileSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Identity is the signed session: a user can only write their own profile.
   // Onboarding saves the caller's own address with a session already in hand
@@ -315,7 +316,7 @@ profileRoutes.post('/email/request', async (c) => {
   try {
     body = emailRequestSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const caller = callerFor(c, body.address);
   if (!caller) return c.json({ error: 'sign in to add an email to this wallet' }, 401);
@@ -365,7 +366,7 @@ profileRoutes.post('/email/verify', async (c) => {
   try {
     body = emailVerifySchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const caller = callerFor(c, body.address);
   if (!caller) return c.json({ error: 'sign in to verify this email' }, 401);
@@ -399,7 +400,7 @@ profileRoutes.post('/email/remove', async (c) => {
   try {
     body = z.object({ address: addrSchema }).parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const caller = callerFor(c, body.address);
   if (!caller) return c.json({ error: 'sign in to remove this email' }, 401);
@@ -426,7 +427,7 @@ profileRoutes.post('/x-handle', async (c) => {
   try {
     body = xHandleSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (!isSessionSelf(c, body.address)) {
     return c.json({ error: 'You can only edit your own profile.', code: 'forbidden' }, 403);

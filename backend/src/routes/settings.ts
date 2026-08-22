@@ -9,6 +9,7 @@ import {
 } from '../db/profiles.js';
 import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const localeSchema = z.enum(['en', 'ar', 'fr', 'hi', 'sw']);
 const themeSchema = z.enum(['light', 'dark', 'system']);
@@ -49,7 +50,7 @@ settingsRoutes.post('/', async (c) => {
   try {
     body = settingsSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const existing = await getProfile(address);
   if (!existing) {

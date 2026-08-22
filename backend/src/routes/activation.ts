@@ -49,6 +49,7 @@ import {
   prepareAgentFundingLeg,
 } from '../money/agentFunding.js';
 import { parseUsdcMicros } from '../money/model.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 // USDC on Arc exposes a 6-decimal ERC-20 interface. Withdrawals move funds
 // through that interface, the same one the escrow uses.
@@ -248,7 +249,7 @@ activationRoutes.post(
   try {
     body = dripBridgeSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // PROVISIONS a deposit wallet for the named user when one is missing, which
   // consumes the shared wallet set's per-chain index counter. Left open, a
@@ -330,7 +331,7 @@ activationRoutes.post(
   try {
     body = faucetSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Resolves the named address to THAT user's agent wallets and returns them,
   // so it must be the caller's own account: otherwise it is an unauthenticated
@@ -385,7 +386,7 @@ activationRoutes.post(
   try {
     body = fundSourceSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (!isSessionSelf(c, body.address)) {
     return c.json({ error: 'You can only request test funds for your own account.', code: 'forbidden' }, 403);
@@ -433,7 +434,7 @@ activationRoutes.post('/activate', async (c) => {
   try {
     body = activateSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Activation provisions Circle wallets and seeds operator float — only the
   // signed-in owner may trigger it for their own address (sign-in always
@@ -621,7 +622,7 @@ activationRoutes.post('/agent-names', async (c) => {
   try {
     body = agentNamesSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (!isSessionSelf(c, body.address)) {
     return c.json({ error: 'You can only rename your own agents.', code: 'forbidden' }, 403);
@@ -642,7 +643,7 @@ activationRoutes.post('/withdraw', async (c) => {
   try {
     body = withdrawSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const userAddress = body.address.toLowerCase();
   // Session gate: only the wallet owner may pull funds OUT of their agent wallet.
@@ -817,7 +818,7 @@ activationRoutes.post('/fund-agent', async (c) => {
   try {
     body = fundAgentSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const userAddress = body.address.toLowerCase();
   // Session gate, same as /withdraw: only the owner may move their identity
@@ -980,7 +981,7 @@ activationRoutes.post('/fund-agent-web3/intent', async (c) => {
   try {
     body = web3FundAgentSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const userAddress = body.address.toLowerCase();
   if (!isSessionSelf(c, userAddress)) {
@@ -1066,7 +1067,7 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
   try {
     body = web3FundAgentCompleteSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const userAddress = body.address.toLowerCase();
   if (!isSessionSelf(c, userAddress)) {

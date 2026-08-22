@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getTelegramLink, removeTelegramLink } from '../db/telegramLinks.js';
 import { generateLinkToken, telegramEnabled, telegramUsername } from '../telegram/bot.js';
 import { isSessionSelf } from '../auth/session.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -36,7 +37,7 @@ telegramRoutes.post('/link/start', async (c) => {
   try {
     body = z.object({ address: addrSchema }).parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Only the signed-in owner of this address can pair a Telegram chat to it.
   // Unauthenticated, anyone could route a victim's deal alerts to their own
@@ -53,7 +54,7 @@ telegramRoutes.post('/link/remove', async (c) => {
   try {
     body = z.object({ address: addrSchema }).parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   // Same gate: without it, anyone could silently unlink a victim's
   // notifications right before an attack window.

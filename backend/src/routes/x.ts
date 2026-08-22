@@ -11,6 +11,7 @@ import {
 } from '../db/profiles.js';
 import { logger } from '../logger.js';
 import { sessionAddress } from '../auth/session.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 export const xRoutes = new Hono();
 
@@ -100,7 +101,7 @@ xRoutes.post('/oauth/start', async (c) => {
   try {
     body = startSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (body.address && body.address.toLowerCase() !== caller.toLowerCase()) {
     return c.json({ error: 'address does not match the signed-in account' }, 403);

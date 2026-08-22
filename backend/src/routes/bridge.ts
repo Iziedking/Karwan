@@ -52,6 +52,7 @@ import {
 import { ensureBridgeMovement } from '../money/bridge.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 const erc20BalanceOfAbi = [
   {
@@ -263,7 +264,7 @@ bridgeRoutes.post('/record', async (c) => {
   try {
     body = recordSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const owner = sessionAddress(c);
   if (!owner) return c.json({ error: 'sign in first' }, 401);
@@ -518,7 +519,7 @@ bridgeRoutes.post('/relay', async (c) => {
   try {
     body = relaySchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   if (inFlight.has(body.bridgeId)) {
@@ -1385,7 +1386,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
   try {
     body = circleBridgeSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   const userAddress = body.address.toLowerCase();
@@ -1731,7 +1732,7 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
   try {
     body = circleBridgeAppKitSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   const userAddress = body.address.toLowerCase();
@@ -2324,7 +2325,7 @@ bridgeRoutes.post('/circle-bridge-out', async (c) => {
   try {
     body = bridgeOutSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const userAddress = body.address.toLowerCase();
   // CRITICAL: this burns the named user's USDC and mints to body.recipient. The
@@ -2548,7 +2549,7 @@ bridgeRoutes.post('/web3-bridge-out/quote', async (c) => {
   try {
     body = web3OutQuoteSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const dest = CCTP_CHAINS[body.destChainKey];
   const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
@@ -2596,7 +2597,7 @@ bridgeRoutes.post('/web3-bridge-out', async (c) => {
   try {
     body = web3OutSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const userAddress = body.address.toLowerCase();
   // The relay burns destination gas from the named user's bridge DCW and

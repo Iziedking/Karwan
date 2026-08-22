@@ -46,6 +46,7 @@ import { pingAssistantProviders } from './assistant.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
 import { db, pgEnabled } from '../db/client.js';
 import { privateKeyToAccount } from 'viem/accounts';
+import { invalidBodyMessage } from './invalidBody.js';
 
 export const adminRoutes = new Hono();
 
@@ -520,7 +521,7 @@ adminRoutes.post('/deals/:jobId/resolve', async (c) => {
   try {
     body = adminResolveSchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   if (!config.ESCROW_V2B_ENABLED) {
     return c.json({ error: 'arbiter resolve is a v2 escrow feature', code: 'not-available' }, 409);

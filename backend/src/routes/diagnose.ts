@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { getDeal } from '../db/deals.js';
 import { diagnoseUserError, supervisorEnabled } from '../llm/supervisor.js';
+import { invalidBodyMessage } from './invalidBody.js';
 
 /// User-facing failure diagnosis. When a user's own action reverts with a
 /// cryptic error, the frontend posts it here and gets back plain-language
@@ -70,7 +71,7 @@ diagnoseRoutes.post('/', async (c) => {
   try {
     body = bodySchema.parse(await c.req.json());
   } catch (err) {
-    return c.json({ error: 'invalid body', detail: (err as Error).message }, 400);
+    return c.json({ error: invalidBodyMessage(err) }, 400);
   }
 
   // Deal-scoped errors: the caller must be a party to the named deal.
