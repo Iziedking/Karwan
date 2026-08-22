@@ -2536,6 +2536,8 @@ export const sw: Messages = {
     wrongChain: 'Mkoba wako uko kwenye mtandao usio sahihi. Ubadilishe, kisha ujaribu tena.',
     network: 'Hitilafu ya muunganisho. Hakuna kilichohamishwa. Jaribu tena baadaye.',
     generic: 'Haikufanikiwa. Hakuna kilichotozwa. Jaribu tena.',
+    pending: 'Imetumwa. Inasubiri mtandao kuithibitisha. Hakuna kilichopotea.',
+    reverted: 'Mtandao umeikataa. Hakuna kilichotozwa.',
   },
   gatewayTopUp: {
     cta: 'Fadhili kutoka salio lako',

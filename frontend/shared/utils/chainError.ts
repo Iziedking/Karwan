@@ -1,4 +1,5 @@
 import type { Messages } from '@/shared/i18n/messages/en';
+import { isConfirmationPending, isPendingReceiptError } from '@/shared/chain/confirmTx';
 
 /// Turn any on-chain / SDK / wallet failure into one clean line.
 ///
@@ -16,6 +17,14 @@ export function chainErrorMessage(
   copy: Messages['chainErrors'],
   fallback: string,
 ): string {
+  // Before anything else: a confirmation that has not arrived.
+  //
+  // This used to fall into the network branch below and read "Connection
+  // hiccup. Nothing moved", which is false. A wait that runs out says the
+  // watcher stopped watching, not that the transaction failed, and on a slow
+  // block the money has already moved. Six surfaces shared that sentence.
+  if (isConfirmationPending(err) || isPendingReceiptError(err)) return copy.pending;
+
   const raw = (err instanceof Error ? err.message : String(err ?? '')).toLowerCase();
   if (!raw) return fallback;
 

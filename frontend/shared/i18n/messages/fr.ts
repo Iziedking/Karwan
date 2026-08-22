@@ -2536,6 +2536,8 @@ export const fr: Messages = {
     wrongChain: 'Votre portefeuille est sur le mauvais réseau. Changez-le, puis réessayez.',
     network: 'Coupure de connexion. Rien ne bouge. Réessayez dans un instant.',
     generic: 'Cela n’a pas abouti. Rien n’a été débité. Réessayez.',
+    pending: "Envoyé. En attente de confirmation du réseau. Rien n'est perdu.",
+    reverted: 'Le réseau a rejeté cette opération. Rien n’a été débité.',
   },
   gatewayTopUp: {
     cta: 'Financer depuis votre solde',

@@ -2330,6 +2330,13 @@ interface MessagesShape {
     wrongChain: string;
     network: string;
     generic: string;
+    /// Submitted and not confirmed yet. NEVER a failure: the money may well
+    /// have moved, and a record marked failed here is a lie that outlives the
+    /// transaction (see shared/chain/confirmTx.ts).
+    pending: string;
+    /// The chain ran it and rejected it. A real failure, distinct from the
+    /// generic "did not go through".
+    reverted: string;
   };
   gatewayTopUp: {
     cta: string;
@@ -7212,6 +7219,8 @@ export const en: MessagesShape = {
     wrongChain: 'Your wallet is on the wrong network. Switch it, then try again.',
     network: 'Connection hiccup. Nothing moved. Try again in a moment.',
     generic: 'That did not go through. Nothing was charged. Try again.',
+    pending: 'Sent. Waiting for the network to confirm it. Nothing is lost.',
+    reverted: 'The network rejected this. Nothing was charged.',
   },
   gatewayTopUp: {
     cta: 'Fund from your balance',
