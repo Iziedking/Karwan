@@ -40,7 +40,7 @@ export default function AppError({
           <button
             type="button"
             onClick={reset}
-            className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 transition-colors"
+            className="inline-flex min-h-11 items-center justify-center mono text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--accent-ink)',
@@ -54,7 +54,7 @@ export default function AppError({
           </button>
           <Link
             href="/"
-            className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 transition-colors"
+            className="inline-flex min-h-11 items-center justify-center mono text-[11px] font-bold uppercase tracking-[0.1em] px-5 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
             style={{
               background: 'transparent',
               color: 'var(--ink-2)',

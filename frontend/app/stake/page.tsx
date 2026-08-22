@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   FullBleed,
   Band,
@@ -71,12 +71,13 @@ function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) 
 
 /// Section reveal on scroll: translateY -> 0 + fade, once, 20% in view.
 function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={reduce ? false : { opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.5, ease: EASE, delay }}
+      transition={reduce ? { duration: 0 } : { duration: 0.5, ease: EASE, delay }}
     >
       {children}
     </motion.div>

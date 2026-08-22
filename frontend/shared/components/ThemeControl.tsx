@@ -70,7 +70,7 @@ export function ThemeControl() {
               setThemePreference(value);
               setPreference(value);
             }}
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="relative inline-flex h-11 w-11 min-h-11 min-w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
             style={{ color: active ? 'var(--color-ink)' : 'var(--color-ink-faint)' }}
           >
             {active && (
