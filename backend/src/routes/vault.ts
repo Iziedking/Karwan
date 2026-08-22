@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
-import { formatUnits, parseUnits } from 'viem';
+import { erc20Abi, formatUnits, parseEventLogs, parseUnits } from 'viem';
 import { config } from '../config.js';
 import { alertIfClaimLiquidityShort } from '../chain/claimLiquidityAlert.js';
 import { publicClient } from '../chain/client.js';
@@ -17,6 +17,12 @@ import { bus } from '../events.js';
 import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import {
+  parseVaultStakeHint,
+  proveVaultStake,
+  recordVaultStakeMovement,
+} from '../money/vaultStake.js';
+import { fillActivityGaps } from '../db/activityLog.js';
 
 /// USDC is exposed as a 6-decimal ERC-20 on Arc. Same scale the escrow uses.
 const USDC_DECIMALS = 6;
@@ -81,6 +87,18 @@ const vaultAbi = [
     stateMutability: 'view',
     inputs: [{ name: 'owner', type: 'address' }],
     outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
+const vaultDepositEventAbi = [
+  {
+    type: 'event',
+    name: 'Deposited',
+    inputs: [
+      { name: 'positionId', type: 'uint256', indexed: true },
+      { name: 'owner', type: 'address', indexed: true },
+      { name: 'principal', type: 'uint256', indexed: false },
+    ],
   },
 ] as const;
 
@@ -563,7 +581,59 @@ vaultRoutes.post('/record-stake', async (c) => {
     return c.json({ error: 'that transaction was not sent by this wallet', code: 'wrong-sender' }, 409);
   }
 
-  const amountUsdc = String(body.amountUsdc);
+  let expectedAmountMicros: bigint;
+  try {
+    expectedAmountMicros = parseVaultStakeHint(body.amountUsdc);
+  } catch {
+    return c.json({ error: 'stake amount must be a valid USDC amount', code: 'invalid-amount' }, 400);
+  }
+  if (expectedAmountMicros <= 0n) {
+    return c.json({ error: 'stake amount must be greater than zero', code: 'invalid-amount' }, 400);
+  }
+
+  const transfers = parseEventLogs({
+    abi: erc20Abi,
+    eventName: 'Transfer',
+    logs: receipt.logs,
+    strict: false,
+  }).map((entry) => ({
+    tokenAddress: entry.address,
+    ...(entry.args as { from?: string; to?: string; value?: bigint }),
+  }));
+  const deposits = parseEventLogs({
+    abi: vaultDepositEventAbi,
+    eventName: 'Deposited',
+    logs: receipt.logs,
+    strict: false,
+  }).map((entry) => entry.args as { owner?: string; principal?: bigint; positionId?: bigint });
+
+  let proof;
+  try {
+    proof = proveVaultStake({
+      receiptTo: receipt.to,
+      receiptFrom: receipt.from,
+      vaultAddress: vault,
+      ownerAddress: body.address,
+      usdcAddress,
+      expectedAmountMicros,
+      transfers,
+      deposits,
+    });
+  } catch (err) {
+    logger.warn(
+      { address: body.address, txHash: hash, err: (err as Error).message },
+      'web3 vault stake receipt proof mismatch',
+    );
+    return c.json({ error: 'transaction proof does not match this stake', code: 'proof_mismatch' }, 409);
+  }
+
+  const amountUsdc = formatUnits(proof.amountMicros, USDC_DECIMALS);
+  const recorded = await recordVaultStakeMovement({
+    ownerAddress: body.address,
+    txHash: hash,
+    amountMicros: proof.amountMicros,
+    vaultAddress: vault,
+  });
   bus.emitEvent({
     type: 'vault.deposit',
     actor: 'platform',
@@ -571,6 +641,7 @@ vaultRoutes.post('/record-stake', async (c) => {
       address: body.address.toLowerCase(),
       amountUsdc,
       depositTxHash: hash,
+      reference: recorded.movement.reference,
     },
   });
   void appendActivity({
@@ -582,12 +653,30 @@ vaultRoutes.post('/record-stake', async (c) => {
     params: { t: 'staked', amount: amountUsdc },
     amountUsdc,
     txHash: hash,
+    refId: recorded.movement.reference,
   });
+  // Older rows use the same deterministic id but predate durable references.
+  // Fill only missing fields so a retry can attach the new receipt without
+  // rewriting historical amounts or summaries.
+  void fillActivityGaps(`vault-stake:${hash.toLowerCase()}`, {
+    amountUsdc,
+    txHash: hash,
+    refId: recorded.movement.reference,
+  }).catch((err) =>
+    logger.warn({ txHash: hash, err: (err as Error).message }, 'vault stake activity reference fill failed'),
+  );
   void refreshVaultScan().catch((err) =>
     logger.warn({ err: (err as Error).message }, 'post-record vault scan refresh failed'),
   );
   logger.info({ address: body.address, amountUsdc, txHash: hash }, 'recorded web3 vault stake');
-  return c.json({ recorded: true });
+  return c.json({
+    recorded: true,
+    alreadyRecorded: !recorded.created,
+    amountUsdc,
+    reference: recorded.movement.reference,
+    movementState: recorded.movement.state,
+    positionId: proof.positionId?.toString() ?? null,
+  });
 });
 
 vaultRoutes.post('/request-withdraw', (c) =>

@@ -2434,7 +2434,14 @@ export const api = {
   /// until this call, which is why staking was missing from transaction history
   /// and raised no alert. Verified against the chain before anything is written.
   recordStake: (body: { address: string; amountUsdc: number | string; txHash: string }) =>
-    json<{ recorded: boolean }>('/api/vault/record-stake', {
+    json<{
+      recorded: boolean;
+      alreadyRecorded?: boolean;
+      amountUsdc?: string;
+      reference?: string;
+      movementState?: MoneyMovementState;
+      positionId?: string | null;
+    }>('/api/vault/record-stake', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

@@ -13,6 +13,7 @@ export type MoneyMovementKind =
   | 'escrow_refund'
   | 'agent_funding'
   | 'deposit'
+  | 'stake'
   | 'bridge'
   | 'cash_out'
   | 'financing_advance'
