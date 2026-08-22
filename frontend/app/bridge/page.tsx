@@ -185,18 +185,13 @@ function RailPanel({
       />
     );
   }
-  if (rail === 'direct') {
-    // A connected wallet cannot be given a deposit address (see railModel), and
-    // DepositCard would tell them one is "being set up" when nothing is. Say
-    // what is true and point at the rail they can actually use.
-    if (state === 'soon') {
-      return (
-        <ComingSoonPanel body={copy.direct.walletOnly} action={copy.direct.title} soon={copy.soon} />
-      );
-    }
-    return <DepositCard />;
-  }
-  if (rail === 'gateway') return <GatewayBalanceCard />;
+  // Only an email or passkey account is ever offered this rail (see railModel),
+  // so reaching it means there is an address to show.
+  if (rail === 'direct') return <DepositCard />;
+  // Gateway is the one rail that runs both ways, so it is told which way this
+  // is. It used to show the pooling form and the send-anywhere form stacked in
+  // one card whichever direction the page was set to.
+  if (rail === 'gateway') return <GatewayBalanceCard direction={direction} />;
   // CCTP, both ways. The out card carries its own Solana branch.
   if (state === 'soon') {
     return <ComingSoonPanel body={copy.cctp.blurb} action={copy.cctp.title} soon={copy.soon} />;

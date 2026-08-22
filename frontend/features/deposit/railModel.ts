@@ -47,10 +47,13 @@ export function railsFor(input: {
       // connected wallet on purpose, because doing so advances a shared
       // per-chain index counter and that is what collides one user's deposit
       // address with another's (routes/deposit.ts). So this is not "not built
-      // yet for wallets", it is a route that cannot exist for them today, and
-      // offering it as ready produced a card reading "deposits are being set up
-      // for your account" at someone for whom nothing was being set up.
-      { id: 'direct', state: circle ? 'ready' : 'soon' },
+      // yet for wallets", it is a route that cannot exist for them today.
+      // Not offered to a connected wallet at all, rather than shown as coming.
+      // "Coming" is a promise, and this one cannot be kept without solving the
+      // index-counter collision; meanwhile a greyed tab invites a question whose
+      // only answer is "not for you". A wallet account already holds its funds,
+      // so Transfer is its route in and the page leads with it.
+      ...(circle ? [{ id: 'direct' as const, state: 'ready' as const }] : []),
       // CCTP inbound asks for a source chain, an amount, and a signature. For
       // an email account that is the direct address with extra steps, so it is
       // not offered rather than offered as a second way to do one thing.

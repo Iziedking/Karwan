@@ -1958,16 +1958,7 @@ interface MessagesShape {
   depositRails: {
     chooserAria: string;
     soon: string;
-    direct: {
-      tab: string;
-      tag: string;
-      title: string;
-      blurb: string;
-      /// Shown to a connected wallet, which cannot have a direct deposit
-      /// address: provisioning one advances a shared per-chain index counter
-      /// and that is what collides deposit addresses between users.
-      walletOnly: string;
-    };
+    direct: { tab: string; tag: string; title: string; blurb: string };
     gateway: { tab: string; tag: string; title: string; blurb: string };
     cctp: { tab: string; tag: string; title: string; blurb: string };
     onramp: {
@@ -2384,6 +2375,15 @@ interface MessagesShape {
     dismiss: string;
     viewTx: string;
     pulledTemplate: string;
+    /// Step 01 of the way in. Step 02 reuses `moveCta`.
+    stepAdd: string;
+    /// The way out, where the destination is a choice.
+    sendTag: string;
+    /// Stands in for the chain picker on the way in, where Arc is the only
+    /// destination.
+    arcPinned: string;
+    /// Nothing pooled, so there is nothing to move.
+    outEmpty: string;
   };
   stakeCard: {
     eyebrow: {
@@ -6821,7 +6821,6 @@ export const en: MessagesShape = {
       tag: 'DIRECT DEPOSIT',
       title: 'One address, any chain',
       blurb: 'Send USDC to this address from any chain you hold it on. It reaches Arc on its own and shows up as spendable.',
-      walletOnly: 'A direct address is for email and passkey accounts. With a connected wallet you already hold the funds, so use Transfer and sign the move yourself.',
     },
     gateway: {
       tab: 'Gateway',
@@ -7227,7 +7226,7 @@ export const en: MessagesShape = {
     connectCta: 'Connect wallet',
     soonTag: 'CUSTODIAL RAIL',
     soonBody: 'Add USDC from your Karwan account. Your receipt reference appears as the movement is recorded.',
-    tag: '[:POOLED BALANCE:]',
+    tag: '[:GATEWAY BALANCE:]',
     title: 'One balance, any chain',
     confirmed: 'Confirmed',
     pending: 'Pending',
@@ -7258,6 +7257,10 @@ export const en: MessagesShape = {
     dismiss: 'Dismiss',
     viewTx: 'View transaction',
     pulledTemplate: 'Pulled {chains}.',
+    stepAdd: 'Pool',
+    sendTag: '[:SEND FROM BALANCE:]',
+    arcPinned: 'Lands on Arc, ready to spend.',
+    outEmpty: 'Nothing to move yet. Pool USDC into this balance first.',
   },
   stakeCard: {
     eyebrow: {

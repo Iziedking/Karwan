@@ -2145,7 +2145,6 @@ export const sw: Messages = {
       tag: 'AMANA YA MOJA KWA MOJA',
       title: 'Anwani moja, mtandao wowote',
       blurb: 'Tuma USDC kwenye anwani hii kutoka mtandao wowote unaoshikilia. Zinafika Arc zenyewe na kuwa tayari kutumika.',
-      walletOnly: 'Anwani ya moja kwa moja ni kwa akaunti za barua pepe na passkey. Kwa pochi iliyounganishwa fedha ziko kwako, hivyo tumia Uhamisho na utie saini mwenyewe.',
     },
     gateway: {
       tab: 'Gateway',
@@ -2551,7 +2550,7 @@ export const sw: Messages = {
     connectCta: 'Unganisha pochi',
     soonTag: 'INAKUJA HIVI KARIBUNI',
     soonBody: 'Bado haiko tayari kwa akaunti za barua pepe. Amana zinaendelea kufanya kazi kama kawaida.',
-    tag: '[:SALIO LILILOKUSANYWA:]',
+    tag: '[:SALIO LA GATEWAY:]',
     title: 'Salio moja, mnyororo wowote',
     confirmed: 'Imethibitishwa',
     pending: 'Inasubiri',
@@ -2582,6 +2581,10 @@ export const sw: Messages = {
     dismiss: 'Ondoa',
     viewTx: 'Tazama muamala',
     pulledTemplate: 'Imetolewa {chains}.',
+    stepAdd: 'Kusanya',
+    sendTag: '[:TUMA KUTOKA SALIO:]',
+    arcPinned: 'Inafika Arc, tayari kutumika.',
+    outEmpty: 'Hakuna cha kuhamisha bado. Kusanya USDC kwenye salio hili kwanza.',
   },
   stakeCard: {
     eyebrow: {

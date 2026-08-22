@@ -2145,7 +2145,6 @@ export const fr: Messages = {
       tag: 'DÉPÔT DIRECT',
       title: 'Une adresse, toutes les chaînes',
       blurb: "Envoyez des USDC à cette adresse depuis n'importe quelle chaîne. Ils rejoignent Arc tout seuls et deviennent disponibles.",
-      walletOnly: "Une adresse directe est réservée aux comptes e-mail et passkey. Avec un portefeuille connecté, vous détenez déjà les fonds : utilisez Transfert et signez vous-même.",
     },
     gateway: {
       tab: 'Gateway',
@@ -2551,7 +2550,7 @@ export const fr: Messages = {
     connectCta: 'Connecter le portefeuille',
     soonTag: 'BIENTÔT',
     soonBody: 'Pas encore disponible pour les comptes e-mail. Les dépôts fonctionnent normalement.',
-    tag: '[:SOLDE GROUPÉ:]',
+    tag: '[:SOLDE GATEWAY:]',
     title: 'Un solde, toutes les chaînes',
     confirmed: 'Confirmé',
     pending: 'En attente',
@@ -2582,6 +2581,10 @@ export const fr: Messages = {
     dismiss: 'Fermer',
     viewTx: 'Voir la transaction',
     pulledTemplate: 'Tiré {chains}.',
+    stepAdd: 'Grouper',
+    sendTag: '[:ENVOYER DU SOLDE:]',
+    arcPinned: 'Arrive sur Arc, prêt à dépenser.',
+    outEmpty: "Rien à déplacer pour l'instant. Groupez d'abord des USDC sur ce solde.",
   },
   stakeCard: {
     eyebrow: {

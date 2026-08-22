@@ -2145,7 +2145,6 @@ export const ar: Messages = {
       tag: 'إيداع مباشر',
       title: 'عنوان واحد، أي شبكة',
       blurb: 'أرسل USDC إلى هذا العنوان من أي شبكة تحتفظ به عليها. سيصل إلى Arc تلقائيًا ويظهر قابلًا للصرف.',
-      walletOnly: 'العنوان المباشر مخصص لحسابات البريد ومفاتيح المرور. مع محفظة موصولة أنت تحتفظ بالأموال، فاستخدم التحويل ووقّع النقل بنفسك.',
     },
     gateway: {
       tab: 'Gateway',
@@ -2551,7 +2550,7 @@ export const ar: Messages = {
     connectCta: 'اربط المحفظة',
     soonTag: 'قريبًا',
     soonBody: 'غير جاهز لحسابات البريد بعد. الإيداعات تعمل كالمعتاد.',
-    tag: '[:الرصيد المجمّع:]',
+    tag: '[:رصيد GATEWAY:]',
     title: 'رصيد واحد، أي سلسلة',
     confirmed: 'مؤكد',
     pending: 'قيد الانتظار',
@@ -2582,6 +2581,10 @@ export const ar: Messages = {
     dismiss: 'إغلاق',
     viewTx: 'عرض المعاملة',
     pulledTemplate: 'تم السحب {chains}.',
+    stepAdd: 'تجميع',
+    sendTag: '[:إرسال من الرصيد:]',
+    arcPinned: 'يصل إلى Arc وجاهز للصرف.',
+    outEmpty: 'لا شيء لنقله بعد. جمّع USDC في هذا الرصيد أولًا.',
   },
   stakeCard: {
     eyebrow: {

@@ -8,18 +8,21 @@ const ids = (method: 'circle' | 'web3', direction: 'in' | 'out') =>
 test('both account types are offered a way in, and both see every rail', () => {
   // The complaint this answers: an email account saw no rail choice at all.
   assert.deepEqual(ids('circle', 'in'), ['direct', 'gateway', 'onramp']);
-  assert.deepEqual(ids('web3', 'in'), ['direct', 'cctp', 'gateway', 'onramp']);
+  assert.deepEqual(ids('web3', 'in'), ['cctp', 'gateway', 'onramp']);
 });
 
-test('a connected wallet has no direct deposit address, and is not offered one', () => {
+test('a connected wallet is not shown a direct deposit rail at all', () => {
   // The backend refuses to provision deposit wallets for a web3 account because
   // it advances a shared per-chain index counter, which collides one user's
   // address with another's. Showing the rail as ready got them a card saying
-  // "deposits are being set up for your account" when nothing was.
+  // "deposits are being set up for your account" when nothing was; showing it
+  // as coming soon promised something that cannot be delivered as it stands.
   const web3 = railsFor({ method: 'web3', direction: 'in' });
-  assert.equal(web3.find((r) => r.id === 'direct')?.state, 'soon');
+  assert.equal(web3.find((r) => r.id === 'direct'), undefined);
   // So a wallet account lands on the rail it can actually sign from.
   assert.equal(defaultRail(web3), 'cctp');
+  // A deep link to the rail it does not have is ignored rather than honoured.
+  assert.equal(defaultRail(web3, 'direct'), 'cctp');
   // An email account still gets the address, and lands on it.
   const circle = railsFor({ method: 'circle', direction: 'in' });
   assert.equal(circle.find((r) => r.id === 'direct')?.state, 'ready');

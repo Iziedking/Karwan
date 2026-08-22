@@ -40,6 +40,11 @@ const CARD_STYLE = {
 type DepositChain = GatewayChainConfig;
 
 const DEPOSIT_CHAINS: DepositChain[] = GATEWAY_CHAINS;
+/// Arc is where Karwan settles, so moving pooled USDC onto it is the DEPOSIT
+/// half of this rail and moving it anywhere else is the withdraw half. Splitting
+/// the chain list on that line is what keeps the two out of one form.
+const ARC_CHAIN = DEPOSIT_CHAINS.find((c) => c.key === 'arc') ?? DEPOSIT_CHAINS[0];
+const OUT_CHAINS = DEPOSIT_CHAINS.filter((c) => c.key !== 'arc');
 
 /// App Kit reports allocations by its own chain name ('Base_Sepolia'), which is
 /// not what we show users. Fall back to the raw name rather than dropping a
@@ -56,11 +61,13 @@ function ChainDropdown({
   onChange,
   disabled,
   eyebrow,
+  options = DEPOSIT_CHAINS,
 }: {
   value: DepositChain;
   onChange: (next: DepositChain) => void;
   disabled: boolean;
   eyebrow: string;
+  options?: DepositChain[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -131,7 +138,7 @@ function ChainDropdown({
               boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
             }}
           >
-            {DEPOSIT_CHAINS.map((c) => {
+            {options.map((c) => {
               const isActive = c.key === value.key;
               return (
                 <li key={c.key}>
@@ -164,6 +171,47 @@ function ChainDropdown({
         </>
       )}
     </div>
+  );
+}
+
+/// One of the two inbound steps. Numbered, because the order is real: nothing
+/// can be moved to Arc until a deposit has confirmed.
+function StepTab({
+  index,
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  index: string;
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className="inline-flex items-center gap-2 px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      style={{
+        background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+        border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+        borderRadius: 999,
+        color: 'var(--lp-dark)',
+      }}
+    >
+      <span
+        aria-hidden
+        className="text-[10px] tracking-[0.12em]"
+        style={{ color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)' }}
+      >
+        {index}
+      </span>
+      {children}
+    </button>
   );
 }
 
@@ -220,8 +268,13 @@ type MovePhase = 'idle' | 'moving' | 'moved' | 'error';
 /// agent address only means anything on Arc anyway, while this can send to any
 /// of the twelve chains.
 type Recipient = 'wallet' | 'custom';
+type Step = 'add' | 'move';
 
-export function GatewayBalanceCard() {
+export function GatewayBalanceCard({
+  direction = 'in',
+}: {
+  direction?: 'in' | 'out';
+} = {}) {
   const t = useTranslations().gatewayCard;
   const errCopy = useTranslations().chainErrors;
   const auth = useAuth();
@@ -232,11 +285,14 @@ export function GatewayBalanceCard() {
 
   const [balance, setBalance] = useState<GatewayBalance | null>(null);
   const [source, setSource] = useState<DepositChain>(DEPOSIT_CHAINS[0]);
-  // Where a spend lands. Any of the twelve; Arc is the default because that is
-  // where Karwan settles, but Gateway can mint on all of them via the forwarder.
-  const [dest, setDest] = useState<DepositChain>(
-    DEPOSIT_CHAINS.find((c) => c.key === 'arc') ?? DEPOSIT_CHAINS[0],
-  );
+  // Where a spend lands, when the user picks. Gateway can mint on any of the
+  // twelve via the forwarder, so every non-Arc chain is a valid target.
+  // Outbound destination only. Inbound the destination is Arc and is not a
+  // choice, so this never holds it.
+  const [dest, setDest] = useState<DepositChain>(OUT_CHAINS[0]);
+  // Inbound is two signatures, not one: pool from a chain, then land on Arc. One
+  // step is on screen at a time.
+  const [step, setStep] = useState<Step>('add');
   const [amount, setAmount] = useState('');
   const [moveAmount, setMoveAmount] = useState('');
   const [recipient, setRecipient] = useState<Recipient>('wallet');
@@ -277,6 +333,19 @@ export function GatewayBalanceCard() {
   const walletUsdc = wallet.data
     ? formatUnits(wallet.data.value, wallet.data.decimals)
     : null;
+
+  const inbound = direction === 'in';
+  const activeDest = inbound ? ARC_CHAIN : dest;
+
+  // Flipping direction is a different question, so it starts clean rather than
+  // showing the previous direction's result under the new form.
+  useEffect(() => {
+    setStep('add');
+    setPhase('idle');
+    setMovePhase('idle');
+    setError(null);
+    setMoveError(null);
+  }, [direction]);
 
   const onWrongChain = isConnected && chain?.id !== source.chainId;
   const parsed = Number(amount);
@@ -341,8 +410,15 @@ export function GatewayBalanceCard() {
 
   const trimmedCustom = customAddress.trim();
   const customValid = /^0x[a-fA-F0-9]{40}$/.test(trimmedCustom);
+  // Inbound has no recipient choice. "Bring my own money where Karwan settles"
+  // is the whole action, and a custom-address field on that path is a way to
+  // send a deposit to someone else by accident.
   const recipientAddress =
-    recipient === 'custom' ? (customValid ? trimmedCustom : undefined) : auth.address;
+    !inbound && recipient === 'custom'
+      ? customValid
+        ? trimmedCustom
+        : undefined
+      : auth.address;
 
   /// Spend the pooled balance onto the chosen chain. No chain switch and no
   /// source-chain gas: the wallet signs one chain-agnostic burn intent set, and
@@ -368,7 +444,7 @@ export function GatewayBalanceCard() {
         provider,
         amount: String(Number(moveAmount)),
         recipientAddress,
-        chain: dest.appKit,
+        chain: activeDest.appKit,
         // Stages land as they happen, so the forwarder's mint stops being an
         // invisible wait after the signature.
         onStep: (name, step) => setMoveSteps((prev) => ({ ...prev, [name]: step })),
@@ -397,6 +473,12 @@ export function GatewayBalanceCard() {
   const perChain = (balance?.chains ?? []).filter(
     (c) => Number(c.confirmed) > 0 || Number(c.pending) > 0,
   );
+  const canMove = Number(confirmed) > 0;
+  // A finished or failed move keeps its form on screen: the status line under it
+  // is the only receipt shown in-app, and emptying the balance must not take it
+  // away the moment it succeeds.
+  const showMove =
+    canMove || movePhase === 'moving' || movePhase === 'moved' || movePhase === 'error';
 
   /// Max is NOT the whole pooled balance.
   ///
@@ -421,7 +503,7 @@ export function GatewayBalanceCard() {
       const estimate = async (amount: number) =>
         (await kit.unifiedBalance.estimateSpend({
           from: { adapter },
-          to: { chain: dest.appKit, recipientAddress, useForwarder: true },
+          to: { chain: activeDest.appKit, recipientAddress, useForwarder: true },
           amount: String(amount),
           token: 'USDC',
         } as never)) as { fees?: Array<{ token?: string; amount?: string }> };
@@ -554,7 +636,10 @@ export function GatewayBalanceCard() {
         )}
       </div>
 
-      {!funded && (
+      {/* Only above the pooling form. Anywhere else the panel below already
+          says there is nothing to move, and two sentences saying the same thing
+          read as a fault. */}
+      {!funded && inbound && step === 'add' && (
         <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{t.empty}</p>
       )}
 
@@ -562,6 +647,29 @@ export function GatewayBalanceCard() {
         className="mt-5 pt-5"
         style={{ borderTop: '1px solid var(--lp-border-light)' }}
       >
+        {/* Deposit and withdraw were one card with two stacked forms: pool USDC
+            above a move form with a free destination and a custom-address field.
+            That is a screen offering to take money in and send it out at once,
+            and the direction toggle above has already asked which one this is.
+            So the card answers only that, and inbound is a sequence because
+            pooling and landing on Arc genuinely are two signatures. */}
+        {isConnected && inbound && (
+          <div className="mb-5 flex flex-wrap gap-1.5">
+            <StepTab index="01" active={step === 'add'} onClick={() => setStep('add')}>
+              {t.stepAdd}
+            </StepTab>
+            <StepTab
+              index="02"
+              active={step === 'move'}
+              // Gateway will not spend a pending deposit, so until one confirms
+              // this tab leads to a form that can only fail.
+              disabled={!canMove}
+              onClick={() => setStep('move')}
+            >
+              {t.moveCta}
+            </StepTab>
+          </div>
+        )}
         {!isConnected ? (
           // A web3 user's SIWE cookie outlives the wagmi connection, so after a
           // reload they are signed in but not connected. This used to be a bare
@@ -586,7 +694,7 @@ export function GatewayBalanceCard() {
               {t.connectCta}
             </button>
           </div>
-        ) : (
+        ) : inbound && step === 'add' ? (
           <>
             <ChainDropdown
               value={source}
@@ -678,168 +786,180 @@ export function GatewayBalanceCard() {
               </StatusLine>
             )}
           </>
-        )}
-      </div>
+        ) : showMove ? (
+          <>
+            {/* Destination. Inbound it is Arc and only Arc, so there is a
+                sentence where the picker was. Outbound it is any of the others:
+                each reports forwarderSupported.destination, so Circle's relayer
+                mints there and the recipient needs no gas. */}
+            {inbound ? (
+              <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+                {t.arcPinned}
+              </p>
+            ) : (
+              <>
+                <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+                  {t.sendTag}
+                </div>
+                <div className="mt-3">
+                  <ChainDropdown
+                    value={dest}
+                    onChange={setDest}
+                    options={OUT_CHAINS}
+                    disabled={movePhase === 'moving'}
+                    eyebrow={t.moveTo}
+                  />
+                </div>
+              </>
+            )}
 
-      {/* Spend. Only reachable once something is pooled, since there is nothing
-          to move otherwise. */}
-      {isConnected && Number(confirmed) > 0 && (
-        <div
-          className="mt-5 pt-5"
-          style={{ borderTop: '1px solid var(--lp-border-light)' }}
-        >
-          <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-            {t.moveTag}
-          </div>
+            {!inbound && (
+              <>
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {(
+                  [
+                    ['wallet', t.toWallet],
+                    ['custom', t.toCustom],
+                  ] as Array<[Recipient, string]>
+                ).map(([key, label]) => {
+                  const active = recipient === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setRecipient(key)}
+                      disabled={movePhase === 'moving'}
+                      aria-pressed={active}
+                      className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
+                      style={{
+                        background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
+                        border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+                        borderRadius: 999,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
 
-          {/* Destination. Any of the twelve, not just Arc: every one reports
-              forwarderSupported.destination, so Circle's relayer can mint there
-              and the recipient needs no gas. */}
-          <div className="mt-3">
-            <ChainDropdown
-              value={dest}
-              onChange={setDest}
-              disabled={movePhase === 'moving'}
-              eyebrow={t.moveTo}
-            />
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {(
-              [
-                ['wallet', t.toWallet],
-                ['custom', t.toCustom],
-              ] as Array<[Recipient, string]>
-            ).map(([key, label]) => {
-              const active = recipient === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setRecipient(key)}
+              {recipient === 'custom' && (
+                <input
+                  type="text"
+                  value={customAddress}
+                  onChange={(e) => setCustomAddress(e.target.value)}
                   disabled={movePhase === 'moving'}
-                  aria-pressed={active}
-                  className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
+                  placeholder="0x..."
+                  spellCheck={false}
+                  className="mt-2 w-full px-3 py-2.5 text-[14px] mono outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
                   style={{
-                    background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-                    border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-                    borderRadius: 999,
+                    background: 'var(--lp-light)',
+                    border: `1px solid ${
+                      trimmedCustom && !customValid ? '#b03d3a' : 'var(--lp-border-light)'
+                    }`,
+                    borderRadius: 10,
                   }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+                />
+              )}
+              </>
+            )}
 
-          {recipient === 'custom' && (
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+                {t.amount}
+              </span>
+              <button
+                type="button"
+                onClick={() => void fillMoveMax()}
+                disabled={movePhase === 'moving' || maxBusy}
+                className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-50"
+              >
+                {t.maxTemplate.replace(
+                  '{amount}',
+                  formatUsdc(confirmed, { withSuffix: false }),
+                )}
+              </button>
+            </div>
             <input
-              type="text"
-              value={customAddress}
-              onChange={(e) => setCustomAddress(e.target.value)}
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={moveAmount}
+              onChange={(e) => setMoveAmount(e.target.value)}
               disabled={movePhase === 'moving'}
-              placeholder="0x..."
-              spellCheck={false}
-              className="mt-2 w-full px-3 py-2.5 text-[14px] mono outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
+              placeholder="0.00"
+              className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
               style={{
                 background: 'var(--lp-light)',
-                border: `1px solid ${
-                  trimmedCustom && !customValid ? '#b03d3a' : 'var(--lp-border-light)'
-                }`,
+                border: '1px solid var(--lp-border-light)',
                 borderRadius: 10,
               }}
             />
-          )}
 
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-              {t.amount}
-            </span>
             <button
               type="button"
-              onClick={() => void fillMoveMax()}
-              disabled={movePhase === 'moving' || maxBusy}
-              className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-50"
+              onClick={() => void move()}
+              disabled={
+                movePhase === 'moving' ||
+                !recipientAddress ||
+                !(Number(moveAmount) > 0) ||
+                Number(moveAmount) > Number(confirmed)
+              }
+              className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
+              style={{
+                background: 'var(--lp-accent)',
+                color: 'var(--accent-ink)',
+                border: 'none',
+                borderRadius: 12,
+              }}
             >
-              {t.maxTemplate.replace(
-                '{amount}',
-                formatUsdc(confirmed, { withSuffix: false }),
-              )}
+              {movePhase === 'moving'
+                ? t.moving
+                : t.moveCtaTemplate.replace('{chain}', activeDest.name)}
             </button>
-          </div>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            value={moveAmount}
-            onChange={(e) => setMoveAmount(e.target.value)}
-            disabled={movePhase === 'moving'}
-            placeholder="0.00"
-            className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
-            style={{
-              background: 'var(--lp-light)',
-              border: '1px solid var(--lp-border-light)',
-              borderRadius: 10,
-            }}
-          />
 
-          <button
-            type="button"
-            onClick={() => void move()}
-            disabled={
-              movePhase === 'moving' ||
-              !recipientAddress ||
-              !(Number(moveAmount) > 0) ||
-              Number(moveAmount) > Number(confirmed)
-            }
-            className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
-            style={{
-              background: 'var(--lp-accent)',
-              color: 'var(--accent-ink)',
-              border: 'none',
-              borderRadius: 12,
-            }}
-          >
-            {movePhase === 'moving'
-              ? t.moving
-              : t.moveCtaTemplate.replace('{chain}', dest.name)}
-          </button>
+            {/* Live stages. Kept up while moving AND after it lands, so the
+                finished run reads as a receipt rather than vanishing. */}
+            {(movePhase === 'moving' || movePhase === 'moved') && (
+              <GatewayProgress steps={moveSteps} />
+            )}
 
-          {/* Live stages. Kept up while moving AND after it lands, so the
-              finished run reads as a receipt rather than vanishing. */}
-          {(movePhase === 'moving' || movePhase === 'moved') && (
-            <GatewayProgress steps={moveSteps} />
-          )}
-
-          {movePhase === 'moved' && (
-            <StatusLine tone="ok" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
-              {t.moved}
-              {pulledFrom && pulledFrom.length > 0 && (
-                <> {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}</>
-              )}
-              {moveTx && (
-                <>
-                  {' '}
-                  <a
-                    href={moveTx}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2"
-                  >
-                    {t.viewTx}
-                  </a>
-                </>
-              )}
-            </StatusLine>
-          )}
-          {movePhase === 'error' && (
-            <StatusLine tone="bad" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
-              {moveError ?? t.moveFailed}
-            </StatusLine>
-          )}
-        </div>
-      )}
+            {movePhase === 'moved' && (
+              <StatusLine tone="ok" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
+                {t.moved}
+                {pulledFrom && pulledFrom.length > 0 && (
+                  <> {t.pulledTemplate.replace('{chains}', pulledFrom.join(', '))}</>
+                )}
+                {moveTx && (
+                  <>
+                    {' '}
+                    <a
+                      href={moveTx}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2"
+                    >
+                      {t.viewTx}
+                    </a>
+                  </>
+                )}
+              </StatusLine>
+            )}
+            {movePhase === 'error' && (
+              <StatusLine tone="bad" onDismiss={() => setMovePhase('idle')} label={t.dismiss}>
+                {moveError ?? t.moveFailed}
+              </StatusLine>
+            )}
+          </>
+        ) : (
+          // Nothing pooled, so there is nothing to move. A form here could
+          // only be submitted into a failure.
+          <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+            {t.outEmpty}
+          </p>
+        )}
+      </div>
 
       {/* Where the balance actually sits, per chain. Collapsed by default and
           parked at the bottom: the headline number is what the user came for,
