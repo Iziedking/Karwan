@@ -19,7 +19,8 @@
     "test:charts": "tsx --test features/reputation/axisLabels.test.ts",
     "test:chain": "tsx --test shared/chain/confirmTx.test.ts",
     "test:rails": "tsx --test features/deposit/railModel.test.ts",
-    "test:passport": "tsx --test features/reputation/skillCredentials.test.ts features/reputation/axisLabels.test.ts"
+    "test:passport": "tsx --test features/reputation/skillCredentials.test.ts features/reputation/axisLabels.test.ts",
+    "test:reputation": "tsx --test features/reputation/tierProgress.test.ts features/reputation/skillCredentials.test.ts"
   },
   "dependencies": {
     "@circle-fin/adapter-solana-kit": "^1.4.10",

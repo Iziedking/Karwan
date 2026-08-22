@@ -2168,6 +2168,13 @@ export const hi: Messages = {
       outLabel: 'बैंक में निकालें',
     },
   },
+  tierProgress: {
+    pointsTemplate: '{tier} · +{points}',
+    dealsTemplate: '{tier} · {deals} और सौदे',
+    dealsOneTemplate: '{tier} · 1 और सौदा',
+    concentrationTemplate: '{tier} · विविध प्रतिपक्ष चाहिए',
+    topTier: 'शीर्ष श्रेणी',
+  },
   chatPanel: {
     withCounterpartyTemplate: '[:{name} के साथ:]',
     telegramNote: 'लिंक होने पर Telegram पर भी पहुँचता है',

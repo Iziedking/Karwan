@@ -24,6 +24,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { TIER_HUE } from '@/features/reputation/tierColors';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { tierProgress, tierProgressLabel } from '@/features/reputation/tierProgressLabel';
 
 type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
 const ORDER: Tier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
@@ -106,17 +107,22 @@ function StakePageInner() {
   const { address } = useAuth();
   const { data } = useReputation(address);
   const sp = useTranslations().stakePage;
+  const tp = useTranslations().tierProgress;
 
   const tier = (data?.tier ?? 'NEW') as Tier;
   const score = Math.round(data?.score ?? 0);
-  const idx = ORDER.indexOf(tier);
-  const nextTier = idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
-  const toNext = nextTier ? Math.max(0, BREAKS[idx + 1] - score) : 0;
   /// Points are not the only gate, and the backend already knows which one is
-  /// binding: `tierCappedBy` plus `dealsToNextTier` come straight off
-  /// /api/reputation. Deriving it here from the score is what produced
-  /// "TO COLD 0 pts" for a score that had already cleared 200.
-  const dealsNeeded = data?.tierCappedBy === 'deals' ? (data.dealsToNextTier ?? null) : null;
+  /// binding. This page handled the DEALS ceiling and then fell through to the
+  /// same points maths for the concentration one, so a wallet held at COLD by
+  /// trading with a single counterparty read "TO ESTABLISHED 0 pts".
+  const progress = tierProgress({
+    score,
+    tier,
+    tierCappedBy: data?.tierCappedBy ?? null,
+    dealsToNextTier: data?.dealsToNextTier ?? null,
+  });
+  const progressLabel = tierProgressLabel(progress, tp, (t) => t);
+  const nextTier = progress.kind === 'top' || progress.kind === 'unknown' ? null : progress.nextTier;
   /// The score earned a higher tier than the wallet holds. Worth saying out
   /// loud, because otherwise 434 sitting beside NEW reads as a broken number.
   const capped = data?.tierCappedBy != null;
@@ -172,21 +178,23 @@ function StakePageInner() {
             }
             wide
           >
-            {nextTier && dealsNeeded !== null ? (
+            {progress.kind === 'deals' ? (
               <span className="tabular-nums">
-                <CountUp value={dealsNeeded} />{' '}
+                <CountUp value={progress.deals} />{' '}
                 <span className="text-white/45 text-[15px]">
-                  {dealsNeeded === 1 ? sp.position.dealOne : sp.position.dealMany}
+                  {progress.deals === 1 ? sp.position.dealOne : sp.position.dealMany}
                 </span>
               </span>
-            ) : nextTier ? (
+            ) : progress.kind === 'points' ? (
               <span className="tabular-nums">
-                <CountUp value={toNext} />{' '}
+                <CountUp value={progress.points} />{' '}
                 <span className="text-white/45 text-[15px]">{sp.position.pts}</span>
               </span>
-            ) : (
+            ) : progress.kind === 'concentration' ? (
+              <span className="text-[15px] text-white/70">{progressLabel}</span>
+            ) : progress.kind === 'top' ? (
               <span style={{ color: TIER_HUE[tier] }}>{sp.position.topTier}</span>
-            )}
+            ) : null}
           </Stat>
         </div>
       </Band>

@@ -1,6 +1,7 @@
 'use client';
 import { useReputation } from '../hooks/useReputation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { tierProgress, tierProgressLabel } from '../tierProgressLabel';
 
 type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
 
@@ -23,6 +24,7 @@ const COLOR: Record<Tier, string> = {
 export function ProfileTierCard({ address }: { address?: string | null }) {
   const { data, fetchState } = useReputation(address);
   const pt = useTranslations().profileTierCard;
+  const tp = useTranslations().tierProgress;
   if (!address) return null;
 
   if (fetchState === 'loading' && !data) {
@@ -38,8 +40,17 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
   const score = Math.round(data?.score ?? 0);
   const color = COLOR[tier];
   const idx = ORDER.indexOf(tier);
-  const nextTier = idx >= 0 && idx < ORDER.length - 1 ? ORDER[idx + 1] : null;
-  const toNext = nextTier ? Math.max(0, BREAKS[idx + 1] - score) : 0;
+  /// What the next tier actually needs. `max(0, BREAKS[idx+1] - score)` read
+  /// "0 to ESTABLISHED" on a wallet whose score had cleared the rung but whose
+  /// tier was held down by a ceiling: the clamp turned a negative distance into
+  /// a claim that it had arrived.
+  const progress = tierProgress({
+    score,
+    tier,
+    tierCappedBy: data?.tierCappedBy ?? null,
+    dealsToNextTier: data?.dealsToNextTier ?? null,
+  });
+  const progressLabel = tierProgressLabel(progress, tp, (t) => t);
   const pct = Math.min(100, Math.max(0, (score / 1000) * 100));
 
   return (
@@ -65,7 +76,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
           {tier}
         </span>
         <span className="text-[12px] text-white/55">
-          {nextTier ? pt.toNext.replace('{amount}', String(toNext)).replace('{tier}', nextTier) : pt.topTier}
+          {progressLabel}
         </span>
       </div>
 

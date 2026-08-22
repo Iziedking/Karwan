@@ -1971,6 +1971,16 @@ interface MessagesShape {
       outLabel: string;
     };
   };
+  /// Why a wallet is not at the next tier yet. One block, used by the passport,
+  /// the profile card and the stake page, because all three used to answer this
+  /// question differently and all three were wrong when a ceiling was binding.
+  tierProgress: {
+    pointsTemplate: string;
+    dealsTemplate: string;
+    dealsOneTemplate: string;
+    concentrationTemplate: string;
+    topTier: string;
+  };
   chatPanel: {
     withCounterpartyTemplate: string;
     telegramNote: string;
@@ -6824,6 +6834,13 @@ export const en: MessagesShape = {
       inLabel: 'Buy USDC',
       outLabel: 'Cash out to a bank',
     },
+  },
+  tierProgress: {
+    pointsTemplate: '{tier} · +{points}',
+    dealsTemplate: '{tier} · {deals} more deals',
+    dealsOneTemplate: '{tier} · 1 more deal',
+    concentrationTemplate: '{tier} · needs varied counterparties',
+    topTier: 'Top tier',
   },
   chatPanel: {
     withCounterpartyTemplate: '[:WITH {name}:]',

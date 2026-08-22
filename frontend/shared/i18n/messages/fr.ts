@@ -2168,6 +2168,13 @@ export const fr: Messages = {
       outLabel: 'Retirer vers une banque',
     },
   },
+  tierProgress: {
+    pointsTemplate: '{tier} · +{points}',
+    dealsTemplate: '{tier} · {deals} transactions de plus',
+    dealsOneTemplate: '{tier} · 1 transaction de plus',
+    concentrationTemplate: '{tier} · exige des contreparties variées',
+    topTier: 'Palier maximal',
+  },
   chatPanel: {
     withCounterpartyTemplate: '[:AVEC {name}:]',
     telegramNote: 'Aussi livré sur Telegram quand lié',

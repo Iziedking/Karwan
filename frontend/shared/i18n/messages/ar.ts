@@ -2168,6 +2168,13 @@ export const ar: Messages = {
       outLabel: 'اسحب إلى بنك',
     },
   },
+  tierProgress: {
+    pointsTemplate: '{tier} · +{points}',
+    dealsTemplate: '{tier} · {deals} صفقات إضافية',
+    dealsOneTemplate: '{tier} · صفقة واحدة إضافية',
+    concentrationTemplate: '{tier} · يحتاج أطرافًا متنوعة',
+    topTier: 'أعلى فئة',
+  },
   chatPanel: {
     withCounterpartyTemplate: '[:مع {name}:]',
     telegramNote: 'يصل أيضاً إلى Telegram عند الربط',

@@ -2168,6 +2168,13 @@ export const sw: Messages = {
       outLabel: 'Toa kwenda benki',
     },
   },
+  tierProgress: {
+    pointsTemplate: '{tier} · +{points}',
+    dealsTemplate: '{tier} · mikataba {deals} zaidi',
+    dealsOneTemplate: '{tier} · mkataba 1 zaidi',
+    concentrationTemplate: '{tier} · inahitaji wahusika tofauti',
+    topTier: 'Daraja la juu',
+  },
   chatPanel: {
     withCounterpartyTemplate: '[:NA {name}:]',
     telegramNote: 'Pia inawasilishwa Telegram ikiwa imeunganishwa',

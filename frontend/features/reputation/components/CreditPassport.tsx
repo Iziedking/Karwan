@@ -10,6 +10,7 @@ import {
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
 import { skillDateLabel, skillLabel } from '../skillCredentials';
+import { tierProgress, tierProgressLabel, type Tier as ProgressTier } from '../tierProgressLabel';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -44,6 +45,9 @@ type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export function CreditPassport({ address }: { address: string }) {
   const cp = useTranslations().creditPassport;
+  /// Shared across the passport, the profile card and the stake page, so all
+  /// three phrase a capped tier the same way.
+  const tp = useTranslations().tierProgress;
   const valid = ADDR_RE.test(address);
   const [rep, setRep] = useState<Reputation | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -190,11 +194,18 @@ export function CreditPassport({ address }: { address: string }) {
     value: (terms as Record<string, number | undefined>)[key],
   })).filter((r): r is { label: string; value: number } => typeof r.value === 'number');
 
-  // Distance to the next tier ladder rung. Drives the "next tier +X" hint
-  // on the score panel so a viewer knows what reaching the next badge would
-  // take. Null at ELITE (no higher rung).
-  const nextTierTarget = TIER_BANDS.find((b) => b.start > score);
-  const distanceToNext = nextTierTarget ? nextTierTarget.start - score : null;
+  // What reaching the next tier would take, from the tier actually HELD and
+  // whichever gate is binding. It used to find the next SCORE band, which on a
+  // capped wallet named a tier that points cannot buy: 711 held at ESTABLISHED
+  // was told "Elite +89", skipping STRONG entirely.
+  const progress = tierProgress({
+    score,
+    tier: tier as ProgressTier,
+    tierCappedBy: rep.tierCappedBy ?? null,
+    dealsToNextTier: rep.dealsToNextTier ?? null,
+  });
+  const progressLabel = tierProgressLabel(progress, tp, (t) => TIER_LABEL[t]);
+  const progressTier = progress.kind === 'top' || progress.kind === 'unknown' ? null : progress.nextTier;
 
   // Tenure in days. Pulled from the registration timestamp the engine uses for
   // the tenure factor. Surfaced as a stat so viewers see how long this wallet
@@ -281,18 +292,18 @@ export function CreditPassport({ address }: { address: string }) {
                 {cp.scorePanel.outOfTotal}
               </p>
             </div>
-            {distanceToNext != null && nextTierTarget && (
+            {progressLabel && (
               <div className="ms-auto pb-1 text-end">
                 <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
                   {cp.scorePanel.nextTier}
                 </p>
                 <p
                   className="mt-0.5 mono text-[12px] tabular-nums"
-                  style={{ color: TIER_HUE[nextTierTarget.tier] }}
+                  style={{
+                    color: progressTier ? TIER_HUE[progressTier] : 'var(--color-ink-dim)',
+                  }}
                 >
-                  {cp.scorePanel.nextTierTemplate
-                    .replace('{tier}', TIER_LABEL[nextTierTarget.tier])
-                    .replace('{delta}', String(distanceToNext))}
+                  {progressLabel}
                 </p>
               </div>
             )}
