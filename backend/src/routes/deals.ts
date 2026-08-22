@@ -31,7 +31,6 @@ import {
   refundEscrow,
   reclaimAfterDeadline,
   extendDeadlineOnChain,
-  mutualCancelOnChain,
   buildFundEscrowCall,
   releaseFromDispute as releaseFromDisputeOnChain,
   recordReputation,
@@ -70,6 +69,12 @@ import {
   type MoneyMovement,
 } from '../money/service.js';
 import { formatUsdcMicros } from '../money/model.js';
+import {
+  ensureEscrowRefundMovement,
+  executeEscrowRefundMovement,
+  remainingEscrowMicros,
+} from '../money/escrowRefund.js';
+import { executeEscrowMutualCancelMovement } from '../money/escrowMutualCancel.js';
 import {
   expectedMilestonePayout,
   findAdvancedUnfinishedPayout,
@@ -117,6 +122,8 @@ const USDC_DECIMALS = 6;
 const fundingMovementKey = (jobId: string) => `escrow_funding:${jobId.toLowerCase()}`;
 const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
   `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
+const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
+const mutualCancelMovementKey = (jobId: string) => `escrow_mutual_cancel:${jobId.toLowerCase()}`;
 
 function publicMoneyMovement(movement: MoneyMovement) {
   return {
@@ -3365,19 +3372,56 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   if (!deal.buyerAgentWalletId) {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
+  const agentWallets = await getAgentWallets(deal.buyer);
+  const buyerAgentAddress = deal.buyerAgentAddress ?? agentWallets?.buyerAddress;
+  if (!buyerAgentAddress) {
+    return c.json({ error: 'this deal has no buyer agent address on record' }, 409);
+  }
   if (inFlight.has(jobId)) {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
   const account = await readEscrow(jobId);
-  if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_ACCEPTED) {
+  const existingRefund = await getMoneyMovementByOperationKey(refundMovementKey(jobId));
+  const refundRecovery = existingRefund && existingRefund.state !== 'cancelled';
+  if (
+    account.state !== ESCROW_FUNDED &&
+    account.state !== ESCROW_ACCEPTED &&
+    !(account.state === ESCROW_DISPUTED && refundRecovery)
+  ) {
     return c.json({ error: `escrow is not in a cancellable state (${account.state})` }, 409);
   }
+  let refundMicros: bigint;
+  try {
+    refundMicros = remainingEscrowMicros(account.dealAmount, account.released);
+  } catch (err) {
+    logger.error({ jobId, err: (err as Error).message }, 'escrow refund amount is invalid');
+    return c.json({ error: 'escrow accounting is inconsistent', code: 'ESCROW_ACCOUNTING_INVALID' }, 502);
+  }
+  if (refundMicros <= 0n) {
+    return c.json({ error: 'there is no remaining escrow to refund', code: 'ESCROW_EMPTY' }, 409);
+  }
+  const refundAmountUsdc = formatUsdcMicros(refundMicros);
+  const refundSummary = `Reclaimed ${refundAmountUsdc} USDC from the deal the seller did not deliver`;
+  const refundInput = {
+    operationKey: refundMovementKey(jobId),
+    amountUsdc: refundAmountUsdc,
+    initiatedBy: deal.buyer,
+    buyerAgentAddress,
+    sellerAddress: deal.seller,
+    jobId,
+    summary: refundSummary,
+    escrowAddress: escrow.address,
+    buyerAgentWalletId: deal.buyerAgentWalletId,
+  };
 
   inFlight.add(jobId);
+  let refundReference: string | undefined;
   try {
     const reason = 'buyer cancel: seller did not deliver by deadline';
-    let refundTxHash: string;
+    const ensuredRefund = await ensureEscrowRefundMovement(refundInput);
+    refundReference = ensuredRefund.movement.reference;
+    let refundResult;
     if (config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED) {
       // v2b post-accept: the same trustless reclaim the watcher uses. It
       // enforces deadline + grace and the "nothing pending review" rule on
@@ -3391,16 +3435,23 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
           409,
         );
       }
-      refundTxHash = await reclaimAfterDeadline(jobId, deal.buyerAgentWalletId);
+      refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+        reclaimAfterDeadline(jobId, deal.buyerAgentWalletId!, options),
+      );
     } else {
       /// Pre-accept (Funded) on any version, or the v2.E accepted path: two SCA
       /// calls in sequence. Both go through the inner-revert guard in
       /// settlement.ts, so a stuck Disputed or Disputed-but-not-Refunded state
       /// throws here before any off-chain `cancelledAt` write, never marking a
       /// deal cancelled in DB while the buyer's USDC is still escrowed.
-      await disputeEscrow(jobId, deal.buyerAgentWalletId, reason);
-      refundTxHash = await refundEscrow(jobId, deal.buyerAgentWalletId);
+      if (account.state !== ESCROW_DISPUTED) {
+        await disputeEscrow(jobId, deal.buyerAgentWalletId, reason);
+      }
+      refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+        refundEscrow(jobId, deal.buyerAgentWalletId!, options),
+      );
     }
+    const refundTxHash = refundResult.txHash;
     await patchDeal(jobId, {
       cancelledAt: Date.now(),
       cancelKind: 'unilateral',
@@ -3410,9 +3461,11 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     void appendActivity({
       address: deal.buyer,
       kind: 'refund',
-      summary: `Reclaimed ${deal.dealAmountUsdc} USDC from the deal the seller did not deliver`,
-      params: {t: 'deadlineReclaim', amount: String(deal.dealAmountUsdc)},
-      amountUsdc: deal.dealAmountUsdc,
+      id: `escrow-refund:${jobId}`,
+      refId: refundResult.movement.reference,
+      summary: refundSummary,
+      params: {t: 'deadlineReclaim', amount: refundAmountUsdc, reference: refundResult.movement.reference},
+      amountUsdc: refundAmountUsdc,
       txHash: refundTxHash,
       jobId,
       counterparty: deal.seller?.toLowerCase(),
@@ -3427,6 +3480,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
         kind: 'unilateral',
         reason,
         txHash: refundTxHash,
+        reference: refundResult.movement.reference,
       },
     });
     // The seller never delivered by the deadline: record a failure against
@@ -3435,11 +3489,33 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     if (!(config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED)) {
       await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
     }
-    return c.json({ accepted: true, jobId, txHash: refundTxHash }, 200);
+    return c.json(
+      {
+        accepted: true,
+        alreadyRecorded: refundResult.alreadyRecorded,
+        jobId,
+        txHash: refundTxHash,
+        reference: refundResult.movement.reference,
+        movementState: refundResult.movement.state,
+      },
+      200,
+    );
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'cancel failed');
-    return c.json({ error: 'cancel failed', code: info.code, detail: info.message }, 502);
+    const attentionReference =
+      (err as Error).message.match(/^ESCROW_REFUND_NEEDS_ATTENTION:(KWN-[A-Z0-9-]+)$/)?.[1] ??
+      refundReference;
+    return c.json(
+      {
+        error: 'cancel failed',
+        code: info.code,
+        detail: info.message,
+        reference: attentionReference,
+        movementState: 'needs_attention',
+      },
+      502,
+    );
   } finally {
     inFlight.delete(jobId);
   }
@@ -3630,6 +3706,8 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     /// Every wrapper verifies its expected post-state before returning, so the
     /// off-chain patchDeal below only runs when the chain actually moved.
     let finalTxHash: string;
+    let finalMovement: Awaited<ReturnType<typeof executeEscrowMutualCancelMovement>> | undefined;
+    let settlementAmountUsdc = deal.dealAmountUsdc;
     if (isReleaseFromDispute) {
       finalTxHash = await releaseFromDisputeOnChain(jobId, deal.buyerAgentWalletId);
     } else if (config.ESCROW_V2B_ENABLED && account.state !== ESCROW_FUNDED) {
@@ -3641,12 +3719,41 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
       if (!deal.sellerAgentWalletId) {
         return c.json({ error: 'this deal has no seller agent wallet on record' }, 409);
       }
-      finalTxHash = await mutualCancelOnChain(
+      const agentWallets = await getAgentWallets(deal.buyer);
+      const sellerWallets = await getAgentWallets(deal.seller);
+      const buyerAgentAddress = deal.buyerAgentAddress ?? agentWallets?.buyerAddress;
+      const sellerAgentAddress = deal.sellerAgentAddress ?? sellerWallets?.sellerAddress;
+      if (!buyerAgentAddress || !sellerAgentAddress) {
+        return c.json({ error: 'this deal has no agent addresses on record' }, 409);
+      }
+      let remainingMicros: bigint;
+      try {
+        remainingMicros = remainingEscrowMicros(account.dealAmount, account.released);
+      } catch (err) {
+        logger.error({ jobId, err: (err as Error).message }, 'mutual cancel amount is invalid');
+        return c.json({ error: 'escrow accounting is inconsistent', code: 'ESCROW_ACCOUNTING_INVALID' }, 502);
+      }
+      if (remainingMicros <= 0n) {
+        return c.json({ error: 'there is no remaining escrow to cancel', code: 'ESCROW_EMPTY' }, 409);
+      }
+      settlementAmountUsdc = formatUsdcMicros(remainingMicros);
+      finalMovement = await executeEscrowMutualCancelMovement({
+        operationKey: mutualCancelMovementKey(jobId),
+        amountUsdc: settlementAmountUsdc,
+        initiatedBy: deal.buyer,
+        buyerAddress: deal.buyer,
+        sellerAddress: deal.seller,
+        buyerAgentAddress,
+        sellerAgentAddress,
+        buyerAgentWalletId: deal.buyerAgentWalletId,
+        sellerAgentWalletId: deal.sellerAgentWalletId,
+        sellerBps: 0,
         jobId,
-        deal.buyerAgentWalletId,
-        deal.sellerAgentWalletId,
-        0,
-      );
+        summary: `Mutual cancellation returned ${settlementAmountUsdc} USDC to the buyer`,
+        escrowAddress: escrow.address,
+      });
+      finalTxHash = finalMovement.acceptTxHash ?? '';
+      if (!finalTxHash) throw new Error('MUTUAL_CANCEL_ACCEPT_PROOF_MISSING');
     } else {
       // v2.E, OR v2b pre-accept (FUNDED): dispute (if needed) then refund.
       if (account.state !== ESCROW_DISPUTED) {
@@ -3684,13 +3791,21 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     // Whoever received the money gets the row. Both sides can already see the
     // deal page; this is the entry in their own ledger.
     void appendActivity({
+      ...(finalMovement ? { id: `escrow-mutual-cancel:${jobId}` } : {}),
       address: isReleaseFromDispute ? deal.seller : deal.buyer,
       kind: isReleaseFromDispute ? 'release' : 'refund',
       summary: isReleaseFromDispute
-        ? `Received ${deal.dealAmountUsdc} USDC from a resolved dispute`
-        : `Refunded ${deal.dealAmountUsdc} USDC from a cancelled deal`,
-      params: {t: isReleaseFromDispute ? 'disputeReceived' : 'cancelRefund', amount: String(deal.dealAmountUsdc)},
-      amountUsdc: deal.dealAmountUsdc,
+        ? `Received ${settlementAmountUsdc} USDC from a resolved dispute`
+        : finalMovement
+          ? `Mutual cancellation returned ${settlementAmountUsdc} USDC to the buyer`
+          : `Refunded ${settlementAmountUsdc} USDC from a cancelled deal`,
+      ...(finalMovement ? { refId: finalMovement.movement.reference } : {}),
+      params: {
+        t: isReleaseFromDispute ? 'disputeReceived' : 'cancelRefund',
+        amount: settlementAmountUsdc,
+        ...(finalMovement ? { reference: finalMovement.movement.reference } : {}),
+      },
+      amountUsdc: settlementAmountUsdc,
       txHash: finalTxHash,
       jobId,
       counterparty: (isReleaseFromDispute ? deal.buyer : deal.seller)?.toLowerCase(),
@@ -3722,7 +3837,21 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     // reading disputeLoser; on-chain rep for trusted (reservation > 0) deals
     // is already recorded by the escrow contract.
     return c.json(
-      { accepted: true, jobId, txHash: finalTxHash, ...(isDisputeResolution ? { disputeLoser } : {}) },
+      {
+        accepted: true,
+        jobId,
+        txHash: finalTxHash,
+        ...(finalMovement
+          ? {
+              reference: finalMovement.movement.reference,
+              movementState: finalMovement.movement.state,
+              alreadyRecorded: finalMovement.alreadyRecorded,
+              proposeTxHash: finalMovement.proposeTxHash,
+              acceptTxHash: finalMovement.acceptTxHash,
+            }
+          : {}),
+        ...(isDisputeResolution ? { disputeLoser } : {}),
+      },
       200,
     );
   } catch (err) {

@@ -193,7 +193,11 @@ export async function disputeEscrow(
 /// Disputed -> Refunded, releases the reservation on the vault (slashing it
 /// when the seller breached, or returning it to free stake when not), and
 /// records the on-chain reputation outcome.
-export async function refundEscrow(jobId: string, buyerAgentWalletId: string): Promise<string> {
+export async function refundEscrow(
+  jobId: string,
+  buyerAgentWalletId: string,
+  operation: SettlementCallOptions = {},
+): Promise<string> {
   if (!buyerAgentWalletId) throw new Error('refundEscrow requires a buyer agent wallet id');
   const result = await executeContractCall(
     {
@@ -201,6 +205,7 @@ export async function refundEscrow(jobId: string, buyerAgentWalletId: string): P
       contractAddress: escrow.address,
       abiFunctionSignature: 'refund(bytes32)',
       abiParameters: [jobId],
+      ...operation,
     },
     `refund(${jobId})`,
   );
@@ -271,6 +276,7 @@ export function buildFundEscrowCall(
 export async function reclaimAfterDeadline(
   jobId: string,
   buyerAgentWalletId: string,
+  operation: SettlementCallOptions = {},
 ): Promise<string> {
   if (!buyerAgentWalletId) throw new Error('reclaimAfterDeadline requires a buyer agent wallet id');
   const result = await executeContractCall(
@@ -279,6 +285,7 @@ export async function reclaimAfterDeadline(
       contractAddress: escrow.address,
       abiFunctionSignature: 'reclaimAfterDeadline(bytes32,address)',
       abiParameters: [jobId, ZERO_ADDRESS],
+      ...operation,
     },
     `reclaimAfterDeadline(${jobId})`,
   );
@@ -423,6 +430,54 @@ export async function lapseDispute(jobId: string, walletId: string): Promise<str
   return result.txHash;
 }
 
+export interface MutualCancelCallOptions {
+  propose?: SettlementCallOptions;
+  accept?: SettlementCallOptions;
+}
+
+export async function proposeMutualCancelOnChain(
+  jobId: string,
+  proposerWalletId: string,
+  sellerBps: number,
+  operation: SettlementCallOptions = {},
+): Promise<string> {
+  if (!proposerWalletId) throw new Error('mutualCancel requires a proposer wallet id');
+  const bps = Math.round(sellerBps).toString();
+  const result = await executeContractCall(
+    {
+      walletId: proposerWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'proposeCancel(bytes32,uint16,address)',
+      abiParameters: [jobId, bps, ZERO_ADDRESS],
+      ...operation,
+    },
+    `proposeCancel(${jobId}, ${bps})`,
+  );
+  return result.txHash;
+}
+
+export async function acceptMutualCancelOnChain(
+  jobId: string,
+  acceptorWalletId: string,
+  sellerBps: number,
+  operation: SettlementCallOptions = {},
+): Promise<string> {
+  if (!acceptorWalletId) throw new Error('mutualCancel requires an acceptor wallet id');
+  const bps = Math.round(sellerBps).toString();
+  const result = await executeContractCall(
+    {
+      walletId: acceptorWalletId,
+      contractAddress: escrow.address,
+      abiFunctionSignature: 'acceptCancel(bytes32,uint16,address)',
+      abiParameters: [jobId, bps, ZERO_ADDRESS],
+      ...operation,
+    },
+    `acceptCancel(${jobId}, ${bps})`,
+  );
+  await assertEscrowState(jobId, ESCROW_STATE.Settled, 'acceptCancel', result.txHash);
+  return result.txHash;
+}
+
 /// Drive the two-tx mutual-cancel handshake (v2b) to settle a post-accept deal
 /// by consent, replacing the v2.E post-accept refund. The backend controls
 /// both agent wallets, so it proposes with one side and accepts with the other
@@ -434,31 +489,21 @@ export async function mutualCancelOnChain(
   proposerWalletId: string,
   acceptorWalletId: string,
   sellerBps: number,
-): Promise<string> {
-  if (!proposerWalletId || !acceptorWalletId) {
-    throw new Error('mutualCancel requires both agent wallet ids');
-  }
-  const bps = Math.round(sellerBps).toString();
-  await executeContractCall(
-    {
-      walletId: proposerWalletId,
-      contractAddress: escrow.address,
-      abiFunctionSignature: 'proposeCancel(bytes32,uint16,address)',
-      abiParameters: [jobId, bps, ZERO_ADDRESS],
-    },
-    `proposeCancel(${jobId}, ${bps})`,
+  operation: MutualCancelCallOptions = {},
+): Promise<{ proposeTxHash: string; acceptTxHash: string }> {
+  const proposeTxHash = await proposeMutualCancelOnChain(
+    jobId,
+    proposerWalletId,
+    sellerBps,
+    operation.propose,
   );
-  const result = await executeContractCall(
-    {
-      walletId: acceptorWalletId,
-      contractAddress: escrow.address,
-      abiFunctionSignature: 'acceptCancel(bytes32,uint16,address)',
-      abiParameters: [jobId, bps, ZERO_ADDRESS],
-    },
-    `acceptCancel(${jobId}, ${bps})`,
+  const acceptTxHash = await acceptMutualCancelOnChain(
+    jobId,
+    acceptorWalletId,
+    sellerBps,
+    operation.accept,
   );
-  await assertEscrowState(jobId, ESCROW_STATE.Settled, 'acceptCancel', result.txHash);
-  return result.txHash;
+  return { proposeTxHash, acceptTxHash };
 }
 
 // ============================ Guardian (v2b) ===========================

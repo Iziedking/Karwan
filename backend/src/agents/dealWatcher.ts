@@ -2,7 +2,9 @@ import { keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import { listAllDeals, patchDeal, type DirectDeal } from '../db/deals.js';
-import { readEscrow } from '../chain/contracts.js';
+import { getAgentWallets } from '../db/agentWallets.js';
+import { appendActivity } from '../db/activityLog.js';
+import { escrow, readEscrow } from '../chain/contracts.js';
 import {
   releaseMilestone,
   finalizeIfSettled,
@@ -26,6 +28,12 @@ import {
   pairKey,
 } from '../deals/releaseWindow.js';
 import { sellerAgreementExpired } from '../deals/lifecycle.js';
+import {
+  ensureEscrowRefundMovement,
+  executeEscrowRefundMovement,
+  remainingEscrowMicros,
+} from '../money/escrowRefund.js';
+import { formatUsdcMicros } from '../money/model.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -49,6 +57,7 @@ import { sellerAgreementExpired } from '../deals/lifecycle.js';
 /// for paid RPC tiers that can afford tighter polling.
 const TICK_MS = Number(process.env.DEAL_WATCHER_TICK_MS ?? 60_000);
 const processing = new Set<string>();
+const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
 
 type BlockReason = 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
 
@@ -339,7 +348,31 @@ async function tick() {
         if (now > deal.deadlineUnix * 1000 + config.DEAL_DEADLINE_RECLAIM_GRACE_MS) {
           const reason =
             'auto-reclaim: seller did not deliver by the deadline and the grace window passed';
-          let refundTxHash: string;
+          const buyerAgentAddress =
+            deal.buyerAgentAddress ?? (await getAgentWallets(deal.buyer))?.buyerAddress;
+          if (!buyerAgentAddress) {
+            logger.warn({ jobId: deal.jobId }, 'auto-reclaim skipped; buyer agent address missing');
+            continue;
+          }
+          const refundMicros = remainingEscrowMicros(account.dealAmount, account.released);
+          if (refundMicros <= 0n) {
+            logger.warn({ jobId: deal.jobId }, 'auto-reclaim skipped; escrow has no remaining balance');
+            continue;
+          }
+          const refundAmountUsdc = formatUsdcMicros(refundMicros);
+          const refundInput = {
+            operationKey: refundMovementKey(deal.jobId),
+            amountUsdc: refundAmountUsdc,
+            initiatedBy: deal.buyer,
+            buyerAgentAddress,
+            sellerAddress: deal.seller,
+            jobId: deal.jobId,
+            summary: `Reclaimed ${refundAmountUsdc} USDC from the deal the seller did not deliver`,
+            escrowAddress: escrow.address,
+            buyerAgentWalletId: buyerWalletId,
+          };
+          await ensureEscrowRefundMovement(refundInput);
+          let refundResult;
           if (config.ESCROW_V2B_ENABLED) {
             // v2b: a single reclaimAfterDeadline settles it. It only lands if the
             // on-chain deadline + grace has actually passed (threaded at fund
@@ -347,14 +380,19 @@ async function tick() {
             // Failed outcome on chain atomically, so no separate dispute, refund,
             // or recordReputation call is needed. The inner-revert guard inside
             // the wrapper throws before the off-chain write if it didn't land.
-            refundTxHash = await reclaimAfterDeadline(deal.jobId, buyerWalletId);
+            refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+              reclaimAfterDeadline(deal.jobId, buyerWalletId, options),
+            );
           } else {
             // v2.E: dispute then refund through the inner-revert guard so a
             // stuck on-chain state throws before the off-chain cancelled write,
             // never marking a deal refunded while the buyer's USDC is escrowed.
             await disputeEscrow(deal.jobId, buyerWalletId, reason);
-            refundTxHash = await refundEscrow(deal.jobId, buyerWalletId);
+            refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+              refundEscrow(deal.jobId, buyerWalletId, options),
+            );
           }
+          const refundTxHash = refundResult.txHash;
           await patchDeal(deal.jobId, {
             cancelledAt: Date.now(),
             cancelKind: 'unilateral',
@@ -370,8 +408,25 @@ async function tick() {
               kind: 'unilateral',
               reason,
               txHash: refundTxHash,
+              reference: refundResult.movement.reference,
               auto: true,
             },
+          });
+          void appendActivity({
+            id: `escrow-refund:${deal.jobId}`,
+            address: deal.buyer,
+            kind: 'refund',
+            refId: refundResult.movement.reference,
+            summary: refundInput.summary,
+            params: {
+              t: 'deadlineReclaim',
+              amount: refundAmountUsdc,
+              reference: refundResult.movement.reference,
+            },
+            amountUsdc: refundAmountUsdc,
+            txHash: refundTxHash,
+            jobId: deal.jobId,
+            counterparty: deal.seller.toLowerCase(),
           });
           // v2b records Failed on chain inside reclaimAfterDeadline; only the
           // v2.E path needs the explicit off-chain-signed reputation write.
