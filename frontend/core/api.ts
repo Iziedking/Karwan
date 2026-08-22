@@ -2445,6 +2445,37 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  vaultDepositIntent: (body: { address: string; amountUsdc: number | string; requestId: string }) =>
+    json<{
+      accepted: true;
+      reference: string;
+      movementState: MoneyMovementState;
+      amountUsdc: string;
+      vaultAddress: string;
+      usdcAddress: string;
+    }>('/api/vault/deposit/intent', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  vaultDepositComplete: (body: {
+    address: string;
+    amountUsdc: number | string;
+    requestId: string;
+    approvalTxHash: string;
+    depositTxHash: string;
+  }) =>
+    json<{
+      ok: true;
+      reference: string;
+      movementState: MoneyMovementState;
+      approvalTxHash: string;
+      depositTxHash: string;
+      amountUsdc: string;
+      positionId: string | null;
+    }>('/api/vault/deposit/complete', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   withdrawFromAgent: (body: {
     address: string;
     agent: 'buyer' | 'seller';
@@ -2715,21 +2746,25 @@ export const api = {
       '/api/vault/deposit',
       { method: 'POST', body: JSON.stringify(body) },
     ),
-  vaultRequestWithdraw: (body: { address: string; positionId: string }) =>
-    json<{ ok: true; txHash: string }>('/api/vault/request-withdraw', {
+  vaultRequestWithdraw: (body: { address: string; positionId: string; requestId?: string }) =>
+    json<{ ok: true; txHash: string; reference?: string; movementState?: MoneyMovementState }>('/api/vault/request-withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  vaultCancelWithdraw: (body: { address: string; positionId: string }) =>
-    json<{ ok: true; txHash: string }>('/api/vault/cancel-withdraw', {
+  vaultCancelWithdraw: (body: { address: string; positionId: string; requestId?: string }) =>
+    json<{ ok: true; txHash: string; reference?: string; movementState?: MoneyMovementState }>('/api/vault/cancel-withdraw', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  vaultClaim: (body: { address: string; positionId: string }) =>
-    json<{ ok: true; txHash: string }>('/api/vault/claim', {
+  vaultClaim: (body: { address: string; positionId: string; requestId?: string }) =>
+    json<{ ok: true; txHash: string; reference?: string; movementState?: MoneyMovementState }>('/api/vault/claim', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  vaultActionIntent: (body: { address: string; positionId: string; action: 'requestWithdraw' | 'cancelWithdraw' | 'claim'; requestId: string }) =>
+    json<{ accepted: true; reference: string; movementState: MoneyMovementState; amountUsdc: string }>('/api/vault/action/intent', { method: 'POST', body: JSON.stringify(body) }),
+  vaultActionComplete: (body: { address: string; positionId: string; action: 'requestWithdraw' | 'cancelWithdraw' | 'claim'; requestId: string; txHash: string }) =>
+    json<{ ok: true; reference: string; movementState: MoneyMovementState; txHash: string }>('/api/vault/action/complete', { method: 'POST', body: JSON.stringify(body) }),
 
   /// 30-day legacy recovery surface. Reads the window status (open / closing-
   /// in / closed) so the home banner and /legacy page can branch off it.

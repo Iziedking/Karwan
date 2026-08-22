@@ -301,24 +301,27 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
         });
       } else {
         if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
-        // Allowance precheck.
-        const current = (await arcClient.readContract({
+        // Allocate the durable receipt before either browser signature. A
+        // rejected approval or a dropped deposit can now be recovered by the
+        // same request id instead of leaving an on-chain movement anonymous.
+        const requestId = crypto.randomUUID();
+        const intent = await api.vaultDepositIntent({
+          address,
+          amountUsdc: depositAmount,
+          requestId,
+        });
+        patchLog(logId, { reference: intent.reference });
+        // Always create a fresh exact allowance receipt. This keeps the
+        // two-leg intent provable even when an older allowance already exists.
+        const approvalTxHash = await walletClient.writeContract({
           address: ARC_USDC_ADDRESS,
           abi: usdcAbi,
-          functionName: 'allowance',
-          args: [address, KARWAN_VAULT_ADDRESS],
-        })) as bigint;
-        if (current < amountWei) {
-          const approveHash = await walletClient.writeContract({
-            address: ARC_USDC_ADDRESS,
-            abi: usdcAbi,
-            functionName: 'approve',
-            args: [KARWAN_VAULT_ADDRESS, amountWei],
-            chain: walletClient.chain,
-            account: address,
-          });
-          await arcClient.waitForTransactionReceipt({ hash: approveHash });
-        }
+          functionName: 'approve',
+          args: [KARWAN_VAULT_ADDRESS, amountWei],
+          chain: walletClient.chain,
+          account: address,
+        });
+        await arcClient.waitForTransactionReceipt({ hash: approvalTxHash });
         const depositHash = await walletClient.writeContract({
           address: KARWAN_VAULT_ADDRESS,
           abi: vaultAbi,
@@ -328,16 +331,14 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
           account: address,
         });
         await arcClient.waitForTransactionReceipt({ hash: depositHash });
-        patchLog(logId, { status: 'done', txHash: depositHash });
-        // Staking is a money path, so it belongs in transaction history and it
-        // should raise an alert like every other movement. A wallet-signed
-        // deposit is invisible to the backend until we say so: the position
-        // showed up on this page and nowhere else. Best-effort on purpose, the
-        // money has already moved and a failed record must not read as a failed
-        // stake; the row is keyed to the hash so a later retry lands once.
-        void api
-          .recordStake({ address, amountUsdc: depositAmount, txHash: depositHash })
-          .catch(() => undefined);
+        const completed = await api.vaultDepositComplete({
+          address,
+          amountUsdc: depositAmount,
+          requestId,
+          approvalTxHash,
+          depositTxHash: depositHash,
+        });
+        patchLog(logId, { status: 'done', txHash: depositHash, reference: completed.reference });
       }
       recordAction('stake-deposit');
       deposited = true;
@@ -472,10 +473,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
       });
       try {
         if (isCircleUser) {
-          const r = await api.vaultRequestWithdraw({ address, positionId: p.positionId });
-          patchLog(logId, { status: 'done', txHash: r.txHash });
+          const r = await api.vaultRequestWithdraw({ address, positionId: p.positionId, requestId: crypto.randomUUID() });
+          patchLog(logId, { status: 'done', txHash: r.txHash, reference: r.reference });
         } else {
           if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
+          const requestId = crypto.randomUUID();
+          const intent = await api.vaultActionIntent({ address, positionId: p.positionId, action: 'requestWithdraw', requestId });
+          patchLog(logId, { reference: intent.reference });
           const hash = await walletClient.writeContract({
             address: KARWAN_VAULT_ADDRESS,
             abi: vaultAbi,
@@ -485,7 +489,8 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             account: address,
           });
           await arcClient.waitForTransactionReceipt({ hash });
-          patchLog(logId, { status: 'done', txHash: hash });
+          const completed = await api.vaultActionComplete({ address, positionId: p.positionId, action: 'requestWithdraw', requestId, txHash: hash });
+          patchLog(logId, { status: 'done', txHash: hash, reference: completed.reference });
         }
       } catch (err) {
         patchLog(logId, { status: 'failed', error: (err as Error).message });
@@ -546,10 +551,13 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
               : kind === 'cancel'
                 ? api.vaultCancelWithdraw
                 : api.vaultClaim;
-          const r = await route({ address, positionId });
-          patchLog(logId, { status: 'done', txHash: r.txHash });
+          const r = await route({ address, positionId, requestId: crypto.randomUUID() });
+          patchLog(logId, { status: 'done', txHash: r.txHash, reference: r.reference });
         } else {
           if (!walletClient || !arcClient) throw new Error(sc.errors.walletNotReady);
+          const requestId = crypto.randomUUID();
+          const intent = await api.vaultActionIntent({ address, positionId, action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim', requestId });
+          patchLog(logId, { reference: intent.reference });
           const fnName =
             kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim';
           const hash = await walletClient.writeContract({
@@ -561,7 +569,8 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
             account: address,
           });
           await arcClient.waitForTransactionReceipt({ hash });
-          patchLog(logId, { status: 'done', txHash: hash });
+          const completed = await api.vaultActionComplete({ address, positionId, action: kind === 'request' ? 'requestWithdraw' : kind === 'cancel' ? 'cancelWithdraw' : 'claim', requestId, txHash: hash });
+          patchLog(logId, { status: 'done', txHash: hash, reference: completed.reference });
         }
       } catch (err) {
         patchLog(logId, { status: 'failed', error: (err as Error).message });
