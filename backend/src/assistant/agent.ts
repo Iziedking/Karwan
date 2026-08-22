@@ -1947,9 +1947,9 @@ function authenticatedPreamble(address: string, method: string): string {
   return [
     '',
     `# Today is ${today} (UTC).`,
-    'When a user gives a deadline as a calendar DATE, do NOT compute days yourself — pass it to the tool as',
+    'When a user gives a deadline as a calendar DATE, do NOT compute days yourself. Pass it to the tool as',
     'deadlineDate (normalise to YYYY-MM-DD) and the server converts it. Only use deadlineDays for a stated',
-    'duration ("in 3 days"). Never tell a user a near date is "too far out" — the server checks the real cap.',
+    'duration ("in 3 days"). Never tell a user a near date is "too far out"; the server checks the real cap.',
     '',
     '# You have durable memory of this account',
     'Chat transcripts reset between sessions, but recall_activity reads the durable per-account record:',
