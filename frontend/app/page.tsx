@@ -142,6 +142,10 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
                 src="/media/landing/escrow-cutout.png"
                 alt=""
                 className="absolute bottom-0 start-1/2 h-[86%] w-[112%] max-w-none -translate-x-1/2 object-contain object-center"
+                style={{
+                  WebkitMaskImage: 'radial-gradient(ellipse at center, #000 44%, transparent 86%)',
+                  maskImage: 'radial-gradient(ellipse at center, #000 44%, transparent 86%)',
+                }}
               />
             </PanelMedia>
           </div>
@@ -189,12 +193,12 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
     // shorthand. Agent matching gets its own cutout, separated from the source
     // artwork's background so both halves share one Karwan surface.
     { copy: direct, image: '/media/landing/onboard-cutout.png', glyph: <GlyphWallet />, index: '001' },
-    { copy: managed, image: '/media/landing/agent_matched-cutout.png', glyph: <GlyphAuction />, index: '002' },
+    { copy: managed, image: '/media/landing/agent_matched-clean.png', glyph: <GlyphAuction />, index: '002' },
   ];
   return (
     <Band tone="dark" panel="grow">
       <PanelContent><SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag><h2 className="mt-6 font-sans text-[clamp(2rem,7vw,3rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.025em]">{pb.chooseHowDealStarts}</h2></PanelContent>
-      <div className="mt-10 space-y-6 lg:mt-14">
+      <div className="mt-10 grid gap-6 lg:mt-14 lg:grid-cols-2">
         {cards.map(({ copy, image, glyph, index }, cardIndex) => (
           <motion.article
             key={copy.tag}
@@ -204,42 +208,43 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
             transition={{ duration: dur.slow, ease: ease.out, delay: cardIndex * 0.08 }}
             className="overflow-hidden rounded-[22px] border border-white/10 bg-[var(--lp-band-dark)]"
           >
-            <div className="grid min-h-[430px] lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-              <div className="relative min-h-[290px] overflow-hidden border-b border-white/10 bg-[var(--lp-band-dark)] lg:min-h-[500px] lg:border-b-0 lg:border-e">
-                <PanelMedia travel={24} dim={0.86}>
-                  <img
-                    src={image}
-                    alt=""
-                    className="absolute inset-0 h-full w-full scale-[1.04] object-contain object-center"
-                  />
-                </PanelMedia>
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent_58%,var(--lp-band-dark)_100%)] lg:bg-[linear-gradient(90deg,transparent_54%,var(--lp-band-dark)_100%)]" aria-hidden="true" />
-                <div className="absolute start-5 top-5 flex items-center gap-2 text-[var(--lp-accent)] sm:start-7 sm:top-7">
-                  <span className="grid size-10 place-items-center rounded-[12px] border border-white/15 bg-black/35 backdrop-blur-sm">{glyph}</span>
+            <div className="flex min-h-[340px] min-w-0 flex-col px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[360px] lg:px-10 lg:py-11">
+              <PanelContent index={1}>
+                <div className="flex items-center gap-2 text-[var(--lp-accent)]">
+                  <span className="grid size-10 place-items-center rounded-[12px] border border-white/15 bg-black/35">{glyph}</span>
                   <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">[:{index}]</span>
                 </div>
-                <img src="/brand/karwan-mark-lime.png" alt="" aria-hidden className="absolute bottom-5 end-5 size-9 opacity-80 sm:bottom-7 sm:end-7" />
-              </div>
-              <div className="flex min-w-0 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-14">
-                <PanelContent index={1}>
-                  <SectionTag tone="dark">{copy.tag}</SectionTag>
-                  <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-white">
-                    {copy.title}
-                  </h3>
-                  <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-text-muted)]">{copy.body}</p>
-                  <ul className="mt-8 divide-y divide-white/10 border-y border-white/10">
-                    {[
-                      { title: copy.tile1Title, body: copy.tile1Body },
-                      { title: copy.tile2Title, body: copy.tile2Body },
-                    ].map((tile, tileIndex) => (
-                      <li key={tile.title} className="grid gap-3 py-4 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-5">
-                        <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">[:{String(tileIndex + 1).padStart(3, '0')}]</span>
-                        <p className="text-[13px] leading-[1.55] text-white/75"><strong className="text-white">{tile.title}.</strong>{' '}{tile.body}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </PanelContent>
-              </div>
+                <SectionTag tone="dark">{copy.tag}</SectionTag>
+                <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-white">
+                  {copy.title}
+                </h3>
+                <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-text-muted)]">{copy.body}</p>
+                <ul className="mt-8 divide-y divide-white/10 border-y border-white/10">
+                  {[
+                    { title: copy.tile1Title, body: copy.tile1Body },
+                    { title: copy.tile2Title, body: copy.tile2Body },
+                  ].map((tile, tileIndex) => (
+                    <li key={tile.title} className="grid gap-3 py-4 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-5">
+                      <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">[:{String(tileIndex + 1).padStart(3, '0')}]</span>
+                      <p className="text-[13px] leading-[1.55] text-white/75"><strong className="text-white">{tile.title}.</strong>{' '}{tile.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              </PanelContent>
+            </div>
+            <div className="relative h-[300px] overflow-hidden border-t border-white/10 bg-[var(--lp-band-dark)] sm:h-[360px]">
+              <PanelMedia travel={18} dim={0.86}>
+                <img
+                  src={image}
+                  alt=""
+                  className={cn(
+                    'absolute inset-0 h-full w-full scale-[1.04] object-center',
+                    image.includes('agent_matched') ? 'object-cover' : 'object-contain',
+                  )}
+                />
+              </PanelMedia>
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_42%,var(--lp-band-dark)_100%)]" aria-hidden="true" />
+              <img src="/brand/karwan-mark-lime.png" alt="" aria-hidden className="absolute bottom-5 end-5 size-9 opacity-80 sm:bottom-7 sm:end-7" />
             </div>
           </motion.article>
         ))}
@@ -750,13 +755,7 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
   return (
     <Band id="get-started" tone="light" panel="grow" className="!max-w-none !px-0 !py-0">
       <div className="relative isolate overflow-hidden border-y border-black/10">
-        <div className="relative mx-auto grid max-w-[1440px] items-center gap-8 px-[clamp(20px,5vw,72px)] py-[clamp(36px,9vw,132px)] lg:min-h-[620px] lg:gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-       <div className="relative h-[28svh] overflow-hidden lg:h-auto lg:min-h-[620px]">
-         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(180,210,82,0.16),transparent_58%)]" aria-hidden="true" />
-         <PanelMedia travel={18} dim={0.62}>
-           <img src="/media/landing/onboard-cutout.png" alt="" className="absolute bottom-0 start-1/2 h-[92%] w-[112%] max-w-none -translate-x-1/2 object-contain object-center" />
-         </PanelMedia>
-       </div>
+        <div className="relative mx-auto max-w-[1080px] px-[clamp(20px,5vw,72px)] py-[clamp(36px,9vw,132px)]">
        <div className="relative z-10">
        <PanelContent>
         <SectionTag>{copy.tag}</SectionTag>

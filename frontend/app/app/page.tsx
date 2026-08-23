@@ -8,7 +8,6 @@ import { cn } from '@/shared/utils/cn';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
-import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 /// Below-the-fold bands. Dynamically imported so motion (NetworkTicker) and
@@ -297,12 +296,6 @@ export default function AppHome() {
           )}
         </div>
       </Band>
-
-      {/* YOUR MONEY. First personal surface after the hero: where your money is
-          and that it's safe, in plain dollars. The trust answer up front.
-          (The tour target lives on the inner card grid in MoneyStrip so the
-          spotlight fits the content, not the full-bleed band.) */}
-      <MoneyStrip />
 
       {/* QUICK START. First-run orientation for brand-new users; hides once
           agents are activated or the user dismisses it. */}

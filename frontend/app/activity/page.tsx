@@ -49,7 +49,7 @@ function ActivityPageInner({
     <FullBleed>
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />} compact className="min-h-[300px]">
+      <Band tone="dark" overlay={<GridOverlay />} compact className="min-h-[220px]">
         <div className="max-w-[58ch]">
           <div className="fade-up">
             <SectionTag tone="dark" dot="live">
@@ -68,7 +68,7 @@ function ActivityPageInner({
 
       {/* STREAM SECTION. The hero already frames this, and ActivityView carries
           its own [:event stream:] eyebrow + counts, so no restated header here. */}
-      <Band tone="light" compact>
+      <Band tone="light" compact className="!pt-6 md:!pt-8">
         <div className="fade-up fade-up-1">
           <PageCard>
             <div className="p-6 md:p-8">

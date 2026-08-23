@@ -34,6 +34,7 @@ import { SolanaConnectCard } from './SolanaConnectCard';
 import { BridgeActivityStrip } from './BridgeActivityStrip';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
+import { LpHint } from '@/shared/components/LpHint';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, BRIDGE_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -1891,14 +1892,16 @@ function Web3FundHint({
         className="absolute start-0 top-0 bottom-0 w-[3px]"
         style={{ background: 'var(--lp-accent)' }}
       />
-      <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}
-      </p>
-      <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
-        {copy.descriptionTemplate
-          .replace('{name}', source.name)
-          .replace('{nativeSymbol}', source.nativeSymbol)}
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}
+        </p>
+        <LpHint side="bottom" align="start">
+          {copy.descriptionTemplate
+            .replace('{name}', source.name)
+            .replace('{nativeSymbol}', source.nativeSymbol)}
+        </LpHint>
+      </div>
       <div className="mt-2.5 flex items-center gap-2 flex-wrap">
         <button
           type="button"

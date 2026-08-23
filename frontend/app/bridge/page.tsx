@@ -110,14 +110,16 @@ function BridgePageInner() {
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />} compact>
-        <SectionTag tone="dark">{t.sectionTag}</SectionTag>
+        <div className="flex items-center gap-2">
+          <SectionTag tone="dark">{t.sectionTag}</SectionTag>
+          <LpHint side="bottom" align="start">
+            Deposit and withdraw your assets. {t.description}
+          </LpHint>
+        </div>
         <HeroHeadline size="md">
           {t.headlinePrefix}<Accent>USDC</Accent>
           <Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
-          {t.description}
-        </p>
       </Band>
 
       <Band tone="light" compact>

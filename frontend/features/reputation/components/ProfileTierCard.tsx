@@ -70,7 +70,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
 
       <div className="mt-2 flex items-baseline gap-2.5">
         <span
-          className="font-sans text-[26px] font-extrabold uppercase tracking-[-0.02em] leading-none"
+          className="min-w-0 font-sans text-[clamp(18px,6vw,26px)] font-extrabold uppercase tracking-[-0.02em] leading-none break-words"
           style={{ color }}
         >
           {tier}

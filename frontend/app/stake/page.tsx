@@ -137,9 +137,12 @@ function StakePageInner() {
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] fade-up">
-          <SectionTag tone="dark" dot="live">
-            {sp.hero.tag}
-          </SectionTag>
+          <div className="flex items-center gap-2">
+            <SectionTag tone="dark" dot="live">
+              {sp.hero.tag}
+            </SectionTag>
+            <Hint glow side="bottom" align="start">{sp.hero.body}</Hint>
+          </div>
           <HeroHeadline size="md">
             {sp.hero.line1Prefix} <Accent>{sp.hero.line1Accent}</Accent>
             <Punc>.</Punc>{' '}
@@ -147,9 +150,6 @@ function StakePageInner() {
             {sp.hero.line2Prefix} <Accent>{sp.hero.line2Accent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
-          <p className="mt-7 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[50ch]">
-            {sp.hero.body}
-          </p>
           <div className="mt-7">
             <CTAPill href="#vault">{sp.vault.heading}</CTAPill>
           </div>
@@ -166,7 +166,7 @@ function StakePageInner() {
             </span>
             <span className="text-white/35 text-[15px]"> / 1000</span>
           </Stat>
-          <Stat label={sp.position.tier}>
+          <Stat label={sp.position.tier} fit>
             <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
             {capped ? (
               <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">
@@ -345,7 +345,7 @@ function Stat({
     <div className={`min-w-0 bg-[var(--lp-band-dark)] px-5 py-4 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</p>
       <p
-        className={`mt-1.5 font-sans ${sizeClass} font-extrabold tracking-[-0.02em] leading-none text-white truncate`}
+        className={`mt-1.5 min-w-0 font-sans ${sizeClass} font-extrabold tracking-[-0.02em] leading-none text-white ${fit ? 'whitespace-normal break-words' : 'truncate'}`}
       >
         {children}
       </p>

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
+import { LpHint } from '@/shared/components/LpHint';
 import type { DepositRail, RailOption } from '../railModel';
 
 /// The rail chooser, and the way one panel becomes the next.
@@ -126,12 +127,12 @@ export function RailSlider({
         <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           [:{copy[active].tag}:]
         </span>
-        <h2 className="mt-2 text-[26px] font-extrabold uppercase leading-[1.1] tracking-tight text-[var(--lp-dark)]">
-          {copy[active].title}
-        </h2>
-        <p className="mt-2 max-w-[46ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-          {copy[active].blurb}
-        </p>
+        <div className="mt-2 flex items-center gap-2">
+          <h2 className="text-[26px] font-extrabold uppercase leading-[1.1] tracking-tight text-[var(--lp-dark)]">
+            {copy[active].title}
+          </h2>
+          <LpHint side="bottom" align="start">{copy[active].blurb}</LpHint>
+        </div>
       </div>
 
       {/* The panel, and the sweep on its top edge. A sibling rather than a
