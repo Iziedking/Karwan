@@ -390,6 +390,7 @@ function FloatingActions() {
     <button
       type="button"
       onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
+      data-float-launcher
       className={`fixed bottom-24 start-4 md:bottom-5 md:start-5 ${pill}`}
       style={{ ...corner, ...floatingClearanceStyle(clearance) }}
       aria-label={`Take a guided tour: ${currentTour.label}`}

@@ -677,7 +677,7 @@ a[aria-busy='true']::after,
   0%, 100% { opacity: 0.35; transform: scale(0.85); }
   50% { opacity: 1; transform: scale(1); }
 }
-/// Only where an arrow was displaced by it; a plain button just gets the line.
+/* Only where an arrow was displaced by it; a plain button just gets the line. */
 .cta-busy-dot {
   width: 6px;
   height: 6px;
@@ -690,6 +690,30 @@ a[aria-busy='true']::after,
   a[aria-busy='true']::after,
   .is-busy::after { animation: none; opacity: 0.35; }
   .cta-busy-dot { animation: none; opacity: 0.7; }
+}
+
+/* ---- Floating launchers, while reading -----------------------------------
+   Both sit just above the bottom nav, which on a phone is over the content
+   column, so the row in frame ends up behind a lime circle. That is what a
+   floating button costs, and it is only worth paying while someone might press
+   one. While they are scrolling they are reading, not reaching, so the pair
+   steps back and stops taking presses until the page settles.
+
+   Opacity rather than display: they must not shift layout, and a reader
+   glancing down should still see where they are. */
+[data-float-launcher] {
+  transition: opacity 180ms var(--ease-out, ease);
+}
+html.is-scrolling [data-float-launcher] {
+  opacity: 0.22;
+  pointer-events: none;
+}
+@media (min-width: 768px) {
+  /* On a desktop they sit in the corner, clear of the column. Nothing to duck. */
+  html.is-scrolling [data-float-launcher] {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 @keyframes stat-sweep {

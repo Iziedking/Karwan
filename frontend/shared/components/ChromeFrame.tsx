@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getShellSurface } from '@/shared/utils/routes';
+import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -41,6 +42,9 @@ export function ChromeFrame({
       </div>
     );
   }
+
+  // Lets the floating launchers step aside while someone is reading.
+  useScrollQuiet();
 
   const workspace = shell === 'workspace' || shell === 'admin';
   const focused = shell === 'focused';

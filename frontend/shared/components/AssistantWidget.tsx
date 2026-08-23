@@ -298,6 +298,7 @@ export function AssistantWidget() {
             setOpen(true);
           }}
           aria-label={t.launcherAria}
+          data-float-launcher
           className="fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 md:end-5 md:bottom-5"
           style={{
             ...floatingClearanceStyle(clearance),
