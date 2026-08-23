@@ -628,6 +628,45 @@ html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
   }
 }
 
+/* ---- A confirm button that is working ------------------------------------
+   Swapping the label for "Funding escrow…" and greying the button out reads as
+   dead, so on a phone people press it again. These are the buttons that move
+   money, so a second press is the worst possible outcome of an unclear one.
+
+   The button stays at full strength, refuses further presses, and shows the
+   work as movement: a line crossing its bottom edge and a breathing dot where
+   the arrow was. `currentColor` so one rule serves ink-on-lime and the outline
+   variants without knowing which it is on. */
+@keyframes cta-busy-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.cta-busy-sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.6;
+  animation: cta-busy-sweep 900ms linear infinite;
+}
+@keyframes cta-busy-dot {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+.cta-busy-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: cta-busy-dot 900ms var(--ease-inout, ease-in-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-busy-sweep { animation: none; opacity: 0.35; }
+  .cta-busy-dot { animation: none; opacity: 0.7; }
+}
+
 @keyframes stat-sweep {
   0% { transform: translateX(-110%); }
   100% { transform: translateX(330%); }

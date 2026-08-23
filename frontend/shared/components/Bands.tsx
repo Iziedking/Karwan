@@ -165,6 +165,7 @@ export function CTAPill({
   onClick,
   type,
   disabled,
+  busy,
 }: {
   href?: LinkProps['href'];
   children: ReactNode;
@@ -173,6 +174,12 @@ export function CTAPill({
   onClick?: () => void;
   type?: 'button' | 'submit';
   disabled?: boolean;
+  /// The action is in flight. Swapping the label alone was not enough: a
+  /// confirm button that changes one word and greys out reads as dead, so on a
+  /// phone people tap it again, and these are the buttons that move money. This
+  /// keeps the button at full strength, blocks a second press, and shows the
+  /// work as movement.
+  busy?: boolean;
 }) {
   const base =
     'group karwan-cta inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] ' +
@@ -195,7 +202,14 @@ export function CTAPill({
     tone === 'dark'
       ? 'focus-visible:ring-offset-[var(--lp-dark)]'
       : 'focus-visible:ring-offset-[var(--lp-light)]';
-  const className = cn(base, fill, ringOffset);
+  // A busy pill must NOT take the disabled fade: faded plus static is exactly
+  // what read as "nothing happened".
+  const className = cn(
+    base,
+    fill,
+    ringOffset,
+    busy && 'relative overflow-hidden cursor-progress disabled:opacity-100',
+  );
 
   /// The pill renders its own arrow, and several CTA strings carry one inline
   /// ('Post a request →'), which showed as two arrows on every card using them.
@@ -215,12 +229,18 @@ export function CTAPill({
     <button
       type={type ?? 'button'}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
       style={corners}
       className={className}
     >
       {label}
-      <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
+      {busy ? (
+        <span aria-hidden className="cta-busy-dot" />
+      ) : (
+        <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
+      )}
+      {busy && <span aria-hidden className="cta-busy-sweep" />}
     </button>
   );
 }

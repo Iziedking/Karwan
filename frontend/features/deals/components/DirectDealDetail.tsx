@@ -2090,7 +2090,7 @@ function ActionPanel({
               {copy.awaitingAcceptance.trustedMatchSuffix}
             </div>
           )}
-          <CTAPill disabled={busy} onClick={onAccept}>
+          <CTAPill disabled={busy} busy={busy} onClick={onAccept}>
             {busy ? copy.awaitingAcceptance.acceptBusy : copy.awaitingAcceptance.acceptCta}
           </CTAPill>
         </div>
@@ -2115,7 +2115,7 @@ function ActionPanel({
           <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
             {copy.awaitingAcceptance.editTermsCta}
           </CTAPill>
-          <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+          <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
             {busy ? copy.awaitingAcceptance.cancelBusy : copy.awaitingAcceptance.cancelCta}
           </CTAPill>
         </div>
@@ -2146,7 +2146,7 @@ function ActionPanel({
             <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
               {copy.awaitingFunding.editTermsCta}
             </CTAPill>
-            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
               {busy ? copy.awaitingFunding.cancelBusy : copy.awaitingFunding.cancelCta}
             </CTAPill>
           </div>
@@ -2256,7 +2256,7 @@ function ActionPanel({
             <WindowNote tone="warning">
               {copy.awaitingDelivery.buyerDeadlinePassedNote}
             </WindowNote>
-            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy}>
+            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
               {busy ? copy.awaitingDelivery.reclaimBusy : copy.awaitingDelivery.reclaimCta}
             </CTAPill>
           </>
@@ -2399,7 +2399,7 @@ function ActionPanel({
                 seller can force the payout themselves — the on-chain safety net
                 for a vanished buyer. The contract re-checks the window + hold. */}
             {V2B_LIVE && !held && (
-              <CTAPill onClick={onClaim} disabled={busy}>
+              <CTAPill onClick={onClaim} disabled={busy} busy={busy}>
                 {busy ? 'Claiming…' : `Claim ${firstPct}% now`}
               </CTAPill>
             )}
@@ -2477,7 +2477,7 @@ function ActionPanel({
           </WindowNote>
         )}
         <div className="flex flex-wrap gap-2">
-          <CTAPill disabled={busy} onClick={onRelease}>
+          <CTAPill disabled={busy} busy={busy} onClick={onRelease}>
             {busy ? copy.awaitingFinalRelease.releaseBusy : copy.awaitingFinalRelease.releaseCtaTemplate.replace('{rest}', String(rest))}
           </CTAPill>
           <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
@@ -2525,7 +2525,7 @@ function ActionPanel({
       )}
       {!appealOpen && sellerCanAppeal && (
         <div className="flex flex-wrap gap-2">
-          <CTAPill onClick={onRaiseDelayAppeal} disabled={busy}>
+          <CTAPill onClick={onRaiseDelayAppeal} disabled={busy} busy={busy}>
             {busy ? copy.awaitingFinalRelease.raiseAppealBusy : copy.awaitingFinalRelease.raiseAppealCta}
           </CTAPill>
           {/* Opening a dispute freezes the escrow and switches off the seller's
@@ -2832,7 +2832,7 @@ function ExtensionBuyerBanner({
         </p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        <CTAPill onClick={onApprove} disabled={busy}>
+        <CTAPill onClick={onApprove} disabled={busy} busy={busy}>
           {busy ? copy.approveBusy : copy.approveCta}
         </CTAPill>
         <CTAPill variant="secondary" tone="dark" onClick={onDecline} disabled={busy}>
@@ -2889,7 +2889,7 @@ function AcceptConsentModal({
             {copy.body}
           </p>
           <div className="flex items-center gap-3">
-            <CTAPill onClick={onConfirm} disabled={busy}>
+            <CTAPill onClick={onConfirm} disabled={busy} busy={busy}>
               {busy ? copy.confirmBusy : copy.confirmCta}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
@@ -3020,7 +3020,7 @@ function FundingConsentModal({
           <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
             {copy.cancelCta}
           </CTAPill>
-          <CTAPill onClick={onConfirm} disabled={busy}>
+          <CTAPill onClick={onConfirm} disabled={busy} busy={busy}>
             {busy ? copy.confirmBusy : copy.confirmCta}
           </CTAPill>
         </div>
@@ -3144,7 +3144,7 @@ function CancelProposalBanner({
         )}
         {viewerIsCounterparty && !legacyEscrow && (
           <div className="pt-2 flex flex-wrap items-center gap-2">
-            <CTAPill onClick={onAccept} disabled={busy}>
+            <CTAPill onClick={onAccept} disabled={busy} busy={busy}>
               {busy ? copy.confirmingBusy : acceptLabel}
             </CTAPill>
             <CTAPill variant="secondary" tone="light" onClick={onDecline} disabled={busy}>
