@@ -11,7 +11,7 @@
 /// the failure mode of a reconcile script is not missing a row, it is completing
 /// a movement whose money never moved.
 
-import type { MoneyMovement, MoneyMovementLeg } from './model.js';
+import type { MoneyMovement, MoneyMovementLeg, MoneyMovementState } from './model.js';
 
 /// What a chain said about one leg's transaction.
 export type LegProof =
@@ -143,4 +143,33 @@ export function planReconcile(
 
   if (toRepair.length === 0) return { action: 'complete' };
   return { action: 'repair', legs: toRepair };
+}
+
+/// The states a movement has to pass through to reach completed, from where it
+/// is now.
+///
+/// `completeMoneyMovement` transitions straight to `completed`, which only
+/// MOVEMENT_TRANSITIONS accepts from `verifying`. A movement parked in
+/// `needs_attention` with a verified leg therefore threw
+/// "invalid movement transition needs_attention -> completed" rather than being
+/// repaired, which is the exact case this whole module exists for: the leg
+/// landed, the movement was marked as needing attention, and nothing walked it
+/// back out.
+///
+/// Returned as a path rather than a single jump so every hop is one the state
+/// machine already allows. An empty array means there is no route from here.
+export function completionPath(from: MoneyMovementState): MoneyMovementState[] {
+  switch (from) {
+    case 'verifying':
+      return ['completed'];
+    case 'submitted':
+    case 'preparing':
+      return ['verifying', 'completed'];
+    // Back through preparing, because that is the only way out of either.
+    case 'needs_attention':
+    case 'created':
+      return ['preparing', 'verifying', 'completed'];
+    default:
+      return [];
+  }
 }

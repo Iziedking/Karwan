@@ -2,11 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   activeLegs,
+  completionPath,
   isSameTransactionMovement,
   planReconcile,
   type LegProof,
 } from './reconcile.js';
-import type { MoneyMovement, MoneyMovementLeg, MoneyMovementLegState } from './model.js';
+import { canTransitionMovement } from './model.js';
+import type {
+  MoneyMovement,
+  MoneyMovementLeg,
+  MoneyMovementLegState,
+  MoneyMovementState,
+} from './model.js';
 
 const NOW = 1_760_000_000_000;
 const HASH = '0xaaaa000000000000000000000000000000000000000000000000000000000001';
@@ -238,4 +245,43 @@ test('a completed or cancelled movement is never touched', () => {
 test('a movement with no legs on the current attempt is left alone', () => {
   const m = movement([leg('burn', 'verified', { attempt: 1 })], { attempt: 2 });
   assert.deepEqual(planReconcile(m, proofs([])), { action: 'skip', reason: 'nothing-to-do' });
+});
+
+// ------------------------------------------------------- the completion path
+
+test('every hop on a completion path is one the state machine allows', () => {
+  // The bug this pins: completeMoneyMovement transitions straight to completed,
+  // which MOVEMENT_TRANSITIONS only accepts from verifying. A movement parked in
+  // needs_attention threw "invalid movement transition needs_attention ->
+  // completed" instead of being repaired. Checking each hop against
+  // canTransitionMovement means the path cannot drift from the table.
+  const starts: MoneyMovementState[] = [
+    'created',
+    'preparing',
+    'submitted',
+    'verifying',
+    'needs_attention',
+  ];
+  for (const start of starts) {
+    const path = completionPath(start);
+    assert.ok(path.length > 0, `${start} has no route to completed`);
+    assert.equal(path[path.length - 1], 'completed', `${start} does not end completed`);
+    let from = start;
+    for (const to of path) {
+      assert.ok(canTransitionMovement(from, to), `${start}: ${from} -> ${to} is not allowed`);
+      from = to;
+    }
+  }
+});
+
+test('a terminal movement has no completion path', () => {
+  assert.deepEqual(completionPath('completed'), []);
+  assert.deepEqual(completionPath('cancelled'), []);
+});
+
+test('needs_attention goes back through preparing, not straight to the end', () => {
+  // The literal failure seen in production, on an agent funding whose Arc
+  // transfer was verified and landed.
+  assert.deepEqual(completionPath('needs_attention'), ['preparing', 'verifying', 'completed']);
+  assert.equal(canTransitionMovement('needs_attention', 'completed'), false);
 });

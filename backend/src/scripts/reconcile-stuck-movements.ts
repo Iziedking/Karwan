@@ -42,13 +42,21 @@
 import { inArray } from 'drizzle-orm';
 import { db, ensureSchema, pgEnabled } from '../db/client.js';
 import { moneyMovements } from '../db/schema.js';
-import { getMoneyMovement } from '../db/moneyMovements.js';
+import { getMoneyMovement, updateMoneyMovement } from '../db/moneyMovements.js';
 import { listAllBridges, patchBridge } from '../db/bridges.js';
+import type { BridgeRelay } from '../db/bridges.js';
 import { recordCashoutLeg } from '../money/cashout.js';
 import { completeMoneyMovement } from '../money/service.js';
-import { formatUsdcMicros, type MoneyMovement, type MoneyMovementLeg } from '../money/model.js';
+import {
+  canTransitionMovement,
+  formatUsdcMicros,
+  transitionMoneyMovement,
+  type MoneyMovement,
+  type MoneyMovementLeg,
+} from '../money/model.js';
 import {
   activeLegs,
+  completionPath,
   planReconcile,
   type LegProof,
   type ReconcilePlan,
@@ -132,6 +140,21 @@ const SKIP_NOTES: Record<string, string> = {
 
 async function apply(reference: string, plan: ReconcilePlan): Promise<string> {
   if (plan.action === 'complete') {
+    const current = await getMoneyMovement(reference);
+    if (!current) return 'unreadable';
+    // `completed` is only reachable from `verifying`, so a movement parked in
+    // needs_attention has to walk back through preparing first. Each hop goes
+    // through the state machine rather than around it, and the final one is left
+    // to completeMoneyMovement so its own "no unverified legs" guard still runs.
+    const path = completionPath(current.state);
+    if (path.length === 0) return current.state;
+    for (const next of path.slice(0, -1)) {
+      await updateMoneyMovement(reference, (movement) =>
+        canTransitionMovement(movement.state, next)
+          ? transitionMoneyMovement(movement, next, { nextActor: 'karwan' })
+          : movement,
+      );
+    }
     const after = await completeMoneyMovement(reference);
     return after.state;
   }
@@ -154,6 +177,15 @@ async function apply(reference: string, plan: ReconcilePlan): Promise<string> {
 async function main() {
   if (pgEnabled) await ensureSchema();
 
+  // Every bridge, keyed by the movement it belongs to. A stuck bridge movement is
+  // only half the story: the projection carries which chains were involved, how
+  // far the pipeline got, and the error it stopped on, and reading them side by
+  // side is what tells a dead intent apart from a transfer that left.
+  const bridgeByReference = new Map<string, BridgeRelay>();
+  for (const bridge of await listAllBridges()) {
+    if (bridge.movementReference) bridgeByReference.set(bridge.movementReference, bridge);
+  }
+
   const cutoff = Date.now() - olderThanMins * 60_000;
   const all = await loadMovements();
   const stuck = all.filter((m) => onlyReference !== undefined || m.updatedAt <= cutoff);
@@ -168,9 +200,40 @@ async function main() {
 
   let fixed = 0;
   let actionable = 0;
+  let failed = 0;
   const skips = new Map<string, number>();
 
   for (const movement of stuck) {
+    try {
+      await review(movement, bridgeByReference);
+    } catch (err) {
+      // A movement that throws is reported and stepped over. The first version
+      // let one invalid transition abort the whole sweep, so the rows after it
+      // were never even looked at.
+      failed += 1;
+      console.log(`  ERROR: ${(err as Error).message}`);
+      console.log('');
+    }
+  }
+
+  await sweepBridgeProjections();
+
+  console.log('---');
+  console.log(
+    execute
+      ? `${fixed} of ${actionable} actionable movement(s) reached completed`
+      : `${actionable} movement(s) actionable`,
+  );
+  for (const [reason, count] of [...skips].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${count} skipped: ${reason}`);
+  }
+  if (failed > 0) console.log(`  ${failed} errored, listed above`);
+  if (!execute && actionable > 0) console.log('Re-run with --execute to apply.');
+
+  async function review(
+    movement: MoneyMovement,
+    bridges: Map<string, BridgeRelay>,
+  ): Promise<void> {
     const active = activeLegs(movement);
     const age = Math.round((Date.now() - movement.updatedAt) / 3_600_000);
     console.log(
@@ -178,6 +241,18 @@ async function main() {
         `${formatUsdcMicros(movement.amountMicros)} USDC  ${age}h since last change`,
     );
     console.log(`  ${movement.summary}`);
+
+    const bridge = bridges.get(movement.reference);
+    if (bridge) {
+      const route = [bridge.sourceChainKey ?? '?', bridge.destChainKey ?? 'arc'].join(' -> ');
+      console.log(
+        `  bridge ${bridge.bridgeId}: ${bridge.status}, ${route}` +
+          `${bridge.direction ? `, direction ${bridge.direction}` : ''}` +
+          `${bridge.appKit ? ', app-kit' : ''}` +
+          `${bridge.sourceTxHash ? `, source ${bridge.sourceTxHash.slice(0, 10)}…` : ', no source tx'}`,
+      );
+      if (bridge.error) console.log(`  bridge error: ${bridge.error}`);
+    }
 
     const proofs = new Map<string, LegProof>();
     for (const leg of active) {
@@ -193,7 +268,7 @@ async function main() {
       skips.set(plan.reason, (skips.get(plan.reason) ?? 0) + 1);
       console.log(`  SKIP: ${SKIP_NOTES[plan.reason] ?? plan.reason}`);
       console.log('');
-      continue;
+      return;
     }
 
     actionable += 1;
@@ -203,7 +278,7 @@ async function main() {
     if (!execute) {
       console.log(`  would ${plan.action}`);
       console.log('');
-      continue;
+      return;
     }
     // Report the state it actually reached. Claiming a repair because the calls
     // were made, without checking, is how a reconcile script becomes the thing
@@ -213,19 +288,6 @@ async function main() {
     console.log(state === 'completed' ? '  repaired -> completed' : `  still ${state} afterwards`);
     console.log('');
   }
-
-  await sweepBridgeProjections();
-
-  console.log('---');
-  console.log(
-    execute
-      ? `${fixed} of ${actionable} actionable movement(s) reached completed`
-      : `${actionable} movement(s) actionable`,
-  );
-  for (const [reason, count] of [...skips].sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${count} skipped: ${reason}`);
-  }
-  if (!execute && actionable > 0) console.log('Re-run with --execute to apply.');
 }
 
 /// The bridge row is a projection of the movement, and it can lag behind it: the
