@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getShellSurface } from '@/shared/utils/routes';
 import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
+import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -43,8 +44,10 @@ export function ChromeFrame({
     );
   }
 
-  // Lets the floating launchers step aside while someone is reading.
+  // Lets the floating launchers step aside while someone is reading, and take
+  // themselves away entirely while a guarded surface is under them.
   useScrollQuiet();
+  useFloatGuard();
 
   const workspace = shell === 'workspace' || shell === 'admin';
   const focused = shell === 'focused';

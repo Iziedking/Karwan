@@ -94,7 +94,11 @@ export function SettlementRecord({
   }
 
   return (
-    <section aria-labelledby="settlement-record-heading" className="mt-8 border-t border-white/[0.08] pt-8">
+    <section
+      aria-labelledby="settlement-record-heading"
+      data-float-guard
+      className="mt-8 border-t border-white/[0.08] pt-8"
+    >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
         <span aria-hidden className="me-2 inline-block size-1 bg-white/35" />
         [:SETTLEMENT RECORD]

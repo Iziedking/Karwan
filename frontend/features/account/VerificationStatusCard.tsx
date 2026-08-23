@@ -57,7 +57,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
 
   return (
     <PageCard tone="dark" className="mt-5 max-w-[640px]">
-      <section className="p-5 sm:p-6" aria-labelledby="account-verification-title">
+      <section className="p-5 sm:p-6" data-float-guard aria-labelledby="account-verification-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1.5">
             <SectionTag tone="dark">{t.eyebrow}</SectionTag>

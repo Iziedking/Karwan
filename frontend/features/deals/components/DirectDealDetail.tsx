@@ -1277,6 +1277,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           <div
             id="action"
             data-guide="deal-actions"
+            data-float-guard
             className="overflow-hidden p-6 md:p-7"
             style={{
               background: 'var(--surface-1)',
@@ -1322,7 +1323,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onAccept={requestAccept}
               fundingQuoteState={fundingQuoteState}
               hasFundingQuote={!!fundingQuote}
-              onFund={() => setShowFundingConsent(true)}
+              onFund={() =>
+                deal.fundTxHash && !deal.acceptedAt ? void doFund() : setShowFundingConsent(true)
+              }
               onRetryQuote={reloadFundingQuote}
               onMarkDelivered={onMarkDelivered}
               onRelease={onRelease}
@@ -2125,11 +2128,25 @@ function ActionPanel({
 
   if (stage === 'awaiting-funding') {
     if (viewerIsBuyer) {
+      // The escrow already HOLDS the money and only activation is missing. The
+      // stage cannot advance without it, so the page kept offering "Review and
+      // fund" for a total the buyer had already paid, opening a sheet headed
+      // "Fund this deal". Nobody presses that, so the deal sits. Retrying is
+      // safe and moves nothing: routes/deals.ts reads the escrow first, finds it
+      // Funded, skips funding, and only calls acceptEscrow.
+      const escrowHeld = !!deal.fundTxHash && !deal.acceptedAt;
       return (
         <div className="space-y-4">
-          <Body>{copy.awaitingFunding.buyerIntro}</Body>
+          <Body>
+            {escrowHeld ? copy.awaitingFunding.heldIntro : copy.awaitingFunding.buyerIntro}
+          </Body>
           <div className="flex flex-wrap gap-2">
-            {fundingQuoteState === 'error' ? (
+            {escrowHeld ? (
+              // No quote to wait on: there is nothing left to price.
+              <CTAPill onClick={onFund} disabled={busy} busy={busy}>
+                {copy.awaitingFunding.activateCta}
+              </CTAPill>
+            ) : fundingQuoteState === 'error' ? (
               <CTAPill onClick={onRetryQuote} disabled={busy}>
                 {copy.awaitingFunding.retryQuoteCta}
               </CTAPill>
@@ -2856,7 +2873,7 @@ function AcceptConsentModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
@@ -2952,7 +2969,7 @@ function FundingConsentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ background: 'rgba(14,14,14,0.62)' }}
       onClick={() => !busy && onClose()}
       onKeyDown={onKeyDown}
@@ -3216,7 +3233,7 @@ function ProposeCancelModal({
       ];
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >

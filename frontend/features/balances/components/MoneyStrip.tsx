@@ -166,7 +166,7 @@ export function MoneyStrip() {
 
   return (
     <Band tone="light" compact>
-      <div className="mx-auto w-full max-w-[1040px]">
+      <div className="mx-auto w-full max-w-[1040px]" data-float-guard>
         <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
           <SectionTag>{ms.eyebrow}</SectionTag>
         </div>

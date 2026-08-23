@@ -716,6 +716,35 @@ html.is-scrolling [data-float-launcher] {
   }
 }
 
+/* A surface has declared that it must not be covered, and it is sitting in the
+   band the launchers occupy (see useFloatGuard). Fading them was not enough:
+   the fade is for reading in motion, and the moment a scroll settles on a row
+   of money they came back on top of it. Here they leave.
+
+   `visibility` as well as opacity so nothing is left to press by accident, and
+   a transform so the exit reads as leaving rather than blinking out. */
+html.float-clear [data-float-launcher] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(120%);
+  pointer-events: none;
+}
+[data-float-launcher] {
+  transition:
+    opacity 180ms var(--ease-out, ease),
+    transform 220ms var(--ease-out, ease),
+    visibility 220ms;
+}
+@media (min-width: 768px) {
+  /* The corner is clear of the column on a desktop; there is nothing to avoid. */
+  html.float-clear [data-float-launcher] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
 @keyframes stat-sweep {
   0% { transform: translateX(-110%); }
   100% { transform: translateX(330%); }
