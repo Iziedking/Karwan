@@ -68,14 +68,18 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
         </span>
       </div>
 
-      <div className="mt-2 flex items-baseline gap-2.5">
+      {/* The tier word never breaks. It was `min-w-0 break-words` beside a
+          progress label that can run to "needs varied counterparties", so on a
+          narrow phone the label squeezed it and COLD came out as COL / D. The
+          label is the part that should give: it wraps, and the word does not. */}
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
         <span
-          className="min-w-0 font-sans text-[clamp(18px,6vw,26px)] font-extrabold uppercase tracking-[-0.02em] leading-none break-words"
+          className="shrink-0 whitespace-nowrap font-sans text-[clamp(18px,6vw,26px)] font-extrabold uppercase tracking-[-0.02em] leading-none"
           style={{ color }}
         >
           {tier}
         </span>
-        <span className="text-[12px] text-white/55">
+        <span className="min-w-0 text-[12px] text-white/55">
           {progressLabel}
         </span>
       </div>
