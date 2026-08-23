@@ -60,6 +60,7 @@ export function FundAgentFromBalance({
         type="button"
         onClick={run}
         disabled={phase === 'moving' || phase === 'done'}
+        aria-busy={phase === 'moving'}
         className="inline-flex items-center gap-2 px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors disabled:opacity-60"
         style={{
           background: phase === 'done' ? 'var(--lp-band-dark)' : 'var(--lp-accent)',

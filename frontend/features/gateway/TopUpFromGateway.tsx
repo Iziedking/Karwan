@@ -116,6 +116,7 @@ export function TopUpFromGateway({
           type="button"
           onClick={() => void run()}
           disabled={phase === 'moving' || loading}
+          aria-busy={phase === 'moving'}
           className="w-full min-w-0 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.08em] leading-tight transition-opacity disabled:opacity-50 sm:px-4 sm:text-[11px] sm:tracking-[0.1em]"
           style={{
             background: covers ? 'var(--lp-accent)' : 'transparent',

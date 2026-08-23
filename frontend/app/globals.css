@@ -628,20 +628,41 @@ html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
   }
 }
 
-/* ---- A confirm button that is working ------------------------------------
-   Swapping the label for "Funding escrow…" and greying the button out reads as
-   dead, so on a phone people press it again. These are the buttons that move
-   money, so a second press is the worst possible outcome of an unclear one.
+/* ---- A control that is working -------------------------------------------
+   `is-busy` is the whole affordance, so any button can take it: the hand-rolled
+   ones across the bridge, deposit, stake and gateway cards as well as CTAPill.
 
-   The button stays at full strength, refuses further presses, and shows the
-   work as movement: a line crossing its bottom edge and a breathing dot where
-   the arrow was. `currentColor` so one rule serves ink-on-lime and the outline
-   variants without knowing which it is on. */
+   Why it exists: these buttons swapped their label to "Funding escrow…" and then
+   took `disabled:opacity-50`, so they faded and stopped moving. Faded plus
+   static reads as dead, and on a phone people press again. They are the buttons
+   that move money, so a second press is the worst possible outcome of an
+   unclear one.
+
+   The button keeps full strength, and the work shows as a line crossing its
+   bottom edge. `currentColor` so one rule serves ink-on-lime and every outline
+   variant without knowing which it is on. */
 @keyframes cta-busy-sweep {
   from { transform: translateX(-100%); }
   to { transform: translateX(100%); }
 }
-.cta-busy-sweep {
+/* Keyed off `aria-busy`, not a bespoke class, so it is one attribute per button
+   and the attribute is the one screen readers already want. Scoped to
+   interactive elements: `aria-busy` also marks loading skeletons, which must
+   keep their own treatment. `.is-busy` stays for anything that cannot carry the
+   attribute. */
+button[aria-busy='true'],
+a[aria-busy='true'],
+.is-busy {
+  position: relative;
+  overflow: hidden;
+  cursor: progress;
+  /* Beats the disabled fade, which is the point. */
+  opacity: 1 !important;
+}
+button[aria-busy='true']::after,
+a[aria-busy='true']::after,
+.is-busy::after {
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -650,11 +671,13 @@ html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
   background: linear-gradient(90deg, transparent, currentColor, transparent);
   opacity: 0.6;
   animation: cta-busy-sweep 900ms linear infinite;
+  pointer-events: none;
 }
 @keyframes cta-busy-dot {
   0%, 100% { opacity: 0.35; transform: scale(0.85); }
   50% { opacity: 1; transform: scale(1); }
 }
+/// Only where an arrow was displaced by it; a plain button just gets the line.
 .cta-busy-dot {
   width: 6px;
   height: 6px;
@@ -663,7 +686,9 @@ html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
   animation: cta-busy-dot 900ms var(--ease-inout, ease-in-out) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cta-busy-sweep { animation: none; opacity: 0.35; }
+  button[aria-busy='true']::after,
+  a[aria-busy='true']::after,
+  .is-busy::after { animation: none; opacity: 0.35; }
   .cta-busy-dot { animation: none; opacity: 0.7; }
 }
 

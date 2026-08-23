@@ -201,6 +201,7 @@ function FaucetButton({
       type="button"
       onClick={onClick}
       disabled={busy}
+      aria-busy={busy}
       className="inline-flex items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50 hover:bg-black/[0.03]"
       style={{
         borderColor: 'var(--lp-border-light)',

@@ -208,7 +208,7 @@ export function CTAPill({
     base,
     fill,
     ringOffset,
-    busy && 'relative overflow-hidden cursor-progress disabled:opacity-100',
+    busy && 'is-busy',
   );
 
   /// The pill renders its own arrow, and several CTA strings carry one inline
@@ -240,7 +240,6 @@ export function CTAPill({
       ) : (
         <span aria-hidden className="cta-arrow transition-transform duration-200 group-hover:translate-x-1">↗</span>
       )}
-      {busy && <span aria-hidden className="cta-busy-sweep" />}
     </button>
   );
 }

@@ -206,6 +206,7 @@ export function YieldClaimPanel() {
               <button
                 onClick={submit}
                 disabled={!canClaim}
+                aria-busy={busy}
                 className="rounded-md px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-35 disabled:cursor-not-allowed"
                 style={{
                   background: canClaim ? 'var(--lp-accent)' : 'rgba(255,255,255,0.08)',

@@ -131,6 +131,7 @@ export function FinancierApply({
             type="button"
             onClick={apply}
             disabled={busy || !eligibility.eligible}
+            aria-busy={busy}
             className="mono text-[11px] uppercase tracking-[0.1em] font-bold px-5 py-3 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-40 transition"
             style={{
               borderTopLeftRadius: 11,

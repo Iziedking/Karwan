@@ -814,6 +814,7 @@ export function StakeCard() {
             <button
               type="button"
               onClick={submitDeposit}
+              aria-busy={busyKind?.kind === 'deposit'}
               disabled={
                 busyKind?.kind === 'deposit' ||
                 !depositAmount ||
@@ -878,6 +879,7 @@ export function StakeCard() {
                 setWithdrawAmount(e.target.value === '' ? '' : Number(e.target.value))
               }
               disabled={busyKind?.kind === 'request' || Number(freeStakeUsdc) <= 0}
+              aria-busy={busyKind?.kind === 'request'}
               placeholder="0"
               className="form-input form-input-num flex-1 min-w-0"
               aria-label={sc.withdrawForm.inputAria}

@@ -585,6 +585,7 @@ export function GatewayBalanceCard({
             type="button"
             onClick={() => void poolCircle()}
             disabled={busy || !amountValid}
+            aria-busy={busy}
             className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
             style={{
               background: 'var(--lp-band-dark)',
@@ -742,6 +743,7 @@ export function GatewayBalanceCard({
               type="button"
               onClick={() => void pool()}
               disabled={busy || (!onWrongChain && !amountValid)}
+              aria-busy={busy}
               className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
               style={{
                 background: 'var(--lp-band-dark)',
@@ -906,6 +908,7 @@ export function GatewayBalanceCard({
                 !(Number(moveAmount) > 0) ||
                 Number(moveAmount) > Number(confirmed)
               }
+              aria-busy={movePhase === 'moving'}
               className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
               style={{
                 background: 'var(--lp-accent)',
