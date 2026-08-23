@@ -76,6 +76,11 @@ function ProfilePageInner() {
   const [moneyMode, setMoneyMode] = useState<'add' | 'out'>('add');
   const [activeAgentSlide, setActiveAgentSlide] = useState(0);
   const agentCarouselRef = useRef<HTMLDivElement>(null);
+  /// The four modes are one horizontal rail. The tab strip and the rail are the
+  /// same control seen twice: pressing a tab scrolls the rail, swiping the rail
+  /// sets the tab. Both directions only write when the value actually differs,
+  /// which is what keeps them from chasing each other.
+  const deckRef = useRef<HTMLDivElement>(null);
 
   const TABS: Tab[] = [
     { id: 'identity', label: t.tabs.identity, hash: 'identity' },
@@ -129,6 +134,27 @@ function ProfilePageInner() {
             : 'identity';
     setActiveTab(panel);
   }, [activeTour?.id, activeTour?.index, activeTour?.steps]);
+
+  // Strip to rail. Runs on any change of the active mode, whoever made it: a tab
+  // press, the coachmark tour stepping between panels, or a #hash on arrival.
+  useEffect(() => {
+    const el = deckRef.current;
+    const index = TABS.findIndex((tab) => tab.id === activeTab);
+    const target = index < 0 ? undefined : (el?.children[index] as HTMLElement | undefined);
+    if (!el || !target) return;
+    const base = (el.children[0] as HTMLElement).offsetLeft;
+    const want = target.offsetLeft - base;
+    // A tolerance, not equality: a snap settles a fraction of a pixel off and an
+    // exact check would re-scroll on every settle.
+    if (Math.abs(el.scrollLeft - want) < 4) return;
+    el.scrollTo({
+      left: want,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // The scroll-spy that used to drive the tab strip is gone.
   //
@@ -599,6 +625,18 @@ function ProfilePageInner() {
 
   const activePanel =
     deckPanels.find((panel) => panel.key === activeTab) ?? deckPanels[0]!;
+  /// Rail to strip. The stride is measured from the DOM rather than assumed,
+  /// because the panel width is the container's, not a constant.
+  function onDeckScroll(): void {
+    const el = deckRef.current;
+    const first = el?.children[0] as HTMLElement | undefined;
+    if (!el || !first) return;
+    const second = el.children[1] as HTMLElement | undefined;
+    const stride = second ? second.offsetLeft - first.offsetLeft : first.offsetWidth;
+    if (stride <= 0) return;
+    const key = deckPanels[Math.round(el.scrollLeft / stride)]?.key;
+    if (key && key !== activeTab) setActiveTab(key);
+  }
 
   return (
     <FullBleed>
@@ -755,21 +793,38 @@ function ProfilePageInner() {
       <PendingMatchesBand tone="light" />
       <PendingDealsBand tone="light" />
 
-      {/* The tab strip is the only navigation control. Render one focused
-          panel instead of a stacked animated deck with duplicate controls. */}
+      {/* One rail, four modes, one per view. The strip above is its remote and
+          its readout: swiping lands the next mode and the strip moves with it,
+          which is the same thing pressing a tab does.
+
+          Every panel is mounted, which is the cost of a real swipe: an incoming
+          panel cannot be built mid-gesture. The agent carousel nested inside the
+          AGENTS panel keeps `overscroll-x-contain`, so a swipe there moves its
+          cards and stops at their ends rather than chaining out to this rail. */}
       <Band tone="light" compact>
-        <section
-          id={activePanel.key}
+        <div
+          ref={deckRef}
+          onScroll={onDeckScroll}
           aria-label={activePanel.label}
-          className={`mx-auto w-full max-w-[1040px] overflow-hidden border shadow-[0_16px_48px_rgba(16,15,14,0.08)] ${
-            activePanel.tone === 'dark'
-              ? 'border-white/10 bg-[var(--lp-ink)] text-white'
-              : 'border-[var(--lp-line)] bg-[var(--lp-paper)] text-[var(--lp-ink)]'
-          }`}
-          style={{ borderRadius: 20 }}
+          className="mx-auto flex w-full max-w-[1040px] snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {activePanel.content}
-        </section>
+          {deckPanels.map((panel) => (
+            <section
+              key={panel.key}
+              id={panel.key}
+              aria-label={panel.label}
+              aria-current={panel.key === activeTab ? 'true' : undefined}
+              className={`min-w-full snap-start overflow-hidden border shadow-[0_16px_48px_rgba(16,15,14,0.08)] ${
+                panel.tone === 'dark'
+                  ? 'border-white/10 bg-[var(--lp-ink)] text-white'
+                  : 'border-[var(--lp-line)] bg-[var(--lp-paper)] text-[var(--lp-ink)]'
+              }`}
+              style={{ borderRadius: 20 }}
+            >
+              {panel.content}
+            </section>
+          ))}
+        </div>
       </Band>
 
       <ActivationModal
@@ -797,6 +852,10 @@ function ConnectionCard({ label, children }: { label: string; children: React.Re
   );
 }
 
+/// `h-full` so the two cards match. In the carousel they are flex items
+/// stretched to the taller of the two, and in the desktop grid they are grid
+/// items doing the same; without this the block stopped at its own content and
+/// the buyer card, which has fewer rows, read as a shorter card.
 function AgentBlock({
   eyebrow,
   fallbackName,
@@ -812,7 +871,7 @@ function AgentBlock({
 }) {
   return (
     <div
-      className="group relative overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out"
+      className="group relative h-full overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out"
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
