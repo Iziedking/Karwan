@@ -167,25 +167,89 @@ export const STAKE_STEPS: TourStep[] = [
   },
 ];
 
-/// Top up / Withdraw tour (add funds to Arc).
-export const BRIDGE_TOUR_ID = 'bridge-v1';
-export const BRIDGE_STEPS: TourStep[] = [
-  {
-    title: 'Where your USDC is now',
-    body: 'Pick the chain your USDC sits on today. Karwan tops it up onto Arc, where every deal settles.',
-    target: 'bridge-source',
-  },
-  {
-    title: 'How much to move',
-    body: 'Enter the amount. It is burned on the source chain and minted fresh on Arc. No wrapped tokens, no third party holding it.',
-    target: 'bridge-amount',
-  },
-  {
-    title: 'Top it up',
-    body: 'Start the transfer. It usually lands on Arc in 10 to 19 minutes; you can leave the page and come back.',
-    target: 'bridge-submit',
-  },
-];
+/// Deposit / Withdraw tour (/bridge).
+///
+/// Built from the page's own state rather than fixed, because /bridge is a
+/// chooser now: a direction, then one of four rails, and only the chosen rail's
+/// controls are on screen. The old fixed three steps described the Transfer form
+/// and were mounted INSIDE it, so the tour vanished from the page whenever the
+/// user picked any other rail, and never registered at all for an email account,
+/// which lands on Direct. The page owns it now and asks for the steps that match
+/// what it is actually showing.
+export const BRIDGE_TOUR_ID = 'bridge-v2';
+
+export function buildBridgeSteps(view: {
+  direction: 'in' | 'out';
+  rail: 'direct' | 'gateway' | 'cctp' | 'onramp';
+}): TourStep[] {
+  const steps: TourStep[] = [
+    {
+      title: 'Which way is the money going',
+      body: 'Deposit brings USDC onto Arc, where every deal settles. Withdraw sends it back out. Pick that first; what you can use depends on the answer.',
+      target: 'bridge-direction',
+    },
+    {
+      title: 'Pick how it travels',
+      body: 'Each route suits a different starting point. Anything not open yet says so rather than pretending.',
+      target: 'bridge-rails',
+    },
+  ];
+
+  if (view.rail === 'direct') {
+    steps.push({
+      title: 'One address, any chain',
+      body: 'Send USDC to this address from any chain you hold it on and it reaches Arc on its own. No chain to pick, no amount to type. Scan the code or copy the address.',
+      target: 'bridge-address',
+    });
+  }
+
+  if (view.rail === 'gateway') {
+    steps.push({
+      title: 'A balance that spans chains',
+      body:
+        view.direction === 'in'
+          ? 'Two steps, in order. Pool USDC from a chain you hold it on, then move it onto Arc once it confirms.'
+          : 'Send from your pooled balance to any chain, on one signature. It draws from wherever the money sits.',
+      target: 'bridge-gateway',
+    });
+  }
+
+  if (view.rail === 'cctp' && view.direction === 'in') {
+    steps.push(
+      {
+        title: 'Where your USDC is now',
+        body: 'Pick the chain your USDC sits on today. Karwan moves it onto Arc.',
+        target: 'bridge-source',
+      },
+      {
+        title: 'How much to move',
+        body: 'Enter the amount. It is burned on the source chain and minted fresh on Arc. No wrapped tokens, no third party holding it.',
+        target: 'bridge-amount',
+      },
+      {
+        title: 'Start it',
+        body: 'It usually lands on Arc in 10 to 19 minutes. You can leave the page and come back.',
+        target: 'bridge-submit',
+      },
+    );
+  }
+
+  if (view.rail === 'cctp' && view.direction === 'out') {
+    steps.push({
+      title: 'Sending it out',
+      body: 'Pick where it goes and how much. Arc to Arc is instant. Another chain takes a few minutes and needs no gas token there.',
+      target: 'bridge-out',
+    });
+  }
+
+  steps.push({
+    title: 'Everything you have moved',
+    body: 'Every transfer, its stage, and its receipt. A move that is still settling stays here until it lands.',
+    target: 'bridge-history',
+  });
+
+  return steps;
+}
 
 /// Live request page tour (/jobs/[id]), the auction + negotiation surface a
 /// buyer watches after posting a request, before escrow funds.
@@ -340,7 +404,22 @@ export const SETTINGS_STEPS: TourStep[] = [
 /// Distinct ids per variant so the "seen" set never suppresses the wrong one.
 export const MARKET_TOUR_ID = 'market-person-v1';
 export const MARKET_BIZ_TOUR_ID = 'market-biz-v1';
-export function buildMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
+/// `sections` is the list of section keys the page actually rendered. Empty
+/// sections are filtered out of the market before paint, so a step pointing at
+/// one spotlights nothing: on a quiet market the tour talked about rails that
+/// were not there. Passing the keys in keeps the tour describing the page in
+/// front of the user rather than the page as designed.
+export function buildMarketSteps(
+  accountKind: 'person' | 'business',
+  sections?: string[],
+): TourStep[] {
+  const built = buildAllMarketSteps(accountKind);
+  if (!sections) return built;
+  const present = new Set(sections.map((key) => `market-${key}`));
+  return built.filter((step) => !step.target || present.has(step.target));
+}
+
+function buildAllMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
   if (accountKind === 'business') {
     return [
       {

@@ -8,9 +8,7 @@ import { useReputation } from '../hooks/useReputation';
 import { useVaultPositions } from '../hooks/useVaultPositions';
 import { cn } from '@/shared/utils/cn';
 import { formatUsdc } from '@/shared/utils/format';
-import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
-import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
@@ -138,10 +136,11 @@ const TIER_TONE: Record<
   },
 };
 
-/// `tour` controls whether this card runs its own guided tour. The standalone
-/// /stake page leaves it on; when embedded in /profile it's turned off so the
-/// Profile tour (which already mentions staking) doesn't collide with it.
-export function StakeCard({ tour = true }: { tour?: boolean }) {
+/// The /stake page owns the tour for this surface. The card used to mount its
+/// own, switched off by a `tour` prop for a /profile embed that no longer
+/// exists, which left one tour id declared in two places: `registerTour` writes
+/// a single slot, so whichever mounted last owned the pill.
+export function StakeCard() {
   const sc = useTranslations().stakeCard;
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
@@ -643,7 +642,6 @@ export function StakeCard({ tour = true }: { tour?: boolean }) {
 
   return (
     <div style={CARD_STYLE} className="px-6 py-7 space-y-7">
-      {tour && <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />}
       {/* HEADER: v2.D three-way split: Active total prominent, then a
           smaller meta line breaking it into Free / Reserved (open deal
           insurance) / Cooling. Reserved only renders when > 0 so users

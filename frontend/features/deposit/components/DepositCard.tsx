@@ -160,7 +160,7 @@ export function DepositCard() {
   }
 
   return (
-    <Shell>
+    <Shell dataGuide="bridge-address">
       <Tag>{t.tag}</Tag>
 
       {solana ? (
@@ -415,9 +415,16 @@ function DepositRow({
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+  dataGuide,
+}: {
+  children: React.ReactNode;
+  dataGuide?: string;
+}) {
   return (
     <div
+      data-guide={dataGuide}
       className="p-6 sm:p-8"
       style={{
         background: 'var(--lp-card)',

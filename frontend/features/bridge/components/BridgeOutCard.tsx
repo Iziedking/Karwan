@@ -175,7 +175,7 @@ export function BridgeOutCard() {
   }
 
   return (
-    <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
+    <div data-guide="bridge-out" style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
           [:{t.header.eyebrow}:]

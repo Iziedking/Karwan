@@ -149,7 +149,10 @@ export function ListingsBrowse() {
       {isAuthenticated ? (
         <PageTour
           id={onBusinessTrack ? MARKET_BIZ_TOUR_ID : MARKET_TOUR_ID}
-          steps={buildMarketSteps(onBusinessTrack ? 'business' : 'person')}
+          steps={buildMarketSteps(
+            onBusinessTrack ? 'business' : 'person',
+            sections.filter((section) => section.cards.length > 0).map((section) => section.key),
+          )}
         />
       ) : null}
 

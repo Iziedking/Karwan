@@ -36,7 +36,6 @@ import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { LpHint } from '@/shared/components/LpHint';
 import { PageTour } from '@/shared/guide/PageTour';
-import { BRIDGE_TOUR_ID, BRIDGE_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { completedBridgeLabel } from './bridgeHistoryPresentation';
 import type { Messages } from '@/shared/i18n/messages/en';
@@ -221,15 +220,11 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 
 export function BridgeCard({
   agents,
-  tour = true,
 }: {
   /// Buyer + seller agent EVM addresses, when the signed-in user has them
   /// provisioned. Both are surfaced in the recipient picker alongside the
   /// user's own identity wallet and a Custom option.
   agents?: { buyer?: string; seller?: string };
-  /// Off when embedded in /profile so the Profile tour owns that page and the
-  /// bridge tour doesn't fire there too. On for the standalone bridge surface.
-  tour?: boolean;
 }) {
   const bc = useTranslations().bridgeCard;
   const { isConnected, address: web3Address, connector } = useAccount();
@@ -647,7 +642,6 @@ export function BridgeCard({
 
   return (
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
-      {tour && <PageTour id={BRIDGE_TOUR_ID} steps={BRIDGE_STEPS} />}
       <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">

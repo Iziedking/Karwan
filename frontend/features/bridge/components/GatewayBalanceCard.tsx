@@ -542,7 +542,7 @@ export function GatewayBalanceCard({
   // beside this tab moves USDC for them today.
   if (isCircleUser) {
     return (
-      <div className="p-6 h-full" style={CARD_STYLE}>
+      <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
         <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           {t.tag}
         </div>
@@ -616,7 +616,7 @@ export function GatewayBalanceCard({
   // No top margin and full height: the page owns the column spacing and stretches
   // this card to match the CCTP one beside it.
   return (
-    <div className="p-6 h-full" style={CARD_STYLE}>
+    <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
       <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
         {t.tag}
       </div>

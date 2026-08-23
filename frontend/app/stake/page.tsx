@@ -248,7 +248,7 @@ function StakePageInner() {
           <Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-10">
-          <StakeCard tour={false} />
+          <StakeCard />
           <LegacyStakeNudge />
         </div>
       </Band>

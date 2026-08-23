@@ -11,6 +11,8 @@ import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceC
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { LpHint } from '@/shared/components/LpHint';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
+import { PageTour } from '@/shared/guide/PageTour';
+import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
 import {
   defaultRail,
   railsFor,
@@ -109,6 +111,11 @@ function BridgePageInner() {
 
   return (
     <FullBleed>
+      {/* The page owns its tour. It used to live inside the Transfer card, which
+          is one of four rails, so the Tour pill appeared and disappeared as the
+          user switched rails and was absent entirely for an email account, which
+          lands on Direct. */}
+      <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="flex items-center gap-2">
           <SectionTag tone="dark">{t.sectionTag}</SectionTag>
@@ -129,6 +136,7 @@ function BridgePageInner() {
               answer, and two of the four only exist in one direction. */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div
+              data-guide="bridge-direction"
               className="inline-flex p-1"
               style={{
                 background: 'var(--lp-card)',
@@ -143,17 +151,21 @@ function BridgePageInner() {
                 {t.directions.fromArc}
               </DirToggle>
             </div>
-            <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
+            <div data-guide="bridge-history">
+              <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
+            </div>
           </div>
 
-          <RailSlider rails={rails} active={rail} onChange={setRail}>
-            <RailPanel
-              rail={rail}
-              direction={direction}
-              state={rails.find((option) => option.id === rail)?.state ?? 'ready'}
-              agents={agents ?? undefined}
-            />
-          </RailSlider>
+          <div data-guide="bridge-rails">
+            <RailSlider rails={rails} active={rail} onChange={setRail}>
+              <RailPanel
+                rail={rail}
+                direction={direction}
+                state={rails.find((option) => option.id === rail)?.state ?? 'ready'}
+                agents={agents ?? undefined}
+              />
+            </RailSlider>
+          </div>
         </div>
       </Band>
 
@@ -198,7 +210,7 @@ function RailPanel({
   if (state === 'soon') {
     return <ComingSoonPanel body={copy.cctp.blurb} action={copy.cctp.title} soon={copy.soon} />;
   }
-  return direction === 'in' ? <BridgeCard agents={agents} tour /> : <BridgeOutCard />;
+  return direction === 'in' ? <BridgeCard agents={agents} /> : <BridgeOutCard />;
 }
 
 /// A rail that is real and not open yet. It says what it will do and offers no
