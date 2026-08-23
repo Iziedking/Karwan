@@ -28,6 +28,15 @@ export interface DealInviteEmailInput {
   /// Mirrors the buyer's deadlineDays + deadlineHours. Omit for open-ended
   /// deals (no deadline). The block renders an "Open-ended" pill instead.
   deliveryLabel?: string;
+  /// Set when this email already belongs to an account, masked as
+  /// "0xab12…cdef". There is no claim link in that case: the deal already names
+  /// their wallet, and `claimUrl` points at the deal itself. Naming the wallet
+  /// matters because this is exactly the person who would otherwise sign up with
+  /// their email, land on a second identity, and wonder where the deal went.
+  signInWallet?: string;
+  /// How they prove that identity: 'wallet' means connect it, 'login' means the
+  /// email sign-in they already use. Only read when `signInWallet` is set.
+  signInVia?: 'login' | 'wallet';
 }
 
 export interface SendResult {
@@ -64,24 +73,46 @@ function inviteInnerHtml(input: DealInviteEmailInput): string {
             </td>
           </tr>`
     : '';
-  const trailingNote = hasTwoDeadlines
-    ? `Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. Invite link itself ${escapeHtml(input.expiresLabel.toLowerCase())}.`
-    : `${escapeHtml(input.expiresLabel)}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.`;
+  const trailingNote = input.signInWallet
+    ? 'Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.'
+    : hasTwoDeadlines
+      ? `Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. Invite link itself ${escapeHtml(input.expiresLabel.toLowerCase())}.`
+      : `${escapeHtml(input.expiresLabel)}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.`;
+  const eyebrow = input.signInWallet ? 'Deal waiting' : 'Deal invite';
+  const cta = input.signInWallet ? 'Open the deal' : 'Review and claim';
+  /// The line that stops a second account being created. Their email is already
+  /// attached to an identity, so it says which one to use rather than inviting
+  /// them to make another.
+  const walletBlock = input.signInWallet
+    ? `
+          <tr>
+            <td style="padding:0 28px 4px 28px;">
+              <div style="margin-top:10px;padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px;font-size:13px;line-height:1.55;color:#3a352c;">
+                ${
+                  input.signInVia === 'login'
+                    ? `Sign in with this email as usual. The deal is already addressed to your account <strong style="color:#0e0e0e;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(input.signInWallet)}</strong>.`
+                    : `Sign in with your wallet <strong style="color:#0e0e0e;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(input.signInWallet)}</strong>, the one you verified this email against. The deal is already addressed to it, so there is nothing to claim and no new account to create.`
+                }
+              </div>
+            </td>
+          </tr>`
+    : '';
   return `
           <tr>
             <td style="padding:36px 28px 8px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Deal invite</div>
+              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">${eyebrow}</div>
               <p style="margin:0 0 22px 0;font-size:15px;line-height:1.55;color:#3a352c;">
                 <strong style="color:#0e0e0e;">${escapeHtml(input.inviterMasked)}</strong>
                 opened a Karwan deal with you for
                 <strong style="color:#0e0e0e;">${escapeHtml(input.dealAmountUsdc)} USDC</strong>.
               </p>
-              <a href="${escapeHtml(input.claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">Review and claim</a>
+              <a href="${escapeHtml(input.claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">${cta}</a>
               <p style="margin:18px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
                 ${trailingNote}
               </p>
             </td>
           </tr>
+          ${walletBlock}
           ${deadlineBlock}
           <tr>
             <td style="padding:0 28px 12px 28px;">
@@ -129,16 +160,24 @@ export async function sendDealInviteEmail(
       "If you weren't expecting this invite, ignore the email. The link binds nothing until you sign in and accept.",
   });
   const subject = `You have a Karwan deal to review (${input.dealAmountUsdc} USDC)`;
+  const signInLine = input.signInWallet
+    ? input.signInVia === 'login'
+      ? `Sign in with this email as usual. The deal is already addressed to your account ${input.signInWallet}.\n\n`
+      : `Sign in with your wallet ${input.signInWallet}, the one you verified this email against. The deal is already addressed to it, so there is nothing to claim and no new account to create.\n\n`
+    : '';
   const deadlineLines =
     input.acceptanceLabel || input.deliveryLabel
       ? `Agree by: ${input.acceptanceLabel ?? '—'}\nDeliver by: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
       : '';
   const text =
     `${input.inviterMasked} opened a Karwan deal with you for ${input.dealAmountUsdc} USDC.\n\n` +
-    `Review and claim: ${input.claimUrl}\n\n` +
+    `${input.signInWallet ? 'Open the deal' : 'Review and claim'}: ${input.claimUrl}\n\n` +
+    signInLine +
     deadlineLines +
-    `${input.expiresLabel}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.\n` +
-    `If you weren't expecting this invite, ignore the email.`;
+    (input.signInWallet
+      ? 'Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.\n'
+      : `${input.expiresLabel}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.\n`) +
+    `If you weren't expecting this, ignore the email.`;
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,

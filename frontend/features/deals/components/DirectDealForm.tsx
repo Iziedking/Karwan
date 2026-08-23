@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { api, type Partner } from '@/core/api';
+import { api, ApiError, type Partner } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
@@ -341,8 +341,12 @@ export function DirectDealForm() {
       // form-bound invite banner was easy to scroll past on a long-form page
       // so the buyer would tap Open Deal and never realise the link existed.
       router.push(`/deals/${r.deal.jobId}`);
-    } catch {
-      setError(dd.errorPrefix);
+    } catch (err) {
+      // The refusals a user can act on come back with a `detail` written for a
+      // person: an email that is their own account, or one connected to two
+      // accounts. A generic prefix hid the reason and left them retrying.
+      const detail = err instanceof ApiError ? err.detail : undefined;
+      setError(typeof detail === 'string' && detail.trim() ? detail : dd.errorPrefix);
       setSubmitting(false);
     }
   }

@@ -85,6 +85,9 @@ import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
 import { getBrief } from '../db/briefs.js';
 import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
+import { pickEmailOwner, type EmailOwner } from '../identity/emailOwner.js';
+import { getUserByEmail } from '../db/users.js';
+import { findProfileByEmail, getProfile } from '../db/profiles.js';
 import { provisionUserAgentWallets } from '../circle/wallets.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus, recentEventsByType } from '../events.js';
@@ -366,23 +369,63 @@ dealsRoutes.post('/direct', async (c) => {
   let inviteUrl: string | undefined;
   let pendingCounterparty: DirectDeal['pendingCounterparty'] | undefined;
   let inviteExpiresAt: number | undefined;
+  /// Set when the email already belongs to an account. The deal then names that
+  /// wallet directly and no invite exists, so the counterparty signs in the way
+  /// they always do.
+  let resolvedEmailAddress: string | undefined;
+  let emailOwnerVia: 'login' | 'wallet' | undefined;
   if (body.sellerEmail) {
-    const token = randomBytes(32).toString('hex');
-    inviteExpiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
-    createInvite({
-      token,
-      jobId,
-      role: 'seller',
-      email: body.sellerEmail,
-      expiresAt: inviteExpiresAt,
-    });
-    pendingCounterparty = {
-      email: body.sellerEmail,
-      role: 'seller',
-      inviteToken: token,
-    };
-    const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
-    inviteUrl = `${base}/invite/${token}`;
+    // Resolve FIRST, the way the paytag branch below does. An email verified
+    // against a wallet is already an identity: minting an invite for it produced
+    // a claim only an email login could complete, which provisioned a SECOND
+    // wallet at a different address and paid the deal into it. The rightful
+    // owner was locked out of their own deal.
+    const owner = await resolveEmailOwner(body.sellerEmail);
+    if (owner.kind === 'conflict') {
+      logger.error(
+        { email: body.sellerEmail, addresses: owner.addresses },
+        'email resolves to two accounts, refusing to guess the counterparty',
+      );
+      return c.json(
+        {
+          error: 'that email is connected to more than one account',
+          detail: 'Name the counterparty by wallet address instead.',
+          code: 'email_owner_conflict',
+        },
+        409,
+      );
+    }
+    if (owner.kind === 'owned') {
+      if (owner.address === body.buyerAddress.toLowerCase()) {
+        return c.json(
+          {
+            error: 'that email is your own account',
+            detail: 'A deal needs two different wallets.',
+            code: 'email_is_self',
+          },
+          400,
+        );
+      }
+      resolvedEmailAddress = owner.address;
+      emailOwnerVia = owner.via;
+    } else {
+      const token = randomBytes(32).toString('hex');
+      inviteExpiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
+      createInvite({
+        token,
+        jobId,
+        role: 'seller',
+        email: body.sellerEmail,
+        expiresAt: inviteExpiresAt,
+      });
+      pendingCounterparty = {
+        email: body.sellerEmail,
+        role: 'seller',
+        inviteToken: token,
+      };
+      const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
+      inviteUrl = `${base}/invite/${token}`;
+    }
   }
 
   // Paytag mode: resolve the handle NOW and pin the address onto the deal. From
@@ -413,7 +456,8 @@ dealsRoutes.post('/direct', async (c) => {
     resolvedPaytagAddress = hit.address;
   }
 
-  const sellerAddress = resolvedPaytagAddress ?? body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS;
+  const sellerAddress =
+    resolvedEmailAddress ?? resolvedPaytagAddress ?? body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS;
 
   // Stamp the match lane from the creator's account type plus the trade nature.
   // A finance-lane direct deal (SME/B2B) is between verified businesses on both
@@ -501,13 +545,38 @@ dealsRoutes.post('/direct', async (c) => {
     // Notify the recipient over Resend. Fire-and-forget so a transient mail
     // failure never blocks the deal-creation HTTP response; the buyer still
     // gets the inviteUrl in the response body and can share it manually.
+    // The email resolved to an account, so there is no claim link. Tell them a
+    // deal is waiting and WHICH wallet to open it with, because an email that
+    // maps to a wallet is exactly the case where someone reaches for the wrong
+    // sign-in and ends up with a second account.
+    if (resolvedEmailAddress && body.sellerEmail) {
+      const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
+      void sendDealInviteEmail({
+        to: body.sellerEmail,
+        claimUrl: `${base}/deals/${jobId}`,
+        signInWallet: mask(resolvedEmailAddress),
+        signInVia: emailOwnerVia ?? 'wallet',
+        dealAmountUsdc: body.dealAmountUsdc.toString(),
+        inviterMasked: mask(body.buyerAddress),
+        expiresLabel: formatExpiresLabel(acceptanceDeadlineUnix * 1000),
+        acceptanceLabel: formatWindowLabel({ hours: body.acceptanceWindowHours }),
+        deliveryLabel: formatWindowLabel({
+          days: body.deadlineDays,
+          hours: body.deadlineHours,
+        }),
+      }).catch((err) => {
+        logger.warn(
+          { err: (err as Error).message, jobId },
+          'deal notice email to a resolved owner failed',
+        );
+      });
+    }
     if (inviteUrl && inviteExpiresAt) {
-      const maskedInviter = `${body.buyerAddress.slice(0, 6)}…${body.buyerAddress.slice(-4)}`;
       void sendDealInviteEmail({
         to: pendingCounterparty.email,
         claimUrl: inviteUrl,
         dealAmountUsdc: body.dealAmountUsdc.toString(),
-        inviterMasked: maskedInviter,
+        inviterMasked: mask(body.buyerAddress),
         expiresLabel: formatExpiresLabel(inviteExpiresAt),
         /// Two-deadline block on the email: how long they have to ACCEPT
         /// the deal, and how long the SELLER then has to DELIVER.
@@ -759,6 +828,33 @@ dealsRoutes.get('/invite/:token', async (c) => {
 /// the invited address right before this). On success the deal's seller (or
 /// buyer for inbound invites) is bound to the session's identity wallet and
 /// the rest of the flow continues normally on /deals/[jobId].
+/// Does this wallet's profile carry the invited email, verified?
+///
+/// Verification is the whole point: an unverified contact email is typed, not
+/// proven, so accepting one would let anyone claim a deal by naming someone
+/// else's address in their own profile.
+async function walletOwnsEmail(address: string, email: string): Promise<boolean> {
+  const profile = await getProfile(address);
+  if (!profile?.emailVerified) return false;
+  return (profile.email ?? '').trim().toLowerCase() === email.trim().toLowerCase();
+}
+
+/// Both lookups behind an email, handed to the pure rule in identity/emailOwner.
+async function resolveEmailOwner(email: string): Promise<EmailOwner> {
+  const login = getUserByEmail(email);
+  const profile = await findProfileByEmail(email);
+  return pickEmailOwner({
+    loginAddress: login?.address,
+    profileAddress: profile?.address,
+    profileEmailVerified: profile?.emailVerified,
+  });
+}
+
+/// A typoed invite must not hand the full address to the wrong recipient.
+function mask(address: string): string {
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
 dealsRoutes.post('/invite/:token/claim', async (c) => {
   const token = c.req.param('token');
   const invite = getInvite(token);
@@ -779,9 +875,20 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
       401,
     );
   }
-  if (!session.email || session.email.toLowerCase() !== invite.email) {
+  // Two ways to prove the invite is yours. Signing in WITH the email is the
+  // original one. The second exists because a wallet can verify an email on its
+  // profile, and requiring an email session locked that person out of their own
+  // deal: their only route in was an email signup, which mints a second wallet
+  // at a different address and pays the deal into it.
+  const emailSessionOwns = !!session.email && session.email.toLowerCase() === invite.email;
+  const walletOwns = emailSessionOwns ? false : await walletOwnsEmail(session.address, invite.email);
+  if (!emailSessionOwns && !walletOwns) {
     return c.json(
-      { error: 'session email does not match the invited address', code: 'EMAIL_MISMATCH' },
+      {
+        error: 'this invite was sent to a different address',
+        detail: 'Sign in with the invited email, or with a wallet that has verified it.',
+        code: 'EMAIL_MISMATCH',
+      },
       403,
     );
   }
