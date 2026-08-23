@@ -177,13 +177,28 @@ async function apply(reference: string, plan: ReconcilePlan): Promise<string> {
 async function main() {
   if (pgEnabled) await ensureSchema();
 
-  // Every bridge, keyed by the movement it belongs to. A stuck bridge movement is
+  // Every bridge, under both keys it can be found by. A stuck bridge movement is
   // only half the story: the projection carries which chains were involved, how
   // far the pipeline got, and the error it stopped on, and reading them side by
   // side is what tells a dead intent apart from a transfer that left.
+  //
+  // `movementReference` alone is not enough. It is documented as optional for
+  // rows written before the movement spine, which is exactly the vintage most
+  // likely to be stuck, so keying only on it silently found nothing and the
+  // report printed no bridge line at all. Every bridge movement's operationKey
+  // ends with its bridgeId (`bridge:record:0x…:<id>`), so that is the second key.
   const bridgeByReference = new Map<string, BridgeRelay>();
+  const bridgeById = new Map<string, BridgeRelay>();
   for (const bridge of await listAllBridges()) {
     if (bridge.movementReference) bridgeByReference.set(bridge.movementReference, bridge);
+    bridgeById.set(bridge.bridgeId, bridge);
+  }
+
+  function bridgeFor(movement: MoneyMovement): BridgeRelay | undefined {
+    const byRef = bridgeByReference.get(movement.reference);
+    if (byRef) return byRef;
+    const tail = movement.operationKey.split(':').pop();
+    return tail ? bridgeById.get(tail) : undefined;
   }
 
   const cutoff = Date.now() - olderThanMins * 60_000;
@@ -205,7 +220,7 @@ async function main() {
 
   for (const movement of stuck) {
     try {
-      await review(movement, bridgeByReference);
+      await review(movement);
     } catch (err) {
       // A movement that throws is reported and stepped over. The first version
       // let one invalid transition abort the whole sweep, so the rows after it
@@ -230,10 +245,7 @@ async function main() {
   if (failed > 0) console.log(`  ${failed} errored, listed above`);
   if (!execute && actionable > 0) console.log('Re-run with --execute to apply.');
 
-  async function review(
-    movement: MoneyMovement,
-    bridges: Map<string, BridgeRelay>,
-  ): Promise<void> {
+  async function review(movement: MoneyMovement): Promise<void> {
     const active = activeLegs(movement);
     const age = Math.round((Date.now() - movement.updatedAt) / 3_600_000);
     console.log(
@@ -242,7 +254,12 @@ async function main() {
     );
     console.log(`  ${movement.summary}`);
 
-    const bridge = bridges.get(movement.reference);
+    const bridge = bridgeFor(movement);
+    // Say so out loud. A movement with no projection means the row was never
+    // written, which is itself the answer: nothing downstream of it ever ran.
+    if (!bridge && movement.kind === 'bridge') {
+      console.log('  no bridge projection for this movement');
+    }
     if (bridge) {
       const route = [bridge.sourceChainKey ?? '?', bridge.destChainKey ?? 'arc'].join(' -> ');
       console.log(
