@@ -8,6 +8,7 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "check:i18n": "tsx scripts/check-i18n.ts",
+    "check:tours": "tsx scripts/check-tours.ts",
     "check:shell": "tsx scripts/check-shell.ts",
     "test:onboarding": "tsx --test features/onboarding/journey.test.ts",
     "test:auth": "tsx --test shared/auth/authPresentation.test.ts shared/auth/sessionStore.test.ts",

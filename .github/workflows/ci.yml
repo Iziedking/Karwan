@@ -32,6 +32,15 @@ jobs:
       - name: Frontend typecheck
         run: npm --prefix frontend run typecheck
 
+      # These gates existed but ran nowhere, which is how a page and its tour
+      # drifted apart unnoticed: the /bridge tour was mounted inside one of the
+      # page's four rail cards, so it vanished whenever the user picked another.
+      - name: Tour targets and mounts
+        run: npm --prefix frontend run check:tours
+
+      - name: Translation parity
+        run: npm --prefix frontend run check:i18n
+
   build:
     name: Build
     runs-on: ubuntu-latest
