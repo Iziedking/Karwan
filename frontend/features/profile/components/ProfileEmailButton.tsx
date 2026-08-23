@@ -172,7 +172,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={onClose}
     >

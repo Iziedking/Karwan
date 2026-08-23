@@ -513,7 +513,7 @@ function EditListingModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >

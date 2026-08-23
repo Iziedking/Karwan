@@ -428,7 +428,7 @@ function OffersModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-3 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-end md:items-center justify-center px-3 overflow-y-auto"
       style={{ background: 'rgba(0,0,0,0.45)' }}
       onClick={onClose}
     >

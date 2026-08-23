@@ -282,7 +282,7 @@ export default function AdminFeedbackPage() {
           type="button"
           aria-label={t.lightbox.closeAria}
           onClick={() => setLightbox(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

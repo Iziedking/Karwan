@@ -427,7 +427,9 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                 <NegotiationCard
                   events={events}
                   explorer={explorer}
-                  terminal={expired || declined || ended === 'out-of-reach'}
+                  job={job}
+                  proposal={proposal}
+                  viewerAddress={address}
                 />
               </div>
             )}
@@ -829,7 +831,7 @@ function EditBriefModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 overflow-y-auto"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
