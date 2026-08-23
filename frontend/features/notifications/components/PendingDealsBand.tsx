@@ -100,6 +100,10 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
 
   return (
     <Band tone={tone} compact>
+      {/* Same measure as every neighbour on this page: MoneyStrip above,
+          the agent card below. Without it the band spread to the Band's
+          full width and the card read as longer than everything near it. */}
+      <div className="mx-auto w-full max-w-[1040px]">
       {/* The green/grey chip legend folds into a gently glowing tap-to-reveal
           hint beside the eyebrow, so the header stays clean on mobile. */}
       <div className="flex items-center gap-2">
@@ -233,6 +237,7 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
           );
         })}
       </ul>
+      </div>
     </Band>
   );
 }
