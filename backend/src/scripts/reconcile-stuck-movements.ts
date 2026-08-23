@@ -38,6 +38,16 @@
 ///                        transaction, for a same-chain send where the two legs
 ///                        genuinely ARE one transaction. Off by default because
 ///                        it is the one judgement involved.
+///   --cancel-dead        cancel intents that provably never started: a
+///                        backend-signed route with no bridge projection and no
+///                        leg ever submitted, so nothing could have been signed.
+///                        Never touches a route the browser signs first (see
+///                        isDeadIntent), where an empty record says nothing
+///                        about the money.
+///   --attach-tx 0x...    with --reference: record a transaction the record
+///                        never learned, after checking on chain that it
+///                        succeeded. For a send that landed while the call
+///                        carrying its hash never arrived.
 
 import { inArray } from 'drizzle-orm';
 import { db, ensureSchema, pgEnabled } from '../db/client.js';
@@ -57,6 +67,7 @@ import {
 import {
   activeLegs,
   completionPath,
+  isDeadIntent,
   planReconcile,
   type LegProof,
   type ReconcilePlan,
@@ -66,6 +77,7 @@ import { sourceClients } from '../chain/cctpClients.js';
 import { CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 
 const execute = process.argv.includes('--execute');
+const cancelDead = process.argv.includes('--cancel-dead');
 const adoptSameTx = process.argv.includes('--adopt-same-tx');
 
 function flag(name: string): string | undefined {
@@ -75,6 +87,7 @@ function flag(name: string): string | undefined {
 
 const olderThanMins = Number(flag('--older-than-mins') ?? 60);
 const onlyReference = flag('--reference')?.toUpperCase();
+const attachTx = flag('--attach-tx')?.trim().toLowerCase();
 
 /// States a movement can sit in forever. `needs_attention` is included on
 /// purpose: it is where a failed leg parks, and a movement whose transaction
@@ -177,6 +190,11 @@ async function apply(reference: string, plan: ReconcilePlan): Promise<string> {
 async function main() {
   if (pgEnabled) await ensureSchema();
 
+  if (attachTx) {
+    await attachTransaction(attachTx);
+    return;
+  }
+
   // Every bridge, under both keys it can be found by. A stuck bridge movement is
   // only half the story: the projection carries which chains were involved, how
   // far the pipeline got, and the error it stopped on, and reading them side by
@@ -216,6 +234,8 @@ async function main() {
   let fixed = 0;
   let actionable = 0;
   let failed = 0;
+  let dead = 0;
+  let cancelled = 0;
   const skips = new Map<string, number>();
 
   for (const movement of stuck) {
@@ -241,6 +261,13 @@ async function main() {
   );
   for (const [reason, count] of [...skips].sort((a, b) => b[1] - a[1])) {
     console.log(`  ${count} skipped: ${reason}`);
+  }
+  if (dead > 0) {
+    console.log(
+      cancelDead
+        ? `  ${cancelled} of ${dead} dead intent(s) cancelled`
+        : `  ${dead} dead intent(s), never started. --cancel-dead closes them.`,
+    );
   }
   if (failed > 0) console.log(`  ${failed} errored, listed above`);
   if (!execute && actionable > 0) console.log('Re-run with --execute to apply.');
@@ -281,6 +308,33 @@ async function main() {
     }
 
     const plan = planReconcile(movement, proofs, { adoptSameTx });
+    // An intent that provably never started. Checked before the skip below,
+    // because its skip reason is `missing-transaction`, which is exactly right
+    // and exactly unhelpful: the transaction is missing because there never was
+    // one.
+    if (plan.action === 'skip' && isDeadIntent({ movement, hasBridgeProjection: !!bridge })) {
+      dead += 1;
+      if (!cancelDead) {
+        console.log('  DEAD: never started, nothing was signed. --cancel-dead closes it.');
+        console.log('');
+        return;
+      }
+      if (!execute) {
+        console.log('  would cancel: never started, nothing was signed');
+        console.log('');
+        return;
+      }
+      await updateMoneyMovement(movement.reference, (current) =>
+        canTransitionMovement(current.state, 'cancelled')
+          ? transitionMoneyMovement(current, 'cancelled', { nextActor: 'none' })
+          : current,
+      );
+      const after = await getMoneyMovement(movement.reference);
+      cancelled += 1;
+      console.log(`  cancelled -> ${after?.state ?? 'unreadable'}`);
+      console.log('');
+      return;
+    }
     if (plan.action === 'skip') {
       skips.set(plan.reason, (skips.get(plan.reason) ?? 0) + 1);
       console.log(`  SKIP: ${SKIP_NOTES[plan.reason] ?? plan.reason}`);
@@ -305,6 +359,55 @@ async function main() {
     console.log(state === 'completed' ? '  repaired -> completed' : `  still ${state} afterwards`);
     console.log('');
   }
+}
+
+/// Give a movement the transaction its record never learned.
+///
+/// The case: a send the browser signed, which landed, while the call carrying
+/// its hash never arrived. Only the chain knows the hash, so an operator brings
+/// it, and this refuses to write it unless the chain agrees it succeeded. It
+/// will not invent, guess, or search: one named movement, one named hash.
+async function attachTransaction(hash: string): Promise<void> {
+  if (!onlyReference) {
+    console.log('--attach-tx needs --reference KWN-... so the hash lands on one named movement');
+    process.exitCode = 1;
+    return;
+  }
+  if (!/^0x[0-9a-f]{64}$/.test(hash)) {
+    console.log(`not a transaction hash: ${hash}`);
+    process.exitCode = 1;
+    return;
+  }
+  const movement = await getMoneyMovement(onlyReference);
+  if (!movement) {
+    console.log(`no movement with reference ${onlyReference}`);
+    process.exitCode = 1;
+    return;
+  }
+  const proof = await proofFor({ txHash: hash } as MoneyMovementLeg);
+  console.log(`${onlyReference}  ${movement.kind}  ${movement.state}`);
+  console.log(`  ${movement.summary}`);
+  console.log(`  ${hash} -> ${proof.kind}${'chain' in proof ? ` on ${proof.chain}` : ''}`);
+  if (proof.kind !== 'landed') {
+    console.log('  refusing: only a transaction the chain confirms as successful can be attached');
+    process.exitCode = 1;
+    return;
+  }
+  const targets = activeLegs(movement).filter((leg) => !leg.txHash && leg.state === 'planned');
+  if (targets.length === 0) {
+    console.log('  nothing to attach: every leg already holds a transaction');
+    return;
+  }
+  console.log(`  would attach to ${targets.length} leg(s): ${targets.map((l) => l.key).join(', ')}`);
+  if (!execute) {
+    console.log('  re-run with --execute to apply');
+    return;
+  }
+  for (const leg of targets) {
+    await recordCashoutLeg(movement.reference, leg.key, { txHash: hash });
+  }
+  const after = await getMoneyMovement(movement.reference);
+  console.log(`  ${after?.state ?? 'unreadable'}`);
 }
 
 /// The bridge row is a projection of the movement, and it can lag behind it: the

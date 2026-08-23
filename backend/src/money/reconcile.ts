@@ -173,3 +173,41 @@ export function completionPath(from: MoneyMovementState): MoneyMovementState[] {
       return [];
   }
 }
+
+/// Routes where the BACKEND signs the transfer.
+///
+/// This is the whole basis for calling a movement dead. Both of these create
+/// the movement and its legs, then write the bridge projection, then start the
+/// pipeline that signs. So a movement from one of them with no projection never
+/// reached anything that could sign, and nothing left any wallet.
+///
+/// The routes deliberately absent are the ones the browser calls AFTER it has
+/// already signed (`bridge:record:`, `cashout:web3-bridge-out:`, whose own
+/// comment reads "the user-signed burn is already on chain"). For those, a
+/// missing projection says nothing at all about the money, so they can never be
+/// cancelled from evidence like this. That distinction is the difference between
+/// writing off five abandoned intents and writing off a transfer that left.
+const BACKEND_SIGNED_PREFIXES = ['bridge:circle-bridge:', 'bridge:circle-bridge-app-kit:'];
+
+/// Is this movement provably an intent that never started?
+///
+/// Every condition has to hold, and each one is load-bearing:
+///   - not already finished, so this never rewrites history;
+///   - a route where the backend does the signing (above);
+///   - no bridge projection, so the step before signing never ran;
+///   - every leg still `planned` and holding no transaction, so nothing was even
+///     submitted, let alone confirmed.
+export function isDeadIntent(input: {
+  movement: MoneyMovement;
+  hasBridgeProjection: boolean;
+}): boolean {
+  const { movement, hasBridgeProjection } = input;
+  if (movement.state === 'completed' || movement.state === 'cancelled') return false;
+  if (hasBridgeProjection) return false;
+  if (!BACKEND_SIGNED_PREFIXES.some((prefix) => movement.operationKey.startsWith(prefix))) {
+    return false;
+  }
+  const active = activeLegs(movement);
+  if (active.length === 0) return false;
+  return active.every((leg) => leg.state === 'planned' && !leg.txHash);
+}

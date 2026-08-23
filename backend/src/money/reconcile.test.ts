@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   activeLegs,
   completionPath,
+  isDeadIntent,
   isSameTransactionMovement,
   planReconcile,
   type LegProof,
@@ -284,4 +285,73 @@ test('needs_attention goes back through preparing, not straight to the end', () 
   // transfer was verified and landed.
   assert.deepEqual(completionPath('needs_attention'), ['preparing', 'verifying', 'completed']);
   assert.equal(canTransitionMovement('needs_attention', 'completed'), false);
+});
+
+// --------------------------------------------------------- dead intents
+
+/// The five rows this was written for: a Circle bridge that created its movement
+/// and legs, then never wrote its projection, so the pipeline that signs never
+/// ran.
+const DEAD = {
+  kind: 'bridge' as const,
+  state: 'preparing' as const,
+  operationKey: 'bridge:circle-bridge:0x7711886865c33606ebd977da02a6a25373c75a35:brg-1',
+  summary: 'Added 10 USDC from Base Sepolia to Arc',
+};
+
+test('a backend-signed bridge with no projection and untouched legs is dead', () => {
+  const m = movement(
+    [leg('burn', 'planned', { id: 'a' }), leg('mint', 'planned', { id: 'b' })],
+    DEAD,
+  );
+  assert.equal(isDeadIntent({ movement: m, hasBridgeProjection: false }), true);
+});
+
+test('a user-signed route is NEVER dead, however empty its record looks', () => {
+  // The 150 USDC row. Its route is called only after the browser has signed, so
+  // a missing projection says nothing about the money, and it did leave. Reading
+  // this one as dead would write off a real transfer.
+  const m = movement([leg('burn', 'planned', { id: 'a' }), leg('mint', 'planned', { id: 'b' })], {
+    ...DEAD,
+    operationKey: 'bridge:record:0x7711886865c33606ebd977da02a6a25373c75a35:brg-9',
+    summary: 'Sent 150 USDC from Arc to arc',
+  });
+  assert.equal(isDeadIntent({ movement: m, hasBridgeProjection: false }), false);
+  for (const key of ['cashout:web3-bridge-out:0xabc:b1', 'cashout:bridge-out:0xabc:b1']) {
+    assert.equal(
+      isDeadIntent({ movement: movement([leg('burn', 'planned')], { ...DEAD, operationKey: key }), hasBridgeProjection: false }),
+      false,
+      key,
+    );
+  }
+});
+
+test('a projection means the pipeline got that far, so nothing is written off', () => {
+  const m = movement([leg('burn', 'planned', { id: 'a' })], DEAD);
+  assert.equal(isDeadIntent({ movement: m, hasBridgeProjection: true }), false);
+});
+
+test('any sign of a transaction disqualifies it', () => {
+  const withHash = movement(
+    [leg('burn', 'planned', { id: 'a', txHash: HASH }), leg('mint', 'planned', { id: 'b' })],
+    DEAD,
+  );
+  assert.equal(isDeadIntent({ movement: withHash, hasBridgeProjection: false }), false);
+  const submitted = movement(
+    [leg('burn', 'submitted', { id: 'a' }), leg('mint', 'planned', { id: 'b' })],
+    DEAD,
+  );
+  assert.equal(isDeadIntent({ movement: submitted, hasBridgeProjection: false }), false);
+});
+
+test('a finished movement is left alone', () => {
+  for (const state of ['completed', 'cancelled'] as const) {
+    const m = movement([leg('burn', 'planned')], { ...DEAD, state });
+    assert.equal(isDeadIntent({ movement: m, hasBridgeProjection: false }), false, state);
+  }
+});
+
+test('no legs on the current attempt is not evidence of anything', () => {
+  const m = movement([leg('burn', 'planned', { attempt: 1 })], { ...DEAD, attempt: 2 });
+  assert.equal(isDeadIntent({ movement: m, hasBridgeProjection: false }), false);
 });
