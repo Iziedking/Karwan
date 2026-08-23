@@ -3102,8 +3102,8 @@ export const sw: Messages = {
     eyebrow: '[:POCHI ZAKO:]',
     headline: 'Akaunti moja. Pochi kadhaa',
     intro: {
-      circle: 'Zimeundwa pamoja na akaunti yako. Fedha hutua katika pochi yako ya utambulisho, kisha husafiri kwa wakala wako. Kwenye Arc, USDC hulipia gesi, hivyo pochi ya daraja pekee inashikilia ETH.',
-      web3: 'Pochi yako iliyounganishwa ndiyo utambulisho wako. Karwan inakuandalia pochi za wakala na za daraja zinazokukimbia, zikifadhiliwa kutoka kwake. Kwenye Arc, USDC hulipia gesi, hivyo pochi ya daraja pekee inashikilia ETH.',
+      circle: 'Pochi yako ya akaunti ndiyo mwanzo wako kwenye Karwan. Pochi za wakala na daraja huandaliwa kwa kazi maalum, huku salio likiweza kubaki kwenye mitandao inayotumika. Kila pochi ina kusudi moja lililo wazi.',
+      web3: 'Pochi yako ya akaunti iliyounganishwa ndiyo mwanzo wako kwenye Karwan. Pochi za wakala na daraja huandaliwa kwa kazi maalum, huku salio likiweza kubaki kwenye mitandao inayotumika. Kila pochi ina kusudi moja lililo wazi.',
     },
     rows: {
       identity: {

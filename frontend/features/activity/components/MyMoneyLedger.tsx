@@ -36,10 +36,10 @@ function explorerFor(item: Pick<Item, 'txHash' | 'chain'>): string | null {
   return chain ? chain.explorerTx(item.txHash) : ARC_EXPLORER_TX(item.txHash);
 }
 
-/// How many rows show before the ledger asks to be expanded. The backend serves
-/// up to 100 and the page has three other registers below this one, so an
-/// uncapped list pushed the counters, filters and event stream off the screen.
-const VISIBLE = 6;
+/// Keep the money register useful on a phone and bounded on desktop. Unlike
+/// the event pulse, this is a durable history, so it gets real pagination
+/// rather than a "show everything" expansion.
+const PAGE_SIZE = 6;
 
 type Row = { item: Item; repeat: number };
 
@@ -103,12 +103,19 @@ export function MyMoneyLedger({
   const t = translations.activity.myMoney;
   const [items, setItems] = useState<Item[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(1);
   const [copiedReference, setCopiedReference] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<PortableReceiptItem | null>(null);
 
   const rows = useMemo(() => (items ? collapse(items, t.text) : []), [items, t.text]);
-  const visible = expanded ? rows : rows.slice(0, VISIBLE);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const visible = rows.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [rows.length]);
 
   const load = useCallback(() => {
     api
@@ -263,17 +270,38 @@ export function MyMoneyLedger({
         </ul>
       )}
 
-      {rows.length > VISIBLE && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-        >
-          {/* No count here. The header already states how many moves there
-              were; a second number counting collapsed rows instead read as a
-              contradiction (43 moves, "see all 20"). */}
-          {expanded ? t.showLess : t.showAll}
-        </button>
+      {rows.length > PAGE_SIZE && (
+        <nav className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3" aria-label={translations.activity.view.pagerAria}>
+          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            {translations.activity.view.countRange
+              .replace('{start}', String(pageStart + 1))
+              .replace('{end}', String(Math.min(pageStart + PAGE_SIZE, rows.length)))
+              .replace('{total}', String(rows.length))}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={safePage <= 1}
+              aria-label={translations.activity.view.prevAria}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[11px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              ←
+            </button>
+            <span className="min-w-16 text-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={safePage >= totalPages}
+              aria-label={translations.activity.view.nextAria}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center border border-[var(--lp-border-light)] mono text-[11px] text-[var(--lp-text-sub)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              →
+            </button>
+          </div>
+        </nav>
       )}
 
       {selectedReceipt && (

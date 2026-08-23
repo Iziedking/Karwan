@@ -349,7 +349,7 @@ export function StickyTabStrip({
                   }
                 }}
                 className={cn(
-                  'group relative w-full cursor-pointer flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.06em] md:tracking-[0.08em] whitespace-nowrap transition-colors duration-[var(--dur-micro)] hover:bg-black/[0.035] focus-visible:bg-black/[0.035]',
+                  'group relative w-full min-h-11 cursor-pointer flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.06em] md:tracking-[0.08em] whitespace-nowrap transition-colors duration-[var(--dur-micro)] hover:bg-black/[0.035] focus-visible:bg-black/[0.035]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset',
                 )}
                 style={{

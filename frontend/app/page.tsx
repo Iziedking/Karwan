@@ -184,28 +184,65 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
 
 function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeals']; managed: LandingCopy['managedDeals'] }) {
   const pb = useTranslations().pageBits;
+  const cards = [
+    // The direct path is a human agreement, so the handshake is the visual
+    // shorthand. Agent matching gets its own cutout, separated from the source
+    // artwork's background so both halves share one Karwan surface.
+    { copy: direct, image: '/media/landing/onboard-cutout.png', glyph: <GlyphWallet />, index: '001' },
+    { copy: managed, image: '/media/landing/agent_matched-cutout.png', glyph: <GlyphAuction />, index: '002' },
+  ];
   return (
     <Band tone="dark" panel="grow">
       <PanelContent><SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag><h2 className="mt-6 font-sans text-[clamp(2rem,7vw,3rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.025em]">{pb.chooseHowDealStarts}</h2></PanelContent>
-      <div className="mt-10 grid gap-0 lg:mt-14 lg:grid-cols-2">
-        <article className="border-b border-white/10 pb-10 lg:border-b-0 lg:border-e lg:pe-12">
-          <div className="mb-8 text-[var(--lp-accent)]"><GlyphWallet /></div>
-          <h3 className="font-sans text-3xl font-extrabold uppercase">{direct.title}</h3>
-          <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--lp-text-muted)]">{direct.body}</p>
-          <ul className="mt-8 space-y-4 text-sm text-white">
-            <li><strong>{direct.tile1Title}.</strong> <span className="text-[var(--lp-text-muted)]">{direct.tile1Body}</span></li>
-            <li><strong>{direct.tile2Title}.</strong> <span className="text-[var(--lp-text-muted)]">{direct.tile2Body}</span></li>
-          </ul>
-        </article>
-        <article className="pt-10 lg:ps-12 lg:pt-0">
-          <div className="mb-8 text-[var(--lp-accent)]"><GlyphAuction /></div>
-          <h3 className="font-sans text-3xl font-extrabold uppercase">{managed.title}</h3>
-          <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--lp-text-muted)]">{managed.body}</p>
-          <ul className="mt-8 space-y-4 text-sm text-white">
-            <li><strong>{managed.tile1Title}.</strong> <span className="text-[var(--lp-text-muted)]">{managed.tile1Body}</span></li>
-            <li><strong>{managed.tile2Title}.</strong> <span className="text-[var(--lp-text-muted)]">{managed.tile2Body}</span></li>
-          </ul>
-        </article>
+      <div className="mt-10 space-y-6 lg:mt-14">
+        {cards.map(({ copy, image, glyph, index }, cardIndex) => (
+          <motion.article
+            key={copy.tag}
+            initial={{ opacity: 0, y: 22 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.16 }}
+            transition={{ duration: dur.slow, ease: ease.out, delay: cardIndex * 0.08 }}
+            className="overflow-hidden rounded-[22px] border border-white/10 bg-[var(--lp-band-dark)]"
+          >
+            <div className="grid min-h-[430px] lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+              <div className="relative min-h-[290px] overflow-hidden border-b border-white/10 bg-[var(--lp-band-dark)] lg:min-h-[500px] lg:border-b-0 lg:border-e">
+                <PanelMedia travel={24} dim={0.86}>
+                  <img
+                    src={image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full scale-[1.04] object-contain object-center"
+                  />
+                </PanelMedia>
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent_58%,var(--lp-band-dark)_100%)] lg:bg-[linear-gradient(90deg,transparent_54%,var(--lp-band-dark)_100%)]" aria-hidden="true" />
+                <div className="absolute start-5 top-5 flex items-center gap-2 text-[var(--lp-accent)] sm:start-7 sm:top-7">
+                  <span className="grid size-10 place-items-center rounded-[12px] border border-white/15 bg-black/35 backdrop-blur-sm">{glyph}</span>
+                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">[:{index}]</span>
+                </div>
+                <img src="/brand/karwan-mark-lime.png" alt="" aria-hidden className="absolute bottom-5 end-5 size-9 opacity-80 sm:bottom-7 sm:end-7" />
+              </div>
+              <div className="flex min-w-0 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-14">
+                <PanelContent index={1}>
+                  <SectionTag tone="dark">{copy.tag}</SectionTag>
+                  <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-white">
+                    {copy.title}
+                  </h3>
+                  <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-text-muted)]">{copy.body}</p>
+                  <ul className="mt-8 divide-y divide-white/10 border-y border-white/10">
+                    {[
+                      { title: copy.tile1Title, body: copy.tile1Body },
+                      { title: copy.tile2Title, body: copy.tile2Body },
+                    ].map((tile, tileIndex) => (
+                      <li key={tile.title} className="grid gap-3 py-4 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-5">
+                        <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">[:{String(tileIndex + 1).padStart(3, '0')}]</span>
+                        <p className="text-[13px] leading-[1.55] text-white/75"><strong className="text-white">{tile.title}.</strong>{' '}{tile.body}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </PanelContent>
+              </div>
+            </div>
+          </motion.article>
+        ))}
       </div>
     </Band>
   );
@@ -276,7 +313,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
         </div>
         <p
           className="mono text-[12px] uppercase tracking-[0.08em] inline-flex items-center gap-2"
-          style={{ color: 'var(--lp-text-muted)' }}
+          style={{ color: '#E6E6E3' }}
         >
           <span
             aria-hidden
@@ -318,7 +355,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                 <div className="flex items-center gap-2 mb-3">
                   <span
                     className="mono text-[10px] tabular-nums uppercase tracking-[0.1em]"
-                    style={{ color: 'var(--lp-text-muted)' }}
+                    style={{ color: '#E6E6E3' }}
                   >
                     [{String(i + 1).padStart(2, '0')}]
                   </span>
@@ -375,7 +412,10 @@ function FlowChip({
   children: ReactNode;
   variant: 'pos' | 'info' | 'warn';
 }) {
-  const c = variant === 'pos' ? '#6BE39A' : variant === 'warn' ? '#FFC857' : '#7CC2FF';
+  // These chips sit on dark, fixed landing bands even when the page theme is
+  // light. Use the brighter semantic variants so the 9px labels still clear
+  // WCAG contrast rather than inheriting the light-surface muted token.
+  const c = variant === 'pos' ? '#B9F4C9' : variant === 'warn' ? '#FFE7A3' : '#C5E2FF';
   return (
     <span
       className="inline-flex items-center gap-1 px-1.5 py-[3px] mono text-[9px] font-semibold uppercase tracking-[0.1em] leading-none rounded"

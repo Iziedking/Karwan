@@ -5335,15 +5335,15 @@ export const en: MessagesShape = {
       body: 'Try again in a moment.',
     },
     tabs: {
-      identity: 'OVERVIEW',
+      identity: 'IDENTITY',
       wallets: 'WALLETS',
       agents: 'AGENTS',
       stake: 'STAKE',
-      preferences: 'CONNECTIONS',
+      preferences: 'PREFERENCES',
     },
     hero: {
       sectionTag: 'ACCOUNT',
-      fallbackName: 'Your wallet',
+      fallbackName: 'Your account',
       publicPassport: 'Public passport ↗',
       updatedPrefix: 'Updated',
       editDetailsCta: 'Edit details',
@@ -5409,7 +5409,7 @@ export const en: MessagesShape = {
       tag: 'HOLDINGS',
       headlinePrefix: 'Your ',
       headlineAccent: 'wallets',
-      body: 'Every wallet on your account, at a glance.',
+      body: 'Wallet roles and balances',
     },
     agentTreasury: {
       tag: 'AGENT MONEY',
@@ -7802,25 +7802,25 @@ export const en: MessagesShape = {
     eyebrow: '[:YOUR WALLETS:]',
     headline: 'One account. Several wallets',
     intro: {
-      circle: 'Created with your account. Funds settle into your identity wallet, then route to your agents. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.',
-      web3: 'Your connected wallet is your identity. Karwan provisions the agent and bridge wallets it runs for you, funded from it. On Arc, USDC pays the gas, so only the bridge wallet holds ETH.',
+      circle: 'Your account wallet is your starting point on Karwan. Agent and bridge wallets are provisioned for specific jobs, while balances can remain on the supported networks you use. Each wallet has one clear purpose.',
+      web3: 'Your connected account wallet is your starting point on Karwan. Agent and bridge wallets are provisioned for specific jobs, while balances can remain on the supported networks you use. Each wallet has one clear purpose.',
     },
     rows: {
       identity: {
-        tag: 'IDENTITY',
-        title: 'Sign-in wallet',
-        purposeCircle: 'Your account wallet on Arc, funded at sign-up. The hub every other wallet draws from.',
-        purposeWeb3: 'Your connected wallet, serving as your Arc identity. Fund the agents from here.',
+        tag: 'ACCOUNT WALLET',
+        title: 'Account wallet',
+        purposeCircle: 'Your account wallet. This is where your Karwan balance starts.',
+        purposeWeb3: 'Your connected account wallet. This is your account on Karwan and the starting point for funding.',
       },
       buyer: {
-        tag: 'BUYER AGENT',
+        tag: 'AGENT WALLET',
         title: 'Buyer agent',
-        purpose: 'Escrows USDC for the deals you buy. Top up under Agent treasury.',
+        purpose: 'Runs buyer-side deal actions and escrow funding. Manage it in the Agents tab.',
       },
       seller: {
-        tag: 'SELLER AGENT',
+        tag: 'AGENT WALLET',
         title: 'Seller agent',
-        purpose: 'Covers the Arc gas to accept and deliver on the deals you sell. Top up under Agent treasury.',
+        purpose: 'Runs seller-side deal actions and receives seller payouts. Manage it in the Agents tab.',
       },
       bridge: {
         tag: 'BRIDGE WALLET',
@@ -7829,7 +7829,7 @@ export const en: MessagesShape = {
         gasSecondaryTemplate: '{amount} ETH gas',
       },
     },
-    agentsNotCreated: '[:AGENTS NOT CREATED:] Activate to provision your buyer and seller agents.',
+    agentsNotCreated: '[:AGENT WALLETS NOT READY:] Activate to create your buyer and seller agents.',
     faucetButton: {
       idle: 'Get USDC',
       busy: 'Opening',

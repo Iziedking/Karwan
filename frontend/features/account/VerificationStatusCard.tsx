@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, type VerificationEligibilityResponse } from '@/core/api';
 import { PageCard, SectionTag } from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type VerificationStatus = VerificationEligibilityResponse['verification']['status'];
@@ -58,7 +59,12 @@ export function VerificationStatusCard({ address }: { address: string }) {
     <PageCard tone="dark" className="mt-5 max-w-[640px]">
       <section className="p-5 sm:p-6" aria-labelledby="account-verification-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SectionTag tone="dark">{t.eyebrow}</SectionTag>
+          <div className="flex items-center gap-1.5">
+            <SectionTag tone="dark">{t.eyebrow}</SectionTag>
+            <Hint glow side="bottom" align="start">
+              {t.body[status]}
+            </Hint>
+          </div>
           <span
             className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em]"
             style={{ color: tone, borderColor: `color-mix(in srgb, ${tone} 42%, transparent)` }}
@@ -75,24 +81,20 @@ export function VerificationStatusCard({ address }: { address: string }) {
         >
           {t.title}
         </h2>
-        <p className="mt-2 max-w-[54ch] text-[13px] leading-relaxed text-white/65">
-          {t.body[status]}
-        </p>
-
-        <div className="mt-5 grid gap-x-6 sm:grid-cols-2">
+        <div className="mt-5 grid gap-x-6">
           {capabilities.map(([label, enabled], index) => (
             <div
               key={label}
-              className="flex min-h-11 items-center justify-between gap-4 border-t border-white/10 py-2.5"
+              className="flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-white/10 py-2.5"
             >
-              <span className="text-[12px] text-white/70">
+              <span className="min-w-0 flex-1 text-[12px] text-white/70">
                 <span className="me-2 mono text-[9px] text-white/35">
                   [:{String(index + 1).padStart(2, '0')}]
                 </span>
                 {label}
               </span>
               <span
-                className="max-w-[16ch] text-end mono text-[9px] font-bold uppercase tracking-[0.08em]"
+                className="shrink-0 whitespace-nowrap text-end mono text-[9px] font-bold uppercase tracking-[0.08em]"
                 style={{ color: enabled ? 'var(--lp-positive, #6be39a)' : 'var(--lp-warning, #ffc857)' }}
               >
                 {enabled ? t.capabilities.available : t.capabilities.verificationRequired}
@@ -106,9 +108,9 @@ export function VerificationStatusCard({ address }: { address: string }) {
             href={`/credit-passport/${address}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex min-h-11 items-center justify-between gap-4 border-t border-white/10 py-2.5 transition-colors hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="group flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-white/10 py-2.5 transition-colors hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
-            <span className="text-[12px] text-white/70 group-hover:text-white">
+            <span className="min-w-0 flex-1 text-[12px] text-white/70 group-hover:text-white">
               <span className="me-2 mono text-[9px] text-white/35">
                 [:{String(capabilities.length + 1).padStart(2, '0')}]
               </span>

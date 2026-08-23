@@ -62,7 +62,9 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const [actors, setActors] = useState<Set<ActorFilter>>(new Set());
   const [jobIdSearch, setJobIdSearch] = useState('');
   const [onlyMine, setOnlyMine] = useState(false);
-  const [moneyOpen, setMoneyOpen] = useState(false);
+  // The private money register is the reason people open Activity. Keep it as
+  // the default view, with the public event pulse one deliberate click away.
+  const [activePanel, setActivePanel] = useState<'money' | 'events'>('money');
   // Public rows carry no deal id and no amounts, so there is nothing to open.
   // The caller's own rows do, and become links. The difference is the backend's
   // decision, surfaced rather than made here.
@@ -153,13 +155,30 @@ export function ActivityView({ explorer }: { explorer: string }) {
 
       <div className="pt-2 border-t border-[var(--lp-border-light)]" />
 
-      {/* The money used to sit in a column beside the stream, which cost the
-          stream half the width for a register most visits do not open. It is a
-          tile now: one line saying whether there is anything to see, and a
-          click to open it. The stream gets the whole page. */}
-      <MoneyTile open={moneyOpen} onToggle={() => setMoneyOpen((v) => !v)} />
+      <section className="overflow-hidden rounded-xl border border-[var(--lp-border-light)]" data-guide="activity-register">
+        <div role="tablist" aria-label={t.moneyTitle} className="flex flex-wrap items-stretch gap-1 border-b border-[var(--lp-border-light)] bg-[var(--lp-wash)] p-2">
+          <ActivityPanelTab
+            active={activePanel === 'money'}
+            label={t.moneyTitle}
+            tag={t.moneyTag}
+            onClick={() => setActivePanel('money')}
+            controls="activity-money-panel"
+          />
+          <ActivityPanelTab
+            active={activePanel === 'events'}
+            label={t.streamEyebrow}
+            tag=""
+            onClick={() => setActivePanel('events')}
+            controls="activity-events-panel"
+          />
+        </div>
 
-      <div className="min-w-0 space-y-4" data-guide="activity-stream">
+        {activePanel === 'money' ? (
+          <div id="activity-money-panel" className="p-4 sm:p-5" data-guide="activity-money">
+            <MyMoneyLedger nested />
+          </div>
+        ) : (
+          <div id="activity-events-panel" className="min-w-0 space-y-4 p-4 sm:p-5" data-guide="activity-stream">
         <div ref={streamTopRef} className="flex items-baseline justify-between gap-3 scroll-mt-24">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             [:{t.streamEyebrow}:]
@@ -240,7 +259,9 @@ export function ActivityView({ explorer }: { explorer: string }) {
         )}
 
         <Pager page={safePage} totalPages={totalPages} onPage={goToPage} />
-      </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -295,41 +316,41 @@ function StreamRefreshNotice({ body, retryLabel, onRetry }: { body: string; retr
   );
 }
 
-/// The money register, behind one click.
-///
-/// Collapsed it is a single row: the label, and an affordance. Expanded it is
-/// the ledger. The point of the tile is that this is the only place on the page
-/// with real amounts and receipts, so it should read as a deliberate act to
-/// open rather than something that was already lying open next to a public
-/// feed.
-function MoneyTile({ open, onToggle }: { open: boolean; onToggle: () => void }) {
-  const t = useTranslations().activity.view;
+function ActivityPanelTab({
+  active,
+  label,
+  tag,
+  onClick,
+  controls,
+}: {
+  active: boolean;
+  label: string;
+  tag: string;
+  onClick: () => void;
+  controls: string;
+}) {
   return (
-    <div className="rounded-xl border border-[var(--lp-border-light)] overflow-hidden" data-guide="activity-money">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="w-full min-h-16 flex items-center justify-between gap-3 px-4 py-3.5 text-start hover:bg-[var(--lp-wash)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)]"
-      >
-        <span className="min-w-0">
-          <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{t.moneyTag}:]
-          </span>
-          <span className="mt-1 block text-[14px] font-bold text-[var(--lp-ink)]">
-            {t.moneyTitle}
-          </span>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-selected={active}
+      aria-controls={controls}
+      role="tab"
+      className={`min-h-11 flex-1 px-3 py-2 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:flex-none sm:min-w-[190px] ${
+        active
+          ? 'bg-[var(--lp-band-dark)] text-white'
+          : 'text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-ink)]'
+      }`}
+    >
+      {tag && (
+        <span className="block mono text-[10px] uppercase tracking-[0.18em] opacity-70">
+          [:{tag}:]
         </span>
-        <span className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          {open ? t.moneyHide : t.moneyShow}
-        </span>
-      </button>
-      {open && (
-        <div className="border-t border-[var(--lp-border-light)] p-4">
-          <MyMoneyLedger nested />
-        </div>
       )}
-    </div>
+      <span className={`block text-[13px] font-bold uppercase tracking-[0.02em] ${tag ? 'mt-1' : ''}`}>
+        {label}
+      </span>
+    </button>
   );
 }
 

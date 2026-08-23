@@ -58,8 +58,10 @@ export default function ProfilePage() {
 }
 
 function ProfilePageInner() {
-  const t = useTranslations().profile;
-  const navT = useTranslations().nav;
+  const messages = useTranslations();
+  const t = messages.profile;
+  const navT = messages.nav;
+  const walletsCopy = messages.walletsPanel;
   const router = useRouter();
   const { profile: loadedProfile, address, fetchState } = useUserProfile();
   const { method } = useAuth();
@@ -369,7 +371,9 @@ function ProfilePageInner() {
         <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="flex items-center gap-2">
             <SectionTag>{t.holdings.tag}</SectionTag>
-            <Hint glow side="bottom" align="start">{t.holdings.body}</Hint>
+            <Hint glow side="bottom" align="start">
+              {isCircleUser ? walletsCopy.intro.circle : walletsCopy.intro.web3}
+            </Hint>
           </div>
           <h2 className="mt-3 font-sans text-[28px] sm:text-[36px] font-extrabold uppercase tracking-[-0.035em] leading-none text-[var(--lp-dark)]">
             {t.holdings.headlinePrefix}<Accent>{t.holdings.headlineAccent}</Accent>
@@ -509,7 +513,7 @@ function ProfilePageInner() {
       <PageTour id={PROFILE_TOUR_ID} steps={buildProfileSteps(isCircleUser)} />
       {/* HERO */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="max-w-5xl">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:items-start lg:gap-14">
           <div className="min-w-0">
             <div className="fade-up">
               <SectionTag tone="dark" dot={activation.activated ? 'live' : undefined}>
@@ -591,10 +595,11 @@ function ProfilePageInner() {
               {/* Email / X / Telegram connect live once, in the labeled
                   PREFERENCES band below; the hero stays identity + one action. */}
             </div>
-            {/* Persistent tier card. your reputation right at the top of the profile. */}
+          </div>
+          <aside className="min-w-0 lg:pt-2" aria-label={t.tabs.identity}>
             <ProfileTierCard address={address} />
             {address && <VerificationStatusCard address={address} />}
-          </div>
+          </aside>
           <div className="hidden">
             {/* The hero stays focused on identity + reputation. Agent status and
                 its wallet addresses live in the ACTIVATION + AGENT DETAILS bands
@@ -642,23 +647,21 @@ function ProfilePageInner() {
           dark variant rendered as pure black where it overlapped the hero,
           which the user flagged as wrong. Cream-frosted surface reads as
           frosted on both backgrounds. */}
-      {/* PERSONAL OVERVIEW: money and actions appear before the settings deck. */}
-      <MoneyStrip />
-      <PendingMatchesBand tone="light" />
-      <PendingDealsBand tone="light" />
-
+      {/* PERSONAL OVERVIEW: the profile controls come first, then money and
+          pending work. This keeps the navigation visible before utility bands. */}
       <div data-guide="profile-nav" className="contents">
         <StickyTabStrip
           tabs={TABS}
           active={activeTab}
           onChange={setActiveTab}
           onDark={false}
-          // Match the deck below it. The default 1320 measure overhung the
-          // capped card by ~140px a side, which read as two different widths
-          // stacked rather than one control driving one card.
           contentMaxWidth={1040}
         />
       </div>
+
+      <MoneyStrip />
+      <PendingMatchesBand tone="light" />
+      <PendingDealsBand tone="light" />
 
       {/* The tab strip is the only navigation control. Render one focused
           panel instead of a stacked animated deck with duplicate controls. */}

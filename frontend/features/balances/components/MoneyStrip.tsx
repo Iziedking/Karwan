@@ -166,19 +166,21 @@ export function MoneyStrip() {
 
   return (
     <Band tone="light" compact>
-      <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
-        <SectionTag>{ms.eyebrow}</SectionTag>
-      </div>
-      <div data-guide="home-money" className="mt-6 fade-up fade-up-1">
-        {/* Mobile: one rotating card so the phone view stays uncluttered. */}
-        <div className="sm:hidden">
-          <MoneyRotator cells={cells} />
+      <div className="mx-auto w-full max-w-[1040px]">
+        <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
+          <SectionTag>{ms.eyebrow}</SectionTag>
         </div>
-        {/* Desktop: all three at a glance. */}
-        <div className="hidden sm:grid grid-cols-3 gap-3">
-          {cells.map((c) => (
-            <MoneyTile key={c.label} cell={c} />
-          ))}
+        <div data-guide="home-money" className="mt-6 fade-up fade-up-1">
+          {/* Mobile: one rotating card so the phone view stays uncluttered. */}
+          <div className="sm:hidden">
+            <MoneyRotator cells={cells} />
+          </div>
+          {/* Desktop: all three at a glance. */}
+          <div className="hidden sm:grid grid-cols-3 gap-3">
+            {cells.map((c) => (
+              <MoneyTile key={c.label} cell={c} />
+            ))}
+          </div>
         </div>
       </div>
     </Band>

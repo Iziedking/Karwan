@@ -3102,8 +3102,8 @@ export const fr: Messages = {
     eyebrow: '[:VOS PORTEFEUILLES:]',
     headline: 'Un compte. Plusieurs portefeuilles',
     intro: {
-      circle: "Créés avec votre compte. Les fonds atterrissent dans votre portefeuille d'identité, puis sont routés vers vos agents. Sur Arc, l'USDC paie le gaz, donc seul le portefeuille pont détient de l'ETH.",
-      web3: "Votre portefeuille connecté est votre identité. Karwan provisionne les portefeuilles d'agent et de pont qu'il exécute pour vous, financés depuis le vôtre. Sur Arc, l'USDC paie le gaz, donc seul le portefeuille pont détient de l'ETH.",
+      circle: "Votre portefeuille de compte est le point de départ sur Karwan. Les portefeuilles d'agent et de pont sont créés pour des tâches précises, tandis que les soldes peuvent rester sur les réseaux pris en charge que vous utilisez. Chaque portefeuille a un rôle clair.",
+      web3: "Votre portefeuille de compte connecté est le point de départ sur Karwan. Les portefeuilles d'agent et de pont sont créés pour des tâches précises, tandis que les soldes peuvent rester sur les réseaux pris en charge que vous utilisez. Chaque portefeuille a un rôle clair.",
     },
     rows: {
       identity: {
