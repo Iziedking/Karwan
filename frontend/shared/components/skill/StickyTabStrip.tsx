@@ -271,7 +271,7 @@ export function StickyTabStrip({
     <nav
       ref={navRef}
       className={cn(
-        'sticky z-20 transition-[background,border-color,box-shadow,backdrop-filter] duration-[var(--dur-fast)]',
+        'sticky z-20 transition-[background,border-color,box-shadow] duration-[var(--dur-fast)]',
         className,
       )}
       style={{
@@ -288,6 +288,7 @@ export function StickyTabStrip({
         /// row above or below.
         clipPath: 'inset(0 -100vmax)',
       }}
+      data-chrome="strip"
       aria-label={a11y.sectionNavigation}
     >
       <ul

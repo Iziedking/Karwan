@@ -555,7 +555,6 @@ html.theme-shifting *::after {
   --lp-panel-h: calc(100svh - var(--lp-chrome-h));
 }
 
-.lp-panel { scroll-snap-align: start; }
 
 @media (max-width: 767px) {
   .lp-panel {
@@ -576,16 +575,16 @@ html.theme-shifting *::after {
   .lp-panel-grow { justify-content: flex-start; }
 }
 
-/* Snapping is proximity, never mandatory: a panel taller than the screen has to
-   stay scrollable a line at a time. The class is added by the landing while it
-   is mounted, so no other route inherits it. */
+/* The landing does NOT snap vertically. Rows are a screen tall so each one
+   arrives whole, but the scroll between them is free: snapping, even at
+   proximity, took hold of the last part of every flick and made a long page feel
+   like a deck of fixed slides rather than something being read.
+
+   The class stays for `scroll-padding-top`, which keeps an in-page anchor from
+   landing under the sticky chrome, and for the explicit "next row" button, which
+   computes the same offset itself. Discrete movement belongs to the horizontal
+   card rails, where one card at a time IS the unit. */
 html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
-@media (max-width: 767px) {
-  html.lp-snap { scroll-snap-type: y proximity; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html.lp-snap { scroll-snap-type: none; }
-}
 
 /* The media layer of a panel. The wrapper is the clip; the moving child inside
    it is what drifts, so the drift never paints outside the row. */
@@ -593,6 +592,40 @@ html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
   position: absolute;
   inset: 0;
   overflow: hidden;
+}
+
+/* ---- Landing scroll cost -------------------------------------------------
+   Two sticky bars, each running a backdrop-filter, sitting over a full-screen
+   film that scroll-linked transforms are scaling and fading at the same time.
+   Every frame the compositor re-read the region behind both bars and re-blurred
+   it, and the region's contents had themselves just been re-rastered. On a
+   phone that is felt as the scroll catching rather than as a dropped frame.
+
+   Two changes, both scoped to the landing (`html.lp-snap` is only present while
+   it is mounted) and to phones, so the frosted chrome in the app is untouched:
+
+   1. The bars go opaque. `!important` because both set backdrop-filter inline,
+      and an inline style is not reachable from a stylesheet otherwise. At 85%
+      over a blur the difference is a shade; the frames are not.
+   2. The film layers are promoted, so a transform re-composites them instead of
+      re-rastering a full-screen image every frame. Promotion costs GPU memory,
+      which is why it is here on the few media layers rather than anywhere a
+      transform appears. */
+@media (max-width: 767px) {
+  html.lp-snap [data-chrome='nav'],
+  html.lp-snap [data-chrome='strip'] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  html.lp-snap [data-chrome='nav'] {
+    background: var(--color-surface);
+  }
+  /* The clip keeps the bleed shadow horizontal, and on a sticky blurred bar it
+     also forced its own render surface. With the blur gone it is cheap again,
+     so it stays. */
+  .lp-panel-media > * {
+    will-change: transform, opacity;
+  }
 }
 
 @keyframes stat-sweep {
