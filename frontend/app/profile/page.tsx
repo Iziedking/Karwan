@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -74,6 +74,8 @@ function ProfilePageInner() {
   // Agent money is one surface with two modes, so only one card shows at a
   // time instead of two dense cards side by side.
   const [moneyMode, setMoneyMode] = useState<'add' | 'out'>('add');
+  const [activeAgentSlide, setActiveAgentSlide] = useState(0);
+  const agentCarouselRef = useRef<HTMLDivElement>(null);
 
   const TABS: Tab[] = [
     { id: 'identity', label: t.tabs.identity, hash: 'identity' },
@@ -272,7 +274,7 @@ function ProfilePageInner() {
                   </p>
                 )}
                 <div
-                  className={`mt-5 grid gap-3 sm:gap-4 ${
+                  className={`mt-5 hidden gap-3 sm:gap-4 md:grid ${
                     profile.buyer && profile.seller
                       ? 'lg:grid-cols-2'
                       : 'mx-auto w-full max-w-[760px] grid-cols-1'
@@ -325,6 +327,96 @@ function ProfilePageInner() {
                         },
                       ]}
                     />
+                  )}
+                </div>
+                <div className="mt-5 md:hidden">
+                  <div
+                    ref={agentCarouselRef}
+                    className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    onScroll={(event) => {
+                      const slideWidth = event.currentTarget.clientWidth + 12;
+                      const next = Math.round(event.currentTarget.scrollLeft / slideWidth);
+                      setActiveAgentSlide(Math.max(0, Math.min(1, next)));
+                    }}
+                    aria-label="Agent profiles"
+                  >
+                    {profile.buyer && (
+                      <div className="min-w-full snap-start">
+                        <AgentBlock
+                          eyebrow={t.agentProfiles.buyerEyebrow}
+                          fallbackName={t.agentProfiles.buyerFallback}
+                          name={activation.agents?.buyerName}
+                          agentAddress={agents.buyer}
+                          rows={[
+                            { label: t.agentProfiles.rows.maxBudget, value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
+                            {
+                              label: t.agentProfiles.rows.deadline,
+                              value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
+                              mono: true,
+                            },
+                            {
+                              label: t.agentProfiles.rows.milestones,
+                              value: profile.buyer.milestonePcts.join(' / ') || '-',
+                              mono: true,
+                            },
+                          ]}
+                        />
+                      </div>
+                    )}
+                    {profile.seller && (
+                      <div className="min-w-full snap-start">
+                        <AgentBlock
+                          eyebrow={t.agentProfiles.sellerEyebrow}
+                          fallbackName={t.agentProfiles.sellerFallback}
+                          name={activation.agents?.sellerName}
+                          agentAddress={agents.seller}
+                          rows={[
+                            {
+                              label: isBusiness
+                                ? t.agentProfiles.rows.supplies
+                                : t.agentProfiles.rows.skills,
+                              value: profile.seller.skills.join(', ') || '-',
+                            },
+                            { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
+                            {
+                              label: t.agentProfiles.rows.budget,
+                              value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
+                              mono: true,
+                            },
+                            {
+                              label: t.agentProfiles.rows.delivery,
+                              value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
+                              mono: true,
+                            },
+                          ]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {profile.buyer && profile.seller && (
+                    <div className="mt-3 flex items-center justify-center gap-1" aria-label="Agent profile position">
+                      {[t.agentProfiles.buyerFallback, t.agentProfiles.sellerFallback].map((label, index) => (
+                        <button
+                          key={label}
+                          type="button"
+                          className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+                          aria-label={`Show ${label.toLowerCase()} profile`}
+                          aria-current={activeAgentSlide === index ? 'true' : undefined}
+                          onClick={() => {
+                            const carousel = agentCarouselRef.current;
+                            if (!carousel) return;
+                            carousel.scrollTo({ left: index * (carousel.clientWidth + 12), behavior: 'smooth' });
+                            setActiveAgentSlide(index);
+                          }}
+                        >
+                          <span
+                            className={`h-2 w-2 rounded-full transition-colors duration-200 ${
+                              activeAgentSlide === index ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-text-muted)]/45'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
