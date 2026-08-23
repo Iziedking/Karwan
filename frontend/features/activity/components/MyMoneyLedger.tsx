@@ -218,7 +218,7 @@ export function MyMoneyLedger({
                   if (!amount) return null;
                   return (
                     <span
-                      className="shrink-0 mono text-[12px] font-semibold tabular-nums tracking-[0.02em]"
+                      className="shrink-0 whitespace-nowrap mono text-[12px] font-semibold tabular-nums tracking-[0.02em]"
                       style={{
                         color:
                           ledgerDirection(item.kind) === 'in'
@@ -249,9 +249,16 @@ export function MyMoneyLedger({
                         type="button"
                         onClick={() => copyReference(reference)}
                         aria-label={`${t.receipt}: ${reference}`}
-                        className="inline-flex min-h-11 max-w-[48%] items-center gap-1 mono text-[10px] tracking-[0.08em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                        // Never broken. `max-w-[48%]` with `break-all` split
+                        // KWN-U2GD-CE7Y-URC9 mid-group on a phone, and a
+                        // reference is a thing people read out to support and
+                        // compare by eye: a broken one invites a transcription
+                        // error, which is the whole reason it exists. It is 18
+                        // mono characters, so it fits on its own line in the
+                        // wrapping row rather than fitting inside half of one.
+                        className="inline-flex min-h-11 shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] whitespace-nowrap text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                       >
-                        <span className="break-all text-start">{reference}</span>
+                        <span className="text-start">{reference}</span>
                         <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
                       </button>
                     );
