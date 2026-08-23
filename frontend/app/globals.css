@@ -498,6 +498,103 @@ html[data-theme="dark"] {
   }
 }
 
+/* Theme handover. The theme now changes without anyone pressing anything: the
+   machine's own setting, or the hour on its clock (see shared/hooks/useTheme).
+   A page that swaps every surface between two frames reads as a glitch, so the
+   swap is painted over 380ms and only while it is happening. The class is added
+   by applyTheme for the duration and removed again, which is why the blunt
+   descendant selector is acceptable here: it is never live during normal use,
+   so it cannot slow down hover or scroll.
+
+   Transform and opacity are deliberately absent: motion belongs to the
+   components that own it, and including them here would drag every in-flight
+   animation into this duration. */
+html.theme-shifting,
+html.theme-shifting *,
+html.theme-shifting *::before,
+html.theme-shifting *::after {
+  transition:
+    background-color 380ms var(--ease-out, ease),
+    border-color 380ms var(--ease-out, ease),
+    color 380ms var(--ease-out, ease),
+    fill 380ms var(--ease-out, ease),
+    stroke 380ms var(--ease-out, ease),
+    box-shadow 380ms var(--ease-out, ease) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-shifting,
+  html.theme-shifting *,
+  html.theme-shifting *::before,
+  html.theme-shifting *::after {
+    transition: none !important;
+  }
+}
+
+/* ---- Landing panels ----------------------------------------------------
+   The landing is read one row at a time on a phone, so a row is exactly one
+   screen tall: the free height between the sticky chrome and the bottom of the
+   viewport. Anything less and the next row shows a sliver of itself under the
+   current one, which is what made the film hero read as a cropped mistake.
+
+   The two chrome heights are published by the components that own them
+   (TopNav, StickyTabStrip) rather than hardcoded here, because both change with
+   type scale and locale: an Arabic or Hindi label wraps the strip to two lines
+   and a fixed 52px would be wrong by a whole row of text.
+
+   `svh` deliberately, not `dvh`: the small viewport height is the stable one.
+   With `dvh` the panel resizes every time a mobile browser retracts its own
+   toolbar, so the row grows under the reader's thumb mid-scroll.
+
+   Behaviour lives behind the `md` breakpoint. Above it more than one row is in
+   frame at a time and forcing screen-tall rows would only add whitespace. */
+:root {
+  --lp-nav-h: 68px;
+  --lp-strip-h: 0px;
+  --lp-chrome-h: calc(var(--lp-nav-h) + var(--lp-strip-h));
+  --lp-panel-h: calc(100svh - var(--lp-chrome-h));
+}
+
+.lp-panel { scroll-snap-align: start; }
+
+@media (max-width: 767px) {
+  .lp-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--lp-panel-h);
+  }
+  /* A row's content is centred by making the row a flex column, and a flex item
+     with auto inline margins (every band's `mx-auto` measure) opts out of
+     stretching and sizes to its own content instead. On a 360px screen that
+     widened the measure to 914px and cut the headlines in half. The bleed lives
+     on the row itself, never on these children, so pinning them to the row's
+     width is safe. */
+  .lp-panel > * { width: 100%; }
+  /* Rows whose content is honestly taller than a screen keep the floor and
+     lose the ceiling, so nothing is ever clipped to make the grid work. */
+  .lp-panel-grow { justify-content: flex-start; }
+}
+
+/* Snapping is proximity, never mandatory: a panel taller than the screen has to
+   stay scrollable a line at a time. The class is added by the landing while it
+   is mounted, so no other route inherits it. */
+html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
+@media (max-width: 767px) {
+  html.lp-snap { scroll-snap-type: y proximity; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.lp-snap { scroll-snap-type: none; }
+}
+
+/* The media layer of a panel. The wrapper is the clip; the moving child inside
+   it is what drifts, so the drift never paints outside the row. */
+.lp-panel-media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 @keyframes stat-sweep {
   0% { transform: translateX(-110%); }
   100% { transform: translateX(330%); }
