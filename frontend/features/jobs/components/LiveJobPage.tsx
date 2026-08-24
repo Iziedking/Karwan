@@ -427,9 +427,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                 <NegotiationCard
                   events={events}
                   explorer={explorer}
-                  job={job}
-                  proposal={proposal}
-                  viewerAddress={address}
+                  terminal={expired || declined || ended === 'out-of-reach'}
                 />
               </div>
             )}
