@@ -14,7 +14,10 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useDialog } from '@/shared/components/Dialog';
-import { hasDeliveryEvidence } from '@/shared/deals/deliveryEvidence';
+import {
+  factoringOfferable,
+  poFinancingOfferable,
+} from '@/shared/deals/financingEligibility';
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
@@ -31,23 +34,12 @@ export function SellerOfferBanner({
 }) {
   const pb = useTranslations().pageBits;
   const { prompt } = useDialog();
-  const commonEligible =
-    viewerIsSeller &&
-    deal.tradeLane === 'finance' &&
-    !!deal.acceptedAt &&
-    !deal.settledAt &&
-    !deal.cancelledAt &&
-    !deal.disputed;
-  // Capital before delivery, an advance against the invoice after it. The two
-  // never overlap, which is why one flag turns off as the other turns on.
-  const poEligible = commonEligible && !deal.delivered &&
-    !deal.poFinancingId && !deal.factoringRequestedAt && !deal.factoringOfferId;
-  // Delivery evidence per trade type. This was `!!deal.deliveryProof`, the
-  // services shape, so a goods deal delivered against a tracked shipment never
-  // saw this card: the one product built for suppliers shipping goods was
-  // invisible to exactly them.
-  const factoringEligible = commonEligible && hasDeliveryEvidence(deal) &&
-    !deal.poFinancingRequestedAt && !deal.poFinancingId && !deal.factoringOfferId;
+  // Capital before delivery, an advance against the invoice after it. The rules
+  // live in shared/deals/financingEligibility.ts so they can be tested against
+  // real deal records: as four inline boolean chains, one of them measured
+  // delivery by `deliveryProof` and so was never true for a goods deal.
+  const poEligible = poFinancingOfferable(deal, viewerIsSeller);
+  const factoringEligible = factoringOfferable(deal, viewerIsSeller);
 
   const [offers, setOffers] = useState<FactoringOffer[] | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
