@@ -341,6 +341,15 @@ function QuickControls({
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // Close on any navigation. The outside-click handler below cannot do this:
+  // the links are INSIDE the menu, so it ignores them, and routing is
+  // client-side so the nav never unmounts. Tapping Profile changed the page and
+  // left the menu sitting open on top of it.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -386,6 +395,13 @@ function QuickControls({
         >
           <div
             role="menu"
+            onClick={(event) => {
+              // Any link dismisses it, without each one having to remember to.
+              // The theme and sound controls above are deliberately not links:
+              // changing them should leave the menu where it is so you can see
+              // what changed.
+              if ((event.target as HTMLElement).closest('a')) setOpen(false);
+            }}
             className="w-[min(302px,calc(100vw-32px))] p-2 border bg-[var(--color-surface)] fade-up"
             style={{
               borderColor: 'var(--color-line)',
