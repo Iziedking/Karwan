@@ -205,6 +205,10 @@ html[data-theme="dark"] {
   --lp-dark: var(--ink-1);
   /* Page-level surface (was cream) becomes a near-black with a hint of warmth
      so the cream→dark transition keeps the same compositional feel. */
+  /* NOTE: this is the SAME value as --lp-band-dark below. Anything painting
+     --lp-light on a --lp-band-dark surface is invisible in dark mode, which
+     is how a selected chip lost its label. Use #ffffff for text on a fixed
+     dark band, never --lp-light. */
   --lp-light: var(--surface-0);
   /* Cards rise one notch above the surface for the same "panel on paper" feel
      the light theme has with white-on-cream. */

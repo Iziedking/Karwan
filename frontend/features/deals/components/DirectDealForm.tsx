@@ -658,7 +658,10 @@ export function DirectDealForm() {
                     className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: active ? 'var(--lp-band-dark)' : 'var(--lp-light)',
-                      color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
+                      // Not --lp-light: in dark mode it resolves to the same
+                      // token as --lp-band-dark, so the selected chip painted its
+                      // label in its own background and the option vanished.
+                      color: active ? '#ffffff' : 'var(--lp-text-sub)',
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 7,
                       borderTopRightRadius: 7,
