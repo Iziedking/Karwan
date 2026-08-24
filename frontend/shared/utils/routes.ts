@@ -45,6 +45,19 @@ export function isFocusedRoute(pathname: string | null | undefined): boolean {
   return matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/cashout');
 }
 
+/**
+ * Focused for everyone, signed in or not.
+ *
+ * Onboarding qualifies because wandering off mid-setup is the exact thing the
+ * focus is protecting against. Cashout does not: it is focused for a stranger
+ * following a shared link, who has no app to navigate, and merely stripped for
+ * a signed-in person cashing out their own deal. They are inside the product
+ * with their navigation taken away and no reason given.
+ */
+function isFocusedForEveryone(pathname: string | null | undefined): boolean {
+  return !!pathname && matchesRoute(pathname, '/onboarding');
+}
+
 /** First-contact invitation pages own their complete page shell. */
 export function isBareRoute(pathname: string | null | undefined): boolean {
   return !!pathname && matchesRoute(pathname, '/invite');
@@ -55,7 +68,9 @@ export function getShellSurface(
   isAuthenticated: boolean,
 ): ShellSurface {
   if (isBareRoute(pathname)) return 'bare';
-  if (isFocusedRoute(pathname)) return 'focused';
+  if (isFocusedRoute(pathname) && (isFocusedForEveryone(pathname) || !isAuthenticated)) {
+    return 'focused';
+  }
   if (pathname && matchesRoute(pathname, '/admin')) return 'admin';
   if (isPublicEditorialRoute(pathname)) return 'public';
   if (isPublicDiscoveryRoute(pathname) && !isAuthenticated) return 'public';

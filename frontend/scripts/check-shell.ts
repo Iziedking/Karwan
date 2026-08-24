@@ -34,11 +34,24 @@ for (const route of ['/market', '/listings/example', '/partners']) {
   assert.equal(getShellSurface(route, true), 'workspace', `${route} joins the signed-in workspace`);
 }
 
-for (const route of ['/onboarding', '/onboarding?step=profile', '/cashout/job-1']) {
+// Onboarding is focused whoever you are: leaving mid-setup is what it guards.
+for (const route of ['/onboarding', '/onboarding?step=profile']) {
   const normalized = route.split('?')[0];
   assert.equal(isFocusedRoute(normalized), true, `${normalized} must be focused`);
-  assert.equal(getShellSurface(normalized, true), 'focused');
+  assert.equal(getShellSurface(normalized, false), 'focused');
+  assert.equal(getShellSurface(normalized, true), 'focused', `${normalized} stays focused`);
 }
+
+// Cashout is focused only for someone who has no app to navigate. A signed-in
+// person cashing out their own deal keeps their nav; taking it away left them
+// on a page inside the product with no way through it.
+assert.equal(isFocusedRoute('/cashout/job-1'), true);
+assert.equal(getShellSurface('/cashout/job-1', false), 'focused', 'a stranger sees the focused flow');
+assert.equal(
+  getShellSurface('/cashout/job-1', true),
+  'workspace',
+  'a signed-in cashout keeps its navigation',
+);
 
 assert.equal(isBareRoute('/invite/token-1'), true);
 assert.equal(getShellSurface('/invite/token-1', false), 'bare');
