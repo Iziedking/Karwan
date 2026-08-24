@@ -1765,6 +1765,19 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     }
     await verifyMoneyMovementLeg(movementReference, funding.leg.id);
 
+    // Record the funding NOW, not later with `acceptedAt`.
+    //
+    // The escrow holding the buyer's USDC is a fact, established by the check
+    // just above, and it stays true whether or not activation then succeeds.
+    // Bundling `fundTxHash` into the accept patch meant that when activation
+    // failed the deal kept no trace of having been funded at all, so the page
+    // could not tell "not funded yet" from "funded, not activated" and went on
+    // offering "Review and fund" for a total the buyer had already paid.
+    //
+    // Its own patch, so the deal remembers what happened even if the next step
+    // throws, the process restarts, or the buyer closes the tab.
+    await patchDeal(jobId, { fundTxHash: fundResult.txHash });
+
     // v2.D: the seller agent signs acceptEscrow which transitions the
     // escrow from Funded to Accepted and locks an insurance reservation
     // on the vault (dealAmount * reservationBps / 10000). Without this
