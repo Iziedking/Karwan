@@ -3628,7 +3628,14 @@ interface MessagesShape {
       toNextTemplate: string;
       dealOne: string;
       dealMany: string;
-      capped: string;
+      /// Why the tier sits below what the score earned. Two ceilings, and the
+      /// difference decides what you would do about it: one is lifted by
+      /// finishing deals, the other by trading with different people. "Held
+      /// until a deal settles" promised one settlement would lift it, which is
+      /// wrong whenever more are needed and wrong entirely when concentration
+      /// is the cap.
+      cappedDeals: string;
+      cappedConcentration: string;
       status: string;
       pts: string;
       topTier: string;
@@ -8615,7 +8622,8 @@ export const en: MessagesShape = {
       toNextTemplate: 'To {tier}',
       dealOne: 'deal',
       dealMany: 'deals',
-      capped: 'Held until a deal settles',
+    cappedDeals: 'Settled deals decide this, not points',
+    cappedConcentration: 'Varied counterparties decide this, not points',
       status: 'Status',
       pts: 'pts',
       topTier: 'Top tier',

@@ -169,9 +169,14 @@ function StakePageInner() {
           </Stat>
           <Stat label={sp.position.tier} fit>
             <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
+            {/* Name the ceiling. A score of 707 reading ESTABLISHED is not a
+                fault, but nothing said so: the reason sat in the next column
+                and this line claimed one settlement would lift it. */}
             {capped ? (
               <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">
-                {sp.position.capped}
+                {data?.tierCappedBy === 'concentration'
+                  ? sp.position.cappedConcentration
+                  : sp.position.cappedDeals}
               </span>
             ) : null}
           </Stat>
