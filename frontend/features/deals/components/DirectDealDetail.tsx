@@ -14,7 +14,7 @@ import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { PageTour } from '@/shared/guide/PageTour';
 import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
 import { useActivation } from '@/shared/hooks/useActivation';
-import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
+import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { SellerOfferBanner } from '@/features/factoring/components/SellerOfferBanner';
@@ -485,7 +485,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         setErrorInfo({ code, message: dd.errors.quoteChanged });
         await reloadFundingQuote();
       } else {
-        setErrorInfo({ code, message: dd.errors.fundingFailed });
+        // Keep what the server said. It knows things this page cannot: which of
+        // acceptEscrow's three revert paths was taken, and how much stake the
+        // deal reserves. Every message on these paths is a written sentence,
+        // never a raw revert, so it is safe to show and more use than a canned
+        // line that fits any failure equally badly.
+        const detail = err instanceof ApiError ? err.message : undefined;
+        setErrorInfo({
+          code,
+          message: detail?.trim() ? detail : dd.errors.fundingFailed,
+        });
       }
     } finally {
       setSettlementReloadKey((key) => key + 1);
@@ -1364,7 +1373,24 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             )}
             {errorInfo && (
               <div className="mt-4">
-                <DealErrorNote info={errorInfo} viewerIsBuyer={viewerIsBuyer} copy={dd.errors} />
+                <DealErrorNote
+                  info={errorInfo}
+                  viewerIsBuyer={viewerIsBuyer}
+                  copy={dd.errors}
+                  // The total the escrow actually needs, fee included, not the
+                  // deal amount: funding to the deal amount leaves the buyer
+                  // short by the fee and back here again.
+                  amountUsdc={
+                    fundingQuote
+                      ? Number(fundingQuote.fundedAmountUsdc)
+                      : Number(deal.dealAmountUsdc)
+                  }
+                  circleAccount={auth.method === 'circle'}
+                  onFunded={() => {
+                    setErrorInfo(null);
+                    void refresh();
+                  }}
+                />
               </div>
             )}
           </div>
@@ -3364,14 +3390,20 @@ function DealErrorNote({
   info,
   viewerIsBuyer,
   copy,
+  amountUsdc,
+  circleAccount,
+  onFunded,
 }: {
   info: { code?: string; message: string };
   viewerIsBuyer: boolean;
   copy: Messages['directDealDetail']['errors'];
+  amountUsdc: number;
+  circleAccount: boolean;
+  onFunded: () => void;
 }) {
   // The buyer agent is the wallet that funds escrow, so it is the one a shortfall
-  // is about. Top it up from the pooled Gateway balance in place rather than
-  // sending the buyer off to /profile and back.
+  // is about, and it is topped up in place rather than sending the buyer off to
+  // /profile and back.
   const { agents } = useActivation();
   const buyerAgent = agents?.buyer;
 
@@ -3398,7 +3430,21 @@ function DealErrorNote({
         <p className="font-medium">{copy.insufficientBalanceTitle}</p>
         {viewerIsBuyer ? (
           buyerAgent ? (
-            <TopUpFromGateway recipient={buyerAgent} />
+            /* Every route to the money, not one picked for the buyer. This used
+               to offer the pooled balance alone, so a buyer with nothing pooled
+               met "0 pooled and ready" and a dead end, while the USDC to fund
+               the deal sat in their wallet or their other agent. Same chooser
+               the request form uses when the agent is short. */
+            <div className="mt-2">
+              <FundAgentOptions
+                agent="buyer"
+                recipient={buyerAgent}
+                otherAgentAddress={agents?.seller ?? null}
+                amountUsdc={amountUsdc}
+                circleAccount={circleAccount}
+                onFunded={onFunded}
+              />
+            </div>
           ) : (
             <p className="text-[11px] opacity-90">
               {copy.insufficientBalanceBuyerPrefix}{' '}
@@ -3439,7 +3485,12 @@ function DealErrorNote({
     );
   }
   if (info.code === 'ACCEPT_ESCROW_FAILED' || info.code === 'ACCEPT_NOT_CONFIRMED') {
-    return wrap(<p className="font-medium">{copy.acceptEscrowFailedTitle}</p>);
+    // The canned line says activation did not finish and stops there, which is
+    // the one thing the reader already knows. When the server sent a reason,
+    // that is the message.
+    return wrap(
+      <p className="font-medium">{info.message?.trim() ? info.message : copy.acceptEscrowFailedTitle}</p>,
+    );
   }
   return wrap(info.message);
 }
