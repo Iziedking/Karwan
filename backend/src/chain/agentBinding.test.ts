@@ -39,9 +39,9 @@ test('an agent bound to someone else is not reported as merely missing', () => {
   assert.equal(stakeResolvesForAgent(state), false);
 });
 
-test('a missing read is unbound, never bound', () => {
-  // A failed or empty resolveOwner must not read as "stake resolves": the cost
-  // of a false positive is a deal that fails at activation.
+test('an empty read is unbound, never bound', () => {
+  // A false positive costs a deal that fails at activation, so an answer this
+  // function cannot interpret is never "stake resolves".
   for (const resolved of ['', '   ']) {
     assert.deepEqual(
       bindingStateFor({ agent: AGENT, resolvedOwner: resolved, identity: IDENTITY }),
@@ -52,4 +52,12 @@ test('a missing read is unbound, never bound', () => {
     bindingStateFor({ agent: '', resolvedOwner: IDENTITY, identity: IDENTITY }),
     { kind: 'unbound' },
   );
+});
+
+test('a read that never happened is its own state', () => {
+  // `unknown` is a fact about the RPC, `unbound` a fact about the vault. The
+  // caller decides; conflating them listed thirteen agents as needing their
+  // owner's signature when the chain had simply not answered.
+  assert.equal(stakeResolvesForAgent({ kind: 'unknown' }), false);
+  assert.notDeepEqual({ kind: 'unknown' }, { kind: 'unbound' });
 });

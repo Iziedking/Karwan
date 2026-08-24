@@ -28,7 +28,12 @@ export type AgentBindingState =
   /// Bound to a DIFFERENT identity. `registerOwner` refuses to move a binding
   /// (`AgentOwnerAlreadySet`), so this cannot be repaired by signing again and
   /// must never be reported as merely missing.
-  | { kind: 'foreign'; owner: string };
+  | { kind: 'foreign'; owner: string }
+  /// The chain could not be asked. Distinct from `unbound`, which is a fact
+  /// about the vault: this is a fact about the RPC. Counting the two together
+  /// put thirteen agents on a list headed "these need their owner to sign" when
+  /// nothing at all was known about them.
+  | { kind: 'unknown' };
 
 /// `resolveOwner` returns the address unchanged when the agent is unbound, so
 /// "resolves to itself" is the test for a missing binding.

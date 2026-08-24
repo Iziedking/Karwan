@@ -52,7 +52,7 @@ async function stateOf(agent: string, identity: string): Promise<AgentBindingSta
     // A read that failed is not a binding that exists. `unbound` costs at worst
     // a redundant approval; `bound` would leave a deal that cannot activate.
     logger.warn({ agent, err: (err as Error).message }, 'binding read failed');
-    return { kind: 'unbound' };
+    return { kind: 'unknown' };
   }
 }
 
@@ -68,6 +68,8 @@ async function main() {
   let bound = 0;
   let awaitingOwner = 0;
   let failed = 0;
+  let unknown = 0;
+  const unreadable: string[] = [];
   const foreign: string[] = [];
   const needSignature: string[] = [];
 
@@ -84,6 +86,13 @@ async function main() {
 
       if (state.kind === 'bound') {
         alreadyBound += 1;
+        continue;
+      }
+      if (state.kind === 'unknown') {
+        // Nothing is known about this pair, so it is not claimed as needing a
+        // signature and nothing is sent for it. Fix the RPC and run again.
+        unknown += 1;
+        unreadable.push(`${identity} ${pair.role} ${pair.agent}`);
         continue;
       }
       if (state.kind === 'foreign') {
@@ -148,12 +157,20 @@ async function main() {
   console.log(`${alreadyBound} already bound`);
   console.log(execute ? `${bound} bound now` : `${bound} bindable server-side`);
   console.log(`${awaitingOwner} waiting on the owner's signature (connected wallets)`);
+  if (unknown > 0) {
+    console.log(`${unknown} could not be read: the RPC did not answer, so nothing is known`);
+  }
   if (failed > 0) console.log(`${failed} failed, listed above`);
 
   if (needSignature.length > 0) {
     console.log('');
     console.log('These need their owner to sign on /stake before a staked deal can activate:');
     for (const line of needSignature) console.log(`  ${line}`);
+  }
+  if (unreadable.length > 0) {
+    console.log('');
+    console.log('Unreadable. Fix the Arc RPC and run again before trusting the counts above:');
+    for (const line of unreadable) console.log(`  ${line}`);
   }
   if (foreign.length > 0) {
     console.log('');
