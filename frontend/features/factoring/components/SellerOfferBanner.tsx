@@ -14,6 +14,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useDialog } from '@/shared/components/Dialog';
+import { hasDeliveryEvidence } from '@/shared/deals/deliveryEvidence';
 
 /// Seller-side factoring CTA on the deal detail page. Polls
 /// /api/factoring/offers/:invoiceId when the viewer is the deal's seller
@@ -37,9 +38,15 @@ export function SellerOfferBanner({
     !deal.settledAt &&
     !deal.cancelledAt &&
     !deal.disputed;
-  const poEligible = commonEligible && !deal.delivered && !deal.deliveryProof &&
+  // Capital before delivery, an advance against the invoice after it. The two
+  // never overlap, which is why one flag turns off as the other turns on.
+  const poEligible = commonEligible && !deal.delivered &&
     !deal.poFinancingId && !deal.factoringRequestedAt && !deal.factoringOfferId;
-  const factoringEligible = commonEligible && deal.delivered && !!deal.deliveryProof &&
+  // Delivery evidence per trade type. This was `!!deal.deliveryProof`, the
+  // services shape, so a goods deal delivered against a tracked shipment never
+  // saw this card: the one product built for suppliers shipping goods was
+  // invisible to exactly them.
+  const factoringEligible = commonEligible && hasDeliveryEvidence(deal) &&
     !deal.poFinancingRequestedAt && !deal.poFinancingId && !deal.factoringOfferId;
 
   const [offers, setOffers] = useState<FactoringOffer[] | null>(null);

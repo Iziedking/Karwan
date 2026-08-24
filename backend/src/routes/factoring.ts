@@ -14,7 +14,8 @@ import {
   patchFactoringOffer,
   patchFactoringOfferIfStatus,
 } from '../db/factoring.js';
-import { getDeal, patchDeal, listAllDeals, type DirectDeal } from '../db/deals.js';
+import { isFactorable } from '../deals/deliveryEvidence.js';
+import { getDeal, patchDeal, listAllDeals } from '../db/deals.js';
 import { addSystemMessage } from '../chat/systemMessages.js';
 import { listAllLines as listAllPOLines } from '../db/poFinancing.js';
 import { getUserByAddress } from '../db/users.js';
@@ -37,6 +38,8 @@ import { appendActivity } from '../db/activityLog.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
 import { financingOperationKey, recordVerifiedFinancingMovement } from '../money/financing.js';
+import { factoringAdvanceRecipient } from './factoringRecipient.js';
+export { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 /// Invoice factoring routes.
 ///
@@ -107,16 +110,6 @@ function atomicUsdc(decimal: string): string {
   return parseUnits(decimal, USDC_DECIMALS).toString();
 }
 
-/// assignReceivable pays the seller recorded by escrow. Managed deals record
-/// the seller agent on chain while keeping the human identity in deal.seller,
-/// so the financier's EIP-3009 authorization must name that agent as recipient.
-/// Falling back keeps older direct-wallet deals compatible.
-export function factoringAdvanceRecipient(
-  deal: Pick<DirectDeal, 'seller' | 'sellerAgentAddress'>,
-): string {
-  return (deal.sellerAgentAddress ?? deal.seller).toLowerCase();
-}
-
 /// Per-invoice accept lock. The advance transfer takes seconds; without
 /// this, two accepts racing on different offers against the same invoice
 /// could both pass the factoringOfferId check and both pay an advance.
@@ -180,7 +173,10 @@ factoringRoutes.post('/request', async (c) => {
   if (deal.tradeLane !== 'finance') {
     return c.json({ error: 'factoring is only available on trade-finance deals' }, 409);
   }
-  if (!deal.acceptedAt || !deal.delivered || !deal.deliveryProof || deal.settledAt || deal.cancelledAt || deal.disputed) {
+  // Delivery evidence is asked for per trade type. Demanding deliveryProof
+  // here excluded every goods deal, which delivers a shipment reference and
+  // never a link, so the suppliers factoring exists for could not use it.
+  if (!isFactorable(deal)) {
     return c.json({ error: 'deal not eligible for factoring' }, 409);
   }
   if (deal.factoringOfferId) {
@@ -302,12 +298,11 @@ factoringRoutes.get('/available', async (c) => {
       // accepted finance-lane deal, exposing counterparty, amount and timing to
       // every approved financier without the seller ever asking for an advance.
       d.factoringRequestedAt &&
-      d.delivered &&
-      d.deliveryProof &&
-      d.acceptedAt &&
-      !d.settledAt &&
-      !d.cancelledAt &&
-      !d.disputed &&
+      // Delivered, with the evidence its trade type actually produces. This
+      // was `d.delivered && d.deliveryProof`, which is the services shape, so
+      // a shipped container never reached the desk however loudly its seller
+      // had asked.
+      isFactorable(d) &&
       !d.factoringOfferId &&
       !financedInvoiceIds.has(d.jobId.toLowerCase()),
   );
