@@ -16,7 +16,7 @@
     "test:bridge": "tsx --test features/bridge/components/bridgeHistoryPresentation.test.ts",
     "test:activity": "tsx --test features/activity/ledgerPresentation.test.ts",
     "test:receipts": "tsx --test features/activity/receiptPresentation.test.ts",
-    "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts shared/deals/deliveryEvidence.test.ts",
+    "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts shared/deals/deliveryEvidence.test.ts shared/deals/financingEligibility.test.ts",
     "test:matching": "tsx --test features/jobs/matchingPresentation.test.ts",
     "test:events": "tsx --test shared/hooks/liveEventMerge.test.ts features/jobs/structuredOfferPresentation.test.ts",
     "test:charts": "tsx --test features/reputation/axisLabels.test.ts",
