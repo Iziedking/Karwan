@@ -48,6 +48,12 @@
 ///                        never learned, after checking on chain that it
 ///                        succeeded. For a send that landed while the call
 ///                        carrying its hash never arrived.
+///   --leg <key>          which leg the hash belongs to (burn, mint, activate).
+///                        Required when more than one leg is missing its
+///                        transaction: a cross-chain bridge's burn is on the
+///                        source chain and its mint is on Arc, so one hash is
+///                        never both. Only a same-chain send may take --leg all,
+///                        where the single transaction genuinely is both.
 
 import { inArray } from 'drizzle-orm';
 import { db, ensureSchema, pgEnabled } from '../db/client.js';
@@ -88,6 +94,7 @@ function flag(name: string): string | undefined {
 const olderThanMins = Number(flag('--older-than-mins') ?? 60);
 const onlyReference = flag('--reference')?.toUpperCase();
 const attachTx = flag('--attach-tx')?.trim().toLowerCase();
+const attachLeg = flag('--leg')?.trim();
 
 /// States a movement can sit in forever. `needs_attention` is included on
 /// purpose: it is where a failed leg parks, and a movement whose transaction
@@ -393,9 +400,33 @@ async function attachTransaction(hash: string): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  const targets = activeLegs(movement).filter((leg) => !leg.txHash && leg.state === 'planned');
-  if (targets.length === 0) {
+  const hashless = activeLegs(movement).filter((leg) => !leg.txHash && leg.state === 'planned');
+  if (hashless.length === 0) {
     console.log('  nothing to attach: every leg already holds a transaction');
+    return;
+  }
+
+  // One hash is not two legs. A cross-chain bridge burns on the source chain and
+  // mints on Arc, so stamping the burn's hash onto the mint would put a
+  // transaction against a movement of money that has not happened. Only a
+  // same-chain send may claim both, and the operator has to say so.
+  let targets = hashless;
+  if (attachLeg && attachLeg !== 'all') {
+    targets = hashless.filter((leg) => leg.key === attachLeg);
+    if (targets.length === 0) {
+      console.log(
+        `  no leg named ${attachLeg} is missing a transaction. ` +
+          `Missing: ${hashless.map((l) => l.key).join(', ')}`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  } else if (hashless.length > 1 && attachLeg !== 'all') {
+    console.log(
+      `  ${hashless.length} legs are missing a transaction: ${hashless.map((l) => l.key).join(', ')}`,
+    );
+    console.log('  name one with --leg <key>, or --leg all if this really is one transaction');
+    process.exitCode = 1;
     return;
   }
   console.log(`  would attach to ${targets.length} leg(s): ${targets.map((l) => l.key).join(', ')}`);

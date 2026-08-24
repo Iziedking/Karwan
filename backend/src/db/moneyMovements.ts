@@ -302,13 +302,25 @@ function rowForUpdate(movement: MoneyMovement) {
   };
 }
 
-function validateMutation(current: MoneyMovement, next: MoneyMovement): MoneyMovement {
+export function validateMutation(current: MoneyMovement, next: MoneyMovement): MoneyMovement {
   if (next.reference !== current.reference) throw new Error('money movement reference is immutable');
   if (next.operationKey !== current.operationKey) throw new Error('money movement operation key is immutable');
   if (next.kind !== current.kind) throw new Error('money movement kind is immutable');
   if (next.createdAt !== current.createdAt) throw new Error('money movement creation time is immutable');
-  if (next.version !== current.version && next.version !== current.version + 1) {
-    throw new Error('money movement version must advance by exactly one');
+  // Forward, or not at all. It used to demand EXACTLY one, which no real update
+  // satisfies: one logical change walks a leg planned -> submitted -> confirmed
+  // -> verified and the movement to `verifying`, and every hop bumps the
+  // version, so recording a burn hash on a freshly planned leg arrives here at
+  // +4 and threw. That is how a transfer that landed on chain ended up with its
+  // leg still `planned`, no hash, and its route aborted before it wrote the
+  // bridge projection.
+  //
+  // Nothing is lost by relaxing it. Optimistic concurrency is enforced by the
+  // UPDATE's `where version = current.version` below, not by this arithmetic;
+  // what this needs to reject is a mutation that rewinds or stands still while
+  // claiming to have changed.
+  if (next.version < current.version) {
+    throw new Error('money movement version cannot move backwards');
   }
   return next;
 }
