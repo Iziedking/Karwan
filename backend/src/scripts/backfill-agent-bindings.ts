@@ -38,6 +38,17 @@ import { logger } from '../logger.js';
 
 const execute = process.argv.includes('--execute');
 
+/// A pause between reads.
+///
+/// This walks every account twice over and did it flat out, which put a couple
+/// of hundred eth_calls through the RPC pool in seconds. Two of the configured
+/// endpoints answer; under that burst they rate-limited too, the pool exhausted,
+/// and thirteen agents came back unreadable. A sweep that runs once has no
+/// reason to be fast, and the cost of being quick was a report nobody could
+/// trust.
+const READ_PAUSE_MS = Number(process.env.BIND_READ_PAUSE_MS ?? 120);
+const pause = () => new Promise((resolve) => setTimeout(resolve, READ_PAUSE_MS));
+
 interface Pair {
   role: 'buyer' | 'seller';
   walletId: string;
@@ -82,6 +93,7 @@ async function main() {
     ].filter((pair): pair is Pair => !!pair.agent && !!pair.walletId);
 
     for (const pair of pairs) {
+      await pause();
       const state = await stateOf(pair.agent, identity);
 
       if (state.kind === 'bound') {
