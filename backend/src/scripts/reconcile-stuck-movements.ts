@@ -48,6 +48,15 @@
 ///                        never learned, after checking on chain that it
 ///                        succeeded. For a send that landed while the call
 ///                        carrying its hash never arrived.
+///   --map-mints 0x,0x    read which source chain each Arc mint came from, so a
+///                        burn is paired with its own mint instead of a guess.
+///                        Five mints to one recipient for near-identical amounts
+///                        cannot be told apart by eye; the CCTP header in the
+///                        receiveMessage calldata says it outright.
+///   --rebuild-projection with --reference: write back the bridge row the route
+///                        never got to, so the boot-time resume can finish the
+///                        relay. For an inbound bridge whose burn is recorded
+///                        and whose mint never landed.
 ///   --leg <key>          which leg the hash belongs to (burn, mint, activate).
 ///                        Required when more than one leg is missing its
 ///                        transaction: a cross-chain bridge's burn is on the
@@ -59,7 +68,7 @@ import { inArray } from 'drizzle-orm';
 import { db, ensureSchema, pgEnabled } from '../db/client.js';
 import { moneyMovements } from '../db/schema.js';
 import { getMoneyMovement, updateMoneyMovement } from '../db/moneyMovements.js';
-import { listAllBridges, patchBridge } from '../db/bridges.js';
+import { createBridge, getBridge, listAllBridges, patchBridge } from '../db/bridges.js';
 import type { BridgeRelay } from '../db/bridges.js';
 import { recordCashoutLeg } from '../money/cashout.js';
 import { completeMoneyMovement } from '../money/service.js';
@@ -78,7 +87,9 @@ import {
   type LegProof,
   type ReconcilePlan,
 } from '../money/reconcile.js';
+import { decodeFunctionData, hexToNumber, slice } from 'viem';
 import { publicClient } from '../chain/client.js';
+import { CCTP_CHAINS } from '../chain/cctpChains.js';
 import { sourceClients } from '../chain/cctpClients.js';
 import { CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 
@@ -95,6 +106,8 @@ const olderThanMins = Number(flag('--older-than-mins') ?? 60);
 const onlyReference = flag('--reference')?.toUpperCase();
 const attachTx = flag('--attach-tx')?.trim().toLowerCase();
 const attachLeg = flag('--leg')?.trim();
+const rebuildProjection = process.argv.includes('--rebuild-projection');
+const mapMints = flag('--map-mints')?.trim();
 
 /// States a movement can sit in forever. `needs_attention` is included on
 /// purpose: it is where a failed leg parks, and a movement whose transaction
@@ -199,6 +212,16 @@ async function main() {
 
   if (attachTx) {
     await attachTransaction(attachTx);
+    return;
+  }
+
+  if (mapMints) {
+    await reportMintSources(mapMints.split(',').map((h) => h.trim()).filter(Boolean));
+    return;
+  }
+
+  if (rebuildProjection) {
+    await rebuildBridgeProjection();
     return;
   }
 
@@ -365,6 +388,160 @@ async function main() {
     if (state === 'completed') fixed += 1;
     console.log(state === 'completed' ? '  repaired -> completed' : `  still ${state} afterwards`);
     console.log('');
+  }
+}
+
+/// Which source chain did each Arc mint come from?
+///
+/// Five mints landed on Arc, to the same recipient, for amounts differing only
+/// by each chain's CCTP fee. Nothing about them tells you which burn each one
+/// settles, and pairing them by eye would put one chain's burn next to another
+/// chain's mint in a record people trace. So it is read rather than guessed: an
+/// Arc mint is `receiveMessage(message, attestation)`, and the message's header
+/// carries the source domain at a fixed offset, whatever the CCTP version:
+///
+///   version (4 bytes) | sourceDomain (4) | destinationDomain (4) | nonce ...
+const RECEIVE_MESSAGE_ABI = [
+  {
+    type: 'function',
+    name: 'receiveMessage',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'message', type: 'bytes' },
+      { name: 'attestation', type: 'bytes' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+] as const;
+
+async function reportMintSources(hashes: string[]): Promise<void> {
+  if (hashes.length === 0) {
+    console.log('--map-mints takes a comma-separated list of Arc transaction hashes');
+    process.exitCode = 1;
+    return;
+  }
+  for (const hash of hashes) {
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+      console.log(`${hash}  not a transaction hash`);
+      continue;
+    }
+    try {
+      const tx = await publicClient.getTransaction({ hash: hash as `0x${string}` });
+      const decoded = decodeFunctionData({ abi: RECEIVE_MESSAGE_ABI, data: tx.input });
+      const message = decoded.args[0] as `0x${string}`;
+      const sourceDomain = hexToNumber(slice(message, 4, 8));
+      const key = CCTP_CHAIN_KEYS.find((k) => CCTP_CHAINS[k].domain === sourceDomain);
+      console.log(
+        `${hash}  <- domain ${sourceDomain}  ${key ? CCTP_CHAINS[key].name : 'unknown chain'}`,
+      );
+    } catch (err) {
+      // A hash that is not a receiveMessage, or an RPC that cannot answer. Say
+      // which rather than failing the whole batch.
+      console.log(`${hash}  could not read: ${(err as Error).message.split('\n')[0]}`);
+    }
+  }
+}
+
+/// Write back the bridge row the route never got to.
+///
+/// `/record` plans the legs, records the burn, then creates the bridge row. The
+/// version guard threw in the middle, so five inbound bridges have a burn that
+/// happened on chain and no row anywhere: nothing in the UI can see them, and
+/// `resumePendingBridges` cannot pick them up, because it iterates bridge rows.
+///
+/// So this reconstructs the row from the movement, which holds everything it
+/// needs: the bridgeId is the tail of the operationKey, the recipient is on the
+/// mint leg, the amount is the movement's, and the source chain is named in the
+/// summary. Written as `relaying` with the burn hash, which is exactly the shape
+/// resume looks for, so the NEXT CONTAINER RESTART fetches the attestation and
+/// mints, or finds the message already received and marks it minted. No new
+/// relay logic: the path that would have run is the path that runs.
+async function rebuildBridgeProjection(): Promise<void> {
+  if (!onlyReference) {
+    console.log('--rebuild-projection needs --reference KWN-...');
+    process.exitCode = 1;
+    return;
+  }
+  const movement = await getMoneyMovement(onlyReference);
+  if (!movement) {
+    console.log(`no movement with reference ${onlyReference}`);
+    process.exitCode = 1;
+    return;
+  }
+  const legs = activeLegs(movement);
+  const burn = legs.find((leg) => leg.key === 'burn');
+  const mint = legs.find((leg) => leg.key === 'mint');
+  if (!burn?.txHash) {
+    console.log('  the burn leg has no transaction yet. Attach it first with --attach-tx --leg burn');
+    process.exitCode = 1;
+    return;
+  }
+  const alreadyMinted = !!mint?.txHash;
+  const bridgeId = movement.operationKey.split(':').pop();
+  if (!bridgeId) {
+    console.log('  cannot recover a bridgeId from the operation key');
+    process.exitCode = 1;
+    return;
+  }
+  if (await getBridge(bridgeId)) {
+    console.log(`  bridge ${bridgeId} already exists; resume will pick it up`);
+    return;
+  }
+  // The source chain is only in the summary, because an inbound burn leg stores
+  // no addresses. chainLabel() wrote the display name, so it is matched back.
+  const sourceKey = CCTP_CHAIN_KEYS.find((key) =>
+    movement.summary.includes(CCTP_CHAINS[key].name),
+  );
+  if (!sourceKey) {
+    console.log(`  cannot tell which chain "${movement.summary}" burned on`);
+    process.exitCode = 1;
+    return;
+  }
+  const recipient =
+    mint?.destinationAddress ??
+    movement.participants.find((party) => party.role === 'recipient')?.address;
+  if (!recipient) {
+    console.log('  cannot recover the mint recipient from the movement');
+    process.exitCode = 1;
+    return;
+  }
+  const amountUsdc = formatUsdcMicros(movement.amountMicros);
+  console.log(`${movement.reference}  ${movement.kind}  ${movement.state}`);
+  console.log(`  ${movement.summary}`);
+  console.log(
+    `  bridge ${bridgeId}: ${sourceKey} (domain ${CCTP_CHAINS[sourceKey].domain}) -> arc, ` +
+      `${amountUsdc} USDC to ${recipient}`,
+  );
+  console.log(
+    `  burn ${burn.txHash.slice(0, 10)}…` +
+      (mint?.txHash ? `, mint ${mint.txHash.slice(0, 10)}… (already landed)` : ', mint pending'),
+  );
+  if (!execute) {
+    console.log('  would write the bridge row as relaying; re-run with --execute');
+    console.log('  then RESTART the api container so resumePendingBridges finishes the relay');
+    return;
+  }
+  await createBridge({
+    bridgeId,
+    movementReference: movement.reference,
+    sourceDomain: CCTP_CHAINS[sourceKey].domain,
+    sourceTxHash: burn.txHash,
+    amountUsdc,
+    mintRecipient: recipient,
+    status: alreadyMinted ? 'minted' : 'relaying',
+    ...(mint?.txHash ? { mintTxHash: mint.txHash } : {}),
+    sourceChainKey: sourceKey,
+    direction: 'in',
+  });
+  if (alreadyMinted) {
+    // The mint is on chain and its hash is on the leg, so there is nothing to
+    // relay: the row is written settled and bridge history is whole without a
+    // restart.
+    console.log('  written as minted; the transfer already landed on Arc');
+  } else {
+    console.log('  written as relaying');
+    console.log('  RESTART the api container: resumePendingBridges will fetch the attestation');
+    console.log('  and mint on Arc, or find the message already received and mark it minted.');
   }
 }
 
