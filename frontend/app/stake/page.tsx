@@ -14,6 +14,7 @@ import {
 import { Hint } from '@/shared/components/Hint';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
+import { AgentStakeBinding } from '@/features/reputation/components/AgentStakeBinding';
 import { PageTour } from '@/shared/guide/PageTour';
 import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
@@ -248,6 +249,10 @@ function StakePageInner() {
           <Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-10">
+          {/* Signing to stake and signing to let your agent use it are one
+              thought, so the link is offered here rather than in onboarding.
+              The card hides itself once every agent resolves. */}
+          <AgentStakeBinding />
           <StakeCard />
           <LegacyStakeNudge />
         </div>

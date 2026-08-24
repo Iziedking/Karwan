@@ -1153,6 +1153,18 @@ export interface BalanceRow {
 }
 
 export interface ChainEvent {
+  eventId?: string;
+  dealRoomId?: string;
+  sequence?: number;
+  aggregateVersion?: number;
+  structuredOffer?: {
+    id: string;
+    version: number;
+    amountUsdc: string;
+    updatedAt: number;
+    deadlineUnix?: number;
+    summary?: string;
+  };
   type: string;
   jobId?: string;
   actor: 'buyer' | 'seller' | 'platform';
@@ -1175,6 +1187,21 @@ export interface FeedbackItem {
   /// Absolute when PUBLIC_API_BASE_URL is set on the backend, otherwise a
   /// path relative to the API origin. The viewer prefixes with api.baseUrl.
   screenshotUrls: string[];
+}
+
+/// Whether each agent resolves to the identity wallet that holds the stake.
+/// `foreign` means bound to a different identity, which signing again cannot
+/// change: KarwanVault refuses to move a binding once it is set.
+export interface AgentBinding {
+  role: 'buyer' | 'seller';
+  agent: string;
+  kind: 'bound' | 'unbound' | 'foreign';
+  owner?: string;
+}
+
+export interface AgentBindingStatus {
+  activated: boolean;
+  agents: AgentBinding[];
 }
 
 export class ApiError extends Error {
@@ -1580,7 +1607,13 @@ export interface ScoutReadEntry {
 
 export const api = {
   baseUrl: BASE,
-  eventsUrl: () => `${BASE}/api/events`,
+  eventsUrl: (dealRoomId?: string, afterSequence?: number) => {
+    const query = new URLSearchParams();
+    if (dealRoomId) query.set('dealRoomId', dealRoomId);
+    if (afterSequence != null) query.set('afterSequence', String(afterSequence));
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    return `${BASE}/api/events${suffix}`;
+  },
   status: () => json<ApiStatus>('/api/agents/status'),
   buyer: (address?: string) =>
     json<{ profile: BuyerAgentProfile | null; jobs: BuyerJob[] }>(
@@ -2415,10 +2448,26 @@ export const api = {
     if (caller) q.set('caller', caller);
     return json<{ events: ChainEvent[] }>(`/api/activity?${q.toString()}`);
   },
+  replayJobEvents: (jobId: string, afterSequence: number) => {
+    const q = new URLSearchParams({ jobId, afterSequence: String(afterSequence) });
+    return json<{
+      dealRoomId: string | null;
+      afterSequence: number;
+      currentSequence: number;
+      events: ChainEvent[];
+    }>(`/api/events/replay?${q.toString()}`);
+  },
   reputation: (address: string, fresh = false) =>
     json<Reputation>(`/api/reputation?address=${address}${fresh ? '&fresh=1' : ''}`),
   activationStatus: (address: string) =>
     json<ActivationStatus>(`/api/activation/status?address=${address}`),
+  agentBinding: (address: string) =>
+    json<AgentBindingStatus>(`/api/activation/agent-binding?address=${address}`),
+  registerAgentBinding: (address: string) =>
+    json<{ bound: boolean; agents: AgentBinding[] }>('/api/activation/agent-binding/register', {
+      method: 'POST',
+      body: JSON.stringify({ address }),
+    }),
   activate: (address: string, names?: AgentNames) =>
     json<ActivationStatus>('/api/activation/activate', {
       method: 'POST',

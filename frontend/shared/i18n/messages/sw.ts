@@ -2619,6 +2619,17 @@ export const sw: Messages = {
     availableTemplate: '{amount} imekusanywa na iko tayari.',
     shortTemplate: 'Una {have} iliyokusanywa. Hii inahitaji {need}.',
   },
+  agentStakeBinding: {
+    tag: 'MAWAKALA NA DHAMANA',
+    title: 'Ruhusu mawakala wako kutumia dhamana yako',
+    body: 'Mawakala wako hawashikilii fedha. Tia saini mara moja ili waweze kutegemea dhamana iliyo kwenye pochi hii mkataba unapohitaji msaada. Hadi hapo, mkataba unaohitaji dhamana hauwezi kuanza.',
+    foreignBody: 'Mmoja wa mawakala wako tayari ameunganishwa na pochi nyingine. Kiungo hicho hakiwezi kuhamishwa. Wasiliana na msaada.',
+    cta: 'Tia saini kuunganisha',
+    busyCta: 'Inaunganisha',
+    doneCta: 'Imeunganishwa',
+    incomplete: 'Kuunganisha hakukukamilika. Jaribu tena baadaye.',
+    failed: 'Imeshindwa kuunganisha mawakala wako. Jaribu tena.',
+  },
   gatewayCard: {
     connectCta: 'Unganisha pochi',
     soonTag: 'INAKUJA HIVI KARIBUNI',

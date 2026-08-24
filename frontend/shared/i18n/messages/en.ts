@@ -2374,6 +2374,21 @@ interface MessagesShape {
     availableTemplate: string;
     shortTemplate: string;
   };
+  /// Letting an agent draw on the identity wallet's stake. The vault resolves
+  /// an agent to its identity before reading a balance, but only once the pair
+  /// is bound, and the identity's half of that handshake is a signature only
+  /// the user can give.
+  agentStakeBinding: {
+    tag: string;
+    title: string;
+    body: string;
+    foreignBody: string;
+    cta: string;
+    busyCta: string;
+    doneCta: string;
+    incomplete: string;
+    failed: string;
+  };
   gatewayCard: {
     connectCta: string;
     soonTag: string;
@@ -7334,6 +7349,17 @@ export const en: MessagesShape = {
     failed: 'Funding failed.',
     availableTemplate: '{amount} pooled and ready.',
     shortTemplate: 'You have {have} pooled. This needs {need}.',
+  },
+  agentStakeBinding: {
+    tag: 'AGENTS AND STAKE',
+    title: 'Let your agents use your stake',
+    body: 'Your agents hold no funds. Sign once so they can draw on the stake held by this wallet when a deal needs backing. Until you do, a deal that reserves stake cannot start.',
+    foreignBody: 'One of your agents is already linked to a different wallet. That link cannot be moved. Contact support so it can be looked at.',
+    cta: 'Sign to link',
+    busyCta: 'Linking',
+    doneCta: 'Linked',
+    incomplete: 'The link did not finish. Try again in a moment.',
+    failed: 'Could not link your agents. Try again.',
   },
   gatewayCard: {
     connectCta: 'Connect wallet',

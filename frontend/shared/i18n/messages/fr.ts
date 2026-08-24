@@ -2619,6 +2619,17 @@ export const fr: Messages = {
     availableTemplate: '{amount} groupés et prêts.',
     shortTemplate: 'Vous avez {have} groupés. Il en faut {need}.',
   },
+  agentStakeBinding: {
+    tag: 'AGENTS ET GARANTIE',
+    title: 'Laissez vos agents utiliser votre garantie',
+    body: "Vos agents ne détiennent aucun fonds. Signez une fois pour qu'ils puissent s'appuyer sur la garantie de ce portefeuille quand une transaction en a besoin. Sans cela, une transaction qui réserve une garantie ne peut pas démarrer.",
+    foreignBody: "L'un de vos agents est déjà lié à un autre portefeuille. Ce lien ne peut pas être déplacé. Contactez le support.",
+    cta: 'Signer pour lier',
+    busyCta: 'Liaison',
+    doneCta: 'Lié',
+    incomplete: "La liaison ne s'est pas terminée. Réessayez dans un instant.",
+    failed: 'Impossible de lier vos agents. Réessayez.',
+  },
   gatewayCard: {
     connectCta: 'Connecter le portefeuille',
     soonTag: 'BIENTÔT',

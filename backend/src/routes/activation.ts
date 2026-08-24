@@ -26,6 +26,7 @@ import {
 import { getUserByAddress } from '../db/users.js';
 import { appendActivity } from '../db/activityLog.js';
 import { isSessionSelf } from '../auth/session.js';
+import { bindingStateFor } from '../chain/agentBinding.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
 import { publicClient } from '../chain/client.js';
@@ -1206,6 +1207,149 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
     }
     return c.json({ error: 'fund transfer completion failed' }, 502);
   }
+});
+
+
+/// Is each agent bound to the identity wallet that holds the stake?
+///
+/// The question behind every stake-backed deal. `KarwanEscrow.acceptEscrow`
+/// asks the vault for the SELLER AGENT's free stake, and the vault answers about
+/// whichever identity that agent resolves to. Unbound, it resolves to itself,
+/// reads zero, and the deal cannot activate however much the identity holds.
+activationRoutes.get('/agent-binding', async (c) => {
+  const address = c.req.query('address');
+  if (!address) return c.json({ error: 'address query param required' }, 400);
+  const parsed = addrSchema.safeParse(address);
+  if (!parsed.success) return c.json({ error: 'invalid address' }, 400);
+  if (!isSessionSelf(c, parsed.data)) {
+    return c.json({ error: 'You can only read your own wallets.', code: 'forbidden' }, 403);
+  }
+  const wallets = await getAgentWallets(parsed.data);
+  if (!wallets) return c.json({ activated: false, agents: [] });
+
+  const pairs = [
+    { role: 'buyer' as const, agent: wallets.buyerAddress },
+    { role: 'seller' as const, agent: wallets.sellerAddress },
+  ].filter((pair) => !!pair.agent);
+
+  const agents = await Promise.all(
+    pairs.map(async (pair) => {
+      try {
+        const resolved = (await vault.read.resolveOwner([pair.agent as `0x${string}`])) as string;
+        return {
+          role: pair.role,
+          agent: pair.agent,
+          ...bindingStateFor({ agent: pair.agent, resolvedOwner: resolved, identity: parsed.data }),
+        };
+      } catch (err) {
+        // A read that failed is not a binding that exists. Reporting `unbound`
+        // offers a signature that is harmless if it turns out to be redundant;
+        // reporting bound would hide a deal that cannot activate.
+        logger.warn(
+          { agent: pair.agent, err: (err as Error).message },
+          'agent binding read failed',
+        );
+        return { role: pair.role, agent: pair.agent, kind: 'unbound' as const };
+      }
+    }),
+  );
+  return c.json({ activated: true, agents });
+});
+
+/// Finish the handshake, after the identity has approved its agents.
+///
+/// Step two only: `registerOwner` is sent BY each agent wallet, which the
+/// backend holds. Step one is `approveAgent`, sent by the identity, and for a
+/// connected wallet that signature is the user's to give: the vault reads
+/// msg.sender as the owner granting consent, and consent the backend could forge
+/// would not be consent. An email account's identity is a wallet the backend
+/// signs with, so both steps run here for them.
+activationRoutes.post('/agent-binding/register', async (c) => {
+  let body;
+  try {
+    body = z.object({ address: addrSchema }).parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.address)) {
+    return c.json({ error: 'You can only bind your own agents.', code: 'forbidden' }, 403);
+  }
+  const wallets = await getAgentWallets(body.address);
+  if (!wallets) return c.json({ error: 'activate your agents first' }, 409);
+
+  // An email or passkey account's identity IS a wallet the backend signs with,
+  // so step one is ours to send for them and the whole handshake completes in
+  // this one call. A connected wallet's approval is the user's signature, sent
+  // before they get here; there is nothing to do for them at this point.
+  const identityWalletId = getUserByAddress(body.address)?.circleIdentityWalletId;
+  if (identityWalletId) {
+    for (const agent of [wallets.sellerAddress, wallets.buyerAddress]) {
+      if (!agent) continue;
+      try {
+        await executeContractCall(
+          {
+            walletId: identityWalletId,
+            contractAddress: vault.address,
+            abiFunctionSignature: 'approveAgent(address)',
+            abiParameters: [agent],
+          },
+          `vault.approveAgent(${agent})`,
+        );
+      } catch (err) {
+        // Approving twice is harmless (the mapping is a set), so a failure here
+        // is worth a line but never worth stopping: registerOwner below is the
+        // step that reports whether the pair actually bound.
+        logger.warn(
+          { agent, err: (err as Error).message },
+          'identity approveAgent failed; registerOwner will report the outcome',
+        );
+      }
+    }
+  }
+
+  const results: Array<{ role: string; agent: string; bound: boolean; reason?: string }> = [];
+  for (const pair of [
+    { role: 'seller' as const, walletId: wallets.sellerWalletId, agent: wallets.sellerAddress },
+    { role: 'buyer' as const, walletId: wallets.buyerWalletId, agent: wallets.buyerAddress },
+  ]) {
+    if (!pair.walletId || !pair.agent) continue;
+    try {
+      await executeContractCall(
+        {
+          walletId: pair.walletId,
+          contractAddress: vault.address,
+          abiFunctionSignature: 'registerOwner(address)',
+          abiParameters: [body.address],
+        },
+        `vault.registerOwner(${pair.role} ${pair.agent})`,
+      );
+      results.push({ role: pair.role, agent: pair.agent, bound: true });
+    } catch (err) {
+      const message = (err as Error).message.toLowerCase();
+      // Already bound is success: the handshake is idempotent and a retry after
+      // a partial run must not read as a failure.
+      if (message.includes('agentowneralreadyset')) {
+        results.push({ role: pair.role, agent: pair.agent, bound: true });
+        continue;
+      }
+      const notApproved = message.includes('agentnotapproved');
+      logger.error(
+        { role: pair.role, agent: pair.agent, err: (err as Error).message },
+        'agent binding registration failed',
+      );
+      results.push({
+        role: pair.role,
+        agent: pair.agent,
+        bound: false,
+        // Named, because it is the difference between "sign the approval" and
+        // "something is wrong". An unapproved agent means step one has not
+        // landed yet, which on a connected wallet is the user's transaction.
+        reason: notApproved ? 'not_approved' : 'failed',
+      });
+    }
+  }
+  const bound = results.every((result) => result.bound);
+  return c.json({ bound, agents: results }, bound ? 200 : 409);
 });
 
 /// Move a starter USDC seed from the user's identity wallet to each freshly
