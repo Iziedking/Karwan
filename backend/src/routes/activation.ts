@@ -552,10 +552,14 @@ activationRoutes.post('/activate', async (c) => {
       sellerName: cleanName(body.sellerName),
     });
 
-    // Bind each agent → identity on the vault so stake-backed reservations
-    // (acceptEscrow) resolve to the right owner. Fire-and-forget.
-    void registerAgentOwnerOnVault(record.sellerWalletId, record.sellerAddress, userAddress, 'seller');
-    void registerAgentOwnerOnVault(record.buyerWalletId, record.buyerAddress, userAddress, 'buyer');
+    // Bind each agent → identity on the vault so a stake-backed reservation
+    // (acceptEscrow) resolves to the wallet that actually holds the stake.
+    //
+    // This only completes here for an account whose identity is a wallet we
+    // sign with: the vault requires the OWNER to approve the agent first, and
+    // for a connected wallet that signature is the user's. They complete it on
+    // /stake, which is where stake starts mattering.
+    void bindAgentsAtActivation(userAddress, record);
 
     // Seed both agents with a small USDC float from the operator wallet so the
     // user lands ready to trade. This is the reliable funding path: the public
@@ -1361,8 +1365,8 @@ async function registerAgentOwnerOnVault(
   agentAddress: string,
   userAddress: string,
   role: 'buyer' | 'seller',
-): Promise<void> {
-  if (!walletId) return;
+): Promise<'bound' | 'needs_owner' | 'failed'> {
+  if (!walletId) return 'failed';
   try {
     await executeContractCall(
       {
@@ -1374,16 +1378,78 @@ async function registerAgentOwnerOnVault(
       `vault.registerOwner(${role} ${agentAddress})`,
     );
     logger.info({ role, agent: agentAddress, owner: userAddress }, 'agent owner registered on vault');
+    return 'bound';
   } catch (err) {
     const msg = (err as Error).message;
-    if (msg.toLowerCase().includes('agentowneralreadyset')) {
+    const lower = msg.toLowerCase();
+    if (lower.includes('agentowneralreadyset')) {
       logger.info({ role, agent: agentAddress }, 'agent owner already registered (idempotent)');
-      return;
+      return 'bound';
     }
-    logger.warn(
-      { role, agent: agentAddress, err: msg },
-      'agent owner registration failed; stake-backed deals may revert until resolved',
+    // The owner has not approved this agent yet, which for a connected wallet is
+    // the normal state at activation: their approval is a signature only they
+    // can give, and they give it on /stake. Not a failure, and it must not be
+    // logged as one or the real failures below become invisible.
+    if (lower.includes('agentnotapproved')) {
+      logger.info(
+        { role, agent: agentAddress, owner: userAddress },
+        'agent binding waiting on the owner\'s approval',
+      );
+      return 'needs_owner';
+    }
+    // Anything else IS a failure, and it used to be a warn that nobody read.
+    // An unbound agent is a stake-backed deal that will fail at acceptEscrow,
+    // long after this line, with an error that names none of this.
+    logger.error(
+      { role, agent: agentAddress, owner: userAddress, err: msg },
+      'agent binding failed; stake-backed deals for this agent cannot activate',
     );
+    return 'failed';
+  }
+}
+
+/// Bind both agents at activation, doing the owner's half too when we can.
+///
+/// An email or passkey account's identity is a wallet the backend signs with,
+/// so `approveAgent` is ours to send and the pair binds here and now. A
+/// connected wallet's approval is the user's signature; their agents stay
+/// unbound until /stake, which the binding card there exists to fix.
+async function bindAgentsAtActivation(
+  userAddress: string,
+  record: {
+    buyerWalletId?: string;
+    sellerWalletId?: string;
+    buyerAddress: string;
+    sellerAddress: string;
+  },
+): Promise<void> {
+  const identityWalletId = getUserByAddress(userAddress)?.circleIdentityWalletId;
+  const pairs = [
+    { role: 'seller' as const, walletId: record.sellerWalletId, agent: record.sellerAddress },
+    { role: 'buyer' as const, walletId: record.buyerWalletId, agent: record.buyerAddress },
+  ];
+
+  for (const pair of pairs) {
+    if (!pair.agent) continue;
+    if (identityWalletId) {
+      try {
+        await executeContractCall(
+          {
+            walletId: identityWalletId,
+            contractAddress: vault.address,
+            abiFunctionSignature: 'approveAgent(address)',
+            abiParameters: [pair.agent],
+          },
+          `vault.approveAgent(${pair.role} ${pair.agent})`,
+        );
+      } catch (err) {
+        logger.error(
+          { role: pair.role, agent: pair.agent, err: (err as Error).message },
+          'identity could not approve its agent; the binding below will not complete',
+        );
+      }
+    }
+    await registerAgentOwnerOnVault(pair.walletId, pair.agent, userAddress, pair.role);
   }
 }
 
