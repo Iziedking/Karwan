@@ -3135,6 +3135,10 @@ interface MessagesShape {
       /// state exists because a confirmation watcher timing out was being shown
       /// to users as a failed transfer that had in fact settled.
       unconfirmed: string;
+      /// Confirmed on chain, with Karwan's own record still catching up. A
+      /// separate state from 'error' for the same reason 'unconfirmed' is: the
+      /// money has moved, and the row must not read Failed.
+      settling: string;
       done: string;
       error: string;
     };
@@ -8106,6 +8110,7 @@ export const en: MessagesShape = {
       signing: 'Sign in wallet',
       confirming: 'Confirming on Arc',
       unconfirmed: 'Submitted, awaiting confirmation',
+      settling: 'Sent. Confirming with Karwan',
       sending: 'Transferring on Arc',
       done: 'Sent',
       error: 'Failed',

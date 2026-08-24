@@ -12,6 +12,12 @@
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
 import { getDeal } from '../db/deals.js';
+import {
+  deliverableNoun,
+  startPhrase,
+  tradeTypeOf,
+  type TradeType,
+} from '../deals/tradeVocabulary.js';
 import { getProfile } from '../db/profiles.js';
 import { resendClient } from './resend.js';
 import { sendDealEventEmail } from './dealEventEmail.js';
@@ -144,7 +150,27 @@ interface EmailContent {
   ctaUrl?: string;
 }
 
-function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | null {
+/// Events whose wording depends on what was actually bought. Anything not on
+/// this list never says "the work", so it never needs the lookup below.
+const TRADE_AWARE = new Set(['deal.accepted', 'deal.delivered', 'deal.match.approved']);
+
+/// The deal's trade type, from the event if it carries one and from the deal
+/// otherwise. Events replayed from chain logs have no payload beyond what the
+/// log held, and those are exactly the ones that would fall back to freelance
+/// wording, so the read is worth it.
+async function tradeTypeFor(e: KarwanEvent): Promise<TradeType> {
+  if (!TRADE_AWARE.has(e.type)) return 'service';
+  const fromPayload = e.payload?.tradeType;
+  if (fromPayload) return tradeTypeOf({ tradeType: fromPayload as TradeType });
+  if (!e.jobId) return 'service';
+  return tradeTypeOf(await getDeal(e.jobId).catch(() => null));
+}
+
+function contentFor(
+  e: KarwanEvent,
+  role: Recipient['role'],
+  trade: TradeType,
+): EmailContent | null {
   const amount = (e.payload?.dealAmountUsdc as string | undefined) ?? '';
   const amountSuffix = amount ? ` (${amount} USDC)` : '';
 
@@ -189,7 +215,7 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
         heading: 'Match accepted, escrow funded',
         body:
           role === 'seller'
-            ? `Escrow is funded${amountSuffix}. Deliver in Karwan when the work is ready.`
+            ? `Escrow is funded${amountSuffix}. Deliver in Karwan when ${deliverableNoun(trade)} is ready.`
             : `The seller accepted and escrow is funded${amountSuffix}. Standby for delivery.`,
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
@@ -233,7 +259,7 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
         eyebrow: 'ESCROW FUNDED',
         subject: `Escrow funded${amountSuffix}`,
         heading: 'Escrow is funded',
-        body: 'The escrow is funded and the seller can begin the work.',
+        body: `The escrow is funded and the seller can ${startPhrase(trade)}.`,
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -241,9 +267,9 @@ function contentFor(e: KarwanEvent, role: Recipient['role']): EmailContent | nul
       return role === 'buyer'
         ? {
             eyebrow: 'DELIVERED',
-            subject: 'Your seller marked the work delivered',
-            heading: 'Work delivered',
-            body: 'The seller marked the work delivered. Open the deal to verify and release escrow.',
+            subject: `Your seller marked ${deliverableNoun(trade)} delivered`,
+            heading: trade === 'service' ? 'Work delivered' : 'Delivered',
+            body: `The seller marked ${deliverableNoun(trade)} delivered. Open the deal to verify and release escrow.`,
             ctaLabel: 'Verify and release',
             ctaUrl: dealUrl(e.jobId),
           }
@@ -469,12 +495,13 @@ export function startEmailNotifier(): () => void {
     if (!EMAIL_RELEVANT.has(e.type)) return;
     try {
       const recipients = await recipientsFor(e);
+      const trade = await tradeTypeFor(e);
       for (const r of recipients) {
         const profile = await getProfile(r.address);
         // Only verified contact emails, and respect the mute toggle.
         if (!profile?.email || !profile.emailVerified) continue;
         if (profile.settings?.notificationsMuted) continue;
-        const content = contentFor(e, r.role);
+        const content = contentFor(e, r.role, trade);
         if (!content) continue;
         await sendDealEventEmail({ to: profile.email, ...content });
       }

@@ -30,7 +30,13 @@ import { bindingStateFor } from '../chain/agentBinding.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
 import { publicClient } from '../chain/client.js';
-import { executeContractCall } from '../chain/txs.js';
+import { executeContractCall, getTxState } from '../chain/txs.js';
+import {
+  canRestartFunding,
+  fundingTxHash,
+  fundingVerdict,
+  type ReceiptStanding,
+} from '../money/fundingOutcome.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
 import { invalidateDepositIndex } from '../circle/depositWatcher.js';
@@ -859,6 +865,10 @@ activationRoutes.post('/fund-agent', async (c) => {
 
   fundInFlight.add(key);
   let movementReference: string | undefined;
+  /// The transfer's hash, once it has been sent. The steps after sending are
+  /// recording steps, and a failure in one of them says nothing about whether
+  /// the money moved: this is what lets the catch find out instead of assuming.
+  let sentTxHash: string | undefined;
   try {
     const amountWei = parseUnits(body.amountUsdc.toString(), USDC_DECIMALS);
     const requestKey = body.requestId ?? randomUUID();
@@ -887,13 +897,48 @@ activationRoutes.post('/fund-agent', async (c) => {
       }, 200);
     }
     if (current.state === 'needs_attention') {
-      return c.json({
-        accepted: false,
-        error: 'fund transfer needs attention',
-        agentAddress,
-        reference: current.reference,
-        movementState: current.state,
-      }, 409);
+      // This used to be a flat 409, which made the state permanent: every
+      // retry came back to the same refusal, so a transfer that had landed
+      // could never be recorded and the row read Failed forever. There is no
+      // separate reconcile route on this path, so the recovery happens here.
+      const standing = await agentFundingStanding(movement.reference, undefined).catch(() => null);
+      if (standing?.verdict === 'landed' && standing.leg) {
+        const recorded = await recordAgentFundingSuccess(
+          movement.reference,
+          standing.leg.id,
+        ).catch(() => null);
+        if (recorded) {
+          logger.info(
+            { userAddress, agent: body.agent, txHash: standing.txHash },
+            'fund-agent recovered on retry: the earlier transfer had landed',
+          );
+          return c.json({
+            accepted: true,
+            alreadyRecorded: true,
+            txHash: standing.txHash,
+            agentAddress,
+            reference: recorded.reference,
+            movementState: recorded.state,
+          }, 200);
+        }
+      }
+      if (!canRestartFunding(current.legs)) {
+        // A hash exists and the chain has not confirmed it yet. Sending again
+        // would move the money twice.
+        return c.json({
+          accepted: false,
+          error: 'This transfer is already on chain. Karwan is confirming it.',
+          code: 'funding_in_flight',
+          agentAddress,
+          reference: current.reference,
+          movementState: current.state,
+          txHash: standing?.txHash ?? null,
+        }, 409);
+      }
+      logger.info(
+        { userAddress, agent: body.agent, reference: current.reference },
+        'restarting an identity funding attempt that stalled before anything was sent',
+      );
     }
     const prepared = await prepareAgentFundingLeg(movement.reference, {
       walletId: user.circleIdentityWalletId,
@@ -914,6 +959,9 @@ activationRoutes.post('/fund-agent', async (c) => {
       },
       `fund-agent(${body.agent} <- identity ${userAddress})`,
     );
+    // Held outside the try's own scope so the catch can ask the chain whether
+    // this landed. Everything below is bookkeeping.
+    sentTxHash = result.txHash;
     const verified = await verifyMoneyMovementLeg(movement.reference, prepared.leg.id);
     const completed = await completeMoneyMovement(verified.reference);
     bus.emitEvent({
@@ -957,17 +1005,76 @@ activationRoutes.post('/fund-agent', async (c) => {
     }, 200);
   } catch (err) {
     logger.error(
-      { userAddress, agent: body.agent, err: (err as Error).message },
+      { userAddress, agent: body.agent, err: (err as Error).message, txHash: sentTxHash },
       'fund-agent failed',
     );
+    // Everything after the transfer itself is bookkeeping, and this catch used
+    // to mark the movement as needing attention without ever asking the chain.
+    // A user whose USDC had moved was shown "Failed" beside the transaction
+    // that moved it. Find out first.
     if (movementReference) {
+      const standing = await agentFundingStanding(movementReference, sentTxHash).catch(() => null);
+      if (standing?.verdict === 'landed' && standing.leg) {
+        try {
+          const recorded = await recordAgentFundingSuccess(movementReference, standing.leg.id);
+          logger.info(
+            { userAddress, agent: body.agent, txHash: standing.txHash },
+            'fund-agent recovered: the transfer landed and the record caught up',
+          );
+          return c.json({
+            accepted: true,
+            txHash: standing.txHash,
+            agentAddress,
+            reference: recorded.reference,
+            movementState: recorded.state,
+          }, 200);
+        } catch (recoveryErr) {
+          // The money moved and the record still cannot be closed. Say that,
+          // with the transaction attached, rather than calling it a failure.
+          logger.error(
+            { userAddress, txHash: standing.txHash, err: (recoveryErr as Error).message },
+            'fund-agent landed but could not be recorded',
+          );
+          const attention = await markMoneyMovementNeedsAttention(
+            movementReference,
+            'AGENT_FUNDING_LANDED_UNRECORDED',
+          ).catch(() => null);
+          return c.json({
+            error: 'The transfer went through. Karwan is still confirming it.',
+            code: 'funding_landed_unrecorded',
+            txHash: standing.txHash,
+            reference: movementReference,
+            movementState: attention?.state ?? 'needs_attention',
+          }, 202);
+        }
+      }
+      logger.warn(
+        {
+          userAddress,
+          agent: body.agent,
+          verdict: standing?.verdict ?? 'unknown',
+          receipt: standing?.receipt,
+          txHash: standing?.txHash,
+        },
+        'fund-agent could not be confirmed on chain',
+      );
       const attention = await markMoneyMovementNeedsAttention(
         movementReference,
-        'AGENT_FUNDING_UNKNOWN_OUTCOME',
+        standing?.verdict === 'did_not_land'
+          ? 'AGENT_FUNDING_FAILED'
+          : 'AGENT_FUNDING_UNKNOWN_OUTCOME',
       ).catch(() => null);
+      // Two different things, and they had better not read the same. One means
+      // nothing moved and they can try again. The other means Karwan does not
+      // know yet, which is not the user's problem to solve by re-sending.
       return c.json({
-        error: 'fund transfer needs attention',
+        error:
+          standing?.verdict === 'did_not_land'
+            ? 'The transfer did not go through. Nothing left your wallet.'
+            : 'Karwan is still confirming this transfer. Check activity in a moment.',
+        code: standing?.verdict === 'did_not_land' ? 'funding_failed' : 'funding_unconfirmed',
         detail: (err as Error).message,
+        ...(standing?.txHash ? { txHash: standing.txHash } : {}),
         reference: movementReference,
         movementState: attention?.state ?? 'needs_attention',
       }, 502);
@@ -1024,14 +1131,27 @@ activationRoutes.post('/fund-agent-web3/intent', async (c) => {
         movementState: current.state,
       }, 200);
     }
-    if (current.state === 'needs_attention') {
+    if (current.state === 'needs_attention' && !canRestartFunding(current.legs)) {
+      // A hash under this movement means a transfer may already be on chain.
+      // Sending again would move the money twice, so this one is finished
+      // through /complete against its proof rather than started over.
       return c.json({
         accepted: false,
-        error: 'fund transfer needs attention',
+        error: 'This transfer is already on chain. Karwan is confirming it.',
+        code: 'funding_in_flight',
         agentAddress,
         reference: current.reference,
         movementState: current.state,
+        txHash: current.legs.find((leg) => leg.txHash)?.txHash ?? null,
       }, 409);
+    }
+    if (current.state === 'needs_attention') {
+      // Nothing was ever sent under it. Refusing here is what made the state
+      // permanent: every retry came back to the same 409.
+      logger.info(
+        { userAddress, agent: body.agent, reference: current.reference },
+        'restarting a funding intent that stalled before anything was sent',
+      );
     }
     const prepared = await prepareAgentFundingLeg(movementReference, {
       signerAddress: userAddress,
@@ -1055,7 +1175,8 @@ activationRoutes.post('/fund-agent-web3/intent', async (c) => {
         'WEB3_AGENT_FUNDING_INTENT_FAILED',
       ).catch(() => null);
       return c.json({
-        error: 'fund transfer needs attention',
+        error: 'Could not start the transfer. Nothing left your wallet.',
+        code: 'funding_failed',
         reference: movementReference,
         movementState: attention?.state ?? 'needs_attention',
       }, 502);
@@ -1115,12 +1236,16 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
       }, 200);
     }
     if (movement.state === 'needs_attention') {
-      return c.json({
-        accepted: false,
-        error: 'fund transfer needs attention',
-        reference: movement.reference,
-        movementState: movement.state,
-      }, 409);
+      // Deliberately not a refusal. This route proves the transfer against the
+      // Arc receipt below, and that proof is exactly what should clear the
+      // flag. Returning 409 here made the state permanent: the user's own
+      // wallet had signed, the chain had mined it, and neither retry nor the
+      // resume pass could ever record it. If the proof does not hold, the
+      // checks below leave the movement exactly as they found it.
+      logger.info(
+        { userAddress, agent: body.agent, reference: movement.reference, txHash: body.txHash },
+        'recovering a funding movement that needs attention, against its receipt',
+      );
     }
 
     const receipt = await publicClient.getTransactionReceipt({ hash: body.txHash as `0x${string}` });
@@ -1199,12 +1324,33 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
   } catch (err) {
     logger.error({ userAddress, agent: body.agent, txHash: body.txHash, err: (err as Error).message }, 'web3 fund completion failed');
     if (movementReference) {
+      // The user signed this one themselves and handed us the hash. Whether the
+      // money moved is a question the chain answers, and it gets asked before
+      // anything here reads as a failed transfer.
+      const receipt = await receiptStandingOf(body.txHash);
+      const verdict = fundingVerdict({ txHash: body.txHash, receipt });
       const attention = await markMoneyMovementNeedsAttention(
         movementReference,
-        'WEB3_AGENT_FUNDING_UNKNOWN_OUTCOME',
+        verdict === 'landed'
+          ? 'WEB3_AGENT_FUNDING_LANDED_UNRECORDED'
+          : 'WEB3_AGENT_FUNDING_UNKNOWN_OUTCOME',
       ).catch(() => null);
+      if (verdict === 'landed') {
+        return c.json({
+          error: 'The transfer went through. Karwan is still confirming it.',
+          code: 'funding_landed_unrecorded',
+          txHash: body.txHash,
+          reference: movementReference,
+          movementState: attention?.state ?? 'needs_attention',
+        }, 202);
+      }
       return c.json({
-        error: 'fund transfer needs attention',
+        error:
+          verdict === 'did_not_land'
+            ? 'The transfer did not go through. Nothing left your wallet.'
+            : 'Karwan is still confirming this transfer. Check activity in a moment.',
+        code: verdict === 'did_not_land' ? 'funding_failed' : 'funding_unconfirmed',
+        txHash: body.txHash,
         reference: movementReference,
         movementState: attention?.state ?? 'needs_attention',
       }, 502);
@@ -1213,6 +1359,66 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
   }
 });
 
+
+/// Did this transfer actually land on Arc?
+///
+/// Asked in a catch, so it must never throw its own way out: an RPC that cannot
+/// answer means "not known to have landed", which keeps the caller on the
+/// cautious path rather than claiming a success it cannot see.
+async function receiptStandingOf(txHash: string): Promise<ReceiptStanding> {
+  try {
+    const receipt = await publicClient.getTransactionReceipt({ hash: txHash as `0x${string}` });
+    return receipt.status === 'success' ? 'success' : 'reverted';
+  } catch (err) {
+    // viem throws the same shape whether the transaction is simply not mined
+    // yet and whether the node could not be reached. Neither is a failure, and
+    // the verdict treats them the same, so the distinction is kept only for the
+    // log line that someone will read later.
+    const message = (err as Error).message ?? '';
+    return /not be found|not found/i.test(message) ? 'not_found' : 'unreadable';
+  }
+}
+
+/// Everything known about a funding attempt that threw while being recorded.
+async function agentFundingStanding(reference: string, sentTxHash: string | undefined) {
+  const movement = await currentMoneyMovement(reference).catch(() => null);
+  const leg = movement?.legs.find(
+    (candidate) => candidate.attempt === movement.attempt && candidate.key === 'arc_transfer',
+  );
+  // No hash anywhere means the poll loop gave up before the transaction was
+  // mined. Circle still knows: it holds the submission, and its state says
+  // whether this will ever land.
+  const provider =
+    !leg?.txHash && !sentTxHash && leg?.providerId
+      ? await getTxState(leg.providerId).catch(() => null)
+      : null;
+  const txHash = fundingTxHash({
+    legTxHash: leg?.txHash,
+    sentTxHash,
+    providerTxHash: provider?.txHash,
+  });
+  const receipt: ReceiptStanding = txHash ? await receiptStandingOf(txHash) : 'not_found';
+  const verdict = fundingVerdict({ txHash, receipt, providerState: provider?.state });
+  return { movement, leg, txHash, receipt, verdict };
+}
+
+/// Walk a funding movement to completed against a transaction that landed.
+///
+/// Uses the same recording path a healthy run uses, rather than writing state
+/// by hand, so a recovered movement is indistinguishable from one that never
+/// stumbled.
+async function recordAgentFundingSuccess(reference: string, legId: string) {
+  await verifyMoneyMovementLeg(reference, legId).catch(async (err) => {
+    // Already verified is not a failure. Anything else is.
+    const after = await currentMoneyMovement(reference);
+    const leg = after.legs.find((candidate) => candidate.id === legId);
+    if (leg?.state !== 'verified') throw err;
+    return after;
+  });
+  const after = await currentMoneyMovement(reference);
+  if (after.state === 'completed') return after;
+  return completeMoneyMovement(reference);
+}
 
 /// Is each agent bound to the identity wallet that holds the stake?
 ///

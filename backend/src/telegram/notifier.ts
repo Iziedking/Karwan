@@ -6,6 +6,12 @@ import { getTelegramLink } from '../db/telegramLinks.js';
 import { sendTelegramMessage, telegramEnabled } from './bot.js';
 import { logger } from '../logger.js';
 import { tg } from '../i18n/telegram.js';
+import {
+  deliverableNoun,
+  startPhrase,
+  tradeTypeOf,
+  type TradeType,
+} from '../deals/tradeVocabulary.js';
 
 function dealUrl(jobId: string | undefined): string | null {
   if (!jobId || !config.FRONTEND_BASE_URL) return null;
@@ -392,15 +398,20 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         '*Seller agreed to the terms.* Review the current fee and exact total, then fund escrow when ready.',
         url,
       );
-    case 'deal.accepted':
-      return withLink('*Escrow funded.* The seller can start the work.', url);
-    case 'deal.delivered':
+    case 'deal.accepted': {
+      // "the work" is a freelance word. A supplies trade gets its own.
+      const trade = tradeTypeOf({ tradeType: e.payload?.tradeType as TradeType | undefined });
+      return withLink(`*Escrow funded.* The seller can ${startPhrase(trade)}.`, url);
+    }
+    case 'deal.delivered': {
+      const trade = tradeTypeOf({ tradeType: e.payload?.tradeType as TradeType | undefined });
       return withLink(
         role === 'buyer'
-          ? '*Seller marked the work delivered*. Open the deal to verify and release.'
+          ? `*Seller marked ${deliverableNoun(trade)} delivered*. Open the deal to verify and release.`
           : '*You marked the deal delivered*. The buyer review window is open.',
         url,
       );
+    }
     case 'deal.review.started':
       return withLink(
         role === 'seller'

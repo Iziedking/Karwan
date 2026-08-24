@@ -1163,6 +1163,8 @@ export interface ChainEvent {
     amountUsdc: string;
     updatedAt: number;
     deadlineUnix?: number;
+    buyerMandateVersion?: number;
+    sellerMandateVersion?: number;
     summary?: string;
   };
   type: string;
@@ -1576,6 +1578,71 @@ export interface AdminProfileRow {
   createdAt: number;
 }
 
+export type AdminMatchingReviewDecision =
+  | 'retain_legacy'
+  | 'accept_shadow'
+  | 'needs_more_evidence';
+
+export type AdminMatchingReviewReason =
+  | 'winner-divergence'
+  | 'false-negative'
+  | 'semantic-review-pending';
+
+export interface AdminMatchingReviewItem {
+  observationKey: string;
+  source: 'buyer-bids' | 'listing-brief';
+  mandateId: string;
+  mandateVersion: number;
+  observedAt: number;
+  reasons: AdminMatchingReviewReason[];
+  legacyWinnerId?: string;
+  shadowWinnerId?: string;
+}
+
+export interface AdminMatchingReview {
+  reviewId: string;
+  observationKey: string;
+  decision: AdminMatchingReviewDecision;
+  reviewer: string;
+  note?: string;
+  createdAt: number;
+}
+
+export interface AdminMatchingReviewQueueResponse {
+  mode: 'read-only-shadow';
+  enabled: boolean;
+  authoritativeMatching: 'legacy';
+  summary: {
+    total: number;
+    bySource: { 'buyer-bids': number; 'listing-brief': number };
+    comparison: { matched: number; diverged: number };
+    semanticReviewCandidates?: number;
+    falseNegativeReviews?: number;
+    telemetry?: {
+      latency: {
+        samples: number;
+        legacySamples: number;
+        shadowSamples: number;
+        legacyTotalMs: number;
+        shadowTotalMs: number;
+        legacyAverageMs: number | null;
+        shadowAverageMs: number | null;
+      };
+      paidCalls: {
+        samples: number;
+        pairedSamples: number;
+        legacySamples: number;
+        shadowSamples: number;
+        legacyTotal: number;
+        shadowTotal: number;
+        delta: number | null;
+      };
+    };
+  };
+  reviewQueue: AdminMatchingReviewItem[];
+  records: unknown[];
+}
+
 /// A paid market read as the backend returns it (x402 externalClient MarketRead).
 /// `paidUsd` maps to the MarketReadCard's `amountUsd` when rendering.
 export interface ApiMarketRead {
@@ -1837,6 +1904,42 @@ export const api = {
   adminProfiles: () =>
     json<{ count: number; profiles: AdminProfileRow[] }>('/api/admin/profiles', {
       headers: adminHeaders(),
+    }),
+  /// Matching shadow review is an operator audit surface only. The backend
+  /// keeps legacy winner selection authoritative and the review disposition
+  /// cannot enable a rollout or trigger any provider/financial action.
+  adminMatchingReviewQueue: (limit = 100) => {
+    const qs = new URLSearchParams({ review: 'required', limit: String(limit) });
+    return json<AdminMatchingReviewQueueResponse>(
+      `/api/admin/agent-runtime/matching-shadow?${qs.toString()}`,
+      { headers: adminHeaders() },
+    );
+  },
+  adminMatchingReviews: (limit = 100) =>
+    json<{
+      mode: 'read-only-matching-review';
+      winnerSelectionChanged: false;
+      rolloutGateChanged: false;
+      reviews: AdminMatchingReview[];
+    }>(`/api/admin/agent-runtime/matching-shadow/reviews?limit=${limit}`, {
+      headers: adminHeaders(),
+    }),
+  adminSubmitMatchingReview: (input: {
+    reviewId: string;
+    observationKey: string;
+    decision: AdminMatchingReviewDecision;
+    reviewer: string;
+    note?: string;
+  }) =>
+    json<{
+      mode: 'read-only-matching-review';
+      winnerSelectionChanged: false;
+      rolloutGateChanged: false;
+      review: AdminMatchingReview;
+    }>('/api/admin/agent-runtime/matching-shadow/reviews', {
+      method: 'POST',
+      headers: { ...adminHeaders(), 'content-type': 'application/json' },
+      body: JSON.stringify(input),
     }),
   /// Arbiter dispute desk. The escrow's arbiter is a 2-of-3 Safe, so resolving
   /// a dispute means collecting owner signatures rather than calling resolve()
@@ -2564,6 +2667,11 @@ export const api = {
       explorerUrl?: string | null;
       reference: string;
       movementState: string;
+      /// A 202 resolves like a success and carries these two: the transfer
+      /// landed and Karwan's own record has not closed yet. See
+      /// shared/chain/fundingPhase.ts.
+      code?: string;
+      error?: string;
     }>(
       '/api/activation/fund-agent',
       {
@@ -2607,6 +2715,11 @@ export const api = {
       agentAddress: string;
       reference: string;
       movementState: string;
+      /// A 202 resolves like a success and carries these two: the transfer
+      /// landed and Karwan's own record has not closed yet. Read them before
+      /// calling the row done. See shared/chain/fundingPhase.ts.
+      code?: string;
+      error?: string;
     }>('/api/activation/fund-agent-web3/complete', {
       method: 'POST',
       body: JSON.stringify(body),

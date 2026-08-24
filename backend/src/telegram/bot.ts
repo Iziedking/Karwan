@@ -5,6 +5,7 @@ import { durableEphemeralMap } from '../db/ephemeral.js';
 import { logger } from '../logger.js';
 import { saveTelegramLink, findAddressByChatId, type TelegramLink } from '../db/telegramLinks.js';
 import { bus, type KarwanEvent } from '../events.js';
+import { deliverableNoun, tradeTypeOf, type TradeType } from '../deals/tradeVocabulary.js';
 import {
   appendOperatorMessage,
   appendUserMessage,
@@ -478,8 +479,12 @@ function catchupLine(e: KarwanEvent, address: string): string | null {
         : 'You agreed to the terms; awaiting buyer funding';
     case 'deal.accepted':
       return 'The buyer funded escrow and the deal is active';
-    case 'deal.delivered':
-      return role === 'buyer' ? 'The seller marked the work delivered' : 'You marked a deal delivered';
+    case 'deal.delivered': {
+      const trade = tradeTypeOf({ tradeType: e.payload?.tradeType as TradeType | undefined });
+      return role === 'buyer'
+        ? `The seller marked ${deliverableNoun(trade)} delivered`
+        : 'You marked a deal delivered';
+    }
     case 'deal.review.started':
       return 'A buyer review window opened';
     case 'deal.auto_released':

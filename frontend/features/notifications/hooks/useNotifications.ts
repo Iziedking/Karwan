@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type DirectDeal } from '@/core/api';
+import { deliverableNoun, startPhrase, tradeTypeOf } from '@/shared/deals/tradeVocabulary';
 import { qk } from '@/core/queryKeys';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -323,6 +324,21 @@ function financeHref(jobId: string): string {
   return jobId ? `/deals/${jobId}` : '/financier';
 }
 
+/// The payload with the deal's trade type filled in when the event did not
+/// carry one. Events replayed from chain logs hold only what the log held, and
+/// those are the ones whose wording would otherwise fall back to freelance. The
+/// viewer's own deal list already knows what each of their deals is.
+function withTradeType(
+  payload: Record<string, unknown> | undefined,
+  jobId: string,
+  tradeByJob: Map<string, string>,
+): Record<string, unknown> | undefined {
+  if (payload?.tradeType) return payload;
+  const known = tradeByJob.get(jobId.toLowerCase());
+  if (!known) return payload;
+  return { ...(payload ?? {}), tradeType: known };
+}
+
 function summaryFor(
   type: string,
   payload: Record<string, unknown> | undefined,
@@ -332,6 +348,10 @@ function summaryFor(
   const askingPriceUsdc = (payload?.askingPriceUsdc as string | number | undefined) ?? '';
   const dealAmount = (payload?.dealAmountUsdc as string | undefined) ?? '';
   const reason = (payload?.reason as string | undefined) ?? '';
+  // What was bought decides the wording. Every funded deal used to be announced
+  // as work to begin, which is a freelance sentence read by people who had just
+  // funded a shipment. Absent reads as service, which is what legacy deals were.
+  const trade = tradeTypeOf(payload?.tradeType);
   switch (type) {
     case 'deal.matched':
       return role === 'seller'
@@ -398,11 +418,11 @@ function summaryFor(
       return 'Seller agreed to the terms. Review the exact total and fund escrow when ready.';
     case 'deal.accepted':
       return role === 'seller'
-        ? 'The buyer funded escrow. You can begin the work.'
-        : 'Escrow is funded. The seller can begin the work.';
+        ? `The buyer funded escrow. You can ${startPhrase(trade)}.`
+        : `Escrow is funded. The seller can ${startPhrase(trade)}.`;
     case 'deal.delivered':
       // Buyer-facing: the buyer verifies and releases.
-      return 'Seller marked the work delivered. Release the first milestone.';
+      return `Seller marked ${deliverableNoun(trade)} delivered. Release the first milestone.`;
     case 'deal.delivery.flagged':
       return role === 'seller'
         ? 'Karwan flagged your delivery link. Submit a corrected link to clear it.'
@@ -410,7 +430,7 @@ function summaryFor(
     case 'deal.delivery.cleared':
       return role === 'seller'
         ? 'Your corrected link cleared. The buyer can see it now.'
-        : 'The flagged link cleared. You can review the work and release.';
+        : `The flagged link cleared. You can review ${deliverableNoun(trade)} and release.`;
     case 'deal.fund.insufficient':
       return 'Your buyer agent needs USDC to fund escrow. Top it up from your profile.';
     case 'escrow.milestone.released':
@@ -601,6 +621,7 @@ export function useNotifications() {
   // carry a jobId still route to the correct side.
   const jobIdsRef = useRef<Set<string>>(new Set());
   const roleByJobRef = useRef<Map<string, Role>>(new Map());
+  const tradeByJobRef = useRef<Map<string, string>>(new Map());
   const initialHydrateRef = useRef(false);
   // Tracks notification ids we've already routed to listeners + sound this
   // session. Lets the SSE handler dedupe BEFORE calling setState, so the
@@ -633,13 +654,16 @@ export function useNotifications() {
       });
       const ids = new Set<string>();
       const roles = new Map<string, Role>();
+      const trades = new Map<string, string>();
       for (const d of (deals as DirectDeal[])) {
         const j = d.jobId.toLowerCase();
         ids.add(j);
         roles.set(j, d.buyer.toLowerCase() === me ? 'buyer' : 'seller');
+        if (d.tradeType) trades.set(j, d.tradeType);
       }
       jobIdsRef.current = ids;
       roleByJobRef.current = roles;
+      tradeByJobRef.current = trades;
     } catch {
       /* keep whatever we have */
     }
@@ -744,7 +768,11 @@ export function useNotifications() {
           id,
           jobId: e.jobId,
           type: e.type,
-          summary: summaryFor(e.type, e.payload, role),
+          summary: summaryFor(
+            e.type,
+            withTradeType(e.payload, e.jobId, tradeByJobRef.current),
+            role,
+          ),
           ts: e.ts,
           read: readIdsRef.current.has(id),
           href: hrefForType(e.type, e.jobId),
@@ -770,6 +798,7 @@ export function useNotifications() {
       setHydratedFor(null);
       jobIdsRef.current = new Set();
       roleByJobRef.current = new Map();
+      tradeByJobRef.current = new Map();
       initialHydrateRef.current = false;
       seenNotificationIdsRef.current = new Set();
       readIdsRef.current = new Set();
@@ -988,7 +1017,11 @@ export function useNotifications() {
         id,
         jobId: e.jobId,
         type: e.type,
-        summary: summaryFor(e.type, e.payload, role),
+        summary: summaryFor(
+          e.type,
+          withTradeType(e.payload, e.jobId, tradeByJobRef.current),
+          role,
+        ),
         ts: e.ts,
         read: readIdsRef.current.has(id),
         href: hrefForType(e.type, e.jobId),

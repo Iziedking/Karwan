@@ -3351,6 +3351,7 @@ export const ar: Messages = {
       signing: 'وقّع في المحفظة',
       confirming: 'جارٍ التأكيد على Arc',
       unconfirmed: 'تم الإرسال، في انتظار التأكيد',
+      settling: 'تم الإرسال. جارٍ التأكيد مع كروان',
       sending: 'جارٍ التحويل على Arc',
       done: 'تم الإرسال',
       error: 'فشل',

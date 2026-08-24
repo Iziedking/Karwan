@@ -17,8 +17,10 @@
     "test:activity": "tsx --test features/activity/ledgerPresentation.test.ts",
     "test:receipts": "tsx --test features/activity/receiptPresentation.test.ts",
     "test:funding": "tsx --test features/deals/fundingPresentation.test.ts features/deals/lifecycle.test.ts",
+    "test:matching": "tsx --test features/jobs/matchingPresentation.test.ts",
+    "test:events": "tsx --test shared/hooks/liveEventMerge.test.ts features/jobs/structuredOfferPresentation.test.ts",
     "test:charts": "tsx --test features/reputation/axisLabels.test.ts",
-    "test:chain": "tsx --test shared/chain/confirmTx.test.ts",
+    "test:chain": "tsx --test shared/chain/confirmTx.test.ts shared/chain/fundingPhase.test.ts",
     "test:rails": "tsx --test features/deposit/railModel.test.ts",
     "test:passport": "tsx --test features/reputation/skillCredentials.test.ts features/reputation/axisLabels.test.ts",
     "test:reputation": "tsx --test features/reputation/tierProgress.test.ts features/reputation/skillCredentials.test.ts"

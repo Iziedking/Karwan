@@ -9,8 +9,9 @@ import {
   useWalletClient,
 } from 'wagmi';
 import { ARC_CHAIN_ID, ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from '../config';
-import { api } from '@/core/api';
+import { ApiError, api } from '@/core/api';
 import { confirmTransaction } from '@/shared/chain/confirmTx';
+import { fundingRowState, isSettlingResponse } from '@/shared/chain/fundingPhase';
 
 export type FundPhase =
   | 'switching'
@@ -23,6 +24,15 @@ export type FundPhase =
   /// out was being recorded as the transfer failing. A watcher giving up is not
   /// an outcome.
   | 'unconfirmed'
+  /// Confirmed on chain, and Karwan has not managed to write it down yet.
+  ///
+  /// The same reasoning that produced 'unconfirmed' above, carried one step
+  /// further. Confirming the transfer and recording it are two calls, and the
+  /// second used to land in the same catch as everything else, so a transfer
+  /// with hundreds of confirmations was shown as FAILED because the bookkeeping
+  /// call after it timed out. The money is with the agent in this state. The
+  /// only thing outstanding is Karwan's own record, which retries on its own.
+  | 'settling'
   | 'done'
   | 'error';
 
@@ -165,7 +175,12 @@ export function useArcFund() {
     if (!address) return;
     const userAddress = address;
     for (const r of records) {
-      if ((r.phase !== 'confirming' && r.phase !== 'unconfirmed') || !r.txHash) continue;
+      if (
+        (r.phase !== 'confirming' && r.phase !== 'unconfirmed' && r.phase !== 'settling') ||
+        !r.txHash
+      ) {
+        continue;
+      }
       if (resumeStartedRef.current.has(r.id)) continue;
       resumeStartedRef.current.add(r.id);
       const txHash = r.txHash;
@@ -190,24 +205,27 @@ export function useArcFund() {
             .then((completed) => {
               patch(r.id, (cur) => ({
                 ...cur,
-                phase: 'done',
+                phase: isSettlingResponse(completed) ? 'settling' : 'done',
                 reference: completed.reference,
+                error: undefined,
               }));
             })
             .catch((err: unknown) => {
+              // The transfer is confirmed on chain by this point. A failure here
+              // is Karwan's record, not the user's money, and calling it an
+              // error sent people to support over a transfer that had landed.
               patch(r.id, (cur) => ({
                 ...cur,
-                phase: 'error',
-                error: err instanceof Error ? err.message : 'Receipt reconciliation needs attention',
+                phase: fundingRowState(err instanceof ApiError ? err.code : undefined),
+                error: undefined,
               }));
             });
         })
-        .catch((err: unknown) => {
-          patch(r.id, (cur) => ({
-            ...cur,
-            phase: 'error',
-            error: (err as Error).message ?? 'Receipt lookup failed',
-          }));
+        .catch(() => {
+          // A receipt that could not be read is a node that could not answer,
+          // not a transfer that failed. The hash is kept, so the next pass or
+          // Check again finishes it.
+          patch(r.id, (cur) => ({ ...cur, phase: 'unconfirmed', error: undefined }));
         });
     }
   }, [arcClient, address, hydratedFor, records, patch]);
@@ -311,18 +329,36 @@ export function useArcFund() {
           patch(record.id, (r) => ({ ...r, phase: 'unconfirmed', error: undefined }));
           return;
         }
-        const completed = await api.fundAgentWeb3Complete({
-          address,
-          agent: record.agentKey,
-          amountUsdc: record.amountUsdc,
-          requestId: record.id,
-          txHash: hash,
-        });
-        patch(record.id, (r) => ({
-          ...r,
-          phase: 'done',
-          reference: completed.reference,
-        }));
+        // Past this line the money has moved. Anything that goes wrong from
+        // here is Karwan writing it down, and it must never be shown as a
+        // failed transfer: the reported case was 500 USDC that had landed,
+        // labelled Failed beside its own transaction hash.
+        activePhase = 'settling';
+        try {
+          const completed = await api.fundAgentWeb3Complete({
+            address,
+            agent: record.agentKey,
+            amountUsdc: record.amountUsdc,
+            requestId: record.id,
+            txHash: hash,
+          });
+          // A 202 resolves like a success but carries an error line: the money
+          // moved and the record has not closed. Not 'done'.
+          patch(record.id, (r) => ({
+            ...r,
+            phase: isSettlingResponse(completed) ? 'settling' : 'done',
+            reference: completed.reference,
+            error: undefined,
+          }));
+        } catch (err) {
+          patch(record.id, (r) => ({
+            ...r,
+            phase: fundingRowState(err instanceof ApiError ? err.code : undefined),
+            error: err instanceof ApiError && err.code === 'funding_failed'
+              ? friendlyFundError(err, 'settling')
+              : undefined,
+          }));
+        }
       } catch (err) {
         patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyFundError(err, activePhase) }));
       }

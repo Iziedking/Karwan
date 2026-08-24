@@ -505,6 +505,8 @@ function phaseLabel(
       return copy.sending;
     case 'unconfirmed':
       return copy.unconfirmed;
+    case 'settling':
+      return copy.settling;
     case 'done':
       return copy.done;
     case 'error':
@@ -515,8 +517,9 @@ function phaseLabel(
 function phaseTone(phase: AnyFundPhase): 'live' | 'positive' | 'critical' {
   if (phase === 'done') return 'positive';
   if (phase === 'error') return 'critical';
-  // 'unconfirmed' is deliberately NOT critical. The transfer is on chain and
-  // may well have settled; painting it red was the whole complaint.
+  // Neither 'unconfirmed' nor 'settling' is critical. In both the transfer is
+  // on chain, and in 'settling' it is confirmed outright: only Karwan's own
+  // record is behind. Painting those red was the whole complaint.
   return 'live';
 }
 
@@ -554,8 +557,18 @@ function FundRow({
   const isStuck = inFlightConfirming && elapsedSec > 120;
   // Retry on an unconfirmed record re-reads the receipt for the hash it already
   // has; runFlow never re-sends a transaction that was submitted.
-  const canRetry = record.phase === 'error' || record.phase === 'unconfirmed' || isStuck;
-  const canDismiss = record.phase === 'done' || record.phase === 'error' || isStuck;
+  const canRetry =
+    record.phase === 'error' ||
+    record.phase === 'unconfirmed' ||
+    record.phase === 'settling' ||
+    isStuck;
+  // A settling record can be dismissed: the money is with the agent, and the
+  // record catches up on its own whether or not this row is on screen.
+  const canDismiss =
+    record.phase === 'done' ||
+    record.phase === 'error' ||
+    record.phase === 'settling' ||
+    isStuck;
   const textColor =
     tone === 'positive'
       ? TONE_COLOR.positive

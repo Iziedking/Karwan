@@ -3351,6 +3351,7 @@ export const hi: Messages = {
       signing: 'वॉलेट में साइन करें',
       confirming: 'Arc पर पुष्टि हो रही है',
       unconfirmed: 'भेजा गया, पुष्टि की प्रतीक्षा',
+      settling: 'भेज दिया गया. कारवान पुष्टि कर रहा है',
       sending: 'Arc पर ट्रांसफर हो रहा है',
       done: 'भेजा गया',
       error: 'विफल',

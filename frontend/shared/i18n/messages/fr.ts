@@ -3351,6 +3351,7 @@ export const fr: Messages = {
       signing: 'Signer dans le portefeuille',
       confirming: 'Confirmation sur Arc',
       unconfirmed: 'Envoyé, en attente de confirmation',
+      settling: 'Envoyé. Confirmation avec Karwan',
       sending: 'Transfert sur Arc',
       done: 'Envoyé',
       error: 'Échec',

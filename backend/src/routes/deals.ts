@@ -1516,7 +1516,7 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
         type: 'deal.accepted',
         jobId,
         actor: 'buyer',
-        payload: { seller: deal.seller, buyer: deal.buyer },
+        payload: { seller: deal.seller, buyer: deal.buyer, tradeType: deal.tradeType },
       });
       logger.info(
         { jobId, escrowState: preEscrow.state },
@@ -1858,9 +1858,22 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
       const code = isInsufficientStake
         ? 'INSUFFICIENT_STAKE'
         : 'ACCEPT_ESCROW_FAILED';
+      // The stake check above is a STRING MATCH on the revert reason, and an
+      // ERC-4337 inner revert does not carry one: handleOps succeeds while the
+      // userOp inside it reverts, so a genuine InsufficientStake arrives here
+      // unrecognised and the seller is told only that activation "did not
+      // complete". acceptEscrow has three revert paths and this is the one
+      // they can act on, so when the deal reserves stake at all, say what it
+      // needs rather than leaving them with a sentence they cannot use.
+      const reservationUsdc = formatUnits(
+        (dealAmountWei * BigInt(reservationBps)) / 10000n,
+        USDC_DECIMALS,
+      );
       const detail = isInsufficientStake
         ? `Your seller agent needs more stake to backstop a deal of ${deal.dealAmountUsdc} USDC. Stake more in /stake and retry.`
-        : 'Escrow activation did not complete. Retry is safe because Karwan checks the existing escrow before another transfer.';
+        : reservationBps > 0
+          ? `Escrow activation did not complete. The most common cause is stake: the seller needs ${reservationUsdc} USDC free in /stake to backstop this deal. Retry is safe because Karwan checks the existing escrow before another transfer.`
+          : 'Escrow activation did not complete. Retry is safe because Karwan checks the existing escrow before another transfer.';
       logger.error({ jobId, err: message, code }, 'acceptEscrow on chain failed');
       bus.emitEvent({
         type: 'agent.error',
@@ -1912,7 +1925,7 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
       type: 'deal.accepted',
       jobId,
       actor: 'buyer',
-      payload: { seller: deal.seller, buyer: deal.buyer },
+      payload: { seller: deal.seller, buyer: deal.buyer, tradeType: deal.tradeType },
     });
     bus.emitEvent({
       type: 'escrow.funded',
@@ -2316,6 +2329,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       payload: {
         seller: deal.seller,
         firstReleasePct: deal.firstReleasePct,
+        tradeType: deal.tradeType,
         verificationStatus,
         ...(deliveryMatch && deliveryMatch.verdict !== 'aligned'
           ? { deliveryMatch: deliveryMatch.verdict }
@@ -2346,7 +2360,12 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       type: 'deal.delivery.cleared',
       jobId,
       actor: 'seller',
-      payload: { buyer: deal.buyer, seller: deal.seller, firstReleasePct: deal.firstReleasePct },
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        firstReleasePct: deal.firstReleasePct,
+        tradeType: deal.tradeType,
+      },
     });
   }
   return c.json({ accepted: true, jobId, verificationStatus }, 200);

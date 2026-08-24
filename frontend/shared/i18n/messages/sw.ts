@@ -3351,6 +3351,7 @@ export const sw: Messages = {
       signing: 'Saini katika pochi',
       confirming: 'Inathibitisha kwenye Arc',
       unconfirmed: 'Imetumwa, inasubiri uthibitisho',
+      settling: 'Imetumwa. Karwan inathibitisha',
       sending: 'Inahamisha kwenye Arc',
       done: 'Imetumwa',
       error: 'Imeshindwa',

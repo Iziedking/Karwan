@@ -1,13 +1,22 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError } from '@/core/api';
+import { fundingRowState, isSettlingResponse } from '@/shared/chain/fundingPhase';
 
 /// Circle-side fund flow. Mirrors useArcFund's shape so ArcFundCard can swap
 /// between them on `auth.method`, but the phase machine is dramatically
 /// simpler: the backend signs the USDC transfer from the user's identity DCW
 /// to the agent DCW server-side, no wallet popup or chain switch involved.
 
-export type CircleFundPhase = 'sending' | 'done' | 'error';
+export type CircleFundPhase =
+  | 'sending'
+  /// Confirmed on chain, with Karwan's record still catching up. Separate from
+  /// 'error' because the money is with the agent: a failure in the bookkeeping
+  /// after the transfer used to land here as FAILED, beside the transaction
+  /// that had moved it.
+  | 'settling'
+  | 'done'
+  | 'error';
 
 export interface CircleFundRecord {
   id: string;
@@ -45,7 +54,7 @@ function loadFromStorage(address?: string | null): CircleFundRecord[] {
     const arr = JSON.parse(raw) as CircleFundRecord[];
     return arr.map((r) =>
       r.phase === 'sending'
-        ? { ...r, phase: 'error' as const, error: r.error ?? 'Interrupted on reload. Retry to resume.' }
+        ? { ...r, phase: 'settling' as const, error: undefined }
         : r,
     );
   } catch {
@@ -118,12 +127,21 @@ export function useCircleFund(address: string | null | undefined) {
         });
         patch(record.id, (r) => ({
           ...r,
-          phase: 'done',
+          // A 202 resolves like a success but says the record has not closed.
+          phase: isSettlingResponse(res) ? 'settling' : 'done',
           txHash: res.txHash as `0x${string}`,
           reference: res.reference,
+          error: undefined,
         }));
       } catch (err) {
-        patch(record.id, (r) => ({ ...r, phase: 'error', error: friendlyError(err) }));
+        // Only a transfer that actually failed is shown as one. The backend
+        // says which this is; anything it cannot classify stays an error.
+        const phase = fundingRowState(err instanceof ApiError ? err.code : undefined);
+        patch(record.id, (r) => ({
+          ...r,
+          phase,
+          error: phase === 'error' ? friendlyError(err) : undefined,
+        }));
       }
     },
     [address, patch],
