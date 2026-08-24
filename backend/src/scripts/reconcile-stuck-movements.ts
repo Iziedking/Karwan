@@ -127,21 +127,54 @@ const CHAINS: Array<{ name: string; client: ReceiptReader }> = [
   })),
 ];
 
+/// How long one chain gets to answer before the search moves on.
+///
+/// The lookup walked every chain in order with no bound, so a hash living on a
+/// late chain, or one slow RPC anywhere in the list, hung the whole run: the
+/// operator sees a command that never returns and cannot tell it from a write
+/// in progress. A miss is the common case here, so it has to be cheap.
+const LOOKUP_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`lookup timed out after ${ms}ms`)), ms);
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function proofFor(leg: MoneyMovementLeg): Promise<LegProof> {
   if (!leg.txHash) return { kind: 'no-hash' };
   const hash = leg.txHash as `0x${string}`;
-  for (const chain of CHAINS) {
-    try {
-      const receipt = await chain.client.getTransactionReceipt({ hash });
-      return receipt.status === 'success'
-        ? { kind: 'landed', chain: chain.name }
-        : { kind: 'reverted', chain: chain.name };
-    } catch {
-      // Not on this chain, or this RPC cannot answer. Ask the next one. A hash
-      // no chain knows comes back as unknown rather than as a failure: an RPC
-      // that cannot see a transaction has not proved it does not exist.
-    }
+  // Asked all at once. Sequential was fine when the hash was on Arc and wrong
+  // for everything else, and the answer does not depend on the order: a
+  // transaction exists on exactly one of these chains.
+  const answers = await Promise.allSettled(
+    CHAINS.map(async (chain) => {
+      const receipt = await withTimeout(
+        chain.client.getTransactionReceipt({ hash }),
+        LOOKUP_TIMEOUT_MS,
+      );
+      return { chain: chain.name, status: receipt.status };
+    }),
+  );
+  for (const answer of answers) {
+    if (answer.status !== 'fulfilled') continue;
+    return answer.value.status === 'success'
+      ? { kind: 'landed', chain: answer.value.chain }
+      : { kind: 'reverted', chain: answer.value.chain };
   }
+  // Nobody had it, or nobody answered in time. Either way this is `unknown`, not
+  // a failure: an RPC that cannot see a transaction has not proved it does not
+  // exist, and the caller refuses to write on `unknown`.
   return { kind: 'unknown' };
 }
 
