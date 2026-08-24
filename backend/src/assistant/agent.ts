@@ -29,6 +29,7 @@ import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { listActivityForAddress } from '../db/activityLog.js';
 import { listBridgesForUser } from '../db/bridges.js';
+import { bridgeStanding } from './bridgeStanding.js';
 import { listMatchProposalsForUser } from '../db/matchProposals.js';
 import { activeStakeSummary } from '../reputation/stake.js';
 import { readStakerYield } from '../routes/yield.js';
@@ -658,9 +659,40 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             sourceWalletsByChain: depositWalletsByChainKey(record?.bridgeWallets),
           });
           for (const b of userBridges) {
-            if (b.status === 'minted' || b.status === 'error') continue;
-            inFlight.push(
-              `Bridge of ${b.amountUsdc} USDC is still ${b.status} (track it on /bridge).`,
+            // What to say depends on whether a burn is on chain, not on the
+            // status. A transfer declined at the wallet never becomes `error`
+            // and used to be reported as in flight; a failed one was skipped
+            // outright, so a user asking about their money heard nothing about
+            // the one that did not go through.
+            const standing = bridgeStanding({
+              status: b.status,
+              sourceTxHash: b.sourceTxHash,
+              updatedAt: b.updatedAt,
+              now,
+            });
+            if (standing.kind === 'settled') continue;
+            if (standing.kind === 'moving') {
+              inFlight.push(
+                `Transfer of ${b.amountUsdc} USDC is on its way (follow it on /bridge).`,
+              );
+              continue;
+            }
+            if (standing.kind === 'unsigned') {
+              actionNeeded.push(
+                `Transfer of ${b.amountUsdc} USDC was never signed, so nothing moved and there is nothing to follow. Start it again on /bridge.`,
+              );
+              continue;
+            }
+            if (standing.kind === 'failed_before_burn') {
+              actionNeeded.push(
+                `Transfer of ${b.amountUsdc} USDC did not go through. Nothing left the wallet. Start it again on /bridge.`,
+              );
+              continue;
+            }
+            // Money left and did not arrive. Never soften this into "in
+            // progress": it is the one case that needs a person.
+            actionNeeded.push(
+              `Transfer of ${b.amountUsdc} USDC left the wallet and has not arrived. Open /bridge and use Feedback so support can trace it.`,
             );
           }
 
