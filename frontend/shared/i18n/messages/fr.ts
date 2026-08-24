@@ -1247,6 +1247,77 @@ export const fr: Messages = {
     tag: 'NÉGOCIATION',
     roundTemplate: 'Tour {n}',
     roundOfCapTemplate: 'Tour {n} sur {cap}',
+    states: {
+      reviewing: {
+        tag: 'EN EXAMEN',
+        headline: 'Examen des offres.',
+        body: 'Les agents comparent les offres actives à votre requête.',
+      },
+      match_ready: {
+        tag: 'CORRESPONDANCE PRÊTE',
+        headline: 'Correspondance trouvée.',
+        body: 'Les conditions actuelles sont prêtes. Le vendeur examine ensuite.',
+      },
+      awaiting_user_review: {
+        tag: 'VOTRE AVIS',
+        headline: 'Votre avis est requis.',
+        body: 'Ouvrez la correspondance et examinez l’offre actuelle avant tout mouvement.',
+      },
+      terms_changed: {
+        tag: 'CONDITIONS MODIFIÉES',
+        headline: 'Les conditions ont changé.',
+        body: 'Examinez l’offre mise à jour. Rien ne bouge sans votre confirmation.',
+      },
+      paused_needs_approval: {
+        tag: 'ACTION REQUISE',
+        headline: 'Correspondance en pause.',
+        body: 'Le financement ou la réserve de sécurité exige votre attention avant de continuer.',
+      },
+      reengagement_scheduled: {
+        tag: 'RECHERCHE EN COURS',
+        headline: 'Recherche d’une meilleure correspondance.',
+        body: 'Les agents reprennent lorsqu’une offre réellement nouvelle est disponible.',
+      },
+      funding_ready: {
+        tag: 'FINANCEMENT PRÊT',
+        headline: 'Conditions acceptées.',
+        body: 'Karwan confirme le financement avant l’ouverture de la transaction.',
+      },
+      settling: {
+        tag: 'RÈGLEMENT EN COURS',
+        headline: 'Règlement en cours.',
+        body: 'Les fonds restent protégés pendant le passage à l’étape suivante.',
+      },
+      completed: {
+        tag: 'TERMINÉ',
+        headline: 'Règlement terminé.',
+        body: 'Le résultat confirmé est disponible dans le dossier de la transaction.',
+      },
+      temporarily_unavailable: {
+        tag: 'PAUSE TEMPORAIRE',
+        headline: 'Correspondance temporairement indisponible.',
+        body: 'Revoyez la requête avant de réessayer. Aucun règlement n’a été lancé dans cet état.',
+      },
+      status_updating: {
+        tag: 'MISE À JOUR',
+        headline: 'Mise à jour de l’état.',
+        body: 'Karwan rapproche le dernier état confirmé. Réessayer actualise seulement cette vue.',
+      },
+    },
+    nextActors: {
+      buyer: 'L’acheteur examine ensuite',
+      seller: 'Le vendeur examine ensuite',
+      agents: 'Les agents examinent',
+      platform: 'Karwan confirme',
+      none: 'Aucune action requise',
+    },
+    offer: {
+      initial: 'OFFRE INITIALE',
+      changed: 'OFFRE MISE À JOUR',
+      unknown: 'OFFRE ACTUELLE',
+      updatedTemplate: 'MIS À JOUR {time}',
+    },
+    counterpartyTemplate: 'Contrepartie : {role}',
     headlines: {
       agreedTemplate: 'Accord à {amount} USDC.',
       ended: 'Négociation terminée.',
@@ -2891,6 +2962,8 @@ export const fr: Messages = {
         buyerIntro: 'Le vendeur a accepté les conditions. Vérifiez les frais actuels et le montant exact avant d’autoriser le financement du séquestre.',
         sellerIntro: 'Vous avez accepté les conditions. L’acheteur vérifie les frais actuels et le total exact. Aucun fonds n’est encore bloqué.',
         reviewCta: 'Vérifier et financer',
+        heldIntro: "Vos USDC sont déjà bloqués sous séquestre pour cette transaction. L'activation ne s'est pas terminée, elle n'est donc pas encore active. La terminer ne déplace aucun fonds.",
+        activateCta: "Terminer l'activation",
         quoteBusy: 'Vérification des frais…',
         retryQuoteCta: 'Réessayer le devis',
         editTermsCta: 'Modifier les conditions',

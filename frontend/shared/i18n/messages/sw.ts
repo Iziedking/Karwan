@@ -1247,6 +1247,77 @@ export const sw: Messages = {
     tag: 'MAJADILIANO',
     roundTemplate: 'Mzunguko {n}',
     roundOfCapTemplate: 'Mzunguko {n} kati ya {cap}',
+    states: {
+      reviewing: {
+        tag: 'INAKAGULIWA',
+        headline: 'Ofa zinakaguliwa.',
+        body: 'Mawakala wanalinganisha ofa hai na ombi lako.',
+      },
+      match_ready: {
+        tag: 'MECHI IKO TAYARI',
+        headline: 'Mechi imepatikana.',
+        body: 'Masharti ya sasa yako tayari. Muuzaji anakagua sasa.',
+      },
+      awaiting_user_review: {
+        tag: 'UKAGUZI WAKO UNAHITAJIKA',
+        headline: 'Ukaguzi wako unahitajika.',
+        body: 'Fungua mechi ukague ofa ya sasa kabla ya chochote kusonga.',
+      },
+      terms_changed: {
+        tag: 'MASHARTI YAMEBADILIKA',
+        headline: 'Masharti yamebadilika.',
+        body: 'Kagua ofa iliyosasishwa. Hakuna kitakachosonga kabla uthibitishe.',
+      },
+      paused_needs_approval: {
+        tag: 'HATUA INAHITAJIKA',
+        headline: 'Mechi imesitishwa.',
+        body: 'Ufadhili au akiba ya usalama inahitaji ukaguzi kabla ya kuendelea.',
+      },
+      reengagement_scheduled: {
+        tag: 'UTAFUTAJI UNAENDELEA',
+        headline: 'Inatafuta mechi bora.',
+        body: 'Mawakala wataendelea ofa mpya yenye maana ikipatikana.',
+      },
+      funding_ready: {
+        tag: 'UFADHILI U TAYARI',
+        headline: 'Masharti yamekubaliwa.',
+        body: 'Karwan inathibitisha ufadhili kabla ya kufungua dili.',
+      },
+      settling: {
+        tag: 'UTATUZI UNAENDELEA',
+        headline: 'Utatuzi unaendelea.',
+        body: 'Fedha zinalindwa dili linapoingia hatua inayofuata.',
+      },
+      completed: {
+        tag: 'IMEKAMILIKA',
+        headline: 'Utatuzi umekamilika.',
+        body: 'Matokeo yaliyothibitishwa yanapatikana kwenye rekodi ya dili.',
+      },
+      temporarily_unavailable: {
+        tag: 'KUSIMAMA KWA MUDA',
+        headline: 'Mechi haipatikani kwa muda.',
+        body: 'Kagua ombi kabla ya kujaribu tena. Hali hii haikuanza utatuzi wowote.',
+      },
+      status_updating: {
+        tag: 'HALI INASASISHWA',
+        headline: 'Hali inasasishwa.',
+        body: 'Karwan inapatanisha hali ya mwisho iliyothibitishwa. Kujaribu tena husasisha mwonekano huu tu.',
+      },
+    },
+    nextActors: {
+      buyer: 'Mnunuzi anakagua sasa',
+      seller: 'Muuzaji anakagua sasa',
+      agents: 'Mawakala wanakagua',
+      platform: 'Karwan inathibitisha',
+      none: 'Hakuna hatua inayohitajika',
+    },
+    offer: {
+      initial: 'OFA YA KWANZA',
+      changed: 'OFA ILIYOSASISHWA',
+      unknown: 'OFA YA SASA',
+      updatedTemplate: 'IMESASISHWA {time}',
+    },
+    counterpartyTemplate: 'Mwenza: {role}',
     headlines: {
       agreedTemplate: 'Kukubaliana kwa USDC {amount}.',
       ended: 'Majadiliano yamemalizika.',
@@ -2891,6 +2962,8 @@ export const sw: Messages = {
         buyerIntro: 'Muuzaji amekubali masharti. Kagua ada ya sasa na kiasi kamili kabla ya kuidhinisha ufadhili wa escrow.',
         sellerIntro: 'Umekubali masharti. Mnunuzi anakagua ada ya sasa na jumla kamili. Hakuna fedha iliyofungwa bado.',
         reviewCta: 'Kagua na ufadhili',
+        heldIntro: 'USDC yako imeshahifadhiwa kwenye escrow kwa mkataba huu. Uwezeshaji haukukamilika, hivyo bado haujaanza. Kuukamilisha hakuhamishi fedha yoyote.',
+        activateCta: 'Kamilisha uwezeshaji',
         quoteBusy: 'Inakagua ada ya sasa…',
         retryQuoteCta: 'Jaribu bei tena',
         editTermsCta: 'Hariri masharti',

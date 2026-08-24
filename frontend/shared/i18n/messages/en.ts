@@ -1200,6 +1200,33 @@ interface MessagesShape {
     tag: string;
     roundTemplate: string;
     roundOfCapTemplate: string;
+    states: {
+      reviewing: { tag: string; headline: string; body: string };
+      match_ready: { tag: string; headline: string; body: string };
+      awaiting_user_review: { tag: string; headline: string; body: string };
+      terms_changed: { tag: string; headline: string; body: string };
+      paused_needs_approval: { tag: string; headline: string; body: string };
+      reengagement_scheduled: { tag: string; headline: string; body: string };
+      funding_ready: { tag: string; headline: string; body: string };
+      settling: { tag: string; headline: string; body: string };
+      completed: { tag: string; headline: string; body: string };
+      temporarily_unavailable: { tag: string; headline: string; body: string };
+      status_updating: { tag: string; headline: string; body: string };
+    };
+    nextActors: {
+      buyer: string;
+      seller: string;
+      agents: string;
+      platform: string;
+      none: string;
+    };
+    offer: {
+      initial: string;
+      changed: string;
+      unknown: string;
+      updatedTemplate: string;
+    };
+    counterpartyTemplate: string;
     headlines: {
       agreedTemplate: string;
       ended: string;
@@ -2704,6 +2731,12 @@ interface MessagesShape {
         cancelBusy: string;
       };
       awaitingFunding: {
+        /// Shown when the escrow already HOLDS the buyer's USDC and only
+        /// activation is missing. Without it the page offers "Review and fund"
+        /// for a total they have already paid, which is why a deal in this
+        /// state sits untouched.
+        heldIntro: string;
+        activateCta: string;
         buyerIntro: string;
         sellerIntro: string;
         reviewCta: string;
@@ -5928,6 +5961,77 @@ export const en: MessagesShape = {
     tag: 'NEGOTIATION',
     roundTemplate: 'Round {n}',
     roundOfCapTemplate: 'Round {n} of {cap}',
+    states: {
+      reviewing: {
+        tag: 'REVIEWING',
+        headline: 'Reviewing offers.',
+        body: 'Agents are comparing active offers against your request.',
+      },
+      match_ready: {
+        tag: 'MATCH READY',
+        headline: 'Match found.',
+        body: 'The current terms are ready. The seller reviews next.',
+      },
+      awaiting_user_review: {
+        tag: 'REVIEW NEEDED',
+        headline: 'Your review is needed.',
+        body: 'Open the match to review the current offer before anything moves.',
+      },
+      terms_changed: {
+        tag: 'TERMS CHANGED',
+        headline: 'Terms changed.',
+        body: 'Review the updated offer. Nothing moves until you confirm.',
+      },
+      paused_needs_approval: {
+        tag: 'ACTION NEEDED',
+        headline: 'Match paused.',
+        body: 'Funding or security reserve needs attention before matching can continue.',
+      },
+      reengagement_scheduled: {
+        tag: 'SEARCH CONTINUES',
+        headline: 'Looking for a better fit.',
+        body: 'Agents resume when a materially new offer is available.',
+      },
+      funding_ready: {
+        tag: 'FUNDING READY',
+        headline: 'Terms agreed.',
+        body: 'Karwan is confirming funding before the deal opens.',
+      },
+      settling: {
+        tag: 'SETTLING',
+        headline: 'Settlement in progress.',
+        body: 'Funding is protected while the deal moves to the next stage.',
+      },
+      completed: {
+        tag: 'COMPLETED',
+        headline: 'Settlement complete.',
+        body: 'The confirmed result is available in the deal record.',
+      },
+      temporarily_unavailable: {
+        tag: 'TEMPORARY HOLD',
+        headline: 'Match temporarily unavailable.',
+        body: 'Review the request before retrying. No settlement was started by this state.',
+      },
+      status_updating: {
+        tag: 'STATUS UPDATING',
+        headline: 'Status updating.',
+        body: 'Karwan is reconciling the latest confirmed state. Retry only refreshes this view.',
+      },
+    },
+    nextActors: {
+      buyer: 'Buyer reviews next',
+      seller: 'Seller reviews next',
+      agents: 'Agents are reviewing',
+      platform: 'Karwan is confirming',
+      none: 'No action needed',
+    },
+    offer: {
+      initial: 'INITIAL OFFER',
+      changed: 'UPDATED OFFER',
+      unknown: 'CURRENT OFFER',
+      updatedTemplate: 'UPDATED {time}',
+    },
+    counterpartyTemplate: '{role} counterparty',
     headlines: {
       agreedTemplate: 'Agreed at {amount} USDC.',
       ended: 'Negotiation ended.',
@@ -7591,6 +7695,8 @@ export const en: MessagesShape = {
         buyerIntro: 'The seller agreed. Review the current fee and exact amount before you authorize escrow funding.',
         sellerIntro: 'You agreed to the terms. The buyer is reviewing the current fee and exact total. No funds are locked yet.',
         reviewCta: 'Review and fund',
+        heldIntro: 'Your USDC is already held in escrow for this deal. Activation did not finish, so it is not live yet. Finishing it moves no money.',
+        activateCta: 'Finish activation',
         quoteBusy: 'Checking current fee…',
         retryQuoteCta: 'Retry quote',
         editTermsCta: 'Edit terms',
