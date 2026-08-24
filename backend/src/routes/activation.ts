@@ -1229,7 +1229,14 @@ activationRoutes.get('/agent-binding', async (c) => {
     return c.json({ error: 'You can only read your own wallets.', code: 'forbidden' }, 403);
   }
   const wallets = await getAgentWallets(parsed.data);
-  if (!wallets) return c.json({ activated: false, agents: [] });
+  // The vault this backend will send `registerOwner` to, named so the caller
+  // signs `approveAgent` against the SAME contract. The two halves are
+  // configured separately (backend env, frontend NEXT_PUBLIC with a hardcoded
+  // fallback), and a mismatch would leave the user approving on one vault while
+  // the registration went to another: AgentNotApproved forever, and identical
+  // in every symptom to a binding that simply did not take.
+  const vaultAddress = vault.address;
+  if (!wallets) return c.json({ activated: false, agents: [], vault: vaultAddress });
 
   const pairs = [
     { role: 'buyer' as const, agent: wallets.buyerAddress },
@@ -1257,7 +1264,7 @@ activationRoutes.get('/agent-binding', async (c) => {
       }
     }),
   );
-  return c.json({ activated: true, agents });
+  return c.json({ activated: true, agents, vault: vaultAddress });
 });
 
 /// Finish the handshake, after the identity has approved its agents.

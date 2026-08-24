@@ -45,6 +45,8 @@ export function AgentStakeBinding() {
   const chainCopy = useTranslations().chainErrors;
 
   const [agents, setAgents] = useState<AgentBinding[] | null>(null);
+  // Whichever vault the backend will register against. See AgentBindingStatus.
+  const [vaultAddress, setVaultAddress] = useState<`0x${string}` | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -53,7 +55,10 @@ export function AgentStakeBinding() {
     if (!address) return;
     api
       .agentBinding(address)
-      .then((res) => setAgents(res.agents))
+      .then((res) => {
+        setAgents(res.agents);
+        setVaultAddress(res.vault ?? null);
+      })
       .catch(() => setAgents(null));
   }, [address]);
 
@@ -74,7 +79,8 @@ export function AgentStakeBinding() {
         if (chainId !== ARC_CHAIN_ID) await switchChainAsync({ chainId: ARC_CHAIN_ID });
         for (const agent of unbound) {
           const hash = await walletClient.writeContract({
-            address: KARWAN_VAULT_ADDRESS,
+            // The backend's vault, not the one this bundle was built against.
+            address: vaultAddress ?? KARWAN_VAULT_ADDRESS,
             abi: approveAgentAbi,
             functionName: 'approveAgent',
             args: [agent.agent as `0x${string}`],

@@ -1202,6 +1202,10 @@ export interface AgentBinding {
 export interface AgentBindingStatus {
   activated: boolean;
   agents: AgentBinding[];
+  /// The vault the backend will send `registerOwner` to. Approve against this
+  /// one, not a locally configured address: the two are set separately and a
+  /// mismatch fails as AgentNotApproved with no way to tell it apart.
+  vault?: `0x${string}`;
 }
 
 export class ApiError extends Error {
