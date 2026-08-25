@@ -10,7 +10,7 @@ import {
 } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
 import { NewsletterDraftReview, type NewsletterDraftReviewValue } from '@/features/admin/NewsletterDraftReview';
-import { parseMarkdownNewsletter } from '@/features/admin/newsletterMarkdown';
+import { parseNewsletterDocument } from '@/features/admin/newsletterMarkdown';
 
 /// The approval gate.
 ///
@@ -179,7 +179,7 @@ export default function AdminNewsletterPage() {
     setImporting(true);
     setErr(null);
     try {
-      const parsed = parseMarkdownNewsletter(file.name, await file.text());
+      const parsed = parseNewsletterDocument(file.name, await file.text());
       setDraftSubject(parsed.subject || draftSubject);
       setDraftPreheader(parsed.preheader || draftPreheader);
       setDraftSections(parsed.sections);
@@ -408,12 +408,12 @@ export default function AdminNewsletterPage() {
                           disabled={importing}
                           className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-[#AFC95B]/45 text-[#AFC95B] hover:bg-[#AFC95B]/10 disabled:opacity-40"
                         >
-                          {importing ? 'Reading' : 'Import Markdown'}
+                          {importing ? 'Reading' : 'Import HTML or Markdown'}
                         </button>
                         <input
                           ref={importInput}
                           type="file"
-                          accept=".md,.markdown,text/markdown"
+                          accept=".html,.htm,.md,.markdown,text/html,text/markdown"
                           className="sr-only"
                           onChange={(event) => {
                             const file = event.target.files?.[0];

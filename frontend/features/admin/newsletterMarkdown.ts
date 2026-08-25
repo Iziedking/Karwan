@@ -7,6 +7,8 @@ export interface MarkdownNewsletterDraft {
   warnings: string[];
 }
 
+export type NewsletterDocumentDraft = MarkdownNewsletterDraft;
+
 type HeadingBlock = {
   depth: number;
   title: string;
@@ -113,4 +115,78 @@ export function parseMarkdownNewsletter(filename: string, source: string): Markd
   });
 
   return { subject: subject.slice(0, 200), preheader: preheader.slice(0, 300), sections, warnings };
+}
+
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;|&rsquo;/gi, "'")
+    .replace(/&ldquo;|&rdquo;/gi, '"')
+    .replace(/&middot;/gi, '·')
+    .replace(/&rarr;/gi, '→')
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_match, code: string) => String.fromCodePoint(Number.parseInt(code, 10)));
+}
+
+function htmlToBody(source: string): string {
+  return decodeHtml(
+    source
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<li[^>]*>/gi, '\n- ')
+      .replace(/<\/(?:p|div|li|h[1-6]|tr|td|section|article)>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim(),
+  );
+}
+
+function htmlMeta(source: string, name: string): string {
+  const match = new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']*)["'][^>]*>`, 'i').exec(source);
+  return decodeHtml(match?.[1] ?? '');
+}
+
+export function parseHtmlNewsletter(filename: string, source: string): NewsletterDocumentDraft {
+  const warnings: string[] = [];
+  const subject = htmlMeta(source, 'newsletter-subject') || decodeHtml(/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(source)?.[1] ?? '');
+  const preheader = htmlMeta(source, 'newsletter-preheader');
+  const sections: IssueSection[] = [];
+  const sectionPattern = /<article[^>]+data-section=["'](shipped|ecosystem|learned)["'][^>]*>([\s\S]*?)<\/article>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = sectionPattern.exec(source))) {
+    const key = match[1] as SectionKey;
+    const block = match[2];
+    const heading = decodeHtml(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i.exec(block)?.[1] ?? SECTION_HEADINGS[key]);
+    const body = htmlToBody(block.replace(/<h[2-4][^>]*>[\s\S]*?<\/h[2-4]>/i, ''));
+    sections.push({ key, heading, body: body.slice(0, 20_000), signalIds: [] });
+  }
+
+  if (!subject) warnings.push('No subject line was found. Add one before saving.');
+  if (!preheader) warnings.push('No preview text was found. Add one before saving.');
+  if (sections.length === 0) warnings.push('No marked newsletter sections were found. Use data-section attributes.');
+  if (sections.length < 3) warnings.push('This HTML document does not contain all three issue sections.');
+  if (filename && !/\.html?$/i.test(filename)) warnings.push('This file is not an HTML document.');
+
+  const byKey = new Map(sections.map((section) => [section.key, section]));
+  return {
+    subject: subject.slice(0, 200),
+    preheader: preheader.slice(0, 300),
+    sections: (['shipped', 'ecosystem', 'learned'] as const).map((key) => byKey.get(key) ?? {
+      key,
+      heading: SECTION_HEADINGS[key],
+      body: '',
+      signalIds: [],
+    }),
+    warnings,
+  };
+}
+
+export function parseNewsletterDocument(filename: string, source: string): NewsletterDocumentDraft {
+  return /\.html?$/i.test(filename) ? parseHtmlNewsletter(filename, source) : parseMarkdownNewsletter(filename, source);
 }
