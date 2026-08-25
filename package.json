@@ -2,6 +2,7 @@
   "name": "karwan",
   "version": "0.0.1",
   "private": true,
+  "packageManager": "npm@11.13.0",
   "description": "Agentic settlement and reputation rails for cross-border SME trade on Arc",
   "workspaces": [
     "backend",
