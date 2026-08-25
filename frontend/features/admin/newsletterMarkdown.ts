@@ -135,6 +135,10 @@ function decodeHtml(value: string): string {
 function htmlToBody(source: string): string {
   return decodeHtml(
     source
+      .replace(/<a\b[^>]*href=["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_match, href: string, label: string) => {
+        const text = label.replace(/<[^>]+>/g, '').trim();
+        return text ? `[${text}](${href})` : href;
+      })
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<br\s*\/?>/gi, '\n')

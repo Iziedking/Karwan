@@ -64,7 +64,7 @@ test('imports a branded HTML newsletter by its explicit content sections', () =>
       <h1>karwan is building the protection layer</h1>
       <article data-section="shipped"><h2>what shipped</h2><ul><li>agent matching</li><li>bounded negotiation</li></ul></article>
       <article data-section="ecosystem"><h2>the karwan ecosystem</h2><p>contract-level protection without custody.</p></article>
-      <article data-section="learned"><h2>what we are preparing for next</h2><p>mainnet readiness remains subject to safety checks.</p></article>
+      <article data-section="learned"><h2>what we are preparing for next</h2><p>mainnet readiness remains subject to safety checks. <a href="https://x.com/karwanBuild">follow us @karwanBuild</a>.</p></article>
     </body></html>`,
   );
 
@@ -72,5 +72,6 @@ test('imports a branded HTML newsletter by its explicit content sections', () =>
   assert.equal(result.preheader, 'a guided workflow for protected trade');
   assert.match(result.sections.find((section) => section.key === 'shipped')?.body ?? '', /- agent matching/);
   assert.match(result.sections.find((section) => section.key === 'ecosystem')?.body ?? '', /without custody/);
+  assert.match(result.sections.find((section) => section.key === 'learned')?.body ?? '', /\[follow us @karwanBuild\]\(https:\/\/x\.com\/karwanBuild\)/);
   assert.equal(result.warnings.length, 0);
 });

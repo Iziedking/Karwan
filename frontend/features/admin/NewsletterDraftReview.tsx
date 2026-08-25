@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, type ReactNode } from 'react';
 import type { IssueSection } from '@/core/api';
 
 export interface NewsletterDraftReviewValue {
@@ -7,13 +8,27 @@ export interface NewsletterDraftReviewValue {
   preheader: string;
   sections: IssueSection[];
   source?: string;
+  sourceHtml?: string;
   warnings?: string[];
 }
 
-function inlineText(value: string): string {
-  return value
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\[([^\]]+)\]\(https?:\/\/[^\s)]+\)/g, '$1');
+function InlineText({ value }: { value: string }) {
+  const plain = value.replace(/\*\*([^*]+)\*\*/g, '$1');
+  const parts: ReactNode[] = [];
+  const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(plain))) {
+    if (match.index > cursor) parts.push(plain.slice(cursor, match.index));
+    parts.push(
+      <a key={`${match[1]}-${match.index}`} href={match[2]} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-[#6b7f2d]">
+        {match[1]}
+      </a>,
+    );
+    cursor = match.index + match[0].length;
+  }
+  if (cursor < plain.length) parts.push(plain.slice(cursor));
+  return <>{parts}</>;
 }
 
 function Body({ body }: { body: string }) {
@@ -25,11 +40,11 @@ function Body({ body }: { body: string }) {
         if (lines.length > 0 && lines.every((line) => /^[-*]\s+/.test(line))) {
           return (
             <ul key={index} className="list-disc space-y-1 pl-5">
-              {lines.map((line) => <li key={line}>{inlineText(line.replace(/^[-*]\s+/, ''))}</li>)}
+              {lines.map((line) => <li key={line}><InlineText value={line.replace(/^[-*]\s+/, '')} /></li>)}
             </ul>
           );
         }
-        return <p key={index}>{inlineText(lines.join(' '))}</p>;
+        return <p key={index}><InlineText value={lines.join(' ')} /></p>;
       })}
     </div>
   );
@@ -46,6 +61,8 @@ export function NewsletterDraftReview({
   onSave: () => void;
   saving: boolean;
 }) {
+  const [view, setView] = useState<'branded' | 'structured'>(draft.sourceHtml ? 'branded' : 'structured');
+
   return (
     <section className="border border-[#AFC95B]/45 rounded-xl bg-[#111111] overflow-hidden" aria-labelledby="newsletter-review-title">
       <div className="p-5 border-b border-white/10">
@@ -56,7 +73,12 @@ export function NewsletterDraftReview({
             <p className="mt-1 text-[12px] text-white/50">Nothing has changed on the issue yet. Check the clean reading view, then save.</p>
             {draft.source && <p className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-white/35">imported from {draft.source}</p>}
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 flex-wrap">
+            {draft.sourceHtml && (
+              <button type="button" onClick={() => setView((current) => current === 'branded' ? 'structured' : 'branded')} disabled={saving} className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-[#AFC95B]/45 text-[#AFC95B] hover:bg-[#AFC95B]/10 disabled:opacity-40">
+                {view === 'branded' ? 'View structured copy' : 'View branded page'}
+              </button>
+            )}
             <button type="button" onClick={onBack} disabled={saving} className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-white/15 text-white/60 hover:text-white disabled:opacity-40">Back to edit</button>
             <button type="button" onClick={onSave} disabled={saving || !draft.subject.trim() || !draft.sections.some((section) => section.body.trim())} className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 rounded-lg bg-[#AFC95B] text-[#0e0e0e] disabled:opacity-40">{saving ? 'Saving' : 'Save changes'}</button>
           </div>
@@ -67,6 +89,12 @@ export function NewsletterDraftReview({
           </ul>
         )}
       </div>
+      {view === 'branded' && draft.sourceHtml ? (
+        <div className="bg-[#f4f4f1] p-3 sm:p-5">
+          <p className="mono px-2 pb-3 text-[10px] uppercase tracking-[0.14em] text-[#6e6e6a]">[:BRANDED HTML PREVIEW:]</p>
+          <iframe title="Branded newsletter preview" srcDoc={draft.sourceHtml} sandbox="" className="h-[820px] w-full border border-black/10 bg-[#f4f4f1]" />
+        </div>
+      ) : (
       <div className="bg-[#f4f4f1] text-[#0e0e0e] p-6 sm:p-8">
         <p className="mono text-[10px] uppercase tracking-[0.14em] text-[#6e6e6a]">subject</p>
         <h3 className="mt-2 text-[24px] leading-tight font-bold">{draft.subject || 'Untitled issue'}</h3>
@@ -81,6 +109,7 @@ export function NewsletterDraftReview({
           ))}
         </div>
       </div>
+      )}
     </section>
   );
 }
