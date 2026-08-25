@@ -16,6 +16,7 @@
     "test:onboarding": "tsx --test features/onboarding/journey.test.ts features/onboarding/sellerSetup.test.ts",
     "test:auth": "tsx --test shared/auth/authPresentation.test.ts shared/auth/postAuthRoute.test.ts shared/auth/sessionStore.test.ts",
     "test:admin": "tsx --test features/admin/*.test.ts core/adminTransport.test.ts",
+    "test:newsletter": "tsx --test features/admin/newsletterMarkdown.test.ts",
     "test:discovery": "tsx --test features/discovery/model.test.ts",
     "test:bridge": "tsx --test features/bridge/components/bridgeHistoryPresentation.test.ts",
     "test:activity": "tsx --test features/activity/ledgerPresentation.test.ts",
