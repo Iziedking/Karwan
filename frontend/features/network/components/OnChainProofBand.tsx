@@ -84,7 +84,7 @@ export function OnChainProofBand() {
           <SectionTag tone="dark" dot="live">
             {t.sectionTag}
           </SectionTag>
-          <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
+          <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
             {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>.
           </HeroHeadline>
         </div>

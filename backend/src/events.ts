@@ -45,6 +45,7 @@ export type KarwanEventType =
   | 'deal.match.declined'
   | 'deal.match.approved'
   | 'deal.match.raised'
+  | 'deal.room.state.changed'
   | 'deal.review.started'
   | 'deal.review.heartbeat'
   | 'deal.milestone.auto_released'
@@ -114,6 +115,8 @@ export type KarwanEventType =
   /// "negotiating" spinner and carries the closest floor + ceiling for the
   /// "no match at your budget" advisory.
   | 'negotiation.out-of-reach'
+  | 'negotiation.offer.published'
+  | 'negotiation.offer.accepted'
   | 'market.scanned'
   | 'reputation.tier-up'
   | 'feedback.submitted'
@@ -165,6 +168,20 @@ export type KarwanEventType =
   | 'business.rejected';
 
 export interface KarwanEvent {
+  eventId?: string;
+  dealRoomId?: string;
+  sequence?: number;
+  aggregateVersion?: number;
+  structuredOffer?: {
+    id: string;
+    version: number;
+    amountUsdc: string;
+    updatedAt: number;
+    deadlineUnix?: number;
+    buyerMandateVersion?: number;
+    sellerMandateVersion?: number;
+    summary?: string;
+  };
   type: KarwanEventType;
   jobId?: string;
   actor: 'buyer' | 'seller' | 'platform';

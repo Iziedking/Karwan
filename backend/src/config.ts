@@ -620,6 +620,42 @@ const envSchema = z.object({
   // Off = the route responds 404/disabled (today).
   SCOUT_ENABLED: envBool('SCOUT_ENABLED'),
 
+  // --- Reliable agent runtime V2 rollout flags ---------------------------
+  // These flags are intentionally independent and default off. Phase 3C may
+  // persist read-only buyer timer snapshots and parity audits when runtime +
+  // match shadow are on; legacy timers remain authoritative until a separate
+  // cutover review.
+  MATCH_ENGINE_V2_SHADOW: envBool('MATCH_ENGINE_V2_SHADOW'),
+  AGENT_RUNTIME_V2_ENABLED: envBool('AGENT_RUNTIME_V2_ENABLED'),
+  // Structured negotiation shadow validates legacy-derived proposals and
+  // checkpoints them through the durable task runner. It never mutates offers.
+  NEGOTIATION_V2_SHADOW: envBool('NEGOTIATION_V2_SHADOW'),
+  // Evidence planning, provider policy, and acquisition observations are
+  // additive and read-only. They keep uncertain paid evidence and provider
+  // health visible without a provider call or purchase.
+  EVIDENCE_V2_SHADOW: envBool('EVIDENCE_V2_SHADOW'),
+  /// Checkpoint-only staking qualification, blocker, and funding-resume
+  /// observations. This never approves, transfers, or stakes funds.
+  STAKING_V2_ENABLED: envBool('STAKING_V2_ENABLED'),
+  NEGOTIATION_V2_ENABLED: envBool('NEGOTIATION_V2_ENABLED'),
+  // Financial command tasks are currently checkpoint-only observations. They
+  // persist policy decisions and provider uncertainty but do not invoke a
+  // provider or move funds until a separately reviewed operation cutover.
+  FINANCIAL_COMMANDS_V2_ENABLED: envBool('FINANCIAL_COMMANDS_V2_ENABLED'),
+  // Read-only provider reconciliation for persisted V2 financial commands. It
+  // may poll an existing transaction, but never creates, executes, or retries
+  // a transfer. Keep off until the reconciliation gate is reviewed.
+  FINANCIAL_RECONCILIATION_V2_ENABLED: envBool('FINANCIAL_RECONCILIATION_V2_ENABLED'),
+  // Registers reviewed negotiation/financial operation handlers and the
+  // admin-only reviewed-operation ingress. Legacy routes remain disconnected;
+  // keep off until an operator explicitly proves the cutover gate.
+  REVIEWED_OPERATION_TASKS_V2_ENABLED: envBool('REVIEWED_OPERATION_TASKS_V2_ENABLED'),
+  // Explicitly authorizes the reviewed x402 evidence adapter to call a
+  // provider and consume the separate research-credit ledger. Keep off until
+  // provider, account bootstrap, and reconciliation gates are reviewed.
+  EVIDENCE_RESEARCH_CREDIT_V2_ENABLED: envBool('EVIDENCE_RESEARCH_CREDIT_V2_ENABLED'),
+  EVENT_OUTBOX_V2_ENABLED: envBool('EVENT_OUTBOX_V2_ENABLED'),
+
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),

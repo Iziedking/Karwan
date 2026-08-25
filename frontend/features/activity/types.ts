@@ -11,6 +11,8 @@ const GROUP_BY_TYPE: Record<string, EventGroup> = {
   'counter.issued':             'negotiation',
   'counter.response.submitted': 'negotiation',
   'bid.accepted':               'negotiation',
+  'negotiation.offer.published': 'negotiation',
+  'negotiation.offer.accepted':  'negotiation',
   'agent.skipped':              'negotiation',
   'agent.declined':             'negotiation',
   'agent.fallback':             'negotiation',

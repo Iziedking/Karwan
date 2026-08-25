@@ -1,6 +1,15 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { bus, type KarwanEvent } from '../events.js';
+import { pgEnabled, postgresExecutor, withPostgresTransaction } from '../db/client.js';
+import {
+  PostgresDomainEventStore,
+  domainEventLiveBus,
+  domainEventToKarwanEvent,
+  type DealRoomStreamRecord,
+  type DomainEventV2,
+} from '../events/domainEventStore.js';
+import { sequenceCursor } from '../events/replayCursor.js';
 import { readSession } from '../auth/session.js';
 import { listBridgesForUser, bridgeOwnerFromIndex } from '../db/bridges.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -14,6 +23,35 @@ import {
 } from '../auth/partyScope.js';
 
 export const eventsRoutes = new Hono();
+
+const durableEventStore = pgEnabled
+  ? new PostgresDomainEventStore(postgresExecutor(), withPostgresTransaction)
+  : null;
+
+/// The durable replay boundary is deliberately independent from Hono. The
+/// browser reconnect path consumes this exact envelope, while the route only
+/// supplies authentication-derived projection sets. Keeping the contract
+/// pure makes cursor ordering and privacy testable without enabling a second
+/// event authority or requiring a live provider.
+export interface DurableReplayStore {
+  getDealRoom(id: string): Promise<DealRoomStreamRecord | null>;
+  findDealRoomByJobId(jobId: string): Promise<DealRoomStreamRecord | null>;
+  listAfterSequence(dealRoomId: string, afterSequence: number): Promise<DomainEventV2[]>;
+}
+
+export interface ReplayProjectionContext {
+  caller: string | null;
+  callerJobs: Set<string>;
+  buyerJobs: Set<string>;
+  callerBridges: Set<string>;
+}
+
+export interface DurableReplayEnvelope {
+  dealRoomId: string | null;
+  afterSequence: number;
+  currentSequence: number;
+  events: KarwanEvent[];
+}
 
 // The live stream and the snapshot are caller-aware: a party to a deal sees the
 // full event detail of THAT deal, everyone else sees a privacy pulse (the event
@@ -192,23 +230,212 @@ eventsRoutes.get('/recent', async (c) => {
   });
 });
 
+async function replayProjectionContext(caller: string | null) {
+  return caller
+    ? Promise.all([callerJobIds(caller), buyerJobIds(caller), seedCallerBridges(caller)])
+    : Promise.resolve([new Set<string>(), new Set<string>(), new Set<string>()] as const);
+}
+
+function canReplayJob(caller: string | null, jobId: string, callerJobs: Set<string>): boolean {
+  if (!caller) return false;
+  const jobKey = jobId.toLowerCase();
+  return callerJobs.has(jobKey) || isBriefPoster(jobKey, caller);
+}
+
+function safeReplayCursor(afterSequence: number): number {
+  return Math.max(0, Math.floor(afterSequence) || 0);
+}
+
+async function replayRoom(
+  store: DurableReplayStore,
+  room: DealRoomStreamRecord,
+  afterSequence: number,
+  context: ReplayProjectionContext,
+): Promise<DurableReplayEnvelope> {
+  const safeAfter = safeReplayCursor(afterSequence);
+  const events = await store.listAfterSequence(room.id, safeAfter);
+  return {
+    dealRoomId: room.id,
+    afterSequence: safeAfter,
+    currentSequence: room.lastSequence,
+    events: events.map((event) =>
+      projectFor(
+        domainEventToKarwanEvent(event),
+        context.caller,
+        context.callerJobs,
+        context.buyerJobs,
+        context.callerBridges,
+      ),
+    ),
+  };
+}
+
+/// Build the per-job replay envelope used by browser reconnect. Missing or
+/// unauthorized rooms intentionally collapse to the same empty response so a
+/// caller cannot probe another user's durable room existence.
+export async function buildJobReplayEnvelope(
+  store: DurableReplayStore,
+  jobId: string,
+  afterSequence: number,
+  context: ReplayProjectionContext,
+): Promise<DurableReplayEnvelope> {
+  const safeAfter = safeReplayCursor(afterSequence);
+  const room = await store.findDealRoomByJobId(jobId);
+  if (!room || !canReplayJob(context.caller, room.jobId, context.callerJobs)) {
+    return { dealRoomId: null, afterSequence: safeAfter, currentSequence: safeAfter, events: [] };
+  }
+  return replayRoom(store, room, safeAfter, context);
+}
+
+/// Build the room-scoped replay envelope. The route maps a null result to its
+/// existing 404, preserving the privacy boundary for direct room requests.
+export async function buildDealRoomReplayEnvelope(
+  store: DurableReplayStore,
+  dealRoomId: string,
+  afterSequence: number,
+  context: ReplayProjectionContext,
+): Promise<DurableReplayEnvelope | null> {
+  const room = await store.getDealRoom(dealRoomId);
+  if (!room || !canReplayJob(context.caller, room.jobId, context.callerJobs)) return null;
+  return replayRoom(store, room, afterSequence, context);
+}
+
+eventsRoutes.get('/deal-rooms/:dealRoomId/replay', async (c) => {
+  if (!durableEventStore) return c.json({ error: 'Durable replay is unavailable.' }, 503);
+  const dealRoomId = c.req.param('dealRoomId');
+  const afterSequence = sequenceCursor(c.req.query('afterSequence'));
+  const caller = readSession(c)?.address?.toLowerCase() ?? null;
+  const [callerJobs, buyerJobs, callerBridges] = await replayProjectionContext(caller);
+  const replay = await buildDealRoomReplayEnvelope(durableEventStore, dealRoomId, afterSequence, {
+    caller,
+    callerJobs,
+    buyerJobs,
+    callerBridges,
+  });
+  return replay ? c.json(replay) : c.json({ error: 'Deal room not found.' }, 404);
+});
+
+eventsRoutes.get('/replay', async (c) => {
+  if (!durableEventStore) return c.json({ error: 'Durable replay is unavailable.' }, 503);
+  const jobId = c.req.query('jobId');
+  if (!jobId) return c.json({ error: 'jobId is required.' }, 400);
+  const afterSequence = sequenceCursor(c.req.query('afterSequence'));
+  const caller = readSession(c)?.address?.toLowerCase() ?? null;
+  const [callerJobs, buyerJobs, callerBridges] = await replayProjectionContext(caller);
+  return c.json(await buildJobReplayEnvelope(durableEventStore, jobId, afterSequence, {
+    caller,
+    callerJobs,
+    buyerJobs,
+    callerBridges,
+  }));
+});
+
 eventsRoutes.get('/', async (c) => {
   const caller = readSession(c)?.address?.toLowerCase() ?? null;
   const [callerJobs, buyerJobs, callerBridges] = caller
     ? await Promise.all([seedCallerJobs(caller), buyerJobIds(caller), seedCallerBridges(caller)])
     : [new Set<string>(), new Set<string>(), new Set<string>()];
+
+  const dealRoomId = c.req.query('dealRoomId');
+  if (dealRoomId && !durableEventStore) {
+    return c.json({ error: 'Durable replay is unavailable.' }, 503);
+  }
+  if (dealRoomId && durableEventStore) {
+    const room = await durableEventStore.getDealRoom(dealRoomId);
+    if (!room) return c.json({ error: 'Deal room not found.' }, 404);
+    if (!canReplayJob(caller, room.jobId, callerJobs)) {
+      return c.json({ error: 'Deal room not found.' }, 404);
+    }
+    const afterSequence = Math.max(
+      sequenceCursor(c.req.header('Last-Event-ID')),
+      sequenceCursor(c.req.query('afterSequence')),
+    );
+    return streamSSE(c, async (stream) => {
+      let lastSequence = afterSequence;
+      const queue: ReturnType<typeof domainEventToKarwanEvent>[] = [];
+      let resolveWait: (() => void) | null = null;
+      const unsub = domainEventLiveBus.subscribe((event) => {
+        if (event.aggregateId !== dealRoomId || event.sequence <= lastSequence) return;
+        queue.push(domainEventToKarwanEvent(event));
+        resolveWait?.();
+        resolveWait = null;
+      });
+
+      try {
+        const replay = await durableEventStore.listAfterSequence(dealRoomId, lastSequence);
+        await stream.writeSSE({
+          event: 'open',
+          data: JSON.stringify({ ok: true, dealRoomId, afterSequence: lastSequence }),
+        });
+        for (const event of replay) {
+          if (event.sequence <= lastSequence) continue;
+          const projected = projectFor(
+            domainEventToKarwanEvent(event),
+            caller,
+            callerJobs,
+            buyerJobs,
+            callerBridges,
+          );
+          await stream.writeSSE({
+            id: String(event.sequence),
+            event: 'karwan',
+            data: JSON.stringify(projected),
+          });
+          lastSequence = event.sequence;
+        }
+
+        while (true) {
+          if (queue.length === 0) {
+            await new Promise<void>((resolve) => {
+              resolveWait = resolve;
+              setTimeout(resolve, 15_000);
+            });
+          }
+          queue.sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+          while (queue.length > 0) {
+            const event = queue.shift()!;
+            if ((event.sequence ?? 0) <= lastSequence) continue;
+            const projected = projectFor(
+              event,
+              caller,
+              callerJobs,
+              buyerJobs,
+              callerBridges,
+            );
+            await stream.writeSSE({
+              id: String(event.sequence),
+              event: 'karwan',
+              data: JSON.stringify(projected),
+            });
+            lastSequence = event.sequence ?? lastSequence;
+          }
+          await stream.writeSSE({ event: 'ping', data: String(Date.now()) });
+        }
+      } finally {
+        unsub();
+      }
+    });
+  }
+
   return streamSSE(c, async (stream) => {
     let id = 0;
     const queue: KarwanEvent[] = [];
     let resolveWait: (() => void) | null = null;
 
+    const wake = () => {
+      resolveWait?.();
+      resolveWait = null;
+    };
     const unsub = bus.subscribe((e) => {
       // Private support replies go to the user over Telegram + their own ticket
       // poll, never the public broadcast (which every client receives).
       if (e.type === 'support.reply') return;
       queue.push(e);
-      resolveWait?.();
-      resolveWait = null;
+      wake();
+    });
+    const unsubDurable = domainEventLiveBus.subscribe((event) => {
+      queue.push(domainEventToKarwanEvent(event));
+      wake();
     });
 
     await stream.writeSSE({ event: 'open', data: JSON.stringify({ ok: true }) });
@@ -241,6 +468,7 @@ eventsRoutes.get('/', async (c) => {
       }
     } finally {
       unsub();
+      unsubDurable();
     }
   });
 });

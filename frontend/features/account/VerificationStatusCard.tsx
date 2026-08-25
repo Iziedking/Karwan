@@ -127,7 +127,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
 
         {canReviewBusiness && (
           <Link
-            href="#company"
+            href="/business/verification"
             className="mt-4 inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)]"
           >
             {t.reviewBusiness}

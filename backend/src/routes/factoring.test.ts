@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { factoringAdvanceRecipient } from './factoring.js';
+import { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 test('factoring advances target the on-chain seller agent when present', () => {
   assert.equal(

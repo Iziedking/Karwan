@@ -4,6 +4,7 @@ import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
 } from '@simplewebauthn/browser';
+import { credentialsForApiRequest } from './adminTransport';
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
 
@@ -804,6 +805,12 @@ export interface MatchProposal {
     score: number;
     amountUsd: number;
     transaction: string;
+    providerId?: string;
+    claim?: string;
+    decisionImpact?: 'legacy_match_unchanged';
+    /// Durable evidence snapshot id, present only when the read-only evidence
+    /// shadow recorded the paid pull. Absent on legacy/payment-only rows.
+    evidenceId?: string;
     paidAt: number;
   };
   /// Market read the agent paid for over x402 on Base (Exa web search,
@@ -894,6 +901,10 @@ export interface CounterpartyReport {
     txHash?: string;
     payer?: string;
     depositTxHash?: string;
+    providerId?: string;
+    claim?: string;
+    decisionImpact?: 'legacy_match_unchanged';
+    evidenceId?: string;
   } | null;
 }
 
@@ -1276,14 +1287,16 @@ export interface AssistantConfirmAction {
 export type AssistantAction = AssistantNavigateAction | AssistantConfirmAction;
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = { 'content-type': 'application/json', ...(init?.headers ?? {}) };
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
     cache: 'no-store',
-    // Session cookie travels on every API call so the backend can resolve
-    // the current user without a token header dance. Backend CORS echoes the
-    // Origin and sets Access-Control-Allow-Credentials.
-    credentials: 'include',
     ...init,
+    headers,
+    // Customer calls retain their session cookie. Operator calls are
+    // deliberately credential-less and authorize only with the in-memory
+    // X-Admin-Token, so /admin never acts as the signed-in customer account in
+    // the same browser profile.
+    credentials: credentialsForApiRequest(headers, init?.credentials),
   });
   if (!res.ok) {
     let parsed: unknown = res.statusText;
@@ -1353,6 +1366,22 @@ export function setAdminToken(token: string | null): void {
 function adminHeaders(): Record<string, string> {
   const t = getAdminToken();
   return t ? { 'x-admin-token': t } : {};
+}
+
+export interface AdminBackendRoute {
+  id: string;
+  method: string;
+  path: string;
+  family: string;
+  access: 'admin' | 'support' | 'service' | 'application' | 'public';
+  risk: 'read' | 'change' | 'destructive' | 'ingress';
+}
+
+export interface AdminRouteCatalogResponse {
+  generatedAt: number;
+  source: 'runtime';
+  count: number;
+  routes: AdminBackendRoute[];
 }
 
 export interface AdminDisputeRow {
@@ -1643,6 +1672,63 @@ export interface AdminMatchingReviewQueueResponse {
   records: unknown[];
 }
 
+export type AdminAgentTaskState =
+  | 'pending'
+  | 'leased'
+  | 'running'
+  | 'waiting'
+  | 'failed'
+  | 'succeeded'
+  | 'dead_letter'
+  | 'cancelled';
+
+export interface AdminAgentTask {
+  id: string;
+  dealRoomId?: string;
+  kind: string;
+  state: AdminAgentTaskState;
+  attempt: number;
+  maxAttempts: number;
+  availableAt: number;
+  updatedAt: number;
+  lastError?: string;
+  completedAt?: number;
+  deadLetteredAt?: number;
+}
+
+export interface AdminAgentTaskSummary {
+  total: number;
+  byState: Record<AdminAgentTaskState, number>;
+  retrying: number;
+  deadLettered: number;
+  leaseLosses: number;
+  repeatedReengagements: number;
+}
+
+export interface AdminAgentRuntimeTasksResponse {
+  mode: 'read-only-operational';
+  authoritativeRoutes: 'legacy';
+  providerWritesAuthorized: false;
+  summary: AdminAgentTaskSummary;
+  tasks: AdminAgentTask[];
+}
+
+export interface AdminAgentRuntimeRolloutResponse {
+  mode: 'read-only-rollout-gate';
+  authoritativeRoutes: 'legacy';
+  providerWritesAuthorized: false;
+  financialMutationsAuthorized: false;
+  metrics: Record<string, number>;
+  thresholds: Record<string, number>;
+  missingMetrics: string[];
+  metricsComplete: boolean;
+  gate: {
+    eligible: boolean;
+    reasons: string[];
+    killSwitch: boolean;
+  };
+}
+
 /// A paid market read as the backend returns it (x402 externalClient MarketRead).
 /// `paidUsd` maps to the MarketReadCard's `amountUsd` when rendering.
 export interface ApiMarketRead {
@@ -1901,10 +1987,43 @@ export const api = {
     json<{ count: number; deals: AdminDealRow[] }>('/api/admin/deals', {
       headers: adminHeaders(),
     }),
+  adminRouteCatalog: () =>
+    json<AdminRouteCatalogResponse>('/api/admin/route-catalog', {
+      headers: adminHeaders(),
+    }),
   adminProfiles: () =>
     json<{ count: number; profiles: AdminProfileRow[] }>('/api/admin/profiles', {
       headers: adminHeaders(),
     }),
+  /// Read-only durable runtime operations. The UI intentionally exposes no
+  /// retry, replay, cancel, provider, wallet, or financial controls.
+  adminAgentRuntimeTasks: (input: { state?: AdminAgentTaskState; limit?: number } = {}) => {
+    const qs = new URLSearchParams({ limit: String(input.limit ?? 100) });
+    if (input.state) qs.set('state', input.state);
+    return json<AdminAgentRuntimeTasksResponse>(
+      `/api/admin/agent-runtime/tasks?${qs.toString()}`,
+      { headers: adminHeaders() },
+    );
+  },
+  adminAgentRuntimeRolloutGate: (input: {
+    minimumObservations?: number;
+    maximumStaleOfferAcceptances?: number;
+    maximumUnknownEvidenceUsed?: number;
+    maximumEvidenceSettlementConflicts?: number;
+    maximumUncertainFinancialStates?: number;
+  } = {}) => {
+    const qs = new URLSearchParams({
+      minimumObservations: String(input.minimumObservations ?? 1),
+      maximumStaleOfferAcceptances: String(input.maximumStaleOfferAcceptances ?? 0),
+      maximumUnknownEvidenceUsed: String(input.maximumUnknownEvidenceUsed ?? 0),
+      maximumEvidenceSettlementConflicts: String(input.maximumEvidenceSettlementConflicts ?? 0),
+      maximumUncertainFinancialStates: String(input.maximumUncertainFinancialStates ?? 0),
+    });
+    return json<AdminAgentRuntimeRolloutResponse>(
+      `/api/admin/agent-runtime/rollout-gate?${qs.toString()}`,
+      { headers: adminHeaders() },
+    );
+  },
   /// Matching shadow review is an operator audit surface only. The backend
   /// keeps legacy winner selection authoritative and the review disposition
   /// cannot enable a rollout or trigger any provider/financial action.

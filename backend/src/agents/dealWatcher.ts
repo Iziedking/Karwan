@@ -34,6 +34,9 @@ import {
   remainingEscrowMicros,
 } from '../money/escrowRefund.js';
 import { formatUsdcMicros } from '../money/model.js';
+import { expectedMilestonePayout } from '../money/escrowProjection.js';
+import type { FinancialCommandShadowObserver } from './financialCommandShadow.js';
+import { buildLegacySettlementObservation } from './financialCommandProjection.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -58,6 +61,65 @@ import { formatUsdcMicros } from '../money/model.js';
 const TICK_MS = Number(process.env.DEAL_WATCHER_TICK_MS ?? 60_000);
 const processing = new Set<string>();
 const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
+
+let financialCommandShadowObserver: FinancialCommandShadowObserver | null = null;
+
+/**
+ * Installs the optional read-only settlement observer. It receives projected
+ * payout/refund intents only; it cannot call a provider or alter the watcher.
+ */
+export function configureDealFinancialCommandShadow(
+  observer: FinancialCommandShadowObserver | null,
+): () => void {
+  financialCommandShadowObserver = observer;
+  return () => {
+    if (financialCommandShadowObserver === observer) financialCommandShadowObserver = null;
+  };
+}
+
+function publishSettlementShadow(input: Parameters<typeof buildLegacySettlementObservation>[0]): void {
+  const observer = financialCommandShadowObserver;
+  if (!observer) return;
+  try {
+    const data = buildLegacySettlementObservation(input);
+    void observer({ data }).catch((err) => {
+      logger.warn(
+        { jobId: input.dealRoomId, operation: input.operation, err: (err as Error).message },
+        'legacy settlement financial shadow observation failed',
+      );
+    });
+  } catch (err) {
+    logger.warn(
+      { jobId: input.dealRoomId, operation: input.operation, err: (err as Error).message },
+      'legacy settlement financial shadow projection rejected',
+    );
+  }
+}
+
+function publishMilestonePayoutShadow(
+  deal: DirectDeal,
+  account: Parameters<typeof expectedMilestonePayout>[0],
+  milestoneIndex: number,
+  observedAtUnix: number,
+): void {
+  if (!deal.sellerAgentAddress) return;
+  try {
+    publishSettlementShadow({
+      dealRoomId: deal.jobId,
+      escrowAddress: escrow.address,
+      destinationAddress: deal.sellerAgentAddress,
+      amountUsdc: formatUsdcMicros(expectedMilestonePayout(account, milestoneIndex)),
+      operation: 'MILESTONE_PAYOUT',
+      observedAtUnix,
+      movementReference: `release:${deal.jobId}:milestone:${milestoneIndex}`,
+    });
+  } catch (err) {
+    logger.warn(
+      { jobId: deal.jobId, milestoneIndex, err: (err as Error).message },
+      'legacy milestone payout shadow projection rejected',
+    );
+  }
+}
 
 type BlockReason = 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
 
@@ -360,6 +422,15 @@ async function tick() {
             continue;
           }
           const refundAmountUsdc = formatUsdcMicros(refundMicros);
+          publishSettlementShadow({
+            dealRoomId: deal.jobId,
+            escrowAddress: escrow.address,
+            destinationAddress: buyerAgentAddress,
+            amountUsdc: refundAmountUsdc,
+            operation: 'REFUND',
+            observedAtUnix: Math.floor(now / 1_000),
+            movementReference: refundMovementKey(deal.jobId),
+          });
           const refundInput = {
             operationKey: refundMovementKey(deal.jobId),
             amountUsdc: refundAmountUsdc,
@@ -473,6 +544,7 @@ async function tick() {
           pairHistory.get(pairKey(deal.buyer, deal.seller)) ?? 0,
         );
         if (now <= anchor + windowMs) continue;
+        publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const releasedAt = Date.now();
         await patchDeal(deal.jobId, {
@@ -533,6 +605,7 @@ async function tick() {
         responseDeadline !== null &&
         now > responseDeadline
       ) {
+        publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
         await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
         const settled = await finalizeIfSettled(deal.jobId);
         await patchDeal(deal.jobId, {

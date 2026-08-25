@@ -37,6 +37,7 @@ import {
   nextCounterPrice,
   type Tier,
 } from './strategy.js';
+import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { getBrief } from '../db/briefs.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { categoryPriceSnapshot } from '../db/priceObservations.js';
@@ -54,6 +55,12 @@ import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
 import { cleanDealPartnersFor } from './workRecord.js';
 import { getTierState } from '../db/tierState.js';
 import type { Tier as StandingTier } from '../reputation/config.js';
+import type {
+  StakeQualificationShadowObserver,
+} from './stakeQualificationShadow.js';
+import { buildStakeQualificationObservation } from './stakeQualificationProjection.js';
+import type { EvidenceAcquisitionShadowObserver } from './evidenceAcquisitionShadow.js';
+import { buildMarketEvidenceAcquisitionObservation } from './evidenceAcquisitionProjection.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -115,6 +122,74 @@ const handledEvents = new Set<string>();
 // 2s flush reads the final state, so it captures a bid's post-mutation form and
 // naturally drops it once it finalizes. See db/activeBids.ts.
 let activeBidsPersistTimer: ReturnType<typeof setTimeout> | null = null;
+let stakeQualificationShadowObserver: StakeQualificationShadowObserver | null = null;
+let evidenceAcquisitionShadowObserver: EvidenceAcquisitionShadowObserver | null = null;
+
+/// Installs the optional read-only stake qualification observer. It records the
+/// exact trusted-match shortfall as a durable shadow blocker, but never changes
+/// the legacy seller decision and never submits a stake or transfer.
+export function configureSellerStakeQualificationShadow(
+  observer: StakeQualificationShadowObserver | null,
+): () => void {
+  stakeQualificationShadowObserver = observer;
+  return () => {
+    if (stakeQualificationShadowObserver === observer) stakeQualificationShadowObserver = null;
+  };
+}
+
+/// Installs the read-only market-evidence acquisition observer. It records the
+/// existing legacy research result only; it never initiates a provider call or
+/// changes seller pricing, eligibility, or negotiation authority.
+export function configureSellerEvidenceAcquisitionShadow(
+  observer: EvidenceAcquisitionShadowObserver | null,
+): () => void {
+  evidenceAcquisitionShadowObserver = observer;
+  return () => {
+    if (evidenceAcquisitionShadowObserver === observer) evidenceAcquisitionShadowObserver = null;
+  };
+}
+
+function publishMarketEvidenceAcquisitionShadow(read: Awaited<ReturnType<typeof researchMarket>>, jobId: string): void {
+  const observer = evidenceAcquisitionShadowObserver;
+  if (!observer) return;
+  const data = buildMarketEvidenceAcquisitionObservation(read, jobId);
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId, err: (err as Error).message },
+      'seller market evidence acquisition shadow observation failed',
+    );
+  });
+}
+
+function publishStakeQualificationShadow(
+  job: JobContext,
+  seller: SellerProfile,
+  stakeOwner: string,
+  fundingWallet: string,
+  requiredUsdc: string,
+  freeUsdc: string,
+  reservationBps: number,
+): void {
+  const observer = stakeQualificationShadowObserver;
+  if (!observer) return;
+  const data = buildStakeQualificationObservation({
+    dealRoomId: job.jobId,
+    sellerAddress: seller.address,
+    stakeOwner,
+    fundingWallet,
+    vaultAddress: vault.address,
+    requiredStakeUsdc: requiredUsdc,
+    freeStakeUsdc: freeUsdc,
+    reservationBps,
+    observedAtUnix: Math.floor(Date.now() / 1000),
+  });
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId: job.jobId, seller: seller.address, err: (err as Error).message },
+      'stake qualification shadow observation failed',
+    );
+  });
+}
 
 function liveActiveBids(): Record<string, ActiveBid> {
   const out: Record<string, ActiveBid> = {};
@@ -544,6 +619,7 @@ async function maybeSellerResearch(
     // per-agent activation. The platform fronts the call and the cost is settled
     // on the matched pair at match (buyer.ts persistApprovedMatch), not here.
     const read = await researchMarket(keywords);
+    publishMarketEvidenceAcquisitionShadow(read, jobId);
     setResearchHeat(keywords, read);
     if (!read.cached) {
       bus.emitEvent({
@@ -780,6 +856,15 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
           { jobId: job.jobId, seller: seller.address, stakeOwner, requiredUsdc, freeUsdc },
           'skipping: insufficient free stake for trusted match',
         );
+        publishStakeQualificationShadow(
+          job,
+          seller,
+          stakeOwner,
+          sellerWallet?.sellerAddress ?? seller.address,
+          requiredUsdc,
+          freeUsdc,
+          reservationBps,
+        );
         bus.emitEvent({
           type: 'agent.skipped',
           jobId: job.jobId,
@@ -909,12 +994,13 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
   // the buyer process via verifyCounterpartyAtMatch), so the bidding phase stays
   // free of internal Arc receipts. Counters here price on free reputation.
   const heat = await marketHeat(dealKeywords, seller.address);
-  const opening = sellerOpeningBid(
+  const opening = pureSellerOpeningBid(
     seller,
     job,
     buyerTier,
     heat,
     getCachedMarketPrice(dealKeywords),
+    Math.random,
   );
   if (opening === null) {
     // Seller floor sits above the buyer's ceiling, so no price clears both
@@ -1056,7 +1142,8 @@ async function settledWithin(p: Promise<unknown>, ms: number): Promise<boolean> 
 /// null when no point in [budget, ceiling] is reachable for
 /// this seller (their max is below the buyer's budget, or their min above the
 /// ceiling), i.e. no possible deal, so skip.
-function sellerOpeningBid(
+/** @deprecated Use the injected pure helper in sellerPricing.ts. */
+export function legacySellerOpeningBid(
   seller: SellerProfile,
   job: JobContext,
   buyerTier: Tier,
@@ -1224,11 +1311,9 @@ async function runCounterEvaluation(
       ? Math.min(counterMarket, budgetForClamp * 2, maxAcceptable)
       : 0;
   const minAcceptable = Math.max(profileFloor, marketFloor);
-  const sellerDaysToDeadline = Math.max(
-    1,
-    Math.floor(
-      (active.jobContext.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400,
-    ),
+  const daysToDeadline = sellerDaysToDeadline(
+    active.jobContext.deadlineUnix,
+    Math.floor(Date.now() / 1000),
   );
   const suggestedCounter = nextCounterPrice({
     role: 'seller',
@@ -1238,7 +1323,7 @@ async function runCounterEvaluation(
     floor: minAcceptable,
     ceiling: maxAcceptable,
     tier: buyerTier,
-    daysToDeadline: sellerDaysToDeadline,
+    daysToDeadline,
   });
 
   let decision: CounterEvaluation;

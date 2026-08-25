@@ -348,7 +348,7 @@ export default function AppHome() {
             <SectionTag tone="dark" dot="live">
               {t.liveNetwork.sectionTag}
             </SectionTag>
-            <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
+            <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
               {t.liveNetwork.headlineTop}
               <br />
               {t.liveNetwork.headlineBottomPrefix}<Accent>{t.liveNetwork.headlineBottomAccent}</Accent>
@@ -357,7 +357,7 @@ export default function AppHome() {
           </div>
           <Link
             href="/activity"
-            className="group inline-flex items-center gap-1.5 mono text-[12px] uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
+            className="group -mx-2 inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[12px] uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
           >
             {t.liveNetwork.fullFeed}
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
@@ -422,7 +422,7 @@ export default function AppHome() {
       {/* DEALS ACROSS KARWAN */}
       <Band tone="light">
         <SectionTag>{t.yourBook.sectionTag}</SectionTag>
-        <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
+        <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
           {t.yourBook.headlinePrefix}<Accent>{t.yourBook.headlineAccent}</Accent><Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">

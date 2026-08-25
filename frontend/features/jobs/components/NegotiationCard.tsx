@@ -1,10 +1,12 @@
 'use client';
 import { useState } from 'react';
-import type { ChainEvent } from '@/core/api';
+import type { BuyerJob, ChainEvent, MatchProposal } from '@/core/api';
 import { formatUsdc } from '@/shared/utils/format';
 import { SectionTag, PageCard } from '@/shared/components/Bands';
 import { EventList } from './EventList';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { formatMatchingTimestamp, presentMatchingState } from '../matchingPresentation';
+import { latestStructuredOffer } from '../structuredOfferPresentation';
 
 // Mirrors the backend default NEGOTIATION_MAX_ROUNDS_PER_SIDE. Display-only:
 // a soft cap shown beside the round counter, not enforced here.
@@ -46,49 +48,62 @@ function priceWalk(events: ChainEvent[]): PricePoint[] {
 export function NegotiationCard({
   events,
   explorer,
-  terminal = false,
+  job,
+  proposal,
+  viewerAddress,
 }: {
   events: ChainEvent[];
   explorer: string;
-  terminal?: boolean;
+  job: Pick<BuyerJob, 'finalized' | 'escrowFunded' | 'expiredAt'>;
+  proposal?: MatchProposal | null;
+  viewerAddress?: string | null;
 }) {
-  const nc = useTranslations().negotiationCard;
+  const { locale, t } = useLocale();
+  const nc = t.negotiationCard;
   const [open, setOpen] = useState(false);
   const walk = priceWalk(events);
-  const accepted = walk.some((p) => p.accepted);
-  const phase: 'awaiting' | 'negotiating' | 'agreed' | 'ended' = accepted
-    ? 'agreed'
-    : terminal
-      ? 'ended'
-      : walk.length > 0
-        ? 'negotiating'
-        : 'awaiting';
-  const live = phase === 'negotiating' || phase === 'awaiting';
-  const standing = walk[walk.length - 1]?.price;
+  const presentation = presentMatchingState({
+    events,
+    job,
+    proposal,
+    viewerAddress,
+    viewerRole: 'buyer',
+  });
+  const structuredOffer = latestStructuredOffer(events);
+  const stateCopy = nc.states[presentation.state];
+  const accepted =
+    presentation.state === 'funding_ready' ||
+    presentation.state === 'settling' ||
+    presentation.state === 'completed';
   const round = walk.length;
-
-  const headline =
-    phase === 'agreed'
-      ? nc.headlines.agreedTemplate.replace(
-          '{amount}',
-          formatUsdc(standing!, { withSuffix: false }),
-        )
-      : phase === 'ended'
-        ? nc.headlines.ended
-        : phase === 'negotiating'
-          ? nc.headlines.negotiating
-          : nc.headlines.awaiting;
-  const sub =
-    phase === 'awaiting' ? nc.subs.awaiting : phase === 'ended' ? nc.subs.ended : null;
+  const offerFreshness = presentation.currentOffer
+    ? `${nc.offer[presentation.currentOffer.revision]} · ${nc.offer.updatedTemplate.replace(
+        '{time}',
+        formatMatchingTimestamp(presentation.currentOffer.updatedAt, locale),
+      )}`
+    : null;
+  const structuredOfferFreshness = structuredOffer
+    ? `${structuredOffer.version === 1 ? nc.offer.initial : nc.offer.changed} / ${nc.offer.updatedTemplate.replace(
+        '{time}',
+        formatMatchingTimestamp(structuredOffer.updatedAt, locale),
+      )}`
+    : null;
+  const visibleOfferFreshness = structuredOfferFreshness ?? offerFreshness;
 
   const display = walk.length > MAX_CHIPS ? walk.slice(-MAX_CHIPS) : walk;
   const truncated = walk.length > MAX_CHIPS;
 
   return (
     <PageCard>
-      <div className="px-6 pt-6 flex items-center justify-between gap-3">
-        <SectionTag dot={live ? 'live' : undefined}>{nc.tag}</SectionTag>
-        {round > 0 && phase !== 'agreed' && (
+      <div
+        className="px-6 pt-6 flex items-center justify-between gap-3"
+        data-matching-state={presentation.state}
+        data-matching-next-actor={presentation.nextActor}
+      >
+        <SectionTag dot={presentation.live ? 'live' : undefined}>
+          {nc.tag} · {stateCopy.tag}
+        </SectionTag>
+        {round > 0 && !presentation.terminal && (
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             {round <= SOFT_ROUND_CAP
               ? nc.roundOfCapTemplate
@@ -101,13 +116,35 @@ export function NegotiationCard({
 
       <div className="px-6 pt-4 pb-6">
         <h3 className="font-sans text-[22px] md:text-[26px] font-extrabold tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-          {headline}
+          {stateCopy.headline}
         </h3>
-        {sub && (
-          <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-            {sub}
-          </p>
-        )}
+        <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+          {stateCopy.body}
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <span>{nc.nextActors[presentation.nextActor]}</span>
+          {visibleOfferFreshness ? <span className="tabular-nums">{visibleOfferFreshness}</span> : null}
+        </div>
+
+        {structuredOffer ? (
+          <div
+            className="mt-6 border border-[var(--lp-border)] bg-[var(--lp-surface-raised)] px-4 py-4"
+            data-structured-offer-id={structuredOffer.id}
+            data-structured-offer-version={structuredOffer.version}
+          >
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                {structuredOffer.version === 1 ? nc.offer.initial : nc.offer.changed}
+              </span>
+              <span className="font-sans text-[30px] font-extrabold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">
+                {formatUsdc(structuredOffer.amountUsdc, { withSuffix: false })}{' '}
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  USDC
+                </span>
+              </span>
+            </div>
+          </div>
+        ) : null}
 
         {display.length > 0 && (
           <div className="mt-6 flex flex-wrap items-end gap-x-2 gap-y-3">
@@ -159,7 +196,7 @@ export function NegotiationCard({
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="group inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+            className="group inline-flex min-h-11 items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
           >
             {open ? nc.timelineHide : nc.timelineShow}
             <svg

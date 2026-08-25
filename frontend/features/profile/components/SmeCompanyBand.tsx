@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { cloneElement, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Hint } from '@/shared/components/Hint';
 
 // Hoisted constants per Vercel `rendering-hoist-jsx`, never re-allocated
 // per render. Static option lists for the native <select> inputs.
@@ -46,6 +47,9 @@ type EmployeeBand = 'micro' | 'small' | 'medium';
 export function SmeCompanyBand({
   address,
   fallbackName,
+  startEditing = false,
+  verificationMode = false,
+  onSaved,
 }: {
   address: string;
   /// The account display name. When the structured company name was never set
@@ -54,6 +58,9 @@ export function SmeCompanyBand({
   /// value in place instead of finding a blank field. Saving then writes the
   /// clean name back to both the company name and the display name.
   fallbackName?: string;
+  startEditing?: boolean;
+  verificationMode?: boolean;
+  onSaved?: (profile: { companyName: string; sector: string; region: string }) => void;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -126,7 +133,7 @@ export function SmeCompanyBand({
   // form in edit mode and scroll to the trade card itself, so the user lands
   // directly on the editable card instead of a blank strip above it.
   const searchParams = useSearchParams();
-  const wantsEdit = searchParams.get('edit') === 'company';
+  const wantsEdit = searchParams.get('edit') === 'company' || startEditing;
   const cardRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!loaded || !wantsEdit) return;
@@ -138,8 +145,12 @@ export function SmeCompanyBand({
   }, [loaded, wantsEdit]);
 
   async function save() {
-    setSaving(true);
     setError(null);
+    if (verificationMode && (!companyName.trim() || !sector || !region.trim())) {
+      setError(t.verificationRequired);
+      return;
+    }
+    setSaving(true);
     try {
       await api.updateSmeProfile({
         address,
@@ -160,8 +171,9 @@ export function SmeCompanyBand({
         },
       });
       setEditing(false);
-    } catch (e) {
-      setError((e as Error).message);
+      onSaved?.({ companyName: companyName.trim(), sector, region: region.trim() });
+    } catch {
+      setError(t.saveError);
     } finally {
       setSaving(false);
     }
@@ -192,7 +204,7 @@ export function SmeCompanyBand({
     return (
       <div className="relative px-4 pb-9 md:px-8 md:pb-11">
         <SectionTag>{t.sectionTag}</SectionTag>
-        <HeroHeadline size="md">
+        <HeroHeadline size="md" as="h2">
           {t.loading}<Punc>…</Punc>
         </HeroHeadline>
       </div>
@@ -210,7 +222,7 @@ export function SmeCompanyBand({
       >
         <div>
           <SectionTag dot={verifiedAt ? 'live' : undefined}>{t.sectionTag}</SectionTag>
-          <HeroHeadline size="md">
+          <HeroHeadline size="md" as="h2">
             {t.headline}<Punc>.</Punc>
           </HeroHeadline>
         </div>
@@ -218,7 +230,7 @@ export function SmeCompanyBand({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
+            className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
             style={{
               borderTopLeftRadius: 6,
               borderTopRightRadius: 6,
@@ -317,7 +329,7 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={save}
                   disabled={saving}
-                  className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-2 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-60"
                   style={{
                     borderTopLeftRadius: 6,
                     borderTopRightRadius: 6,
@@ -331,7 +343,7 @@ export function SmeCompanyBand({
                   type="button"
                   onClick={() => setEditing(false)}
                   disabled={saving}
-                  className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+                  className="inline-flex min-h-11 items-center px-2 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
                 >
                   {t.cancel}
                 </button>
@@ -507,7 +519,7 @@ function SmeEditGrid(props: {
   const t = useTranslations().smeCompany;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <EditField label={t.form.companyName}>
+      <EditField fieldKey="company-name" label={t.form.companyName} hint={t.form.hints.companyName}>
         <input
           type="text"
           value={props.companyName}
@@ -517,11 +529,8 @@ function SmeEditGrid(props: {
           maxLength={120}
           className="form-input"
         />
-        <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          {t.form.companyNameHint}
-        </span>
       </EditField>
-      <EditField label={t.form.sector}>
+      <EditField fieldKey="sector" label={t.form.sector} hint={t.form.hints.sector}>
         <select
           value={props.sector}
           disabled={props.disabled}
@@ -536,7 +545,7 @@ function SmeEditGrid(props: {
           ))}
         </select>
       </EditField>
-      <EditField label={t.form.region}>
+      <EditField fieldKey="region" label={t.form.region} hint={t.form.hints.region}>
         <input
           type="text"
           value={props.region}
@@ -547,7 +556,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.yearFounded}>
+      <EditField fieldKey="year-founded" label={t.form.yearFounded} hint={t.form.hints.yearFounded}>
         <input
           type="number"
           min={1800}
@@ -561,7 +570,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.employeeBand}>
+      <EditField fieldKey="employee-band" label={t.form.employeeBand} hint={t.form.hints.employeeBand}>
         <select
           value={props.employeeBand}
           disabled={props.disabled}
@@ -576,7 +585,7 @@ function SmeEditGrid(props: {
           ))}
         </select>
       </EditField>
-      <EditField label={t.form.website}>
+      <EditField fieldKey="website" label={t.form.website} hint={t.form.hints.website}>
         <input
           type="url"
           value={props.websiteUrl}
@@ -587,7 +596,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.regTaxId}>
+      <EditField fieldKey="registration-id" label={t.form.regTaxId} hint={t.form.hints.regTaxId}>
         <input
           type="text"
           value={props.registrationId}
@@ -598,7 +607,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.primaryMarkets}>
+      <EditField fieldKey="primary-markets" label={t.form.primaryMarkets} hint={t.form.hints.primaryMarkets}>
         <input
           type="text"
           value={props.primaryMarkets}
@@ -609,7 +618,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.annualVolume}>
+      <EditField fieldKey="annual-volume" label={t.form.annualVolume} hint={t.form.hints.annualVolume}>
         <select
           value={props.annualVolumeBand}
           disabled={props.disabled}
@@ -624,7 +633,7 @@ function SmeEditGrid(props: {
           ))}
         </select>
       </EditField>
-      <EditField label={t.form.minOrder}>
+      <EditField fieldKey="min-order" label={t.form.minOrder} hint={t.form.hints.minOrder}>
         <input
           type="text"
           value={props.minOrderValue}
@@ -635,7 +644,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.leadTimeDays}>
+      <EditField fieldKey="lead-time" label={t.form.leadTimeDays} hint={t.form.hints.leadTimeDays}>
         <input
           type="number"
           min={0}
@@ -649,7 +658,7 @@ function SmeEditGrid(props: {
           className="form-input"
         />
       </EditField>
-      <EditField label={t.form.certifications}>
+      <EditField fieldKey="certifications" label={t.form.certifications} hint={t.form.hints.certifications}>
         <input
           type="text"
           value={props.certifications}
@@ -664,14 +673,31 @@ function SmeEditGrid(props: {
   );
 }
 
-function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+function EditField({
+  fieldKey,
+  label,
+  hint,
+  children,
+}: {
+  fieldKey: string;
+  label: string;
+  hint: string;
+  children: ReactElement<{ id?: string }>;
+}) {
+  const id = `sme-field-${fieldKey}`;
   return (
-    <label className="block space-y-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
-        {label}
-      </span>
-      {children}
-    </label>
+    <div className="block space-y-2">
+      <div className="flex min-h-7 items-center gap-1">
+        <label
+          htmlFor={id}
+          className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]"
+        >
+          {label}
+        </label>
+        <Hint side="bottom" align="start">{hint}</Hint>
+      </div>
+      {cloneElement(children, { id })}
+    </div>
   );
 }
 

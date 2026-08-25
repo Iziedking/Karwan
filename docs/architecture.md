@@ -6,15 +6,18 @@
   email OTP, SIWE on a web3 wallet), open deals, release funds, watch the
   event feed over SSE, share deal links by email, and cash out cross-chain
   through an inline CCTP progress card.
-- **Backend.** Hono API. Holds the buyer and seller agent loops with their
-  asymmetric negotiation walk, the deal watcher that runs review-window
-  timers and the auto-release ladder, the SecurityAgent that scans delivery
-  proofs and chat links, the CCTP relay (both directions), the SSE event bus,
-  the OTP and SIWE auth flow, and the cashout router. The agent loops watch
-  chain events by polling the RPC over HTTP, so a dropped websocket never
-  silently stops them.
+- **Backend.** Hono API. Holds the buyer and seller agent loops, the
+  Postgres-backed V2 task runtime, versioned DealRooms and offers, evidence and
+  staking qualification, reviewed financial operations, reconciliation, the
+  deal watcher, the CCTP relay, the replayable SSE event bus, authentication,
+  and the cashout router. The agent loops watch chain events by polling the RPC
+  over HTTP, so a dropped websocket never silently stops them.
 - **Contracts.** `KarwanJobBoard`, `KarwanEscrow`, `KarwanReputation`, `KarwanVault`, `KarwanTreasury`, and `KarwanYieldDistributor` on Arc Testnet (chain 5042002), plus `KarwanInvoiceRegistry`, `KarwanPOFinancing`, and `KarwanBusinessRegistry` for the SME layer. USDC is the native gas asset. The treasury subscribes idle USDC into Hashnote USYC through an ERC-4626 Teller. Older contract generations stay registered so legacy positions remain reachable through `/legacy`. See the contract table in the [README](../README.md).
-- **Circle stack.** USDC, Developer-Controlled Wallets, CCTP V2 through App Kit, Circle Gateway unified balance, Hashnote USYC, and x402 settled through Gateway Nanopayments. See [circle-integration.md](./circle-integration.md).
+- **Circle stack.** The complete Agent Stack across Circle CLI, Agent Wallets,
+  Agent Nanopayments, Agent Marketplace, and Circle Skills, plus USDC,
+  Developer-Controlled Wallets, CCTP V2 through App Kit, Circle Gateway unified
+  balance, and Hashnote USYC. Operator Agent Wallets are isolated from customer
+  deal wallets. See [circle-integration.md](./circle-integration.md).
 
 ![Karwan architecture](./diagrams/architecture.png)
 - **Storage.** Postgres (via Drizzle) for profile and direct-deal metadata,
@@ -71,6 +74,26 @@ flowchart TD
     D2 -. seller never delivers .-> C1[Buyer cancels, escrow refunds]
     R1 -. buyer keeps stalling .-> AP1[Seller appeals, escrow goes to dispute]
 ```
+
+## Reliable agent workflow
+
+The V2 runtime moves agent work from process memory into versioned Postgres
+records and leased tasks. User intent becomes an immutable mandate snapshot;
+matching and qualification produce auditable inputs; negotiation publishes
+versioned structured offers; approved financial work records authorization
+before provider submission; Circle and chain results are reconciled before the
+workflow advances; and committed domain events reach notifications and browser
+projections through an outbox.
+
+Each V2 behavior has its own default-off rollout flag. Matching, buyer timers,
+negotiation, evidence, staking, financial execution, reconciliation, and event
+delivery can therefore run in shadow or reviewed mode without silently taking
+authority from the existing path. Rollout reports include parity, review
+coverage, stale or conflicting commands, uncertain paid evidence, financial
+uncertainty, task retries, lease loss, and dead letters.
+
+The full state machine, human authority boundary, Circle Agent Stack mapping,
+and rollout controls are documented in [agent-workflows.md](./agent-workflows.md).
 
 ## Negotiation intelligence
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { api, type Listing, type ListingStatus } from '@/core/api';
-import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import {
   FullBleed,
   Band,
@@ -123,9 +123,6 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
               {ld.notFound.body}
             </p>
-            <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-white/45 break-all">
-              {listingId}
-            </p>
             <div className="mt-7">
               <CTAPill href="/seller">{ld.notFound.backCta}</CTAPill>
             </div>
@@ -172,13 +169,13 @@ export function ListingDetail({ listingId }: { listingId: string }) {
         <div className="fade-up">
           <Link
             href="/seller"
-            className="group inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-white/55 hover:text-white transition-colors mb-6"
+            className="group -ms-3 mb-6 inline-flex min-h-11 items-center gap-1.5 px-3 mono text-[10px] uppercase tracking-[0.14em] text-white/55 transition-colors hover:text-white"
           >
             <span
               aria-hidden
               className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
             >
-              ←
+              ←
             </span>
             {ld.backToSeller}
           </Link>
@@ -229,7 +226,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
 
       <Band tone="light" compact>
         <SectionTag>{ld.pitch.sectionTag}</SectionTag>
-        <HeroHeadline size="md">
+        <HeroHeadline as="h2" size="md">
           {ld.pitch.headline}<Punc>.</Punc>
         </HeroHeadline>
         <div className="mt-8 grid md:grid-cols-2 gap-5">
@@ -261,11 +258,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
                   {ld.pitch.sellerEyebrow}
                 </p>
-                <p className="mono text-[13px] text-[var(--lp-dark)] tabular-nums">
-                  {shortAddress(listing.sellerUser)}
-                  {viewerIsOwner && (
-                    <span style={{ color: 'var(--lp-accent)' }}>{ld.pitch.selfSuffix}</span>
-                  )}
+                <p className="text-[13px] font-medium text-[var(--lp-dark)]">
+                  {viewerIsOwner ? ld.pitch.sellerSelfLabel : ld.pitch.sellerLabel}
                 </p>
               </div>
             </div>
@@ -287,7 +281,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                       ? ld.state.tags.scanning
                       : ld.state.tags.open}
             </SectionTag>
-            <HeroHeadline size="md">
+            <HeroHeadline as="h2" size="md">
               {isCancelled ? (
                 <>{ld.state.headlines.cancelled}<Punc>.</Punc></>
               ) : isExpired ? (

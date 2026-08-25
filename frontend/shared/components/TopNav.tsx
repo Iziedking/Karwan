@@ -435,7 +435,7 @@ function QuickControls({
                 <MenuLink href="/stake">{t.reputation}</MenuLink>
                 <Link
                   href="/settings"
-                  className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+                  className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
                 >
                   <span>{t.allSettings}</span>
                   <span aria-hidden className="text-[var(--color-ink-faint)]">

@@ -10,6 +10,7 @@ interface ChromeFrameProps {
   topNav: React.ReactNode;
   profileNudge: React.ReactNode;
   footer: React.ReactNode;
+  feedback: React.ReactNode;
   bottomNav: React.ReactNode;
   notifications: React.ReactNode;
   guide: React.ReactNode;
@@ -26,6 +27,7 @@ export function ChromeFrame({
   topNav,
   profileNudge,
   footer,
+  feedback,
   bottomNav,
   notifications,
   guide,
@@ -33,16 +35,61 @@ export function ChromeFrame({
   children,
 }: ChromeFrameProps) {
   const pathname = usePathname();
-  const auth = useAuth();
-  const shell = getShellSurface(pathname, auth.isAuthenticated);
+  const routeOnlyShell = getShellSurface(pathname, false);
 
-  if (shell === 'bare') {
+  if (routeOnlyShell === 'bare') {
     return (
       <div className="flex min-h-screen flex-col">
         <main className="flex-1">{children}</main>
+        {feedback}
       </div>
     );
   }
+
+  // Admin routes own their complete shell and intentionally do not mount the
+  // customer auth hook, navigation, notifications, guide, or terms runtime.
+  // This keeps the operator console independent from any account logged into
+  // the same browser profile.
+  if (routeOnlyShell === 'admin') {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <div className="flex-1">{children}</div>
+        {feedback}
+      </div>
+    );
+  }
+
+  return (
+    <CustomerChromeFrame
+      pathname={pathname}
+      topNav={topNav}
+      profileNudge={profileNudge}
+      footer={footer}
+      feedback={feedback}
+      bottomNav={bottomNav}
+      notifications={notifications}
+      guide={guide}
+      terms={terms}
+    >
+      {children}
+    </CustomerChromeFrame>
+  );
+}
+
+function CustomerChromeFrame({
+  pathname,
+  topNav,
+  profileNudge,
+  footer,
+  feedback,
+  bottomNav,
+  notifications,
+  guide,
+  terms,
+  children,
+}: ChromeFrameProps & { pathname: string }) {
+  const auth = useAuth();
+  const shell = getShellSurface(pathname, auth.isAuthenticated);
 
   // Lets the floating launchers step aside while someone is reading, and take
   // themselves away entirely while a guarded surface is under them.
@@ -51,13 +98,12 @@ export function ChromeFrame({
 
   const workspace = shell === 'workspace' || shell === 'admin';
   const focused = shell === 'focused';
-  // 9rem, not 6rem. The bottom nav is only the first thing in the way: the
-  // guide and assistant buttons float above it, so 6rem cleared the nav and
-  // left the last row of a page sitting underneath them. Measured against the
-  // tallest stack, nav plus a floating button plus the gaps either side.
-  // md:py-10 drops it again on desktop, where the nav is hidden anyway.
+  // The feedback close now follows every workspace main. Main content only
+  // needs editorial breathing room; the 9rem mobile clearance belongs after
+  // the feedback action, where it keeps that final CTA above the bottom nav,
+  // guide, and assistant controls without leaving a dead gap inside the page.
   const mainClass = workspace
-    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-8 md:py-10'
+    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-10 pt-8 md:py-10'
     : 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 py-10';
 
   return (
@@ -66,6 +112,11 @@ export function ChromeFrame({
       {workspace ? profileNudge : null}
       <main className={mainClass}>{children}</main>
       {shell === 'public' ? footer : null}
+      {shell !== 'public' ? (
+        <div className={workspace ? 'pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-0' : undefined}>
+          {feedback}
+        </div>
+      ) : null}
       {workspace ? bottomNav : null}
       {workspace || focused ? notifications : null}
       {workspace ? guide : null}

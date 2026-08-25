@@ -179,6 +179,16 @@ interface MessagesShape {
         title: string;
         skillsLabel: string;
         skillsHint: string;
+        skillSuggestions: {
+          design: string;
+          development: string;
+          writing: string;
+          logistics: string;
+          sourcing: string;
+          bookkeeping: string;
+          translation: string;
+          marketing: string;
+        };
         bioLabel: string;
         bioHint: string;
         minBudgetLabel: string;
@@ -203,6 +213,16 @@ interface MessagesShape {
         maxDeadlineHint: string;
         splitLabel: string;
         splitHint: string;
+      };
+      matching: {
+        eyebrow: string;
+        sellerTitle: string;
+        sellerBody: string;
+        buyerTitle: string;
+        buyerBody: string;
+        dealSizePresets: string;
+        deliveryPresets: string;
+        milestonePresets: string;
       };
       saving: string;
       submit: string;
@@ -333,6 +353,12 @@ interface MessagesShape {
       tagline: string;
     };
     heroClose: string;
+    feedbackPrompt: {
+      eyebrow: string;
+      title: string;
+      body: string;
+      cta: string;
+    };
     newsletter: {
       title: string;
       blurb: string;
@@ -443,6 +469,11 @@ interface MessagesShape {
       cancelled: string;
     };
     verbs: {
+      opened: string;
+      completed: string;
+      cancelled: string;
+    };
+    subjects: {
       opened: string;
       completed: string;
       cancelled: string;
@@ -1265,6 +1296,10 @@ interface MessagesShape {
       label: string;
       template: string;
       txCta: string;
+      evidenceCta?: string;
+      providerLabel?: string;
+      claimLabel?: string;
+      impactShadow?: string;
     };
     screen: {
       label: string;
@@ -1334,6 +1369,10 @@ interface MessagesShape {
       receiptView: string;
       receiptDeposit: string;
       receiptWallet: string;
+      receiptEvidence?: string;
+      receiptProvider?: string;
+      receiptClaim?: string;
+      receiptImpact?: string;
       buyerEyebrow: string;
       buyerSubtitle: string;
       buyerEmpty: string;
@@ -1364,6 +1403,8 @@ interface MessagesShape {
       floorLabelTemplate: string;
       floorNote: string;
       sellerEyebrow: string;
+      sellerLabel: string;
+      sellerSelfLabel: string;
       selfSuffix: string;
     };
     state: {
@@ -1604,6 +1645,40 @@ interface MessagesShape {
     documentType: string;
     businessRegistration: string;
     taxCertificate: string;
+    eyebrow: string;
+    title: string;
+    loading: string;
+    yourBusiness: string;
+    loadError: string;
+    sector: string;
+    region: string;
+    document: string;
+    filePrivacy: string;
+    fileSelected: string;
+    status: Record<'none' | 'submitted' | 'verified' | 'rejected', string>;
+    body: Record<'none' | 'submitted' | 'verified' | 'rejected', string>;
+    actions: {
+      start: string;
+      resubmit: string;
+      submit: string;
+      submitting: string;
+      cancel: string;
+      openWorkflow: string;
+      view: string;
+      retry: string;
+    };
+    errors: { companyName: string; document: string; submit: string };
+    page: {
+      eyebrow: string;
+      title: string;
+      lede: string;
+      signInBody: string;
+      backToProfile: string;
+      progressLabel: string;
+      steps: { profile: string; evidence: string; review: string };
+      evidenceLockedTitle: string;
+      evidenceLockedBody: string;
+    };
   };
   discovery: {
     navLabel: string;
@@ -1773,6 +1848,8 @@ interface MessagesShape {
     edit: string;
     addCompany: string;
     emptyBody: string;
+    verificationRequired: string;
+    saveError: string;
     save: string;
     saving: string;
     cancel: string;
@@ -1821,6 +1898,20 @@ interface MessagesShape {
       leadTimePlaceholder: string;
       certifications: string;
       certificationsPlaceholder: string;
+      hints: {
+        companyName: string;
+        sector: string;
+        region: string;
+        yearFounded: string;
+        employeeBand: string;
+        website: string;
+        regTaxId: string;
+        primaryMarkets: string;
+        annualVolume: string;
+        minOrder: string;
+        leadTimeDays: string;
+        certifications: string;
+      };
     };
     sectors: {
       agriculture: string;
@@ -4658,6 +4749,7 @@ interface MessagesShape {
         createAccount: string;
       };
       title: {
+        choosePath: string;
         signIn: string;
         askEmail: string;
         welcomeBack: string;
@@ -4665,11 +4757,18 @@ interface MessagesShape {
         checkInbox: string;
       };
       subtitle: {
+        choosePath: string;
         pickMethod: string;
         lookup: string;
         signingInAs: string;
         creatingAccount: string;
         codeSentTo: string;
+      };
+      entry: {
+        newUser: string;
+        newUserBody: string;
+        returningUser: string;
+        returningUserBody: string;
       };
       pickMethod: {
         continueEmail: string;
@@ -4860,15 +4959,15 @@ export const en: MessagesShape = {
       companyLabel: 'Company name',
       companyHint: 'Shown to counterparties on deals. Example: Lagos Textiles Ltd.',
       tradeEyebrow: 'WHAT YOU TRADE',
-      goodsLabel: 'Goods or services',
+      goodsLabel: 'What does your business trade?',
       goodsHint: 'Comma-separated. Example: textiles, garments, cotton.',
-      tradeTypeHint: 'Pick what your business trades.',
-      tradeGoods: 'Goods',
-      tradeServices: 'Services',
-      tradeBoth: 'Both',
-      categoriesLabel: 'Categories',
-      aboutLabel: 'About your business',
-      aboutHint: 'One or two sentences shown to counterparties.',
+      tradeTypeHint: 'Choose the commercial lane that best describes what your company supplies.',
+      tradeGoods: 'Physical goods',
+      tradeServices: 'Business services',
+      tradeBoth: 'Goods + services',
+      categoriesLabel: 'What can your business supply?',
+      aboutLabel: 'What do you sell or deliver?',
+      aboutHint: 'Describe the product or service, target buyer, markets served, and the result you deliver.',
       dealEyebrow: 'DEAL SIZE',
       minLabel: 'Typical min (USDC)',
       maxLabel: 'Typical max (USDC)',
@@ -4923,10 +5022,20 @@ export const en: MessagesShape = {
       seller: {
         eyebrow: 'TAKE WORK',
         title: 'Seller profile',
-        skillsLabel: 'Skills',
-        skillsHint: 'Comma-separated. Example: Next.js, Tailwind, copywriting.',
-        bioLabel: 'Bio',
-        bioHint: 'One or two sentences shown to buyers.',
+        skillsLabel: 'What can you deliver?',
+        skillsHint: 'Choose suggestions or add your own. These shape which requests your agent ranks.',
+        skillSuggestions: {
+          design: 'Design',
+          development: 'Software development',
+          writing: 'Writing',
+          logistics: 'Logistics',
+          sourcing: 'Product sourcing',
+          bookkeeping: 'Bookkeeping',
+          translation: 'Translation',
+          marketing: 'Marketing',
+        },
+        bioLabel: 'What do you sell or deliver?',
+        bioHint: 'Be specific about the product or service, the buyer it helps, and the result you deliver.',
         minBudgetLabel: 'Min budget (USDC)',
         minBudgetHint: 'Smallest job you will take, in USDC. Requests below this stay out of your matches.',
         maxBudgetLabel: 'Max budget (USDC)',
@@ -4949,6 +5058,16 @@ export const en: MessagesShape = {
         maxDeadlineHint: 'Longest delivery time you would allow a seller for a job.',
         splitLabel: 'Milestone split',
         splitHint: 'Comma-separated percentages that total 100. Example: 50,50 or 30,40,30.',
+      },
+      matching: {
+        eyebrow: 'AGENT MATCHING',
+        sellerTitle: 'Your agent will prioritize work in this range',
+        sellerBody: 'These limits shape every ranked match. You still review each request before anything moves.',
+        buyerTitle: 'Your agent will shortlist offers inside these guardrails',
+        buyerBody: 'Budget, timing, and payment stages are used to rank fit. You approve the final terms.',
+        dealSizePresets: 'Common deal sizes',
+        deliveryPresets: 'Common delivery windows',
+        milestonePresets: 'Payment stages',
       },
       saving: 'Saving…',
       submit: 'Save profile →',
@@ -5056,11 +5175,11 @@ export const en: MessagesShape = {
     },
   },
   footer: {
-    tagline: 'On-chain settlement and reputation rails for cross-border SME trade. USDC sits in milestone escrow on Arc while the work gets done.',
+    tagline: 'Protected settlement for cross-border SME trade. Funds release in milestones after buyer review.',
     builtFor: 'BUILT FOR THE TRADE LANE',
     columns: {
       product: 'PRODUCT',
-      network: 'NETWORK',
+      network: 'ECOSYSTEM',
       socials: 'SOCIALS',
     },
     productLinks: {
@@ -5091,6 +5210,12 @@ export const en: MessagesShape = {
       tagline: 'cross-border settlement on USDC',
     },
     heroClose: 'settle in real time',
+    feedbackPrompt: {
+      eyebrow: 'FEEDBACK',
+      title: 'What would make your next trade easier?',
+      body: 'Share a friction point or an idea. Every note reaches the product team.',
+      cta: 'Send feedback',
+    },
     newsletter: {
       title: 'NEWSLETTER',
       blurb: 'Product updates and new corridors.',
@@ -5200,6 +5325,11 @@ export const en: MessagesShape = {
       opened: 'opened a',
       completed: 'closed a',
       cancelled: 'cancelled a',
+    },
+    subjects: {
+      opened: 'A buyer',
+      completed: 'A seller',
+      cancelled: 'A buyer',
     },
     usdcDeal: 'USDC DEAL',
   },
@@ -5498,7 +5628,7 @@ export const en: MessagesShape = {
     },
     hero: {
       welcomeBack: 'Welcome back,',
-      description: 'Your settlement desk for requests, offers, approvals, and settlement on Arc.',
+      description: 'Your settlement desk for requests, offers, approvals, and payments.',
       postRequestCta: 'Post a request →',
       postOfferCta: 'Post an offer →',
       viewActivityCta: 'View activity →',
@@ -5553,7 +5683,7 @@ export const en: MessagesShape = {
       activityCard: {
         eyebrow: 'ACTIVITY',
         title: 'Track deals',
-        body: 'Watch every deal settle live on Arc.',
+        body: 'Watch every deal move from agreement to receipt.',
       },
     },
     liveNetwork: {
@@ -5567,10 +5697,10 @@ export const en: MessagesShape = {
         directDeals: 'Direct deals',
         agentDeals: 'Agent deals',
         settled: 'Settled in full',
-        usdcThrough: 'USDC through escrow',
-        chain: 'Chain',
+        usdcThrough: 'Payment volume',
+        chain: 'Payment network',
         directPlusAgent: 'Direct plus agent',
-        arcTestnet: 'Arc Testnet',
+        arcTestnet: 'Live settlement records',
       },
     },
     networkPulse: {
@@ -6096,6 +6226,10 @@ export const en: MessagesShape = {
       label: 'PAID VERIFICATION',
       template: 'Buyer agent paid {amount} to verify this seller\'s credit passport.',
       txCta: 'settlement',
+      evidenceCta: 'evidence',
+      providerLabel: 'provider',
+      claimLabel: 'claim',
+      impactShadow: 'legacy match unchanged',
     },
     screen: {
       label: 'COMPLIANCE SCREEN',
@@ -6165,6 +6299,9 @@ export const en: MessagesShape = {
       receiptView: 'view ↗',
       receiptDeposit: 'funding ↗',
       receiptWallet: 'wallet ↗',
+      receiptProvider: 'provider',
+      receiptClaim: 'claim',
+      receiptImpact: 'legacy match unchanged',
       buyerEyebrow: 'BUYER RECORD',
       buyerSubtitle: 'Real deals this buyer funded. Private to you, not on the public passport.',
       buyerEmpty: 'No funded deals on record yet.',
@@ -6195,6 +6332,8 @@ export const en: MessagesShape = {
       floorLabelTemplate: 'Your floor ({n}% accept)',
       floorNote: '[:PRIVATE:] only you see this. Your agent uses it to steer counters.',
       sellerEyebrow: '[:SELLER:]',
+      sellerLabel: 'Seller on Karwan',
+      sellerSelfLabel: 'Your offer',
       selfSuffix: ' · you',
     },
     state: {
@@ -6225,7 +6364,7 @@ export const en: MessagesShape = {
       confirmYes: 'Yes, cancel',
       confirmYesBusy: 'Cancelling...',
       confirmNo: 'Keep listed',
-      buyerBody: 'This offer is open. Open a direct deal with this seller at the asking price. Escrow funds when they accept.',
+      buyerBody: 'This offer is open. Open a direct deal with this seller at the asking price. Payment is only requested after the seller accepts.',
       buyerCtaTemplate: 'Open a deal at {amount} USDC',
     },
     editModal: {
@@ -6404,7 +6543,7 @@ export const en: MessagesShape = {
       'bridge.attested': 'Circle attestation received',
       'bridge.minted': 'USDC minted on Arc',
       'bridge.error': 'Bridge hit an error',
-      'reputation.recorded': 'Reputation recorded on chain',
+      'reputation.recorded': 'Track record updated',
       'deal.direct.created': 'Direct deal opened and funded',
       'deal.accepted': 'Seller accepted the deal terms',
       'deal.delivered': 'Seller marked the work delivered',
@@ -6539,6 +6678,54 @@ export const en: MessagesShape = {
     documentType: 'Document type',
     businessRegistration: 'Business registration',
     taxCertificate: 'Tax certificate',
+    eyebrow: 'BUSINESS IDENTITY',
+    title: 'Trade as a business',
+    loading: 'Loading',
+    yourBusiness: 'Your business',
+    loadError: 'We could not load the current verification status. Your saved company details are unchanged.',
+    sector: 'Business sector',
+    region: 'Operating region',
+    document: 'Supporting document',
+    filePrivacy: 'Choose a clear PDF or image. The original stays on this device; keep it available if a reviewer requests it.',
+    fileSelected: '{name} selected. The original stays on this device.',
+    status: {
+      none: 'Not submitted',
+      submitted: 'Under review',
+      verified: 'Verified',
+      rejected: 'Needs attention',
+    },
+    body: {
+      none: 'Complete your trade card, then provide business registration or tax evidence for review.',
+      submitted: 'Your evidence is under review. You can keep using direct deals while Karwan checks the business identity.',
+      verified: '{company} is verified. Counterparties can see the identity badge; this is not a performance guarantee.',
+      rejected: 'The previous evidence could not be confirmed. Review the company details and submit a clearer document.',
+    },
+    actions: {
+      start: 'Add evidence',
+      resubmit: 'Review and resubmit',
+      submit: 'Submit for review',
+      submitting: 'Submitting…',
+      cancel: 'Cancel',
+      openWorkflow: 'Complete verification',
+      view: 'View verification',
+      retry: 'Try again',
+    },
+    errors: {
+      companyName: 'Add the legal company name before submitting.',
+      document: 'Attach a business registration or tax document.',
+      submit: 'We could not submit this evidence. Check your connection and try again.',
+    },
+    page: {
+      eyebrow: 'BUSINESS VERIFICATION',
+      title: 'Build your verified trade card',
+      lede: 'Complete the company details counterparties need, provide identity evidence, and follow the review from one place.',
+      signInBody: 'Sign in with your business account to complete company verification.',
+      backToProfile: 'Back to profile',
+      progressLabel: 'Business verification progress',
+      steps: { profile: 'Company profile', evidence: 'Business evidence', review: 'Review' },
+      evidenceLockedTitle: 'Finish the company profile first',
+      evidenceLockedBody: 'Add the legal company name, sector, and operating region. Saving those details unlocks evidence submission.',
+    },
   },
   discovery: {
     navLabel: 'Discovery sections',
@@ -6719,6 +6906,8 @@ export const en: MessagesShape = {
     edit: 'Edit',
     addCompany: 'Add company',
     emptyBody: 'Add a company profile so financiers can review your sector and region before they fund.',
+    verificationRequired: 'Add the company name, sector, and operating region to continue.',
+    saveError: 'We could not save these company details. Check your connection and try again.',
     save: 'Save',
     saving: 'Saving…',
     cancel: 'Cancel',
@@ -6770,6 +6959,20 @@ export const en: MessagesShape = {
       leadTimePlaceholder: 'e.g. 21',
       certifications: 'Certifications',
       certificationsPlaceholder: 'e.g. ISO 9001, GOTS',
+      hints: {
+        companyName: 'Your registered business name shown on trade cards and documents.',
+        sector: 'The primary industry buyers use to find your business.',
+        region: 'Where your business operates or ships from.',
+        yearFounded: 'The year your business began trading.',
+        employeeBand: 'An approximate team-size signal for counterparties.',
+        website: 'A public site where counterparties can learn about your business.',
+        regTaxId: 'Your registration or tax identifier for business checks.',
+        primaryMarkets: 'The regions or countries you currently serve.',
+        annualVolume: 'Your approximate yearly trade volume in USDC.',
+        minOrder: 'The smallest order your business normally accepts.',
+        leadTimeDays: 'Typical days from agreement to delivery.',
+        certifications: 'Relevant certifications or standards buyers should see.',
+      },
     },
     sectors: {
       agriculture: 'Agriculture',
@@ -8138,57 +8341,57 @@ export const en: MessagesShape = {
     tabs: { overview: 'OVERVIEW', howItWorks: 'WORKFLOW SUMMARY', flow: 'FLOW', getStarted: 'GET STARTED' },
     scrollCue: 'Scroll',
     hero: {
-      tag: 'SETTLEMENT NETWORK',
-      titleLine1: 'Agree. Escrow.',
+      tag: 'CROSS-BORDER DEALS',
+      titleLine1: 'Agree.',
       titleLine2: 'Deliver.',
-      titleAccent: 'Settle.',
-      body: 'Cross-border work, settled in minutes. Karwan holds USDC in milestone escrow, then releases it as delivery lands.',
+      titleAccent: 'Get paid.',
+      body: 'Cross-border deals with protected milestone payments, buyer review, and a receipt both sides can verify.',
       ctaPrimary: 'Open Karwan',
       ctaSecondary: 'How it works',
-      footnote: 'Live on Arc Testnet',
+      footnote: 'Built for global work',
     },
     ecosystem: { tag: 'BUILT ON' },
     directDeals: {
       tag: 'DIRECT DEALS',
       title: 'Bring your own counterparty.',
-      body: "You already agreed off-platform. Name a wallet or email, set the amount, fund the escrow. No auction.",
-      tile1Title: "Name a wallet or email",
-      tile1Body: "Point the escrow at a wallet, or send an email invite. The recipient signs in, accepts the terms, and delivers.",
+      body: "You already agreed elsewhere. Invite the seller, set the amount, and review the delivery stages. No auction.",
+      tile1Title: "Invite the seller",
+      tile1Body: "Send an invitation. The seller signs in, reviews the terms, and accepts before the deal begins.",
       tile2Title: 'Release in tranches',
       tile2Body: 'A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet.',
     },
     managedDeals: {
       tag: 'MANAGED DEALS',
       title: 'No counterparty yet? Agents bid for you.',
-      body: 'Post the request. Your agent watches the marketplace, negotiates inside the ranges you set, and surfaces matches for approval. You sign off, escrow funds, milestones release.',
+      body: 'Describe what you need. Your agent compares offers inside the limits you set and brings the best match to you for approval.',
       tile1Title: "Agents negotiate",
-      tile1Body: "Buyer and seller agents bid and counter on chain, on their own, inside the ranges you set in your profile.",
-      tile2Title: 'Escrow on acceptance',
-      tile2Body: 'When terms land, the buyer agent funds the milestone escrow. Releases follow the same spine as a direct deal.',
+      tile1Body: "Buyer and seller agents compare and revise offers inside the limits you set.",
+      tile2Title: 'Your approval comes first',
+      tile2Body: 'Nothing becomes active until you review and approve the final terms.',
     },
     howItWorks: {
-      tag: 'THE RAILS',
-      titleStart: 'Three rails.',
+      tag: 'HOW IT WORKS',
+      titleStart: 'Three steps.',
       titleAccent: 'One',
       titleEnd: 'deal.',
-      rail1Title: 'Escrow in USDC',
-      rail1Body: 'Funds settle in milestone tranches on Arc. The chain holds the math.',
-      rail2Title: 'Milestone release',
-      rail2Body: 'Releases trigger on signed delivery. Disputes route to human review, never to silence.',
-      rail3Title: 'On-chain proof',
-      rail3Body: 'Every state change emits an event. Audit, reputation, payouts read the same source.',
+      rail1Title: 'Agree on terms',
+      rail1Body: 'Confirm the amount, deadline, delivery stages, and what counts as complete.',
+      rail2Title: 'Review delivery',
+      rail2Body: 'Payment stages become ready as work is delivered. Concerns go to human review.',
+      rail3Title: 'Keep the receipt',
+      rail3Body: 'Both sides receive a clear record of the agreement, delivery, and payment.',
     },
     flow: {
       tag: 'FLOW',
       title: 'A deal, end to end.',
-      liveLabel: 'LIVE ON ARC TESTNET',
+      liveLabel: 'VISIBLE DEAL PROGRESS',
       steps: {
-        posted: { tag: 'POSTED', label: 'Request on chain' },
-        bids: { tag: 'BIDS', label: 'Agents bid & counter' },
-        accept: { tag: 'ACCEPT', label: 'Buyer signs match' },
-        escrow: { tag: 'ESCROW', label: 'USDC funded' },
-        deliver: { tag: 'DELIVER', label: 'Seller marks delivered' },
-        settle: { tag: 'SETTLE', label: 'Milestones release' },
+        posted: { tag: 'SHARED', label: 'Request shared' },
+        bids: { tag: 'OFFERS', label: 'Offers compared' },
+        accept: { tag: 'APPROVE', label: 'Buyer approves match' },
+        escrow: { tag: 'PROTECT', label: 'Payment protected' },
+        deliver: { tag: 'DELIVER', label: 'Seller submits work' },
+        settle: { tag: 'PAID', label: 'Seller paid' },
       },
       kpis: {
         dealsLabel: 'DEALS ON THE RAIL',
@@ -8235,11 +8438,11 @@ export const en: MessagesShape = {
       tag: 'GET STARTED',
       title: 'Three steps to a deal.',
       step1Title: 'Sign in',
-      step1Body: 'Bring a web3 wallet or sign in with email & passkey. Either way you get a Circle wallet. Your address is the key.',
+      step1Body: 'Use email, passkey, or a compatible wallet. Karwan keeps one account across every deal.',
       step2Title: 'Set your ranges',
       step2Body: 'Buyer side, set budget, deadlines, milestone splits. Seller side, set skills, range, response time. Your agents read these on every match.',
-      step3Title: 'Stake to grow reputation',
-      step3Body: 'Deposit USDC in the vault. A deposit can contribute to reputation. The live position shows the withdrawal cooldown and when funds become claimable.',
+      step3Title: 'Build your track record',
+      step3Body: 'Complete deals reliably. Karwan shows the record that helps future counterparties trust your work.',
     },
     finalCta: {
       tag: 'OPEN A DEAL',
@@ -9502,7 +9705,7 @@ export const en: MessagesShape = {
       unitDaysShort: 'DAYS',
       tolerancePrefix: 'tolerance',
       ceilingPrefix: 'ceiling',
-      milestoneCaption: 'milestone escrow on Arc',
+      milestoneCaption: 'milestone payments with buyer review',
     },
     sectionWork: {
       eyebrow: 'THE WORK',
@@ -9538,16 +9741,16 @@ export const en: MessagesShape = {
       bodyAfter: '. Requests are for buyers; offers (posted from the seller desk) are for sellers. If you meant to sell a service, ',
       bodyLink: 'post an offer instead',
       bodyAfterLink: '. Click ',
-      bodyButtonRef: 'Post on chain',
+      bodyButtonRef: 'Post request',
       bodyTail: ' again to post the request as-is.',
     },
     submit: {
-      submittingShort: 'Submitting tx…',
-      waitingArcTemplate: 'Waiting for Arc to confirm… {seconds}s',
-      waitingCircleTemplate: 'Still waiting on Circle… {seconds}s',
-      postOnChain: 'Post on chain',
-      pendingHelper: 'Circle is broadcasting and confirming on Arc. Live job page opens when it lands.',
-      feeCaption: '↳ tx fee paid in USDC',
+      submittingShort: 'Posting…',
+      waitingArcTemplate: 'Finalizing your request… {seconds}s',
+      waitingCircleTemplate: 'Still finalizing… {seconds}s',
+      postOnChain: 'Post request',
+      pendingHelper: 'Your request is being secured. The live request page opens when it is ready.',
+      feeCaption: '↳ protected settlement in USDC',
     },
     errors: {
       insufficientBalanceTitle: 'Buyer agent short on USDC.',
@@ -9600,24 +9803,24 @@ export const en: MessagesShape = {
     },
   },
   onChainProof: {
-    sectionTag: 'ON-CHAIN PROOF',
-    headlinePrefix: 'Provable on ',
-    headlineAccent: 'Arc',
-    description: 'Every number below is read straight from the live contract events on Arc Testnet.',
-    blockPrefix: 'Block',
+    sectionTag: 'PAYMENT PROOF',
+    headlinePrefix: 'Receipts you can ',
+    headlineAccent: 'verify',
+    description: 'Every number below comes from live settlement records.',
+    blockPrefix: 'Record range',
     tiles: {
-      escrowsFunded: { label: 'Escrows funded', hint: 'Deals locked on chain' },
-      settledInFull: { label: 'Settled in full', hint: 'Buyer released, contract zeroed' },
-      disputesOpened: { label: 'Disputes opened', hint: 'Either side raised the contract' },
-      usdcFunded: { label: 'USDC funded', hint: 'Cumulative deal volume' },
-      usdcReleased: { label: 'USDC released', hint: 'Milestones paid to sellers' },
-      vaultDeposits: { label: 'Vault deposits', hint: 'Stake principal across positions' },
+      escrowsFunded: { label: 'Payments protected', hint: 'Deals funded and ready' },
+      settledInFull: { label: 'Settled in full', hint: 'Buyer completed every release' },
+      disputesOpened: { label: 'Disputes opened', hint: 'Either side requested review' },
+      usdcFunded: { label: 'Payment volume protected', hint: 'Cumulative deal value' },
+      usdcReleased: { label: 'Paid to sellers', hint: 'Completed payment releases' },
+      vaultDeposits: { label: 'Seller reserves', hint: 'Funds backing seller commitments' },
     },
     smallStats: {
-      milestoneReleases: 'Milestone releases',
-      reputationRecords: 'Reputation records',
-      yieldPayouts: 'Yield payouts',
-      feesCollected: 'Fees collected (USDC)',
+      milestoneReleases: 'Payment releases',
+      reputationRecords: 'Track records updated',
+      yieldPayouts: 'Reserve earnings paid',
+      feesCollected: 'Platform revenue (USDC)',
     },
     sourceContracts: {
       eyebrow: 'SOURCE CONTRACTS',
@@ -9632,8 +9835,8 @@ export const en: MessagesShape = {
     chart: {
       activityEyebrow: '30-DAY ACTIVITY',
       maxPerDay: 'MAX {max} / DAY',
-      loading: 'Reading chain',
-      error: 'Chain read failed',
+      loading: 'Loading payment records',
+      error: 'Payment records unavailable',
       retry: 'Retry',
       empty: 'No activity in the last 30 days yet',
       legend: {
@@ -9839,6 +10042,7 @@ export const en: MessagesShape = {
         createAccount: 'CREATE ACCOUNT',
       },
       title: {
+        choosePath: 'How are you using Karwan today?',
         signIn: 'Sign in to Karwan',
         askEmail: "What's your email?",
         welcomeBack: 'Welcome back',
@@ -9846,11 +10050,18 @@ export const en: MessagesShape = {
         checkInbox: 'Check your inbox',
       },
       subtitle: {
+        choosePath: 'Start a new trade profile or continue with the account you already use.',
         pickMethod: 'Continue with email, or use a compatible wallet if you already have one.',
         lookup: "We'll check whether this email already has a Karwan account.",
         signingInAs: 'Signing in as',
         creatingAccount: 'Your secure account is created automatically.',
         codeSentTo: 'Code sent. Enter the 6 digits.',
+      },
+      entry: {
+        newUser: "I'm new to Karwan",
+        newUserBody: 'Create your trade profile and set the limits your agents must follow.',
+        returningUser: 'I already have an account',
+        returningUserBody: 'Sign in to continue your deals, matches, and payments.',
       },
       pickMethod: {
         continueEmail: 'Continue with email',

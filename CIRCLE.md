@@ -1,12 +1,33 @@
 # Circle integration
 
 How each Circle tool is wired into Karwan: the package, the file, the call, and
-the gotcha worth knowing. This reflects what runs, not what is planned. Setup and
-run instructions are in [SETUP.md](./SETUP.md); the deeper per-product notes and
+the gotcha worth knowing. This distinguishes active paths from default-off
+rollout paths. Setup and run instructions are in [SETUP.md](./SETUP.md); the deeper per-product notes and
 the build-time friction are in [docs/circle-integration.md](./docs/circle-integration.md)
 and [docs/circle-product-feedback.md](./docs/circle-product-feedback.md).
 
-Products used on Arc: **USDC, Wallets, Gateway, CCTP with Bridge Kit, USYC, Nanopayments.**
+Karwan uses the complete Circle Agent Stack: **Circle CLI, Agent Wallets, Agent
+Nanopayments, Agent Marketplace, and Circle Skills.** The application runtime
+also uses **USDC, Developer-Controlled Wallets, Gateway, CCTP with Bridge Kit,
+and USYC.**
+
+## Circle Agent Stack
+
+The five Agent Stack surfaces have different trust boundaries in Karwan.
+
+| Surface | Where it is used | Boundary |
+| --- | --- | --- |
+| [Circle CLI](https://developers.circle.com/agent-stack/circle-cli) | Operator login, Agent Wallet policy checks, CCTP and Gateway smoke tests, service discovery, paid-service tests, and Skill management. | Operator tool only. The public API never invokes the CLI as a subprocess. |
+| [Agent Wallets](https://developers.circle.com/agent-stack/agent-wallets) | Isolated user-custody wallets for operator-controlled research and Marketplace payments. | Separate from customer identity, buyer-agent, seller-agent, escrow, and treasury wallets. |
+| [Agent Nanopayments](https://developers.circle.com/agent-stack/agent-nanopayments) | Gateway-batched on-platform counterparty reads and compatible paid services. The standard exact-EVM rail remains explicit for providers that do not support Gateway. | Mandate, price, recipient, research-credit, idempotency, and reconciliation policy applies before and after every payment. |
+| [Agent Marketplace](https://developers.circle.com/agent-stack/agent-marketplace) | The public Discovery API supplies current paid API listings and payment metadata. | It is authoritative for purchasable API services only, never for people or SME counterparties. |
+| [Circle Skills](https://developers.circle.com/ai/skills) | Development and operations guidance for wallets, wallet policy, funding, CCTP, Gateway, and nanopayments. | Skills inform implementation and operator runs. Versioned Karwan code and tests remain the runtime authority. |
+
+Customer deal automation deliberately remains on Developer-Controlled Wallet
+SCAs. The separate Agent Wallet rail cannot move customer funds. The reliable
+matching, evidence, negotiation, approval, financial execution, and
+reconciliation flow is documented in
+[docs/agent-workflows.md](./docs/agent-workflows.md).
 
 ## USDC on Arc
 
@@ -24,7 +45,7 @@ custody, repayment, staking, and fees. On Arc, USDC is also the native gas token
 Package: `@circle-fin/developer-controlled-wallets`. Every user gets an identity
 wallet and two agent wallets, provisioned on sign-in, so no one handles a key.
 
-- Setup: `backend/src/circle/wallets.ts` — `initiateDeveloperControlledWalletsClient`
+- Setup: `backend/src/circle/wallets.ts`, using `initiateDeveloperControlledWalletsClient`
   then `createWalletSet` → `createWallets({ blockchains: ['ARC-TESTNET'], accountType: 'SCA' })`.
   Run once with `npm run wallets:create` (see SETUP.md step 4).
 - Every on-chain write the agents make goes through `executeContractCall` in
@@ -40,7 +61,7 @@ Packages: `@circle-fin/app-kit` with `@circle-fin/adapter-circle-wallets`
 (backend) and `@circle-fin/adapter-viem-v2` (frontend). USDC moves into and out
 of Arc across **twelve chains**, both directions.
 
-- Backend bridge: `backend/src/circle/bridge-kit.ts` — `bridgeInToArcViaAppKit`
+- Backend bridge: `backend/src/circle/bridge-kit.ts`, using `bridgeInToArcViaAppKit`
   and `bridgeOutFromArcViaAppKit`, both with `useForwarder: true`. The Circle
   Wallets adapter signs straight from the Developer-Controlled Wallets, so an
   email or passkey user bridges without a wallet popup.
@@ -64,7 +85,7 @@ Package: `@circle-fin/app-kit` (`unifiedBalance`). Two roles.
 - Design facts that shaped the code: the burn-intent signing domain carries no
   chain id, so one signature covers burns across several source chains at once;
   and Gateway needs an ECDSA signature, so an SCA cannot sign a burn intent
-  directly. Circle's `addDelegate` on the Gateway Wallet is the answer — our
+  directly. Circle's `addDelegate` on the Gateway Wallet is the answer: our
   pooled balance lives on the user's own EOA, and the agent SCAs receive from it.
 - **x402 settlement rail.** Gateway also nets the agents' per-call payments into
   batched on-chain settlement (see Nanopayments).
