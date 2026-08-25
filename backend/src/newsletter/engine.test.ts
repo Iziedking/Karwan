@@ -357,3 +357,27 @@ test('the rendered issue escapes, links, and keeps a text part', () => {
   const monthly = renderIssue({ ...issue, monthInReview: true });
   assert.ok(monthly.html.includes('MONTH IN REVIEW'));
 });
+
+test('an imported branded document is the final approval and send rendering', () => {
+  const issue = {
+    id: 'branded',
+    status: 'draft' as const,
+    subject: 'Branded issue',
+    preheader: 'A branded preview.',
+    sourceHtml: '<!doctype html><html><body><style>.brand{color:lime}</style><main class="brand">karwan <a href="https://x.com/karwanBuild">follow us @karwanBuild</a><script>alert(1)</script></main></body></html>',
+    sections: [{ key: 'learned' as const, heading: 'Readiness', body: '[follow us @karwanBuild](https://x.com/karwanBuild)', signalIds: [] }],
+    sources: [],
+    signalIds: [],
+    from: 0,
+    to: 1,
+    monthInReview: false,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+
+  const rendered = renderIssue(issue);
+  assert.match(rendered.html, /class="brand"/);
+  assert.match(rendered.html, /https:\/\/x\.com\/karwanBuild/);
+  assert.doesNotMatch(rendered.html, /<script/i);
+  assert.doesNotMatch(rendered.html, /KARWAN DISPATCH/);
+});

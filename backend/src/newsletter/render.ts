@@ -55,7 +55,29 @@ export interface RenderedIssue {
   text: string;
 }
 
+/// HTML imported by an operator is allowed to carry the newsletter's visual
+/// system, but never executable content. Keep styles and links; remove active
+/// elements and inline event handlers before the document reaches an inbox.
+function sanitizeImportedHtml(source: string): string {
+  return source
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<object[\s\S]*?<\/object>/gi, '')
+    .replace(/<form\b[^>]*>[\s\S]*?<\/form>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href\s*=\s*["'])\s*javascript:[^"']*(["'])/gi, '$1#$2')
+    .replace(/(src\s*=\s*["'])\s*javascript:[^"']*(["'])/gi, '$1#$2');
+}
+
 export function renderIssue(issue: NewsletterIssue): RenderedIssue {
+  if (issue.sourceHtml?.trim()) {
+    return {
+      subject: issue.subject,
+      html: sanitizeImportedHtml(issue.sourceHtml),
+      text: renderText(issue),
+    };
+  }
+
   const sections = issue.sections
     .map(
       (s) => `

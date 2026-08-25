@@ -152,6 +152,7 @@ adminNewsletterRoutes.get('/:id/preview', async (c) => {
 const editSchema = z.object({
   subject: z.string().min(1).max(200).optional(),
   preheader: z.string().min(1).max(300).optional(),
+  sourceHtml: z.string().max(500_000).optional(),
   sections: z
     .array(
       z.object({

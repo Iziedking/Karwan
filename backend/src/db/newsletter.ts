@@ -46,6 +46,9 @@ export interface NewsletterIssue {
   /// Subject line. Editable before approval.
   subject: string;
   preheader: string;
+  /// Optional operator-imported branded HTML. When present, this is the exact
+  /// approved document sent and archived; sections remain the review/check text.
+  sourceHtml?: string;
   sections: IssueSection[];
   sources: IssueSource[];
   /// Everything collected for this issue, whether or not it made the draft.
@@ -176,6 +179,7 @@ export async function sentInMonth(when: Date): Promise<NewsletterIssue[]> {
 export interface IssueEdit {
   subject?: string;
   preheader?: string;
+  sourceHtml?: string;
   sections?: IssueSection[];
 }
 
@@ -194,6 +198,7 @@ export async function editIssue(id: string, edit: IssueEdit): Promise<Newsletter
     ...issue,
     subject: edit.subject ?? issue.subject,
     preheader: edit.preheader ?? issue.preheader,
+    sourceHtml: edit.sourceHtml ?? issue.sourceHtml,
     sections: edit.sections ?? issue.sections,
     updatedAt: Date.now(),
   };
