@@ -139,7 +139,7 @@ export default function AdminNewsletterPage() {
   function beginReview(
     source?: string,
     warnings?: string[],
-    value: Pick<NewsletterDraftReviewValue, 'subject' | 'preheader' | 'sections'> = {
+    value: Pick<NewsletterDraftReviewValue, 'subject' | 'preheader' | 'sections' | 'sourceHtml'> = {
       subject: draftSubject,
       preheader: draftPreheader,
       sections: draftSections,
@@ -179,14 +179,18 @@ export default function AdminNewsletterPage() {
     setImporting(true);
     setErr(null);
     try {
-      const parsed = parseNewsletterDocument(file.name, await file.text());
+      const source = await file.text();
+      const parsed = parseNewsletterDocument(file.name, source);
       setDraftSubject(parsed.subject || draftSubject);
       setDraftPreheader(parsed.preheader || draftPreheader);
       setDraftSections(parsed.sections);
       setEditing(false);
-      beginReview(file.name, parsed.warnings, parsed);
+      beginReview(file.name, parsed.warnings, {
+        ...parsed,
+        sourceHtml: /\.html?$/i.test(file.name) ? source : undefined,
+      });
     } catch {
-      setErr('Could not read that Markdown file');
+      setErr('Could not read that HTML or Markdown file');
     } finally {
       setImporting(false);
       if (importInput.current) importInput.current.value = '';
