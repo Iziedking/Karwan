@@ -462,9 +462,13 @@ export interface DirectDeal {
   jobId: string;
   buyer: string;
   seller: string;
+  /// Managed seller account recorded by the escrow. Absent when the seller
+  /// trades directly from their identity wallet.
+  sellerAgentAddress?: string;
   /// Paytag handle the buyer named this counterparty by, when they used one.
   /// A display label. `seller` is the address it resolved to at creation and is
-  /// what every payout and dispute path acts on.
+  /// the identity used by dispute and direct-wallet payout paths. Managed
+  /// payouts act on `sellerAgentAddress`.
   sellerPaytag?: string;
   dealAmountUsdc: string;
   /// First milestone percent. On a two-milestone deal implies [firstReleasePct,
@@ -651,6 +655,9 @@ export interface DirectDeal {
   /// and every tranche already gone. Price against this. Stamped only on the
   /// factoring available-deals feed.
   claimableUsdc?: string;
+  /// Exact EIP-3009 advance recipient validated by the factoring offer route.
+  /// Present on the factoring feed; optional for rolling-deploy compatibility.
+  factoringAdvanceRecipient?: string;
   incoterms?: 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
   paymentTerms?: 'immediate' | 'net30' | 'net60' | 'net90';
   counterpartyCompany?: { name?: string; sector?: string; region?: string };

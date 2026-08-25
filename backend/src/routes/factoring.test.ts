@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { factoringAdvanceRecipient } from './factoringRecipient.js';
+import {
+  factoringAdvanceRecipient,
+  factoringAdvanceRecipientView,
+} from './factoringRecipient.js';
 
 test('factoring advances target the on-chain seller agent when present', () => {
   assert.equal(
@@ -16,5 +19,15 @@ test('factoring advances retain direct-wallet compatibility', () => {
   assert.equal(
     factoringAdvanceRecipient({ seller: '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' }),
     '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  );
+});
+
+test('factoring feed publishes the same managed recipient the offer route validates', () => {
+  assert.deepEqual(
+    factoringAdvanceRecipientView({
+      seller: '0x1111111111111111111111111111111111111111',
+      sellerAgentAddress: '0x2222222222222222222222222222222222222222',
+    }),
+    { factoringAdvanceRecipient: '0x2222222222222222222222222222222222222222' },
   );
 });

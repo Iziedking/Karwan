@@ -27,6 +27,7 @@ import {
   buildTransferAuthorization,
   serializeAuthorization,
 } from '@/features/factoring/usdcAuthorization';
+import { resolveFactoringAdvanceRecipient } from '@/features/factoring/advanceRecipient';
 import { POLinesPanel } from './POLinesPanel';
 import { FactoringPositionsPanel } from './FactoringPositionsPanel';
 
@@ -737,9 +738,14 @@ function OfferModal({
           setSubmitting(false);
           return;
         }
+        const advanceRecipient = resolveFactoringAdvanceRecipient(deal);
+        if (!advanceRecipient) {
+          setError(t.offer.recipientUnavailable);
+          return;
+        }
         const typed = buildTransferAuthorization({
           from: auth.address as `0x${string}`,
-          to: deal.seller as `0x${string}`,
+          to: advanceRecipient,
           valueUsdc: advance.toFixed(6),
           // Covers the offer window plus margin for the backend check.
           validForSeconds: (OFFER_EXPIRES_HOURS + 4) * 3600,
