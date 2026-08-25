@@ -343,7 +343,8 @@ export interface FactoringOffer {
   rejectedAt?: number;
   settledAt?: number;
   setPayeeTxHash?: string;
-  /// On-chain tx of the advance (financier -> seller), written at accept.
+  /// On-chain tx of the advance (financier -> seller agent), persisted before
+  /// receipt projection so an interrupted accept can reconcile by hash.
   advanceTxHash?: string;
   /// On-chain tx of the repayment (seller -> financier), written by the
   /// settlement watcher once the escrow settles.
