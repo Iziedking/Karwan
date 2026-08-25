@@ -693,6 +693,9 @@ export interface DirectDeal {
   /// Set when the seller has asked to be paid early. Until then the invoice is
   /// not shown to financiers at all, and no offer can be posted against it.
   factoringRequestedAt?: number;
+  /// Portion of the future settlement the seller offers for early financing.
+  /// The legacy field name says "advance", but this is the financier's future
+  /// repayment amount; the cash advanced now is lower by the quoted discount.
   factoringRequestedAdvanceUsdc?: string;
   poFinancingRequestedAt?: number;
   poFinancingRequestedAdvanceUsdc?: string;
@@ -3879,8 +3882,10 @@ export const api = {
       r: `0x${string}`;
       s: `0x${string}`;
     }>(`/api/factoring/offers/${offerId}/assignment`),
-  /// The seller asks to be paid early on this invoice. Until they do, it is
-  /// invisible to financiers and no offer can be posted against it.
+  /// The seller offers a portion of this invoice's future settlement for early
+  /// financing. Until then it is invisible to financiers and cannot receive an
+  /// offer. `requestedAdvanceUsdc` is the assigned settlement amount despite
+  /// the legacy transport name; each financier bids the smaller advance paid now.
   requestFactoring: (body: { invoiceId: string; requestedAdvanceUsdc?: string; minAdvanceUsdc?: string }) =>
     json<{ deal: DirectDeal | null }>('/api/factoring/request', {
       method: 'POST',

@@ -59,7 +59,12 @@ export function SellerOfferBanner({
   }, [deal.factoringRequestedAt, deal.poFinancingRequestedAt]);
 
   async function askForEarlyPayout() {
-    const entered = await prompt({ title: 'Request early payout', message: 'How much USDC do you want paid early?', defaultValue: requestedAmount, confirmLabel: 'Request payout' });
+    const entered = await prompt({
+      title: pb.sellerOffer.requestTitle,
+      message: pb.sellerOffer.requestMessage,
+      defaultValue: requestedAmount,
+      confirmLabel: pb.sellerOffer.requestConfirm,
+    });
     if (entered === null) return;
     const amount = entered.trim();
     if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || Number(amount) > Number(deal.dealAmountUsdc)) {

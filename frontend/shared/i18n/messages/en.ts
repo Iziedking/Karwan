@@ -1609,7 +1609,13 @@ interface MessagesShape {
       claimableByYou: string;
     };
     dealDetail: { tradeContext: string; anchoredDocuments: string; containerRefPlaceholder: string };
-    sellerOffer: { privatePosition: string; trackRepayment: string };
+    sellerOffer: {
+      privatePosition: string;
+      trackRepayment: string;
+      requestTitle: string;
+      requestMessage: string;
+      requestConfirm: string;
+    };
     financierPanels: {
       yourPositions: string;
       expectedReturn: string;
@@ -1787,10 +1793,11 @@ interface MessagesShape {
       customDiscount: string;
       customDiscountAria: string;
       invoiceFace: string;
-      stillClaimable: string;
+      settlementAssigned: string;
       youPayNow: string;
       youReceiveOnSettlement: string;
       yourSpread: string;
+      fundingSummaryTemplate: string;
       sellerFloor: string;
       replaceOffer: string;
       postOffer: string;
@@ -6638,6 +6645,9 @@ export const en: MessagesShape = {
     sellerOffer: {
       privatePosition: 'Private financing position',
       trackRepayment: 'Track repayment and speak privately with your financier.',
+      requestTitle: 'Offer part of this invoice',
+      requestMessage: 'How much of the future settlement do you want to offer for early payment? Financiers will bid what they can advance now.',
+      requestConfirm: 'Request offers',
     },
     financierPanels: {
       yourPositions: 'Your positions',
@@ -6834,15 +6844,16 @@ export const en: MessagesShape = {
     working: 'Working…',
     switchToArc: 'Switch to Arc',
     offer: {
-      faceValue: 'FACE VALUE',
+      faceValue: 'INVOICE VALUE',
       quickDiscount: 'Quick discount',
       customDiscount: 'Custom discount',
       customDiscountAria: 'Custom discount percent',
-      invoiceFace: 'Invoice face',
-      stillClaimable: 'Still claimable',
-      youPayNow: 'You pay seller now',
-      youReceiveOnSettlement: 'You receive on settlement',
+      invoiceFace: 'Invoice value',
+      settlementAssigned: 'Settlement assigned',
+      youPayNow: 'You advance now',
+      youReceiveOnSettlement: 'You receive after buyer approval',
       yourSpread: 'Your spread',
+      fundingSummaryTemplate: 'You advance {advance} USDC now in exchange for the assigned {settlement} USDC after the buyer confirms delivery. Only this portion of the invoice is assigned to you.',
       sellerFloor: 'Seller will not go below',
       replaceOffer: 'Replace offer',
       postOffer: 'Post offer',
