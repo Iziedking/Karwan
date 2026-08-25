@@ -19,7 +19,7 @@ function inlineText(value: string): string {
 function Body({ body }: { body: string }) {
   const blocks = body.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
   return (
-    <div className="mt-3 space-y-3 text-[13px] leading-6 text-white/70">
+    <div className="mt-3 space-y-3 text-[13px] leading-6 text-[#4f4f4a]">
       {blocks.map((block, index) => {
         const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
         if (lines.length > 0 && lines.every((line) => /^[-*]\s+/.test(line))) {
