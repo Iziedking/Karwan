@@ -5,15 +5,18 @@ integration detail behind each Circle product, see [CIRCLE.md](./CIRCLE.md).
 
 Karwan is an npm-workspaces monorepo:
 
-- `backend/` — Hono API, the agents, the watchers, and every Circle SDK call
-- `frontend/` — Next.js app
-- `contracts/` — Foundry (Solidity)
+- `backend/`: Hono API, the agents, the watchers, and every Circle SDK call
+- `frontend/`: Next.js app
+- `contracts/`: Foundry (Solidity)
 
 ## Prerequisites
 
 - **Node 20 or newer** (`engines.node >= 20`)
 - **Foundry** for the contracts ([getfoundry.sh](https://getfoundry.sh)), only if you want to build or test the contracts
 - A **Circle Developer account** ([console.circle.com/signup](https://console.circle.com/signup)) for an API key and entity secret
+- **Circle CLI** (`npm install -g @circle-fin/cli`) for the operator Agent
+  Wallet, Marketplace, Gateway, CCTP, and Skill workflow. Circle CLI requires
+  Node 20.18.2 or newer.
 
 ## 1. Install
 
@@ -75,7 +78,33 @@ npm run wallets:create            # creates the wallet set + CCTP relay wallet
 relay wallet with a little Arc USDC for gas ([faucet.circle.com](https://faucet.circle.com)).
 On Arc, USDC is the native gas token, so no second asset is needed.
 
-## 5. Contracts
+## 5. Configure the Circle Agent Stack operator
+
+The CLI-managed Agent Wallet is for operator-controlled research, Marketplace
+payments, and smoke tests. It is deliberately separate from the
+Developer-Controlled Wallets used by customer deals.
+
+```bash
+circle --version
+circle wallet login you@example.com --testnet
+circle wallet status --type agent
+circle wallet list --type agent --chain ARC-TESTNET
+circle skill list
+circle skill install --tool codex
+circle services search research
+```
+
+Do not copy an Agent Wallet credential or recovery material into Karwan's
+`.env`. Configure its spending and recipient policy through Circle CLI before
+using `circle services pay`. Service discovery is read-only; a paid request is
+an explicit money action.
+
+The backend's reviewed evidence workflow does not invoke the CLI. It uses the
+versioned evidence and research-credit policy described in
+[docs/agent-workflows.md](./docs/agent-workflows.md), then calls the x402 SDK
+through its own adapter.
+
+## 6. Contracts
 
 ```bash
 npm run contracts:build
@@ -101,5 +130,8 @@ npm run build                     # production build of both
 | `backend/src/chain/` | Arc client, CCTP, contract bindings, watchers |
 | `backend/src/routes/` | The API surface |
 | `backend/src/agents/` | Buyer, seller, and settlement agents |
+| `backend/src/domain/`, `events/` | V2 state machines, durable events, outbox, and replay |
+| `backend/src/matching/`, `negotiation/` | Deterministic ranking, evidence-aware qualification, mandates, and structured offers |
+| `backend/src/evidence/`, `financial/`, `staking/` | Reviewed paid evidence, financial commands, reconciliation, and stake policy |
 | `contracts/src/` | KarwanEscrow, Vault, Reputation, Treasury, InvoiceRegistry, POFinancing |
 | `frontend/features/` | The product surfaces (bridge, deals, financier, profile) |

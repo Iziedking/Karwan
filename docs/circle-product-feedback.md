@@ -10,6 +10,47 @@ settlement, USYC, and the ERC-8004 identity registry.
 Each section lists what worked, where we hit friction, and what would help. All
 observations are from Arc Testnet and the Circle sandbox.
 
+## Circle Agent Stack
+
+Karwan uses all five Agent Stack surfaces. Circle CLI and Circle Skills support
+operator setup and repeatable product-specific checks. Agent Wallets isolate
+operator-controlled research and Marketplace payments from customer deal
+wallets. Agent Marketplace supplies the current x402 service catalogue, and
+Agent Nanopayments pays eligible services through Gateway batching.
+
+What worked:
+
+- One CLI covers Agent Wallet authentication, policies, transfers, CCTP,
+  Gateway deposits, service discovery, paid requests, and Skill installation.
+  That is a useful operator surface for an agent product with several Circle
+  rails.
+- The Discovery API is public, structured, filterable, and does not require an
+  account or API key. Network, price, payment-rail, SIWX, input-schema, and
+  output-schema metadata are enough to build a policy gate before payment.
+- Agent Wallets give the operator a user-custody research wallet with spending
+  and recipient controls. Karwan can keep that wallet separate from the
+  Developer-Controlled Wallet SCAs that automate customer deals.
+- Circle Skills make product constraints available inside the coding and
+  operations workflow instead of leaving them in a separate documentation tab.
+
+Friction and product boundary:
+
+- Agent Wallets and Developer-Controlled Wallets are both useful, but their
+  custody models and integration styles differ enough that examples should name
+  the intended production topology early. Karwan uses both and keeps them in
+  separate authority domains.
+- Agent Marketplace is a paid API-service catalogue. It is not an agent,
+  person, company, supplier, or buyer directory. That distinction matters for
+  business products and is now explicit in Karwan's evidence policy.
+- Discovery metadata tells us where a provider accepts payment. It does not
+  prove the provider covers the blockchain or business jurisdiction being
+  investigated. Coverage metadata would remove a separate provider-specific
+  validation step.
+
+The implementation map is in [agent-workflows.md](./agent-workflows.md) and the
+provider boundary is in
+[circle-agent-marketplace-services.md](./circle-agent-marketplace-services.md).
+
 ## Developer-Controlled Wallets
 
 What worked:

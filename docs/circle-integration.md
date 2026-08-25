@@ -1,9 +1,41 @@
 # Circle integration
 
-How each Circle product is used in Karwan. This reflects what is built and
-running, not what is planned.
+How each Circle product is used in Karwan. Active paths and default-off rollout
+paths are named separately so code presence is never confused with production
+authority.
 
 ## Products in use
+
+### Circle Agent Stack
+
+Karwan uses the full Agent Stack across runtime and operator tooling:
+
+- **Circle CLI** is the operator interface for Agent Wallet authentication,
+  wallet policy inspection, CCTP and Gateway smoke tests, service discovery,
+  paid-service calls, and Circle Skill management. The backend does not shell
+  out to it.
+- **Agent Wallets** provide an isolated, user-custody rail for
+  operator-controlled research and Agent Marketplace payments. They are
+  separated from the Developer-Controlled Wallets that automate customer deals.
+- **Agent Nanopayments** provide gas-free, batched USDC payment for eligible
+  x402 evidence and Karwan's own paid data endpoints.
+- **Agent Marketplace** supplies the live paid-service catalogue through the
+  public Discovery API. It is not a Karwan identity, people, or SME directory.
+- **Circle Skills** provide product-specific build and operations knowledge.
+  Runtime authority remains in Karwan's versioned policy, task, and financial
+  command code.
+
+Official entry points: [Agent Stack](https://developers.circle.com/agent-stack),
+[Circle CLI](https://developers.circle.com/agent-stack/circle-cli),
+[Agent Wallets](https://developers.circle.com/agent-stack/agent-wallets),
+[Agent Nanopayments](https://developers.circle.com/agent-stack/agent-nanopayments),
+[Agent Marketplace](https://developers.circle.com/agent-stack/agent-marketplace),
+and [Circle Skills](https://developers.circle.com/ai/skills).
+
+See [agent-workflows.md](./agent-workflows.md) for the durable workflow and
+rollout gates, and
+[circle-agent-marketplace-services.md](./circle-agent-marketplace-services.md)
+for service selection.
 
 ### USDC
 
@@ -173,6 +205,19 @@ x402 (credit passport, repayment behaviour, counterparty concentration, document
 anchors, skill demand), so an outside underwriter can price Karwan credit without
 asking Karwan for permission. Every payment emits an `agent.paid` event, and
 `GET /api/x402` lists the paid endpoints and their prices.
+
+**Reviewed V2 evidence workflow.** The reliable agent runtime first reuses fresh
+direct or cached evidence. When a paid read is justified, it queries the Circle
+Discovery API for the current service and payment metadata, applies the
+provider, network, asset, recipient, price, provenance, mandate, and
+research-credit gates, records authorization, then calls the x402 adapter. A
+signed request timeout remains `unknown` until reconciliation. It never counts
+as paid evidence merely because a provider ID or transaction hash exists.
+
+The service order is Exa first for research, Serper as the economical fallback,
+OpenMart and Voygr for supplemental business evidence, and Allium only after
+the subject chain is independently confirmed as supported. The Discovery API
+is authoritative for the paid API catalogue, not for Karwan's counterparties.
 
 ## Wallet topology
 

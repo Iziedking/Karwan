@@ -12,6 +12,7 @@ Karwan is testnet software. Do not use it for real funds, and do not treat it as
 
 - Buyer and Seller desks for individual trade, Buyer Desk and Supply Desk for business trade.
 - Direct deals with a named counterparty, plus agent-assisted matching and negotiation. Money never moves without a human approval or a contract-defined automatic outcome.
+- A Postgres-backed agent runtime with versioned mandates and offers, deterministic matching, evidence and staking gates, idempotent financial commands, ordered event replay, dead letters, and failure-injection rollout checks. V2 behaviors stay behind independent default-off flags until their review gates pass.
 - Milestone escrow with delivery review, cancellation, mutual extension, and dispute outcomes enforced by the contracts.
 - Invoice factoring and purchase-order financing, a financier desk, and a public credit passport per business address.
 - Reputation, staking, tier progression, and yield surfaces.
@@ -72,14 +73,28 @@ Retired contract generations stay registered so users with open positions can st
 
 ## The Circle stack
 
+Karwan uses the complete Circle Agent Stack across application runtime and
+operator tooling. The custody boundary is intentional: Circle Agent Wallets
+handle isolated operator research and Marketplace payments, while customer deal
+automation continues through Karwan's Developer-Controlled Wallet SCAs.
+
 | Product | Role in Karwan |
 |---|---|
+| Circle CLI | Operator interface for Agent Wallet login, wallet policy checks, CCTP and Gateway smoke tests, paid-service calls, and Circle Skill management. The public API never shells out to the CLI. |
+| Agent Wallets | User-custody wallets with spending and recipient policies for operator-controlled research and Agent Marketplace payments. They are isolated from customer deal wallets. |
+| Agent Marketplace | The Discovery API supplies the current paid x402 service catalogue, schemas, networks, prices, and payment metadata. It is not Karwan's people or SME counterparty directory. |
+| Circle Skills | Installed build and operations knowledge for wallet policy, funding, CCTP, Gateway, and nanopayment workflows. Karwan's runtime policy remains versioned and tested in this repository. |
 | USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order advances, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
 | Developer-Controlled Wallets | An identity wallet and two agent wallets per user, provisioned on sign-in with an email or a passkey. Web3 users sign in with their own wallet through Sign-In with Ethereum instead. |
 | CCTP V2 through App Kit | USDC into and out of Arc in both directions. Outbound uses the Forwarding Service to submit the destination mint, so a supplier cashes out without holding that chain's gas token. |
 | Circle Gateway | One pooled USDC balance across chains, spendable to any of them from a single signature. Also the settlement rail for x402, netting per-call payments into batched on-chain settlement. |
-| Nanopayments (x402) | Agents pay a fraction of a cent to read a counterparty's settled-deal record before pricing a bid. Karwan sells five endpoints on the same rail: credit passport, repayment behaviour, concentration, document anchors, and skill demand. |
+| Agent Nanopayments (x402) | Agents make gas-free, batched USDC payments when a service supports Circle Gateway. The explicit standard x402 rail remains available for providers that do not. Karwan also sells five endpoints: credit passport, repayment behaviour, concentration, document anchors, and skill demand. |
 | Hashnote USYC | On-chain yield on idle balances, from tokenized Treasury bills, marked to the live oracle. |
+
+See [agent workflows](./docs/agent-workflows.md) for the complete intent,
+matching, evidence, negotiation, approval, execution, reconciliation, and replay
+flow. See [Circle Agent Marketplace service policy](./docs/circle-agent-marketplace-services.md)
+for the Discovery API boundary and provider order.
 
 ## Tests
 
@@ -96,8 +111,10 @@ The backend suite runs with `npm test --workspace=backend` and needs a populated
 - [SETUP.md](./SETUP.md) for running it locally and provisioning Circle.
 - [CIRCLE.md](./CIRCLE.md) for how each Circle product is used.
 - [docs/architecture.md](./docs/architecture.md) for components, the wallet model, and the deal flows.
+- [docs/agent-workflows.md](./docs/agent-workflows.md) for the reliable agent runtime, rollout flags, and human authority boundaries.
 - [docs/reputation-model.md](./docs/reputation-model.md) for how standing is scored.
 - [docs/circle-integration.md](./docs/circle-integration.md) for integration detail per product.
+- [docs/circle-agent-marketplace-services.md](./docs/circle-agent-marketplace-services.md) for paid evidence discovery and provider policy.
 - [docs/terms-and-conditions.md](./docs/terms-and-conditions.md) for the terms users accept in product.
 - [docs/why-karwan.md](./docs/why-karwan.md) for the problem the build is aimed at.
 - [contracts/README.md](./contracts/README.md) for building, testing, and deploying the contracts.
