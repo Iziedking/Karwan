@@ -13,6 +13,10 @@ import { api } from '@/core/api';
 import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
 import { useSiwe } from '@/shared/hooks/useSiwe';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import {
+  postAuthDestination,
+  type AuthEntryIntent,
+} from '@/shared/auth/postAuthRoute';
 
 interface Props {
   open: boolean;
@@ -22,11 +26,12 @@ interface Props {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/// One linear flow:
-///   1. pick-method  -> Email or Wallet
-///   2. enter-email  -> user types email, we look up account + passkey state
-///   3. auth         -> passkey ceremony OR email code, decided by lookup
-type Stage = 'pick-method' | 'enter-email' | 'auth';
+/// One intent-led flow:
+///   1. choose-path  -> New here or returning
+///   2. pick-method  -> Email or Wallet
+///   3. enter-email  -> user types email, we look up account + passkey state
+///   4. auth         -> passkey ceremony OR email code, decided by lookup
+type Stage = 'choose-path' | 'pick-method' | 'enter-email' | 'auth';
 
 interface AuthPlan {
   /// True when this email already has an account row.
@@ -47,7 +52,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   const router = useRouter();
   const tAll = useTranslations();
   const t = tAll.auth.modal;
-  const [stage, setStage] = useState<Stage>('pick-method');
+  const [stage, setStage] = useState<Stage>('choose-path');
+  const [entryIntent, setEntryIntent] = useState<AuthEntryIntent | null>(null);
   const [email, setEmail] = useState('');
   const [plan, setPlan] = useState<AuthPlan | null>(null);
   const [busy, setBusy] = useState(false);
@@ -72,6 +78,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   const openerRef = useRef<HTMLElement | null>(null);
   const busyRef = useRef(busy);
   const onCloseRef = useRef(onClose);
+  const routedAuthRef = useRef(false);
 
   useEffect(() => {
     busyRef.current = busy;
@@ -96,7 +103,9 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   // Reset when the modal opens.
   useEffect(() => {
     if (!open) return;
-    setStage('pick-method');
+    setStage('choose-path');
+    setEntryIntent(null);
+    routedAuthRef.current = false;
     setEmail('');
     setPlan(null);
     setError(null);
@@ -112,17 +121,37 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
       .catch(() => setPasskeyConfigured(null));
   }, [open]);
 
-  // Auto-close once authentication actually lands (covers both the Circle
-  // passkey/OTP path and a web3 wallet connecting via RainbowKit). On login we
-  // send the user to the app home; the /app page routes brand-new users (no
-  // profile) onward to onboarding. Net: existing users land on home, new users
-  // onboard, from wherever they logged in.
+  // Route only after the backend has resolved both identity and profile. The
+  // visitor's New/Returning choice shapes the flow, but it is never treated as
+  // account truth: a missing profile always enters onboarding and an existing
+  // profile always continues without exposing a destructive create path.
   useEffect(() => {
-    if (open && isAuthenticated) {
+    if (!open || !isAuthenticated || !entryIntent || routedAuthRef.current) return;
+    routedAuthRef.current = true;
+    let cancelled = false;
+    void (async () => {
+      let profileExists = true;
+      try {
+        const bootstrap = await api.bootstrap();
+        profileExists = !!bootstrap.profile;
+      } catch {
+        // Deploy-order skew can leave bootstrap unavailable. `/app` retains its
+        // own profile gate, so continuing there is the safe fallback.
+        profileExists = true;
+      }
+      if (cancelled) return;
+      const destination = postAuthDestination({
+        intent: entryIntent,
+        profileExists,
+        requestedHref: postAuthHref,
+      });
       onClose();
-      if (postAuthHref) router.push(postAuthHref);
-    }
-  }, [open, isAuthenticated, onClose, postAuthHref, router]);
+      if (destination) router.push(destination);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isAuthenticated, entryIntent, onClose, postAuthHref, router]);
 
   // Fetch the right WebAuthn options ahead of the tap. Stored so runPasskey can
   // fire the ceremony with no await in between (the iOS activation fix). A fresh
@@ -279,14 +308,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         const attResp = await startRegistration({ optionsJSON: options });
         await api.authRegisterVerify(email, attResp);
       }
-      // Close optimistically. Verify returned 200, so the cookie is set and the
-      // user is signed in. Awaiting refresh() here would hang the modal on
-      // mobile in-app browsers where /api/auth/me sometimes never resolves.
-      // emitAuthChanged broadcasts to every useAuth instance so they refresh
-      // in the background; this modal's local refresh is fire-and-forget.
       emitAuthChanged();
-      void refresh();
-      onClose();
+      await refresh();
     } catch (err) {
       // The pre-fetched challenge is single-use; warm a fresh one for the retry.
       void prefetchPasskey();
@@ -337,9 +360,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
     setError(null);
     try {
       await api.authOtpVerify(email, code);
-      await refresh();
       emitAuthChanged();
-      onClose();
+      await refresh();
     } catch {
       setError(t.errors.codeRejected);
     } finally {
@@ -369,7 +391,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         {/* Header */}
         <div className="px-6 pt-6 pb-2 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            {stage !== 'pick-method' && (
+            {stage !== 'choose-path' && (
               <button
                 type="button"
                 onClick={() => {
@@ -385,7 +407,13 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                     setError(null);
                     return;
                   }
-                  setStage('pick-method');
+                  if (stage === 'enter-email') {
+                    setStage('pick-method');
+                    setError(null);
+                    return;
+                  }
+                  setStage('choose-path');
+                  setEntryIntent(null);
                   setError(null);
                 }}
                 aria-label={t.aria.back}
@@ -403,7 +431,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
               </button>
             )}
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] truncate">
-              {stage === 'pick-method' && t.eyebrow.welcome}
+              {(stage === 'choose-path' || stage === 'pick-method') && t.eyebrow.welcome}
               {stage === 'enter-email' && t.eyebrow.email}
               {stage === 'auth' && (plan?.exists ? t.eyebrow.signIn : t.eyebrow.createAccount)}
             </p>
@@ -428,12 +456,15 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         {/* Title block, fixed height keeps the modal from jumping between stages */}
         <div className="px-6 pt-2 pb-5">
           <h2 id="karwan-auth-title" className="font-sans text-[26px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-tight">
-            {stage === 'pick-method' && t.title.signIn}
+            {stage === 'choose-path' && t.title.choosePath}
+            {stage === 'pick-method' &&
+              (entryIntent === 'new' ? t.title.createAccount : t.title.signIn)}
             {stage === 'enter-email' && t.title.askEmail}
             {stage === 'auth' && plan?.exists && (otpSent ? t.title.checkInbox : t.title.welcomeBack)}
             {stage === 'auth' && !plan?.exists && (otpSent ? t.title.checkInbox : t.title.createAccount)}
           </h2>
           <p id="karwan-auth-description" className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[38ch]">
+            {stage === 'choose-path' && t.subtitle.choosePath}
             {stage === 'pick-method' && t.subtitle.pickMethod}
             {stage === 'enter-email' && t.subtitle.lookup}
             {stage === 'auth' && plan?.exists && !otpSent && (
@@ -450,6 +481,61 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
 
         {/* Body */}
         <div className="px-6 pb-6 space-y-4">
+          {stage === 'choose-path' && (
+            <div className="space-y-3">
+              <button
+                type="button"
+                data-auth-primary
+                onClick={() => {
+                  setEntryIntent('new');
+                  setStage('pick-method');
+                  setError(null);
+                }}
+                className="group w-full border border-[var(--lp-dark)] bg-[var(--lp-band-dark)] px-5 py-5 text-start text-white transition-[transform,border-color] duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                style={{ borderRadius: '16px 16px 4px 16px' }}
+              >
+                <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-accent)]">
+                  [:01:]
+                </span>
+                <span className="mt-3 flex items-center justify-between gap-4">
+                  <span>
+                    <span className="block font-sans text-[18px] font-extrabold tracking-[-0.02em]">
+                      {t.entry.newUser}
+                    </span>
+                    <span className="mt-1.5 block max-w-[34ch] text-[13px] leading-relaxed text-white/65">
+                      {t.entry.newUserBody}
+                    </span>
+                  </span>
+                  <span aria-hidden className="text-[18px] text-[var(--lp-accent)] transition-transform group-hover:translate-x-1">→</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEntryIntent('returning');
+                  setStage('pick-method');
+                  setError(null);
+                }}
+                className="group w-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-5 text-start text-[var(--lp-dark)] transition-[transform,border-color] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                style={{ borderRadius: '16px 16px 4px 16px' }}
+              >
+                <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                  [:02:]
+                </span>
+                <span className="mt-3 flex items-center justify-between gap-4">
+                  <span>
+                    <span className="block font-sans text-[18px] font-extrabold tracking-[-0.02em]">
+                      {t.entry.returningUser}
+                    </span>
+                    <span className="mt-1.5 block max-w-[34ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                      {t.entry.returningUserBody}
+                    </span>
+                  </span>
+                  <span aria-hidden className="text-[18px] transition-transform group-hover:translate-x-1">→</span>
+                </span>
+              </button>
+            </div>
+          )}
           {stage === 'pick-method' && (
             <>
               <button

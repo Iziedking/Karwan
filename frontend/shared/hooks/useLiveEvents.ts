@@ -1,7 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, type ChainEvent } from '@/core/api';
-import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { subscribeLiveEvents, subscribeLiveStatus } from '@/shared/utils/liveEventBus';
 
 /// Did the server hand this event over in full, or as a pulse?
 ///
@@ -48,11 +48,71 @@ function isTimelineEvent(event: ChainEvent): boolean {
   return !HIDDEN_FROM_TIMELINE.has(event.type);
 }
 
+function eventIdentity(event: ChainEvent): string {
+  return event.eventId ?? `${event.type}|${event.jobId ?? ''}|${event.actor}|${event.ts}`;
+}
+
+function preferDetailedEvent(a: ChainEvent, b: ChainEvent): ChainEvent {
+  if (hasServerDetail(a) === hasServerDetail(b)) return a;
+  return hasServerDetail(a) ? a : b;
+}
+
+export function mergeLiveEvents(
+  current: readonly ChainEvent[],
+  incoming: readonly ChainEvent[],
+  max = 100,
+): ChainEvent[] {
+  const byId = new Map<string, ChainEvent>();
+  for (const event of [...incoming, ...current]) {
+    const key = eventIdentity(event);
+    const prior = byId.get(key);
+    byId.set(key, prior ? preferDetailedEvent(prior, event) : event);
+  }
+  return [...byId.values()]
+    .sort((a, b) => {
+      if (
+        a.dealRoomId &&
+        a.dealRoomId === b.dealRoomId &&
+        a.sequence != null &&
+        b.sequence != null
+      ) {
+        return b.sequence - a.sequence;
+      }
+      return b.ts - a.ts;
+    })
+    .slice(0, Math.max(1, max));
+}
+
 export type LiveEventsStatus = 'loading' | 'ready' | 'error';
 
 export interface LiveEventsState {
   events: ChainEvent[];
   status: LiveEventsStatus;
+}
+
+interface ReplayPage {
+  currentSequence: number;
+  events: ChainEvent[];
+}
+
+export async function collectReplayPages(
+  afterSequence: number,
+  loadPage: (cursor: number) => Promise<ReplayPage>,
+  maxPages = 20,
+): Promise<ChainEvent[]> {
+  let cursor = Math.max(0, Math.floor(afterSequence) || 0);
+  const collected: ChainEvent[] = [];
+  for (let pageNumber = 0; pageNumber < Math.max(1, maxPages); pageNumber += 1) {
+    const page = await loadPage(cursor);
+    collected.push(...page.events);
+    const nextCursor = page.events.reduce(
+      (highest, event) => Math.max(highest, event.sequence ?? cursor),
+      cursor,
+    );
+    if (nextCursor <= cursor || nextCursor >= page.currentSequence) break;
+    cursor = nextCursor;
+  }
+  return collected;
 }
 
 export function useLiveEventsState(
@@ -62,19 +122,38 @@ export function useLiveEventsState(
   retryKey = 0,
 ): LiveEventsState {
   const [events, setEvents] = useState<ChainEvent[]>([]);
+  const eventsRef = useRef<ChainEvent[]>([]);
   const [status, setStatus] = useState<LiveEventsStatus>('loading');
   const callerLower = caller?.toLowerCase();
+  const scopeKey = `${filterJobId ?? '*'}|${callerLower ?? 'public'}`;
+  const scopeRef = useRef(scopeKey);
 
   useEffect(() => {
+    let active = true;
+    if (scopeRef.current !== scopeKey) {
+      scopeRef.current = scopeKey;
+      eventsRef.current = [];
+      setEvents([]);
+    }
     setStatus('loading');
     api
       .activity(max, filterJobId, caller)
       .then(({ events: raw }) => {
-        setEvents(raw.filter(isTimelineEvent));
+        if (!active) return;
+        setEvents((current) => {
+          const next = mergeLiveEvents(current, raw.filter(isTimelineEvent), max);
+          eventsRef.current = next;
+          return next;
+        });
         setStatus('ready');
       })
-      .catch(() => setStatus('error'));
-  }, [filterJobId, max, caller, retryKey]);
+      .catch(() => {
+        if (active) setStatus('error');
+      });
+    return () => {
+      active = false;
+    };
+  }, [filterJobId, max, caller, retryKey, scopeKey]);
 
   useEffect(() => {
     return subscribeLiveEvents((parsed) => {
@@ -95,9 +174,50 @@ export function useLiveEventsState(
         // a bare money movement alike.
         if (!hasServerDetail(parsed)) return;
       }
-      setEvents((prev) => [parsed, ...prev].slice(0, max));
+      setEvents((current) => {
+        const next = mergeLiveEvents(current, [parsed], max);
+        eventsRef.current = next;
+        return next;
+      });
     });
   }, [filterJobId, max, callerLower]);
+
+  useEffect(() => {
+    if (!filterJobId) return;
+    let prior: string | null = null;
+    let generation = 0;
+    let active = true;
+    const unsubscribe = subscribeLiveStatus((nextStatus) => {
+      const reconnecting = nextStatus === 'live' && prior !== 'live';
+      prior = nextStatus;
+      if (!reconnecting) return;
+      const requestGeneration = ++generation;
+      const afterSequence = eventsRef.current.reduce(
+        (highest, event) => Math.max(highest, event.sequence ?? 0),
+        0,
+      );
+      void collectReplayPages(
+        afterSequence,
+        (cursor) => api.replayJobEvents(filterJobId, cursor),
+      )
+        .then((missing) => {
+          if (!active || requestGeneration !== generation) return;
+          setEvents((current) => {
+            const next = mergeLiveEvents(current, missing.filter(isTimelineEvent), max);
+            eventsRef.current = next;
+            return next;
+          });
+        })
+        .catch(() => {
+          // The current feed remains usable when V2 replay is unavailable.
+        });
+    });
+    return () => {
+      active = false;
+      generation += 1;
+      unsubscribe();
+    };
+  }, [filterJobId, max]);
 
   return { events, status };
 }

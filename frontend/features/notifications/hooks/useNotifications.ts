@@ -446,7 +446,7 @@ function summaryFor(
         ? 'Review window passed. The final milestone auto-released to you.'
         : 'Review window passed. The final milestone auto-released.';
     case 'escrow.settled':
-      return 'Deal settled in full. Reputation recorded on chain.';
+      return 'Deal settled in full. Your track record was updated.';
     case 'deal.disputed':
       return 'Deal moved to dispute. Resolution is off-platform.';
     case 'escrow.resolved': {

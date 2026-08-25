@@ -7,6 +7,7 @@ import { shortAddress } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { shortenEvidenceId } from '../paidEvidencePresentation';
 
 // Per-tier hue, mirroring ProfileTierCard so the tier reads the same colour
 // everywhere. Shown as a rail down the profile box.
@@ -407,6 +408,23 @@ function WorkRecordSection({
           {!isTxHash(payment.txHash) && (
             <p className="mt-1.5 text-[10px] leading-snug text-[var(--lp-text-muted)]">
               {wr.receiptRail}
+            </p>
+          )}
+          {payment.evidenceId && (
+            <p
+              className="mt-1.5 mono text-[10px] leading-snug text-[var(--lp-text-muted)]"
+              title={payment.evidenceId}
+            >
+              {wr.receiptEvidence ?? wr.receiptView}: {shortenEvidenceId(payment.evidenceId)}
+            </p>
+          )}
+          {payment && (
+            <p className="mt-1.5 mono text-[10px] leading-snug text-[var(--lp-text-muted)]">
+              {wr.receiptProvider ?? 'provider'}: {payment.providerId ?? 'karwan-credit-passport'}
+              {' · '}
+              {wr.receiptClaim ?? 'claim'}: {payment.claim ?? 'completed-transactions'}
+              {' · '}
+              {wr.receiptImpact ?? 'legacy match unchanged'}
             </p>
           )}
         </>

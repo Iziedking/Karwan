@@ -108,7 +108,7 @@ export function NotificationBell() {
                   <button
                     type="button"
                     onClick={markAllRead}
-                    className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    className="-mx-2 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)]"
                   >
                     {t.markRead}
                   </button>
@@ -116,7 +116,7 @@ export function NotificationBell() {
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="-mx-2 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)]"
                 >
                   {t.clear}
                 </button>
@@ -163,14 +163,8 @@ export function NotificationBell() {
                       >
                         {n.summary}
                       </span>
-                      <span className="mt-1 flex items-center gap-2">
-                        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                          {relativeTime(n.ts)}
-                        </span>
-                        <span aria-hidden className="text-[var(--lp-text-muted)]">·</span>
-                        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
-                          {n.jobId.slice(0, 6)}…{n.jobId.slice(-4)}
-                        </span>
+                      <span className="mt-1 block mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                        {relativeTime(n.ts)}
                       </span>
                     </span>
                     <span

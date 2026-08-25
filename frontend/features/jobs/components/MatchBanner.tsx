@@ -12,6 +12,7 @@ import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { ProfilePeekModal } from './ProfilePeekModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { presentPaidEvidenceReceipt } from '../paidEvidencePresentation';
 
 interface Props {
   proposal: MatchProposal;
@@ -45,6 +46,9 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
   // Seller raised the agent-agreed price; the approval gate is now the buyer's.
   const pendingRaise = !!proposal.raisedPriceUsdc && proposal.awaitingParty === 'buyer';
   const shownPrice = pendingRaise ? proposal.raisedPriceUsdc! : proposal.agreedPriceUsdc;
+  const paidEvidenceReceipt = proposal.paidSignal
+    ? presentPaidEvidenceReceipt(proposal.paidSignal)
+    : null;
 
   // The risk flags new-buyer / honey-trap / lowball all hinge on the buyer being
   // unproven (NEW/COLD) at match time. They're a point-in-time snapshot; if the
@@ -240,6 +244,30 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
               >
                 {mb.paidData.txCta}
               </a>
+            </>
+          )}
+          {paidEvidenceReceipt?.evidenceId && (
+            <>
+              {' · '}
+              <span
+                title={paidEvidenceReceipt.evidenceId}
+                aria-label={`${mb.paidData.evidenceCta}: ${paidEvidenceReceipt.evidenceId}`}
+                className="normal-case tracking-normal text-[11px]"
+              >
+                {mb.paidData.evidenceCta ?? mb.paidData.txCta} {paidEvidenceReceipt.displayEvidenceId}
+              </span>
+            </>
+          )}
+          {paidEvidenceReceipt && (
+            <>
+              {' · '}
+              <span className="normal-case tracking-normal text-[11px]">
+                {mb.paidData.providerLabel ?? 'provider'}: {paidEvidenceReceipt.providerId}
+                {' · '}
+                {mb.paidData.claimLabel ?? 'claim'}: {paidEvidenceReceipt.claim}
+                {' · '}
+                {mb.paidData.impactShadow ?? 'legacy match unchanged'}
+              </span>
             </>
           )}
         </p>

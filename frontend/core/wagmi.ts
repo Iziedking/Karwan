@@ -39,7 +39,7 @@ export const ARC_RPC_URLS: string[] = [
   'https://rpc.testnet.arc.network',
 ].filter((u): u is string => !!u && u.length > 0);
 
-const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? 'karwan-demo';
+const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() || null;
 
 // Hardened RPC pools for the source chains. The default viem URLs
 // (sepolia.base.org / rpc.sepolia.org) rate-limit aggressively and 429 under
@@ -98,14 +98,23 @@ export const sonicTestnet14601 = defineChain({
   testnet: true,
 });
 
+// WalletConnect and the MetaMask QR fallback both require a real Reown project
+// id. A demo id makes every local page issue a doomed remote-config request.
+// When the id is absent, keep browser-injected, Rabby, and Coinbase sign-in
+// available without initializing Reown. Deployments with a configured id keep
+// the full wallet and QR set.
+const walletFactories = WC_PROJECT_ID
+  ? [metaMaskWallet, rabbyWallet, coinbaseWallet, walletConnectWallet, injectedWallet]
+  : [rabbyWallet, coinbaseWallet, injectedWallet];
+
 const connectors = connectorsForWallets(
   [
     {
       groupName: 'Recommended',
-      wallets: [metaMaskWallet, rabbyWallet, coinbaseWallet, walletConnectWallet, injectedWallet],
+      wallets: walletFactories,
     },
   ],
-  { appName: 'Karwan', projectId: WC_PROJECT_ID },
+  { appName: 'Karwan', projectId: WC_PROJECT_ID ?? 'walletconnect-disabled' },
 );
 
 export const wagmiConfig = createConfig({

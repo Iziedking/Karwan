@@ -18,10 +18,10 @@ export function SiteFooter() {
   const t = messages.footer;
   return (
     <footer className="bg-[var(--lp-light)] text-[var(--lp-dark)]">
-      <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] pt-[clamp(40px,6vw,80px)] pb-[clamp(28px,4vw,52px)]">
+      <div className="mx-auto max-w-[1360px] px-[clamp(20px,4vw,56px)] pt-[clamp(32px,4.5vw,60px)] pb-[clamp(24px,3vw,40px)]">
         {/* Inner card. asymmetric corners like the landing CTA pills, chunky shadow. */}
         <div
-          className="bg-[var(--lp-card)] p-7 md:p-10 lg:p-14"
+          className="bg-[var(--lp-card)] p-6 md:p-8 lg:p-10"
           style={{
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
@@ -31,10 +31,10 @@ export function SiteFooter() {
               '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
           }}
         >
-          <div className="grid lg:grid-cols-[1.1fr_2fr] gap-10 lg:gap-16">
+          <div className="grid gap-8 lg:grid-cols-[0.95fr_2fr] lg:gap-10">
             {/* LEFT. logo block, editorial */}
-            <div className="space-y-6">
-              <Link href="/" className="inline-flex items-center gap-3 group">
+            <div className="space-y-5">
+              <Link href="/" className="group inline-flex min-h-11 items-center gap-3">
                 <span
                   aria-hidden
                   className="inline-flex items-center justify-center w-12 h-12 border border-white/10 text-[var(--lp-accent)] transition-transform duration-200 group-hover:-translate-y-0.5"
@@ -61,7 +61,7 @@ export function SiteFooter() {
             {/* RIGHT. three columns of links. Kept on ONE row from mobile up so
                 the footer stays compact; the type steps down a touch on small
                 screens so three columns don't feel cramped. */}
-            <div className="grid grid-cols-2 gap-x-7 gap-y-8 sm:grid-cols-3 sm:gap-x-8 md:gap-y-10">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 sm:gap-x-7 md:gap-y-8">
               <FooterCol title={t.columns.product}>
                 {/* Discover reuses the nav's own label rather than minting a
                     second string for the same destination, so the footer and
@@ -127,7 +127,7 @@ export function SiteFooter() {
         </div>
 
         {/* Heroic wordmark. closes the page like a Phantom move */}
-        <div className="mt-12 lg:mt-16">
+        <div className="mt-9 lg:mt-11">
           <p className="text-center mono text-[10px] uppercase tracking-[0.22em] text-[var(--lp-text-muted)]">
             [:{t.heroClose}:]
           </p>
@@ -197,13 +197,13 @@ function NewsletterSignup() {
           placeholder={t.placeholder}
           maxLength={200}
           aria-label={t.title}
-          className="min-w-0 flex-1 px-3 py-2 text-[13.5px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-border-light)] placeholder:text-[var(--lp-text-muted)] focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
+          className="min-h-11 min-w-0 flex-1 px-3 py-2 text-[13.5px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-border-light)] placeholder:text-[var(--lp-text-muted)] focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
           style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
         />
         <button
           type="submit"
           disabled={state === 'sending'}
-          className="w-full shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform min-[380px]:w-auto"
+          className="min-h-11 w-full shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform min-[380px]:w-auto"
           style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
         >
           {state === 'sending' ? t.sending : t.cta}
@@ -231,7 +231,7 @@ function BrandSwatches() {
     { label: 'cream', hex: '#FAF8F2', border: true },
   ];
   return (
-    <div className="mt-12 lg:mt-16 flex flex-wrap items-center gap-x-6 gap-y-3">
+    <div className="mt-8 lg:mt-10 flex flex-wrap items-center gap-x-5 gap-y-3">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:{t.brand.label}:]
       </span>
@@ -309,7 +309,7 @@ function FooterLink({
   external?: boolean;
 }) {
   const className = cn(
-    'group inline-flex items-center gap-1.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
+    'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
     'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
   );
   const inner = (
@@ -361,7 +361,7 @@ function FooterLink({
 function FooterContact({ label }: { label: string }) {
   const [revealed, setRevealed] = useState(false);
   const className = cn(
-    'group inline-flex items-center gap-1.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
+    'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
     'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
   );
   if (revealed) {
@@ -403,7 +403,7 @@ function FooterSocialLink({
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      className="group inline-flex items-center gap-2 sm:gap-2.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
+      className="group inline-flex min-h-11 min-w-11 items-center gap-2 py-2 sm:gap-2.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
     >
       <span
         aria-hidden

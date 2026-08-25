@@ -824,7 +824,7 @@ export function DirectDealForm() {
             </div>
             <FormLabel
               label="Documents"
-              hint="Hashes anchor on chain after the deal is accepted. Files stay on your device."
+              hint="Files stay on your device. Karwan records a tamper-evident receipt after the deal is accepted."
             >
               <input
                 type="file"

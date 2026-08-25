@@ -89,12 +89,6 @@ export function NotificationToasts() {
             <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-dark)]">
               {labelFor(t.type, toastLabels)}
             </span>
-            <span
-              aria-hidden
-              className="ms-auto mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-dark)]/60"
-            >
-              {t.jobId.slice(0, 6)}...{t.jobId.slice(-4)}
-            </span>
           </div>
           <div className="px-3.5 py-3 flex items-start justify-between gap-3">
             <p className="text-[13px] leading-snug text-[var(--lp-dark)] font-medium">

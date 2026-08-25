@@ -1,14 +1,14 @@
 'use client';
+
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWriteContract } from 'wagmi';
 import { api, type BusinessRegisterBody } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { Reveal } from '@/shared/components/Reveal';
 
-/// KarwanBusinessRegistry.submitRegistration, the only function a web3 user
-/// signs directly. The reviewer's approve/reject is backend-signed.
 const REGISTRY_ABI = [
   {
     type: 'function',
@@ -19,21 +19,22 @@ const REGISTRY_ABI = [
   },
 ] as const;
 
-const REGISTRY_ADDR = (process.env.NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR ?? '') as `0x${string}` | '';
+const REGISTRY_ADDR = (process.env.NEXT_PUBLIC_BUSINESS_REGISTRY_ADDR ?? '') as
+  | `0x${string}`
+  | '';
 
-const SECTOR_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: '', label: '—' },
-  { value: 'agriculture', label: 'Agriculture' },
-  { value: 'textiles', label: 'Textiles' },
-  { value: 'electronics', label: 'Electronics' },
-  { value: 'logistics', label: 'Logistics' },
-  { value: 'manufacturing', label: 'Manufacturing' },
-  { value: 'services', label: 'Services' },
-  { value: 'other', label: 'Other' },
-];
+const SECTOR_OPTIONS = [
+  'agriculture',
+  'textiles',
+  'electronics',
+  'logistics',
+  'manufacturing',
+  'services',
+  'other',
+] as const;
 
 type Sector = NonNullable<BusinessRegisterBody['company']['sector']>;
-type Status = 'none' | 'submitted' | 'verified' | 'rejected';
+export type BusinessRegistrationStatus = 'none' | 'submitted' | 'verified' | 'rejected';
 
 async function sha256Hex(file: File): Promise<`0x${string}`> {
   const buf = await file.arrayBuffer();
@@ -42,44 +43,54 @@ async function sha256Hex(file: File): Promise<`0x${string}`> {
   return `0x${hex}`;
 }
 
-/// BUSINESS band on /profile. A wallet registers as a verified business by
-/// anchoring a registration or tax document and submitting it for Karwan
-/// review. Gated behind SME_TRADES_ENABLED at the call site. Independent
-/// top-level component so editing it re-renders nothing else on the page.
-export function RegisterBusinessBand({ address }: { address: string }) {
+export function RegisterBusinessBand({
+  address,
+  mode = 'summary',
+  startEditing = false,
+  onStatusChange,
+}: {
+  address: string;
+  mode?: 'summary' | 'workflow';
+  startEditing?: boolean;
+  onStatusChange?: (status: BusinessRegistrationStatus) => void;
+}) {
+  const t = useTranslations().registerBusiness;
   const { method } = useAuth();
   const { writeContractAsync } = useWriteContract();
-
   const [loaded, setLoaded] = useState(false);
-  const [status, setStatus] = useState<Status>('none');
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [status, setStatus] = useState<BusinessRegistrationStatus>('none');
   const [companyName, setCompanyName] = useState('');
   const [editing, setEditing] = useState(false);
-  // Prefer the registry address the backend reports at runtime; fall back to the
-  // build-time env only if the backend didn't send one. This keeps web3
-  // registration working even when the frontend was built without the
-  // NEXT_PUBLIC var (which is what makes the form say "opens at launch").
   const [registryAddr, setRegistryAddr] = useState<`0x${string}` | ''>(REGISTRY_ADDR);
-
   const [sector, setSector] = useState<Sector | ''>('');
   const [region, setRegion] = useState('');
   const [docKind, setDocKind] = useState<'registration' | 'tax'>('registration');
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      setLoadFailed(false);
       try {
-        const r = await api.getBusinessStatus(address);
+        const result = await api.getBusinessStatus(address);
         if (cancelled) return;
-        setStatus(r.status);
-        if (r.company?.companyName) setCompanyName(r.company.companyName);
-        if (r.company?.sector) setSector(r.company.sector as Sector);
-        if (r.company?.region) setRegion(r.company.region);
-        if (r.registryAddr && /^0x[a-fA-F0-9]{40}$/.test(r.registryAddr)) {
-          setRegistryAddr(r.registryAddr as `0x${string}`);
+        setStatus(result.status);
+        onStatusChange?.(result.status);
+        if (startEditing && (result.status === 'none' || result.status === 'rejected')) {
+          setEditing(true);
         }
+        if (result.company?.companyName) setCompanyName(result.company.companyName);
+        if (result.company?.sector) setSector(result.company.sector as Sector);
+        if (result.company?.region) setRegion(result.company.region);
+        if (result.registryAddr && /^0x[a-fA-F0-9]{40}$/.test(result.registryAddr)) {
+          setRegistryAddr(result.registryAddr as `0x${string}`);
+        }
+      } catch {
+        if (!cancelled) setLoadFailed(true);
       } finally {
         if (!cancelled) setLoaded(true);
       }
@@ -88,16 +99,16 @@ export function RegisterBusinessBand({ address }: { address: string }) {
     return () => {
       cancelled = true;
     };
-  }, [address]);
+  }, [address, onStatusChange, reloadKey, startEditing]);
 
   async function submit() {
     setError(null);
     if (!companyName.trim()) {
-      setError('Company name is required.');
+      setError(t.errors.companyName);
       return;
     }
     if (!file) {
-      setError('Attach a registration or tax document.');
+      setError(t.errors.document);
       return;
     }
     setSubmitting(true);
@@ -116,13 +127,9 @@ export function RegisterBusinessBand({ address }: { address: string }) {
       };
 
       if (method === 'circle') {
-        // The backend signs submitRegistration via the identity DCW.
         await api.registerBusinessCircle(body);
       } else {
-        // Web3: sign submitRegistration locally, then record the tx.
-        if (!registryAddr) {
-          throw new Error('Business verification opens at launch.');
-        }
+        if (!registryAddr) throw new Error('verification-unavailable');
         const txHash = await writeContractAsync({
           address: registryAddr,
           abi: REGISTRY_ABI,
@@ -131,11 +138,13 @@ export function RegisterBusinessBand({ address }: { address: string }) {
         });
         await api.registerBusiness({ ...body, txHash });
       }
+
       setStatus('submitted');
+      onStatusChange?.('submitted');
       setEditing(false);
       setFile(null);
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      setError(t.errors.submit);
     } finally {
       setSubmitting(false);
     }
@@ -144,27 +153,46 @@ export function RegisterBusinessBand({ address }: { address: string }) {
   if (!loaded) {
     return (
       <Reveal className={BAND_INSET}>
-        <SectionTag>BUSINESS</SectionTag>
-        <HeroHeadline size="md">
-          Loading<Punc>…</Punc>
+        <SectionTag>{t.eyebrow}</SectionTag>
+        <HeroHeadline size="md" as="h2">
+          {t.loading}<Punc>…</Punc>
         </HeroHeadline>
       </Reveal>
     );
   }
 
+  if (loadFailed) {
+    return (
+      <Reveal className={BAND_INSET}>
+        <SectionTag>{t.eyebrow}</SectionTag>
+        <PageCard className="mt-4">
+          <div className="p-5 md:p-6">
+            <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.loadError}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoaded(false);
+                setReloadKey((value) => value + 1);
+              }}
+              className="mt-3 inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent-ink)]"
+            >
+              {t.actions.retry}
+            </button>
+          </div>
+        </PageCard>
+      </Reveal>
+    );
+  }
+
+  const canSubmitEvidence = status === 'none' || status === 'rejected';
+
   return (
-    /* Deliberately NOT a <Band>. Band is a full-bleed page section
-       (left-1/2 + w-bleed + -translate-x-1/2), and this renders inside the
-       max-w-[1040px] overflow-hidden identity panel. Nested there it became
-       100vw wide, centred on the panel, and the panel clipped roughly 128px
-       off BOTH sides, cutting words off the headline and the body copy.
-       Reveal is kept so the section still gets its scroll-in motion. */
     <Reveal className={BAND_INSET}>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <SectionTag dot={status === 'verified' ? 'live' : undefined}>BUSINESS</SectionTag>
-          <HeroHeadline size="md">
-            Trade as a business<Punc>.</Punc>
+          <SectionTag dot={status === 'verified' ? 'live' : undefined}>{t.eyebrow}</SectionTag>
+          <HeroHeadline size="md" as="h2">
+            {t.title}<Punc>.</Punc>
           </HeroHeadline>
         </div>
         <StatusPill status={status} />
@@ -172,87 +200,86 @@ export function RegisterBusinessBand({ address }: { address: string }) {
 
       <div className="mt-7">
         <PageCard>
-          <div className="p-5 md:p-6 space-y-4">
-            {status === 'verified' ? (
-              <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
-                {companyName || 'Your business'} is verified. You can open SME
-                trade-finance deals and counterparties see your verified badge.
-                Update soft details on the company profile above; changing the
-                legal name or registration document re-enters review.
-              </p>
-            ) : status === 'submitted' ? (
-              <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
-                Your registration is under review. Karwan confirms the anchored
-                document before granting the verified-business tag.
-              </p>
-            ) : (
-              <>
-                {status === 'rejected' ? (
-                  <p className="text-[13.5px] text-[var(--lp-critical)] leading-relaxed">
-                    Your last submission was declined. Re-submit with a clear
-                    registration or tax document.
-                  </p>
-                ) : (
-                  <p className="text-[14px] text-[var(--lp-text-sub)] leading-relaxed">
-                    Register as a business to open SME trade-finance deals.
-                    Anchor your registration or tax document; Karwan reviews and
-                    grants the verified tag.
-                  </p>
-                )}
-                {editing ? (
-                  <RegisterForm
-                    companyName={companyName}
-                    setCompanyName={setCompanyName}
-                    sector={sector}
-                    setSector={setSector}
-                    region={region}
-                    setRegion={setRegion}
-                    docKind={docKind}
-                    setDocKind={setDocKind}
-                    setFile={setFile}
-                    fileName={file?.name ?? null}
+          <div className="space-y-4 p-5 md:p-6">
+            <p
+              className={
+                status === 'rejected'
+                  ? 'text-[13.5px] leading-relaxed text-[var(--lp-critical)]'
+                  : 'text-[14px] leading-relaxed text-[var(--lp-text-sub)]'
+              }
+            >
+              {status === 'verified'
+                ? t.body.verified.replace('{company}', companyName || t.yourBusiness)
+                : t.body[status]}
+            </p>
+
+            {mode === 'workflow' && canSubmitEvidence && editing ? (
+              <RegisterForm
+                companyName={companyName}
+                setCompanyName={setCompanyName}
+                sector={sector}
+                setSector={setSector}
+                region={region}
+                setRegion={setRegion}
+                docKind={docKind}
+                setDocKind={setDocKind}
+                setFile={setFile}
+                fileName={file?.name ?? null}
+                disabled={submitting}
+              />
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {mode === 'workflow' && canSubmitEvidence && editing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={submit}
                     disabled={submitting}
-                  />
-                ) : null}
-                <div className="flex items-center gap-2 pt-1">
-                  {editing ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={submit}
-                        disabled={submitting}
-                        className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-light)] disabled:opacity-60"
-                        style={cornerStyle}
-                      >
-                        {submitting ? 'Submitting…' : 'Submit for review'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(false)}
-                        disabled={submitting}
-                        className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditing(true)}
-                      className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
-                      style={cornerStyle}
-                    >
-                      {status === 'rejected' ? 'Re-submit' : 'Register as business'}
-                    </button>
-                  )}
-                  {error ? (
-                    <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
-                      {error}
-                    </span>
-                  ) : null}
-                </div>
-              </>
-            )}
+                    className="inline-flex min-h-11 items-center px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.14em] bg-[var(--lp-dark)] text-[var(--lp-light)] disabled:opacity-60"
+                    style={cornerStyle}
+                  >
+                    {submitting ? t.actions.submitting : t.actions.submit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(false)}
+                    disabled={submitting}
+                    className="inline-flex min-h-11 items-center px-3 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+                  >
+                    {t.actions.cancel}
+                  </button>
+                </>
+              ) : mode === 'workflow' && canSubmitEvidence ? (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="inline-flex min-h-11 items-center px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.14em] border border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)] transition-colors"
+                  style={cornerStyle}
+                >
+                  {status === 'rejected' ? t.actions.resubmit : t.actions.start}
+                </button>
+              ) : mode === 'summary' && status !== 'verified' ? (
+                <Link
+                  href="/business/verification"
+                  className="inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent-ink)]"
+                >
+                  {status === 'rejected' ? t.actions.resubmit : t.actions.openWorkflow}
+                </Link>
+              ) : mode === 'summary' && status === 'verified' ? (
+                <Link
+                  href="/business/verification"
+                  className="inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent-ink)]"
+                >
+                  {t.actions.view}
+                </Link>
+              ) : null}
+              {error ? (
+                <span role="alert" className="text-[12px] leading-snug text-[var(--lp-critical)]">
+                  {error}
+                </span>
+              ) : null}
+            </div>
           </div>
         </PageCard>
       </div>
@@ -260,9 +287,6 @@ export function RegisterBusinessBand({ address }: { address: string }) {
   );
 }
 
-/// Horizontal inset for blocks inside the /profile identity panel. Matches the
-/// px-4 / md:px-8 the other blocks in that panel already use, so the business
-/// and trade-card sections line up with everything above them.
 const BAND_INSET = 'px-4 py-7 md:px-8 md:py-9';
 
 const cornerStyle = {
@@ -272,111 +296,144 @@ const cornerStyle = {
   borderBottomRightRadius: 2,
 } as const;
 
-function StatusPill({ status }: { status: Status }) {
-  const map: Record<Status, { label: string; color: string }> = {
-    none: { label: 'NOT REGISTERED', color: 'var(--lp-text-muted)' },
-    submitted: { label: 'UNDER REVIEW', color: '#b07d1f' },
-    verified: { label: 'VERIFIED', color: 'var(--lp-positive)' },
-    rejected: { label: 'DECLINED', color: 'var(--lp-critical)' },
+function StatusPill({ status }: { status: BusinessRegistrationStatus }) {
+  const t = useTranslations().registerBusiness;
+  const map: Record<BusinessRegistrationStatus, { label: string; color: string }> = {
+    none: { label: t.status.none, color: 'var(--lp-text-muted)' },
+    submitted: { label: t.status.submitted, color: '#b07d1f' },
+    verified: { label: t.status.verified, color: 'var(--lp-positive)' },
+    rejected: { label: t.status.rejected, color: 'var(--lp-critical)' },
   };
-  const s = map[status];
+  const current = map[status];
   return (
     <span
-      className="mono text-[10px] uppercase tracking-[0.16em] font-bold px-2.5 py-1 border"
-      style={{ color: s.color, borderColor: s.color, ...cornerStyle }}
+      className="inline-flex min-h-11 items-center px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.16em] border"
+      style={{ color: current.color, borderColor: current.color, ...cornerStyle }}
     >
-      {s.label}
+      {current.label}
     </span>
   );
 }
 
 function RegisterForm(props: {
   companyName: string;
-  setCompanyName: (v: string) => void;
+  setCompanyName: (value: string) => void;
   sector: Sector | '';
-  setSector: (v: Sector | '') => void;
+  setSector: (value: Sector | '') => void;
   region: string;
-  setRegion: (v: string) => void;
+  setRegion: (value: string) => void;
   docKind: 'registration' | 'tax';
-  setDocKind: (v: 'registration' | 'tax') => void;
-  setFile: (f: File | null) => void;
+  setDocKind: (value: 'registration' | 'tax') => void;
+  setFile: (file: File | null) => void;
   fileName: string | null;
   disabled?: boolean;
 }) {
   const rb = useTranslations().registerBusiness;
   const sme = useTranslations().smeCompany;
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+    <div className="grid grid-cols-1 gap-5 pt-2 sm:grid-cols-2">
       <Field label={rb.legalCompanyName}>
         <input
           type="text"
           value={props.companyName}
           disabled={props.disabled}
-          onChange={(e) => props.setCompanyName(e.target.value)}
+          onChange={(event) => props.setCompanyName(event.target.value)}
           placeholder={sme.form.companyNamePlaceholder}
           maxLength={120}
-          className="form-input"
+          className="form-input min-h-11"
         />
       </Field>
-      <Field label="Sector">
-        <select
-          value={props.sector}
-          disabled={props.disabled}
-          onChange={(e) => props.setSector(e.target.value as Sector | '')}
-          className="form-input"
-        >
-          {SECTOR_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Region">
+      <Field label={rb.region}>
         <input
           type="text"
           value={props.region}
           disabled={props.disabled}
-          onChange={(e) => props.setRegion(e.target.value)}
+          onChange={(event) => props.setRegion(event.target.value)}
           placeholder={sme.form.regionPlaceholder}
           maxLength={80}
-          className="form-input"
+          className="form-input min-h-11"
         />
       </Field>
-      <Field label={rb.documentType}>
-        <select
-          value={props.docKind}
-          disabled={props.disabled}
-          onChange={(e) => props.setDocKind(e.target.value as 'registration' | 'tax')}
-          className="form-input"
-        >
-          <option value="registration">{rb.businessRegistration}</option>
-          <option value="tax">{rb.taxCertificate}</option>
-        </select>
-      </Field>
-      <Field label="Document">
+
+      <fieldset className="space-y-2 sm:col-span-2">
+        <legend className={FIELD_LABEL_CLASS}>{rb.sector}</legend>
+        <div className="flex flex-wrap gap-2">
+          {SECTOR_OPTIONS.map((value) => (
+            <button
+              key={value}
+              type="button"
+              disabled={props.disabled}
+              aria-pressed={props.sector === value}
+              onClick={() => props.setSector(value)}
+              className={
+                props.sector === value
+                  ? 'inline-flex min-h-11 items-center border border-[var(--lp-dark)] bg-[var(--lp-dark)] px-3 py-2 text-[12px] font-semibold text-[var(--lp-light)]'
+                  : 'inline-flex min-h-11 items-center border border-[var(--lp-outline)] px-3 py-2 text-[12px] font-semibold text-[var(--lp-text-sub)] hover:border-[var(--lp-outline-hover)]'
+              }
+              style={cornerStyle}
+            >
+              {sme.sectors[value]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-2 sm:col-span-2">
+        <legend className={FIELD_LABEL_CLASS}>{rb.documentType}</legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {(['registration', 'tax'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              disabled={props.disabled}
+              aria-pressed={props.docKind === value}
+              onClick={() => props.setDocKind(value)}
+              className={
+                props.docKind === value
+                  ? 'min-h-11 border border-[var(--lp-dark)] bg-[var(--lp-dark)] px-4 py-3 text-start text-[13px] font-semibold text-[var(--lp-light)]'
+                  : 'min-h-11 border border-[var(--lp-outline)] px-4 py-3 text-start text-[13px] font-semibold text-[var(--lp-text-sub)] hover:border-[var(--lp-outline-hover)]'
+              }
+              style={cornerStyle}
+            >
+              {value === 'registration' ? rb.businessRegistration : rb.taxCertificate}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <Field label={rb.document} className="sm:col-span-2">
         <input
           type="file"
+          accept=".pdf,image/png,image/jpeg,image/webp"
           disabled={props.disabled}
-          onChange={(e) => props.setFile(e.target.files?.[0] ?? null)}
-          className="form-input"
+          onChange={(event) => props.setFile(event.target.files?.[0] ?? null)}
+          className="form-input min-h-11 file:me-3 file:min-h-9 file:border-0 file:bg-[var(--lp-dark)] file:px-3 file:text-[11px] file:font-bold file:uppercase file:tracking-[0.08em] file:text-[var(--lp-light)]"
         />
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <span className="block text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
           {props.fileName
-            ? `${props.fileName} · hashed locally, only the hash is anchored`
-            : 'Only the document hash is anchored on chain. The file never leaves your device.'}
+            ? rb.fileSelected.replace('{name}', props.fileName)
+            : rb.filePrivacy}
         </span>
       </Field>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+const FIELD_LABEL_CLASS =
+  'mono text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--lp-text-muted)]';
+
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <label className="block space-y-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
-        {label}
-      </span>
+    <label className={`block space-y-2 ${className ?? ''}`}>
+      <span className={FIELD_LABEL_CLASS}>{label}</span>
       {children}
     </label>
   );

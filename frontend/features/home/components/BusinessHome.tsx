@@ -155,7 +155,7 @@ export function BusinessHome({
       {/* TRADE ANALYTICS. the company's own book, with a cumulative-volume chart */}
       <Band tone="light">
         <SectionTag>{bh.analytics.sectionTag}</SectionTag>
-        <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
+        <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
           {bh.analytics.headlinePrefix}
           <Accent>{bh.analytics.headlineAccent}</Accent>.
         </HeroHeadline>
@@ -196,7 +196,7 @@ export function BusinessHome({
             <SectionTag tone="dark" dot="live">
               {ah.liveNetwork.sectionTag}
             </SectionTag>
-            <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
+            <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
               {ah.liveNetwork.headlineTop}
               <br />
               {ah.liveNetwork.headlineBottomPrefix}
@@ -239,7 +239,7 @@ export function BusinessHome({
       {/* DEAL HISTORY. the company's own book */}
       <Band tone="light">
         <SectionTag>{bh.history.sectionTag}</SectionTag>
-        <HeroHeadline className="text-[clamp(2rem,4.6vw,3.75rem)]">
+        <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
           {bh.history.headlinePrefix}
           <Accent>{bh.history.headlineAccent}</Accent>.
         </HeroHeadline>
@@ -282,11 +282,11 @@ function StatusChip({
       </span>
     );
   }
-  // none / rejected: business intent without a live submission. Point to /profile.
+  // none / rejected: take the business to the dedicated completion workflow.
   return (
     <Link
-      href="/profile?verify=business"
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70 hover:text-white hover:border-white/40 transition-colors"
+      href="/business/verification"
+      className="inline-flex min-h-11 items-center gap-2 px-3 py-2 rounded-full border border-white/20 mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70 hover:text-white hover:border-white/40 transition-colors"
     >
       {bh.status.finishVerification}
       <span aria-hidden>→</span>

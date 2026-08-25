@@ -114,13 +114,12 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
           {t.deals.body}
         </Hint>
       </div>
-      <HeroHeadline size="md">
+      <HeroHeadline as="h2" size="md">
         {resolvedHeadline}
         <Punc>.</Punc>
       </HeroHeadline>
       <ul className="mt-8 space-y-3">
         {rows.map(({ deal, isBuyer, label }) => {
-          const counterparty = isBuyer ? deal.seller : deal.buyer;
           const role = isBuyer ? t.card.roleBuyer : t.card.roleSeller;
           const counterRole = isBuyer ? t.card.roleSeller : t.card.roleBuyer;
           const isAction = label.kind === 'action';
@@ -168,13 +167,7 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
                       className="mono text-[10px] uppercase tracking-[0.18em]"
                       style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
                     >
-                      [:{role} · {t.card.contextDeal}:]{' '}
-                      <span
-                        className="tracking-normal normal-case"
-                        style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
-                      >
-                        {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
-                      </span>
+                      [:{role} · {t.card.contextDeal}:]
                     </span>
                     <div className="mt-2 flex items-baseline gap-2">
                       <span
@@ -194,7 +187,7 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
                       className="mt-2 mono text-[10px] uppercase tracking-[0.12em]"
                       style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
                     >
-                      {counterRole} {counterparty.slice(0, 8)}…{counterparty.slice(-6)}
+                      {counterRole}
                     </p>
                   </div>
                   <div className="text-end shrink-0">

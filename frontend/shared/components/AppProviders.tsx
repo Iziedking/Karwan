@@ -1,5 +1,6 @@
 'use client';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -28,6 +29,8 @@ export function AppProviders({
 }) {
   const [queryClient] = useState(() => makeQueryClient());
   const [mode, setMode] = useState<Mode>('light');
+  const pathname = usePathname();
+  const adminSurface = pathname === '/admin' || pathname.startsWith('/admin/');
 
   /// The persister is built lazily so it only constructs on the client
   /// (localStorage isn't available during SSR). When null (SSR or storage
@@ -59,7 +62,7 @@ export function AppProviders({
           fontStack: 'system',
         });
 
-  const inner = (
+  const customerRuntime = (
     <RainbowKitProvider theme={theme} modalSize="compact" appInfo={{ appName: 'Karwan' }}>
       <GlobalLoadingSplash />
       <SiweGate />
@@ -71,6 +74,11 @@ export function AppProviders({
       </GuideProvider>
     </RainbowKitProvider>
   );
+  // /admin owns an isolated wallet provider and operator-token transport. Do
+  // not mount customer SIWE, caller sync, event subscriptions, guide, or
+  // assistant here: even background customer bootstrap would couple the
+  // operator console to the account signed into this browser profile.
+  const inner = adminSurface ? children : customerRuntime;
 
   return (
     <LocaleProvider initialLocale={initialLocale}>

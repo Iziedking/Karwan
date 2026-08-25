@@ -456,7 +456,7 @@ export function StickyTabStrip({
             tabIndex={-1}
             onClick={() => page(side)}
             className={cn(
-              'absolute top-0 bottom-[10px] flex w-10 cursor-pointer items-center md:hidden',
+              'absolute top-0 bottom-[10px] flex w-11 cursor-pointer items-center md:hidden',
               'transition-opacity duration-[var(--dur-fast)]',
               side === 'start' ? 'start-0 justify-start ps-2' : 'end-0 justify-end pe-2',
               live ? 'opacity-100' : 'pointer-events-none opacity-0',
