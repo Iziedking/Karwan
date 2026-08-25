@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   api,
   ApiError,
@@ -9,6 +9,8 @@ import {
   type NewsletterIssue,
 } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
+import { NewsletterDraftReview, type NewsletterDraftReviewValue } from '@/features/admin/NewsletterDraftReview';
+import { parseMarkdownNewsletter } from '@/features/admin/newsletterMarkdown';
 
 /// The approval gate.
 ///
@@ -80,7 +82,12 @@ export default function AdminNewsletterPage() {
   } | null>(null);
   const [editing, setEditing] = useState(false);
   const [draftSubject, setDraftSubject] = useState('');
+  const [draftPreheader, setDraftPreheader] = useState('');
   const [draftSections, setDraftSections] = useState<IssueSection[]>([]);
+  const [reviewDraft, setReviewDraft] = useState<NewsletterDraftReviewValue | null>(null);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importInput = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(() => {
     api
@@ -98,12 +105,14 @@ export default function AdminNewsletterPage() {
   const openIssue = useCallback(async (id: string) => {
     setOpen(id);
     setEditing(false);
+    setReviewDraft(null);
     setPreview(null);
     setSocialDraft(null);
     try {
       const r = await api.adminNewsletterPreview(id);
       setPreview(r);
       setDraftSubject(r.issue.subject);
+      setDraftPreheader(r.issue.preheader);
       setDraftSections(r.issue.sections);
     } catch (e) {
       setErr(e instanceof ApiError ? e.message : 'Could not render this issue');
@@ -127,14 +136,60 @@ export default function AdminNewsletterPage() {
     }
   }
 
-  async function save(id: string) {
+  function beginReview(
+    source?: string,
+    warnings?: string[],
+    value: Pick<NewsletterDraftReviewValue, 'subject' | 'preheader' | 'sections'> = {
+      subject: draftSubject,
+      preheader: draftPreheader,
+      sections: draftSections,
+    },
+  ) {
+    setReviewDraft({
+      ...value,
+      source,
+      warnings,
+    });
+  }
+
+  async function saveReviewed(id: string) {
+    if (!reviewDraft || reviewSaving) return;
+    setReviewSaving(true);
     try {
-      await api.adminEditNewsletter(id, { subject: draftSubject, sections: draftSections });
+      await api.adminEditNewsletter(id, {
+        subject: reviewDraft.subject,
+        preheader: reviewDraft.preheader,
+        sections: reviewDraft.sections,
+      });
+      setDraftSubject(reviewDraft.subject);
+      setDraftPreheader(reviewDraft.preheader);
+      setDraftSections(reviewDraft.sections);
+      setReviewDraft(null);
       setEditing(false);
       openIssue(id);
       load();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Could not save the edit');
+      setErr(e instanceof ApiError ? e.message : 'Could not save the reviewed edit');
+    } finally {
+      setReviewSaving(false);
+    }
+  }
+
+  async function importMarkdown(file: File) {
+    setImporting(true);
+    setErr(null);
+    try {
+      const parsed = parseMarkdownNewsletter(file.name, await file.text());
+      setDraftSubject(parsed.subject || draftSubject);
+      setDraftPreheader(parsed.preheader || draftPreheader);
+      setDraftSections(parsed.sections);
+      setEditing(false);
+      beginReview(file.name, parsed.warnings, parsed);
+    } catch {
+      setErr('Could not read that Markdown file');
+    } finally {
+      setImporting(false);
+      if (importInput.current) importInput.current.value = '';
     }
   }
 
@@ -339,15 +394,36 @@ export default function AdminNewsletterPage() {
                       <>
                         <button
                           type="button"
-                          onClick={() => setEditing((v) => !v)}
-                          className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white"
+                          onClick={() => {
+                            setReviewDraft(null);
+                            setEditing((v) => !v);
+                          }}
+                          className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-white/15 text-white/55 hover:text-white"
                         >
                           {editing ? 'Cancel' : 'Edit'}
                         </button>
                         <button
                           type="button"
+                          onClick={() => importInput.current?.click()}
+                          disabled={importing}
+                          className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] px-3 rounded-lg border border-[#AFC95B]/45 text-[#AFC95B] hover:bg-[#AFC95B]/10 disabled:opacity-40"
+                        >
+                          {importing ? 'Reading' : 'Import Markdown'}
+                        </button>
+                        <input
+                          ref={importInput}
+                          type="file"
+                          accept=".md,.markdown,text/markdown"
+                          className="sr-only"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (file) void importMarkdown(file);
+                          }}
+                        />
+                        <button
+                          type="button"
                           onClick={() => approve(preview.issue.id)}
-                          disabled={!preview.review.clean}
+                          disabled={!preview.review.clean || editing || Boolean(reviewDraft)}
                           title={
                             preview.review.clean
                               ? 'Mark ready to send'
@@ -472,7 +548,19 @@ export default function AdminNewsletterPage() {
                 </div>
               </div>
 
-              {editing ? (
+              {reviewDraft ? (
+                <div className="p-4">
+                  <NewsletterDraftReview
+                    draft={reviewDraft}
+                    saving={reviewSaving}
+                    onBack={() => {
+                      setReviewDraft(null);
+                      setEditing(true);
+                    }}
+                    onSave={() => saveReviewed(preview.issue.id)}
+                  />
+                </div>
+              ) : editing ? (
                 <div className="p-4 space-y-3">
                   <label className="block">
                     <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
@@ -481,6 +569,16 @@ export default function AdminNewsletterPage() {
                     <input
                       value={draftSubject}
                       onChange={(e) => setDraftSubject(e.target.value)}
+                      className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-white/40"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-white/40">
+                      Preview text
+                    </span>
+                    <input
+                      value={draftPreheader}
+                      onChange={(e) => setDraftPreheader(e.target.value)}
                       className="mt-1.5 w-full bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-[14px] outline-none focus:border-white/40"
                     />
                   </label>
@@ -503,10 +601,10 @@ export default function AdminNewsletterPage() {
                   ))}
                   <button
                     type="button"
-                    onClick={() => save(preview.issue.id)}
-                    className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 py-2.5 rounded-lg bg-white text-[#0e0e0e]"
+                    onClick={() => beginReview()}
+                    className="min-h-11 mono text-[10px] uppercase tracking-[0.12em] font-bold px-4 rounded-lg bg-white text-[#0e0e0e]"
                   >
-                    Save
+                    Review changes
                   </button>
                 </div>
               ) : (
