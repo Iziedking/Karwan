@@ -1794,6 +1794,7 @@ interface MessagesShape {
       sellerFloor: string;
       replaceOffer: string;
       postOffer: string;
+      recipientUnavailable: string;
     };
     po: {
       repayOnPod: string;
@@ -6845,6 +6846,7 @@ export const en: MessagesShape = {
       sellerFloor: 'Seller will not go below',
       replaceOffer: 'Replace offer',
       postOffer: 'Post offer',
+      recipientUnavailable: "This invoice's payout account could not be verified. Refresh the desk and try again.",
     },
     po: {
       repayOnPod: 'REPAY ON PoD',

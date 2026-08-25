@@ -1992,6 +1992,7 @@ export const hi: Messages = {
       sellerFloor: 'विक्रेता इससे नीचे नहीं जाएगा',
       replaceOffer: 'ऑफर बदलें',
       postOffer: 'ऑफर पोस्ट करें',
+      recipientUnavailable: 'इस इनवॉइस के भुगतान खाते की पुष्टि नहीं हो सकी। डेस्क रीफ़्रेश करके फिर कोशिश करें।',
     },
     po: {
       repayOnPod: 'डिलीवरी प्रमाण पर भुगतान',

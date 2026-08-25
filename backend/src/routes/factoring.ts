@@ -38,7 +38,10 @@ import { appendActivity } from '../db/activityLog.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
 import { financingOperationKey, recordVerifiedFinancingMovement } from '../money/financing.js';
-import { factoringAdvanceRecipient } from './factoringRecipient.js';
+import {
+  factoringAdvanceRecipient,
+  factoringAdvanceRecipientView,
+} from './factoringRecipient.js';
 export { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 /// Invoice factoring routes.
@@ -341,6 +344,7 @@ factoringRoutes.get('/available', async (c) => {
           ...financierSafeDeal(d),
           sellerTier,
           claimableUsdc: claimableMap.get(d.jobId)!,
+          ...factoringAdvanceRecipientView(d),
         };
       }),
   );

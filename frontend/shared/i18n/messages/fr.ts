@@ -1992,6 +1992,7 @@ export const fr: Messages = {
       sellerFloor: 'Le vendeur ne descendra pas sous',
       replaceOffer: 'Remplacer l’offre',
       postOffer: 'Publier l’offre',
+      recipientUnavailable: 'Le compte de versement de cette facture n’a pas pu être vérifié. Actualisez le bureau et réessayez.',
     },
     po: {
       repayOnPod: 'REMBOURSEMENT SUR PREUVE DE LIVRAISON',

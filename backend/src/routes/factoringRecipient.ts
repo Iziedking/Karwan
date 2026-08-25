@@ -10,3 +10,13 @@ export function factoringAdvanceRecipient(
 ): string {
   return (deal.sellerAgentAddress ?? deal.seller).toLowerCase();
 }
+
+/**
+ * Publish the exact recipient the offer route validates so browser wallets do
+ * not have to reconstruct contract ownership rules from a safe deal DTO.
+ */
+export function factoringAdvanceRecipientView(
+  deal: Pick<DirectDeal, 'seller' | 'sellerAgentAddress'>,
+): { factoringAdvanceRecipient: string } {
+  return { factoringAdvanceRecipient: factoringAdvanceRecipient(deal) };
+}

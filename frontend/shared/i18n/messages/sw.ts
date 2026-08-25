@@ -1992,6 +1992,7 @@ export const sw: Messages = {
       sellerFloor: 'Muuzaji hatashuka chini ya',
       replaceOffer: 'Badilisha ofa',
       postOffer: 'Chapisha ofa',
+      recipientUnavailable: 'Akaunti ya malipo ya ankara hii haikuweza kuthibitishwa. Onyesha upya dawati kisha ujaribu tena.',
     },
     po: {
       repayOnPod: 'MALIPO KWA USHAHIDI WA KUFIKISHA',

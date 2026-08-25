@@ -1992,6 +1992,7 @@ export const ar: Messages = {
       sellerFloor: 'البائع لن ينزل تحت',
       replaceOffer: 'استبدال العرض',
       postOffer: 'نشر العرض',
+      recipientUnavailable: 'تعذر التحقق من حساب صرف هذه الفاتورة. حدّث لوحة التمويل ثم أعد المحاولة.',
     },
     po: {
       repayOnPod: 'السداد عند إثبات التسليم',
