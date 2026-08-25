@@ -46,6 +46,7 @@ import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js
 import { getAgentWallets } from '../db/agentWallets.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { enqueueLegacyReconsiderationShadow } from './jobsReengagement.js';
 
 const addrSchema = z
   .string()
@@ -856,5 +857,11 @@ jobsRoutes.post('/:jobId/reconsider', async (c) => {
   if (!raised) {
     return c.json({ error: 'could not reconsider', code: 'NO_PASSED_OFFER' }, 409);
   }
+  void enqueueLegacyReconsiderationShadow(rec, Math.floor(Date.now() / 1_000)).catch((error) => {
+    logger.warn(
+      { jobId, err: error instanceof Error ? error.message : String(error) },
+      'legacy reconsideration shadow scheduling failed',
+    );
+  });
   return c.json({ reconsidered: true, jobId, proceedPriceUsdc: raised.proceedPriceUsdc }, 200);
 });

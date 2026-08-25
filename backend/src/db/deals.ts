@@ -14,6 +14,13 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
 export interface PassportPull {
   amountUsd: number;
   txHash?: string;
+  /// Stable provider and purchased claim for the user-visible receipt.
+  /// Optional for legacy rows written before this receipt contract.
+  providerId?: string;
+  claim?: string;
+  /// Evidence observation is read-only shadow data; legacy deal authority is
+  /// unchanged even when a durable snapshot id is present.
+  decisionImpact?: 'legacy_match_unchanged';
   /// The agent's x402 payer wallet. On-chain proof of the pull: its Arc token
   /// history shows the real USDC on the paid rail even when the batched Gateway
   /// settlement carries no per-call hash. The counterparty report links it.
@@ -21,6 +28,9 @@ export interface PassportPull {
   /// The Arc depositFor tx that funded this pull, when a top-up was needed for
   /// it. The strongest per-pull proof: a real Arc tx moving USDC onto the rail.
   depositTxHash?: string;
+  /// Durable evidence snapshot created by the read-only evidence shadow. It is
+  /// absent on legacy rows or while that shadow is disabled.
+  evidenceId?: string;
   pulledAt: number;
 }
 

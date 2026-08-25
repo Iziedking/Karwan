@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:ci": "tsx --test --test-concurrency=4 \"src/**/*.test.ts\"",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
     "scan:lifetime": "tsx --env-file=../.env src/scripts/scan-lifetime.ts",
     "agents:bind": "tsx --env-file=../.env src/scripts/backfill-agent-bindings.ts",

@@ -41,6 +41,25 @@ import {
   shouldAcceptOnFinalRound,
   type Tier,
 } from './strategy.js';
+import {
+  BUYER_MAX_CANDIDATES,
+  BUYER_REPUTATION_TIEBREAK_EPSILON,
+  BUYER_TIER_RANK,
+  buyerMatchBand,
+  rankBuyerTimerBids,
+  type BuyerRuntimeSnapshot,
+  type CollectionShadowDecision,
+  type CounterTimeoutShadowDecision,
+} from './buyerTaskPlanning.js';
+import type {
+  BuyerTimerShadowObservation,
+  BuyerTimerShadowObserver,
+} from './buyerTaskShadow.js';
+import type {
+  BuyerTimerParityObservation,
+  BuyerTimerParityObserver,
+  BuyerTimerParitySchedule,
+} from './buyerTaskParity.js';
 import { countCleanDealsBetween } from './workRecord.js';
 import { pendingEvaluations } from './evaluationTracker.js';
 
@@ -49,7 +68,7 @@ import { pendingEvaluations } from './evaluationTracker.js';
 /// spawn 10 sequential negotiations. Three is the sweet spot for
 /// community testing: enough to recover from a stubborn top seller,
 /// few enough to keep total negotiation time bounded.
-const MAX_CANDIDATES = 3;
+const MAX_CANDIDATES = BUYER_MAX_CANDIDATES;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal, patchDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
@@ -96,6 +115,47 @@ import {
   categoryPriceAnomaly,
 } from '../db/priceObservations.js';
 import { setResearchHeat, researchHeatFromRead, classifyVsMarket, type MarketVerdict } from './marketDemand.js';
+import type { MatchingShadowObserver } from '../matching/shadow.js';
+import type { MatchingAuditTelemetry } from '../matching/audit.js';
+import type {
+  MatchingCandidateSnapshot,
+  MatchingMandateSnapshot,
+  MatchingSkillEvidence,
+} from '../matching/types.js';
+import {
+  profileCandidateVersion,
+  profileMandateVersion,
+  profileSellerMandateVersion,
+  projectProfileSkillEvidence,
+} from '../matching/profileProjection.js';
+import {
+  MATCHING_RELIABILITY_POLICY_VERSION,
+  minimumReliabilityForLane,
+} from '../matching/reliabilityPolicy.js';
+import {
+  projectPaidPassportEvidence,
+  projectReputationEvidence,
+} from '../matching/evidenceProjection.js';
+import type {
+  NegotiationShadowObserver,
+  NegotiationShadowTaskData,
+} from './negotiationTaskShadow.js';
+import type {
+  EvidenceQualificationShadowObserver,
+  EvidenceQualificationShadowTaskData,
+} from './evidenceQualificationShadow.js';
+import { buildPaidEvidenceQualificationObservation } from './evidenceQualificationProjection.js';
+import type {
+  EvidenceAcquisitionShadowObserver,
+} from './evidenceAcquisitionShadow.js';
+import { buildMarketEvidenceAcquisitionObservation } from './evidenceAcquisitionProjection.js';
+import type { FinancialCommandShadowObserver } from './financialCommandShadow.js';
+import {
+  buildLegacyContractAcceptanceObservation,
+  buildLegacyEscrowFundingObservation,
+  type LegacyPreFundingObservation,
+} from './financialCommandProjection.js';
+import { buildLegacyRaisedOfferShadowInput } from '../negotiation/legacyOfferProjection.js';
 
 // USDC on Arc has a dual interface: native (18 decimals) for gas, ERC-20 (6 decimals)
 // for transfers/approvals. Bid + escrow amounts ride the ERC-20 rail, so all our math
@@ -156,42 +216,20 @@ interface Bid {
   /// Absent when paid signals are disabled or the call failed; the bid
   /// scores on local signals alone in that case.
   paidSignal?: PaidPassportSignal;
+  /// Snapshot of the seller's declared tags used by the read-only matching v2
+  /// observer. It never changes the legacy ranking path.
+  sellerKeywords?: string[];
+  /// Profile snapshot fields used only by the read-only matching observer.
+  sellerDeclaredSkills?: string[];
+  sellerSkillEvidence?: MatchingSkillEvidence[];
   /// Relationship memory: prior CLEAN deals this buyer has closed with this
   /// seller before. Resolved once at bid time (countCleanDealsBetween) and fed
   /// to scoreBidDeterministic as a small within-band ranking nudge so a
   /// familiar, proven counterparty wins a near-tie. 0 when there is no history.
   priorCleanDealsWithBuyer?: number;
-}
-
-/// Score difference under which two bids are "tied" for the purposes of the
-/// reputation tiebreaker. LLM scoring is noisy at the unit level, so 3 points
-/// on a 0-100 scale is well inside the noise floor.
-const REPUTATION_TIEBREAK_EPSILON = 3;
-
-/// Width of a topical-match band, on the 0-100 match scale. Bids whose match
-/// scores land in the same band are "comparable" on skill and ranked by the
-/// deterministic price+reputation score; a bid in a higher band always ranks
-/// above one in a lower band, regardless of price or reputation. 25 gives four
-/// bands (<25, 25-49, 50-74, 75-100), which cleanly separates a near-exact
-/// skill fit from a partial one while staying coarse enough that two genuinely
-/// comparable sellers aren't split by match-score noise. Bucketing (rather than
-/// a pairwise epsilon) keeps the sort comparator transitive.
-const MATCH_BAND_SIZE = 25;
-
-/// The match band for a bid. A bid with no computable match (brief had no
-/// keywords) shares one neutral band with every other such bid on the same
-/// brief, so ranking among them is decided entirely by the deterministic score
-/// (preserving pre-match-ranking behaviour). Within a single brief, keywords
-/// are uniform, so bids are either all scored or all neutral; the two never mix.
-function matchBand(bid: Bid): number {
-  if (typeof bid.topicalMatch !== 'number') return -1;
-  // Clamp to the top band so a perfect 100 stays in the documented 75-100 band
-  // instead of spilling into a band of its own. Without this, floor(100/25)=4
-  // sits above floor(88/25)=3, so a NEW seller at 100% outranks an ELITE at 88%
-  // on a one-point boundary, when the two are genuinely comparable and the
-  // deterministic score (tier + reputation + price) should decide between them.
-  const topBand = Math.ceil(100 / MATCH_BAND_SIZE) - 1;
-  return Math.min(Math.floor(bid.topicalMatch / MATCH_BAND_SIZE), topBand);
+  sellerCompletedDeals?: number;
+  sellerDisputedDeals?: number;
+  sellerFailedDeals?: number;
 }
 
 /// B2B sourcing fit. A goods/mixed brief carries the KIND of supplier and WHERE
@@ -240,6 +278,10 @@ interface JobState {
   /// When the first bid landed. The collection window's floor + hard cap are
   /// measured from here for the adaptive soft-close.
   collectionStartedAt?: number;
+  /// Shadow-only schedule metadata. The legacy timer remains authoritative;
+  /// these values let a durable observer fence replaced soft-close tasks.
+  collectionCloseAt?: number;
+  collectionScheduleVersion: number;
   collectionFired: boolean;
   /// One-shot timeline note when the close is deferred because seller agents
   /// are still mid-evaluation (research + LLM in flight).
@@ -285,6 +327,10 @@ interface JobState {
   /// stalled (seller declined off-chain, dropped event, or a seller-side crash)
   /// and the buyer cascades to the next candidate. See COUNTER_RESPONSE_TIMEOUT_MS.
   counterWatchdog?: NodeJS.Timeout | null;
+  counterWatchdogSeller?: `0x${string}`;
+  counterWatchdogDueAt?: number;
+  counterWatchdogRound?: number;
+  counterScheduleVersion: number;
   /// Park-and-counter probe. When a strictly-outranking bid lands late but
   /// above the cap (within the near-miss stretch), the converged agreement is
   /// parked here while the buyer counters the stronger seller ONCE at the cap.
@@ -297,6 +343,8 @@ interface JobState {
     pattern?: ReturnType<typeof classifyBid>;
   } | null;
   latePreemptAttempted?: boolean;
+  shadowRevision: number;
+  negotiationShadowRevision: number;
 }
 
 /// How long a cancelled managed job lingers in the buyer's Managed Deals
@@ -317,16 +365,599 @@ const COUNTER_RESPONSE_TIMEOUT_MS =
 
 const jobs = new Map<`0x${string}`, JobState>();
 const handledEvents = new Set<string>();
+let buyerTimerShadowObserver: BuyerTimerShadowObserver | null = null;
+let buyerTimerParityObserver: BuyerTimerParityObserver | null = null;
+let matchingEngineShadowObserver: MatchingShadowObserver | null = null;
+let negotiationShadowObserver: NegotiationShadowObserver | null = null;
+let evidenceQualificationShadowObserver: EvidenceQualificationShadowObserver | null = null;
+let evidenceAcquisitionShadowObserver: EvidenceAcquisitionShadowObserver | null = null;
+let financialCommandShadowObserver: FinancialCommandShadowObserver | null = null;
+let buyerShadowSequence = 0;
+
+function nextBuyerShadowGeneration(current: number): number {
+  buyerShadowSequence = (buyerShadowSequence + 1) % 1_000;
+  const epochGeneration = Date.now() * 1_000 + buyerShadowSequence;
+  return Math.max(current + 1, epochGeneration);
+}
+
+/// Installs the read-only Phase 3B observer. The observer can persist snapshots
+/// and enqueue shadow tasks, but it receives no JobState reference and cannot
+/// mutate the live buyer loop. Passing null disables observation.
+export function configureBuyerTimerShadow(
+  observer: BuyerTimerShadowObserver | null,
+): () => void {
+  buyerTimerShadowObserver = observer;
+  return () => {
+    if (buyerTimerShadowObserver === observer) buyerTimerShadowObserver = null;
+  };
+}
+
+/// Installs the Phase 3C read-only parity observer. It receives a copied
+/// pre-mutation snapshot and normalized decisions only. It cannot invoke a
+/// buyer action or change the legacy timer outcome.
+export function configureBuyerTimerParity(
+  observer: BuyerTimerParityObserver | null,
+): () => void {
+  buyerTimerParityObserver = observer;
+  return () => {
+    if (buyerTimerParityObserver === observer) buyerTimerParityObserver = null;
+  };
+}
+
+/// Installs the read-only Phase 4 matching observer. It receives copied
+/// candidate snapshots and the legacy winner order. The observer cannot bid,
+/// negotiate, notify, stake, call a provider, or mutate a JobState.
+export function configureMatchingEngineShadow(
+  observer: MatchingShadowObserver | null,
+): () => void {
+  matchingEngineShadowObserver = observer;
+  return () => {
+    if (matchingEngineShadowObserver === observer) matchingEngineShadowObserver = null;
+  };
+}
+
+/// Installs the read-only structured-negotiation observer. It only enqueues a
+/// durable shadow task; it cannot publish, accept, fund, stake, or notify.
+export function configureNegotiationShadow(
+  observer: NegotiationShadowObserver | null,
+): () => void {
+  negotiationShadowObserver = observer;
+  return () => {
+    if (negotiationShadowObserver === observer) negotiationShadowObserver = null;
+  };
+}
+
+/// Installs the read-only evidence observer. It records what the existing
+/// legacy x402 path learned, including uncertainty about batched settlement;
+/// it cannot initiate a purchase, change matching, or move money.
+export function configureEvidenceQualificationShadow(
+  observer: EvidenceQualificationShadowObserver | null,
+): () => void {
+  evidenceQualificationShadowObserver = observer;
+  return () => {
+    if (evidenceQualificationShadowObserver === observer) evidenceQualificationShadowObserver = null;
+  };
+}
+
+/// Installs the read-only market-evidence acquisition observer. It records the
+/// result of an existing legacy research call, but cannot initiate a provider
+/// request, charge an account, or affect matching.
+export function configureEvidenceAcquisitionShadow(
+  observer: EvidenceAcquisitionShadowObserver | null,
+): () => void {
+  evidenceAcquisitionShadowObserver = observer;
+  return () => {
+    if (evidenceAcquisitionShadowObserver === observer) evidenceAcquisitionShadowObserver = null;
+  };
+}
+
+/// Installs the read-only financial command observer. It records the exact
+/// legacy escrow intent and policy result, but cannot approve, submit, retry,
+/// or otherwise affect the existing human-approved path.
+export function configureFinancialCommandShadow(
+  observer: FinancialCommandShadowObserver | null,
+): () => void {
+  financialCommandShadowObserver = observer;
+  return () => {
+    if (financialCommandShadowObserver === observer) financialCommandShadowObserver = null;
+  };
+}
+
+export function publishPaidEvidenceShadow(
+  signal: PaidPassportSignal,
+  subject: string,
+  actor: 'buyer' | 'seller',
+  jobId: string,
+): void {
+  const observer = evidenceQualificationShadowObserver;
+  if (!observer) return;
+  const data: EvidenceQualificationShadowTaskData = buildPaidEvidenceQualificationObservation(
+    signal,
+    subject,
+    actor,
+    jobId,
+  );
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId, actor, subject, err: (err as Error).message },
+      'evidence qualification shadow observation failed',
+    );
+  });
+}
+
+export function publishMarketEvidenceAcquisitionShadow(
+  read: MarketRead,
+  jobId: string,
+): void {
+  const observer = evidenceAcquisitionShadowObserver;
+  if (!observer) return;
+  const data = buildMarketEvidenceAcquisitionObservation(read, jobId);
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId, err: (err as Error).message },
+      'market evidence acquisition shadow observation failed',
+    );
+  });
+}
+
+function publishLegacyEscrowFundingShadow(
+  state: JobState,
+  proposal: MatchProposal,
+  fundedAmountUsdc: string,
+  observedAtUnix: number,
+  preFundingObservation?: LegacyPreFundingObservation,
+): void {
+  const observer = financialCommandShadowObserver;
+  if (!observer) return;
+  const data = buildLegacyEscrowFundingObservation({
+    dealRoomId: state.jobId,
+    buyerAgentAddress: proposal.buyerAgent,
+    escrowAddress: escrow.address,
+    fundedAmountUsdc,
+    observedAtUnix,
+    ...(preFundingObservation ? { preFundingObservation } : {}),
+  });
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId: state.jobId, err: (err as Error).message },
+      'legacy escrow financial shadow observation failed',
+    );
+  });
+}
+
+function publishLegacyContractAcceptanceShadow(
+  state: JobState,
+  proposal: MatchProposal,
+  txHash: string,
+  observedAtUnix: number,
+): void {
+  const observer = financialCommandShadowObserver;
+  if (!observer) return;
+  let data: ReturnType<typeof buildLegacyContractAcceptanceObservation>;
+  try {
+    data = buildLegacyContractAcceptanceObservation({
+      dealRoomId: state.jobId,
+      buyerAgentAddress: proposal.buyerAgent,
+      jobBoardAddress: jobBoard.address,
+      agreedPriceUsdc: proposal.agreedPriceUsdc,
+      observedAtUnix,
+      txHash,
+    });
+  } catch (error) {
+    logger.warn(
+      { jobId: state.jobId, err: (error as Error).message },
+      'legacy contract acceptance financial shadow projection rejected',
+    );
+    return;
+  }
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId: state.jobId, txHash, err: (err as Error).message },
+      'legacy contract acceptance financial shadow observation failed',
+    );
+  });
+}
+
+function buildBuyerRuntimeSnapshot(
+  state: JobState,
+  capturedAt: number,
+  overrides: { pendingEvaluations?: number } = {},
+): BuyerRuntimeSnapshot {
+  return {
+    jobId: state.jobId,
+    revision: state.shadowRevision,
+    capturedAt,
+    budgetUsdc: state.context.budgetUsdc,
+    ...(state.context.negotiationMaxIncreasePct !== undefined
+      ? { negotiationMaxIncreasePct: state.context.negotiationMaxIncreasePct }
+      : {}),
+    trustedMatch: state.context.trustedMatch === true,
+    buyerMinDeadlineDays: state.buyer.minDeadlineDays,
+    buyerMaxDeadlineDays: state.buyer.maxDeadlineDays,
+    buyerMaxCounterRounds: state.buyer.maxCounterRounds,
+    bids: [...state.bids.values()].map((bid) => ({
+      seller: bid.seller,
+      priceUsdc: bid.priceUsdc,
+      deadlineUnix: bid.deadlineUnix,
+      ...(bid.score !== undefined ? { score: bid.score } : {}),
+      ...(bid.suggestedCounterPrice !== undefined
+        ? { suggestedCounterPrice: bid.suggestedCounterPrice }
+        : {}),
+      ...(bid.suggestedCounterDeadlineDays !== undefined
+        ? { suggestedCounterDeadlineDays: bid.suggestedCounterDeadlineDays }
+        : {}),
+      ...(bid.sellerReputationBps !== undefined
+        ? { sellerReputationBps: bid.sellerReputationBps }
+        : {}),
+      ...(bid.sellerTier !== undefined ? { sellerTier: bid.sellerTier as Tier } : {}),
+      ...(bid.topicalMatch !== undefined ? { topicalMatch: bid.topicalMatch } : {}),
+      ...(bid.sellerFreeStakeUsdc !== undefined
+        ? { sellerFreeStakeUsdc: bid.sellerFreeStakeUsdc }
+        : {}),
+      ...(bid.completionRate !== undefined ? { completionRate: bid.completionRate } : {}),
+      ...(bid.velocity24h !== undefined ? { velocity24h: bid.velocity24h } : {}),
+      ...(bid.priorCleanDealsWithBuyer !== undefined
+        ? { priorCleanDealsWithBuyer: bid.priorCleanDealsWithBuyer }
+        : {}),
+    })),
+    candidateQueue: state.candidateQueue.map((bid) => bid.seller),
+    triedSellers: [...state.triedSellers],
+    sellersAtLastPass: [...(state.sellersAtLastPass ?? [])],
+    lastSellerCounterBySeller: Object.fromEntries(state.lastSellerCounterBySeller),
+    collection: {
+      ...(state.collectionStartedAt !== undefined
+        ? { startedAt: state.collectionStartedAt }
+        : {}),
+      ...(state.collectionCloseAt !== undefined ? { closeAt: state.collectionCloseAt } : {}),
+      scheduleVersion: state.collectionScheduleVersion,
+      fired: state.collectionFired,
+      pendingEvaluations:
+        overrides.pendingEvaluations ?? pendingEvaluations(state.jobId),
+      maxWindowMs: BID_WINDOW_MAX_MS,
+      holdRecheckMs: BID_WINDOW_HOLD_RECHECK_MS,
+    },
+    counter: {
+      ...(state.counterWatchdogSeller ? { seller: state.counterWatchdogSeller } : {}),
+      ...(state.counterWatchdogDueAt !== undefined
+        ? { dueAt: state.counterWatchdogDueAt }
+        : {}),
+      scheduleVersion: state.counterScheduleVersion,
+      ...(state.counterWatchdogRound !== undefined
+        ? { round: state.counterWatchdogRound }
+        : {}),
+    },
+    ...(state.parkedAgreement
+      ? {
+          parkedAgreement: {
+            seller: state.parkedAgreement.seller,
+            priceUsdc: state.parkedAgreement.priceUsdc,
+          },
+        }
+      : {}),
+    finalized: state.finalized,
+    escrowFunded: state.escrowFunded,
+    expired: state.expired,
+  };
+}
+
+function publishBuyerTimerShadow(
+  state: JobState,
+  schedule?: BuyerTimerShadowObservation['schedule'],
+): void {
+  const observer = buyerTimerShadowObserver;
+  if (!observer) return;
+  state.shadowRevision = nextBuyerShadowGeneration(state.shadowRevision);
+  const capturedAt = Date.now();
+  const snapshot = buildBuyerRuntimeSnapshot(state, capturedAt);
+  void observer({ snapshot, ...(schedule ? { schedule } : {}) }).catch((err) => {
+    logger.warn(
+      { jobId: state.jobId, err: (err as Error).message },
+      'buyer timer shadow observation failed',
+    );
+  });
+}
+
+function publishBuyerTimerParity(
+  snapshot: BuyerRuntimeSnapshot,
+  schedule: BuyerTimerParitySchedule,
+  legacyDecision: CollectionShadowDecision | CounterTimeoutShadowDecision,
+  observedAt: number,
+): void {
+  const observer = buyerTimerParityObserver;
+  if (!observer) return;
+  const observation: BuyerTimerParityObservation = {
+    snapshot,
+    schedule,
+    legacyDecision,
+    observedAt,
+  };
+  void observer(observation).catch((err) => {
+    logger.warn(
+      {
+        jobId: snapshot.jobId,
+        timerKind: schedule.kind,
+        scheduleVersion: schedule.data.scheduleVersion,
+        err: (err as Error).message,
+      },
+      'buyer timer parity observation failed',
+    );
+  });
+}
+
+function publishMatchingEngineShadow(
+  state: JobState,
+  rankedEntries: readonly RankedBidEntry[],
+  observedAt: number,
+  telemetry?: MatchingAuditTelemetry,
+  paidEvidence?: { seller: string; signal: PaidPassportSignal; evidenceId?: string },
+): void {
+  const observer = matchingEngineShadowObserver;
+  if (!observer) return;
+  const mandate: MatchingMandateSnapshot = {
+    mandateId: state.context.jobId,
+    version: profileMandateVersion({
+      jobId: state.context.jobId,
+      buyer: state.context.buyer,
+      budgetUsdc: state.context.budgetUsdc,
+      deadlineUnix: state.context.deadlineUnix,
+      termsHash: state.context.termsHash,
+      negotiationMaxIncreasePct: state.context.negotiationMaxIncreasePct,
+      keywords: state.context.keywords,
+      briefText: state.context.briefText,
+      trustedMatch: state.context.trustedMatch,
+      tradeLane: state.context.tradeLane,
+      sourcingSector: state.context.sourcingSector,
+      sourcingRegion: state.context.sourcingRegion,
+    }),
+    ownerAddress: state.context.buyer,
+    agentAddress: state.buyer.address,
+    lane: state.context.tradeLane ?? 'service',
+    minimumReliability: minimumReliabilityForLane(state.context.tradeLane ?? 'service'),
+    reliabilityPolicyVersion: MATCHING_RELIABILITY_POLICY_VERSION,
+    budgetUsdc: state.context.budgetUsdc,
+    maxBudgetUsdc: computeBuyerEffectiveCap(state.context, state.buyer).toFixed(6),
+    maxDeadlineUnix: state.context.deadlineUnix,
+    requiredKeywords: [...(state.context.keywords ?? [])],
+    relationshipDealsBySeller: Object.fromEntries(
+      [...state.bids.values()]
+        .filter((bid) => (bid.priorCleanDealsWithBuyer ?? 0) > 0)
+        .map((bid) => [bid.seller.toLowerCase(), bid.priorCleanDealsWithBuyer ?? 0]),
+    ),
+  };
+  const candidates: MatchingCandidateSnapshot[] = [...state.bids.values()].map((bid) => {
+    const candidateId = bid.seller.toLowerCase();
+    const sellerOwnerAddress = bid.sellerUserAddress;
+    const transactionEvidence = projectReputationEvidence({
+      subjectAddress: sellerOwnerAddress ?? bid.seller,
+      completed: bid.sellerCompletedDeals ?? 0,
+      disputed: bid.sellerDisputedDeals ?? 0,
+      failed: bid.sellerFailedDeals ?? 0,
+      observedAtUnix: observedAt,
+    });
+    const paidSignal = bid.paidSignal
+      ?? (paidEvidence && bid.seller.toLowerCase() === paidEvidence.seller.toLowerCase()
+        ? paidEvidence.signal
+        : undefined);
+    if (paidSignal) {
+      transactionEvidence.push(...projectPaidPassportEvidence({
+        subjectAddress: sellerOwnerAddress ?? bid.seller,
+        transaction: paidSignal.transaction,
+        successCount: paidSignal.successCount,
+        disputedCount: paidSignal.disputedCount,
+        failedCount: paidSignal.failedCount,
+        paidAtUnix: Math.floor(paidSignal.paidAt / 1_000),
+        ...(paidEvidence?.evidenceId && bid.seller.toLowerCase() === paidEvidence.seller.toLowerCase()
+          ? { evidenceId: paidEvidence.evidenceId }
+          : {}),
+      }));
+    }
+    return {
+      candidateId,
+      version: profileCandidateVersion({
+        candidateId,
+        sellerAgentAddress: bid.seller,
+        sellerOwnerAddress,
+        priceUsdc: bid.priceUsdc,
+        deadlineUnix: bid.deadlineUnix,
+        lane: state.context.tradeLane ?? 'service',
+        keywords: bid.sellerKeywords,
+        declaredSkills: bid.sellerDeclaredSkills,
+        skillEvidence: bid.sellerSkillEvidence,
+        tier: bid.sellerTier,
+        transactionEvidence,
+      }),
+      kind: 'profile',
+      sellerAgentAddress: bid.seller,
+      ...(sellerOwnerAddress ? { sellerOwnerAddress } : {}),
+      lane: state.context.tradeLane ?? 'service',
+      keywords: [...(bid.sellerKeywords ?? [])],
+      declaredSkills: [...(bid.sellerDeclaredSkills ?? [])],
+      skillEvidence: [...(bid.sellerSkillEvidence ?? [])],
+      ...(bid.sellerTier ? { tier: bid.sellerTier } : {}),
+      ...(transactionEvidence.length > 0 ? { transactionEvidence } : {}),
+      priceUsdc: bid.priceUsdc,
+      deadlineUnix: bid.deadlineUnix,
+      capacityAvailable: true,
+    };
+  });
+  void observer({
+    source: 'buyer-bids',
+    observationKey: [
+      `buyer-bids:${state.context.jobId}:mandate:${mandate.version}:revision:${state.shadowRevision}`,
+      ...(paidEvidence ? [`evidence:${paidEvidence.signal.transaction}`] : []),
+    ].join(':'),
+    mandate,
+    candidates,
+    legacyCandidateIds: rankedEntries.map((entry) => entry.bid.seller.toLowerCase()),
+    nowUnix: observedAt,
+    ...(telemetry ? { telemetry } : {}),
+  }).catch((err) => {
+    logger.warn(
+      { jobId: state.jobId, err: (err as Error).message },
+      'matching engine shadow observation failed',
+    );
+  });
+}
+
+function publishNegotiationShadow(
+  state: JobState,
+  rankedEntries: readonly RankedBidEntry[],
+  observedAt: number,
+): void {
+  const observer = negotiationShadowObserver;
+  if (!observer || rankedEntries.length === 0) return;
+  const top = rankedEntries[0]!.bid;
+  state.negotiationShadowRevision += 1;
+  const version = state.negotiationShadowRevision;
+  const buyerMandateVersion = profileMandateVersion({
+    jobId: state.context.jobId,
+    buyer: state.context.buyer,
+    budgetUsdc: state.context.budgetUsdc,
+    deadlineUnix: state.context.deadlineUnix,
+    termsHash: state.context.termsHash,
+    negotiationMaxIncreasePct: state.context.negotiationMaxIncreasePct,
+    keywords: state.context.keywords,
+    briefText: state.context.briefText,
+    trustedMatch: state.context.trustedMatch,
+    tradeLane: state.context.tradeLane,
+    sourcingSector: state.context.sourcingSector,
+    sourcingRegion: state.context.sourcingRegion,
+  });
+  const sellerMandateVersion = profileSellerMandateVersion({
+    dealRoomId: state.context.jobId,
+    sellerAgentAddress: top.seller,
+    sellerOwnerAddress: top.sellerUserAddress,
+    minimumPriceUsdc: top.priceUsdc,
+    maxDeadlineUnix: state.context.deadlineUnix,
+    lane: state.context.tradeLane ?? 'service',
+    keywords: top.sellerKeywords,
+    declaredSkills: top.sellerDeclaredSkills,
+    skillEvidence: top.sellerSkillEvidence,
+    tier: top.sellerTier,
+  });
+  const rawOffer: NegotiationShadowTaskData['rawOffer'] = {
+    dealRoomId: state.context.jobId,
+    offerId: `legacy-offer:${state.context.jobId}:${top.seller}:${version}`,
+    offerVersion: version,
+    senderRole: 'buyer',
+    recipientRole: 'seller',
+    kind: version === 1 ? 'OPENING' : 'COUNTER',
+    action: version === 1 ? 'REQUEST_CLARIFICATION' : 'REVISE_PRICE',
+    priceUsdc: top.priceUsdc,
+    deadlineUnix: top.deadlineUnix,
+    buyerMandateVersion,
+    sellerMandateVersion,
+    ...(version === 1
+      ? {}
+      : {
+          previousOfferId: `legacy-offer:${state.context.jobId}:${top.seller}:${version - 1}`,
+          previousOfferVersion: version - 1,
+        }),
+    terms: {
+      scope: state.context.briefText?.trim() || state.context.termsHash,
+      delivery: `by ${top.deadlineUnix}`,
+      paymentTerms: 'after acceptance',
+    },
+  };
+  const data: NegotiationShadowTaskData = {
+    dealRoomId: state.context.jobId,
+    commandId: `legacy-negotiation:${state.context.jobId}:${version}`,
+    idempotencyKey: `legacy-negotiation:${state.context.jobId}:${version}`,
+    expectedDealRoomVersion: version,
+    rawOffer,
+    mandates: {
+      buyerMaxPriceUsdc: computeBuyerEffectiveCap(state.context, state.buyer).toFixed(6),
+      sellerMinPriceUsdc: top.priceUsdc,
+      buyerMandateVersion,
+      sellerMandateVersion,
+    },
+    observedAtUnix: observedAt,
+    source: 'legacy-proposal',
+  };
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId: state.jobId, seller: top.seller, err: (err as Error).message },
+      'structured negotiation shadow observation failed',
+    );
+  });
+}
+
+function publishLegacyRaisedOfferNegotiationShadow(
+  state: JobState,
+  proposal: MatchProposal,
+  raisedPriceUsdc: string,
+  observedAtUnix: number,
+): void {
+  const observer = negotiationShadowObserver;
+  if (!observer) return;
+
+  const offerVersion = Math.max(1, state.negotiationShadowRevision + 1);
+  const buyerMandateVersion = profileMandateVersion({
+    jobId: state.context.jobId,
+    buyer: state.context.buyer,
+    budgetUsdc: state.context.budgetUsdc,
+    deadlineUnix: state.context.deadlineUnix,
+    termsHash: state.context.termsHash,
+    negotiationMaxIncreasePct: state.context.negotiationMaxIncreasePct,
+    keywords: state.context.keywords,
+    briefText: state.context.briefText,
+    trustedMatch: state.context.trustedMatch,
+    tradeLane: state.context.tradeLane,
+    sourcingSector: state.context.sourcingSector,
+    sourcingRegion: state.context.sourcingRegion,
+  });
+  const sellerMandateVersion = profileSellerMandateVersion({
+    dealRoomId: state.context.jobId,
+    sellerAgentAddress: proposal.sellerAgent,
+    sellerOwnerAddress: proposal.sellerUser,
+    minimumPriceUsdc: raisedPriceUsdc,
+    maxDeadlineUnix: proposal.deadlineUnix,
+    lane: state.context.tradeLane ?? 'service',
+    keywords: [],
+    declaredSkills: [],
+    skillEvidence: [],
+  });
+  const data = buildLegacyRaisedOfferShadowInput({
+    dealRoomId: state.context.jobId,
+    buyerAgent: proposal.buyerAgent,
+    sellerAgent: proposal.sellerAgent,
+    buyerMaxPriceUsdc: computeBuyerEffectiveCap(state.context, state.buyer).toFixed(6),
+    sellerMinPriceUsdc: raisedPriceUsdc,
+    raisedPriceUsdc,
+    deadlineUnix: proposal.deadlineUnix,
+    buyerMandateVersion,
+    sellerMandateVersion,
+    offerVersion,
+    termsScope: state.context.briefText?.trim() || state.context.termsHash,
+    observedAtUnix,
+  });
+  if (!data) return;
+  state.negotiationShadowRevision = offerVersion;
+  void observer({ data }).catch((err) => {
+    logger.warn(
+      { jobId: state.jobId, seller: proposal.sellerAgent, err: (err as Error).message },
+      'legacy raised-offer negotiation shadow observation failed',
+    );
+  });
+}
 
 /// Cancels a pending counter-response watchdog. Safe to call when none is
 /// armed. Called whenever the negotiation leaves the "waiting for the seller"
 /// state: a response landed, the buyer cascaded, or the job reached a terminal
 /// state (match proposed, expired).
-function clearCounterWatchdog(state: JobState) {
+function clearCounterWatchdog(state: JobState, publish = true) {
+  const hadSchedule =
+    !!state.counterWatchdog ||
+    state.counterWatchdogSeller !== undefined ||
+    state.counterWatchdogDueAt !== undefined;
   if (state.counterWatchdog) {
     clearTimeout(state.counterWatchdog);
     state.counterWatchdog = null;
   }
+  state.counterWatchdogSeller = undefined;
+  state.counterWatchdogDueAt = undefined;
+  state.counterWatchdogRound = undefined;
+  if (hadSchedule && publish) publishBuyerTimerShadow(state);
 }
 
 /// Pushes the job's working deadline out to a later proposed counter deadline,
@@ -502,8 +1133,8 @@ export function startBuyerAgents() {
     unwatchCounter();
     unsubBus();
     for (const state of jobs.values()) {
-      if (state.collectionTimer) clearTimeout(state.collectionTimer);
-      clearCounterWatchdog(state);
+      clearCollectionClose(state, false);
+      clearCounterWatchdog(state, false);
     }
     logger.info('buyer agent stopped');
   };
@@ -560,6 +1191,7 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     },
     bids: new Map(),
     collectionTimer: null,
+    collectionScheduleVersion: 0,
     collectionFired: false,
     counterRoundsBySeller: new Map(),
     lastCounterPriceBySeller: new Map(),
@@ -570,6 +1202,9 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     escrowFunded: false,
     expired: isExpired,
     expiredAt: brief?.expiredAt,
+    counterScheduleVersion: 0,
+    shadowRevision: 0,
+    negotiationShadowRevision: 0,
   };
   jobs.set(args.jobId, state);
   logger.info(
@@ -626,12 +1261,18 @@ async function handleBidSubmitted(log: Log) {
   let sellerRepTier: RepTier = 'established';
   let sellerCompletionRate = 1;
   let sellerVelocity24h = 0;
+  let sellerCompletedDeals = 0;
+  let sellerDisputedDeals = 0;
+  let sellerFailedDeals = 0;
   try {
     const sig = await actorSignalsFor(args.seller);
     sellerReputationBps = sig.reputationBps;
     sellerRepTier = sig.repTier;
     sellerCompletionRate = sig.completionRate;
     sellerVelocity24h = sig.velocity24h;
+    sellerCompletedDeals = sig.completedDeals ?? 0;
+    sellerDisputedDeals = sig.disputedDeals ?? 0;
+    sellerFailedDeals = sig.failedDeals ?? 0;
   } catch {
     /* keep neutral defaults */
   }
@@ -642,14 +1283,19 @@ async function handleBidSubmitted(log: Log) {
   // ranking rule). Left undefined when the brief has no keywords to score
   // against; ranking then falls back to the deterministic price+reputation score.
   let topicalMatch: number | undefined;
+  let sellerKeywords: string[] = [];
+  let sellerDeclaredSkills: string[] = [];
+  let sellerSkillEvidence: MatchingSkillEvidence[] = [];
   const briefKeywords = state.context.keywords ?? [];
   if (briefKeywords.length > 0) {
     try {
       const sellerProfile = await resolveSellerProfile(args.seller);
-      const sellerTags = sellerProfile
+      sellerKeywords = sellerProfile
         ? [...sellerProfile.keywords, ...sellerProfile.skills]
         : [];
-      topicalMatch = topicalMatchScore(briefKeywords, sellerTags);
+      sellerDeclaredSkills = sellerProfile ? [...sellerProfile.skills] : [];
+      sellerSkillEvidence = projectProfileSkillEvidence(sellerProfile?.skillVerifications);
+      topicalMatch = topicalMatchScore(briefKeywords, sellerKeywords);
     } catch {
       /* leave undefined: ranking falls back to the deterministic score */
     }
@@ -682,6 +1328,8 @@ async function handleBidSubmitted(log: Log) {
       if (profile?.displayName?.trim()) {
         sellerDisplayName = profile.displayName.trim();
       }
+      if (profile?.seller?.skills) sellerDeclaredSkills = [...profile.seller.skills];
+      sellerSkillEvidence = projectProfileSkillEvidence(profile?.skillVerifications);
       sellerSme = profile?.smeProfile;
     }
   } catch {
@@ -738,6 +1386,9 @@ async function handleBidSubmitted(log: Log) {
     deadlineUnix: Number(args.deadline),
     sellerReputationBps,
     sellerTier: sellerRepTier,
+    sellerKeywords,
+    sellerDeclaredSkills,
+    sellerSkillEvidence,
     completionRate: sellerCompletionRate,
     velocity24h: sellerVelocity24h,
     topicalMatch,
@@ -745,6 +1396,9 @@ async function handleBidSubmitted(log: Log) {
     sellerUserAddress,
     sellerDisplayName,
     priorCleanDealsWithBuyer,
+    sellerCompletedDeals,
+    sellerDisputedDeals,
+    sellerFailedDeals,
   };
 
   const bidContext: BidContext = {
@@ -960,11 +1614,40 @@ function scheduleCollectionClose(state: JobState, floorMs: number): void {
   // Close no sooner than the floor, extend by the quiet period on each new bid,
   // never past the cap.
   const nextClose = Math.min(capEnd, Math.max(floorEnd, now + BID_WINDOW_QUIET_MS));
+  armCollectionClose(state, nextClose, now);
+}
+
+function armCollectionClose(
+  state: JobState,
+  closeAt: number,
+  armedAt = Date.now(),
+): void {
   if (state.collectionTimer) clearTimeout(state.collectionTimer);
-  state.collectionTimer = setTimeout(
-    () => finalizeBidCollection(state),
-    Math.max(0, nextClose - now),
+  state.collectionScheduleVersion = nextBuyerShadowGeneration(
+    state.collectionScheduleVersion,
   );
+  state.collectionCloseAt = closeAt;
+  const shadowSchedule: BuyerTimerParitySchedule = {
+    kind: 'collection',
+    data: {
+      jobId: state.jobId,
+      scheduleVersion: state.collectionScheduleVersion,
+      closeAt,
+    },
+  };
+  state.collectionTimer = setTimeout(
+    () => finalizeBidCollection(state, shadowSchedule),
+    Math.max(0, closeAt - armedAt),
+  );
+  publishBuyerTimerShadow(state, shadowSchedule);
+}
+
+function clearCollectionClose(state: JobState, publish = true): void {
+  const hadSchedule = !!state.collectionTimer || state.collectionCloseAt !== undefined;
+  if (state.collectionTimer) clearTimeout(state.collectionTimer);
+  state.collectionTimer = null;
+  state.collectionCloseAt = undefined;
+  if (hadSchedule && publish) publishBuyerTimerShadow(state);
 }
 
 /// Paid market research for the brief's keywords, gated on the buyer owner
@@ -985,6 +1668,7 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
     // per-agent activation gate, no charge at trigger time.
     const read = await researchMarket(keywords);
     state.marketRead = read;
+    publishMarketEvidenceAcquisitionShadow(read, state.jobId);
     setResearchHeat(keywords, read);
 
     // One-time budget-vs-market verdict. fairPriceUsdc is only present when the
@@ -1055,14 +1739,6 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
   }
 }
 
-const TIER_RANK: Record<Tier, number> = {
-  elite: 4,
-  strong: 3,
-  established: 2,
-  cold: 1,
-  new: 0,
-};
-
 interface RankedBidEntry {
   bid: Bid;
   deterministicScore: number;
@@ -1076,46 +1752,11 @@ interface RankedBidEntry {
 /// reputation tier first, stake second, price third. Shared by the collection
 /// window and the late-bid supersede guard so both rank by identical rules.
 function rankBidEntries(state: JobState): RankedBidEntry[] {
-  const budget = Number(state.context.budgetUsdc);
-  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
-  const trusted = state.context.trustedMatch === true;
-  return [...state.bids.values()]
-    .filter((b) => typeof b.score === 'number')
-    .map((b) => {
-      const det = scoreBidDeterministic({
-        bidPriceUsdc: Number(b.priceUsdc),
-        briefBudgetUsdc: budget,
-        effectiveCapUsdc: effectiveCap,
-        sellerTier: (b.sellerTier ?? 'established') as Tier,
-        sellerCompletionRate: b.completionRate,
-        sellerVelocity24h: b.velocity24h,
-        relationshipScore: relationshipScoreFromDeals(b.priorCleanDealsWithBuyer ?? 0),
-      });
-      return { bid: b, deterministicScore: det.score };
-    })
-    .sort((a, b) => {
-      const bandDelta = matchBand(b.bid) - matchBand(a.bid);
-      if (bandDelta !== 0) return bandDelta;
-
-      if (trusted) {
-        const tierA = TIER_RANK[(a.bid.sellerTier ?? 'established') as Tier];
-        const tierB = TIER_RANK[(b.bid.sellerTier ?? 'established') as Tier];
-        if (tierA !== tierB) return tierB - tierA;
-        const stakeA = a.bid.sellerFreeStakeUsdc ?? 0;
-        const stakeB = b.bid.sellerFreeStakeUsdc ?? 0;
-        if (stakeA !== stakeB) return stakeB - stakeA;
-        // Within the same tier and stake, cheaper wins.
-        return Number(a.bid.priceUsdc) - Number(b.bid.priceUsdc);
-      }
-
-      const scoreDelta = b.deterministicScore - a.deterministicScore;
-      if (Math.abs(scoreDelta) < REPUTATION_TIEBREAK_EPSILON) {
-        const repA = a.bid.sellerReputationBps ?? 5000;
-        const repB = b.bid.sellerReputationBps ?? 5000;
-        if (repA !== repB) return repB - repA;
-      }
-      return scoreDelta;
-    });
+  return rankBuyerTimerBids([...state.bids.values()], {
+    budgetUsdc: state.context.budgetUsdc,
+    negotiationMaxIncreasePct: state.context.negotiationMaxIncreasePct,
+    trustedMatch: state.context.trustedMatch === true,
+  });
 }
 
 /// Late-bid supersede guard. The collection window ranks and queues candidates
@@ -1156,11 +1797,11 @@ function pickSupersedingBid(
   // Only supersede on a clear edge: a higher match band, or the same band with a
   // higher reputation tier. A marginal score shuffle inside a band shouldn't
   // yank a converged negotiation away at the last moment.
-  const betterBand = matchBand(top) > matchBand(intendedEntry.bid);
-  const sameBand = matchBand(top) === matchBand(intendedEntry.bid);
+  const betterBand = buyerMatchBand(top) > buyerMatchBand(intendedEntry.bid);
+  const sameBand = buyerMatchBand(top) === buyerMatchBand(intendedEntry.bid);
   const betterTier =
-    TIER_RANK[(top.sellerTier ?? 'established') as Tier] >
-    TIER_RANK[(intendedEntry.bid.sellerTier ?? 'established') as Tier];
+    BUYER_TIER_RANK[(top.sellerTier ?? 'established') as Tier] >
+    BUYER_TIER_RANK[(intendedEntry.bid.sellerTier ?? 'established') as Tier];
   if (!betterBand && !(sameBand && betterTier)) return null;
 
   // Acceptable at its own price: swap the commit directly. Above the cap but
@@ -1209,8 +1850,22 @@ function pickSupersedingBid(
   return { bid: top, mode: 'direct' };
 }
 
-async function finalizeBidCollection(state: JobState) {
-  if (state.collectionFired || state.finalized) return;
+async function finalizeBidCollection(
+  state: JobState,
+  timerSchedule?: Extract<BuyerTimerParitySchedule, { kind: 'collection' }>,
+) {
+  if (state.collectionFired || state.finalized) {
+    if (timerSchedule && buyerTimerParityObserver) {
+      const observedAt = Date.now();
+      publishBuyerTimerParity(
+        buildBuyerRuntimeSnapshot(state, observedAt),
+        timerSchedule,
+        { action: 'stale', reason: 'already-finished' },
+        observedAt,
+      );
+    }
+    return;
+  }
 
   // Settle-aware close: while seller agents are still mid-evaluation for this
   // job (research await + LLM decision in flight), hold the window open so a
@@ -1240,16 +1895,38 @@ async function finalizeBidCollection(state: JobState) {
         },
       });
     }
-    if (state.collectionTimer) clearTimeout(state.collectionTimer);
-    state.collectionTimer = setTimeout(
-      () => finalizeBidCollection(state),
-      BID_WINDOW_HOLD_RECHECK_MS,
+    const recheckStartedAt = Date.now();
+    if (timerSchedule && buyerTimerParityObserver) {
+      publishBuyerTimerParity(
+        buildBuyerRuntimeSnapshot(state, recheckStartedAt, {
+          pendingEvaluations: stillEvaluating,
+        }),
+        timerSchedule,
+        {
+          action: 'hold_for_evaluations',
+          availableAt: recheckStartedAt + BID_WINDOW_HOLD_RECHECK_MS,
+          pendingEvaluations: stillEvaluating,
+        },
+        recheckStartedAt,
+      );
+    }
+    armCollectionClose(
+      state,
+      recheckStartedAt + BID_WINDOW_HOLD_RECHECK_MS,
+      recheckStartedAt,
     );
     return;
   }
 
+  const decisionAt = Date.now();
+  const paritySnapshot = timerSchedule && buyerTimerParityObserver
+    ? buildBuyerRuntimeSnapshot(state, decisionAt)
+    : null;
+
   state.collectionFired = true;
   state.collectionTimer = null;
+  state.collectionCloseAt = undefined;
+  publishBuyerTimerShadow(state);
 
   // Match-first ranking (see rankBidEntries). budget + effectiveCap are also
   // used by the tier-aware branches below.
@@ -1258,8 +1935,18 @@ async function finalizeBidCollection(state: JobState) {
   // Only rank sellers not already worked through. On the first run triedSellers
   // is empty (no effect); after a re-open (near-miss passed) this leaves just
   // the fresh bids, so the same exhausted pool can never re-negotiate in a loop.
+  const legacyRankingStartedAt = performance.now();
   const rankedEntries = rankBidEntries(state).filter((e) => !state.triedSellers.has(e.bid.seller));
+  const legacyRankingLatencyMs = Math.max(0, performance.now() - legacyRankingStartedAt);
   const ranked = rankedEntries.map((entry) => entry.bid);
+  publishMatchingEngineShadow(state, rankedEntries, decisionAt, {
+    legacyLatencyMs: legacyRankingLatencyMs,
+    // Candidate ranking itself performs no paid calls. Upstream research is
+    // recorded by the evidence shadow boundary, not attributed to ranking.
+    legacyPaidCallCount: 0,
+    shadowPaidCallCount: 0,
+  });
+  publishNegotiationShadow(state, rankedEntries, decisionAt);
 
   // Audit: log when a ranking rule put a seller on top that a plain price+rep
   // sort would not have, so the choice is narratable and the bands are tunable.
@@ -1269,7 +1956,7 @@ async function finalizeBidCollection(state: JobState) {
   if (rankedEntries.length > 1) {
     const top = rankedEntries[0]!;
     const second = rankedEntries[1]!;
-    if (matchBand(top.bid) > matchBand(second.bid) && top.deterministicScore < second.deterministicScore) {
+    if (buyerMatchBand(top.bid) > buyerMatchBand(second.bid) && top.deterministicScore < second.deterministicScore) {
       logger.info(
         {
           jobId: state.jobId,
@@ -1283,7 +1970,7 @@ async function finalizeBidCollection(state: JobState) {
         'skill match outranked a higher price+reputation score',
       );
     } else if (
-      Math.abs(top.deterministicScore - second.deterministicScore) < REPUTATION_TIEBREAK_EPSILON &&
+      Math.abs(top.deterministicScore - second.deterministicScore) < BUYER_REPUTATION_TIEBREAK_EPSILON &&
       (top.bid.sellerReputationBps ?? 5000) > (second.bid.sellerReputationBps ?? 5000) &&
       top.deterministicScore < second.deterministicScore
     ) {
@@ -1302,6 +1989,14 @@ async function finalizeBidCollection(state: JobState) {
 
   if (ranked.length === 0) {
     const received = state.bids.size;
+    if (timerSchedule && paritySnapshot) {
+      publishBuyerTimerParity(
+        paritySnapshot,
+        timerSchedule,
+        { action: 'no_candidates', receivedBids: received },
+        decisionAt,
+      );
+    }
     logger.warn({ jobId: state.jobId, received }, 'no scored bids, nothing to counter');
     state.finalized = true;
     bus.emitEvent({
@@ -1356,6 +2051,20 @@ async function finalizeBidCollection(state: JobState) {
   // have countered them in normal flow, but the spec says elite gets first
   // look, so we honour that.
   if (topTier === 'elite' && topPrice <= effectiveCap) {
+    if (timerSchedule && paritySnapshot) {
+      publishBuyerTimerParity(
+        paritySnapshot,
+        timerSchedule,
+        {
+          action: 'propose_match',
+          seller: top.seller,
+          priceUsdc: top.priceUsdc,
+          reason: 'elite-in-cap',
+          candidateQueue: state.candidateQueue.map((bid) => bid.seller),
+        },
+        decisionAt,
+      );
+    }
     logger.info(
       {
         jobId: state.jobId,
@@ -1378,6 +2087,20 @@ async function finalizeBidCollection(state: JobState) {
   if (topTier === 'strong' && ranked.length >= 2 && topPrice <= budget) {
     const secondPrice = Number(ranked[1]!.priceUsdc);
     if (secondPrice > 0 && Math.abs(topPrice - secondPrice) / secondPrice <= 0.05) {
+      if (timerSchedule && paritySnapshot) {
+        publishBuyerTimerParity(
+          paritySnapshot,
+          timerSchedule,
+          {
+            action: 'propose_match',
+            seller: top.seller,
+            priceUsdc: top.priceUsdc,
+            reason: 'strong-near-tie',
+            candidateQueue: state.candidateQueue.map((bid) => bid.seller),
+          },
+          decisionAt,
+        );
+      }
       logger.info(
         {
           jobId: state.jobId,
@@ -1404,9 +2127,24 @@ async function finalizeBidCollection(state: JobState) {
         state.buyer.minDeadlineDays,
         Math.min(
           state.buyer.maxDeadlineDays,
-          Math.floor((top.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+          Math.floor((top.deadlineUnix - Math.floor(decisionAt / 1000)) / 86_400),
         ),
       );
+      if (timerSchedule && paritySnapshot) {
+        publishBuyerTimerParity(
+          paritySnapshot,
+          timerSchedule,
+          {
+            action: 'issue_counter',
+            seller: top.seller,
+            counterPriceUsdc: counterPrice.toFixed(2),
+            counterDeadlineDays: remainingDays,
+            reason: 'cold-discount',
+            candidateQueue: state.candidateQueue.map((bid) => bid.seller),
+          },
+          decisionAt,
+        );
+      }
       logger.info(
         {
           jobId: state.jobId,
@@ -1431,6 +2169,20 @@ async function finalizeBidCollection(state: JobState) {
   // budget, accept it. Prevents the LLM-vs-LLM race-to-the-bottom counter
   // pattern where both sides reflexively counter-down regardless of context.
   if (topPrice <= budget) {
+    if (timerSchedule && paritySnapshot) {
+      publishBuyerTimerParity(
+        paritySnapshot,
+        timerSchedule,
+        {
+          action: 'propose_match',
+          seller: top.seller,
+          priceUsdc: top.priceUsdc,
+          reason: 'at-or-under-budget',
+          candidateQueue: state.candidateQueue.map((bid) => bid.seller),
+        },
+        decisionAt,
+      );
+    }
     logger.info(
       {
         jobId: state.jobId,
@@ -1470,9 +2222,24 @@ async function finalizeBidCollection(state: JobState) {
       state.buyer.minDeadlineDays,
       Math.min(
         state.buyer.maxDeadlineDays,
-        Math.floor((top.deadlineUnix - Math.floor(Date.now() / 1000)) / 86_400),
+        Math.floor((top.deadlineUnix - Math.floor(decisionAt / 1000)) / 86_400),
       ),
     );
+  if (timerSchedule && paritySnapshot) {
+    publishBuyerTimerParity(
+      paritySnapshot,
+      timerSchedule,
+      {
+        action: 'issue_counter',
+        seller: top.seller,
+        counterPriceUsdc: top.suggestedCounterPrice ?? budget.toFixed(2),
+        counterDeadlineDays: fallbackCounterDeadlineDays,
+        reason: 'above-budget',
+        candidateQueue: state.candidateQueue.map((bid) => bid.seller),
+      },
+      decisionAt,
+    );
+  }
   await issueCounter(state, {
     ...top,
     suggestedCounterPrice: top.suggestedCounterPrice ?? budget.toFixed(2),
@@ -1505,6 +2272,12 @@ function pickLowestSellerLast(
   return best;
 }
 
+interface CounterTimerParityContext {
+  schedule: Extract<BuyerTimerParitySchedule, { kind: 'counter-timeout' }>;
+  snapshot: BuyerRuntimeSnapshot;
+  observedAt: number;
+}
+
 /// Pop the next candidate off the queue and start a fresh negotiation with
 /// them. Called from any terminal-failure path on the current candidate
 /// (LLM decline, counter-out-of-range, max-counter-rounds). Marks the
@@ -1519,7 +2292,12 @@ function pickLowestSellerLast(
 /// the buyer proposes a match (fast path). If above budget but inside the
 /// effective cap, the buyer issues a counter (full round budget). Anything
 /// further out is skipped, and we recurse to the next candidate.
-async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, reason: string) {
+async function tryNextCandidate(
+  state: JobState,
+  failedSeller: `0x${string}`,
+  reason: string,
+  timerParity?: CounterTimerParityContext,
+) {
   if (state.finalized) return;
   // Leaving the "waiting on this seller" state: cancel any pending watchdog so
   // it can't double-fire after we've already moved on.
@@ -1540,6 +2318,19 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
     state.parkedAgreement.seller.toLowerCase() !== failedSeller.toLowerCase()
   ) {
     const parked = state.parkedAgreement;
+    if (timerParity) {
+      publishBuyerTimerParity(
+        timerParity.snapshot,
+        timerParity.schedule,
+        {
+          action: 'propose_parked',
+          seller: parked.seller,
+          priceUsdc: parked.priceUsdc,
+          timedOutSeller: failedSeller,
+        },
+        timerParity.observedAt,
+      );
+    }
     state.parkedAgreement = null;
     logger.info(
       { jobId: state.jobId, probedSeller: failedSeller, parkedSeller: parked.seller },
@@ -1573,6 +2364,20 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
     const buyerCeiling = computeBuyerEffectiveCap(state.context, state.buyer);
     const best = pickLowestSellerLast(state);
     if (best && Number(best.lastPrice) > buyerCeiling) {
+      if (timerParity) {
+        publishBuyerTimerParity(
+          timerParity.snapshot,
+          timerParity.schedule,
+          {
+            action: 'evaluate_walk_end_near_miss',
+            timedOutSeller: failedSeller,
+            seller: best.seller,
+            lastPriceUsdc: best.lastPrice,
+            buyerCeilingUsdc: buyerCeiling,
+          },
+          timerParity.observedAt,
+        );
+      }
       try {
         const raised = await maybeRaiseNearMiss({
           jobId: state.jobId,
@@ -1613,6 +2418,14 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
       }
     }
 
+    if (timerParity && !(best && Number(best.lastPrice) > buyerCeiling)) {
+      publishBuyerTimerParity(
+        timerParity.snapshot,
+        timerParity.schedule,
+        { action: 'exhausted', timedOutSeller: failedSeller },
+        timerParity.observedAt,
+      );
+    }
     state.finalized = true;
     bus.emitEvent({
       type: 'negotiation.exhausted',
@@ -1634,6 +2447,19 @@ async function tryNextCandidate(state: JobState, failedSeller: `0x${string}`, re
       },
     });
     return;
+  }
+
+  if (timerParity) {
+    publishBuyerTimerParity(
+      timerParity.snapshot,
+      timerParity.schedule,
+      {
+        action: 'next_candidate',
+        timedOutSeller: failedSeller,
+        nextSeller: next.seller,
+      },
+      timerParity.observedAt,
+    );
   }
 
   bus.emitEvent({
@@ -1856,18 +2682,66 @@ async function issueCounter(state: JobState, bid: Bid) {
   // instead of waiting forever. handleCounterResponse clears this on a reply.
   clearCounterWatchdog(state);
   const watchedSeller = bid.seller;
+  const watchdogDueAt = Date.now() + COUNTER_RESPONSE_TIMEOUT_MS;
+  const watchdogRound = state.counterRoundsBySeller.get(watchedSeller) ?? 1;
+  state.counterScheduleVersion = nextBuyerShadowGeneration(state.counterScheduleVersion);
+  state.counterWatchdogSeller = watchedSeller;
+  state.counterWatchdogDueAt = watchdogDueAt;
+  state.counterWatchdogRound = watchdogRound;
+  const shadowSchedule: Extract<BuyerTimerParitySchedule, { kind: 'counter-timeout' }> = {
+    kind: 'counter-timeout',
+    data: {
+      jobId: state.jobId,
+      seller: watchedSeller,
+      scheduleVersion: state.counterScheduleVersion,
+      round: watchdogRound,
+      dueAt: watchdogDueAt,
+    },
+  };
   state.counterWatchdog = setTimeout(() => {
+    const observedAt = Date.now();
+    const paritySnapshot = buyerTimerParityObserver
+      ? buildBuyerRuntimeSnapshot(state, observedAt)
+      : null;
     state.counterWatchdog = null;
-    if (state.finalized || state.expired) return;
-    if (state.triedSellers.has(watchedSeller)) return;
+    if (state.finalized || state.expired) {
+      if (paritySnapshot) {
+        publishBuyerTimerParity(
+          paritySnapshot,
+          shadowSchedule,
+          { action: 'stale', reason: 'already-finished' },
+          observedAt,
+        );
+      }
+      return;
+    }
+    if (state.triedSellers.has(watchedSeller)) {
+      if (paritySnapshot) {
+        publishBuyerTimerParity(
+          paritySnapshot,
+          shadowSchedule,
+          { action: 'stale', reason: 'seller-already-answered' },
+          observedAt,
+        );
+      }
+      return;
+    }
     logger.warn(
       { jobId: state.jobId, seller: watchedSeller, timeoutMs: COUNTER_RESPONSE_TIMEOUT_MS },
       'no counter response within watchdog window, cascading to next candidate',
     );
     safe('counterWatchdog', () =>
-      tryNextCandidate(state, watchedSeller, 'no-response-timeout'),
+      tryNextCandidate(
+        state,
+        watchedSeller,
+        'no-response-timeout',
+        paritySnapshot
+          ? { schedule: shadowSchedule, snapshot: paritySnapshot, observedAt }
+          : undefined,
+      ),
     );
   }, COUNTER_RESPONSE_TIMEOUT_MS);
+  publishBuyerTimerShadow(state, shadowSchedule);
 }
 
 async function handleCounterResponse(log: Log) {
@@ -2369,11 +3243,12 @@ async function verifyCounterpartyAtMatch(
   }
   try {
     const signal = await Promise.race([
-      paidCreditPassport(payerAgent, subject),
+      paidCreditPassport(payerAgent, subject, jobId),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('match verification pull timed out')), 45_000),
       ),
     ]);
+    publishPaidEvidenceShadow(signal, subject, actor, jobId);
     recordSpend(jobId, signal.amountUsd);
     bus.emitEvent({
       type: 'agent.paid',
@@ -2559,6 +3434,32 @@ async function proposeMatch(
       verifyCounterpartyAtMatch(state.buyer.address as `0x${string}`, seller, 'buyer', state.jobId),
       verifyCounterpartyAtMatch(seller, state.buyer.address as `0x${string}`, 'seller', state.jobId),
     ]);
+    // This projection is pure and deterministic. Only expose its snapshot id
+    // when the durable evidence shadow is enabled; otherwise the legacy paid
+    // call has no persisted snapshot to point at.
+    const paidEvidence = paidBid
+      ? buildPaidEvidenceQualificationObservation(paidBid, seller, 'buyer', state.jobId)
+      : undefined;
+    if (paidBid && matchingEngineShadowObserver) {
+      // The paid pull happens after legacy ranking. Persist a second, additive
+      // shadow snapshot that carries the exact durable evidence ID, while
+      // leaving the legacy proposal and winner untouched.
+      const rankedForEvidence = rankBidEntries(state)
+        .filter((entry) => !state.triedSellers.has(entry.bid.seller));
+      publishMatchingEngineShadow(
+        state,
+        rankedForEvidence,
+        Math.floor(Date.now() / 1_000),
+        undefined,
+        {
+          seller,
+          signal: paidBid,
+          ...(config.EVIDENCE_V2_SHADOW && paidEvidence?.snapshot?.id
+            ? { evidenceId: paidEvidence.snapshot.id }
+            : {}),
+        },
+      );
+    }
     if (sellerVerify) setSellerBuyerPassport(state.jobId, sellerVerify);
     // Compact verified-business snapshot for the match badge. Only the seller's
     // owner profile is read; the full company detail stays on the profile so
@@ -2597,8 +3498,14 @@ async function proposeMatch(
               score: paidBid.score,
               amountUsd: paidBid.amountUsd,
               transaction: paidBid.transaction,
+              providerId: 'karwan-credit-passport',
+              claim: 'completed-transactions',
+              decisionImpact: 'legacy_match_unchanged',
               payer: paidBid.payer,
               ...(paidBid.depositTxHash ? { depositTxHash: paidBid.depositTxHash } : {}),
+              ...(config.EVIDENCE_V2_SHADOW && paidEvidence?.snapshot?.id
+                ? { evidenceId: paidEvidence.snapshot.id }
+                : {}),
               paidAt: paidBid.paidAt,
             },
           }
@@ -2745,7 +3652,25 @@ export async function approveAgentMatch(
       getEscrowFeeBps(),
     ]);
     const { fundedAmount } = computeFunding(priceWei, feeBps);
+    const preFundingObservedAtUnix = Math.floor(Date.now() / 1000);
+    const fundedAmountUsdc = formatUnits(fundedAmount, USDC_DECIMALS);
+    const agentBalanceUsdc = formatUnits(agentBal, USDC_DECIMALS);
     if (agentBal < fundedAmount) {
+      // Record the failed pre-funding authorization observation before the
+      // unchanged early return. This is read-only audit data; it does not
+      // create a V2 approval or alter the legacy retry/top-up path.
+      publishLegacyEscrowFundingShadow(
+        state,
+        proposal,
+        fundedAmountUsdc,
+        preFundingObservedAtUnix,
+        {
+          balanceUsdc: agentBalanceUsdc,
+          requiredUsdc: fundedAmountUsdc,
+          outcome: 'insufficient',
+          observedAtUnix: preFundingObservedAtUnix,
+        },
+      );
       return {
         ok: false,
         code: 'INSUFFICIENT_AGENT_BALANCE',
@@ -2753,6 +3678,20 @@ export async function approveAgentMatch(
           'The buyer agent is short on USDC for the agreed price plus the platform fee. Top up the buyer agent, then approve again.',
       };
     }
+    // Persist the successful pre-funding authorization observation before
+    // acceptBid. Legacy accept/fund calls remain the sole authority.
+    publishLegacyEscrowFundingShadow(
+      state,
+      proposal,
+      fundedAmountUsdc,
+      preFundingObservedAtUnix,
+      {
+        balanceUsdc: agentBalanceUsdc,
+        requiredUsdc: fundedAmountUsdc,
+        outcome: 'sufficient',
+        observedAtUnix: preFundingObservedAtUnix,
+      },
+    );
   } catch (err) {
     // A transient balance/fee read failure must not block a fundable approval;
     // the post-fund escrow read still stops an unfunded deal from persisting.
@@ -2780,6 +3719,12 @@ export async function approveAgentMatch(
     return { ok: false, code: info.code, message: info.message };
   }
   logger.info({ jobId, seller, ...acceptResult }, 'bid accepted on chain (human-approved)');
+  publishLegacyContractAcceptanceShadow(
+    state,
+    proposal,
+    acceptResult.txHash,
+    Math.floor(Date.now() / 1_000),
+  );
   bus.emitEvent({
     type: 'bid.accepted',
     jobId,
@@ -2927,6 +3872,14 @@ export async function raiseMatchOffer(
   proposal.raiseOverCap = raiseOverCap;
   proposal.awaitingParty = 'buyer';
   await dbUpsertMatchProposal(proposal);
+  if (state && proposal.raisedAt !== undefined) {
+    publishLegacyRaisedOfferNegotiationShadow(
+      state,
+      proposal,
+      raisedPriceUsdc,
+      Math.floor(proposal.raisedAt / 1_000),
+    );
+  }
   bus.emitEvent({
     type: 'deal.match.raised',
     jobId,
@@ -2989,18 +3942,34 @@ async function persistApprovedMatch(
       ? {
           amountUsd: proposal.paidSignal.amountUsd,
           txHash: proposal.paidSignal.transaction,
+          providerId: proposal.paidSignal.providerId ?? 'karwan-credit-passport',
+          claim: proposal.paidSignal.claim ?? 'completed-transactions',
+          decisionImpact: proposal.paidSignal.decisionImpact ?? 'legacy_match_unchanged',
           ...(proposal.paidSignal.payer ? { payer: proposal.paidSignal.payer } : {}),
           ...(proposal.paidSignal.depositTxHash ? { depositTxHash: proposal.paidSignal.depositTxHash } : {}),
+          ...(proposal.paidSignal.evidenceId ? { evidenceId: proposal.paidSignal.evidenceId } : {}),
           pulledAt: proposal.paidSignal.paidAt,
         }
       : undefined;
     const buyerPullSignal = getSellerBuyerPassport(proposal.jobId);
+    const buyerPullEvidence = buyerPullSignal && config.EVIDENCE_V2_SHADOW
+      ? buildPaidEvidenceQualificationObservation(
+          buyerPullSignal,
+          proposal.buyerAgent,
+          'seller',
+          proposal.jobId,
+        )
+      : undefined;
     const buyerPull = buyerPullSignal
       ? {
           amountUsd: buyerPullSignal.amountUsd,
           txHash: buyerPullSignal.transaction,
+          providerId: 'karwan-credit-passport',
+          claim: 'completed-transactions',
+          decisionImpact: 'legacy_match_unchanged' as const,
           ...(buyerPullSignal.payer ? { payer: buyerPullSignal.payer } : {}),
           ...(buyerPullSignal.depositTxHash ? { depositTxHash: buyerPullSignal.depositTxHash } : {}),
+          ...(buyerPullEvidence?.snapshot?.id ? { evidenceId: buyerPullEvidence.snapshot.id } : {}),
           pulledAt: buyerPullSignal.paidAt,
         }
       : undefined;
@@ -3416,10 +4385,7 @@ export function reopenForNewBids(jobId: string): boolean {
   const state = jobs.get(jobId as `0x${string}`);
   if (!state) return false;
   clearCounterWatchdog(state);
-  if (state.collectionTimer) {
-    clearTimeout(state.collectionTimer);
-    state.collectionTimer = null;
-  }
+  clearCollectionClose(state);
   // Remember who was exhausted at the pass so the next near-miss only fires for
   // genuinely new bidders, and clear the resolved near-miss so a fresh one is
   // not blocked as "already-resolved".
@@ -3428,6 +4394,7 @@ export function reopenForNewBids(jobId: string): boolean {
   state.finalized = false;
   state.collectionFired = false;
   state.collectionStartedAt = undefined;
+  publishBuyerTimerShadow(state);
   bus.emitEvent({
     type: 'negotiation.reopened',
     jobId: state.jobId,
@@ -3505,13 +4472,11 @@ export function expireJob(jobId: `0x${string}`): boolean {
   const state = jobs.get(jobId);
   if (!state) return false;
   if (state.expired || state.finalized || state.escrowFunded) return false;
-  if (state.collectionTimer) {
-    clearTimeout(state.collectionTimer);
-    state.collectionTimer = null;
-  }
+  clearCollectionClose(state);
   clearCounterWatchdog(state);
   state.expired = true;
   state.expiredAt = Date.now();
+  publishBuyerTimerShadow(state);
   patchBrief(jobId, { expiredAt: state.expiredAt });
   bus.emitEvent({
     type: 'job.expired',
@@ -3569,12 +4534,10 @@ export function cancelBriefByBuyer(
   // Re-use the expired terminal state so every scanner that already filters
   // on `expired` honours this without a new field. The brief metadata gets
   // the same marker so a restart treats it consistently.
-  if (state.collectionTimer) {
-    clearTimeout(state.collectionTimer);
-    state.collectionTimer = null;
-  }
+  clearCollectionClose(state);
   state.expired = true;
   state.expiredAt = Date.now();
+  publishBuyerTimerShadow(state);
   patchBrief(jobId, { expiredAt: state.expiredAt });
   bus.emitEvent({
     type: 'brief.cancelled',

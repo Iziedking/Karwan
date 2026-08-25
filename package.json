@@ -12,6 +12,7 @@
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm run test:ci --workspace=backend && npm run test:ci --workspace=frontend",
     "smoke-test": "npm run smoke-test --workspace=backend",
     "abis:sync": "npm run abis:sync --workspace=backend",
     "typecheck": "npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",

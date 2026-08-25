@@ -33,6 +33,10 @@ export interface ActorSignals {
   /// Bids + listings + cancels in the last 24h on this actor. Spammy actors
   /// rack this up fast; legitimate ones rarely cross 5.
   velocity24h: number;
+  /** Reconciled reputation registry counts projected for matching shadow only. */
+  completedDeals?: number;
+  disputedDeals?: number;
+  failedDeals?: number;
 }
 
 export interface BidSignals {
@@ -109,7 +113,8 @@ function tierToLower(t: Tier): RepTier {
 // the expensive part: a DB agent-wallet lookup plus 3-5 uncached Arc RPC reads.
 // Caching it collapses the N+1 fan-out on /api/factoring/available (one read per
 // open invoice, many sharing the same seller) and unblocks the financier page.
-type RepStanding = Pick<ActorSignals, 'reputationBps' | 'repTier' | 'completionRate'>;
+type RepStanding = Pick<ActorSignals, 'reputationBps' | 'repTier' | 'completionRate'
+  | 'completedDeals' | 'disputedDeals' | 'failedDeals'>;
 const STANDING_TTL_MS = 60_000;
 const standingCache = new Map<string, { at: number; value: RepStanding }>();
 const standingInFlight = new Map<string, Promise<RepStanding>>();
@@ -162,7 +167,17 @@ async function computeRepStanding(addr: string): Promise<RepStanding> {
     repTier = tierForLegacy(reputationBps, total);
   }
 
-  return { reputationBps, repTier, completionRate };
+  const safeCount = (value: bigint): number => Number(value > BigInt(Number.MAX_SAFE_INTEGER)
+    ? BigInt(Number.MAX_SAFE_INTEGER)
+    : value);
+  return {
+    reputationBps,
+    repTier,
+    completionRate,
+    completedDeals: safeCount(counts.successCount),
+    disputedDeals: safeCount(counts.disputedCount),
+    failedDeals: safeCount(counts.failedCount),
+  };
 }
 
 // TTL cache + in-flight dedupe over the on-chain standing. Concurrent callers

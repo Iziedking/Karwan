@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   KARWAN_REFERENCE_ALPHABET,
   canTransitionMovement,
+  canTransitionProviderLifecycle,
   createMoneyMovement,
   formatKarwanReference,
   formatUsdcMicros,
@@ -200,6 +201,45 @@ test('distinguishes a provider correlation id from on-chain proof', () => {
     txHash: '0xabc',
   }, 230);
   assert.equal(hasOnchainProof(current.legs[0]!), true);
+});
+
+test('preserves unknown provider attempts and requires proof before settlement', () => {
+  let current = startMoneyMovementAttempt(movement(), 200);
+  current = planMoneyMovementLeg(
+    current,
+    { key: 'fund', label: 'Protect funds', rail: 'circle_wallets' },
+    210,
+  );
+  const id = current.legs[0]!.id;
+  assert.equal(current.legs[0]!.providerLifecycle, 'CREATED');
+  current = transitionMoneyMovementLeg(
+    current,
+    id,
+    'submitted',
+    { providerId: 'circle-1', providerLifecycle: 'SUBMITTED' },
+    220,
+  );
+  current = transitionMoneyMovementLeg(current, id, 'submitted', {
+    providerLifecycle: 'UNKNOWN',
+  }, 230);
+  current = transitionMoneyMovementLeg(current, id, 'submitted', {
+    providerLifecycle: 'RECONCILING',
+  }, 240);
+  assert.throws(
+    () => transitionMoneyMovementLeg(current, id, 'submitted', { providerLifecycle: 'SETTLED' }, 250),
+    /requires txHash/,
+  );
+  current = transitionMoneyMovementLeg(current, id, 'confirmed', {
+    providerLifecycle: 'SETTLED',
+    txHash: '0xabc',
+  }, 260);
+  assert.equal(current.legs[0]!.providerLifecycle, 'SETTLED');
+  assert.equal(canTransitionProviderLifecycle('UNKNOWN', 'RECONCILING'), true);
+  assert.equal(canTransitionProviderLifecycle('UNKNOWN', 'SUBMITTED'), false);
+  assert.throws(
+    () => transitionMoneyMovementLeg(current, id, 'confirmed', { txHash: '0xdef' }, 270),
+    /immutable/,
+  );
 });
 
 test('cash-out movement keeps burn and mint proof separate', () => {

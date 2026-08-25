@@ -1120,6 +1120,10 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
       txHash: pull.txHash,
       payer: pull.payer,
       depositTxHash: pull.depositTxHash,
+      providerId: pull.providerId ?? 'karwan-credit-passport',
+      claim: pull.claim ?? 'completed-transactions',
+      decisionImpact: pull.decisionImpact ?? 'legacy_match_unchanged',
+      evidenceId: pull.evidenceId,
     };
     return c.json({ locked: false, subject, record, payment });
   }
@@ -1142,7 +1146,13 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
 /// reference or empty; the UI only links it when it looks like a real hash.
 async function paidPullReceipt(
   jobId: string,
-): Promise<{ amountUsd: number; txHash?: string } | null> {
+): Promise<{
+  amountUsd: number;
+  txHash?: string;
+  providerId: 'karwan-credit-passport';
+  claim: 'completed-transactions';
+  decisionImpact: 'legacy_match_unchanged';
+} | null> {
   const events = await recentEventsByType(['agent.paid'], 20, jobId);
   const arcPull = events.find(
     (e) => e.payload?.rail === 'arc' && e.payload?.kind === 'reputation',
@@ -1150,7 +1160,13 @@ async function paidPullReceipt(
   if (!arcPull) return null;
   const amountUsd = Number(arcPull.payload?.amountUsd);
   const txHash = typeof arcPull.payload?.txHash === 'string' ? arcPull.payload.txHash : undefined;
-  return { amountUsd: Number.isFinite(amountUsd) ? amountUsd : 0, txHash };
+  return {
+    amountUsd: Number.isFinite(amountUsd) ? amountUsd : 0,
+    txHash,
+    providerId: 'karwan-credit-passport',
+    claim: 'completed-transactions',
+    decisionImpact: 'legacy_match_unchanged',
+  };
 }
 
 /// Exact, read-only escrow quote for the current deal and contract fee. The

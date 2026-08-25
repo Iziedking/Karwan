@@ -30,6 +30,9 @@ import { logger } from '../logger.js';
 import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { accountTypeOf, deriveLane } from '../profile/accountType.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import type { MatchingShadowObserver } from '../matching/shadow.js';
+import type { MatchingAuditTelemetry } from '../matching/audit.js';
+import { buildListingMatchingShadowObservation } from '../matching/listingProjection.js';
 
 const addrSchema = z
   .string()
@@ -71,7 +74,37 @@ const matchDecisionSchema = z.object({
   reasoning: z.string(),
 });
 
+type ListingMatchJob = {
+  jobId: string;
+  buyer: string;
+  budgetUsdc: string;
+  deadlineUnix: number;
+  termsHash: string;
+  briefText?: string;
+  negotiationMaxIncreasePct?: number;
+  buyerReputationBps?: number;
+  keywords?: string[];
+  tradeLane?: 'service' | 'finance';
+  partyKind?: 'person' | 'business';
+};
+
 export const listingsRoutes = new Hono();
+
+let listingMatchingShadowObserver: MatchingShadowObserver | null = null;
+
+/**
+ * Installs the shared matching-v2 observer for listing-driven scans. The
+ * observer is optional and read-only; the legacy listing matcher remains the
+ * only path that can submit a bid or consume a listing.
+ */
+export function configureListingMatchingEngineShadow(
+  observer: MatchingShadowObserver | null,
+): () => void {
+  listingMatchingShadowObserver = observer;
+  return () => {
+    if (listingMatchingShadowObserver === observer) listingMatchingShadowObserver = null;
+  };
+}
 
 /// Public projection. Drops agent-private steering (negotiationMaxDecreasePct)
 /// and the matchedJobId. That id is the matched deal's secret handle, and the
@@ -411,7 +444,7 @@ async function scanBriefsForListing(
 /// seller agent's `activeBids` map dedupes per (jobId, seller), so a profile-
 /// driven bid that already exists for this job is left alone.
 export async function scanListingsForBrief(
-  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; tradeLane?: 'service' | 'finance' },
+  job: ListingMatchJob,
 ) {
   const listings = listOpenListings();
   if (listings.length === 0) return;
@@ -460,7 +493,55 @@ export async function scanListingsForBrief(
 
 async function tryMatchListingToJob(
   listing: Listing,
-  job: { jobId: string; buyer: string; budgetUsdc: string; deadlineUnix: number; termsHash: string; briefText?: string; negotiationMaxIncreasePct?: number; buyerReputationBps?: number; keywords?: string[]; tradeLane?: 'service' | 'finance' },
+  job: ListingMatchJob,
+  seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
+): Promise<boolean> {
+  let legacyMatched = false;
+  const legacyStartedAt = performance.now();
+  try {
+    legacyMatched = await tryMatchListingToJobLegacy(listing, job, seller);
+    return legacyMatched;
+  } finally {
+    const observer = listingMatchingShadowObserver;
+    if (observer) {
+      const observedAt = Math.floor(Date.now() / 1_000);
+      const telemetry: MatchingAuditTelemetry = {
+        legacyLatencyMs: Math.max(0, performance.now() - legacyStartedAt),
+        // Listing matching does not make a paid information call. Paid
+        // evidence is accounted for by the evidence acquisition boundary.
+        legacyPaidCallCount: 0,
+        shadowPaidCallCount: 0,
+      };
+      try {
+        const observation = buildListingMatchingShadowObservation(
+          listing,
+          seller,
+          job,
+          legacyMatched,
+          observedAt,
+          telemetry,
+        );
+        void observer(observation).catch((err) => {
+          logger.warn(
+            { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
+            'listing matching shadow observation failed',
+          );
+        });
+      } catch (err) {
+        // Shadow telemetry must never turn a legacy listing result into an
+        // error or alter its bid/skip decision.
+        logger.warn(
+          { listingId: listing.id, jobId: job.jobId, err: (err as Error).message },
+          'listing matching shadow projection failed',
+        );
+      }
+    }
+  }
+}
+
+async function tryMatchListingToJobLegacy(
+  listing: Listing,
+  job: ListingMatchJob,
   seller: NonNullable<Awaited<ReturnType<typeof resolveSellerProfile>>>,
 ): Promise<boolean> {
   // Lane partition: a listing and a brief only match within the same lane.
