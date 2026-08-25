@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { api, type DirectDeal } from '@/core/api';
-import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
+import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
@@ -230,7 +230,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
           className="font-mono text-[11px] tabular-nums leading-snug"
           style={{ color: 'var(--ink-2)' }}
         >
-          <span style={{ color: 'var(--ink-1)' }}>{shortAddress(card.actor)}</span>{' '}
+          <span style={{ color: 'var(--ink-1)' }}>{t.subjects[card.kind]}</span>{' '}
           <span style={{ color: 'var(--ink-3)' }}>{verb}</span>
         </p>
         <div className="mt-2 flex items-baseline gap-2">

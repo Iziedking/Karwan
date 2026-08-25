@@ -90,7 +90,7 @@ export function DealsFeed() {
                 }}
                 aria-pressed={active}
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
+                  'inline-flex min-h-11 items-center gap-1.5 px-3 py-2.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                 )}
                 style={{

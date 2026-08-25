@@ -57,6 +57,12 @@ function toSellerProfile(agents: AgentWallets, profile: UserProfile): SellerProf
     maxDeadlineDays: s.maxDeadlineDays,
     confidenceThreshold: DEFAULT_CONFIDENCE_THRESHOLD,
     keywords: s.keywords ?? [],
+    skillVerifications: profile.skillVerifications?.map(({ skillId, status, issuer, expiresAt }) => ({
+      skillId,
+      status,
+      issuer,
+      ...(expiresAt === undefined ? {} : { expiresAt }),
+    })),
   };
 }
 

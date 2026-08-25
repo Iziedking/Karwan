@@ -12,15 +12,16 @@
  *     now appear in the bid-ranking and counter prompts (they were absent), and
  *   - that the flags-OFF path is byte-for-byte unchanged (no regression).
  *
- * Usage (dev only — tsx/src, never in the prod container):
+ * Usage (dev only; tsx/src, never in the prod container):
  *   npm run eval:agentic -- record baseline
  *   npm run eval:agentic -- record after-on
  *   npm run eval:agentic -- compare baseline after-on
  *
- * It calls only pure, exported functions — no network, no DB, no LLM, no chain.
+ * It calls only pure, exported functions; no network, no DB, no LLM, no chain.
  */
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   buildBidRankingPrompt,
   buildBidEvaluationPrompt,
@@ -32,6 +33,12 @@ import {
 } from '../llm/prompts.js';
 import type { BuyerProfile } from '../agents/buyer-profile.js';
 import type { SellerProfile } from '../agents/seller-profile.js';
+import {
+  relationshipScoreFromDeals,
+  scoreBidDeterministic,
+  type BidScoreInputs,
+  type BidScore,
+} from '../agents/strategy.js';
 import { classifyVsMarket, researchHeatFromRead } from '../agents/marketDemand.js';
 import { recordPriceObservation, priceAnomalyScore, priceHistorySnapshot } from '../agents/signals.js';
 
@@ -40,7 +47,9 @@ const EVAL_DIR = join(process.cwd(), 'data', 'eval');
 // Fixed "now" is not available (we want stable day-counts across runs), so we
 // express deadlines as unix = fixedNow + N days and let daysFromNow yield N.
 const DAY = 86_400;
-const now = Math.floor(Date.now() / 1000);
+// Keep characterization fixtures byte-for-byte reproducible across runs. This
+// clock is local to the harness and never reaches a production agent path.
+const now = 1_725_000_000;
 const inDays = (n: number) => now + n * DAY;
 
 // --- Fixed profiles (only the fields the prompts read are filled) ------------
@@ -110,9 +119,14 @@ type Fixture = {
   heatMapping: Record<string, number>;
   marketClassify: Record<string, unknown>;
   priceRing: { snapshot: unknown; anomalies: Record<string, number | null> };
+  structuredScoreInputs: readonly {
+    label: string;
+    inputs: BidScoreInputs;
+    output: BidScore;
+  }[];
 };
 
-function capture(label: string): Fixture {
+export function captureEvalFixture(label: string): Fixture {
   // 1. Bid-ranking prompts across bid postures. The market fields (once wired)
   //    ride on BidContext, so these render strings are where the fix shows up.
   const bidRankingPrompts: Record<string, string> = {
@@ -191,7 +205,7 @@ function capture(label: string): Fixture {
 
   const bidEvaluationPrompt = buildBidEvaluationPrompt(scenarioJob(), seller);
 
-  // 3. Heat mapping: the review's headline complaint (#5) — the paid read is
+  // 3. Heat mapping: the review's headline complaint (#5): the paid read is
   //    quantized to 3 constants. Capture the heat each sample read maps to.
   const heatMapping: Record<string, number> = {};
   for (const r of SAMPLE_READS) {
@@ -206,13 +220,13 @@ function capture(label: string): Fixture {
     });
   }
 
-  // 4. Market classification (budget vs grounded price) — regression guard.
+  // 4. Market classification (budget vs grounded price): regression guard.
   const marketClassify: Record<string, unknown> = {};
   for (const r of SAMPLE_READS) {
     marketClassify[`${r.demand}/${r.priceConfidence}`] = classifyVsMarket(1500, r.fairPriceUsdc);
   }
 
-  // 5. Price ring — regression guard for the global-ring fallback (B5 must not
+  // 5. Price ring: regression guard for the global-ring fallback (B5 must not
   //    change this when no category data exists). Feed a fixed sample set.
   for (const p of [100, 110, 95, 105, 100, 120, 90, 115, 100, 108, 250]) recordPriceObservation(p);
   const priceRing = {
@@ -224,7 +238,69 @@ function capture(label: string): Fixture {
     } as Record<string, number | null>,
   };
 
-  return { label, bidRankingPrompts, counterPrompts, bidEvaluationPrompt, heatMapping, marketClassify, priceRing };
+  const scoreCases: readonly { label: string; inputs: BidScoreInputs }[] = [
+    {
+      label: 'grounded-fit-at-budget',
+      inputs: {
+        bidPriceUsdc: 1_000,
+        briefBudgetUsdc: 1_000,
+        effectiveCapUsdc: 1_400,
+        sellerTier: 'established',
+        sellerCompletionRate: 0.92,
+        sellerDealsCompleted: 8,
+        sellerAccountAgeDays: 365,
+        sellerVelocity24h: 3,
+        topicalMatch: 88,
+        relationshipScore: relationshipScoreFromDeals(0),
+      },
+    },
+    {
+      label: 'thin-fit-over-budget',
+      inputs: {
+        bidPriceUsdc: 1_400,
+        briefBudgetUsdc: 1_000,
+        effectiveCapUsdc: 1_400,
+        sellerTier: 'cold',
+        sellerCompletionRate: 0.72,
+        sellerDealsCompleted: 1,
+        sellerAccountAgeDays: 30,
+        sellerVelocity24h: 18,
+        topicalMatch: 42,
+        relationshipScore: relationshipScoreFromDeals(0),
+      },
+    },
+    {
+      label: 'repeat-counterparty-near-tie',
+      inputs: {
+        bidPriceUsdc: 1_150,
+        briefBudgetUsdc: 1_000,
+        effectiveCapUsdc: 1_400,
+        sellerTier: 'strong',
+        sellerCompletionRate: 0.97,
+        sellerDealsCompleted: 20,
+        sellerAccountAgeDays: 900,
+        sellerVelocity24h: 6,
+        topicalMatch: 76,
+        relationshipScore: relationshipScoreFromDeals(2),
+      },
+    },
+  ];
+  const structuredScoreInputs = scoreCases.map(({ label: scoreLabel, inputs }) => ({
+    label: scoreLabel,
+    inputs,
+    output: scoreBidDeterministic(inputs),
+  }));
+
+  return {
+    label,
+    bidRankingPrompts,
+    counterPrompts,
+    bidEvaluationPrompt,
+    heatMapping,
+    marketClassify,
+    priceRing,
+    structuredScoreInputs,
+  };
 }
 
 // --- Diff ---------------------------------------------------------------------
@@ -263,7 +339,7 @@ function main() {
 
   if (mode === 'record') {
     const label = rest[0] ?? 'unlabeled';
-    const fx = capture(label);
+    const fx = captureEvalFixture(label);
     const path = join(EVAL_DIR, `agentic-${label}.json`);
     writeFileSync(path, JSON.stringify(fx, null, 2));
     // A quick, human-readable summary of what reached the decision.
@@ -299,4 +375,5 @@ function main() {
   process.exit(1);
 }
 
-main();
+const invokedScript = process.argv[1] ? resolve(process.argv[1]) : null;
+if (invokedScript === resolve(fileURLToPath(import.meta.url))) main();

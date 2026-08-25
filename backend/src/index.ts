@@ -10,6 +10,7 @@ import { publicClient } from './chain/client.js';
 import { invalidateEscrowCache } from './chain/contracts.js';
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
+import { configureJobsReengagementShadow } from './routes/jobsReengagement.js';
 import { agentsRoutes } from './routes/agents.js';
 import { eventsRoutes } from './routes/events.js';
 import { milestonesRoutes } from './routes/milestones.js';
@@ -35,6 +36,19 @@ import { chatRoutes } from './routes/chat.js';
 import { financingChatRoutes } from './routes/financingChat.js';
 import { telegramRoutes } from './routes/telegram.js';
 import { adminRoutes } from './routes/admin.js';
+import { adminAgentRuntimeRoutes } from './routes/adminAgentRuntime.js';
+import {
+  configureReviewedNegotiationIngress,
+  configureReviewedEvidenceIngress,
+  configureReviewedEvidenceReconciliationIngress,
+  configureReviewedFinancialOperationIngress,
+  configureStakeQualificationShadowIngress,
+  configureStakeFundingResumeIngress,
+  configureStakeFinancialOperationIngress,
+  configureStakeApprovalResumeIngress,
+  configureReengagementIngress,
+  reviewedOperationIngressRoutes,
+} from './routes/reviewedOperationIngress.js';
 import { adminDisputeRoutes } from './routes/adminDisputes.js';
 import { adminTeamKeyRoutes } from './routes/adminTeamKeys.js';
 import { adminSignalRoutes } from './routes/adminSignals.js';
@@ -50,7 +64,7 @@ import { adminTreasuryRoutes } from './routes/adminTreasury.js';
 import { adminUsycRoutes } from './routes/adminUsyc.js';
 import { treasuryRoutes } from './routes/treasury.js';
 import { yieldRoutes, startYieldIndexer } from './routes/yield.js';
-import { listingsRoutes } from './routes/listings.js';
+import { configureListingMatchingEngineShadow, listingsRoutes } from './routes/listings.js';
 import { xRoutes } from './routes/x.js';
 import { authRoutes } from './routes/auth.js';
 import { siweRoutes } from './routes/siwe.js';
@@ -61,7 +75,7 @@ import { financierRoutes } from './routes/financier.js';
 import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
-import { researchRoutes } from './routes/research.js';
+import { configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
@@ -72,9 +86,23 @@ import { circleWebhookRoutes } from './routes/circle-webhook.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
+  configureBuyerTimerShadow,
+  configureBuyerTimerParity,
+  configureMatchingEngineShadow,
+  configureNegotiationShadow,
+  configureEvidenceQualificationShadow,
+  configureEvidenceAcquisitionShadow,
+  configureFinancialCommandShadow,
 } from './agents/buyer.js';
-import { startSellerAgents, hydrateActiveBids, flushActiveBidsSync } from './agents/seller.js';
-import { startDealWatcher } from './agents/dealWatcher.js';
+import {
+  startSellerAgents,
+  hydrateActiveBids,
+  flushActiveBidsSync,
+  configureSellerStakeQualificationShadow,
+  configureSellerEvidenceAcquisitionShadow,
+} from './agents/seller.js';
+import { configureDealFinancialCommandShadow, startDealWatcher } from './agents/dealWatcher.js';
+import { configureX402GatewayFundingShadow } from './x402/buyerClient.js';
 import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
@@ -94,12 +122,101 @@ import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
-import { ensureSchema, pgEnabled } from './db/client.js';
+import {
+  ensureSchema,
+  pgEnabled,
+  postgresExecutor,
+  withPostgresTransaction,
+} from './db/client.js';
+import { configureMatchProposalRevisionObserver } from './db/matchProposals.js';
+import {
+  OutboxDispatcher,
+  PostgresOutboxStore,
+  createBrowserProjectionConsumer,
+  createNotificationJobConsumer,
+  startOutboxDispatcherLoop,
+} from './events/outboxWorker.js';
+import {
+  DurableTaskRunner,
+  PostgresDurableTaskStore,
+  startDurableTaskRunnerLoop,
+} from './agents/durableTaskRunner.js';
+import {
+  PostgresBuyerRuntimeSnapshotStore,
+  createBuyerTimerShadowHandlers,
+  createBuyerTimerShadowObserver,
+} from './agents/buyerTaskShadow.js';
+import {
+  PostgresBuyerTimerParityAuditStore,
+  createBuyerTimerParityObserver,
+} from './agents/buyerTaskParity.js';
+import {
+  PostgresMatchingAuditStore,
+} from './matching/audit.js';
+import { createMatchingShadowObserver } from './matching/shadow.js';
+import {
+  createNegotiationShadowHandlers,
+  createNegotiationShadowObserver,
+} from './agents/negotiationTaskShadow.js';
+import {
+  createReengagementShadowHandlers,
+  scheduleBoundedReengagement,
+} from './negotiation/reengagement.js';
+import { PostgresNegotiationRuntime } from './negotiation/postgresRuntime.js';
+import { PostgresNegotiationCommandLedger } from './negotiation/commandLedger.js';
+import { PostgresMandateSnapshotStore } from './negotiation/mandates.js';
+import { createNegotiationOperationObserver } from './negotiation/operationTask.js';
+import {
+  createEvidenceQualificationShadowHandlers,
+  createEvidenceQualificationShadowObserver,
+} from './agents/evidenceQualificationShadow.js';
+import {
+  createEvidenceAcquisitionShadowHandlers,
+  createEvidenceAcquisitionShadowObserver,
+} from './agents/evidenceAcquisitionShadow.js';
+import { createEvidenceAcquisitionOperationObserver } from './evidence/acquisitionTask.js';
+import { createEvidenceReconciliationOperationObserver } from './evidence/reconciliationTask.js';
+import { createFinancialCommandOperationObserver } from './financial/operationTask.js';
+import {
+  createStakeApprovalResumeObserver,
+  createStakeFinancialOperationObserver,
+} from './agents/stakeFinancialProjection.js';
+import { PostgresEvidenceRuntimeRepository } from './evidence/runtime.js';
+import { PostgresResearchCreditStore } from './evidence/researchCredit.js';
+import { createX402EvidenceAcquisitionAdapter } from './evidence/x402Adapter.js';
+import { PostgresAgentRuntimeRepository } from './db/agentRuntime.js';
+import { createFinancialCommandShadowHandlers } from './agents/financialCommandShadow.js';
+import { createFinancialCommandShadowObserver } from './agents/financialCommandShadow.js';
+import {
+  createFinancialReconciliationShadowHandlers,
+  createFinancialReconciliationShadowObserver,
+  parseCircleReconciliationObservation,
+} from './agents/financialReconciliationShadow.js';
+import { PostgresFinancialRuntimeRepository } from './financial/runtime.js';
+import { createFinancialReconciliationWorker } from './financial/reconciliationWorker.js';
+import { createCircleWalletAdapter } from './circle/CircleWalletAdapter.js';
+import { createReviewedOperationTaskHandlers } from './agents/reviewedOperationHandlers.js';
+import {
+  createStakeQualificationShadowHandlers,
+  createStakeQualificationShadowObserver,
+} from './agents/stakeQualificationShadow.js';
+import { createStakeFundingResumeObserver } from './agents/stakeFundingResume.js';
+import { PostgresNegotiationAttemptStore } from './negotiation/attempts.js';
+import { PostgresMatchProposalRevisionStore } from './negotiation/proposalRevision.js';
 import { initUsersStore } from './db/users.js';
 import { initPriceObservationsStore } from './db/priceObservations.js';
 import { initEphemeralStores } from './db/ephemeral.js';
+import { createCorrelationMiddleware } from './observability/correlationMiddleware.js';
+import { requireAdmin } from './middleware/adminAuth.js';
+import { buildOperatorRouteCatalog } from './ops/routeCatalog.js';
 
 const app = new Hono();
+
+/// Give every request a bounded correlation identifier for support and
+/// operator logs. It is metadata only and never becomes an idempotency key or
+/// authority input. The path excludes query strings so secrets in query
+/// parameters cannot be copied into logs.
+app.use('*', createCorrelationMiddleware(appLogger));
 
 // Session cookies need credentials:true, which forbids origin:*. We echo the
 // request's Origin back when it's in the trusted set. Defaults cover local
@@ -173,7 +290,8 @@ app.use(
     // which surfaces as a generic "could not do that" with no status to chase,
     // while the same call over curl succeeds and makes it look like a UI fault.
     allowMethods: ['GET', 'POST', 'OPTIONS', 'DELETE', 'PUT', 'PATCH'],
-    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token'],
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Admin-Token', 'X-Correlation-ID'],
+    exposeHeaders: ['X-Correlation-ID'],
     // Cache the CORS preflight for a day so the browser stops firing an OPTIONS
     // round-trip before every cross-origin API call. The allowed methods and
     // headers are static, so a long cache is safe and cuts perceived latency on
@@ -256,6 +374,8 @@ app.route('/api/telegram', telegramRoutes);
 // support token, while the rest of /api/admin stays admin-only.
 app.route('/api/admin/support', supportTeamRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/admin/agent-runtime', adminAgentRuntimeRoutes);
+app.route('/api/admin/reviewed-operation-ingress', reviewedOperationIngressRoutes);
 app.route('/api/admin/disputes', adminDisputeRoutes);
 app.route('/api/admin/treasuries', adminTreasuryRoutes);
 app.route('/api/admin/usyc', adminUsycRoutes);
@@ -295,6 +415,19 @@ app.route('/api/admin/business', businessAdminRoutes);
 app.route('/api/x402', x402Routes);
 app.route('/api/feedback', feedbackRoutes);
 app.route('/api/circle', circleWebhookRoutes);
+
+// Source-of-truth operator inventory. Hono expands mounted routers into the
+// app routing table, so this always reports the endpoints this exact backend
+// process can serve instead of relying on a manually maintained checklist.
+app.get('/api/admin/route-catalog', requireAdmin, (c) => {
+  const routes = buildOperatorRouteCatalog(app.routes);
+  return c.json({
+    generatedAt: Date.now(),
+    source: 'runtime' as const,
+    count: routes.length,
+    routes,
+  });
+});
 
 // Process-wide error capture. Routes unhandled rejections + uncaught
 // exceptions through `errorTracker` so they land in the ring buffer and
@@ -477,9 +610,11 @@ function bootAgents() {
 }
 
 async function boot() {
+  let schemaReady = false;
   if (pgEnabled) {
     try {
       await ensureSchema();
+      schemaReady = true;
     } catch (err) {
       appLogger.error(
         { err: (err as Error).message },
@@ -488,6 +623,33 @@ async function boot() {
     }
   } else {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
+  }
+  if (config.EVENT_OUTBOX_V2_ENABLED && schemaReady) {
+    const outboxStore = new PostgresOutboxStore(withPostgresTransaction);
+    const dispatcher = new OutboxDispatcher(
+      outboxStore,
+      [
+        createNotificationJobConsumer(withPostgresTransaction),
+        createBrowserProjectionConsumer(withPostgresTransaction),
+      ],
+      { workerId: `karwan-outbox-${process.pid}` },
+    );
+    stopFns.push(
+      startOutboxDispatcherLoop(dispatcher, {
+        onError: (err) =>
+          appLogger.error({ err: (err as Error).message }, 'V2 event outbox dispatch failed'),
+        onResult: ({ retried, deadLettered }) => {
+          if (deadLettered > 0) {
+            appLogger.error({ deadLettered }, 'V2 event outbox rows moved to dead letter');
+          } else if (retried > 0) {
+            appLogger.warn({ retried }, 'V2 event outbox rows scheduled for retry');
+          }
+        },
+      }),
+    );
+    appLogger.info('V2 event outbox dispatcher started');
+  } else if (config.EVENT_OUTBOX_V2_ENABLED) {
+    appLogger.error('V2 event outbox dispatcher not started because Postgres schema is unavailable');
   }
   // Accounts hydrate from Postgres (and one-time-import users.json) BEFORE
   // anything can serve auth requests: a login check against a half-loaded
@@ -503,6 +665,401 @@ async function boot() {
   // In-flight seller bids restore BEFORE agents start, so a deploy mid-auction
   // resumes negotiations instead of stalling on a lost activeBids map.
   await hydrateActiveBids();
+  if (config.AGENT_RUNTIME_V2_ENABLED && schemaReady) {
+    // Preserve the historical evidence-shadow coupling while exposing an
+    // explicit staking flag for staged rollout and operator reporting.
+    const stakingShadowEnabled = config.STAKING_V2_ENABLED || config.EVIDENCE_V2_SHADOW;
+    const taskStore = new PostgresDurableTaskStore(
+      postgresExecutor(),
+      withPostgresTransaction,
+    );
+    const buyerSnapshotStore = new PostgresBuyerRuntimeSnapshotStore(postgresExecutor());
+    const buyerParityStore = new PostgresBuyerTimerParityAuditStore(postgresExecutor());
+    const matchingAuditStore = new PostgresMatchingAuditStore(postgresExecutor());
+    const proposalRevisionStore = config.MATCH_ENGINE_V2_SHADOW
+      ? new PostgresMatchProposalRevisionStore(postgresExecutor())
+      : null;
+    const runtimeRepository = new PostgresAgentRuntimeRepository(postgresExecutor());
+    const reviewedEvidenceEnabled = config.REVIEWED_OPERATION_TASKS_V2_ENABLED
+      && config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED;
+    const evidenceRuntime = (config.EVIDENCE_V2_SHADOW || stakingShadowEnabled || reviewedEvidenceEnabled)
+      ? new PostgresEvidenceRuntimeRepository(postgresExecutor(), withPostgresTransaction)
+      : null;
+    const approvalRuntime = stakingShadowEnabled ? runtimeRepository : null;
+    const negotiationAttemptStore = (stakingShadowEnabled || config.REVIEWED_OPERATION_TASKS_V2_ENABLED)
+      ? new PostgresNegotiationAttemptStore(postgresExecutor())
+      : null;
+    const financialRuntime = (config.FINANCIAL_COMMANDS_V2_ENABLED
+      || config.FINANCIAL_RECONCILIATION_V2_ENABLED
+      || config.REVIEWED_OPERATION_TASKS_V2_ENABLED)
+      ? new PostgresFinancialRuntimeRepository(postgresExecutor(), withPostgresTransaction)
+      : null;
+    const financialShadowObserver = config.FINANCIAL_COMMANDS_V2_ENABLED && financialRuntime
+      ? createFinancialCommandShadowObserver(taskStore, runtimeRepository)
+      : null;
+    // Reviewed operation handlers are deliberately separate from the shadow
+    // flags. They are registered only after an explicit cutover decision, and
+    // no legacy route enqueues their task kinds yet.
+    const reviewedNegotiationConflictRecorder = config.REVIEWED_OPERATION_TASKS_V2_ENABLED
+      ? new PostgresNegotiationCommandLedger(postgresExecutor())
+      : null;
+    const mandateSnapshotStore = (config.REVIEWED_OPERATION_TASKS_V2_ENABLED || config.NEGOTIATION_V2_SHADOW)
+      ? new PostgresMandateSnapshotStore(postgresExecutor())
+      : null;
+    const reviewedMandateSnapshotStore = config.REVIEWED_OPERATION_TASKS_V2_ENABLED
+      ? mandateSnapshotStore
+      : null;
+    // The same deterministic offer runtime serves reviewed operations and the
+    // shadow projection. In shadow mode it only writes V2 offer/room rows; no
+    // legacy proposal, JobBoard call, provider, wallet, or money path is used.
+    const negotiationRuntime = (config.REVIEWED_OPERATION_TASKS_V2_ENABLED || config.NEGOTIATION_V2_SHADOW)
+      ? new PostgresNegotiationRuntime(withPostgresTransaction, reviewedNegotiationConflictRecorder ?? undefined)
+      : null;
+    const reviewedNegotiationRuntime = config.REVIEWED_OPERATION_TASKS_V2_ENABLED
+      ? negotiationRuntime
+      : null;
+    const shadowNegotiationRuntime = config.NEGOTIATION_V2_SHADOW
+      ? negotiationRuntime
+      : null;
+    const reviewedCircleAdapter = config.REVIEWED_OPERATION_TASKS_V2_ENABLED
+      ? createCircleWalletAdapter()
+      : null;
+    const reviewedEvidenceAdapter = reviewedEvidenceEnabled
+      ? createX402EvidenceAcquisitionAdapter()
+      : null;
+    const researchCreditStore = reviewedEvidenceEnabled
+      ? new PostgresResearchCreditStore(postgresExecutor(), withPostgresTransaction)
+      : null;
+    const reconciliationCircleAdapter = config.FINANCIAL_RECONCILIATION_V2_ENABLED
+      ? createCircleWalletAdapter()
+      : null;
+    // Phase 3B handlers only read persisted buyer snapshots and write task
+    // checkpoints. They cannot call agents, providers, wallets, contracts, or
+    // proposal stores. Legacy timers remain the sole authority.
+    const taskHandlers = {
+      ...createBuyerTimerShadowHandlers(buyerSnapshotStore, {
+        parityStore: buyerParityStore,
+      }),
+      ...(config.NEGOTIATION_V2_SHADOW
+        ? createNegotiationShadowHandlers(
+            shadowNegotiationRuntime
+              ? { offerRuntime: shadowNegotiationRuntime }
+              : {},
+          )
+        : {}),
+      ...(config.NEGOTIATION_V2_SHADOW ? createReengagementShadowHandlers() : {}),
+      ...(config.EVIDENCE_V2_SHADOW && evidenceRuntime ? createEvidenceQualificationShadowHandlers(evidenceRuntime) : {}),
+      ...(config.EVIDENCE_V2_SHADOW && evidenceRuntime ? createEvidenceAcquisitionShadowHandlers(evidenceRuntime) : {}),
+      ...(stakingShadowEnabled && evidenceRuntime
+        ? createStakeQualificationShadowHandlers(evidenceRuntime, {
+            attemptStore: negotiationAttemptStore ?? undefined,
+            approvalRepository: approvalRuntime ?? undefined,
+            ...(financialShadowObserver ? { financialObserver: financialShadowObserver } : {}),
+          })
+        : {}),
+      ...(config.FINANCIAL_COMMANDS_V2_ENABLED && financialRuntime
+        ? createFinancialCommandShadowHandlers(financialRuntime)
+        : {}),
+      ...(config.FINANCIAL_COMMANDS_V2_ENABLED && financialRuntime
+        ? createFinancialReconciliationShadowHandlers(financialRuntime)
+        : {}),
+      ...createReviewedOperationTaskHandlers({
+        ...(reviewedNegotiationRuntime && negotiationAttemptStore
+          ? { negotiationExecutor: reviewedNegotiationRuntime, negotiationAttempts: negotiationAttemptStore }
+          : {}),
+        ...(reviewedCircleAdapter && financialRuntime
+          ? { financialRepository: financialRuntime, approvalRepository: runtimeRepository, financialAdapter: reviewedCircleAdapter }
+          : {}),
+        ...(reviewedEvidenceAdapter && researchCreditStore && evidenceRuntime
+          ? {
+              evidenceRepository: evidenceRuntime,
+              evidenceAdapter: reviewedEvidenceAdapter,
+              evidenceResearchCredits: researchCreditStore,
+            }
+          : {}),
+        ...(reviewedEvidenceEnabled && evidenceRuntime
+          ? {
+              evidenceReconciliationRepository: evidenceRuntime,
+              ...(researchCreditStore
+                ? { evidenceReconciliationResearchCredits: researchCreditStore }
+                : {}),
+            }
+          : {}),
+      }),
+    };
+    if (config.NEGOTIATION_V2_SHADOW) {
+      stopFns.push(
+        configureNegotiationShadow(
+          createNegotiationShadowObserver(taskStore, runtimeRepository, mandateSnapshotStore ?? undefined),
+        ),
+      );
+      stopFns.push(
+        configureReengagementIngress((data) => scheduleBoundedReengagement(taskStore, data)),
+      );
+      stopFns.push(
+        configureJobsReengagementShadow((data) => scheduleBoundedReengagement(taskStore, data)),
+      );
+      appLogger.info('V2 structured negotiation shadow scheduling and offer projection enabled');
+    }
+    if (config.REVIEWED_OPERATION_TASKS_V2_ENABLED) {
+      stopFns.push(
+        configureReviewedNegotiationIngress(
+          createNegotiationOperationObserver(
+            taskStore,
+            runtimeRepository,
+            reviewedMandateSnapshotStore ?? undefined,
+          ),
+        ),
+      );
+      if (reviewedEvidenceAdapter && researchCreditStore && evidenceRuntime) {
+        stopFns.push(
+          configureReviewedEvidenceIngress(
+            createEvidenceAcquisitionOperationObserver(taskStore, runtimeRepository),
+          ),
+        );
+        appLogger.warn(
+          'reviewed x402 evidence adapter and research-credit ledger enabled behind explicit flag',
+        );
+      }
+      if (reviewedEvidenceEnabled && evidenceRuntime) {
+        stopFns.push(
+          configureReviewedEvidenceReconciliationIngress(
+            createEvidenceReconciliationOperationObserver(taskStore, runtimeRepository),
+          ),
+        );
+        appLogger.info(
+          'reviewed evidence reconciliation ingress enabled; provider calls remain separate from observation resume',
+        );
+      }
+      if (reviewedCircleAdapter && financialRuntime) {
+        stopFns.push(
+          configureReviewedFinancialOperationIngress(
+            createFinancialCommandOperationObserver(taskStore, runtimeRepository),
+          ),
+        );
+        stopFns.push(
+          configureStakeFinancialOperationIngress(
+            createStakeFinancialOperationObserver(taskStore, runtimeRepository),
+          ),
+        );
+        stopFns.push(
+          configureStakeApprovalResumeIngress(
+            createStakeApprovalResumeObserver(taskStore, runtimeRepository, runtimeRepository),
+          ),
+        );
+      }
+    }
+    if (config.EVIDENCE_V2_SHADOW) {
+      stopFns.push(
+        configureEvidenceQualificationShadow(
+          createEvidenceQualificationShadowObserver(taskStore, runtimeRepository),
+        ),
+      );
+      stopFns.push(
+        configureEvidenceAcquisitionShadow(
+          createEvidenceAcquisitionShadowObserver(taskStore, runtimeRepository),
+        ),
+      );
+      stopFns.push(
+        configureResearchScoutEvidenceShadow(
+          createEvidenceAcquisitionShadowObserver(taskStore, runtimeRepository),
+        ),
+      );
+      stopFns.push(
+        configureSellerEvidenceAcquisitionShadow(
+          createEvidenceAcquisitionShadowObserver(taskStore, runtimeRepository),
+        ),
+      );
+      // Evidence tasks only persist planner decisions and shadow observations.
+      // They never call a provider, purchase evidence, or mutate live authority.
+      appLogger.info('V2 evidence acquisition shadow handlers enabled');
+    }
+    if (stakingShadowEnabled && evidenceRuntime) {
+      const stakeQualificationObserver = createStakeQualificationShadowObserver(taskStore, runtimeRepository);
+      stopFns.push(configureSellerStakeQualificationShadow(stakeQualificationObserver));
+      stopFns.push(
+        configureStakeQualificationShadowIngress((data) => stakeQualificationObserver({ data })),
+      );
+      const fundingResumeObserver = createStakeFundingResumeObserver(
+        taskStore,
+        evidenceRuntime,
+        runtimeRepository,
+      );
+      stopFns.push(
+        configureStakeFundingResumeIngress((data) => fundingResumeObserver(data)),
+      );
+      stopFns.push(
+        bus.subscribe((event) => {
+          if (event.type !== 'agent.funded') return;
+          const payload = event.payload ?? {};
+          const agentAddress = typeof payload.agentAddress === 'string' ? payload.agentAddress : null;
+          const amountUsdc = typeof payload.amountUsdc === 'string' || typeof payload.amountUsdc === 'number'
+            ? String(payload.amountUsdc)
+            : null;
+          const movementState = typeof payload.movementState === 'string' ? payload.movementState : null;
+          if (!agentAddress || !amountUsdc || !movementState) return;
+          const reference = typeof payload.reference === 'string' ? payload.reference : undefined;
+          const txHash = typeof payload.txHash === 'string' ? payload.txHash : undefined;
+          void fundingResumeObserver({
+            agentAddress,
+            amountUsdc,
+            movementState,
+            observedAtUnix: Math.floor(event.ts / 1_000),
+            ...(reference ? { reference } : {}),
+            ...(txHash ? { txHash } : {}),
+          }).catch((err) =>
+            appLogger.warn(
+              { err: (err as Error).message, agentAddress },
+              'V2 stake funding resume shadow enqueue failed',
+            ),
+          );
+        }),
+      );
+      appLogger.info('V2 staking qualification and funding-resume shadow handlers enabled');
+    }
+    if (config.FINANCIAL_COMMANDS_V2_ENABLED) {
+      // The command task records policy decisions and provider observations
+      // only. No handler path invokes Circle, a chain executor, or a wallet.
+      // Verified Circle webhook observations feed the reconciliation task only
+      // when they carry both explicit command correlation and provider ID;
+      // unrelated notifications are ignored instead of guessed into a command.
+      const reconcileObserver = createFinancialReconciliationShadowObserver(taskStore);
+      const commandShadowObserver =
+        financialShadowObserver ?? createFinancialCommandShadowObserver(taskStore, runtimeRepository);
+      stopFns.push(
+        configureFinancialCommandShadow(commandShadowObserver),
+      );
+      stopFns.push(
+        configureX402GatewayFundingShadow(commandShadowObserver),
+      );
+      stopFns.push(
+        configureDealFinancialCommandShadow(commandShadowObserver),
+      );
+      stopFns.push(
+        bus.subscribe((event) => {
+          if (event.type !== 'circle.webhook') return;
+          const observation = parseCircleReconciliationObservation(
+            event.payload.notification,
+            Math.floor(event.ts / 1000),
+          );
+          if (!observation) return;
+          void reconcileObserver({ data: observation }).catch((err) =>
+            appLogger.warn(
+              { err: (err as Error).message, providerId: observation.providerId },
+              'V2 financial reconciliation shadow enqueue failed',
+            ),
+          );
+        }),
+      );
+      appLogger.info('V2 financial command shadow handler enabled');
+    }
+    if (config.FINANCIAL_RECONCILIATION_V2_ENABLED) {
+      if (!financialRuntime || !reconciliationCircleAdapter) {
+        appLogger.error('V2 financial reconciliation worker not started because its repository or adapter is unavailable');
+      } else {
+        const reconciliationWorker = createFinancialReconciliationWorker(
+          financialRuntime,
+          reconciliationCircleAdapter,
+          {
+            onError: (err) =>
+              appLogger.error(
+                { err: err instanceof Error ? err.message : String(err) },
+                'V2 financial reconciliation worker failed',
+              ),
+            onResult: (result) => {
+              if (result.errors.length > 0) {
+                appLogger.warn(
+                  { scanned: result.scanned, polled: result.polled, updated: result.updated, errors: result.errors.length },
+                  'V2 financial reconciliation completed with provider errors',
+                );
+              } else if (result.updated > 0) {
+                appLogger.info(
+                  { scanned: result.scanned, polled: result.polled, updated: result.updated },
+                  'V2 financial reconciliation updated persisted provider state',
+                );
+              }
+            },
+          },
+        );
+        reconciliationWorker.start();
+        stopFns.push(() => reconciliationWorker.stop());
+        appLogger.info('V2 financial reconciliation worker started in read-only mode');
+      }
+    }
+    if (config.REVIEWED_OPERATION_TASKS_V2_ENABLED) {
+      appLogger.warn(
+        'reviewed operation task handlers registered behind explicit flag; no legacy route enqueues them',
+      );
+    }
+    if (config.MATCH_ENGINE_V2_SHADOW) {
+      if (proposalRevisionStore) {
+        stopFns.push(configureMatchProposalRevisionObserver(proposalRevisionStore));
+      }
+      stopFns.push(
+        configureBuyerTimerShadow(
+          createBuyerTimerShadowObserver(
+            taskStore,
+            buyerSnapshotStore,
+            buyerParityStore,
+          ),
+        ),
+      );
+      stopFns.push(
+        configureBuyerTimerParity(createBuyerTimerParityObserver(buyerParityStore)),
+      );
+      stopFns.push(
+        configureMatchingEngineShadow(createMatchingShadowObserver(matchingAuditStore)),
+      );
+      stopFns.push(
+        configureListingMatchingEngineShadow(createMatchingShadowObserver(matchingAuditStore)),
+      );
+      appLogger.info('V2 buyer timer shadow scheduling enabled');
+      appLogger.info('V2 immutable MatchProposal revision audit enabled');
+    }
+    const taskRunner = new DurableTaskRunner(taskStore, taskHandlers, {
+      workerId: `karwan-task-${process.pid}`,
+      onError: (err, task) =>
+        appLogger.error(
+          { err: (err as Error).message, taskId: task?.id, taskKind: task?.kind },
+          'V2 durable task execution failed',
+        ),
+    });
+    stopFns.push(
+      startDurableTaskRunnerLoop(taskRunner, {
+        onError: (err) =>
+          appLogger.error({ err: (err as Error).message }, 'V2 durable task runner failed'),
+        onResult: ({ retried, deadLettered, leaseLost }) => {
+          if (deadLettered > 0 || leaseLost > 0) {
+            appLogger.error(
+              { deadLettered, leaseLost },
+              'V2 durable tasks need operator attention',
+            );
+          } else if (retried > 0) {
+            appLogger.warn({ retried }, 'V2 durable tasks scheduled for retry');
+          }
+        },
+      }),
+    );
+    appLogger.info({ handlerCount: Object.keys(taskHandlers).length }, 'V2 durable task runner started');
+  } else if (config.AGENT_RUNTIME_V2_ENABLED) {
+    appLogger.error('V2 durable task runner not started because Postgres schema is unavailable');
+  } else if (config.MATCH_ENGINE_V2_SHADOW) {
+    appLogger.error('V2 buyer timer shadow requires AGENT_RUNTIME_V2_ENABLED');
+  } else if (config.NEGOTIATION_V2_SHADOW) {
+    appLogger.error('V2 structured negotiation shadow requires AGENT_RUNTIME_V2_ENABLED');
+  } else if (config.EVIDENCE_V2_SHADOW) {
+    appLogger.error('V2 evidence qualification shadow requires AGENT_RUNTIME_V2_ENABLED');
+  } else if (config.STAKING_V2_ENABLED) {
+    appLogger.error('V2 staking qualification shadow requires AGENT_RUNTIME_V2_ENABLED and Postgres');
+  } else if (config.FINANCIAL_COMMANDS_V2_ENABLED) {
+    appLogger.error('V2 financial command shadow requires AGENT_RUNTIME_V2_ENABLED');
+  } else if (config.FINANCIAL_RECONCILIATION_V2_ENABLED) {
+    appLogger.error('V2 financial reconciliation requires AGENT_RUNTIME_V2_ENABLED');
+  } else if (config.REVIEWED_OPERATION_TASKS_V2_ENABLED) {
+    appLogger.error('reviewed operation task handlers require AGENT_RUNTIME_V2_ENABLED and Postgres');
+  } else if (config.EVIDENCE_RESEARCH_CREDIT_V2_ENABLED) {
+    appLogger.error('reviewed x402 evidence requires REVIEWED_OPERATION_TASKS_V2_ENABLED, AGENT_RUNTIME_V2_ENABLED, and Postgres');
+  }
   bootAgents();
   // Telegram bot + notifier: both no-op cleanly when TELEGRAM_BOT_TOKEN is unset.
   try {

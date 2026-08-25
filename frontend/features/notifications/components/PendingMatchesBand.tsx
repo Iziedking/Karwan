@@ -3,8 +3,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, type MatchProposal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Button } from '@/shared/components/Button';
+import {
+  formatMatchingTimestamp,
+  presentMatchingState,
+  type MatchingPresentationTone,
+} from '@/features/jobs/matchingPresentation';
 import {
   Band,
   SectionTag,
@@ -47,7 +52,7 @@ export function PendingMatchesBand({ tone = 'light', headline }: Props) {
       <SectionTag tone={tone} dot="live">
         {t.matches.sectionTag}
       </SectionTag>
-      <HeroHeadline size="md">
+      <HeroHeadline as="h2" size="md">
         {computedHeadline}
         <Punc>.</Punc>
       </HeroHeadline>
@@ -84,30 +89,32 @@ function MatchRow({
   viewerAddress: string;
   tone: 'light' | 'dark';
 }) {
-  const t = useTranslations().pending;
+  const { locale, t: translations } = useLocale();
+  const t = translations.pending;
+  const matchingCopy = translations.negotiationCard;
   const me = viewerAddress.toLowerCase();
   const isSeller = proposal.sellerUser.toLowerCase() === me;
-  const counterparty = isSeller ? proposal.buyerUser : proposal.sellerUser;
   const role = isSeller ? t.card.roleSeller : t.card.roleBuyer;
   const counterRole = isSeller ? t.card.roleBuyer : t.card.roleSeller;
-  // Normalize the price display so a backend that stores 50.000000 reads as
-  // 50, and a true 50.49 stays at 50.49. Drops trailing zeros and keeps a
-  // 2-decimal floor when fractional.
-  const pendingRaise = proposal.awaitingParty === 'buyer' && !!proposal.raisedPriceUsdc;
-  const viewerMustAct = pendingRaise ? !isSeller : isSeller;
+  const presentation = presentMatchingState({ proposal, viewerAddress });
+  const stateCopy = matchingCopy.states[presentation.state];
+  const palette = matchingTonePalette(presentation.tone, tone);
   const priceDisplay = formatUsdcDisplay(
-    pendingRaise ? proposal.raisedPriceUsdc! : proposal.agreedPriceUsdc,
+    presentation.currentOffer?.amountUsdc ?? proposal.agreedPriceUsdc,
   );
-  const chipLabel = pendingRaise
-    ? isSeller
-      ? t.chips.awaitingBuyer
-      : t.chips.reviewPriceChange
-    : isSeller
-      ? t.chips.acceptToFund
-      : t.chips.awaitingSeller;
-  const chipFg = viewerMustAct ? '#0a7553' : '#b25425';
-  const chipBg = viewerMustAct ? 'rgba(10,117,83,0.10)' : 'rgba(178,84,37,0.10)';
-  const chipBorder = viewerMustAct ? 'rgba(10,117,83,0.35)' : 'rgba(178,84,37,0.40)';
+  const offerLabel = presentation.currentOffer
+    ? matchingCopy.offer[presentation.currentOffer.revision]
+    : matchingCopy.offer.unknown;
+  const updatedLabel = presentation.currentOffer
+    ? matchingCopy.offer.updatedTemplate.replace(
+        '{time}',
+        formatMatchingTimestamp(presentation.currentOffer.updatedAt, locale),
+      )
+    : null;
+  const counterpartyLabel =
+    !isSeller && proposal.counterpartyBusiness?.companyName?.trim()
+      ? proposal.counterpartyBusiness.companyName.trim()
+      : matchingCopy.counterpartyTemplate.replace('{role}', counterRole);
   const dark = tone === 'dark';
 
   return (
@@ -127,11 +134,16 @@ function MatchRow({
       <span
         aria-hidden
         className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: 'var(--lp-accent)' }}
+        style={{ background: palette.fg }}
       />
       <Link
         href={`/jobs/${proposal.jobId}`}
-        className="block px-5 py-4 ps-6 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        aria-label={`${stateCopy.headline} ${priceDisplay} ${t.card.unit}`}
+        data-matching-state={presentation.state}
+        data-matching-next-actor={presentation.nextActor}
+        className={`group block min-h-11 px-5 py-4 ps-6 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${
+          dark ? 'hover:bg-white/[0.03]' : 'hover:bg-black/[0.025]'
+        }`}
       >
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
@@ -139,13 +151,7 @@ function MatchRow({
               className="mono text-[10px] uppercase tracking-[0.18em]"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
-              [:{role} · {t.card.contextJob}:]{' '}
-              <span
-                className="tracking-normal normal-case"
-                style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
-              >
-                {proposal.jobId.slice(0, 10)}…{proposal.jobId.slice(-6)}
-              </span>
+              [:{role} · {stateCopy.tag}:]
             </span>
             <div className="mt-2 flex items-baseline gap-2">
               <span
@@ -165,8 +171,16 @@ function MatchRow({
               className="mt-2 mono text-[10px] uppercase tracking-[0.12em]"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
-              {counterRole} {counterparty.slice(0, 8)}…{counterparty.slice(-6)}
+              {counterpartyLabel}
             </p>
+            {updatedLabel ? (
+              <p
+                className="mt-1 mono text-[9px] uppercase tracking-[0.11em] tabular-nums"
+                style={{ color: dark ? 'rgba(255,255,255,0.48)' : 'var(--lp-text-muted)' }}
+              >
+                {offerLabel} · {updatedLabel}
+              </p>
+            ) : null}
             {proposal.deadlineUnix ? (
               <p
                 className="mt-1 mono text-[9px] uppercase tracking-[0.11em]"
@@ -174,11 +188,7 @@ function MatchRow({
               >
                 {t.card.dueTemplate.replace(
                   '{date}',
-                  new Intl.DateTimeFormat(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  }).format(proposal.deadlineUnix * 1000),
+                  formatMatchingTimestamp(proposal.deadlineUnix, locale),
                 )}
               </p>
             ) : null}
@@ -187,9 +197,9 @@ function MatchRow({
             <span
               className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
               style={{
-                background: dark ? 'var(--lp-card)' : chipBg,
-                color: chipFg,
-                border: `1px solid ${chipBorder}`,
+                background: palette.bg,
+                color: palette.fg,
+                border: `1px solid ${palette.border}`,
                 borderTopLeftRadius: 5,
                 borderTopRightRadius: 5,
                 borderBottomLeftRadius: 5,
@@ -199,7 +209,7 @@ function MatchRow({
               <span
                 aria-hidden
                 className="flex items-center justify-center px-1.5"
-                style={{ background: chipFg }}
+                style={{ background: palette.fg }}
               >
                 <span
                   aria-hidden
@@ -208,11 +218,17 @@ function MatchRow({
                   style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
                 />
               </span>
-              <span className="px-2 py-[6px]">{chipLabel}</span>
+              <span className="px-2 py-[6px]">{stateCopy.tag}</span>
             </span>
             <p
               className="mt-2 mono text-[10px] uppercase tracking-[0.12em] transition-colors"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
+            >
+              {matchingCopy.nextActors[presentation.nextActor]}
+            </p>
+            <p
+              className="mt-1 mono text-[10px] uppercase tracking-[0.12em]"
+              style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
             >
               {t.card.open} →
             </p>
@@ -221,6 +237,36 @@ function MatchRow({
       </Link>
     </li>
   );
+}
+
+function matchingTonePalette(tone: MatchingPresentationTone, surface: 'light' | 'dark') {
+  const dark = surface === 'dark';
+  if (tone === 'positive') {
+    return {
+      fg: dark ? '#6be39a' : '#0a7553',
+      bg: dark ? 'rgba(107,227,154,0.10)' : 'rgba(10,117,83,0.10)',
+      border: dark ? 'rgba(107,227,154,0.32)' : 'rgba(10,117,83,0.35)',
+    };
+  }
+  if (tone === 'attention') {
+    return {
+      fg: dark ? '#ffc857' : '#8a451d',
+      bg: dark ? 'rgba(255,200,87,0.10)' : 'rgba(178,84,37,0.10)',
+      border: dark ? 'rgba(255,200,87,0.32)' : 'rgba(178,84,37,0.40)',
+    };
+  }
+  if (tone === 'critical') {
+    return {
+      fg: dark ? '#ff8b8b' : '#9d3030',
+      bg: dark ? 'rgba(255,106,106,0.10)' : 'rgba(157,48,48,0.08)',
+      border: dark ? 'rgba(255,106,106,0.32)' : 'rgba(157,48,48,0.32)',
+    };
+  }
+  return {
+    fg: dark ? 'rgba(255,255,255,0.76)' : '#4f575f',
+    bg: dark ? 'rgba(255,255,255,0.06)' : 'rgba(79,87,95,0.08)',
+    border: dark ? 'rgba(255,255,255,0.16)' : 'rgba(79,87,95,0.24)',
+  };
 }
 
 function formatUsdcDisplay(raw: string): string {

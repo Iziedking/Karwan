@@ -11,6 +11,9 @@ import {
 } from '../db/agentWallets.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import type { FinancialCommandShadowObserver } from '../agents/financialCommandShadow.js';
+import { buildLegacyX402FundingObservation } from '../agents/financialCommandProjection.js';
+import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
 
 /// Buyer-side x402 client (Path A: same-chain self-pay on Arc Testnet).
 /// The buyer agent pays Karwan's own paid endpoints during bid scoring,
@@ -27,6 +30,20 @@ const ARC_NETWORK = 'eip155:5042002';
 const ARC_GATEWAY_DOMAIN = 26;
 const GATEWAY_WALLET_ADDR = '0x0077777d7EBA4688BDeF3E311b846F25870A19B9';
 const USDC_DECIMALS = 6;
+
+let x402GatewayFundingShadowObserver: FinancialCommandShadowObserver | null = null;
+
+/// Installs the additive x402 Gateway funding observer. It receives only
+/// immutable intent/submitted observations and cannot approve or submit the
+/// legacy approve/depositFor calls.
+export function configureX402GatewayFundingShadow(
+  observer: FinancialCommandShadowObserver | null,
+): () => void {
+  x402GatewayFundingShadowObserver = observer;
+  return () => {
+    if (x402GatewayFundingShadowObserver === observer) x402GatewayFundingShadowObserver = null;
+  };
+}
 
 export interface X402WalletRef {
   walletId: string;
@@ -102,6 +119,27 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const GATEWAY_CREDIT_POLLS = 5;
 const GATEWAY_CREDIT_POLL_MS = 1500;
 
+function publishX402GatewayFundingShadow(input: Parameters<typeof buildLegacyX402FundingObservation>[0]): void {
+  const observer = x402GatewayFundingShadowObserver;
+  if (!observer) return;
+  let data: ReturnType<typeof buildLegacyX402FundingObservation>;
+  try {
+    data = buildLegacyX402FundingObservation(input);
+  } catch (error) {
+    logger.warn(
+      { dealRoomId: input.dealRoomId, phase: input.phase, err: (error as Error).message },
+      'x402 Gateway funding shadow projection rejected',
+    );
+    return;
+  }
+  void observer({ data }).catch((error) => {
+    logger.warn(
+      { dealRoomId: input.dealRoomId, phase: input.phase, err: (error as Error).message },
+      'x402 Gateway funding shadow observation failed',
+    );
+  });
+}
+
 /// Top up the x402 EOA's Gateway deposit from the buyer agent SCA when the
 /// available balance can't cover the next call. One approve + one depositFor,
 /// both signed by the agent SCA on Arc (fast path). Returns the depositFor tx so
@@ -113,12 +151,42 @@ export async function ensureGatewayFunding(
   x402: X402WalletRef,
   neededUsd: number,
   payerWalletId: string,
+  dealRoomId = record.userAddress,
+): Promise<{ funded: boolean; availableUsd: number; depositTxHash?: string }> {
+  return gatewayFundingCoordinator.run(x402.address, () => ensureGatewayFundingOnce(
+    record,
+    x402,
+    neededUsd,
+    payerWalletId,
+    dealRoomId,
+  ));
+}
+
+async function ensureGatewayFundingOnce(
+  record: AgentWallets,
+  x402: X402WalletRef,
+  neededUsd: number,
+  payerWalletId: string,
+  dealRoomId = record.userAddress,
 ): Promise<{ funded: boolean; availableUsd: number; depositTxHash?: string }> {
   const availableUsd = await gatewayAvailableUsd(x402.address);
   if (availableUsd >= neededUsd) return { funded: true, availableUsd };
 
   const depositUsd = Math.max(config.X402_GATEWAY_DEPOSIT_USD, neededUsd);
   const amountAtomic = BigInt(Math.round(depositUsd * 10 ** USDC_DECIMALS));
+  const payerAgentAddress =
+    payerWalletId === record.buyerWalletId ? record.buyerAddress : record.sellerAddress;
+  publishX402GatewayFundingShadow({
+    dealRoomId,
+    payerAgentAddress,
+    gatewayWalletAddress: GATEWAY_WALLET_ADDR,
+    beneficiaryAddress: x402.address,
+    amountUsdc: depositUsd.toFixed(USDC_DECIMALS),
+    availableBeforeUsdc: availableUsd.toFixed(USDC_DECIMALS),
+    requiredUsdc: neededUsd.toFixed(USDC_DECIMALS),
+    observedAtUnix: Math.floor(Date.now() / 1_000),
+    phase: 'intent',
+  });
   logger.info(
     { user: record.userAddress, x402Address: x402.address, depositUsd, availableUsd },
     'x402: funding Gateway deposit from the paying agent wallet',
@@ -144,6 +212,18 @@ export async function ensureGatewayFunding(
     },
     'x402.gateway.depositFor',
   );
+  publishX402GatewayFundingShadow({
+    dealRoomId,
+    payerAgentAddress,
+    gatewayWalletAddress: GATEWAY_WALLET_ADDR,
+    beneficiaryAddress: x402.address,
+    amountUsdc: depositUsd.toFixed(USDC_DECIMALS),
+    availableBeforeUsdc: availableUsd.toFixed(USDC_DECIMALS),
+    requiredUsdc: neededUsd.toFixed(USDC_DECIMALS),
+    observedAtUnix: Math.floor(Date.now() / 1_000),
+    phase: 'submitted',
+    depositTxHash: deposit.txHash,
+  });
   // Persist the deposit tx on the user's record: batched settlement means later
   // paid calls have no on-chain tx of their own, so this deposit is the receipt
   // they all point at. Best-effort; the funding result still carries it fresh.
@@ -289,6 +369,7 @@ const CREDIT_PASSPORT_PRICE_USD = 0.01;
 export async function paidCreditPassport(
   payerAgentAddress: string,
   subjectAddress: string,
+  dealRoomId?: string,
 ): Promise<PaidPassportSignal> {
   const record = await findAgentWalletByAgentAddress(payerAgentAddress);
   if (!record) throw new Error('no agent wallet record behind the paying agent');
@@ -302,7 +383,13 @@ export async function paidCreditPassport(
       : record.buyerWalletId;
 
   const x402 = await ensureX402Wallet(record);
-  const funding = await ensureGatewayFunding(record, x402, CREDIT_PASSPORT_PRICE_USD, payerWalletId);
+  const funding = await ensureGatewayFunding(
+    record,
+    x402,
+    CREDIT_PASSPORT_PRICE_USD,
+    payerWalletId,
+    dealRoomId,
+  );
   if (!funding.funded) {
     throw new Error(
       `Gateway deposit not yet credited (available ${funding.availableUsd} USDC); retrying on a later bid`,

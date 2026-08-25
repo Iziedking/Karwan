@@ -46,10 +46,12 @@ export function useIsPanelViewport(): boolean {
   return isPanel;
 }
 
-/// Turns on proximity snapping for the document while the landing is mounted,
-/// and takes it away on leave. Proximity, never mandatory: a row taller than the
-/// screen has to stay scrollable a line at a time. Breakpoint and reduced-motion
-/// exclusions live in CSS so one rule owns the whole decision.
+/// Marks the document as the landing while it is mounted, and unmarks it on
+/// leave. It no longer snaps: rows are a screen tall so each arrives whole, but
+/// the scroll between them is free, because snapping took hold of the end of
+/// every flick and made the page read as fixed slides. What the class still
+/// carries is `scroll-padding-top`, so an in-page anchor does not land under the
+/// sticky chrome.
 export function usePanelSnap(): void {
   useEffect(() => {
     const root = document.documentElement;

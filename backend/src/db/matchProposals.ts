@@ -3,6 +3,27 @@ import { dirname, resolve } from 'node:path';
 import { eq, or, desc } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { matchProposals as matchProposalsTable } from './schema.js';
+import { logger } from '../logger.js';
+import type {
+  MatchProposalRevisionObservation,
+  MatchProposalRevisionStore,
+} from '../negotiation/proposalRevision.js';
+
+let matchProposalRevisionObserver: MatchProposalRevisionStore | null = null;
+
+/**
+ * Installs the optional read-only proposal history observer. Legacy proposal
+ * persistence remains authoritative; observer failures are logged and never
+ * change the result of the legacy write.
+ */
+export function configureMatchProposalRevisionObserver(
+  observer: MatchProposalRevisionStore | null,
+): () => void {
+  matchProposalRevisionObserver = observer;
+  return () => {
+    if (matchProposalRevisionObserver === observer) matchProposalRevisionObserver = null;
+  };
+}
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'match-proposals.json');
 
@@ -75,12 +96,22 @@ export interface MatchProposal {
     score: number;
     amountUsd: number;
     transaction: string;
+    /// Stable provider and purchased claim for the user-visible receipt.
+    /// Optional for legacy rows written before this receipt contract.
+    providerId?: string;
+    claim?: string;
+    /// The legacy deterministic path remained authoritative. This makes the
+    /// shadow result's effect explicit instead of implying a trust upgrade.
+    decisionImpact?: 'legacy_match_unchanged';
     /// The agent's x402 payer wallet. Its Arc token history is the on-chain
     /// proof of the paid pull even when the batched settlement has no per-call
     /// hash. Carried onto the deal so the counterparty report can link it.
     payer?: string;
     /// The Arc depositFor tx that funded this pull, when a top-up was needed.
     depositTxHash?: string;
+    /// Durable evidence snapshot id from the read-only evidence shadow. It is
+    /// absent when the shadow is disabled, so the UI never invents durability.
+    evidenceId?: string;
     paidAt: number;
   };
   /// Market read the agent PAID for over x402 on Base mainnet (Exa web search,
@@ -174,12 +205,29 @@ export async function upsertMatchProposal(proposal: MatchProposal): Promise<Matc
           data: next,
         },
       });
+    publishMatchProposalRevision(next);
     return next;
   }
   const store = loadFile();
   store[next.jobId] = next;
   saveFile(store);
+  publishMatchProposalRevision(next);
   return next;
+}
+
+function publishMatchProposalRevision(proposal: MatchProposal): void {
+  const observer = matchProposalRevisionObserver;
+  if (!observer) return;
+  const observation: MatchProposalRevisionObservation = {
+    proposal: structuredClone(proposal),
+    observedAt: Math.floor(Date.now() / 1_000),
+  };
+  void observer.observe(observation).catch((error) => {
+    logger.warn(
+      { err: error instanceof Error ? error.message : String(error), jobId: proposal.jobId },
+      'match proposal revision audit failed',
+    );
+  });
 }
 
 export async function listMatchProposalsForUser(

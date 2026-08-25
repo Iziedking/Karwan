@@ -21,7 +21,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Verify backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: karwan_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d karwan_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/karwan_test
+      KARWAN_JOBBOARD_ADDR: '0x0000000000000000000000000000000000000001'
+      KARWAN_ESCROW_ADDR: '0x0000000000000000000000000000000000000002'
+      KARWAN_REPUTATION_ADDR: '0x0000000000000000000000000000000000000003'
+      KARWAN_VAULT_ADDR: '0x0000000000000000000000000000000000000004'
+      IDENTITY_REGISTRY_ADDR: '0x0000000000000000000000000000000000000005'
+      USDC_ADDR: '0x0000000000000000000000000000000000000006'
+      AGENT_RUNTIME_V2_ENABLED: '0'
+      MATCH_ENGINE_V2_SHADOW: '0'
+      NEGOTIATION_V2_SHADOW: '0'
+      NEGOTIATION_V2_ENABLED: '0'
+      FINANCIAL_COMMANDS_V2_ENABLED: '0'
+      EVENT_OUTBOX_V2_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test backend with PostgreSQL
+        run: npm --prefix backend run test:ci
+
+      - name: Build backend
+        run: npm --prefix backend run build
+
   build-and-push:
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

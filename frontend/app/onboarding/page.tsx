@@ -26,6 +26,15 @@ import {
   stepAfterAuthentication,
   type OnboardingStep,
 } from '@/features/onboarding/journey';
+import {
+  BUYER_BUDGET_PRESETS,
+  DEADLINE_PRESETS,
+  MILESTONE_PRESETS,
+  SELLER_BUDGET_PRESETS,
+  hasSkill,
+  toggleSkill,
+  type MatchingRange,
+} from '@/features/onboarding/sellerSetup';
 
 /// `bg-white` here was a literal, while the text beside it was `--lp-dark`, which
 /// inverts to #ededed under the dark theme. So every onboarding input rendered
@@ -541,7 +550,7 @@ function OnboardingInner() {
             <GetReadyStep
               address={address}
               onDone={() =>
-                router.push(accountType === 'business' ? '/profile?verify=business' : '/profile')
+                router.push(accountType === 'business' ? '/business/verification' : '/profile')
               }
               onBack={() => setStep('profile')}
             />
@@ -558,33 +567,37 @@ function OnboardingInner() {
 }
 
 function ProgressDots({ current, total }: { current: number; total: number }) {
+  const label = useTranslations().onboarding.stepIndicator
+    .replace('{step}', String(current))
+    .replace('{total}', String(total));
   return (
-    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-white/15 bg-white/[0.04]">
+    <div
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={1}
+      aria-valuemax={total}
+      aria-valuenow={current}
+      className="mx-auto flex w-full max-w-[360px] items-center"
+    >
       {Array.from({ length: total }).map((_, i) => {
         const n = i + 1;
         const isActive = n === current;
         const isDone = n < current;
         return (
-          <span
-            key={i}
-            aria-hidden
-            className="inline-flex items-center gap-2"
-          >
+          <span key={i} aria-hidden className="flex min-w-0 flex-1 items-center last:flex-none">
             <span
-              className="w-[7px] h-[7px] transition-colors"
-              style={{
-                background: isActive
-                  ? 'var(--lp-accent)'
-                  : isDone
-                    ? 'rgba(175, 201, 91,0.5)'
-                    : 'rgba(255,255,255,0.20)',
-                animation: isActive ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
-              }}
-              data-instrument-blink={isActive || undefined}
-            />
-            {n < total && (
-              <span className="w-4 h-px bg-white/15" />
-            )}
+              className={cn(
+                'inline-flex size-6 shrink-0 items-center justify-center rounded-full border font-sans text-[11px] font-bold transition-[background-color,border-color,color,box-shadow]',
+                isDone && 'border-[var(--lp-accent)] bg-transparent text-[var(--lp-accent)]',
+                isActive && 'border-[var(--lp-accent)] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_0_0_5px_rgba(175,201,91,0.18)]',
+                !isDone && !isActive && 'border-white/25 bg-transparent text-white/45',
+              )}
+            >
+              {isDone ? '✓' : n}
+            </span>
+            {n < total ? (
+              <span className={cn('h-px min-w-3 flex-1', isDone ? 'bg-[var(--lp-accent)]' : 'bg-white/20')} />
+            ) : null}
           </span>
         );
       })}
@@ -811,14 +824,14 @@ function AccountTypeStep({
   const t = useTranslations().onboarding;
   const ats = t.accountTypeStep;
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="fade-up">
         <p className="text-start text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[50ch] mx-auto">
           {ats.description}
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+      <div className="mx-auto grid max-w-2xl gap-3 md:grid-cols-2 md:gap-4">
         <div className="fade-up fade-up-1">
           <AccountCard
             kind="person"
@@ -922,21 +935,21 @@ function AccountCard({
         borderBottomRightRadius: 5,
       }}
     >
-      <div className="flex h-full flex-col p-6">
+      <div className="flex h-full flex-col p-5 sm:p-6">
         {/* The same mark the nav badge carries. Shown at full size here, where
             there is room to learn it next to the words it stands for. */}
-        <span className="block mb-4">
-          <AccountKindIcon kind={kind === 'business' ? 'business' : 'individual'} size={28} />
-        </span>
-        <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
-          {eyebrow}
-        </span>
-        <h2 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
+        <div className="flex items-center justify-between gap-4">
+          <AccountKindIcon kind={kind === 'business' ? 'business' : 'individual'} size={26} />
+          <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
+            {eyebrow}
+          </span>
+        </div>
+        <h2 className="mt-3 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04] sm:mt-5 sm:text-[22px]">
           {title}
         </h2>
-        <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
-        <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>{tagline}</p>
-        <div className="mt-auto flex items-center justify-between pt-5">
+        <p className={cn('mt-2.5 text-pretty text-[13.5px] leading-relaxed sm:mt-3', muted)}>{body}</p>
+        <p className={cn('mt-4 hidden mono text-[11px] uppercase tracking-[0.08em] sm:block', tagColor)}>{tagline}</p>
+        <div className="mt-auto flex items-center justify-between pt-3 sm:pt-5">
           <span
             className={cn(
               'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
@@ -989,7 +1002,7 @@ function RoleStep({
 }) {
   const t = useTranslations().onboarding.roleStep;
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="fade-up max-w-[50ch] mx-auto text-start">
         <p className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
           {t.connectedAs}{' '}
@@ -1000,7 +1013,7 @@ function RoleStep({
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid gap-3 md:grid-cols-3 md:gap-4">
         <div className="fade-up fade-up-1">
           <RoleCard
             role="seller"
@@ -1139,7 +1152,7 @@ function RoleCard({
         borderBottomRightRadius: 5,
       }}
     >
-      <div className="flex h-full flex-col p-6">
+      <div className="flex h-full flex-col p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
             {eyebrow}
@@ -1158,14 +1171,14 @@ function RoleCard({
             </span>
           )}
         </div>
-        <h2 className="mt-5 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04]">
+        <h2 className="mt-3 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04] sm:mt-5 sm:text-[22px]">
           {title}
         </h2>
-        <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
-        <p className={cn('mt-4 mono text-[11px] uppercase tracking-[0.08em]', tagColor)}>
+        <p className={cn('mt-2.5 text-pretty text-[13.5px] leading-relaxed sm:mt-3', muted)}>{body}</p>
+        <p className={cn('mt-4 hidden mono text-[11px] uppercase tracking-[0.08em] sm:block', tagColor)}>
           {tagline}
         </p>
-        <div className="mt-auto flex items-center justify-between pt-5">
+        <div className="mt-auto flex items-center justify-between pt-3 sm:pt-5">
           <span
             className={cn(
               'inline-flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all',
@@ -1215,7 +1228,7 @@ function TradeTypeChooser({
   options: { value: 'goods' | 'services' | 'both'; label: string }[];
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
       {options.map((o) => {
         const sel = value === o.value;
         return (
@@ -1235,6 +1248,158 @@ function TradeTypeChooser({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function SkillSuggestions({
+  label,
+  value,
+  onChange,
+  suggestions,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  suggestions: string[];
+}) {
+  return (
+    <div aria-label={label} className="flex flex-wrap gap-2">
+      {suggestions.map((skill) => {
+        const selected = hasSkill(value, skill);
+        return (
+          <button
+            key={skill}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(toggleSkill(value, skill))}
+            className={cn(
+              'inline-flex min-h-11 items-center rounded-full border px-4 py-2 font-sans text-[13px] font-semibold transition-[background-color,border-color,color,transform]',
+              'active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
+              selected
+                ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)] hover:text-[var(--lp-dark)]',
+            )}
+          >
+            <span aria-hidden className="me-2 text-[14px]">{selected ? '✓' : '+'}</span>
+            {skill}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MatchingPreview({
+  eyebrow,
+  title,
+  body,
+  budget,
+  delivery,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  budget: string;
+  delivery?: string;
+}) {
+  return (
+    <div className="border-s-2 border-[var(--lp-accent)] bg-[var(--lp-light)] px-4 py-4 sm:px-5">
+      <p className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        [:{eyebrow}:]
+      </p>
+      <p className="mt-2 text-pretty font-sans text-[17px] font-extrabold leading-snug tracking-[-0.02em] text-[var(--lp-dark)]">
+        {title}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-sans text-[14px] font-bold tabular-nums text-[var(--lp-dark)]">
+        <span>{budget}</span>
+        {delivery ? <span>{delivery}</span> : null}
+      </div>
+      <p className="mt-3 max-w-[60ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p>
+    </div>
+  );
+}
+
+function RangePresets({
+  label,
+  ranges,
+  currentMin,
+  currentMax,
+  onSelect,
+  suffix,
+}: {
+  label: string;
+  ranges: readonly MatchingRange[];
+  currentMin: number;
+  currentMax: number;
+  onSelect: (range: MatchingRange) => void;
+  suffix: string;
+}) {
+  return (
+    <div className="space-y-2.5">
+      <p className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">{label}</p>
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+        {ranges.map((range) => {
+          const selected = currentMin === range.min && currentMax === range.max;
+          return (
+            <button
+              key={`${range.min}-${range.max}`}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onSelect(range)}
+              className={cn(
+                'min-h-11 rounded-lg border px-3 py-2 font-sans text-[12px] font-bold tabular-nums transition-colors',
+                selected
+                  ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                  : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
+              )}
+            >
+              {range.min.toLocaleString()}–{range.max.toLocaleString()} {suffix}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ValuePresets<T extends string | number>({
+  label,
+  values,
+  current,
+  onSelect,
+  format,
+}: {
+  label: string;
+  values: readonly T[];
+  current: T;
+  onSelect: (value: T) => void;
+  format: (value: T) => string;
+}) {
+  return (
+    <div className="space-y-2.5">
+      <p className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">{label}</p>
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
+        {values.map((value) => {
+          const selected = current === value;
+          return (
+            <button
+              key={String(value)}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onSelect(value)}
+              className={cn(
+                'min-h-11 rounded-lg border px-3 py-2 font-sans text-[12px] font-bold tabular-nums transition-colors',
+                selected
+                  ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                  : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
+              )}
+            >
+              {format(value)}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1286,6 +1451,8 @@ function BusinessProfileStep(props: {
   const t = useTranslations().onboarding;
   const common = useTranslations().common;
   const bs = t.businessProfileStep;
+  const ps = t.profileStep;
+  const skillSuggestions = Object.values(ps.seller.skillSuggestions);
   const [panel, setPanel] = useState(0);
   const totalPanels = 3;
   const panelValid =
@@ -1327,13 +1494,21 @@ function BusinessProfileStep(props: {
           <input
             value={props.skills}
             onChange={(e) => props.setSkills(e.target.value)}
+            placeholder={ps.seller.skillsHint}
             className={ONBOARDING_FIELD_CLASS}
           />
         </Field>
+        <SkillSuggestions
+          label={ps.seller.skillsLabel}
+          value={props.skills}
+          onChange={props.setSkills}
+          suggestions={skillSuggestions}
+        />
         <Field label={bs.aboutLabel} hint={bs.aboutHint}>
           <textarea
             value={props.bio}
             onChange={(e) => props.setBio(e.target.value)}
+            placeholder={ps.seller.bioHint}
             rows={2}
             className={cn(ONBOARDING_FIELD_CLASS, 'min-h-28 resize-y leading-relaxed')}
           />
@@ -1343,6 +1518,23 @@ function BusinessProfileStep(props: {
 
       {panel === 2 && (
       <ProfileSection number="03" title={bs.dealEyebrow}>
+        <MatchingPreview
+          eyebrow={ps.matching.eyebrow}
+          title={ps.matching.sellerTitle}
+          body={ps.matching.sellerBody}
+          budget={`${props.dealMin.toLocaleString()}–${props.dealMax.toLocaleString()} USDC`}
+        />
+        <RangePresets
+          label={ps.matching.dealSizePresets}
+          ranges={SELLER_BUDGET_PRESETS}
+          currentMin={props.dealMin}
+          currentMax={props.dealMax}
+          onSelect={(range) => {
+            props.setDealMin(range.min);
+            props.setDealMax(range.max);
+          }}
+          suffix="USDC"
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <NumField label={bs.minLabel} value={props.dealMin} setValue={props.setDealMin} />
           <NumField label={bs.maxLabel} value={props.dealMax} setValue={props.setDealMax} />
@@ -1419,6 +1611,7 @@ function ProfileStep(props: {
   const t = useTranslations().onboarding;
   const common = useTranslations().common;
   const ps = t.profileStep;
+  const skillSuggestions = Object.values(ps.seller.skillSuggestions);
   const wantsSeller = props.role === 'seller' || props.role === 'both';
   const wantsBuyer = props.role === 'buyer' || props.role === 'both';
   type ProfilePanel = 'identity' | 'sellerDetails' | 'sellerLimits' | 'buyer';
@@ -1474,13 +1667,21 @@ function ProfileStep(props: {
             <input
               value={props.skills}
               onChange={(e) => props.setSkills(e.target.value)}
+              placeholder={ps.seller.skillsHint}
               className={ONBOARDING_FIELD_CLASS}
             />
           </Field>
+          <SkillSuggestions
+            label={ps.seller.skillsLabel}
+            value={props.skills}
+            onChange={props.setSkills}
+            suggestions={skillSuggestions}
+          />
           <Field label={ps.seller.bioLabel} hint={ps.seller.bioHint}>
             <textarea
               value={props.bio}
               onChange={(e) => props.setBio(e.target.value)}
+              placeholder={ps.seller.bioHint}
               rows={2}
               className={cn(ONBOARDING_FIELD_CLASS, 'min-h-28 resize-y leading-relaxed')}
             />
@@ -1490,6 +1691,35 @@ function ProfileStep(props: {
 
       {currentPanel === 'sellerLimits' && (
         <ProfileSection number={String(panel + 1).padStart(2, '0')} eyebrow={ps.seller.eyebrow} title={ps.seller.title}>
+          <MatchingPreview
+            eyebrow={ps.matching.eyebrow}
+            title={ps.matching.sellerTitle}
+            body={ps.matching.sellerBody}
+            budget={`${props.sellerMin.toLocaleString()}–${props.sellerMax.toLocaleString()} USDC`}
+            delivery={`${props.sellerMinDays}–${props.sellerMaxDays} DAYS`}
+          />
+          <RangePresets
+            label={ps.matching.dealSizePresets}
+            ranges={SELLER_BUDGET_PRESETS}
+            currentMin={props.sellerMin}
+            currentMax={props.sellerMax}
+            onSelect={(range) => {
+              props.setSellerMin(range.min);
+              props.setSellerMax(range.max);
+            }}
+            suffix="USDC"
+          />
+          <RangePresets
+            label={ps.matching.deliveryPresets}
+            ranges={DEADLINE_PRESETS}
+            currentMin={props.sellerMinDays}
+            currentMax={props.sellerMaxDays}
+            onSelect={(range) => {
+              props.setSellerMinDays(range.min);
+              props.setSellerMaxDays(range.max);
+            }}
+            suffix="DAYS"
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <NumField
               label={ps.seller.minBudgetLabel}
@@ -1525,6 +1755,31 @@ function ProfileStep(props: {
           eyebrow={ps.buyer.eyebrow}
           title={ps.buyer.title}
         >
+          <MatchingPreview
+            eyebrow={ps.matching.eyebrow}
+            title={ps.matching.buyerTitle}
+            body={ps.matching.buyerBody}
+            budget={`≤ ${props.buyerMax.toLocaleString()} USDC`}
+            delivery={`${props.buyerMinDays}–${props.buyerMaxDays} DAYS`}
+          />
+          <ValuePresets
+            label={ps.matching.dealSizePresets}
+            values={BUYER_BUDGET_PRESETS}
+            current={props.buyerMax}
+            onSelect={props.setBuyerMax}
+            format={(value) => `≤ ${value.toLocaleString()} USDC`}
+          />
+          <RangePresets
+            label={ps.matching.deliveryPresets}
+            ranges={DEADLINE_PRESETS}
+            currentMin={props.buyerMinDays}
+            currentMax={props.buyerMaxDays}
+            onSelect={(range) => {
+              props.setBuyerMinDays(range.min);
+              props.setBuyerMaxDays(range.max);
+            }}
+            suffix="DAYS"
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <NumField
               label={ps.buyer.maxBudgetLabel}
@@ -1555,6 +1810,13 @@ function ProfileStep(props: {
               className={cn(ONBOARDING_FIELD_CLASS, 'mono')}
             />
           </Field>
+          <ValuePresets
+            label={ps.matching.milestonePresets}
+            values={MILESTONE_PRESETS}
+            current={props.milestoneSplit}
+            onSelect={props.setMilestoneSplit}
+            format={(value) => value.split(',').map((part) => `${part}%`).join(' · ')}
+          />
         </ProfileSection>
       )}
 
@@ -1618,7 +1880,7 @@ function ProfileSection({
         boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 22px 54px -30px rgba(0,0,0,0.22)',
       }}
     >
-      <header className="border-b border-[var(--lp-border-light)] bg-[linear-gradient(135deg,rgba(175,201,91,0.10),transparent_62%)] px-6 py-5 sm:px-8 sm:py-6">
+      <header className="border-b border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-5 sm:px-8 sm:py-6">
         <div className="flex items-center gap-3">
           <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[var(--lp-band-dark)] font-sans text-[14px] font-extrabold tabular-nums text-[var(--lp-accent)]">
             {number}
@@ -1633,7 +1895,7 @@ function ProfileSection({
           {title}
         </h2>
       </header>
-      <div className="space-y-6 px-6 py-6 sm:px-8 sm:py-7">{children}</div>
+      <div className="space-y-6 px-5 py-5 sm:px-8 sm:py-7">{children}</div>
     </section>
   );
 }

@@ -19,6 +19,7 @@ import { NearMissCard } from './NearMissCard';
 import { OutOfReachCard } from './OutOfReachCard';
 import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
+import { presentMatchingState } from '../matchingPresentation';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 import {
   FullBleed,
@@ -46,7 +47,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const lj = t.liveJob;
   const { job, refresh: refreshJob } = useJobSnapshot(initial);
   const { address } = useAuth();
-  const { events, active, completed, declined, ended, outOfReach } = useJobLiveState(
+  const { events, active, completed, declined, ended, recoverable, outOfReach } = useJobLiveState(
     job,
     address ?? undefined,
   );
@@ -84,6 +85,26 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   // empty or mislead them. Defaults to buyer when the flag is absent (older
   // cached snapshot) since only an explicit false marks a seller.
   const viewerIsBuyer = job.viewerIsBuyer !== false;
+
+  // Keep the page-level status chip on the same pure presentation contract as
+  // the notification band and negotiation card. This is read-only: it does
+  // not infer authority or trigger any command, wallet, or provider action.
+  const matchingPresentation = presentMatchingState({
+    events,
+    proposal,
+    job,
+    viewerAddress: address,
+    viewerRole: viewerIsBuyer ? 'buyer' : 'seller',
+  });
+  const recoverableState =
+    matchingPresentation.state === 'reengagement_scheduled' || recoverable === 'reengagement_scheduled'
+      ? 'reengagement_scheduled'
+      : matchingPresentation.state === 'paused_needs_approval' || recoverable === 'needs_approval'
+        ? 'paused_needs_approval'
+        : matchingPresentation.state === 'status_updating' || recoverable === 'status_updating'
+          ? 'status_updating'
+          : 'temporarily_unavailable';
+  const recoverableStateCopy = t.negotiationCard.states[recoverableState];
 
   // B2B trade: a verified business trading goods/mixed lands on the finance
   // lane. It gets the business treatment — a trade eyebrow and a trade-context
@@ -123,6 +144,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         ? { label: lj.outOfReach.title, tone: 'default', live: false }
         : declined
         ? { label: lj.statusLabels.negotiationEnded, tone: 'critical', live: false }
+        : (recoverable || matchingPresentation.recoverable) && !matchPending && !proposal
+          ? {
+              label: recoverableStateCopy.headline,
+              tone: 'default',
+              live: true,
+            }
         : matchPending
           ? {
               label: lj.statusLabels.matchAwaitingTemplate.replace(
@@ -223,6 +250,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             <StatTile label={lj.stats.statusLabel} value={lj.stats.expired} small />
           ) : declined ? (
             <StatTile label={lj.stats.statusLabel} value={lj.stats.ended} small />
+          ) : recoverable || matchingPresentation.recoverable ? (
+            <StatTile
+              label={lj.stats.statusLabel}
+              value={recoverableStateCopy.tag}
+              small
+            />
           ) : (
             <StatTile label={lj.stats.deadline} value={relativeTime(job.deadlineUnix)} small />
           )}
@@ -427,7 +460,9 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                 <NegotiationCard
                   events={events}
                   explorer={explorer}
-                  terminal={expired || declined || ended === 'out-of-reach'}
+                  job={job}
+                  proposal={proposal}
+                  viewerAddress={address}
                 />
               </div>
             )}

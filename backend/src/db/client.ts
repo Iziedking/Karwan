@@ -3,12 +3,14 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import * as schema from './schema.js';
+import { runNumberedMigrations, type SqlExecutor } from './migrations.js';
 
 // Postgres is used when DATABASE_URL is set. Without it, the db modules fall
 // back to flat-file persistence so local dev still works.
 export const pgEnabled = !!config.DATABASE_URL;
 
 let _db: NodePgDatabase<typeof schema> | null = null;
+let _pool: pg.Pool | null = null;
 
 if (pgEnabled) {
   // Bounded pool. Over a localhost VPS Postgres the watchers' reads are cheap,
@@ -21,6 +23,7 @@ if (pgEnabled) {
     connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT_MS ?? 10_000),
   });
   pool.on('error', (err) => logger.error({ err: err.message }, 'pg pool error'));
+  _pool = pool;
   _db = drizzle(pool, { schema });
 }
 
@@ -300,5 +303,36 @@ export async function ensureSchema(): Promise<void> {
       'unique money-path indexes could not be created — duplicate rows likely exist; repair the data, these invariants are NOT enforced until this succeeds',
     );
   }
+  if (!_pool) throw new Error('Postgres pool unavailable during migration');
+  const migrationClient = await _pool.connect();
+  try {
+    const applied = await runNumberedMigrations(migrationClient);
+    if (applied.length > 0) logger.info({ versions: applied }, 'postgres migrations applied');
+  } finally {
+    migrationClient.release();
+  }
   logger.info('postgres schema ensured');
+}
+
+export function postgresExecutor(): SqlExecutor {
+  if (!_pool) throw new Error('Postgres is not enabled (DATABASE_URL unset)');
+  return _pool;
+}
+
+export async function withPostgresTransaction<T>(
+  operation: (executor: SqlExecutor) => Promise<T>,
+): Promise<T> {
+  if (!_pool) throw new Error('Postgres is not enabled (DATABASE_URL unset)');
+  const client = await _pool.connect();
+  await client.query('BEGIN');
+  try {
+    const result = await operation(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }

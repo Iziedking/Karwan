@@ -59,6 +59,25 @@ backend/data/
 
 # internal, not for public repo
 PLAN.md
+# Catch internal planning artifacts even when a tool creates them under a
+# different planning filename or folder. Public product and operator docs stay
+# tracked unless they match one of these explicit conventions.
+/PLAN-*.md
+/*_PLAN.md
+/todo*.md
+/SESSION_STATE*.md
+/SESSION-HANDOFF-*.md
+/docs/plans/
+/docs/specs/
+/docs/internal/
+/docs/drafts/
+/docs/handoffs/
+/docs/audits/
+/docs/**/*-plan.md
+/docs/**/*_PLAN.md
+/docs/**/*-roadmap*.md
+/docs/**/*-research*.md
+/docs/**/todo*.md
 docs/current-build.md
 docs/superpowers/
 USYC.md
@@ -66,6 +85,7 @@ todo.md
 docs/ignyte-demo-runbook.md
 docs/agent.md
 docs/agent_reasoning.md
+docs/Accountability_PLAN.md
 docs/agent-restructure.md
 docs/api-healthcheck.md
 scripts/api-healthcheck.mjs
@@ -104,13 +124,13 @@ docs/newsletters/
 .vercel
 .env*.local
 
-# Arc House community posts (drafts, banners, screenshots) — internal
+# Arc House community posts (drafts, banners, screenshots): internal
 arc_house/
 
 # private audit + redeploy planning
 audit/
 
-# hackathon submission documents — internal
+# hackathon submission documents: internal
 submission/
 banners/
 # deck generator, local tooling only

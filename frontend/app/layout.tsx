@@ -14,7 +14,13 @@ import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
 import { DialogProvider } from '@/shared/components/Dialog';
 import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
+import { PageFeedbackPrompt } from '@/shared/components/PageFeedbackPrompt';
 import { SpeedInsights } from '@vercel/speed-insights/next'
+
+// The Vercel script is only served inside a Vercel deployment. Rendering it
+// during an optimized local run creates a guaranteed 404 and obscures real
+// application errors in the console.
+const SPEED_INSIGHTS_AVAILABLE = process.env.VERCEL === '1';
 
 // Geist, Geist Mono, and Instrument Serif are self-hosted (woff2 in ./fonts)
 // instead of pulled from next/font/google. The Google fetch runs at build time
@@ -160,6 +166,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               topNav={<TopNav />}
               profileNudge={<ProfileNudge />}
               footer={<SiteFooter />}
+              feedback={<PageFeedbackPrompt />}
               bottomNav={<WorkspaceBottomNav />}
               notifications={<NotificationToasts />}
               guide={<GuideWelcome />}
@@ -169,7 +176,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </ChromeFrame>
           </DialogProvider>
         </AppProviders>
-        <SpeedInsights />
+        {SPEED_INSIGHTS_AVAILABLE ? <SpeedInsights /> : null}
       </body>
     </html>
   );

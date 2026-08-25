@@ -18,12 +18,30 @@ import { researchMarket } from '../x402/externalClient.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { saveScoutRead, recentScoutReads } from '../db/scoutReads.js';
 import { randomUUID } from 'node:crypto';
+import type { EvidenceAcquisitionShadowObserver } from '../agents/evidenceAcquisitionShadow.js';
+import { buildResearchScoutEvidenceAcquisitionObservation } from '../agents/evidenceAcquisitionProjection.js';
 
 /// "Agent research" activation. The user pays a one-time fee in USDC on Arc
 /// from their agent wallet; it becomes a prepaid credit the agent draws down as
 /// it pays for live market research (x402, off-platform). UI copy never says
 /// "x402"; it frames this as the agent paying for its own research.
 export const researchRoutes = new Hono();
+
+let researchScoutEvidenceShadowObserver: EvidenceAcquisitionShadowObserver | null = null;
+
+/**
+ * Installs the optional read-only scout evidence observer. The legacy scout
+ * provider call and research-credit charge remain authoritative; this hook
+ * only enqueues a durable shadow observation after the result is available.
+ */
+export function configureResearchScoutEvidenceShadow(
+  observer: EvidenceAcquisitionShadowObserver | null,
+): () => void {
+  researchScoutEvidenceShadowObserver = observer;
+  return () => {
+    if (researchScoutEvidenceShadowObserver === observer) researchScoutEvidenceShadowObserver = null;
+  };
+}
 
 const USDC_DECIMALS = 6;
 
@@ -212,6 +230,27 @@ researchRoutes.post('/scout', async (c) => {
   } catch (err) {
     logger.warn({ owner, err: (err as Error).message }, 'market scout failed');
     return c.json({ error: 'scout failed', detail: (err as Error).message }, 502);
+  }
+
+  // Observe the already-completed legacy read before billing/accounting below.
+  // Any enqueue failure is isolated so the existing scout response and credit
+  // semantics remain unchanged.
+  const evidenceObserver = researchScoutEvidenceShadowObserver;
+  if (evidenceObserver) {
+    try {
+      const data = buildResearchScoutEvidenceAcquisitionObservation(read, owner);
+      void evidenceObserver({ data }).catch((err) => {
+        logger.warn(
+          { owner, err: (err as Error).message },
+          'research scout evidence shadow observation failed',
+        );
+      });
+    } catch (err) {
+      logger.warn(
+        { owner, err: (err as Error).message },
+        'research scout evidence shadow projection failed',
+      );
+    }
   }
 
   // Bill the user's credit only on a fresh paid call. A shared in-flight read

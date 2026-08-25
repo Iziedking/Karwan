@@ -629,7 +629,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
             key={c.tag}
             index={i}
             hoverLift
-            className="group relative flex min-w-[min(78vw,320px)] snap-start flex-col p-7 aspect-[4/5] sm:min-w-0"
+            className="group relative flex min-w-full snap-start flex-col p-7 aspect-[4/5] sm:min-w-0"
             style={{
               background: 'var(--surface-1)',
               border: '1px solid var(--lp-border-subtle)',
@@ -726,7 +726,7 @@ function RailDots({
             aria-current={current ? 'true' : undefined}
             // 44px tap target around a 7px dot: the dot is the mark, the button
             // is the thing a thumb can actually hit.
-            className="grid h-11 w-7 place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="grid h-11 w-11 place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
             <span
               aria-hidden

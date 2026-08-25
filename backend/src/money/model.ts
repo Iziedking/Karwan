@@ -53,6 +53,16 @@ export type MoneyMovementLegState =
   | 'verified'
   | 'failed';
 
+/** Provider lifecycle is deliberately separate from the legacy leg state.
+ * UNKNOWN and RECONCILING preserve an attempt without authorizing a retry. */
+export type MoneyMovementProviderLifecycle =
+  | 'CREATED'
+  | 'SUBMITTED'
+  | 'UNKNOWN'
+  | 'RECONCILING'
+  | 'SETTLED'
+  | 'FAILED';
+
 export interface MoneyMovementParty {
   address: string;
   role: MoneyMovementPartyRole;
@@ -73,6 +83,7 @@ export interface MoneyMovementLeg {
   contractAddress?: string;
   amountMicros?: string;
   providerId?: string;
+  providerLifecycle?: MoneyMovementProviderLifecycle;
   txHash?: string;
   explorerUrl?: string;
   failureCode?: string;
@@ -138,6 +149,18 @@ const LEG_TRANSITIONS: Record<MoneyMovementLegState, ReadonlySet<MoneyMovementLe
   failed: new Set(),
 };
 
+const PROVIDER_LIFECYCLE_TRANSITIONS: Record<
+  MoneyMovementProviderLifecycle,
+  ReadonlySet<MoneyMovementProviderLifecycle>
+> = {
+  CREATED: new Set(['SUBMITTED', 'UNKNOWN', 'FAILED']),
+  SUBMITTED: new Set(['UNKNOWN', 'RECONCILING', 'SETTLED', 'FAILED']),
+  UNKNOWN: new Set(['RECONCILING', 'SETTLED', 'FAILED']),
+  RECONCILING: new Set(['SETTLED', 'FAILED']),
+  SETTLED: new Set(),
+  FAILED: new Set(),
+};
+
 function groupReference(body: string): string {
   return `${KARWAN_REFERENCE_PREFIX}-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}`;
 }
@@ -177,6 +200,13 @@ export function isKarwanReference(value: string): boolean {
 /** A completed movement must point at a real chain transaction, not only a provider id. */
 export function hasOnchainProof(leg: MoneyMovementLeg): boolean {
   return typeof leg.txHash === 'string' && leg.txHash.trim().length > 0;
+}
+
+export function canTransitionProviderLifecycle(
+  from: MoneyMovementProviderLifecycle,
+  to: MoneyMovementProviderLifecycle,
+): boolean {
+  return from === to || PROVIDER_LIFECYCLE_TRANSITIONS[from].has(to);
 }
 
 export function parseUsdcMicros(value: string): bigint {
@@ -331,6 +361,7 @@ export function planMoneyMovementLeg(
     label: input.label,
     rail: input.rail,
     state: 'planned',
+    providerLifecycle: 'CREATED',
     idempotencyKey: movementIdempotencyKey(movement.reference, movement.attempt, input.key),
     ...(input.walletId ? { walletId: input.walletId } : {}),
     ...(input.signerAddress ? { signerAddress: normalizeAddress(input.signerAddress) } : {}),
@@ -360,6 +391,25 @@ export function transitionMoneyMovementLeg(
   const current = movement.legs[index]!;
   if (current.state !== nextState && !LEG_TRANSITIONS[current.state].has(nextState)) {
     throw new Error(`invalid movement leg transition ${current.state} -> ${nextState}`);
+  }
+  const currentProviderLifecycle = current.providerLifecycle;
+  const nextProviderLifecycle = patch.providerLifecycle ?? currentProviderLifecycle;
+  if (currentProviderLifecycle && nextProviderLifecycle) {
+    if (!canTransitionProviderLifecycle(currentProviderLifecycle, nextProviderLifecycle)) {
+      throw new Error(
+        `invalid provider lifecycle transition ${currentProviderLifecycle} -> ${nextProviderLifecycle}`,
+      );
+    }
+    if (current.providerId && patch.providerId && patch.providerId !== current.providerId) {
+      throw new Error('provider id is immutable once recorded');
+    }
+    if (current.txHash && patch.txHash && patch.txHash !== current.txHash) {
+      throw new Error('transaction hash is immutable once recorded');
+    }
+    if (nextProviderLifecycle === 'SETTLED') {
+      const txHash = patch.txHash ?? current.txHash;
+      if (!txHash || !txHash.trim()) throw new Error('settled provider lifecycle requires txHash');
+    }
   }
   const nextLeg: MoneyMovementLeg = {
     ...current,

@@ -162,7 +162,7 @@ export default function AdminDeals() {
                   <div className="flex items-center justify-end gap-2 flex-wrap mono text-[10px] uppercase tracking-[0.1em]">
                     <Link
                       href={`/deals/${d.jobId}`}
-                      className="text-white/55 hover:text-white underline underline-offset-2"
+                      className="inline-flex min-h-11 items-center text-white/55 hover:text-white underline underline-offset-2"
                     >
                       open ↗
                     </Link>

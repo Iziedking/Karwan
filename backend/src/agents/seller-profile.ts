@@ -15,4 +15,11 @@ export interface SellerProfile {
   /** Canonical match tags extracted from skills+bio at profile-save time.
    *  Used to gate bidding when the brief is in an unrelated topic. */
   keywords: string[];
+  /** Existing issuer records carried into read-only matching snapshots. */
+  skillVerifications?: Array<{
+    skillId: string;
+    status: 'pending' | 'verified' | 'rejected' | 'expired' | 'revoked';
+    issuer: string;
+    expiresAt?: number;
+  }>;
 }
