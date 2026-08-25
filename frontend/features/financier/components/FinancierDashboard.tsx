@@ -28,6 +28,7 @@ import {
   serializeAuthorization,
 } from '@/features/factoring/usdcAuthorization';
 import { resolveFactoringAdvanceRecipient } from '@/features/factoring/advanceRecipient';
+import { buildFactoringQuote } from '@/features/factoring/factoringQuote';
 import { POLinesPanel } from './POLinesPanel';
 import { FactoringPositionsPanel } from './FactoringPositionsPanel';
 
@@ -677,19 +678,6 @@ function OfferModal({
   const chainCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const { data: walletClient } = useWalletClient();
-  const face = Number(deal.dealAmountUsdc);
-  // Price against what the escrow can still PAY, not the invoice face.
-  //
-  // Face includes the platform fee and every milestone already released to the
-  // seller. The assignment can only pay out of what is left, so quoting off face
-  // on a part-released invoice offers more than the escrow can ever return. The
-  // backend refuses those, and would have let a financier lose the difference.
-  const escrowClaimable = deal.claimableUsdc ? Number(deal.claimableUsdc) : face;
-  const requested = deal.factoringRequestedAdvanceUsdc
-    ? Number(deal.factoringRequestedAdvanceUsdc)
-    : escrowClaimable;
-  const claimable = Math.min(escrowClaimable, requested);
-  const partlyReleased = escrowClaimable < face - 0.000001;
   // Re-pricing an existing quote opens on the rate you already offered, not
   // on the 2% default, so an edit starts from where you left it.
   const [discountBps, setDiscountBps] = useState<number>(existingOffer?.discountBps ?? 200);
@@ -701,9 +689,17 @@ function OfferModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const advance = claimable * (1 - discountBps / 10_000);
-  const repay = claimable;
-  const profit = repay - advance;
+  // The seller requests financing against a specific portion of the future
+  // settlement. That portion is not a prior payment. Keep these concepts
+  // separate so a 200 USDC request on a 500 USDC invoice never reads as if the
+  // other 300 USDC was already released.
+  const quote = buildFactoringQuote({
+    invoiceValueUsdc: deal.dealAmountUsdc,
+    escrowAvailableUsdc: deal.claimableUsdc,
+    requestedSettlementUsdc: deal.factoringRequestedAdvanceUsdc,
+    discountBps,
+  });
+  const advance = Number(quote.advanceUsdc);
   const isCircleUser = auth.method === 'circle';
 
   /// The seller named a floor when they asked for early payout. The backend
@@ -746,7 +742,7 @@ function OfferModal({
         const typed = buildTransferAuthorization({
           from: auth.address as `0x${string}`,
           to: advanceRecipient,
-          valueUsdc: advance.toFixed(6),
+          valueUsdc: quote.advanceUsdc,
           // Covers the offer window plus margin for the backend check.
           validForSeconds: (OFFER_EXPIRES_HOURS + 4) * 3600,
         });
@@ -758,8 +754,8 @@ function OfferModal({
       }
       const r = await api.postFactoringOffer({
         invoiceId: deal.jobId,
-        offeredAdvanceUsdc: advance.toFixed(6),
-        expectedReturnUsdc: repay.toFixed(6),
+        offeredAdvanceUsdc: quote.advanceUsdc,
+        expectedReturnUsdc: quote.settlementReturnUsdc,
         expiresInHours: OFFER_EXPIRES_HOURS,
         advanceAuthorization,
       });
@@ -903,19 +899,27 @@ function OfferModal({
           </div>
 
           <dl className="pt-3 border-t border-[var(--lp-border-light)] space-y-2.5">
-            {partlyReleased ? (
-              <>
-                <ModalRow label={t.offer.invoiceFace} value={`${face.toFixed(2)} USDC`} />
-                <ModalRow label={t.offer.stillClaimable} value={`${claimable.toFixed(2)} USDC`} bold />
-              </>
-            ) : (
-              <ModalRow label={t.offer.invoiceFace} value={`${face.toFixed(2)} USDC`} />
-            )}
-            <ModalRow label={t.offer.youPayNow} value={`${advance.toFixed(2)} USDC`} />
-            <ModalRow label={t.offer.youReceiveOnSettlement} value={`${repay.toFixed(2)} USDC`} bold />
+            <ModalRow
+              label={t.offer.invoiceFace}
+              value={`${formatUsdc(quote.invoiceValueUsdc, { withSuffix: false })} USDC`}
+            />
+            <ModalRow
+              label={t.offer.settlementAssigned}
+              value={`${formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false })} USDC`}
+              bold
+            />
+            <ModalRow
+              label={t.offer.youPayNow}
+              value={`${formatUsdc(quote.advanceUsdc, { withSuffix: false })} USDC`}
+            />
+            <ModalRow
+              label={t.offer.youReceiveOnSettlement}
+              value={`${formatUsdc(quote.settlementReturnUsdc, { withSuffix: false })} USDC`}
+              bold
+            />
             <ModalRow
               label={t.offer.yourSpread}
-              value={`+${profit.toFixed(2)} USDC`}
+              value={`+${formatUsdc(quote.spreadUsdc, { withSuffix: false })} USDC`}
               accent
             />
             {sellerFloor !== null ? (
@@ -926,13 +930,11 @@ function OfferModal({
             ) : null}
           </dl>
 
-          {partlyReleased ? (
-            <p className="mt-2 text-[11px] text-[var(--lp-text-muted)]">
-              This invoice has already released {(face - claimable).toFixed(2)} USDC to the seller.
-              You are buying what is left, so the numbers above are priced against{' '}
-              {claimable.toFixed(2)} USDC, not the {face.toFixed(2)} face.
-            </p>
-          ) : null}
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
+            {t.offer.fundingSummaryTemplate
+              .replace('{advance}', formatUsdc(quote.advanceUsdc, { withSuffix: false }))
+              .replace('{settlement}', formatUsdc(quote.settlementAssignedUsdc, { withSuffix: false }))}
+          </p>
 
           {belowSellerFloor ? (
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-critical)]">
