@@ -42,6 +42,7 @@ import {
   factoringAdvanceRecipient,
   factoringAdvanceRecipientView,
 } from './factoringRecipient.js';
+import { selectFactoringAdvanceTxHash } from './factoringAcceptance.js';
 export { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 /// Invoice factoring routes.
@@ -876,11 +877,13 @@ factoringRoutes.post('/accept', async (c) => {
       return c.json({ error: 'invoice registry not configured' }, 503);
     }
 
-    let advanceTxHash: string;
-    if (body.assignTxHash) {
+    let advanceTxHash = selectFactoringAdvanceTxHash({
+      persistedHash: offer.advanceTxHash,
+      submittedHash: body.assignTxHash,
+    });
+    if (advanceTxHash) {
       // Web3 seller: they signed and sent it, we record it. The chain already
       // enforced the seller gate, the atomicity and the single-sale rule.
-      advanceTxHash = body.assignTxHash;
     } else {
       if (!deal.sellerAgentWalletId || !deal.sellerAgentAddress) {
         return c.json(
@@ -961,6 +964,13 @@ factoringRoutes.post('/accept', async (c) => {
       );
     }
 
+    // Persist the confirmed transaction before creating the receipt movement.
+    // If movement reconciliation fails, the next accept reuses this hash and
+    // never submits or charges the advance a second time.
+    if (offer.advanceTxHash?.toLowerCase() !== advanceTxHash.toLowerCase()) {
+      await patchFactoringOffer(offer.id, { advanceTxHash });
+    }
+
     let advanceReference: string;
     try {
       const movement = await recordVerifiedFinancingMovement({
@@ -978,7 +988,14 @@ factoringRoutes.post('/accept', async (c) => {
       advanceReference = movement.reference;
     } catch (err) {
       logger.warn({ offerId: offer.id, advanceTxHash, err: (err as Error).message }, 'factoring: advance receipt could not be mapped to a Karwan movement');
-      return c.json({ error: 'advance was confirmed but its Karwan receipt could not be reconciled', advanceTxHash }, 502);
+      return c.json(
+        {
+          error: 'advance was confirmed, but the Karwan receipt still needs reconciliation; retry acceptance to finish it',
+          code: 'receipt-reconciliation-required',
+          advanceTxHash,
+        },
+        502,
+      );
     }
 
     const now = Date.now();

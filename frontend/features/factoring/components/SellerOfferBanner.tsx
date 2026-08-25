@@ -377,7 +377,12 @@ function OffersModal({
       // never see a prompt. No repayment signature is collected any more: the
       // escrow pays the financier out of the settlement.
       let assignTxHash: string | undefined;
-      if (!isCircleUser) {
+      // A previous accept may have completed the on-chain assignment but
+      // stopped while recording its Karwan receipt. Reuse that hash instead of
+      // submitting a second assignReceivable call.
+      if (offer.advanceTxHash) {
+        assignTxHash = offer.advanceTxHash;
+      } else if (!isCircleUser) {
         if (!walletClient || !auth.address) {
           setError('Connect your wallet to accept this offer.');
           setAcceptingId(null);
@@ -416,6 +421,8 @@ function OffersModal({
       const lower = raw.toLowerCase();
       const friendly = lower.includes('authorization') || lower.includes('transferwithauthorization')
         ? 'The financier authorization was rejected or expired. Ask the financier to re-price the offer, then try again.'
+        : lower.includes('receipt-reconciliation-required') || lower.includes('receipt still needs reconciliation')
+          ? 'The advance reached the seller agent wallet. Retry acceptance once to finish the Karwan receipt; no second advance will be submitted.'
         : lower.includes('alreadyassigned') || lower.includes('already assigned')
           ? 'This invoice has already been assigned to a financier. Refresh the offer list before trying again.'
           : lower.includes('podlocked') || lower.includes('delivery')
