@@ -9,6 +9,7 @@ const STORE_PATH = resolve(process.cwd(), 'data', 'factoring-offers.json');
 
 export type FactoringOfferStatus =
   | 'offered'      // financier proposed terms; seller hasn't acted
+  | 'pending_receipt' // on-chain advance confirmed; Karwan receipt is retrying
   | 'accepted'     // seller accepted; payee redirect lands on chain
   | 'rejected'     // seller declined
   | 'expired'      // 24h window passed with no decision
@@ -191,6 +192,22 @@ export async function listOpenOffers(): Promise<FactoringOffer[]> {
   }
   return Object.values(loadFile())
     .filter((o) => o.status === 'offered')
+    .sort((x, y) => y.offeredAt - x.offeredAt);
+}
+
+/// Offers whose advance is already on chain but whose Karwan receipt still
+/// needs reconciliation. These invoices must stay out of the offer desk.
+export async function listPendingReceiptOffers(): Promise<FactoringOffer[]> {
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(factoringOffers)
+      .where(eq(factoringOffers.status, 'pending_receipt'))
+      .orderBy(desc(factoringOffers.offeredAt));
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile())
+    .filter((o) => o.status === 'pending_receipt')
     .sort((x, y) => y.offeredAt - x.offeredAt);
 }
 

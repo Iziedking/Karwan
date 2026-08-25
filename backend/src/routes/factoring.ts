@@ -11,6 +11,7 @@ import {
   listOffersByFinancier,
   listOffersBySeller,
   listOpenOffers,
+  listPendingReceiptOffers,
   patchFactoringOffer,
   patchFactoringOfferIfStatus,
 } from '../db/factoring.js';
@@ -42,7 +43,11 @@ import {
   factoringAdvanceRecipient,
   factoringAdvanceRecipientView,
 } from './factoringRecipient.js';
-import { selectFactoringAdvanceTxHash } from './factoringAcceptance.js';
+import {
+  isFactoringOfferAcceptable,
+  isFactoringReceiptRetry,
+  selectFactoringAdvanceTxHash,
+} from './factoringAcceptance.js';
 export { factoringAdvanceRecipient } from './factoringRecipient.js';
 
 /// Invoice factoring routes.
@@ -186,6 +191,12 @@ factoringRoutes.post('/request', async (c) => {
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
   }
+  if ((await listOffersForInvoice(deal.jobId)).some((offer) => offer.status === 'pending_receipt')) {
+    return c.json(
+      { error: 'a financing advance is already confirmed and its receipt is being reconciled', code: 'receipt_reconciliation_required' },
+      409,
+    );
+  }
   if (deal.poFinancingRequestedAt || deal.poFinancingId) {
     return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
   }
@@ -251,6 +262,12 @@ factoringRoutes.post('/withdraw-request', async (c) => {
   if (deal.factoringOfferId) {
     return c.json({ error: 'an offer was already accepted on this invoice' }, 409);
   }
+  if ((await listOffersForInvoice(deal.jobId)).some((offer) => offer.status === 'pending_receipt')) {
+    return c.json(
+      { error: 'a financing advance is already confirmed and its receipt is being reconciled', code: 'receipt_reconciliation_required' },
+      409,
+    );
+  }
 
   const updated = await patchDeal(deal.jobId, {
     factoringRequestedAt: undefined,
@@ -310,11 +327,16 @@ factoringRoutes.get('/available', async (c) => {
       !d.factoringOfferId &&
       !financedInvoiceIds.has(d.jobId.toLowerCase()),
   );
-  const filtered = available.filter((d) => {
+  const pendingReceiptInvoiceIds = new Set(
+    (await listPendingReceiptOffers()).map((offer) => offer.invoiceId.toLowerCase()),
+  );
+  const filtered = available
+    .filter((d) => !pendingReceiptInvoiceIds.has(d.jobId.toLowerCase()))
+    .filter((d) => {
     if (sector && d.counterpartyCompany?.sector !== sector) return false;
     if (region && d.counterpartyCompany?.region !== region) return false;
     return true;
-  });
+    });
   // Quote what is still CLAIMABLE, not just the invoice face. An invoice that
   // has already released a tranche can still be financed, but only against what
   // is left, and a financier pricing off face would offer more than the escrow
@@ -408,6 +430,16 @@ factoringRoutes.post('/offer', async (c) => {
   }
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
+  }
+  const invoiceOffers = await listOffersForInvoice(body.invoiceId);
+  if (invoiceOffers.some((offer) => offer.status === 'pending_receipt')) {
+    return c.json(
+      {
+        error: 'a financing advance is already confirmed and its receipt is being reconciled',
+        code: 'receipt_reconciliation_required',
+      },
+      409,
+    );
   }
   if (deal.poFinancingRequestedAt || deal.poFinancingId) {
     return c.json({ error: 'deal already has a purchase-order financing line' }, 409);
@@ -569,7 +601,7 @@ factoringRoutes.post('/offer', async (c) => {
   // previous one instead of stacking a second offer against the same seller,
   // who would otherwise see two live quotes from one counterparty and have to
   // guess which is current.
-  const mine = (await listOffersForInvoice(body.invoiceId)).find(
+  const mine = invoiceOffers.find(
     (o) => o.financier.toLowerCase() === financier && o.status === 'offered',
   );
   if (mine) {
@@ -750,10 +782,11 @@ factoringRoutes.post('/accept', async (c) => {
 
   const offer = await getFactoringOffer(body.offerId);
   if (!offer) return c.json({ error: 'unknown offer' }, 404);
-  if (offer.status !== 'offered') {
+  const receiptRetry = isFactoringReceiptRetry(offer.status);
+  if (!isFactoringOfferAcceptable(offer.status)) {
     return c.json({ error: `cannot accept offer in status ${offer.status}` }, 409);
   }
-  if (Date.now() > offer.expiresAt) {
+  if (!receiptRetry && Date.now() > offer.expiresAt) {
     await patchFactoringOffer(offer.id, { status: 'expired' });
     return c.json({ error: 'offer expired' }, 410);
   }
@@ -762,8 +795,18 @@ factoringRoutes.post('/accept', async (c) => {
   if (seller !== offer.seller) {
     return c.json({ error: 'only seller can accept this offer' }, 403);
   }
+  const invoiceOffersAtAccept = await listOffersForInvoice(offer.invoiceId);
+  const otherPending = invoiceOffersAtAccept.find(
+    (candidate) => candidate.id !== offer.id && candidate.status === 'pending_receipt',
+  );
+  if (otherPending) {
+    return c.json(
+      { error: 'another financing advance is already being reconciled for this invoice', code: 'receipt_reconciliation_required' },
+      409,
+    );
+  }
 
-  const hold = await shouldHoldFactoring(offer.id);
+  const hold = receiptRetry ? null : await shouldHoldFactoring(offer.id);
   if (hold) {
     return c.json({ error: 'held for review', verdict: hold }, 409);
   }
@@ -793,8 +836,10 @@ factoringRoutes.post('/accept', async (c) => {
   // financier, and nothing between the offer and the accept was checking it.
   //
   // Read the escrow at accept time, not at offer time, because the gap between
-  // them is exactly where the money leaks.
-  try {
+  // them is exactly where the money leaks. A receipt retry already passed this
+  // gate before the advance landed, so do not block its bookkeeping on a
+  // later escrow balance change.
+  if (!receiptRetry) try {
     const account = await readEscrow(deal.jobId);
     // The assignee is paid out of the SELLER side, so what is still claimable is
     // sellerNet minus what has already been released. Face value is the wrong
@@ -842,7 +887,7 @@ factoringRoutes.post('/accept', async (c) => {
     // nothing left to pull and nothing for a seller to withhold. An
     // authorization is still verified when an older client sends one, rather
     // than silently storing something unchecked.
-    if (body.repayAuthorization) {
+    if (!receiptRetry && body.repayAuthorization) {
       const problem = await verifyTransferAuthorization(body.repayAuthorization, {
         from: seller,
         to: offer.financier,
@@ -964,11 +1009,28 @@ factoringRoutes.post('/accept', async (c) => {
       );
     }
 
-    // Persist the confirmed transaction before creating the receipt movement.
-    // If movement reconciliation fails, the next accept reuses this hash and
-    // never submits or charges the advance a second time.
-    if (offer.advanceTxHash?.toLowerCase() !== advanceTxHash.toLowerCase()) {
-      await patchFactoringOffer(offer.id, { advanceTxHash });
+    // Lock the offer as soon as the chain confirms. If receipt projection
+    // fails, the offer is no longer editable or replaceable; the seller can
+    // retry this same hash while financiers cannot submit a new quote.
+    if (!receiptRetry) {
+      const pending = await patchFactoringOfferIfStatus(offer.id, 'offered', {
+        status: 'pending_receipt',
+        advanceTxHash,
+      });
+      if (!pending) {
+        return c.json({ error: 'offer is already being finalized', code: 'acceptance_in_progress' }, 409);
+      }
+      // Once one advance is confirmed, every competing quote on the same
+      // invoice is no longer actionable. Keep the accepted terms immutable and
+      // remove the remaining offers from the financier desk.
+      const competingOffers = invoiceOffersAtAccept.filter(
+        (candidate) => candidate.id !== offer.id && candidate.status === 'offered',
+      );
+      await Promise.all(
+        competingOffers.map((candidate) =>
+          patchFactoringOffer(candidate.id, { status: 'superseded' }),
+        ),
+      );
     }
 
     let advanceReference: string;
@@ -1005,7 +1067,7 @@ factoringRoutes.post('/accept', async (c) => {
     // (offer.id keys the Circle call; the EIP-3009 nonce is single-use on
     // chain), so losing the guard after paying means the OTHER accept won
     // with the same, single advance.
-    const accepted = await patchFactoringOfferIfStatus(offer.id, 'offered', {
+    const accepted = await patchFactoringOfferIfStatus(offer.id, 'pending_receipt', {
       status: 'accepted',
       acceptedAt: now,
       setPayeeTxHash: body.setPayeeTxHash,
