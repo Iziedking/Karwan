@@ -770,6 +770,11 @@ factoringRoutes.post('/accept', async (c) => {
   // Check no other accepted offer raced in.
   const deal = await getDeal(offer.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // The registry pays the seller party stored in escrow. For managed SME
+  // deals that is the seller agent wallet, not the seller's identity wallet.
+  // Keep this recipient identical to the offer-time authorization target so
+  // post-transaction receipt reconciliation proves the actual USDC leg.
+  const advanceRecipient = factoringAdvanceRecipient(deal);
   if (deal.factoringOfferId) {
     return c.json({ error: 'deal already has an accepted factoring offer' }, 409);
   }
@@ -965,7 +970,7 @@ factoringRoutes.post('/accept', async (c) => {
         amountUsdc: offer.offeredAdvanceUsdc,
         initiatedBy: seller,
         sourceAddress: offer.financier,
-        destinationAddress: seller,
+        destinationAddress: advanceRecipient,
         txHash: advanceTxHash,
         contractAddress: registryAddr,
         summary: `Financing advance of ${offer.offeredAdvanceUsdc} USDC for invoice ${offer.invoiceId}`,
