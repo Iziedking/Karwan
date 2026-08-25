@@ -58,7 +58,9 @@ test('a key works, then stops working the moment it is revoked', async () => {
 
 test('the raw key is never recoverable from the store', async () => {
   const { rawKey } = await issueTeamKey({ label: 'ci', member: 'ci', role: 'dev' });
-  const secret = rawKey.split('_')[2]!;
+  const first = rawKey.indexOf('_');
+  const second = rawKey.indexOf('_', first + 1);
+  const secret = rawKey.slice(second + 1);
 
   // The whole file, not just the API surface: a dump is what an attacker gets.
   const dump = readFileSync(STORE_PATH, 'utf8');
@@ -71,7 +73,10 @@ test('the raw key is never recoverable from the store', async () => {
 
 test('every bad key fails closed', async () => {
   const { key, rawKey } = await issueTeamKey({ label: 'real', member: 'real', role: 'dev' });
-  const [, id, secret] = rawKey.split('_') as [string, string, string];
+  const first = rawKey.indexOf('_');
+  const second = rawKey.indexOf('_', first + 1);
+  const id = rawKey.slice(first + 1, second);
+  const secret = rawKey.slice(second + 1);
 
   const cases: Array<[string, string, string]> = [
     ['no prefix', `${id}_${secret}`, 'malformed'],
