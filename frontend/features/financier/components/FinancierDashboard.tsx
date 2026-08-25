@@ -216,7 +216,7 @@ export function FinancierDashboard() {
       .then(({ asFinancier }) => {
         const live = new Map<string, FactoringOffer>();
         for (const o of asFinancier) {
-          if (o.status === 'offered') live.set(o.invoiceId.toLowerCase(), o);
+          if (o.status === 'offered' || o.status === 'pending_receipt') live.set(o.invoiceId.toLowerCase(), o);
         }
         setMyOffers(live);
       })
@@ -479,6 +479,7 @@ function InvoiceCard({
   onOpenOffer: () => void;
 }) {
   const t = useTranslations().financierDashboard;
+  const receiptPending = existingOffer?.status === 'pending_receipt';
   const settlementWindow =
     deal.paymentTerms === 'net30'
       ? 'NET 30'
@@ -538,7 +539,8 @@ function InvoiceCard({
             ) : null}
             <button
               type="button"
-              onClick={onOpenOffer}
+              onClick={receiptPending ? undefined : onOpenOffer}
+              disabled={receiptPending}
               data-guide="financier-offer"
               className="mono text-[11px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 bg-[var(--lp-dark)] text-[var(--lp-bg)]"
               style={{
@@ -548,7 +550,7 @@ function InvoiceCard({
                 borderBottomRightRadius: 2,
               }}
             >
-              {existingOffer ? t.editOffer : t.makeOffer}
+              {receiptPending ? 'receipt in progress' : existingOffer ? t.editOffer : t.makeOffer}
             </button>
           </div>
         </div>

@@ -330,6 +330,7 @@ export interface FactoringOffer {
   discountBps: number;
   status:
     | 'offered'
+    | 'pending_receipt'
     | 'accepted'
     | 'rejected'
     | 'expired'

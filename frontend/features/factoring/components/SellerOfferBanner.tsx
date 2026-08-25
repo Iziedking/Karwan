@@ -130,7 +130,9 @@ export function SellerOfferBanner({
     const refresh = () => {
       api.listOffersForInvoice(deal.jobId).then((r) => {
         if (cancelled) return;
-        setOffers(r.offers.filter((o) => o.status === 'offered' && Date.now() < o.expiresAt));
+        setOffers(r.offers.filter((o) =>
+          (o.status === 'offered' && Date.now() < o.expiresAt) || o.status === 'pending_receipt',
+        ));
       }).catch(() => {
         if (!cancelled) setOffers([]);
       });
@@ -539,6 +541,7 @@ function OfferRow({
   const expiresInHours = Math.max(0, Math.round((offer.expiresAt - Date.now()) / 3_600_000));
   const isAccepting = acceptingId === offer.id;
   const anyAccepting = acceptingId !== null;
+  const receiptPending = offer.status === 'pending_receipt';
 
   // Stake this advance needs at the seller's tier, and whether they're short.
   const requiredStake = qual && qual.requiredBps > 0 ? (advance * qual.requiredBps) / 10_000 : 0;
@@ -611,7 +614,7 @@ function OfferRow({
               borderBottomRightRadius: 2,
             }}
           >
-            {isAccepting ? 'Accepting…' : 'Accept'}
+            {isAccepting ? 'Finishing…' : receiptPending ? 'Finish receipt' : 'Accept'}
           </button>
         </div>
       </div>
