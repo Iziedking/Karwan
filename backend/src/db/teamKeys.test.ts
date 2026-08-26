@@ -84,7 +84,10 @@ test('every bad key fails closed', async () => {
     ['empty secret', `karwan_${id}_`, 'malformed'],
     ['unknown id', `karwan_00000000-0000-0000-0000-000000000000_${secret}`, 'unknown'],
     ['right id, wrong secret', `karwan_${id}_notthesecret`, 'mismatch'],
-    ['secret used as id', `karwan_${secret}_${id}`, 'unknown'],
+    // Keep the intentionally unknown ID structurally valid. base64url secrets
+    // may begin with `_`; using that raw value would create an empty ID and
+    // correctly return `malformed`, making this test depend on randomness.
+    ['secret used as id', `karwan_${secret.replace(/^_+/, 'x')}_${id}`, 'unknown'],
   ];
 
   for (const [name, candidate, reason] of cases) {
