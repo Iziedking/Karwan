@@ -34,10 +34,10 @@ function NumberCard({ label, value, detail, href, urgent = false }: {
   urgent?: boolean;
 }) {
   return (
-    <Link href={href} className={`group min-h-[132px] rounded-xl border p-4 transition ${urgent && value > 0 ? 'border-[#e0794f]/30 bg-[#e0794f]/7 hover:border-[#e0794f]/50' : 'border-white/10 bg-[#121315] hover:border-[#a8c94e]/30'}`}>
+    <Link href={href} className={`group min-h-[132px] rounded-xl border-l-2 border-y border-r p-4 transition ${urgent && value > 0 ? 'border-l-[#e0794f] border-y-[#e0794f]/25 border-r-[#e0794f]/25 bg-[#171214] hover:border-y-[#e0794f]/50 hover:border-r-[#e0794f]/50' : 'border-l-transparent border-y-white/10 border-r-white/10 bg-[#111114] hover:border-l-[#AFC95B] hover:border-y-white/20 hover:border-r-white/20'}`}>
       <div className="flex items-start justify-between gap-3">
         <p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">{label}</p>
-        <span aria-hidden="true" className="text-[15px] text-white/25 transition group-hover:translate-x-0.5 group-hover:text-[#a8c94e]">→</span>
+        <span aria-hidden="true" className="text-[15px] text-white/25 transition group-hover:translate-x-0.5 group-hover:text-[#AFC95B]">&rarr;</span>
       </div>
       <p className="mt-3 text-[32px] font-black leading-none tabular-nums">{value.toLocaleString()}</p>
       <p className="mt-3 text-[10px] leading-4 text-white/38">{detail}</p>
@@ -106,11 +106,11 @@ export default function AdminOverview() {
     <div>
       <div className="flex flex-col gap-5 border-b border-white/10 pb-7 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-[720px]">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#a8c94e]">[:CONTROL ROOM:]</p>
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">[:CONTROL ROOM:]</p>
           <h1 className="mt-3 font-sans text-[clamp(32px,4vw,52px)] font-black leading-none tracking-[-0.04em]">What needs attention now?</h1>
           <p className="mt-4 text-[13px] leading-6 text-white/48">Start with exceptions, then monitor active trade and agent work. Wallet signing remains disconnected until a reviewed on-chain action needs it.</p>
         </div>
-        <button type="button" onClick={() => void load()} disabled={loading} className="min-h-11 self-start rounded-lg border border-white/12 px-4 mono text-[9px] font-bold uppercase tracking-[0.12em] text-white/55 transition hover:border-white/25 hover:text-white disabled:opacity-45 xl:self-auto">{loading ? 'Refreshing…' : 'Refresh control room'}</button>
+        <button type="button" onClick={() => void load()} disabled={loading} className="min-h-11 self-start rounded-lg border border-white/12 px-4 mono text-[9px] font-bold uppercase tracking-[0.12em] text-white/55 transition hover:border-white/25 hover:text-white disabled:opacity-45 xl:self-auto">{loading ? 'Refreshing...' : 'Refresh control room'}</button>
       </div>
 
       {failed && (
@@ -159,8 +159,8 @@ export default function AdminOverview() {
           </div>
         </div>
 
-        <Link href="/admin/routes" className="group flex min-h-[280px] flex-col justify-between rounded-xl border border-[#a8c94e]/22 bg-[#a8c94e]/7 p-5 transition hover:border-[#a8c94e]/45">
-          <div><p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#bddb70]">Complete backend map</p><p className="mt-4 text-[44px] font-black leading-none tabular-nums">{SOURCE_ROUTE_SNAPSHOT.length}</p><p className="mt-2 text-[12px] font-bold text-white/75">mounted endpoints captured</p><p className="mt-4 text-[10px] leading-5 text-white/38">Search every admin, application, service, webhook, and public route. Routes with reviewed tools link directly to their workspace.</p></div>
+        <Link href="/admin/routes" className="group flex min-h-[280px] flex-col justify-between rounded-xl border border-white/10 border-t-2 border-t-[#AFC95B] bg-[#111114] p-5 transition hover:border-white/20">
+          <div><p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#C3DC70]">Complete backend map</p><p className="mt-4 text-[44px] font-black leading-none tabular-nums">{SOURCE_ROUTE_SNAPSHOT.length}</p><p className="mt-2 text-[12px] font-bold text-white/75">mounted endpoints captured</p><p className="mt-4 text-[10px] leading-5 text-white/38">Search every admin, application, service, webhook, and public route. Routes with reviewed tools link directly to their workspace.</p></div>
           <span className="mt-6 inline-flex min-h-11 items-center justify-between rounded-lg border border-[#a8c94e]/25 px-3 mono text-[9px] font-bold uppercase tracking-[0.11em] text-[#c4df7d]">Open API directory <span aria-hidden="true" className="transition group-hover:translate-x-1">→</span></span>
         </Link>
       </section>

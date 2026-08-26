@@ -1,5 +1,6 @@
 import { erc20Abi, formatUnits, parseEventLogs } from 'viem';
 import { publicClient } from '../chain/client.js';
+import { assertValidTransactionHash } from '../chain/txs.js';
 import { config } from '../config.js';
 import { listMoneyMovementsForJob, ensureMoneyMovement, findMoneyMovementByTransfer } from '../db/moneyMovements.js';
 import { appendActivity, fillActivityGaps, listActivityForAddress, type ActivityKind } from '../db/activityLog.js';
@@ -36,6 +37,20 @@ export function matchesFinancingTransfer(input: {
     input.value === expected.amountMicros;
 }
 
+/// A smart-account transaction is submitted to Arc's EntryPoint and executes
+/// the requested registry call internally. The outer `receipt.to` therefore
+/// need not equal the Karwan contract. Require either a direct call or a log
+/// emitted by the expected contract so an unrelated token transfer cannot be
+/// mistaken for a financing operation.
+export function receiptInvokedContract(
+  receipt: { to?: string | null; logs: readonly { address: string }[] },
+  contractAddress: string,
+): boolean {
+  const expected = contractAddress.toLowerCase();
+  return (receipt.to ?? '').toLowerCase() === expected ||
+    receipt.logs.some((log) => log.address.toLowerCase() === expected);
+}
+
 /// Read-only proof check used by operator backfills. It never creates a
 /// movement or changes a row; a write is allowed only after this exact USDC
 /// transfer is present in a successful receipt.
@@ -47,9 +62,10 @@ export async function inspectFinancingTransfer(input: {
   contractAddress?: string;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
   try {
+    assertValidTransactionHash('financing receipt inspection', input.txHash);
     const receipt = await publicClient.getTransactionReceipt({ hash: input.txHash as `0x${string}` });
     if (receipt.status !== 'success') return { ok: false, reason: 'transaction reverted' };
-    if (input.contractAddress && (receipt.to ?? '').toLowerCase() !== input.contractAddress.toLowerCase()) {
+    if (input.contractAddress && !receiptInvokedContract(receipt, input.contractAddress)) {
       return { ok: false, reason: 'transaction target mismatch' };
     }
     const transfer = parseEventLogs({ abi: erc20Abi, eventName: 'Transfer', logs: receipt.logs, strict: false })
@@ -133,6 +149,7 @@ export async function recordVerifiedFinancingMovement(input: {
   contractAddress?: string;
   summary: string;
 }): Promise<MoneyMovement> {
+  assertValidTransactionHash('financing movement', input.txHash);
   const amountMicros = parseUsdcMicros(input.amountUsdc);
   const usdcAddress = config.USDC_ADDR;
   if (!usdcAddress) throw new Error('USDC_ADDR is not configured');
@@ -175,7 +192,7 @@ export async function recordVerifiedFinancingMovement(input: {
   if (ensured.movement.state === 'completed') return ensured.movement;
   const receipt = await publicClient.getTransactionReceipt({ hash: input.txHash as `0x${string}` });
   if (receipt.status !== 'success') throw new Error('financing transaction reverted');
-  if (input.contractAddress && (receipt.to ?? '').toLowerCase() !== input.contractAddress.toLowerCase()) throw new Error('financing receipt target mismatch');
+  if (input.contractAddress && !receiptInvokedContract(receipt, input.contractAddress)) throw new Error('financing receipt target mismatch');
   const transfer = parseEventLogs({ abi: erc20Abi, eventName: 'Transfer', logs: receipt.logs, strict: false })
     .map((entry) => ({ tokenAddress: entry.address, ...(entry.args as { from?: string; to?: string; value?: bigint }) }))
     .find((entry) => matchesFinancingTransfer(entry, { tokenAddress: usdcAddress, sourceAddress: input.sourceAddress, destinationAddress: input.destinationAddress, amountMicros }));
