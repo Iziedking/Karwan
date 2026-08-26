@@ -30,6 +30,7 @@ import type { Messages } from '@/shared/i18n/messages/en';
 
 type DestKey = 'arc' | AppKitBridgeChainKey;
 type WalletKind = 'identity' | 'sellerAgent' | 'buyerAgent';
+type CashoutRail = 'cctp' | 'card' | 'bank';
 type CashoutCopy = Messages['cashoutPage'];
 
 const DESTINATIONS: { key: DestKey; name: string; short: string }[] = [
@@ -254,6 +255,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
   const identityAvail = isWeb3Account || info.identityWallet.available;
   const defaultWallet: WalletKind = sellerAgentAvail ? 'sellerAgent' : 'identity';
   const [walletKind, setWalletKind] = useState<WalletKind>(defaultWallet);
+  const [rail, setRail] = useState<CashoutRail>('cctp');
 
   // Web3 identity means the user's own EOA signs the withdraw, rather than a
   // custodial Karwan wallet. Every other combination is custodial.
@@ -478,6 +480,26 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
         {copy.withdraw.body}
       </p>
 
+      <CashoutRailPicker value={rail} onChange={setRail} copy={copy} />
+
+      {rail !== 'cctp' ? (
+        <div
+          className="mt-7 border-s-[3px] border-[var(--lp-accent)] bg-[color-mix(in_srgb,var(--lp-accent)_10%,transparent)] px-4 py-4 sm:px-5"
+          role="status"
+        >
+          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            [:COMING SOON:]
+          </p>
+          <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
+            {copy.comingSoon.body}
+          </p>
+          <p className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            {rail === 'card' ? 'card payouts will be added after payment-provider review' : 'bank payouts will be added after payment-provider review'}
+          </p>
+        </div>
+      ) : (
+        <>
+
       <div className="mt-7">
         <FieldLabel>
           {copy.withdraw.fromWalletLabel}{' '}
@@ -566,7 +588,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
                   setRecipient('');
                   setError(null);
                 }}
-                className="mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex min-h-11 items-center justify-center mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   background: active ? 'var(--lp-band-dark)' : 'var(--lp-card)',
                   color: active ? '#ffffff' : 'var(--lp-dark)',
@@ -599,7 +621,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           onChange={(e) => setRecipient(e.target.value)}
           placeholder={dest === 'solanaDevnet' ? copy.withdraw.base58Placeholder : '0x…'}
           spellCheck={false}
-          className="mt-2 w-full bg-[var(--lp-light)] px-4 py-2.5 text-[14px] mono focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)]"
+          className="form-input form-input-mono mt-2 min-h-11 w-full"
           style={{
             border:
               recipient && !recipientValid
@@ -640,7 +662,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           placeholder="0.00"
           step="0.01"
           min="0"
-          className="mt-2 w-full bg-[var(--lp-light)] px-4 py-2.5 text-[14px] mono focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)]"
+          className="form-input form-input-mono form-input-num mt-2 min-h-11 w-full"
           style={{
             border:
               amount && !amountValid
@@ -702,7 +724,96 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           />
         </div>
       )}
+        </>
+      )}
     </PageCard>
+  );
+}
+
+function CashoutRailPicker({
+  value,
+  onChange,
+  copy,
+}: {
+  value: CashoutRail;
+  onChange: (value: CashoutRail) => void;
+  copy: CashoutCopy;
+}) {
+  const options: Array<{
+    key: CashoutRail;
+    label: string;
+    description: string;
+    status: string;
+  }> = [
+    {
+      key: 'cctp',
+      label: 'CCTP transfer',
+      description: 'move USDC to your wallet on another supported chain',
+      status: 'available',
+    },
+    {
+      key: 'card',
+      label: 'card payout',
+      description: 'receive local currency on a debit or credit card',
+      status: copy.comingSoon.comingSoon,
+    },
+    {
+      key: 'bank',
+      label: 'bank transfer',
+      description: 'receive local currency in a bank account',
+      status: copy.comingSoon.comingSoon,
+    },
+  ];
+
+  return (
+    <div className="mt-7">
+      <FieldLabel>cash out via</FieldLabel>
+      <div className="mt-2 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Cash-out method">
+        {options.map((option) => {
+          const active = value === option.key;
+          const unavailable = option.key !== 'cctp';
+          return (
+            <button
+              key={option.key}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => onChange(option.key)}
+              className="group min-h-[92px] text-start px-4 py-3 transition-[border-color,background-color,transform] duration-200 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              style={{
+                background: active ? 'color-mix(in srgb, var(--lp-accent) 12%, var(--lp-card))' : 'var(--lp-card)',
+                border: active ? '1px solid var(--accent-deep)' : '1px solid var(--lp-border-light)',
+                borderTopLeftRadius: 14,
+                borderTopRightRadius: 14,
+                borderBottomLeftRadius: 14,
+                borderBottomRightRadius: 4,
+                opacity: unavailable ? 0.78 : 1,
+              }}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="font-sans text-[14px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+                  {option.label}
+                </span>
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  aria-hidden
+                  style={{ background: active ? 'var(--accent-deep)' : 'var(--lp-border-light)' }}
+                />
+              </span>
+              <span className="mt-1 block text-[12px] leading-snug text-[var(--lp-text-sub)]">
+                {option.description}
+              </span>
+              <span className="mt-2 block mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                {option.status}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+        CCTP moves the same USDC between chains. Card and bank payouts will convert to local currency when available.
+      </p>
+    </div>
   );
 }
 
@@ -961,7 +1072,7 @@ function WalletPickerTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="text-start p-4 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
+      className="min-h-11 text-start p-4 transition-colors disabled:opacity-45 disabled:cursor-not-allowed"
       style={{
         background: active ? 'rgba(175, 201, 91,0.10)' : 'var(--lp-card)',
         border: active

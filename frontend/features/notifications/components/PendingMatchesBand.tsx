@@ -141,11 +141,11 @@ function MatchRow({
         aria-label={`${stateCopy.headline} ${priceDisplay} ${t.card.unit}`}
         data-matching-state={presentation.state}
         data-matching-next-actor={presentation.nextActor}
-        className={`group block min-h-11 px-5 py-4 ps-6 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${
+        className={`group block min-h-11 px-4 py-4 ps-6 sm:px-5 sm:py-5 sm:ps-7 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${
           dark ? 'hover:bg-white/[0.03]' : 'hover:bg-black/[0.025]'
         }`}
       >
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
           <div className="min-w-0">
             <span
               className="mono text-[10px] uppercase tracking-[0.18em]"
@@ -155,7 +155,7 @@ function MatchRow({
             </span>
             <div className="mt-2 flex items-baseline gap-2">
               <span
-                className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none"
+                className="font-sans text-[28px] sm:text-[30px] font-extrabold tabular-nums tracking-[-0.025em] leading-none"
                 style={{ color: dark ? 'white' : 'var(--lp-dark)' }}
               >
                 {priceDisplay}
@@ -193,7 +193,7 @@ function MatchRow({
               </p>
             ) : null}
           </div>
-          <div className="text-end shrink-0">
+          <div className="flex items-center justify-between gap-3 sm:block sm:text-end sm:shrink-0">
             <span
               className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
               style={{
@@ -221,13 +221,13 @@ function MatchRow({
               <span className="px-2 py-[6px]">{stateCopy.tag}</span>
             </span>
             <p
-              className="mt-2 mono text-[10px] uppercase tracking-[0.12em] transition-colors"
+              className="mt-0 sm:mt-2 mono text-[10px] uppercase tracking-[0.12em] transition-colors"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
               {matchingCopy.nextActors[presentation.nextActor]}
             </p>
             <p
-              className="mt-1 mono text-[10px] uppercase tracking-[0.12em]"
+              className="mt-0 sm:mt-1 mono text-[10px] uppercase tracking-[0.12em]"
               style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
             >
               {t.card.open} →
@@ -243,9 +243,11 @@ function matchingTonePalette(tone: MatchingPresentationTone, surface: 'light' | 
   const dark = surface === 'dark';
   if (tone === 'positive') {
     return {
-      fg: dark ? '#6be39a' : '#0a7553',
-      bg: dark ? 'rgba(107,227,154,0.10)' : 'rgba(10,117,83,0.10)',
-      border: dark ? 'rgba(107,227,154,0.32)' : 'rgba(10,117,83,0.35)',
+      // Positive is a product state, not a second brand colour. Keep the
+      // Karwan lime rail and use ink for the readable label in both themes.
+      fg: dark ? 'var(--accent)' : 'var(--accent-deep)',
+      bg: dark ? 'rgba(175,201,91,0.12)' : 'rgba(175,201,91,0.18)',
+      border: dark ? 'rgba(175,201,91,0.42)' : 'rgba(157,184,75,0.48)',
     };
   }
   if (tone === 'attention') {

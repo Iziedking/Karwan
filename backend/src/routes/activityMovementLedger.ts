@@ -49,6 +49,27 @@ export function movementToPersonalLedgerItem(
   } else if (movement.kind === 'financing_advance' && viewer) {
     if (viewer === destination || (viewer === movement.initiatedBy.toLowerCase() && viewer !== source)) kind = 'financing_received';
     else if (viewer === source) kind = 'financing_funded';
+  } else if (movement.kind === 'milestone_payout' && viewer) {
+    // A payout is one durable movement with two user-facing meanings: the
+    // buyer released funds, while the seller received them. Resolve the
+    // direction from the recorded party role instead of guessing in the UI.
+    const party = movement.participants.find(
+      (candidate) => candidate.address.toLowerCase() === viewer,
+    );
+    if (party?.role === 'recipient') kind = 'payout';
+    else if (party?.role === 'buyer') kind = 'release';
+  } else if (movement.kind === 'escrow_funding' && viewer) {
+    const party = movement.participants.find(
+      (candidate) => candidate.address.toLowerCase() === viewer,
+    );
+    if (party?.role === 'buyer') kind = 'release';
+  } else if (movement.kind === 'escrow_refund' && viewer) {
+    const party = movement.participants.find(
+      (candidate) => candidate.address.toLowerCase() === viewer,
+    );
+    if (party?.role === 'owner' || party?.role === 'recipient' || party?.role === 'buyer') {
+      kind = 'refund';
+    }
   }
   return {
     id: movement.reference,

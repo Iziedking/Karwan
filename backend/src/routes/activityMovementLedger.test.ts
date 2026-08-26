@@ -137,6 +137,29 @@ test('normalizes durable financing kinds for the viewer perspective', () => {
   assert.equal(movementToPersonalLedgerItem(repayment, seller).kind, 'financing_repayment_sent');
 });
 
+test('projects escrow payouts with the correct sign for each counterparty', () => {
+  const durable = createMoneyMovement(
+    'KWN-2345-ABCD-EFGH',
+    {
+      operationKey: 'payout:job-1:0',
+      kind: 'milestone_payout',
+      amountMicros: '50000000',
+      initiatedBy: buyer,
+      participants: [
+        { address: buyer, role: 'buyer' },
+        { address: seller, role: 'recipient' },
+      ],
+      summary: 'Milestone 1 paid',
+      nextActor: 'karwan',
+      jobId: 'job-1',
+      milestoneIndex: 0,
+    },
+    1_000,
+  );
+  assert.equal(movementToPersonalLedgerItem(durable, buyer).kind, 'release');
+  assert.equal(movementToPersonalLedgerItem(durable, seller).kind, 'payout');
+});
+
 test('merge respects the route limit after sorting newest first', () => {
   const rows = mergeMovementLedger(
     [legacy({ id: 'old', ts: 10 }), legacy({ id: 'new', ts: 30 })],
