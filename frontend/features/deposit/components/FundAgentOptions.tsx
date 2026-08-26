@@ -6,6 +6,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Hint } from '@/shared/components/Hint';
 import { cn } from '@/shared/utils/cn';
 import { FundAgentFromBalance } from './FundAgentFromBalance';
+import { FundAgentFromWallet } from './FundAgentFromWallet';
 import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 
 /// Where the money comes from, as a choice.
@@ -119,8 +120,16 @@ export function FundAgentOptions({
         })}
       </div>
 
-      {route === 'wallet' && (
+      {route === 'wallet' && circleAccount && (
         <FundAgentFromBalance agent={agent} amountUsdc={amountUsdc} onFunded={onFunded} />
+      )}
+      {route === 'wallet' && !circleAccount && recipient && (
+        <FundAgentFromWallet
+          agent={agent}
+          recipient={recipient}
+          amountUsdc={amountUsdc}
+          onFunded={onFunded}
+        />
       )}
       {route === 'otherAgent' && otherAgentAddress && recipient && (
         <MoveFromOtherAgent
