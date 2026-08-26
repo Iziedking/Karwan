@@ -82,6 +82,16 @@ export interface TxState {
   txHash?: string;
 }
 
+/// Provider responses are untrusted input. A transaction hash must be exactly
+/// one 32-byte hex value before it is persisted or sent to an RPC client. In
+/// particular, accepting a shortened hash would strand a money movement in a
+/// pending state because no receipt can ever be fetched for it.
+export function assertValidTransactionHash(label: string, txHash: string): void {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) {
+    throw new Error(`${label}: provider returned an invalid transaction hash`);
+  }
+}
+
 export function assertSuccessfulReceipt(
   label: string,
   txHash: string,
@@ -209,6 +219,7 @@ export async function executeContractCall(
       lastState = state;
       if (state === 'COMPLETE') {
         if (!txHash) throw new Error(`${label}: completed without txHash`);
+        assertValidTransactionHash(label, txHash);
         const explorerUrl = `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`;
         const receipt = await publicClient.getTransactionReceipt({
           hash: txHash as Hex,

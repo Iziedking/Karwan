@@ -98,20 +98,20 @@ export function brandedEmailHtml({
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="k-canvas" style="background:#f3efe6;padding:32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" class="k-card" style="max-width:520px;width:100%;background:#ffffff;border:1px solid #e6e2d8;border-radius:18px 18px 18px 5px;overflow:hidden;">
+          <table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" class="k-card" style="max-width:680px;width:100%;background:#ffffff;border:1px solid #e6e2d8;border-radius:18px 18px 18px 5px;overflow:hidden;">
           ${logoBlock}
           <!-- Wordmark + eyebrow centered in the body, above the lime rule.
                The brand reads from the body of the email, not from a header
                strip clients tend to shrink or strip out. -->
           <tr>
-            <td align="center" style="padding:${LOGO_BUFFER ? '0' : '36px'} 28px 18px 28px;">
-              <div class="k-ink" style="font-size:24px;font-weight:800;letter-spacing:0.02em;color:#0e0e0e;text-transform:uppercase;line-height:1;">Karwan<span class="k-lime" style="color:#afc95b;">.</span></div>
+            <td align="center" style="padding:${LOGO_BUFFER ? '0' : '32px'} 36px 18px 36px;">
+              <div class="k-ink" style="font-size:26px;font-weight:800;letter-spacing:0.03em;color:#0e0e0e;text-transform:uppercase;line-height:1;">KARWAN<span class="k-lime" style="color:#afc95b;">.</span></div>
               <div class="k-muted" style="margin-top:8px;font-size:10px;letter-spacing:0.20em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(eyebrow)}</div>
             </td>
           </tr>
           <!-- Lime accent rule. Slim, centred, the signature brand cue. -->
           <tr>
-            <td align="center" style="padding:4px 28px 8px 28px;line-height:0;font-size:0;">
+            <td align="center" style="padding:4px 36px 10px 36px;line-height:0;font-size:0;">
               <div style="display:inline-block;width:48px;height:3px;background:#afc95b;line-height:0;font-size:0;">&nbsp;</div>
             </td>
           </tr>

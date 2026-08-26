@@ -32,7 +32,7 @@ function Navigation({ groups, pathname, compact = false }: {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
-                  className={`group block min-h-11 rounded-lg border px-3 py-2.5 transition ${active ? 'border-[#a8c94e]/35 bg-[#a8c94e]/10 text-white' : 'border-transparent text-white/58 hover:border-white/10 hover:bg-white/[0.035] hover:text-white'}`}
+                  className={`group block min-h-11 border-l-2 px-3 py-2.5 transition ${active ? 'border-[#AFC95B] bg-white/[0.045] text-white' : 'border-transparent text-white/58 hover:border-white/20 hover:bg-white/[0.025] hover:text-white'}`}
                 >
                   <span className="block text-[12px] font-semibold leading-tight">{item.label}</span>
                   <span className={`mt-1 block text-[10px] leading-tight ${active ? 'text-white/55' : 'text-white/30 group-hover:text-white/45'}`}>{item.description}</span>
@@ -71,10 +71,13 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
   }
 
   return (
-    <main className="min-h-screen bg-[#0b0c0d] px-4 py-10 text-white sm:px-6">
+    <main className="min-h-screen bg-[#0A0A0B] px-4 py-10 text-white sm:px-6">
       <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-[1040px] items-center gap-10 lg:grid-cols-[1fr_420px]">
         <section className="max-w-[560px]">
-          <p className="mono text-[10px] font-bold uppercase tracking-[0.19em] text-[#a8c94e]">[:KARWAN OPERATOR:]</p>
+          <div className="mb-5 flex items-center gap-3">
+            <img src="/brand/karwan-mark-lime.svg" alt="Karwan" className="size-10 rounded-[10px]" />
+            <p className="mono text-[10px] font-bold uppercase tracking-[0.19em] text-[#AFC95B]">[:KARWAN OPERATOR:]</p>
+          </div>
           <h1 className="mt-4 max-w-[520px] font-sans text-[clamp(36px,6vw,68px)] font-black leading-[0.95] tracking-[-0.045em]">Run trade operations with clear authority.</h1>
           <p className="mt-6 max-w-[520px] text-[15px] leading-7 text-white/55">Review customer work, monitor agent execution, resolve exceptions, and control funds from one audited console.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -84,7 +87,7 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
               ['03', 'Act', 'Use reviewed tools with visible consequences.'],
             ].map(([number, title, copy]) => (
               <div key={number} className="border-t border-white/12 pt-3">
-                <p className="mono text-[9px] text-[#a8c94e]">{number}</p>
+                <p className="mono text-[9px] text-[#AFC95B]">{number}</p>
                 <p className="mt-2 text-[12px] font-bold text-white/85">{title}</p>
                 <p className="mt-1 text-[11px] leading-5 text-white/38">{copy}</p>
               </div>
@@ -98,7 +101,7 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
               <p className="mono text-[9px] uppercase tracking-[0.17em] text-white/35">Operator session</p>
               <p className="mt-2 text-[20px] font-extrabold">Unlock console</p>
             </div>
-            <span className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-white/40">Memory only</span>
+            <span className="inline-flex min-h-11 items-center rounded-full border border-white/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-white/40">Session scoped</span>
           </div>
           <label htmlFor="operator-key" className="mt-7 block mono text-[10px] font-bold uppercase tracking-[0.13em] text-white/55">Operator access key</label>
           <input
@@ -110,11 +113,11 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
             autoComplete="off"
             aria-invalid={error}
             aria-describedby="operator-key-help"
-            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0b0c0d] px-3 font-mono text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#a8c94e]/60"
+            className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 font-mono text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
           />
           <p id="operator-key-help" className="mt-2 text-[11px] leading-5 text-white/38">The key stays in this tab only and is cleared when you lock or refresh the console.</p>
-          <button type="submit" disabled={busy || !token.trim()} className="mt-5 min-h-12 w-full rounded-lg bg-[#a8c94e] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0b0c0d] transition hover:bg-[#b8d965] disabled:cursor-not-allowed disabled:opacity-45">
-            {busy ? 'Verifying access…' : 'Unlock operator console'}
+          <button type="submit" disabled={busy || !token.trim()} className="mt-5 min-h-12 w-full rounded-lg bg-[#AFC95B] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0A0A0B] transition hover:bg-[#C3DC70] disabled:cursor-not-allowed disabled:opacity-45">
+            {busy ? 'Verifying access...' : 'Unlock operator console'}
           </button>
           {error && <p role="alert" className="mt-3 rounded-lg border border-[#e0794f]/25 bg-[#e0794f]/8 px-3 py-2.5 text-[12px] text-[#efaa8d]">Access could not be verified. Check the key and try again.</p>}
           <div className="mt-6 border-t border-white/8 pt-4">
@@ -141,14 +144,14 @@ function AdminConsole({ role, onLock, children }: {
   }, [role, pathname, router]);
 
   return (
-    <div className="min-h-screen bg-[#0b0c0d] text-white [&_button]:min-h-11 [&_input]:min-h-11 [&_select]:min-h-11">
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0b0c0d]/96 backdrop-blur">
+    <div className="min-h-screen bg-[#0A0A0B] text-white [&_button]:min-h-11 [&_input]:min-h-11 [&_select]:min-h-11">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0A0A0B]">
         <div className="mx-auto flex min-h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <Link href="/admin" className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg pr-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#a8c94e]">
-              <span className="grid size-9 place-items-center rounded-lg bg-[#a8c94e] font-sans text-[15px] font-black text-[#0b0c0d]">K</span>
+            <Link href="/admin" className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg pr-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#AFC95B]">
+              <img src="/brand/karwan-mark-lime.svg" alt="Karwan" className="size-9 rounded-[9px]" />
               <span className="hidden sm:block">
-                <span className="block text-[12px] font-extrabold tracking-[0.02em]">KARWAN</span>
+                <span className="block text-[12px] font-extrabold tracking-[0.04em]">KARWAN<span className="text-[#AFC95B]">.</span></span>
                 <span className="block mono text-[8px] uppercase tracking-[0.16em] text-white/35">Operator console</span>
               </span>
             </Link>
@@ -171,8 +174,8 @@ function AdminConsole({ role, onLock, children }: {
 
       <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[248px_minmax(0,1fr)]">
         <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] overflow-y-auto border-r border-white/8 px-3 py-6 lg:block">
-          <div className="mb-6 rounded-xl border border-[#a8c94e]/20 bg-[#a8c94e]/7 p-3">
-            <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#a8c94e] shadow-[0_0_12px_rgba(168,201,78,0.6)]" /><p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#bddb70]">{role} session</p></div>
+          <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.025] p-3">
+            <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#AFC95B]" /><p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#C3DC70]">{role} session</p></div>
             <p className="mt-2 text-[10px] leading-4 text-white/38">Authority is scoped by the access key. Wallet signing stays opt-in.</p>
           </div>
           <Navigation groups={navigation} pathname={pathname} />
@@ -181,7 +184,7 @@ function AdminConsole({ role, onLock, children }: {
         <div className="min-w-0">
           {role === 'admin' && <div className="border-b border-white/8 px-4 py-3 md:hidden"><AdminWalletControl /></div>}
           <details className="group border-b border-white/8 lg:hidden">
-            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">Browse workspaces<span aria-hidden="true" className="text-[#a8c94e] transition group-open:rotate-45">+</span></summary>
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 mono text-[10px] font-bold uppercase tracking-[0.12em] text-white/60">Browse workspaces<span aria-hidden="true" className="text-[#AFC95B] transition group-open:rotate-45">+</span></summary>
             <div className="border-t border-white/8 px-4 py-5"><Navigation groups={navigation} pathname={pathname} compact /></div>
           </details>
           <main className="mx-auto w-full max-w-[1320px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"><DialogProvider>{children}</DialogProvider></main>

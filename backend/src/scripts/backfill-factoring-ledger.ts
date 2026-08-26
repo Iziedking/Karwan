@@ -10,8 +10,8 @@
 ///   npm run finance:backfill -- --invoice 0x...            (dry run)
 ///   npm run finance:backfill -- --invoice 0x... --execute
 
-import { getDeal } from '../db/deals.js';
-import { listAllFactoringOffers, type FactoringOffer } from '../db/factoring.js';
+import { getDeal, patchDeal } from '../db/deals.js';
+import { listAllFactoringOffers, patchFactoringOffer, patchFactoringOfferIfStatus, type FactoringOffer } from '../db/factoring.js';
 import { ensureSchema } from '../db/client.js';
 import {
   financingOperationKey,
@@ -31,6 +31,7 @@ function flag(name: string): string | undefined {
 
 const onlyOffer = flag('--offer')?.toLowerCase();
 const onlyInvoice = flag('--invoice')?.toLowerCase();
+const advanceHashOverride = flag('--advance-hash');
 
 function amount(value: string): string {
   return Number(value).toFixed(6);
@@ -41,29 +42,37 @@ function line(message: string): void {
 }
 
 async function repairAdvance(offer: FactoringOffer, seller: string, recipient: string): Promise<void> {
-  if (!offer.advanceTxHash) {
+  const txHash = advanceHashOverride ?? offer.advanceTxHash;
+  if (!txHash) {
     line(`  advance: no hash recorded; skipped (no inference)`);
     return;
   }
   const proof = await inspectFinancingTransfer({
-    txHash: offer.advanceTxHash,
+    txHash,
     sourceAddress: offer.financier,
     destinationAddress: recipient,
     amountUsdc: offer.offeredAdvanceUsdc,
     contractAddress: config.KARWAN_INVOICE_REGISTRY_ADDR,
   });
-  line(`  advance: ${offer.offeredAdvanceUsdc} USDC ${offer.financier} -> ${recipient}; proof: ${proof.ok ? 'yes' : `no (${proof.reason})`}`);
+  line(`  advance: ${offer.offeredAdvanceUsdc} USDC ${offer.financier} -> ${recipient}; tx=${txHash}; proof: ${proof.ok ? 'yes' : `no (${proof.reason})`}`);
   if (!execute || !proof.ok) return;
 
+  // A provider hash may have been truncated by an older build. The override
+  // is accepted only alongside the exact receipt proof above, then persisted
+  // so future retries and the watcher use the canonical hash.
+  if (offer.advanceTxHash?.toLowerCase() !== txHash.toLowerCase()) {
+    await patchFactoringOffer(offer.id, { advanceTxHash: txHash });
+  }
+
   const movement = await recordVerifiedFinancingMovement({
-    operationKey: financingOperationKey('factoring', offer.id, 'advance', offer.advanceTxHash),
+    operationKey: financingOperationKey('factoring', offer.id, 'advance', txHash),
     kind: 'financing_advance',
     positionId: offer.invoiceId,
     amountUsdc: amount(offer.offeredAdvanceUsdc),
     initiatedBy: seller,
     sourceAddress: offer.financier,
     destinationAddress: recipient,
-    txHash: offer.advanceTxHash,
+    txHash,
     contractAddress: config.KARWAN_INVOICE_REGISTRY_ADDR,
     summary: `Financing advance of ${offer.offeredAdvanceUsdc} USDC for invoice ${offer.invoiceId}`,
   });
@@ -75,7 +84,7 @@ async function repairAdvance(offer: FactoringOffer, seller: string, recipient: s
     summary: `Funded a ${offer.offeredAdvanceUsdc} USDC advance against invoice ${offer.invoiceId}`,
     amountUsdc: amount(offer.offeredAdvanceUsdc),
     invoiceId: offer.invoiceId,
-    txHash: offer.advanceTxHash,
+    txHash,
     reference: movement.reference,
     counterparty: seller,
   });
@@ -87,10 +96,23 @@ async function repairAdvance(offer: FactoringOffer, seller: string, recipient: s
     summary: `Received a ${offer.offeredAdvanceUsdc} USDC advance against invoice ${offer.invoiceId}`,
     amountUsdc: amount(offer.offeredAdvanceUsdc),
     invoiceId: offer.invoiceId,
-    txHash: offer.advanceTxHash,
+    txHash,
     reference: movement.reference,
     counterparty: offer.financier,
   });
+  if (offer.status === 'pending_receipt') {
+    const accepted = await patchFactoringOfferIfStatus(offer.id, 'pending_receipt', {
+      status: 'accepted',
+      acceptedAt: offer.acceptedAt ?? Date.now(),
+      advanceTxHash: txHash,
+    });
+    if (accepted) {
+      await patchDeal(offer.invoiceId, { factoringOfferId: offer.id });
+      line(`  offer: reconciled pending_receipt -> accepted`);
+    } else {
+      line(`  offer: status changed concurrently; no status mutation applied`);
+    }
+  }
   line(`  advance: repaired movement ${movement.reference}`);
 }
 
@@ -147,6 +169,9 @@ async function repairRepayment(offer: FactoringOffer, seller: string): Promise<v
 }
 
 async function run(): Promise<void> {
+  if (advanceHashOverride && !onlyOffer) {
+    throw new Error('--advance-hash requires --offer so a canonical hash cannot be applied to multiple rows');
+  }
   await ensureSchema();
   const offers = (await listAllFactoringOffers()).filter((offer) =>
     (!onlyOffer || offer.id.toLowerCase() === onlyOffer) &&
