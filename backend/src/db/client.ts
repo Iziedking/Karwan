@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import * as schema from './schema.js';
 import { runNumberedMigrations, type SqlExecutor } from './migrations.js';
+import { moneyInvariantInstallFailureIsFatal } from '../configSafety.js';
 
 // Postgres is used when DATABASE_URL is set. Without it, the db modules fall
 // back to flat-file persistence so local dev still works.
@@ -286,8 +287,9 @@ export async function ensureSchema(): Promise<void> {
   // one live PO financing line per invoice (a reclaimed line unwound, so a
   // fresh financing may follow it). Partial unique indexes make the database
   // the referee even if application guards race. Run separately from the DDL
-  // above: if legacy duplicate rows already violate an invariant, boot must
-  // not loop — log loudly and keep the app up while the data gets repaired.
+  // above: if legacy duplicate rows already violate an invariant, development
+  // logs the defect for repair. Production fails closed rather than serving
+  // financial writes without the database constraints that prevent duplicates.
   try {
     await _db.execute(`
       CREATE UNIQUE INDEX IF NOT EXISTS factoring_offers_one_accepted_per_invoice
@@ -300,8 +302,14 @@ export async function ensureSchema(): Promise<void> {
   } catch (err) {
     logger.error(
       { err: (err as Error).message },
-      'unique money-path indexes could not be created — duplicate rows likely exist; repair the data, these invariants are NOT enforced until this succeeds',
+      'unique money-path indexes could not be created; duplicate rows likely exist',
     );
+    if (moneyInvariantInstallFailureIsFatal(config.NODE_ENV)) {
+      throw new Error(
+        'refusing production startup because critical financing uniqueness constraints are not enforced',
+        { cause: err },
+      );
+    }
   }
   if (!_pool) throw new Error('Postgres pool unavailable during migration');
   const migrationClient = await _pool.connect();

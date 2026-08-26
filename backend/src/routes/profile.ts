@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { formatUnits } from 'viem';
-import { createHash, timingSafeEqual } from 'node:crypto';
 import {
   getProfile,
   upsertProfile,
@@ -25,6 +24,9 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { publicSkillCredentials, type PublicSkillCredential } from '../verification/policy.js';
+import { durableEphemeralMap } from '../db/ephemeral.js';
+import { rateLimit } from '../middleware/rateLimit.js';
+import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
 
 const USDC_DECIMALS = 6;
 
@@ -247,15 +249,13 @@ interface PendingEmailCode {
   expiresAt: number;
   attempts: number;
 }
-const emailCodes = new Map<string, PendingEmailCode>();
-const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
-const EMAIL_CODE_MAX_ATTEMPTS = 5;
+const emailCodes = durableEphemeralMap<PendingEmailCode>('profile-email-otp');
+
+function emailOtpSecret(): string {
+  return config.SESSION_SECRET ?? 'karwan-development-otp-secret-not-for-production';
+}
 
 const emailSchema = z.string().trim().toLowerCase().email().max(200);
-
-function hashEmailCode(code: string, email: string): string {
-  return createHash('sha256').update(`${code}:${email}`).digest('hex');
-}
 
 /// Caller must own the wallet they are attaching an email to. A SIWE session
 /// (web3) or an email-login session both carry the address, so this holds for
@@ -313,102 +313,111 @@ async function sendVerifyEmail(email: string, code: string): Promise<boolean> {
     });
     if (error) {
       logger.warn({ err: error.message, email }, 'resend rejected verify-email send');
-      logger.info({ email, code }, '[EMAIL-VERIFY] code (resend rejected, log fallback)');
+      if (process.env.NODE_ENV !== 'production') {
+        logger.info({ email, code }, '[EMAIL-VERIFY] code (resend rejected, log fallback)');
+      }
       return false;
     }
     return true;
   } catch (err) {
     logger.warn({ err: (err as Error).message, email }, 'resend threw on verify-email');
-    logger.info({ email, code }, '[EMAIL-VERIFY] code (resend threw, log fallback)');
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info({ email, code }, '[EMAIL-VERIFY] code (resend threw, log fallback)');
+    }
     return false;
   }
 }
 
 const emailRequestSchema = z.object({ address: addrSchema, email: emailSchema });
 
-profileRoutes.post('/email/request', async (c) => {
-  let body;
-  try {
-    body = emailRequestSchema.parse(await c.req.json());
-  } catch (err) {
-    return c.json({ error: invalidBodyMessage(err) }, 400);
-  }
-  const caller = callerFor(c, body.address);
-  if (!caller) return c.json({ error: 'sign in to add an email to this wallet' }, 401);
-  const profile = await getProfile(caller);
-  if (!profile) return c.json({ error: 'set up your profile first' }, 404);
+profileRoutes.post(
+  '/email/request',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 5, name: 'profile-email-request' }),
+  async (c) => {
+    let body;
+    try {
+      body = emailRequestSchema.parse(await c.req.json());
+    } catch (err) {
+      return c.json({ error: invalidBodyMessage(err) }, 400);
+    }
+    const caller = callerFor(c, body.address);
+    if (!caller) return c.json({ error: 'sign in to add an email to this wallet' }, 401);
+    const profile = await getProfile(caller);
+    if (!profile) return c.json({ error: 'set up your profile first' }, 404);
 
-  // One email binds to one account. Block before sending a code if this address
-  // already belongs to a Circle login account or another profile's verified
-  // contact email, so a user can't claim an email that isn't theirs. Their own
-  // account (same caller) passes through so re-verifying is fine.
-  const lower = caller.toLowerCase();
-  const circleOwner = getUserByEmail(body.email);
-  const profileOwner = await findProfileByEmail(body.email);
-  const takenByOther =
-    (circleOwner && circleOwner.address.toLowerCase() !== lower) ||
-    (profileOwner && profileOwner.address.toLowerCase() !== lower);
-  if (takenByOther) {
-    return c.json(
-      { error: 'email in use', detail: 'This email is connected to another account.' },
-      409,
-    );
-  }
+    // One email binds to one account. Block before sending a code if this address
+    // already belongs to a Circle login account or another profile's verified
+    // contact email, so a user can't claim an email that isn't theirs. Their own
+    // account (same caller) passes through so re-verifying is fine.
+    const lower = caller.toLowerCase();
+    const circleOwner = getUserByEmail(body.email);
+    const profileOwner = await findProfileByEmail(body.email);
+    const takenByOther =
+      (circleOwner && circleOwner.address.toLowerCase() !== lower) ||
+      (profileOwner && profileOwner.address.toLowerCase() !== lower);
+    if (takenByOther) {
+      return c.json(
+        { error: 'email in use', detail: 'This email is connected to another account.' },
+        409,
+      );
+    }
 
-  // Deterministic-free 6-digit code. Math.random is fine for a short-lived OTP.
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  emailCodes.set(caller, {
-    email: body.email,
-    codeHash: hashEmailCode(code, body.email),
-    expiresAt: Date.now() + EMAIL_CODE_TTL_MS,
-    attempts: 0,
-  });
-  const delivered = await sendVerifyEmail(body.email, code);
-  return c.json({
-    sent: true,
-    delivered,
-    ...(config.NODE_ENV !== 'production' && !delivered ? { devCode: code } : {}),
-  });
-});
+    const code = generateOtpCode();
+    emailCodes.set(caller, {
+      email: body.email,
+      codeHash: hashOtpCode(code, body.email, emailOtpSecret()),
+      expiresAt: Date.now() + OTP_TTL_MS,
+      attempts: 0,
+    });
+    const delivered = await sendVerifyEmail(body.email, code);
+    return c.json({
+      sent: true,
+      delivered,
+      ...(config.NODE_ENV !== 'production' && !delivered ? { devCode: code } : {}),
+    });
+  },
+);
 
 const emailVerifySchema = z.object({
   address: addrSchema,
   code: z.string().trim().regex(/^\d{6}$/, 'code must be 6 digits'),
 });
 
-profileRoutes.post('/email/verify', async (c) => {
-  let body;
-  try {
-    body = emailVerifySchema.parse(await c.req.json());
-  } catch (err) {
-    return c.json({ error: invalidBodyMessage(err) }, 400);
-  }
-  const caller = callerFor(c, body.address);
-  if (!caller) return c.json({ error: 'sign in to verify this email' }, 401);
-  const entry = emailCodes.get(caller);
-  if (!entry) return c.json({ error: 'no code pending. request a fresh one' }, 400);
-  if (entry.expiresAt < Date.now()) {
+profileRoutes.post(
+  '/email/verify',
+  rateLimit({ windowMs: 10 * 60 * 1000, max: 15, name: 'profile-email-verify' }),
+  async (c) => {
+    let body;
+    try {
+      body = emailVerifySchema.parse(await c.req.json());
+    } catch (err) {
+      return c.json({ error: invalidBodyMessage(err) }, 400);
+    }
+    const caller = callerFor(c, body.address);
+    if (!caller) return c.json({ error: 'sign in to verify this email' }, 401);
+    const entry = emailCodes.get(caller);
+    if (!entry) return c.json({ error: 'no code pending. request a fresh one' }, 400);
+    const result = checkOtpAttempt(entry, body.code, entry.email, emailOtpSecret());
+    if (result.status === 'expired') {
+      emailCodes.delete(caller);
+      return c.json({ error: 'code expired, request a fresh one' }, 400);
+    }
+    if (result.status === 'locked') {
+      emailCodes.delete(caller);
+      return c.json({ error: 'too many wrong attempts, request a fresh code' }, 429);
+    }
+    if (result.status === 'wrong') {
+      entry.attempts = result.attempts;
+      emailCodes.set(caller, entry);
+      return c.json({ error: 'wrong code' }, 400);
+    }
     emailCodes.delete(caller);
-    return c.json({ error: 'code expired, request a fresh one' }, 400);
-  }
-  entry.attempts += 1;
-  if (entry.attempts > EMAIL_CODE_MAX_ATTEMPTS) {
-    emailCodes.delete(caller);
-    return c.json({ error: 'too many wrong attempts, request a fresh code' }, 429);
-  }
-  const expected = Buffer.from(entry.codeHash, 'hex');
-  const got = Buffer.from(hashEmailCode(body.code, entry.email), 'hex');
-  if (expected.length !== got.length || !timingSafeEqual(expected, got)) {
-    return c.json({ error: 'wrong code' }, 400);
-  }
-  emailCodes.delete(caller);
-  const profile = await setProfileEmail(caller, entry.email, true);
-  if (!profile) return c.json({ error: 'profile not found' }, 404);
-  // Note: verifying a contact email does NOT subscribe the user to the
-  // newsletter. The newsletter is a separate explicit opt-in (footer subscribe
-  // box), so an unsubscribe can never strip a verified contact email.
-  return c.json({ profile });
-});
+    const profile = await setProfileEmail(caller, entry.email, true);
+    if (!profile) return c.json({ error: 'profile not found' }, 404);
+    // Verifying a contact email does not subscribe the user to the newsletter.
+    return c.json({ profile });
+  },
+);
 
 profileRoutes.post('/email/remove', async (c) => {
   let body;

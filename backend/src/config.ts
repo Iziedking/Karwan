@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { z } from 'zod';
+import { runtimeSafetyErrors } from './configSafety.js';
 
 /// An empty env var is an empty STRING, and a zod `.default()` only fires on
 /// `undefined`. Without this, `FOO=` in .env skips the default, hits the
@@ -846,6 +847,16 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   console.error('Invalid environment configuration:', parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+const safetyErrors = runtimeSafetyErrors({
+  nodeEnv: parsed.data.NODE_ENV,
+  databaseUrl: parsed.data.DATABASE_URL,
+  sessionSecret: parsed.data.SESSION_SECRET,
+});
+if (safetyErrors.length > 0) {
+  console.error('Unsafe production configuration:', safetyErrors);
   process.exit(1);
 }
 

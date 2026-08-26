@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
 import { resendClient } from '../emails/resend.js';
@@ -35,6 +35,12 @@ import {
 } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import {
+  checkOtpAttempt,
+  generateOtpCode,
+  hashOtpCode,
+  OTP_TTL_MS,
+} from '../auth/otp.js';
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
@@ -57,21 +63,17 @@ const PENDING_TTL_MS = 5 * 60 * 1000;
 // that blocks brute force after 5 wrong tries. Same pattern as the WebAuthn
 // challenge map; production swaps both to Redis.
 interface PendingOtp {
-  /// sha256(code + email) so memory inspection of the process doesn't leak
-  /// plaintext codes. Kept short-lived anyway.
+  /// HMAC(code + email) so memory inspection cannot expose or cheaply
+  /// brute-force the short-lived code without the server secret.
   codeHash: string;
   email: string;
   expiresAt: number;
   attempts: number;
 }
 const otps = durableEphemeralMap<PendingOtp>('otp');
-const OTP_TTL_MS = 10 * 60 * 1000;
-const OTP_MAX_ATTEMPTS = 5;
-
-function hashCode(code: string, email: string): string {
-  return createHash('sha256').update(`${code}:${email}`).digest('hex');
+function otpSecret(): string {
+  return config.SESSION_SECRET ?? 'karwan-development-otp-secret-not-for-production';
 }
-
 function purgeStaleOtps() {
   const now = Date.now();
   for (const [k, v] of otps.entries()) {
@@ -775,9 +777,9 @@ authRoutes.post('/otp/request', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, na
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   purgeStaleOtps();
-  const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+  const code = generateOtpCode();
   otps.set(body.email, {
-    codeHash: hashCode(code, body.email),
+    codeHash: hashOtpCode(code, body.email, otpSecret()),
     email: body.email,
     expiresAt: Date.now() + OTP_TTL_MS,
     attempts: 0,
@@ -815,18 +817,18 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
   }
   const entry = otps.get(body.email);
   if (!entry) return c.json({ error: 'no code pending for this email' }, 400);
-  if (entry.expiresAt < Date.now()) {
+  const result = checkOtpAttempt(entry, body.code, body.email, otpSecret());
+  if (result.status === 'expired') {
     otps.delete(body.email);
     return c.json({ error: 'code expired, request a fresh one' }, 400);
   }
-  entry.attempts += 1;
-  if (entry.attempts > OTP_MAX_ATTEMPTS) {
+  if (result.status === 'locked') {
     otps.delete(body.email);
     return c.json({ error: 'too many wrong attempts, request a fresh code' }, 429);
   }
-  const expected = Buffer.from(entry.codeHash, 'hex');
-  const got = Buffer.from(hashCode(body.code, body.email), 'hex');
-  if (expected.length !== got.length || !timingSafeEqual(expected, got)) {
+  if (result.status === 'wrong') {
+    entry.attempts = result.attempts;
+    otps.set(body.email, entry);
     return c.json({ error: 'wrong code' }, 400);
   }
   otps.delete(body.email);
