@@ -1555,6 +1555,7 @@ export interface NewsletterIssue {
   status: IssueStatus;
   subject: string;
   preheader: string;
+  sourceHtml?: string;
   sections: IssueSection[];
   sources: Array<{
     signalId: string;
@@ -2372,7 +2373,7 @@ export const api = {
     }>(`/api/admin/newsletter/${id}/preview`, { headers: adminHeaders() }),
   adminEditNewsletter: (
     id: string,
-    edit: { subject?: string; preheader?: string; sections?: IssueSection[] },
+    edit: { subject?: string; preheader?: string; sourceHtml?: string; sections?: IssueSection[] },
   ) =>
     json<{ issue: NewsletterIssue }>(`/api/admin/newsletter/${id}`, {
       method: 'PATCH',

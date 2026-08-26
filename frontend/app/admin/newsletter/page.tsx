@@ -159,6 +159,7 @@ export default function AdminNewsletterPage() {
       await api.adminEditNewsletter(id, {
         subject: reviewDraft.subject,
         preheader: reviewDraft.preheader,
+        sourceHtml: reviewDraft.sourceHtml,
         sections: reviewDraft.sections,
       });
       setDraftSubject(reviewDraft.subject);

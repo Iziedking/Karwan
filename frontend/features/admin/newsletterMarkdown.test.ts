@@ -73,5 +73,6 @@ test('imports a branded HTML newsletter by its explicit content sections', () =>
   assert.match(result.sections.find((section) => section.key === 'shipped')?.body ?? '', /- agent matching/);
   assert.match(result.sections.find((section) => section.key === 'ecosystem')?.body ?? '', /without custody/);
   assert.match(result.sections.find((section) => section.key === 'learned')?.body ?? '', /\[follow us @karwanBuild\]\(https:\/\/x\.com\/karwanBuild\)/);
+  assert.doesNotMatch(result.sections.map((section) => section.body).join('\n'), /\[:0[1-3]/);
   assert.equal(result.warnings.length, 0);
 });
