@@ -362,7 +362,7 @@ export function StickyTabStrip({
                       ? 'var(--ink-1)'
                       : 'var(--lp-dark)'
                     : onDark
-                      ? 'var(--ink-2)'
+                      ? 'var(--ink-1)'
                       : 'var(--ink-inv-2)',
                 }}
               >

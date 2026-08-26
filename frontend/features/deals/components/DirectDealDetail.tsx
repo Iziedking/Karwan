@@ -336,7 +336,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   type="button"
                   onClick={() => refresh()}
                   disabled={isRefetching}
-                  className="inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{
                     borderTopLeftRadius: 12,
                     borderTopRightRadius: 12,
