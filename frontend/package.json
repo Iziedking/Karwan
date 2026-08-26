@@ -43,7 +43,7 @@
     "@tanstack/react-query-persist-client": "^5.101.0",
     "@vercel/speed-insights": "^2.0.0",
     "motion": "^12.38.0",
-    "next": "^15.0.3",
+    "next": "^15.5.24",
     "pino": "^9.14.0",
     "qrcode": "^1.5.3",
     "react": "^19.0.0",
@@ -57,7 +57,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.26",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.0"
   }
