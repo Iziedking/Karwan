@@ -229,6 +229,23 @@ export async function listAcceptedOffers(): Promise<FactoringOffer[]> {
     .sort((x, y) => y.offeredAt - x.offeredAt);
 }
 
+/// Every factoring offer, newest first. This bounded read is for operator
+/// reconciliation and backfill jobs; user-facing reads stay party-scoped.
+export async function listAllFactoringOffers(limit = 5000): Promise<FactoringOffer[]> {
+  const safeLimit = Math.min(5000, Math.max(1, Math.floor(limit) || 5000));
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(factoringOffers)
+      .orderBy(desc(factoringOffers.offeredAt))
+      .limit(safeLimit);
+    return rows.map((r) => r.data);
+  }
+  return Object.values(loadFile())
+    .sort((x, y) => y.offeredAt - x.offeredAt)
+    .slice(0, safeLimit);
+}
+
 /// Offers visible to a financier on their dashboard: everything they
 /// proposed, in any status, newest first.
 export async function listOffersByFinancier(financier: string): Promise<FactoringOffer[]> {

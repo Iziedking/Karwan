@@ -35,10 +35,9 @@ import { actorSignalsFor, type RepTier } from '../agents/signals.js';
 import { parseUnits, formatUnits, type Address, type Hex } from 'viem';
 import { config } from '../config.js';
 import { bus } from '../events.js';
-import { appendActivity } from '../db/activityLog.js';
 import { shouldHoldFactoring } from '../security/sa-stub.js';
 import { logger } from '../logger.js';
-import { financingOperationKey, recordVerifiedFinancingMovement } from '../money/financing.js';
+import { financingOperationKey, projectFinancingActivity, recordVerifiedFinancingMovement } from '../money/financing.js';
 import {
   factoringAdvanceRecipient,
   factoringAdvanceRecipientView,
@@ -1099,35 +1098,29 @@ factoringRoutes.post('/accept', async (c) => {
     // Real USDC just moved from the financier to the seller, and until now
     // neither party's transaction history said so. One row each: the ledger is
     // keyed on address, so a single row would leave the other side blind.
-    void appendActivity({
+    await projectFinancingActivity({
+      offerId: offer.id,
+      phase: 'advance-funded',
       address: offer.financier,
       kind: 'financing_funded',
       summary: `Funded a ${offer.offeredAdvanceUsdc} USDC advance against invoice ${offer.invoiceId}`,
-      params: {
-        t: 'advanceFunded',
-        amount: String(offer.offeredAdvanceUsdc),
-        job: String(offer.invoiceId),
-      },
       amountUsdc: offer.offeredAdvanceUsdc,
+      invoiceId: offer.invoiceId,
       txHash: advanceTxHash,
-      jobId: offer.invoiceId,
-      counterparty: seller?.toLowerCase(),
-      refId: advanceReference,
+      reference: advanceReference,
+      counterparty: seller,
     });
-    void appendActivity({
+    await projectFinancingActivity({
+      offerId: offer.id,
+      phase: 'advance-received',
       address: seller,
       kind: 'financing_received',
       summary: `Received a ${offer.offeredAdvanceUsdc} USDC advance against invoice ${offer.invoiceId}`,
-      params: {
-        t: 'advanceReceived',
-        amount: String(offer.offeredAdvanceUsdc),
-        job: String(offer.invoiceId),
-      },
       amountUsdc: offer.offeredAdvanceUsdc,
+      invoiceId: offer.invoiceId,
       txHash: advanceTxHash,
-      jobId: offer.invoiceId,
-      counterparty: offer.financier?.toLowerCase(),
-      refId: advanceReference,
+      reference: advanceReference,
+      counterparty: offer.financier,
     });
 
     logger.info(
