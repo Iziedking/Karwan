@@ -59,6 +59,7 @@ backend/data/
 
 # internal, not for public repo
 PLAN.md
+AUDIT.md
 # Catch internal planning artifacts even when a tool creates them under a
 # different planning filename or folder. Public product and operator docs stay
 # tracked unless they match one of these explicit conventions.
