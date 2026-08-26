@@ -33,11 +33,27 @@ function receiptHash(movement: MoneyMovement): string | null {
   );
 }
 
-export function movementToPersonalLedgerItem(movement: MoneyMovement): PersonalLedgerItem {
+export function movementToPersonalLedgerItem(
+  movement: MoneyMovement,
+  viewerAddress?: string,
+): PersonalLedgerItem {
+  const viewer = viewerAddress?.toLowerCase();
+  let kind: string = movement.kind;
+  const leg = movement.legs.find((candidate) => candidate.attempt === movement.attempt);
+  const source = leg?.sourceAddress?.toLowerCase();
+  const destination = leg?.destinationAddress?.toLowerCase();
+  if (movement.kind === 'financing_repayment' && viewer) {
+    // The durable kind names the rail; the UI kind names the user's view.
+    if (viewer === destination) kind = 'financing_repaid';
+    else if (viewer === source) kind = 'financing_repayment_sent';
+  } else if (movement.kind === 'financing_advance' && viewer) {
+    if (viewer === destination || (viewer === movement.initiatedBy.toLowerCase() && viewer !== source)) kind = 'financing_received';
+    else if (viewer === source) kind = 'financing_funded';
+  }
   return {
     id: movement.reference,
     ts: movement.completedAt ?? movement.updatedAt,
-    kind: movement.kind,
+    kind,
     summary: movement.summary,
     params: null,
     amountUsdc: formatUsdcMicros(movement.amountMicros),
@@ -59,6 +75,7 @@ export function mergeMovementLedger(
   legacy: readonly PersonalLedgerItem[],
   movements: readonly MoneyMovement[],
   limit: number,
+  viewerAddress?: string,
 ): PersonalLedgerItem[] {
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit) || 100));
   const references = new Set(
@@ -67,7 +84,7 @@ export function mergeMovementLedger(
   const preserved = legacy.filter(
     (item) => !item.refId || !references.has(item.refId.toUpperCase()),
   );
-  return [...preserved, ...movements.map(movementToPersonalLedgerItem)]
+  return [...preserved, ...movements.map((movement) => movementToPersonalLedgerItem(movement, viewerAddress))]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, safeLimit);
 }

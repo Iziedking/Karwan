@@ -28,7 +28,9 @@ const INBOUND = new Set([
   'refund',
   'unstake',
   'financing_received',
+  'financing_repayment',
   'gateway_deposit',
+  'financing_repaid',
   // Karwan's own USDC arriving in the user's agent wallet at onboarding, so the
   // agent can pay for its first transactions. Nothing leaves the user, and it
   // was signed as if it did: the first two rows of a new account read "-0.5".
@@ -46,7 +48,7 @@ const OUTBOUND = new Set([
   'gateway_fund_agent',
   'gateway_cash_out',
   'financing_funded',
-  'financing_repaid',
+  'financing_repayment_sent',
 ]);
 
 export function ledgerDirection(kind: string): LedgerDirection {

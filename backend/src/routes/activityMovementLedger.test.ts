@@ -100,6 +100,43 @@ test('pending and attention movements remain visible with honest status', () => 
   assert.equal(movementToPersonalLedgerItem(movement('needs_attention')).status, 'failed');
 });
 
+test('normalizes durable financing kinds for the viewer perspective', () => {
+  const durable = createMoneyMovement(
+    'KWN-2345-ABCD-EFGH',
+    {
+      operationKey: 'financing:advance:1',
+      kind: 'financing_advance',
+      amountMicros: '175000000',
+      initiatedBy: seller,
+      participants: [
+        { address: seller, role: 'source' },
+        { address: buyer, role: 'recipient' },
+      ],
+      summary: 'advance',
+      nextActor: 'karwan',
+      jobId: 'job-1',
+    },
+    1_000,
+  );
+  durable.legs = [{
+    id: '1:advance',
+    key: 'advance',
+    attempt: durable.attempt,
+    label: 'advance',
+    rail: 'arc_contract',
+    state: 'verified',
+    idempotencyKey: 'advance-key',
+    sourceAddress: seller,
+    destinationAddress: buyer,
+    createdAt: 1_000,
+  }];
+  assert.equal(movementToPersonalLedgerItem(durable, seller).kind, 'financing_funded');
+  assert.equal(movementToPersonalLedgerItem(durable, buyer).kind, 'financing_received');
+  const repayment = { ...durable, kind: 'financing_repayment' as const };
+  assert.equal(movementToPersonalLedgerItem(repayment, buyer).kind, 'financing_repaid');
+  assert.equal(movementToPersonalLedgerItem(repayment, seller).kind, 'financing_repayment_sent');
+});
+
 test('merge respects the route limit after sorting newest first', () => {
   const rows = mergeMovementLedger(
     [legacy({ id: 'old', ts: 10 }), legacy({ id: 'new', ts: 30 })],

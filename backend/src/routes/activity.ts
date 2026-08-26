@@ -353,6 +353,7 @@ activityRoutes.get('/me', async (c) => {
     legacyItems,
     movements,
     limit + bridgeItems.length,
+    address,
   );
   const durableReferences = new Set(
     movements.map((movement) => movement.reference.toUpperCase()),

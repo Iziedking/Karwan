@@ -16,6 +16,7 @@
     "scan:lifetime": "tsx --env-file=../.env src/scripts/scan-lifetime.ts",
     "agents:bind": "tsx --env-file=../.env src/scripts/backfill-agent-bindings.ts",
     "money:reconcile": "tsx --env-file=../.env src/scripts/reconcile-stuck-movements.ts",
+    "finance:backfill": "tsx --env-file=../.env src/scripts/backfill-factoring-ledger.ts",
     "check:events-projection": "tsx src/scripts/events-projection-check.ts",
     "sync:canon": "tsx src/scripts/sync-canon.ts",
     "solana:bridge-smoke": "tsx --env-file=../.env src/scripts/solana-bridge-smoke.ts",

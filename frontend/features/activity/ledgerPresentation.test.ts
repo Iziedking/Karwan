@@ -44,3 +44,8 @@ test('a Karwan seed is money arriving, not leaving', () => {
   // A top up is the user's own money moving out of the sign-in wallet.
   assert.equal(ledgerAmountLabel('100', 'agent_topup'), '-100 USDC');
 });
+
+test('a financier repayment is money arriving', () => {
+  assert.equal(ledgerDirection('financing_repaid'), 'in');
+  assert.equal(ledgerAmountLabel('200', 'financing_repaid'), '+200 USDC');
+});

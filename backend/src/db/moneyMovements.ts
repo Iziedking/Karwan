@@ -242,6 +242,34 @@ export async function listMoneyMovementsForJob(
     .slice(0, safeLimit);
 }
 
+/// Find an existing financing movement by the transaction it already proved.
+/// Older watcher versions used a different operation key for escrow-assigned
+/// repayments, so operation-key lookup alone could create a duplicate receipt.
+export async function findMoneyMovementByTransfer(input: {
+  jobId: string;
+  kind: MoneyMovement['kind'];
+  txHash: string;
+  sourceAddress: string;
+  destinationAddress: string;
+  amountMicros: bigint | string;
+}): Promise<MoneyMovement | null> {
+  const amount = BigInt(input.amountMicros).toString();
+  const tx = input.txHash.toLowerCase();
+  const source = input.sourceAddress.toLowerCase();
+  const destination = input.destinationAddress.toLowerCase();
+  const movements = await listMoneyMovementsForJob(input.jobId, 200);
+  return movements.find((movement) =>
+    movement.kind === input.kind &&
+    movement.legs.some((leg) =>
+      leg.attempt === movement.attempt &&
+      leg.txHash?.toLowerCase() === tx &&
+      leg.sourceAddress?.toLowerCase() === source &&
+      leg.destinationAddress?.toLowerCase() === destination &&
+      leg.amountMicros === amount,
+    ),
+  ) ?? null;
+}
+
 /**
  * Find a Gateway deposit by a provider correlation value. Gateway webhooks do
  * not carry a Karwan reference in every event version, so the reconciler may

@@ -23,7 +23,6 @@
 
 import { formatUnits, parseUnits } from 'viem';
 import { listAllDeals, getDeal, type DirectDeal } from '../db/deals.js';
-import { appendActivity } from '../db/activityLog.js';
 import { listAcceptedOffers, patchFactoringOffer, type FactoringOffer } from '../db/factoring.js';
 import { getUserByAddress } from '../db/users.js';
 import {
@@ -38,6 +37,7 @@ import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import {
   financingOperationKey,
+  projectFinancingActivity,
   readEscrowAssignmentPaid,
   recordEscrowAssignedFinancingMovement,
   recordVerifiedFinancingMovement,
@@ -95,16 +95,17 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
         reference: assigned.movement.reference,
       },
     });
-    void appendActivity({
+    await projectFinancingActivity({
+      offerId: offer.id,
+      phase: 'repayment',
       address: offer.financier,
       kind: 'financing_repaid',
       summary: `Repaid ${formatUnits(BigInt(repayAtomic), USDC_DECIMALS)} USDC on invoice ${offer.invoiceId}`,
-      params: { t: 'financingRepaid', amount: formatUnits(BigInt(repayAtomic), USDC_DECIMALS), job: String(offer.invoiceId) },
       amountUsdc: formatUnits(BigInt(repayAtomic), USDC_DECIMALS),
+      invoiceId: offer.invoiceId,
       txHash: assigned.txHash,
-      jobId: offer.invoiceId,
-      counterparty: offer.seller?.toLowerCase(),
-      refId: assigned.movement.reference,
+      reference: assigned.movement.reference,
+      counterparty: offer.seller,
     });
     return;
   }
@@ -123,16 +124,17 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
     });
     assignedReference = assigned.movement.reference;
     assignedTxHash = assigned.txHash;
-    void appendActivity({
+    await projectFinancingActivity({
+      offerId: offer.id,
+      phase: 'repayment',
       address: offer.financier,
       kind: 'financing_repaid',
       summary: `Repaid ${formatUnits(alreadyPaid, USDC_DECIMALS)} USDC from escrow on invoice ${offer.invoiceId}`,
-      params: { t: 'financingRepaid', amount: formatUnits(alreadyPaid, USDC_DECIMALS), job: String(offer.invoiceId) },
       amountUsdc: formatUnits(alreadyPaid, USDC_DECIMALS),
-      txHash: assignedTxHash,
-      jobId: offer.invoiceId,
-      counterparty: offer.seller?.toLowerCase(),
-      refId: assignedReference,
+      invoiceId: offer.invoiceId,
+      txHash: assignedTxHash!,
+      reference: assignedReference!,
+      counterparty: offer.seller,
     });
   }
 
@@ -212,20 +214,17 @@ async function settleOffer(offer: FactoringOffer): Promise<void> {
   // The financier's money coming back. Without this the only trace a financier
   // had of being repaid was the deal page; their own history ended at the
   // advance going out.
-  void appendActivity({
+  await projectFinancingActivity({
+    offerId: offer.id,
+    phase: 'repayment',
     address: offer.financier,
     kind: 'financing_repaid',
     summary: `Repaid ${(Number(shortfallAtomic) / 1_000_000).toFixed(6)} USDC on invoice ${offer.invoiceId}`,
-    params: {
-      t: 'financingRepaid',
-      amount: (Number(shortfallAtomic) / 1_000_000).toFixed(6),
-      job: String(offer.invoiceId),
-    },
     amountUsdc: (Number(shortfallAtomic) / 1_000_000).toFixed(6),
+    invoiceId: offer.invoiceId,
     txHash,
-    jobId: offer.invoiceId,
-    counterparty: offer.seller?.toLowerCase(),
-    refId: repaymentReference,
+    reference: repaymentReference ?? `financing:factoring:${offer.id}:repayment:${txHash.toLowerCase()}`,
+    counterparty: offer.seller,
   });
 
   logger.info(
