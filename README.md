@@ -122,7 +122,52 @@ The backend suite runs with `npm test --workspace=backend` and needs a populated
 
 ## Roadmap
 
-The next track is a mobile companion to the web workspace. It carries the actions people take most often: review a match, approve a counter, fund or release a milestone, answer a deadline, and check where a deal stands. The full desks, business controls, verification review, and detailed activity history stay on the web. The mobile app is planned work, not something that ships today.
+### Arc mainnet readiness
+
+Karwan is operating on Arc Testnet. Mainnet is a controlled release program,
+not a network switch. Real-value settlement will remain disabled until the
+contract, operator, financial-command, deployment, recovery, and dependency
+gates below have reproducible evidence and pass a documented go/no-go review.
+
+| Gate | Required outcome | Current status |
+|---|---|---|
+| Contract assurance | The exact release candidate receives independent review, static analysis, adversarial and invariant testing, remediation, and auditor closure with no unresolved critical or high finding. | Required before mainnet |
+| Deployment integrity | Audited source reproduces deployed bytecode. A signed manifest records addresses, code hashes, constructor inputs, roles, compiler settings, creation blocks, and explorer verification. | Required before mainnet |
+| Multisig authority | Administrator, guardian, treasury, pauser, operator, and upgrade powers are assigned to documented multisig and timelock controls. Personal deployer keys retain no production authority. | Required before mainnet |
+| Operator security | Named operator identities, phishing-resistant MFA, least-privilege RBAC, scoped machine credentials, separation of duties, revocation, and attributable audit records replace the shared admin-token model. | Required before mainnet |
+| Financial command authority | One durable reviewed-command boundary owns funding, release, refund, financing, repayment, staking, bridging, and cash-out initiation. Authorizations are exact, versioned, expiring, and idempotent. | Foundations built; authority cutover pending |
+| Finality and reconciliation | Completion requires receipt, finality, exact transfer, recipient, amount, and contract-state verification. Unknown, replaced, reverted, and delayed operations reconcile before any retry. | Foundations built; mainnet proof pending |
+| Immutable release and rollback | Releases are digest-pinned and linked to Git, migrations, frontend, contracts, SBOM, and provenance. Readiness gates traffic, and unsafe canaries roll back automatically. | Required before mainnet |
+| Workflow and recovery proof | Isolated buyer, seller, financier, dispute, and operator E2E suites cover success, duplicate, restart, provider, database, RPC, webhook, and stale-state scenarios on mobile and desktop. | Required before mainnet |
+| Dependency risk | Every critical or high production advisory is remediated or covered by a dated, owned, time-bounded risk acceptance with reachability and compensating-control evidence. | Zero critical; four high families under review |
+
+### Delivery sequence
+
+1. **Assure the contracts.** Freeze the candidate, run static analysis, complete
+   independent review, close findings, and reproduce the deployment bytecode.
+2. **Establish the control plane.** Put contract roles behind multisig controls
+   and replace shared administration with named operators, MFA, RBAC, scoped
+   credentials, and separation of duties.
+3. **Cut over financial authority.** Move each money operation to the durable
+   reviewed-command and reconciliation path only after shadow parity, duplicate
+   safety, restart recovery, kill-switch, and rollback evidence pass.
+4. **Prove the release system.** Deploy immutable artifacts through readiness
+   and canary gates, exercise automatic rollback and database restore, and
+   retain a signed evidence pack for the release.
+5. **Rehearse the product.** Run complete buyer, seller, financier, dispute, and
+   recovery workflows twice from clean state in a mainnet-like environment.
+6. **Make the release decision.** Security, engineering, product, and operations
+   review every P0 artifact. Mainnet remains disabled unless the decision is an
+   explicit go.
+
+### Beyond the mainnet gate
+
+The next product track is a mobile companion focused on frequent actions:
+reviewing a match, approving a counter, funding or releasing a milestone,
+answering a deadline, and checking where a deal stands. Detailed operations,
+business controls, verification review, and full activity history remain on the
+web. The mobile application is planned work and does not ship in the current
+testnet release.
 
 ## License
 

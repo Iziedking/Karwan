@@ -104,7 +104,7 @@ export default function HomePage() {
           <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[1.02] text-balance text-[clamp(1.75rem,3.6vw,3rem)]">
             {lp.finalCta.title}
           </h2>
-          <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
+          <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-on-dark-muted)]">
             {lp.finalCta.body}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
@@ -153,7 +153,7 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
             <PanelContent>
             <SectionTag>{copy.tag}</SectionTag>
             <h2 className="mt-6 max-w-[11ch] font-sans text-[clamp(1.85rem,5.4vw,5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.035em] text-balance">
-              {copy.titleStart} <span className="text-[var(--lp-accent)]">{copy.titleAccent}</span> {copy.titleEnd}
+              {copy.titleStart} <span className="text-[var(--lp-accent-on-light)]">{copy.titleAccent}</span> {copy.titleEnd}
             </h2>
             <p className="mt-7 max-w-[38ch] text-[15px] leading-[1.6] text-[var(--lp-text-sub)]">
               Funds, delivery, and proof stay in one visible settlement path.
@@ -218,7 +218,7 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
                 <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-white">
                   {copy.title}
                 </h3>
-                <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-text-muted)]">{copy.body}</p>
+                <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-text-on-dark-muted)]">{copy.body}</p>
                 <ul className="mt-8 divide-y divide-white/10 border-y border-white/10">
                   {[
                     { title: copy.tile1Title, body: copy.tile1Body },
@@ -448,7 +448,7 @@ function KpiBlock({
       <div className="flex items-center gap-2">
         <span
           className="mono text-[10px] uppercase tracking-[0.12em]"
-          style={{ color: 'var(--lp-text-muted)' }}
+          style={{ color: 'var(--lp-text-on-dark-muted)' }}
         >
           [:{label}]
         </span>
@@ -480,7 +480,7 @@ function KpiBlock({
         </span>
         <span
           className="mono text-[12px] uppercase tracking-[0.1em]"
-          style={{ color: 'var(--lp-text-muted)' }}
+          style={{ color: 'var(--lp-text-on-dark-muted)' }}
         >
           {unit}
         </span>
@@ -639,7 +639,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
             <div className="flex items-center justify-between mb-5">
               <span
                 className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: 'var(--lp-text-muted)' }}
+                style={{ color: 'var(--lp-text-on-dark-muted)' }}
               >
                 [:{c.tag}]
               </span>
@@ -670,14 +670,14 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
                 </span>
                 <span
                   className="mono text-[12px] uppercase tracking-[0.1em]"
-                  style={{ color: 'var(--lp-text-muted)' }}
+                  style={{ color: 'var(--lp-text-on-dark-muted)' }}
                 >
                   {c.unit}
                 </span>
               </div>
               <p
                 className="mono text-[10px] uppercase tracking-[0.14em]"
-                style={{ color: 'var(--lp-text-muted)' }}
+                style={{ color: 'var(--lp-text-on-dark-muted)' }}
               >
                 {c.sub}
               </p>
@@ -925,7 +925,7 @@ function SectionTag({
     <span
       className={cn(
         'inline-flex items-center gap-2 mono text-[12px] font-medium uppercase tracking-[0.08em]',
-        tone === 'dark' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-text-sub)]',
+        tone === 'dark' ? 'text-[var(--lp-text-on-dark-muted)]' : 'text-[var(--lp-text-sub)]',
       )}
     >
       <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
@@ -1004,7 +1004,7 @@ function FeatureTile({
       <p
         className={cn(
           'mt-2 text-pretty text-[13px] leading-relaxed',
-          tone === 'dark' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-text-sub)]',
+          tone === 'dark' ? 'text-[var(--lp-text-on-dark-muted)]' : 'text-[var(--lp-text-sub)]',
         )}
       >
         {body}
