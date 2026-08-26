@@ -4,7 +4,7 @@ import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClien
 import { erc20Abi, parseUnits } from 'viem';
 import { GATEWAY_CHAINS } from '@/features/bridge/config';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useBridges } from '@/features/bridge/hooks/useBridge';
+import { useBridges, type BridgeStartResult } from '@/features/bridge/hooks/useBridge';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -251,8 +251,11 @@ export function AssistantWidget() {
       // Map the backend's error codes to a human line instead of showing the
       // raw "assistant-error" string. The human fallback is revealed below.
       const code = e instanceof ApiError ? e.message : '';
+      const reason = e instanceof ApiError ? e.code : undefined;
       setError(
-        code === 'assistant-timeout'
+        reason === 'assistant_state_unavailable'
+          ? 'I could not verify your live account state, so I have not claimed that anything happened. Try again shortly, or talk to a human below.'
+          : code === 'assistant-timeout'
           ? 'The assistant took too long. Try again, or talk to a human below.'
           : code === 'assistant-unavailable'
             ? 'The assistant is offline right now. You can talk to a human below.'
@@ -598,6 +601,9 @@ function NavigateButton({
 const confirmOutcomes = new Map<string, ConfirmResult | 'dismissed' | 'running'>();
 
 interface ConfirmResult {
+  /// The outcome is authoritative. A resolved promise is not enough because
+  /// wallet SDKs can resolve after recording a failed bridge.
+  state?: 'completed' | 'pending';
   successText: string;
   viewHref: string;
   viewLabel: string;
@@ -627,13 +633,25 @@ type BridgeOutcome =
   | { state: 'failed'; reason: string | null }
   | { state: 'pending' };
 
+function movementOutcome(state: unknown): 'completed' | 'pending' | 'failed' {
+  if (state === 'needs_attention' || state === 'cancelled' || state === 'failed' || state === 'error') {
+    return 'failed';
+  }
+  if (state === 'completed' || state === 'settled' || state === 'succeeded') return 'completed';
+  return 'pending';
+}
+
 async function pollBridgeOutcome(bridgeId: string, attempts = 6): Promise<BridgeOutcome> {
   for (let i = 0; i < attempts; i++) {
     await new Promise((r) => setTimeout(r, 1500));
     try {
       const s = await api.bridgeStatus(bridgeId);
-      if (s.sourceTxHash) return { state: 'burned', txHash: s.sourceTxHash };
       if (s.status === 'error') return { state: 'failed', reason: s.error };
+      if (s.status === 'minted') {
+        const hash = s.sourceTxHash ?? s.mintTxHash;
+        if (hash) return { state: 'burned', txHash: hash };
+      }
+      if (s.sourceTxHash) return { state: 'burned', txHash: s.sourceTxHash };
     } catch {
       // Record not visible yet, or a transient read failure. Keep waiting.
     }
@@ -653,12 +671,12 @@ interface ConfirmDeps {
     sourceChainKey: string;
     amountUsdc: number;
     mintRecipient: `0x${string}`;
-  }) => Promise<void>;
+  }) => Promise<BridgeStartResult>;
   startWeb3CashOut?: (input: {
     destChainKey: string;
     recipient: `0x${string}`;
     amountUsdc: number;
-  }) => Promise<void>;
+  }) => Promise<BridgeStartResult>;
   /// Pooling into the unified balance is signed by the user's own EOA (Gateway
   /// rejects an SCA's EIP-1271), so it runs client-side like the two above.
   startGatewayDeposit?: (input: { sourceChainKey: string; amountUsdc: number }) => Promise<void>;
@@ -685,15 +703,22 @@ async function runConfirmIntent(
     }
     // Opens the wallet. It resolves once the burn is signed and submitted; the
     // forwarder mints on Arc after that, tracked on the bridge screen.
-    await deps.startWeb3TopUp({
+    const outcome = await deps.startWeb3TopUp({
       sourceChainKey: p.sourceChainKey,
       amountUsdc: p.amountUsdc,
       mintRecipient: p.mintRecipient as `0x${string}`,
     });
+    if (outcome.state === 'failed') {
+      throw new Error(outcome.error ?? 'The transfer did not complete. Your USDC has not moved.');
+    }
     return {
-      successText: 'Signed. Your USDC lands on Arc in a few minutes.',
+      state: outcome.state === 'completed' ? 'completed' : 'pending',
+      successText: outcome.state === 'completed'
+        ? 'Transfer submitted. Check the bridge status before counting on the funds.'
+        : 'Transfer is still confirming. It is not marked complete yet.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
+      ...(outcome.txHash ? { txHash: outcome.txHash } : {}),
     };
   }
   if (action.intent === 'pool_usdc_web3') {
@@ -744,15 +769,22 @@ async function runConfirmIntent(
     }
     // Opens the wallet for the Arc burn; the forwarder mints on the destination
     // chain. Resolves once signed and submitted.
-    await deps.startWeb3CashOut({
+    const outcome = await deps.startWeb3CashOut({
       destChainKey: p.destChainKey,
       recipient: p.recipient as `0x${string}`,
       amountUsdc: p.amountUsdc,
     });
+    if (outcome.state === 'failed') {
+      throw new Error(outcome.error ?? 'The transfer did not complete. Your USDC has not moved.');
+    }
     return {
-      successText: 'Signed. It lands on the destination chain in a few minutes.',
+      state: outcome.state === 'completed' ? 'completed' : 'pending',
+      successText: outcome.state === 'completed'
+        ? 'Transfer submitted. Check the bridge status before counting on the funds.'
+        : 'Transfer is still confirming. It is not marked complete yet.',
       viewHref: '/bridge',
       viewLabel: 'Track it',
+      ...(outcome.txHash ? { txHash: outcome.txHash } : {}),
     };
   }
   if (action.intent === 'post_offer') {
@@ -794,7 +826,19 @@ async function runConfirmIntent(
   }
   if (action.intent === 'withdraw_proceeds') {
     const r = await api.withdrawFromAgent(action.payload as Parameters<typeof api.withdrawFromAgent>[0]);
-    return { successText: 'Withdrawal sent.', viewHref: '/profile#agents', viewLabel: 'View your wallets', txHash: r.txHash };
+    const outcome = movementOutcome(r.movementState);
+    if (outcome === 'failed') {
+      throw new Error('Withdrawal needs attention. No completion was confirmed; check your activity and try again.');
+    }
+    return {
+      state: outcome,
+      successText: outcome === 'completed'
+        ? 'Withdrawal completed. Check your wallet before counting on the funds.'
+        : 'Withdrawal is being confirmed. It is not complete yet.',
+      viewHref: '/profile#agents',
+      viewLabel: 'View your wallets',
+      txHash: r.txHash,
+    };
   }
   if (action.intent === 'cash_out') {
     const p = action.payload as {
@@ -815,8 +859,15 @@ async function runConfirmIntent(
         p.amountUsdc,
         crypto.randomUUID(),
       );
+      if (r.movementState === 'needs_attention' || r.movementState === 'cancelled') {
+        throw new Error('Cash out needs attention. No completion was confirmed; check your activity and try again.');
+      }
+      const completed = r.movementState === 'completed';
       return {
-        successText: 'Cash out sent. It lands on the destination chain in seconds.',
+        state: completed ? 'completed' : 'pending',
+        successText: completed
+          ? 'Cash out completed. Check the destination wallet before counting on the funds.'
+          : 'Cash out is being confirmed. It is not complete yet, so check the bridge status before counting on the funds.',
         viewHref: '/bridge',
         viewLabel: 'Track it',
         // Prefer the mined hash so the card links a verifiable receipt. The
@@ -920,8 +971,15 @@ async function runConfirmIntent(
       amountUsdc: p.amountUsdc,
       requestId: crypto.randomUUID(),
     });
+    const outcome = movementOutcome(r.movementState);
+    if (outcome === 'failed') {
+      throw new Error('Staking needs attention. No completion was confirmed; check your activity and try again.');
+    }
     return {
-      successText: 'Staked. It starts earning yield from the next daily credit.',
+      state: outcome,
+      successText: outcome === 'completed'
+        ? 'Stake completed. Yield starts from the next daily credit.'
+        : 'Your stake is being confirmed. It is not complete yet.',
       viewHref: '/stake',
       viewLabel: 'Your stake',
       ...(r.depositTxHash ? { txHash: r.depositTxHash } : {}),
@@ -948,8 +1006,15 @@ async function runConfirmIntent(
     // out of. Both land the same USDC in the same agent wallet.
     if (p.route === 'unified') {
       const r = await api.gatewayFundAgent(p.agent, p.amountUsdc, crypto.randomUUID());
+      if (r.movementState === 'needs_attention' || r.movementState === 'cancelled') {
+        throw new Error('Agent funding needs attention. No completion was confirmed; check your activity and try again.');
+      }
+      const completed = r.movementState === 'completed';
       return {
-        successText: `Your ${p.agent} agent is funded.`,
+        state: completed ? 'completed' : 'pending',
+        successText: completed
+          ? `Your ${p.agent} agent is funded.`
+          : `Your ${p.agent} agent funding is being confirmed. It is not complete yet.`,
         viewHref: '/profile#agents',
         viewLabel: 'Your wallets',
         ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
@@ -961,8 +1026,15 @@ async function runConfirmIntent(
       amountUsdc: p.amountUsdc,
       requestId: crypto.randomUUID(),
     });
+    const outcome = movementOutcome(r.movementState);
+    if (outcome === 'failed') {
+      throw new Error('Agent funding needs attention. No completion was confirmed; check your activity and try again.');
+    }
     return {
-      successText: `Your ${p.agent} agent is funded.`,
+      state: outcome,
+      successText: outcome === 'completed'
+        ? `Your ${p.agent} agent is funded.`
+        : `Your ${p.agent} agent funding is being confirmed. It is not complete yet.`,
       viewHref: '/profile#agents',
       viewLabel: 'Your wallets',
       txHash: r.txHash,
@@ -1027,12 +1099,12 @@ function ConfirmCard({
   // in their own wallet, which no backend route can do for them. Connecting is
   // part of the action, not a precondition to bounce them on.
   const startWeb3TopUp = useCallback(
-    async (input: { sourceChainKey: string; amountUsdc: number; mintRecipient: `0x${string}` }) => {
+    async (input: { sourceChainKey: string; amountUsdc: number; mintRecipient: `0x${string}` }): Promise<BridgeStartResult> => {
       if (!wagmiAddress || !connector) {
         openConnectModal?.();
         throw new Error('Connect your wallet, then confirm again.');
       }
-      await startAppKitBridge({
+      return startAppKitBridge({
         sourceChainKey: input.sourceChainKey as Parameters<typeof startAppKitBridge>[0]['sourceChainKey'],
         amountUsdc: input.amountUsdc,
         mintRecipient: input.mintRecipient,
@@ -1044,12 +1116,12 @@ function ConfirmCard({
   // The mirror: an Arc burn signed in their own wallet, forwarder mints on the
   // destination chain. Same connect-as-part-of-the-action shape.
   const startWeb3CashOut = useCallback(
-    async (input: { destChainKey: string; recipient: `0x${string}`; amountUsdc: number }) => {
+    async (input: { destChainKey: string; recipient: `0x${string}`; amountUsdc: number }): Promise<BridgeStartResult> => {
       if (!wagmiAddress || !connector) {
         openConnectModal?.();
         throw new Error('Connect your wallet, then confirm again.');
       }
-      await startWeb3Out({
+      return startWeb3Out({
         destChainKey: input.destChainKey as Parameters<typeof startWeb3Out>[0]['destChainKey'],
         amountUsdc: input.amountUsdc,
         recipient: input.recipient,
@@ -1237,7 +1309,9 @@ function ConfirmCard({
   if (status === 'done' && result) {
     return (
       <div className="border border-[var(--lp-border-light)] bg-[var(--lp-bg)] p-3" style={{ borderRadius: 12 }}>
-        <p className="mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-accent)]">Done</p>
+        <p className={`mono text-[10px] uppercase tracking-[0.12em] font-bold ${result.state === 'pending' ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-accent)]'}`}>
+          {result.state === 'pending' ? 'In flight' : 'Completed'}
+        </p>
         <p className="text-[12.5px] text-[var(--lp-dark)] mt-1">{result.successText}</p>
         {result.txHash ? (
           <a
