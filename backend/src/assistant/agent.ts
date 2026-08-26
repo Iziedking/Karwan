@@ -2097,14 +2097,14 @@ export async function runAssistantAgent(input: {
   address: string;
   method: string;
   messages: AssistantChatMessage[];
-}): Promise<{ text: string; actions: AssistantAction[] }> {
+}): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
   const system = KARWAN_ASSISTANT_SYSTEM + '\n' + authenticatedPreamble(input.address, input.method);
   const actions: AssistantAction[] = [];
 
-  const { text } = await withLlmTimeout(
+  const result = await withLlmTimeout(
     'assistant.agent',
     generateText({
       model,
@@ -2119,5 +2119,9 @@ export async function runAssistantAgent(input: {
     30_000,
   );
 
-  return { text: text.trim(), actions };
+  // A stateful answer is trustworthy only when at least one account-bound tool
+  // was actually consulted. The route uses this marker to fail closed instead
+  // of returning a plausible but unverified status during tool/model faults.
+  const grounded = result.steps?.some((step) => (step.toolCalls?.length ?? 0) > 0) ?? false;
+  return { text: result.text.trim(), actions, grounded };
 }

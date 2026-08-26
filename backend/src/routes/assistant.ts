@@ -7,11 +7,15 @@ import { rateLimit } from '../middleware/rateLimit.js';
 import { readSession } from '../auth/session.js';
 import { assistantAgentEnabled, runAssistantAgent } from '../assistant/agent.js';
 import { consumeAssistantQuota } from '../db/assistantUsage.js';
+import { requiresLiveAccountState } from '../assistant/safety.js';
 
 /// In-app support assistant. Grounded in the Karwan knowledge base; answers
 /// product questions and hands users direct in-app links.
 ///
-/// Two paths on one route:
+/// The route requires a signed-in session. Stateful prompts use the
+/// authenticated tool-calling loop; static product questions may use the
+/// provider chain, while account-state questions fail closed without live data.
+/*
 ///  - Anonymous / signed-out: a thin proxy over the provider chain below. Holds
 ///    no tools, sees no account data, pure product guidance.
 ///  - Signed-in: an authenticated tool-calling loop (assistant/agent.ts) that can
@@ -19,7 +23,7 @@ import { consumeAssistantQuota } from '../db/assistantUsage.js';
 ///    read-only — no tool moves money. Runs on the direct-Anthropic model only
 ///    (privacy). A failure here falls back to the anonymous path so the user is
 ///    never stranded.
-///
+*/
 /// Provider chain: the Conduit gateway (Claude Sonnet) is preferred when
 /// configured, then the direct Anthropic key, then OpenRouter as the last-resort
 /// fallback so a Conduit + Anthropic outage still answers the user. Conduit and
@@ -327,25 +331,39 @@ assistantRoutes.post(
   }
 
   // Authenticated tool-calling loop so the assistant can read this user's own
-  // balance and deals and answer from real numbers. Bound to the
-  // cryptographically-verified session address, never a client param. On
-  // failure it falls through to the plain provider chain, which still answers
-  // from the knowledge base but without account lookups.
+  // balance and deals and answer from real numbers. It is bound to the
+  // cryptographically verified session address, never a client parameter.
+  // Stateful prompts fail closed rather than falling through to an ungrounded
+  // provider response.
+  const needsLiveState = requiresLiveAccountState(messages);
   if (assistantAgentEnabled()) {
     try {
-      const { text, actions } = await runAssistantAgent({
+      const { text, actions, grounded } = await runAssistantAgent({
         address: session.address.toLowerCase(),
         method: session.method,
         messages,
       });
-      if (text) return c.json({ reply: text, actions });
+      // Never let a tool-less model answer a stateful prompt. The only safe
+      // response when the account read model was not consulted is an honest
+      // retry message, not an optimistic status.
+      if (text && (!needsLiveState || grounded)) return c.json({ reply: text, actions });
+      if (needsLiveState) return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
       logger.warn('assistant: agent path returned empty, falling back to knowledge path');
     } catch (e) {
       logger.error(
         { err: (e as Error).message },
         'assistant: agent path failed, falling back to knowledge path',
       );
+      if (needsLiveState) {
+        return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
+      }
     }
+  }
+
+  // An unconfigured tool-calling model is not a valid source of account truth.
+  // Keep static help available, but fail closed for money and workflow state.
+  if (needsLiveState) {
+    return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
   }
 
   // Try each provider in order. The first that answers wins; a failure or
