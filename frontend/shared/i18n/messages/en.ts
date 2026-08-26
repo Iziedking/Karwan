@@ -4778,6 +4778,16 @@ interface MessagesShape {
         returningUser: string;
         returningUserBody: string;
       };
+      mismatch: {
+        needsCreateTitle: string;
+        needsCreateBody: string;
+        needsCreateNote: string;
+        createAccount: string;
+        needsSignInTitle: string;
+        needsSignInBody: string;
+        needsSignInNote: string;
+        signIn: string;
+      };
       pickMethod: {
         continueEmail: string;
         connectWallet: string;
@@ -10071,10 +10081,20 @@ export const en: MessagesShape = {
         codeSentTo: 'Code sent. Enter the 6 digits.',
       },
       entry: {
-        newUser: "I'm new to Karwan",
-        newUserBody: 'Create your trade profile and set the limits your agents must follow.',
-        returningUser: 'I already have an account',
-        returningUserBody: 'Sign in to continue your deals, matches, and payments.',
+        newUser: 'Create a Karwan account',
+        newUserBody: 'Start a trade profile and set the boundaries your agents must follow.',
+        returningUser: 'Sign in to my account',
+        returningUserBody: 'Continue your existing deals, matches, settlements, and account history.',
+      },
+      mismatch: {
+        needsCreateTitle: 'No Karwan account found',
+        needsCreateBody: 'This identity is verified, but it is not connected to a Karwan account yet.',
+        needsCreateNote: 'Create your account next. We will take you into onboarding to build your trade profile.',
+        createAccount: 'Create account',
+        needsSignInTitle: 'You already have an account',
+        needsSignInBody: 'This identity is already registered with Karwan.',
+        needsSignInNote: 'Continue with sign in. Your existing profile, deals, matches, and payment history stay unchanged.',
+        signIn: 'Proceed to sign in',
       },
       pickMethod: {
         continueEmail: 'Continue with email',

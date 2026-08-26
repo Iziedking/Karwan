@@ -41,7 +41,6 @@ export function ChromeFrame({
     return (
       <div className="flex min-h-screen flex-col">
         <main className="flex-1">{children}</main>
-        {feedback}
       </div>
     );
   }
@@ -54,7 +53,6 @@ export function ChromeFrame({
     return (
       <div className="flex min-h-screen flex-col">
         <div className="flex-1">{children}</div>
-        {feedback}
       </div>
     );
   }
@@ -98,12 +96,8 @@ function CustomerChromeFrame({
 
   const workspace = shell === 'workspace' || shell === 'admin';
   const focused = shell === 'focused';
-  // The feedback close now follows every workspace main. Main content only
-  // needs editorial breathing room; the 9rem mobile clearance belongs after
-  // the feedback action, where it keeps that final CTA above the bottom nav,
-  // guide, and assistant controls without leaving a dead gap inside the page.
   const mainClass = workspace
-    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-10 pt-8 md:py-10'
+    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-8 md:py-10'
     : 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 py-10';
 
   return (
@@ -112,11 +106,7 @@ function CustomerChromeFrame({
       {workspace ? profileNudge : null}
       <main className={mainClass}>{children}</main>
       {shell === 'public' ? footer : null}
-      {shell !== 'public' ? (
-        <div className={workspace ? 'pb-[calc(9rem+env(safe-area-inset-bottom))] md:pb-0' : undefined}>
-          {feedback}
-        </div>
-      ) : null}
+      {workspace && auth.isAuthenticated ? feedback : null}
       {workspace ? bottomNav : null}
       {workspace || focused ? notifications : null}
       {workspace ? guide : null}

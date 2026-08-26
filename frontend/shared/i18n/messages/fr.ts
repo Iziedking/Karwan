@@ -5115,6 +5115,16 @@ export const fr: Messages = {
         returningUser: 'J’ai déjà un compte',
         returningUserBody: 'Connectez-vous pour reprendre vos deals, correspondances et paiements.',
       },
+      mismatch: {
+        needsCreateTitle: 'Aucun compte Karwan trouvé',
+        needsCreateBody: 'Cette identité est vérifiée, mais elle n’est pas encore liée à un compte Karwan.',
+        needsCreateNote: 'Créez votre compte maintenant. Nous vous guiderons dans la création de votre profil commercial.',
+        createAccount: 'Créer un compte',
+        needsSignInTitle: 'Vous avez déjà un compte',
+        needsSignInBody: 'Cette identité est déjà enregistrée auprès de Karwan.',
+        needsSignInNote: 'Poursuivez avec la connexion. Votre profil, vos deals, vos correspondances et votre historique restent inchangés.',
+        signIn: 'Se connecter',
+      },
       pickMethod: {
         continueEmail: "Continuer avec l'e-mail",
         connectWallet: 'Connecter un portefeuille',

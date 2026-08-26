@@ -381,6 +381,14 @@ html[data-theme="dark"] {
   0% { opacity: 0; transform: translateX(24px); }
   100% { opacity: 1; transform: translateX(0); }
 }
+@keyframes auth-capsule-in {
+  0% { opacity: 0; transform: translateY(14px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes auth-backdrop-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
 @keyframes karwan-cta-in {
   0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -397,6 +405,40 @@ html[data-theme="dark"] {
 }
 .slide-in { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .auth-sheet { animation: auth-sheet-up var(--dur-base) var(--ease-out) both; }
+.auth-capsule-backdrop { animation: auth-backdrop-in 180ms var(--ease-out) both; }
+.auth-capsule {
+  animation: auth-capsule-in 360ms var(--ease-out) both;
+  transform-origin: center;
+  overscroll-behavior: contain;
+}
+.auth-capsule-choice {
+  --lp-card: #ffffff;
+  --lp-dark: #0a0a0b;
+  --lp-light: #f4f4f1;
+  --lp-text-sub: #5a5a57;
+  --lp-text-muted: #6e6e6a;
+  --lp-border-light: rgba(10, 10, 11, 0.12);
+  background: #ffffff;
+}
+@keyframes feedback-nudge-in {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.page-feedback-slot {
+  transition: opacity 180ms var(--ease-out), visibility 180ms;
+}
+.page-feedback-nudge {
+  animation: feedback-nudge-in 320ms var(--ease-out) both;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  border-bottom-left-radius: 18px;
+  border-bottom-right-radius: 5px;
+}
+html[data-auth-dialog='open'] .page-feedback-slot {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 @media (min-width: 768px) {
   .auth-sheet { animation-name: auth-drawer-in; }
   html[dir='rtl'] .auth-sheet { animation-name: auth-drawer-in-rtl; }
@@ -407,6 +449,9 @@ html[data-theme="dark"] {
 }
 @media (prefers-reduced-motion: reduce) {
   .auth-sheet { animation-name: fade-up; }
+  .auth-capsule,
+  .auth-capsule-backdrop,
+  .page-feedback-nudge { animation: none; }
 }
 
 /* Scroll-reveal for below-fold sections (shared Band). Unlike .fade-up, which

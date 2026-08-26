@@ -40,6 +40,21 @@ const EASE = 'cubic-bezier(0.83, 0, 0.17, 1)';
 /// as it clears the edge. Sharing the layout curve made it look pushed.
 const EASE_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
+const SWIPE_THRESHOLD_PX = 56;
+const HORIZONTAL_INTENT_RATIO = 1.35;
+
+export type DeckSwipeDirection = 'next' | 'previous' | null;
+
+/// Turn a touch gesture into one deliberate deck step. Vertical page movement
+/// always wins, and a diagonal drag must be decisively horizontal before it can
+/// change financial controls under the user's hand.
+export function resolveDeckSwipe(deltaX: number, deltaY: number): DeckSwipeDirection {
+  const x = Math.abs(deltaX);
+  const y = Math.abs(deltaY);
+  if (x < SWIPE_THRESHOLD_PX || x < y * HORIZONTAL_INTENT_RATIO) return null;
+  return deltaX < 0 ? 'next' : 'previous';
+}
+
 export function ProfileDeck({
   panels,
   activeKey,
@@ -61,7 +76,7 @@ export function ProfileDeck({
   const [leaving, setLeaving] = useState<{ index: number; back: boolean } | null>(null);
   const [entering, setEntering] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const touchX = useRef<number | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   /// The direction the user actually asked for, when they asked through this
   /// component. Null when the change came from the tab strip or a hash, where
   /// there is no next/prev intent and comparing indices is the right inference.
@@ -73,12 +88,10 @@ export function ProfileDeck({
 
   const go = useCallback(
     (next: number) => {
-      const target = (next + panels.length) % panels.length;
-      if (target === active) return;
-      // Recorded BEFORE the prop change, because the animation direction is a
-      // fact about the gesture, not about the two indices. On a wrap the indices
-      // lie: next from the last panel lands on the first, so `active < from` reads
-      // as a reversal and the card slid backwards on a forward press.
+      if (next < 0 || next >= panels.length || next === active) return;
+      const target = next;
+      // Recorded before the prop change because the animation direction is a
+      // fact about the control or gesture that initiated the move.
       intent.current = next > active ? 'next' : 'prev';
       onChange(panels[target]!.key);
     },
@@ -110,23 +123,19 @@ export function ProfileDeck({
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      // Never steal arrows from a field the user is typing in.
-      const el = document.activeElement;
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
-      if (el instanceof HTMLElement && el.isContentEditable) return;
-      if (e.key === 'ArrowRight') go(active + 1);
-      if (e.key === 'ArrowLeft') go(active - 1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [active, go]);
-
   /// How far back in the stack a panel sits, for the shells behind the front
   /// card. Only the next two are drawn: past that the offsets collapse into
   /// each other and add nothing but paint.
-  const depthOf = (i: number) => (i - active + panels.length) % panels.length;
+  const depthOf = (i: number) => i - active;
+
+  const previousPanel = active > 0 ? panels[active - 1] : undefined;
+  const nextPanel = active < panels.length - 1 ? panels[active + 1] : undefined;
+
+  function gestureStartsOnControl(target: EventTarget | null): boolean {
+    return target instanceof Element && Boolean(
+      target.closest('button, a, input, textarea, select, [contenteditable="true"], [data-deck-swipe-lock]'),
+    );
+  }
 
   return (
     // Capped and centred rather than full width. At a desktop measure the card ran
@@ -140,7 +149,23 @@ export function ProfileDeck({
     // container-based, so a 780px cap would still take two columns on a wide screen
     // and give each about 390px. 1040 keeps those near 500px and still roughly
     // halves the old width.
-    <div className="w-full max-w-[1040px] mx-auto">
+    <div
+      className="w-full max-w-[1040px] mx-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--lp-accent)]"
+      tabIndex={0}
+      role="region"
+      aria-label={`Profile section ${active + 1} of ${panels.length}: ${panels[active]!.label}`}
+      onKeyDown={(event) => {
+        if (gestureStartsOnControl(event.target)) return;
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          go(active + 1);
+        }
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          go(active - 1);
+        }
+      }}
+    >
       {/* Outer wrapper is positioned so the edge arrows can anchor to it. It is
           deliberately NOT clipped: the inner container clips the outgoing card so
           it cannot cause a horizontal scrollbar, and an arrow anchored inside that
@@ -153,16 +178,24 @@ export function ProfileDeck({
         // viewport edge, and that would hand the page a horizontal scrollbar.
         // `clip` rather than `hidden`: hidden on one axis forces the other to
         // auto and would cut the front card's shadow into a scroll area.
-        style={{ overflowX: 'clip' }}
-        onTouchStart={(e) => { touchX.current = e.touches[0]?.clientX ?? null; }}
+        style={{ overflowX: 'clip', touchAction: 'pan-y' }}
+        onTouchStart={(e) => {
+          if (gestureStartsOnControl(e.target)) {
+            touchStart.current = null;
+            return;
+          }
+          const touch = e.touches[0];
+          touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+        }}
         onTouchEnd={(e) => {
-          const start = touchX.current;
-          touchX.current = null;
+          const start = touchStart.current;
+          touchStart.current = null;
           if (start == null) return;
-          const dx = (e.changedTouches[0]?.clientX ?? start) - start;
-          // 48px so a vertical scroll that drifts sideways does not page.
-          if (Math.abs(dx) < 48) return;
-          go(dx < 0 ? active + 1 : active - 1);
+          const touch = e.changedTouches[0];
+          if (!touch) return;
+          const direction = resolveDeckSwipe(touch.clientX - start.x, touch.clientY - start.y);
+          if (direction === 'next') go(active + 1);
+          if (direction === 'previous') go(active - 1);
         }}
       >
         {/* Cards behind. Visual only, and the affordance: their edge is what
@@ -170,7 +203,7 @@ export function ProfileDeck({
             no "swipe" icon anywhere. */}
         {panels.map((p, i) => {
           const d = depthOf(i);
-          if (d === 0 || d > 2) return null;
+          if (d <= 0 || d > 2) return null;
           return (
             <button
               key={p.key}
@@ -252,16 +285,20 @@ export function ProfileDeck({
           in a small row under the card, which is below the fold on a long panel,
           so nothing at eye level said the deck had more than one page. These sit
           at the vertical middle where the eye already is. */}
-      <EdgeArrow
-        side="start"
-        onClick={() => go(active - 1)}
-        label={`Previous: ${panels[(active - 1 + panels.length) % panels.length]!.label}`}
-      />
-      <EdgeArrow
-        side="end"
-        onClick={() => go(active + 1)}
-        label={`Next: ${panels[(active + 1) % panels.length]!.label}`}
-      />
+      {previousPanel ? (
+        <EdgeArrow
+          side="start"
+          onClick={() => go(active - 1)}
+          label={`Previous: ${previousPanel.label}`}
+        />
+      ) : null}
+      {nextPanel ? (
+        <EdgeArrow
+          side="end"
+          onClick={() => go(active + 1)}
+          label={`Next: ${nextPanel.label}`}
+        />
+      ) : null}
       </div>
 
       {/* Controls. Random access lives in the tab strip above; this row is the
@@ -275,12 +312,16 @@ export function ProfileDeck({
         </div>
 
         <div className="flex items-center gap-2">
-          <DeckNav onClick={() => go(active - 1)} label="Previous" back />
-          <DeckNav
-            onClick={() => go(active + 1)}
-            label={`Next: ${panels[(active + 1) % panels.length]!.label}`}
-            showLabel={panels[(active + 1) % panels.length]!.label}
-          />
+          {previousPanel ? (
+            <DeckNav onClick={() => go(active - 1)} label={`Previous: ${previousPanel.label}`} back />
+          ) : null}
+          {nextPanel ? (
+            <DeckNav
+              onClick={() => go(active + 1)}
+              label={`Next: ${nextPanel.label}`}
+              showLabel={nextPanel.label}
+            />
+          ) : null}
         </div>
       </div>
     </div>
@@ -310,7 +351,10 @@ function EdgeArrow({
       aria-label={label}
       className={cn(
         'group absolute top-1/2 -translate-y-1/2 z-40 hidden sm:flex items-center justify-center',
-        'transition-all duration-200',
+        'border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-muted)]',
+        'shadow-[0_8px_22px_-14px_rgba(10,10,11,0.35)] transition-[color,background,border-color,box-shadow] duration-200',
+        'hover:border-black/25 hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] hover:shadow-[0_10px_24px_-14px_rgba(10,10,11,0.45)]',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]',
         // Clear of the card on wide screens, closer in when there is less room.
         back ? 'start-0 -ms-6 lg:-ms-9' : 'end-0 -me-6 lg:-me-9',
       )}
@@ -318,26 +362,9 @@ function EdgeArrow({
         width: 44,
         height: 44,
         borderRadius: 999,
-        // Dark surface so the lime reads as light coming off it. A lime FILL at
-        // this size would compete with the page's one primary action.
-        background: 'var(--lp-band-dark)',
-        border: '1px solid rgba(216,255,61,0.55)',
-        color: 'var(--lp-accent)',
-        // The glow is the affordance. Against a dark panel the previous neutral
-        // button was a bump you had to look for; this is visible at a glance from
-        // the middle of the card.
-        boxShadow:
-          '0 0 0 1px rgba(216,255,61,0.10), 0 0 18px -2px rgba(216,255,61,0.45), 0 2px 10px -4px rgba(0,0,0,0.45)',
       }}
     >
       <Chev back={back} big />
-      {/* Hover raises the glow instead of changing the fill: the arrow is already
-          lime, so brightening the light around it is the honest hover. */}
-      <span
-        aria-hidden
-        className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-        style={{ boxShadow: '0 0 26px 0 rgba(216,255,61,0.55)' }}
-      />
     </button>
   );
 }

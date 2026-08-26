@@ -5115,6 +5115,16 @@ export const sw: Messages = {
         returningUser: 'Tayari nina akaunti',
         returningUserBody: 'Ingia uendelee na deal, mechi na malipo yako.',
       },
+      mismatch: {
+        needsCreateTitle: 'Hakuna akaunti ya Karwan iliyopatikana',
+        needsCreateBody: 'Utambulisho huu umethibitishwa, lakini bado haujaunganishwa na akaunti ya Karwan.',
+        needsCreateNote: 'Fungua akaunti yako sasa. Tutakupeleka kwenye hatua za kuunda wasifu wako wa biashara.',
+        createAccount: 'Fungua akaunti',
+        needsSignInTitle: 'Tayari una akaunti',
+        needsSignInBody: 'Utambulisho huu tayari umesajiliwa na Karwan.',
+        needsSignInNote: 'Endelea kuingia. Wasifu, deal, mechi na historia yako ya malipo havitabadilika.',
+        signIn: 'Endelea kuingia',
+      },
       pickMethod: {
         continueEmail: 'Endelea kwa barua pepe',
         connectWallet: 'Unganisha mkoba',
