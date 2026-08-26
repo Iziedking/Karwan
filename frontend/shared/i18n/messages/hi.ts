@@ -5115,6 +5115,16 @@ export const hi: Messages = {
         returningUser: 'मेरा पहले से खाता है',
         returningUserBody: 'अपनी डील, मैच और भुगतान जारी रखने के लिए साइन इन करें।',
       },
+      mismatch: {
+        needsCreateTitle: 'कोई Karwan खाता नहीं मिला',
+        needsCreateBody: 'यह पहचान सत्यापित है, लेकिन अभी किसी Karwan खाते से जुड़ी नहीं है।',
+        needsCreateNote: 'अब अपना खाता बनाएँ। हम आपकी ट्रेड प्रोफ़ाइल बनाने के लिए आपको ऑनबोर्डिंग में ले जाएँगे।',
+        createAccount: 'खाता बनाएँ',
+        needsSignInTitle: 'आपका खाता पहले से मौजूद है',
+        needsSignInBody: 'यह पहचान Karwan में पहले से पंजीकृत है।',
+        needsSignInNote: 'साइन इन जारी रखें। आपकी प्रोफ़ाइल, डील, मैच और भुगतान इतिहास में कोई बदलाव नहीं होगा।',
+        signIn: 'साइन इन करें',
+      },
       pickMethod: {
         continueEmail: 'ईमेल से जारी रखें',
         connectWallet: 'वॉलेट जोड़ें',

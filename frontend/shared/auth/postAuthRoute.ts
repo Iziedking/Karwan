@@ -2,21 +2,31 @@ export type AuthEntryIntent = 'new' | 'returning';
 
 interface PostAuthRouteInput {
   intent: AuthEntryIntent;
+  accountExists: boolean;
   profileExists: boolean;
   requestedHref: string | null;
 }
 
+export type AuthEntryOutcome =
+  | { kind: 'continue'; destination: string | null }
+  | { kind: 'needs-create' }
+  | { kind: 'needs-sign-in' };
+
 /**
- * Choose the first authenticated destination without trusting the button the
- * visitor picked as proof of account state. The backend profile is the source
- * of truth: profile-less identities onboard, existing profiles continue.
+ * Resolve the authenticated entry intent without trusting the button the
+ * visitor picked as proof of account state. Account and profile records are
+ * authoritative: mismatched intent is explained, while incomplete profiles
+ * resume onboarding instead of creating a duplicate identity.
  */
 export function postAuthDestination({
-  intent: _intent,
+  intent,
+  accountExists,
   profileExists,
   requestedHref,
-}: PostAuthRouteInput): string | null {
-  if (requestedHref === null) return null;
-  if (!profileExists) return '/onboarding';
-  return requestedHref;
+}: PostAuthRouteInput): AuthEntryOutcome {
+  if (intent === 'new' && accountExists) return { kind: 'needs-sign-in' };
+  if (intent === 'returning' && !accountExists) return { kind: 'needs-create' };
+  if (requestedHref === null) return { kind: 'continue', destination: null };
+  if (!profileExists) return { kind: 'continue', destination: '/onboarding' };
+  return { kind: 'continue', destination: requestedHref };
 }

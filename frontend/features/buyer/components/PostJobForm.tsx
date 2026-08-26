@@ -1100,7 +1100,7 @@ function DeadlineUnitPicker({
     <div
       role="radiogroup"
       aria-label={t.deadlineUnitAria}
-      className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
+      className="grid min-w-[156px] shrink-0 grid-cols-3 items-stretch gap-0.5 p-0.5"
       style={{
         background: 'var(--lp-light)',
         border: '1px solid var(--lp-border-light)',
@@ -1120,10 +1120,13 @@ function DeadlineUnitPicker({
             aria-checked={active}
             disabled={disabled}
             onClick={() => onChange(o.key)}
-            className="min-h-11 min-w-11 px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="min-h-11 min-w-11 px-2 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               background: active ? 'var(--lp-band-dark)' : 'transparent',
-              color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
+              // --lp-light becomes the same near-black as --lp-band-dark in
+              // dark mode. Fixed white is intentional on this fixed dark
+              // selected segment, so DAY cannot disappear into its surface.
+              color: active ? '#ffffff' : 'var(--lp-text-sub)',
               borderTopLeftRadius: 7,
               borderTopRightRadius: 7,
               borderBottomLeftRadius: 7,

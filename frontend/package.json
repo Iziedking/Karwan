@@ -6,7 +6,7 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test:ci": "node ../scripts/run-tests.mjs features shared",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "check:tours": "tsx scripts/check-tours.ts",

@@ -5115,6 +5115,16 @@ export const ar: Messages = {
         returningUser: 'لدي حساب بالفعل',
         returningUserBody: 'سجّل الدخول لمتابعة صفقاتك ومطابقاتك ومدفوعاتك.',
       },
+      mismatch: {
+        needsCreateTitle: 'لم نعثر على حساب كروان',
+        needsCreateBody: 'تم التحقق من هذه الهوية، لكنها غير مرتبطة بحساب كروان بعد.',
+        needsCreateNote: 'أنشئ حسابك الآن. سننقلك إلى خطوات إعداد ملف تجارتك.',
+        createAccount: 'إنشاء حساب',
+        needsSignInTitle: 'لديك حساب بالفعل',
+        needsSignInBody: 'هذه الهوية مسجلة بالفعل في كروان.',
+        needsSignInNote: 'تابع تسجيل الدخول. سيبقى ملفك وصفقاتك ومطابقاتك وسجل مدفوعاتك دون تغيير.',
+        signIn: 'متابعة تسجيل الدخول',
+      },
       pickMethod: {
         continueEmail: 'المتابعة بالبريد الإلكتروني',
         connectWallet: 'وصل محفظة',
