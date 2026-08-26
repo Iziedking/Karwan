@@ -111,6 +111,12 @@ html[data-theme="dark"] {
   --lp-band-dark: var(--surface-0);/* fixed dark bands and dark CTAs */
   --lp-accent: var(--accent);      /* compatibility alias */
   --lp-accent-hover: var(--accent-deep);
+  /* Text roles need to follow the surface they sit on, not the page theme.
+     Landing bands stay dark in both themes, while accent display copy can sit
+     on a light page. Reusing the theme-aware muted/accent tokens made those
+     combinations fail WCAG contrast in the production Lighthouse audit. */
+  --lp-text-on-dark-muted: #80807C;
+  --lp-accent-on-light: #687B1F;
   --lp-text-muted: var(--ink-inv-2);
   --lp-text-sub: var(--ink-inv-2);
   --lp-border-subtle: var(--rule-dark);
@@ -219,6 +225,7 @@ html[data-theme="dark"] {
   /* Muted/sub text bumps brighter so 11–12px mono labels stay legible. */
   --lp-text-muted: var(--ink-2);
   --lp-text-sub: var(--ink-1);
+  --lp-accent-on-light: var(--accent);
   /* Fields RISE above both panel surfaces rather than receding. Recessing them
      was tried on paper and measures worse: every colour darker than --lp-light
      lands within 1.07:1 of it, because there is very little room left below
