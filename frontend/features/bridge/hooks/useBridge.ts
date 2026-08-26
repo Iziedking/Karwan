@@ -148,6 +148,18 @@ export type BridgePhase =
   | 'done'
   | 'error';
 
+/**
+ * Result returned by a bridge started from another surface (for example the
+ * assistant).  A bridge may fail after the wallet/SDK promise resolves, so
+ * callers must branch on this value rather than treating resolution as
+ * success.  Existing page callers may ignore the return value.
+ */
+export type BridgeStartResult = {
+  state: 'completed' | 'pending' | 'failed';
+  txHash?: string;
+  error?: string;
+};
+
 export interface BridgeRecord {
   id: string;
   phase: BridgePhase;
@@ -540,7 +552,7 @@ export function useBridges() {
         mintRecipient: `0x${string}`;
         getEvmProvider?: () => Promise<unknown>;
         reuseId?: string;
-      }) => Promise<void>)
+      }) => Promise<BridgeStartResult>)
     | null
   >(null);
 
@@ -1313,7 +1325,7 @@ export function useBridges() {
       /// is refused once a burn has landed (see `retry`), so this can never
       /// re-burn.
       reuseId?: string;
-    }) => {
+    }): Promise<BridgeStartResult> => {
       const isSolana = isAppKitOnlyChainKey(input.sourceChainKey);
       const id =
         input.reuseId ??
@@ -1424,7 +1436,7 @@ export function useBridges() {
           // Backend polls IRIS and submits receiveMessage on Arc; the shared
           // SSE handlers drive attesting -> minting -> done from here.
           patch(id, (b) => ({ ...b, phase: 'attesting' }));
-          return;
+          return { state: 'pending', txHash: signature };
         }
         const { AppKit } = await import('@circle-fin/app-kit');
         const provider = input.getEvmProvider ? await input.getEvmProvider() : undefined;
@@ -1518,14 +1530,20 @@ export function useBridges() {
             error: detail ? `Transfer failed. ${detail.slice(0, 160)}` : 'Transfer failed. Try again.',
             burnTxHash: burnHash ?? b.burnTxHash,
           }));
-          return;
+          return { state: 'failed', error: detail || 'Transfer failed. Try again.' };
         }
-        // Settle to done with whatever hashes the result carried. In forwarder
-        // mode the mint hash may be absent (the forwarder submitted it); the
-        // burn hash still gives a source-chain explorer link.
+        const completed =
+          result?.state === 'success' ||
+          result?.state === 'completed' ||
+          result?.state === 'done' ||
+          Boolean(mintHash);
+        // Preserve the distinction between a completed bridge and one whose
+        // source burn is known but whose destination mint is still pending.
+        // In forwarder mode the mint hash may be absent, so a burn alone is
+        // never enough to label the movement done.
         patch(id, (b) => ({
           ...b,
-          phase: 'done',
+          phase: completed ? 'done' : 'attesting',
           burnTxHash: burnHash ?? b.burnTxHash,
           mintTxHash: mintHash ?? b.mintTxHash,
           error: undefined,
@@ -1545,8 +1563,14 @@ export function useBridges() {
           .catch(() => {
             /* history/activity is best-effort; ignore */
           });
-        sfx.success();
-        recordAction('bridge');
+        if (completed) {
+          sfx.success();
+          recordAction('bridge');
+        }
+        return {
+          state: completed ? 'completed' : 'pending',
+          ...(burnHash ? { txHash: burnHash } : {}),
+        };
       } catch (err) {
         // Log the full error so a failed Solana/EVM bridge (which can't be
         // tested here without a wallet) is diagnosable from the console.
@@ -1568,6 +1592,7 @@ export function useBridges() {
                 ? 'Not enough USDC for this transfer.'
                 : 'That did not go through. Nothing was charged. Try again.';
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+        return { state: 'failed', error: friendly };
       }
     },
     [patch, recordAction],
@@ -1638,8 +1663,8 @@ export function useBridges() {
       recipient: `0x${string}`;
       userAddress: string;
       getEvmProvider?: () => Promise<unknown>;
-    }) => {
-      if (!isConnected || !address) return;
+    }): Promise<BridgeStartResult> => {
+      if (!isConnected || !address) return { state: 'failed', error: 'Connect your wallet first.' };
       const id = `${input.destChainKey}-out-${input.userAddress}-${Date.now()}`;
       const now = Date.now();
       const record: BridgeRecord = {
@@ -1722,9 +1747,14 @@ export function useBridges() {
 
         const burnHash = result?.steps?.find((s) => s.name === 'burn')?.txHash;
         const mintHash = result?.steps?.find((s) => s.name === 'mint')?.txHash;
+        const completed =
+          result?.state === 'success' ||
+          result?.state === 'completed' ||
+          result?.state === 'done' ||
+          Boolean(mintHash);
         patch(id, (b) => ({
           ...b,
-          phase: 'done',
+          phase: completed ? 'done' : 'attesting',
           burnTxHash: (burnHash as `0x${string}`) ?? b.burnTxHash,
           mintTxHash: (mintHash as `0x${string}`) ?? b.mintTxHash,
           updatedAt: Date.now(),
@@ -1743,7 +1773,11 @@ export function useBridges() {
             ...(mintHash ? { mintTxHash: mintHash } : {}),
           })
           .catch(() => {});
-        sfx.success();
+        if (completed) sfx.success();
+        return {
+          state: completed ? 'completed' : 'pending',
+          ...(burnHash ? { txHash: burnHash } : {}),
+        };
       } catch (err) {
         const raw = errorToString(err).toLowerCase();
         const friendly =
@@ -1753,6 +1787,7 @@ export function useBridges() {
               ? 'You declined the transaction in your wallet.'
               : 'Send could not complete. Try again in a moment.';
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
+        return { state: 'failed', error: friendly };
       }
     },
     [address, isConnected, chainId, switchChainAsync, patch],
