@@ -139,6 +139,7 @@ function htmlToBody(source: string): string {
         const text = label.replace(/<[^>]+>/g, '').trim();
         return text ? `[${text}](${href})` : href;
       })
+      .replace(/<([a-z][\w-]*)\b[^>]*class=["'][^"']*(?:label|eyebrow)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<br\s*\/?>/gi, '\n')
