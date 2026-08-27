@@ -166,11 +166,12 @@ html[data-theme="dark"] {
      from the original electric `#D8FF3D` because users flagged eye fatigue;
      same hue, lower saturation + brightness. */
   --accent:      #AFC95B;
-  --accent-deep: #9DB84B;
+  /* Keep one unmistakable brand green across resting and interactive states. */
+  --accent-deep: #AFC95B;
   --accent-ink:  #0A0A0B;
 
   /* Semantic — reserved for settlement state */
-  --pos:  #6BE39A;   /* settled, paid */
+  --pos:  var(--accent);   /* settled, paid */
   --warn: #FFC857;   /* awaiting action */
   --neg:  #FF6A6A;   /* dispute, failed */
   --info: #7CC2FF;

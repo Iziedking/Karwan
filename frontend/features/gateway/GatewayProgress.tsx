@@ -56,7 +56,7 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
         const colour = failed
           ? '#b03d3a'
           : done
-            ? '#0a7553'
+            ? 'var(--lp-accent)'
             : active
               ? 'var(--lp-dark)'
               : 'var(--lp-text-sub)';
@@ -75,7 +75,7 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
                 background: failed
                   ? '#b03d3a'
                   : done
-                    ? '#0a7553'
+                    ? 'var(--lp-accent)'
                     : active
                       ? 'var(--lp-accent)'
                       : 'var(--lp-border-light)',

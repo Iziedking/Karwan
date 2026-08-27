@@ -109,7 +109,7 @@ const STAGE_RAIL: Record<DealStage, string> = {
   'awaiting-delivery': '#4a5aa3',
   'awaiting-first-release': '#c96030',
   'awaiting-final-release': '#c96030',
-  settled: '#0e8c5f',
+  settled: 'var(--lp-accent)',
   cancelled: '#b03d3a',
   disputed: '#92294a',
 };
@@ -1146,7 +1146,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                         borderBottomRightRadius: 3,
                       }}
                     >
-                      <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#4f8a3f]">
+                      <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
                         [:{dd.terms.deliveryOkLabel}:]
                       </p>
                       <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">

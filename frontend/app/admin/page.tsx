@@ -154,14 +154,14 @@ export default function AdminOverview() {
               ['/admin/errors', 'Triage a failure', 'Diagnose recent operational errors.'],
               ['/admin/team', 'Manage team access', 'Invite, disable, or remove operators.'],
             ].map(([href, label, copy]) => (
-              <Link key={href} href={href} className="group min-h-[82px] rounded-lg border border-white/8 p-3 transition hover:border-[#a8c94e]/25 hover:bg-[#a8c94e]/[0.035]"><span className="flex items-center justify-between gap-3 text-[12px] font-bold text-white/75 group-hover:text-white">{label}<span aria-hidden="true" className="text-[#a8c94e]">→</span></span><span className="mt-2 block text-[10px] leading-4 text-white/33">{copy}</span></Link>
+              <Link key={href} href={href} className="group min-h-[82px] rounded-lg border border-white/8 p-3 transition hover:border-[#AFC95B]/35 hover:bg-[#AFC95B]/[0.04]"><span className="flex items-center justify-between gap-3 text-[12px] font-bold text-white/75 group-hover:text-white">{label}<span aria-hidden="true" className="text-[#AFC95B]">→</span></span><span className="mt-2 block text-[10px] leading-4 text-white/33">{copy}</span></Link>
             ))}
           </div>
         </div>
 
         <Link href="/admin/routes" className="group flex min-h-[280px] flex-col justify-between rounded-xl border border-white/10 border-t-2 border-t-[#AFC95B] bg-[#111114] p-5 transition hover:border-white/20">
-          <div><p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#C3DC70]">Complete backend map</p><p className="mt-4 text-[44px] font-black leading-none tabular-nums">{SOURCE_ROUTE_SNAPSHOT.length}</p><p className="mt-2 text-[12px] font-bold text-white/75">mounted endpoints captured</p><p className="mt-4 text-[10px] leading-5 text-white/38">Search every admin, application, service, webhook, and public route. Routes with reviewed tools link directly to their workspace.</p></div>
-          <span className="mt-6 inline-flex min-h-11 items-center justify-between rounded-lg border border-[#a8c94e]/25 px-3 mono text-[9px] font-bold uppercase tracking-[0.11em] text-[#c4df7d]">Open API directory <span aria-hidden="true" className="transition group-hover:translate-x-1">→</span></span>
+          <div><p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#AFC95B]">Complete backend map</p><p className="mt-4 text-[44px] font-black leading-none tabular-nums">{SOURCE_ROUTE_SNAPSHOT.length}</p><p className="mt-2 text-[12px] font-bold text-white/75">mounted endpoints captured</p><p className="mt-4 text-[10px] leading-5 text-white/38">Search every admin, application, service, webhook, and public route. Routes with reviewed tools link directly to their workspace.</p></div>
+          <span className="mt-6 inline-flex min-h-11 items-center justify-between rounded-lg border border-[#AFC95B]/35 px-3 mono text-[9px] font-bold uppercase tracking-[0.11em] text-[#AFC95B]">Open API directory <span aria-hidden="true" className="transition group-hover:translate-x-1">→</span></span>
         </Link>
       </section>
     </div>

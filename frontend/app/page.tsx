@@ -420,7 +420,7 @@ function FlowChip({
   // These chips sit on dark, fixed landing bands even when the page theme is
   // light. Use the brighter semantic variants so the 9px labels still clear
   // WCAG contrast rather than inheriting the light-surface muted token.
-  const c = variant === 'pos' ? '#B9F4C9' : variant === 'warn' ? '#FFE7A3' : '#C5E2FF';
+  const c = variant === 'pos' ? 'var(--lp-accent)' : variant === 'warn' ? '#FFE7A3' : '#C5E2FF';
   return (
     <span
       className="inline-flex items-center gap-1 px-1.5 py-[3px] mono text-[9px] font-semibold uppercase tracking-[0.1em] leading-none rounded"

@@ -31,12 +31,12 @@ function Dot({ ok }: { ok: boolean }) {
     <span
       aria-hidden
       className="inline-block w-2 h-2 rounded-full shrink-0"
-      style={{ background: ok ? '#6BE39A' : '#e0794f' }}
+      style={{ background: ok ? 'var(--lp-accent)' : '#e0794f' }}
     />
   );
 }
 
-const GREEN = '#6BE39A';
+const GREEN = 'var(--lp-accent)';
 const AMBER = '#e0794f';
 const GREY = 'rgba(255,255,255,0.25)';
 
@@ -149,7 +149,7 @@ function HealthOverview() {
           <p className={LABEL}>[:BACKEND HEALTH:]</p>
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             {data && <Dot ok={healthy} />}
-            <h2 className="font-sans text-[18px] font-bold" style={{ color: data ? (healthy ? '#6BE39A' : '#e0794f') : '#fff' }}>
+            <h2 className="font-sans text-[18px] font-bold" style={{ color: data ? (healthy ? 'var(--lp-accent)' : '#e0794f') : '#fff' }}>
               {!data ? (busy ? 'Checking…' : 'Backend health') : healthy ? 'All systems healthy' : 'Degraded'}
             </h2>
             {data && (

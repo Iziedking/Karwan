@@ -97,8 +97,8 @@ export function FinancierApply({
               aria-hidden
               className="shrink-0 inline-flex items-center justify-center w-5 h-5 mono text-[11px] font-bold"
               style={{
-                color: c.ok ? '#4f8a3f' : 'var(--lp-text-muted)',
-                background: c.ok ? 'rgba(79,138,63,0.16)' : 'rgba(0,0,0,0.05)',
+                color: c.ok ? 'var(--lp-accent)' : 'var(--lp-text-muted)',
+                background: c.ok ? 'rgba(175,201,91,0.16)' : 'rgba(0,0,0,0.05)',
                 borderRadius: 5,
               }}
             >

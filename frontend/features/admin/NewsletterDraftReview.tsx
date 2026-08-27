@@ -21,7 +21,7 @@ function InlineText({ value }: { value: string }) {
   while ((match = pattern.exec(plain))) {
     if (match.index > cursor) parts.push(plain.slice(cursor, match.index));
     parts.push(
-      <a key={`${match[1]}-${match.index}`} href={match[2]} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-[#6b7f2d]">
+    <a key={`${match[1]}-${match.index}`} href={match[2]} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-[var(--lp-accent)]">
         {match[1]}
       </a>,
     );

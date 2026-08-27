@@ -12,7 +12,7 @@ type VerificationStatus = VerificationEligibilityResponse['verification']['statu
 const STATUS_TONE: Record<VerificationStatus, string> = {
   unverified: 'var(--lp-text-muted)',
   pending: 'var(--lp-warning, #ffc857)',
-  verified: 'var(--lp-positive, #6be39a)',
+  verified: 'var(--lp-accent)',
   rejected: 'var(--lp-critical, #ff6a6a)',
   expired: 'var(--lp-warning, #ffc857)',
   revoked: 'var(--lp-critical, #ff6a6a)',
@@ -95,7 +95,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
               </span>
               <span
                 className="shrink-0 whitespace-nowrap text-end mono text-[9px] font-bold uppercase tracking-[0.08em]"
-                style={{ color: enabled ? 'var(--lp-positive, #6be39a)' : 'var(--lp-warning, #ffc857)' }}
+                style={{ color: enabled ? 'var(--lp-accent)' : 'var(--lp-warning, #ffc857)' }}
               >
                 {enabled ? t.capabilities.available : t.capabilities.verificationRequired}
               </span>

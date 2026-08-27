@@ -26,7 +26,7 @@ const CARD_STYLE = {
 } as const;
 
 const TONE_COLOR = {
-  positive: '#0a7553',
+  positive: 'var(--lp-accent)',
   critical: '#b03d3a',
   live: 'var(--lp-accent)',
   warning: '#b25425',

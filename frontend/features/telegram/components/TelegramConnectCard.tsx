@@ -66,9 +66,9 @@ export function TelegramConnectCard({ address }: { address?: string }) {
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[10px] font-bold uppercase tracking-[0.14em]"
             style={{
-              background: 'rgba(10,117,83,0.10)',
-              color: '#0a7553',
-              border: '1px solid rgba(10,117,83,0.30)',
+              background: 'rgba(175,201,91,0.12)',
+              color: 'var(--lp-accent)',
+              border: '1px solid rgba(175,201,91,0.38)',
               borderTopLeftRadius: 6,
               borderTopRightRadius: 6,
               borderBottomLeftRadius: 6,
@@ -80,7 +80,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
               data-instrument-blink
               className="inline-block w-[6px] h-[6px]"
               style={{
-                background: '#0a7553',
+                background: 'var(--lp-accent)',
                 animation: 'instrumentBlink 1.6s ease-in-out infinite',
               }}
             />

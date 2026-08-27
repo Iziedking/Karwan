@@ -20,7 +20,7 @@ const stepKeys: StepKey[] = [
   'settled',
 ];
 
-const POSITIVE = '#0a7553';
+const POSITIVE = 'var(--lp-accent)';
 const CRITICAL = '#b03d3a';
 const NEUTRAL = '#6b6b6b';
 

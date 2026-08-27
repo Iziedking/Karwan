@@ -6,7 +6,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 const GROUP_TINT: Record<EventGroup, string> = {
   jobs: 'rgba(255,255,255,0.55)',
   negotiation: 'var(--lp-accent)',
-  settlement: '#7fffb4',
+  settlement: 'var(--lp-accent)',
   bridge: '#9ad7ff',
 };
 

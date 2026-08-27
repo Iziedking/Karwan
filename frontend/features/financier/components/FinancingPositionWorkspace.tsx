@@ -11,7 +11,7 @@ type Status = 'pending' | 'active' | 'repaid' | 'declined' | 'expired' | 'review
 const STATUS: Record<Status, { label: string; detail: string; tone: string }> = {
   pending: { label: 'Offer pending', detail: 'Waiting for the seller to decide', tone: '#9a641f' },
   active: { label: 'Active', detail: 'Financing is active and linked to settlement', tone: '#276b85' },
-  repaid: { label: 'Repaid', detail: 'The financier has been repaid', tone: '#238c58' },
+  repaid: { label: 'Repaid', detail: 'The financier has been repaid', tone: 'var(--lp-accent)' },
   declined: { label: 'Declined', detail: 'The financing offer was not accepted', tone: '#6b6b6b' },
   expired: { label: 'Expired', detail: 'The financing offer expired', tone: '#6b6b6b' },
   review: { label: 'Needs review', detail: 'Repayment needs attention', tone: '#a33a32' },

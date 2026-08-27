@@ -130,9 +130,9 @@ const TIER_TONE: Record<
     border: 'color-mix(in oklab, var(--color-positive) 28%, transparent)',
   },
   ELITE: {
-    color: '#0E5E3E',
-    bg: 'color-mix(in oklab, #0E5E3E 8%, transparent)',
-    border: 'color-mix(in oklab, #0E5E3E 30%, transparent)',
+    color: 'var(--lp-accent)',
+    bg: 'color-mix(in oklab, var(--lp-accent) 8%, transparent)',
+    border: 'color-mix(in oklab, var(--lp-accent) 30%, transparent)',
   },
 };
 

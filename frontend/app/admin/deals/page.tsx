@@ -13,7 +13,7 @@ const STAGE_TONE: Record<string, string> = {
   open: '#9a8e6a',
   accepted: '#3a6ea5',
   delivered: '#3a6ea5',
-  settled: '#4f8a3f',
+  settled: 'var(--lp-accent)',
   disputed: '#b25425',
   cancelled: '#7a7466',
 };

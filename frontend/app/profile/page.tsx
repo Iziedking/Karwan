@@ -244,10 +244,18 @@ function ProfilePageInner() {
               <div className="border-t border-[var(--lp-border-light)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
-                    <SectionTag>{t.agentProfiles.tag}</SectionTag>
+                    <div className="flex items-center gap-2">
+                      <SectionTag>{t.agentProfiles.tag}</SectionTag>
+                      <Hint glow side="bottom" align="start">
+                        {t.agentProfiles.body}
+                      </Hint>
+                    </div>
                     <h2 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold uppercase tracking-[-0.035em] leading-[0.95] text-[var(--lp-dark)]">
                       {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent><Punc>.</Punc>
                     </h2>
+                    <p className="mt-2 max-w-[52ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                      {t.agentProfiles.body}
+                    </p>
                   </div>
                   {/* The ranges editor is the same for a business and an individual.
                       A business's hero EDIT DETAILS opens the company trade card, so
@@ -266,7 +274,7 @@ function ProfilePageInner() {
                   </p>
                 )}
                 <div
-                  className={`mt-5 hidden gap-3 sm:gap-4 md:grid ${
+                  className={`mt-5 hidden items-start gap-3 sm:gap-4 md:grid ${
                     profile.buyer && profile.seller
                       ? 'lg:grid-cols-2'
                       : 'mx-auto w-full max-w-[760px] grid-cols-1'
@@ -778,10 +786,8 @@ function ConnectionCard({ label, children }: { label: string; children: React.Re
   );
 }
 
-/// `h-full` so the two cards match. In the carousel they are flex items
-/// stretched to the taller of the two, and in the desktop grid they are grid
-/// items doing the same; without this the block stopped at its own content and
-/// the buyer card, which has fewer rows, read as a shorter card.
+// Keep each range card content-sized so the shorter buyer profile does not
+// inherit the seller card's height and leave a large empty panel behind.
 function AgentBlock({
   eyebrow,
   fallbackName,
@@ -797,7 +803,7 @@ function AgentBlock({
 }) {
   return (
     <div
-      className="group relative h-full overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out"
+      className="group relative overflow-hidden transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-px"
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
@@ -805,20 +811,21 @@ function AgentBlock({
         borderTopRightRadius: 16,
         borderBottomLeftRadius: 16,
         borderBottomRightRadius: 4,
-        boxShadow: '0 10px 30px -24px rgba(0,0,0,0.20)',
+        boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 10px 24px -20px rgba(0,0,0,0.20)',
       }}
     >
+      <div className="flex items-center gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          [:{eyebrow}:]
+        </span>
+        <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
+      </div>
       <div className="p-4 sm:p-5">
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">
-          <div className="min-w-0">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{eyebrow}:]
-            </span>
-            <h3 className="mt-1.5 font-sans text-[18px] sm:text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-              {name || fallbackName}
-            </h3>
-          </div>
-          <div className="flex max-w-full flex-col items-start gap-1.5 sm:shrink-0 sm:items-end">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h3 className="min-w-0 font-sans text-[22px] sm:text-[24px] font-extrabold uppercase tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
+            {name || fallbackName}
+          </h3>
+          <div className="flex max-w-full flex-col items-start gap-1.5 sm:items-end">
             {agentAddress && (
               <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 {shortAddress(agentAddress)}
@@ -827,17 +834,17 @@ function AgentBlock({
             <ReputationBadge address={agentAddress} size="sm" withDetail />
           </div>
         </div>
-        <div className="mt-4 divide-y divide-[var(--lp-border-light)]">
+        <div className="mt-5 grid gap-2 sm:grid-cols-2">
           {rows.map((r) => (
             <div
               key={r.label}
-              className="grid grid-cols-[minmax(88px,auto)_minmax(0,1fr)] items-baseline gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="min-w-0 rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"
             >
-              <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] shrink-0">
+              <span className="block mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                 {r.label}
               </span>
               <span
-                className={`text-end text-[13px] text-[var(--lp-dark)] break-words ${
+                className={`mt-1 block text-start text-[13px] leading-snug text-[var(--lp-dark)] break-words ${
                   r.mono ? 'font-sans tabular-nums font-semibold tracking-[-0.01em]' : 'font-sans'
                 }`}
               >

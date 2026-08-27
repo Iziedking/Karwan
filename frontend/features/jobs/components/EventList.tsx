@@ -232,7 +232,7 @@ type Tone = 'buyer' | 'seller' | 'system' | 'error';
 
 const RAIL_COLOR: Record<Tone, string> = {
   buyer: '#3a4a85',
-  seller: '#0a7553',
+  seller: 'var(--lp-accent)',
   system: '#9a9a9a',
   error: '#b03d3a',
 };
@@ -531,7 +531,7 @@ function ActorChip({ tone, actor }: { tone: Tone; actor: string }) {
     tone === 'buyer'
       ? 'rgba(60,74,138,0.10)'
       : tone === 'seller'
-        ? 'rgba(10,117,83,0.10)'
+        ? 'rgba(175,201,91,0.12)'
         : tone === 'error'
           ? 'rgba(176,61,58,0.10)'
           : 'var(--lp-light)';

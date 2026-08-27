@@ -91,9 +91,9 @@ export const STAGE_META: Record<
     chipFg: '#b25425',
   },
   settled: {
-    rail: '#0e8c5f',
-    chipBg: 'rgba(10, 117, 83, 0.12)',
-    chipFg: '#0a7553',
+    rail: 'var(--lp-accent)',
+    chipBg: 'rgba(175, 201, 91, 0.14)',
+    chipFg: 'var(--lp-accent)',
   },
   cancelled: {
     rail: '#b03d3a',

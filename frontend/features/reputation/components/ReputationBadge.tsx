@@ -56,17 +56,17 @@ function tierFor(
   if (score >= 90) {
     return {
       label: legacy.topTier,
-      color: '#0E5E3E',
-      bg: 'color-mix(in oklab, #0E5E3E 8%, transparent)',
-      border: 'color-mix(in oklab, #0E5E3E 30%, transparent)',
+      color: 'var(--lp-accent)',
+      bg: 'color-mix(in oklab, var(--lp-accent) 8%, transparent)',
+      border: 'color-mix(in oklab, var(--lp-accent) 30%, transparent)',
     };
   }
   if (score >= 70) {
     return {
       label: legacy.veteran,
-      color: 'var(--color-positive)',
-      bg: 'var(--color-positive-soft)',
-      border: 'color-mix(in oklab, var(--color-positive) 28%, transparent)',
+      color: 'var(--lp-accent)',
+      bg: 'color-mix(in oklab, var(--lp-accent) 12%, transparent)',
+      border: 'color-mix(in oklab, var(--lp-accent) 28%, transparent)',
     };
   }
   if (score >= 50) {
@@ -345,7 +345,7 @@ function StatRow({
 }) {
   const color =
     tone === 'positive'
-      ? 'var(--color-positive)'
+      ? 'var(--lp-accent)'
       : tone === 'warning'
       ? 'var(--color-warning)'
       : 'var(--color-critical)';
