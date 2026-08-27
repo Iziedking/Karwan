@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import { safeNotificationHref } from '../notificationRouting';
 import { relativeTime } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -142,7 +143,7 @@ export function NotificationBell() {
                     onClick={() => {
                       markRead(n.id);
                       setOpen(false);
-                      router.push(n.href);
+                      router.push(safeNotificationHref(n));
                     }}
                     className="w-full text-start px-4 py-3 hover:bg-[var(--lp-light)] transition-colors flex items-start gap-3"
                   >
