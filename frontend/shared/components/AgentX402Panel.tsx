@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, type ChainEvent } from '@/core/api';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { Hint } from '@/shared/components/Hint';
 
 /// Live, interactive x402 panel: each nanopayment an agent makes for this deal
 /// streams in as it happens — internal reputation pulls on Arc, off-platform
@@ -165,19 +166,21 @@ export function AgentX402Panel({
       }}
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        <span className="inline-flex items-center mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           [:AGENT PAYMENTS:]
+          <Hint side="bottom" align="start">
+            <span className="block">
+              Your agents pay per call for the data they use to evaluate a match. Reputation checks
+              run on Arc, while market research runs on Base. These reads inform the proposal only;
+              they never authorize a transfer.
+            </span>
+          </Hint>
         </span>
         <span className="inline-flex items-center gap-2 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           <span aria-hidden className="inline-block size-1.5 rounded-full bg-[var(--lp-accent)] animate-pulse" />
           agents paid ${total.toFixed(3)} · {display.length} call{display.length === 1 ? '' : 's'}
         </span>
       </div>
-
-      <p className="mt-2 text-[12px] leading-snug text-[var(--lp-text-sub)] max-w-[60ch]">
-        Your agents pay per call for the data they negotiate with. Reputation checks
-        run on our own x402 on Arc; market research on an external x402 on Base.
-      </p>
 
       <ul className="mt-4 space-y-2">
         {display.map((p) => {
