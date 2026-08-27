@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { eq } from 'drizzle-orm';
+import { eq, lt } from 'drizzle-orm';
 import { db, pgEnabled } from './client.js';
 import { messages } from './schema.js';
 
@@ -16,6 +16,10 @@ export interface ChatMessage {
   sender: string;
   kind?: 'participant' | 'system';
   body: string;
+  /// Optional image-only attachment. Raw bytes are kept out of the event
+  /// payload in practice by the request size cap; this field is still
+  /// validated at the route boundary and expires with the message.
+  imageDataUrl?: string;
   replyToId?: string;
   eventType?: string;
   ts: number;
@@ -38,13 +42,43 @@ export function normalizeChatMessage(message: ChatMessage): ChatMessage {
 export async function listMessages(jobId: string, channel: 'trade' | 'financing' = 'trade', channelKey = jobId): Promise<ChatMessage[]> {
   if (pgEnabled) {
     const rows = await db().select().from(messages).where(eq(messages.jobId, jobId));
-    return rows.map((r) => normalizeChatMessage(r.data)).filter((m) => m.channel === channel && m.channelKey === channelKey).sort((a, b) => a.ts - b.ts);
+    return rows.map((r) => normalizeChatMessage(r.data)).filter((m) => isChatMessageRetained(m.ts, Date.now()) && m.channel === channel && m.channelKey === channelKey).sort((a, b) => a.ts - b.ts);
   }
   const store = loadFile();
   return Object.values(store)
     .map(normalizeChatMessage)
-    .filter((m) => m.jobId === jobId && m.channel === channel && m.channelKey === channelKey)
+    .filter((m) => isChatMessageRetained(m.ts, Date.now()) && m.jobId === jobId && m.channel === channel && m.channelKey === channelKey)
     .sort((a, b) => a.ts - b.ts);
+}
+
+export const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function chatMessageCutoff(now = Date.now()): number {
+  return now - CHAT_RETENTION_MS;
+}
+
+export function isChatMessageRetained(timestamp: number, now = Date.now()): boolean {
+  return Number.isFinite(timestamp) && timestamp >= chatMessageCutoff(now);
+}
+
+/// Permanently removes expired chat rows. The read path also filters by the
+/// same cutoff so a missed sweep never exposes stale history; this function is
+/// the durable deletion pass run by the process retention worker.
+export async function deleteMessagesOlderThan(cutoffMs = chatMessageCutoff()): Promise<number> {
+  if (pgEnabled) {
+    const removed = await db().delete(messages).where(lt(messages.ts, cutoffMs)).returning({ id: messages.id });
+    return removed.length;
+  }
+  const store = loadFile();
+  let removed = 0;
+  for (const [id, message] of Object.entries(store)) {
+    if (message.ts < cutoffMs) {
+      delete store[id];
+      removed += 1;
+    }
+  }
+  if (removed > 0) saveFile(store);
+  return removed;
 }
 
 export async function addMessage(message: ChatMessage): Promise<ChatMessage> {

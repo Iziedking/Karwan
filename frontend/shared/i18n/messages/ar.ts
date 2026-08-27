@@ -1466,6 +1466,8 @@ export const ar: Messages = {
       buyerEyebrow: 'سجل المشتري',
       buyerSubtitle: 'صفقات حقيقية موّلها هذا المشتري. خاصة بك، وليست على جواز السمعة العام.',
       buyerEmpty: 'لا توجد صفقات ممولة في السجل بعد.',
+      timingTitle: 'Verified operating timing', buyerVerification: 'Buyer review', buyerRelease: 'Buyer release', sellerResponse: 'Seller response', sellerCompletion: 'Seller completion', timingPending: 'Not enough completed deals yet',
+      timingSampleTemplate: '{count} completed deals',
     },
   },
   listingDetail: {
@@ -2344,6 +2346,7 @@ export const ar: Messages = {
     topTier: 'أعلى فئة',
   },
   chatPanel: {
+    reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.', retentionNote: 'Messages kept for 14 days', conversationClosed: 'This conversation is closed.',
     withCounterpartyTemplate: '[:مع {name}:]',
     telegramNote: 'يصل أيضاً إلى Telegram عند الربط',
     loadError: 'تعذّر تحميل سجل المحادثة.',

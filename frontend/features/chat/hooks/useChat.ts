@@ -9,7 +9,7 @@ export interface UseChatResult {
   fetchState: 'idle' | 'loading' | 'ready' | 'error';
   /// The server's own reason for refusing, when it gave one.
   fetchError: string | null;
-  send: (body: string) => Promise<void>;
+  send: (input: { body?: string; replyToId?: string; imageDataUrl?: string }) => Promise<void>;
   sending: boolean;
   unreadCount: number;
   markRead: () => void;
@@ -72,7 +72,7 @@ export function useChat({
     return subscribeLiveEvents((e) => {
       if (e.type !== 'chat.message' || e.jobId !== jobId) return;
       const payload = e.payload as
-        | { messageId?: string; sender?: string; body?: string; channel?: string; channelKey?: string }
+        | { messageId?: string; sender?: string; body?: string; imageDataUrl?: string; replyToId?: string; channel?: string; channelKey?: string }
         | undefined;
       if (payload?.channel && payload.channel !== 'trade') return;
       if (payload?.channelKey && payload.channelKey !== jobId) return;
@@ -81,7 +81,9 @@ export function useChat({
         id: payload.messageId,
         jobId,
         sender: payload.sender,
-        body: payload.body,
+        body: payload.body ?? '',
+        ...(payload.imageDataUrl ? { imageDataUrl: payload.imageDataUrl } : {}),
+        ...(payload.replyToId ? { replyToId: payload.replyToId } : {}),
         ts: e.ts,
       };
       setMessages((list) => {
@@ -96,13 +98,13 @@ export function useChat({
   }, [jobId, caller, me]);
 
   const send = useCallback(
-    async (body: string) => {
+    async (input: { body?: string; replyToId?: string; imageDataUrl?: string }) => {
       if (!caller) return;
-      const trimmed = body.trim();
-      if (!trimmed) return;
+      const trimmed = input.body?.trim() ?? '';
+      if (!trimmed && !input.imageDataUrl) return;
       setSending(true);
       try {
-        const r = await api.sendMessage(jobId, caller, trimmed);
+        const r = await api.sendMessage(jobId, caller, trimmed, input);
         setMessages((list) => {
           if (list.some((m) => m.id === r.message.id)) return list;
           return [...list, r.message];

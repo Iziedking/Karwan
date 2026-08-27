@@ -16,3 +16,10 @@ test('rejects replies to another position or a system event', () => {
   assert.match(validateReplyTarget(participant, 'job-1', 'position-2') ?? '', /same financing conversation/);
   assert.match(validateReplyTarget({ ...participant, kind: 'system' }, 'job-1', 'position-1') ?? '', /participant message/);
 });
+
+test('accepts a participant message from the same trade conversation', () => {
+  assert.equal(
+    validateReplyTarget({ ...participant, channel: 'trade', channelKey: 'job-1' }, 'job-1', 'job-1', 'trade'),
+    null,
+  );
+});

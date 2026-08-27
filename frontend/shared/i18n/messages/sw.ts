@@ -1466,6 +1466,8 @@ export const sw: Messages = {
       buyerEyebrow: 'REKODI YA MNUNUZI',
       buyerSubtitle: 'Mikataba halisi aliyofadhili mnunuzi huyu. Ni ya faragha kwako, haiko kwenye pasipoti ya umma.',
       buyerEmpty: 'Hakuna mikataba iliyofadhiliwa kwenye rekodi bado.',
+      timingTitle: 'Verified operating timing', buyerVerification: 'Buyer review', buyerRelease: 'Buyer release', sellerResponse: 'Seller response', sellerCompletion: 'Seller completion', timingPending: 'Not enough completed deals yet',
+      timingSampleTemplate: '{count} completed deals',
     },
   },
   listingDetail: {
@@ -2344,6 +2346,7 @@ export const sw: Messages = {
     topTier: 'Daraja la juu',
   },
   chatPanel: {
+    reply: 'Jibu', cancelReply: 'Ghairi jibu', replyingTo: 'Kumjibu {name}', you: 'Wewe', imageAttachment: 'Kiambatisho cha picha', attachImage: 'Ambatisha picha', removeImage: 'Ondoa picha', imageOnly: 'Ongeza maelezo au tuma picha', imageUnsupported: 'Tumia picha ya PNG, JPEG au WebP.', imageTooLarge: 'Picha ni kubwa sana. Kikomo ni KB 750.', imageReadError: 'Picha haikuweza kusomwa. Jaribu tena.', retentionNote: 'Ujumbe huhifadhiwa kwa siku 14', conversationClosed: 'Mazungumzo haya yamefungwa.',
     withCounterpartyTemplate: '[:NA {name}:]',
     telegramNote: 'Pia inawasilishwa Telegram ikiwa imeunganishwa',
     loadError: 'Haikuweza kupakia historia ya mazungumzo.',
