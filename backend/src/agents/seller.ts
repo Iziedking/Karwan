@@ -49,6 +49,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { accountTypeOf } from '../profile/accountType.js';
 import { getProfile } from '../db/profiles.js';
 import { researchMarket, getCachedMarketPrice, getCachedMarketRead } from '../x402/externalClient.js';
+import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { type PaidPassportSignal } from '../x402/buyerClient.js';
 import { config } from '../config.js';
 import { evaluationStarted, evaluationFinished } from './evaluationTracker.js';
@@ -618,27 +619,29 @@ async function maybeSellerResearch(
     // General baseline: the seller agent researches the order regardless of any
     // per-agent activation. The platform fronts the call and the cost is settled
     // on the matched pair at match (buyer.ts persistApprovedMatch), not here.
-    const read = await researchMarket(keywords);
+    const read = await researchMarket(keywords, undefined, {
+      onPayment: async (notice) => {
+        await recordExternalResearchPayment({
+          notice,
+          actor: 'seller',
+          agent: 'seller',
+          jobId,
+          owner: seller.address,
+          scope: 'matching',
+        });
+      },
+      onFailure: (notice) => {
+        recordExternalResearchFailure({
+          notice,
+          actor: 'seller',
+          agent: 'seller',
+          jobId,
+          scope: 'matching',
+        });
+      },
+    });
     publishMarketEvidenceAcquisitionShadow(read, jobId);
     setResearchHeat(keywords, read);
-    if (!read.cached) {
-      bus.emitEvent({
-        type: 'agent.paid',
-        jobId,
-        actor: 'seller',
-        payload: {
-          rail: 'base',
-          kind: 'research',
-          agent: 'seller',
-          seller: seller.address,
-          amountUsd: read.paidUsd,
-          txHash: read.txHash,
-          payer: read.payer,
-          demand: read.demand,
-          keywords,
-        },
-      });
-    }
     logger.info(
       { seller: seller.address, demand: read.demand, cached: read.cached },
       'seller agent researched the order before pricing',

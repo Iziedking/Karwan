@@ -1,6 +1,6 @@
 import { researchMarket } from '../x402/externalClient.js';
+import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { setResearchHeat } from '../agents/marketDemand.js';
-import { bus } from '../events.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -26,29 +26,27 @@ export async function securityResearchOrder(
   const cleaned = (keywords ?? []).filter(Boolean);
   if (cleaned.length === 0) return;
   try {
-    const read = await researchMarket(cleaned);
-    setResearchHeat(cleaned, read);
-    // Only record an agent.paid event when a payment actually settled. A free
-    // read (endpoint answered the unpaid probe with 200, so payExternal returns
-    // paidUsd 0 and no txHash) is NOT a payment and must not surface on the deal
-    // page as a "$0.000" entry with no receipt. Mirrors the /research emitter.
-    if (!read.cached && read.paidUsd > 0) {
-      bus.emitEvent({
-        type: 'agent.paid',
-        jobId,
-        actor: 'platform',
-        payload: {
-          rail: 'base',
-          kind: 'research',
+    const read = await researchMarket(cleaned, undefined, {
+      onPayment: async (notice) => {
+        await recordExternalResearchPayment({
+          notice,
+          actor: 'platform',
           agent: 'security',
-          amountUsd: read.paidUsd,
-          txHash: read.txHash,
-          payer: read.payer,
-          demand: read.demand,
-          keywords: cleaned,
-        },
-      });
-    }
+          jobId,
+          scope: 'order-prewarm',
+        });
+      },
+      onFailure: (notice) => {
+        recordExternalResearchFailure({
+          notice,
+          actor: 'platform',
+          agent: 'security',
+          jobId,
+          scope: 'order-prewarm',
+        });
+      },
+    });
+    setResearchHeat(cleaned, read);
     logger.info(
       { jobId, demand: read.demand, cached: read.cached },
       'security agent researched the order at post',

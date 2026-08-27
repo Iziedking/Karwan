@@ -104,6 +104,7 @@ import { config } from '../config.js';
 import { paidCreditPassport, type PaidPassportSignal } from '../x402/buyerClient.js';
 import { researchMarket, type MarketRead } from '../x402/externalClient.js';
 import { chargeResearch } from '../x402/researchAccount.js';
+import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { securityResearchOrder } from '../security/orderResearch.js';
 import { shouldDenyPaidCall } from '../security/sa-stub.js';
 import { recordSpend } from '../security/spendGuard.js';
@@ -1666,7 +1667,27 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
     // platform fronts the Base call), the intel is shared, and only the matched
     // buyer + seller are charged for it at match (see persistApprovedMatch). No
     // per-agent activation gate, no charge at trigger time.
-    const read = await researchMarket(keywords);
+    const read = await researchMarket(keywords, undefined, {
+      onPayment: async (notice) => {
+        await recordExternalResearchPayment({
+          notice,
+          actor: 'buyer',
+          agent: 'buyer',
+          jobId: state.jobId,
+          owner,
+          scope: 'matching',
+        });
+      },
+      onFailure: (notice) => {
+        recordExternalResearchFailure({
+          notice,
+          actor: 'buyer',
+          agent: 'buyer',
+          jobId: state.jobId,
+          scope: 'matching',
+        });
+      },
+    });
     state.marketRead = read;
     publishMarketEvidenceAcquisitionShadow(read, state.jobId);
     setResearchHeat(keywords, read);
@@ -1710,23 +1731,6 @@ async function maybeResearchMarket(state: JobState): Promise<void> {
       );
     }
 
-    if (!read.cached) {
-      bus.emitEvent({
-        type: 'agent.paid',
-        jobId: state.jobId,
-        actor: 'buyer',
-        payload: {
-          rail: 'base',
-          kind: 'research',
-          agent: 'buyer',
-          amountUsd: read.paidUsd,
-          txHash: read.txHash,
-          payer: read.payer,
-          demand: read.demand,
-          keywords,
-        },
-      });
-    }
     logger.info(
       { jobId: state.jobId, demand: read.demand, cached: read.cached },
       'agent market research applied to negotiation',
