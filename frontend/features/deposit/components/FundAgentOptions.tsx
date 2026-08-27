@@ -1,5 +1,5 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -47,6 +47,15 @@ export function FundAgentOptions({
 }) {
   const copy = useTranslations().fundAgentOptions;
   const [route, setRoute] = useState<FundRoute | null>(null);
+  const [amountInput, setAmountInput] = useState(() => String(amountUsdc));
+
+  useEffect(() => {
+    setAmountInput(String(amountUsdc));
+  }, [amountUsdc]);
+
+  const parsedAmount = Number(amountInput);
+  const validAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const fundingAmount = validAmount ? parsedAmount : 0;
 
   const routes: Array<{ id: FundRoute; label: string; tooltip: string; icon: ReactNode }> = [
     { id: 'wallet', label: copy.wallet.label, tooltip: copy.wallet.tooltip, icon: <WalletGlyph /> },
@@ -69,6 +78,46 @@ export function FundAgentOptions({
       <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
         [:{copy.eyebrow}:]
       </p>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor={`fund-agent-amount-${agent}`}
+          className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+        >
+          {copy.amount.label}
+        </label>
+        <div
+          className="flex min-h-11 items-center gap-3 px-3"
+          style={{
+            background: 'var(--lp-card)',
+            border: '1px solid var(--lp-border-light)',
+            borderRadius: 10,
+          }}
+        >
+          <input
+            id={`fund-agent-amount-${agent}`}
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            value={amountInput}
+            onChange={(event) => setAmountInput(event.target.value)}
+            aria-describedby={`fund-agent-amount-note-${agent}`}
+            className="min-w-0 flex-1 bg-transparent text-[16px] font-semibold tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          />
+          <span className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            USDC
+          </span>
+        </div>
+        <p id={`fund-agent-amount-note-${agent}`} className="text-[12px] leading-snug text-[var(--lp-text-muted)]">
+          {copy.amount.note}
+        </p>
+        {amountInput.trim() !== '' && !validAmount && (
+          <p className="border-s-2 border-[var(--lp-critical)] ps-2 text-[12px] leading-snug text-[var(--lp-critical)]">
+            {copy.amount.invalid}
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {routes.map((option) => {
@@ -120,27 +169,27 @@ export function FundAgentOptions({
         })}
       </div>
 
-      {route === 'wallet' && circleAccount && (
-        <FundAgentFromBalance agent={agent} amountUsdc={amountUsdc} onFunded={onFunded} />
+      {route === 'wallet' && circleAccount && validAmount && (
+        <FundAgentFromBalance agent={agent} amountUsdc={fundingAmount} onFunded={onFunded} />
       )}
-      {route === 'wallet' && !circleAccount && recipient && (
+      {route === 'wallet' && !circleAccount && recipient && validAmount && (
         <FundAgentFromWallet
           agent={agent}
           recipient={recipient}
-          amountUsdc={amountUsdc}
+          amountUsdc={fundingAmount}
           onFunded={onFunded}
         />
       )}
-      {route === 'otherAgent' && otherAgentAddress && recipient && (
+      {route === 'otherAgent' && otherAgentAddress && recipient && validAmount && (
         <MoveFromOtherAgent
           from={agent === 'buyer' ? 'seller' : 'buyer'}
           toAddress={recipient}
-          amountUsdc={amountUsdc}
+          amountUsdc={fundingAmount}
           onFunded={onFunded}
         />
       )}
-      {route === 'gateway' && recipient && (
-        <TopUpFromGateway recipient={recipient} amount={amountUsdc} onFunded={onFunded} />
+      {route === 'gateway' && recipient && validAmount && (
+        <TopUpFromGateway recipient={recipient} amount={fundingAmount} onFunded={onFunded} />
       )}
       {route === 'gateway' && !recipient && (
         <FundGatewayCallout

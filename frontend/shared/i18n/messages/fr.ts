@@ -2280,6 +2280,11 @@ export const fr: Messages = {
   },
   fundAgentOptions: {
     eyebrow: 'FINANCER DEPUIS',
+    amount: {
+      label: 'Montant à ajouter',
+      note: 'Prérempli depuis cette transaction. Ajustez le montant avant de continuer.',
+      invalid: 'Saisissez un montant supérieur à zéro.',
+    },
     wallet: {
       label: 'Solde du portefeuille',
       tooltip: "Paie depuis le solde de votre portefeuille de connexion. C'est la route la plus courte quand les fonds sont déjà sur Arc.",

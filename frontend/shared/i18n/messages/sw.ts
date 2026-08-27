@@ -2280,6 +2280,11 @@ export const sw: Messages = {
   },
   fundAgentOptions: {
     eyebrow: 'FADHILI KUTOKA',
+    amount: {
+      label: 'Kiasi cha kuongeza',
+      note: 'Imejazwa kutoka kwenye dili hili. Rekebisha kiasi kabla ya kuendelea.',
+      invalid: 'Weka kiasi kikubwa kuliko sufuri.',
+    },
     wallet: {
       label: 'Salio la pochi',
       tooltip: 'Hulipa kutoka salio la pochi unayotumia kuingia. Hii ni njia fupi zaidi ikiwa fedha ziko Arc tayari.',
