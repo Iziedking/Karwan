@@ -7,6 +7,7 @@ import { deliverableNoun, startPhrase, tradeTypeOf } from '@/shared/deals/tradeV
 import { qk } from '@/core/queryKeys';
 import { sfx } from '@/shared/utils/sfx';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { safeNotificationHref } from '../notificationRouting';
 import {
   NOTIFICATION_STORAGE_PREFIX,
   loadReadIds,
@@ -233,7 +234,8 @@ function hrefForType(type: string, jobId: string): string {
   if (type === 'reputation.tier-up') return '/profile';
   // Action events land on the deal page's action card so the user reaches
   // Mark Delivered / Release / Accept without a second scroll.
-  if (ACTION_TYPES.has(type)) return `/deals/${jobId}#action`;
+  if (ACTION_TYPES.has(type) && jobId) return `/deals/${jobId}#action`;
+  if (!jobId) return '/app';
   return MANAGED_TYPES.has(type) ? `/jobs/${jobId}` : `/deals/${jobId}`;
 }
 
@@ -584,7 +586,14 @@ function load(address?: string | null): AppNotification[] {
   if (!key || typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as AppNotification[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as AppNotification[];
+    return Array.isArray(parsed)
+      ? parsed.map((notification) => ({
+          ...notification,
+          href: safeNotificationHref(notification),
+        }))
+      : [];
   } catch {
     return [];
   }
