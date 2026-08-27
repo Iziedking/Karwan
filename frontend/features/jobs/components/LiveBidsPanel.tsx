@@ -68,11 +68,11 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
       <div
         className={
           expanded
-            ? 'relative max-h-[58vh] overflow-y-auto overscroll-contain [scrollbar-width:thin]'
-            : ''
+            ? 'relative min-w-0 max-h-[58vh] overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]'
+            : 'min-w-0 overflow-x-hidden'
         }
       >
-        <ul className="divide-y divide-[var(--color-line)]">
+        <ul className="min-w-0 divide-y divide-[var(--color-line)]">
           {visible.map((b) => {
             const isLead = b.seller === leadSeller;
             return (
@@ -140,7 +140,7 @@ function BidRow({
   const filledSegments = score != null ? Math.round((score / 100) * SEGMENTS) : 0;
 
   return (
-    <li className="relative px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
+    <li className="relative min-w-0 overflow-hidden px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
       {isLead && (
         <span
           aria-hidden
@@ -160,7 +160,7 @@ function BidRow({
           '{name}',
           bid.sellerDisplayName ?? shortAddress(bid.seller),
         )}
-        className="w-full flex items-center justify-between gap-3 -mx-1 px-1 py-0.5 rounded-sm transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] cursor-pointer"
+        className="-mx-1 flex min-h-11 w-full min-w-0 flex-col items-stretch justify-between gap-2 rounded-sm px-1 py-0.5 transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] cursor-pointer sm:flex-row sm:items-center sm:gap-3"
       >
         <div className="flex items-center gap-2 min-w-0">
           {isLead && (
@@ -186,8 +186,10 @@ function BidRow({
             </span>
           )}
         </div>
-        <span className="inline-flex items-center gap-1.5 shrink-0">
-          <ReputationBadge address={bid.seller} size="sm" />
+        <span className="inline-flex min-w-0 shrink-0 self-end items-center justify-end gap-1.5 sm:self-auto">
+          <span className="min-w-0 max-w-full overflow-hidden">
+            <ReputationBadge address={bid.seller} size="sm" />
+          </span>
           <span
             aria-hidden
             className="mono text-[10px] text-[var(--color-ink-faint)] opacity-60"

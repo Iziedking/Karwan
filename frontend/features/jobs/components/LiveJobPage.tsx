@@ -444,8 +444,8 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         {/* FLOW + TIMELINE + BIDS. The bidder roster and the negotiation walk
             are the buyer's alone; a matched seller sees the flow, their match
             banner, and the settle section, so their side goes full-width. */}
-        <div className="mt-8 grid lg:grid-cols-3 gap-5 items-start">
-          <div className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-5`}>
+        <div className="mt-8 grid min-w-0 lg:grid-cols-3 gap-5 items-start">
+          <div className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} min-w-0 space-y-5`}>
             <PageCard>
               <div className="p-6" data-guide="job-flow">
                 <SectionTag>{lj.sections.flow}</SectionTag>
@@ -486,7 +486,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           </div>
 
           {viewerIsBuyer && (
-            <div className="space-y-5" data-guide="job-bids">
+            <div className="min-w-0 space-y-5" data-guide="job-bids">
               <PageCard>
                 <div className="px-6 pt-6">
                   <SectionTag>{lj.sections.bids}</SectionTag>
