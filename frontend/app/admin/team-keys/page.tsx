@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, type TeamAccessKeyView } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
+import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 
 /// Issue and revoke access to the team canon.
 ///
@@ -218,7 +219,10 @@ export default function AdminTeamKeysPage() {
       </form>
 
       {keys === null ? (
-        <p className="mt-8 text-[13px] text-white/35">Loading...</p>
+        <div className="mt-8 max-w-2xl" role="status" aria-label="Loading team access keys">
+          <Skeleton className="h-3 w-28 bg-white/[0.05]" />
+          <SkeletonText lines={3} className="mt-4" />
+        </div>
       ) : (
         <>
           <section className="mt-8">

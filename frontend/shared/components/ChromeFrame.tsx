@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { getShellSurface } from '@/shared/utils/routes';
 import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
+import { RouteStage } from '@/shared/components/RouteStage';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -40,7 +41,9 @@ export function ChromeFrame({
   if (routeOnlyShell === 'bare') {
     return (
       <div className="flex min-h-screen flex-col">
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <RouteStage pathname={pathname}>{children}</RouteStage>
+        </main>
       </div>
     );
   }
@@ -52,7 +55,9 @@ export function ChromeFrame({
   if (routeOnlyShell === 'admin') {
     return (
       <div className="flex min-h-screen flex-col">
-        <div className="flex-1">{children}</div>
+        <div className="flex-1">
+          <RouteStage pathname={pathname}>{children}</RouteStage>
+        </div>
       </div>
     );
   }
@@ -104,7 +109,9 @@ function CustomerChromeFrame({
     <div className="flex min-h-screen flex-col">
       {topNav}
       {workspace ? profileNudge : null}
-      <main className={mainClass}>{children}</main>
+      <main className={mainClass}>
+        <RouteStage pathname={pathname}>{children}</RouteStage>
+      </main>
       {shell === 'public' ? footer : null}
       {workspace && auth.isAuthenticated ? feedback : null}
       {workspace ? bottomNav : null}

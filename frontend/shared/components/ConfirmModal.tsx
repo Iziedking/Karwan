@@ -58,7 +58,7 @@ export function ConfirmModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 motion-safe:animate-[fadeUp_0.18s_ease-out]"
+      className="fixed inset-0 z-[100] flex items-end sm:items-stretch sm:justify-end"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
@@ -71,21 +71,15 @@ export function ConfirmModal({
         className="absolute inset-0 cursor-default"
         style={{
           background: 'rgba(0,0,0,0.55)',
-          backdropFilter: 'blur(6px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(6px) saturate(140%)',
         }}
       />
       {/* Panel. Dark Karwan surface, asymmetric corners, lime accent rule
           at the top mirroring the email shell. */}
       <div
-        className="relative w-full max-w-[420px]"
+        className="karwan-sheet-enter relative max-h-[92dvh] w-full overflow-y-auto rounded-t-[18px] sm:h-full sm:max-h-none sm:w-[420px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-band-dark)',
           border: '1px solid var(--rule-dark)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
           boxShadow: '0 24px 64px -20px rgba(0,0,0,0.6)',
           overflow: 'hidden',
         }}

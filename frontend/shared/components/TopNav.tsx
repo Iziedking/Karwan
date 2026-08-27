@@ -91,7 +91,7 @@ export function TopNav() {
       ref={barRef}
       style={publicSurface ? DARK_NAV_VARS : undefined}
       data-chrome="nav"
-      className="sticky top-0 z-30 backdrop-blur-xl bg-[var(--color-surface)]/85 border-b border-[var(--color-line)]"
+      className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-surface)]"
     >
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
         {/* LEFT. The mark alone, and it always goes to the landing page.

@@ -289,7 +289,7 @@ export default function HowItWorksPage() {
           <Link
             href="/buyer"
             style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-            className="px-5 py-2.5 rounded-md text-[14px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+            className="min-h-11 px-5 py-2.5 rounded-md text-[14px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2"
           >
             {t.cta.button}
             <span aria-hidden>→</span>

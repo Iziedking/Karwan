@@ -99,7 +99,7 @@ export function PortableReceipt({
 
   return createPortal(
     <div
-      className="karwan-receipt-overlay fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-4 sm:p-6"
+      className="karwan-receipt-overlay fixed inset-0 z-[80] flex items-end bg-black/55 sm:items-stretch sm:justify-end"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -110,7 +110,7 @@ export function PortableReceipt({
         role="dialog"
         aria-modal="true"
         aria-labelledby="karwan-receipt-title"
-        className="w-full max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-[var(--lp-card)] p-5 shadow-2xl outline-none sm:max-w-xl"
+        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] bg-[var(--lp-card)] p-5 shadow-[var(--shadow-pop)] outline-none sm:h-full sm:max-h-none sm:w-[min(560px,100vw)] sm:rounded-none sm:rounded-s-[16px]"
       >
         <div className="karwan-receipt-chrome flex items-start justify-between gap-4">
           <div>

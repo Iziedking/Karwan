@@ -412,8 +412,12 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
 
   return createPortal(
     <div
-      className="auth-capsule-backdrop fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-3 sm:p-6"
-      style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
+      className={`auth-capsule-backdrop fixed inset-0 z-[100] flex items-end overflow-hidden ${
+        stage === 'choose-path'
+          ? 'justify-center sm:items-center sm:p-6'
+          : 'justify-end'
+      }`}
+      style={{ background: 'rgba(14,14,14,0.65)' }}
       onClick={() => !busy && onClose()}
     >
       <div
@@ -424,10 +428,10 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         aria-labelledby="karwan-auth-title"
         aria-describedby="karwan-auth-description"
         onClick={(e) => e.stopPropagation()}
-        className={`auth-capsule w-full max-h-[calc(100dvh-24px)] overflow-y-auto border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_28px_90px_-34px_rgba(0,0,0,0.62)] ${
+        className={`auth-capsule max-h-[94dvh] w-full overflow-y-auto rounded-t-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[var(--shadow-pop)] ${
           stage === 'choose-path'
-            ? 'auth-capsule-choice max-w-[390px] rounded-[28px] md:max-w-[920px] md:rounded-[76px]'
-            : 'max-w-[620px] rounded-[32px] md:rounded-[48px]'
+            ? 'auth-capsule-choice sm:h-auto sm:max-h-[calc(100dvh-48px)] sm:w-[min(680px,calc(100vw-48px))] sm:rounded-[20px]'
+            : 'sm:h-full sm:max-h-none sm:w-[620px] sm:rounded-none sm:rounded-s-[18px]'
         }`}
         style={{
           overscrollBehavior: 'contain',
@@ -533,7 +537,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         {/* Body */}
         <div className="space-y-3.5 px-5 pb-5 sm:space-y-4 sm:px-6 sm:pb-6">
           {stage === 'choose-path' && (
-            <div className="grid gap-2.5 md:grid-cols-2 md:gap-4">
+            <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
               <button
                 type="button"
                 data-auth-primary
@@ -542,18 +546,18 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   setStage('pick-method');
                   setError(null);
                 }}
-                className="group min-h-[146px] w-full border border-[var(--lp-accent-hover)] bg-[var(--lp-accent)] px-5 py-5 text-start text-[var(--lp-band-dark)] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-band-dark)] focus-visible:ring-offset-2 md:min-h-[178px] md:px-7 md:py-6"
-                style={{ borderRadius: 24 }}
+                className="group min-h-[112px] w-full border border-[var(--lp-accent-hover)] bg-[var(--lp-accent)] px-5 py-4 text-start text-[var(--lp-band-dark)] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-band-dark)] focus-visible:ring-offset-2 sm:min-h-[124px]"
+                style={{ borderRadius: 16 }}
               >
                 <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-band-dark)]/70">
                   [:01:]
                 </span>
-                <span className="mt-2.5 flex items-center justify-between gap-4 md:mt-3">
+                <span className="mt-2 flex items-center justify-between gap-4">
                   <span>
                     <span className="block font-sans text-[17px] font-extrabold tracking-[-0.02em] sm:text-[18px]">
                       {t.entry.newUser}
                     </span>
-                    <span className="mt-1 block max-w-[34ch] text-[12px] leading-relaxed text-black/65 sm:mt-1.5 sm:text-[13px]">
+                    <span className="mt-1 block max-w-[32ch] text-[12px] leading-relaxed text-black/65">
                       {t.entry.newUserBody}
                     </span>
                   </span>
@@ -567,18 +571,18 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   setStage('pick-method');
                   setError(null);
                 }}
-                className="group min-h-[146px] w-full border border-[var(--lp-border-light)] bg-white px-5 py-5 text-start text-[#0a0a0b] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[#0a0a0b] hover:bg-[#f4f4f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 md:min-h-[178px] md:px-7 md:py-6"
-                style={{ borderRadius: 24 }}
+                className="group min-h-[112px] w-full border border-[var(--lp-border-light)] bg-white px-5 py-4 text-start text-[#0a0a0b] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[#0a0a0b] hover:bg-[#f4f4f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 sm:min-h-[124px]"
+                style={{ borderRadius: 16 }}
               >
                 <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
                   [:02:]
                 </span>
-                <span className="mt-2.5 flex items-center justify-between gap-4 md:mt-3">
+                <span className="mt-2 flex items-center justify-between gap-4">
                   <span>
                     <span className="block font-sans text-[17px] font-extrabold tracking-[-0.02em] sm:text-[18px]">
                       {t.entry.returningUser}
                     </span>
-                    <span className="mt-1 block max-w-[34ch] text-[12px] leading-relaxed text-[#5a5a57] sm:mt-1.5 sm:text-[13px]">
+                    <span className="mt-1 block max-w-[32ch] text-[12px] leading-relaxed text-[#5a5a57]">
                       {t.entry.returningUserBody}
                     </span>
                   </span>

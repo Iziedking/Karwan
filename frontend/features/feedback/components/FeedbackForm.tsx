@@ -299,7 +299,7 @@ export function FeedbackForm() {
                       <button
                         type="button"
                         onClick={() => fileInput.current?.click()}
-                        className="font-semibold text-[var(--lp-dark)] underline underline-offset-2 hover:text-[var(--lp-accent-hover)]"
+                        className="mx-1 inline-flex min-h-11 items-center rounded-[10px] px-2 font-semibold text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
                       >
                         {fb.dropZone.chooseFiles}
                       </button>

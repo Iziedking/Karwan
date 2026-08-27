@@ -55,8 +55,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
-      style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-[100] flex items-end bg-black/60 sm:items-stretch sm:justify-end"
       onClick={() => !busy && onClose()}
     >
       <div
@@ -64,14 +63,10 @@ export function CircleAccountModal({ open, onClose }: Props) {
         aria-modal="true"
         aria-label={t.ariaDialog}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm overflow-hidden fade-up"
+        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[400px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
         }}
       >

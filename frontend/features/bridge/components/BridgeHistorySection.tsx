@@ -109,7 +109,7 @@ export function BridgeHistoryModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 motion-safe:animate-[fadeUp_0.18s_ease-out]"
+      className="fixed inset-0 z-[100] flex items-end sm:items-stretch sm:justify-end"
       role="dialog"
       aria-modal="true"
       aria-labelledby="bridge-history-title"
@@ -122,19 +122,13 @@ export function BridgeHistoryModal({
         className="absolute inset-0 cursor-default"
         style={{
           background: 'rgba(0,0,0,0.55)',
-          backdropFilter: 'blur(6px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(6px) saturate(140%)',
         }}
       />
       <div
-        className="relative w-full max-w-[640px] max-h-[85vh] flex flex-col overflow-hidden"
+        className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[18px] sm:h-full sm:max-h-none sm:w-[640px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-band-dark)',
           border: '1px solid var(--rule-dark)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
           boxShadow: '0 24px 64px -20px rgba(0,0,0,0.6)',
         }}
       >
@@ -153,7 +147,7 @@ export function BridgeHistoryModal({
             type="button"
             onClick={onClose}
             aria-label={a11y.closeHistory}
-            className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-[var(--ink-2)] hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[var(--ink-2)] transition-colors hover:bg-[rgba(255,255,255,0.06)]"
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path

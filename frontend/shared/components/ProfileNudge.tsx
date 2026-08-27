@@ -1,106 +1,155 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { dur, ease } from '@/shared/motion/tokens';
+import { chooseWorkspaceNudge, workspaceNudgeDismissed } from './workspaceNudge';
 
-const DISMISS_PREFIX = 'karwan:profile-nudge-dismissed:';
+const DISMISS_PREFIX = 'karwan:workspace-nudge-dismissed:';
 
-/// A slim, dismissible banner shown to connected wallets with no profile yet.
-/// Profiles stay optional; this just points out the upside. Self-gates on
-/// route, connection, profile state, and a per-wallet dismissal flag.
+interface NudgeCopy {
+  step: string;
+  title: string;
+  body: string;
+  cta: string;
+  href: string;
+}
+
+/**
+ * Shows one setup action at a time. Profile creation comes first, followed by
+ * agent activation. Dismissal expires after seven days so unfinished setup
+ * does not disappear forever.
+ */
 export function ProfileNudge() {
   const pathname = usePathname();
   const auth = useAuth();
-  const t = useTranslations().profileNudge;
+  const translations = useTranslations();
+  const profileCopy = translations.profileNudge;
+  const activationCopy = translations.activation.gate;
   const address = auth.address;
-  const isConnected = auth.isAuthenticated;
   const { profile, fetchState } = useUserProfile();
+  const activation = useActivation();
+  const reduce = useReducedMotion();
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+
+  const kind = chooseWorkspaceNudge({
+    profileResolved: fetchState === 'success',
+    hasProfile: profile != null,
+    activationResolved: !activation.loading,
+    activated: activation.activated,
+  });
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!address) {
+    if (!address || !kind) {
       setDismissed(false);
       return;
     }
     try {
-      setDismissed(
-        window.localStorage.getItem(`${DISMISS_PREFIX}${address.toLowerCase()}`) === '1',
+      const value = window.localStorage.getItem(
+        `${DISMISS_PREFIX}${address.toLowerCase()}:${kind}`,
       );
+      setDismissed(workspaceNudgeDismissed(value));
     } catch {
       setDismissed(false);
     }
-  }, [address]);
+  }, [address, kind]);
 
   const isApp = pathname !== '/' && pathname !== '/how-it-works';
-  const onProfileSetupRoute =
-    pathname.startsWith('/onboarding') || pathname.startsWith('/profile');
-  const noProfile = fetchState === 'success' && !profile;
+  const onSetupRoute = pathname.startsWith('/onboarding') || pathname.startsWith('/profile');
+  const visible =
+    mounted &&
+    isApp &&
+    !onSetupRoute &&
+    auth.isAuthenticated &&
+    kind != null &&
+    !dismissed;
 
-  if (!mounted || !isApp || onProfileSetupRoute || !isConnected || !noProfile || dismissed) {
-    return null;
+  let copy: NudgeCopy | null = null;
+  if (kind === 'profile') {
+    copy = {
+      step: '[:STEP 01/02]',
+      title: profileCopy.titleFragment,
+      body: profileCopy.bodyFragment,
+      cta: profileCopy.cta,
+      href: '/onboarding',
+    };
+  }
+  if (kind === 'activation') {
+    copy = {
+      step: '[:STEP 02/02]',
+      title: activationCopy.title,
+      body: activationCopy.body,
+      cta: activationCopy.cta,
+      href: '/profile#agents',
+    };
   }
 
   function dismiss() {
     setDismissed(true);
-    if (!address) return;
+    if (!address || !kind) return;
     try {
-      window.localStorage.setItem(`${DISMISS_PREFIX}${address.toLowerCase()}`, '1');
+      window.localStorage.setItem(
+        `${DISMISS_PREFIX}${address.toLowerCase()}:${kind}`,
+        String(Date.now()),
+      );
     } catch {
-      /* quota, ignore */
+      // Storage may be unavailable in a private browsing context.
     }
   }
 
   return (
-    <div className="border-b border-[var(--color-line)] bg-[var(--color-surface-2)]">
-      <div className="mx-auto max-w-6xl px-6 py-2.5 flex items-center gap-3">
-        <span
-          className="inline-flex items-center justify-center w-6 h-6 rounded-md shrink-0"
-          style={{
-            background: 'var(--color-ink)',
-            color: 'var(--color-surface)',
-          }}
-          aria-hidden
+    <AnimatePresence initial={false}>
+      {visible && copy ? (
+        <motion.aside
+          key={kind}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          transition={{ duration: reduce ? dur.micro : dur.fast, ease: ease.out }}
+          className="border-b border-[var(--color-line)] bg-[var(--color-surface-2)]"
+          aria-label={copy.title}
         >
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="5.5" r="2.6" stroke="currentColor" strokeWidth="1.5" />
-            <path
-              d="M3 13c0-2.3 2.2-3.6 5-3.6s5 1.3 5 3.6"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-        <p className="text-[12.5px] text-[var(--color-ink-dim)] flex-1 leading-snug">
-          <span className="text-[var(--color-ink)] font-medium">{t.titleFragment}</span> {t.bodyFragment}
-        </p>
-        <Link
-          href="/onboarding"
-          style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-surface)' }}
-          className="text-[12px] font-semibold rounded-md px-3 py-1.5 hover:opacity-90 transition-opacity inline-flex items-center gap-1.5 shrink-0"
-        >
-          {t.cta}
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Link>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label={t.dismissAria}
-          className="inline-flex items-center justify-center w-6 h-6 rounded-md text-[var(--color-ink-faint)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface)] transition-colors shrink-0"
-        >
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
-    </div>
+          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-3 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+              <span className="mono shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)] sm:pt-0">
+                {copy.step}
+              </span>
+              <p className="min-w-0 text-[12.5px] leading-snug text-[var(--color-ink-dim)]">
+                <span className="font-semibold text-[var(--color-ink)]">{copy.title}</span>{' '}
+                {copy.body}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <Link
+                href={copy.href}
+                className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-surface)] transition-[transform,background-color] duration-[var(--dur-fast)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
+              >
+                {copy.cta}
+                <span aria-hidden>→</span>
+              </Link>
+              <button
+                type="button"
+                onClick={dismiss}
+                aria-label={profileCopy.dismissAria}
+                className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--color-ink-faint)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
   );
 }

@@ -12,30 +12,19 @@ import { setSplashActive, subscribeSplashRequest } from '@/shared/utils/splashSi
 // prior route and the Terms gate paints in that gap.
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-/// Branded route-transition loader. Shows the Karwan logo (the lime mark in a
-/// dark square) on the initial load and on EVERY navigation into a non-landing
-/// page — launch app -> /app, onboarding -> /app, page clicks — then hides when
-/// the incoming page is actually ready, not on a fixed timer.
+/// Branded cold-entry loader. It covers the initial load of a non-landing page
+/// and the explicit sign-in handoff, then hides when incoming data is ready.
+/// Routine client navigation stays visible and uses RouteStage instead.
 ///
 /// "Ready" = no React Query fetches in flight past a short floor (so it can't
 /// hide before the page's queries even start, and won't flicker), capped by a
 /// hard max so a slow on-chain read never hangs the splash — at the cap it
 /// lifts and the page's own skeleton takes over.
 ///
-/// It fires ONLY on navigation, never tied to auth, so the sign-in flow stays
-/// calm (page blurred behind the wallet popup, no reload flash). Landing routes
-/// never show it.
+/// Landing routes never show it.
 const MIN_MS = 600; // floor: let the new page's queries start; avoid a flicker
 const MAX_MS = 5000; // cap: never hold longer than this, even on a slow page
 const STALL_MS = 12_000;
-
-/// The top-level section a route belongs to (its first path segment): '/admin',
-/// '/admin/events', '/admin/deals' are all the 'admin' section. Used to tell a
-/// page route (a move BETWEEN sections) from a tab / sub-view switch (a move
-/// WITHIN one). The branded splash is for the former only.
-function sectionOf(path: string): string {
-  return path.split('/').filter(Boolean)[0] ?? '';
-}
 
 export function GlobalLoadingSplash() {
   const pathname = usePathname();
@@ -87,11 +76,8 @@ export function GlobalLoadingSplash() {
     setSplashActive(mounted);
   }, [mounted]);
 
-  // Show on the initial load + every PAGE-ROUTE change (skip landing). A switch
-  // within the same section (admin tabs, /deals -> /deals/[id], /profile ->
-  // /profile/edit) is a sub-view, not a page route, so the branded splash stays
-  // down and the section just swaps its content. Arm the cap and stall timers;
-  // the data-settled effect below hides it earlier.
+  // Show on cold entry only. A routine route change keeps the current shell
+  // visible and RouteStage supplies the lighter navigation feedback.
   //
   // Layout effect so arming happens BEFORE the navigated route paints. As a
   // post-paint effect, a navigation into a non-landing route (e.g. sign-in ->
@@ -106,12 +92,7 @@ export function GlobalLoadingSplash() {
     }
     const prev = prevPathRef.current;
     prevPathRef.current = pathname;
-    // Same-section navigation (and only that; the initial load has prev == null)
-    // never re-arms the splash.
-    if (prev !== null && sectionOf(prev) === sectionOf(pathname)) {
-      return;
-    }
-    arm();
+    if (prev === null) arm();
   }, [pathname]);
 
   // Sign-in trigger (the ONE splash per sign-in): emitAuthChanged fires
