@@ -121,6 +121,7 @@ presentation.md
 *.tsbuildinfo
 docs/sme-testkit/
 docs/newsletters/
+docs/new_Ideas/
 
 .vercel
 .env*.local
