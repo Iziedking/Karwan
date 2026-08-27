@@ -1,17 +1,16 @@
 import { parseAbiItem, formatUnits, type Hex } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import { publicClient } from './client.js';
 import { usdc as USDC_ADDR } from './contracts.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
-import { config } from '../config.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import {
   observedArcDepositOperationKey,
-  recordObservedArcDeposit,
+  recordObservedArcTransfer,
 } from '../money/observedDeposit.js';
+import { findMoneyMovementByTransferProof } from '../db/moneyMovements.js';
 
 // USDC on Arc is exposed both as a 6-decimal ERC-20 and an 18-decimal native
 // asset. Transfer events emit at 6 decimals on the ERC-20 surface, which is
@@ -36,50 +35,6 @@ const REGISTRY_REFRESH_MS = 60_000;
 // USDC moves below this threshold are skipped to keep notifications useful
 // during agent fee-collection traffic.
 const MIN_NOTIFY_USDC = 0.005;
-
-/// Addresses the platform itself pays out of. USDC arriving from one of these
-/// is a release, a refund, a returned stake, a yield claim or a bridge mint, and
-/// each of those is already written to the ledger by the route that performed
-/// it. Recording them here as well would show the user the same money twice.
-///
-/// The zero address covers the bridge: a CCTP arrival on Arc is a mint, and the
-/// hop that produced it already has a record with a status attached. If a mint
-/// on Arc ever shows a `from` that is not the zero address, that address belongs
-/// in this list, or every cross-chain deposit will be recorded twice.
-const PLATFORM_SENDERS: ReadonlySet<string> = new Set(
-  [
-    '0x0000000000000000000000000000000000000000',
-    config.CCTP_MESSAGE_TRANSMITTER_ADDR,
-    config.KARWAN_ESCROW_ADDR,
-    config.KARWAN_ESCROW_LEGACY_ADDR,
-    config.KARWAN_ESCROW_LEGACY_ADDR_2,
-    config.KARWAN_ESCROW_LEGACY_ADDR_3,
-    config.KARWAN_VAULT_ADDR,
-    config.KARWAN_VAULT_LEGACY_ADDR,
-    config.KARWAN_VAULT_LEGACY_ADDR_2,
-    config.KARWAN_VAULT_LEGACY_ADDR_3,
-    config.KARWAN_JOBBOARD_ADDR,
-    config.KARWAN_PO_FINANCING_ADDR,
-    config.KARWAN_INVOICE_REGISTRY_ADDR,
-    config.KARWAN_TREASURY_ADDR,
-    config.KARWAN_TREASURY_CONTRACT_ADDR,
-    config.KARWAN_TREASURY_USYC_ADDR,
-    config.KARWAN_TREASURY_V3_ADDR,
-    config.KARWAN_YIELD_DISTRIBUTOR_ADDR,
-    seedOperatorAddress(),
-  ]
-    .filter((a): a is string => !!a)
-    .map((a) => a.toLowerCase()),
-);
-
-function seedOperatorAddress(): string | undefined {
-  if (!config.AGENT_SEED_PRIVATE_KEY) return undefined;
-  try {
-    return privateKeyToAccount(config.AGENT_SEED_PRIVATE_KEY as `0x${string}`).address;
-  } catch {
-    return undefined;
-  }
-}
 
 type WalletRole = 'identity' | 'buyerAgent' | 'sellerAgent';
 
@@ -210,17 +165,25 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
     const recipient = reg.byAddress.get(to);
     const sender = reg.byAddress.get(from);
 
-    // Skip intra-user transfers entirely (a user sweeping their seller agent
-    // into their identity wallet should not look like a credit landing from
-    // the outside).
-    if (recipient && sender && recipient.owner === sender.owner) continue;
+    // A transfer between tracked wallets must not create a duplicate
+    // notification, but it still needs a ledger reconciliation pass below.
+    // Route-specific writers normally record these transfers; the watcher is
+    // the safety net when a route or worker failed after the chain transfer.
+    const intraUserTransfer = !!(
+      recipient && sender && recipient.owner === sender.owner
+    );
 
     // Exact, as the token reports it. `amountUsdc` below is a Number for the
     // threshold comparison and the notification; anything written to the ledger
     // uses this string, so a deposit is never shown back to its owner rounded.
     const amountExact = formatUnits(value, USDC_DECIMALS);
     const amountUsdc = Number(amountExact);
-    if (!Number.isFinite(amountUsdc) || amountUsdc < MIN_NOTIFY_USDC) continue;
+    // The threshold is notification-only. Every non-zero token transfer still
+    // enters the durable movement ledger; otherwise small but real fees,
+    // rebates, or agent-wallet sweeps would disappear from the account's
+    // financial history. A malformed numeric conversion is not safe to notify,
+    // but it is still safe to reconcile using the exact token value below.
+    const notifyable = Number.isFinite(amountUsdc) && amountUsdc >= MIN_NOTIFY_USDC;
 
     // A receipt hash is mandatory for a completed MoneyMovement. A malformed
     // provider log without one is not safe to project as a Karwan receipt.
@@ -230,66 +193,78 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
     const dedupeKey = `${txHash}:${logIndex}`;
 
     if (recipient) {
-      if (!rememberTransfer(`credit:${dedupeKey}`)) continue;
-      bus.emitEvent({
-        type: 'wallet.credited',
-        actor: 'platform',
-        payload: {
-          owner: recipient.owner,
-          walletAddress: recipient.address,
-          walletRole: recipient.role,
-          walletLabel: roleLabel(recipient.role),
-          amountUsdc: amountUsdc.toFixed(6),
-          from,
-          txHash,
-        },
-      });
-
-      // Money landing on Arc from outside the platform is a deposit. Record
-      // every tracked destination (identity, buyer agent, or seller agent),
-      // not only the identity wallet. The immutable transfer log is the
-      // operation key, so a watcher restart cannot create a second receipt.
-      // Internal wallet transfers and platform-owned sends are intentionally
-      // left to their route-specific movement writers below.
-      if (!sender && !PLATFORM_SENDERS.has(from)) {
-        const ledgerKey = `ledger:${observedArcDepositOperationKey(txHash, logIndex)}`;
-        if (rememberTransfer(ledgerKey)) {
-          void recordObservedArcDeposit({
-            txHash,
-            logIndex,
-            amountMicros: value,
+      // Do not notify twice for a route that already emits agent.funded or a
+      // deal-specific event.  External/platform credits still get the normal
+      // wallet notification.
+      if (!intraUserTransfer && notifyable && rememberTransfer(`credit:${dedupeKey}`)) {
+        bus.emitEvent({
+          type: 'wallet.credited',
+          actor: 'platform',
+          payload: {
             owner: recipient.owner,
-            sourceAddress: from,
-            destinationAddress: recipient.address,
-            walletRole: observedRole(recipient.role),
-          })
-            .then((movement) =>
-              appendActivity({
-                id: `arc-credit:${dedupeKey}`,
-                address: recipient.owner,
-                kind: 'deposit',
-                summary: movement.summary,
-                amountUsdc: amountExact,
-                txHash,
-                refId: movement.reference,
-              }),
-            )
-            .catch((err) => {
-              // Allow a later poll/replay to retry a transient database error.
-              seenTransfers.delete(ledgerKey);
-              logger.warn(
-                { err: (err as Error).message, txHash, logIndex },
-                'balance watcher: observed deposit ledger write failed',
-              );
+            walletAddress: recipient.address,
+            walletRole: recipient.role,
+            walletLabel: roleLabel(recipient.role),
+            amountUsdc: amountUsdc.toFixed(6),
+            from,
+            txHash,
+          },
+        });
+      }
+
+      // Every tracked recipient is reconciled, including platform and
+      // wallet-to-wallet sends. First match the exact receipt against any
+      // durable movement; only an unclaimed transfer becomes an observed
+      // deposit. This closes the gap where the notification arrived but the
+      // route-specific writer failed after funds had already moved.
+      const ledgerKey = `ledger:${observedArcDepositOperationKey(txHash, logIndex)}`;
+      if (rememberTransfer(ledgerKey)) {
+        void findMoneyMovementByTransferProof({
+          txHash,
+          sourceAddress: from,
+          destinationAddress: recipient.address,
+          amountMicros: value,
+        })
+          .then((existing) => {
+            if (existing) return null;
+            return recordObservedArcTransfer({
+              txHash,
+              logIndex,
+              amountMicros: value,
+              owner: recipient.owner,
+              sourceAddress: from,
+              destinationAddress: recipient.address,
+              walletRole: observedRole(recipient.role),
+              kind: intraUserTransfer ? 'agent_funding' : 'deposit',
             });
-        }
+          })
+          .then((movement) => {
+            if (!movement) return;
+            return appendActivity({
+              id: `arc-credit:${dedupeKey}`,
+              address: recipient.owner,
+              kind: 'deposit',
+              summary: movement.summary,
+              amountUsdc: amountExact,
+              txHash,
+              refId: movement.reference,
+            });
+          })
+          .catch((err) => {
+            // Allow a later poll/replay to retry a transient database error.
+            seenTransfers.delete(ledgerKey);
+            logger.warn(
+              { err: (err as Error).message, txHash, logIndex },
+              'balance watcher: observed credit ledger write failed',
+            );
+          });
       }
       continue;
     }
 
     if (sender) {
       if (!rememberTransfer(`debit:${dedupeKey}`)) continue;
-      bus.emitEvent({
+      if (notifyable) bus.emitEvent({
         type: 'wallet.debited',
         actor: 'platform',
         payload: {
@@ -302,6 +277,55 @@ async function processWindow(fromBlock: bigint, toBlock: bigint): Promise<void> 
           txHash,
         },
       });
+
+      // A route-specific movement normally owns this receipt. If it did not
+      // survive after the transfer, preserve the exact debit rather than
+      // leaving the agent wallet's outflow invisible. Same-owner transfers are
+      // represented once on the recipient pass as agent_funding, avoiding a
+      // synthetic + / - pair for an internal move.
+      if (!intraUserTransfer) {
+        const ledgerKey = `ledger:debit:${dedupeKey}`;
+        if (rememberTransfer(ledgerKey)) {
+          void findMoneyMovementByTransferProof({
+            txHash,
+            sourceAddress: sender.address,
+            destinationAddress: to,
+            amountMicros: value,
+          })
+            .then((existing) => {
+              if (existing) return null;
+              return recordObservedArcTransfer({
+                txHash,
+                logIndex,
+                amountMicros: value,
+                owner: sender.owner,
+                sourceAddress: sender.address,
+                destinationAddress: to,
+                walletRole: observedRole(sender.role),
+                kind: 'cash_out',
+              });
+            })
+            .then((movement) => {
+              if (!movement) return;
+              return appendActivity({
+                id: `arc-debit:${dedupeKey}`,
+                address: sender.owner,
+                kind: 'withdraw',
+                summary: movement.summary,
+                amountUsdc: amountExact,
+                txHash,
+                refId: movement.reference,
+              });
+            })
+            .catch((err) => {
+              seenTransfers.delete(ledgerKey);
+              logger.warn(
+                { err: (err as Error).message, txHash, logIndex },
+                'balance watcher: observed debit ledger write failed',
+              );
+            });
+        }
+      }
     }
   }
 }
