@@ -49,12 +49,14 @@ export function ProfilePeekModal({
   const pp = useTranslations().profilePeek;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [showTechnical, setShowTechnical] = useState(false);
   const { copied, copy } = useClipboard();
   const { data: rep } = useReputation(open ? address : undefined);
   const tierHue = TIER_HUE[(rep?.tier ?? 'NEW') as string] ?? TIER_HUE.NEW;
 
   useEffect(() => {
     if (!open) return;
+    setShowTechnical(false);
     let cancelled = false;
     setLoaded(false);
     api
@@ -98,7 +100,7 @@ export function ProfilePeekModal({
   if (compact) {
     return createPortal(
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        className="fixed inset-0 z-[100] flex items-end justify-center p-3 sm:items-center"
         style={{ background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(3px)' }}
         onClick={onClose}
       >
@@ -107,14 +109,14 @@ export function ProfilePeekModal({
           aria-modal="true"
           aria-label={role === 'buyer' ? pp.identityAriaBuyer : pp.identityAriaSeller}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-[320px] fade-up"
+          className="relative w-full max-w-[320px] fade-up sm:rounded-[14px]"
           style={{
             background: 'var(--lp-card)',
             border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 3,
+            borderTopLeftRadius: 18,
+            borderTopRightRadius: 18,
+            borderBottomLeftRadius: 4,
+            borderBottomRightRadius: 4,
             boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.3)',
           }}
         >
@@ -122,7 +124,7 @@ export function ProfilePeekModal({
             type="button"
             onClick={onClose}
             aria-label={pp.closeLabel}
-            className="absolute top-2 end-2 inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute top-2 end-2 inline-flex items-center justify-center w-11 h-11 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
@@ -165,7 +167,7 @@ export function ProfilePeekModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-stretch justify-end overflow-hidden"
       style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
@@ -174,14 +176,11 @@ export function ProfilePeekModal({
         aria-modal="true"
         aria-label={role === 'buyer' ? pp.profileAriaBuyer : pp.profileAriaSeller}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm overflow-hidden fade-up"
+        className="relative ms-auto flex h-full w-full max-w-[480px] flex-col overflow-hidden rounded-s-[22px] fade-up max-[640px]:mt-auto max-[640px]:h-auto max-[640px]:max-h-[90vh] max-[640px]:max-w-none max-[640px]:rounded-t-[22px] max-[640px]:rounded-b-none"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
+          borderRight: 0,
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
         }}
       >
@@ -197,7 +196,7 @@ export function ProfilePeekModal({
             type="button"
             onClick={onClose}
             aria-label={pp.closeLabel}
-            className="absolute top-3 end-3 inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="absolute top-3 end-3 inline-flex items-center justify-center w-11 h-11 rounded-full text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
@@ -214,9 +213,25 @@ export function ProfilePeekModal({
           <h2 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
             {displayName || shortAddress(address)}
           </h2>
-          <p className="mt-1 mono text-[11px] tabular-nums text-[var(--lp-text-sub)] break-all">
-            {address}
-          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <p className="mono text-[11px] tabular-nums text-[var(--lp-text-sub)]">{shortAddress(address)}</p>
+            <button
+              type="button"
+              onClick={() => setShowTechnical((value) => !value)}
+              className="min-h-11 px-2 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] underline underline-offset-4"
+              aria-expanded={showTechnical}
+            >
+              {showTechnical ? 'hide details' : 'verification details'}
+            </button>
+          </div>
+          {showTechnical && (
+            <div className="mt-2 rounded-[8px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-3">
+              <p className="mono break-all text-[10px] leading-relaxed text-[var(--lp-text-muted)]">{address}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
+                technical identifiers are shown only when you request verification details.
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 flex items-center gap-2">
             <ReputationBadge address={address} size="md" withDetail />
@@ -368,7 +383,7 @@ function WorkRecordSection({
   // seller vets the buyer's funded deals (does this buyer transact and settle
   // clean). The backend already returns the role-appropriate rows.
   return (
-    <div className="px-6 pb-6 pt-4 border-t border-[var(--lp-border-light)]">
+    <div className="min-h-0 overflow-y-auto border-t border-[var(--lp-border-light)] px-6 pb-8 pt-5">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
         [:{role === 'seller' ? wr.eyebrow : wr.buyerEyebrow}:]
       </span>
@@ -387,7 +402,7 @@ function WorkRecordSection({
             }}
           >
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              {wr.receiptTemplate.replace('{amount}', `$${payment.amountUsd.toFixed(2)}`)}
+              verification report funded · ${payment.amountUsd.toFixed(2)}
             </span>
             {proof && (
               <a
@@ -405,28 +420,19 @@ function WorkRecordSection({
               single $0.01 read has no per-call Arc tx. The linked deposit / payer
               wallet is the real on-chain proof; the caption explains the rail so
               the amount never reads as an unbacked claim. */}
-          {!isTxHash(payment.txHash) && (
-            <p className="mt-1.5 text-[10px] leading-snug text-[var(--lp-text-muted)]">
-              {wr.receiptRail}
-            </p>
-          )}
-          {payment.evidenceId && (
-            <p
-              className="mt-1.5 mono text-[10px] leading-snug text-[var(--lp-text-muted)]"
-              title={payment.evidenceId}
-            >
-              {wr.receiptEvidence ?? wr.receiptView}: {shortenEvidenceId(payment.evidenceId)}
-            </p>
-          )}
-          {payment && (
-            <p className="mt-1.5 mono text-[10px] leading-snug text-[var(--lp-text-muted)]">
-              {wr.receiptProvider ?? 'provider'}: {payment.providerId ?? 'karwan-credit-passport'}
-              {' · '}
-              {wr.receiptClaim ?? 'claim'}: {payment.claim ?? 'completed-transactions'}
-              {' · '}
-              {wr.receiptImpact ?? 'legacy match unchanged'}
-            </p>
-          )}
+          <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
+            this report combines completed trade outcomes and counterparty confirmations. it does not grant an agent authority to move funds.
+          </p>
+          <details className="mt-2 text-[11px] text-[var(--lp-text-muted)]">
+            <summary className="min-h-11 cursor-pointer py-2 mono text-[10px] uppercase tracking-[0.12em]">{wr.receiptView} technical proof</summary>
+            <div className="space-y-1 border-s border-[var(--lp-border-light)] ps-3">
+              {!isTxHash(payment.txHash) && <p>{wr.receiptRail}</p>}
+              {payment.evidenceId && <p className="mono break-all">evidence: {shortenEvidenceId(payment.evidenceId)}</p>}
+              <p className="mono break-all">provider: {payment.providerId ?? 'karwan verification'}</p>
+              <p className="mono break-all">claim: {payment.claim ?? 'completed transactions'}</p>
+              {payment.decisionImpact && <p>{payment.decisionImpact.replaceAll('_', ' ')}</p>}
+            </div>
+          </details>
         </>
       )}
 
@@ -440,6 +446,7 @@ function WorkRecordSection({
 
       {state.kind === 'done' && !state.data.locked && state.data.record && (
         <>
+          <TimingSummary timing={state.data.record.summary.timing} role={role} labels={wr} />
           {(state.data.record.summary.completionRate != null ||
             state.data.record.summary.onTimeRate != null) && (
             <div className="mt-3 flex gap-2">
@@ -498,9 +505,15 @@ function WorkRecordSection({
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--lp-dark)]">
                     {row.category}
                   </span>
+                  <span
+                    className="shrink-0 mono text-[9px] uppercase tracking-[0.1em]"
+                    style={{ color: OUTCOME_HUE[row.outcome] ?? 'var(--lp-text-muted)' }}
+                  >
+                    {row.outcome === 'clean' ? 'completed' : row.outcome === 'disputed' ? 'needs review' : 'not completed'}
+                  </span>
                   {row.deliveredVia && (
                     <span className="shrink-0 mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-                      {row.deliveredVia}
+                      {row.deliveredVia} evidence
                     </span>
                   )}
                   <span className="shrink-0 mono text-[12px] tabular-nums text-[var(--lp-text-sub)]">
@@ -524,4 +537,29 @@ function WorkRecordSection({
       )}
     </div>
   );
+}
+
+function TimingSummary({
+  timing,
+  role,
+  labels,
+}: {
+  timing: NonNullable<CounterpartyReport['record']>['summary']['timing'];
+  role: 'buyer' | 'seller';
+  labels: ReturnType<typeof useTranslations>['profilePeek']['workRecord'];
+}) {
+  const items = role === 'seller'
+    ? [[labels.sellerResponse, timing.sellerResponseMs, timing.samples.sellerResponse], [labels.sellerCompletion, timing.sellerCompletionMs, timing.samples.sellerCompletion]] as const
+    : [[labels.buyerVerification, timing.buyerVerificationMs, timing.samples.buyerVerification], [labels.buyerRelease, timing.buyerReleaseMs, timing.samples.buyerRelease]] as const;
+  const available = items.filter(([, value]) => value != null);
+  if (!available.length) return null;
+  return <div className="mt-3 rounded-lg border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"><p className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{labels.timingTitle}</p><div className="mt-2 grid grid-cols-2 gap-2">{available.map(([label, value, sample]) => <div key={label}><p className="text-[11px] text-[var(--lp-text-sub)]">{label}</p><p className="mt-0.5 text-sm font-semibold text-[var(--lp-dark)]">{formatDuration(value as number)}</p><p className="mono text-[9px] text-[var(--lp-text-muted)]">{labels.timingSampleTemplate.replace('{count}', String(sample)).replace('{unit}', sample === 1 ? 'deal' : 'deals')}</p></div>)}</div></div>;
+}
+
+function formatDuration(ms: number): string {
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }

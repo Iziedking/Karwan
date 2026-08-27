@@ -1,5 +1,6 @@
 import { listDealsForAddress, type DirectDeal } from '../db/deals.js';
 import { getBrief } from '../db/briefs.js';
+import { lifecycleTimingForParty, type LifecycleTiming } from '../deals/lifecycleMetrics.js';
 
 /// A privacy-scoped "real work" record for a counterparty. The public passport
 /// shows only an aggregate tier + score; this is the granular, DB-private view a
@@ -34,9 +35,10 @@ export interface WorkRecord {
     /// Null when there is no basis (no terminal deals, or none with a deadline).
     completionRate: number | null;
     onTimeRate: number | null;
+    timing: LifecycleTiming;
   };
   /// Lighter signal for the subject's buyer side, when they also buy.
-  asBuyer: { funded: number; cleanRate: number | null };
+  asBuyer: { funded: number; cleanRate: number | null; timing: LifecycleTiming };
 }
 
 /// Only terminal, seller-attributable outcomes count. Rep-neutral cancels
@@ -198,6 +200,7 @@ export async function buildWorkRecord(
     .filter((x) => x.outcome !== null);
   const funded = buyerDeals.length;
   const buyerClean = buyerDeals.filter((x) => x.outcome === 'clean').length;
+  const timing = lifecycleTimingForParty(deals, s);
 
   return {
     rows,
@@ -209,7 +212,8 @@ export async function buildWorkRecord(
       avgBand: band(String(avgAmount)),
       completionRate,
       onTimeRate,
+      timing,
     },
-    asBuyer: { funded, cleanRate: funded > 0 ? Math.round((buyerClean / funded) * 100) : null },
+    asBuyer: { funded, cleanRate: funded > 0 ? Math.round((buyerClean / funded) * 100) : null, timing },
   };
 }
