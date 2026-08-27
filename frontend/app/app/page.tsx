@@ -48,16 +48,6 @@ const OnChainProofBand = dynamic(
     ),
   },
 );
-/// Auth-only bands. Unauthenticated visitors never see them; keep their
-/// code out of the initial bundle to save the round trip for the first paint.
-/// No `loading` placeholder here because both bands return null when there's
-/// nothing pending (the common case). Reserving height would create a
-/// permanent empty gap for every user with a clean queue, which is worse
-/// than the one-time shift when content arrives.
-const PendingMatchesBand = dynamic(
-  () => import('@/features/notifications/components/PendingMatchesBand').then((m) => m.PendingMatchesBand),
-  { ssr: false },
-);
 /// Business-track home. Only loaded for accounts on the business track, so its
 /// chart + heavy bands never ship in the person-home bundle.
 const BusinessHome = dynamic(
@@ -300,12 +290,6 @@ export default function AppHome() {
       {/* QUICK START. First-run orientation for brand-new users; hides once
           agents are activated or the user dismisses it. */}
       <QuickStartBand />
-
-      {/* PENDING MATCHES. surfaces here so users see them from the home page
-          without having to navigate to /seller. Renders nothing when there
-          are none, so the layout stays clean for buyers / fresh users. Open
-          deals (your book) live on /profile, not here. */}
-      <PendingMatchesBand tone="light" />
 
       {/* START HERE */}
       <Band tone="light">

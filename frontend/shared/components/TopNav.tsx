@@ -8,6 +8,7 @@ import { ConnectWalletButton } from './ConnectWallet';
 import { ThemeControl } from './ThemeControl';
 import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { ProfileAvatar } from './ProfileAvatar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -34,6 +35,7 @@ export function TopNav() {
   const pathname = usePathname();
   const t = useTranslations();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { unreadCount } = useNotifications();
   const { profile } = useUserProfile();
   // Business and individual are two separate rails. A business sees B2B Trades
   // and the SME-rail home; an individual sees P2P Trades. The Financier desk is
@@ -158,6 +160,7 @@ export function TopNav() {
               href="/activity"
               active={pathname.startsWith('/activity')}
               title={t.nav.hints.activity}
+              signal={unreadCount > 0}
             >
               {t.nav.activity}
             </NavLink>
@@ -238,6 +241,7 @@ function NavLink({
   active,
   children,
   title,
+  signal,
 }: {
   href: string;
   active: boolean;
@@ -245,6 +249,7 @@ function NavLink({
   /// Plain-language accessible name for labels that benefit from more context.
   /// Browser-default tooltips are intentionally avoided.
   title?: string;
+  signal?: boolean;
 }) {
   return (
     <Link
@@ -266,7 +271,15 @@ function NavLink({
           transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
         />
       )}
-      <span>{children}</span>
+      <span className="inline-flex items-center gap-1.5">
+        {children}
+        {signal ? (
+          <span
+            aria-hidden
+            className="inline-block size-1.5 rounded-full bg-[var(--lp-accent)]"
+          />
+        ) : null}
+      </span>
     </Link>
   );
 }
