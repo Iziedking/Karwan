@@ -2079,6 +2079,7 @@ interface MessagesShape {
   };
   fundAgentOptions: {
     eyebrow: string;
+    amount: { label: string; note: string; invalid: string };
     wallet: { label: string; tooltip: string; web3Note: string };
     otherAgent: { labelSeller: string; labelBuyer: string; tooltip: string };
     gateway: { label: string; tooltip: string; fundCta: string; noRecipient: string };
@@ -7176,6 +7177,11 @@ export const en: MessagesShape = {
   },
   fundAgentOptions: {
     eyebrow: 'FUND FROM',
+    amount: {
+      label: 'Amount to add',
+      note: 'Prefilled from this deal. Adjust the amount before continuing.',
+      invalid: 'Enter an amount greater than zero.',
+    },
     wallet: {
       label: 'Wallet balance',
       tooltip: 'Pays from the balance on your sign-in wallet. This is the shortest route when the money is already on Arc.',
