@@ -349,6 +349,33 @@ export const scoutReads = pgTable(
   }),
 );
 
+/// One immutable accounting row for each paid external research call. The row
+/// is written as soon as the provider confirms payment, before synthesis or
+/// matching can succeed. `data` keeps the provider receipt envelope while the
+/// indexed columns make operational reconciliation cheap.
+export const researchPayments = pgTable(
+  'research_payments',
+  {
+    idempotencyKey: text('idempotency_key').primaryKey(),
+    runId: text('run_id').notNull(),
+    jobId: text('job_id'),
+    owner: text('owner'),
+    actor: text('actor').notNull(),
+    angle: text('angle').notNull(),
+    provider: text('provider').notNull(),
+    amountMicros: bigint('amount_micros', { mode: 'number' }).notNull(),
+    payer: text('payer'),
+    txHash: text('tx_hash'),
+    paidAt: bigint('paid_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => ({
+    runIdx: index('research_payments_run_idx').on(t.runId),
+    jobIdx: index('research_payments_job_idx').on(t.jobId),
+    paidAtIdx: index('research_payments_paid_at_idx').on(t.paidAt),
+  }),
+);
+
 /// Per-user money-movement ledger: withdrawals, agent top-ups, unified-balance
 /// deposits/spends/cash-outs and escrow releases — the moves with no durable
 /// store of their own. Powers the assistant's recall_activity memory. Full

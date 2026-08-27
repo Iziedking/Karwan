@@ -20,6 +20,11 @@ export interface ResearchState {
   creditUsdc: number;
 }
 
+// Four Exa angles settle in parallel. Serialise credit mutations per owner so
+// concurrent read receipts cannot all observe the same stale balance and
+// overwrite one another.
+const chargeQueues = new Map<string, Promise<void>>();
+
 /// Whether the owner's agent may pay for research right now: activated AND
 /// still in credit. Reads as inactive for an unknown profile.
 export async function getResearchState(owner: string): Promise<ResearchState> {
@@ -46,18 +51,29 @@ export async function activateResearch(owner: string, addUsd: number): Promise<R
 
 /// Decrement the credit by a real research spend. Deactivates when it hits
 /// zero. No-op for an account that never activated.
-export async function chargeResearch(owner: string, usd: number): Promise<void> {
-  if (usd <= 0) return;
-  const p = await getProfile(owner);
-  if (!p?.research) return;
-  const creditUsdc = Math.max(0, round6((p.research.creditUsdc ?? 0) - usd));
-  await upsertProfile({
-    ...p,
-    research: {
-      ...p.research,
-      creditUsdc,
-      active: creditUsdc > 0,
-      lastChargedAt: Date.now(),
-    },
-  });
+export function chargeResearch(owner: string, usd: number): Promise<void> {
+  if (usd <= 0) return Promise.resolve();
+  const key = owner.toLowerCase();
+  const previous = chargeQueues.get(key) ?? Promise.resolve();
+  const next = previous
+    .catch(() => undefined)
+    .then(async () => {
+      const p = await getProfile(key);
+      if (!p?.research) return;
+      const creditUsdc = Math.max(0, round6((p.research.creditUsdc ?? 0) - usd));
+      await upsertProfile({
+        ...p,
+        research: {
+          ...p.research,
+          creditUsdc,
+          active: creditUsdc > 0,
+          lastChargedAt: Date.now(),
+        },
+      });
+    })
+    .finally(() => {
+      if (chargeQueues.get(key) === next) chargeQueues.delete(key);
+    });
+  chargeQueues.set(key, next);
+  return next;
 }

@@ -95,6 +95,10 @@ export type KarwanEventType =
   /// off-platform market research. Surfaced on the deal timeline + activity so
   /// the agent's nanopayments are visible while a deal runs.
   | 'agent.paid'
+  /// External research was paid, but the downstream synthesis did not
+  /// complete. The payment ledger remains authoritative and must be reconciled
+  /// rather than silently dropped.
+  | 'agent.research.failed'
   | 'negotiation.attempt-ended'
   | 'negotiation.next-candidate'
   | 'negotiation.exhausted'

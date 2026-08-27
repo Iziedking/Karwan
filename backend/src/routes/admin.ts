@@ -41,6 +41,7 @@ import {
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
+import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { pingAssistantProviders } from './assistant.js';
 import { watcherHealth, cronHealth } from '../ops/heartbeats.js';
@@ -628,7 +629,24 @@ adminRoutes.get('/x402/research', async (c) => {
     .filter(Boolean);
   if (keywords.length === 0) return c.json({ error: 'pass ?q=keyword,keyword' }, 400);
   try {
-    const result = await researchMarket(keywords);
+    const result = await researchMarket(keywords, undefined, {
+      onPayment: async (notice) => {
+        await recordExternalResearchPayment({
+          notice,
+          actor: 'platform',
+          agent: 'admin-research-smoke',
+          scope: 'admin-smoke',
+        });
+      },
+      onFailure: (notice) => {
+        recordExternalResearchFailure({
+          notice,
+          actor: 'platform',
+          agent: 'admin-research-smoke',
+          scope: 'admin-smoke',
+        });
+      },
+    });
     return c.json(result);
   } catch (err) {
     return c.json(

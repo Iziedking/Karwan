@@ -15,6 +15,7 @@ import {
   chargeResearch,
 } from '../x402/researchAccount.js';
 import { researchMarket } from '../x402/externalClient.js';
+import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { saveScoutRead, recentScoutReads } from '../db/scoutReads.js';
 import { randomUUID } from 'node:crypto';
@@ -226,7 +227,41 @@ researchRoutes.post('/scout', async (c) => {
   recordScoutHit(key, now);
   let read;
   try {
-    read = await researchMarket(keywords, query || undefined, { bypassCache: true });
+    read = await researchMarket(keywords, query || undefined, {
+      bypassCache: true,
+      onPayment: async (notice) => {
+        await recordExternalResearchPayment({
+          notice,
+          actor: 'platform',
+          agent: 'scout',
+          owner,
+          scope: 'market-scout',
+        });
+        // Scout credit is prepaid by the requesting user. Decrement it per
+        // confirmed provider payment, before synthesis, so a later model
+        // failure cannot make paid research disappear from the account ledger.
+        await chargeResearch(owner, notice.amountUsd);
+        const keywordLabel =
+          keywords.slice(0, 3).join(', ') +
+          (keywords.length > 3 ? ` +${keywords.length - 3}` : '');
+        await appendActivity({
+          address: owner,
+          kind: 'agent_spend',
+          summary: `Your scout agent paid ${notice.amountUsd} USDC for a market read on ${keywordLabel}`,
+          params: { t: 'marketRead', amount: String(notice.amountUsd), keywords: keywordLabel },
+          amountUsdc: String(notice.amountUsd),
+          ...(notice.txHash ? { txHash: notice.txHash } : {}),
+        });
+      },
+      onFailure: (notice) => {
+        recordExternalResearchFailure({
+          notice,
+          actor: 'platform',
+          agent: 'scout',
+          scope: 'market-scout',
+        });
+      },
+    });
   } catch (err) {
     logger.warn({ owner, err: (err as Error).message }, 'market scout failed');
     return c.json({ error: 'scout failed', detail: (err as Error).message }, 502);
@@ -250,48 +285,6 @@ researchRoutes.post('/scout', async (c) => {
         { owner, err: (err as Error).message },
         'research scout evidence shadow projection failed',
       );
-    }
-  }
-
-  // Bill the user's credit only on a fresh paid call. A shared in-flight read
-  // returns cached: it was already billed to whoever triggered it, so re-billing
-  // here would double-charge for one payment.
-  if (!read.cached && read.paidUsd > 0) {
-    await chargeResearch(owner, read.paidUsd);
-    bus.emitEvent({
-      type: 'agent.paid',
-      actor: 'platform',
-      payload: {
-        rail: 'base',
-        kind: 'research',
-        agent: 'scout',
-        scope: 'market-scout',
-        user: key,
-        amountUsd: read.paidUsd,
-        txHash: read.txHash,
-        payer: read.payer,
-        demand: read.demand,
-        keywords,
-      },
-    });
-    // Small, but it is still the user's USDC leaving an agent wallet, and the
-    // x402 panel that renders it is transient. A row keeps it accountable.
-    if (read.paidUsd) {
-      // `String(keywords)` on an array joins with commas and no spaces, so a
-      // ten-keyword read wrote one unbroken run of words across the user's
-      // history: "product designer,product design,designer,design,ux,ui,...".
-      // Three keywords and a count says the same thing and can be read.
-      const keywordLabel =
-        keywords.slice(0, 3).join(', ') +
-        (keywords.length > 3 ? ` +${keywords.length - 3}` : '');
-      void appendActivity({
-        address: key,
-        kind: 'agent_spend',
-        summary: `Your scout agent paid ${read.paidUsd} USDC for a market read on ${keywordLabel}`,
-        params: {t: 'marketRead', amount: String(read.paidUsd), keywords: keywordLabel},
-        amountUsdc: String(read.paidUsd),
-        ...(read.txHash ? { txHash: read.txHash } : {}),
-      });
     }
   }
 

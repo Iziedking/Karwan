@@ -200,6 +200,23 @@ export async function ensureSchema(): Promise<void> {
       data JSONB NOT NULL
     );
     CREATE INDEX IF NOT EXISTS scout_reads_owner_ts_idx ON scout_reads (owner, ts);
+    CREATE TABLE IF NOT EXISTS research_payments (
+      idempotency_key TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      job_id TEXT,
+      owner TEXT,
+      actor TEXT NOT NULL,
+      angle TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      amount_micros BIGINT NOT NULL,
+      payer TEXT,
+      tx_hash TEXT,
+      paid_at BIGINT NOT NULL,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS research_payments_run_idx ON research_payments (run_id);
+    CREATE INDEX IF NOT EXISTS research_payments_job_idx ON research_payments (job_id);
+    CREATE INDEX IF NOT EXISTS research_payments_paid_at_idx ON research_payments (paid_at);
     CREATE TABLE IF NOT EXISTS ephemeral_state (
       key TEXT PRIMARY KEY,
       data JSONB NOT NULL,

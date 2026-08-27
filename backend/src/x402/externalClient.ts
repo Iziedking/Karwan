@@ -1,4 +1,6 @@
 import { privateKeyToAccount } from 'viem/accounts';
+import { randomUUID } from 'node:crypto';
+import { recordExternalResearchPayment } from './researchAccounting.js';
 import { createPublicClient, http, erc20Abi } from 'viem';
 import { base } from 'viem/chains';
 import { x402Client, x402HTTPClient } from '@x402/core/client';
@@ -284,6 +286,32 @@ export interface MarketRead {
   cached: boolean;
 }
 
+/// Emitted immediately after an x402 provider confirms a paid response. This
+/// deliberately does not contain synthesis fields: payment accounting must
+/// not wait for the LLM, and it must survive a later synthesis failure.
+export interface ResearchPaymentNotice {
+  runId: string;
+  angle: string;
+  provider: 'exa';
+  amountUsd: number;
+  payer: string;
+  txHash?: string;
+  paidAt: number;
+}
+
+export interface ResearchFailureNotice {
+  runId: string;
+  paidUsd: number;
+  paymentCount: number;
+  reason: string;
+}
+
+export interface ResearchMarketOptions {
+  bypassCache?: boolean;
+  onPayment?: (notice: ResearchPaymentNotice) => void | Promise<void>;
+  onFailure?: (notice: ResearchFailureNotice) => void | Promise<void>;
+}
+
 /// A keyword set's market read doesn't move minute to minute; cache per
 /// normalised keyword key so multiple bids/matches on the same brief reuse one
 /// paid call instead of re-spending.
@@ -485,7 +513,7 @@ export function verifyPriceObservations(
 export async function researchMarket(
   keywords: string[],
   context?: string,
-  opts?: { bypassCache?: boolean },
+  opts?: ResearchMarketOptions,
 ): Promise<MarketRead> {
   const cleaned = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))].slice(0, 8);
   if (cleaned.length === 0) throw new Error('no keywords to research');
@@ -508,7 +536,7 @@ export async function researchMarket(
     return { ...shared, cached: true };
   }
 
-  const work = doResearchMarket(cleaned, key, context);
+  const work = doResearchMarket(cleaned, key, context, opts);
   researchInFlight.set(key, work);
   try {
     return await work;
@@ -522,8 +550,8 @@ export async function researchMarket(
 /// the one charged (cached:false), everyone else awaiting it is served
 /// cached:true.
 ///
-/// Three paid Exa calls run in parallel, one per intent (pricing, demand,
-/// landscape). A failed angle just thins the read; only a fully-failed sweep
+/// Four paid Exa calls run in parallel, one per intent (pricing, marketplace
+/// rates, demand, landscape). A failed angle just thins the read; only a fully-failed sweep
 /// throws. Results merge deduped by URL and capped at two per domain. The LLM
 /// then extracts explicit price observations with verbatim quotes, each quote
 /// is re-checked against its source IN CODE, and the price band is computed
@@ -533,7 +561,10 @@ async function doResearchMarket(
   cleaned: string[],
   key: string,
   context?: string,
+  opts?: ResearchMarketOptions,
 ): Promise<MarketRead> {
+  const runId = randomUUID();
+  const paidNotices: ResearchPaymentNotice[] = [];
   const kw = cleaned.join(', ');
   const freshCutoff = new Date(Date.now() - EVIDENCE_MAX_AGE_MS).toISOString().slice(0, 10);
 
@@ -549,7 +580,37 @@ async function doResearchMarket(
           ...(a.includeDomains ? { includeDomains: a.includeDomains } : {}),
           contents: { text: { maxCharacters: 1200 } },
         },
-      }).then((r) => ({ angle: a.angle, ...r })),
+      }).then(async (r) => {
+        if (r.paidUsd > 0) {
+          const notice: ResearchPaymentNotice = {
+            runId,
+            angle: a.angle,
+            provider: 'exa',
+            amountUsd: r.paidUsd,
+            payer: r.payer,
+            ...(r.txHash ? { txHash: r.txHash } : {}),
+            paidAt: Date.now(),
+          };
+          paidNotices.push(notice);
+          // This callback is awaited before the result is admitted to the
+          // synthesis set. Callers persist the receipt here, immediately after
+          // payment, so an LLM/provider failure cannot erase spend history.
+          if (opts?.onPayment) {
+            await opts.onPayment(notice);
+          } else {
+            // Keep the invariant at the shared research boundary as well as
+            // at contextual callers: a new caller cannot pay Exa without
+            // leaving a durable, if unscoped, platform receipt.
+            await recordExternalResearchPayment({
+              notice,
+              actor: 'platform',
+              agent: 'external-research',
+              scope: 'unscoped',
+            });
+          }
+        }
+        return { angle: a.angle, ...r };
+      }),
     ),
   );
 
@@ -559,7 +620,9 @@ async function doResearchMarket(
   );
   if (okCalls.length === 0) {
     const first = settled[0] as PromiseRejectedResult;
-    throw new Error(`market sweep failed on every angle: ${String(first.reason).slice(0, 200)}`);
+    const reason = `market sweep failed on every angle: ${String(first.reason).slice(0, 200)}`;
+    await opts?.onFailure?.({ runId, paidUsd: paidNotices.reduce((n, p) => n + p.amountUsd, 0), paymentCount: paidNotices.length, reason });
+    throw new Error(reason);
   }
   for (const s of settled) {
     if (s.status === 'rejected') {
@@ -568,9 +631,12 @@ async function doResearchMarket(
   }
 
   const anglesRun = okCalls.map((c) => c.value.angle);
-  const paidUsd = okCalls.reduce((acc, c) => acc + c.value.paidUsd, 0);
-  const payer = okCalls[0]!.value.payer;
-  const txHash = okCalls.find((c) => c.value.txHash)?.value.txHash;
+  // Use the notices rather than only fulfilled synthesis calls. A payment is
+  // an accounting fact even if an observer or the later synthesis rejects its
+  // angle; omitting it here would recreate the original spend gap.
+  const paidUsd = paidNotices.reduce((acc, notice) => acc + notice.amountUsd, 0);
+  const payer = paidNotices[0]?.payer ?? okCalls[0]!.value.payer;
+  const txHash = paidNotices.find((notice) => notice.txHash)?.txHash;
 
   // Merge across angles: dedupe by URL, at most two results per domain so one
   // site's five hits can't pose as market consensus. Cap ten sources.
@@ -607,8 +673,10 @@ async function doResearchMarket(
     .join('\n\n')
     .slice(0, 12_000);
 
-  const synth = await withLlmRetry(`marketRead(${key})`, () =>
-    generateObject({
+  let synth;
+  try {
+    synth = await withLlmRetry(`marketRead(${key})`, () =>
+      generateObject({
       model: researchModel,
       schema: readSchema,
       prompt: [
@@ -635,8 +703,18 @@ async function doResearchMarket(
         'When a source gives a price range, quote the whole range verbatim and',
         'set amountUsdc to the midpoint of the range. No preamble.',
       ].join('\n'),
-    }),
-  );
+      }),
+    );
+  } catch (err) {
+    const reason = String((err as Error)?.message ?? err).slice(0, 300);
+    await opts?.onFailure?.({
+      runId,
+      paidUsd,
+      paymentCount: paidNotices.length,
+      reason,
+    });
+    throw err;
+  }
 
   // Code-side verification: an observation survives only if its quote really
   // appears in the source it cites. This is the wall between "the model says
