@@ -36,7 +36,7 @@ import { getPendingNearMiss, upsertNearMiss } from '../db/nearMiss.js';
 import { getMarketAdvisory } from '../db/marketAdvisory.js';
 import { getOutOfReach } from '../db/outOfReach.js';
 import { endNearMissOnDecline, reRaiseNearMissFromPassed } from '../agents/nearMiss.js';
-import { bus } from '../events.js';
+import { bus, recentEventsByType } from '../events.js';
 import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
@@ -47,6 +47,7 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { enqueueLegacyReconsiderationShadow } from './jobsReengagement.js';
+import { publicJobStatus } from './jobPublicStatus.js';
 
 const addrSchema = z
   .string()
@@ -242,14 +243,33 @@ jobsRoutes.get('/:jobId', async (c) => {
   const viewerIsBuyer = !!caller && buyerSide.has(caller);
 
   if (!isParty) {
-    const matched = !!(proposal || deal) || job.finalized || job.escrowFunded;
-    const status = job.cancelledAt
-      ? 'cancelled'
-      : job.expiredAt
-        ? 'expired'
-        : matched
-          ? 'negotiating'
-          : 'open';
+    // `finalized` is overloaded in the buyer agent: it covers both an
+    // accepted match and a terminal decline. Resolve the distinction before
+    // returning a public status so an exhausted auction is not presented as
+    // an active negotiation. The event lookup also repairs the live view for
+    // older briefs created before the durable terminal marker existed.
+    const lifecycleEvents = await recentEventsByType(
+      ['agent.declined', 'negotiation.reopened'],
+      40,
+      jobId,
+    );
+    const localLifecycleEvents = bus
+      .recent(500, jobId)
+      .filter((event) => event.type === 'agent.declined' || event.type === 'negotiation.reopened');
+    const latestLifecycle = [...lifecycleEvents, ...localLifecycleEvents].sort(
+      (a, b) => b.ts - a.ts,
+    )[0];
+    const buyerDeclined = latestLifecycle?.type === 'agent.declined' && latestLifecycle.actor === 'buyer';
+    const ended =
+      buyerDeclined ||
+      (!!job.finalized && !proposal && !deal && !nearMiss && !job.escrowFunded);
+    const matched = !!(proposal || deal || nearMiss) || job.escrowFunded;
+    const status = publicJobStatus({
+      cancelled: !!job.cancelledAt,
+      expired: !!job.expiredAt,
+      ended,
+      matched,
+    });
     return c.json({ jobId, isParty: false, status });
   }
 

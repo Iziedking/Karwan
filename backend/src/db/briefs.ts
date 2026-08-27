@@ -25,6 +25,11 @@ export interface Brief {
   /// accepted bid + no approved match proposal. Survives backend restarts so
   /// the buyer agent doesn't restart bid collection for an expired job.
   expiredAt?: number;
+  /// Set when the buyer agent permanently ended negotiation without an
+  /// agreement. Unlike the in-memory agent state, this survives a restart so
+  /// an exhausted auction cannot be re-seeded as live.
+  negotiationEndedAt?: number;
+  negotiationEndReason?: string;
   /// Buyer opted into Trusted Match for this brief. The agent loop weights
   /// seller reputation + stake above price, and gates bids on seller free
   /// stake covering the deal's insurance reservation. For higher-value or
