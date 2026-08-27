@@ -30,7 +30,7 @@ import {
 import { topicalMatchScore } from '../llm/keywords.js';
 import { logger } from '../logger.js';
 import { reportError } from '../errorTracker.js';
-import { bus } from '../events.js';
+import { bus, recentEventsByType } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
 import { resolveBuyerProfile, resolveSellerProfile } from './agent-registry.js';
 import {
@@ -308,6 +308,11 @@ interface JobState {
   /// the candidate queue exhausts without convergence.
   lastSellerCounterBySeller: Map<`0x${string}`, string>;
   finalized: boolean;
+  /// Durable terminal marker for a buyer-side negotiation that ended without
+  /// an agreement. `finalized` also covers accepted matches, so this explicit
+  /// marker is what lets a restart distinguish decline from approval-pending.
+  negotiationEndedAt?: number;
+  negotiationEndReason?: string;
   escrowFunded: boolean;
   /// Set by the jobExpiryWatcher when deadline passes with no accepted bid
   /// and no approved match proposal. Treated as a terminal state by the
@@ -1155,6 +1160,20 @@ function safe(label: string, fn: () => Promise<unknown>) {
     });
 }
 
+/// Persist a buyer-side terminal negotiation outcome before publishing the
+/// decline event. The event is useful for live subscribers, but the brief
+/// marker is what keeps a restart from re-seeding an exhausted auction.
+function markNegotiationEnded(state: JobState, reason: string): void {
+  state.finalized = true;
+  if (state.negotiationEndedAt) return;
+  state.negotiationEndedAt = Date.now();
+  state.negotiationEndReason = reason;
+  patchBrief(state.jobId, {
+    negotiationEndedAt: state.negotiationEndedAt,
+    negotiationEndReason: reason,
+  });
+}
+
 async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   const dedupeKey = logDedupeKey('JobPosted', log);
   if (handledEvents.has(dedupeKey)) return;
@@ -1168,6 +1187,42 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   if (!buyer) return;
 
   const brief = getBrief(args.jobId);
+  // Recover a terminal decline for briefs created before the durable marker
+  // was introduced. This prevents a restart from re-opening an exhausted
+  // auction when the durable event history already proves the buyer declined.
+  const persistedLifecycle = await recentEventsByType(
+    ['agent.declined', 'negotiation.reopened'],
+    40,
+    args.jobId,
+  );
+  const localLifecycle = bus
+    .recent(500, args.jobId)
+    .filter((event) => event.type === 'agent.declined' || event.type === 'negotiation.reopened');
+  const latestLifecycle = [...persistedLifecycle, ...localLifecycle].sort((a, b) => b.ts - a.ts)[0];
+  const buyerDecline =
+    latestLifecycle?.type === 'agent.declined' && latestLifecycle.actor === 'buyer'
+      ? latestLifecycle
+      : undefined;
+  const [proposalResult, dealResult] = await Promise.allSettled([
+    dbGetMatchProposal(args.jobId),
+    getDeal(args.jobId),
+  ]);
+  const existingProposal = proposalResult.status === 'fulfilled' ? proposalResult.value : null;
+  const existingDeal = dealResult.status === 'fulfilled' ? dealResult.value : null;
+  const pendingNearMiss = getPendingNearMiss(args.jobId);
+  const recoveredEnd =
+    !brief?.negotiationEndedAt &&
+    !!buyerDecline &&
+    !existingProposal &&
+    !existingDeal &&
+    !pendingNearMiss;
+  const negotiationEndedAt = brief?.negotiationEndedAt ?? (recoveredEnd ? buyerDecline?.ts : undefined);
+  const negotiationEndReason =
+    brief?.negotiationEndReason ??
+    (recoveredEnd ? String((buyerDecline?.payload as Record<string, unknown> | undefined)?.reason ?? 'buyer-declined') : undefined);
+  if (recoveredEnd && negotiationEndedAt) {
+    patchBrief(args.jobId, { negotiationEndedAt, negotiationEndReason });
+  }
   // Re-track expired briefs as read-only state so the UI can still load /jobs/[id]
   // after a restart. The bid handler short-circuits on `state.expired`, so this
   // never re-opens the auction; it just keeps the snapshot available for view.
@@ -1199,7 +1254,9 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     candidateQueue: [],
     triedSellers: new Set(),
     lastSellerCounterBySeller: new Map(),
-    finalized: false,
+    finalized: !!negotiationEndedAt,
+    negotiationEndedAt,
+    negotiationEndReason,
     escrowFunded: false,
     expired: isExpired,
     expiredAt: brief?.expiredAt,
@@ -1216,9 +1273,8 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   // grace-period filter (otherwise a cancelled deal would re-surface as "Open"
   // on the Managed Deals table until the bus next fires).
   try {
-    const existing = await getDeal(args.jobId);
-    if (existing?.cancelledAt) {
-      state.cancelledAt = existing.cancelledAt;
+    if (existingDeal?.cancelledAt) {
+      state.cancelledAt = existingDeal.cancelledAt;
     }
   } catch {
     /* non-fatal, worst case the row lingers until the bus fires again */
@@ -1590,6 +1646,12 @@ async function maybeSupersedeNearMiss(
   // triedSellers) is not re-surfaced; the fresh, cheaper bid is.
   clearNearMiss(state.jobId);
   state.finalized = false;
+  state.negotiationEndedAt = undefined;
+  state.negotiationEndReason = undefined;
+  patchBrief(state.jobId, {
+    negotiationEndedAt: undefined,
+    negotiationEndReason: undefined,
+  });
   state.collectionFired = false;
   await finalizeBidCollection(state);
 }
@@ -2002,7 +2064,7 @@ async function finalizeBidCollection(
       );
     }
     logger.warn({ jobId: state.jobId, received }, 'no scored bids, nothing to counter');
-    state.finalized = true;
+    markNegotiationEnded(state, received > 0 ? 'bids-unevaluated' : 'no-bids');
     bus.emitEvent({
       type: 'agent.declined',
       jobId: state.jobId,
@@ -2430,7 +2492,7 @@ async function tryNextCandidate(
         timerParity.observedAt,
       );
     }
-    state.finalized = true;
+    markNegotiationEnded(state, 'all-candidates-exhausted');
     bus.emitEvent({
       type: 'negotiation.exhausted',
       jobId: state.jobId,
@@ -4242,6 +4304,8 @@ export interface BuyerJobSnapshot {
   deadlineUnix: number;
   termsHash: string;
   finalized: boolean;
+  negotiationEndedAt?: number;
+  negotiationEndReason?: string;
   escrowFunded: boolean;
   cancelledAt?: number;
   expiredAt?: number;
@@ -4334,6 +4398,8 @@ export function getBuyerSnapshot(filterBuyerAddress?: string): { jobs: BuyerJobS
       deadlineUnix: s.context.deadlineUnix,
       termsHash: s.context.termsHash,
       finalized: s.finalized,
+      negotiationEndedAt: s.negotiationEndedAt,
+      negotiationEndReason: s.negotiationEndReason,
       escrowFunded: s.escrowFunded,
       cancelledAt: s.cancelledAt,
       expiredAt: s.expiredAt,
