@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface } from '@/shared/utils/routes';
 import { isBusinessAccount } from '@/features/account/accountKind';
@@ -17,6 +18,7 @@ interface BottomNavItem {
   label: string;
   icon: IconName;
   active: boolean;
+  signal?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ interface BottomNavItem {
 export function WorkspaceBottomNav() {
   const pathname = usePathname();
   const auth = useAuth();
+  const { unreadCount } = useNotifications();
   const { profile } = useUserProfile();
   const t = useTranslations().nav;
   const business = isBusinessAccount(profile);
@@ -69,6 +72,7 @@ export function WorkspaceBottomNav() {
       label: t.activity,
       icon: 'activity',
       active: pathname.startsWith('/activity'),
+      signal: unreadCount > 0,
     },
     {
       href: '/profile',
@@ -104,8 +108,11 @@ export function WorkspaceBottomNav() {
               />
             ) : null}
             <NavIcon name={item.icon} active={item.active} />
-            <span className="max-w-full truncate mono text-[9px] font-semibold uppercase tracking-[0.05em]">
-              {item.label}
+            <span className="inline-flex max-w-full items-center gap-1 truncate mono text-[9px] font-semibold uppercase tracking-[0.05em]">
+              <span className="truncate">{item.label}</span>
+              {item.signal ? (
+                <span aria-hidden className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--lp-accent)]" />
+              ) : null}
             </span>
           </Link>
         ))}
