@@ -173,6 +173,9 @@ export interface DirectDeal {
   // first-release). Starts the final-release window during which the buyer
   // must release the final milestone, else the agent auto-releases.
   reviewWindowStartedAt?: number;
+  /// When the buyer first confirms delivery or releases the first milestone.
+  /// This is the auditable buyer verification point used for timing metrics.
+  buyerVerifiedAt?: number;
   /// When the most recent milestone was released, by either side. Anchors the
   /// auto-release window for the NEXT milestone on a 3+ part deal, where
   /// reviewWindowStartedAt only ever marks the first one.

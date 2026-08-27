@@ -2422,7 +2422,7 @@ dealsRoutes.post('/direct/:jobId/arrived', async (c) => {
   }
 
   const arrivedAt = Date.now();
-  await patchDeal(jobId, { shipment: { ...deal.shipment, arrivedAt } });
+  await patchDeal(jobId, { shipment: { ...deal.shipment, arrivedAt }, buyerVerifiedAt: deal.buyerVerifiedAt ?? arrivedAt });
   bus.emitEvent({
     type: 'deal.goods.arrived',
     jobId,
@@ -2542,10 +2542,12 @@ async function projectMilestonePayout(input: {
   const { deal, milestoneIndex, reference, txHash } = input;
   const paidAt = input.confirmedAt ?? Date.now();
   const settled = await finalizeIfSettled(deal.jobId);
+  const buyerVerifiedAt = milestoneIndex === 0 ? (deal.buyerVerifiedAt ?? paidAt) : deal.buyerVerifiedAt;
   if (settled) {
     await patchDeal(deal.jobId, {
       settledAt: deal.settledAt ?? paidAt,
       lastReleaseAt: paidAt,
+      ...(buyerVerifiedAt != null ? { buyerVerifiedAt } : {}),
       ...(input.settledInMs != null ? { lastSettleMs: input.settledInMs } : {}),
     });
     void settleFactoringForDeal(deal.jobId);
@@ -2555,6 +2557,7 @@ async function projectMilestonePayout(input: {
     await patchDeal(deal.jobId, {
       reviewWindowStartedAt: startedAt,
       lastReleaseAt: paidAt,
+      ...(buyerVerifiedAt != null ? { buyerVerifiedAt } : {}),
       ...(input.settledInMs != null ? { lastSettleMs: input.settledInMs } : {}),
     });
     if (!deal.reviewWindowStartedAt) {
