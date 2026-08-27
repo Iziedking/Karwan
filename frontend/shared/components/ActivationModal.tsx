@@ -1,7 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Button } from '@/shared/components/Button';
+import { FormError } from '@/shared/components/FormError';
+import { spring } from '@/shared/motion/tokens';
 import type { AgentNames } from '@/core/api';
 
 interface ActivationModalProps {
@@ -15,10 +21,10 @@ interface ActivationModalProps {
   agents: { buyer: string; seller: string; buyerName?: string; sellerName?: string } | null;
 }
 
-/// Presentational modal for provisioning a wallet's Circle agent pair, and for
-/// naming the agents. State is owned by the caller via useActivation so the same
-/// hook backs the gate and any other entry point. Names are optional: blank
-/// leaves the defaults ("Buyer agent" / "Seller agent").
+/**
+ * Agent provisioning opens as a right drawer on desktop and a bottom sheet on
+ * mobile. The current workspace remains visible behind the decision.
+ */
 export function ActivationModal({
   open,
   onClose,
@@ -33,8 +39,21 @@ export function ActivationModal({
   const [buyerName, setBuyerName] = useState('');
   const [sellerName, setSellerName] = useState('');
   const [saved, setSaved] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [desktop, setDesktop] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const reduce = useReducedMotion();
 
-  // Prefill the inputs from existing names when the modal opens.
+  useEffect(() => {
+    setMounted(true);
+    const query = window.matchMedia('(min-width: 640px)');
+    const sync = () => setDesktop(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     setBuyerName(agents?.buyerName ?? '');
@@ -44,14 +63,44 @@ export function ActivationModal({
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !activating) onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, activating, onClose]);
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
-  if (!open) return null;
+    const focusFrame = window.requestAnimationFrame(() => {
+      panelRef.current?.querySelector<HTMLElement>('input, button')?.focus();
+    });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !activating) {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocusRef.current?.focus();
+    };
+  }, [open, activating, onClose]);
 
   const names = (): AgentNames => ({
     buyerName: buyerName.trim() || undefined,
@@ -63,133 +112,140 @@ export function ActivationModal({
       await renameAgents(names());
       setSaved(true);
     } catch {
-      /* error surfaces via the error prop */
+      // The hook owns the translated failure state rendered below.
     }
   }
 
-  return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
-      style={{ background: 'color-mix(in oklab, var(--color-ink) 32%, transparent)' }}
-      onClick={() => !activating && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] overflow-hidden"
-      >
-        <div className="px-6 pt-6 pb-4">
-          <p className="eyebrow">{t.eyebrow}</p>
-          <h2 className="display text-[26px] leading-tight mt-1">
-            {activated ? t.titleActivated : t.titleNew}
-          </h2>
-        </div>
+  if (!mounted) return null;
 
-        {activated && agents ? (
-          <div className="px-6 pb-6 space-y-4">
-            <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-              {t.namedBody}
-            </p>
-            <div className="space-y-3">
-              <NameField
-                label={t.fields.buyerName}
-                placeholder={t.fields.buyerPlaceholder}
-                value={buyerName}
-                onChange={(v) => {
-                  setBuyerName(v);
-                  setSaved(false);
+  return createPortal(
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-end bg-black/60 sm:items-stretch sm:justify-end"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduce ? 0 : 0.18 }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !activating) onClose();
+          }}
+        >
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="activation-title"
+            className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
+            initial={sheetHiddenState(reduce, desktop)}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            exit={sheetHiddenState(reduce, desktop)}
+            transition={reduce ? { duration: 0 } : spring.drawer}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className="border-b border-[var(--color-line)] px-6 pb-5 pt-6">
+              <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+                • [:AGENT SETUP]
+              </p>
+              <h2
+                id="activation-title"
+                className="mt-3 font-sans text-[28px] font-bold leading-[1.02] tracking-[-0.03em]"
+              >
+                {activated ? t.titleActivated : t.titleNew}
+              </h2>
+            </header>
+
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6">
+              <p className="max-w-[48ch] text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
+                {activated && agents ? t.namedBody : t.provisionBody}
+              </p>
+
+              <div className="space-y-4">
+                <NameField
+                  label={activated ? t.fields.buyerName : t.fields.buyerNameOptional}
+                  placeholder={t.fields.buyerPlaceholder}
+                  value={buyerName}
+                  onChange={(next) => {
+                    setBuyerName(next);
+                    setSaved(false);
+                  }}
+                  address={activated ? agents?.buyer : undefined}
+                  disabled={activating}
+                />
+                <NameField
+                  label={activated ? t.fields.sellerName : t.fields.sellerNameOptional}
+                  placeholder={t.fields.sellerPlaceholder}
+                  value={sellerName}
+                  onChange={(next) => {
+                    setSellerName(next);
+                    setSaved(false);
+                  }}
+                  address={activated ? agents?.seller : undefined}
+                  disabled={activating}
+                />
+              </div>
+
+              {!activated ? (
+                <p className="border-s border-[var(--color-line-strong)] ps-3 text-[12px] leading-relaxed text-[var(--color-ink-faint)]">
+                  {t.setupHint}
+                </p>
+              ) : null}
+              {error ? (
+                <FormError>{activated ? t.errorSavePrefix : t.errorActivatePrefix}</FormError>
+              ) : null}
+              {saved ? (
+                <p className="mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-positive)]">
+                  • [:SAVED] {t.savedNote}
+                </p>
+              ) : null}
+            </div>
+
+            <footer className="grid grid-cols-2 gap-3 border-t border-[var(--color-line)] bg-[var(--color-surface-2)] px-6 py-5">
+              <Button type="button" variant="outline" onClick={onClose} disabled={activating}>
+                {activated ? t.doneButton : t.notNowButton}
+              </Button>
+              <Button
+                type="button"
+                loading={activating}
+                onClick={() => {
+                  if (activated) void onSaveNames();
+                  else void activate(names()).catch(() => undefined);
                 }}
-                address={agents.buyer}
-                disabled={activating}
-              />
-              <NameField
-                label={t.fields.sellerName}
-                placeholder={t.fields.sellerPlaceholder}
-                value={sellerName}
-                onChange={(v) => {
-                  setSellerName(v);
-                  setSaved(false);
-                }}
-                address={agents.seller}
-                disabled={activating}
-              />
-            </div>
-            {error && <ErrorNote message={error} prefix={t.errorSavePrefix} />}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onSaveNames}
-                disabled={activating}
-                style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-                className="flex-1 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity inline-flex items-center justify-center gap-2"
               >
-                {activating && <Spinner />}
-                {activating ? t.savingButton : t.saveButton}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={activating}
-                className="px-4 py-2.5 rounded-md text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] disabled:opacity-50 transition-colors"
-              >
-                {t.doneButton}
-              </button>
-            </div>
-            {saved && (
-              <p className="text-[12px] text-[var(--color-positive)]">{t.savedNote}</p>
-            )}
-          </div>
-        ) : (
-          <div className="px-6 pb-6 space-y-4">
-            <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">
-              {t.provisionBody}
-            </p>
-            <div className="space-y-3">
-              <NameField
-                label={t.fields.buyerNameOptional}
-                placeholder={t.fields.buyerPlaceholder}
-                value={buyerName}
-                onChange={setBuyerName}
-                disabled={activating}
-              />
-              <NameField
-                label={t.fields.sellerNameOptional}
-                placeholder={t.fields.sellerPlaceholder}
-                value={sellerName}
-                onChange={setSellerName}
-                disabled={activating}
-              />
-            </div>
-            <p className="text-[12px] text-[var(--color-ink-faint)] leading-relaxed">
-              {t.setupHint}
-            </p>
-            {error && <ErrorNote message={error} prefix={t.errorActivatePrefix} />}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => activate(names()).catch(() => {})}
-                disabled={activating}
-                style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-                className="flex-1 px-4 py-2.5 rounded-md text-[13px] font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity inline-flex items-center justify-center gap-2"
-              >
-                {activating && <Spinner />}
-                {activating ? t.activatingButton : t.activateButton}
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={activating}
-                className="px-4 py-2.5 rounded-md text-[13px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] disabled:opacity-50 transition-colors"
-              >
-                {t.notNowButton}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+                {activationButtonLabel({
+                  activating,
+                  activated,
+                  saving: t.savingButton,
+                  activatingLabel: t.activatingButton,
+                  save: t.saveButton,
+                  activate: t.activateButton,
+                })}
+              </Button>
+            </footer>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
   );
+}
+
+function sheetHiddenState(reduce: boolean | null, desktop: boolean) {
+  if (reduce) return { opacity: 0 };
+  if (desktop) return { x: '100%' };
+  return { y: '100%' };
+}
+
+function activationButtonLabel(input: {
+  activating: boolean;
+  activated: boolean;
+  saving: string;
+  activatingLabel: string;
+  save: string;
+  activate: string;
+}): string {
+  if (input.activating) return input.activated ? input.saving : input.activatingLabel;
+  return input.activated ? input.save : input.activate;
 }
 
 function NameField({
@@ -203,19 +259,17 @@ function NameField({
   label: string;
   placeholder: string;
   value: string;
-  onChange: (v: string) => void;
+  onChange: (value: string) => void;
   address?: string;
   disabled?: boolean;
 }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="eyebrow flex items-baseline justify-between gap-3">
-        <span>{label}</span>
-        {address && (
-          <span className="mono text-[11px] normal-case tracking-normal text-[var(--color-ink-faint)]">
-            {shortAddress(address)}
-          </span>
-        )}
+    <label className="block">
+      <span className="flex items-baseline justify-between gap-3 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+        <span>• [:{label}]</span>
+        {address ? (
+          <span className="normal-case tracking-normal">{shortAddress(address)}</span>
+        ) : null}
       </span>
       <input
         type="text"
@@ -223,34 +277,9 @@ function NameField({
         maxLength={40}
         placeholder={placeholder}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[13px] focus:outline-none focus:border-[var(--color-ink)] disabled:opacity-50"
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 min-h-12 w-full rounded-[10px] border border-[var(--color-line)] bg-[var(--color-surface-2)] px-3 text-[13px] text-[var(--color-ink)] outline-none transition-colors placeholder:text-[var(--color-ink-faint)] focus:border-[color-mix(in_srgb,var(--accent)_60%,transparent)] disabled:opacity-50"
       />
     </label>
-  );
-}
-
-function ErrorNote({ message, prefix }: { message: string; prefix: string }) {
-  return (
-    <div
-      className="rounded-md px-3 py-2"
-      style={{
-        border: '1px solid color-mix(in oklab, var(--color-critical) 30%, transparent)',
-        background: 'color-mix(in oklab, var(--color-critical) 8%, transparent)',
-      }}
-    >
-      <p className="text-[12px] text-[var(--color-critical)] leading-snug">
-        {prefix}: {message}
-      </p>
-    </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="animate-spin" aria-hidden>
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-      <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
   );
 }

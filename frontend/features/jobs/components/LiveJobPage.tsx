@@ -864,7 +864,7 @@ function EditBriefModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
@@ -872,15 +872,11 @@ function EditBriefModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg my-auto overflow-hidden"
+        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[512px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-card)',
           color: 'var(--lp-dark)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
         }}
       >

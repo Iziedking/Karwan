@@ -73,24 +73,20 @@ export function ConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-[120] flex items-center justify-center px-4 py-6"
+      className="fixed inset-0 z-[120] flex items-end sm:items-stretch sm:justify-end"
     >
       <button
         type="button"
         aria-label={t.backdropAria}
         onClick={onCancel}
-        className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/55"
       />
       <div
-        className="relative w-full max-w-[480px] mx-auto px-6 py-6"
+        className="karwan-sheet-enter relative max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] px-6 py-6 sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-card)',
           color: 'var(--lp-dark)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
           boxShadow: '0 30px 60px -20px rgba(0,0,0,0.45)',
         }}
       >

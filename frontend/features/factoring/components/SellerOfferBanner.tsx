@@ -441,17 +441,13 @@ function OffersModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[80] flex items-end md:items-center justify-center px-3 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-end md:items-stretch md:justify-end"
       style={{ background: 'rgba(0,0,0,0.45)' }}
       onClick={onClose}
     >
       <div
-        className="bg-[var(--lp-light)] border border-[var(--lp-border-light)] w-full max-w-[520px] overflow-hidden my-6"
+        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] md:h-full md:max-h-none md:w-[520px] md:rounded-none md:rounded-s-[16px]"
         style={{
-          borderTopLeftRadius: 14,
-          borderTopRightRadius: 14,
-          borderBottomLeftRadius: 14,
-          borderBottomRightRadius: 3,
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -462,7 +458,7 @@ function OffersModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-[18px] leading-none text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
+            className="inline-flex size-11 items-center justify-center rounded-[10px] text-[18px] leading-none text-[var(--lp-text-muted)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)]"
             aria-label="Close"
           >
             ×

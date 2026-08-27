@@ -182,7 +182,7 @@ function TelegramConnectModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={onClose}
     >
@@ -190,13 +190,9 @@ function TelegramConnectModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md my-auto max-h-[90vh] overflow-y-auto bg-[var(--lp-card)] text-[var(--lp-dark)] fade-up"
+        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] bg-[var(--lp-card)] text-[var(--lp-dark)] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
         }}
       >
@@ -217,7 +213,7 @@ function TelegramConnectModal({
             type="button"
             onClick={onClose}
             aria-label={copy.modal.closeAria}
-            className="size-8 inline-flex items-center justify-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] transition-colors"
+            className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)]"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path

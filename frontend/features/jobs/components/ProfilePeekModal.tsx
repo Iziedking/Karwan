@@ -101,7 +101,7 @@ export function ProfilePeekModal({
     return createPortal(
       <div
         className="fixed inset-0 z-[100] flex items-end justify-center p-3 sm:items-center"
-        style={{ background: 'rgba(14,14,14,0.55)', backdropFilter: 'blur(3px)' }}
+        style={{ background: 'rgba(14,14,14,0.55)' }}
         onClick={onClose}
       >
         <div
@@ -168,7 +168,7 @@ export function ProfilePeekModal({
   return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-stretch justify-end overflow-hidden"
-      style={{ background: 'rgba(14,14,14,0.65)', backdropFilter: 'blur(4px)' }}
+      style={{ background: 'rgba(14,14,14,0.65)' }}
       onClick={onClose}
     >
       <div

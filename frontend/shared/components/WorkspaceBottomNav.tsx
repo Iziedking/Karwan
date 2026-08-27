@@ -84,7 +84,7 @@ export function WorkspaceBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0a0a0b]/96 px-2 pt-1.5 text-white backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0a0a0b] px-2 pt-1.5 text-white md:hidden"
       style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}
     >
       <div className="mx-auto grid max-w-lg grid-cols-5">

@@ -42,7 +42,7 @@ export function DocsSidebar() {
               key={section.href}
               href={section.href}
               className={cn(
-                'group flex items-baseline gap-2 py-2 px-3 text-[14px] font-medium tracking-[-0.005em] transition-colors',
+                'group flex min-h-11 items-center gap-2 px-3 py-2 text-[14px] font-medium tracking-[-0.005em] transition-colors',
                 active
                   ? 'bg-[var(--lp-card)] text-[var(--lp-dark)]'
                   : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)]/60',

@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+@keyframes karwan-sheet-up {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes karwan-sheet-inline {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.karwan-sheet-enter {
+  animation: karwan-sheet-up var(--dur-base, 360ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) both;
+}
+
+@media (min-width: 640px) {
+  .karwan-sheet-enter {
+    animation-name: karwan-sheet-inline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .karwan-sheet-enter {
+    animation: none;
+  }
+}
+
 @theme {
   --color-white: #ffffff;
   --color-black: #000000;
@@ -35,6 +69,7 @@
 
   --shadow-card: 0 1px 0 rgba(12, 14, 16, 0.04), 0 12px 28px -16px rgba(12, 14, 16, 0.08);
   --shadow-card-hover: 0 1px 0 rgba(12, 14, 16, 0.06), 0 20px 40px -18px rgba(12, 14, 16, 0.12);
+  --shadow-pop: 0 12px 40px -16px rgba(12, 14, 16, 0.24);
 }
 
 html[data-theme="dark"] {
@@ -58,6 +93,7 @@ html[data-theme="dark"] {
 
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 30px -16px rgba(0, 0, 0, 0.6);
   --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 40px -18px rgba(0, 0, 0, 0.7);
+  --shadow-pop: 0 12px 40px -16px rgba(0, 0, 0, 0.72);
 }
 
 /* Landing-grade tokens used by the in-app routes. Two flavors:
@@ -408,9 +444,19 @@ html[data-theme="dark"] {
 .auth-sheet { animation: auth-sheet-up var(--dur-base) var(--ease-out) both; }
 .auth-capsule-backdrop { animation: auth-backdrop-in 180ms var(--ease-out) both; }
 .auth-capsule {
-  animation: auth-capsule-in 360ms var(--ease-out) both;
-  transform-origin: center;
+  animation: karwan-sheet-up var(--dur-base) var(--ease-out) both;
+  transform-origin: bottom;
   overscroll-behavior: contain;
+}
+@media (min-width: 640px) {
+  .auth-capsule {
+    animation-name: karwan-sheet-inline;
+    transform-origin: right;
+  }
+  .auth-capsule.auth-capsule-choice {
+    animation-name: auth-capsule-in;
+    transform-origin: center;
+  }
 }
 .auth-capsule-choice {
   --lp-card: #ffffff;

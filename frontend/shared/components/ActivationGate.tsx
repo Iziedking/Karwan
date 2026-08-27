@@ -3,6 +3,8 @@ import { useState, type ReactNode } from 'react';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ActivationModal } from './ActivationModal';
+import { Button } from './Button';
+import { Skeleton, SkeletonText } from './Skeleton';
 
 /// Wraps a flow that needs the connected wallet's agent wallets provisioned.
 /// Renders children once activated; otherwise shows a locked card that opens
@@ -18,40 +20,45 @@ export function ActivationGate({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] p-5">
-        <p className="text-[12px] text-[var(--color-ink-faint)]">{t.loading}</p>
+      <div className="overflow-hidden rounded-t-[16px] rounded-bl-[16px] rounded-br-[4px] border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
+        <span className="sr-only">{t.loading}</span>
+        <Skeleton className="h-3 w-28" />
+        <SkeletonText lines={2} className="mt-4 max-w-lg" />
       </div>
     );
   }
 
   return (
     <>
-      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface-2)] p-5 space-y-3">
-        <div className="flex items-center gap-2">
+      <section className="overflow-hidden rounded-t-[16px] rounded-bl-[16px] rounded-br-[4px] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+        <p className="inline-flex items-center gap-2 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+          <span aria-hidden className="size-1.5 rounded-[1px] bg-[var(--warn)]" />
+          [:AGENT SETUP]
+        </p>
+        <div className="mt-4 flex items-start gap-3">
           <span
-            className="inline-flex items-center justify-center w-6 h-6 rounded-md shrink-0"
-            style={{ background: 'var(--color-ink)', color: 'var(--color-surface)' }}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[var(--color-ink)] text-[var(--color-surface)]"
             aria-hidden
           >
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
               <rect x="3" y="7" width="10" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
               <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </span>
-          <h3 className="text-[14px] font-semibold tracking-tight">{t.title}</h3>
+          <div className="min-w-0">
+            <h3 className="font-sans text-[18px] font-bold tracking-[-0.02em] text-[var(--color-ink)]">
+              {t.title}
+            </h3>
+            <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-[var(--color-ink-dim)]">
+              {t.body}
+            </p>
+          </div>
         </div>
-        <p className="text-[12.5px] text-[var(--color-ink-dim)] leading-relaxed">
-          {t.body}
-        </p>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-          className="inline-flex px-4 py-2 rounded-md text-[13px] font-semibold hover:opacity-90 transition-opacity"
-        >
+        <Button type="button" onClick={() => setOpen(true)} className="mt-5">
           {t.cta}
-        </button>
-      </div>
+          <span aria-hidden>→</span>
+        </Button>
+      </section>
       <ActivationModal
         open={open}
         onClose={() => setOpen(false)}
