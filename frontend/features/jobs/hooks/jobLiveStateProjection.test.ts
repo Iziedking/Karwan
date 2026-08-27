@@ -46,6 +46,18 @@ test('declined negotiation is terminal but remains capped at the counter step', 
   assert.equal(result.recoverable, null);
 });
 
+test('durable terminal marker keeps a restarted exhausted auction terminal', () => {
+  const result = deriveJobLiveState(
+    makeBuyerJob({ bids: [bid], negotiationEndedAt: 1_700 }),
+    [],
+  );
+
+  assert.equal(result.declined, true);
+  assert.equal(result.ended, 'declined');
+  assert.equal(result.active, 'counter');
+  assert.equal(result.recoverable, null);
+});
+
 test('bounded negotiation exhaustion is recoverable and does not become a decline', () => {
   const result = deriveJobLiveState(
     makeBuyerJob({ bids: [bid] }),

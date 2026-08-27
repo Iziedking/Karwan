@@ -131,7 +131,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
 
   if (state.kind === 'private') {
     const negotiating = state.status === 'negotiating';
-    const closed = state.status === 'cancelled' || state.status === 'expired';
+    const closed = state.status === 'ended' || state.status === 'cancelled' || state.status === 'expired';
     const variant = negotiating ? 'negotiating' : closed ? 'closed' : 'default';
     return (
       <FullBleed>

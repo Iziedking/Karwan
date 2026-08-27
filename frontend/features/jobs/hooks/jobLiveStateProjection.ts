@@ -74,7 +74,9 @@ export function deriveJobLiveState(
 ): JobLiveStateProjection {
   const seen = new Set<StepKey>();
   let highest: StepKey = computeInitialStage(initial);
-  let declined = false;
+  // A restarted buyer agent may have no live event in the browser's replay
+  // window. The durable marker keeps the terminal projection honest anyway.
+  let declined = !!initial.negotiationEndedAt;
   let recoverable:
     | 'temporary_impasse'
     | 'reengagement_scheduled'
@@ -144,6 +146,7 @@ export function deriveJobLiveState(
       continue;
     }
     if (e.type === 'negotiation.reopened' || e.type === 'negotiation.next-candidate') {
+      if (e.type === 'negotiation.reopened') declined = false;
       recoverable = 'reengagement_scheduled';
       continue;
     }

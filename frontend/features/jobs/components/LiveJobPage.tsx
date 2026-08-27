@@ -455,7 +455,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               </div>
             </PageCard>
 
-            {viewerIsBuyer && (
+            {viewerIsBuyer && !declined && !ended && !expired && !job.escrowFunded && !matchPending && (
               <div data-guide="job-negotiation">
                 <NegotiationCard
                   events={events}
