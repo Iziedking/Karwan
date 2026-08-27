@@ -49,7 +49,12 @@ function ActivityPageInner({
     <FullBleed>
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />} compact className="min-h-[220px]">
+      <Band
+        tone="dark"
+        overlay={<GridOverlay />}
+        compact
+        className="min-h-[168px] sm:min-h-[220px]"
+      >
         <div className="max-w-[58ch]">
           <div className="fade-up">
             <SectionTag tone="dark" dot="live">
