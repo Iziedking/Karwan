@@ -1,24 +1,11 @@
 ﻿'use client';
 import Link from 'next/link';
 import type { ChainEvent } from '@/core/api';
+import { hrefForEvent } from '@/features/activity/eventRouting';
 import { Tag, StatusDot } from '@/shared/components/Tag';
 import { shortHash, relativeTime, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
-
-/// Direct-deal events live on /deals/[id]; everything else with a jobId lives
-/// on /jobs/[id]. Returns null for events that don't have a navigable target.
-function hrefForEvent(e: ChainEvent): string | null {
-  if (!e.jobId) return null;
-  if (e.type.startsWith('deal.direct.') || e.type === 'deal.delivered' ||
-      e.type === 'deal.delivery.flagged' || e.type === 'deal.delivery.cleared' ||
-      e.type === 'deal.accepted' || e.type === 'deal.review.started' ||
-      e.type === 'deal.review.heartbeat' || e.type === 'deal.auto_released' ||
-      e.type === 'deal.disputed' || e.type === 'deal.cancelled') {
-    return `/deals/${e.jobId}`;
-  }
-  return `/jobs/${e.jobId}`;
-}
 
 /// A readable label for any event type, including ones i18n has no entry for.
 ///
