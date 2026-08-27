@@ -131,6 +131,10 @@ export interface BuyerJob {
   /// and no negotiation internals: the bidder roster is the buyer's alone.
   /// Absent on the status-only stub (non-parties never reach the live page).
   viewerIsBuyer?: boolean;
+  /// Durable buyer-side terminal negotiation marker. This is separate from
+  /// `finalized`, which also covers accepted matches awaiting funding.
+  negotiationEndedAt?: number;
+  negotiationEndReason?: string;
   /// B2B trade context. 'finance' lane (a verified business trading goods/mixed)
   /// drives the business treatment on the job page; the rest describe the trade.
   /// Absent/`service` on the P2P flow.
@@ -142,7 +146,7 @@ export interface BuyerJob {
   sourcingRegion?: string | null;
   /// Set on the status-only stub so the page can say "collecting bids" /
   /// "in negotiation" without leaking the auction.
-  status?: 'open' | 'negotiating' | 'cancelled' | 'expired';
+  status?: 'open' | 'negotiating' | 'ended' | 'cancelled' | 'expired';
 }
 
 export interface BuyerAgentProfile {
