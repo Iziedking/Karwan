@@ -1376,6 +1376,13 @@ interface MessagesShape {
       buyerEyebrow: string;
       buyerSubtitle: string;
       buyerEmpty: string;
+      timingTitle: string;
+      buyerVerification: string;
+      buyerRelease: string;
+      sellerResponse: string;
+      sellerCompletion: string;
+      timingPending: string;
+      timingSampleTemplate: string;
     };
   };
   listingDetail: {
@@ -2115,6 +2122,19 @@ interface MessagesShape {
     inputPlaceholder: string;
     sending: string;
     send: string;
+    reply: string;
+    cancelReply: string;
+    replyingTo: string;
+    you: string;
+    imageAttachment: string;
+    attachImage: string;
+    removeImage: string;
+    imageOnly: string;
+    imageUnsupported: string;
+    imageTooLarge: string;
+    imageReadError: string;
+    retentionNote: string;
+    conversationClosed: string;
   };
   liveBidsPanel: {
     empty: {
@@ -6323,6 +6343,13 @@ export const en: MessagesShape = {
       buyerEyebrow: 'BUYER RECORD',
       buyerSubtitle: 'Real deals this buyer funded. Private to you, not on the public passport.',
       buyerEmpty: 'No funded deals on record yet.',
+      timingTitle: 'Verified operating timing',
+      buyerVerification: 'Buyer review',
+      buyerRelease: 'Buyer release',
+      sellerResponse: 'Seller response',
+      sellerCompletion: 'Seller completion',
+      timingPending: 'Not enough completed deals yet',
+      timingSampleTemplate: '{count} completed {unit}',
     },
   },
   listingDetail: {
@@ -7222,6 +7249,19 @@ export const en: MessagesShape = {
     inputPlaceholder: 'Write a message…',
     sending: 'Sending…',
     send: 'Send',
+    reply: 'Reply',
+    cancelReply: 'Cancel reply',
+    replyingTo: 'Replying to {name}',
+    you: 'You',
+    imageAttachment: 'Image attachment',
+    attachImage: 'Attach image',
+    removeImage: 'Remove image',
+    imageOnly: 'Add a caption or send the image',
+    imageUnsupported: 'Use a PNG, JPEG, or WebP image.',
+    imageTooLarge: 'That image is too large. Keep it under 750 KB.',
+    imageReadError: 'We could not read that image. Try again.',
+    retentionNote: 'Messages kept for 14 days',
+    conversationClosed: 'This conversation is closed.',
   },
   liveBidsPanel: {
     empty: {

@@ -11,7 +11,11 @@ import { localScanProof } from '../security/localScan.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
 
 const paramsSchema = z.object({ kind: z.enum(['factoring', 'po']), positionId: z.string().min(1) });
-const bodySchema = z.object({ body: z.string().min(1).max(2000), replyToId: z.string().min(1).optional() });
+const bodySchema = z.object({
+  body: z.string().max(2000).optional().default(''),
+  replyToId: z.string().min(1).optional(),
+  imageDataUrl: z.string().max(1_000_000).regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/).optional(),
+}).refine((value) => value.body.trim().length > 0 || !!value.imageDataUrl, { message: 'add a message or attach an image' });
 export const financingChatRoutes = new Hono();
 
 financingChatRoutes.get('/:kind/:positionId', async (c) => {
@@ -35,17 +39,19 @@ financingChatRoutes.post('/:kind/:positionId', async (c) => {
   if (!state.allowed || !state.jobId) return c.json({ error: 'not permitted to access this financing conversation' }, 403);
   if (!state.writable) return c.json({ error: 'this conversation is closed', code: 'channel_closed' }, 409);
   if (body.data.replyToId) {
-    const problem = validateReplyTarget(await getMessage(body.data.replyToId) ?? undefined, state.jobId, params.data.positionId);
+    const problem = validateReplyTarget(await getMessage(body.data.replyToId) ?? undefined, state.jobId, params.data.positionId, 'financing');
     if (problem) return c.json({ error: problem, code: 'invalid_reply' }, 400);
   }
   const text = body.data.body.trim();
-  const scan = localScanProof(text);
-  if (scan.verdict !== 'clean') {
-    recordLinkOffense({ address: caller, jobId: state.jobId, surface: 'chat', verdict: scan.verdict, reasons: scan.reasons });
-    logger.warn({ jobId: state.jobId, caller, verdict: scan.verdict }, 'security: financing chat message blocked');
-    return c.json({ error: 'Karwan flagged a link in this message and will not send it.', code: 'link-blocked', reasons: scan.reasons }, 422);
+  if (text) {
+    const scan = localScanProof(text);
+    if (scan.verdict !== 'clean') {
+      recordLinkOffense({ address: caller, jobId: state.jobId, surface: 'chat', verdict: scan.verdict, reasons: scan.reasons });
+      logger.warn({ jobId: state.jobId, caller, verdict: scan.verdict }, 'security: financing chat message blocked');
+      return c.json({ error: 'Karwan flagged a link in this message and will not send it.', code: 'link-blocked', reasons: scan.reasons }, 422);
+    }
   }
-  const message = await addMessage({ id: `${params.data.positionId}-${Date.now()}-${randomBytes(4).toString('hex')}`, jobId: state.jobId, channel: 'financing', channelKey: params.data.positionId, financingKind: params.data.kind, financingId: params.data.positionId, sender: caller, kind: 'participant', body: text, replyToId: body.data.replyToId, ts: Date.now() });
-  bus.emitEvent({ type: 'chat.message', jobId: state.jobId, actor: 'platform', payload: { messageId: message.id, sender: caller, body: text, channel: 'financing', channelKey: params.data.positionId, financingKind: params.data.kind, recipient: state.recipient } });
+  const message = await addMessage({ id: `${params.data.positionId}-${Date.now()}-${randomBytes(4).toString('hex')}`, jobId: state.jobId, channel: 'financing', channelKey: params.data.positionId, financingKind: params.data.kind, financingId: params.data.positionId, sender: caller, kind: 'participant', body: text, ...(body.data.imageDataUrl ? { imageDataUrl: body.data.imageDataUrl } : {}), ...(body.data.replyToId ? { replyToId: body.data.replyToId } : {}), ts: Date.now() });
+  bus.emitEvent({ type: 'chat.message', jobId: state.jobId, actor: 'platform', payload: { messageId: message.id, sender: caller, body: text, ...(message.imageDataUrl ? { imageDataUrl: message.imageDataUrl } : {}), ...(message.replyToId ? { replyToId: message.replyToId } : {}), channel: 'financing', channelKey: params.data.positionId, financingKind: params.data.kind, recipient: state.recipient } });
   return c.json({ message });
 });

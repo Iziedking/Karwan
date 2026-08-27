@@ -9,6 +9,8 @@ import { recordLinkOffense } from '../security/linkOffenses.js';
 import { sessionAddress } from '../auth/session.js';
 import { logger } from '../logger.js';
 import { tradeChannelState } from '../chat/channelAccess.js';
+import { validateReplyTarget } from '../chat/replyValidation.js';
+import { getMessage } from '../db/messages.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
@@ -17,7 +19,15 @@ const postSchema = z.object({
   // Deprecated: sender identity now comes from the session, not the body. Kept
   // optional so existing clients that still send it don't 400.
   caller: addrSchema.optional(),
-  body: z.string().min(1).max(2000),
+  body: z.string().max(2000).optional().default(''),
+  replyToId: z.string().min(1).optional(),
+  imageDataUrl: z
+    .string()
+    .max(1_000_000)
+    .regex(/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/)
+    .optional(),
+}).refine((value) => value.body.trim().length > 0 || !!value.imageDataUrl, {
+  message: 'add a message or attach an image',
 });
 
 export const chatRoutes = new Hono();
@@ -67,26 +77,30 @@ chatRoutes.post('/:jobId', async (c) => {
   if (!state.writable) return c.json({ error: 'this conversation is closed', code: 'channel_closed' }, 409);
 
   const trimmed = body.body.trim();
-  if (!trimmed) return c.json({ error: 'message body is empty' }, 400);
+  if (body.replyToId) {
+    const problem = validateReplyTarget(await getMessage(body.replyToId) ?? undefined, jobId, jobId, 'trade');
+    if (problem) return c.json({ error: problem, code: 'invalid_reply' }, 400);
+  }
 
   // Security Agent: scan links in the message before it is stored or broadcast.
   // The chat is a second channel a bad actor could use to slip a phishing link
   // past the delivery-proof gate, so a flagged link is blocked outright (never
   // reaches the counterparty) and counts against the sender's reputation.
-  const scan = localScanProof(trimmed);
-  if (scan.verdict !== 'clean') {
-    recordLinkOffense({
-      address: sender,
-      jobId,
-      surface: 'chat',
-      verdict: scan.verdict,
-      reasons: scan.reasons,
-    });
-    logger.warn(
-      { jobId, sender, verdict: scan.verdict, reasons: scan.reasons },
-      'security: chat message blocked for a flagged link',
-    );
-    return c.json(
+  if (trimmed) {
+    const scan = localScanProof(trimmed);
+    if (scan.verdict !== 'clean') {
+      recordLinkOffense({
+        address: sender,
+        jobId,
+        surface: 'chat',
+        verdict: scan.verdict,
+        reasons: scan.reasons,
+      });
+      logger.warn(
+        { jobId, sender, verdict: scan.verdict, reasons: scan.reasons },
+        'security: chat message blocked for a flagged link',
+      );
+      return c.json(
       {
         error:
           'Karwan flagged a link in this message and will not send it. Share work through a normal, verifiable link.',
@@ -95,7 +109,8 @@ chatRoutes.post('/:jobId', async (c) => {
         reasons: scan.reasons,
       },
       422,
-    );
+      );
+    }
   }
 
   const message = {
@@ -106,6 +121,8 @@ chatRoutes.post('/:jobId', async (c) => {
     sender,
     kind: 'participant' as const,
     body: trimmed,
+    ...(body.imageDataUrl ? { imageDataUrl: body.imageDataUrl } : {}),
+    ...(body.replyToId ? { replyToId: body.replyToId } : {}),
     ts: Date.now(),
   };
   await addMessage(message);
@@ -118,6 +135,8 @@ chatRoutes.post('/:jobId', async (c) => {
       messageId: message.id,
       sender: message.sender,
       body: message.body,
+      ...(message.imageDataUrl ? { imageDataUrl: message.imageDataUrl } : {}),
+      ...(message.replyToId ? { replyToId: message.replyToId } : {}),
       channel: 'trade',
       channelKey: jobId,
       recipient: state.recipient,

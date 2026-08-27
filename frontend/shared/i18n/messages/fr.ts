@@ -1466,6 +1466,8 @@ export const fr: Messages = {
       buyerEyebrow: 'DOSSIER ACHETEUR',
       buyerSubtitle: 'Vraies transactions financées par cet acheteur. Privé, absent du passeport public.',
       buyerEmpty: 'Aucune transaction financée au dossier pour le moment.',
+      timingTitle: 'Délais opérationnels vérifiés', buyerVerification: 'Revue acheteur', buyerRelease: 'Libération acheteur', sellerResponse: 'Réponse vendeur', sellerCompletion: 'Achèvement vendeur', timingPending: 'Pas encore assez de transactions terminées',
+      timingSampleTemplate: '{count} transaction(s) terminée(s)',
     },
   },
   listingDetail: {
@@ -2344,6 +2346,7 @@ export const fr: Messages = {
     topTier: 'Palier maximal',
   },
   chatPanel: {
+    reply: 'Répondre', cancelReply: 'Annuler la réponse', replyingTo: 'Réponse à {name}', you: 'Vous', imageAttachment: 'Pièce jointe image', attachImage: 'Joindre une image', removeImage: "Supprimer l'image", imageOnly: 'Ajoutez une légende ou envoyez l’image', imageUnsupported: 'Utilisez une image PNG, JPEG ou WebP.', imageTooLarge: 'Cette image est trop volumineuse. Limite : 750 Ko.', imageReadError: "Impossible de lire l'image. Réessayez.", retentionNote: 'Messages conservés 14 jours', conversationClosed: 'Cette conversation est fermée.',
     withCounterpartyTemplate: '[:AVEC {name}:]',
     telegramNote: 'Aussi livré sur Telegram quand lié',
     loadError: "Impossible de charger l'historique de chat.",

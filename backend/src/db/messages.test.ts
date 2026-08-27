@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeChatMessage, type ChatMessage } from './messages.js';
+import { CHAT_RETENTION_MS, chatMessageCutoff, isChatMessageRetained, normalizeChatMessage, type ChatMessage } from './messages.js';
 
 test('legacy messages without a sender normalize as system records', () => {
   const message = normalizeChatMessage({
@@ -42,4 +42,21 @@ test('financing replies retain their same-channel reference', () => {
   });
 
   assert.equal(message.replyToId, 'original');
+});
+
+test('chat retention keeps the fourteen-day boundary and excludes older messages', () => {
+  const now = 1_800_000_000_000;
+  assert.equal(chatMessageCutoff(now), now - CHAT_RETENTION_MS);
+  assert.equal(isChatMessageRetained(now - CHAT_RETENTION_MS, now), true);
+  assert.equal(isChatMessageRetained(now - CHAT_RETENTION_MS - 1, now), false);
+  assert.equal(isChatMessageRetained(Number.NaN, now), false);
+});
+
+test('image-only messages normalize without inventing body text', () => {
+  const message = normalizeChatMessage({
+    id: 'image-only', jobId: 'job-1', sender: '0xSeller', body: '',
+    imageDataUrl: 'data:image/png;base64,AA==', ts: 2,
+  });
+  assert.equal(message.body, '');
+  assert.equal(message.imageDataUrl, 'data:image/png;base64,AA==');
 });

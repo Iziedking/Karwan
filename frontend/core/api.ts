@@ -900,8 +900,9 @@ export interface CounterpartyReport {
       avgBand: string;
       completionRate: number | null;
       onTimeRate: number | null;
+      timing: LifecycleTiming;
     };
-    asBuyer: { funded: number; cleanRate: number | null };
+    asBuyer: { funded: number; cleanRate: number | null; timing: LifecycleTiming };
   };
   /// The internal x402 receipt: what the agent paid on Arc to pull this record.
   /// Null when there was no paid pull. The per-read settlement is gasless and
@@ -918,6 +919,14 @@ export interface CounterpartyReport {
     decisionImpact?: 'legacy_match_unchanged';
     evidenceId?: string;
   } | null;
+}
+
+export interface LifecycleTiming {
+  sellerResponseMs: number | null;
+  sellerCompletionMs: number | null;
+  buyerVerificationMs: number | null;
+  buyerReleaseMs: number | null;
+  samples: { sellerResponse: number; sellerCompletion: number; buyerVerification: number; buyerRelease: number };
 }
 
 export interface NearMissApproval {
@@ -3796,15 +3805,15 @@ export const api = {
     ),
   listMessages: (jobId: string, caller: string) =>
     json<ChatTranscript>(`/api/chat/${jobId}?caller=${caller}`),
-  sendMessage: (jobId: string, caller: string, body: string) =>
+  sendMessage: (jobId: string, caller: string, body: string, options?: { replyToId?: string; imageDataUrl?: string }) =>
     json<{ message: ChatMessage }>(`/api/chat/${jobId}`, {
       method: 'POST',
-      body: JSON.stringify({ caller, body }),
+      body: JSON.stringify({ caller, body, ...options }),
     }),
   listFinancingMessages: (kind: 'factoring' | 'po', positionId: string) =>
     json<ChatTranscript>(`/api/financing-chat/${kind}/${positionId}`),
-  sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string, replyToId?: string) =>
-    json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body, replyToId }) }),
+  sendFinancingMessage: (kind: 'factoring' | 'po', positionId: string, body: string, replyToId?: string, imageDataUrl?: string) =>
+    json<{ message: ChatMessage }>(`/api/financing-chat/${kind}/${positionId}`, { method: 'POST', body: JSON.stringify({ body, replyToId, ...(imageDataUrl ? { imageDataUrl } : {}) }) }),
   telegramStatus: (address: string) =>
     json<TelegramStatus>(`/api/telegram/status?address=${address}`),
   telegramLinkStart: (address: string) =>
@@ -4399,6 +4408,7 @@ export interface ChatMessage {
   sender: string;
   kind?: 'participant' | 'system';
   body: string;
+  imageDataUrl?: string;
   replyToId?: string;
   eventType?: string;
   ts: number;

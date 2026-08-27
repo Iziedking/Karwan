@@ -120,6 +120,7 @@ import { startAttestationSweep } from './attestation/sweep.js';
 import { startTelegramBot } from './telegram/bot.js';
 import { startTeamDaily } from './telegram/team.js';
 import { startTelegramNotifier } from './telegram/notifier.js';
+import { startChatRetentionSweep } from './chat/retention.js';
 import { startEmailNotifier } from './emails/dealNotifier.js';
 import { startXBroadcaster } from './notifiers/xBroadcaster.js';
 import {
@@ -437,6 +438,11 @@ app.get('/api/admin/route-catalog', requireAdmin, (c) => {
 installProcessErrorHandlers();
 
 const stopFns: Array<() => void> = [];
+
+// Private trade and financing conversations have a fixed 14-day retention
+// window. This worker is independent of agent flags so cleanup continues when
+// agents are intentionally disabled during maintenance or rollout.
+stopFns.push(startChatRetentionSweep());
 
 // Any event that mutates on-chain escrow state has to bust the readEscrow
 // cache so the next read pulls fresh data instead of serving the stale tuple.
