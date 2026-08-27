@@ -8,6 +8,7 @@ import { ReputationBadge } from '@/features/reputation/components/ReputationBadg
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { shortAddress, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { MarketReadCard } from '@/shared/components/MarketReadCard';
+import { Hint } from '@/shared/components/Hint';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
 import { ProfilePeekModal } from './ProfilePeekModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -220,57 +221,48 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
         })()}
       </div>
 
-      {/* Paid x402 verification: the buyer agent paid real USDC for the
-          seller's credit passport at bid time. Shown to both parties as a
-          quiet provenance line; the settlement reference links out when it
-          is a chain hash. */}
+      {/* Keep the decision surface quiet. Full provenance remains available on
+          demand so a match card does not read like an operator log. */}
       {proposal.paidSignal && (
-        <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-          [:{mb.paidData.label}:]{' '}
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+          <span>[:{mb.paidData.label}:]</span>
           <span className="normal-case tracking-normal text-[11px]">
-            {mb.paidData.template.replace(
-              '{amount}',
-              `$${proposal.paidSignal.amountUsd}`,
-            )}
+            seller verification funded · ${proposal.paidSignal.amountUsd}
           </span>
+          <Hint side="bottom" align="start">
+            <span className="block space-y-1">
+              <span className="block">
+                {mb.paidData.template.replace(
+                  '{amount}',
+                  `$${proposal.paidSignal.amountUsd}`,
+                )}
+              </span>
+              {paidEvidenceReceipt && (
+                <span className="block mono text-[10px] uppercase tracking-[0.08em] opacity-80">
+                  {paidEvidenceReceipt.evidenceId
+                    ? `${mb.paidData.evidenceCta ?? 'evidence'} ${paidEvidenceReceipt.displayEvidenceId}`
+                    : 'payment recorded, evidence snapshot pending'}
+                  {' · '}
+                  {mb.paidData.providerLabel ?? 'provider'}: {paidEvidenceReceipt.providerId}
+                  {' · '}
+                  {mb.paidData.claimLabel ?? 'claim'}: {paidEvidenceReceipt.claim}
+                  {' · '}
+                  {mb.paidData.impactShadow ?? 'legacy match unchanged'}
+                </span>
+              )}
+            </span>
+          </Hint>
           {/^0x[0-9a-fA-F]{64}$/.test(proposal.paidSignal.transaction) && (
-            <>
-              {' · '}
-              <a
-                href={ARC_EXPLORER_TX(proposal.paidSignal.transaction)}
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2 normal-case tracking-normal text-[11px]"
-              >
-                {mb.paidData.txCta}
-              </a>
-            </>
+            <a
+              href={ARC_EXPLORER_TX(proposal.paidSignal.transaction)}
+              target="_blank"
+              rel="noreferrer"
+              className="normal-case tracking-normal text-[11px] underline underline-offset-2"
+            >
+              {mb.paidData.txCta} ↗
+            </a>
           )}
-          {paidEvidenceReceipt?.evidenceId && (
-            <>
-              {' · '}
-              <span
-                title={paidEvidenceReceipt.evidenceId}
-                aria-label={`${mb.paidData.evidenceCta}: ${paidEvidenceReceipt.evidenceId}`}
-                className="normal-case tracking-normal text-[11px]"
-              >
-                {mb.paidData.evidenceCta ?? mb.paidData.txCta} {paidEvidenceReceipt.displayEvidenceId}
-              </span>
-            </>
-          )}
-          {paidEvidenceReceipt && (
-            <>
-              {' · '}
-              <span className="normal-case tracking-normal text-[11px]">
-                {mb.paidData.providerLabel ?? 'provider'}: {paidEvidenceReceipt.providerId}
-                {' · '}
-                {mb.paidData.claimLabel ?? 'claim'}: {paidEvidenceReceipt.claim}
-                {' · '}
-                {mb.paidData.impactShadow ?? 'legacy match unchanged'}
-              </span>
-            </>
-          )}
-        </p>
+        </div>
       )}
 
       {/* Market read: the agent paid for live market research on the deal's
