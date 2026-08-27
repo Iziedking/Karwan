@@ -30,7 +30,7 @@ export function AdminWalletControl() {
             disabled={isPending || status === 'connecting'}
             className={`min-h-11 rounded-lg border px-3 mono text-[10px] font-bold uppercase tracking-[0.11em] transition disabled:opacity-50 ${
               index === 0
-                ? 'border-[#a8c94e] bg-[#a8c94e] text-[#0b0c0d] hover:bg-[#b8d965]'
+                ? 'border-[#AFC95B] bg-[#AFC95B] text-[#0b0c0d] hover:bg-[#AFC95B]'
                 : 'border-white/15 text-white/65 hover:border-white/30 hover:text-white'
             }`}
           >
@@ -58,7 +58,7 @@ export function AdminWalletControl() {
           {switching ? 'Switching…' : 'Switch to Arc'}
         </button>
       ) : (
-        <span className="inline-flex min-h-11 items-center rounded-lg border border-[#a8c94e]/30 bg-[#a8c94e]/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-[#b8d965]">
+        <span className="inline-flex min-h-11 items-center rounded-lg border border-[#AFC95B]/35 bg-[#AFC95B]/10 px-3 mono text-[9px] uppercase tracking-[0.12em] text-[#AFC95B]">
           Arc ready
         </span>
       )}

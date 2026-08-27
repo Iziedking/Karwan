@@ -21,7 +21,7 @@ function toneOf(phase: BridgePhase): Tone {
 }
 
 function railColor(tone: Tone): string {
-  return tone === 'positive' ? '#0a7553' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';
+  return tone === 'positive' ? 'var(--lp-accent)' : tone === 'critical' ? '#b03d3a' : 'var(--lp-accent)';
 }
 
 /// Direction-aware status label, reusing the existing phase copy so the strip

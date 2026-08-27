@@ -93,7 +93,7 @@ export function AgentResearchCard() {
         {state?.active ? (
           <span
             className="shrink-0 mono text-[9px] font-bold uppercase tracking-[0.14em] px-2 py-1"
-            style={{ color: '#4f8a3f', background: 'rgba(79,138,63,0.16)', borderRadius: 4 }}
+            style={{ color: 'var(--lp-accent)', background: 'rgba(175,201,91,0.16)', borderRadius: 4 }}
           >
             Credited
           </span>
@@ -157,7 +157,7 @@ export function AgentResearchCard() {
         </p>
       )}
 
-      {note && <p className="mt-3 text-[12px] leading-snug text-[#4f8a3f]">{note}</p>}
+      {note && <p className="mt-3 text-[12px] leading-snug text-[var(--lp-accent)]">{note}</p>}
       {error && <p className="mt-3 text-[12px] leading-snug text-[var(--lp-critical)]">{error}</p>}
     </div>
   );

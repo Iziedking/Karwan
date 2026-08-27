@@ -340,7 +340,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                 <button
                   onClick={() => runCover(false)}
                   disabled={covering || Number(liq.shortfallUsdc) === 0}
-                  className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:opacity-40"
+                  className="rounded-lg bg-[var(--lp-accent)] px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:brightness-95 disabled:opacity-40"
                 >
                   {covering ? 'Redeeming…' : 'Redeem and cover'}
                 </button>
@@ -369,7 +369,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                     </span>
                     <span>
                       ${usd(Number(p.principalUsdc))}{' '}
-                      <span className={p.due ? 'text-emerald-400' : 'text-zinc-600'}>
+                      <span className={p.due ? 'text-[var(--lp-accent)]' : 'text-zinc-600'}>
                         {p.due ? 'due now' : new Date(p.claimableAt * 1000).toLocaleDateString()}
                       </span>
                     </span>
@@ -415,7 +415,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
               <button
                 onClick={() => wrap(false)}
                 disabled={running}
-                className="rounded-md bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:opacity-40"
+                className="rounded-md bg-[var(--lp-accent)] px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:brightness-95 disabled:opacity-40"
               >
                 Wrap now
               </button>
@@ -453,7 +453,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
                               : s.skipped
                                 ? 'text-zinc-600'
                                 : s.txHash
-                                  ? 'text-emerald-400'
+                                  ? 'text-[var(--lp-accent)]'
                                   : 'text-zinc-400'
                           }`}
                         >
@@ -491,7 +491,7 @@ function Stat({
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
       <p
         className={`mt-2 text-3xl font-semibold tabular-nums tracking-tight ${
-          accent ? 'text-emerald-400' : 'text-zinc-100'
+          accent ? 'text-[var(--lp-accent)]' : 'text-zinc-100'
         }`}
       >
         {value}
@@ -539,7 +539,7 @@ function Row({
       <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
       <dd
         className={`text-sm tabular-nums ${mono ? 'font-mono text-xs' : ''} ${
-          accent ? 'font-bold text-emerald-400' : 'text-zinc-100'
+          accent ? 'font-bold text-[var(--lp-accent)]' : 'text-zinc-100'
         }`}
       >
         {value}

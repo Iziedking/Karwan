@@ -47,7 +47,7 @@ const STEP_ORDER: BridgePhase[] = ['approving', 'burning', 'attesting', 'minting
 // Curated tones. match the deal palette so the bridge ties back visually.
 const TONE_HEX = {
   live: 'var(--lp-accent)',
-  positive: '#0a7553',
+  positive: 'var(--lp-accent)',
   critical: '#b03d3a',
   warning: '#b25425',
 } as const;
@@ -1447,13 +1447,13 @@ function StatusPill({
         : 'var(--lp-dark)';
   const bg =
     tone === 'positive'
-      ? 'rgba(10,117,83,0.12)'
+      ? 'rgba(175,201,91,0.12)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.12)'
         : 'rgba(175,201,91,0.20)';
   const border =
     tone === 'positive'
-      ? 'rgba(10,117,83,0.30)'
+      ? 'rgba(175,201,91,0.38)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.30)'
         : 'rgba(175,201,91,0.50)';
@@ -1495,13 +1495,13 @@ function PhaseChip({
         : 'var(--lp-dark)';
   const bg =
     tone === 'positive'
-      ? 'rgba(10,117,83,0.10)'
+      ? 'rgba(175,201,91,0.10)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.10)'
         : 'rgba(175, 201, 91,0.14)';
   const border =
     tone === 'positive'
-      ? 'rgba(10,117,83,0.35)'
+      ? 'rgba(175,201,91,0.42)'
       : tone === 'critical'
         ? 'rgba(176,61,58,0.35)'
         : 'rgba(175, 201, 91,0.45)';
@@ -1632,9 +1632,9 @@ function CircleSourceFundBanner({
           <span
             className="inline-flex items-center gap-1.5 px-1.5 py-[3px] mono text-[9px] font-bold uppercase tracking-[0.16em] leading-none"
             style={{
-              background: funded ? 'rgba(10,117,83,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
+              background: funded ? 'rgba(175,201,91,0.12)' : empty ? 'rgba(178,84,37,0.12)' : 'rgba(175, 201, 91, 0.18)',
               color: funded ? TONE_HEX.positive : empty ? TONE_HEX.warning : 'var(--lp-band-dark)',
-              border: `1px solid ${funded ? 'rgba(10,117,83,0.35)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--lp-accent)'}`,
+              border: `1px solid ${funded ? 'rgba(175,201,91,0.42)' : empty ? 'rgba(178,84,37,0.35)' : 'var(--lp-accent)'}`,
               borderTopLeftRadius: 4,
               borderTopRightRadius: 4,
               borderBottomLeftRadius: 4,
@@ -2105,16 +2105,16 @@ function RecipientPicker({
             <span
               className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2 py-1 mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap"
               style={{
-                background: 'rgba(10, 117, 83, 0.10)',
-                color: '#0a7553',
-                border: '1px solid rgba(10, 117, 83, 0.30)',
+                background: 'rgba(175, 201, 91, 0.12)',
+                color: 'var(--lp-accent)',
+                border: '1px solid rgba(175, 201, 91, 0.38)',
                 borderRadius: 4,
               }}
             >
               <span
                 aria-hidden
                 className="inline-block w-[5px] h-[5px]"
-                style={{ background: '#0a7553', borderRadius: 1 }}
+                style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
               />
               {copy.verify.verifiedEoa}
             </span>
@@ -2135,7 +2135,7 @@ function VerifyBanner({
   if (kind === 'idle') return null;
   const tone =
     kind === 'eoa'
-      ? { bg: 'rgba(10, 117, 83, 0.10)', text: '#0a7553', border: 'rgba(10, 117, 83, 0.30)' }
+      ? { bg: 'rgba(175, 201, 91, 0.12)', text: 'var(--lp-accent)', border: 'rgba(175, 201, 91, 0.38)' }
       : kind === 'contract' || kind === 'invalid'
         ? { bg: 'rgba(176, 61, 58, 0.10)', text: '#b03d3a', border: 'rgba(176, 61, 58, 0.30)' }
         : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };

@@ -116,7 +116,7 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
             className="mt-2 min-h-12 w-full rounded-lg border border-white/15 bg-[#0A0A0B] px-3 font-mono text-[14px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
           />
           <p id="operator-key-help" className="mt-2 text-[11px] leading-5 text-white/38">The key stays in this tab only and is cleared when you lock or refresh the console.</p>
-          <button type="submit" disabled={busy || !token.trim()} className="mt-5 min-h-12 w-full rounded-lg bg-[#AFC95B] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0A0A0B] transition hover:bg-[#C3DC70] disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="submit" disabled={busy || !token.trim()} className="mt-5 min-h-12 w-full rounded-lg bg-[#AFC95B] px-4 mono text-[11px] font-bold uppercase tracking-[0.13em] text-[#0A0A0B] transition hover:bg-[#AFC95B] disabled:cursor-not-allowed disabled:opacity-45">
             {busy ? 'Verifying access...' : 'Unlock operator console'}
           </button>
           {error && <p role="alert" className="mt-3 rounded-lg border border-[#e0794f]/25 bg-[#e0794f]/8 px-3 py-2.5 text-[12px] text-[#efaa8d]">Access could not be verified. Check the key and try again.</p>}
@@ -175,7 +175,7 @@ function AdminConsole({ role, onLock, children }: {
       <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[248px_minmax(0,1fr)]">
         <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] overflow-y-auto border-r border-white/8 px-3 py-6 lg:block">
           <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.025] p-3">
-            <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#AFC95B]" /><p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#C3DC70]">{role} session</p></div>
+            <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-[#AFC95B]" /><p className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[#AFC95B]">{role} session</p></div>
             <p className="mt-2 text-[10px] leading-4 text-white/38">Authority is scoped by the access key. Wallet signing stays opt-in.</p>
           </div>
           <Navigation groups={navigation} pathname={pathname} />

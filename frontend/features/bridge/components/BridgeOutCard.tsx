@@ -454,7 +454,7 @@ function RecipientVerifyPill({
   if (kind === 'idle') return null;
   const tone =
     kind === 'eoa'
-      ? { bg: 'rgba(10, 117, 83, 0.10)', text: '#0a7553', border: 'rgba(10, 117, 83, 0.30)' }
+      ? { bg: 'rgba(175, 201, 91, 0.12)', text: 'var(--lp-accent)', border: 'rgba(175, 201, 91, 0.38)' }
       : kind === 'contract' || kind === 'invalid'
         ? { bg: 'rgba(176, 61, 58, 0.10)', text: '#b03d3a', border: 'rgba(176, 61, 58, 0.30)' }
         : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };

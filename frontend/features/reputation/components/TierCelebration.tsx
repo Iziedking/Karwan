@@ -14,8 +14,8 @@ const TIER_HUE: Record<Tier, string> = {
   NEW: '#9a9a9a',
   COLD: '#e0a23c',
   ESTABLISHED: 'var(--lp-accent)',
-  STRONG: '#37c87f',
-  ELITE: '#16b06a',
+  STRONG: 'var(--lp-accent)',
+  ELITE: 'var(--lp-accent)',
 };
 
 // Allow inline CSS custom properties (--rail-dy etc.) without fighting the types.

@@ -295,7 +295,7 @@ function WalletStrip() {
         </button>
       ) : null}
       {isConnected && onArc ? (
-        <span className="text-xs text-emerald-700 font-medium">Arc Testnet</span>
+      <span className="text-xs text-[var(--lp-accent)] font-medium">Arc Testnet</span>
       ) : null}
     </div>
   );
@@ -638,7 +638,7 @@ function DrainControl({
 function LogRow({ log }: { log: ActionLog }) {
   const tone =
     log.status === 'done'
-      ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+      ? 'border-[color-mix(in_srgb,var(--lp-accent)_55%,white)] bg-[color-mix(in_srgb,var(--lp-accent)_16%,white)] text-[#56651f]'
       : log.status === 'failed'
         ? 'border-red-300 bg-red-50 text-red-900'
         : 'border-zinc-200 bg-zinc-50 text-zinc-700';

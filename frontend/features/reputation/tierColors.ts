@@ -9,9 +9,9 @@ export type CompositeTier = NonNullable<Reputation['tier']>;
 export const TIER_HUE: Record<CompositeTier, string> = {
   NEW: '#9a9a9a',
   COLD: '#e0a23c',
-  ESTABLISHED: '#9bd119',
-  STRONG: '#37c87f',
-  ELITE: '#16b06a',
+  ESTABLISHED: 'var(--lp-accent)',
+  STRONG: 'var(--lp-accent)',
+  ELITE: 'var(--lp-accent)',
 };
 
 export const TIER_LABEL: Record<CompositeTier, string> = {

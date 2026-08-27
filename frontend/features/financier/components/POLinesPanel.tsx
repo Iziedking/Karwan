@@ -29,7 +29,7 @@ const STATE_LABEL: Record<POFinancingLine['state'], string> = {
 
 const STATE_TONE: Record<POFinancingLine['state'], string> = {
   outstanding: '#b25425',
-  repaid: '#4f8a3f',
+  repaid: 'var(--lp-accent)',
   defaulted: '#7a1f1a',
   funded: '#b25425',
   released: '#3a6ea5',

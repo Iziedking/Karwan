@@ -18,15 +18,15 @@ type Filter = 'all' | FeedbackStatus;
 
 const CATEGORY_COLOR: Record<FeedbackCategory, string> = {
   bug: '#b03d3a',
-  improvement: '#2f6f4f',
-  praise: '#0a7553',
+  improvement: 'var(--lp-accent)',
+  praise: 'var(--lp-accent)',
   other: '#6b6b6b',
 };
 
 const STATUS_COLOR: Record<FeedbackStatus, string> = {
   new: 'var(--lp-accent)',
   triaged: '#b25425',
-  resolved: '#0a7553',
+  resolved: 'var(--lp-accent)',
 };
 
 /// Resolves a screenshot URL the backend returned. Absolute (PUBLIC_API_BASE_URL

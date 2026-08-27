@@ -566,7 +566,7 @@ function StatusChip({
   // Instrument-readout chip. same family as navbar LiveDot/wallet button.
   // Body is white-on-dark; status color lives only in the LED cell.
   const cell: Record<StatusTone, string> = {
-    positive: '#0a7553',
+    positive: 'var(--lp-accent)',
     warning: '#b25425',
     accent: 'var(--lp-accent)',
     default: '#6b6b6b',
@@ -1154,7 +1154,7 @@ function FundingStep({
   done: boolean;
   active: boolean;
 }) {
-  const fill = done ? '#0a7553' : active ? 'var(--lp-accent)' : 'rgba(0,0,0,0.10)';
+  const fill = done ? 'var(--lp-accent)' : active ? 'var(--lp-accent)' : 'rgba(0,0,0,0.10)';
   return (
     <div className="flex items-center gap-3">
       <span

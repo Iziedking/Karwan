@@ -17,7 +17,7 @@ const BTN_GHOST =
 
 const RED = '#e0794f';
 const AMBER = '#e0b04f';
-const GREEN = '#6BE39A';
+const GREEN = 'var(--lp-accent)';
 const GREY = 'rgba(255,255,255,0.28)';
 
 type ErrorsResp = Awaited<ReturnType<typeof api.adminErrors>>;

@@ -84,12 +84,12 @@ export default function AdminRouteDirectoryPage() {
     <div>
       <div className="flex flex-col gap-5 border-b border-white/10 pb-7 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-[720px]">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#a8c94e]">[:BACKEND MAP:]</p>
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">[:BACKEND MAP:]</p>
           <h1 className="mt-3 font-sans text-[clamp(30px,4vw,48px)] font-black leading-none tracking-[-0.035em]">API directory</h1>
           <p className="mt-4 text-[13px] leading-6 text-white/48">Every mounted backend endpoint is searchable here. Reviewed workspaces handle real operator actions; routes without a workspace remain visible for engineering traceability.</p>
         </div>
-        <div className={`inline-flex min-h-11 items-center gap-2 self-start rounded-full border px-3 mono text-[9px] uppercase tracking-[0.12em] xl:self-auto ${source === 'runtime' ? 'border-[#a8c94e]/30 bg-[#a8c94e]/8 text-[#bddb70]' : 'border-[#dfad58]/30 bg-[#dfad58]/8 text-[#f0c87e]'}`}>
-          <span className={`size-2 rounded-full ${source === 'runtime' ? 'bg-[#a8c94e]' : 'bg-[#dfad58]'}`} />
+        <div className={`inline-flex min-h-11 items-center gap-2 self-start rounded-full border px-3 mono text-[9px] uppercase tracking-[0.12em] xl:self-auto ${source === 'runtime' ? 'border-[#AFC95B]/40 bg-[#AFC95B]/10 text-[#AFC95B]' : 'border-[#dfad58]/30 bg-[#dfad58]/8 text-[#f0c87e]'}`}>
+          <span className={`size-2 rounded-full ${source === 'runtime' ? 'bg-[#AFC95B]' : 'bg-[#dfad58]'}`} />
           {source === 'runtime' ? 'Live backend inventory' : 'Source snapshot, backend deploy pending'}
         </div>
       </div>
@@ -116,13 +116,13 @@ export default function AdminRouteDirectoryPage() {
           value={query}
           onChange={(event) => { setQuery(event.target.value); setVisible(60); }}
           placeholder="Search method, path, family, or workspace"
-          className="mt-2 min-h-12 w-full rounded-lg border border-white/12 bg-[#0b0c0d] px-4 text-[13px] text-white outline-none transition placeholder:text-white/25 focus:border-[#a8c94e]/55"
+          className="mt-2 min-h-12 w-full rounded-lg border border-white/12 bg-[#0b0c0d] px-4 text-[13px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60"
         />
         <div className="mt-4">
           <p className="mono text-[9px] uppercase tracking-[0.14em] text-white/30">Access</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {accessFilters.map((item) => (
-              <button key={item.value} type="button" aria-pressed={access === item.value} onClick={() => { setAccess(item.value); setVisible(60); }} className={`min-h-11 rounded-full border px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] transition ${access === item.value ? 'border-[#a8c94e]/45 bg-[#a8c94e]/12 text-[#c4df7d]' : 'border-white/10 text-white/42 hover:border-white/25 hover:text-white/75'}`}>{item.label}</button>
+              <button key={item.value} type="button" aria-pressed={access === item.value} onClick={() => { setAccess(item.value); setVisible(60); }} className={`min-h-11 rounded-full border px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] transition ${access === item.value ? 'border-[#AFC95B]/55 bg-[#AFC95B]/12 text-[#AFC95B]' : 'border-white/10 text-white/42 hover:border-white/25 hover:text-white/75'}`}>{item.label}</button>
             ))}
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function AdminRouteDirectoryPage() {
           <p className="mono text-[9px] uppercase tracking-[0.14em] text-white/30">Effect</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {riskFilters.map((item) => (
-              <button key={item.value} type="button" aria-pressed={risk === item.value} onClick={() => { setRisk(item.value); setVisible(60); }} className={`min-h-11 rounded-full border px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] transition ${risk === item.value ? 'border-[#a8c94e]/45 bg-[#a8c94e]/12 text-[#c4df7d]' : 'border-white/10 text-white/42 hover:border-white/25 hover:text-white/75'}`}>{item.label}</button>
+              <button key={item.value} type="button" aria-pressed={risk === item.value} onClick={() => { setRisk(item.value); setVisible(60); }} className={`min-h-11 rounded-full border px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] transition ${risk === item.value ? 'border-[#AFC95B]/55 bg-[#AFC95B]/12 text-[#AFC95B]' : 'border-white/10 text-white/42 hover:border-white/25 hover:text-white/75'}`}>{item.label}</button>
             ))}
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function AdminRouteDirectoryPage() {
                   </div>
                 </div>
                 <div>
-                  {workspace ? <Link href={workspace.href} className="inline-flex min-h-11 items-center rounded-lg border border-white/12 px-3 text-[10px] font-semibold text-white/65 transition hover:border-[#a8c94e]/35 hover:text-white">{workspace.label}</Link> : <span className="text-[10px] text-white/25">Catalog only</span>}
+                  {workspace ? <Link href={workspace.href} className="inline-flex min-h-11 items-center rounded-lg border border-white/12 px-3 text-[10px] font-semibold text-white/65 transition hover:border-[#AFC95B]/45 hover:text-white">{workspace.label}</Link> : <span className="text-[10px] text-white/25">Catalog only</span>}
                 </div>
                 <button type="button" onClick={() => void copyRoute(route)} className="min-h-11 rounded-lg border border-white/10 px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] text-white/45 transition hover:border-white/25 hover:text-white">
                   {copied === route.id ? 'Copied' : 'Copy method + path'}

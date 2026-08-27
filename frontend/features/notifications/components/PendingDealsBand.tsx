@@ -126,16 +126,16 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
           // Green action chips read as a call to action; grey wait chips
           // surface the deal without implying the viewer owes a move.
           const chipBg = isAction
-            ? (dark ? 'var(--lp-card)' : 'rgba(10,117,83,0.10)')
+            ? (dark ? 'rgba(175,201,91,0.12)' : 'rgba(175,201,91,0.16)')
             : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)');
           const chipFg = isAction
-            ? '#0a7553'
+            ? (dark ? 'var(--lp-accent)' : '#56651f')
             : (dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)');
           const chipBorder = isAction
-            ? 'rgba(10,117,83,0.35)'
+            ? 'rgba(175,201,91,0.52)'
             : (dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)');
           const chipBlinkBg = isAction
-            ? '#0a7553'
+            ? 'var(--lp-accent)'
             : (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)');
           return (
             <li

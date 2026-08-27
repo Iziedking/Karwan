@@ -8,7 +8,7 @@ import { shortAddress } from '@/shared/utils/format';
 
 const STATUS: Record<string, { label: string; tone: string; detail: string }> = {
   accepted: { label: 'Active', tone: 'var(--lp-accent)', detail: 'Awaiting escrow settlement' },
-  settled: { label: 'Repaid', tone: '#238c58', detail: 'Position completed successfully' },
+  settled: { label: 'Repaid', tone: 'var(--lp-accent)', detail: 'Position completed successfully' },
   defaulted: { label: 'Needs review', tone: '#a33a32', detail: 'Repayment was not completed' },
 };
 

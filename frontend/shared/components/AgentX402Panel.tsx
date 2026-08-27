@@ -182,7 +182,7 @@ export function AgentX402Panel({
       <ul className="mt-4 space-y-2">
         {display.map((p) => {
           const isOpen = openId === p.id;
-          const railTone = p.rail === 'arc' ? '#4f8a3f' : '#3a6ea5';
+          const railTone = p.rail === 'arc' ? 'var(--lp-accent)' : '#3a6ea5';
           // Make the bilateral direction explicit: on a reputation pull the buyer
           // agent verifies the seller and the seller agent verifies the buyer, so
           // a judge sees both sides paying to vet each other on our own x402.

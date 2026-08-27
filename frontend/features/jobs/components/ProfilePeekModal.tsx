@@ -304,7 +304,7 @@ export function ProfilePeekModal({
 }
 
 const OUTCOME_HUE: Record<string, string> = {
-  clean: '#0a7553',
+  clean: 'var(--lp-accent)',
   disputed: '#b25425',
   failed: '#b03d3a',
 };

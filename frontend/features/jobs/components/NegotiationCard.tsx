@@ -15,7 +15,7 @@ const SOFT_ROUND_CAP = 5;
 // ellipsis. Three keeps the walk readable on a phone.
 const MAX_CHIPS = 3;
 
-const SIDE_COLOR: Record<Side, string> = { buyer: '#3a4a85', seller: '#0a7553' };
+const SIDE_COLOR: Record<Side, string> = { buyer: '#3a4a85', seller: 'var(--lp-accent)' };
 
 type Side = 'buyer' | 'seller';
 interface PricePoint {

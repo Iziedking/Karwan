@@ -35,7 +35,7 @@ export interface MarketReadData {
 const usdcFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 const TONES: Record<MarketReadData['demand'], { fg: string; bg: string }> = {
-  hot: { fg: '#4f8a3f', bg: 'rgba(79,138,63,0.14)' },
+  hot: { fg: 'var(--lp-accent)', bg: 'rgba(175,201,91,0.14)' },
   soft: { fg: '#b07d1f', bg: 'rgba(176,125,31,0.14)' },
   steady: { fg: '#3a6ea5', bg: 'rgba(58,110,165,0.12)' },
 };

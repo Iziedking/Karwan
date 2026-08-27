@@ -4,7 +4,7 @@ import { subscribeLiveStatus, type LiveStatus } from '@/shared/utils/liveEventBu
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const COLOR: Record<LiveStatus, string> = {
-  live: '#0a7553',
+  live: 'var(--lp-accent)',
   connecting: 'var(--color-ink-faint)',
   offline: '#b03d3a',
 };

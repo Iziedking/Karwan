@@ -33,7 +33,7 @@ const CARD_STYLE = {
 } as const;
 
 const TONE_COLOR = {
-  positive: '#0a7553',
+  positive: 'var(--lp-accent)',
   critical: '#b03d3a',
 } as const;
 
@@ -513,7 +513,7 @@ function DestVerifyBanner({
   if (kind === 'idle' || kind === 'invalid') return null;
   const tone =
     kind === 'eoa'
-      ? { bg: 'rgba(10, 117, 83, 0.10)', text: TONE_COLOR.positive, border: 'rgba(10, 117, 83, 0.30)' }
+      ? { bg: 'rgba(175, 201, 91, 0.12)', text: TONE_COLOR.positive, border: 'rgba(175, 201, 91, 0.38)' }
       : kind === 'contract'
         ? { bg: 'rgba(176, 61, 58, 0.10)', text: TONE_COLOR.critical, border: 'rgba(176, 61, 58, 0.30)' }
         : { bg: 'var(--lp-card)', text: 'var(--lp-text-sub)', border: 'var(--lp-border-light)' };

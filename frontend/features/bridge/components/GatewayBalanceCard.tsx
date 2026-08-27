@@ -231,7 +231,7 @@ function StatusLine({
 }) {
   return (
     <div className="mt-3 flex items-start justify-between gap-2">
-      <p className="text-[13px]" style={{ color: tone === 'ok' ? '#0a7553' : '#b03d3a' }}>
+      <p className="text-[13px]" style={{ color: tone === 'ok' ? 'var(--lp-accent)' : '#b03d3a' }}>
         {children}
       </p>
       <button
