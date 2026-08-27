@@ -271,6 +271,67 @@ export async function findMoneyMovementByTransfer(input: {
 }
 
 /**
+ * Find a durable movement by its exact on-chain transfer proof, independent of
+ * job ownership.  The balance watcher uses this as a reconciliation guard for
+ * wallet-to-wallet credits: a route may already have written the movement,
+ * while a watcher replay must never create a second receipt for the same tx.
+ */
+export async function findMoneyMovementByTransferProof(input: {
+  txHash: string;
+  sourceAddress: string;
+  destinationAddress: string;
+  amountMicros: bigint | string;
+}): Promise<MoneyMovement | null> {
+  const amount = BigInt(input.amountMicros).toString();
+  const tx = input.txHash.toLowerCase();
+  const source = input.sourceAddress.toLowerCase();
+  const destination = input.destinationAddress.toLowerCase();
+  const candidates: MoneyMovement[] = pgEnabled
+    ? (
+        await db()
+          .select({ data: moneyMovements.data })
+          .from(moneyMovements)
+          .orderBy(desc(moneyMovements.updatedAt))
+          .limit(1000)
+      ).map((row) => row.data)
+    : Object.values(loadFile().byReference)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, 1000);
+
+  return candidates.find((movement) =>
+    transferProofMatchesMovement(movement, {
+      txHash: tx,
+      sourceAddress: source,
+      destinationAddress: destination,
+      amountMicros: amount,
+    }),
+  ) ?? null;
+}
+
+/** Exact proof predicate kept pure so reconciliation cannot weaken its match. */
+export function transferProofMatchesMovement(
+  movement: MoneyMovement,
+  input: {
+    txHash: string;
+    sourceAddress: string;
+    destinationAddress: string;
+    amountMicros: bigint | string;
+  },
+): boolean {
+  const tx = input.txHash.toLowerCase();
+  const source = input.sourceAddress.toLowerCase();
+  const destination = input.destinationAddress.toLowerCase();
+  const amount = BigInt(input.amountMicros).toString();
+  return movement.legs.some((leg) =>
+    leg.attempt === movement.attempt &&
+    leg.txHash?.toLowerCase() === tx &&
+    leg.sourceAddress?.toLowerCase() === source &&
+    leg.destinationAddress?.toLowerCase() === destination &&
+    leg.amountMicros === amount,
+  );
+}
+
+/**
  * Find a Gateway deposit by a provider correlation value. Gateway webhooks do
  * not carry a Karwan reference in every event version, so the reconciler may
  * use the submitted transaction id or hash persisted on the current leg.

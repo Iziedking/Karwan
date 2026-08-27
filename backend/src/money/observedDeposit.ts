@@ -9,6 +9,7 @@ import { formatUsdcMicros } from './model.js';
 import { config } from '../config.js';
 
 export type ObservedWalletRole = 'identity' | 'buyerAgent' | 'sellerAgent';
+export type ObservedArcTransferKind = 'deposit' | 'cash_out' | 'agent_funding';
 
 export interface ObservedArcDepositInput {
   txHash: string;
@@ -22,13 +23,28 @@ export interface ObservedArcDepositInput {
   summary?: string;
 }
 
+export interface ObservedArcTransferInput extends ObservedArcDepositInput {
+  kind?: ObservedArcTransferKind;
+}
+
 /**
  * A chain log is the durable idempotency boundary for an inbound Arc credit.
  * The same transfer can be seen by the watcher after a restart, so this key
  * must never contain a random value or a polling timestamp.
  */
 export function observedArcDepositOperationKey(txHash: string, logIndex: number): string {
-  return `arc:observed-deposit:${txHash.toLowerCase()}:${Math.max(0, Math.trunc(logIndex))}`;
+  return observedArcTransferOperationKey('deposit', txHash, logIndex);
+}
+
+export function observedArcTransferOperationKey(
+  kind: ObservedArcTransferKind,
+  txHash: string,
+  logIndex: number,
+): string {
+  const suffix = `${txHash.toLowerCase()}:${Math.max(0, Math.trunc(logIndex))}`;
+  return kind === 'deposit'
+    ? `arc:observed-deposit:${suffix}`
+    : `arc:observed-transfer:${kind}:${suffix}`;
 }
 
 export function observedArcDepositSummary(input: Pick<ObservedArcDepositInput, 'amountMicros' | 'walletRole'>): string {
@@ -36,6 +52,20 @@ export function observedArcDepositSummary(input: Pick<ObservedArcDepositInput, '
   if (input.walletRole === 'identity') return `Deposited ${amount} USDC into your identity wallet`;
   const agent = input.walletRole === 'buyerAgent' ? 'buyer' : 'seller';
   return `Deposited ${amount} USDC into your ${agent} agent wallet`;
+}
+
+export function observedArcTransferSummary(
+  input: Pick<ObservedArcTransferInput, 'amountMicros' | 'walletRole' | 'kind'>,
+): string {
+  const amount = formatUsdcMicros(input.amountMicros);
+  const wallet = input.walletRole === 'identity'
+    ? 'identity wallet'
+    : input.walletRole === 'buyerAgent'
+      ? 'buyer agent wallet'
+      : 'seller agent wallet';
+  if (input.kind === 'cash_out') return `Observed ${amount} USDC leave your ${wallet}`;
+  if (input.kind === 'agent_funding') return `Observed ${amount} USDC move into your ${wallet}`;
+  return `Observed ${amount} USDC arrive in your ${wallet}`;
 }
 
 /**
@@ -47,11 +77,19 @@ export function observedArcDepositSummary(input: Pick<ObservedArcDepositInput, '
 export async function recordObservedArcDeposit(
   input: ObservedArcDepositInput,
 ) {
-  const operationKey = observedArcDepositOperationKey(input.txHash, input.logIndex);
+  return recordObservedArcTransfer({ ...input, kind: 'deposit' });
+}
+
+/** Record any already-mined Arc transfer that had no route-specific receipt. */
+export async function recordObservedArcTransfer(
+  input: ObservedArcTransferInput,
+) {
+  const kind = input.kind ?? 'deposit';
+  const operationKey = observedArcTransferOperationKey(kind, input.txHash, input.logIndex);
   const amountMicros = BigInt(input.amountMicros);
   const ensured = await ensureMoneyMovement({
     operationKey,
-    kind: 'deposit',
+    kind,
     amountMicros,
     initiatedBy: input.owner,
     participants: [
@@ -59,7 +97,7 @@ export async function recordObservedArcDeposit(
       { address: input.sourceAddress, role: 'source' },
       { address: input.destinationAddress, role: 'recipient' },
     ],
-    summary: input.summary ?? observedArcDepositSummary(input),
+    summary: input.summary ?? observedArcTransferSummary({ ...input, kind }),
     nextActor: 'karwan',
   });
 
