@@ -33,51 +33,51 @@ export function PendingMatchesSignal() {
         <div
           className="relative overflow-hidden"
           style={{
-            background: 'var(--lp-band-dark)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            background: 'var(--lp-accent)',
+            border: '1px solid rgba(14,14,14,0.18)',
             borderTopLeftRadius: 16,
             borderTopRightRadius: 16,
             borderBottomLeftRadius: 16,
             borderBottomRightRadius: 4,
-            boxShadow: '0 16px 44px -32px rgba(0,0,0,0.65)',
+            boxShadow: '0 16px 44px -32px rgba(0,0,0,0.5)',
           }}
         >
           <span
             aria-hidden
-            className="absolute inset-y-0 start-0 w-[3px] bg-[var(--lp-accent)]"
+            className="absolute inset-y-0 start-0 w-[3px] bg-[var(--lp-band-dark)]"
           />
           <button
             type="button"
             aria-expanded={open}
             aria-controls={panelId}
             onClick={() => setOpen((value) => !value)}
-            className="group flex min-h-[84px] w-full items-center gap-3 px-4 py-4 ps-5 text-start text-white transition-colors duration-200 hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:gap-5 sm:px-6 sm:ps-7"
+            className="group flex min-h-[84px] w-full items-center gap-3 px-4 py-4 ps-5 text-start text-[var(--lp-band-dark)] transition-colors duration-200 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-band-dark)] sm:gap-5 sm:px-6 sm:ps-7"
           >
             <span
               aria-hidden
-              className="inline-flex size-9 shrink-0 items-center justify-center border border-white/15 bg-white/[0.04]"
+              className="inline-flex size-9 shrink-0 items-center justify-center border border-black/20 bg-black/[0.04]"
               style={{ borderRadius: 9 }}
             >
               <span
                 data-instrument-blink
-                className="size-[7px] bg-[var(--lp-accent)]"
+                className="size-[7px] bg-[var(--lp-band-dark)]"
                 style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
               />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block mono text-[10px] font-semibold uppercase tracking-[0.17em] text-white/80">
+              <span className="block mono text-[10px] font-semibold uppercase tracking-[0.17em] text-[var(--lp-band-dark)]/85">
                 [:{t.matches.inlineEyebrow}:]
               </span>
-              <span className="mt-1 block mono text-[9px] uppercase tracking-[0.13em] text-white/45">
+              <span className="mt-1 block mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-band-dark)]/60">
                 {t.matches.inlineSubtitle}
               </span>
             </span>
-            <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.03em] text-[var(--lp-accent)] sm:text-[30px]">
+            <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.03em] text-[var(--lp-band-dark)] sm:text-[30px]">
               {count}
             </span>
             <span
               aria-hidden
-              className={`inline-flex size-11 shrink-0 items-center justify-center border border-white/10 text-white/65 transition-transform duration-200 group-hover:border-white/20 group-hover:text-white ${
+              className={`inline-flex size-11 shrink-0 items-center justify-center border border-black/15 text-[var(--lp-band-dark)]/70 transition-[transform,border-color,color,background-color] duration-200 group-hover:border-black/30 group-hover:bg-black/[0.04] group-hover:text-[var(--lp-band-dark)] ${
                 open ? 'rotate-180' : ''
               }`}
               style={{ borderRadius: 10 }}
@@ -97,7 +97,7 @@ export function PendingMatchesSignal() {
           {open ? (
             <div
               id={panelId}
-              className="pending-match-reveal border-t border-white/[0.08] px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-5"
+              className="pending-match-reveal border-t border-black/[0.12] px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-5"
             >
               {state === 'error' ? (
                 <MatchLoadError
@@ -113,7 +113,7 @@ export function PendingMatchesSignal() {
                       key={proposal.jobId}
                       proposal={proposal}
                       viewerAddress={address!}
-                      tone="dark"
+                      tone="light"
                     />
                   ))}
                 </ul>
