@@ -4971,8 +4971,8 @@ export const fr: Messages = {
   pending: {
     matches: {
       sectionTag: 'CORRESPONDANCES EN ATTENTE',
-      inlineEyebrow: 'CORRESPONDANCES EN ATTENTE',
-      inlineSubtitle: 'EXAMINER AVANT DE CONFIRMER',
+      inlineEyebrow: 'CORRESPONDANCES À EXAMINER',
+      inlineSubtitle: 'Ouvrez pour examiner chaque offre et choisir la prochaine étape.',
       headline: 'Correspondances en attente',
       body: 'Un agent a trouvé une correspondance possible. Ouvrez-la pour examiner le prix, le délai, les signaux de confiance et l’effet de la confirmation.',
       loadError: 'Impossible de vérifier vos correspondances en attente. Les cartes existantes peuvent être obsolètes.',

@@ -4971,8 +4971,8 @@ export const sw: Messages = {
   pending: {
     matches: {
       sectionTag: 'MECHI ZINAZOSUBIRI',
-      inlineEyebrow: 'MECHI ZINAZOSUBIRI',
-      inlineSubtitle: 'KAGUA KABLA YA KUTHIBITISHA',
+      inlineEyebrow: 'MECHI ZA KUKAGUA',
+      inlineSubtitle: 'Fungua ukague kila ofa na uchague hatua inayofuata.',
       headline: 'Mechi zinazosubiri',
       body: 'Wakala amepata ulinganifu unaowezekana. Fungua ukague bei, muda, ishara za mhusika mwenzako na matokeo ya uthibitisho.',
       loadError: 'Hatukuweza kukagua mechi zako zinazosubiri. Kadi zilizopo zinaweza kuwa za zamani.',
