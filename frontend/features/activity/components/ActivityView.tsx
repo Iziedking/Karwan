@@ -343,11 +343,11 @@ function ActivityPanelTab({
       }`}
     >
       {tag && (
-        <span className="block mono text-[10px] uppercase tracking-[0.18em] opacity-70">
+        <span className="block mono text-[8px] uppercase tracking-[0.12em] leading-tight opacity-70 sm:text-[10px] sm:tracking-[0.18em]">
           [:{tag}:]
         </span>
       )}
-      <span className={`block text-[13px] font-bold uppercase tracking-[0.02em] ${tag ? 'mt-1' : ''}`}>
+      <span className={`block whitespace-nowrap text-[10px] leading-tight font-bold uppercase tracking-normal sm:text-[13px] sm:tracking-[0.02em] ${tag ? 'mt-0.5 sm:mt-1' : ''}`}>
         {label}
       </span>
     </button>
