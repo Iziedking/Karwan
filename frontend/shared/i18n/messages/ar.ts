@@ -12,6 +12,8 @@ export const ar: Messages = {
     continue: 'متابعة',
     back: 'رجوع',
     next: 'التالي',
+    pause: 'إيقاف مؤقت',
+    resume: 'استئناف',
     loading: 'جارٍ التحميل',
     error: 'خطأ',
     success: 'تم الحفظ',

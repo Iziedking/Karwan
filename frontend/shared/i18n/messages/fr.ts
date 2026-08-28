@@ -12,6 +12,8 @@ export const fr: Messages = {
     continue: 'Continuer',
     back: 'Retour',
     next: 'Suivant',
+    pause: 'Pause',
+    resume: 'Reprendre',
     loading: 'Chargement',
     error: 'Erreur',
     success: 'Enregistré',
