@@ -62,7 +62,6 @@ import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { MigrationBanner } from '@/shared/components/MigrationBanner';
 import { QuickStartBand } from '@/shared/components/QuickStartBand';
-import { PendingMatchesSignal } from '@/features/notifications/components/PendingMatchesBand';
 import {
   FullBleed,
   Band,
@@ -291,9 +290,6 @@ export default function AppHome() {
       {/* QUICK START. First-run orientation for brand-new users; hides once
           agents are activated or the user dismisses it. */}
       <QuickStartBand />
-
-      {/* One account-level inbox for every open agent match. */}
-      <PendingMatchesSignal />
 
       {/* START HERE */}
       <Band tone="light">

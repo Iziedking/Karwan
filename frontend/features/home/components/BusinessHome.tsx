@@ -6,7 +6,6 @@ import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
-import { PendingMatchesSignal } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
@@ -149,7 +148,6 @@ export function BusinessHome({
 
       <MoneyStrip />
 
-      <PendingMatchesSignal />
       <PendingDealsBand tone="light" />
 
       {/* TRADE ANALYTICS. the company's own book, with a cumulative-volume chart */}
