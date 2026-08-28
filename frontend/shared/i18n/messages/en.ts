@@ -13,6 +13,8 @@ interface MessagesShape {
     continue: string;
     back: string;
     next: string;
+    pause: string;
+    resume: string;
     loading: string;
     error: string;
     success: string;
@@ -4872,6 +4874,8 @@ export const en: MessagesShape = {
     continue: 'Continue',
     back: 'Back',
     next: 'Next',
+    pause: 'Pause',
+    resume: 'Resume',
     loading: 'Loading',
     error: 'Error',
     success: 'Saved',

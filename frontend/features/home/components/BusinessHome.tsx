@@ -8,6 +8,7 @@ import { DealsFeed } from '@/features/deals/components/DealsFeed';
 import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
+import { LiveNetworkBand, type LiveNetworkStats } from '@/features/home/components/LiveNetworkBand';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BIZ_HOME_TOUR_ID, BIZ_HOME_STEPS } from '@/shared/guide/tours';
@@ -22,19 +23,10 @@ import {
   Punc,
   Accent,
   CTAPill,
-  BigStatTile,
   PageCard,
 } from '@/shared/components/Bands';
 
 type BusinessStatus = 'none' | 'submitted' | 'verified' | 'rejected';
-
-interface NetStats {
-  deals: number;
-  direct: number;
-  agent: number;
-  settled: number;
-  usdc: number;
-}
 
 const ACTIVE_STAGES: DealStage[] = [
   'awaiting-acceptance',
@@ -59,11 +51,10 @@ export function BusinessHome({
   profile: UserProfile;
   status: BusinessStatus;
   companyName: string;
-  stats: NetStats | null;
+  stats: LiveNetworkStats | null;
 }) {
   const t = useTranslations();
   const bh = t.businessHome;
-  const ah = t.appHome;
   const { deals } = useDirectDeals();
 
   const book = useMemo(() => {
@@ -188,49 +179,7 @@ export function BusinessHome({
       </Band>
 
       {/* LIVE NETWORK. everything happening across Karwan */}
-      <Band tone="dark">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="max-w-[42ch]">
-            <SectionTag tone="dark" dot="live">
-              {ah.liveNetwork.sectionTag}
-            </SectionTag>
-            <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
-              {ah.liveNetwork.headlineTop}
-              <br />
-              {ah.liveNetwork.headlineBottomPrefix}
-              <Accent>{ah.liveNetwork.headlineBottomAccent}</Accent>.
-            </HeroHeadline>
-          </div>
-          <Link
-            href="/activity"
-            className="group inline-flex items-center gap-1.5 mono text-[12px] uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
-          >
-            {ah.liveNetwork.fullFeed}
-            <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
-              →
-            </span>
-          </Link>
-        </div>
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3">
-          <BigStatTile
-            label={ah.liveNetwork.stats.totalDeals}
-            value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} />}
-            hint={ah.liveNetwork.stats.directPlusAgent}
-            loading={!stats}
-          />
-          <BigStatTile
-            label={ah.liveNetwork.stats.settled}
-            value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} />}
-            loading={!stats}
-          />
-          <BigStatTile
-            label={ah.liveNetwork.stats.usdcThrough}
-            value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} />}
-            unit="USDC"
-            loading={!stats}
-          />
-        </div>
-      </Band>
+      <LiveNetworkBand stats={stats} />
 
       <OnChainProofBand />
 

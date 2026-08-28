@@ -8,6 +8,7 @@ import { cn } from '@/shared/utils/cn';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
+import { LiveNetworkBand, type LiveNetworkStats } from '@/features/home/components/LiveNetworkBand';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 /// Below-the-fold bands. Dynamically imported so motion (NetworkTicker) and
@@ -43,7 +44,7 @@ const OnChainProofBand = dynamic(
     loading: () => (
       <div
         aria-hidden
-        style={{ minHeight: 1200, background: 'var(--lp-band-dark)' }}
+        style={{ minHeight: 600, background: 'var(--lp-band-dark)' }}
       />
     ),
   },
@@ -71,17 +72,8 @@ import {
   Punc,
   Accent,
   CTAPill,
-  BigStatTile,
 } from '@/shared/components/Bands';
 import { isBusinessAccount } from '@/features/account/accountKind';
-
-interface NetStats {
-  deals: number;
-  direct: number;
-  agent: number;
-  settled: number;
-  usdc: number;
-}
 
 export default function AppHome() {
   const t = useTranslations().appHome;
@@ -113,7 +105,7 @@ export default function AppHome() {
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
-  const stats: NetStats | null = statsQuery.data
+  const stats: LiveNetworkStats | null = statsQuery.data
     ? {
         deals: statsQuery.data.total,
         direct: statsQuery.data.direct,
@@ -293,105 +285,42 @@ export default function AppHome() {
 
       {/* START HERE */}
       <Band tone="light">
-        <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
-        <div data-guide="home-doors" className="mt-6 grid md:grid-cols-3 border-y border-[var(--lp-border-light)]">
-          {[
-            { href: '/buyer', card: t.threeDoors.buyerCard },
-            { href: '/seller', card: t.threeDoors.sellerCard },
-            { href: '/activity', card: t.threeDoors.activityCard },
-          ].map(({ href, card }, index) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'group flex items-center justify-between gap-5 py-6 transition-colors hover:bg-black/[0.025]',
-                'md:px-6 md:first:ps-0 md:last:pe-0',
-                'max-md:border-b max-md:last:border-b-0 max-md:border-[var(--lp-border-light)]',
-                index > 0 && 'md:border-s md:border-[var(--lp-border-light)]',
-              )}
-            >
-              <div>
-                <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  {card.eyebrow}
-                </span>
-                <h3 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
-                  {card.title}
-                </h3>
-                <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">{card.body}</p>
-              </div>
-              <span aria-hidden className="mono text-[16px] text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-1">+</span>
-            </Link>
-          ))}
+        <div className="flex min-h-[320px] flex-col justify-center md:min-h-[360px]">
+          <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
+          <div data-guide="home-doors" className="mt-6 grid md:grid-cols-3 border-y border-[var(--lp-border-light)]">
+            {[
+              { href: '/buyer', card: t.threeDoors.buyerCard },
+              { href: '/seller', card: t.threeDoors.sellerCard },
+              { href: '/activity', card: t.threeDoors.activityCard },
+            ].map(({ href, card }, index) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'group flex items-center justify-between gap-5 py-8 transition-colors hover:bg-black/[0.025] md:py-9',
+                  'md:px-6 md:first:ps-0 md:last:pe-0',
+                  'max-md:border-b max-md:last:border-b-0 max-md:border-[var(--lp-border-light)]',
+                  index > 0 && 'md:border-s md:border-[var(--lp-border-light)]',
+                )}
+              >
+                <div>
+                  <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                    {card.eyebrow}
+                  </span>
+                  <h3 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
+                    {card.title}
+                  </h3>
+                  <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">{card.body}</p>
+                </div>
+                <span aria-hidden className="mono text-[16px] text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-1">+</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </Band>
 
       {/* LIVE NETWORK */}
-      <Band tone="dark">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <div className="max-w-[42ch]">
-            <SectionTag tone="dark" dot="live">
-              {t.liveNetwork.sectionTag}
-            </SectionTag>
-            <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
-              {t.liveNetwork.headlineTop}
-              <br />
-              {t.liveNetwork.headlineBottomPrefix}<Accent>{t.liveNetwork.headlineBottomAccent}</Accent>
-              <Punc>.</Punc>
-            </HeroHeadline>
-          </div>
-          <Link
-            href="/activity"
-            className="group -mx-2 inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[12px] uppercase tracking-[0.08em] text-white/70 hover:text-white transition-colors"
-          >
-            {t.liveNetwork.fullFeed}
-            <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
-              →
-            </span>
-          </Link>
-        </div>
-        <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="fade-up fade-up-1">
-            <BigStatTile
-              label={t.liveNetwork.stats.totalDeals}
-              value={<AnimatedNumber value={stats?.deals ?? 0} decimals={0} replayEveryMs={9000} />}
-              hint={t.liveNetwork.stats.directPlusAgent}
-              loading={!stats}
-            />
-          </div>
-          <div className="fade-up fade-up-2">
-            <BigStatTile
-              label={t.liveNetwork.stats.directDeals}
-              value={<AnimatedNumber value={stats?.direct ?? 0} decimals={0} replayEveryMs={9800} />}
-              loading={!stats}
-            />
-          </div>
-          <div className="fade-up fade-up-3">
-            <BigStatTile
-              label={t.liveNetwork.stats.agentDeals}
-              value={<AnimatedNumber value={stats?.agent ?? 0} decimals={0} replayEveryMs={10600} />}
-              loading={!stats}
-            />
-          </div>
-          <div className="fade-up fade-up-4">
-            <BigStatTile
-              label={t.liveNetwork.stats.settled}
-              value={<AnimatedNumber value={stats?.settled ?? 0} decimals={0} replayEveryMs={9400} />}
-              loading={!stats}
-            />
-          </div>
-          <div className="fade-up fade-up-4">
-            <BigStatTile
-              label={t.liveNetwork.stats.usdcThrough}
-              value={<AnimatedNumber value={stats?.usdc ?? 0} decimals={2} replayEveryMs={10200} />}
-              unit="USDC"
-              loading={!stats}
-            />
-          </div>
-          <div className="fade-up fade-up-4">
-            <BigStatTile label={t.liveNetwork.stats.chain} value="Arc" hint={t.liveNetwork.stats.arcTestnet} />
-          </div>
-        </div>
-      </Band>
+      <LiveNetworkBand stats={stats} />
 
       {/* ON-CHAIN PROOF. Numbers and a 30-day chart read directly from contract
           events on the current production deploy. Provable by anyone who curls

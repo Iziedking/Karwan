@@ -12,6 +12,8 @@ export const sw: Messages = {
     continue: 'Endelea',
     back: 'Rudi',
     next: 'Endelea',
+    pause: 'Sitisha',
+    resume: 'Endelea tena',
     loading: 'Inapakia',
     error: 'Hitilafu',
     success: 'Imehifadhiwa',

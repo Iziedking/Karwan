@@ -12,6 +12,8 @@ export const hi: Messages = {
     continue: 'जारी रखें',
     back: 'वापस',
     next: 'आगे',
+    pause: 'रोकें',
+    resume: 'फिर शुरू करें',
     loading: 'लोड हो रहा है',
     error: 'त्रुटि',
     success: 'सहेजा गया',

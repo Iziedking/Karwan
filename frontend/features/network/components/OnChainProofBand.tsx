@@ -1,14 +1,14 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type NetworkOnchainDayPoint, type NetworkOnchainStats } from '@/core/api';
 import {
   Band,
   SectionTag,
   HeroHeadline,
   Accent,
-  BigStatTile,
 } from '@/shared/components/Bands';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
+import { RotatingDataPanel } from '@/shared/components/RotatingDataPanel';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Home-page band that surfaces stats read directly from current-contract
@@ -76,10 +76,113 @@ export function OnChainProofBand() {
   const releasedUsdc = numericUsdc(stats?.volumes.releasedUsdc);
   const feesUsdc = numericUsdc(stats?.volumes.feesCollectedUsdc);
   const vaultDepositsUsdc = numericUsdc(stats?.volumes.vaultDepositsUsdc);
+  const loading = !stats;
+  const slides = [
+    {
+      id: 'activity',
+      label: t.chart.activityEyebrow,
+      content: (
+        <DailyAreaChart
+          series={stats?.series ?? null}
+          loading={!stats && !errored}
+          errored={errored}
+          onRetry={fetchOnce}
+        />
+      ),
+    },
+    {
+      id: 'status',
+      label: t.tiles.escrowsFunded.label,
+      content: (
+        <ProofMetricGrid>
+          <ProofMetric
+            label={t.tiles.escrowsFunded.label}
+            value={stats?.totals.escrowsFunded ?? 0}
+            hint={t.tiles.escrowsFunded.hint}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.tiles.settledInFull.label}
+            value={stats?.totals.escrowsSettled ?? 0}
+            hint={t.tiles.settledInFull.hint}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.tiles.disputesOpened.label}
+            value={stats?.totals.escrowsDisputed ?? 0}
+            hint={t.tiles.disputesOpened.hint}
+            loading={loading}
+          />
+        </ProofMetricGrid>
+      ),
+    },
+    {
+      id: 'volume',
+      label: t.tiles.usdcFunded.label,
+      content: (
+        <ProofMetricGrid>
+          <ProofMetric
+            label={t.tiles.usdcFunded.label}
+            value={fundedUsdc}
+            decimals={2}
+            unit="USDC"
+            hint={t.tiles.usdcFunded.hint}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.tiles.usdcReleased.label}
+            value={releasedUsdc}
+            decimals={2}
+            unit="USDC"
+            hint={t.tiles.usdcReleased.hint}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.tiles.vaultDeposits.label}
+            value={vaultDepositsUsdc}
+            decimals={2}
+            unit="USDC"
+            hint={t.tiles.vaultDeposits.hint}
+            loading={loading}
+          />
+        </ProofMetricGrid>
+      ),
+    },
+    {
+      id: 'records',
+      label: t.smallStats.reputationRecords,
+      content: (
+        <ProofMetricGrid compact>
+          <ProofMetric
+            label={t.smallStats.milestoneReleases}
+            value={stats?.totals.milestoneReleases ?? 0}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.smallStats.reputationRecords}
+            value={stats?.totals.reputationRecords ?? 0}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.smallStats.yieldPayouts}
+            value={stats?.totals.yieldClaims ?? 0}
+            loading={loading}
+          />
+          <ProofMetric
+            label={t.smallStats.feesCollected}
+            value={feesUsdc}
+            decimals={2}
+            unit="USDC"
+            loading={loading}
+          />
+        </ProofMetricGrid>
+      ),
+    },
+  ];
 
   return (
     <Band tone="dark">
-      <div className="flex flex-wrap items-end justify-between gap-6">
+      <div className="grid items-center gap-8 md:min-h-[360px] lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:gap-14">
         <div className="max-w-[46ch]">
           <SectionTag tone="dark" dot="live">
             {t.sectionTag}
@@ -87,110 +190,16 @@ export function OnChainProofBand() {
           <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
             {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>.
           </HeroHeadline>
+          {stats && (
+            <p className="mt-7 mono text-[10px] uppercase tracking-[0.14em] text-white/45 tabular-nums">
+              {t.blockPrefix} {fmtBlock(stats.fromBlock)} → {fmtBlock(stats.toBlock)}
+            </p>
+          )}
         </div>
-        {stats && (
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45 tabular-nums">
-            {t.blockPrefix} {fmtBlock(stats.fromBlock)} → {fmtBlock(stats.toBlock)}
-          </p>
-        )}
-      </div>
-
-      {/* The 30-day activity readout: the chart and the totals beneath it,
-          anchored as one piece so the home tour can spotlight and explain it. */}
-      <div data-guide="home-activity">
-      {/* Chart band. 30-day overlay of funded, settled, and any
-          disputed/refunded blips so a quiet week reads honestly. */}
-      <div className="mt-10 hidden sm:block">
-        <DailyAreaChart
-          series={stats?.series ?? null}
-          loading={!stats && !errored}
-          errored={errored}
-          onRetry={fetchOnce}
-        />
-      </div>
-
-      {/* Six tiles. Mix of counts and USDC so the chart sits on top of
-          something concrete, not just an abstract curve. */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-10 md:grid-cols-3">
-        <div className="fade-up fade-up-1">
-          <BigStatTile
-            label={t.tiles.escrowsFunded.label}
-            value={<AnimatedNumber value={stats?.totals.escrowsFunded ?? 0} decimals={0} />}
-            hint={t.tiles.escrowsFunded.hint}
-            loading={!stats}
-          />
-        </div>
-        <div className="fade-up fade-up-2">
-          <BigStatTile
-            label={t.tiles.settledInFull.label}
-            value={<AnimatedNumber value={stats?.totals.escrowsSettled ?? 0} decimals={0} />}
-            hint={t.tiles.settledInFull.hint}
-            loading={!stats}
-          />
-        </div>
-        <div className="fade-up fade-up-3">
-          <BigStatTile
-            label={t.tiles.disputesOpened.label}
-            value={<AnimatedNumber value={stats?.totals.escrowsDisputed ?? 0} decimals={0} />}
-            hint={t.tiles.disputesOpened.hint}
-            loading={!stats}
-          />
-        </div>
-        <div className="fade-up fade-up-4 hidden sm:block">
-          <BigStatTile
-            label={t.tiles.usdcFunded.label}
-            value={<AnimatedNumber value={fundedUsdc} decimals={2} />}
-            unit="USDC"
-            hint={t.tiles.usdcFunded.hint}
-            loading={!stats}
-          />
-        </div>
-        <div className="fade-up fade-up-4 hidden sm:block">
-          <BigStatTile
-            label={t.tiles.usdcReleased.label}
-            value={<AnimatedNumber value={releasedUsdc} decimals={2} />}
-            unit="USDC"
-            hint={t.tiles.usdcReleased.hint}
-            loading={!stats}
-          />
-        </div>
-        <div className="fade-up fade-up-4 hidden sm:block">
-          <BigStatTile
-            label={t.tiles.vaultDeposits.label}
-            value={<AnimatedNumber value={vaultDepositsUsdc} decimals={2} />}
-            unit="USDC"
-            hint={t.tiles.vaultDeposits.hint}
-            loading={!stats}
-          />
+        <div data-guide="home-activity" className="min-w-0">
+          <RotatingDataPanel label={t.sectionTag} slides={slides} intervalMs={6800} />
         </div>
       </div>
-
-      {/* Three secondary numbers + a treasury readout, smaller scale. */}
-      <div className="mt-3 hidden grid-cols-2 gap-3 sm:grid md:grid-cols-4">
-        <SmallStat
-          label={t.smallStats.milestoneReleases}
-          value={stats?.totals.milestoneReleases ?? 0}
-          loading={!stats}
-        />
-        <SmallStat
-          label={t.smallStats.reputationRecords}
-          value={stats?.totals.reputationRecords ?? 0}
-          loading={!stats}
-        />
-        <SmallStat
-          label={t.smallStats.yieldPayouts}
-          value={stats?.totals.yieldClaims ?? 0}
-          loading={!stats}
-        />
-        <SmallStat
-          label={t.smallStats.feesCollected}
-          value={feesUsdc}
-          decimals={2}
-          loading={!stats}
-        />
-      </div>
-      </div>
-
     </Band>
   );
 }
@@ -227,7 +236,7 @@ const SERIES = {
 function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartProps) {
   const t = useTranslations().onChainProof.chart;
   const VIEW_W = 1000;
-  const VIEW_H = 280;
+  const VIEW_H = 220;
   const PAD = { top: 28, right: 16, bottom: 28, left: 16 };
   const chartW = VIEW_W - PAD.left - PAD.right;
   const chartH = VIEW_H - PAD.top - PAD.bottom;
@@ -249,7 +258,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
       <div
         className="relative overflow-hidden flex items-center justify-center"
         style={{
-          height: 280,
+          height: 220,
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderTopLeftRadius: 18,
@@ -270,7 +279,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
       <div
         className="relative overflow-hidden flex flex-col items-center justify-center gap-3"
         style={{
-          height: 280,
+          height: 220,
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderTopLeftRadius: 18,
@@ -572,33 +581,51 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-function SmallStat({
+function ProofMetricGrid({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
+  return (
+    <div
+      className={
+        compact
+          ? 'grid grid-cols-2 gap-px bg-white/10'
+          : 'grid grid-cols-2 gap-px bg-white/10 [&>*:last-child]:col-span-2 sm:grid-cols-3 sm:[&>*:last-child]:col-span-1'
+      }
+    >
+      {children}
+    </div>
+  );
+}
+
+function ProofMetric({
   label,
   value,
   decimals = 0,
+  unit,
+  hint,
   loading,
 }: {
   label: string;
   value: number;
   decimals?: number;
+  unit?: string;
+  hint?: string;
   loading?: boolean;
 }) {
   return (
-    <div
-      className="px-4 py-3"
-      style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
-      }}
-    >
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/50">{label}</p>
-      <p className="mt-1.5 font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] text-white">
-        {loading ? '—' : <AnimatedNumber value={value} decimals={decimals} />}
+    <div className="min-w-0 bg-[var(--lp-band-dark)] p-3 sm:p-4">
+      <p className="mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-white/50 sm:text-[9px]">
+        {label}
       </p>
+      {loading ? (
+        <div className="mt-3 h-8 w-16 bg-white/[0.08] motion-safe:animate-pulse" aria-hidden />
+      ) : (
+        <p className="mt-2 flex min-w-0 flex-wrap items-baseline gap-1 font-sans text-[clamp(1.45rem,4vw,2.5rem)] font-extrabold leading-none tracking-[-0.035em] text-white tabular-nums">
+          <span className="min-w-0 max-w-full">
+            <AnimatedNumber value={value} decimals={decimals} />
+          </span>
+          {unit && <span className="mono text-[8px] uppercase tracking-[0.12em] text-white/45">{unit}</span>}
+        </p>
+      )}
+      {hint && <p className="mt-2 hidden text-[10px] leading-relaxed text-white/40 sm:block">{hint}</p>}
     </div>
   );
 }
