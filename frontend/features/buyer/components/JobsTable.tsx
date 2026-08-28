@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { BuyerJob } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
@@ -36,7 +37,57 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      <div className="divide-y divide-white/[0.07] md:hidden">
+        {visible.map((j) => {
+          const s = status(j, jt.status);
+          const href = `/jobs/${j.jobId}`;
+          return (
+            <article key={j.jobId} className="px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="mono text-[10px] uppercase tracking-[0.13em] text-white/40">{jt.columns.job}</p>
+                  <p className="mt-1 mono text-[12px] tabular-nums text-white">{shortHash(j.jobId, 8, 4)}</p>
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-2">
+                  <StatusDot tone={s.dot} />
+                  <Tag tone={s.tone}>{s.label}</Tag>
+                </span>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-white/[0.07] py-3">
+                <div>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-white/35">{jt.columns.budget}</dt>
+                  <dd className="mt-1 font-sans text-[17px] font-extrabold tabular-nums text-white">{formatUsdc(j.budgetUsdc)}</dd>
+                </div>
+                <div>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-white/35">{jt.columns.deadline}</dt>
+                  <dd className="mt-1 mono text-[11px] uppercase tracking-[0.08em] text-white/65">{relativeTime(j.deadlineUnix)}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                {(j.cancelledAt || j.expiredAt || j.escrowFunded) ? (
+                  <button
+                    type="button"
+                    title={jt.dismiss.title}
+                    aria-label={j.expiredAt ? jt.dismiss.ariaExpired : j.cancelledAt ? jt.dismiss.ariaCancelled : jt.dismiss.ariaFunded}
+                    onClick={() => dismiss(j.jobId)}
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-white/45"
+                  >
+                    {jt.dismiss.title}
+                  </button>
+                ) : <span />}
+                <Link
+                  href={href}
+                  className="inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent)]"
+                >
+                  {jt.row.openCta}<span aria-hidden>â†’</span>
+                </Link>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-sm">
         <thead>
           <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
@@ -139,6 +190,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

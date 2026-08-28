@@ -286,7 +286,7 @@ export function BridgeOutCard() {
                   <button
                     type="button"
                     onClick={() => setAmount(Number(arcBalance))}
-                    className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                    className="-my-2 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                     title={amountCopy.maxTitle}
                   >
                     {amountCopy.balanceMaxTemplate.replace('{amount}', formatUsdc(arcBalance, { withSuffix: false }))}

@@ -746,7 +746,7 @@ export function BridgeCard({
                 <button
                   type="button"
                   onClick={() => setAmount(Number(sourceBalance))}
-                  className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="-my-2 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
                   title={bc.amount.maxTitle}
                 >
                   {bc.amount.balanceMaxTemplate.replace('{amount}', formatUsdc(sourceBalance, { withSuffix: false }))}
@@ -831,7 +831,7 @@ export function BridgeCard({
               <button
                 type="button"
                 onClick={() => setRecipientOpen(true)}
-                className="shrink-0 mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
+                className="shrink-0 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-dark)] hover:opacity-80 transition-opacity underline-offset-2 hover:underline"
               >
                 {bc.recipient.sendElsewhere}
               </button>
@@ -845,7 +845,7 @@ export function BridgeCard({
               type="button"
               data-guide="bridge-submit"
               onClick={() => openConnectModal?.()}
-              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
@@ -869,7 +869,7 @@ export function BridgeCard({
               data-guide="bridge-submit"
               disabled={!canSubmit || startingBridge}
               aria-busy={startingBridge}
-              className="group relative w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+              className="group relative min-h-[45px] w-full px-4 py-3 mono text-[13px] font-bold uppercase tracking-[0.08em] inline-flex items-center justify-center gap-2 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--accent-ink)',
@@ -1156,7 +1156,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onRecheck}
-                className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors"
                 style={{
                   background: 'var(--lp-accent)',
                   color: 'var(--accent-ink)',
@@ -1173,7 +1173,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onRetry}
-                className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
                 style={{
                   background: 'var(--lp-band-dark)',
                   color: 'white',
@@ -1190,7 +1190,7 @@ export function BridgeRow({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
+                className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
               >
                 {copy.dismiss}
               </button>
@@ -1686,7 +1686,7 @@ function CircleSourceFundBanner({
             type="button"
             onClick={claimUsdc}
             disabled={!address || claiming}
-            className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
             style={{
               background: 'var(--lp-accent)',
               color: 'var(--lp-band-dark)',
@@ -1901,7 +1901,7 @@ function Web3FundHint({
           type="button"
           onClick={() => void copyAndOpen(USDC_FAUCET, 'usdc')}
           disabled={!fundAddress}
-          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+          className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -1922,7 +1922,7 @@ function Web3FundHint({
           }}
           hidden={!GAS_FAUCETS[source.key]}
           disabled={!fundAddress}
-          className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
+          className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border disabled:opacity-50"
           style={{
             borderColor: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',

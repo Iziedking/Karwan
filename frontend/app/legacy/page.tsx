@@ -127,7 +127,7 @@ function LegacyPageInner() {
             </p>
             <Link
               href="/"
-              className="mt-8 inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)]"
+              className="mt-8 inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)]"
               style={{
                 borderTopLeftRadius: 12,
                 borderTopRightRadius: 12,
@@ -188,7 +188,10 @@ function LegacyPageInner() {
         </HeroHeadline>
         <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[58ch]">
           {lp.stake.bodyBefore}{' '}
-          <Link href="/stake" className="underline underline-offset-2">{lp.stake.stakeLink}</Link> {lp.stake.bodyAfter}
+          <Link href="/stake" className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center align-middle underline underline-offset-2">
+            {lp.stake.stakeLink}
+          </Link>{' '}
+          {lp.stake.bodyAfter}
         </p>
         <div className="mt-8">
           <LegacyStakeCard address={address} isCircleUser={method === 'circle'} copy={lp} />

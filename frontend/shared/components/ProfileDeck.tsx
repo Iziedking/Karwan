@@ -417,7 +417,7 @@ function DeckNav({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="group inline-flex items-center gap-2 px-3 py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold border border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-ink)] hover:border-[var(--lp-ink)] transition-colors"
+      className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold border border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-ink)] hover:border-[var(--lp-ink)] transition-colors"
       style={{
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,

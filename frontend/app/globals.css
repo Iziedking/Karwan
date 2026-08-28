@@ -635,10 +635,10 @@ html.theme-shifting *::after {
 }
 
 /* ---- Landing panels ----------------------------------------------------
-   The landing is read one row at a time on a phone, so a row is exactly one
-   screen tall: the free height between the sticky chrome and the bottom of the
-   viewport. Anything less and the next row shows a sliver of itself under the
-   current one, which is what made the film hero read as a cropped mistake.
+   The opening film earns one phone viewport. The rows after it are content
+   sections, not slides. Forcing every one to a full screen made the landing
+   more than ten viewports long at 320 px and turned short proof rows into large
+   blocks of empty space.
 
    The two chrome heights are published by the components that own them
    (TopNav, StickyTabStrip) rather than hardcoded here, because both change with
@@ -663,6 +663,10 @@ html.theme-shifting *::after {
   .lp-panel {
     display: flex;
     flex-direction: column;
+    justify-content: flex-start;
+    min-height: 0;
+  }
+  .lp-panel#overview {
     justify-content: center;
     min-height: var(--lp-panel-h);
   }
@@ -673,8 +677,6 @@ html.theme-shifting *::after {
      on the row itself, never on these children, so pinning them to the row's
      width is safe. */
   .lp-panel > * { width: 100%; }
-  /* Rows whose content is honestly taller than a screen keep the floor and
-     lose the ceiling, so nothing is ever clipped to make the grid work. */
   .lp-panel-grow { justify-content: flex-start; }
 }
 

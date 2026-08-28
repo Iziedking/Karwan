@@ -45,14 +45,14 @@ function IssuedLink({ link, note, onDone }: { link: string; note: string; onDone
         Invitation ready
       </p>
       <p className="mt-1.5 text-[12px] text-white/70 max-w-[62ch]">{note}</p>
-      <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <code className="flex-1 min-w-[260px] font-mono text-[12px] break-all bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-white select-all">
+      <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <code className="min-w-0 flex-1 font-mono text-[12px] break-all bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-white select-all">
           {link}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2.5 rounded-lg bg-white text-[#0e0e0e]"
+          className="mono min-h-11 w-full rounded-lg bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0e0e0e] sm:w-auto"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>
@@ -60,7 +60,7 @@ function IssuedLink({ link, note, onDone }: { link: string; note: string; onDone
       <button
         type="button"
         onClick={onDone}
-        className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-white/45 hover:text-white transition"
+        className="mt-3 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.12em] text-white/45 hover:text-white transition"
       >
         Done
       </button>

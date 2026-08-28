@@ -134,10 +134,10 @@ function BridgePageInner() {
           {/* Direction first, rail second. Which way the money goes is the
               question every account has; which rail carries it depends on the
               answer, and two of the four only exist in one direction. */}
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
             <div
               data-guide="bridge-direction"
-              className="inline-flex p-1"
+              className="flex w-full p-1 sm:w-auto"
               style={{
                 background: 'var(--lp-card)',
                 border: '1px solid var(--lp-border-light)',
@@ -151,7 +151,7 @@ function BridgePageInner() {
                 {t.directions.fromArc}
               </DirToggle>
             </div>
-            <div data-guide="bridge-history">
+            <div data-guide="bridge-history" className="w-full sm:w-auto">
               <HistoryButton onClick={() => setHistoryOpen(true)} label={c.transferHistory} />
             </div>
           </div>
@@ -255,7 +255,7 @@ function HistoryButton({ onClick, label }: { onClick: () => void; label: string 
     <button
       type="button"
       onClick={onClick}
-      className="mono text-[11px] font-bold uppercase tracking-[0.1em] px-4 py-2 transition-colors hover:bg-[var(--lp-light)]"
+      className="inline-flex min-h-11 w-full items-center justify-center px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors hover:bg-[var(--lp-light)] sm:w-auto"
       style={{
         background: 'transparent',
         color: 'var(--lp-dark)',
@@ -282,7 +282,7 @@ function DirToggle({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="px-5 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors"
+      className="min-h-11 flex-1 rounded-full px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors sm:flex-none sm:px-5"
       style={{
         background: active ? 'var(--lp-band-dark)' : 'transparent',
         color: active ? 'white' : 'var(--lp-text-sub)',

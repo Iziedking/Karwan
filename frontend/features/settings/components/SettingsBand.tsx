@@ -131,7 +131,7 @@ export function SettingsBand() {
 
   return (
     <section
-      className="border bg-[var(--color-surface)] p-6 md:p-7 fade-up"
+      className="border bg-[var(--color-surface)] p-4 sm:p-6 md:p-7 fade-up"
       style={{
         borderColor: 'var(--color-line)',
         borderTopLeftRadius: 16,
@@ -213,20 +213,20 @@ export function SettingsBand() {
         <p className="text-[13px] text-[var(--color-ink-dim)] max-w-[52ch]">
           {t.settings.accountDeleteHint}
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
           <input
             type="text"
             value={deleteConfirm}
             onChange={(e) => setDeleteConfirm(e.target.value)}
             placeholder={t.settings.accountDeleteConfirm}
-            className="px-3 py-2 text-[12px] mono border bg-[var(--color-surface)]"
+            className="min-h-11 w-full px-3 py-2 text-[12px] mono border bg-[var(--color-surface)] sm:w-auto"
             style={{ borderColor: 'var(--color-line)', borderRadius: 3 }}
           />
           <button
             type="button"
             disabled={deleteConfirm !== 'DELETE' || deleting || forceConfirm !== null}
             onClick={() => runDelete(false)}
-            className="px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 w-full px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40 disabled:cursor-not-allowed sm:w-auto"
             style={{
               background: 'var(--color-critical)',
               color: 'var(--color-surface)',
@@ -243,12 +243,12 @@ export function SettingsBand() {
             style={{ borderColor: 'var(--color-critical)', borderRadius: 3 }}
           >
             <p className="text-[12px] leading-snug text-[var(--color-ink-dim)]">{forceConfirm}</p>
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => runDelete(true)}
-                className="px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
+                className="min-h-11 px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
                 style={{
                   background: 'var(--color-critical)',
                   color: 'var(--color-surface)',
@@ -265,7 +265,7 @@ export function SettingsBand() {
                   setForceConfirm(null);
                   setDeleteConfirm('');
                 }}
-                className="px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
+                className="min-h-11 px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
                 style={{
                   border: '1px solid var(--color-line)',
                   color: 'var(--color-ink-dim)',
@@ -355,7 +355,7 @@ function PasskeyRow({
             type="button"
             onClick={addPasskey}
             disabled={busy || !supports}
-            className="inline-flex items-center gap-2 px-4 py-2 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--color-ink)] text-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+            className="inline-flex min-h-11 items-center gap-2 px-4 py-2 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--color-ink)] text-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
             style={{ borderRadius: 3 }}
           >
             {busy ? t.addingButton : t.addButton}
@@ -413,7 +413,7 @@ function ToggleGroup({
   onChange: (next: string) => void;
 }) {
   return (
-    <div className="inline-flex border" style={{ borderColor: 'var(--color-line)', borderRadius: 3 }}>
+    <div className="flex w-full border sm:inline-flex sm:w-auto" style={{ borderColor: 'var(--color-line)', borderRadius: 3 }}>
       {options.map((opt, i) => {
         const active = opt.value === value;
         return (
@@ -421,7 +421,7 @@ function ToggleGroup({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className="px-3.5 py-1.5 text-[12px] mono uppercase tracking-[0.12em] font-semibold"
+            className="min-h-11 flex-1 px-3 py-2 text-[11px] mono uppercase tracking-[0.1em] font-semibold sm:flex-none sm:px-3.5 sm:text-[12px]"
             style={{
               background: active ? 'var(--color-ink)' : 'transparent',
               color: active ? 'var(--color-surface)' : 'var(--color-ink-dim)',
@@ -446,7 +446,7 @@ function Switch({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <label className="inline-flex items-center gap-3 cursor-pointer">
+    <label className="inline-flex min-h-11 items-center gap-3 cursor-pointer">
       <span
         role="switch"
         aria-checked={checked}
@@ -458,17 +458,21 @@ function Switch({
             onChange(!checked);
           }
         }}
-        className="relative inline-block w-9 h-5 transition-colors"
-        style={{
-          background: checked ? 'var(--color-accent, #b25425)' : 'var(--color-line-strong)',
-          borderRadius: 999,
-        }}
+        className="inline-flex h-11 w-11 shrink-0 items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent,#b25425)] focus-visible:ring-offset-2"
       >
         <span
           aria-hidden
-          className="absolute top-0.5 inline-block w-4 h-4 bg-white transition-[inset-inline-start]"
-          style={{ insetInlineStart: checked ? 18 : 2, borderRadius: 999 }}
-        />
+          className="relative inline-block h-6 w-11 shrink-0 transition-colors"
+          style={{
+            background: checked ? 'var(--color-accent, #b25425)' : 'var(--color-line-strong)',
+            borderRadius: 999,
+          }}
+        >
+          <span
+            className="absolute top-0.5 inline-block h-5 w-5 bg-white transition-[inset-inline-start]"
+            style={{ insetInlineStart: checked ? 22 : 2, borderRadius: 999 }}
+          />
+        </span>
       </span>
       <span className="text-[13px] text-[var(--color-ink-dim)]">{label}</span>
     </label>

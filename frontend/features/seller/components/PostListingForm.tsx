@@ -349,7 +349,7 @@ export function PostListingForm() {
                           if (u === 'hr' && (typeof ttlValue !== 'number' || ttlValue > 168)) setTtlValue(2);
                           if (u === 'day' && (typeof ttlValue !== 'number' || ttlValue > 90)) setTtlValue(30);
                         }}
-                        className="mono text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-[var(--dur-micro)] px-3"
+                        className="min-h-11 min-w-11 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-[var(--dur-micro)]"
                         style={{
                           background: active ? 'var(--lp-accent)' : 'transparent',
                           color: active ? 'var(--lp-band-dark)' : 'rgba(255,255,255,0.55)',

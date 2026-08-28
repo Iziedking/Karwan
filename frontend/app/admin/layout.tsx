@@ -71,16 +71,16 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0B] px-4 py-10 text-white sm:px-6">
-      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-[1040px] items-center gap-10 lg:grid-cols-[1fr_420px]">
+    <main className="min-h-screen bg-[#0A0A0B] px-4 py-6 text-white sm:px-6 sm:py-10">
+      <div className="mx-auto grid min-h-[calc(100svh-3rem)] max-w-[1040px] items-center gap-7 sm:min-h-[calc(100vh-5rem)] sm:gap-10 lg:grid-cols-[1fr_420px]">
         <section className="max-w-[560px]">
           <div className="mb-5 flex items-center gap-3">
             <img src="/brand/karwan-mark-lime.svg" alt="Karwan" className="size-10 rounded-[10px]" />
             <p className="mono text-[10px] font-bold uppercase tracking-[0.19em] text-[#AFC95B]">[:KARWAN OPERATOR:]</p>
           </div>
-          <h1 className="mt-4 max-w-[520px] font-sans text-[clamp(36px,6vw,68px)] font-black leading-[0.95] tracking-[-0.045em]">Run trade operations with clear authority.</h1>
-          <p className="mt-6 max-w-[520px] text-[15px] leading-7 text-white/55">Review customer work, monitor agent execution, resolve exceptions, and control funds from one audited console.</p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <h1 className="mt-4 max-w-[520px] font-sans text-[34px] font-black leading-[0.95] tracking-[-0.04em] sm:text-[clamp(36px,6vw,68px)]">Run trade operations with clear authority.</h1>
+          <p className="mt-4 max-w-[520px] text-[14px] leading-6 text-white/55 sm:mt-6 sm:text-[15px] sm:leading-7">Review customer work, monitor agent execution, resolve exceptions, and control funds from one audited console.</p>
+          <div className="mt-8 hidden gap-3 sm:grid sm:grid-cols-3">
             {[
               ['01', 'Unlock', 'Verify your operator access key.'],
               ['02', 'Connect', 'Choose a separate signing wallet.'],
@@ -95,7 +95,7 @@ function AccessGate({ onUnlock }: { onUnlock: (role: 'admin' | 'support') => voi
           </div>
         </section>
 
-        <form onSubmit={unlock} className="rounded-2xl border border-white/12 bg-[#121315] p-5 shadow-2xl shadow-black/30 sm:p-7">
+        <form onSubmit={unlock} className="rounded-2xl border border-white/12 bg-[#121315] p-4 shadow-2xl shadow-black/30 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="mono text-[9px] uppercase tracking-[0.17em] text-white/35">Operator session</p>

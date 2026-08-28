@@ -267,7 +267,7 @@ function PagerButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="mono text-[10px] uppercase tracking-[0.14em] px-3 py-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed enabled:hover:bg-[rgba(255,255,255,0.06)] inline-flex items-center gap-1.5"
+      className="mono inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[rgba(255,255,255,0.06)]"
       style={{
         color: 'var(--ink-2)',
         border: '1px solid var(--rule-dark)',
@@ -295,7 +295,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors inline-flex items-center gap-1.5 whitespace-nowrap"
+      className="mono inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors"
       style={{
         background: active ? 'var(--lp-band-dark)' : 'transparent',
         color: active ? 'var(--lp-accent)' : 'var(--lp-text-sub)',

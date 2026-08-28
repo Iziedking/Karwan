@@ -125,7 +125,39 @@ export default function AdminDeals() {
         {deals ? `${filtered.length} / ${deals.length}` : 'loading...'}
       </p>
 
-      <div className="mt-3 overflow-x-auto border border-white/10 rounded-xl">
+      <div className="mt-4 space-y-3 md:hidden">
+        {paged.map((d) => (
+          <article key={d.jobId} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="mono text-[9px] uppercase tracking-[0.13em] text-white/30">Deal ID</p>
+                <CopyId value={d.jobId} label={short(d.jobId)} className="mt-1 min-h-11 text-[12px] text-white/70" />
+              </div>
+              <span className="shrink-0 rounded px-2 py-1 mono text-[9px] uppercase tracking-[0.1em]" style={{ color: STAGE_TONE[d.stage] ?? '#aaa', background: `${STAGE_TONE[d.stage] ?? '#aaa'}1f` }}>{d.stage}</span>
+            </div>
+            <p className="mt-2 font-sans text-[20px] font-extrabold tabular-nums text-white">{d.amountUsdc} <span className="mono text-[9px] uppercase tracking-[0.1em] text-white/40">USDC</span></p>
+            <dl className="mt-3 grid grid-cols-2 gap-3 border-y border-white/[0.07] py-3">
+              <div>
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Buyer</dt>
+                <dd className="mt-1"><CopyId value={d.buyer} label={short(d.buyer)} className="min-h-11 text-[11px] text-white/55" /></dd>
+              </div>
+              <div>
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Seller</dt>
+                <dd className="mt-1"><CopyId value={d.seller} label={short(d.seller)} className="min-h-11 text-[11px] text-white/55" /></dd>
+              </div>
+            </dl>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Link href={`/deals/${d.jobId}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Open â†—</Link>
+              <button type="button" onClick={() => extend(d.jobId)} disabled={busy === d.jobId} className="min-h-11 rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/60 disabled:opacity-40">Extend</button>
+              {d.stage !== 'settled' && d.stage !== 'cancelled' ? (
+                <button type="button" onClick={() => release(d.jobId)} disabled={busy === d.jobId} className="col-span-2 min-h-11 rounded-lg border border-[#c98a5e]/35 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#dfa177] disabled:opacity-40">Review and release</button>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-3 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
         <table className="w-full min-w-[680px] text-[13px]">
           <thead>
             <tr className="text-white/40 mono text-[10px] uppercase tracking-[0.12em] text-start">
@@ -198,7 +230,7 @@ export default function AdminDeals() {
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="hover:text-white disabled:opacity-30"
+            className="min-h-11 px-2 hover:text-white disabled:opacity-30"
           >
             ← prev
           </button>
@@ -209,7 +241,7 @@ export default function AdminDeals() {
             type="button"
             onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
             disabled={page >= pageCount - 1}
-            className="hover:text-white disabled:opacity-30"
+            className="min-h-11 px-2 hover:text-white disabled:opacity-30"
           >
             next →
           </button>

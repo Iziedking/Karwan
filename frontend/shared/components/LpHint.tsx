@@ -89,7 +89,7 @@ export function LpHint({
         }
         if (e.key === 'Escape') setOpen(false);
       }}
-      className="inline-flex items-center justify-center w-[15px] h-[15px] rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] transition-colors cursor-help align-middle"
+      className="absolute left-1/2 top-1/2 z-10 inline-flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] transition-colors cursor-help"
     >
       <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="block">
         <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.2" />
@@ -127,7 +127,7 @@ export function LpHint({
       : null;
 
   return (
-    <span className="relative inline-flex items-center align-middle">
+    <span className="relative inline-flex size-[15px] items-center align-middle">
       {trigger}
       {tooltip}
     </span>

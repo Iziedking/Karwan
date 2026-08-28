@@ -10,13 +10,13 @@ const EXPLORER_HOST = 'testnet.arcscan.app';
 export default function HowItWorksPage() {
   const t = useTranslations().howItWorksPage;
   return (
-    <div className="space-y-20">
+    <div className="space-y-12 sm:space-y-20">
       {/* HEADER */}
       <header className="max-w-3xl space-y-4">
         <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
           {t.header.eyebrow}
         </span>
-        <h1 className="text-[40px] md:text-[48px] leading-[1.05] tracking-[-0.02em] font-semibold">
+        <h1 className="text-[34px] sm:text-[40px] md:text-[48px] leading-[1.05] tracking-[-0.02em] font-semibold">
           {t.header.title}
         </h1>
         <p className="text-[15px] text-[var(--color-ink-dim)] leading-relaxed">
@@ -41,7 +41,11 @@ export default function HowItWorksPage() {
           <DemoStep
             n="1"
             title={t.directDeal.step1.title}
-            cta={<Link href="/buyer" className="underline">{t.directDeal.step1.cta}</Link>}
+            cta={(
+              <Link href="/buyer" className="-mx-2 inline-flex min-h-11 items-center px-2 underline">
+                {t.directDeal.step1.cta}
+              </Link>
+            )}
           >
             {t.directDeal.step1.bodyA}<span className="mono">/buyer</span>{t.directDeal.step1.bodyB}
           </DemoStep>
@@ -315,7 +319,7 @@ function DemoStep({
   cta?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5 space-y-3 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
+    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4 sm:p-5 space-y-3 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)] transition-[transform,border-color,box-shadow] duration-200">
       <div className="flex items-baseline gap-3">
         <span className="text-[26px] mono font-semibold leading-none text-[var(--color-ink-faint)]">{n}</span>
         <span className="text-[15px] font-medium">{title}</span>

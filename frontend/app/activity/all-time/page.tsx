@@ -156,7 +156,7 @@ export default function AllTimePage() {
               <div className="pt-6 border-t border-[var(--lp-border-light)]">
                 <Link
                   href="/activity"
-                  className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)] transition-colors"
+                  className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)] transition-colors"
                 >
                   {t.backToActivity}
                 </Link>
@@ -444,7 +444,35 @@ function CurrentContracts({
         />
       </div>
 
-      <div className="overflow-x-auto -mx-2 px-2">
+      <div className="space-y-3 sm:hidden">
+        {snapshot.contracts.map((c, index) => (
+          <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold text-[var(--lp-ink)]">
+                  <span className="me-2 mono text-[9px] text-[var(--lp-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
+                  {c.name.replace('Karwan', '')}
+                </p>
+                <a href={`${explorer}/address/${c.address}`} target="_blank" rel="noreferrer" className="-mx-2 mt-1 inline-flex min-h-11 max-w-full items-center break-all px-2 mono text-[10px] text-[var(--lp-text-muted)]">
+                  {c.address.slice(0, 10)}â€¦{c.address.slice(-6)} â†—
+                </a>
+              </div>
+              <StatusPill live={c.live} t={t} />
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-[var(--lp-border-light)] pt-3">
+              <div>
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colReplaced}</dt>
+                <dd className="mt-1 mono text-[11px] tabular-nums text-[var(--lp-ink)]">{c.supersededGenerations > 0 ? count(c.supersededGenerations) : 'â€”'}</dd>
+              </div>
+              <div className="text-end">
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colBalance}</dt>
+                <dd className="mt-1 text-[13px] font-bold tabular-nums text-[var(--lp-ink)]">{c.usdcBalance === null ? t.notApplicable : usdc(c.usdcBalance)}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+      <div className="-mx-2 hidden overflow-x-auto px-2 sm:block">
         <table className="w-full min-w-[520px] table-fixed border-collapse">
           <thead>
             <tr className="border-b border-[var(--lp-border-light)]">
@@ -582,7 +610,30 @@ function Ledger({
                   : t.generationsMany.replace('{n}', String(g.rollup.contracts))}
               </span>
             </div>
-            <div className="overflow-x-auto -mx-2 px-2">
+            <div className="space-y-2 sm:hidden">
+              {g.rows.map((c, index) => {
+                const amount = movedBy(c);
+                return (
+                  <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] p-4">
+                    <a href={`${explorer}/address/${c.address}`} target="_blank" rel="noreferrer" className="-mx-2 inline-flex min-h-11 max-w-full items-center break-all px-2 mono text-[10px] text-[var(--lp-ink)]">
+                      <span className="me-2 text-[var(--lp-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
+                      {c.address.slice(0, 10)}â€¦{c.address.slice(-6)} â†—
+                    </a>
+                    <dl className="mt-2 grid grid-cols-2 gap-3 border-t border-[var(--lp-border-light)] pt-3">
+                      <div>
+                        <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colEvents}</dt>
+                        <dd className="mt-1 mono text-[11px] tabular-nums text-[var(--lp-ink)]">{count(c.events)}</dd>
+                      </div>
+                      <div className="text-end">
+                        <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colMoved}</dt>
+                        <dd className="mt-1 text-[13px] font-bold tabular-nums text-[var(--lp-ink)]">{moved(amount) ? usdc(amount) : 'â€”'}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="-mx-2 hidden overflow-x-auto px-2 sm:block">
               <table className="w-full min-w-[460px] table-fixed border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--lp-border-light)]">

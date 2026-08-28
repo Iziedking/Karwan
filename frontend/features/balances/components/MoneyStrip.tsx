@@ -103,9 +103,14 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
             aria-label={`Show ${c.label}`}
             aria-current={idx === i}
             onClick={() => setI(idx)}
-            className="size-1.5 rounded-full transition-colors"
-            style={{ background: idx === i ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
-          />
+            className="inline-flex size-11 items-center justify-center rounded-full"
+          >
+            <span
+              aria-hidden
+              className="size-1.5 rounded-full transition-colors"
+              style={{ background: idx === i ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
+            />
+          </button>
         ))}
       </div>
     </div>

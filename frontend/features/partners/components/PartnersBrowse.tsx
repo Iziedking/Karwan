@@ -168,16 +168,33 @@ export function PartnersBrowse() {
           </label>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
-            <FilterGroup label={copy.sectorLabel}>
-              <FilterButton pressed={sector === ''} onClick={() => setSector('')}>
-                {copy.allSectors}
-              </FilterButton>
-              {SECTORS.map((value) => (
-                <FilterButton key={value} pressed={sector === value} onClick={() => setSector(value)}>
-                  {value}
+            <label className="block sm:hidden">
+              <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                {copy.sectorLabel}
+              </span>
+              <select
+                value={sector}
+                onChange={(event) => setSector(event.target.value)}
+                className="form-input mt-2 min-h-12 w-full"
+              >
+                <option value="">{copy.allSectors}</option>
+                {SECTORS.map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </label>
+            <div className="hidden sm:block">
+              <FilterGroup label={copy.sectorLabel}>
+                <FilterButton pressed={sector === ''} onClick={() => setSector('')}>
+                  {copy.allSectors}
                 </FilterButton>
-              ))}
-            </FilterGroup>
+                {SECTORS.map((value) => (
+                  <FilterButton key={value} pressed={sector === value} onClick={() => setSector(value)}>
+                    {value}
+                  </FilterButton>
+                ))}
+              </FilterGroup>
+            </div>
 
             <div className="flex flex-wrap items-end gap-3 xl:justify-end">
               <FilterGroup label={copy.sortLabel}>

@@ -121,7 +121,44 @@ export default function AdminProfiles() {
         {profiles ? `${filtered.length} / ${profiles.length}` : 'loading...'}
       </p>
 
-      <div className="mt-3 overflow-x-auto border border-white/10 rounded-xl">
+      <div className="mt-4 space-y-3 md:hidden">
+        {paged.map((p) => (
+          <article key={p.address} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-bold text-white/90">{p.displayName || 'Unnamed account'}</p>
+                <CopyId value={p.address} label={short(p.address)} className="mt-1 min-h-11 text-[11px] text-white/50" />
+              </div>
+              <span className="shrink-0 rounded-md border border-white/10 px-2 py-1 mono text-[9px] uppercase tracking-[0.1em] text-white/50">{p.accountType}</span>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-3 border-y border-white/[0.07] py-3 text-[11px]">
+              <div className="min-w-0">
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Email</dt>
+                <dd className={`mt-1 break-all ${p.emailVerified ? 'text-[#9ac58b]' : 'text-white/55'}`}>{p.email || 'Not supplied'}</dd>
+              </div>
+              <div>
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Business</dt>
+                <dd className="mt-1 mono uppercase tracking-[0.08em] text-white/55">{p.businessStatus}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/30">Research</dt>
+                <dd className={`mt-1 mono uppercase tracking-[0.08em] ${p.researchActive ? 'text-[#9ac58b]' : 'text-white/40'}`}>
+                  {p.researchActive ? `On Â· $${p.researchCreditUsdc.toFixed(2)}` : 'Off'}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-3 grid gap-2">
+              <Link href={`/credit-passport/${p.address}`} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/10 px-3 mono text-[10px] uppercase tracking-[0.1em] text-white/65">Passport â†—</Link>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => toggleResearch(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-white/10 px-2 mono text-[9px] uppercase tracking-[0.08em] text-white/60 disabled:opacity-40">{p.researchActive ? 'Clear research' : 'Grant research'}</button>
+                <button type="button" onClick={() => toggleBusiness(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-white/10 px-2 mono text-[9px] uppercase tracking-[0.08em] text-white/60 disabled:opacity-40">{p.businessStatus === 'verified' ? 'Unverify' : 'Verify biz'}</button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-3 hidden overflow-x-auto rounded-xl border border-white/10 md:block">
         <table className="w-full min-w-[680px] text-[13px]">
           <thead>
             <tr className="text-white/40 mono text-[10px] uppercase tracking-[0.12em]">
@@ -207,7 +244,7 @@ export default function AdminProfiles() {
             type="button"
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="hover:text-white disabled:opacity-30"
+            className="min-h-11 px-2 hover:text-white disabled:opacity-30"
           >
             ← prev
           </button>
@@ -218,7 +255,7 @@ export default function AdminProfiles() {
             type="button"
             onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
             disabled={page >= pageCount - 1}
-            className="hover:text-white disabled:opacity-30"
+            className="min-h-11 px-2 hover:text-white disabled:opacity-30"
           >
             next →
           </button>
