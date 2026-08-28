@@ -12,8 +12,8 @@ import {
 } from '@/features/jobs/matchingPresentation';
 import { Band } from '@/shared/components/Bands';
 
-/// Account-level match inbox used on Home and Profile. Every open proposal for
-/// the connected account stays folded behind one compact signal until review.
+/// Profile-owned match inbox. Every open proposal for the connected account
+/// stays folded behind one compact signal until review.
 export function PendingMatchesSignal() {
   const auth = useAuth();
   const t = useTranslations().pending;
