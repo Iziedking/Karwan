@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
-import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
@@ -168,8 +167,6 @@ function SellerPageInner() {
           provisioned, so the seller agent silently never bids. */}
       <ActivateAgentsNotice role="seller" tone="light" />
 
-      {/* PENDING MATCHES. shared component, renders nothing when empty. */}
-      <PendingMatchesBand tone="light" headline={sh.pendingMatchesHeadline} />
       {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
       <PendingDealsBand tone="light" />
 

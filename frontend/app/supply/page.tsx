@@ -7,7 +7,6 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
-import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { shortAddress } from '@/shared/utils/format';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -107,11 +106,9 @@ function SupplyPageInner() {
         </div>
       </Band>
 
-      {/* Doubles as the tour's "your agent works both ways" anchor: it is the
-          surface where an agent-found match actually lands. */}
+      {/* The activation notice remains the tour's agent-readiness anchor. */}
       <div data-guide="supply-agent">
         <ActivateAgentsNotice role="seller" tone="light" />
-        <PendingMatchesBand tone="light" headline={sp.matchesHeadline} />
       </div>
 
       <Band tone="light" compact>

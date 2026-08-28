@@ -25,7 +25,7 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { AccountKindBadge } from '@/features/account/AccountKindBadge';
 import { VerificationStatusCard } from '@/features/account/VerificationStatusCard';
-import { PendingMatchesBand } from '@/features/notifications/components/PendingMatchesBand';
+import { PendingMatchesSignal } from '@/features/notifications/components/PendingMatchesBand';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { ProfileDeck, type DeckPanel } from '@/shared/components/ProfileDeck';
 import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
@@ -750,7 +750,7 @@ function ProfilePageInner() {
       </div>
 
       <MoneyStrip />
-      <PendingMatchesBand tone="light" />
+      <PendingMatchesSignal />
       <PendingDealsBand tone="light" />
 
       {/* One controlled mode at a time. The sticky strip provides random access;
