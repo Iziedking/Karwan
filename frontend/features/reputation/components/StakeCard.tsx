@@ -792,7 +792,7 @@ export function StakeCard() {
               onClick={() => walletUsdc != null && setDepositAmount(Math.floor(walletUsdc * 100) / 100)}
               disabled={walletUsdc == null || walletUsdc <= 0}
               title={walletUsdc != null ? sc.depositForm.maxTitleTemplate.replace('{amount}', walletUsdc.toFixed(2)) : sc.depositForm.maxTitleLoading}
-              className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
               {sc.depositForm.max} {walletUsdc != null ? walletUsdc.toFixed(2) : '-'}
             </button>
@@ -863,7 +863,7 @@ export function StakeCard() {
                     ? sc.withdrawForm.maxTitleAllReserved
                     : sc.withdrawForm.maxTitleNone
               }
-              className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
+              className="-my-2 inline-flex min-h-11 min-w-11 items-center justify-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] rounded-sm px-0.5 transition-colors disabled:cursor-not-allowed disabled:hover:text-[var(--lp-text-muted)]"
             >
               {sc.withdrawForm.max} {formatUsdc(freeStakeUsdc, { withSuffix: false })}
             </button>

@@ -140,7 +140,7 @@ function CashoutPageInner() {
           <div className="mt-7 flex flex-wrap gap-2 mono text-[10px] uppercase tracking-[0.14em] text-white/55">
             <Link
               href={`/deals/${jobId}`}
-              className="inline-flex items-center gap-1.5 hover:text-[var(--lp-accent)] transition-colors"
+              className="inline-flex min-h-11 items-center gap-1.5 hover:text-[var(--lp-accent)] transition-colors"
             >
               [:{cp.hero.backToDeal}:]
             </Link>

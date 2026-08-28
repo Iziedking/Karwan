@@ -49,14 +49,14 @@ function IssuedKey({ rawKey, onDone }: { rawKey: string; onDone: () => void }) {
         This is the only time the key is shown. It is stored as a hash, so it cannot be recovered.
         If it is lost, revoke it and issue another.
       </p>
-      <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <code className="flex-1 min-w-[260px] font-mono text-[12px] break-all bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-white select-all">
+      <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <code className="min-w-0 flex-1 font-mono text-[12px] break-all bg-[#0e0e0e] border border-white/15 rounded-lg px-3 py-2.5 text-white select-all">
           {rawKey}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="mono text-[10px] uppercase tracking-[0.12em] font-bold px-3 py-2.5 rounded-lg bg-white text-[#0e0e0e]"
+          className="mono min-h-11 w-full rounded-lg bg-white px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0e0e0e] sm:w-auto"
         >
           {copied ? 'Copied' : 'Copy'}
         </button>
@@ -64,7 +64,7 @@ function IssuedKey({ rawKey, onDone }: { rawKey: string; onDone: () => void }) {
       <button
         type="button"
         onClick={onDone}
-        className="mt-3 mono text-[10px] uppercase tracking-[0.12em] text-white/45 hover:text-white transition"
+        className="mt-3 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.12em] text-white/45 hover:text-white transition"
       >
         I have saved it
       </button>

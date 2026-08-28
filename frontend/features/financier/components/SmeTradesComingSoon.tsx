@@ -62,7 +62,7 @@ export function SmeTradesComingSoon() {
           <CTAPill href="/financier">{pb.financierPanels.openFinancierDesk}</CTAPill>
           <Link
             href="/docs"
-            className="mono text-[11px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            className="mono inline-flex min-h-11 items-center text-[11px] uppercase tracking-[0.14em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
           >
             Read the docs
           </Link>

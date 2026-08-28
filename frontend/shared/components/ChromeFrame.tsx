@@ -102,8 +102,8 @@ function CustomerChromeFrame({
   const workspace = shell === 'workspace' || shell === 'admin';
   const focused = shell === 'focused';
   const mainClass = workspace
-    ? 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-8 md:py-10'
-    : 'flex-1 mx-auto min-h-[calc(100vh-68px)] w-full max-w-6xl px-6 py-10';
+    ? 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-8 md:py-10'
+    : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
 
   return (
     <div className="flex min-h-screen flex-col">

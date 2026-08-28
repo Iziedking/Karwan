@@ -100,7 +100,7 @@ export function OnChainProofBand() {
       <div data-guide="home-activity">
       {/* Chart band. 30-day overlay of funded, settled, and any
           disputed/refunded blips so a quiet week reads honestly. */}
-      <div className="mt-10">
+      <div className="mt-10 hidden sm:block">
         <DailyAreaChart
           series={stats?.series ?? null}
           loading={!stats && !errored}
@@ -111,7 +111,7 @@ export function OnChainProofBand() {
 
       {/* Six tiles. Mix of counts and USDC so the chart sits on top of
           something concrete, not just an abstract curve. */}
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-10 md:grid-cols-3">
         <div className="fade-up fade-up-1">
           <BigStatTile
             label={t.tiles.escrowsFunded.label}
@@ -136,7 +136,7 @@ export function OnChainProofBand() {
             loading={!stats}
           />
         </div>
-        <div className="fade-up fade-up-4">
+        <div className="fade-up fade-up-4 hidden sm:block">
           <BigStatTile
             label={t.tiles.usdcFunded.label}
             value={<AnimatedNumber value={fundedUsdc} decimals={2} />}
@@ -145,7 +145,7 @@ export function OnChainProofBand() {
             loading={!stats}
           />
         </div>
-        <div className="fade-up fade-up-4">
+        <div className="fade-up fade-up-4 hidden sm:block">
           <BigStatTile
             label={t.tiles.usdcReleased.label}
             value={<AnimatedNumber value={releasedUsdc} decimals={2} />}
@@ -154,7 +154,7 @@ export function OnChainProofBand() {
             loading={!stats}
           />
         </div>
-        <div className="fade-up fade-up-4">
+        <div className="fade-up fade-up-4 hidden sm:block">
           <BigStatTile
             label={t.tiles.vaultDeposits.label}
             value={<AnimatedNumber value={vaultDepositsUsdc} decimals={2} />}
@@ -166,7 +166,7 @@ export function OnChainProofBand() {
       </div>
 
       {/* Three secondary numbers + a treasury readout, smaller scale. */}
-      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="mt-3 hidden grid-cols-2 gap-3 sm:grid md:grid-cols-4">
         <SmallStat
           label={t.smallStats.milestoneReleases}
           value={stats?.totals.milestoneReleases ?? 0}

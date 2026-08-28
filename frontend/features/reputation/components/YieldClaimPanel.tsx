@@ -187,7 +187,7 @@ export function YieldClaimPanel() {
                 href={ARC_EXPLORER_TX(lastTx)}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
+                className="mt-2 inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-accent)]"
               >
                 tx {shortHash(lastTx)} ↗
               </a>
@@ -198,7 +198,7 @@ export function YieldClaimPanel() {
             {onWrongChain ? (
               <button
                 onClick={() => switchChainAsync({ chainId: ARC_CHAIN_ID }).catch(() => {})}
-                className="rounded-md border border-amber-300/60 bg-amber-200/15 px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-amber-100"
+                className="min-h-11 rounded-md border border-amber-300/60 bg-amber-200/15 px-4 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-amber-100"
               >
                 Switch to Arc
               </button>
@@ -207,7 +207,7 @@ export function YieldClaimPanel() {
                 onClick={submit}
                 disabled={!canClaim}
                 aria-busy={busy}
-                className="rounded-md px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-35 disabled:cursor-not-allowed"
+                className="min-h-11 rounded-md px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-35 disabled:cursor-not-allowed"
                 style={{
                   background: canClaim ? 'var(--lp-accent)' : 'rgba(255,255,255,0.08)',
                   color: canClaim ? 'var(--lp-band-dark)' : 'rgba(255,255,255,0.55)',
@@ -224,7 +224,7 @@ export function YieldClaimPanel() {
               href={`https://testnet.arcscan.app/address/${KARWAN_YIELD_DISTRIBUTOR_ADDRESS}`}
               target="_blank"
               rel="noreferrer"
-              className="text-center mono text-[9px] uppercase tracking-[0.14em] text-white/40 hover:text-white/70"
+              className="inline-flex min-h-11 items-center justify-center text-center mono text-[9px] uppercase tracking-[0.14em] text-white/40 hover:text-white/70"
             >
               contract ↗
             </a>

@@ -401,7 +401,9 @@ export default function AppHome() {
       {/* NETWORK PULSE. A self-evident sliding ticker of recent deals. The
           LIVE NETWORK band above already frames it, so it carries no separate
           header (that band was pure restatement of the two proof surfaces). */}
-      <NetworkTicker />
+      <div className="hidden md:block">
+        <NetworkTicker />
+      </div>
 
       {/* DEALS ACROSS KARWAN */}
       <Band tone="light">

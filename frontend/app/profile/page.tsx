@@ -664,7 +664,7 @@ function ProfilePageInner() {
                   <CTAPill href="/bridge" tone="dark">
                     {navT.topUpWithdraw}
                   </CTAPill>
-                  <Link href={editHref} className="mono text-[11px] uppercase tracking-[0.12em] text-white/65 hover:text-white transition-colors">
+                  <Link href={editHref} className="mono -mx-2 inline-flex min-h-11 items-center px-2 text-[11px] uppercase tracking-[0.12em] text-white/65 transition-colors hover:text-white">
                     {t.hero.editDetailsCta}
                   </Link>
                   {/* Company trade card is the business's second edit surface;
@@ -673,7 +673,7 @@ function ProfilePageInner() {
                     <Link
                       href="/profile?edit=company"
                       scroll={false}
-                      className="mono text-[11px] uppercase tracking-[0.12em] text-white/55 hover:text-white transition-colors"
+                      className="mono -mx-2 inline-flex min-h-11 items-center px-2 text-[11px] uppercase tracking-[0.12em] text-white/55 transition-colors hover:text-white"
                     >
                       {t.hero.editCompanyCta}
                     </Link>

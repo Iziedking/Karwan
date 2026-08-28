@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, type SellerActiveBid } from '@/core/api';
 import { Tag, StatusDot } from '@/shared/components/Tag';
@@ -46,7 +47,78 @@ export function BidsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      <div className="divide-y divide-white/[0.07] md:hidden">
+        {visible.map((b) => {
+          const href = `/jobs/${b.jobId}`;
+          return (
+            <article key={b.jobId} className="px-4 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="mono text-[10px] uppercase tracking-[0.13em] text-white/40">{bt.columns.job}</p>
+                  <p className="mt-1 mono text-[12px] tabular-nums text-white">{shortHash(b.jobId, 8, 4)}</p>
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-2">
+                  <StatusDot tone={b.finalized ? 'positive' : 'accent'} />
+                  <Tag tone={b.finalized ? 'positive' : 'accent'}>
+                    {b.finalized ? bt.status.finalized : bt.status.negotiating}
+                  </Tag>
+                </span>
+              </div>
+              <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-white/[0.07] py-3">
+                <div className="min-w-0">
+                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/35">{bt.columns.buyer}</dt>
+                  <dd className="mt-1 truncate mono text-[11px] tabular-nums text-white/60">{shortHash(b.jobBuyer, 6, 4)}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/35">{bt.columns.bid}</dt>
+                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-white">{formatUsdc(b.lastBidPrice)}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/35">{bt.columns.rounds}</dt>
+                  <dd className="mt-1 mono text-[11px] tabular-nums text-white/60">{b.counterRounds}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                {b.finalized ? (
+                  <button
+                    type="button"
+                    aria-label={bt.row.dismissAria}
+                    onClick={() => dismiss(b.jobId)}
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-white/45"
+                  >
+                    {bt.row.dismissTitle}
+                  </button>
+                ) : confirming === b.jobId ? (
+                  <button
+                    type="button"
+                    disabled={busy === b.jobId}
+                    onClick={() => void doAbandon(b.jobId)}
+                    className="inline-flex min-h-11 items-center rounded-lg border border-[#ff8a7a]/40 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#ff8a7a] disabled:opacity-50"
+                  >
+                    {busy === b.jobId ? 'â€¦' : bt.row.abandonConfirm}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(b.jobId)}
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-white/45"
+                  >
+                    {bt.row.abandon}
+                  </button>
+                )}
+                <Link
+                  href={href}
+                  className="inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent)]"
+                >
+                  {bt.row.open}<span aria-hidden>â†’</span>
+                </Link>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-sm">
         <thead>
           <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
@@ -159,6 +231,7 @@ export function BidsTable({
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

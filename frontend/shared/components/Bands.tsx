@@ -11,7 +11,7 @@ import { withoutTrailingArrow } from './CtaArrow';
 /// Used by /app, /buyer, /seller, /activity.
 
 export function FullBleed({ children }: { children: ReactNode }) {
-  return <div className="-mt-10 -mb-10">{children}</div>;
+  return <div className="-mb-6 -mt-6 sm:-mb-10 sm:-mt-10">{children}</div>;
 }
 
 export function Band({
@@ -139,7 +139,7 @@ export function HeroHeadline({
   return (
     <Heading
       className={cn(
-        'mt-7 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance',
+        'mt-5 font-sans font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-balance sm:mt-7',
         sizeClass,
         className,
       )}
@@ -262,7 +262,7 @@ export function BigStatTile({
   const isDark = tone === 'dark';
   return (
     <div
-      className="relative overflow-hidden p-5"
+      className="relative overflow-hidden p-4 sm:p-5"
       style={{
         background: isDark ? 'rgba(255,255,255,0.04)' : 'var(--lp-card)',
         border: isDark

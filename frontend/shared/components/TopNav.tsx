@@ -93,7 +93,7 @@ export function TopNav() {
       data-chrome="nav"
       className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-surface)]"
     >
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-[68px] flex items-center gap-3 sm:gap-5 lg:gap-8">
+      <div className="mx-auto flex h-[60px] max-w-[1440px] items-center gap-2.5 px-3 sm:h-[68px] sm:gap-5 sm:px-6 lg:gap-8">
         {/* LEFT. The mark alone, and it always goes to the landing page.
             It used to sit beside a KARWAN wordmark and route to /app inside the
             product, which made the one element every page shares mean two
@@ -102,7 +102,7 @@ export function TopNav() {
           <Link href="/" aria-label="Karwan" className="group inline-flex items-center shrink-0">
             <span
               aria-hidden
-              className="inline-flex items-center justify-center w-14 h-14 border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5"
+              className="inline-flex h-11 w-11 items-center justify-center border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5 sm:h-14 sm:w-14"
               style={{
                 background: '#0e0e0e',
                 borderTopLeftRadius: 14,

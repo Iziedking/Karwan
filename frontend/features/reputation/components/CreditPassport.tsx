@@ -247,7 +247,7 @@ export function CreditPassport({ address }: { address: string }) {
               type="button"
               onClick={copyAddress}
               title={cp.copyAddressTitle}
-              className="inline-flex items-center gap-1.5 mono text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
+              className="inline-flex min-h-11 items-center gap-1.5 mono text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
             >
               {shortAddress(address)}
               <span className="text-[10px] text-[var(--color-ink-faint)]">
@@ -259,7 +259,7 @@ export function CreditPassport({ address }: { address: string }) {
                 href={`https://x.com/${profile.xHandle.replace(/^@/, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mono text-[12px] text-[var(--color-accent)] hover:underline"
+                className="inline-flex min-h-11 items-center mono text-[12px] text-[var(--color-accent)] hover:underline"
               >
                 @{profile.xHandle.replace(/^@/, '')}
               </a>
@@ -459,7 +459,7 @@ export function CreditPassport({ address }: { address: string }) {
           href={`${EXPLORER}/address/${address}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
+          className="inline-flex min-h-11 items-center gap-1.5 mono text-[11px] uppercase tracking-[0.12em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
         >
           {cp.footer.verifiedLink}
         </a>

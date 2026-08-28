@@ -69,7 +69,7 @@ export function SolanaConnectCard({
           href="https://phantom.com/"
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-bold px-3 py-1.5"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-bold px-3 py-1.5"
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -89,7 +89,7 @@ export function SolanaConnectCard({
           type="button"
           onClick={() => void wallet.connect()}
           disabled={wallet.connecting}
-          className="mt-3 inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 disabled:opacity-50"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-bold px-3 py-1.5 disabled:opacity-50"
           style={{
             background: 'var(--lp-accent)',
             color: 'var(--lp-band-dark)',
@@ -143,7 +143,7 @@ export function SolanaConnectCard({
             <button
               type="button"
               onClick={() => void copyAndOpen(USDC_FAUCET, 'usdc')}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
+              className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
               style={{
                 background: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
@@ -159,7 +159,7 @@ export function SolanaConnectCard({
             <button
               type="button"
               onClick={() => void copyAndOpen(SOLANA_GAS_FAUCET, 'gas')}
-              className="mono text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border transition-colors"
+              className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 border transition-colors"
               style={{
                 borderColor: 'var(--lp-accent)',
                 color: 'var(--lp-band-dark)',
@@ -176,7 +176,7 @@ export function SolanaConnectCard({
             <button
               type="button"
               onClick={() => void wallet.disconnect()}
-              className="ms-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+              className="ms-auto inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
             >
               {copy.disconnect}
             </button>
