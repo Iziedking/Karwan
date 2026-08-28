@@ -185,7 +185,17 @@ export function MyMoneyLedger({
           {visible.map(({ item, repeat }) => {
             const href = explorerFor(item);
             return (
-              <li key={item.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3">
+              <li
+                key={item.id}
+                data-ledger-status={item.status}
+                className="relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 ps-3"
+              >
+                {item.status === 'pending' && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-3 start-0 w-[2px] bg-[var(--lp-accent)] motion-safe:animate-pulse motion-reduce:animate-none"
+                  />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{lineFor(item, t.text)}</p>
                   <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
@@ -193,7 +203,19 @@ export function MyMoneyLedger({
                     {item.status !== 'done' && (
                       <>
                         {' · '}
-                        <span style={{ color: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending }}>
+                        <span
+                          className="inline-flex items-center gap-1.5"
+                          style={{ color: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending }}
+                        >
+                          <span
+                            aria-hidden
+                            className={`inline-block size-1.5 shrink-0 rounded-full ${
+                              item.status === 'pending' ? 'motion-safe:animate-pulse motion-reduce:animate-none' : ''
+                            }`}
+                            style={{
+                              background: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending,
+                            }}
+                          />
                           {item.status === 'failed' ? t.failed : t.pending}
                         </span>
                       </>
