@@ -10,72 +10,139 @@ import {
   presentMatchingState,
   type MatchingPresentationTone,
 } from '@/features/jobs/matchingPresentation';
-import {
-  Band,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-} from '@/shared/components/Bands';
+import { Band } from '@/shared/components/Bands';
 
-interface Props {
-  /// Tone of the surrounding band. light for cream pages (/app, /profile),
-  /// dark for routes that drop this between dark sections.
-  tone?: 'light' | 'dark';
-  /// Override headline copy. Defaults to "Your bid matched." for the seller
-  /// role and "Match found." for the buyer-side viewer.
-  headline?: string;
-}
-
-/// Shared band that surfaces every open match proposal the connected wallet is
-/// a party to. Used on /app, /profile, and /seller so users can pick up the
-/// pending match from anywhere. Polls every 10s; replaces with the SSE-driven
-/// notifications stream once task #34 lands.
-export function PendingMatchesBand({ tone = 'light', headline }: Props) {
+/// Account-level match inbox used on Home and Profile. Every open proposal for
+/// the connected account stays folded behind one compact signal until review.
+export function PendingMatchesSignal() {
   const auth = useAuth();
   const t = useTranslations().pending;
   const address = auth.address;
   const isAuthed = auth.isAuthenticated;
   const { matches, state, retry } = usePendingMatches(isAuthed, address);
+  const [open, setOpen] = useState(false);
 
   if (matches.length === 0 && state !== 'error') return null;
 
-  const dark = tone === 'dark';
-  const computedHeadline = headline ?? t.matches.headline;
+  const panelId = 'account-pending-matches';
+  const count = String(matches.length).padStart(2, '0');
 
   return (
-    <Band tone={tone} compact>
-      {/* Same measure as every neighbour on this page: MoneyStrip above,
-          the agent card below. Without it the band spread to the Band's
-          full width and the card read as longer than everything near it. */}
+    <Band tone="light" compact>
       <div className="mx-auto w-full max-w-[1040px]">
-      <SectionTag tone={tone} dot="live">
-        {t.matches.sectionTag}
-      </SectionTag>
-      <HeroHeadline as="h2" size="md">
-        {computedHeadline}
-        <Punc>.</Punc>
-      </HeroHeadline>
-      <p
-        className="mt-5 text-pretty text-[15px] leading-relaxed max-w-[52ch]"
-        style={{ color: dark ? 'var(--lp-text-muted)' : 'var(--lp-text-sub)' }}
-      >
-        {t.matches.body}
-      </p>
-      {state === 'error' ? (
-        <MatchLoadError label={t.matches.loadError} retryLabel={t.matches.retry} onRetry={retry} />
-      ) : null}
-      <ul className="mt-8 space-y-3">
-        {matches.map((p) => (
-          <MatchRow
-            key={p.jobId}
-            proposal={p}
-            viewerAddress={address!}
-            tone={tone}
+        <div
+          className="relative overflow-hidden"
+          style={{
+            background: 'var(--lp-band-dark)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            borderBottomLeftRadius: 16,
+            borderBottomRightRadius: 4,
+            boxShadow: '0 16px 44px -32px rgba(0,0,0,0.65)',
+          }}
+        >
+          <span
+            aria-hidden
+            className="absolute inset-y-0 start-0 w-[3px] bg-[var(--lp-accent)]"
           />
-        ))}
-      </ul>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={panelId}
+            onClick={() => setOpen((value) => !value)}
+            className="group flex min-h-[84px] w-full items-center gap-3 px-4 py-4 ps-5 text-start text-white transition-colors duration-200 hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:gap-5 sm:px-6 sm:ps-7"
+          >
+            <span
+              aria-hidden
+              className="inline-flex size-9 shrink-0 items-center justify-center border border-white/15 bg-white/[0.04]"
+              style={{ borderRadius: 9 }}
+            >
+              <span
+                data-instrument-blink
+                className="size-[7px] bg-[var(--lp-accent)]"
+                style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
+              />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block mono text-[10px] font-semibold uppercase tracking-[0.17em] text-white/80">
+                [:{t.matches.inlineEyebrow}:]
+              </span>
+              <span className="mt-1 block mono text-[9px] uppercase tracking-[0.13em] text-white/45">
+                {t.matches.inlineSubtitle}
+              </span>
+            </span>
+            <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.03em] text-[var(--lp-accent)] sm:text-[30px]">
+              {count}
+            </span>
+            <span
+              aria-hidden
+              className={`inline-flex size-11 shrink-0 items-center justify-center border border-white/10 text-white/65 transition-transform duration-200 group-hover:border-white/20 group-hover:text-white ${
+                open ? 'rotate-180' : ''
+              }`}
+              style={{ borderRadius: 10 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="m3.5 6 4.5 4 4.5-4"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </button>
+
+          {open ? (
+            <div
+              id={panelId}
+              className="pending-match-reveal border-t border-white/[0.08] px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-5"
+            >
+              {state === 'error' ? (
+                <MatchLoadError
+                  label={t.matches.loadError}
+                  retryLabel={t.matches.retry}
+                  onRetry={retry}
+                />
+              ) : null}
+              {matches.length > 0 ? (
+                <ul className="space-y-2.5">
+                  {matches.map((proposal) => (
+                    <MatchRow
+                      key={proposal.jobId}
+                      proposal={proposal}
+                      viewerAddress={address!}
+                      tone="dark"
+                    />
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
+      <style jsx>{`
+        .pending-match-reveal {
+          animation: pendingMatchReveal 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+          transform-origin: top;
+        }
+        @keyframes pendingMatchReveal {
+          from {
+            opacity: 0;
+            transform: translateY(-8px) scaleY(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scaleY(1);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pending-match-reveal {
+            animation: none;
+          }
+        }
+      `}</style>
     </Band>
   );
 }
@@ -193,7 +260,7 @@ function MatchRow({
               </p>
             ) : null}
           </div>
-          <div className="flex items-center justify-between gap-3 sm:block sm:text-end sm:shrink-0">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:block sm:text-end sm:shrink-0">
             <span
               className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
               style={{
@@ -221,13 +288,13 @@ function MatchRow({
               <span className="px-2 py-[6px]">{stateCopy.tag}</span>
             </span>
             <p
-              className="mt-0 sm:mt-2 mono text-[10px] uppercase tracking-[0.12em] transition-colors"
+              className="col-span-2 row-start-2 sm:mt-2 mono text-[10px] uppercase tracking-[0.12em] transition-colors"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
               {matchingCopy.nextActors[presentation.nextActor]}
             </p>
             <p
-              className="mt-0 sm:mt-1 mono text-[10px] uppercase tracking-[0.12em]"
+              className="col-start-2 row-start-1 text-end sm:mt-1 mono text-[10px] uppercase tracking-[0.12em]"
               style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
             >
               {t.card.open} →
@@ -277,40 +344,6 @@ function formatUsdcDisplay(raw: string): string {
   if (Number.isInteger(n)) return n.toString();
   // Strip trailing zeros, keep up to 2 decimals.
   return n.toFixed(2).replace(/\.?0+$/, '');
-}
-
-/// Compact inline variant. no Band wrapper. For embedding in existing layouts
-/// (e.g. inside another section on /profile or /app) where a full Band would
-/// be too heavy.
-export function PendingMatchesInline() {
-  const auth = useAuth();
-  const t = useTranslations().pending.matches;
-  const address = auth.address;
-  const isAuthed = auth.isAuthenticated;
-  const { matches, state, retry } = usePendingMatches(isAuthed, address);
-
-  if (matches.length === 0 && state !== 'error') return null;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{t.inlineEyebrow}:] <Accent>{matches.length}</Accent>
-        </span>
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {t.inlineSubtitle}
-        </p>
-      </div>
-      {state === 'error' ? (
-        <MatchLoadError label={t.loadError} retryLabel={t.retry} onRetry={retry} />
-      ) : null}
-      <ul className="space-y-2.5">
-        {matches.map((p) => (
-          <MatchRow key={p.jobId} proposal={p} viewerAddress={address!} tone="light" />
-        ))}
-      </ul>
-    </div>
-  );
 }
 
 type PendingFetchState = 'idle' | 'ready' | 'error';

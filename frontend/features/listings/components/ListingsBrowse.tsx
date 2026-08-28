@@ -16,7 +16,6 @@ import {
   type DiscoverySide,
   type DiscoverySort,
 } from '@/features/discovery/model';
-import { PendingMatchesInline } from '@/features/notifications/components/PendingMatchesBand';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { Button } from '@/shared/components/Button';
 import { CtaArrow, withoutTrailingArrow } from '@/shared/components/CtaArrow';
@@ -184,8 +183,6 @@ export function ListingsBrowse() {
       </Band>
 
       <Band tone="light" compact>
-        <PendingMatchesInline />
-
         <div className="mt-2 border-b border-[var(--lp-border-light)] pb-6 pt-6 sm:pt-8">
           <SectionTag>{copy.findTag}</SectionTag>
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] lg:items-end">
