@@ -9971,8 +9971,8 @@ export const en: MessagesShape = {
   pending: {
     matches: {
       sectionTag: 'PENDING MATCHES',
-      inlineEyebrow: 'PENDING MATCHES',
-      inlineSubtitle: 'REVIEW BEFORE CONFIRMING',
+      inlineEyebrow: 'MATCHES TO REVIEW',
+      inlineSubtitle: 'Open to review each offer and choose the next step.',
       headline: 'Pending matches',
       body: 'An agent found a possible fit. Open it to review the price, timing, counterparty signals, and what confirmation will do.',
       loadError: 'We could not check your pending matches. Existing cards may be out of date.',

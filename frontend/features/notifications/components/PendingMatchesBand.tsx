@@ -39,7 +39,6 @@ export function PendingMatchesSignal() {
             borderTopRightRadius: 16,
             borderBottomLeftRadius: 16,
             borderBottomRightRadius: 4,
-            boxShadow: '0 16px 44px -32px rgba(0,0,0,0.5)',
           }}
         >
           <span
@@ -51,11 +50,11 @@ export function PendingMatchesSignal() {
             aria-expanded={open}
             aria-controls={panelId}
             onClick={() => setOpen((value) => !value)}
-            className="group flex min-h-[84px] w-full items-center gap-3 px-4 py-4 ps-5 text-start text-[var(--lp-band-dark)] transition-colors duration-200 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-band-dark)] sm:gap-5 sm:px-6 sm:ps-7"
+            className="group grid min-h-[92px] w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-4 ps-4 text-start text-[var(--lp-band-dark)] transition-colors duration-200 hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-band-dark)] sm:flex sm:min-h-[84px] sm:gap-5 sm:px-6 sm:ps-7"
           >
             <span
               aria-hidden
-              className="inline-flex size-9 shrink-0 items-center justify-center border border-black/20 bg-black/[0.04]"
+              className="hidden size-9 shrink-0 items-center justify-center border border-black/20 bg-black/[0.04] sm:inline-flex"
               style={{ borderRadius: 9 }}
             >
               <span
@@ -68,7 +67,7 @@ export function PendingMatchesSignal() {
               <span className="block mono text-[10px] font-semibold uppercase tracking-[0.17em] text-[var(--lp-band-dark)]/85">
                 [:{t.matches.inlineEyebrow}:]
               </span>
-              <span className="mt-1 block mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-band-dark)]/60">
+              <span className="mt-1 block max-w-[44ch] font-sans text-[12px] font-medium leading-5 text-[var(--lp-band-dark)]/70">
                 {t.matches.inlineSubtitle}
               </span>
             </span>
@@ -97,7 +96,8 @@ export function PendingMatchesSignal() {
           {open ? (
             <div
               id={panelId}
-              className="pending-match-reveal border-t border-black/[0.12] px-4 pb-4 pt-3 sm:px-6 sm:pb-6 sm:pt-5"
+              className="pending-match-reveal border-t border-black/[0.18]"
+              style={{ background: 'var(--lp-card)' }}
             >
               {state === 'error' ? (
                 <MatchLoadError
@@ -107,7 +107,7 @@ export function PendingMatchesSignal() {
                 />
               ) : null}
               {matches.length > 0 ? (
-                <ul className="space-y-2.5">
+                <ul className="divide-y divide-[var(--lp-border-light)]">
                   {matches.map((proposal) => (
                     <MatchRow
                       key={proposal.jobId}
@@ -188,14 +188,11 @@ function MatchRow({
     <li
       className="relative overflow-hidden"
       style={{
-        background: dark ? 'rgba(255,255,255,0.04)' : 'var(--lp-card)',
-        border: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid var(--lp-border-light)',
+        background: dark ? 'rgba(255,255,255,0.04)' : 'transparent',
+        border: dark ? '1px solid rgba(255,255,255,0.08)' : 'none',
         color: dark ? 'white' : 'var(--lp-dark)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
-        boxShadow: dark ? 'none' : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
+        borderRadius: dark ? 12 : 0,
+        boxShadow: 'none',
       }}
     >
       <span
@@ -399,7 +396,7 @@ function MatchLoadError({
   return (
     <div
       role="status"
-      className="mt-4 flex flex-col gap-3 border-s-[3px] border-[var(--color-warning)] bg-[var(--color-warning-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      className="m-4 flex flex-col gap-3 border-s-[3px] border-[var(--color-warning)] bg-[var(--color-warning-soft)] px-4 py-3 sm:m-5 sm:flex-row sm:items-center sm:justify-between"
     >
       <p className="text-[13px] leading-relaxed text-[var(--lp-dark)]">{label}</p>
       <Button type="button" variant="outline" onClick={onRetry} className="shrink-0 self-start sm:self-auto">
