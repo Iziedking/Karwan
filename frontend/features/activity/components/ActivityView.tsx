@@ -160,7 +160,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
           <ActivityPanelTab
             active={activePanel === 'money'}
             label={t.moneyTitle}
-            tag={t.moneyTag}
+            tag=""
             onClick={() => setActivePanel('money')}
             controls="activity-money-panel"
           />
