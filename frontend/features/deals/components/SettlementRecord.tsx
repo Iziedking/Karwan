@@ -166,7 +166,10 @@ export function SettlementRecord({
             };
             const proofHref = movement.legs.find((leg) => leg.explorerUrl && leg.txHash)?.explorerUrl ?? null;
             return (
-              <article key={movement.reference} className="rounded-[12px] border border-white/[0.08] bg-white/[0.025] p-4 sm:p-5">
+              <article
+                key={movement.reference}
+                className="group rounded-[12px] border border-white/[0.08] bg-white/[0.025] p-4 transition-colors duration-200 hover:bg-white/[0.04] focus-within:bg-white/[0.04] sm:p-5"
+              >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="mono text-[10px] uppercase tracking-[0.17em] text-white/40">

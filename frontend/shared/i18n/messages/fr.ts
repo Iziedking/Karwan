@@ -698,11 +698,12 @@ export const fr: Messages = {
       body: 'Réessayez dans un instant.',
     },
     tabs: {
-      identity: 'IDENTITÉ',
-      wallets: 'WALLETS',
-      agents: 'AGENTS',
+      identity: 'CONFIGURATION',
+      openDeals: 'DEALS OUVERTS',
+      wallets: 'PORTEFEUILLES',
+      agents: 'FONDS AGENTS',
       stake: 'STAKE',
-      preferences: 'PRÉFÉRENCES',
+      preferences: 'CONTACT',
     },
     hero: {
       sectionTag: 'PROFIL',
@@ -4452,6 +4453,18 @@ export const fr: Messages = {
       },
     },
     next: {
+      tradeAnywhere: {
+        title: 'Commencer une transaction protégée depuis n’importe où',
+        body: 'Un compagnon de navigateur prévu ouvrira Karwan à côté de la page où la transaction commence. X sera la première surface dédiée, puis le même parcours générique fonctionnera à côté de TikTok, Facebook, Instagram, LinkedIn et de toute autre page HTTPS. Il ne recueillera que le contexte fourni volontairement par l’utilisateur, sans lire les messages privés, automatiser une action sociale ni prendre une décision financière. La contrepartie pourra examiner et accepter la transaction avec un lien Karwan normal, sans installer l’extension.',
+      },
+      financeNetwork: {
+        title: 'Un marché ouvert du financement commercial',
+        body: 'Les factures et bons de commande éligibles créés dans Karwan pourront demander un financement à des financeurs approuvés. Chaque offre indiquera l’avance, le remboursement, la marge, l’expiration et le recours. Le vendeur choisira, puis la cession acceptée remboursera le financeur depuis le règlement avant de verser le solde au vendeur. Une ouverture plus large dépendra de contrôles de juridiction, d’identité, de risque, de concentration et d’information.',
+      },
+      localPayouts: {
+        title: 'Versements bancaires locaux',
+        body: 'USDC restera la couche de règlement transfrontalière. Le versement en monnaie locale vers un compte bancaire sera ouvert corridor par corridor avec une infrastructure de paiement approuvée. Pays pris en charge, contrôle du bénéficiaire, change, frais, délai, annulation et reprise seront affichés avant confirmation. Cette fonction n’est pas disponible dans la version testnet actuelle.',
+      },
       title: 'Livraison à venir',
       skills: { title: 'Vérification des compétences', body: "Les agents classent un vendeur sur ce qu'il revendique et son historique de transactions réglées. La couche suivante le prouve. Les vendeurs lient des identités externes (GitHub d'abord, puis X, Substack, Dribbble) avec une preuve signée par le portefeuille, sans OAuth ni mots de passe, et l'agent lit des signaux publics pour la compétence, commits et langages pour un développeur, classements d'audit pour un chercheur en sécurité, travaux publiés pour un rédacteur, et mêle cette preuve au score d'appariement. Un acheteur voit pourquoi un vendeur est classé là où il l'est. Preuve et réputation restent des étiquettes séparées, prouver une compétence ne cache jamais un historique mince et un historique mince ne cache jamais une compétence prouvée. Les sources gratuites couvrent les catégories courantes, les contrôles payants se déclenchent selon le palier et la valeur de la transaction." },
       fileDelivery: { title: 'Livraison de fichiers', body: "Livrez le travail sous forme de fichier plutôt qu'un simple lien, avec le même pipeline d'analyse. Construit sur Cloudflare R2 pour la vitesse et IPFS pour une livraison adressée par contenu, à l'épreuve des falsifications, de documents commerciaux confidentiels." },

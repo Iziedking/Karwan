@@ -7,6 +7,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api, type UserProfile } from '@/core/api';
 import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from './WalletAvatar';
+import { ActionBeacon } from './ActionBeacon';
 
 /// The user's profile entry in the top nav. Identity comes from the SESSION
 /// (useAuth), not wagmi, so it works for BOTH wallet users and email/Circle
@@ -16,10 +17,11 @@ import { WalletAvatar } from './WalletAvatar';
 /// it opens their profile instead of having to discover an unlabeled icon. The
 /// label collapses on small screens, where the menu carries Profile. Routes to
 /// /profile.
-export function ProfileAvatar() {
+export function ProfileAvatar({ actionCount = 0 }: { actionCount?: number }) {
   const { address, isAuthenticated } = useAuth();
   const pathname = usePathname();
-  const nav = useTranslations().nav;
+  const messages = useTranslations();
+  const nav = messages.nav;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [imageOk, setImageOk] = useState(true);
 
@@ -51,7 +53,11 @@ export function ProfileAvatar() {
   return (
     <Link
       href="/profile"
-      aria-label={nav.hints.profile}
+      aria-label={
+        actionCount > 0
+          ? `${nav.hints.profile} · ${actionCount} ${messages.pending.deals.sectionTag}`
+          : nav.hints.profile
+      }
       className={cn(
         'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-1.5 py-1 transition-colors',
         active
@@ -72,6 +78,7 @@ export function ProfileAvatar() {
       ) : (
         <WalletAvatar address={address} size={26} />
       )}
+      {actionCount > 0 ? <ActionBeacon className="-ms-1" /> : null}
       <span className="hidden md:inline pe-2 mono text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--color-ink-dim)]">
         {nav.profile}
       </span>

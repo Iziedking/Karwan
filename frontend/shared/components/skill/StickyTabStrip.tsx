@@ -4,6 +4,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
+import { ActionBeacon } from '@/shared/components/ActionBeacon';
 
 /// SKILL.md §4.5. The sticky section tab strip. Equal columns, mono labels,
 /// right-aligned chevron in each cell. Active cell has a top 2px lime indicator
@@ -22,6 +23,8 @@ export interface Tab {
   id: string;
   label: string;
   hash?: string;   // anchor target for scroll-to-section behavior
+  count?: number;
+  attention?: boolean;
 }
 
 const LAYOUT_ID = 'skill-tab-strip-indicator';
@@ -340,6 +343,7 @@ export function StickyTabStrip({
                 type="button"
                 role="tab"
                 aria-selected={isActive}
+                aria-label={t.count == null ? t.label : `${t.label}, ${t.count}`}
                 onClick={() => {
                   onChange?.(t.id);
                   if (t.hash) {
@@ -389,6 +393,12 @@ export function StickyTabStrip({
                     }}
                   />
                   [:{t.label}]
+                  {t.count != null ? (
+                    <span className="font-sans text-[10px] font-extrabold tabular-nums tracking-normal md:text-[11px]">
+                      {String(t.count).padStart(2, '0')}
+                    </span>
+                  ) : null}
+                  {t.attention ? <ActionBeacon /> : null}
                 </span>
                 <span
                   aria-hidden

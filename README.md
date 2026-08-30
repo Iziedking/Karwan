@@ -1,10 +1,36 @@
 # Karwan
 
-Karwan is an on-chain settlement and reputation workspace for person-to-person and business trade. Two parties agree terms, fund USDC escrow on Arc, and release money as delivery is accepted. Every settled deal writes to a record that belongs to the wallet rather than to Karwan.
+**Trade can start anywhere. Settlement should not depend on trust alone.**
 
-The build runs on Arc Testnet (chain `5042002`), where USDC is the gas token. Live at [karwan.site](https://karwan.site), with the API at [api.karwan.site](https://api.karwan.site).
+Karwan is building an open market for secure local and cross-border trade. Two people or businesses can meet on a social network, in a marketplace, through chat, or in person, then move the agreement into one protected flow: set the terms, secure USDC in milestone escrow, verify delivery, release payment, and leave both sides with a portable trade record.
 
-Karwan is testnet software. Do not use it for real funds, and do not treat it as a regulated financial, identity, or employment service.
+That record is also the foundation for working capital. A supplier with an accepted order or invoice can ask approved financiers for an advance. Financiers compete on terms, the supplier chooses, and repayment comes from the settlement flow instead of an informal promise.
+
+The current build runs on Arc Testnet (chain `5042002`), where USDC is also the gas token. It is live at [karwan.site](https://karwan.site), with the API at [api.karwan.site](https://api.karwan.site).
+
+Karwan is testnet software. Testnet USDC has no real value. Do not use the build for real funds or treat it as a regulated financial, identity, employment, lending, or payout service.
+
+## The market Karwan is building
+
+Karwan brings four jobs into one system:
+
+1. **Capture the trade where it starts.** A planned browser companion will let a user draft a deal beside X, TikTok, Facebook, Instagram, LinkedIn, or another website. The counterparty will be able to review and accept through a normal Karwan link without installing anything.
+2. **Secure performance, not just payment.** The parties agree the amount, milestones, evidence, deadline, cancellation path, and dispute path before funds are locked.
+3. **Settle across borders in USDC.** Escrow releases only against the agreed outcome. CCTP and Circle Gateway handle supported on-chain routes. Local-currency bank payout is planned per corridor through approved, regulated payout infrastructure, with fees and foreign exchange shown before confirmation.
+4. **Finance eligible trade.** Karwan-native invoices, purchase orders, delivery evidence, settlement history, and counterparty concentration give financiers a clearer basis for pricing risk. Funding is opt-in, terms are disclosed, and the financier earns the agreed spread only when the financed trade repays.
+
+The flywheel is simple: more protected trades create better records; better records make financing easier to price; more available capital helps more trades complete.
+
+## What exists and what is planned
+
+| Layer | Arc Testnet today | Planned expansion |
+|---|---|---|
+| Trade entry | Direct deals, email invites, business requests, offers, and agent-assisted matching in the Karwan web app | A user-invoked browser companion that can start a protected trade beside any supported site, with X as the first focused surface |
+| Protection | Milestone escrow, delivery review, cancellation, extension, dispute resolution, and settlement receipts | Source-aware trade drafts, stronger evidence capture, and corridor-specific policy controls |
+| Settlement | USDC on Arc, CCTP routes, Circle Gateway, wallet and bridge surfaces | Mainnet release after audit and control gates; local bank payout through approved corridors and partners |
+| Trade finance | Invoice factoring, purchase-order financing, a financier desk, and credit-passport signals | A broader quote market for eligible Karwan-originated receivables and orders, with transparent pricing, concentration limits, and repayment waterfalls |
+
+The browser companion, mainnet settlement, and local bank payout are roadmap items, not capabilities in the current testnet release.
 
 ![Karwan architecture](./docs/diagrams/architecture.png)
 
@@ -122,6 +148,19 @@ The backend suite runs with `npm test --workspace=backend` and needs a populated
 
 ## Roadmap
 
+### Trade Anywhere and the open finance market
+
+The next product expansion moves trade creation closer to the conversation without moving financial authority into a social network. It is planned in this order:
+
+1. **One source-agnostic trade draft.** Add a versioned trade-intent model for services, goods, purchase orders, and invoices. It records user-approved terms and an optional source reference, not a copy of a private conversation.
+2. **A universal browser companion, starting with X.** Open Karwan in a Manifest V3 side panel after a user gesture. The first store version uses temporary `activeTab` access, does not scrape messages, does not inject buttons, and never posts, follows, likes, replies, or sends messages for the user. TikTok, Facebook, Instagram, LinkedIn, and other sites enter through the same generic capture path. Platform-specific extraction or APIs remain disabled until their terms and review requirements are satisfied.
+3. **Counterparty consent on the web.** The other party receives a secure invite, reviews the exact commercial and settlement terms, accepts or counters, and can complete the flow without the extension. Terms become immutable after acceptance.
+4. **Settlement and evidence.** Funding, delivery, disputes, release, receipts, and reputation continue through Karwan's existing reviewed-command and contract boundaries. The extension is another client, never a second ledger or wallet authority.
+5. **Financing on verified trade.** Start with accepted Karwan-originated invoices and purchase orders. Approved financiers quote advances, sellers compare the amount now, repayment, spread, expiry, and recourse, then choose whether to assign the receivable. The settlement redirect repays the financier before the residual reaches the seller.
+6. **Local payout corridors.** Keep USDC as the settlement layer while approved payout infrastructure converts to local currency and pays a supported bank account. Each corridor launches only after availability, compliance, reconciliation, refund, support, fee, and foreign-exchange gates pass.
+
+This is not a social-engagement marketplace. Karwan will not pay people to like, follow, repost, comment, or manipulate activity on another platform. It secures commercial agreements that happen to begin there.
+
 ### Arc mainnet readiness
 
 Karwan is operating on Arc Testnet. Mainnet is a controlled release program,
@@ -162,12 +201,12 @@ gates below have reproducible evidence and pass a documented go/no-go review.
 
 ### Beyond the mainnet gate
 
-The next product track is a mobile companion focused on frequent actions:
-reviewing a match, approving a counter, funding or releasing a milestone,
-answering a deadline, and checking where a deal stands. Detailed operations,
-business controls, verification review, and full activity history remain on the
-web. The mobile application is planned work and does not ship in the current
-testnet release.
+After the browser companion and mainnet control gates, a mobile companion can
+cover frequent actions: opening a shared trade invite, reviewing a counter,
+funding or releasing a milestone, answering a deadline, and checking where a
+deal stands. Detailed operations, business controls, verification review, and
+full activity history remain on the web. The mobile application is planned work
+and does not ship in the current testnet release.
 
 ## License
 

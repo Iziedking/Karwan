@@ -14,6 +14,12 @@ export const qk = {
       ['deals', 'item', jobId, (viewer ?? 'anon').toLowerCase()] as const,
   },
 
+  matches: {
+    all: () => ['matches'] as const,
+    list: (address: string | null | undefined) =>
+      ['matches', 'list', (address ?? 'anon').toLowerCase()] as const,
+  },
+
   balances: {
     all: () => ['balances'] as const,
     me: () => ['balances', 'me'] as const,
@@ -86,6 +92,7 @@ export type QueryKey = ReturnType<
   | typeof qk.dealsStats
   | typeof qk.deals.list
   | typeof qk.deals.item
+  | typeof qk.matches.list
   | typeof qk.balances.me
   | typeof qk.walletOverview
   | typeof qk.reputation

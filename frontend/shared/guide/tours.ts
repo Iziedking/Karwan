@@ -7,19 +7,19 @@ export const WELCOME_ID = 'welcome-v1';
 export const WELCOME_STEPS: TourStep[] = [
   {
     title: 'Welcome to Karwan',
-    body: 'Get paid for cross-border work without the bank wait. You and the other side agree a price, the money is locked safely, and it is released as the work gets delivered.',
+    body: 'Secure cross-border work in USDC. Agree terms, lock funds in escrow, and release payment as work is delivered.',
   },
   {
-    title: 'Two ways to start',
-    body: 'Already know who you are trading with? Open a direct deal and name their wallet. Need to find someone? Post a request and your assistant finds and negotiates a match for you.',
+    title: 'Choose how to trade',
+    body: 'Know your counterparty? Start a direct deal. Looking for a match? Post a request and your agent will bring back offers.',
   },
   {
-    title: 'Where things live',
-    body: 'Open Trades from the top menu to hire or to offer work, Market to browse what others have posted, and Activity to follow the network. Your money stays in your own wallet until you fund a deal.',
+    title: 'Find your way around',
+    body: 'Trade is where you post requests and offers. Market is for browsing. Activity shows deal and payment history. Profile holds wallets and agent settings.',
   },
   {
-    title: 'Two buttons, always there',
-    body: 'Nothing moves without your approval. Need a hand on any page? Tap Tour, bottom-left, for a quick walkthrough of that page. Spot a bug or have an idea? Tap Feedback, bottom-right. That is it. Go build.',
+    title: 'You stay in control',
+    body: 'Your approval is required before funds move. Use Tour for page guidance and Feedback to report an issue.',
   },
 ];
 
@@ -28,28 +28,28 @@ export const WELCOME_STEPS: TourStep[] = [
 export const HOME_TOUR_ID = 'home-v2';
 export const HOME_STEPS: TourStep[] = [
   {
-    title: 'Start a deal',
-    body: 'Post a request to hire someone, or an offer to take work. Your assistant runs the bidding and negotiation from there and brings you terms to approve.',
+    title: 'Start with a request or offer',
+    body: 'Post what you need or what you can supply. Your agent finds matches and brings you the terms.',
     target: 'home-start',
   },
   {
     title: 'Your money, at a glance',
-    body: 'What you can spend, what is locked safely in deals, and what you have earned. Held in USDC (digital dollars) in escrow on Arc. Locked money is released only as work is delivered.',
+    body: 'See your balance, funds held in escrow, and earnings. All values are in USDC.',
     target: 'home-money',
   },
   {
-    title: 'Choose your next desk',
-    body: 'Open the buyer desk to hire, the seller desk to offer work, or Activity to follow what is moving across Karwan.',
+    title: 'Pick a desk',
+    body: 'Buyer is for hiring. Seller is for offering work. Activity tracks progress.',
     target: 'home-doors',
   },
   {
     title: 'The network, live',
-    body: 'A 30-day pulse of the whole network and the totals beneath it: deals funded and settled, any disputes, plus volume, milestones released, reputation records, and yield. Every number reads straight from the contracts on Arc, so it is proof the rails are working, not a mockup.',
+    body: 'Review live totals for funded deals, settlements, disputes, and payment volume.',
     target: 'home-activity',
   },
   {
-    title: 'Your book',
-    body: 'Every deal you are part of, with its live stage. Tap any one to act on it: accept, deliver, release a milestone, or settle.',
+    title: 'Your open work',
+    body: 'Open a deal to review its status or take the next available action.',
     target: 'home-deals',
   },
 ];
@@ -61,23 +61,23 @@ export const HOME_STEPS: TourStep[] = [
 export const BIZ_HOME_TOUR_ID = 'biz-home-v2';
 export const BIZ_HOME_STEPS: TourStep[] = [
   {
-    title: 'Your trade desk',
-    body: 'Open Buyer Desk to source work, Supply Desk to publish what your company sells, or start a direct trade with a counterparty you already know.',
+    title: 'Open a desk',
+    body: 'Buyer Desk sources work. Supply Desk lists what you sell. Direct Trade is for a known counterparty.',
     target: 'biz-desk',
   },
   {
-    title: 'Your verified status',
-    body: 'This shows whether your business is verified. Register your company and anchor a registration or tax document to unlock SME trade-finance deals; Karwan reviews it and grants the badge.',
+    title: 'Business verification',
+    body: 'Check your verification status. Register your company to unlock SME trade-finance features.',
     target: 'biz-verify',
   },
   {
     title: 'Your book',
-    body: 'Every deal your company runs, with how many are active, how many have settled, and your total volume charted over time.',
+    body: 'Track active and settled trades alongside total volume.',
     target: 'biz-book',
   },
   {
-    title: 'You stay in control',
-    body: 'Agents negotiate and match, but nothing funds until you approve it, and money sits safely in escrow until the work lands. Tap Help any time for a refresher.',
+    title: 'Approval stays with you',
+    body: 'Agents handle matching. You approve terms before funding. Escrow releases payment as work is delivered.',
   },
 ];
 
@@ -86,28 +86,28 @@ export const BIZ_HOME_STEPS: TourStep[] = [
 export const BUYER_TOUR_ID = 'buyer-v1';
 export const BUYER_STEPS: TourStep[] = [
   {
-    title: 'Post a request',
-    body: 'Describe the work you need in plain words. Your assistant reads it and finds suppliers whose skills match.',
+    title: 'Describe the request',
+    body: 'Write what you need. Your agent uses it to find relevant suppliers.',
     target: 'buyer-brief',
   },
   {
-    title: 'Set your budget',
-    body: 'What you are willing to pay, in USDC (digital dollars, about 1 USDC to 1 US dollar). Add a little flexibility and your assistant can negotiate within it.',
+    title: 'Set a budget',
+    body: 'Enter the maximum in USDC. Tolerance gives your agent room to negotiate.',
     target: 'buyer-budget',
   },
   {
-    title: 'Set a deadline',
-    body: 'How long the work has. Give enough time for the back-and-forth plus the delivery, so a tight clock does not cut a negotiation short.',
+    title: 'Set the deadline',
+    body: 'Choose the delivery window. Leave room for negotiation and review.',
     target: 'buyer-deadline',
   },
   {
-    title: 'How far the agent can go',
-    body: 'Tolerance is how much above your budget your assistant may accept on a counter. 0 keeps it strict at your budget; a little room lets it close a fair deal without overpaying.',
+    title: 'Set a negotiation limit',
+    body: 'Tolerance is the maximum amount above budget your agent may accept. Zero keeps the cap fixed.',
     target: 'buyer-tolerance',
   },
   {
-    title: 'Let it run',
-    body: 'Post the request and your assistant takes over: it collects offers, negotiates, and brings you a match to approve. No money moves until you say yes.',
+    title: 'Post for offers',
+    body: 'Your agent collects offers and returns a match for your approval. Funding never starts automatically.',
     target: 'buyer-submit',
   },
 ];
@@ -116,28 +116,28 @@ export const BUYER_STEPS: TourStep[] = [
 export const SELLER_TOUR_ID = 'seller-v1';
 export const SELLER_STEPS: TourStep[] = [
   {
-    title: 'Offer your work',
-    body: 'Describe what you do in plain words. Your assistant matches it to buyers who need it and bids on your behalf.',
+    title: 'Describe your offer',
+    body: 'Say what you provide. Your agent matches it with buyer requests.',
     target: 'seller-listing',
   },
   {
-    title: 'Set your asking price',
-    body: 'What you want for the work, in USDC (digital dollars, about 1 USDC to 1 US dollar). Your assistant negotiates up from a buyer offer toward this.',
+    title: 'Set your price',
+    body: 'Enter your asking price in USDC. Your agent negotiates from buyer offers.',
     target: 'seller-price',
   },
   {
-    title: 'Your floor',
-    body: 'Accept decrease is how far below your asking the assistant may settle. 0 holds firm at your price; a little room helps it close. It never goes below this.',
+    title: 'Set your minimum',
+    body: 'Choose how far your price can move. Zero keeps it at the asking price.',
     target: 'seller-floor',
   },
   {
-    title: 'How long it stays live',
-    body: 'The window is how long the offer is open before it auto-expires. Set it long enough to catch matching requests; you can always post a fresh one.',
+    title: 'Set the live window',
+    body: 'Choose how long the offer stays open. Post again whenever you want to renew it.',
     target: 'seller-window',
   },
   {
-    title: 'Publish it',
-    body: 'Post the offer and your assistant watches for matching requests, negotiates, and brings you a deal to accept. You approve before anything is binding.',
+    title: 'Publish the offer',
+    body: 'Your agent watches for matching requests and brings back a deal for you to review.',
     target: 'seller-submit',
   },
 ];
@@ -146,23 +146,23 @@ export const SELLER_STEPS: TourStep[] = [
 export const STAKE_TOUR_ID = 'stake-v2';
 export const STAKE_STEPS: TourStep[] = [
   {
-    title: 'Network yield',
-    body: 'This is the protocol-wide reserve and distribution record. It shows what the vault has earned and what remains outstanding.',
+    title: 'Network reserve',
+    body: 'Review the vault reserve and distribution record.',
     target: 'stake-network-yield',
   },
   {
     title: 'Your yield',
-    body: 'This is your share. Claimable yield can move to your wallet without changing the stake that supports your reputation.',
+    body: 'Claim available yield without changing your stake.',
     target: 'stake-your-yield',
   },
   {
-    title: 'Your vault',
-    body: 'Deposit USDC to build reputation and withdraw from the same position when you need it back.',
+    title: 'Your vault position',
+    body: 'Deposit USDC to build reputation. The same position holds your withdrawable stake.',
     target: 'stake-vault',
   },
   {
-    title: 'Taking stake back',
-    body: 'A withdrawal enters the vault cool-down before it can be claimed. The live position shows the exact wait that applies.',
+    title: 'Withdrawal timing',
+    body: 'Withdrawals cool down before they can be claimed. The timer shows the exact wait.',
     target: 'stake-withdraw',
   },
 ];
@@ -184,32 +184,32 @@ export function buildBridgeSteps(view: {
 }): TourStep[] {
   const steps: TourStep[] = [
     {
-      title: 'Which way is the money going',
-      body: 'Deposit brings USDC onto Arc, where every deal settles. Withdraw sends it back out. Pick that first; what you can use depends on the answer.',
+      title: 'Choose a direction',
+      body: 'Deposit brings USDC to Arc. Withdraw sends it out. Available routes follow your choice.',
       target: 'bridge-direction',
     },
     {
-      title: 'Pick how it travels',
-      body: 'Each route suits a different starting point. Anything not open yet says so rather than pretending.',
+      title: 'Choose a route',
+      body: 'Select the route that matches where your USDC is now. Unavailable routes are marked clearly.',
       target: 'bridge-rails',
     },
   ];
 
   if (view.rail === 'direct') {
     steps.push({
-      title: 'One address, any chain',
-      body: 'Send USDC to this address from any chain you hold it on and it reaches Arc on its own. No chain to pick, no amount to type. Scan the code or copy the address.',
+      title: 'Send to one address',
+      body: 'Send USDC to the displayed address. Copy it or scan the code.',
       target: 'bridge-address',
     });
   }
 
   if (view.rail === 'gateway') {
     steps.push({
-      title: 'A balance that spans chains',
+      title: 'Use a pooled balance',
       body:
         view.direction === 'in'
-          ? 'Two steps, in order. Pool USDC from a chain you hold it on, then move it onto Arc once it confirms.'
-          : 'Send from your pooled balance to any chain, on one signature. It draws from wherever the money sits.',
+          ? 'Pool USDC from a supported chain, then move it to Arc once it confirms.'
+          : 'Send from your pooled balance to a supported chain in one step.',
       target: 'bridge-gateway',
     });
   }
@@ -217,18 +217,18 @@ export function buildBridgeSteps(view: {
   if (view.rail === 'cctp' && view.direction === 'in') {
     steps.push(
       {
-        title: 'Where your USDC is now',
-        body: 'Pick the chain your USDC sits on today. Karwan moves it onto Arc.',
+        title: 'Select the source chain',
+        body: 'Choose the chain that currently holds your USDC.',
         target: 'bridge-source',
       },
       {
-        title: 'How much to move',
-        body: 'Enter the amount. It is burned on the source chain and minted fresh on Arc. No wrapped tokens, no third party holding it.',
+        title: 'Enter an amount',
+        body: 'Set the amount to move to Arc.',
         target: 'bridge-amount',
       },
       {
-        title: 'Start it',
-        body: 'It usually lands on Arc in 10 to 19 minutes. You can leave the page and come back.',
+        title: 'Start the transfer',
+        body: 'Confirm the transfer. You can leave the page and return while it settles.',
         target: 'bridge-submit',
       },
     );
@@ -236,15 +236,15 @@ export function buildBridgeSteps(view: {
 
   if (view.rail === 'cctp' && view.direction === 'out') {
     steps.push({
-      title: 'Sending it out',
-      body: 'Pick where it goes and how much. Arc to Arc is instant. Another chain takes a few minutes and needs no gas token there.',
+      title: 'Send USDC out',
+      body: 'Choose a destination and amount. Arc-to-Arc is immediate; other chains may take a few minutes.',
       target: 'bridge-out',
     });
   }
 
   steps.push({
-    title: 'Everything you have moved',
-    body: 'Every transfer, its stage, and its receipt. A move that is still settling stays here until it lands.',
+    title: 'Review transfers',
+    body: 'Track every transfer by status and receipt. In-progress moves stay here until complete.',
     target: 'bridge-history',
   });
 
@@ -256,33 +256,33 @@ export function buildBridgeSteps(view: {
 export const JOBS_TOUR_ID = 'jobs-v1';
 export const JOBS_STEPS: TourStep[] = [
   {
-    title: 'The deal at a glance',
-    body: 'Your budget, how many offers are in, the deadline, and the terms hash. The terms hash is the fingerprint of what you posted, written to Arc.',
+    title: 'Request summary',
+    body: 'Review your budget, deadline, offer count, and terms fingerprint.',
     target: 'job-stats',
   },
   {
-    title: 'The request you posted',
-    body: 'Your brief in your own words, with the keywords your assistant pulled from it to find matching sellers.',
+    title: 'Your brief',
+    body: 'Read the request as posted, including the keywords used for matching.',
     target: 'job-brief',
   },
   {
-    title: 'Where this request stands',
-    body: 'The flow shows each stage from posted to funded: collecting offers, negotiating, then your approval. No money has moved yet.',
+    title: 'Request status',
+    body: 'Follow the path from posted to funded. Funding waits for your approval.',
     target: 'job-flow',
   },
   {
-    title: 'Watch the agents negotiate',
-    body: 'Your assistant and the sellers haggle here in real time. The card shows the price moving toward a deal; tap it to expand the round-by-round.',
+    title: 'Negotiation',
+    body: 'See the latest offer and how terms are changing. Open the card for the full history.',
     target: 'job-negotiation',
   },
   {
-    title: 'The offers on the table',
-    body: 'Every offer your assistant is weighing, scored on price and reputation. The strongest rises to the top.',
+    title: 'Offers',
+    body: 'Compare offers by price and reputation. The current lead is shown first.',
     target: 'job-bids',
   },
   {
-    title: 'You have the final say',
-    body: 'When the agents agree, a match appears at the top for you to approve. Nothing funds and no escrow locks until you say yes.',
+    title: 'Approval',
+    body: 'Approve the match when the terms are right. Nothing funds until you confirm.',
   },
 ];
 
@@ -290,23 +290,23 @@ export const JOBS_STEPS: TourStep[] = [
 export const DEAL_TOUR_ID = 'deal-v1';
 export const DEAL_STEPS: TourStep[] = [
   {
-    title: 'The money and who is in it',
-    body: 'Who you are dealing with, what you funded, what the seller nets after the platform fee, and how the payout splits between delivery and final release. It sits in escrow on Arc until each milestone is met.',
+    title: 'Deal summary',
+    body: 'Review both parties, the funded amount, seller proceeds, fee, and milestone split.',
     target: 'deal-money',
   },
   {
-    title: 'Where your deal stands',
-    body: 'This tracker shows each stage from accepted to settled. Your money sits safely in escrow and is released as milestones are met.',
+    title: 'Deal status',
+    body: 'Track the deal from acceptance to settlement. Funds release as milestones are completed.',
     target: 'deal-flow',
   },
   {
-    title: 'Your next move',
-    body: 'The seller marks the work delivered; the buyer reviews and releases each milestone. Either side can propose a cancel for a full refund.',
+    title: 'Next action',
+    body: 'Deliver, review, or release the next milestone. Cancellation and dispute options appear when available.',
     target: 'deal-actions',
   },
   {
-    title: 'Talk it through',
-    body: 'Message your counterparty right on this page and keep delivery links and notes together, so the whole deal lives in one place.',
+    title: 'Deal messages',
+    body: 'Keep messages, delivery links, and notes with the deal.',
   },
 ];
 
@@ -320,42 +320,42 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
   return [
     {
       target: 'profile-nav',
-      title: 'Your profile, in parts',
-      body: 'These tabs jump to each part: identity, wallets, agents, and preferences.',
+      title: 'Profile navigation',
+      body: 'Use these tabs for identity, wallets, agents, and contact settings.',
     },
     {
       target: 'profile-topup',
       title: 'Bring USDC to Arc',
       body: isCircle
-        ? 'Deals settle in USDC (digital dollars, about 1 to a US dollar) on Arc. Open Top up and send USDC to the wallet shown; Karwan moves it onto Arc for you.'
-        : 'Deals settle in USDC (digital dollars, about 1 to a US dollar) on Arc. Open Top up to move USDC from Base or Ethereum: you burn it from your own wallet and it mints on Arc. No wrapped tokens.',
+        ? 'Open Top up to send USDC to the wallet shown. Karwan moves it onto Arc for you.'
+        : 'Open Top up to move USDC from Base or Ethereum to Arc from your own wallet.',
     },
     {
       target: 'profile-identity',
-      title: 'Your identity',
-      body: 'Your account, your role, and the ranges your agents work within. If your agents are not live yet, the activate button is here. Use the tabs above to move between identity, wallets, agents and preferences.',
+      title: 'Identity and limits',
+      body: 'Review your role and the limits your agents follow. Activate agents here if they are not running.',
     },
     {
       target: 'profile-wallets',
-      title: 'What your wallets hold',
-      body: 'Your own wallet and each agent wallet, with their USDC on Arc and copyable addresses. This is your money at rest, before any deal locks it.',
+      title: 'Wallet balances',
+      body: 'See your wallet and agent balances on Arc. Addresses can be copied when needed.',
     },
     {
       target: 'profile-balances',
-      title: 'Across every chain',
-      body: 'Bringing funds from elsewhere? Open this to see the same balances spread across chains. Folded by default to keep things calm.',
+      title: 'Other chains',
+      body: 'Expand this section to review balances held on other chains.',
     },
     {
       target: 'profile-agents',
-      title: 'Move money to your agent',
+      title: 'Agent funds',
       body: isCircle
-        ? 'Add USDC to the wallet that signs your deals so it can fund escrow, and cash it back out any time. Circle handles the signing for you.'
-        : 'Add USDC to the wallet that signs your deals so it can fund escrow, and cash it back out to your own wallet any time.',
+        ? 'Fund the agent wallet used for escrow, or withdraw to your own wallet. Circle handles signing.'
+        : 'Fund the agent wallet used for escrow, or withdraw to your own wallet.',
     },
     {
       target: 'profile-preferences',
-      title: 'How Karwan reaches you',
-      body: 'Connect email, Telegram, or X so your agent can ping you the moment a deal needs you. You only ever hear about your own deals.',
+      title: 'Contact preferences',
+      body: 'Choose where Karwan sends deal updates.',
     },
   ];
 }
@@ -365,18 +365,18 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
 export const ACTIVITY_TOUR_ID = 'activity-v3';
 export const ACTIVITY_STEPS: TourStep[] = [
   {
-    title: 'Network counters',
-    body: 'Each counter is also a filter. Select one to narrow the stream to that kind of event.',
+    title: 'Filter the network',
+    body: 'Select a counter to filter the feed by event type.',
     target: 'activity-stats',
   },
   {
-    title: 'Your money register',
-    body: 'Open this row for amounts and receipts tied to your own deals. The public stream does not expose them.',
+    title: 'Your transaction history',
+    body: 'Open your history for amounts and receipts from your deals.',
     target: 'activity-money',
   },
   {
-    title: 'The live network pulse',
-    body: 'Switch between the network and your own events, then narrow the stream with the controls above it.',
+    title: 'Activity feed',
+    body: 'Switch between network activity and your own events, then refine the results.',
     target: 'activity-stream',
   },
 ];
@@ -385,16 +385,16 @@ export const ACTIVITY_STEPS: TourStep[] = [
 export const SETTINGS_TOUR_ID = 'settings-v1';
 export const SETTINGS_STEPS: TourStep[] = [
   {
-    title: 'Make it yours',
-    body: 'Set your language, timezone, and theme so the app reads and feels the way you want.',
+    title: 'Preferences',
+    body: 'Set your language, timezone, and theme.',
   },
   {
-    title: 'Stay in the loop',
-    body: 'Choose how you get notified. Connect Telegram or email to hear about your deals the moment they move.',
+    title: 'Notifications',
+    body: 'Choose where deal updates are sent.',
   },
   {
-    title: 'Privacy and account',
-    body: 'Control what shows on your public profile and manage your account from here.',
+    title: 'Account privacy',
+    body: 'Manage profile visibility and account settings.',
   },
 ];
 
@@ -423,31 +423,31 @@ function buildAllMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
   if (accountKind === 'business') {
     return [
       {
-        title: 'Your B2B market',
-        body: 'Open trade-finance deals you can fund or fulfil, grouped into their own section.',
+        title: 'B2B market',
+        body: 'Review trade-finance deals your business can fund or fulfil.',
         target: 'market-b2b',
       },
       {
-        title: 'Companies hiring individuals',
-        body: 'Businesses sourcing individual services sit here. Open any card to act on it; your agents handle the matching and you approve the terms.',
+        title: 'Companies hiring',
+        body: 'Review business requests for individual services and decide whether to bid.',
         target: 'market-hiring',
       },
     ];
   }
   return [
     {
-      title: 'The marketplace',
-      body: 'Open requests and offers from people, in their own section. Browse for what you need and your assistant negotiates from there.',
+      title: 'Browse the market',
+      body: 'Review open requests and offers. Open a listing to inspect the details.',
       target: 'market-p2p',
     },
     {
-      title: 'Businesses hiring you',
-      body: 'Companies sometimes need an individual for a job. Those sit in their own section, and you bid on them like any request.',
+      title: 'Companies hiring',
+      body: 'Review business requests for individual services. Open a brief to decide whether to bid.',
       target: 'market-hiring',
     },
     {
-      title: 'Business deals are view-only',
-      body: 'You can see B2B trade activity for transparency, but acting on those needs a business account. Counterparties stay private.',
+      title: 'B2B activity',
+      body: 'B2B activity is view-only for personal accounts. Business accounts can act on eligible trades.',
       target: 'market-b2b',
     },
   ];
@@ -458,16 +458,16 @@ function buildAllMarketSteps(accountKind: 'person' | 'business'): TourStep[] {
 export const FINANCIER_APPLY_TOUR_ID = 'financier-apply-v1';
 export const FINANCIER_APPLY_STEPS: TourStep[] = [
   {
-    title: 'Become a financier',
-    body: 'Financiers advance against accepted invoices and fund purchase orders, then collect repayment when the trade settles on chain. Anyone can apply.',
+    title: 'Apply as a financier',
+    body: 'Finance accepted invoices and purchase orders, then collect repayment at settlement.',
   },
   {
-    title: 'Clear the bar',
-    body: 'Three checks: time on Karwan, a stake in the vault, and at least the COLD reputation tier. Each shows live, with a link to fix what is missing.',
+    title: 'Check eligibility',
+    body: 'Approval depends on account age, vault stake, and reputation tier. Each requirement shows its current state.',
   },
   {
-    title: 'Apply and you are in',
-    body: 'Once all three pass, apply and your desk unlocks right away. Funding stays gated until then so capital and counterparties are protected.',
+    title: 'Open your desk',
+    body: 'Apply once all checks pass. Your financier workspace opens after approval.',
   },
 ];
 
@@ -475,28 +475,28 @@ export const FINANCIER_APPLY_STEPS: TourStep[] = [
 export const FINANCIER_DESK_TOUR_ID = 'financier-desk-v1';
 export const FINANCIER_DESK_STEPS: TourStep[] = [
   {
-    title: 'Two desks',
-    body: 'Switch between invoices open to factoring and purchase orders open to funding. Each lists the trade you can put capital behind.',
+    title: 'Choose a desk',
+    body: 'Compare invoices for factoring with purchase orders for funding.',
     target: 'financier-tabs',
   },
   {
-    title: 'Filter to your lane',
-    body: 'Narrow by sector and region to find the deals you understand and want to back.',
+    title: 'Filter your lane',
+    body: 'Filter by sector and region to focus on familiar trades.',
     target: 'financier-filters',
   },
   {
-    title: 'Read each deal',
-    body: 'Every card shows the face value, the seller reputation tier, and the settlement window, so you can size the risk before you commit.',
+    title: 'Review a trade',
+    body: 'Check face value, seller reputation, and settlement timing before committing capital.',
     target: 'financier-deal',
   },
   {
-    title: 'Make an offer',
-    body: 'Set your discount or principal and post it. When the seller accepts, your advance goes out; repayment returns automatically when the deal settles.',
+    title: 'Post an offer',
+    body: 'Set your principal or discount and submit. Repayment follows settlement.',
     target: 'financier-offer',
   },
   {
-    title: 'Every counterparty has a passport',
-    body: 'Each card links to the seller’s on-chain credit passport: tier, settled-deal history, and repayment behaviour, so you underwrite with real signals.',
+    title: 'Review the passport',
+    body: 'Open the seller’s credit passport for verified history and repayment signals.',
     target: 'financier-passport',
   },
 ];
@@ -507,18 +507,18 @@ export const FINANCIER_DESK_STEPS: TourStep[] = [
 export const SUPPLY_TOUR_ID = 'supply-v1';
 export const SUPPLY_STEPS: TourStep[] = [
   {
-    title: 'Publish what you supply',
-    body: 'Describe what your company sells and what you want for it. It goes on the business market where buyers can find it.',
+    title: 'Publish your supply',
+    body: 'List what your company sells, including price and terms, so buyers can find it.',
     target: 'supply-post',
   },
   {
-    title: 'Your agent works both ways',
-    body: 'You do not need a partner to get a deal. Your agent watches business briefs and bids on the ones that match what you supply.',
+    title: 'Let your agent match',
+    body: 'Your agent watches relevant business requests and brings back matches.',
     target: 'supply-agent',
   },
   {
-    title: 'Or go and find them',
-    body: 'Partners lists companies by sector and region, so you can approach a buyer directly instead of waiting to be found.',
+    title: 'Find partners',
+    body: 'Browse companies by sector and region when you want to reach out directly.',
     target: 'supply-partners',
   },
 ];

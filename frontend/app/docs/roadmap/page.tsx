@@ -87,6 +87,15 @@ export default function DocsRoadmapPage() {
 
       <DocsH2>{t.next.title}</DocsH2>
 
+      <DocsH3 id="trade-anywhere">{t.next.tradeAnywhere.title}</DocsH3>
+      <DocsP>{t.next.tradeAnywhere.body}</DocsP>
+
+      <DocsH3 id="open-trade-finance">{t.next.financeNetwork.title}</DocsH3>
+      <DocsP>{t.next.financeNetwork.body}</DocsP>
+
+      <DocsH3 id="local-payout-corridors">{t.next.localPayouts.title}</DocsH3>
+      <DocsP>{t.next.localPayouts.body}</DocsP>
+
       <DocsH3 id="skills-verification">{t.next.skills.title}</DocsH3>
       <DocsP>{t.next.skills.body}</DocsP>
 

@@ -7,6 +7,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
+import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
+import { ActionBeacon } from './ActionBeacon';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface } from '@/shared/utils/routes';
 import { isBusinessAccount } from '@/features/account/accountKind';
@@ -30,6 +32,7 @@ export function WorkspaceBottomNav() {
   const pathname = usePathname();
   const auth = useAuth();
   const { unreadCount } = useNotifications();
+  const openDeals = useOpenDeals();
   const { profile } = useUserProfile();
   const t = useTranslations().nav;
   const business = isBusinessAccount(profile);
@@ -79,6 +82,7 @@ export function WorkspaceBottomNav() {
       label: t.profile,
       icon: 'account',
       active: pathname.startsWith('/profile') || pathname.startsWith('/settings'),
+      signal: openDeals.actionCount > 0,
     },
   ];
 
@@ -111,7 +115,7 @@ export function WorkspaceBottomNav() {
             <span className="inline-flex max-w-full items-center gap-1 truncate mono text-[9px] font-semibold uppercase tracking-[0.05em]">
               <span className="truncate">{item.label}</span>
               {item.signal ? (
-                <span aria-hidden className="inline-block size-1.5 shrink-0 rounded-full bg-[var(--lp-accent)]" />
+                <ActionBeacon />
               ) : null}
             </span>
           </Link>
