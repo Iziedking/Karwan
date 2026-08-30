@@ -8,6 +8,9 @@ export type OnboardingStep =
 
 export type OnboardingAccountKind = 'person' | 'business' | null;
 
+// Language is deliberately omitted from the blocking journey. It is a
+// reversible preference owned by Settings, while account type, authentication,
+// role, profile guardrails and activation are the steps that unlock trading.
 /**
  * A business operates on both sides of trade, so it does not need the
  * individual role picker. Keeping this as a pure model prevents rendered
@@ -18,10 +21,10 @@ export function onboardingJourney(
   accountKind: OnboardingAccountKind,
 ): readonly OnboardingStep[] {
   if (accountKind === 'business') {
-    return ['language', 'accountType', 'connect', 'profile', 'getReady'];
+    return ['accountType', 'connect', 'profile', 'getReady'];
   }
 
-  return ['language', 'accountType', 'connect', 'role', 'profile', 'getReady'];
+  return ['accountType', 'connect', 'role', 'profile', 'getReady'];
 }
 
 export function onboardingProgress(

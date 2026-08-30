@@ -62,11 +62,8 @@ function OnboardingShell() {
     <FullBleed>
       {/* Reserve roughly the height of the resolved onboarding step content
           so the footer doesn't shift down when OnboardingInner mounts and
-          the page grows. Speed Insights showed footer.bg-[var(--lp-light)]
-          shifting 0.27 on /onboarding, dominated by this exact fallback →
-          real-content swap. 80vh covers the typical "PICK YOUR LANGUAGE"
-          step (the LCP step the user lands on); subsequent steps are
-          shorter and don't push the footer further. */}
+          the page grows. 80vh covers the first account-choice screen and the
+          longer profile panels without making the setup feel artificially tall. */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] mx-auto text-center min-h-[80vh]">
           <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
@@ -92,10 +89,13 @@ function OnboardingInner() {
   const address = auth.address ?? undefined;
   const isConnected = auth.isAuthenticated;
   const [loginOpen, setLoginOpen] = useState(false);
-  const [step, setStep] = useState<OnboardingStep>('language');
+  // Language is a preference, not a prerequisite for a trade profile. Keep
+  // the first screen focused on choosing the account rail; users can change
+  // locale any time from Settings without adding a gate to activation.
+  const [step, setStep] = useState<OnboardingStep>('accountType');
   const t = useTranslations();
   const [role, setRole] = useState<UserRole | null>(null);
-  // Personal vs business is the account identity picked after language and
+  // Personal vs business is the account identity picked before authentication
   // persisted as accountKind. Business verification remains a separate status
   // granted later through document evidence and review.
   const [accountType, setAccountType] = useState<'person' | 'business' | null>(null);
@@ -159,10 +159,9 @@ function OnboardingInner() {
   const canSubmit = !!role && validationIssues.length === 0 && !submitting;
 
   useEffect(() => {
-    // Auto-skip the wallet-connect step when wagmi reconnects from cache,
-    // but NEVER skip the language step. A returning visitor with a cached
-    // wallet still needs to confirm or change their language before the
-    // rest of onboarding renders in it.
+    // Auto-skip the wallet-connect step when wagmi reconnects from cache.
+    // Language is a preference and is intentionally not a required step here;
+    // it remains available from Settings after the profile is created.
     if (isConnected && step === 'connect') {
       if (accountType === 'business') setRole('both');
       setStep(stepAfterAuthentication(accountType));
@@ -195,10 +194,8 @@ function OnboardingInner() {
     if (editMode || typeof window === 'undefined') return;
     const prevOf = (s: OnboardingStep): OnboardingStep | null => {
       switch (s) {
-        case 'language':
-          return null;
         case 'accountType':
-          return 'language';
+          return null;
         case 'connect':
           return 'accountType';
         case 'role':
@@ -460,7 +457,11 @@ function OnboardingInner() {
                 // still makes an explicit role decision after signing in.
                 setRole(v === 'business' ? 'both' : null);
               }}
-              onBack={() => setStep('language')}
+              onBack={() => {
+                // Account type is the first required choice now. Leave the
+                // focused setup flow when the user presses Back here.
+                if (typeof window !== 'undefined') window.history.back();
+              }}
               onContinue={() => setStep('connect')}
             />
           )}

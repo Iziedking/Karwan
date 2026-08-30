@@ -3,11 +3,13 @@ import { useEffect, useRef } from 'react';
 import { useGuide, GUIDE_MASTERY_XP, type TourStep } from './GuideProvider';
 import { WELCOME_ID } from './tours';
 
-/// Registers a page's guided tour with the global guide AND auto-opens it once
-/// for a newcomer, so a first-time user is taught the page without having to
-/// find the Tour pill. The public review showed the tips were too easy to miss.
+/// Registers a page's guided tour with the global guide. Page tours stay
+/// available from the quiet Tour launcher; the first-run welcome tour is the
+/// single automatic orientation layer. Opening another tour on every route
+/// made navigation feel interrupted and stacked guidance on top of the real
+/// task.
 ///
-/// Auto-open rules (kept deliberately gentle):
+/// Optional auto-open rules (kept deliberately gentle when explicitly opted in):
 ///   - Only when tips are enabled (the global "skip all" / five-skips cutoff
 ///     turns this off), the user has not mastered the app, and has not already
 ///     seen this page's tour.
@@ -21,6 +23,7 @@ export function PageTour({
   steps,
   replayLabel = 'Tour',
   autoStartDelayMs = 700,
+  autoStart = false,
 }: {
   id: string;
   steps: TourStep[];
@@ -28,6 +31,9 @@ export function PageTour({
   /// mount so the first step lands on a real element.
   autoStartDelayMs?: number;
   replayLabel?: string;
+  /// Only the one or two genuinely introductory surfaces should opt in. Most
+  /// page tours are orientation-on-demand so they never interrupt a workflow.
+  autoStart?: boolean;
 }) {
   const { registerTour, unregisterTour, startTour, hasActive, disabled, experience, isSeen } =
     useGuide();
@@ -42,6 +48,7 @@ export function PageTour({
   }, [id]);
 
   useEffect(() => {
+    if (!autoStart) return;
     if (autoTried.current) return;
     if (disabled || hasActive) return;
     if (experience >= GUIDE_MASTERY_XP) return;
@@ -55,7 +62,7 @@ export function PageTour({
     // Re-evaluates when an open tour closes (hasActive) or the seen/welcome
     // state changes, so the page tour opens right after the welcome finishes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, hasActive, disabled, experience, isSeen]);
+  }, [id, hasActive, disabled, experience, isSeen, autoStart]);
 
   return null;
 }
