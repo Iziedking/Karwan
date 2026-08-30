@@ -7,13 +7,13 @@ tours stay consistent and never collide.
 ## Pieces
 
 - `GuideProvider` — context + the spotlight overlay (rendered once, mounted in `AppProviders`). Owns the experience score, the per-tour "seen" set, the global "skip all tips" flag, and the 5-consecutive-skips cutoff.
-- `PageTour` — drop on a page with `id` + `steps`. Auto-opens once for newcomers, re-opens at random while they learn, stops at mastery, and leaves a quiet replay pill.
+- `PageTour` — drop on a page with `id` + `steps`. It leaves a quiet replay pill; set `autoStart` only on a genuinely introductory surface. The global welcome tour is the single automatic orientation layer.
 - `GuideWelcome` — first-run "start here" tour. Skips public/marketing routes; fires on the first app page after sign-in.
 - `tours.ts` — all step definitions in one place.
 
 ## Rules (read before adding a tour)
 
-1. **One auto-tour per page.** Two tours opening on the same page is the bug we keep hitting. If a page has a primary tour, nothing else on it may auto-open.
+1. **One automatic tour per first-use session.** The global welcome tour owns first orientation. Page tours are on-demand by default; if a page truly needs an automatic tour, set `autoStart` explicitly and nothing else on that page may auto-open.
 
 2. **Shared, tour-bearing components must be opt-out.** Any component that renders its own `<PageTour>` AND can appear on more than one page (today: `StakeCard`, `BridgeCard`) must expose `tour?: boolean` (default `true`). The page where it's a secondary element passes `tour={false}`, and that page's own tour explains the embedded feature instead.
    - `StakeCard`: tour on `/stake`, `tour={false}` inside `/profile`.

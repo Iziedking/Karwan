@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useActivation } from '@/shared/hooks/useActivation';
+import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Band, SectionTag, HeroHeadline, Punc } from './Bands';
 
@@ -15,15 +17,16 @@ interface Step {
   href?: string;
 }
 
-/// First-run orientation for the app home. A brand-new user (agents not yet
-/// activated) lands on a busy desk and, per the public review, did not know what
-/// to do next. This lays out the three steps to a first deal with direct links.
-/// It hides once the user activates their agents, or when they dismiss it.
+/// First-run orientation for the app home. This is deliberately a short,
+/// action-linked list rather than a grid of instructional cards. The setup row
+/// disappears as soon as the corresponding real state is reached: activation
+/// removes the activation task, and the whole guide gives way to the user's
+/// deal book after the first deal exists.
 export function QuickStartBand() {
   const t = useTranslations().appHome.quickStart;
-  const { activated, loading } = useActivation();
-  // Start hidden so the band never flashes before we have read storage or the
-  // activation state.
+  const { activated, loading: activationLoading } = useActivation();
+  const { deals, fetchState } = useDirectDeals();
+  const reduce = useReducedMotion();
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
@@ -34,7 +37,26 @@ export function QuickStartBand() {
     }
   }, []);
 
-  if (loading || activated || dismissed) return null;
+  // Wait for the real deal query before deciding whether this is a first-use
+  // account. This prevents the guide flashing over an established book while
+  // the cache is still warming.
+  if (activationLoading || fetchState === 'loading' || dismissed || deals.length > 0) return null;
+
+  const steps: Step[] = [
+    ...(!activated
+      ? [{ n: '01', ...t.steps.activate, href: '/profile#agents' }]
+      : []),
+    {
+      n: activated ? '01' : '02',
+      ...t.steps.post,
+      href: '/p2p',
+    },
+    {
+      n: activated ? '02' : '03',
+      title: t.steps.settle.title,
+      body: t.steps.settle.body,
+    },
+  ];
 
   const dismiss = () => {
     setDismissed(true);
@@ -44,12 +66,6 @@ export function QuickStartBand() {
       /* private window or storage disabled; just hide for this session */
     }
   };
-
-  const steps: Step[] = [
-    { n: '01', ...t.steps.activate, href: '/profile#identity' },
-    { n: '02', ...t.steps.post, href: '/p2p' },
-    { n: '03', title: t.steps.settle.title, body: t.steps.settle.body },
-  ];
 
   return (
     <Band tone="light" compact>
@@ -72,38 +88,62 @@ export function QuickStartBand() {
           </svg>
         </button>
       </div>
-      <div className="mt-8 grid sm:grid-cols-3 gap-4 fade-up fade-up-1">
-        {steps.map((s) => (
-          <div
-            key={s.n}
-            className="relative overflow-hidden p-5 bg-[var(--lp-card)] border border-[var(--lp-border-light)] flex flex-col"
-            style={{
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 4,
-            }}
-          >
-            <span className="mono text-[11px] font-bold tracking-[0.16em] text-[var(--lp-accent)]">
-              {s.n}
-            </span>
-            <p className="mt-3 font-sans text-[16px] font-extrabold tracking-[-0.01em] leading-tight text-[var(--lp-dark)]">
-              {s.title}
-            </p>
-            <p className="mt-2 text-[13px] leading-snug text-[var(--lp-text-sub)] flex-1">
-              {s.body}
-            </p>
-            {s.href && s.cta ? (
-              <Link
-                href={s.href}
-                className="mt-4 inline-flex items-center mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)] transition-colors"
+
+      <motion.ol
+        layout
+        transition={{ duration: reduce ? 0 : 0.22, ease: [0.22, 1, 0.36, 1] }}
+        className="mt-7 border-y border-[var(--lp-border-light)] fade-up fade-up-1"
+      >
+        <AnimatePresence initial={false}>
+          {steps.map((s) => {
+            const content = (
+              <>
+                <span className="mono shrink-0 text-[11px] font-bold tracking-[0.16em] text-[var(--lp-accent-hover)]">
+                  {s.n}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-sans text-[15px] font-extrabold tracking-[-0.01em] leading-tight text-[var(--lp-dark)]">
+                    {s.title}
+                  </span>
+                  <span className="mt-1 block max-w-[62ch] text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                    {s.body}
+                  </span>
+                </span>
+                {s.cta ? (
+                  <span className="shrink-0 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-transform group-hover:translate-x-1">
+                    {s.cta} <span aria-hidden>→</span>
+                  </span>
+                ) : null}
+              </>
+            );
+
+            return (
+              <motion.li
+                key={s.n}
+                layout
+                initial={reduce ? { opacity: 1 } : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                transition={{ duration: reduce ? 0 : 0.18 }}
+                className="border-b last:border-b-0 border-[var(--lp-border-light)]"
               >
-                {s.cta}
-              </Link>
-            ) : null}
-          </div>
-        ))}
-      </div>
+                {s.href ? (
+                  <Link
+                    href={s.href}
+                    className="group flex min-h-[76px] items-center gap-4 py-4 transition-colors hover:bg-black/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:gap-6 sm:py-5"
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <div className="flex min-h-[76px] items-center gap-4 py-4 sm:gap-6 sm:py-5">
+                    {content}
+                  </div>
+                )}
+              </motion.li>
+            );
+          })}
+        </AnimatePresence>
+      </motion.ol>
     </Band>
   );
 }
