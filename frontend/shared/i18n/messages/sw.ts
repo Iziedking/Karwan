@@ -698,11 +698,12 @@ export const sw: Messages = {
       body: 'Jaribu tena baada ya muda mfupi.',
     },
     tabs: {
-      identity: 'UTAMBULISHO',
+      identity: 'MPANGILIO',
+      openDeals: 'BIASHARA WAZI',
       wallets: 'POCHI',
-      agents: 'MAWAKALA',
+      agents: 'FEDHA ZA MAWAKALA',
       stake: 'STEKI',
-      preferences: 'MAPENDELEO',
+      preferences: 'MAWASILIANO',
     },
     hero: {
       sectionTag: 'WASIFU',
@@ -4452,6 +4453,18 @@ export const sw: Messages = {
       },
     },
     next: {
+      tradeAnywhere: {
+        title: 'Anzisha biashara iliyolindwa popote',
+        body: 'Msaidizi wa kivinjari uliopangwa utafungua Karwan kando ya ukurasa ambako biashara inaanza. X itakuwa sehemu ya kwanza iliyolengwa, kisha mtiririko wa kawaida utafanya kazi kando ya TikTok, Facebook, Instagram, LinkedIn, na ukurasa mwingine wa HTTPS. Utachukua tu muktadha ambao mtumiaji anatoa kwa makusudi, bila kusoma ujumbe binafsi, kuendesha vitendo vya mitandao ya kijamii, au kufanya uamuzi wa kifedha. Mshirika anaweza kukagua na kukubali kwa kiungo cha kawaida cha Karwan bila kusakinisha kiendelezi.',
+      },
+      financeNetwork: {
+        title: 'Soko wazi la ufadhili wa biashara',
+        body: 'Ankara na oda za ununuzi zinazostahiki na zilizotengenezwa ndani ya Karwan zitaweza kuomba ufadhili kutoka kwa wafadhili walioidhinishwa. Kila ofa itaonyesha malipo ya awali, marejesho, tofauti ya bei, muda wa kuisha, na haki ya kudai. Muuzaji atachagua ofa, kisha uhamisho uliokubaliwa utamlipa mfadhili kutoka kwenye malipo ya biashara kabla salio halijamfikia muuzaji. Upanuzi zaidi utahitaji udhibiti wa mamlaka, utambulisho, hatari, mkusanyiko, na ufichuzi.',
+      },
+      localPayouts: {
+        title: 'Njia za malipo ya benki za ndani',
+        body: 'USDC itabaki kuwa safu ya malipo ya kuvuka mipaka. Malipo ya sarafu ya ndani kwenda benki yatazinduliwa njia moja baada ya nyingine kupitia miundombinu ya malipo iliyoidhinishwa. Nchi zinazotumika, ukaguzi wa mpokeaji, kiwango cha ubadilishaji, ada, muda, urejeshaji, na utatuzi vitaonyeshwa kabla ya uthibitisho. Huduma hii haipatikani katika toleo la sasa la testnet.',
+      },
       title: 'Inakuja baadaye',
       skills: { title: 'Uthibitishaji wa ujuzi', body: 'Mawakala humpanga muuzaji kwa anachodai na rekodi yake ya mikataba iliyokamilika. Safu inayofuata inathibitisha. Wauzaji huunganisha vitambulisho vya nje (GitHub kwanza, kisha X, Substack, Dribbble) kwa uthibitisho uliotiwa saini na pochi, bila OAuth na bila nywila, na wakala husoma ishara za umma za ujuzi, commits na lugha kwa msanidi, nafasi za ukaguzi kwa mtafiti wa usalama, kazi zilizochapishwa kwa mwandishi, na kuchanganya ushahidi huo katika alama ya ulinganishaji. Mnunuzi anaona kwa nini muuzaji amepangwa hapo. Ushahidi na sifa hubaki lebo tofauti, kuthibitisha ujuzi hakufichi rekodi hafifu na rekodi hafifu haifichi ujuzi uliothibitishwa. Vyanzo vya bure hufunika kategoria za kawaida, ukaguzi wa malipo hudhibitiwa kwa tier na thamani ya mkataba.' },
       fileDelivery: { title: 'Utoaji wa faili', body: 'Toa kazi kama faili badala ya kiungo tu, na bomba la uchunguzi sawa. Imejengwa kwenye Cloudflare R2 kwa kasi na IPFS kwa utoaji wa hati za biashara za siri zinazoshughulikiwa na maudhui na zisizoweza kuchezewa.' },

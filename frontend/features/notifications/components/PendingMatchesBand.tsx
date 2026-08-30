@@ -147,7 +147,7 @@ export function PendingMatchesSignal() {
   );
 }
 
-function MatchRow({
+export function MatchRow({
   proposal,
   viewerAddress,
   tone,
@@ -195,17 +195,12 @@ function MatchRow({
         boxShadow: 'none',
       }}
     >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: palette.fg }}
-      />
       <Link
         href={`/jobs/${proposal.jobId}`}
         aria-label={`${stateCopy.headline} ${priceDisplay} ${t.card.unit}`}
         data-matching-state={presentation.state}
         data-matching-next-actor={presentation.nextActor}
-        className={`group block min-h-11 px-4 py-4 ps-6 sm:px-5 sm:py-5 sm:ps-7 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${
+        className={`group block min-h-11 px-4 py-4 sm:px-5 sm:py-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ${
           dark ? 'hover:bg-white/[0.03]' : 'hover:bg-black/[0.025]'
         }`}
       >
@@ -291,7 +286,7 @@ function MatchRow({
               {matchingCopy.nextActors[presentation.nextActor]}
             </p>
             <p
-              className="col-start-2 row-start-1 text-end sm:mt-1 mono text-[10px] uppercase tracking-[0.12em]"
+              className="col-start-2 row-start-1 text-end sm:mt-1 mono text-[10px] uppercase tracking-[0.12em] transition-transform duration-200 motion-reduce:transition-none group-hover:translate-x-1 group-focus-within:translate-x-1"
               style={{ color: dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)' }}
             >
               {t.card.open} →

@@ -19,7 +19,7 @@ type PendingChips = Messages['pending']['chips'];
 /// Chip label for a deal stage from the viewer's side: either an action this
 /// viewer owns or a wait on the counterparty. Null on terminal stages so
 /// finished deals do not render here.
-function labelFor(
+export function labelFor(
   stage: DealStage,
   isBuyer: boolean,
   chips: PendingChips,

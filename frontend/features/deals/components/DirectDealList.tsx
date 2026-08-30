@@ -267,7 +267,7 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
                 </div>
                 <span
                   aria-hidden
-                  className="hidden md:inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--lp-light)] transition-transform duration-200 group-hover:rotate-[20deg] group-hover:translate-x-0.5"
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--lp-light)] transition-transform duration-200 group-hover:rotate-[20deg] group-hover:translate-x-0.5 group-focus-within:rotate-[20deg] group-focus-within:translate-x-0.5"
                 >
                   <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
                     <path
@@ -414,7 +414,7 @@ function SwipeableRow({
       {/* Rail indicator. Stays at the row's left edge regardless of drag. */}
       <span
         aria-hidden
-        className="absolute start-0 top-3 bottom-3 w-[3px] z-[1] transition-opacity duration-200 opacity-50 group-hover:opacity-100"
+        className="absolute start-0 top-3 bottom-3 w-[3px] z-[1] transition-opacity duration-200 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100"
         style={{ background: railColor }}
       />
       {/* Red reveal layer behind the row; fades in as the row slides left. */}

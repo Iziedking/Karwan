@@ -680,6 +680,7 @@ interface MessagesShape {
     loadError: { tag: string; title: string; body: string };
     tabs: {
       identity: string;
+      openDeals: string;
       wallets: string;
       agents: string;
       stake: string;
@@ -4165,6 +4166,9 @@ interface MessagesShape {
     };
     next: {
       title: string;
+      tradeAnywhere: { title: string; body: string };
+      financeNetwork: { title: string; body: string };
+      localPayouts: { title: string; body: string };
       skills: { title: string; body: string };
       fileDelivery: { title: string; body: string };
       referral: { title: string; body: string };
@@ -5567,11 +5571,12 @@ export const en: MessagesShape = {
       body: 'Try again in a moment.',
     },
     tabs: {
-      identity: 'IDENTITY',
+      identity: 'SETUP',
+      openDeals: 'OPEN DEALS',
       wallets: 'WALLETS',
-      agents: 'AGENTS',
+      agents: 'AGENT FUNDS',
       stake: 'STAKE',
-      preferences: 'PREFERENCES',
+      preferences: 'CONTACT',
     },
     hero: {
       sectionTag: 'ACCOUNT',
@@ -9449,6 +9454,18 @@ export const en: MessagesShape = {
     },
     next: {
       title: 'Planned or incomplete',
+      tradeAnywhere: {
+        title: 'Start a protected trade from anywhere',
+        body: 'A planned browser companion will open Karwan beside the page where a trade begins. The first focused surface is X, followed by generic support beside TikTok, Facebook, Instagram, LinkedIn, and other HTTPS pages. It will capture only context the user deliberately supplies, never read private messages, automate social actions, or make financial decisions. The counterparty can review and accept through a normal Karwan link without installing the extension.',
+      },
+      financeNetwork: {
+        title: 'Open trade-finance market',
+        body: 'Eligible Karwan-originated invoices and purchase orders will be able to request financing from approved financiers. Financiers quote the advance, repayment, spread, expiry, and recourse. The seller chooses the offer, and the accepted assignment routes repayment through the trade settlement before the seller receives any residual. Wider financing requires jurisdiction, identity, risk, concentration, and disclosure controls.',
+      },
+      localPayouts: {
+        title: 'Local payout corridors',
+        body: 'USDC remains the cross-border settlement layer. Local-currency bank payout will launch one corridor at a time through approved payout infrastructure, with supported countries, recipient checks, foreign exchange, fees, timing, reversals, and recovery shown before confirmation. This is not available in the current testnet build.',
+      },
       skills: { title: 'Individual skill verification', body: 'Individual skill claims are currently self-declared unless the product shows a live, skill-specific verification state. A future verification path may use external evidence or structured review. It will be scoped to the named skill and may expire or be revoked. Business verification is a separate account workflow for registration and tax evidence. Neither label guarantees licensing, solvency, performance, or safety.' },
       fileDelivery: { title: 'File delivery', body: 'Deliver work as a file rather than only a link, with the same scan pipeline. Built on Cloudflare R2 for speed and IPFS for tamper-evident, content-addressed delivery of confidential trade documents.' },
       referral: { title: 'Referral marketing rail (mainnet)', body: 'A growth surface that rewards users for bringing real counterparties on board. When you refer someone who registers through a completed deal with you, both wallets get a reputation lift on the new referral signal. Designed for mainnet, where every honest signup is a real customer rather than a faucet click. Sits behind a small anti-fraud check so the same wallet does not refer itself, and so repeating with the same counterparty does not stack indefinitely.' },

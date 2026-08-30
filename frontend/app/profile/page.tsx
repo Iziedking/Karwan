@@ -25,8 +25,8 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { AccountKindBadge } from '@/features/account/AccountKindBadge';
 import { VerificationStatusCard } from '@/features/account/VerificationStatusCard';
-import { PendingMatchesSignal } from '@/features/notifications/components/PendingMatchesBand';
-import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
+import { ProfileOpenDealsPanel } from '@/features/notifications/components/ProfileOpenDealsPanel';
+import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ProfileDeck, type DeckPanel } from '@/shared/components/ProfileDeck';
 import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -68,6 +68,7 @@ function ProfilePageInner() {
   const isCircleUser = method === 'circle';
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const activation = useActivation();
+  const openDeals = useOpenDeals();
   const [activationOpen, setActivationOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('identity');
   const { active: activeTour } = useGuide();
@@ -79,6 +80,15 @@ function ProfilePageInner() {
 
   const TABS: Tab[] = [
     { id: 'identity', label: t.tabs.identity, hash: 'identity' },
+    ...(openDeals.hasOpenDeals
+      ? [{
+          id: 'open-deals',
+          label: t.tabs.openDeals,
+          hash: 'open-deals',
+          count: openDeals.totalCount,
+          attention: openDeals.hasAction,
+        }]
+      : []),
     { id: 'wallets', label: t.tabs.wallets, hash: 'wallets' },
     { id: 'agents', label: t.tabs.agents, hash: 'agents' },
     { id: 'preferences', label: t.tabs.preferences, hash: 'preferences' },
@@ -98,12 +108,18 @@ function ProfilePageInner() {
       const h = window.location.hash.replace('#', '');
       if (!h) return;
       const key = h === 'company' ? 'identity' : h;
-      if (['identity', 'wallets', 'agents', 'preferences'].includes(key)) setActiveTab(key);
+      if (['identity', 'open-deals', 'wallets', 'agents', 'preferences'].includes(key)) {
+        setActiveTab(key === 'open-deals' && !openDeals.hasOpenDeals ? 'identity' : key);
+      }
     };
     fromHash();
     window.addEventListener('hashchange', fromHash);
     return () => window.removeEventListener('hashchange', fromHash);
-  }, []);
+  }, [openDeals.hasOpenDeals]);
+
+  useEffect(() => {
+    if (activeTab === 'open-deals' && !openDeals.hasOpenDeals) setActiveTab('identity');
+  }, [activeTab, openDeals.hasOpenDeals]);
 
   // Keep the URL in step so the panel someone is looking at is the one they
   // share. replaceState rather than push: paging through four panels should not
@@ -210,31 +226,26 @@ function ProfilePageInner() {
           <TierCelebration address={address} />
         </div>
 
-        {/* ACTIVATION, only while it still has something to ask for.
-            Once agents are active this block was a heading, a sentence and no
-            control: "Agents active. Buyer and seller wallets sign every
-            on-chain action." The panel is already labelled, there is an AGENTS
-            panel one tab over, and the sentence describes the product rather
-            than telling anyone anything about their account. Hidden while
-            loading too, so an activated user never sees "Activate to begin"
-            flash before the state resolves. */}
+        {/* Setup guidance decays after completion. The old hero-sized activation
+            prompt competed with the actual profile content and made one required
+            step feel like a second onboarding flow. */}
         {!activation.loading && !activation.activated ? (
-        <div className="px-4 py-5 md:px-8 md:py-7">
-          <div className="grid md:grid-cols-[1fr_auto] gap-6 items-end">
-            <div className="max-w-[52ch]">
-              <SectionTag>{t.activation.inactiveTag}</SectionTag>
-              <HeroHeadline size="md">
-                {t.activation.inactiveHeadlinePrefix}
-                <Accent>{t.activation.inactiveHeadlineAccent}</Accent>
-                <Punc>.</Punc>
-              </HeroHeadline>
-              <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
-                {t.activation.inactiveBody}
-              </p>
+          <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <span aria-hidden className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-[var(--lp-border-light)] bg-[color-mix(in_srgb,var(--lp-accent)_18%,transparent)]">
+                  <span className="size-1.5 bg-[var(--lp-accent-deep)]" />
+                </span>
+                <div className="min-w-0 max-w-[58ch]">
+                  <SectionTag>{t.activation.inactiveTag}</SectionTag>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                    {t.activation.inactiveBody}
+                  </p>
+                </div>
+              </div>
+              <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
             </div>
-            <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
           </div>
-        </div>
         ) : null}
 
         {/* ROLE + AGENT DETAILS */}
@@ -455,6 +466,21 @@ function ProfilePageInner() {
         </div>
       ),
     },
+    ...(openDeals.hasOpenDeals && address
+      ? [{
+          key: 'open-deals',
+          label: t.tabs.openDeals,
+          content: (
+            <ProfileOpenDealsPanel
+              address={address}
+              matches={openDeals.matches}
+              directDeals={openDeals.directDeals}
+              fetchState={openDeals.fetchState}
+              onRetry={openDeals.refresh}
+            />
+          ),
+        } satisfies DeckPanel]
+      : []),
     {
       key: 'wallets',
       label: t.tabs.wallets,
@@ -750,8 +776,6 @@ function ProfilePageInner() {
       </div>
 
       <MoneyStrip />
-      <PendingMatchesSignal />
-      <PendingDealsBand tone="light" />
 
       {/* One controlled mode at a time. The sticky strip provides random access;
           the deck provides explicit previous/next controls and a guarded mobile
@@ -801,6 +825,10 @@ function AgentBlock({
   agentAddress: string | undefined;
   rows: AgentRow[];
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const summaryRows = rows.filter((row) => row.mono).slice(0, 2);
+  const detailsId = `agent-details-${eyebrow.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
   return (
     <div
       className="group relative overflow-hidden transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-px"
@@ -814,18 +842,34 @@ function AgentBlock({
         boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 10px 24px -20px rgba(0,0,0,0.20)',
       }}
     >
-      <div className="flex items-center gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{eyebrow}:]
-        </span>
-        <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-      </div>
-      <div className="p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h3 className="min-w-0 font-sans text-[22px] sm:text-[24px] font-extrabold uppercase tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
-            {name || fallbackName}
-          </h3>
-          <div className="flex max-w-full flex-col items-start gap-1.5 sm:items-end">
+      <div className="border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-[var(--lp-accent)]" />
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={detailsId}
+            onClick={() => setExpanded((value) => !value)}
+            className="group/trigger flex min-h-11 min-w-0 flex-1 items-center justify-between gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+          >
+            <span className="min-w-0">
+              <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+                [:{eyebrow}:]
+              </span>
+              <span className="mt-1 block truncate font-sans text-[18px] font-extrabold uppercase tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
+                {name || fallbackName}
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={`shrink-0 text-[18px] text-[var(--lp-text-muted)] transition-transform duration-200 motion-reduce:transition-none ${
+                expanded ? 'rotate-90' : ''
+              }`}
+            >
+              ›
+            </span>
+          </button>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
             {agentAddress && (
               <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
                 {shortAddress(agentAddress)}
@@ -834,24 +878,43 @@ function AgentBlock({
             <ReputationBadge address={agentAddress} size="sm" withDetail />
           </div>
         </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          {rows.map((r) => (
-            <div
-              key={r.label}
-              className="min-w-0 rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"
-            >
-              <span className="block mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                {r.label}
+        {summaryRows.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 ps-[15px]">
+            {summaryRows.map((row) => (
+              <span key={row.label} className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
+                {row.value}
               </span>
-              <span
-                className={`mt-1 block text-start text-[13px] leading-snug text-[var(--lp-dark)] break-words ${
-                  r.mono ? 'font-sans tabular-nums font-semibold tracking-[-0.01em]' : 'font-sans'
-                }`}
+            ))}
+          </div>
+        )}
+      </div>
+      <div
+        id={detailsId}
+        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none ${
+          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+        aria-hidden={!expanded}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
+            {rows.map((r) => (
+              <div
+                key={r.label}
+                className="min-w-0 rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"
               >
-                {r.value}
-              </span>
-            </div>
-          ))}
+                <span className="block mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  {r.label}
+                </span>
+                <span
+                  className={`mt-1 block text-start text-[13px] leading-snug text-[var(--lp-dark)] break-words ${
+                    r.mono ? 'font-sans tabular-nums font-semibold tracking-[-0.01em]' : 'font-sans'
+                  }`}
+                >
+                  {r.value}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

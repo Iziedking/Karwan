@@ -160,7 +160,7 @@ export function DealsFeed() {
                 >
                   <span
                     aria-hidden
-                    className="absolute start-0 top-2 bottom-2 w-[3px] opacity-60 transition-opacity duration-150 group-hover:opacity-100"
+                    className="absolute start-0 top-2 bottom-2 w-[3px] opacity-60 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
                     style={{ background: meta.rail }}
                   />
 
@@ -209,7 +209,7 @@ export function DealsFeed() {
                     </div>
                     <span
                       aria-hidden
-                      className="text-[16px] leading-none transition-transform duration-150 group-hover:translate-x-1 shrink-0"
+                      className="text-[16px] leading-none transition-transform duration-150 group-hover:translate-x-1 group-focus-within:translate-x-1 shrink-0"
                       style={{ color: 'var(--lp-text-muted)' }}
                     >
                       ›

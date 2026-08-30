@@ -16,6 +16,8 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { isBusinessAccount } from '@/features/account/accountKind';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface } from '@/shared/utils/routes';
+import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
+import { ActionBeacon } from './ActionBeacon';
 
 // Landing routes are forced dark via these var overrides, so every embedded
 // child (bell, toggles, ConnectWalletButton) picks up dark mode without each
@@ -36,6 +38,7 @@ export function TopNav() {
   const t = useTranslations();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { unreadCount } = useNotifications();
+  const openDeals = useOpenDeals();
   const { profile } = useUserProfile();
   // Business and individual are two separate rails. A business sees B2B Trades
   // and the SME-rail home; an individual sees P2P Trades. The Financier desk is
@@ -192,6 +195,7 @@ export function TopNav() {
                   <QuickControls
                     isAuthenticated={isAuthenticated}
                     settingsActive={pathname.startsWith('/settings')}
+                    profileActionCount={openDeals.actionCount}
                   />
                 </div>
                 {/* Mobile keeps the high-signal bell and a compact preferences
@@ -202,10 +206,13 @@ export function TopNav() {
                   <QuickControls
                     isAuthenticated={isAuthenticated}
                     settingsActive={pathname.startsWith('/settings')}
+                    profileActionCount={openDeals.actionCount}
                   />
                 </div>
                 <ConnectWalletButton />
-                <span className="hidden md:inline-flex"><ProfileAvatar /></span>
+                <span className="hidden md:inline-flex">
+                  <ProfileAvatar actionCount={openDeals.actionCount} />
+                </span>
               </>
           ) : !publicSurface ? (
             // Signed-out app chrome: the sign-in button and the theme control,
@@ -346,9 +353,11 @@ function NavLinkSoon({
 function QuickControls({
   isAuthenticated,
   settingsActive,
+  profileActionCount,
 }: {
   isAuthenticated: boolean;
   settingsActive: boolean;
+  profileActionCount: number;
 }) {
   const t = useTranslations().nav;
   const [open, setOpen] = useState(false);
@@ -444,7 +453,7 @@ function QuickControls({
             {isAuthenticated && (
               <>
                 <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
-                <MenuLink href="/profile">{t.profile}</MenuLink>
+                <MenuLink href="/profile" signal={profileActionCount > 0}>{t.profile}</MenuLink>
                 <MenuLink href="/stake">{t.reputation}</MenuLink>
                 <Link
                   href="/settings"
@@ -464,14 +473,25 @@ function QuickControls({
   );
 }
 
-function MenuLink({ href, children }: { href: string; children: React.ReactNode }) {
+function MenuLink({
+  href,
+  children,
+  signal = false,
+}: {
+  href: string;
+  children: React.ReactNode;
+  signal?: boolean;
+}) {
   return (
     <Link
       href={href}
       className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 text-[13px] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)]"
       style={{ borderRadius: 8 }}
     >
-      <span>{children}</span>
+      <span className="inline-flex items-center gap-2">
+        {children}
+        {signal ? <ActionBeacon /> : null}
+      </span>
       <span aria-hidden className="text-[var(--color-ink-faint)]">→</span>
     </Link>
   );

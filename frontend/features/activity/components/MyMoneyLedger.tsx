@@ -188,14 +188,24 @@ export function MyMoneyLedger({
               <li
                 key={item.id}
                 data-ledger-status={item.status}
-                className="relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 ps-3"
+                className="group relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 ps-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-within:bg-[var(--lp-light)]"
               >
-                {item.status === 'pending' && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-y-3 start-0 w-[2px] bg-[var(--lp-accent)] motion-safe:animate-pulse motion-reduce:animate-none"
-                  />
-                )}
+                <span
+                  aria-hidden
+                  className={`absolute inset-y-3 start-0 w-[2px] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 ${
+                    item.status === 'pending'
+                      ? 'opacity-100 motion-safe:animate-pulse motion-reduce:animate-none'
+                      : 'opacity-0'
+                  }`}
+                  style={{
+                    background:
+                      item.status === 'failed'
+                        ? TONE.failed
+                        : ledgerDirection(item.kind) === 'in'
+                          ? 'var(--lp-accent)'
+                          : 'var(--lp-text-muted)',
+                  }}
+                />
                 <div className="min-w-0 flex-1">
                   <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{lineFor(item, t.text)}</p>
                   <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
