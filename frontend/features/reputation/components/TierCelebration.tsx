@@ -2,21 +2,11 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useReputation } from '../hooks/useReputation';
+import { TIER_HUE, type CompositeTier } from '../tierColors';
 
-type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
+type Tier = CompositeTier;
 
 const ORDER: Tier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
-
-// Vivid tier hue used for FILLS only (badge, rail, confetti, rank squares). The
-// tier word and labels never use the raw hue. lime-family hues fail contrast on
-// light, so text renders in a darkened mix of the hue instead.
-const TIER_HUE: Record<Tier, string> = {
-  NEW: '#9a9a9a',
-  COLD: '#e0a23c',
-  ESTABLISHED: 'var(--lp-accent)',
-  STRONG: 'var(--lp-accent)',
-  ELITE: 'var(--lp-accent)',
-};
 
 // Allow inline CSS custom properties (--rail-dy etc.) without fighting the types.
 type Styleable = CSSProperties & Record<string, string | number>;

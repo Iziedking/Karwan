@@ -5,19 +5,10 @@ import { api, type UserProfile, type CounterpartyReport } from '@/core/api';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress } from '@/shared/utils/format';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { TIER_HUE } from '@/features/reputation/tierColors';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { shortenEvidenceId } from '../paidEvidencePresentation';
-
-// Per-tier hue, mirroring ProfileTierCard so the tier reads the same colour
-// everywhere. Shown as a rail down the profile box.
-const TIER_HUE: Record<string, string> = {
-  NEW: '#9a9a9a',
-  COLD: '#e0a23c',
-  ESTABLISHED: 'var(--lp-accent)',
-  STRONG: '#5fd08a',
-  ELITE: '#39e08a',
-};
 
 interface Props {
   open: boolean;
@@ -52,7 +43,7 @@ export function ProfilePeekModal({
   const [showTechnical, setShowTechnical] = useState(false);
   const { copied, copy } = useClipboard();
   const { data: rep } = useReputation(open ? address : undefined);
-  const tierHue = TIER_HUE[(rep?.tier ?? 'NEW') as string] ?? TIER_HUE.NEW;
+  const tierHue = TIER_HUE[rep?.tier ?? 'NEW'];
 
   useEffect(() => {
     if (!open) return;

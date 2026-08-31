@@ -1102,6 +1102,7 @@ export const sw: Messages = {
       acceptanceWindowLabel: 'Muda wa muuzaji kukubali',
       acceptanceWindowHint: 'Ikiwa hakubali, biashara inaisha kiotomatiki bila athari ya sifa kwa upande wowote. Una uhuru wa kutafuta tena.',
       presets: {
+        fifteenMin: 'dak 15',
         oneHr: 'saa 1',
         sixHr: 'saa 6',
         dayOne: 'saa 24',
@@ -4562,7 +4563,7 @@ export const sw: Messages = {
   brandPage: {
     hero: { tag: 'CHAPA', headlineLead: 'Alama ya', headlineAccent: 'Karwan', body: 'Nembo, paleti, sauti. Chukua unachohitaji kuandika kuhusu Karwan, kuiweka kwenye onyesho la mshirika, au kupaka co-mark. Kwa mwongozo wa kina, wasiliana kupitia mawasiliano hapa chini.' },
     logo: { tag: 'NEMBO', headline: 'Aina tatu', body: 'Chagua kwa uso. Alama kwa nafasi ndogo. Neno-nembo wakati kuna nafasi. Hifadhi nafasi tupu sawa na upana wa mstari kila upande.', wordmarkOnDark: 'Neno-nembo kwenye giza', wordmarkOnLight: 'Neno-nembo kwenye mwanga', markOnDark: 'Alama kwenye giza' },
-    palette: { tag: 'PALETI', headline: 'Misingi mitatu ya chapa', body: 'Limau ndio lafudhi pekee. Oanisha limau ya chapa na rangi moja ya kati. Kamwe usiweke rangi ya pili ya lafudhi juu.', brandLime: 'Limau ya chapa', brandInk: 'Wino wa chapa', creamSurface: 'Uso wa krimu', brandLabel: 'CHAPA', copy: 'Nakili', copied: 'Imenakiliwa' },
+    palette: { tag: 'PALETI', headline: 'Misingi minne ya chapa', body: 'Kijani huonyesha kitendo. Mandharinyuma ya joto hubeba hali angavu. Nyeupe ni ya kadi zilizoinuliwa tu.', brandLime: 'Kijani cha Karwan', brandInk: 'Wino wa Karwan', creamSurface: 'Mandharinyuma angavu', cardWhite: 'Nyeupe ya kadi', brandLabel: 'CHAPA', copy: 'Nakili', copied: 'Imenakiliwa' },
     voice: { tag: 'SAUTI', headline: 'Memo ya bidhaa ya mhandisi', body: 'Toni ya Karwan inasomeka kama miundombinu, si ya mlaji. Nishati ya terminal ya Bloomberg. Kuwa na maoni. Kubali mipaka. Badilisha mdundo. Kamwe si ya kuigiza.', wordsWeUseLabel: 'MANENO TUNAYOTUMIA', wordsWeUseBody: 'utatuzi, escrow, reli, mkataba, ombi, toleo, hatua muhimu, kutoa, slash, dau, sifa, paspoti, nanga, thibitisha, mfadhili, muagizaji, msafirishaji, mtaji wa kazi, mipakani, on-chain.', wordsWeAvoidLabel: 'MANENO TUNAYOEPUKA', wordsWeAvoidBody: 'mapinduzi, mageuzi, kuwezesha, laini, imara, kiwango cha kimataifa, ya kisasa, gig, freelance, jukwaa, watumiaji, AI (tunasema "wakala" na kazi maalum wanayofanya).' },
     partner: { tag: 'CO-MARK YA MSHIRIKA', headline: 'Oanisha, usifunge', body: 'Unapofanya co-marking na Arc, Circle, USYC, au mshirika mwingine: msingi sawa na neno-nembo ya Karwan, kigawanyiko cha wima nyembamba, uzito sawa wa kuona. Kamwe usifunge nembo mbili katika kontena moja.', partnerLabel: 'Mshirika' },
     contact: { tag: 'WAANDISHI WA HABARI NA WASHIRIKA', headlineLead: 'Wasiliana', headlineAccent: 'nasi', body: 'Unataka asset ya azimio la juu, mpangilio wa co-mark ambao hatujachapisha, au nukuu? Tuma ujumbe.', backHome: 'Rudi nyumbani' },

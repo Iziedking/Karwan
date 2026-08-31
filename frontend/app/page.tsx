@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
@@ -21,6 +21,36 @@ import {
 } from '@/features/home/components/panels';
 
 type LandingCopy = Messages['landingPage'];
+
+/* The public landing page is Karwan's fixed-dark editorial front door. App
+   theme preferences begin inside the workspace and must never recolor it. */
+const LANDING_DARK_VARS = {
+  '--lp-workspace-band': 'var(--lp-band-dark)',
+  '--lp-workspace-raised': 'rgba(255,255,255,0.04)',
+  '--lp-workspace-ink': '#FFFFFF',
+  '--lp-workspace-muted': 'rgba(255,255,255,0.62)',
+  '--lp-workspace-faint': 'rgba(255,255,255,0.45)',
+  '--lp-workspace-border': 'rgba(255,255,255,0.10)',
+  '--lp-workspace-soft': 'rgba(255,255,255,0.06)',
+  '--lp-workspace-grid': 'rgba(255,255,255,0.06)',
+} as CSSProperties;
+
+const LANDING_PAGE_VARS = {
+  '--lp-light': 'var(--karwan-canvas)',
+  '--lp-bg': 'var(--karwan-canvas)',
+  '--lp-paper': 'var(--karwan-canvas)',
+  '--lp-cream': 'var(--karwan-canvas)',
+  '--lp-card': 'var(--karwan-card)',
+  '--lp-field': 'var(--karwan-card)',
+  '--lp-dark': 'var(--ink-inv-0)',
+  '--lp-ink': 'var(--ink-inv-0)',
+  '--lp-text-sub': 'var(--ink-inv-2)',
+  '--lp-text-muted': 'var(--ink-inv-2)',
+  '--lp-border-light': 'var(--rule-light)',
+  '--lp-outline': 'rgba(0,0,0,0.15)',
+  '--lp-outline-strong': 'rgba(0,0,0,0.22)',
+  '--lp-outline-hover': 'rgba(0,0,0,0.40)',
+} as CSSProperties;
 
 export default function HomePage() {
   const lp = useTranslations().landingPage;
@@ -72,7 +102,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="-mt-10 -mb-10">
+    <div className="-mt-10 -mb-10" style={LANDING_PAGE_VARS}>
       <StickyTabStrip tabs={tabs} active={active} onChange={setActive} onDark />
 
       {/* HERO. A real trade-lane film carries the emotional weight; the copy
@@ -104,7 +134,7 @@ export default function HomePage() {
           <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[1.02] text-balance text-[clamp(1.75rem,3.6vw,3rem)]">
             {lp.finalCta.title}
           </h2>
-          <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-on-dark-muted)]">
+          <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">
             {lp.finalCta.body}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
@@ -206,33 +236,33 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.16 }}
             transition={{ duration: dur.slow, ease: ease.out, delay: cardIndex * 0.08 }}
-            className="overflow-hidden rounded-[22px] border border-white/10 bg-[var(--lp-band-dark)]"
+            className="overflow-hidden rounded-[22px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)]"
           >
             <div className="flex min-h-[340px] min-w-0 flex-col px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[360px] lg:px-10 lg:py-11">
               <PanelContent index={1}>
                 <div className="flex items-center gap-2 text-[var(--lp-accent)]">
-                  <span className="grid size-10 place-items-center rounded-[12px] border border-white/15 bg-black/35">{glyph}</span>
-                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">[:{index}]</span>
+                  <span className="grid size-10 place-items-center rounded-[12px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)]">{glyph}</span>
+                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">[:{index}]</span>
                 </div>
                 <SectionTag tone="dark">{copy.tag}</SectionTag>
-                <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-white">
+                <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
                   {copy.title}
                 </h3>
-                <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-text-on-dark-muted)]">{copy.body}</p>
-                <ul className="mt-8 divide-y divide-white/10 border-y border-white/10">
+                <p className="mt-5 max-w-[42ch] text-[15px] leading-[1.58] text-[var(--lp-workspace-muted)]">{copy.body}</p>
+                <ul className="mt-8 divide-y divide-[var(--lp-workspace-border)] border-y border-[var(--lp-workspace-border)]">
                   {[
                     { title: copy.tile1Title, body: copy.tile1Body },
                     { title: copy.tile2Title, body: copy.tile2Body },
                   ].map((tile, tileIndex) => (
                     <li key={tile.title} className="grid gap-3 py-4 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-5">
                       <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">[:{String(tileIndex + 1).padStart(3, '0')}]</span>
-                      <p className="text-[13px] leading-[1.55] text-white/75"><strong className="text-white">{tile.title}.</strong>{' '}{tile.body}</p>
+                      <p className="text-[13px] leading-[1.55] text-[var(--lp-workspace-muted)]"><strong className="text-[var(--lp-workspace-ink)]">{tile.title}.</strong>{' '}{tile.body}</p>
                     </li>
                   ))}
                 </ul>
               </PanelContent>
             </div>
-            <div className="relative h-[300px] overflow-hidden border-t border-white/10 bg-[var(--lp-band-dark)] sm:h-[360px]">
+            <div className="relative h-[300px] overflow-hidden border-t border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] sm:h-[360px]">
               <PanelMedia travel={18} dim={0.86}>
                 <img
                   src={image}
@@ -366,7 +396,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                   </span>
                   <FlowChip variant={s.state}>{s.tag}</FlowChip>
                 </div>
-                <p className="font-sans text-[15px] font-medium leading-tight text-white">
+                <p className="font-sans text-[15px] font-medium leading-tight text-[var(--lp-workspace-ink)]">
                   {s.label}
                 </p>
                 {i < steps.length - 1 && (
@@ -448,7 +478,7 @@ function KpiBlock({
       <div className="flex items-center gap-2">
         <span
           className="mono text-[10px] uppercase tracking-[0.12em]"
-          style={{ color: 'var(--lp-text-on-dark-muted)' }}
+          style={{ color: 'var(--lp-workspace-muted)' }}
         >
           [:{label}]
         </span>
@@ -473,14 +503,14 @@ function KpiBlock({
       </div>
       <div className="flex items-baseline gap-2">
         <span
-          className="font-sans font-bold tabular-nums tracking-[-0.025em] leading-none text-white"
+          className="font-sans font-bold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-workspace-ink)]"
           style={{ fontSize: 'clamp(36px, 4vw, 56px)' }}
         >
           {value}
         </span>
         <span
           className="mono text-[12px] uppercase tracking-[0.1em]"
-          style={{ color: 'var(--lp-text-on-dark-muted)' }}
+          style={{ color: 'var(--lp-workspace-muted)' }}
         >
           {unit}
         </span>
@@ -501,7 +531,7 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
   ];
   return (
     <Band tone="dark" panel="grow" className="!max-w-none !px-0 !py-0">
-      <div className="relative isolate overflow-hidden border-y border-white/10">
+      <div className="relative isolate overflow-hidden border-y border-[var(--lp-workspace-border)]">
         <PanelMedia travel={30} dim={0.4}>
           <img src="/media/landing/africaa-map.jpg" alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-60" />
         </PanelMedia>
@@ -524,18 +554,18 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}
             transition={{ duration: dur.base, ease: ease.out, delay: i * 0.04 }}
-            className="group grid gap-2 border-b border-white/15 py-5 sm:grid-cols-[100px_1fr_auto] sm:items-baseline sm:gap-6 sm:py-6"
+            className="group grid gap-2 border-b border-[var(--lp-workspace-border)] py-5 sm:grid-cols-[100px_1fr_auto] sm:items-baseline sm:gap-6 sm:py-6"
             style={{
-              borderTop: i === 0 ? '1px solid rgba(255,255,255,0.18)' : undefined,
+              borderTop: i === 0 ? '1px solid var(--lp-workspace-border)' : undefined,
             }}
           >
             <span
-              className="mono text-[10px] font-semibold uppercase tracking-[0.08em] text-white/55"
+              className="mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]"
             >
               [:{l.id}]
             </span>
             <span
-              className="font-sans text-[clamp(1.25rem,2.4vw,2rem)] font-bold uppercase leading-tight tracking-[-0.025em] text-white"
+              className="font-sans text-[clamp(1.25rem,2.4vw,2rem)] font-bold uppercase leading-tight tracking-[-0.025em] text-[var(--lp-workspace-ink)]"
             >
               {l.from}{' '}
               <span style={{ color: 'var(--lp-text-sub)' }} aria-label={copy.toAria}>
@@ -544,10 +574,10 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
               {l.to}
             </span>
             <span
-              className="flex items-center gap-3 mono text-[10px] uppercase tracking-[0.08em] text-white/62 sm:justify-self-end sm:text-right"
+              className="flex items-center gap-3 mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)] sm:justify-self-end sm:text-right"
             >
               <span className="tabular-nums">{l.vol} USDC</span>
-              <span className="text-white/30">·</span>
+              <span className="text-[var(--lp-workspace-faint)]">·</span>
               <span className="tabular-nums">{copy.avgPrefix} {l.avg}</span>
             </span>
           </motion.li>
@@ -639,7 +669,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
             <div className="flex items-center justify-between mb-5">
               <span
                 className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: 'var(--lp-text-on-dark-muted)' }}
+                style={{ color: 'var(--lp-workspace-muted)' }}
               >
                 [:{c.tag}]
               </span>
@@ -663,27 +693,27 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
             <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
               <div className="flex items-baseline gap-2">
                 <span
-                  className="font-sans font-bold tabular-nums tracking-[-0.03em] leading-none text-white"
+                  className="font-sans font-bold tabular-nums tracking-[-0.03em] leading-none text-[var(--lp-workspace-ink)]"
                   style={{ fontSize: 'clamp(40px, 5vw, 64px)' }}
                 >
                   {c.value}
                 </span>
                 <span
                   className="mono text-[12px] uppercase tracking-[0.1em]"
-                  style={{ color: 'var(--lp-text-on-dark-muted)' }}
+                  style={{ color: 'var(--lp-workspace-muted)' }}
                 >
                   {c.unit}
                 </span>
               </div>
               <p
                 className="mono text-[10px] uppercase tracking-[0.14em]"
-                style={{ color: 'var(--lp-text-on-dark-muted)' }}
+                style={{ color: 'var(--lp-workspace-muted)' }}
               >
                 {c.sub}
               </p>
             </div>
 
-            <p className="mt-5 font-sans text-[18px] font-bold uppercase tracking-[-0.02em] leading-[1.1] text-white">
+            <p className="mt-5 font-sans text-[18px] font-bold uppercase tracking-[-0.02em] leading-[1.1] text-[var(--lp-workspace-ink)]">
               {c.title}
             </p>
           </PanelContent>
@@ -868,6 +898,7 @@ function Band({
       ref={ref}
       id={id}
       data-panel={active ? 'active' : undefined}
+      style={dark ? LANDING_DARK_VARS : undefined}
       className={cn(
         'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden scroll-mt-24',
         panel && 'lp-panel',
@@ -925,7 +956,7 @@ function SectionTag({
     <span
       className={cn(
         'inline-flex items-center gap-2 mono text-[12px] font-medium uppercase tracking-[0.08em]',
-        tone === 'dark' ? 'text-[var(--lp-text-on-dark-muted)]' : 'text-[var(--lp-text-sub)]',
+        tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-sub)]',
       )}
     >
       <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
@@ -958,7 +989,7 @@ function CTAPill({
           base,
           'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)]',
           tone === 'dark'
-            ? 'focus-visible:ring-offset-[var(--lp-dark)]'
+            ? 'focus-visible:ring-offset-[var(--lp-workspace-band)]'
             : 'focus-visible:ring-offset-[var(--lp-light)]',
         )}
       >
@@ -972,7 +1003,7 @@ function CTAPill({
       className={cn(
         base,
         tone === 'dark'
-          ? 'border border-white/25 text-white hover:border-white/55 focus-visible:ring-offset-[var(--lp-dark)]'
+          ? 'border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] focus-visible:ring-offset-[var(--lp-workspace-band)]'
           : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] focus-visible:ring-offset-[var(--lp-light)]',
       )}
     >
@@ -1004,7 +1035,7 @@ function FeatureTile({
       <p
         className={cn(
           'mt-2 text-pretty text-[13px] leading-relaxed',
-          tone === 'dark' ? 'text-[var(--lp-text-on-dark-muted)]' : 'text-[var(--lp-text-sub)]',
+          tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-sub)]',
         )}
       >
         {body}

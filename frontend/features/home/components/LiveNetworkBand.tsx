@@ -76,7 +76,7 @@ export function LiveNetworkBand({ stats }: { stats: LiveNetworkStats | null }) {
           </HeroHeadline>
           <Link
             href="/activity"
-            className="group -mx-2 mt-7 inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[12px] uppercase tracking-[0.08em] text-white/70 transition-colors hover:text-white"
+            className="group -mx-2 mt-7 inline-flex min-h-11 items-center gap-1.5 px-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
           >
             {t.fullFeed}
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>

@@ -16,6 +16,7 @@ const ACCEPTANCE_PRESETS: ReadonlyArray<{
   key: keyof Messages['directDeal']['terms']['presets'];
   value: number;
 }> = [
+  { key: 'fifteenMin', value: 0.25 },
   { key: 'oneHr', value: 1 },
   { key: 'sixHr', value: 6 },
   { key: 'dayOne', value: 24 },
@@ -42,7 +43,7 @@ function pickAcceptancePreset(deal: DirectDeal): number {
     0,
     deal.acceptanceDeadlineUnix - Math.floor(Date.now() / 1000),
   );
-  const hours = Math.max(1, Math.round(remainingSeconds / 3600));
+  const hours = Math.max(0.25, Math.round((remainingSeconds / 3600) * 4) / 4);
   const closest = ACCEPTANCE_PRESETS.reduce((best, opt) =>
     Math.abs(opt.value - hours) < Math.abs(best.value - hours) ? opt : best,
   );
@@ -245,12 +246,11 @@ export function EditDealModal({
                     onClick={() => setAcceptanceHours(opt.value)}
                     className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      background: active ? 'var(--lp-band-dark)' : 'var(--lp-light)',
-                      // Not --lp-light: in dark mode it resolves to the same
-                      // token as --lp-band-dark, so the selected chip painted its
-                      // label in its own background and the option vanished.
-                      color: active ? '#ffffff' : 'var(--lp-text-sub)',
-                      border: '1px solid var(--lp-border-light)',
+                      background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
+                      color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+                      border: active
+                        ? '1px solid var(--lp-control-active-border)'
+                        : '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 7,
                       borderTopRightRadius: 7,
                       borderBottomLeftRadius: 7,
@@ -447,8 +447,8 @@ function UnitPicker({
             onClick={() => onChange(o.key)}
             className="min-h-11 min-w-11 px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: active ? 'var(--lp-band-dark)' : 'transparent',
-              color: active ? 'var(--lp-light)' : 'var(--lp-text-sub)',
+              background: active ? 'var(--lp-control-active-bg)' : 'transparent',
+              color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
               borderTopLeftRadius: 7,
               borderTopRightRadius: 7,
               borderBottomLeftRadius: 7,

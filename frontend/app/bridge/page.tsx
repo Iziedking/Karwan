@@ -284,8 +284,8 @@ function DirToggle({
       aria-pressed={active}
       className="min-h-11 flex-1 rounded-full px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors sm:flex-none sm:px-5"
       style={{
-        background: active ? 'var(--lp-band-dark)' : 'transparent',
-        color: active ? 'white' : 'var(--lp-text-sub)',
+        background: active ? 'var(--lp-control-active-bg)' : 'transparent',
+        color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
       }}
     >
       {children}

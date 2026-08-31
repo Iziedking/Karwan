@@ -289,7 +289,7 @@ function RoleSelector({
             className={cn(
               'rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
               sel
-                ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                 : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
             )}
           >

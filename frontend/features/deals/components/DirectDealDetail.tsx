@@ -55,6 +55,7 @@ import {
   CTAPill,
   PageCard,
 } from '@/shared/components/Bands';
+import { proofSegments } from '../proofLinks';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -297,9 +298,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="space-y-4 max-w-[44ch] min-h-[44vh]">
-            <div className="h-3 w-32 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-            <div className="h-12 w-72 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-            <div className="h-3 w-48 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-32 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-12 w-72 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-48 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
           </div>
         </Band>
       </FullBleed>
@@ -810,11 +811,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
             <Punc>.</Punc>
           </h1>
-          <span className="mono text-[14px] font-semibold uppercase tracking-[0.12em] text-white/55">
+          <span className="mono text-[14px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
             USDC
           </span>
         </div>
-        <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-white/45 flex items-center gap-2 flex-wrap">
+        <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)] flex items-center gap-2 flex-wrap">
           <CopyId value={deal.jobId} label={shortHash(deal.jobId, 10, 6)} />
           <span>· {dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}</span>
         </p>
@@ -862,7 +863,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </div>
             <Link
               href="/legacy"
-              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] transition-colors"
               style={{
                 borderTopLeftRadius: 10,
                 borderTopRightRadius: 10,
@@ -883,7 +884,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           <PageCard>
             <CardHead label={dd.parties.cardLabel} />
             <div className="p-5 md:p-6 space-y-4">
-              <PartyRow role={dd.parties.buyer} address={deal.buyer} you={viewerIsBuyer} youLabel={dd.parties.youSuffix} />
+              <PartyRow
+                role={dd.parties.buyer}
+                address={deal.buyer}
+                you={viewerIsBuyer}
+                youLabel={dd.parties.youSuffix}
+                showReputation={viewerIsSeller}
+              />
               <div className="border-t border-[var(--lp-border-light)]" />
               <PartyRow
                 role={dd.parties.seller}
@@ -891,7 +898,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 paytag={deal.sellerPaytag}
                 you={viewerIsSeller}
                 youLabel={dd.parties.youSuffix}
-                showReputation
+                showReputation={viewerIsBuyer}
               />
               {(viewerIsBuyer || viewerIsSeller) && (
                 <button
@@ -1289,8 +1296,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             data-float-guard
             className="overflow-hidden p-6 md:p-7"
             style={{
-              background: 'var(--surface-1)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--lp-workspace-raised)',
+              border: '1px solid var(--lp-workspace-border)',
               borderTopLeftRadius: 22,
               borderTopRightRadius: 22,
               borderBottomLeftRadius: 22,
@@ -1350,11 +1357,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               copy={dd.actionPanel}
             />
             {canPropose && (
-              <div className="mt-5 pt-5 border-t border-white/[0.08]">
-                <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+              <div className="mt-5 pt-5 border-t border-[var(--lp-workspace-border)]">
+                <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
                   [:{dd.proposeBlock.orEyebrow}:]
                 </p>
-                <p className="mt-2 text-[13px] leading-relaxed text-white/65">
+                <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-workspace-muted)]">
                   {stage === 'disputed'
                     ? dd.proposeBlock.disputeBody
                     : dd.proposeBlock.cancelBody}
@@ -1507,14 +1514,14 @@ function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
   if (!linkify) {
     return <p className={base}>{text}</p>;
   }
-  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  const parts = proofSegments(text);
   return (
     <p className={base}>
       {parts.map((part, i) =>
-        /^https?:\/\//.test(part) ? (
+        part.href ? (
           <a
             key={i}
-            href={part}
+            href={part.href}
             target="_blank"
             rel="noopener noreferrer nofollow"
             // Primary ink as a class (not inline style, which would beat the
@@ -1523,10 +1530,10 @@ function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
             // --lp-band-dark fallback was near-black and vanished on dark.
             className="inline-flex min-h-11 items-center underline underline-offset-2 break-all font-medium text-[var(--lp-dark)] hover:text-[var(--lp-accent-hover)]"
           >
-            {part}
+            {part.text}
           </a>
         ) : (
-          <span key={i}>{part}</span>
+          <span key={i}>{part.text}</span>
         ),
       )}
     </p>
@@ -1946,13 +1953,13 @@ function ActionPanel({
           <div className="space-y-2.5">
             <Body>
               Karwan&rsquo;s arbiter resolved this dispute and split the escrow:{' '}
-              <span className="font-semibold text-white/85">{sellerPct}% to the seller</span>,{' '}
+              <span className="font-semibold text-[var(--lp-workspace-ink)]">{sellerPct}% to the seller</span>,{' '}
               {100 - sellerPct}% back to the buyer. The staked reservation was settled to match.
             </Body>
             {deal.cancelReason && (
               <div>
-                <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">[:ruling:]</p>
-                <p className="text-[13px] leading-relaxed text-white/75 px-3 py-2.5 border border-white/[0.08] rounded-[4px]">
+                <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">[:ruling:]</p>
+                <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-muted)] px-3 py-2.5 border border-[var(--lp-workspace-border)] rounded-[4px]">
                   &ldquo;{deal.cancelReason}&rdquo;
                 </p>
               </div>
@@ -1973,7 +1980,7 @@ function ActionPanel({
             release route's own measurement. Seconds, where marketplaces hold
             cleared funds for days. The number is the argument. */}
         {!resolved && deal.lastSettleMs != null && (
-          <p className="mono text-[11px] uppercase tracking-[0.14em] text-white/45">
+          <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
             [:{copy.settled.settleTimeEyebrow}:]{' '}
             <span className="tabular-nums font-semibold" style={{ color: 'var(--lp-accent)' }}>
               {fmtSettleTime(deal.lastSettleMs)}
@@ -2061,10 +2068,10 @@ function ActionPanel({
         <Body>{body}</Body>
         {deal.cancelReason && (deal.cancelKind === 'mutual' || deal.cancelKind === 'platform-attributed') && (
           <div className="mt-1">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
               [:{copy.cancelled.reasonEyebrow}:]
             </p>
-            <p className="mt-1 text-[13px] text-white/70 leading-relaxed whitespace-pre-wrap">
+            <p className="mt-1 text-[13px] text-[var(--lp-workspace-muted)] leading-relaxed whitespace-pre-wrap">
               {deal.cancelReason}
             </p>
           </div>
@@ -2078,11 +2085,11 @@ function ActionPanel({
       <div className="space-y-3">
         <Body tone="critical">{copy.disputed.intro}</Body>
         <Body>
-          <span className="font-semibold text-white/85">{copy.disputed.refundLabel}</span>{' '}
+          <span className="font-semibold text-[var(--lp-workspace-ink)]">{copy.disputed.refundLabel}</span>{' '}
           {hasReservation ? copy.disputed.refundBodyWithReservation : copy.disputed.refundBody}
         </Body>
         <Body>
-          <span className="font-semibold text-white/85">{copy.disputed.releaseLabel}</span>{' '}
+          <span className="font-semibold text-[var(--lp-workspace-ink)]">{copy.disputed.releaseLabel}</span>{' '}
           {copy.disputed.releaseBody}
         </Body>
       </div>
@@ -2219,7 +2226,7 @@ function ActionPanel({
               .replace('{firstPct}', String(firstPct))}
           </Body>
           <label className="block space-y-1.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
               [:{copy.awaitingDelivery.proofEyebrow}:]
             </span>
             <textarea
@@ -2227,7 +2234,7 @@ function ActionPanel({
               onChange={(e) => onDeliveryProofChange(e.target.value)}
               rows={3}
               placeholder={copy.awaitingDelivery.proofPlaceholder}
-              className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(175, 201, 91,0.25)] resize-none transition-shadow"
+              className="w-full bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] px-3.5 py-2.5 text-[13px] leading-relaxed border border-[var(--lp-workspace-border)] focus:outline-none focus:border-[var(--lp-accent)] focus:shadow-[0_0_0_3px_rgba(175,201,91,0.25)] resize-none transition-shadow"
               style={{
                 borderTopLeftRadius: 12,
                 borderTopRightRadius: 12,
@@ -2394,7 +2401,7 @@ function ActionPanel({
                 corrected link, the backend re-scans it, and a clean result
                 clears the hold and resumes the release. */}
             <label className="block space-y-1.5">
-              <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+              <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
                 [:{copy.awaitingFirstRelease.resubmitLabel}:]
               </span>
               <textarea
@@ -2402,7 +2409,7 @@ function ActionPanel({
                 onChange={(e) => onDeliveryProofChange(e.target.value)}
                 rows={2}
                 placeholder={copy.awaitingDelivery.proofPlaceholder}
-                className="w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] leading-relaxed border border-white/10 focus:outline-none focus:border-[var(--lp-accent)] resize-none transition-shadow"
+                className="w-full bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] px-3.5 py-2.5 text-[13px] leading-relaxed border border-[var(--lp-workspace-border)] focus:outline-none focus:border-[var(--lp-accent)] resize-none transition-shadow"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -2555,7 +2562,7 @@ function ActionPanel({
           <WindowNote tone="muted">
             {copy.awaitingFinalRelease.sellerBuyerResponded}
           </WindowNote>
-          <p className="text-[13px] leading-relaxed text-white/75 px-3 py-2.5 border border-white/[0.08] rounded-[4px]">
+          <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-muted)] px-3 py-2.5 border border-[var(--lp-workspace-border)] rounded-[4px]">
             “{deal.delayAppealResponse}”
           </p>
         </div>
@@ -2608,7 +2615,7 @@ function DelayAppealResponder({
         <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: '#ef7f63' }}>
           [:{copy.eyebrow}:]
         </p>
-        <p className="text-[13px] leading-relaxed text-white/85">
+        <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-ink)]">
           {copy.prefix}{' '}
           <span className="mono font-semibold">{fmtCountdown(msLeft)}</span> {copy.suffixTemplate.replace('{rest}', String(rest))}
         </p>
@@ -2618,7 +2625,7 @@ function DelayAppealResponder({
         onChange={(e) => setReason(e.target.value)}
         placeholder={copy.placeholder}
         rows={3}
-        className="w-full bg-black/30 border border-white/[0.12] rounded-[3px] px-3 py-2 text-[13px] text-white placeholder:text-white/35 focus:outline-none focus:border-[rgba(239,127,99,0.6)]"
+        className="w-full bg-[var(--lp-workspace-raised)] border border-[var(--lp-workspace-border)] rounded-[3px] px-3 py-2 text-[13px] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] focus:outline-none focus:border-[rgba(239,127,99,0.6)]"
       />
       <CTAPill onClick={() => onRespond(reason.trim())} disabled={!canSubmit}>
         {busy ? copy.submitBusy : copy.submitCta}
@@ -2648,10 +2655,10 @@ function PendingInviteCopy({
         borderRadius: 4,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
         [:{copy.eyebrow}:]
       </p>
-      <p className="text-[12.5px] leading-snug text-white/75">
+      <p className="text-[12.5px] leading-snug text-[var(--lp-workspace-muted)]">
         {copy.bodyTemplate.replace('{email}', email)}
       </p>
       <div className="flex items-center gap-2 flex-wrap">
@@ -2659,7 +2666,7 @@ function PendingInviteCopy({
           type="text"
           value={inviteUrl}
           readOnly
-          className="flex-1 min-w-0 bg-black/30 border border-white/[0.12] rounded-[3px] px-2.5 py-1.5 text-[12px] mono text-white"
+          className="flex-1 min-w-0 bg-[var(--lp-workspace-raised)] border border-[var(--lp-workspace-border)] rounded-[3px] px-2.5 py-1.5 text-[12px] mono text-[var(--lp-workspace-ink)]"
           onFocus={(e) => e.currentTarget.select()}
         />
         <button
@@ -2726,7 +2733,7 @@ function Body({
   children: ReactNode;
   tone?: 'critical';
 }) {
-  const color = tone === 'critical' ? '#ff8a7a' : 'rgba(255,255,255,0.7)';
+  const color = tone === 'critical' ? 'var(--color-critical)' : 'var(--lp-workspace-muted)';
   return (
     <p className="text-[14px] leading-relaxed" style={{ color }}>
       {children}
@@ -2745,13 +2752,13 @@ function WindowNote({
     tone === 'warning'
       ? {
           background: 'rgba(175, 201, 91,0.10)',
-          color: 'var(--lp-accent)',
+          color: 'var(--lp-accent-on-light)',
           border: '1px solid rgba(175, 201, 91,0.30)',
         }
       : {
-          background: 'var(--surface-1)',
-          color: 'rgba(255,255,255,0.65)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--lp-workspace-raised)',
+          color: 'var(--lp-workspace-muted)',
+          border: '1px solid var(--lp-workspace-border)',
         };
   return (
     <p
@@ -2863,14 +2870,14 @@ function ExtensionBuyerBanner({
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
         [:{copy.eyebrow}:]
       </p>
-      <p className="mt-2 text-[14px] leading-relaxed text-white">
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">
         {copy.requestPrefix}{' '}
         <span className="font-semibold">+{formatExtensionDuration(additionalSeconds, copy.duration)}</span>{' '}
         {copy.requestSuffix}
         {reason ? <> {copy.reasonPrefix} <span className="opacity-80">{reason}</span></> : null}
       </p>
       {newDeadlineLabel && (
-        <p className="mt-1.5 text-[12.5px] text-white/70">
+        <p className="mt-1.5 text-[12.5px] text-[var(--lp-workspace-muted)]">
           {copy.newDeadlinePrefix} <span className="tabular-nums">{newDeadlineLabel}</span>
         </p>
       )}
@@ -3161,7 +3168,7 @@ function CancelProposalBanner({
           <div className="pt-2 flex flex-wrap items-center gap-2">
             <Link
               href="/legacy"
-              className="inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:bg-black/85 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] transition-colors"
               style={{
                 borderTopLeftRadius: 10,
                 borderTopRightRadius: 10,
@@ -3502,7 +3509,7 @@ function GoodsShipmentFields({
   const pb = useTranslations().pageBits;
   const selected = carriers.find((c) => c.slug === shipment.carrier);
   const field =
-    'w-full bg-white/[0.04] text-white placeholder:text-white/30 px-3.5 py-2.5 text-[13px] border border-white/10 focus:outline-none focus:border-[var(--lp-accent)]';
+    'w-full bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] placeholder:text-[var(--lp-workspace-faint)] px-3.5 py-2.5 text-[13px] border border-[var(--lp-workspace-border)] focus:outline-none focus:border-[var(--lp-accent)]';
   const radius = {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
@@ -3513,7 +3520,7 @@ function GoodsShipmentFields({
   return (
     <div className="space-y-2.5">
       <label className="block space-y-1.5">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
           [:CARRIER:]
         </span>
         {/* The options render in a NATIVE popup the page cannot style, and that
@@ -3541,7 +3548,7 @@ function GoodsShipmentFields({
         </select>
       </label>
       <label className="block space-y-1.5">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
           [:TRACKING NUMBER:]
         </span>
         <input
@@ -3554,7 +3561,7 @@ function GoodsShipmentFields({
       </label>
       {selected?.needsUrl ? (
         <label className="block space-y-1.5">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
             [:TRACKING PAGE:]
           </span>
           <input
@@ -3564,7 +3571,7 @@ function GoodsShipmentFields({
             className={field}
             style={radius}
           />
-          <span className="block text-[11px] text-white/45">
+          <span className="block text-[11px] text-[var(--lp-workspace-faint)]">
             The buyer opens this to follow the shipment, so it has to be a real page.
           </span>
         </label>

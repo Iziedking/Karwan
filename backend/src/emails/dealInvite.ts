@@ -128,17 +128,26 @@ function inviteInnerHtml(input: DealInviteEmailInput): string {
 /// Hours under a day stay in hours; days roll up cleanly. Empty input
 /// returns 'Open-ended' so the email block always has something to render.
 export function formatWindowLabel(opts: { days?: number; hours?: number }): string {
-  const days = Math.max(0, Math.floor(opts.days ?? 0));
-  const hours = Math.max(0, Math.floor(opts.hours ?? 0));
-  const totalHours = days * 24 + hours;
-  if (totalHours <= 0) return 'Open-ended';
-  if (days === 0) {
-    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const totalMinutes = Math.max(
+    0,
+    Math.round((opts.days ?? 0) * 24 * 60 + (opts.hours ?? 0) * 60),
+  );
+  if (totalMinutes <= 0) return 'Open-ended';
+  if (totalMinutes < 60) {
+    return `${totalMinutes} minute${totalMinutes === 1 ? '' : 's'}`;
   }
-  if (hours === 0) {
+  const totalHours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+  if (totalHours < 24) {
+    if (remainingMinutes === 0) return `${totalHours} hour${totalHours === 1 ? '' : 's'}`;
+    return `${totalHours}h ${remainingMinutes}m`;
+  }
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  if (hours === 0 && remainingMinutes === 0) {
     return `${days} day${days === 1 ? '' : 's'}`;
   }
-  return `${days}d ${hours}h`;
+  return `${days}d ${hours}h${remainingMinutes > 0 ? ` ${remainingMinutes}m` : ''}`;
 }
 
 export async function sendDealInviteEmail(

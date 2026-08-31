@@ -66,7 +66,7 @@ function OnboardingShell() {
           longer profile panels without making the setup feel artificially tall. */}
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] mx-auto text-center min-h-[80vh]">
-          <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
+          <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
             <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
             {t.signUpTag}
           </span>
@@ -367,7 +367,7 @@ function OnboardingInner() {
       <Band tone="dark" overlay={<GridOverlay />} compact>
         <div className="max-w-[60ch] mx-auto text-center">
           <div className="fade-up flex justify-center">
-            <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-white/65">
+            <span className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
               <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
               {t.onboarding.stepIndicator
                 .replace('{step}', String(stepN))
@@ -591,13 +591,13 @@ function ProgressDots({ current, total }: { current: number; total: number }) {
                 'inline-flex size-6 shrink-0 items-center justify-center rounded-full border font-sans text-[11px] font-bold transition-[background-color,border-color,color,box-shadow]',
                 isDone && 'border-[var(--lp-accent)] bg-transparent text-[var(--lp-accent)]',
                 isActive && 'border-[var(--lp-accent)] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_0_0_5px_rgba(175,201,91,0.18)]',
-                !isDone && !isActive && 'border-white/25 bg-transparent text-white/45',
+                !isDone && !isActive && 'border-[var(--lp-workspace-border)] bg-transparent text-[var(--lp-workspace-faint)]',
               )}
             >
               {isDone ? '✓' : n}
             </span>
             {n < total ? (
-              <span className={cn('h-px min-w-3 flex-1', isDone ? 'bg-[var(--lp-accent)]' : 'bg-white/20')} />
+              <span className={cn('h-px min-w-3 flex-1', isDone ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-workspace-border)]')} />
             ) : null}
           </span>
         );
@@ -1100,7 +1100,7 @@ function RoleCard({
     !isSel
       ? 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]'
       : tone === 'dark'
-      ? 'bg-[var(--lp-band-dark)] text-white'
+      ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
       : tone === 'accent'
         ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
@@ -1112,7 +1112,7 @@ function RoleCard({
     !isSel
       ? 'text-[var(--lp-text-muted)]'
       : tone === 'dark'
-      ? 'text-white/55'
+      ? 'text-[var(--lp-control-active-ink)]/70'
       : tone === 'accent'
         ? 'text-[var(--lp-band-dark)]/70'
         : 'text-[var(--lp-text-muted)]';
@@ -1120,7 +1120,7 @@ function RoleCard({
     !isSel
       ? 'text-[var(--lp-text-sub)]'
       : tone === 'dark'
-      ? 'text-white/65'
+      ? 'text-[var(--lp-control-active-ink)]/90'
       : tone === 'accent'
         ? 'text-[var(--lp-band-dark)]/90'
         : 'text-[var(--lp-text-sub)]';
@@ -1128,7 +1128,7 @@ function RoleCard({
     !isSel
       ? 'text-[var(--lp-text-muted)]'
       : tone === 'dark'
-      ? 'text-white/45'
+      ? 'text-[var(--lp-control-active-ink)]/75'
       : tone === 'accent'
         ? 'text-[var(--lp-band-dark)]/75'
         : 'text-[var(--lp-text-muted)]';
@@ -1241,7 +1241,7 @@ function TradeTypeChooser({
             className={cn(
               'min-h-11 rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
               sel
-                ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                 : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
             )}
           >
@@ -1278,7 +1278,7 @@ function SkillSuggestions({
               'inline-flex min-h-11 items-center rounded-full border px-4 py-2 font-sans text-[13px] font-semibold transition-[background-color,border-color,color,transform]',
               'active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
               selected
-                ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                 : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)] hover:text-[var(--lp-dark)]',
             )}
           >
@@ -1351,7 +1351,7 @@ function RangePresets({
               className={cn(
                 'min-h-11 rounded-lg border px-3 py-2 font-sans text-[12px] font-bold tabular-nums transition-colors',
                 selected
-                  ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                  ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                   : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
               )}
             >
@@ -1392,7 +1392,7 @@ function ValuePresets<T extends string | number>({
               className={cn(
                 'min-h-11 rounded-lg border px-3 py-2 font-sans text-[12px] font-bold tabular-nums transition-colors',
                 selected
-                  ? 'border-[var(--lp-band-dark)] bg-[var(--lp-band-dark)] text-[var(--lp-accent)]'
+                  ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
                   : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
               )}
             >
@@ -1883,7 +1883,7 @@ function ProfileSection({
     >
       <header className="border-b border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-5 sm:px-8 sm:py-6">
         <div className="flex items-center gap-3">
-          <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[var(--lp-band-dark)] font-sans text-[14px] font-extrabold tabular-nums text-[var(--lp-accent)]">
+          <span className="inline-flex size-9 items-center justify-center rounded-xl bg-[var(--lp-control-active-bg)] font-sans text-[14px] font-extrabold tabular-nums text-[var(--lp-control-active-ink)]">
             {number}
           </span>
           {eyebrow && (

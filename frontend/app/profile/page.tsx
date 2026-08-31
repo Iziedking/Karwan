@@ -176,9 +176,9 @@ function ProfilePageInner() {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="space-y-4 max-w-[44ch]">
-            <div className="h-3 w-32 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-            <div className="h-12 w-64 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-            <div className="h-3 w-48 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-32 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-12 w-64 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-48 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
           </div>
         </Band>
       </FullBleed>
@@ -648,7 +648,7 @@ function ProfilePageInner() {
               <div className="fade-up fade-up-1 mt-3 flex flex-wrap items-center gap-2">
                 {bizSector && (
                   <span
-                    className="mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 bg-white/[0.08] text-white/80"
+                    className="mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 bg-[var(--lp-workspace-soft)] text-[var(--lp-workspace-ink)]"
                     style={{ borderRadius: 3 }}
                   >
                     {bizSector}
@@ -656,7 +656,7 @@ function ProfilePageInner() {
                 )}
                 {bizRegion && (
                   <span
-                    className="mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 bg-white/[0.08] text-white/80"
+                    className="mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 bg-[var(--lp-workspace-soft)] text-[var(--lp-workspace-ink)]"
                     style={{ borderRadius: 3 }}
                   >
                     {bizRegion}
@@ -690,7 +690,7 @@ function ProfilePageInner() {
                   <CTAPill href="/bridge" tone="dark">
                     {navT.topUpWithdraw}
                   </CTAPill>
-                  <Link href={editHref} className="mono -mx-2 inline-flex min-h-11 items-center px-2 text-[11px] uppercase tracking-[0.12em] text-white/65 transition-colors hover:text-white">
+                  <Link href={editHref} className="mono -mx-2 inline-flex min-h-11 items-center px-2 text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]">
                     {t.hero.editDetailsCta}
                   </Link>
                   {/* Company trade card is the business's second edit surface;
@@ -699,7 +699,7 @@ function ProfilePageInner() {
                     <Link
                       href="/profile?edit=company"
                       scroll={false}
-                      className="mono -mx-2 inline-flex min-h-11 items-center px-2 text-[11px] uppercase tracking-[0.12em] text-white/55 transition-colors hover:text-white"
+                      className="mono -mx-2 inline-flex min-h-11 items-center px-2 text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
                     >
                       {t.hero.editCompanyCta}
                     </Link>
@@ -726,7 +726,7 @@ function ProfilePageInner() {
             <a
               href="/bridge"
               data-guide="profile-topup"
-              className="group block p-5 border border-white/15 hover:border-[var(--lp-accent)] transition-colors"
+              className="group block p-5 border border-[var(--lp-workspace-border)] hover:border-[var(--lp-accent)] transition-colors"
               style={{
                 borderTopLeftRadius: 16,
                 borderTopRightRadius: 16,
@@ -738,14 +738,14 @@ function ProfilePageInner() {
                 <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
                   [:USDC:]
                 </span>
-                <span aria-hidden className="text-white/40 group-hover:text-[var(--lp-accent)] transition-colors">
+                <span aria-hidden className="text-[var(--lp-workspace-faint)] group-hover:text-[var(--lp-accent)] transition-colors">
                   →
                 </span>
               </div>
-              <p className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] leading-none text-white">
+              <p className="mt-2 font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-workspace-ink)]">
                 {navT.topUpWithdraw}
               </p>
-              <p className="mt-2 text-[13px] leading-snug text-white/55">{navT.topUpBlurb}</p>
+              <p className="mt-2 text-[13px] leading-snug text-[var(--lp-workspace-muted)]">{navT.topUpBlurb}</p>
             </a>
           </div>
         </div>

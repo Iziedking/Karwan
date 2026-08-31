@@ -1102,6 +1102,7 @@ export const fr: Messages = {
       acceptanceWindowLabel: "Délai d'acceptation du vendeur",
       acceptanceWindowHint: "S'il n'accepte pas, le deal expire automatiquement sans impact sur la réputation. Vous êtes libre de chercher ailleurs.",
       presets: {
+        fifteenMin: '15 min',
         oneHr: '1 h',
         sixHr: '6 h',
         dayOne: '24 h',
@@ -4562,7 +4563,7 @@ export const fr: Messages = {
   brandPage: {
     hero: { tag: 'MARQUE', headlineLead: 'La marque', headlineAccent: 'Karwan', body: 'Le logo, la palette, la voix. Prenez ce qu\'il vous faut pour écrire sur Karwan, l\'intégrer à un deck partenaire ou créer un co-marquage. Pour des conseils plus approfondis, contactez-nous ci-dessous.' },
     logo: { tag: 'LOGO', headline: 'Trois formes', body: 'Choisissez selon la surface. La marque pour les petits espaces. Le mot-symbole quand il y a de la place. Réservez un espace libre égal à la largeur du trait sur chaque côté.', wordmarkOnDark: 'Mot-symbole sur fond sombre', wordmarkOnLight: 'Mot-symbole sur fond clair', markOnDark: 'Marque sur fond sombre' },
-    palette: { tag: 'PALETTE', headline: 'Trois constantes de marque', body: 'Le citron vert est le seul accent. Associez le citron vert de marque à un seul neutre. N\'empilez jamais une seconde couleur d\'accent par-dessus.', brandLime: 'Citron vert de marque', brandInk: 'Encre de marque', creamSurface: 'Surface crème', brandLabel: 'MARQUE', copy: 'Copier', copied: 'Copié' },
+    palette: { tag: 'PALETTE', headline: 'Quatre constantes de marque', body: 'Le vert marque l\'action. La toile chaude porte le mode clair. Le blanc est réservé aux cartes en relief.', brandLime: 'Vert Karwan', brandInk: 'Encre Karwan', creamSurface: 'Toile claire', cardWhite: 'Blanc des cartes', brandLabel: 'MARQUE', copy: 'Copier', copied: 'Copié' },
     voice: { tag: 'VOIX', headline: 'Note produit d\'ingénieur', body: 'Le ton de Karwan se lit comme infrastructurel, pas comme grand public. Énergie de terminal Bloomberg. Ayez une opinion. Reconnaissez les limites. Variez le rythme. Jamais théâtral.', wordsWeUseLabel: 'MOTS QUE NOUS UTILISONS', wordsWeUseBody: 'règlement, séquestre, rail, transaction, demande, offre, jalon, libération, slashing, mise, réputation, passeport, ancrage, attester, financier, importateur, exportateur, fonds de roulement, transfrontalier, en chaîne.', wordsWeAvoidLabel: 'MOTS QUE NOUS ÉVITONS', wordsWeAvoidBody: 'révolutionnaire, transformateur, autonomisant, fluide, robuste, de classe mondiale, de pointe, mission, freelance, plateforme, utilisateurs, IA (nous disons "agents" avec le travail spécifique qu\'ils font).' },
     partner: { tag: 'CO-MARQUAGE PARTENAIRE', headline: 'Associer, ne pas enfermer', body: 'En co-marquage avec Arc, Circle, USYC ou un autre partenaire: même ligne de base que le mot-symbole Karwan, séparateur vertical fin, poids optique égal. N\'enfermez jamais deux logos dans le même conteneur.', partnerLabel: 'Partenaire' },
     contact: { tag: 'PRESSE ET PARTENAIRES', headlineLead: 'Nous', headlineAccent: 'contacter', body: 'Vous voulez un asset en haute résolution, une configuration de co-marquage que nous n\'avons pas publiée, ou une citation? Envoyez un mot.', backHome: 'Retour à l\'accueil' },

@@ -75,7 +75,7 @@ export default function BrandPage() {
             preview={
               <div
                 className="w-full h-32 flex items-center justify-center"
-                style={{ background: '#FAF8F2' }}
+                style={{ background: '#F4F4F1' }}
               >
                 <span
                   className="font-sans font-extrabold tracking-[-0.025em]"
@@ -120,10 +120,11 @@ export default function BrandPage() {
           {t.palette.body}
         </p>
 
-        <div className="mt-10 grid sm:grid-cols-3 gap-5">
+        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <ColorChip name={t.palette.brandLime} hex="#AFC95B" labelTone="dark" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
-          <ColorChip name={t.palette.brandInk} hex="#0E0E0E" labelTone="light" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
-          <ColorChip name={t.palette.creamSurface} hex="#FAF8F2" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          <ColorChip name={t.palette.brandInk} hex="#0A0A0B" labelTone="light" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          <ColorChip name={t.palette.creamSurface} hex="#F4F4F1" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          <ColorChip name={t.palette.cardWhite} hex="#FFFFFF" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
         </div>
       </Section>
 

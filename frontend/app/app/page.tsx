@@ -32,7 +32,7 @@ const NetworkTicker = dynamic(
       <div
         aria-hidden
         className="relative left-1/2 w-bleed -translate-x-1/2"
-        style={{ minHeight: 160, background: 'var(--lp-band-dark)' }}
+        style={{ minHeight: 160, background: 'var(--lp-workspace-band)' }}
       />
     ),
   },
@@ -44,7 +44,7 @@ const OnChainProofBand = dynamic(
     loading: () => (
       <div
         aria-hidden
-        style={{ minHeight: 600, background: 'var(--lp-band-dark)' }}
+        style={{ minHeight: 600, background: 'var(--lp-workspace-band)' }}
       />
     ),
   },
@@ -147,8 +147,8 @@ export default function AppHome() {
         <Band tone="dark" overlay={<GridOverlay />}>
           <SectionTag tone="dark">{t.settlementDeskEyebrow}</SectionTag>
           <div className="mt-7 space-y-4">
-            <div className="h-14 w-3/4 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
-            <div className="h-4 w-1/2 rounded-md bg-white/[0.04] animate-pulse motion-reduce:animate-none" />
+            <div className="h-14 w-3/4 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-4 w-1/2 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
           </div>
         </Band>
       </FullBleed>
@@ -183,8 +183,8 @@ export default function AppHome() {
         <Band tone="dark" overlay={<GridOverlay />}>
           <SectionTag tone="dark">{t.settlementDeskEyebrow}</SectionTag>
           <div className="mt-7 space-y-4">
-            <div className="h-14 w-3/4 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
-            <div className="h-4 w-1/2 rounded-md bg-white/[0.04] animate-pulse motion-reduce:animate-none" />
+            <div className="h-14 w-3/4 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-4 w-1/2 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
           </div>
         </Band>
       </FullBleed>
@@ -264,16 +264,16 @@ export default function AppHome() {
             </div>
           </div>
           {!activation.loading && activation.activated && (
-            <div className="fade-up fade-up-4 mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/10 pt-5">
-              <span className="mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+            <div className="fade-up fade-up-4 mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--lp-workspace-border)] pt-5">
+              <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
                 {t.heroAgentCard.eyebrow}
               </span>
-              <span className="inline-flex items-center gap-2 text-[13px] text-white/70">
+              <span className="inline-flex items-center gap-2 text-[13px] text-[var(--lp-workspace-muted)]">
                 <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
-                <strong className="font-semibold text-white">{t.heroAgentCard.statePrefix}</strong>
+                <strong className="font-semibold text-[var(--lp-workspace-ink)]">{t.heroAgentCard.statePrefix}</strong>
                 {t.heroAgentCard.stateActive}
               </span>
-              <span className="text-[12px] text-white/45">{t.heroAgentCard.stateBody}</span>
+              <span className="text-[12px] text-[var(--lp-workspace-faint)]">{t.heroAgentCard.stateBody}</span>
             </div>
           )}
         </div>
@@ -373,17 +373,18 @@ function HeroAgentCard({
     <div
       className="relative overflow-hidden"
       style={{
-        background: 'var(--surface-1)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'var(--lp-workspace-raised)',
+        color: 'var(--lp-workspace-ink)',
+        border: '1px solid var(--lp-workspace-border)',
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
         borderBottomLeftRadius: 22,
         borderBottomRightRadius: 4,
       }}
     >
-      <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
+      <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)]">
         <div className="flex items-center justify-between">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
             {t.eyebrow}
           </span>
           <span
@@ -396,14 +397,14 @@ function HeroAgentCard({
             }}
           />
         </div>
-        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
+        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
           {t.statePrefix} <span className="text-[var(--lp-accent)]">{t.stateActive}</span>
         </p>
-        <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
+        <p className="mt-1.5 text-[12px] text-[var(--lp-workspace-muted)] leading-relaxed">
           {t.stateBody}
         </p>
       </div>
-      <div className="grid grid-cols-3 divide-x divide-white/[0.08]">
+      <div className="grid grid-cols-3 divide-x divide-[var(--lp-workspace-border)]">
         <MiniStat label={t.miniLabels.running} value={dealsRunning} />
         <MiniStat label={t.miniLabels.settled} value={settled} />
         <MiniStat
@@ -430,12 +431,12 @@ function MiniStat({
 }) {
   return (
     <div className="px-4 py-4">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{label}</p>
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">{label}</p>
       <p className="mt-1.5 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em]">
         {value == null ? '-' : <AnimatedNumber value={value} decimals={decimals} />}
       </p>
       {unit && (
-        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">{unit}</p>
+        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)]">{unit}</p>
       )}
     </div>
   );
@@ -460,23 +461,23 @@ function FeatureCard({
 }) {
   const surface =
     tone === 'dark'
-      ? 'bg-[var(--lp-band-dark)] text-white'
+      ? 'bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] border border-[var(--lp-workspace-border)]'
       : tone === 'accent'
         ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
         : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
   const eyebrowColor =
-    tone === 'dark' ? 'text-white/55' : tone === 'accent' ? 'text-[var(--lp-dark)]/65' : 'text-[var(--lp-text-muted)]';
+    tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : tone === 'accent' ? 'text-[var(--lp-dark)]/65' : 'text-[var(--lp-text-muted)]';
   const muted =
-    tone === 'dark' ? 'text-white/65' : tone === 'accent' ? 'text-[var(--lp-dark)]/75' : 'text-[var(--lp-text-sub)]';
+    tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : tone === 'accent' ? 'text-[var(--lp-dark)]/75' : 'text-[var(--lp-text-sub)]';
   const vignetteBg =
     tone === 'dark'
-      ? 'rgba(255,255,255,0.04)'
+      ? 'var(--lp-workspace-soft)'
       : tone === 'accent'
         ? 'rgba(0,0,0,0.06)'
         : 'var(--lp-light)';
   const vignetteBorder =
     tone === 'dark'
-      ? 'rgba(255,255,255,0.08)'
+      ? 'var(--lp-workspace-border)'
       : tone === 'accent'
         ? 'rgba(0,0,0,0.08)'
         : 'var(--lp-border-light)';
@@ -665,9 +666,9 @@ function BidVignette() {
           <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-accent)]">
             {t.eyebrow}
           </span>
-          <span className="mono text-[10px] text-white/70">0x1d36...35Ce</span>
+          <span className="mono text-[10px] text-[var(--lp-workspace-muted)]">0x1d36...35Ce</span>
         </span>
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] text-white/55">
+        <span className="inline-flex items-center gap-1.5 mono text-[10px] text-[var(--lp-workspace-muted)]">
           <span
             aria-hidden
             data-instrument-blink
@@ -682,10 +683,10 @@ function BidVignette() {
       </div>
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-1.5">
-          <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] text-white">
+          <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
             {price}
           </span>
-          <span className="mono text-[9px] uppercase tracking-[0.12em] text-white/55">USDC</span>
+          <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">USDC</span>
         </div>
         <div className="flex items-baseline gap-1">
           <span
@@ -694,7 +695,7 @@ function BidVignette() {
           >
             {score}
           </span>
-          <span className="mono text-[9px] tracking-[0.08em] text-white/45">{t.scoreSuffix}</span>
+          <span className="mono text-[9px] tracking-[0.08em] text-[var(--lp-workspace-muted)]">{t.scoreSuffix}</span>
         </div>
       </div>
       <div className="flex gap-[2px]">
@@ -710,7 +711,7 @@ function BidVignette() {
           />
         ))}
       </div>
-      <div className="flex justify-between text-[10px] mono text-white/55 pt-1">
+      <div className="flex justify-between text-[10px] mono text-[var(--lp-workspace-muted)] pt-1">
         <span>{t.counter.replace('{price}', '27')}</span>
         <span>{t.eta}</span>
       </div>

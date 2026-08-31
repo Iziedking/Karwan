@@ -401,8 +401,9 @@ export function PostJobForm() {
         aria-live="polite"
         className="relative overflow-hidden lg:sticky lg:top-24 lg:z-10"
         style={{
-          background: 'var(--lp-band-dark)',
-          color: 'white',
+          background: 'var(--lp-workspace-raised)',
+          color: 'var(--lp-workspace-ink)',
+          border: '1px solid var(--lp-workspace-border)',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           borderBottomLeftRadius: 18,
@@ -414,7 +415,7 @@ export function PostJobForm() {
           className="absolute inset-0 pointer-events-none opacity-40 grid-drift"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)',
+              'linear-gradient(var(--lp-workspace-grid) 1px, transparent 1px), linear-gradient(90deg, var(--lp-workspace-grid) 1px, transparent 1px)',
             backgroundSize: '48px 48px',
             maskImage: 'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
             WebkitMaskImage:
@@ -422,25 +423,25 @@ export function PostJobForm() {
           }}
         />
         <div className="relative px-6 py-6">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
             {t.preview.eyebrow}
           </p>
           <div className="mt-3 flex items-baseline gap-2 flex-wrap">
             <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
               {previewAmount}
             </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
+            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
               USDC
             </span>
-            <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-white/20" />
+            <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-[var(--lp-workspace-border)]" />
             <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
               {previewDeadline}
             </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
+            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
               {previewUnitLabel}
             </span>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-white/55">
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-workspace-muted)]">
             <span className="inline-flex items-center gap-1.5">
               <span
                 aria-hidden
@@ -455,11 +456,11 @@ export function PostJobForm() {
             </span>
             {ceiling && (
               <>
-                <span aria-hidden className="w-px h-3 bg-white/20" />
+                <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
                 <span>{t.preview.ceilingPrefix} {ceiling} USDC</span>
               </>
             )}
-            <span aria-hidden className="w-px h-3 bg-white/20" />
+            <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
             <span>{t.preview.milestoneCaption}</span>
           </div>
         </div>
@@ -1122,11 +1123,8 @@ function DeadlineUnitPicker({
             onClick={() => onChange(o.key)}
             className="min-h-11 min-w-11 px-2 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              background: active ? 'var(--lp-band-dark)' : 'transparent',
-              // --lp-light becomes the same near-black as --lp-band-dark in
-              // dark mode. Fixed white is intentional on this fixed dark
-              // selected segment, so DAY cannot disappear into its surface.
-              color: active ? '#ffffff' : 'var(--lp-text-sub)',
+              background: active ? 'var(--lp-control-active-bg)' : 'transparent',
+              color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
               borderTopLeftRadius: 7,
               borderTopRightRadius: 7,
               borderBottomLeftRadius: 7,

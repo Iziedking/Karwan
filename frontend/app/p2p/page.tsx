@@ -33,7 +33,7 @@ export default function P2PHubPage() {
               <Punc>.</Punc>
             </HeroHeadline>
           </div>
-          <p className="fade-up fade-up-2 mt-4 max-w-[52ch] text-[15px] leading-relaxed text-white/55">
+          <p className="fade-up fade-up-2 mt-4 max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">
             {p.lede}
           </p>
         </Band>

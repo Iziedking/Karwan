@@ -47,7 +47,7 @@ export function RealityHero() {
   return (
     <div
       ref={frameRef}
-      className="relative isolate overflow-hidden bg-[#0a0a0b] text-white"
+      className="relative isolate overflow-hidden bg-[var(--lp-workspace-band)] text-[var(--lp-workspace-ink)]"
       style={{ minHeight: 'var(--lp-panel-h)' }}
     >
       <motion.div
@@ -85,7 +85,7 @@ export function RealityHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
         >
-          <span className="inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em] text-white/70">
+          <span className="inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
             <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
             [:{lp.hero.tag}]
           </span>
@@ -94,7 +94,7 @@ export function RealityHero() {
             {lp.hero.titleLine2}{' '}
             <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
           </h1>
-          <p className="mx-auto mt-8 max-w-[39ch] text-pretty font-sans text-[clamp(1.15rem,2.2vw,1.6rem)] font-medium leading-[1.34] tracking-[-0.015em] text-white/90">
+          <p className="mx-auto mt-8 max-w-[39ch] text-pretty font-sans text-[clamp(1.15rem,2.2vw,1.6rem)] font-medium leading-[1.34] tracking-[-0.015em] text-[var(--lp-workspace-ink)]">
             {lp.hero.body}
           </p>
           <motion.div
@@ -107,13 +107,13 @@ export function RealityHero() {
               {lp.hero.ctaPrimary}
               <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">↘</span>
             </Link>
-            <Link href="/how-it-works" className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] border border-white/45 px-6 py-3 mono text-[13px] font-semibold uppercase tracking-[0.08em] text-white transition-colors duration-200 hover:border-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b]">
+            <Link href="/how-it-works" className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] border border-[var(--lp-workspace-ink)] px-6 py-3 mono text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-workspace-ink)] transition-colors duration-200 hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)]">
               {lp.hero.ctaSecondary}
               <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">↗</span>
             </Link>
           </motion.div>
           <motion.p
-            className="mono mt-8 text-[10px] uppercase tracking-[0.14em] text-white/65"
+            className="mono mt-8 text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]"
             animate={reduce ? undefined : { opacity: [0.55, 1, 0.55] }}
             transition={reduce ? undefined : { duration: 3.2, ease: 'easeInOut', repeat: Infinity }}
           >
@@ -122,7 +122,7 @@ export function RealityHero() {
         </motion.div>
       </motion.div>
 
-      <div className="pointer-events-none absolute inset-x-5 bottom-5 z-10 flex items-end justify-between gap-4 mono text-[10px] uppercase tracking-[0.14em] text-white/60 sm:inset-x-8 lg:inset-x-16">
+      <div className="pointer-events-none absolute inset-x-5 bottom-5 z-10 flex items-end justify-between gap-4 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] sm:inset-x-8 lg:inset-x-16">
         <span>[:KARWAN REALITY]</span>
         <span className="hidden sm:inline">CROSS-BORDER WORK IN MOTION</span>
       </div>
@@ -148,23 +148,23 @@ export function RealityKitRail() {
   }, [reduce]);
 
   return (
-    <div className="border-y border-white/10 bg-[#0a0a0b] px-[clamp(20px,5vw,72px)] py-4 text-white">
+    <div className="border-y border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] px-[clamp(20px,5vw,72px)] py-4 text-[var(--lp-workspace-ink)]">
       <div className="mx-auto grid max-w-[1440px] gap-3 sm:grid-cols-3">
         {realityKits.map((kit, index) => (
           <motion.div
             key={kit.id}
             animate={reduce ? undefined : { opacity: active === index ? 1 : 0.48, y: active === index ? 0 : 2 }}
             transition={{ duration: reduce ? 0 : 0.35, ease: ease.out }}
-            className="flex min-h-11 items-center justify-between gap-4 border border-white/10 bg-white/[0.03] px-3 py-2.5 sm:px-4"
+            className="flex min-h-11 items-center justify-between gap-4 border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)] px-3 py-2.5 sm:px-4"
             style={{ borderRadius: 10 }}
           >
-            <span className="flex items-center gap-2 mono text-[9px] font-semibold uppercase tracking-[0.14em] text-white/60 sm:text-[10px]">
+            <span className="flex items-center gap-2 mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] sm:text-[10px]">
               <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
               {kit.tag}
             </span>
             <span className="text-end">
-              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.04em] text-white">{kit.value}</span>
-              <span className="mt-0.5 block mono text-[8px] uppercase tracking-[0.12em] text-white/45">{kit.detail}</span>
+              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--lp-workspace-ink)]">{kit.value}</span>
+              <span className="mt-0.5 block mono text-[8px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{kit.detail}</span>
             </span>
           </motion.div>
         ))}

@@ -53,8 +53,8 @@ export function NewDealPanel() {
                 onClick={() => setMode(m.value)}
                 className="min-h-11 px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
                 style={{
-                  background: isActive ? 'var(--lp-band-dark)' : 'transparent',
-                  color: isActive ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
+                  background: isActive ? 'var(--lp-control-active-bg)' : 'transparent',
+                  color: isActive ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
                   borderTopLeftRadius: 9,
                   borderTopRightRadius: 9,
                   borderBottomLeftRadius: 9,

@@ -199,8 +199,8 @@ export function DepositCard() {
             onClick={copy}
             className="group mt-4 inline-flex items-center gap-2 px-5 py-3 mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors"
             style={{
-              background: copied ? 'var(--lp-band-dark)' : 'var(--lp-accent)',
-              color: copied ? 'white' : 'var(--accent-ink)',
+              background: 'var(--lp-control-active-bg)',
+              color: 'var(--lp-control-active-ink)',
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
               borderBottomLeftRadius: 10,
@@ -319,7 +319,7 @@ function GroupSwitch({
           width: 'calc(50% - 4px)',
           left: 4,
           borderRadius: 999,
-          background: 'var(--lp-band-dark)',
+          background: 'var(--lp-control-active-bg)',
           transform: evm ? 'translateX(0)' : 'translateX(100%)',
         }}
       />

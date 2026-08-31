@@ -1,11 +1,23 @@
 ﻿'use client';
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
 
 const SUPPORT_EMAIL = 'support@karwan.site';
+
+const LANDING_FOOTER_VARS = {
+  '--lp-light': 'var(--karwan-canvas)',
+  '--lp-card': 'var(--karwan-card)',
+  '--lp-dark': 'var(--ink-inv-0)',
+  '--lp-text-sub': 'rgba(10,10,11,0.66)',
+  '--lp-text-muted': 'rgba(10,10,11,0.52)',
+  '--lp-border-light': 'rgba(10,10,11,0.10)',
+  '--lp-control-active-bg': 'var(--lp-accent)',
+  '--lp-control-active-ink': 'var(--lp-band-dark)',
+} as CSSProperties;
 
 /// Phantom-grade footer: cream backdrop, big white inner card with asymmetric
 /// rounded corners, logo+tagline block left of a three-column link grid,
@@ -14,10 +26,14 @@ const SUPPORT_EMAIL = 'support@karwan.site';
 /// the landing-page palette so the bottom of every route resolves to the
 /// same visual chord.
 export function SiteFooter() {
+  const pathname = usePathname();
   const messages = useTranslations();
   const t = messages.footer;
   return (
-    <footer className="bg-[var(--lp-light)] text-[var(--lp-dark)]">
+    <footer
+      className="bg-[var(--lp-light)] text-[var(--lp-dark)]"
+      style={pathname === '/' ? LANDING_FOOTER_VARS : undefined}
+    >
       <div className="mx-auto max-w-[1360px] px-[clamp(20px,4vw,56px)] pt-[clamp(32px,4.5vw,60px)] pb-[clamp(24px,3vw,40px)]">
         {/* Inner card. asymmetric corners like the landing CTA pills, chunky shadow. */}
         <div
@@ -203,7 +219,7 @@ function NewsletterSignup() {
         <button
           type="submit"
           disabled={state === 'sending'}
-          className="min-h-11 w-full shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-band-dark)] text-[var(--lp-accent)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform min-[380px]:w-auto"
+          className="min-h-11 w-full shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform min-[380px]:w-auto"
           style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
         >
           {state === 'sending' ? t.sending : t.cta}
@@ -223,12 +239,13 @@ function NewsletterSignup() {
 
 function BrandSwatches() {
   const t = useTranslations().footer;
-  /// Three chips with the three brand constants. The caption mirrors the
+  /// Four chips with the four brand constants. The caption mirrors the
   /// internal brand-kit doc (docs/assets/brand-kit.md) without exposing it.
   const swatches: ReadonlyArray<{ label: string; hex: string; border?: boolean }> = [
     { label: 'lime', hex: '#AFC95B' },
-    { label: 'ink', hex: '#0E0E0E' },
-    { label: 'cream', hex: '#FAF8F2', border: true },
+    { label: 'ink', hex: '#0A0A0B' },
+    { label: 'canvas', hex: '#F4F4F1', border: true },
+    { label: 'card', hex: '#FFFFFF', border: true },
   ];
   return (
     <div className="mt-8 lg:mt-10 flex flex-wrap items-center gap-x-5 gap-y-3">

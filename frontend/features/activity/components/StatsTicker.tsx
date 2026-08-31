@@ -48,7 +48,7 @@ export function StatsTicker() {
   const track = [...items, ...items];
 
   return (
-    <div className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden border-b border-[var(--lp-border-subtle)] bg-[var(--lp-band-dark)]">
+    <div className="relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden border-b border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)]">
       <div
         className="ticker-track flex w-max items-center"
         style={{ animation: 'marquee 38s linear infinite' }}
@@ -56,11 +56,11 @@ export function StatsTicker() {
         {track.map((it, i) => (
           <span
             key={i}
-            className="flex items-center gap-2.5 whitespace-nowrap px-6 py-2.5 mono text-[12px] uppercase tracking-[0.08em] text-white"
+            className="flex items-center gap-2.5 whitespace-nowrap px-6 py-2.5 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-workspace-ink)]"
           >
             <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
             <span className="font-semibold">{it.value}</span>
-            <span className="text-[var(--lp-text-muted)]">[{it.label}]</span>
+            <span className="text-[var(--lp-workspace-muted)]">[{it.label}]</span>
           </span>
         ))}
       </div>

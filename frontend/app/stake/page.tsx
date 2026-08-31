@@ -160,12 +160,12 @@ function StakePageInner() {
             hard 200px minimum and fits to content, so long tier strings
             like ESTABLISHED render in full without ever truncating. The
             other two columns share the remaining width. */}
-        <div className="fade-up mt-9 max-w-[760px] grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_minmax(200px,max-content)_minmax(0,1fr)] gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+        <div className="fade-up mt-9 max-w-[760px] grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_minmax(200px,max-content)_minmax(0,1fr)] gap-px overflow-hidden rounded-2xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)]">
           <Stat label={sp.position.reputation}>
             <span className="tabular-nums">
               <CountUp value={score} />
             </span>
-            <span className="text-white/35 text-[15px]"> / 1000</span>
+            <span className="text-[var(--lp-workspace-faint)] text-[15px]"> / 1000</span>
           </Stat>
           <Stat label={sp.position.tier} fit>
             <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
@@ -173,7 +173,7 @@ function StakePageInner() {
                 fault, but nothing said so: the reason sat in the next column
                 and this line claimed one settlement would lift it. */}
             {capped ? (
-              <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-white/40">
+              <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
                 {data?.tierCappedBy === 'concentration'
                   ? sp.position.cappedConcentration
                   : sp.position.cappedDeals}
@@ -187,21 +187,22 @@ function StakePageInner() {
                 : sp.position.status
             }
             wide
+            wrap
           >
             {progress.kind === 'deals' ? (
               <span className="tabular-nums">
                 <CountUp value={progress.deals} />{' '}
-                <span className="text-white/45 text-[15px]">
+                <span className="text-[var(--lp-workspace-faint)] text-[15px]">
                   {progress.deals === 1 ? sp.position.dealOne : sp.position.dealMany}
                 </span>
               </span>
             ) : progress.kind === 'points' ? (
               <span className="tabular-nums">
                 <CountUp value={progress.points} />{' '}
-                <span className="text-white/45 text-[15px]">{sp.position.pts}</span>
+                <span className="text-[var(--lp-workspace-faint)] text-[15px]">{sp.position.pts}</span>
               </span>
             ) : progress.kind === 'concentration' ? (
-              <span className="text-[15px] text-white/70">{progressLabel}</span>
+              <span className="text-[15px] text-[var(--lp-workspace-muted)]">{progressLabel}</span>
             ) : progress.kind === 'top' ? (
               <span style={{ color: TIER_HUE[tier] }}>{sp.position.topTier}</span>
             ) : null}
@@ -340,6 +341,7 @@ function Stat({
   children,
   wide,
   fit,
+  wrap,
 }: {
   label: string;
   children: ReactNode;
@@ -347,15 +349,24 @@ function Stat({
   /// True for long-word values (eg "ESTABLISHED") that need to scale down on
   /// narrow tiles. Uses a fluid font-size so the value never gets clipped.
   fit?: boolean;
+  /// True for sentence-length status values. These remain fully readable
+  /// instead of inheriting the single-line treatment used by numbers.
+  wrap?: boolean;
 }) {
   const sizeClass = fit
     ? 'text-[clamp(14px,4.8vw,24px)]'
-    : 'text-[26px]';
+    : wrap
+      ? 'text-[clamp(14px,2vw,20px)]'
+      : 'text-[26px]';
+  const flowClass = fit || wrap
+    ? 'whitespace-normal break-words'
+    : 'truncate';
+  const leadingClass = wrap ? 'leading-snug' : 'leading-none';
   return (
-    <div className={`min-w-0 bg-[var(--lp-band-dark)] px-5 py-4 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">{label}</p>
+    <div className={`min-w-0 bg-[var(--lp-workspace-raised)] px-5 py-4 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">{label}</p>
       <p
-        className={`mt-1.5 min-w-0 font-sans ${sizeClass} font-extrabold tracking-[-0.02em] leading-none text-white ${fit ? 'whitespace-normal break-words' : 'truncate'}`}
+        className={`mt-1.5 min-w-0 font-sans ${sizeClass} font-extrabold tracking-[-0.02em] ${leadingClass} text-[var(--lp-workspace-ink)] ${flowClass}`}
       >
         {children}
       </p>

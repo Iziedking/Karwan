@@ -30,7 +30,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
 
   if (visible.length === 0) {
     return (
-      <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
+      <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
         {jobs.length === 0 ? jt.empty.none : jt.empty.allDismissed}
       </div>
     );
@@ -38,7 +38,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
 
   return (
     <>
-      <div className="divide-y divide-white/[0.07] md:hidden">
+      <div className="divide-y divide-[var(--lp-workspace-border)] md:hidden">
         {visible.map((j) => {
           const s = status(j, jt.status);
           const href = `/jobs/${j.jobId}`;
@@ -46,22 +46,22 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
             <article key={j.jobId} className="px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="mono text-[10px] uppercase tracking-[0.13em] text-white/40">{jt.columns.job}</p>
-                  <p className="mt-1 mono text-[12px] tabular-nums text-white">{shortHash(j.jobId, 8, 4)}</p>
+                  <p className="mono text-[10px] uppercase tracking-[0.13em] text-[var(--lp-workspace-faint)]">{jt.columns.job}</p>
+                  <p className="mt-1 mono text-[12px] tabular-nums text-[var(--lp-workspace-ink)]">{shortHash(j.jobId, 8, 4)}</p>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-2">
                   <StatusDot tone={s.dot} />
                   <Tag tone={s.tone}>{s.label}</Tag>
                 </span>
               </div>
-              <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-white/[0.07] py-3">
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-y border-[var(--lp-workspace-border)] py-3">
                 <div>
-                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-white/35">{jt.columns.budget}</dt>
-                  <dd className="mt-1 font-sans text-[17px] font-extrabold tabular-nums text-white">{formatUsdc(j.budgetUsdc)}</dd>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-workspace-faint)]">{jt.columns.budget}</dt>
+                  <dd className="mt-1 font-sans text-[17px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">{formatUsdc(j.budgetUsdc)}</dd>
                 </div>
                 <div>
-                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-white/35">{jt.columns.deadline}</dt>
-                  <dd className="mt-1 mono text-[11px] uppercase tracking-[0.08em] text-white/65">{relativeTime(j.deadlineUnix)}</dd>
+                  <dt className="mono text-[9px] uppercase tracking-[0.13em] text-[var(--lp-workspace-faint)]">{jt.columns.deadline}</dt>
+                  <dd className="mt-1 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]">{relativeTime(j.deadlineUnix)}</dd>
                 </div>
               </dl>
               <div className="mt-3 flex items-center justify-between gap-3">
@@ -71,7 +71,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                     title={jt.dismiss.title}
                     aria-label={j.expiredAt ? jt.dismiss.ariaExpired : j.cancelledAt ? jt.dismiss.ariaCancelled : jt.dismiss.ariaFunded}
                     onClick={() => dismiss(j.jobId)}
-                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-white/45"
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]"
                   >
                     {jt.dismiss.title}
                   </button>
@@ -90,7 +90,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
       <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-sm">
         <thead>
-          <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
+          <tr className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)] border-b border-[var(--lp-workspace-border)]">
             <th className="text-start font-medium px-5 py-3">{jt.columns.job}</th>
             <th className="text-start font-medium px-5 py-3">{jt.columns.budget}</th>
             <th className="text-start font-medium px-5 py-3">{jt.columns.deadline}</th>
@@ -119,9 +119,9 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                 tabIndex={0}
                 role="link"
                 aria-label={jt.row.openAria.replace('{id}', shortHash(j.jobId, 8, 4))}
-                className="group cursor-pointer border-b border-white/[0.06] last:border-0 hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none transition-colors"
+                className="group cursor-pointer border-b border-[var(--lp-workspace-border)] last:border-0 hover:bg-[var(--lp-workspace-soft)] focus:bg-[var(--lp-workspace-soft)] focus:outline-none transition-colors"
               >
-                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white">
+                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-[var(--lp-workspace-ink)]">
                   <span className="inline-flex items-center gap-2">
                     <span>{shortHash(j.jobId, 8, 4)}</span>
                     {((j.tradeLane ?? 'service') === 'finance' ||
@@ -140,10 +140,10 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                     )}
                   </span>
                 </td>
-                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-white">
+                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
                   {formatUsdc(j.budgetUsdc)}
                 </td>
-                <td className="px-5 py-3.5 mono text-[11px] uppercase tracking-[0.1em] text-white/55">
+                <td className="px-5 py-3.5 mono text-[11px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)]">
                   {relativeTime(j.deadlineUnix)}
                 </td>
                 <td className="px-5 py-3.5">
@@ -169,7 +169,7 @@ export function JobsTable({ jobs }: { jobs: BuyerJob[] }) {
                           e.stopPropagation();
                           dismiss(j.jobId);
                         }}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-white/45 hover:text-white hover:bg-white/[0.08] transition-colors"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-[var(--lp-workspace-faint)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
                       >
                         ×
                       </button>

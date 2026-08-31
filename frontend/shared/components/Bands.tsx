@@ -36,9 +36,12 @@ export function Band({
     <section
       id={id}
       data-guide={dataGuide}
+      data-surface={dark ? 'workspace' : 'paper'}
       className={cn(
         'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden',
-        dark ? 'bg-[var(--lp-band-dark)] text-white' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
+        dark
+          ? 'bg-[var(--lp-workspace-band)] text-[var(--lp-workspace-ink)]'
+          : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
         className,
       )}
     >
@@ -72,7 +75,7 @@ export function GridOverlay({
       className="pointer-events-none absolute inset-0 opacity-50 grid-drift"
       style={{
         backgroundImage:
-          'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          'linear-gradient(var(--lp-workspace-grid) 1px, transparent 1px), linear-gradient(90deg, var(--lp-workspace-grid) 1px, transparent 1px)',
         backgroundSize: '80px 80px',
         maskImage: mask,
         WebkitMaskImage: mask,
@@ -94,7 +97,7 @@ export function SectionTag({
     <span
       className={cn(
         'inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em]',
-        tone === 'dark' ? 'text-white/60' : 'text-[var(--lp-text-muted)]',
+        tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
       )}
     >
       {dot === 'live' ? (
@@ -196,11 +199,11 @@ export function CTAPill({
     variant === 'primary'
       ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]'
       : tone === 'dark'
-        ? 'border border-white/25 text-white hover:border-white/55'
+        ? 'border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)]'
         : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)]';
   const ringOffset =
     tone === 'dark'
-      ? 'focus-visible:ring-offset-[var(--lp-dark)]'
+      ? 'focus-visible:ring-offset-[var(--lp-workspace-band)]'
       : 'focus-visible:ring-offset-[var(--lp-light)]';
   // A busy pill must NOT take the disabled fade: faded plus static is exactly
   // what read as "nothing happened".
@@ -264,9 +267,9 @@ export function BigStatTile({
     <div
       className="relative overflow-hidden p-4 sm:p-5"
       style={{
-        background: isDark ? 'rgba(255,255,255,0.04)' : 'var(--lp-card)',
+        background: isDark ? 'var(--lp-workspace-raised)' : 'var(--lp-card)',
         border: isDark
-          ? '1px solid rgba(255,255,255,0.08)'
+          ? '1px solid var(--lp-workspace-border)'
           : '1px solid var(--lp-border-light)',
         borderTopLeftRadius: 18,
         borderTopRightRadius: 18,
@@ -277,7 +280,7 @@ export function BigStatTile({
       <p
         className={cn(
           'mono text-[10px] uppercase tracking-[0.16em]',
-          isDark ? 'text-white/55' : 'text-[var(--lp-text-muted)]',
+          isDark ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
         )}
       >
         {label}
@@ -286,7 +289,7 @@ export function BigStatTile({
         <div
           className={cn(
             'mt-3 h-8 w-20 rounded animate-pulse motion-reduce:animate-none',
-            isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]',
+            isDark ? 'bg-[var(--lp-workspace-soft)]' : 'bg-black/[0.06]',
           )}
         />
       ) : (
@@ -295,7 +298,7 @@ export function BigStatTile({
             className={cn(
               'font-sans font-extrabold tabular-nums tracking-[-0.02em] leading-none',
               'min-w-0 max-w-full text-[clamp(1.75rem,8vw,2.75rem)]',
-              isDark ? 'text-white' : 'text-[var(--lp-dark)]',
+              isDark ? 'text-[var(--lp-workspace-ink)]' : 'text-[var(--lp-dark)]',
             )}
           >
             {value}
@@ -309,7 +312,7 @@ export function BigStatTile({
                 // intentional overflow boundary. Desktop keeps the compact
                 // inline treatment.
                 'mono shrink-0 basis-full text-[10px] uppercase tracking-[0.12em] sm:basis-auto',
-                isDark ? 'text-white/55' : 'text-[var(--lp-text-muted)]',
+                isDark ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
               )}
             >
               {unit}
@@ -321,7 +324,7 @@ export function BigStatTile({
         <p
           className={cn(
             'mt-1.5 mono text-[10px] uppercase tracking-[0.1em]',
-            isDark ? 'text-white/45' : 'text-[var(--lp-text-muted)]',
+            isDark ? 'text-[var(--lp-workspace-faint)]' : 'text-[var(--lp-text-muted)]',
           )}
         >
           {hint}
@@ -348,7 +351,7 @@ export function PageCard({
       className={cn(
         'overflow-hidden',
         isDark
-          ? 'bg-[var(--lp-band-dark)] text-white border border-white/[0.08]'
+          ? 'bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] border border-[var(--lp-workspace-border)]'
           : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]',
         className,
       )}
@@ -371,7 +374,7 @@ export function AddressPill({ address, tone = 'dark' }: { address: string; tone?
       className={cn(
         'inline-flex items-center gap-2 px-3 py-1.5 rounded-full mono text-[11px] uppercase tracking-[0.08em]',
         tone === 'dark'
-          ? 'border border-white/15 text-white/65'
+          ? 'border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)]'
           : 'border border-[var(--lp-outline)] text-[var(--lp-dark)]/70',
       )}
     >

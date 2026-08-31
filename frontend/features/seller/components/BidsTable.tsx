@@ -40,7 +40,7 @@ export function BidsTable({
 
   if (visible.length === 0) {
     return (
-      <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-white/45">
+      <div className="py-10 text-center mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
         {bids.length === 0 ? bt.empty.idle : bt.empty.dismissed}
       </div>
     );
@@ -48,15 +48,15 @@ export function BidsTable({
 
   return (
     <>
-      <div className="divide-y divide-white/[0.07] md:hidden">
+      <div className="divide-y divide-[var(--lp-workspace-border)] md:hidden">
         {visible.map((b) => {
           const href = `/jobs/${b.jobId}`;
           return (
             <article key={b.jobId} className="px-4 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="mono text-[10px] uppercase tracking-[0.13em] text-white/40">{bt.columns.job}</p>
-                  <p className="mt-1 mono text-[12px] tabular-nums text-white">{shortHash(b.jobId, 8, 4)}</p>
+                  <p className="mono text-[10px] uppercase tracking-[0.13em] text-[var(--lp-workspace-faint)]">{bt.columns.job}</p>
+                  <p className="mt-1 mono text-[12px] tabular-nums text-[var(--lp-workspace-ink)]">{shortHash(b.jobId, 8, 4)}</p>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-2">
                   <StatusDot tone={b.finalized ? 'positive' : 'accent'} />
@@ -65,18 +65,18 @@ export function BidsTable({
                   </Tag>
                 </span>
               </div>
-              <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-white/[0.07] py-3">
+              <dl className="mt-4 grid grid-cols-3 gap-2 border-y border-[var(--lp-workspace-border)] py-3">
                 <div className="min-w-0">
-                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/35">{bt.columns.buyer}</dt>
-                  <dd className="mt-1 truncate mono text-[11px] tabular-nums text-white/60">{shortHash(b.jobBuyer, 6, 4)}</dd>
+                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{bt.columns.buyer}</dt>
+                  <dd className="mt-1 truncate mono text-[11px] tabular-nums text-[var(--lp-workspace-muted)]">{shortHash(b.jobBuyer, 6, 4)}</dd>
                 </div>
                 <div className="min-w-0">
-                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/35">{bt.columns.bid}</dt>
-                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-white">{formatUsdc(b.lastBidPrice)}</dd>
+                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{bt.columns.bid}</dt>
+                  <dd className="mt-1 font-sans text-[16px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">{formatUsdc(b.lastBidPrice)}</dd>
                 </div>
                 <div className="min-w-0">
-                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-white/35">{bt.columns.rounds}</dt>
-                  <dd className="mt-1 mono text-[11px] tabular-nums text-white/60">{b.counterRounds}</dd>
+                  <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{bt.columns.rounds}</dt>
+                  <dd className="mt-1 mono text-[11px] tabular-nums text-[var(--lp-workspace-muted)]">{b.counterRounds}</dd>
                 </div>
               </dl>
               <div className="mt-3 flex items-center justify-between gap-2">
@@ -85,7 +85,7 @@ export function BidsTable({
                     type="button"
                     aria-label={bt.row.dismissAria}
                     onClick={() => dismiss(b.jobId)}
-                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-white/45"
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]"
                   >
                     {bt.row.dismissTitle}
                   </button>
@@ -102,7 +102,7 @@ export function BidsTable({
                   <button
                     type="button"
                     onClick={() => setConfirming(b.jobId)}
-                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-white/45"
+                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]"
                   >
                     {bt.row.abandon}
                   </button>
@@ -121,7 +121,7 @@ export function BidsTable({
       <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-sm">
         <thead>
-          <tr className="mono text-[10px] uppercase tracking-[0.16em] text-white/45 border-b border-white/[0.08]">
+          <tr className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)] border-b border-[var(--lp-workspace-border)]">
             <th className="text-start font-medium px-5 py-3">{bt.columns.job}</th>
             <th className="text-start font-medium px-5 py-3">{bt.columns.buyer}</th>
             <th className="text-start font-medium px-5 py-3">{bt.columns.bid}</th>
@@ -150,18 +150,18 @@ export function BidsTable({
                 tabIndex={0}
                 role="link"
                 aria-label={bt.row.openJobAria.replace('{id}', shortHash(b.jobId, 8, 4))}
-                className="group cursor-pointer border-b border-white/[0.06] last:border-0 hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none transition-colors"
+                className="group cursor-pointer border-b border-[var(--lp-workspace-border)] last:border-0 hover:bg-[var(--lp-workspace-soft)] focus:bg-[var(--lp-workspace-soft)] focus:outline-none transition-colors"
               >
-                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white">
+                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-[var(--lp-workspace-ink)]">
                   {shortHash(b.jobId, 8, 4)}
                 </td>
-                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-white/55">
+                <td className="px-5 py-3.5 mono text-[12px] tabular-nums text-[var(--lp-workspace-muted)]">
                   {shortHash(b.jobBuyer, 6, 4)}
                 </td>
-                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-white">
+                <td className="px-5 py-3.5 font-sans font-extrabold tabular-nums text-[15px] tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
                   {formatUsdc(b.lastBidPrice)}
                 </td>
-                <td className="px-5 py-3.5 mono tabular-nums text-white/65">{b.counterRounds}</td>
+                <td className="px-5 py-3.5 mono tabular-nums text-[var(--lp-workspace-muted)]">{b.counterRounds}</td>
                 <td className="px-5 py-3.5">
                   <span className="inline-flex items-center gap-2">
                     <StatusDot tone={b.finalized ? 'positive' : 'accent'} />
@@ -181,7 +181,7 @@ export function BidsTable({
                           e.stopPropagation();
                           dismiss(b.jobId);
                         }}
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-white/45 hover:text-white hover:bg-white/[0.08] transition-colors"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-[var(--lp-workspace-faint)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
                       >
                         ×
                       </button>
@@ -207,7 +207,7 @@ export function BidsTable({
                             e.stopPropagation();
                             setConfirming(b.jobId);
                           }}
-                          className="mono text-[10px] uppercase tracking-[0.12em] px-2.5 py-1 rounded-full text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+                          className="mono text-[10px] uppercase tracking-[0.12em] px-2.5 py-1 rounded-full text-[var(--lp-workspace-faint)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
                         >
                           {bt.row.abandon}
                         </button>

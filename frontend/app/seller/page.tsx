@@ -211,8 +211,8 @@ function SellerPageInner() {
             <div
               className="overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'var(--lp-workspace-raised)',
+                border: '1px solid var(--lp-workspace-border)',
                 borderTopLeftRadius: 22,
                 borderTopRightRadius: 22,
                 borderBottomLeftRadius: 22,
@@ -246,7 +246,7 @@ function SellerPageInner() {
               {activeBids.length > 0 && (
                 <>
                   <Punc>.</Punc>
-                  <span className="ms-3 text-white/55 font-sans font-extrabold">
+                  <span className="ms-3 text-[var(--lp-workspace-muted)] font-sans font-extrabold">
                     {activeBids.length}
                   </span>
                 </>
@@ -259,8 +259,8 @@ function SellerPageInner() {
           <div
             className="overflow-hidden"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--lp-workspace-raised)',
+              border: '1px solid var(--lp-workspace-border)',
               borderTopLeftRadius: 22,
               borderTopRightRadius: 22,
               borderBottomLeftRadius: 22,
@@ -273,11 +273,11 @@ function SellerPageInner() {
               </p>
             ) : fetchState === 'loading' || fetchState === 'idle' ? (
               <div className="p-8 space-y-3">
-                <div className="h-14 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
-                <div className="h-14 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
+                <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+                <div className="h-14 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
               </div>
             ) : activeBids.length === 0 ? (
-              <p className="p-8 text-center text-[13px] text-white/55">
+              <p className="p-8 text-center text-[13px] text-[var(--lp-workspace-muted)]">
                 {sh.activeBids.emptyMessage}
               </p>
             ) : (
@@ -352,17 +352,17 @@ function SellerAgentVignette({
     <div
       className="relative overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'var(--lp-workspace-raised)',
+        border: '1px solid var(--lp-workspace-border)',
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
         borderBottomLeftRadius: 22,
         borderBottomRightRadius: 4,
       }}
     >
-      <div className="px-6 pt-6 pb-5 border-b border-white/[0.08]">
+      <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)]">
         <div className="flex items-center justify-between">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">
+          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
             {copy.agentControl}
           </span>
           {activated ? (
@@ -376,32 +376,32 @@ function SellerAgentVignette({
               }}
             />
           ) : (
-            <span aria-hidden className="w-[7px] h-[7px] rounded-full bg-white/30" />
+            <span aria-hidden className="w-[7px] h-[7px] rounded-full bg-[var(--lp-workspace-faint)]" />
           )}
         </div>
-        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-white">
+        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
           {copy.sellerAgent}{' '}
-          <span style={{ color: activated ? 'var(--lp-accent)' : 'rgba(255,255,255,0.5)' }}>
+          <span style={{ color: activated ? 'var(--lp-accent)' : 'var(--lp-workspace-muted)' }}>
             {activated ? copy.statusActive : copy.statusIdle}
           </span>
         </p>
-        <p className="mt-1.5 text-[12px] text-white/55 leading-relaxed">
+        <p className="mt-1.5 text-[12px] text-[var(--lp-workspace-muted)] leading-relaxed">
           {activated ? copy.activeBlurb : copy.idleBlurb}
         </p>
       </div>
-      <div className="grid grid-cols-2 divide-x divide-white/[0.08]">
+      <div className="grid grid-cols-2 divide-x divide-[var(--lp-workspace-border)]">
         <div className="px-4 py-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{copy.inAuction}</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">{copy.inAuction}</p>
           <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
             {bidsCount}
           </p>
         </div>
         <div className="px-4 py-4">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{copy.counters}</p>
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">{copy.counters}</p>
           <p className="mt-1.5 font-sans text-[24px] font-extrabold tabular-nums tracking-[-0.02em]">
             ∞
           </p>
-          <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">
+          <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]">
             {copy.withinRange}
           </p>
         </div>

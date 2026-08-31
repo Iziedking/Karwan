@@ -88,7 +88,7 @@ export function WorkspaceBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0a0a0b] px-2 pt-1.5 text-white md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--lp-workspace-band)] px-2 pt-1.5 text-[var(--color-ink)] md:hidden"
       style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}
     >
       <div className="mx-auto grid max-w-lg grid-cols-5">
@@ -100,7 +100,9 @@ export function WorkspaceBottomNav() {
             className={cn(
               'relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--lp-accent)]',
-              item.active ? 'text-white' : 'text-white/52 hover:text-white/82',
+              item.active
+                ? 'text-[var(--color-ink)]'
+                : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
             )}
           >
             {item.active ? (

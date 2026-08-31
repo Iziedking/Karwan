@@ -102,9 +102,9 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="space-y-4 max-w-[44ch] min-h-[44vh]">
-            <div className="h-3 w-32 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-            <div className="h-12 w-72 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
-            <div className="h-3 w-48 rounded bg-white/[0.08] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-32 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-12 w-72 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-48 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
           </div>
         </Band>
       </FullBleed>
@@ -169,7 +169,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
         <div className="fade-up">
           <Link
             href="/seller"
-            className="group -ms-3 mb-6 inline-flex min-h-11 items-center gap-1.5 px-3 mono text-[10px] uppercase tracking-[0.14em] text-white/55 transition-colors hover:text-white"
+            className="group -ms-3 mb-6 inline-flex min-h-11 items-center gap-1.5 px-3 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
           >
             <span
               aria-hidden
@@ -209,15 +209,15 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                 <Punc>.</Punc>
               </HeroHeadline>
             </div>
-            <p className="fade-up fade-up-3 mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45 tabular-nums">
+            <p className="fade-up fade-up-3 mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)] tabular-nums">
               {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt))}
             </p>
           </div>
           <div className="fade-up fade-up-4 flex items-baseline gap-2 shrink-0">
-            <span className="font-sans text-[clamp(2.5rem,5vw,4rem)] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-white">
+            <span className="font-sans text-[clamp(2.5rem,5vw,4rem)] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-workspace-ink)]">
               {formatUsdc(listing.askingPriceUsdc, { withSuffix: false })}
             </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-white/55">
+            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
               USDC
             </span>
           </div>
@@ -295,7 +295,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               )}
             </HeroHeadline>
             {isOpen && listing.expiresAt && (
-              <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-white/45">
+              <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">
                 {ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt))}
               </p>
             )}
@@ -312,32 +312,32 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             }}
           >
             {isCancelled ? (
-              <p className="text-[14px] leading-relaxed text-white/70">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                 {ld.state.cancelledBody}
               </p>
             ) : isExpired ? (
               listing.matchedJobId ? (
                 <div className="space-y-4">
-                  <p className="text-[14px] leading-relaxed text-white/70">
+                  <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                     {ld.state.expiredMatchedBody}
                   </p>
                   <CTAPill href={`/jobs/${listing.matchedJobId}`}>{ld.state.openMatchedCta}</CTAPill>
                 </div>
               ) : (
-                <p className="text-[14px] leading-relaxed text-white/70">
+                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                   {ld.state.expiredUnmatchedBody}
                 </p>
               )
             ) : matched ? (
               <div className="space-y-4">
-                <p className="text-[14px] leading-relaxed text-white/70">
+                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                   {ld.state.matchedBody}
                 </p>
                 <CTAPill href={`/jobs/${listing.matchedJobId}`}>{ld.state.openMatchedCta}</CTAPill>
               </div>
             ) : viewerIsOwner ? (
               <div className="space-y-4">
-                <p className="text-[14px] leading-relaxed text-white/70">
+                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                   {ld.state.scanningBody}
                 </p>
                 {!confirmCancel ? (
@@ -352,7 +352,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                     <button
                       type="button"
                       onClick={() => setConfirmCancel(true)}
-                      className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-white/55 hover:text-white underline underline-offset-2"
+                      className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] underline underline-offset-2"
                     >
                       {ld.state.cancelCta}
                     </button>
@@ -369,7 +369,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                       borderBottomRightRadius: 3,
                     }}
                   >
-                    <p className="text-[13px] text-white/85 leading-snug">
+                    <p className="text-[13px] text-[var(--lp-workspace-ink)] leading-snug">
                       {ld.state.confirmCancelBody}
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -392,7 +392,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                         type="button"
                         onClick={() => setConfirmCancel(false)}
                         disabled={cancelling}
-                        className="mono text-[11px] uppercase tracking-[0.10em] text-white/70 hover:text-white"
+                        className="mono text-[11px] uppercase tracking-[0.10em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
                       >
                         {ld.state.confirmNo}
                       </button>
@@ -405,7 +405,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-[14px] leading-relaxed text-white/70">
+                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
                   {ld.state.buyerBody}
                 </p>
                 <CTAPill href={buyerOfferHref}>

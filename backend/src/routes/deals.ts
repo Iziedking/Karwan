@@ -193,10 +193,10 @@ const createSchema = z
     // 1 hour and 180 days.
     deadlineDays: z.number().int().min(0).max(180).optional().default(0),
     deadlineHours: z.number().int().min(0).max(23).optional().default(0),
-    // Acceptance window in hours. How long the seller has to accept this deal
-    // before it auto-expires and the buyer is freed up to re-shop. Default 24h
-    // matches what a human asking "can you take this?" would realistically wait.
-    acceptanceWindowHours: z.number().int().min(1).max(720).optional().default(24),
+    // Acceptance window in hours. Quarter-hour values exist for short testnet
+    // demonstrations; ordinary defaults and production-facing presets remain
+    // measured in hours or days.
+    acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional().default(24),
     terms: z.string().min(1).max(600),
     firstReleasePct: z.number().int().min(1).max(99),
     /// Trusted-match flag. When true, this deal is high-trust: the seller
@@ -266,7 +266,7 @@ const editSchema = z
     dealAmountUsdc: z.number().positive().optional(),
     deadlineDays: z.number().int().min(0).max(180).optional(),
     deadlineHours: z.number().int().min(0).max(23).optional(),
-    acceptanceWindowHours: z.number().int().min(1).max(720).optional(),
+    acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional(),
     terms: z.string().min(1).max(600).optional(),
     firstReleasePct: z.number().int().min(1).max(99).optional(),
     requireStake: z.boolean().optional(),

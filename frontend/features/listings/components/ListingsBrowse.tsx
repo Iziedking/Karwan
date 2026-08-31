@@ -437,11 +437,9 @@ function FilterButton({
       onClick={onClick}
       className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
-        borderColor: pressed ? 'var(--lp-band-dark)' : 'var(--lp-border-light)',
-        // Theme-independent on purpose: --lp-dark inverts in dark mode, which
-        // turned the selected chip into a cream slab carrying lime text.
-        background: pressed ? 'var(--lp-band-dark)' : 'var(--lp-card)',
-        color: pressed ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
+        borderColor: pressed ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
+        background: pressed ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
+        color: pressed ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
       }}
     >
       {children}

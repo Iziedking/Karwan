@@ -119,7 +119,7 @@ export function BusinessHome({
               <CTAPill href="/financier" variant="secondary" tone="dark">
                 {bh.hero.financierDeskCta}
               </CTAPill>
-              <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/15 mono text-[11px] uppercase tracking-[0.08em] text-white/65">
+              <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
                 {shortAddress(profile.address)}
               </span>
@@ -223,8 +223,8 @@ function StatusChip({
   }
   if (status === 'submitted') {
     return (
-      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70">
-        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-white/50" />
+      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
+        <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-workspace-faint)]" />
         {bh.status.underReview}
       </span>
     );
@@ -233,7 +233,7 @@ function StatusChip({
   return (
     <Link
       href="/business/verification"
-      className="inline-flex min-h-11 items-center gap-2 px-3 py-2 rounded-full border border-white/20 mono text-[10px] font-bold uppercase tracking-[0.16em] text-white/70 hover:text-white hover:border-white/40 transition-colors"
+      className="inline-flex min-h-11 items-center gap-2 px-3 py-2 rounded-full border border-[var(--lp-workspace-border)] mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
     >
       {bh.status.finishVerification}
       <span aria-hidden>→</span>
@@ -266,8 +266,8 @@ function BookSummaryCard({
         borderBottomRightRadius: 4,
       }}
     >
-      <div className="px-6 pt-6 pb-5 border-b border-white/[0.08] flex items-center justify-between">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">{eyebrow}</span>
+      <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)] flex items-center justify-between">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">{eyebrow}</span>
         <span
           aria-hidden
           className="w-[7px] h-[7px]"
@@ -299,12 +299,12 @@ function CardStat({
 }) {
   return (
     <div className="px-4 py-5">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/45">{label}</p>
-      <p className="mt-1.5 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-white">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">{label}</p>
+      <p className="mt-1.5 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
         <AnimatedNumber value={value} decimals={decimals} />
       </p>
       {unit && (
-        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-white/45">{unit}</p>
+        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]">{unit}</p>
       )}
     </div>
   );

@@ -100,7 +100,7 @@ export function NetworkTicker() {
   return (
     <div
       className="relative left-1/2 w-bleed -translate-x-1/2"
-      style={{ background: 'var(--lp-band-dark)' }}
+      style={{ background: 'var(--lp-workspace-band)' }}
     >
       {/* The band is full-bleed, the movement is not. The track used to run
           edge to edge of the viewport while every other row on the page sits in
@@ -110,16 +110,14 @@ export function NetworkTicker() {
           tiles above it. */}
       <div className="relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)]">
         <div className="relative overflow-hidden">
-          {/* Side fades use --lp-band-dark (always #0e0e0e) so they match the
-              band in both light + dark themes. --lp-dark flips to #ededed in
-              dark mode, which painted a bright veil over the cards (tester
-              feedback). */}
+          {/* Side fades track the workspace canvas so the loop disappears at
+              the edge without adding a dark strip in light mode. */}
           <span
             aria-hidden
             className="absolute inset-y-0 start-0 z-10 w-12 pointer-events-none sm:w-16"
             style={{
               background:
-                'linear-gradient(90deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
+                'linear-gradient(90deg, var(--lp-workspace-band) 0%, transparent 100%)',
             }}
           />
           <span
@@ -127,7 +125,7 @@ export function NetworkTicker() {
             className="absolute inset-y-0 end-0 z-10 w-12 pointer-events-none sm:w-16"
             style={{
               background:
-                'linear-gradient(270deg, var(--lp-band-dark) 0%, rgba(14,14,14,0) 100%)',
+                'linear-gradient(270deg, var(--lp-workspace-band) 0%, transparent 100%)',
             }}
           />
           {/* No horizontal padding on the track: it would offset the loop
@@ -171,8 +169,8 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
       style={{
         width: 296,
         height: 144,
-        background: 'var(--surface-1)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--lp-workspace-raised)',
+        border: '1px solid var(--lp-workspace-border)',
         borderTopLeftRadius: 14,
         borderTopRightRadius: 14,
         borderBottomLeftRadius: 14,
@@ -193,7 +191,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         className="pointer-events-none absolute inset-0 opacity-30 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-60"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)',
+            'linear-gradient(var(--lp-workspace-grid) 1px, transparent 1px), linear-gradient(90deg, var(--lp-workspace-grid) 1px, transparent 1px)',
           backgroundSize: '24px 24px',
           maskImage:
             'radial-gradient(ellipse 70% 70% at 100% 0%, black, transparent 75%)',
@@ -207,18 +205,18 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-[var(--dur-fast)] group-hover:opacity-100"
         style={{
           borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.18)',
+          border: '1px solid var(--lp-workspace-border)',
         }}
       />
 
       <div className="relative px-5 pt-4 ps-6 flex items-center justify-between">
-        <BracketTag variant={variant} onDark>
+        <BracketTag variant={variant} onDark={false}>
           {eyebrow}
         </BracketTag>
         {!muted && card.at > 0 && (
           <span
             className="font-mono text-[10px] uppercase tracking-[0.12em] tabular-nums"
-            style={{ color: 'var(--ink-3)' }}
+            style={{ color: 'var(--lp-workspace-faint)' }}
           >
             {relativeTime(card.at)}
           </span>
@@ -228,24 +226,24 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
       <div className="relative px-5 pb-5 ps-6">
         <p
           className="font-mono text-[11px] tabular-nums leading-snug"
-          style={{ color: 'var(--ink-2)' }}
+          style={{ color: 'var(--lp-workspace-muted)' }}
         >
-          <span style={{ color: 'var(--ink-1)' }}>{t.subjects[card.kind]}</span>{' '}
-          <span style={{ color: 'var(--ink-3)' }}>{verb}</span>
+          <span style={{ color: 'var(--lp-workspace-ink)' }}>{t.subjects[card.kind]}</span>{' '}
+          <span style={{ color: 'var(--lp-workspace-faint)' }}>{verb}</span>
         </p>
         <div className="mt-2 flex items-baseline gap-2">
           <span
             className="font-sans font-bold tabular-nums tracking-[-0.03em] leading-none"
             style={{
               fontSize: 'clamp(32px, 3.6vw, 40px)',
-              color: 'var(--ink-1)',
+              color: 'var(--lp-workspace-ink)',
             }}
           >
             {formatUsdc(card.amountUsdc, { withSuffix: false })}
           </span>
           <span
             className="font-mono text-[10px] uppercase tracking-[0.14em]"
-            style={{ color: 'var(--ink-3)' }}
+            style={{ color: 'var(--lp-workspace-faint)' }}
           >
             {t.usdcDeal}
           </span>

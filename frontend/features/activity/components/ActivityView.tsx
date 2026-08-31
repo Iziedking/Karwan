@@ -216,7 +216,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
               aria-pressed={onlyMine === v}
               className={`inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-md border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
                 onlyMine === v
-                  ? 'bg-[var(--lp-band-dark)] text-[var(--lp-accent)] border-[var(--lp-band-dark)] font-bold'
+                  ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] border-[var(--lp-control-active-border)] font-bold'
                   : 'border-[var(--lp-border-light)] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)]'
               }`}
             >
@@ -338,7 +338,7 @@ function ActivityPanelTab({
       role="tab"
       className={`min-h-11 flex-1 px-3 py-2 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:flex-none sm:min-w-[190px] ${
         active
-          ? 'bg-[var(--lp-band-dark)] text-white'
+          ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
           : 'text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-ink)]'
       }`}
     >
