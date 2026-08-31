@@ -186,15 +186,15 @@ function LiveStrip({ block, updatedAt, t }: { block: string; updatedAt: number; 
 
   return (
     <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-2">
-      <span className="inline-flex items-center gap-2 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+      <span className="inline-flex items-center gap-2 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent-on-light)]">
         <span aria-hidden className="live-dot w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
         {t.liveTag}
       </span>
-      <span aria-hidden className="w-px h-3 bg-white/15" />
+      <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
       <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]">
         {t.blockLabel.replace('{block}', Number(block).toLocaleString('en-US'))}
       </span>
-      <span aria-hidden className="w-px h-3 bg-white/15" />
+      <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
       <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]">
         {stamp}
       </span>
@@ -446,7 +446,7 @@ function CurrentContracts({
 
       <div className="space-y-3 sm:hidden">
         {snapshot.contracts.map((c, index) => (
-          <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] p-4">
+          <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[13px] font-bold text-[var(--lp-ink)]">
@@ -505,7 +505,7 @@ function CurrentRow({
   t: Copy;
 }) {
   return (
-    <tr className="border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[rgba(10,10,11,0.03)] transition-colors">
+    <tr className="border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[var(--lp-workspace-soft)] transition-colors">
       <td className="py-3 pe-4">
         <div className="flex items-baseline gap-2">
           <span className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
@@ -614,7 +614,7 @@ function Ledger({
               {g.rows.map((c, index) => {
                 const amount = movedBy(c);
                 return (
-                  <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] p-4">
+                  <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
                     <a href={`${explorer}/address/${c.address}`} target="_blank" rel="noreferrer" className="-mx-2 inline-flex min-h-11 max-w-full items-center break-all px-2 mono text-[10px] text-[var(--lp-ink)]">
                       <span className="me-2 text-[var(--lp-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
                       {c.address.slice(0, 10)}â€¦{c.address.slice(-6)} â†—
@@ -683,7 +683,7 @@ function LedgerRow({
 }) {
   const amount = movedBy(c);
   return (
-    <tr className="border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[rgba(10,10,11,0.03)] transition-colors">
+    <tr className="border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[var(--lp-workspace-soft)] transition-colors">
       <td className="py-2.5 pe-4">
         <span className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] me-2">
           {String(index + 1).padStart(2, '0')}
@@ -722,29 +722,29 @@ function Headline({
     <div
       className="p-6 md:p-7"
       style={{
-        background: 'var(--lp-band-dark)',
-        color: 'white',
-        border: accent ? '1px solid var(--lp-accent)' : '1px solid rgba(255,255,255,0.08)',
+        background: 'var(--lp-light)',
+        color: 'var(--lp-dark)',
+        border: accent ? '1px solid var(--lp-accent)' : '1px solid var(--lp-workspace-border)',
         borderTopLeftRadius: 18,
         borderTopRightRadius: 18,
         borderBottomLeftRadius: 18,
         borderBottomRightRadius: 4,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55">{label}</p>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">{label}</p>
       <p className="mt-3 flex items-baseline gap-2">
         <span
           className="tabular-nums font-bold leading-none"
           style={{
             fontSize: 'clamp(28px, 4vw, 44px)',
             letterSpacing: '-0.02em',
-            color: accent ? 'var(--lp-accent)' : 'white',
+            color: accent ? 'var(--lp-accent-on-light)' : 'var(--lp-dark)',
           }}
         >
           {value}
         </span>
         {suffix && (
-          <span className="mono text-[11px] uppercase tracking-[0.14em] text-white/55">
+          <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {suffix}
           </span>
         )}
@@ -755,7 +755,7 @@ function Headline({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-4 rounded-xl border border-[var(--lp-border-light)]">
+    <div className="p-4 rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)]">
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
         {label}
       </p>

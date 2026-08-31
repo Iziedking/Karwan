@@ -127,13 +127,13 @@ export function BridgeHistoryModal({
       <div
         className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[18px] sm:h-full sm:max-h-none sm:w-[640px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
-          background: 'var(--lp-band-dark)',
-          border: '1px solid var(--rule-dark)',
+          background: 'var(--lp-workspace-raised)',
+          border: '1px solid var(--lp-workspace-border)',
           boxShadow: '0 24px 64px -20px rgba(0,0,0,0.6)',
         }}
       >
         <div aria-hidden style={{ height: 3, background: 'var(--lp-accent)' }} />
-        <header className="px-4 sm:px-5 py-4 border-b border-[var(--rule-dark)] flex items-start justify-between gap-3">
+        <header className="px-4 sm:px-5 py-4 border-b border-[var(--lp-workspace-border)] flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 flex-wrap min-w-0">
             <span
               id="bridge-history-title"
@@ -201,7 +201,7 @@ export function BridgeHistoryModal({
           )}
         </div>
         {totalPages > 1 && (
-          <footer className="px-4 sm:px-5 py-3 border-t border-[var(--rule-dark)] flex items-center justify-between gap-3">
+          <footer className="px-4 sm:px-5 py-3 border-t border-[var(--lp-workspace-border)] flex items-center justify-between gap-3">
             <PagerButton
               disabled={safePage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -270,7 +270,7 @@ function PagerButton({
       className="mono inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[rgba(255,255,255,0.06)]"
       style={{
         color: 'var(--ink-2)',
-        border: '1px solid var(--rule-dark)',
+        border: '1px solid var(--lp-workspace-border)',
         borderRadius: 6,
       }}
     >
@@ -297,8 +297,8 @@ function FilterChip({
       aria-pressed={active}
       className="mono inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors"
       style={{
-        background: active ? 'var(--lp-band-dark)' : 'transparent',
-        color: active ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
+        background: active ? 'var(--lp-control-active-bg)' : 'transparent',
+        color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
       }}
     >
       <span>{label}</span>

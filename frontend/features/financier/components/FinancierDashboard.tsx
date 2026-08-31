@@ -29,6 +29,7 @@ import {
 } from '@/features/factoring/usdcAuthorization';
 import { resolveFactoringAdvanceRecipient } from '@/features/factoring/advanceRecipient';
 import { buildFactoringQuote } from '@/features/factoring/factoringQuote';
+import { TIER_HUE } from '@/features/reputation/tierColors';
 import { POLinesPanel } from './POLinesPanel';
 import { FactoringPositionsPanel } from './FactoringPositionsPanel';
 
@@ -137,13 +138,14 @@ const vaultBalanceAbi = [
 // Hoisted constants per Vercel `rendering-hoist-jsx`.
 type Tab = 'factor' | 'po';
 
-// Seller reputation tier colours, mirroring the rest of the app's tier hues.
+// The API returns lower-case seller tiers here. Point each one at the shared
+// reputation palette so a rank never changes colour between desks.
 const SELLER_TIER_HUE: Record<string, string> = {
-  new: '#9a9a9a',
-  cold: '#e0a23c',
-  established: 'var(--lp-accent)',
-  strong: '#5fd08a',
-  elite: '#39e08a',
+  new: TIER_HUE.NEW,
+  cold: TIER_HUE.COLD,
+  established: TIER_HUE.ESTABLISHED,
+  strong: TIER_HUE.STRONG,
+  elite: TIER_HUE.ELITE,
 };
 
 const TABS: ReadonlyArray<{ id: Tab; available: boolean }> = [

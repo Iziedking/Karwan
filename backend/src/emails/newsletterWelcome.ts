@@ -9,15 +9,24 @@ import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID } from './brand.js';
 import { logger } from '../logger.js';
 
 const INNER = `
-  <p class="k-sub" style="margin:0 0 16px 0;font-size:15px;line-height:24px;">
-    Thanks for subscribing. You're on the Karwan list.
-  </p>
-  <p class="k-sub" style="margin:0 0 16px 0;font-size:15px;line-height:24px;">
-    We'll send product updates and new trade corridors as we ship them.
-  </p>
-  <p class="k-muted" style="margin:0;font-size:13px;line-height:21px;">
-    Karwan settles cross-border SME trade in USDC, milestone-escrowed on Arc.
-  </p>
+  <tr>
+    <td class="k-body" style="padding:28px 32px 10px 32px;text-align:left;">
+      <h1 class="k-ink" style="margin:0 0 14px 0;font-size:26px;line-height:1.18;letter-spacing:-0.02em;color:#0a0a0b;">
+        You're on the list<span class="k-lime" style="color:#afc95b;">.</span>
+      </h1>
+      <p class="k-sub" style="margin:0 0 12px 0;font-size:15px;line-height:1.65;color:#343436;">
+        We'll send useful product updates and new trade corridors when they're ready.
+      </p>
+      <p class="k-muted" style="margin:0;font-size:13px;line-height:1.6;color:#747477;">
+        No noise. You can unsubscribe from any update.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td class="k-body" style="padding:14px 32px 8px 32px;text-align:left;">
+      <a href="https://karwan.site" style="display:inline-block;padding:13px 18px;background:#afc95b;color:#0a0a0b;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;border-radius:8px;">Visit Karwan&nbsp;&rarr;</a>
+    </td>
+  </tr>
 `;
 
 export async function sendNewsletterWelcome(email: string): Promise<void> {
@@ -30,9 +39,10 @@ export async function sendNewsletterWelcome(email: string): Promise<void> {
     footerNote: 'You subscribed at karwan.site.',
   });
   const text =
-    "Thanks for subscribing. You're on the Karwan list.\n\n" +
-    "We'll send product updates and new trade corridors as we ship them.\n\n" +
-    'Karwan settles cross-border SME trade in USDC, milestone-escrowed on Arc.\n\n' +
+    "You're on the Karwan list.\n\n" +
+    "We'll send useful product updates and new trade corridors when they're ready.\n\n" +
+    'No noise. You can unsubscribe from any update.\n\n' +
+    'Visit Karwan: https://karwan.site\n\n' +
     'You subscribed at karwan.site.';
   try {
     const { error } = await client.emails.send({

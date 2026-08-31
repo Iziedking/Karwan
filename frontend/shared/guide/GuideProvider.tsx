@@ -556,7 +556,7 @@ function GuideOverlay() {
           <h3 className="mt-2 font-sans text-[18px] font-extrabold tracking-[-0.01em] leading-tight text-[var(--lp-dark)]">
             {step.title}
           </h3>
-          <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="body-copy mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
             {step.body}
           </p>
 

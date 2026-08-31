@@ -108,11 +108,11 @@ export function PartnersBrowse() {
         </p>
         <DiscoveryNav active="partners" tone="dark" />
         {!SME_TRADES_ENABLED ? (
-          <div className="mt-6 max-w-[62ch] border-s-[3px] border-[var(--lp-accent)] bg-white/[0.04] px-4 py-3">
+          <div className="mt-6 max-w-[62ch] border-s-[3px] border-[var(--lp-accent)] bg-[var(--lp-workspace-soft)] px-4 py-3">
             <p className="mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-accent)]">
               {copy.pilotOnly}
             </p>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-white/65">{copy.pilotBody}</p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--lp-workspace-muted)]">{copy.pilotBody}</p>
           </div>
         ) : null}
       </Band>
@@ -310,11 +310,9 @@ function FilterButton({
       onClick={onClick}
       className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
-        borderColor: pressed ? 'var(--lp-band-dark)' : 'var(--lp-border-light)',
-        // Theme-independent on purpose: --lp-dark inverts in dark mode, which
-        // turned the selected chip into a cream slab carrying lime text.
-        background: pressed ? 'var(--lp-band-dark)' : 'var(--lp-card)',
-        color: pressed ? 'var(--lp-accent)' : 'var(--lp-text-sub)',
+        borderColor: pressed ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
+        background: pressed ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
+        color: pressed ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
       }}
     >
       {children}

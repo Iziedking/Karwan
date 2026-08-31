@@ -73,8 +73,8 @@ export function AccountKindBadge({
       role="img"
       className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap px-2 py-1 border"
       style={{
-        borderColor: tone === 'dark' ? 'rgba(255,255,255,0.18)' : 'var(--color-line)',
-        color: tone === 'dark' ? 'rgba(255,255,255,0.72)' : 'var(--lp-text-muted)',
+        borderColor: tone === 'dark' ? 'var(--lp-workspace-border)' : 'var(--color-line)',
+        color: tone === 'dark' ? 'var(--lp-workspace-muted)' : 'var(--lp-text-muted)',
         borderTopLeftRadius: 7,
         borderTopRightRadius: 7,
         borderBottomLeftRadius: 7,

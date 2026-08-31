@@ -10,8 +10,11 @@ export const TIER_HUE: Record<CompositeTier, string> = {
   NEW: '#9a9a9a',
   COLD: '#e0a23c',
   ESTABLISHED: 'var(--lp-accent)',
-  STRONG: 'var(--lp-accent)',
-  ELITE: 'var(--lp-accent)',
+  // The upper ranks stay in Karwan's botanical family, but deepen as trust
+  // increases so the ladder reads as progression rather than three copies of
+  // the same state. These tones remain clear on both paper and dark surfaces.
+  STRONG: '#7fa96a',
+  ELITE: '#4f8f7a',
 };
 
 export const TIER_LABEL: Record<CompositeTier, string> = {

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,10 +19,7 @@ import { getShellSurface } from '@/shared/utils/routes';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 
-// Landing routes are forced dark via these var overrides, so every embedded
-// child (bell, toggles, ConnectWalletButton) picks up dark mode without each
-// one knowing about route context.
-const DARK_NAV_VARS = {
+const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
   '--color-surface-2': 'rgba(255,255,255,0.07)',
   '--color-line': 'rgba(255,255,255,0.10)',
@@ -30,7 +27,8 @@ const DARK_NAV_VARS = {
   '--color-ink': '#f4f0ff',
   '--color-ink-dim': '#9a9a9a',
   '--color-ink-faint': '#6b6b6b',
-} as React.CSSProperties;
+  '--lp-workspace-band': '#0e0e0e',
+} as CSSProperties;
 
 export function TopNav() {
   const a11y = useTranslations().a11y;
@@ -92,9 +90,9 @@ export function TopNav() {
   return (
     <header
       ref={barRef}
-      style={publicSurface ? DARK_NAV_VARS : undefined}
+      style={pathname === '/' ? LANDING_NAV_VARS : undefined}
       data-chrome="nav"
-      className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-surface)]"
+      className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--lp-workspace-band)]"
     >
       <div className="mx-auto flex h-[60px] max-w-[1440px] items-center gap-2.5 px-3 sm:h-[68px] sm:gap-5 sm:px-6 lg:gap-8">
         {/* LEFT. The mark alone, and it always goes to the landing page.
@@ -411,10 +409,17 @@ function QuickControls({
         </svg>
       </button>
       {open && (
-        <div
-          id={menuId}
-          className="absolute end-0 top-full z-50 pt-2 max-md:fixed max-md:inset-x-4 max-md:top-[76px] max-md:w-auto"
-        >
+        <>
+          <div
+            aria-hidden
+            data-preferences-dismiss-layer
+            className="fixed inset-0 z-40 bg-black/10"
+            onPointerDown={() => setOpen(false)}
+          />
+          <div
+            id={menuId}
+            className="absolute end-0 top-full z-50 pt-2 max-md:fixed max-md:inset-x-4 max-md:top-[76px] max-md:w-auto"
+          >
           <div
             role="menu"
             onClick={(event) => {
@@ -466,8 +471,9 @@ function QuickControls({
                 </Link>
               </>
             )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -137,7 +137,7 @@ function CashoutPageInner() {
               ? cp.hero.earnedTemplate.replace('{amount}', formatUsdc(info.dealAmountUsdc))
               : cp.hero.loading}
           </p>
-          <div className="mt-7 flex flex-wrap gap-2 mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+          <div className="mt-7 flex flex-wrap gap-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
             <Link
               href={`/deals/${jobId}`}
               className="inline-flex min-h-11 items-center gap-1.5 hover:text-[var(--lp-accent)] transition-colors"
@@ -590,10 +590,10 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
                 }}
                 className="inline-flex min-h-11 items-center justify-center mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
-                  background: active ? 'var(--lp-band-dark)' : 'var(--lp-card)',
-                  color: active ? '#ffffff' : 'var(--lp-dark)',
+                  background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
+                  color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)',
                   border: active
-                    ? '1px solid var(--lp-band-dark)'
+                    ? '1px solid var(--lp-control-active-border)'
                     : '1px solid var(--lp-border-light)',
                   borderTopLeftRadius: 10,
                   borderTopRightRadius: 10,

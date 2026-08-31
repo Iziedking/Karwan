@@ -63,6 +63,16 @@ const generalSans = localFont({
   adjustFontFallback: 'Arial',
 });
 
+// Poppins Regular is reserved for explanatory product copy. Display headings,
+// navigation, financial values, controls, and verifiable labels keep Karwan's
+// existing General Sans and Geist Mono hierarchy.
+const poppins = localFont({
+  src: [{ path: './fonts/Poppins-Regular.ttf', weight: '400', style: 'normal' }],
+  variable: '--font-poppins',
+  display: 'swap',
+  adjustFontFallback: 'Arial',
+});
+
 const SITE_URL = 'https://karwan.site';
 const TITLE = 'Karwan · cross-border SME settlement';
 const DESCRIPTION =
@@ -125,7 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >
       <head>

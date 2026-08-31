@@ -102,10 +102,10 @@ export function ExtensionRequestModal({
                   onClick={() => setSeconds(p.seconds)}
                   className="mono text-[11px] uppercase tracking-[0.14em] px-3 py-2 transition-colors"
                   style={{
-                    background: active ? 'var(--lp-band-dark)' : 'var(--lp-light)',
-                    color: active ? '#ffffff' : 'var(--lp-dark)',
+                    background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
+                    color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)',
                     border: active
-                      ? '1px solid var(--lp-band-dark)'
+                      ? '1px solid var(--lp-control-active-border)'
                       : '1px solid var(--lp-border-light)',
                     borderTopLeftRadius: 10,
                     borderTopRightRadius: 10,

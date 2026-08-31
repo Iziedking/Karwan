@@ -104,12 +104,13 @@ function CustomerChromeFrame({
   const mainClass = workspace
     ? 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-8 md:py-10'
     : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
+  const platformCopy = workspace || focused;
 
   return (
     <div className="flex min-h-screen flex-col">
       {topNav}
       {workspace ? profileNudge : null}
-      <main className={mainClass}>
+      <main className={`${mainClass}${platformCopy ? ' platform-copy' : ''}`}>
         <RouteStage pathname={pathname}>{children}</RouteStage>
       </main>
       {shell === 'public' ? footer : null}

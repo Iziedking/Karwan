@@ -60,6 +60,28 @@ backend/data/
 # internal, not for public repo
 PLAN.md
 AUDIT.md
+# Repository-wide internal planning conventions. These keep agent-generated or
+# team-only plans, audits, research notes, drafts, and handoffs out of Git even
+# when they are created outside the usual docs folders.
+**/PLAN.md
+**/PLAN-*.md
+**/*_PLAN.md
+**/*-plan.md
+**/*-planning.md
+**/AUDIT.md
+**/AUDIT-*.md
+**/*-audit.md
+**/RESEARCH.md
+**/*-research.md
+**/SESSION_STATE*.md
+**/SESSION-HANDOFF-*.md
+**/HANDOFF*.md
+**/*-handoff.md
+**/.planning/
+**/plans/
+**/drafts/
+**/handoffs/
+**/audits/
 # Catch internal planning artifacts even when a tool creates them under a
 # different planning filename or folder. Public product and operator docs stay
 # tracked unless they match one of these explicit conventions.

@@ -109,15 +109,15 @@ export function SignInGate({
                   }
                   transition={{ duration: reduce ? 0 : 0.35, ease: [0.16, 1, 0.3, 1] }}
                   className="border-t pt-3.5"
-                  style={{ borderTopColor: activePillar === index ? 'var(--lp-accent)' : 'rgba(255,255,255,0.15)' }}
+                  style={{ borderTopColor: activePillar === index ? 'var(--lp-accent)' : 'var(--lp-workspace-border)' }}
                 >
                   <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
                     {p.index}
                   </span>
-                  <p className="mt-2 font-sans text-[15px] font-bold uppercase tracking-[-0.01em] text-white">
+                  <p className="mt-2 font-sans text-[15px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
                     {p.title}
                   </p>
-                  <p className="mt-1.5 text-[12.5px] leading-snug text-white/60">{p.body}</p>
+                  <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-workspace-muted)]">{p.body}</p>
                 </motion.div>
               ))}
             </div>

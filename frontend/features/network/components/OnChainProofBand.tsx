@@ -191,7 +191,7 @@ export function OnChainProofBand() {
             {t.headlinePrefix}<Accent>{t.headlineAccent}</Accent>.
           </HeroHeadline>
           {stats && (
-            <p className="mt-7 mono text-[10px] uppercase tracking-[0.14em] text-white/45 tabular-nums">
+            <p className="mt-7 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)] tabular-nums">
               {t.blockPrefix} {fmtBlock(stats.fromBlock)} → {fmtBlock(stats.toBlock)}
             </p>
           )}
@@ -259,15 +259,15 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         className="relative overflow-hidden flex items-center justify-center"
         style={{
           height: 220,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--lp-workspace-soft)',
+          border: '1px solid var(--lp-workspace-border)',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           borderBottomLeftRadius: 18,
           borderBottomRightRadius: 4,
         }}
       >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45 animate-pulse">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)] animate-pulse">
           {t.loading}
         </p>
       </div>
@@ -280,22 +280,22 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         className="relative overflow-hidden flex flex-col items-center justify-center gap-3"
         style={{
           height: 220,
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--lp-workspace-soft)',
+          border: '1px solid var(--lp-workspace-border)',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           borderBottomLeftRadius: 18,
           borderBottomRightRadius: 4,
         }}
       >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
           {errored ? t.error : t.empty}
         </p>
         {errored && onRetry && (
           <button
             type="button"
             onClick={onRetry}
-            className="mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-white/20 text-white/85 hover:text-white hover:border-white/40 transition-colors"
+            className="mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)] transition-colors"
             style={{ borderRadius: 999 }}
           >
             {t.retry}
@@ -386,8 +386,8 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         dir="ltr"
         className="relative overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'var(--lp-workspace-soft)',
+          border: '1px solid var(--lp-workspace-border)',
           borderTopLeftRadius: 18,
           borderTopRightRadius: 18,
           borderBottomLeftRadius: 18,
@@ -395,10 +395,10 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         }}
       >
         <div className="flex items-center justify-between px-5 pt-4">
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/45">
+          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
             [:{t.activityEyebrow}:]
           </p>
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-white/55 tabular-nums">
+          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] tabular-nums">
             {t.maxPerDay.replace('{max}', String(maxY))}
           </p>
         </div>
@@ -414,8 +414,8 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
         >
           <defs>
             <linearGradient id="gridFade" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
+              <stop offset="0%" stopColor="var(--lp-workspace-border)" />
+              <stop offset="100%" stopColor="var(--lp-workspace-soft)" />
             </linearGradient>
           </defs>
 
@@ -460,7 +460,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
                 x={slotMid(i)}
                 y={VIEW_H - 8}
                 textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}
-                fill="rgba(255,255,255,0.45)"
+                fill="var(--lp-workspace-faint)"
                 fontSize={10}
                 fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
                 letterSpacing="0.12em"
@@ -478,7 +478,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
                 y={PAD.top}
                 width={slotW}
                 height={chartH}
-                fill="rgba(255,255,255,0.06)"
+                fill="var(--lp-workspace-grid)"
               />
             </g>
           )}
@@ -530,7 +530,7 @@ function HoverTooltip({ point, xPct }: { point: NetworkOnchainDayPoint; xPct: nu
         zIndex: 2,
       }}
     >
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-white/55">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
         {formatTooltipDate(point.ts)}
       </p>
       <div className="mt-2 space-y-1.5">
@@ -550,10 +550,10 @@ function TipRow({ color, label, value }: { color: string; label: string; value: 
         className="inline-block w-2 h-2 shrink-0"
         style={{ background: color, borderRadius: 1 }}
       />
-      <span className="mono text-[10px] uppercase tracking-[0.1em] text-white/55 flex-1">
+      <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)] flex-1">
         {label}
       </span>
-      <span className="font-sans text-[13px] font-extrabold tabular-nums text-white">
+      <span className="font-sans text-[13px] font-extrabold tabular-nums text-[var(--lp-workspace-ink)]">
         {value}
       </span>
     </div>
@@ -574,7 +574,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
         className="inline-block w-2.5 h-2.5"
         style={{ background: color, borderRadius: 1 }}
       />
-      <span className="mono text-[10px] uppercase tracking-[0.16em] text-white/55">
+      <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
         {label}
       </span>
     </span>
@@ -586,8 +586,8 @@ function ProofMetricGrid({ children, compact = false }: { children: ReactNode; c
     <div
       className={
         compact
-          ? 'grid grid-cols-2 gap-px bg-white/10'
-          : 'grid grid-cols-2 gap-px bg-white/10 [&>*:last-child]:col-span-2 sm:grid-cols-3 sm:[&>*:last-child]:col-span-1'
+          ? 'grid grid-cols-2 gap-px bg-[var(--lp-workspace-border)]'
+          : 'grid grid-cols-2 gap-px bg-[var(--lp-workspace-border)] [&>*:last-child]:col-span-2 sm:grid-cols-3 sm:[&>*:last-child]:col-span-1'
       }
     >
       {children}
@@ -611,21 +611,21 @@ function ProofMetric({
   loading?: boolean;
 }) {
   return (
-    <div className="min-w-0 bg-[var(--lp-band-dark)] p-3 sm:p-4">
-      <p className="mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-white/50 sm:text-[9px]">
+    <div className="min-w-0 bg-[var(--lp-workspace-raised)] p-3 sm:p-4">
+      <p className="mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-[var(--lp-workspace-muted)] sm:text-[9px]">
         {label}
       </p>
       {loading ? (
-        <div className="mt-3 h-8 w-16 bg-white/[0.08] motion-safe:animate-pulse" aria-hidden />
+        <div className="mt-3 h-8 w-16 bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse" aria-hidden />
       ) : (
-        <p className="mt-2 flex min-w-0 flex-wrap items-baseline gap-1 font-sans text-[clamp(1.45rem,4vw,2.5rem)] font-extrabold leading-none tracking-[-0.035em] text-white tabular-nums">
+        <p className="mt-2 flex min-w-0 flex-wrap items-baseline gap-1 font-sans text-[clamp(1.45rem,4vw,2.5rem)] font-extrabold leading-none tracking-[-0.035em] text-[var(--lp-workspace-ink)] tabular-nums">
           <span className="min-w-0 max-w-full">
             <AnimatedNumber value={value} decimals={decimals} />
           </span>
-          {unit && <span className="mono text-[8px] uppercase tracking-[0.12em] text-white/45">{unit}</span>}
+          {unit && <span className="mono text-[8px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{unit}</span>}
         </p>
       )}
-      {hint && <p className="mt-2 hidden text-[10px] leading-relaxed text-white/40 sm:block">{hint}</p>}
+      {hint && <p className="mt-2 hidden text-[10px] leading-relaxed text-[var(--lp-workspace-faint)] sm:block">{hint}</p>}
     </div>
   );
 }

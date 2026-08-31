@@ -221,8 +221,8 @@ export function ProfileDeck({
               <div
                 className="h-full min-h-[220px]"
                 style={{
-                  background: p.tone === 'dark' ? 'var(--lp-band-dark)' : 'var(--lp-card)',
-                  border: `1px solid ${p.tone === 'dark' ? 'rgba(255,255,255,0.08)' : 'var(--lp-border-light)'}`,
+                  background: p.tone === 'dark' ? 'var(--lp-workspace-raised)' : 'var(--lp-card)',
+                  border: `1px solid ${p.tone === 'dark' ? 'var(--lp-workspace-border)' : 'var(--lp-border-light)'}`,
                   borderTopLeftRadius: 22,
                   borderTopRightRadius: 22,
                   borderBottomLeftRadius: 22,
@@ -381,10 +381,10 @@ function DeckCard({
   const dark = tone === 'dark';
   return (
     <div
-      className={cn('overflow-hidden', dark && 'text-white')}
+      className={cn('overflow-hidden', dark && 'text-[var(--lp-workspace-ink)]')}
       style={{
-        background: dark ? 'var(--lp-band-dark)' : 'var(--lp-card)',
-        border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : 'var(--lp-border-light)'}`,
+        background: dark ? 'var(--lp-workspace-raised)' : 'var(--lp-card)',
+        border: `1px solid ${dark ? 'var(--lp-workspace-border)' : 'var(--lp-border-light)'}`,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
         borderBottomLeftRadius: 22,

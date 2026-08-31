@@ -64,7 +64,7 @@ export function RotatingDataPanel({
       aria-label={label}
       aria-roledescription="carousel"
       className={cn(
-        'relative w-full min-w-0 overflow-hidden border border-white/10 bg-white/[0.035]',
+        'relative w-full min-w-0 overflow-hidden border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)]',
         className,
       )}
       style={{ borderRadius: 18 }}
@@ -75,12 +75,12 @@ export function RotatingDataPanel({
         if (!event.currentTarget.contains(event.relatedTarget)) setInteractionPaused(false);
       }}
     >
-      <div className="flex min-h-16 items-center justify-between gap-4 border-b border-white/[0.08] px-4 py-3 sm:px-5">
+      <div className="flex min-h-16 items-center justify-between gap-4 border-b border-[var(--lp-workspace-border)] px-4 py-3 sm:px-5">
         <div className="min-w-0">
-          <p className="mono truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65">
+          <p className="mono truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
             [:{active.label}:]
           </p>
-          <p className="mt-1 mono text-[9px] uppercase tracking-[0.14em] text-white/35 tabular-nums">
+          <p className="mt-1 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)] tabular-nums">
             {String(activeIndex + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}
           </p>
         </div>
@@ -93,7 +93,7 @@ export function RotatingDataPanel({
                 aria-label={userPaused ? common.resume : common.pause}
                 aria-pressed={userPaused}
                 onClick={() => setUserPaused((current) => !current)}
-                className="inline-flex size-11 items-center justify-center border border-white/10 text-white/65 transition-colors duration-200 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-band-dark)]"
+                className="inline-flex size-11 items-center justify-center border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)] transition-colors duration-200 hover:border-[var(--lp-workspace-ink)] hover:text-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)]"
                 style={{ borderRadius: 10 }}
               >
                 {userPaused ? (
@@ -110,7 +110,7 @@ export function RotatingDataPanel({
               type="button"
               aria-label={common.back}
               onClick={() => select(activeIndex - 1)}
-              className="inline-flex size-11 items-center justify-center border border-white/10 text-white/65 transition-colors duration-200 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-band-dark)]"
+              className="inline-flex size-11 items-center justify-center border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)] transition-colors duration-200 hover:border-[var(--lp-workspace-ink)] hover:text-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)]"
               style={{ borderRadius: 10 }}
             >
               <span aria-hidden className="mono text-[18px] leading-none">‹</span>
@@ -119,7 +119,7 @@ export function RotatingDataPanel({
               type="button"
               aria-label={common.next}
               onClick={() => select(activeIndex + 1)}
-              className="inline-flex size-11 items-center justify-center border border-white/10 text-white/65 transition-colors duration-200 hover:border-white/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-band-dark)]"
+              className="inline-flex size-11 items-center justify-center border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-muted)] transition-colors duration-200 hover:border-[var(--lp-workspace-ink)] hover:text-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)]"
               style={{ borderRadius: 10 }}
             >
               <span aria-hidden className="mono text-[18px] leading-none">›</span>
@@ -146,13 +146,13 @@ export function RotatingDataPanel({
       </div>
 
       {count > 1 && (
-        <div className="grid h-1 grid-flow-col gap-px bg-white/[0.04]" aria-hidden>
+        <div className="grid h-1 grid-flow-col gap-px bg-[var(--lp-workspace-soft)]" aria-hidden>
           {slides.map((slide, index) => (
             <span
               key={slide.id}
               className={cn(
                 'transition-colors duration-300',
-                index === activeIndex ? 'bg-[var(--lp-accent)]' : 'bg-white/10',
+                index === activeIndex ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-workspace-border)]',
               )}
             />
           ))}
@@ -176,8 +176,8 @@ export function DataMetric({
   if (loading) {
     return (
       <div className="space-y-4" aria-hidden>
-        <div className="h-14 w-40 bg-white/[0.08] motion-safe:animate-pulse" />
-        <div className="h-3 w-56 max-w-full bg-white/[0.06] motion-safe:animate-pulse" />
+        <div className="h-14 w-40 bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse" />
+        <div className="h-3 w-56 max-w-full bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse" />
       </div>
     );
   }
@@ -185,17 +185,17 @@ export function DataMetric({
   return (
     <div>
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="min-w-0 max-w-full font-sans text-[clamp(2.75rem,8vw,5.5rem)] font-extrabold leading-none tracking-[-0.045em] text-white tabular-nums">
+        <span className="min-w-0 max-w-full font-sans text-[clamp(2.75rem,8vw,5.5rem)] font-extrabold leading-none tracking-[-0.045em] text-[var(--lp-workspace-ink)] tabular-nums">
           {value}
         </span>
         {unit && (
-          <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
+          <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
             {unit}
           </span>
         )}
       </div>
       {hint && (
-        <p className="mt-4 max-w-[42ch] text-[13px] leading-relaxed text-white/50">
+        <p className="mt-4 max-w-[42ch] text-[13px] leading-relaxed text-[var(--lp-workspace-muted)]">
           {hint}
         </p>
       )}

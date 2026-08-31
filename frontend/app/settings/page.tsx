@@ -34,8 +34,8 @@ export default function SettingsPage() {
     return (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />} compact>
-          <div className="h-14 w-3/4 rounded-md bg-white/[0.06] animate-pulse motion-reduce:animate-none" />
-          <div className="mt-4 h-4 w-1/2 rounded-md bg-white/[0.04] animate-pulse motion-reduce:animate-none" />
+          <div className="h-14 w-3/4 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
+          <div className="mt-4 h-4 w-1/2 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
         </Band>
       </FullBleed>
     );
@@ -50,7 +50,7 @@ export default function SettingsPage() {
           {t.settings.title}
           <Punc>.</Punc>
         </HeroHeadline>
-        <p className="mt-5 text-[15px] leading-relaxed text-white/65 max-w-[52ch]">
+        <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-workspace-muted)] max-w-[52ch]">
           {t.settings.description}
         </p>
       </Band>

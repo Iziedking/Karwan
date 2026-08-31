@@ -205,7 +205,7 @@ export default function InvitePage() {
         </HeroHeadline>
         <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[58ch]">
           {heroIntroParts[0].replace('{inviter}', deal.inviterMasked)}
-          <span className="text-white font-semibold">{invite.email}</span>
+          <span className="text-[var(--lp-workspace-ink)] font-semibold">{invite.email}</span>
           {heroIntroParts[1] ?? ''}
         </p>
       </Band>

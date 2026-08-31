@@ -588,8 +588,8 @@ export function GatewayBalanceCard({
             aria-busy={busy}
             className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
             style={{
-              background: 'var(--lp-band-dark)',
-              color: 'white',
+              background: 'var(--lp-control-active-bg)',
+              color: 'var(--lp-control-active-ink)',
               border: 'none',
               borderRadius: 12,
             }}
@@ -746,8 +746,8 @@ export function GatewayBalanceCard({
               aria-busy={busy}
               className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
               style={{
-                background: 'var(--lp-band-dark)',
-                color: 'white',
+                background: 'var(--lp-control-active-bg)',
+                color: 'var(--lp-control-active-ink)',
                 border: 'none',
                 borderRadius: 12,
               }}

@@ -184,7 +184,7 @@ export function FeedbackForm() {
             <Punc>.</Punc>
           </HeroHeadline>
         </div>
-        <p className="fade-up fade-up-3 mt-4 max-w-[60ch] text-[15px] leading-relaxed text-white/65">
+        <p className="fade-up fade-up-3 mt-4 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">
           {fb.hero.body}
         </p>
       </Band>
@@ -209,8 +209,8 @@ export function FeedbackForm() {
                           onClick={() => setCategory(key)}
                           className="text-start px-3 py-2.5 transition-colors"
                           style={{
-                            background: on ? 'var(--lp-band-dark)' : 'var(--lp-light)',
-                            border: `1px solid ${on ? 'var(--lp-band-dark)' : 'var(--lp-border-light)'}`,
+                            background: on ? 'var(--lp-control-active-bg)' : 'var(--lp-light)',
+                            border: `1px solid ${on ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)'}`,
                             borderTopLeftRadius: 10,
                             borderTopRightRadius: 10,
                             borderBottomLeftRadius: 10,
@@ -465,8 +465,8 @@ function SuccessCard({
             aria-hidden
             className="inline-flex items-center justify-center w-12 h-12 mb-5"
             style={{
-              background: 'var(--lp-band-dark)',
-              color: 'var(--lp-accent)',
+              background: 'var(--lp-control-active-bg)',
+              color: 'var(--lp-control-active-ink)',
               borderTopLeftRadius: 14,
               borderTopRightRadius: 14,
               borderBottomLeftRadius: 14,

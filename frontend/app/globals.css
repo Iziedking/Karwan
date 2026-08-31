@@ -59,9 +59,9 @@
   --color-critical-soft: rgba(122, 31, 26, 0.08);
 
   --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  /* Product copy stays in the same clear sans family as the display voice.
-     Hierarchy comes from size and weight, not a different reading face. */
-  --font-body: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  /* Reading copy uses Poppins Regular. Display, controls, values and system
+     metadata remain on the established General Sans and Geist Mono stack. */
+  --font-body: var(--font-poppins), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   /* Legacy serif call sites resolve to the product sans so every user-facing
      write-up keeps the same Robinhood-style voice. */
@@ -96,13 +96,9 @@ html[data-theme="dark"] {
   --shadow-pop: 0 12px 40px -16px rgba(0, 0, 0, 0.72);
 }
 
-/* Landing-grade tokens used by the in-app routes. Two flavors:
-   - `--lp-band-dark` and `--lp-accent*` are theme-INDEPENDENT. The dark hero
-     band, lime CTA, and ink-colored chips stay the same in both modes — that
-     is the visual signature of the brand.
-   - everything else flips under html[data-theme="dark"] so cream surfaces
-     become near-black, white cards become elevated dark surfaces, and text
-     contrast inverts. */
+/* Workspace tokens flip with the selected app theme. The public landing page
+   owns its fixed-dark treatment locally, so changing the workspace never
+   recolors the first impression. */
 :root {
   --lp-dark: var(--ink-inv-0);     /* primary ink in light mode */
   --lp-light: var(--paper-0);      /* page/section background in light mode */
@@ -145,6 +141,20 @@ html[data-theme="dark"] {
   --lp-positive: var(--color-positive);
   --lp-card: var(--paper-1);       /* card surface over --lp-light */
   --lp-band-dark: var(--surface-0);/* fixed dark bands and dark CTAs */
+  /* Light mode is warm canvas with white raised content. These roles were once
+     inverted, which made full-width rows pure white and cards disappear into
+     a darker fill. */
+  --lp-workspace-band: var(--karwan-canvas);
+  --lp-workspace-raised: var(--karwan-card);
+  --lp-workspace-ink: var(--ink-inv-0);
+  --lp-workspace-muted: #62625D;
+  --lp-workspace-faint: #7A7A74;
+  --lp-workspace-border: rgba(10, 10, 11, 0.12);
+  --lp-workspace-soft: rgba(10, 10, 11, 0.045);
+  --lp-workspace-grid: rgba(10, 10, 11, 0.045);
+  --lp-control-active-bg: var(--karwan-green);
+  --lp-control-active-ink: var(--ink-inv-0);
+  --lp-control-active-border: var(--karwan-green);
   --lp-accent: var(--accent);      /* compatibility alias */
   --lp-accent-hover: var(--accent-deep);
   /* Text roles need to follow the surface they sit on, not the page theme.
@@ -182,12 +192,18 @@ html[data-theme="dark"] {
    reserved for settlement state (never decorative). Hairlines via --rule-*.
    Co-exists with the legacy --lp-* tokens during the migration to the new system. */
 :root {
+  /* Karwan brand constants. The canvas is a brand color, not a tinted white.
+     Raised content uses a softened paper white so large cards do not glare. */
+  --karwan-green: #AFC95B;
+  --karwan-canvas: #F4F4F1;
+  --karwan-card: #FCFCFA;
+
   /* Surface */
   --surface-0: #0A0A0B;   /* app shell, hero, dark sections */
   --surface-1: #111114;   /* raised cards on dark */
   --surface-2: #1A1A1F;   /* deeper inset, inputs on dark */
-  --paper-0:   #F4F4F1;   /* light section bg */
-  --paper-1:   #FFFFFF;   /* raised cards on light */
+  --paper-0:   var(--karwan-canvas); /* light workspace canvas */
+  --paper-1:   var(--karwan-card);   /* raised cards on light */
   --paper-2:   #ECECE7;   /* inset on light */
 
   /* Ink */
@@ -201,7 +217,7 @@ html[data-theme="dark"] {
   /* Accent — USE SPARINGLY (one focal indicator per screen max). Toned down
      from the original electric `#D8FF3D` because users flagged eye fatigue;
      same hue, lower saturation + brightness. */
-  --accent:      #AFC95B;
+  --accent:      var(--karwan-green);
   /* Keep one unmistakable brand green across resting and interactive states. */
   --accent-deep: #AFC95B;
   --accent-ink:  #0A0A0B;
@@ -276,6 +292,19 @@ html[data-theme="dark"] {
   --lp-outline: rgba(255, 255, 255, 0.28);
   --lp-outline-strong: rgba(255, 255, 255, 0.38);
   --lp-outline-hover: rgba(255, 255, 255, 0.55);
+  /* Preserve the approved dark workspace byte-for-byte while light mode uses
+     the paper-led composition above. */
+  --lp-workspace-band: var(--surface-0);
+  --lp-workspace-raised: rgba(255, 255, 255, 0.04);
+  --lp-workspace-ink: #FFFFFF;
+  --lp-workspace-muted: rgba(255, 255, 255, 0.62);
+  --lp-workspace-faint: rgba(255, 255, 255, 0.45);
+  --lp-workspace-border: rgba(255, 255, 255, 0.10);
+  --lp-workspace-soft: rgba(255, 255, 255, 0.06);
+  --lp-workspace-grid: rgba(255, 255, 255, 0.06);
+  --lp-control-active-bg: var(--lp-accent);
+  --lp-control-active-ink: var(--ink-inv-0);
+  --lp-control-active-border: var(--lp-accent);
   /* --lp-band-dark, --lp-accent, --lp-accent-hover stay fixed (brand). */
 }
 
@@ -292,6 +321,14 @@ html[data-theme="dark"] {
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /* The product shell owns reading copy. Public and landing pages stay on the
+     established brand typography, while explicit font utilities still win for
+     headings, amounts, controls, state labels and identifiers. */
+  :where(.platform-copy) p {
+    font-family: var(--font-body);
+    letter-spacing: 0;
   }
 
   html {

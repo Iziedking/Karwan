@@ -129,7 +129,7 @@ export function PostListingForm() {
   }
 
   if (!isConnected) {
-    return <p className="text-[13px] text-white/55">{pl.notConnected}</p>;
+    return <p className="text-[13px] text-[var(--lp-workspace-muted)]">{pl.notConnected}</p>;
   }
 
   const disabled = submitting || !title.trim() || !description.trim() || !price;
@@ -226,7 +226,7 @@ export function PostListingForm() {
                 setTitle(e.target.value);
                 setIntentWarned(false);
               }}
-              className="form-input-dark"
+              className="form-input"
             />
           </FormLabel>
           <FormLabel
@@ -243,7 +243,7 @@ export function PostListingForm() {
                 setDescription(e.target.value);
                 setIntentWarned(false);
               }}
-              className="form-input-dark form-textarea-dark"
+              className="form-input form-textarea"
             />
           </FormLabel>
         </FieldSection>
@@ -265,7 +265,7 @@ export function PostListingForm() {
                 disabled={submitting}
                 onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="0"
-                className="form-input-dark form-input-num-dark"
+                className="form-input form-input-num"
               />
             </FormLabel>
             <FormLabel
@@ -285,7 +285,7 @@ export function PostListingForm() {
                   setTolerance(e.target.value === '' ? '' : Number(e.target.value))
                 }
                 placeholder="0"
-                className="form-input-dark form-input-num-dark"
+                className="form-input form-input-num"
               />
             </FormLabel>
             <FormLabel
@@ -312,15 +312,15 @@ export function PostListingForm() {
                     setTtlValue(e.target.value === '' ? '' : Number(e.target.value))
                   }
                   placeholder="0"
-                  className="form-input-dark form-input-num-dark flex-1 min-w-0"
+                  className="form-input form-input-num flex-1 min-w-0"
                 />
                 <div
                   role="radiogroup"
                   aria-label={pl.sectionPricing.unitPickerAria}
                   className="inline-flex items-stretch p-1 shrink-0"
                   style={{
-                    background: 'var(--lp-band-dark)',
-                    border: '1px solid rgba(255,255,255,0.10)',
+                    background: 'var(--lp-workspace-soft)',
+                    border: '1px solid var(--lp-workspace-border)',
                     borderTopLeftRadius: 10,
                     borderTopRightRadius: 10,
                     borderBottomLeftRadius: 10,
@@ -352,7 +352,9 @@ export function PostListingForm() {
                         className="min-h-11 min-w-11 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-[var(--dur-micro)]"
                         style={{
                           background: active ? 'var(--lp-accent)' : 'transparent',
-                          color: active ? 'var(--lp-band-dark)' : 'rgba(255,255,255,0.55)',
+                          color: active
+                            ? 'var(--lp-control-active-ink)'
+                            : 'var(--lp-workspace-muted)',
                           borderTopLeftRadius: 7,
                           borderTopRightRadius: 7,
                           borderBottomLeftRadius: 7,
@@ -388,13 +390,13 @@ export function PostListingForm() {
             <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
               {pl.intentWarning.eyebrow}
             </p>
-            <p className="text-[12.5px] leading-snug text-white/85">
+            <p className="text-[12.5px] leading-snug text-[var(--lp-workspace-ink)]">
               {pl.intentWarning.bodyPart1}
               <span className="font-bold">{pl.intentWarning.bodyEmphNeed}</span>
               {pl.intentWarning.bodyPart2}
               <span className="font-bold">{pl.intentWarning.bodyEmphOffer}</span>
               {pl.intentWarning.bodyPart3}
-              <a href="/buyer" className="underline underline-offset-2 hover:text-white">
+              <a href="/buyer" className="underline underline-offset-2 hover:text-[var(--lp-accent)]">
                 {pl.intentWarning.postRequestLink}
               </a>
               {pl.intentWarning.bodyPart4}
@@ -405,7 +407,7 @@ export function PostListingForm() {
         )}
 
         {/* SUBMIT */}
-        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-white/[0.08]">
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-workspace-border)]">
           <button
             type="submit"
             data-guide="seller-submit"
@@ -415,7 +417,7 @@ export function PostListingForm() {
               'transition-[transform,box-shadow] duration-150',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-dark)]',
               disabled
-                ? 'bg-white/[0.05] text-white/35 cursor-not-allowed border border-white/[0.08]'
+                ? 'bg-[var(--lp-workspace-soft)] text-[var(--lp-workspace-faint)] cursor-not-allowed border border-[var(--lp-workspace-border)]'
                 : 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]',
             )}
             style={{
@@ -449,7 +451,7 @@ export function PostListingForm() {
             )}
           </button>
           {!submitting && (
-            <p className="mono text-[11px] uppercase tracking-[0.12em] text-white/45 leading-snug">
+            <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] leading-snug">
               {pl.submit.fundsCaption}
             </p>
           )}
@@ -501,22 +503,22 @@ export function PostListingForm() {
         const visible = recent.filter((l) => !dismissed.has(l.id));
         if (visible.length === 0) {
           return (
-            <div className="pt-6 border-t border-white/[0.08]">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-3">
+            <div className="pt-6 border-t border-[var(--lp-workspace-border)]">
+              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-3">
                 {pl.yourOffers.eyebrow}
               </p>
-              <p className="text-[13px] text-white/55">
+              <p className="text-[13px] text-[var(--lp-workspace-muted)]">
                 {pl.yourOffers.allDismissed}
               </p>
             </div>
           );
         }
         return (
-          <div className="pt-6 border-t border-white/[0.08]">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/55 mb-4">
+          <div className="pt-6 border-t border-[var(--lp-workspace-border)]">
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)] mb-4">
               {pl.yourOffers.eyebrow}
             </p>
-            <ul className="divide-y divide-white/[0.08]">
+            <ul className="divide-y divide-[var(--lp-workspace-border)]">
               {visible.slice(0, 5).map((l) => {
                 const isCancelled = !!l.cancelledAt;
                 const isMatched = !!l.matchedAt && !!l.matchedJobId;
@@ -543,18 +545,18 @@ export function PostListingForm() {
                     tabIndex={0}
                     role="link"
                     aria-label={pl.openAriaTemplate.replace('{title}', l.title)}
-                    className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-white/[0.04] -mx-2 px-2 transition-colors rounded-md focus:bg-white/[0.04] focus:outline-none"
+                    className="group cursor-pointer py-3 flex items-center justify-between gap-3 hover:bg-[var(--lp-workspace-soft)] -mx-2 px-2 transition-colors rounded-md focus:bg-[var(--lp-workspace-soft)] focus:outline-none"
                   >
                     <div className="min-w-0">
-                      <p className="text-[14px] font-semibold tracking-tight truncate text-white">
+                      <p className="text-[14px] font-semibold tracking-tight truncate text-[var(--lp-workspace-ink)]">
                         {l.title}
                       </p>
-                      <p className="text-[12px] text-white/55 truncate">{l.description}</p>
+                      <p className="text-[12px] text-[var(--lp-workspace-muted)] truncate">{l.description}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-white">
+                      <span className="font-sans text-[16px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
                         {l.askingPriceUsdc}
-                        <span className="ms-1 mono text-[10px] uppercase tracking-[0.12em] text-white/45">
+                        <span className="ms-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
                           USDC
                         </span>
                       </span>
@@ -568,7 +570,7 @@ export function PostListingForm() {
                             dismiss(l.id);
                           }}
                           onKeyDown={(e) => e.stopPropagation()}
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-full mono text-[12px] text-white/45 hover:text-white hover:bg-white/[0.08] transition-colors"
+                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full mono text-[12px] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] hover:bg-[var(--lp-workspace-soft)] transition-colors"
                         >
                           ×
                         </button>
@@ -576,7 +578,7 @@ export function PostListingForm() {
                       <span
                         className="mono text-[10px] uppercase tracking-[0.12em] font-semibold"
                         style={{
-                          color: isCancelled || isExpired ? 'rgba(255,255,255,0.55)' : 'var(--lp-accent)',
+                          color: isCancelled || isExpired ? 'var(--lp-workspace-muted)' : 'var(--lp-accent-on-light)',
                         }}
                       >
                         {label}
@@ -614,10 +616,10 @@ function FieldSection({
   return (
     <section className="space-y-4" data-guide={dataGuide}>
       <div className="space-y-1.5">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-white/55">
+        <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-workspace-muted)]">
           {eyebrow}
         </p>
-        <h3 className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-white">
+        <h3 className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
           {title}
         </h3>
       </div>
@@ -642,12 +644,12 @@ function FormLabel({
   return (
     <label className="block space-y-2" data-guide={dataGuide}>
       <span className="flex items-center gap-2 justify-between">
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-white/55">
+        <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-workspace-muted)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
         {unit && (
-          <span className="mono text-[9px] uppercase tracking-[0.16em] text-white/40">
+          <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
             {unit}
           </span>
         )}

@@ -32,10 +32,10 @@ export function DiscoveryNav({
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]',
               current
                 ? dark
-                  ? 'text-white'
+                  ? 'text-[var(--lp-workspace-ink)]'
                   : 'text-[var(--lp-dark)]'
                 : dark
-                  ? 'text-white/55 hover:text-white'
+                  ? 'text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]'
                   : 'text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]',
             )}
           >

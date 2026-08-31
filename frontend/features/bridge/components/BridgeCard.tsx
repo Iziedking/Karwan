@@ -1175,8 +1175,8 @@ export function BridgeRow({
                 onClick={onRetry}
                 className="inline-flex min-h-11 items-center px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] transition-opacity hover:opacity-90"
                 style={{
-                  background: 'var(--lp-band-dark)',
-                  color: 'white',
+                  background: 'var(--lp-control-active-bg)',
+                  color: 'var(--lp-control-active-ink)',
                   borderTopLeftRadius: 8,
                   borderTopRightRadius: 8,
                   borderBottomLeftRadius: 8,

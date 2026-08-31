@@ -1057,6 +1057,7 @@ interface MessagesShape {
       acceptanceWindowLabel: string;
       acceptanceWindowHint: string;
       presets: {
+        fifteenMin: string;
         oneHr: string;
         sixHr: string;
         dayOne: string;
@@ -4256,7 +4257,7 @@ interface MessagesShape {
     };
     palette: {
       tag: string; headline: string; body: string;
-      brandLime: string; brandInk: string; creamSurface: string;
+      brandLime: string; brandInk: string; creamSurface: string; cardWhite: string;
       brandLabel: string; copy: string; copied: string;
     };
     voice: {
@@ -5986,6 +5987,7 @@ export const en: MessagesShape = {
       acceptanceWindowLabel: 'Seller has to accept within',
       acceptanceWindowHint: "If they don't, the deal auto-expires with no reputation hit on either side. You're free to re-shop.",
       presets: {
+        fifteenMin: '15 min',
         oneHr: '1 hr',
         sixHr: '6 hr',
         dayOne: '24 hr',
@@ -9573,7 +9575,7 @@ export const en: MessagesShape = {
   brandPage: {
     hero: { tag: 'BRAND', headlineLead: 'The Karwan', headlineAccent: 'mark', body: 'The logo, the palette, the voice. Pull what you need to write about Karwan, embed it in a partner deck, or paint a co-mark. For deeper guidance, reach out at the contact below.' },
     logo: { tag: 'LOGO', headline: 'Three forms', body: 'Pick by surface. Mark for small spaces. Wordmark when there is room. Reserve clearspace equal to the stroke width on every side.', wordmarkOnDark: 'Wordmark on dark', wordmarkOnLight: 'Wordmark on light', markOnDark: 'Mark on dark' },
-    palette: { tag: 'PALETTE', headline: 'Three brand constants', body: 'Lime is the only accent. Pair brand lime with one neutral. Never stack a second accent color on top.', brandLime: 'Brand lime', brandInk: 'Brand ink', creamSurface: 'Cream surface', brandLabel: 'BRAND', copy: 'Copy', copied: 'Copied' },
+    palette: { tag: 'PALETTE', headline: 'Four brand constants', body: 'Green marks action. Warm canvas carries light mode. White is reserved for raised cards.', brandLime: 'Karwan green', brandInk: 'Karwan ink', creamSurface: 'Light canvas', cardWhite: 'Card white', brandLabel: 'BRAND', copy: 'Copy', copied: 'Copied' },
     voice: { tag: 'VOICE', headline: "Engineer's product memo", body: "Karwan's tone reads as infrastructural, not consumer. Bloomberg terminal energy. Have an opinion. Acknowledge limits. Vary rhythm. Never theatrical.", wordsWeUseLabel: 'WORDS WE USE', wordsWeUseBody: 'settlement, escrow, rail, deal, request, offer, milestone, release, slash, stake, reputation, passport, anchor, attest, financier, importer, exporter, working capital, cross-border, on-chain.', wordsWeAvoidLabel: 'WORDS WE AVOID', wordsWeAvoidBody: 'revolutionary, transformative, empowering, seamless, robust, world-class, cutting-edge, gig, freelance, platform, users, AI (we say "agents" with the specific job they do).' },
     partner: { tag: 'PARTNER CO-MARK', headline: 'Pair, do not enclose', body: "When co-marking with Arc, Circle, USYC, or another partner: same baseline as Karwan's wordmark, vertical hairline divider, equal optical weight. Never enclose two logos in the same container.", partnerLabel: 'Partner' },
     contact: { tag: 'PRESS AND PARTNERS', headlineLead: 'Reach', headlineAccent: 'out', body: 'Want a higher-resolution asset, a co-mark configuration we have not published, or a quote? Send a note.', backHome: 'Back home' },

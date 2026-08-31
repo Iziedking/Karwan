@@ -176,12 +176,12 @@ const extractionSchema = z.object({
     ),
   acceptanceWindowHours: z
     .number()
-    .int()
-    .min(1)
+    .min(0.25)
     .max(720)
+    .multipleOf(0.25)
     .nullable()
     .describe(
-      'DIRECT ONLY. How long the SELLER has to accept the deal after the buyer creates it. Examples: "accept within 1 hour" → 1, "they have a day to accept" → 24, "respond by tomorrow" → 24, "must accept in 2 days" → 48. NOT the delivery deadline (that is deadlineDays). Convert minutes to integer hours (round up to 1). Null if not mentioned.',
+      'DIRECT ONLY. How long the SELLER has to accept the deal after the buyer creates it. Examples: "accept within 15 minutes" → 0.25, "accept within 1 hour" → 1, "they have a day to accept" → 24, "must accept in 2 days" → 48. NOT the delivery deadline (that is deadlineDays). Use quarter-hour increments for minutes. Null if not mentioned.',
     ),
   confidence: z.object({
     amount: z.number().min(0).max(1),

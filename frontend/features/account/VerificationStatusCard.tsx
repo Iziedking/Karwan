@@ -77,7 +77,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
 
         <h2
           id="account-verification-title"
-          className="mt-4 font-sans text-[22px] font-extrabold tracking-[-0.025em] text-white"
+          className="mt-4 font-sans text-[22px] font-extrabold tracking-[-0.025em] text-[var(--lp-workspace-ink)]"
         >
           {t.title}
         </h2>
@@ -85,10 +85,10 @@ export function VerificationStatusCard({ address }: { address: string }) {
           {capabilities.map(([label, enabled], index) => (
             <div
               key={label}
-              className="flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-white/10 py-2.5"
+              className="flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-[var(--lp-workspace-border)] py-2.5"
             >
-              <span className="min-w-0 flex-1 text-[12px] text-white/70">
-                <span className="me-2 mono text-[9px] text-white/35">
+              <span className="min-w-0 flex-1 text-[12px] text-[var(--lp-workspace-muted)]">
+                <span className="me-2 mono text-[9px] text-[var(--lp-workspace-faint)]">
                   [:{String(index + 1).padStart(2, '0')}]
                 </span>
                 {label}
@@ -108,10 +108,10 @@ export function VerificationStatusCard({ address }: { address: string }) {
             href={`/credit-passport/${address}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-white/10 py-2.5 transition-colors hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="group flex min-h-11 min-w-0 items-center justify-between gap-4 border-t border-[var(--lp-workspace-border)] py-2.5 transition-colors hover:border-[var(--lp-workspace-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
           >
-            <span className="min-w-0 flex-1 text-[12px] text-white/70 group-hover:text-white">
-              <span className="me-2 mono text-[9px] text-white/35">
+            <span className="min-w-0 flex-1 text-[12px] text-[var(--lp-workspace-muted)] group-hover:text-[var(--lp-workspace-ink)]">
+              <span className="me-2 mono text-[9px] text-[var(--lp-workspace-faint)]">
                 [:{String(capabilities.length + 1).padStart(2, '0')}]
               </span>
               {t.publicPassport}

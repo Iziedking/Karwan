@@ -63,7 +63,7 @@ function BusinessVerificationPageInner() {
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <Link
           href="/profile#identity"
-          className="inline-flex min-h-11 items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.12em] text-white/65 transition-colors hover:text-white"
+          className="inline-flex min-h-11 items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
         >
           <span aria-hidden>←</span>
           {t.backToProfile}
@@ -73,7 +73,7 @@ function BusinessVerificationPageInner() {
           <HeroHeadline size="md">
             {t.title}<Punc>.</Punc>
           </HeroHeadline>
-          <p className="mt-5 max-w-[62ch] text-[15px] leading-relaxed text-white/60">{t.lede}</p>
+          <p className="mt-5 max-w-[62ch] text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">{t.lede}</p>
         </div>
       </Band>
 

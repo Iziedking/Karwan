@@ -30,7 +30,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
   if (fetchState === 'loading' && !data) {
     return (
       <div
-        className="fade-up fade-up-4 mt-5 w-full max-w-[440px] h-[92px] rounded-2xl border border-white/10 bg-white/[0.04] animate-pulse motion-reduce:animate-none"
+        className="fade-up fade-up-4 mt-5 w-full max-w-[440px] h-[92px] rounded-2xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] animate-pulse motion-reduce:animate-none"
         aria-hidden
       />
     );
@@ -55,16 +55,16 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
 
   return (
     <div
-      className="fade-up fade-up-4 mt-5 w-full max-w-[440px] border border-white/10 bg-white/[0.04] px-5 py-4"
+      className="fade-up fade-up-4 mt-5 w-full max-w-[440px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] px-5 py-4"
       style={{ borderRadius: 16, borderBottomRightRadius: 4 }}
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
           {pt.eyebrow}
         </span>
-        <span className="mono text-[11px] tabular-nums text-white/55">
+        <span className="mono text-[11px] tabular-nums text-[var(--lp-workspace-muted)]">
           {score}
-          <span className="text-white/35"> {pt.scoreSuffix}</span>
+          <span className="text-[var(--lp-workspace-faint)]"> {pt.scoreSuffix}</span>
         </span>
       </div>
 
@@ -79,13 +79,13 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
         >
           {tier}
         </span>
-        <span className="min-w-0 text-[12px] text-white/55">
+        <span className="min-w-0 text-[12px] text-[var(--lp-workspace-muted)]">
           {progressLabel}
         </span>
       </div>
 
       {/* Position bar across the full 0-1000 scale with tier breakpoint ticks. */}
-      <div className="relative mt-3 h-[6px] w-full rounded-full bg-white/[0.08] overflow-hidden">
+      <div className="relative mt-3 h-[6px] w-full rounded-full bg-[var(--lp-workspace-soft)] overflow-hidden">
         <div
           className="absolute start-0 top-0 bottom-0 rounded-full"
           style={{ width: `${pct}%`, background: color }}
@@ -94,7 +94,7 @@ export function ProfileTierCard({ address }: { address?: string | null }) {
           <span
             key={b}
             aria-hidden
-            className="absolute top-0 bottom-0 w-px bg-[var(--lp-band-dark)]/70"
+            className="absolute top-0 bottom-0 w-px bg-[var(--lp-workspace-ink)]/35"
             style={{ insetInlineStart: `${(b / 1000) * 100}%` }}
           />
         ))}
