@@ -26,7 +26,6 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   // are keyed by user. Falls back to agent address when the bid lacks a
   // resolved user, the peek still shows the masked address gracefully.
   const [peekSeller, setPeekSeller] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
   if (job.bids.length === 0) {
     return (
@@ -56,24 +55,16 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
   });
   const leadSeller = sorted[0]?.seller ?? null;
 
-  // Bounded by default: the leaders show, the long tail collapses behind an
-  // expander and, when opened, scrolls inside a fixed height so the page never
-  // grows without end no matter how many sellers bid.
-  const TOP_N = 5;
-  const hasMore = sorted.length > TOP_N;
-  const visible = expanded ? sorted : sorted.slice(0, TOP_N);
-
   return (
     <>
+      {/* Desktop keeps the roster inside the full job-stack companion card.
+          Mobile stays in normal document flow so touch scrolling is not nested. */}
       <div
-        className={
-          expanded
-            ? 'relative min-w-0 max-h-[58vh] overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]'
-            : 'min-w-0 overflow-x-hidden'
-        }
+        data-bids-scroll
+        className="min-w-0 overflow-x-hidden lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:thin]"
       >
         <ul className="min-w-0 divide-y divide-[var(--color-line)]">
-          {visible.map((b) => {
+          {sorted.map((b) => {
             const isLead = b.seller === leadSeller;
             return (
               <BidRow
@@ -87,26 +78,6 @@ export function LiveBidsPanel({ initial }: { initial: BuyerJob }) {
           })}
         </ul>
       </div>
-
-      {hasMore && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="w-full flex items-center justify-center gap-2 py-3 border-t border-[var(--color-line)] mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
-        >
-          {expanded ? 'Show fewer' : `Show all ${sorted.length} bids`}
-          <svg
-            width="11"
-            height="11"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden
-            className={`transition-transform ${expanded ? 'rotate-180' : ''}`}
-          >
-            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      )}
 
       <ProfilePeekModal
         open={peekSeller != null}
