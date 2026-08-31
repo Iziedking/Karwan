@@ -183,7 +183,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         <div className="fade-up">
           <Link
             href={backHref}
-            className="group inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-white/55 hover:text-white transition-colors mb-6"
+            className="group inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] transition-colors mb-6"
           >
             <span
               aria-hidden
@@ -210,7 +210,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
             <p className="fade-up fade-up-3 mt-4">
               <CopyId
                 value={job.jobId}
-                className="text-[11px] uppercase tracking-[0.12em] text-white/45"
+                className="text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]"
               />
             </p>
           </div>
@@ -441,11 +441,14 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           </div>
         )}
 
-        {/* FLOW + TIMELINE + BIDS. The bidder roster and the negotiation walk
-            are the buyer's alone; a matched seller sees the flow, their match
-            banner, and the settle section, so their side goes full-width. */}
-        <div className="mt-8 grid min-w-0 lg:grid-cols-3 gap-5 items-start">
-          <div className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} min-w-0 space-y-5`}>
+        {/* FLOW + TIMELINE + BIDS. On desktop the bidder roster spans the full
+            left-hand job stack and scrolls internally. Mobile keeps one natural
+            document flow. A matched seller has no Bids rail, so the stack stays
+            full-width. */}
+        <div className="mt-8 grid min-w-0 gap-5 lg:grid-cols-3 lg:items-stretch">
+          <div
+            className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} min-w-0 lg:col-start-1 lg:row-start-1`}
+          >
             <PageCard>
               <div className="p-6" data-guide="job-flow">
                 <SectionTag>{lj.sections.flow}</SectionTag>
@@ -454,7 +457,11 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                 </div>
               </div>
             </PageCard>
+          </div>
 
+          <div
+            className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} min-w-0 space-y-5 lg:col-start-1 lg:row-start-2`}
+          >
             {viewerIsBuyer && !declined && !ended && !expired && !job.escrowFunded && !matchPending && (
               <div data-guide="job-negotiation">
                 <NegotiationCard
@@ -486,9 +493,12 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
           </div>
 
           {viewerIsBuyer && (
-            <div className="min-w-0 space-y-5" data-guide="job-bids">
-              <PageCard>
-                <div className="px-6 pt-6">
+            <div
+              className="min-w-0 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:min-h-0 lg:[contain:size]"
+              data-guide="job-bids"
+            >
+              <PageCard className="lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">
+                <div className="shrink-0 px-6 pt-6">
                   <SectionTag>{lj.sections.bids}</SectionTag>
                 </div>
                 <LiveBidsPanel initial={job} />
