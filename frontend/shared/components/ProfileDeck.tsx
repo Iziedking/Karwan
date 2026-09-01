@@ -33,7 +33,7 @@ export interface DeckPanel {
 /// Long enough to read as physical, short enough not to feel like waiting. The
 /// card travels the full width of the deck now rather than fading 10px, so it
 /// needs more time than a crossfade would.
-const DURATION_MS = 460;
+const DURATION_MS = 520;
 /// Matches the app's layout easing.
 const EASE = 'cubic-bezier(0.83, 0, 0.17, 1)';
 /// The outgoing card leads, so it uses an ease-out: quick off the mark, settling
@@ -73,8 +73,9 @@ export function ProfileDeck({
   /// The panel on its way out. Kept mounted for one transition so it can
   /// recede with its content intact; unmounting immediately would make the
   /// card look like it emptied before it moved.
-  const [leaving, setLeaving] = useState<{ index: number; back: boolean } | null>(null);
+  const [leaving, setLeaving] = useState<{ index: number; back: boolean; turned: boolean } | null>(null);
   const [entering, setEntering] = useState(false);
+  const [enteringBack, setEnteringBack] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   /// The direction the user actually asked for, when they asked through this
@@ -110,12 +111,16 @@ export function ProfileDeck({
     // which is correct for a tab-strip or hash jump.
     const back = intent.current ? intent.current === 'prev' : active < from;
     intent.current = null;
-    setLeaving({ index: from, back });
+    setLeaving({ index: from, back, turned: false });
+    setEnteringBack(back);
     // Mount the incoming panel in its "entering" pose, then release it on the
     // next frame so the browser has a start state to animate FROM. Setting
     // both in one paint produces no transition at all.
     setEntering(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setEntering(false)));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setEntering(false);
+      setLeaving((current) => current ? { ...current, turned: true } : current);
+    }));
 
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setLeaving(null), DURATION_MS);
@@ -244,15 +249,19 @@ export function ProfileDeck({
             aria-hidden
             className="absolute inset-x-0 top-0 pointer-events-none"
             style={{
-              // Off the side and tilting, the way a hand actually moves the top
-              // card of a stack. It travels far enough to clear the deck edge, so
-              // the eye follows it away rather than watching it dissolve in place.
-              // Opacity trails the movement instead of leading it: fading first
-              // would make it read as deleted rather than filed behind.
-              transform: leaving.back
-                ? 'translateX(-116%) translateY(-14px) rotate(-7deg) scale(0.94)'
-                : 'translateX(116%) translateY(-14px) rotate(7deg) scale(0.94)',
-              opacity: 0,
+              // Turn the current sheet around its bound edge. The next page
+              // folds away to the left; the previous page folds away to the
+              // right. Keeping the outgoing content mounted makes the change
+              // read as a page turn, not a card replacement.
+              transform: leaving.turned
+                ? leaving.back
+                  ? 'perspective(1400px) rotateY(82deg) translateX(8%) translateY(-3px)'
+                  : 'perspective(1400px) rotateY(-82deg) translateX(-8%) translateY(-3px)'
+                : 'none',
+              transformOrigin: leaving.back ? 'right center' : 'left center',
+              transformStyle: 'preserve-3d',
+              backfaceVisibility: 'hidden',
+              opacity: leaving.turned ? 0.08 : 1,
               zIndex: 40,
               transition: `transform ${DURATION_MS}ms ${EASE_OUT}, opacity ${Math.round(DURATION_MS * 0.7)}ms linear ${Math.round(DURATION_MS * 0.3)}ms`,
             }}
@@ -261,18 +270,26 @@ export function ProfileDeck({
           </div>
         ) : null}
 
-        {/* The active card. In normal flow, so IT defines the container height
-            and the deck grows and shrinks with whatever is on show. */}
+        {/* The active card stays in normal flow and therefore ends with its
+            content. DeckCard only applies a viewport-safe maximum, so a truly
+            tall panel scrolls without forcing every shorter panel to inherit its
+            height. Floating launchers inspect their own footprint; the pager
+            below remains an explicit exclusion zone. */}
         <div
           className="relative"
           style={{
             zIndex: 30,
-            // Starts exactly where its shell sat one step back in the stack, and
-            // at that shell's opacity, so it reads as the same card promoted
-            // rather than a new one appearing. Fading up from zero was what made
-            // this feel like a slideshow.
-            transform: entering ? 'translateY(10px) scale(0.97)' : 'none',
-            opacity: entering ? 0.65 : 1,
+            // The incoming sheet starts turned away from the direction of travel
+            // and settles flat as the outgoing page folds over it.
+            transform: entering
+              ? enteringBack
+                ? 'perspective(1400px) rotateY(-82deg) translateX(-8%) translateY(3px)'
+                : 'perspective(1400px) rotateY(82deg) translateX(8%) translateY(3px)'
+              : 'none',
+            transformOrigin: enteringBack ? 'left center' : 'right center',
+            transformStyle: 'preserve-3d',
+            backfaceVisibility: 'hidden',
+            opacity: entering ? 0.72 : 1,
             transition: reduced || entering ? 'none' : `transform ${DURATION_MS}ms ${EASE}, opacity ${DURATION_MS}ms ${EASE}`,
           }}
         >
@@ -304,7 +321,13 @@ export function ProfileDeck({
       {/* Controls. Random access lives in the tab strip above; this row is the
           sequential half, plus a counter so the deck says how far through it
           you are without anyone having to count the tabs. */}
-      <div className="mt-5 flex items-center justify-between gap-4">
+      <div
+        className="mt-5 flex items-center justify-between gap-4"
+        // The assistant launcher occupies this same lower band on phones. Keep
+        // it out of the way whenever the deck's next/previous controls are in
+        // view so the navigation remains reachable.
+        data-floating-avoid
+      >
         <div className="flex items-center gap-2">
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] tabular-nums">
             {String(active + 1).padStart(2, '0')}/{String(panels.length).padStart(2, '0')}
@@ -381,7 +404,7 @@ function DeckCard({
   const dark = tone === 'dark';
   return (
     <div
-      className={cn('overflow-hidden', dark && 'text-[var(--lp-workspace-ink)]')}
+      className={cn('profile-deck-card', dark && 'text-[var(--lp-workspace-ink)]')}
       style={{
         background: dark ? 'var(--lp-workspace-raised)' : 'var(--lp-card)',
         border: `1px solid ${dark ? 'var(--lp-workspace-border)' : 'var(--lp-border-light)'}`,

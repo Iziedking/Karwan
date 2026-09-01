@@ -15,7 +15,7 @@ export const WELCOME_STEPS: TourStep[] = [
   },
   {
     title: 'Find your way around',
-    body: 'Trade is where you post requests and offers. Market is for browsing. Activity shows deal and payment history. Profile holds wallets and agent settings.',
+    body: 'Trade is where you post requests and offers. Market is for browsing. Activity shows deal and payment history. Profile opens on Wallets, where you can find balances and the faucet before agent settings.',
   },
   {
     title: 'You stay in control',
@@ -312,16 +312,28 @@ export const DEAL_STEPS: TourStep[] = [
 
 /// Profile tour. Spotlights each part of the redesigned profile in page order,
 /// role-aware because funding works differently for Circle vs web3 wallets.
-/// Bumped to v2 for the distill redesign: the bridge moved to the hero Top up
+/// Bumped to v4 for the wallet-first profile redesign: wallets now lead the
+/// deck and the first step points directly at the faucet entry point. The
+/// bridge moved to the hero Top up
 /// card, wallets became a holdings view, and a folded multi-chain breakdown was
 /// added, so returning users should see the refreshed walkthrough.
-export const PROFILE_TOUR_ID = 'profile-v3';
+export const PROFILE_TOUR_ID = 'profile-v4';
 export function buildProfileSteps(isCircle: boolean): TourStep[] {
   return [
     {
+      target: 'profile-faucet',
+      title: 'Get test USDC',
+      body: 'Wallets open first. Choose Get USDC on the wallet you want to seed, then follow the faucet flow.',
+    },
+    {
+      target: 'profile-balances',
+      title: 'See your balances',
+      body: 'Expand the holdings view when you need balances from other supported chains.',
+    },
+    {
       target: 'profile-nav',
-      title: 'Profile navigation',
-      body: 'Use these tabs for identity, wallets, agents, and contact settings.',
+      title: 'Move between profile surfaces',
+      body: 'Use the tabs to switch between wallets, money, deals, agents, setup, and contact settings.',
     },
     {
       target: 'profile-topup',
@@ -332,18 +344,8 @@ export function buildProfileSteps(isCircle: boolean): TourStep[] {
     },
     {
       target: 'profile-identity',
-      title: 'Identity and limits',
+      title: 'Review setup',
       body: 'Review your role and the limits your agents follow. Activate agents here if they are not running.',
-    },
-    {
-      target: 'profile-wallets',
-      title: 'Wallet balances',
-      body: 'See your wallet and agent balances on Arc. Addresses can be copied when needed.',
-    },
-    {
-      target: 'profile-balances',
-      title: 'Other chains',
-      body: 'Expand this section to review balances held on other chains.',
     },
     {
       target: 'profile-agents',
