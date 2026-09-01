@@ -300,11 +300,13 @@ export function WalletsPanel({ address }: { address?: string }) {
           onCopied={markCopied}
           copiedLabel={wp.copyAddress.copied}
           action={
-            <FaucetButton
-              onClick={() => runFaucet('identity')}
-              busy={faucetBusy === 'identity'}
-              copy={wp.faucetButton}
-            />
+            <span data-guide="profile-faucet">
+              <FaucetButton
+                onClick={() => runFaucet('identity')}
+                busy={faucetBusy === 'identity'}
+                copy={wp.faucetButton}
+              />
+            </span>
           }
         />
 

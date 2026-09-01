@@ -70,7 +70,9 @@ function ProfilePageInner() {
   const activation = useActivation();
   const openDeals = useOpenDeals();
   const [activationOpen, setActivationOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('identity');
+  // Wallets are the first landing surface so new users can see the available
+  // wallets and reach the faucet before navigating into other profile areas.
+  const [activeTab, setActiveTab] = useState<string>('wallets');
   const { active: activeTour } = useGuide();
   // Agent money is one surface with two modes, so only one card shows at a
   // time instead of two dense cards side by side.
@@ -79,7 +81,8 @@ function ProfilePageInner() {
   const agentCarouselRef = useRef<HTMLDivElement>(null);
 
   const TABS: Tab[] = [
-    { id: 'identity', label: t.tabs.identity, hash: 'identity' },
+    { id: 'wallets', label: t.tabs.wallets, hash: 'wallets' },
+    { id: 'money', label: messages.moneyStrip.eyebrow, hash: 'money' },
     ...(openDeals.hasOpenDeals
       ? [{
           id: 'open-deals',
@@ -89,8 +92,8 @@ function ProfilePageInner() {
           attention: openDeals.hasAction,
         }]
       : []),
-    { id: 'wallets', label: t.tabs.wallets, hash: 'wallets' },
     { id: 'agents', label: t.tabs.agents, hash: 'agents' },
+    { id: 'identity', label: t.tabs.identity, hash: 'identity' },
     { id: 'preferences', label: t.tabs.preferences, hash: 'preferences' },
   ];
 
@@ -108,7 +111,7 @@ function ProfilePageInner() {
       const h = window.location.hash.replace('#', '');
       if (!h) return;
       const key = h === 'company' ? 'identity' : h;
-      if (['identity', 'open-deals', 'wallets', 'agents', 'preferences'].includes(key)) {
+      if (['money', 'identity', 'open-deals', 'wallets', 'agents', 'preferences'].includes(key)) {
         setActiveTab(key === 'open-deals' && !openDeals.hasOpenDeals ? 'identity' : key);
       }
     };
@@ -136,7 +139,7 @@ function ProfilePageInner() {
     if (activeTour?.id !== PROFILE_TOUR_ID) return;
     const target = activeTour.steps[activeTour.index]?.target;
     const panel =
-      target === 'profile-wallets' || target === 'profile-balances'
+      target === 'profile-faucet' || target === 'profile-wallets' || target === 'profile-balances'
         ? 'wallets'
         : target === 'profile-agents'
           ? 'agents'
@@ -217,45 +220,76 @@ function ProfilePageInner() {
   /// carried by the card instead of by a section.
   const deckPanels: DeckPanel[] = [
     {
+      key: 'money',
+      label: messages.moneyStrip.eyebrow,
+      content: <MoneyStrip embedded />,
+    },
+    {
       key: 'identity',
       label: t.tabs.identity,
       content: (
         <div data-guide="profile-identity">
+        {/* SETUP is a desk ledger, not another dashboard. One compact header
+            explains the job of the page; the numbered rows below carry the
+            real account state and controls. */}
+        <div className="border-b border-[var(--lp-border-light)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <SectionTag>{t.tabs.identity}</SectionTag>
+          <h2 className="mt-3 font-sans text-[28px] font-extrabold uppercase leading-none tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[36px]">
+            {t.tabs.identity}<Punc>.</Punc>
+          </h2>
+          <p className="mt-3 max-w-[52ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            {t.agentProfiles.body}
+          </p>
+        </div>
+
         {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
-        <div className="px-4 pt-5 md:px-8">
+        <div className="px-4 pt-4 md:px-8">
           <TierCelebration address={address} />
         </div>
 
-        {/* Setup guidance decays after completion. The old hero-sized activation
-            prompt competed with the actual profile content and made one required
-            step feel like a second onboarding flow. */}
-        {!activation.loading && !activation.activated ? (
-          <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <span aria-hidden className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-[var(--lp-border-light)] bg-[color-mix(in_srgb,var(--lp-accent)_18%,transparent)]">
-                  <span className="size-1.5 bg-[var(--lp-accent-deep)]" />
+        {/* [:01] stays visible after activation so users can still read the
+            desk state; only the corrective action decays. */}
+        <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
+          <div className="grid gap-4 sm:grid-cols-[48px_minmax(0,1fr)_auto] sm:items-center">
+            <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+              [:01]
+            </span>
+            <div className="min-w-0">
+              <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
+                {t.agentStatus.eyebrow}
+              </p>
+              <p className="mt-1.5 max-w-[58ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                {activation.loading
+                  ? t.agentStatus.checking
+                  : activation.activated
+                    ? `${t.agentStatus.buyerFallback} / ${t.agentStatus.sellerFallback} · ${t.agentStatus.walletsLive}`
+                    : t.activation.inactiveBody}
+              </p>
+            </div>
+            <div className="flex min-h-11 items-center sm:justify-end">
+              {!activation.loading && !activation.activated ? (
+                <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
+              ) : !activation.loading ? (
+                <span className="mono inline-flex min-h-11 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent-deep)]">
+                  <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
+                  {t.agentStatus.walletsLive}
                 </span>
-                <div className="min-w-0 max-w-[58ch]">
-                  <SectionTag>{t.activation.inactiveTag}</SectionTag>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                    {t.activation.inactiveBody}
-                  </p>
-                </div>
-              </div>
-              <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
+              ) : null}
             </div>
           </div>
-        ) : null}
+        </div>
 
         {/* ROLE + AGENT DETAILS */}
         {profile ? (
           <>
             {(profile.buyer || profile.seller) && (
-              <div className="border-t border-[var(--lp-border-light)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+              <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <div className="flex items-center gap-2">
+                      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                        [:02]
+                      </span>
                       <SectionTag>{t.agentProfiles.tag}</SectionTag>
                       <Hint glow side="bottom" align="start">
                         {t.agentProfiles.body}
@@ -563,12 +597,12 @@ function ProfilePageInner() {
                   );
                 })}
               </div>
-              {/* Two columns from lg. Both cards were capped at 640px and stacked,
-                  which left the right half of a desktop panel empty and pushed
-                  research below the fold for no reason. items-start so the shorter
-                  card does not stretch to match the taller one. */}
-              <div className="mt-4 grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
-                <div className="min-w-0" data-guide="profile-agents">
+              {/* The split surfaces share one row so the Agent Funds page reads as
+                  one composed workspace. The shared deck frame handles any
+                  taller content with an internal scroll instead of changing card
+                  height between panels. */}
+              <div className="mt-4 grid min-w-0 grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
+                <div className="min-w-0 h-full" data-guide="profile-agents">
                   {moneyMode === 'add' ? (
                     <ArcFundCard
                       buyerAgent={agents.buyer}
@@ -583,7 +617,9 @@ function ProfilePageInner() {
                     />
                   )}
                 </div>
-                <AgentResearchCard />
+                <div className="min-w-0 h-full">
+                  <AgentResearchCard />
+                </div>
               </div>
             </>
           ) : (
@@ -613,16 +649,31 @@ function ProfilePageInner() {
           <h2 className="mt-3 font-sans text-[28px] sm:text-[36px] font-extrabold uppercase tracking-[-0.035em] leading-none text-[var(--lp-dark)]">
             {t.preferences.headline}<Punc>.</Punc>
           </h2>
-          <div className="mt-5 grid gap-3 md:grid-cols-3" data-guide="profile-preferences">
-            <ConnectionCard label="Email">{address && <ProfileEmailButton address={address} tone="light" />}</ConnectionCard>
-            <ConnectionCard label="Telegram"><TelegramConnectButton address={address ?? undefined} tone="light" /></ConnectionCard>
-            <ConnectionCard label="X"><ConnectXButton tone="light" /></ConnectionCard>
+          <div
+            className="mt-6 overflow-hidden border-y border-[var(--lp-border-light)]"
+            data-guide="profile-preferences"
+          >
+            <ContactRow index="01" label="Email">
+              {address && <ProfileEmailButton address={address} tone="light" />}
+            </ContactRow>
+            <ContactRow index="02" label="Telegram">
+              <TelegramConnectButton address={address ?? undefined} tone="light" />
+            </ContactRow>
+            <ContactRow index="03" label="X">
+              <ConnectXButton tone="light" />
+            </ContactRow>
           </div>
         </div>
         </>
       ),
     },
   ];
+
+  // Keep the deck sequence aligned with the user's work sequence even though
+  // the setup panel is defined earlier in this file for readability.
+  const deckPanelsInOrder = ['wallets', 'money', 'open-deals', 'agents', 'identity', 'preferences']
+    .map((key) => deckPanels.find((panel) => panel.key === key))
+    .filter((panel): panel is DeckPanel => Boolean(panel));
 
   return (
     <FullBleed>
@@ -763,8 +814,8 @@ function ProfilePageInner() {
           dark variant rendered as pure black where it overlapped the hero,
           which the user flagged as wrong. Cream-frosted surface reads as
           frosted on both backgrounds. */}
-      {/* PERSONAL OVERVIEW: the profile controls come first, then money and
-          pending work. This keeps the navigation visible before utility bands. */}
+      {/* Wallets lead the profile deck so the first landing surface explains
+          where balances live and how to reach the faucet. */}
       <div data-guide="profile-nav" className="contents">
         <StickyTabStrip
           tabs={TABS}
@@ -775,14 +826,12 @@ function ProfilePageInner() {
         />
       </div>
 
-      <MoneyStrip />
-
       {/* One controlled mode at a time. The sticky strip provides random access;
           the deck provides explicit previous/next controls and a guarded mobile
           swipe. Only the active panel mounts, so hidden wallet panels cannot run
           reads or capture gestures. */}
       <Band tone="light" compact>
-        <ProfileDeck panels={deckPanels} activeKey={activeTab} onChange={setActiveTab} />
+        <ProfileDeck panels={deckPanelsInOrder} activeKey={activeTab} onChange={setActiveTab} />
       </Band>
 
       <ActivationModal
@@ -801,11 +850,29 @@ function ProfilePageInner() {
 
 type AgentRow = { label: string; value: string; mono?: boolean };
 
-function ConnectionCard({ label, children }: { label: string; children: React.ReactNode }) {
+function ContactRow({
+  index,
+  label,
+  children,
+}: {
+  index: string;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex min-h-[112px] flex-col justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{label}</span>
-      <div className="flex min-w-0 max-w-full items-center [&>*]:max-w-full">{children}</div>
+    <div className="grid min-h-[88px] gap-3 border-b border-[var(--lp-border-light)] px-1 py-4 last:border-b-0 sm:grid-cols-[48px_minmax(0,1fr)_minmax(0,auto)] sm:items-center sm:gap-4 sm:px-0">
+      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        [:{index}]
+      </span>
+      <div className="flex min-w-0 items-center gap-3">
+        <span aria-hidden className="size-1.5 shrink-0 bg-[var(--lp-accent)]" />
+        <span className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+          {label}
+        </span>
+      </div>
+      <div className="flex min-h-11 min-w-0 max-w-full items-center sm:justify-end [&>*]:max-w-full">
+        {children}
+      </div>
     </div>
   );
 }

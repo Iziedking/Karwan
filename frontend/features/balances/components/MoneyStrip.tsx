@@ -117,7 +117,7 @@ function MoneyRotator({ cells }: { cells: Cell[] }) {
   );
 }
 
-export function MoneyStrip() {
+export function MoneyStrip({ embedded = false }: { embedded?: boolean }) {
   const ms = useTranslations().moneyStrip;
   const { address, isAuthenticated } = useAuth();
   // Reuse the shared deal cache so the in-escrow / earned tiles paint from
@@ -169,13 +169,14 @@ export function MoneyStrip() {
     { value: earned, label: ms.cells.earned.label, hint: ms.cells.earned.hint },
   ];
 
-  return (
-    <Band tone="light" compact>
-      <div className="mx-auto w-full max-w-[1040px]" data-float-guard>
+  const content = (
+    <div className="mx-auto w-full max-w-[1040px]" data-float-guard>
+      <div className="relative overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-24px_rgba(0,0,0,0.18)] sm:rounded-[22px] sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
           <SectionTag>{ms.eyebrow}</SectionTag>
+          <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">USDC</span>
         </div>
-        <div data-guide="home-money" className="mt-6 fade-up fade-up-1">
+        <div data-guide="home-money" className="mt-4 fade-up fade-up-1 sm:mt-5">
           {/* Mobile: one rotating card so the phone view stays uncluttered. */}
           <div className="sm:hidden">
             <MoneyRotator cells={cells} />
@@ -188,6 +189,8 @@ export function MoneyStrip() {
           </div>
         </div>
       </div>
-    </Band>
+    </div>
   );
+
+  return embedded ? content : <Band tone="light" compact>{content}</Band>;
 }
