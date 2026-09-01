@@ -823,7 +823,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     get_product_facts: tool({
       description:
-        "The published canon of what Karwan actually does. Call this BEFORE answering any question of the form 'does Karwan do X', 'can I use it for Y', 'how does Z work', or before describing a capability you are not certain has shipped. Answering those from memory is how a product gets described that does not exist. Each entry says whether it may be stated in the present tense: `statable: false` means DO NOT claim it, no matter how reasonable it sounds. If nothing matches, Karwan does not claim it, so say you are not sure rather than inventing it. `body` is the canonical wording; prefer it to your own. This is product knowledge only, never the user's own data.",
+        "The published canon of what Karwan does now and what is planned. Call this BEFORE answering any question of the form 'does Karwan do X', 'can I use it for Y', 'how does Z work', or before describing a capability you are not certain has shipped. Answering those from memory is how a product gets described that does not exist. `statable: true` means the capability may be stated in the present tense. When `statable` is false because `blockedBy` is `not-live`, describe it only as planned and unavailable today. A stale-check entry must not be claimed. If nothing matches, Karwan does not claim it, so say you are not sure rather than inventing it. `body` is the canonical wording; prefer it to your own. This is product knowledge only, never the user's own data.",
       inputSchema: z.object({
         q: z
           .string()
@@ -852,6 +852,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             facts: facts.map((f) => ({
               id: f.id,
               title: f.title,
+              status: f.status,
               summary: f.summary,
               statable: isStatable(f),
               blockedBy: isStatable(f) ? null : f.blockedBy,
@@ -859,7 +860,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
               updated: f.updated,
               body: bodies.get(f.id) ?? null,
             })),
-            note: 'Use the canonical wording where it fits. Never state an entry whose `statable` is false, and never soften that into a maybe.',
+            note: 'Use the canonical wording where it fits. Present-tense capability claims require `statable: true`. An entry blocked by `not-live` may be described only as planned and unavailable today. Never claim a stale-check entry.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_product_facts failed');
