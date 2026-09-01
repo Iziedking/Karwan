@@ -73,7 +73,7 @@ export function AgentResearchCard() {
 
   return (
     <div
-      className="bg-[var(--lp-light)] border border-[var(--lp-border-light)] p-4 sm:p-5"
+      className="h-full min-w-0 bg-[var(--lp-light)] border border-[var(--lp-border-light)] p-4 sm:p-5 flex flex-col"
       style={{
         borderTopLeftRadius: 14,
         borderTopRightRadius: 14,
@@ -114,7 +114,7 @@ export function AgentResearchCard() {
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-3 flex-wrap">
+      <div className="mt-auto pt-4 flex items-center gap-3 flex-wrap">
         <button
           type="button"
           onClick={onChargeClick}

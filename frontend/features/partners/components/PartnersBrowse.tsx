@@ -266,10 +266,11 @@ export function PartnersBrowse() {
 
         {filtered.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((partner) => (
+            {filtered.map((partner, index) => (
               <PartnerCard
                 key={partner.address}
                 partner={partner}
+                position={index + 1}
                 copy={copy}
                 canOpenBusinessDeal={canOpenBusinessDeal}
                 isAuthenticated={auth.isAuthenticated}
@@ -322,12 +323,14 @@ function FilterButton({
 
 function PartnerCard({
   partner,
+  position,
   copy,
   canOpenBusinessDeal,
   isAuthenticated,
   businessAccount,
 }: {
   partner: Partner;
+  position: number;
   copy: Messages['partnersBrowse'];
   canOpenBusinessDeal: boolean;
   isAuthenticated: boolean;
@@ -345,62 +348,82 @@ function PartnerCard({
       : !businessAccount
         ? copy.registerBusiness
         : copy.pilotOnly;
+  const tradeMeta = [partner.sector, partner.region, partner.canSupply ? copy.supplies : null].filter(
+    (value): value is string => Boolean(value),
+  );
 
   return (
-    <article className="h-full">
-      <PageCard className="h-full">
-        <div className="flex h-full flex-col p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
+    <article className="h-[400px] sm:h-[430px]">
+      <PageCard className="h-full transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-[var(--lp-outline)]">
+        <div className="flex h-full min-h-0 flex-col p-5 sm:p-6">
+          <div className="flex items-center gap-2 mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <span aria-hidden className="h-1.5 w-1.5 shrink-0 bg-[var(--lp-accent)]" />
+            <span>[:{String(position).padStart(2, '0')}:]</span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
             <div className="min-w-0">
-              <h3 className="font-sans text-[20px] font-extrabold leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">
+              <h3 className="font-sans text-[22px] font-extrabold leading-[1.06] tracking-[-0.025em] text-[var(--lp-dark)] sm:text-[24px]">
                 {partner.name}
               </h3>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {partner.sector ? <Chip label={partner.sector} accent /> : null}
-                {partner.region ? <Chip label={partner.region} /> : null}
-                {partner.canSupply ? <Chip label={copy.supplies} /> : null}
-              </div>
             </div>
             <ReputationBadge address={partner.address} size="sm" withDetail />
           </div>
 
+          {tradeMeta.length > 0 ? (
+            <p className="mt-3 break-words mono text-[9px] font-semibold uppercase leading-[1.7] tracking-[0.12em] text-[var(--lp-text-sub)]">
+              [:{tradeMeta.join(' · ')}:]
+            </p>
+          ) : null}
+
+          <div
+            className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-y-auto pe-1 touch-pan-y focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+            role="region"
+            aria-label={partner.name}
+            tabIndex={0}
+            style={{ scrollbarWidth: 'thin' }}
+          >
           {partner.verified ? (
-            <div className="mt-4 border-s-[3px] border-[var(--color-positive)] bg-[var(--color-positive-soft)] px-3 py-2.5">
-              <p className="mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--color-positive)]">
-                {copy.identityVerified}
-              </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
-                {copy.identityNote}
-              </p>
+            <div className="border-y border-[var(--lp-border-light)] py-4">
+              <div className="border-s-2 border-[var(--lp-accent)] ps-4">
+                <p className="mono text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--lp-dark)]">
+                  {copy.identityVerified}
+                </p>
+                <p className="mt-1.5 max-w-[48ch] text-[12px] leading-[1.55] text-[var(--lp-text-sub)]">
+                  {copy.identityNote}
+                </p>
+              </div>
             </div>
           ) : null}
 
           {partner.primaryMarkets || partner.minOrderValue || partner.leadTimeDays || partner.certifications ? (
-            <dl className="mt-4 space-y-2.5 border-t border-[var(--lp-border-light)] pt-4">
-              {partner.primaryMarkets ? <CapRow label={copy.markets} value={partner.primaryMarkets} /> : null}
-              {partner.minOrderValue ? <CapRow label={copy.minimumOrder} value={partner.minOrderValue} /> : null}
+            <dl className={partner.verified ? 'mt-2' : 'border-t border-[var(--lp-border-light)]'}>
+              {partner.primaryMarkets ? <CapRow index={1} label={copy.markets} value={partner.primaryMarkets} /> : null}
+              {partner.minOrderValue ? <CapRow index={2} label={copy.minimumOrder} value={partner.minOrderValue} /> : null}
               {partner.leadTimeDays ? (
                 <CapRow
+                  index={3}
                   label={copy.leadTime}
                   value={copy.leadTimeTemplate.replace('{n}', String(partner.leadTimeDays))}
                 />
               ) : null}
               {partner.certifications ? (
-                <CapRow label={copy.listedCertifications} value={partner.certifications} />
+                <CapRow index={4} label={copy.listedCertifications} value={partner.certifications} />
               ) : null}
             </dl>
           ) : null}
+          </div>
 
-          <div className="mt-auto flex flex-wrap items-center gap-3 pt-5">
+          <div className="mt-4 grid shrink-0 gap-2 border-t border-[var(--lp-border-light)] pt-4 min-[420px]:grid-cols-2">
             {primaryHref ? (
-              <Link href={primaryHref} className={buttonClasses()}>
+              <Link href={primaryHref} className={buttonClasses({ className: 'w-full justify-between' })}>
                 {primaryLabel}
                 <span aria-hidden>→</span>
               </Link>
             ) : null}
             <Link
               href={`/credit-passport/${partner.address}`}
-              className={buttonClasses({ variant: 'ghost' })}
+              className={buttonClasses({ variant: 'ghost', className: 'w-full justify-between' })}
             >
               {copy.viewTrustProfile}
               <span aria-hidden>↗</span>
@@ -412,24 +435,14 @@ function PartnerCard({
   );
 }
 
-function Chip({ label, accent }: { label: string; accent?: boolean }) {
+function CapRow({ index, label, value }: { index: number; label: string; value: string }) {
   return (
-    <span
-      className="mono text-[9px] font-bold uppercase tracking-[0.11em]"
-      style={{ color: accent ? 'var(--lp-dark)' : 'var(--lp-text-muted)' }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function CapRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[minmax(96px,auto)_minmax(0,1fr)] items-baseline gap-4">
-      <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-        {label}
+    <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] items-start gap-4 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
+      <dt className="flex min-w-0 items-baseline gap-2 mono text-[9px] uppercase leading-[1.5] tracking-[0.12em] text-[var(--lp-text-muted)]">
+        <span className="shrink-0 text-[var(--lp-accent-on-light)]">[:{String(index).padStart(2, '0')}]</span>
+        <span>{label}</span>
       </dt>
-      <dd className="min-w-0 text-end text-[13px] leading-relaxed text-[var(--lp-dark)]">{value}</dd>
+      <dd className="min-w-0 break-words text-end text-[13px] leading-[1.5] text-[var(--lp-dark)]">{value}</dd>
     </div>
   );
 }
@@ -438,10 +451,12 @@ function PartnersSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((index) => (
-        <div key={index} className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
-          <Skeleton className="h-6 w-2/3" />
+        <div key={index} className="h-[400px] rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:h-[430px]">
+          <Skeleton className="h-2.5 w-12" />
+          <Skeleton className="mt-5 h-7 w-2/3" />
           <Skeleton className="mt-3 h-3 w-1/2" />
-          <SkeletonText lines={3} className="mt-6" />
+          <SkeletonText lines={2} className="mt-7 border-y border-[var(--lp-border-light)] py-4" />
+          <SkeletonText lines={3} className="mt-4" />
           <Skeleton className="mt-6 h-11 w-full" />
         </div>
       ))}

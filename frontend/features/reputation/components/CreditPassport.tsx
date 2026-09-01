@@ -10,30 +10,17 @@ import {
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
 import { skillDateLabel, skillLabel } from '../skillCredentials';
+import { tierLadderPosition } from '../tierProgress';
 import { tierProgress, tierProgressLabel, type Tier as ProgressTier } from '../tierProgressLabel';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
+import { BackButton } from '@/shared/components/BackButton';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
 
-// Composite tier bands on the 0-1000 scale. MUST mirror the backend's
-// TIER_BREAKPOINTS in backend/src/reputation/config.ts (NEW <200, COLD 200-399,
-// ESTABLISHED 400-599, STRONG 600-799, ELITE >=800). Earlier this used a 250 /
-// 450 / 650 / 850 scheme that drifted from the backend after the v2 engine
-// landed, which made the "Next tier · +N" hint compute against a different
-// ladder than the pill rendered against, e.g. score 407 read as ESTABLISHED
-// (backend rule >=400) yet the hint said "Established · +43" (frontend rule
-// >=450). The two sides MUST stay in lockstep; if you change the backend
-// breakpoints, change these too.
-const TIER_BANDS: { tier: CompositeTier; start: number }[] = [
-  { tier: 'NEW', start: 0 },
-  { tier: 'COLD', start: 200 },
-  { tier: 'ESTABLISHED', start: 400 },
-  { tier: 'STRONG', start: 600 },
-  { tier: 'ELITE', start: 800 },
-];
+const TIER_LADDER: CompositeTier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
 
 /// Ordered list of the composite term keys the engine returns. The visible
 /// label for each comes from i18n at render time; the order here drives the
@@ -205,7 +192,6 @@ export function CreditPassport({ address }: { address: string }) {
     dealsToNextTier: rep.dealsToNextTier ?? null,
   });
   const progressLabel = tierProgressLabel(progress, tp, (t) => TIER_LABEL[t]);
-  const progressTier = progress.kind === 'top' || progress.kind === 'unknown' ? null : progress.nextTier;
 
   // Tenure in days. Pulled from the registration timestamp the engine uses for
   // the tenure factor. Surfaced as a stat so viewers see how long this wallet
@@ -299,16 +285,14 @@ export function CreditPassport({ address }: { address: string }) {
                 </p>
                 <p
                   className="mt-0.5 mono text-[12px] tabular-nums"
-                  style={{
-                    color: progressTier ? TIER_HUE[progressTier] : 'var(--color-ink-dim)',
-                  }}
+                  style={{ color: 'var(--color-ink)' }}
                 >
                   {progressLabel}
                 </p>
               </div>
             )}
           </div>
-          <ScoreBand score={score} tier={tier} />
+          <ScoreBand tier={tier} />
         </div>
       </section>
 
@@ -471,7 +455,12 @@ export function CreditPassport({ address }: { address: string }) {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-[70vh] px-5 py-12 md:py-16">
-      <div className="mx-auto w-full max-w-[680px]">{children}</div>
+      <div className="mx-auto w-full max-w-[680px]">
+        <div className="mb-7">
+          <BackButton tone="adaptive" showOnPublic fallbackHref="/partners" />
+        </div>
+        {children}
+      </div>
     </main>
   );
 }
@@ -488,9 +477,10 @@ function TierPill({ tier }: { tier: CompositeTier }) {
   );
 }
 
-/// 0-1000 bar with the tier-band boundaries marked and the score positioned.
-function ScoreBand({ score, tier }: { score: number; tier: CompositeTier }) {
-  const pct = Math.max(0, Math.min(100, (score / 1000) * 100));
+/// Earned-tier ladder. The score remains visible above, while this line stays
+/// on the gated tier until the backend awards the next one.
+function ScoreBand({ tier }: { tier: CompositeTier }) {
+  const pct = tierLadderPosition(tier as ProgressTier);
   return (
     <div className="mt-5">
       <div className="relative h-2 rounded-full" style={{ background: 'var(--color-surface-2)' }}>
@@ -498,18 +488,28 @@ function ScoreBand({ score, tier }: { score: number; tier: CompositeTier }) {
           className="absolute inset-y-0 start-0 rounded-full"
           style={{ width: `${pct}%`, background: TIER_HUE[tier] }}
         />
-        {TIER_BANDS.slice(1).map((b) => (
+        <span
+          aria-hidden
+          className="absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full [[dir=rtl]_&]:translate-x-1/2"
+          style={{ insetInlineStart: `${pct}%`, background: TIER_HUE[tier] }}
+        />
+        {TIER_LADDER.slice(0, -1).map((band, index) => (
           <span
-            key={b.tier}
+            key={band}
             aria-hidden
             className="absolute top-1/2 -translate-y-1/2 w-px h-3"
-            style={{ insetInlineStart: `${(b.start / 1000) * 100}%`, background: 'var(--color-line-strong)' }}
+            style={{ insetInlineStart: `${12.5 + index * 25}%`, background: 'var(--color-line-strong)' }}
           />
         ))}
       </div>
-      <div className="mt-2 flex justify-between mono text-[9px] uppercase tracking-[0.1em] text-[var(--color-ink-faint)]">
-        {TIER_BANDS.map((b) => (
-          <span key={b.tier}>{TIER_LABEL[b.tier]}</span>
+      <div className="mt-2 grid grid-cols-5 mono text-[7px] uppercase tracking-[0.04em] text-[var(--color-ink-faint)] sm:text-[9px] sm:tracking-[0.1em]">
+        {TIER_LADDER.map((band, index) => (
+          <span
+            key={band}
+            className={index === 0 ? 'text-start' : index === TIER_LADDER.length - 1 ? 'text-end' : 'text-center'}
+          >
+            {TIER_LABEL[band]}
+          </span>
         ))}
       </div>
     </div>
