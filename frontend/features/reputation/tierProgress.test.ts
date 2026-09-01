@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { TIER_START, tierProgress } from './tierProgress';
+import { TIER_START, tierLadderPosition, tierProgress } from './tierProgress';
+
+test('the passport ladder stays on the tier actually held', () => {
+  assert.equal(tierLadderPosition('NEW'), 0);
+  assert.equal(tierLadderPosition('COLD'), 25);
+  assert.equal(tierLadderPosition('ESTABLISHED'), 50);
+  assert.equal(tierLadderPosition('STRONG'), 75);
+  assert.equal(tierLadderPosition('ELITE'), 100);
+  assert.equal(tierLadderPosition('PLATINUM' as never), 0);
+});
 
 test('the next tier is the rung above the one HELD, never the next score band', () => {
   // The reported bug, with its real numbers: 711 points, held at ESTABLISHED

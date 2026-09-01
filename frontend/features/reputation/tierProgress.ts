@@ -22,6 +22,17 @@ export type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
 
 export const TIER_ORDER: Tier[] = ['NEW', 'COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
 
+/// The passport ladder shows the tier the account has earned, not the raw
+/// score that feeds the model. A score can clear several point thresholds while
+/// a deal-count or counterparty-concentration gate keeps the account on an
+/// earlier tier. Keeping this discrete prevents the line from claiming a tier
+/// the badge and policy have not awarded.
+export function tierLadderPosition(tier: Tier): number {
+  const index = TIER_ORDER.indexOf(tier);
+  if (index < 0) return 0;
+  return (index / (TIER_ORDER.length - 1)) * 100;
+}
+
 /// Must stay in lockstep with TIER_BREAKPOINTS in
 /// backend/src/reputation/config.ts. The backend pins these with a test; this
 /// side is pinned by tierProgress.test.ts.

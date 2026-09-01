@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type SellerActiveBid } from '@/core/api';
-import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
@@ -166,9 +165,6 @@ function SellerPageInner() {
           the dead end where a seller profile is saved but no agent was ever
           provisioned, so the seller agent silently never bids. */}
       <ActivateAgentsNotice role="seller" tone="light" />
-
-      {/* DEALS AWAITING ACTION. direct deals needing accept/release. */}
-      <PendingDealsBand tone="light" />
 
       {/* HOW IT WORKS. First-run orientation only: once the seller has activated
           agents they know the flow, so the working desk leads instead of a
