@@ -39,6 +39,19 @@ export function chainErrorMessage(
     return copy.declined;
   }
 
+  // Some wallet RPC defaults point at dRPC endpoints whose free plan does not
+  // serve Sepolia or Polygon Amoy. The nested error can also contain fee/nonce
+  // language from the transaction the wallet was preparing, so classify the
+  // provider rejection before those branches. This is an unavailable RPC, not
+  // evidence that the user's USDC balance is too small.
+  if (
+    raw.includes('rpc request failed') ||
+    raw.includes('chain is not available on free plan') ||
+    raw.includes('drpc.org')
+  ) {
+    return copy.network;
+  }
+
   // Gateway deducts a forwarding fee from the spend, so the full pooled balance
   // is never quite spendable. This is the error behind "Move max".
   if (

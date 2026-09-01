@@ -2725,6 +2725,7 @@ export const ar: Messages = {
     moving: 'جارٍ النقل',
     done: 'تم التمويل',
     failed: 'فشل التمويل.',
+    feePreparationFailed: 'تعذّر على Circle تجهيز رسوم التحويل. لم يتحرك شيء. حدّث الصفحة ثم أعد المحاولة.',
     availableTemplate: '{amount} مجمّعة وجاهزة.',
     shortTemplate: 'لديك {have} مجمّعة. هذا يتطلب {need}.',
   },

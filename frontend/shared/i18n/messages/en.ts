@@ -2495,6 +2495,7 @@ interface MessagesShape {
     moving: string;
     done: string;
     failed: string;
+    feePreparationFailed: string;
     availableTemplate: string;
     shortTemplate: string;
   };
@@ -7641,6 +7642,7 @@ export const en: MessagesShape = {
     moving: 'Moving',
     done: 'Funded',
     failed: 'Funding failed.',
+    feePreparationFailed: 'Circle could not prepare the transfer fee. Nothing moved. Refresh and try again.',
     availableTemplate: '{amount} pooled and ready.',
     shortTemplate: 'You have {have} pooled. This needs {need}.',
   },

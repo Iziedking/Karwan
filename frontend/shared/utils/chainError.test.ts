@@ -46,6 +46,14 @@ test('a real network failure still reads as a network failure', () => {
   assert.equal(chainErrorMessage(new Error('ECONNRESET'), copy, FALLBACK), copy.network);
 });
 
+test('an unavailable wallet RPC is never presented as a balance or fee problem', () => {
+  const rabby = new Error(
+    'RPC Request failed. URL: https://sepolia.drpc.org. Details: chain is not available on free plan. Insufficient total maxFee across intents.',
+  );
+  assert.equal(chainErrorMessage(rabby, copy, FALLBACK), copy.network);
+  assert.notEqual(chainErrorMessage(rabby, copy, FALLBACK), copy.feeHeadroom);
+});
+
 test('the other mappings are untouched', () => {
   const cases: Array<[string, string]> = [
     ['User rejected the request', copy.declined],
