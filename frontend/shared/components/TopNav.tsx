@@ -18,6 +18,8 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface } from '@/shared/utils/routes';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
+import type { UserProfile } from '@/core/api';
+import { useTheme } from '@/shared/hooks/useTheme';
 
 const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
@@ -34,10 +36,20 @@ export function TopNav() {
   const a11y = useTranslations().a11y;
   const pathname = usePathname();
   const t = useTranslations();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const {
+    address: authAddress,
+    email: authEmail,
+    isAuthenticated,
+    isLoading: authLoading,
+  } = useAuth();
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
-  const { profile } = useUserProfile();
+  const { profile, address: profileAddress } = useUserProfile();
+  const { theme, mounted: themeMounted } = useTheme();
+  // Keep the server/first client render on the compact overflow control so a
+  // dark preference never hydrates into the light-theme identity pill. Once
+  // the painted theme is known, the white theme gets the initials/X avatar.
+  const showLightMobileIdentity = themeMounted && theme === 'light';
   // Business and individual are two separate rails. A business sees B2B Trades
   // and the SME-rail home; an individual sees P2P Trades. The Financier desk is
   // shown to both (anyone can provide capital). Until the profile loads we treat
@@ -205,9 +217,18 @@ export function TopNav() {
                     isAuthenticated={isAuthenticated}
                     settingsActive={pathname.startsWith('/settings')}
                     profileActionCount={openDeals.actionCount}
+                    mobileTrigger={showLightMobileIdentity}
+                    profile={profile}
+                    identityName={profile?.displayName ?? authEmail?.split('@')[0] ?? ''}
+                    identityAddress={profileAddress ?? authAddress}
                   />
+                  <span className={cn(showLightMobileIdentity ? 'hidden' : 'inline-flex', 'md:hidden')}>
+                    <ConnectWalletButton />
+                  </span>
                 </div>
-                <ConnectWalletButton />
+                <span className="hidden md:inline-flex">
+                  <ConnectWalletButton />
+                </span>
                 <span className="hidden md:inline-flex">
                   <ProfileAvatar actionCount={openDeals.actionCount} />
                 </span>
@@ -352,16 +373,27 @@ function QuickControls({
   isAuthenticated,
   settingsActive,
   profileActionCount,
+  mobileTrigger = false,
+  profile,
+  identityName,
+  identityAddress,
 }: {
   isAuthenticated: boolean;
   settingsActive: boolean;
   profileActionCount: number;
+  mobileTrigger?: boolean;
+  profile?: UserProfile | null;
+  identityName?: string;
+  identityAddress?: string | null;
 }) {
   const t = useTranslations().nav;
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const [imageFailed, setImageFailed] = useState(false);
+  const xImage = !imageFailed ? profile?.xProfileImageUrl?.trim() : undefined;
+  const initials = getProfileInitials(identityName ?? '', identityAddress ?? null);
 
   // Close on any navigation. The outside-click handler below cannot do this:
   // the links are INSIDE the menu, so it ignores them, and routing is
@@ -387,26 +419,60 @@ function QuickControls({
     };
   }, [open]);
 
+  useEffect(() => {
+    setImageFailed(false);
+  }, [profile?.xProfileImageUrl]);
+
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={t.preferencesAria}
+        aria-label={mobileTrigger ? t.profile : t.preferencesAria}
         aria-expanded={open}
         aria-controls={menuId}
+        data-mobile-profile-trigger={mobileTrigger ? 'true' : undefined}
         className={cn(
-          'inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors',
+          'relative',
+          mobileTrigger
+            ? 'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-1.5 transition-colors'
+            : 'inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors',
+          open && 'z-[51]',
           open || settingsActive
             ? 'bg-[var(--color-surface-2)] text-[var(--color-ink)]'
             : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
+          mobileTrigger && 'border-[var(--color-line)]',
         )}
+        style={mobileTrigger ? { borderColor: 'var(--color-line-strong)' } : undefined}
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-          <circle cx="3" cy="8" r="1.35" />
-          <circle cx="8" cy="8" r="1.35" />
-          <circle cx="13" cy="8" r="1.35" />
-        </svg>
+        {mobileTrigger ? (
+          <>
+            <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] text-[11px] font-semibold tracking-[0.04em] text-[var(--color-ink)]">
+              {xImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={xImage}
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="size-8 object-cover"
+                  onError={() => setImageFailed(true)}
+                />
+              ) : (
+                initials
+              )}
+            </span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+            <circle cx="3" cy="8" r="1.35" />
+            <circle cx="8" cy="8" r="1.35" />
+            <circle cx="13" cy="8" r="1.35" />
+          </svg>
+        )}
       </button>
       {open && (
         <>
@@ -415,6 +481,7 @@ function QuickControls({
             data-preferences-dismiss-layer
             className="fixed inset-0 z-40 bg-black/10"
             onPointerDown={() => setOpen(false)}
+            onClick={() => setOpen(false)}
           />
           <div
             id={menuId}
@@ -558,6 +625,15 @@ function LaunchAppCTA() {
       </span>
     </Link>
   );
+}
+
+function getProfileInitials(name: string, address: string | null): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  const compact = name.replace(/[^\p{L}\p{N}]/gu, '');
+  if (compact.length >= 2) return compact.slice(0, 2).toUpperCase();
+  if (address) return address.replace(/^0x/i, '').slice(0, 2).toUpperCase();
+  return 'KW';
 }
 
 function Logo() {

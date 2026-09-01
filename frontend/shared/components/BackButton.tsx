@@ -33,7 +33,15 @@ function writeStack(stack: string[]): void {
   }
 }
 
-export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
+export function BackButton({
+  tone = 'dark',
+  showOnPublic = false,
+  fallbackHref = '/app',
+}: {
+  tone?: 'dark' | 'light' | 'adaptive';
+  showOnPublic?: boolean;
+  fallbackHref?: string;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
@@ -50,7 +58,7 @@ export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
 
   // Home is the root and landing renders its own chrome, so no back control on
   // either. Everywhere else the button shows.
-  if (isLandingRoute(pathname) || pathname === '/app') return null;
+  if ((isLandingRoute(pathname) && !showOnPublic) || pathname === '/app') return null;
 
   function goBack() {
     const stack = readStack();
@@ -64,7 +72,7 @@ export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
       router.push(target);
     } else {
       writeStack([]);
-      router.push('/app');
+      router.push(fallbackHref);
     }
   }
 
@@ -72,7 +80,9 @@ export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   // pages), light on the doc-style / financier surfaces. Style the button for
   // whichever it sits on so it never washes out.
   const toneCls =
-    tone === 'light'
+    tone === 'adaptive'
+      ? 'border-[var(--color-line-strong)] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:border-[var(--color-ink-faint)] hover:bg-[var(--color-surface-2)]'
+      : tone === 'light'
       ? 'border-[var(--lp-outline)] text-[var(--lp-dark)]/70 hover:text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)] hover:bg-black/[0.04]'
       : 'border-white/20 text-white/70 hover:text-white hover:border-white/40 hover:bg-white/5';
 
@@ -81,7 +91,6 @@ export function BackButton({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
       type="button"
       onClick={goBack}
       aria-label={t.nav.backAria}
-      title={t.nav.backAria}
       className={`group inline-flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-md border transition-colors shrink-0 ${toneCls}`}
     >
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>

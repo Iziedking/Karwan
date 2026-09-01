@@ -369,7 +369,7 @@ function FloatingActions() {
   const showTour = !!currentTour && !isNoTourRoute(pathname);
   /// Folds away in step with the assistant launcher, so the two never leave one
   /// of them sitting alone on top of a pager.
-  const clearance = useFloatingClearance();
+  const clearance = useFloatingClearance('start');
 
   // On mobile the labels are hidden and the pill collapses to an icon-only
   // round button so it stops covering hero copy at the bottom of the fold.
@@ -391,6 +391,7 @@ function FloatingActions() {
       type="button"
       onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
       data-float-launcher
+      data-float-side="start"
       className={`fixed bottom-24 start-4 md:bottom-5 md:start-5 ${pill}`}
       style={{ ...corner, ...floatingClearanceStyle(clearance) }}
       aria-label={`Take a guided tour: ${currentTour.label}`}

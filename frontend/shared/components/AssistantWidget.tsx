@@ -65,7 +65,7 @@ export function AssistantWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   /// Fold the launcher away while it would sit on top of a control.
-  const clearance = useFloatingClearance();
+  const clearance = useFloatingClearance('end');
   const [expanded, setExpanded] = useState(false);
   const auth = useAuth();
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -302,6 +302,7 @@ export function AssistantWidget() {
           }}
           aria-label={t.launcherAria}
           data-float-launcher
+          data-float-side="end"
           className="fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 md:end-5 md:bottom-5"
           style={{
             ...floatingClearanceStyle(clearance),
