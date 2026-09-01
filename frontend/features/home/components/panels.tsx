@@ -189,7 +189,7 @@ export function PanelContent({
       animate={
         reduce
           ? { opacity: 1 }
-          : { opacity: shown ? 1 : 0, y: shown ? 0 : 26, scale: shown ? 1 : 0.985 }
+          : { opacity: shown ? 1 : 0, y: shown ? 0 : 14 }
       }
       transition={{
         duration: reduce ? 0 : dur.slow,
@@ -206,10 +206,10 @@ export function PanelContent({
 
 /// The media side of a row: film, map, product cutout.
 ///
-/// Continuous rather than stepped, because the media is what the eye tracks
-/// while the thumb moves. It drifts against the scroll, sits still while its row
-/// owns the screen, and dims on the way out so the row arriving is the brighter
-/// of the two. Under reduced motion it is a still image at full strength.
+/// Continuous rather than stepped on desktop, because the media is what the eye
+/// tracks while the thumb moves. On phones the media stays still: removing the
+/// competing transform keeps a finger scroll calm and predictable. Under
+/// reduced motion it is a still image at full strength everywhere.
 ///
 /// Renders as the absolute fill of its parent, which must be positioned. Pass
 /// the image or video as the child exactly as it would be written inline.
@@ -230,6 +230,7 @@ export function PanelMedia({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  const isPanel = useIsPanelViewport();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start end', 'end start'],
@@ -240,7 +241,7 @@ export function PanelMedia({
 
   return (
     <div ref={ref} className={cn('lp-panel-media', className)} aria-hidden="true">
-      <motion.div className="absolute inset-0" style={reduce ? undefined : { y, scale, opacity }}>
+      <motion.div className="absolute inset-0" style={reduce || isPanel ? undefined : { y, scale, opacity }}>
         {children}
       </motion.div>
     </div>

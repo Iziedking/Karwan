@@ -88,6 +88,7 @@ export function WorkspaceBottomNav() {
 
   return (
     <nav
+      data-workspace-bottom-nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--lp-workspace-band)] px-2 pt-1.5 text-[var(--color-ink)] md:hidden"
       style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}
     >

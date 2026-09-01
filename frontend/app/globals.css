@@ -192,11 +192,13 @@ html[data-theme="dark"] {
    reserved for settlement state (never decorative). Hairlines via --rule-*.
    Co-exists with the legacy --lp-* tokens during the migration to the new system. */
 :root {
-  /* Karwan brand constants. The canvas is a brand color, not a tinted white.
-     Raised content uses a softened paper white so large cards do not glare. */
+  /* Karwan brand constants. The light workspace uses the approved neutral
+     canvas from the color review, with a softly lifted card surface for clear
+     separation without a pure-white glare. The landing page keeps its fixed
+     dark treatment through LANDING_NAV_VARS and dark bands. */
   --karwan-green: #AFC95B;
-  --karwan-canvas: #F4F4F1;
-  --karwan-card: #FCFCFA;
+  --karwan-canvas: #ECECE9;
+  --karwan-card: #F4F4F1;
 
   /* Surface */
   --surface-0: #0A0A0B;   /* app shell, hero, dark sections */
@@ -204,7 +206,7 @@ html[data-theme="dark"] {
   --surface-2: #1A1A1F;   /* deeper inset, inputs on dark */
   --paper-0:   var(--karwan-canvas); /* light workspace canvas */
   --paper-1:   var(--karwan-card);   /* raised cards on light */
-  --paper-2:   #ECECE7;   /* inset on light */
+  --paper-2:   #E3E3DF;   /* inset on light */
 
   /* Ink */
   --ink-0:     #FFFFFF;
@@ -436,6 +438,23 @@ html[data-theme="dark"] {
   letter-spacing: 0;
   font-size: 1em;
   line-height: 1.55;
+}
+.mobile-readable {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  /* Phone prose is smaller than the desktop write-up, but not compressed:
+     extra line-height and natural wrapping keep it calm inside narrow cards. */
+  .mobile-readable {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    letter-spacing: 0 !important;
+  }
+  .mobile-meta {
+    font-size: 9px !important;
+    line-height: 1.5 !important;
+    letter-spacing: 0.1em !important;
+  }
 }
 .serif { font-family: var(--font-serif); }
 
@@ -1200,6 +1219,32 @@ html[data-theme="dark"] .form-input::placeholder {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Profile deck cards stop where their content stops. The previous fixed 1040px
+   frame manufactured a large blank floor under shorter panels. A maximum keeps
+   genuinely tall panels usable without changing the approved card proportions:
+   only a panel that exceeds the available height becomes scrollable. */
+.profile-deck-card {
+  max-width: 100%;
+  max-height: min(1040px, calc(100dvh - 48px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+}
+@media (max-width: 767px) {
+  .profile-deck-card {
+    /* The document is the only vertical scroll owner on phones. A nested
+       viewport here trapped the thumb at its top and bottom edges, which made
+       the Open Deals sheet feel hooked. Desktop keeps bounded overflow for
+       unusually tall cards; mobile lets the page carry the full sheet. */
+    max-height: none;
+    overflow-x: clip;
+    overflow-y: visible;
+    overscroll-behavior: auto;
+  }
 }
 
 /* RainbowKit account modal: pulled higher on screen so it sits near the
