@@ -321,11 +321,11 @@ export function EventList({
                 className="absolute start-0 top-0 bottom-0 w-[3px]"
                 style={{ background: rail }}
               />
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-sans text-[14px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                <span className="mobile-readable font-sans text-[14px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
                   {text}
                 </span>
-                <span className="mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-[var(--lp-text-muted)] shrink-0">
+                <span className="mobile-meta shrink-0 mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-[var(--lp-text-muted)]">
                   {repeat > 1 && <span className="me-2">{`×${repeat}`}</span>}
                   {relativeTime(e.ts)}
                 </span>
@@ -341,7 +341,7 @@ export function EventList({
                       ? e.payload?.detail
                       : undefined;
                 return typeof sub === 'string' && sub ? (
-                  <p className="mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+                  <p className="mobile-readable mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
                     {sub}
                   </p>
                 ) : null;
