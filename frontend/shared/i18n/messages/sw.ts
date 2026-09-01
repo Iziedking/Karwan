@@ -2725,6 +2725,7 @@ export const sw: Messages = {
     moving: 'Inahamisha',
     done: 'Imewekwa',
     failed: 'Kufadhili kumeshindwa.',
+    feePreparationFailed: 'Circle haikuweza kuandaa ada ya uhamisho. Hakuna kilichohamishwa. Onyesha upya kisha ujaribu tena.',
     availableTemplate: '{amount} imekusanywa na iko tayari.',
     shortTemplate: 'Una {have} iliyokusanywa. Hii inahitaji {need}.',
   },

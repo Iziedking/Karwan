@@ -2725,6 +2725,7 @@ export const hi: Messages = {
     moving: 'भेजा जा रहा है',
     done: 'फंड हो गया',
     failed: 'फंडिंग विफल।',
+    feePreparationFailed: 'Circle ट्रांसफ़र शुल्क तैयार नहीं कर सका। कुछ भी नहीं हुआ। रीफ़्रेश करके फिर प्रयास करें।',
     availableTemplate: '{amount} पूल में तैयार है।',
     shortTemplate: 'आपके पास {have} पूल में है। इसके लिए {need} चाहिए।',
   },

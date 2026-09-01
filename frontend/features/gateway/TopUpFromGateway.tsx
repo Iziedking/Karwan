@@ -5,8 +5,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
 import { useGatewayBalance } from './useGatewayBalance';
 import { gatewaySpend, openGatewayRail } from './lib';
-import { chainErrorMessage } from '@/shared/utils/chainError';
 import { GatewayProgress, type StepMap } from './GatewayProgress';
+import { gatewayTopUpErrorPresentation } from './errorPresentation';
 
 /// Fund an Arc address straight from the pooled Gateway balance. One signature,
 /// no gas on any chain, and the recipient can be a Circle agent SCA because
@@ -72,7 +72,18 @@ export function TopUpFromGateway({
       onFunded?.();
     } catch (err) {
       setPhase('error');
-      setError(chainErrorMessage(err, errCopy, t.failed));
+      const failure = gatewayTopUpErrorPresentation({
+        err,
+        confirmed,
+        amount: value,
+        chainCopy: errCopy,
+        fallback: t.failed,
+        feePreparationFailed: t.feePreparationFailed,
+      });
+      setError(failure.message);
+      // A failed estimate can race Gateway's indexed balance. Refresh the
+      // read-side figure, but never resubmit or open another wallet prompt.
+      if (failure.refreshBalance) await refresh();
     }
   }
 

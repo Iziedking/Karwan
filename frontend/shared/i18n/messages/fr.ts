@@ -2725,6 +2725,7 @@ export const fr: Messages = {
     moving: 'Transfert',
     done: 'Financé',
     failed: 'Le financement a échoué.',
+    feePreparationFailed: "Circle n’a pas pu préparer les frais du transfert. Rien n’a bougé. Actualisez puis réessayez.",
     availableTemplate: '{amount} groupés et prêts.',
     shortTemplate: 'Vous avez {have} groupés. Il en faut {need}.',
   },
