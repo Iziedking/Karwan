@@ -1,6 +1,6 @@
 {
-  "canonVersion": "0.1.0",
-  "canonUpdated": "2026-08-05",
+  "canonVersion": "0.2.0",
+  "canonUpdated": "2026-09-01",
   "docs": [
     {
       "id": "brand-colour",
@@ -177,6 +177,26 @@
       "body": "The supplier asks to be paid early, naming a floor if they want one. Financiers\nthen bid a discount against the supplier's reputation tier, and the supplier\naccepts one or ignores them all.\n\nNothing reaches a financier until that request exists. An invoice is never listed\nfor funding on the strength of the supplier having opened a deal, because that\nwould publish their counterparty, amount and timing to every approved financier\nwithout anybody asking to be funded.\n\nOffers are priced against what the escrow can still pay, not the invoice face.\nFace includes the platform fee and every tranche already released, and the\nfinancier is only ever repaid out of what is left. On settlement the escrow pays\nthe financier ahead of the supplier, so repayment is not something anyone chases."
     },
     {
+      "id": "local-payout-roadmap",
+      "title": "Local payout corridors",
+      "status": "roadmap",
+      "updated": "2026-09-01",
+      "tags": [
+        "roadmap",
+        "payout",
+        "local-currency",
+        "cross-border"
+      ],
+      "path": "public/product/local-payout-roadmap.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/roadmap#local-payout-corridors",
+          "date": "2026-09-01"
+        }
+      ],
+      "body": "Local bank payout corridors are planned and are not live in the current Arc\nTestnet release. A local trade can be created today, but its present settlement\nuses test USDC.\n\nKarwan plans to keep USDC as the cross-border settlement layer while approved\npayout infrastructure converts to local currency. Each corridor must pass\navailability, compliance, recipient, fee, foreign-exchange, reconciliation,\nrefund and support gates before launch."
+    },
+    {
       "id": "milestone-escrow",
       "title": "Milestone escrow",
       "status": "live",
@@ -193,6 +213,26 @@
         }
       ],
       "body": "A deal splits into two to five milestones. The supplier marks a milestone\ndelivered, the buyer reviews and releases that portion.\n\nThe final milestone always needs an explicit buyer click and never releases on a\ntimer. That is the buyer protection the rest of the product rests on, and it is\nenforced in the contract rather than in the interface.\n\nA missed deadline lets the buyer reclaim, and the miss lands on the supplier's\nrecord. A cancel or extension both sides agree to carries no penalty and refunds\nin full. The platform fee is 1.5 percent of the deal, split evenly between the\ntwo sides."
+    },
+    {
+      "id": "open-trade-finance-roadmap",
+      "title": "Open trade-finance market",
+      "status": "roadmap",
+      "updated": "2026-09-01",
+      "tags": [
+        "roadmap",
+        "finance",
+        "invoice",
+        "purchase-order"
+      ],
+      "path": "public/product/open-trade-finance-roadmap.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/roadmap#open-trade-finance",
+          "date": "2026-09-01"
+        }
+      ],
+      "body": "A broader quote market for eligible Karwan-originated receivables and purchase\norders is planned. Invoice factoring, purchase-order financing and the financier\ndesk exist in the current testnet build, while the broader open market does not.\n\nThe supplier will compare the advance, repayment, spread, expiry, recourse and\nconcentration controls, then choose whether to accept. Karwan does not finance\narbitrary outside invoices and does not guarantee an advance."
     },
     {
       "id": "po-financing",
@@ -247,21 +287,44 @@
       "body": "The review window is not one fixed number.\n\nIt grows with the size of the deal and shrinks as two parties build a settled\nhistory together. On a goods deal it cannot expire while the shipment is still in\ntransit, and agreed Net terms hold it open for the full term. Marking goods\ndelivered means dispatched, not arrived.\n\nThe same window governs the unattended release and the seller's own claim. When\nthose two disagreed, the protection was one button wide: a Net 30 deal held off\nthe automatic release for thirty days while the seller could force the payout on\nday one.\n\nNothing in the window keys off quality. The contract cannot observe whether the\nwork was any good, and a timer that pretended to would be a slower way of\nguessing."
     },
     {
+      "id": "trade-anywhere-roadmap",
+      "title": "Trade Anywhere browser companion",
+      "status": "roadmap",
+      "updated": "2026-09-01",
+      "tags": [
+        "roadmap",
+        "browser-companion",
+        "trade-entry",
+        "x"
+      ],
+      "path": "public/product/trade-anywhere-roadmap.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/roadmap#trade-anywhere",
+          "date": "2026-09-01"
+        }
+      ],
+      "body": "A user-invoked browser companion for starting a protected trade beside a\nsupported website is planned and is not live in the current Arc Testnet release.\n\nTrade Anywhere will create a user-approved trade draft and secure invite, with X\nas the first focused surface. The counterparty will be able to review, counter or\naccept through normal Karwan web without installing the companion.\n\nIt will not scrape private messages, inject social actions, post, follow, like,\nreply or send messages for the user."
+    },
+    {
       "id": "what-karwan-is",
       "title": "What Karwan is",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-09-01",
       "tags": [
-        "overview"
+        "overview",
+        "market",
+        "local-trade",
+        "cross-border"
       ],
       "path": "public/product/what-karwan-is.md",
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-01"
         }
       ],
-      "body": "Karwan is a settlement and credit layer for cross-border SME trade. Money sits in\nmilestone escrow and releases against delivery. Every settled deal writes to a\ncredit record that belongs to the business and travels with it, so a supplier\nfinishes their first shipment with cash in hand and a credit file a financier can\nread.\n\nIt runs on Arc, where USDC is the gas token, so a business never buys a second\nasset to move its own money.\n\nThe escrow underneath does not care who is trading. It is the same whether a\nsupplier in Karachi ships cotton to a wholesaler in Dubai or a designer in Lagos\nsells a logo to a buyer in Berlin. Two parties agree, the money waits, the work\nlands, the money moves. What changes is the surface on top: SME Trades carries\ninvoice factoring, purchase-order financing and the credit passport, while P2P\nTrades is the same escrow without the trade-finance machinery."
+      "body": "Karwan is an open market for secure local and cross-border trade. People and\nbusinesses can buy or sell services, goods, supplies and eligible business\norders. A trade may be local, with both parties in the same country, or\ncross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Browser capture, mainnet settlement and local bank payout are\nplanned expansion, not current capabilities."
     }
   ],
   "facts": [
@@ -506,6 +569,31 @@
       "path": "public/product/invoice-factoring.md"
     },
     {
+      "id": "local-payout-roadmap",
+      "title": "Local payout corridors",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "roadmap",
+        "payout",
+        "local-currency",
+        "cross-border"
+      ],
+      "summary": "Local bank payout corridors are planned and are not live in the current Arc Testnet release. A local trade can be created today, but its present settlement uses test USDC.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/roadmap#local-payout-corridors",
+          "date": "2026-09-01"
+        }
+      ],
+      "check": null,
+      "updated": "2026-09-01",
+      "path": "public/product/local-payout-roadmap.md"
+    },
+    {
       "id": "milestone-escrow",
       "title": "Milestone escrow",
       "status": "live",
@@ -531,6 +619,31 @@
       },
       "updated": "2026-07-27",
       "path": "public/product/milestone-escrow.md"
+    },
+    {
+      "id": "open-trade-finance-roadmap",
+      "title": "Open trade-finance market",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "roadmap",
+        "finance",
+        "invoice",
+        "purchase-order"
+      ],
+      "summary": "A broader quote market for eligible Karwan-originated receivables and purchase orders is planned. Invoice factoring, purchase-order financing and the financier desk exist in the current testnet build, while the broader open market does not.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/roadmap#open-trade-finance",
+          "date": "2026-09-01"
+        }
+      ],
+      "check": null,
+      "updated": "2026-09-01",
+      "path": "public/product/open-trade-finance-roadmap.md"
     },
     {
       "id": "po-financing",
@@ -612,6 +725,31 @@
       "path": "public/product/release-timing.md"
     },
     {
+      "id": "trade-anywhere-roadmap",
+      "title": "Trade Anywhere browser companion",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "roadmap",
+        "browser-companion",
+        "trade-entry",
+        "x"
+      ],
+      "summary": "A user-invoked browser companion for starting a protected trade beside a supported website is planned and is not live in the current Arc Testnet release.",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs/roadmap#trade-anywhere",
+          "date": "2026-09-01"
+        }
+      ],
+      "check": null,
+      "updated": "2026-09-01",
+      "path": "public/product/trade-anywhere-roadmap.md"
+    },
+    {
       "id": "what-karwan-is",
       "title": "What Karwan is",
       "status": "live",
@@ -620,17 +758,20 @@
       "capability": false,
       "audience": "all",
       "tags": [
-        "overview"
+        "overview",
+        "market",
+        "local-trade",
+        "cross-border"
       ],
-      "summary": "Karwan is a settlement and credit layer for cross-border SME trade. Money sits in milestone escrow and releases against delivery. Every settled deal writes to a credit record that belongs to the business and travels with it, so a supplier finishes their first shipment with cash in hand and a credit file a financier can read.",
+      "summary": "Karwan is an open market for secure local and cross-border trade. People and businesses can buy or sell services, goods, supplies and eligible business orders. A trade may be local, with both parties in the same country, or cross-border, with parties in different countries.",
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-01"
         }
       ],
       "check": null,
-      "updated": "2026-07-27",
+      "updated": "2026-09-01",
       "path": "public/product/what-karwan-is.md"
     }
   ]
