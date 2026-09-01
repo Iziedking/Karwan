@@ -188,7 +188,7 @@ export function MyMoneyLedger({
               <li
                 key={item.id}
                 data-ledger-status={item.status}
-                className="group relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 ps-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-within:bg-[var(--lp-light)]"
+                className="group relative py-4 ps-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-within:bg-[var(--lp-light)] sm:py-3"
               >
                 <span
                   aria-hidden
@@ -206,63 +206,65 @@ export function MyMoneyLedger({
                           : 'var(--lp-text-muted)',
                   }}
                 />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] leading-snug text-[var(--lp-dark)]">{lineFor(item, t.text)}</p>
-                  <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    {when(item.ts, t.justNow)}
-                    {item.status !== 'done' && (
-                      <>
-                        {' · '}
-                        <span
-                          className="inline-flex items-center gap-1.5"
-                          style={{ color: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending }}
-                        >
+                <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-x-4">
+                  <div className="min-w-0">
+                    <p className="mobile-readable max-w-[34ch] text-[14px] leading-snug text-[var(--lp-dark)] sm:max-w-none">
+                      {lineFor(item, t.text)}
+                    </p>
+                    <p className="mobile-meta mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                      {when(item.ts, t.justNow)}
+                      {item.status !== 'done' && (
+                        <>
+                          {' · '}
                           <span
-                            aria-hidden
-                            className={`inline-block size-1.5 shrink-0 rounded-full ${
-                              item.status === 'pending' ? 'motion-safe:animate-pulse motion-reduce:animate-none' : ''
-                            }`}
-                            style={{
-                              background: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending,
-                            }}
-                          />
-                          {item.status === 'failed' ? t.failed : t.pending}
-                        </span>
-                      </>
-                    )}
-                    {repeat > 1 && (
-                      <>
-                        {' · '}
-                        <span className="tabular-nums">
-                          {t.repeated.replace('{n}', String(repeat))}
-                        </span>
-                      </>
-                    )}
-                  </p>
+                            className="inline-flex items-center gap-1.5"
+                            style={{ color: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending }}
+                          >
+                            <span
+                              aria-hidden
+                              className={`inline-block size-1.5 shrink-0 rounded-full ${
+                                item.status === 'pending' ? 'motion-safe:animate-pulse motion-reduce:animate-none' : ''
+                              }`}
+                              style={{
+                                background: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending,
+                              }}
+                            />
+                            {item.status === 'failed' ? t.failed : t.pending}
+                          </span>
+                        </>
+                      )}
+                      {repeat > 1 && (
+                        <>
+                          {' · '}
+                          <span className="tabular-nums">
+                            {t.repeated.replace('{n}', String(repeat))}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  {/* On a phone the amount gets its own line instead of taking
+                      half the width from the movement sentence. Desktop keeps
+                      the familiar right-aligned register column. */}
+                  {(() => {
+                    const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
+                    if (!amount) return null;
+                    return (
+                      <span
+                        className="justify-self-start whitespace-nowrap mono text-[12px] font-semibold tabular-nums tracking-[0.02em] sm:justify-self-end"
+                        style={{
+                          color:
+                            ledgerDirection(item.kind) === 'in'
+                              ? 'var(--lp-accent)'
+                              : 'var(--lp-dark)',
+                        }}
+                      >
+                        {amount}
+                      </span>
+                    );
+                  })()}
                 </div>
-                {/* The amount, on the row. It was only ever on the receipt, so
-                    the list of everything that happened to your money never
-                    showed how much: "Released milestone 2 on deal 0x…" and a
-                    timestamp. Signed by direction, because one list holds both
-                    money in and money out. */}
-                {(() => {
-                  const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
-                  if (!amount) return null;
-                  return (
-                    <span
-                      className="shrink-0 whitespace-nowrap mono text-[12px] font-semibold tabular-nums tracking-[0.02em]"
-                      style={{
-                        color:
-                          ledgerDirection(item.kind) === 'in'
-                            ? 'var(--lp-accent)'
-                            : 'var(--lp-dark)',
-                      }}
-                    >
-                      {amount}
-                    </span>
-                  );
-                })()}
-                <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-x-3 gap-y-1 sm:w-auto sm:justify-end sm:gap-1">
+                <div className="mt-2 flex w-full flex-wrap items-center justify-start gap-x-3 border-t border-[var(--lp-border-light)] pt-1 sm:mt-1 sm:justify-end sm:gap-x-2 sm:border-0 sm:pt-0">
                   {href && (
                     <a
                       href={href}
@@ -288,7 +290,7 @@ export function MyMoneyLedger({
                         // error, which is the whole reason it exists. It is 18
                         // mono characters, so it fits on its own line in the
                         // wrapping row rather than fitting inside half of one.
-                        className="inline-flex min-h-11 shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] whitespace-nowrap text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                        className="mobile-meta inline-flex min-h-11 shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] whitespace-nowrap text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                       >
                         <span className="text-start">{reference}</span>
                         <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
@@ -310,7 +312,7 @@ export function MyMoneyLedger({
       )}
 
       {rows.length > PAGE_SIZE && (
-        <nav className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3" aria-label={translations.activity.view.pagerAria}>
+        <nav data-floating-avoid className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-3" aria-label={translations.activity.view.pagerAria}>
           <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
             {translations.activity.view.countRange
               .replace('{start}', String(pageStart + 1))

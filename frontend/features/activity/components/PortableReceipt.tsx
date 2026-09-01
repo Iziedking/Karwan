@@ -148,7 +148,7 @@ export function PortableReceipt({
             </div>
           </div>
 
-          <p className="mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{readableMovementText(item.summary)}</p>
+          <p className="mobile-readable mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{readableMovementText(item.summary)}</p>
 
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             {reference || !transaction ? (
@@ -171,7 +171,7 @@ export function PortableReceipt({
           {/* Why there is no Karwan reference, as a footnote rather than as the
               value of the field that should hold one. */}
           {!reference && (
-            <p className="mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
+            <p className="mobile-readable mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
               {copy.receiptHistorical}
             </p>
           )}
@@ -195,7 +195,7 @@ export function PortableReceipt({
               where the watermark sits, so the two crossed and read as a
               rendering fault. The note is the last thing on the receipt; it does
               not need a line to say so. */}
-          <p className="mt-5 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="mobile-readable mt-5 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
             {copy.receiptSharedNote}
           </p>
         </article>

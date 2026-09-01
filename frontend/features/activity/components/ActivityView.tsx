@@ -387,6 +387,7 @@ function Pager({
 
   return (
     <nav
+      data-floating-avoid
       aria-label={t.pagerAria}
       className="flex flex-wrap items-center justify-center gap-1.5 pt-4"
     >
