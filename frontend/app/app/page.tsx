@@ -209,7 +209,14 @@ export default function AppHome() {
       <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <MigrationBanner />
       {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
+      <Band
+        tone="dark"
+        overlay={<GridOverlay />}
+        // Keep the first action band in view on the initial workspace paint.
+        // The hero still has editorial breathing room, but its lower rail no
+        // longer pushes `[:WHERE TO START:]` below the fold.
+        className="!pb-[clamp(24px,4vw,56px)]"
+      >
         <div className="max-w-5xl">
           <div className="min-w-0">
             <div className="fade-up">
