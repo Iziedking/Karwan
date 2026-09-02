@@ -1228,6 +1228,12 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   // after a restart. The bid handler short-circuits on `state.expired`, so this
   // never re-opens the auction; it just keeps the snapshot available for view.
   const isExpired = !!brief?.expiredAt;
+  // A managed deal is persisted after accept + escrow funding. On a backend
+  // restart the in-memory jobs map is rebuilt from JobPosted, so carry that
+  // durable deal marker into the snapshot instead of reopening the auction (or
+  // rendering it as a terminal no-agreement state) while the chain is already
+  // in the accepted/funded lifecycle.
+  const recoveredEscrowFunded = !!existingDeal?.acceptedAt;
   const state: JobState = {
     jobId: args.jobId,
     buyer,
@@ -1255,10 +1261,10 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
     candidateQueue: [],
     triedSellers: new Set(),
     lastSellerCounterBySeller: new Map(),
-    finalized: !!negotiationEndedAt,
+    finalized: !!negotiationEndedAt || recoveredEscrowFunded,
     negotiationEndedAt,
     negotiationEndReason,
-    escrowFunded: false,
+    escrowFunded: recoveredEscrowFunded,
     expired: isExpired,
     expiredAt: brief?.expiredAt,
     counterScheduleVersion: 0,
