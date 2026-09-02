@@ -5,7 +5,6 @@ import type { UserProfile } from '@/core/api';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
-import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import { PendingDealsBand } from '@/features/notifications/components/PendingDealsBand';
 import { OnChainProofBand } from '@/features/network/components/OnChainProofBand';
 import { LiveNetworkBand, type LiveNetworkStats } from '@/features/home/components/LiveNetworkBand';
@@ -137,8 +136,6 @@ export function BusinessHome({
         </div>
       </Band>
 
-      <MoneyStrip />
-
       <PendingDealsBand tone="light" />
 
       {/* TRADE ANALYTICS. the company's own book, with a cumulative-volume chart */}
@@ -258,17 +255,17 @@ function BookSummaryCard({
     <div
       className="relative overflow-hidden"
       style={{
-        background: 'var(--surface-1)',
-        color: 'var(--ink-1)',
-        border: '1px solid var(--rule-dark)',
+        background: 'var(--lp-workspace-raised)',
+        color: 'var(--lp-workspace-ink)',
+        border: '1px solid var(--lp-workspace-border)',
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
         borderBottomLeftRadius: 22,
         borderBottomRightRadius: 4,
       }}
     >
-      <div className="px-6 pt-6 pb-5 border-b border-[var(--rule-dark)] flex items-center justify-between">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-2)]">{eyebrow}</span>
+      <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)] flex items-center justify-between">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">{eyebrow}</span>
         <span
           aria-hidden
           className="w-[7px] h-[7px]"
@@ -278,7 +275,7 @@ function BookSummaryCard({
           }}
         />
       </div>
-      <div className="grid grid-cols-3 divide-x divide-[var(--rule-dark)]">
+      <div className="grid grid-cols-3 divide-x divide-[var(--lp-workspace-border)]">
         <CardStat label={labels.active} value={active} />
         <CardStat label={labels.settled} value={settled} />
         <CardStat label={labels.volume} value={volume} decimals={2} unit="USDC" />
@@ -300,12 +297,12 @@ function CardStat({
   }) {
   return (
     <div className="px-4 py-5">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-2)]">{label}</p>
-      <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--ink-1)]">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">{label}</p>
+      <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
         <AnimatedNumber value={value} decimals={decimals} />
       </p>
       {unit && (
-        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--ink-2)]">{unit}</p>
+        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)]">{unit}</p>
       )}
     </div>
   );
