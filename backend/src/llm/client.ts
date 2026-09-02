@@ -22,8 +22,8 @@ type LM = LanguageModelV3;
 // per configured Conduit key (free-tier accounts), tried in order. Sits LAST in
 // every chain — behind the funded Anthropic key AND OpenRouter — because it is a
 // free-tier third-party gateway with keys we've seen go dead. It is the deep
-// safety net that keeps agents on a live LLM only when both paid providers are
-// down. Empty when no Conduit key is set. NOTE: Conduit failures log as provider
+// provider for agent calls when the direct key is unavailable. Empty when no
+// Conduit key is set. NOTE: Conduit failures log as provider
 // 'anthropic.messages' (same wire protocol) — tell them apart by baseURL, not
 // the provider name.
 const conduitBaseUrl = `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1`;
@@ -32,8 +32,8 @@ const conduitModels: LM[] = conduitApiKeys().map((apiKey) =>
 );
 
 /// Wrap an ordered list of models so a call tries each in turn, dropping to the
-/// next on any error. The direct Anthropic key (Haiku) is primary, OpenRouter the
-/// paid fallback, and Conduit the last-resort safety net. withLlmRetry still
+/// next on any error. The direct Anthropic key (Haiku) is primary, Conduit is
+/// the compatible fallback, and OpenRouter is the final paid fallback. withLlmRetry still
 /// wraps each call site, so a total wipeout lands on the agent's deterministic
 /// path. The chain means one provider's outage keeps the agents on a live LLM
 /// instead of falling back to deterministic.
@@ -114,43 +114,43 @@ export async function runWithLlmFallback<
 }
 
 /// General agent-loop model for cheap, high-volume calls (intake parsing,
-/// keyword extraction). OpenRouter (Gemini) primary to keep cost down, direct
-/// Anthropic Haiku as the fallback: without it, an out-of-credit OpenRouter
-/// killed intake and keyword extraction outright while every other chain kept
-/// running — the cheapest calls were the only ones with no second provider.
+/// keyword extraction). Match the assistant's provider order: direct Anthropic
+/// first, then Conduit, then OpenRouter. This keeps agents alive when the
+/// OpenRouter budget is exhausted and the direct key is unavailable.
 export const llmModelCandidates: LM[] = [
-  openrouterModel,
   anthropic?.(config.FAST_LLM_MODEL) ?? null,
+  ...conduitModels,
+  openrouterModel,
 ].filter((m): m is LM => m !== null);
 
 export const llmModel = fallbackChain(llmModelCandidates);
 
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
-/// Direct Anthropic (Haiku) primary, OpenRouter paid fallback, Conduit last. The
-/// funded direct key goes first; Conduit trails both paid providers so a quality
-/// call only reaches the free gateway when both are down.
+/// Direct Anthropic (Haiku) primary, Conduit fallback, OpenRouter paid fallback.
+/// This matches the assistant route so agent calls remain available when the
+/// direct key is unavailable and OpenRouter credits are exhausted.
 export const verifierModel = fallbackChain([
   anthropic?.(config.VERIFIER_LLM_MODEL) ?? null,
-  openrouterModel,
   ...conduitModels,
+  openrouterModel,
 ]);
 
 /// Agent-to-agent negotiation loop (bid scoring, counters, accept/decline,
-/// near-miss reasoning) on both sides. Anthropic (Haiku) primary, OpenRouter
-/// paid fallback, Conduit last, so a live negotiation never drops to
+/// near-miss reasoning) on both sides. Anthropic (Haiku) primary, Conduit
+/// fallback, OpenRouter paid fallback, so a live negotiation never drops to
 /// deterministic just because one provider is down or out of credit.
 export const negotiationModel = fallbackChain([
   anthropic?.(config.NEGOTIATION_LLM_MODEL) ?? null,
-  openrouterModel,
   ...conduitModels,
+  openrouterModel,
 ]);
 
 /// Paid market-research synthesis (per-deal market read + demand score over Exa
-/// excerpts). Anthropic (Haiku) primary, OpenRouter paid fallback, Conduit last.
+/// excerpts). Anthropic (Haiku) primary, Conduit fallback, OpenRouter paid fallback.
 export const researchModel = fallbackChain([
   anthropic?.(config.RESEARCH_LLM_MODEL) ?? null,
-  openrouterModel,
   ...conduitModels,
+  openrouterModel,
 ]);
 
 /// Phase-C supervisor model. Deliberately NOT a fallbackChain: the supervisor
