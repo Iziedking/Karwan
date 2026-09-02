@@ -6,7 +6,7 @@
 ///
 /// PRIVACY: the prompt carries error context and recent events, which include
 /// deal data (parties, amounts, jobIds). It runs ONLY on `supervisorModel`
-/// (direct Anthropic, no Conduit / OpenRouter proxy). When the model is absent
+/// (direct Anthropic, no third-party proxy). When the model is absent
 /// (no ANTHROPIC_API_KEY) the supervisor is disabled and callers get null — they
 /// must NOT fall back to a proxy for this input.
 

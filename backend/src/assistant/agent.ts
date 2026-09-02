@@ -10,8 +10,8 @@
 /// session address (passed in by the route, never a client param) and reads only
 /// that address's data. get_deal_status additionally enforces deal party
 /// membership, so a jobId the user isn't part of returns an error, not data. The
-/// loop runs on `assistantAgentModel` (direct Anthropic ONLY, no Conduit /
-/// OpenRouter) because the prompt + tool results carry private account data. When
+/// loop runs on `assistantAgentModel` (direct Anthropic ONLY) because the prompt
+/// + tool results carry private account data. When
 /// that model is absent the caller falls back to the anonymous, knowledge-only
 /// provider chain, which never sees private data — never to a proxy for this input.
 
