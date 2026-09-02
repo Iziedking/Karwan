@@ -451,14 +451,14 @@ const envSchema = z.object({
   // Direct-Anthropic fallback for the cheap high-volume calls (intake parsing,
   // keyword extraction) when OpenRouter is down or out of credit. Without it
   // those calls had no second provider while every quality chain did.
-  FAST_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  FAST_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Model for release-gating checks where structured-output reliability matters
   // more than cost (the deliverable-meets-requirement verdict). Native Anthropic
   // id (not the OpenRouter `anthropic/...` form) since it runs through the
   // Anthropic provider on ANTHROPIC_API_KEY. Haiku follows the JSON schema far
   // more reliably than Flash Lite, at a tiny per-call cost (one check per
   // delivery). Falls back to the OpenRouter model when no Anthropic key is set.
-  VERIFIER_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  VERIFIER_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Model for the agent-to-agent negotiation loop (bid scoring + counter
   // suggestion, accept/decline/counter evaluation, near-miss reasoning) on both
   // the buyer and seller sides. The whole automation premise rests on these
@@ -466,18 +466,18 @@ const envSchema = z.object({
   // them often enough ("No object generated") to derail a negotiation, so this
   // runs natively on Haiku for reliable JSON. Falls back to the OpenRouter model
   // when no Anthropic key is set. Market research stays on the cheaper model.
-  NEGOTIATION_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  NEGOTIATION_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Model for paid market research synthesis (per-deal market read + demand
   // score). Native Anthropic Haiku for a sharper read that feeds negotiation.
   // Falls back to the OpenRouter model when no Anthropic key is set.
-  RESEARCH_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  RESEARCH_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Model for the Phase-C supervisor: the read-first "general intelligence" that
   // explains captured backend errors + the event context around them. Runs on
   // the DIRECT Anthropic key ONLY (no Conduit / OpenRouter hop) because its input
   // is aggregated deal data + errors, which must never reach a third-party proxy.
   // Haiku by default per the house rule; bump to a Sonnet id here if a sharper
   // supervisor is worth the cost. Supervisor is disabled when no Anthropic key.
-  SUPERVISOR_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  SUPERVISOR_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Proactive supervisor: when on, every captured backend error is auto-diagnosed
   // as it lands instead of only on-demand via POST /api/admin/diagnose. OFF by
   // default because each diagnosis is a paid Anthropic call â€” turn it on once the
@@ -501,7 +501,7 @@ const envSchema = z.object({
   // runs on the DIRECT Anthropic key ONLY â€” same privacy boundary as the
   // supervisor, never a Conduit / OpenRouter hop. Null (feature off) when no key.
   // The anonymous, knowledge-only /chat path keeps its provider chain.
-  ASSISTANT_AGENT_LLM_MODEL: z.string().default('claude-haiku-4-5'),
+  ASSISTANT_AGENT_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Conduit LLM gateway, Anthropic-compatible at its root. When set, the
   // assistant prefers it (Claude Sonnet) and falls back to the direct
   // ANTHROPIC_API_KEY. Auth is a Bearer token (sk-cdt-...). Same /v1/messages
