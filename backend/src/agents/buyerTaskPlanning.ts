@@ -85,6 +85,44 @@ export const BUYER_MATCH_BAND_SIZE = 25;
 export const BUYER_REPUTATION_TIEBREAK_EPSILON = 3;
 export const BUYER_MAX_CANDIDATES = 3;
 
+/// An over-cap fallback must earn its premium. A seller that is more expensive
+/// and no better on reputation or verified fit than a seller we already tried
+/// is economically dominated, so surfacing it as a near-miss would nudge the
+/// buyer toward a worse deal after a failed negotiation.
+export function isDominatedOverCapFallback(
+  candidate: Pick<BuyerTimerBidSnapshot, 'priceUsdc' | 'sellerTier' | 'sellerReputationBps' | 'topicalMatch'>,
+  tried: readonly Pick<BuyerTimerBidSnapshot, 'priceUsdc' | 'sellerTier' | 'sellerReputationBps' | 'topicalMatch'>[],
+  effectiveCapUsdc: number,
+): boolean {
+  const candidatePrice = Number(candidate.priceUsdc);
+  if (!Number.isFinite(candidatePrice) || candidatePrice <= effectiveCapUsdc) return false;
+
+  const candidateTier = BUYER_TIER_RANK[candidate.sellerTier ?? 'established'];
+  const candidateReputation = candidate.sellerReputationBps ?? 5_000;
+  const candidateMatch = candidate.topicalMatch;
+
+  return tried.some((previous) => {
+    const previousPrice = Number(previous.priceUsdc);
+    if (!Number.isFinite(previousPrice) || previousPrice > candidatePrice) return false;
+
+    const previousTier = BUYER_TIER_RANK[previous.sellerTier ?? 'established'];
+    const previousReputation = previous.sellerReputationBps ?? 5_000;
+    const previousMatch = previous.topicalMatch;
+    const reputationDominates =
+      previousTier > candidateTier ||
+      (previousTier === candidateTier && previousReputation >= candidateReputation);
+    if (!reputationDominates) return false;
+
+    // A materially better topical fit can justify paying more. One full match
+    // band is the same threshold used by the canonical ranking function.
+    const materiallyBetterFit =
+      typeof candidateMatch === 'number' &&
+      typeof previousMatch === 'number' &&
+      candidateMatch >= previousMatch + BUYER_MATCH_BAND_SIZE;
+    return !materiallyBetterFit;
+  });
+}
+
 export function buyerMatchBand(bid: Pick<BuyerTimerBidSnapshot, 'topicalMatch'>): number {
   if (typeof bid.topicalMatch !== 'number') return -1;
   const topBand = Math.ceil(100 / BUYER_MATCH_BAND_SIZE) - 1;

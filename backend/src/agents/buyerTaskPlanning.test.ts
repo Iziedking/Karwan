@@ -6,6 +6,7 @@ import {
   planCollectionShadow,
   planCounterTimeoutShadow,
   rankBuyerTimerBids,
+  isDominatedOverCapFallback,
 } from './buyerTaskPlanning.js';
 
 function bid(
@@ -88,6 +89,36 @@ test('trusted ranking uses tier, stake, then price inside one match band', () =>
     'strong-low-stake',
     'cheap-cold',
   ]);
+});
+
+test('rejects a pricier over-cap fallback when a tried seller is cheaper and better reputed', () => {
+  const established = bid('established', '144', {
+    sellerTier: 'established',
+    sellerReputationBps: 7_900,
+    topicalMatch: 70,
+  });
+  const newSeller = bid('new', '210', {
+    sellerTier: 'new',
+    sellerReputationBps: 4_000,
+    topicalMatch: 80,
+  });
+
+  assert.equal(isDominatedOverCapFallback(newSeller, [established], 110.25), true);
+});
+
+test('allows an over-cap fallback when its topical fit improves by a full match band', () => {
+  const established = bid('established', '144', {
+    sellerTier: 'established',
+    sellerReputationBps: 7_900,
+    topicalMatch: 50,
+  });
+  const specialist = bid('specialist', '210', {
+    sellerTier: 'new',
+    sellerReputationBps: 4_000,
+    topicalMatch: 75,
+  });
+
+  assert.equal(isDominatedOverCapFallback(specialist, [established], 110.25), false);
 });
 
 test('collection planning fences replaced schedules and holds only before the cap', () => {

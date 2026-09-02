@@ -46,6 +46,7 @@ import {
   BUYER_REPUTATION_TIEBREAK_EPSILON,
   BUYER_TIER_RANK,
   buyerMatchBand,
+  isDominatedOverCapFallback,
   rankBuyerTimerBids,
   type BuyerRuntimeSnapshot,
   type CollectionShadowDecision,
@@ -2515,6 +2516,25 @@ async function tryNextCandidate(
     return;
   }
 
+  const budget = Number(state.context.budgetUsdc);
+  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
+  const nextPrice = Number(next.priceUsdc);
+  const triedBids = [...state.bids.values()].filter((bid) => state.triedSellers.has(bid.seller));
+  if (isDominatedOverCapFallback(next, triedBids, effectiveCap)) {
+    logger.info(
+      {
+        jobId: state.jobId,
+        seller: next.seller,
+        bidPrice: nextPrice,
+        effectiveCap,
+        triedSellers: triedBids.map((bid) => bid.seller),
+      },
+      'next candidate is dominated by a cheaper or better-reputed tried seller, skipping',
+    );
+    await tryNextCandidate(state, next.seller, 'dominated-over-cap-fallback');
+    return;
+  }
+
   if (timerParity) {
     publishBuyerTimerParity(
       timerParity.snapshot,
@@ -2540,9 +2560,6 @@ async function tryNextCandidate(
     },
   });
 
-  const nextPrice = Number(next.priceUsdc);
-  const budget = Number(state.context.budgetUsdc);
-  const effectiveCap = computeBuyerEffectiveCap(state.context, state.buyer);
   const nextTier = next.sellerTier ?? 'established';
 
   // Apply the same accept-or-counter logic as finalizeBidCollection. ELITE
@@ -2646,6 +2663,22 @@ async function issueCounter(state: JobState, bid: Bid) {
   const counterPrice = Number(bid.suggestedCounterPrice);
   const effectiveCap = computeBuyerEffectiveCap(state.context, buyer);
   if (counterPrice > effectiveCap) {
+    const triedBids = [...state.bids.values()].filter((candidate) => state.triedSellers.has(candidate.seller));
+    if (isDominatedOverCapFallback(bid, triedBids, effectiveCap)) {
+      logger.info(
+        {
+          jobId: state.jobId,
+          seller: bid.seller,
+          bidPrice: bid.priceUsdc,
+          counterPrice,
+          effectiveCap,
+          triedSellers: triedBids.map((candidate) => candidate.seller),
+        },
+        'over-cap candidate is dominated by a cheaper or better-reputed tried seller, cascading',
+      );
+      await tryNextCandidate(state, bid.seller, 'dominated-over-cap-fallback');
+      return;
+    }
     // The best-ranked seller can't be countered within budget. Surface IT to the
     // buyer as a proceed/pass near-miss at the seller's price — it is the buyer's
     // best over-budget option — instead of silently abandoning it and walking to
