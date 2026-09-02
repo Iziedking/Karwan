@@ -1,5 +1,6 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { generateObject, type FlexibleSchema } from 'ai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { config, conduitApiKeys } from '../config.js';
 import { logger } from '../logger.js';
@@ -75,15 +76,54 @@ function fallbackChain(models: Array<LM | null>): LM {
   };
 }
 
+/// Structured-output boundary built against ai 6.0.180, @openrouter/ai-sdk-provider
+/// 2.9.0, and @ai-sdk/anthropic 3.0.85 (installed versions read 2026-09-02).
+/// AI SDK schema validation happens after a provider's doGenerate call, so the
+/// model-level wrapper above cannot see malformed JSON/schema results. Keep the
+/// candidate loop here so provider outages and invalid structured responses both
+/// reach the next funded provider.
+export async function generateObjectWithLlmFallback<SCHEMA extends FlexibleSchema<unknown>>(
+  options: { schema: SCHEMA; prompt: string },
+) {
+  return runWithLlmFallback(llmModelCandidates, (model) =>
+    generateObject({
+      model,
+      schema: options.schema,
+      prompt: options.prompt,
+    }),
+  );
+}
+
+export async function runWithLlmFallback<
+  MODEL extends { provider: string; modelId: string },
+  RESULT,
+>(models: readonly MODEL[], operation: (model: MODEL) => Promise<RESULT>): Promise<RESULT> {
+  let lastError: unknown;
+  for (const model of models) {
+    try {
+      return await operation(model);
+    } catch (error) {
+      lastError = error;
+      logger.warn(
+        { provider: model.provider, model: model.modelId, err: (error as Error).message },
+        'Structured LLM response failed, falling back to the next model',
+      );
+    }
+  }
+  throw lastError ?? new Error('No structured LLM provider is configured');
+}
+
 /// General agent-loop model for cheap, high-volume calls (intake parsing,
 /// keyword extraction). OpenRouter (Gemini) primary to keep cost down, direct
 /// Anthropic Haiku as the fallback: without it, an out-of-credit OpenRouter
 /// killed intake and keyword extraction outright while every other chain kept
 /// running — the cheapest calls were the only ones with no second provider.
-export const llmModel = fallbackChain([
+export const llmModelCandidates: LM[] = [
   openrouterModel,
   anthropic?.(config.FAST_LLM_MODEL) ?? null,
-]);
+].filter((m): m is LM => m !== null);
+
+export const llmModel = fallbackChain(llmModelCandidates);
 
 /// Release-gating structured checks (deliverable-meets-requirement verdict).
 /// Direct Anthropic (Haiku) primary, OpenRouter paid fallback, Conduit last. The

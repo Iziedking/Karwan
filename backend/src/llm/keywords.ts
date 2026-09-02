@@ -1,6 +1,5 @@
-import { generateObject } from 'ai';
 import { z } from 'zod';
-import { llmModel } from './client.js';
+import { generateObjectWithLlmFallback } from './client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
 
@@ -58,8 +57,7 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
   if (cleaned.length < 3) return [];
   try {
     const result = await withLlmRetry(label, () =>
-      generateObject({
-        model: llmModel,
+      generateObjectWithLlmFallback({
         schema: keywordSchema,
         prompt: `${PROMPT_PREFIX}\n\nInput:\n${cleaned}`,
       }),
@@ -211,7 +209,7 @@ export async function judgeRelevance(input: {
   let value: RelevanceJudgement;
   try {
     const r = await withLlmRetry('judgeRelevance', () =>
-      generateObject({ model: llmModel, schema: relevanceSchema, prompt }),
+      generateObjectWithLlmFallback({ schema: relevanceSchema, prompt }),
     );
     value = r.object;
   } catch (err) {
