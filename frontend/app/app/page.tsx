@@ -63,6 +63,7 @@ import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { MigrationBanner } from '@/shared/components/MigrationBanner';
 import { QuickStartBand } from '@/shared/components/QuickStartBand';
+import { MoneyStrip } from '@/features/balances/components/MoneyStrip';
 import {
   FullBleed,
   Band,
@@ -278,6 +279,10 @@ export default function AppHome() {
           )}
         </div>
       </Band>
+
+      {/* YOUR MONEY. Keep the account's spendable, escrowed, and earned USDC
+          visible on the home desk for individuals as well as businesses. */}
+      <MoneyStrip />
 
       {/* QUICK START. First-run orientation for brand-new users; hides once
           agents are activated or the user dismisses it. */}
