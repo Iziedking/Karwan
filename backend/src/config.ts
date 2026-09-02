@@ -473,7 +473,7 @@ const envSchema = z.object({
   RESEARCH_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // Model for the Phase-C supervisor: the read-first "general intelligence" that
   // explains captured backend errors + the event context around them. Runs on
-  // the DIRECT Anthropic key ONLY (no Conduit / OpenRouter hop) because its input
+  // the DIRECT Anthropic key ONLY because its input
   // is aggregated deal data + errors, which must never reach a third-party proxy.
   // Haiku by default per the house rule; bump to a Sonnet id here if a sharper
   // supervisor is worth the cost. Supervisor is disabled when no Anthropic key.
@@ -498,29 +498,9 @@ const envSchema = z.object({
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // The AUTHENTICATED assistant runs a tool-calling loop that can read the
   // signed-in user's OWN data (balance, deals). Because that data is private, it
-  // runs on the DIRECT Anthropic key ONLY â€” same privacy boundary as the
-  // supervisor, never a Conduit / OpenRouter hop. Null (feature off) when no key.
+  // runs on the DIRECT Anthropic key ONLY. Null (feature off) when no key.
   // The anonymous, knowledge-only /chat path keeps its provider chain.
   ASSISTANT_AGENT_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
-  // Conduit LLM gateway, Anthropic-compatible at its root. When set, the
-  // assistant prefers it (Claude Sonnet) and falls back to the direct
-  // ANTHROPIC_API_KEY. Auth is a Bearer token (sk-cdt-...). Same /v1/messages
-  // request + response shape as Anthropic, so one code path serves both.
-  // Up to three Conduit keys (free-tier accounts) are tried in order before
-  // Anthropic, so a rate limit on one rolls to the next. Any of these may also
-  // be a comma-separated list of keys. See conduitApiKeys() below.
-  CONDUIT_API_KEY: optionalString,
-  CONDUIT_API_KEY_2: optionalString,
-  CONDUIT_API_KEY_3: optionalString,
-  CONDUIT_BASE_URL: z.preprocess(
-    blankToUndefined,
-    z.string().default('https://conduit.ozdoev.net'),
-  ),
-  // Haiku across the board: the direct Anthropic hops already run Haiku, and a
-  // fallback that silently upgrades to Sonnet would make the expensive call on
-  // exactly the requests that already failed once.
-  CONDUIT_MODEL: z.string().default('claude-haiku-4-5'),
-
   // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to mint).
   CCTP_MESSAGE_TRANSMITTER_ADDR: z
     .string()
@@ -904,14 +884,3 @@ export const config = {
   cctpRelayAddress,
 };
 export type Config = typeof config;
-
-/// All configured Conduit keys, in priority order, tried before Anthropic. Reads
-/// CONDUIT_API_KEY, _2, _3; each may itself be a comma-separated list. Trimmed,
-/// emptied, and de-duplicated.
-export function conduitApiKeys(): string[] {
-  const keys = [config.CONDUIT_API_KEY, config.CONDUIT_API_KEY_2, config.CONDUIT_API_KEY_3]
-    .flatMap((v) => (v ? v.split(',') : []))
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return [...new Set(keys)];
-}

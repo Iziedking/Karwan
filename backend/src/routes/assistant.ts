@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { config, conduitApiKeys } from '../config.js';
+import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -24,10 +24,8 @@ import { requiresLiveAccountState } from '../assistant/safety.js';
 ///    (privacy). A failure here falls back to the anonymous path so the user is
 ///    never stranded.
 */
-/// Provider chain: the Conduit gateway (Claude Sonnet) is preferred when
-/// configured, then the direct Anthropic key, then OpenRouter as the last-resort
-/// fallback so a Conduit + Anthropic outage still answers the user. Conduit and
-/// Anthropic speak the Anthropic /v1/messages format; OpenRouter speaks the
+/// Provider chain: direct Anthropic first, then OpenRouter as the last-resort
+/// fallback. Anthropic speaks the /v1/messages format; OpenRouter speaks the
 /// OpenAI chat-completions format, so callProvider builds the request and parses
 /// the reply per provider `kind`. A failure on one drops to the next.
 export const assistantRoutes = new Hono();
@@ -40,7 +38,7 @@ interface Provider {
   url: string;
   headers: Record<string, string>;
   model: string;
-  /// Wire format. 'anthropic' = /v1/messages (Conduit, Anthropic); 'openai' =
+  /// Wire format. 'anthropic' = /v1/messages; 'openai' =
   /// chat-completions (OpenRouter). Drives request shape + reply parsing.
   kind: 'anthropic' | 'openai';
 }
@@ -48,8 +46,7 @@ interface Provider {
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 /// The ordered provider chain. Direct Anthropic first (the funded, reliable
-/// key), then the Conduit keys as fallbacks, then OpenRouter as the last
-/// resort. Empty when nothing is configured (assistant disabled).
+/// key), then OpenRouter as the last resort. Empty when nothing is configured.
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
   if (config.ANTHROPIC_API_KEY) {
@@ -65,29 +62,8 @@ export function assistantProviders(): Provider[] {
       kind: 'anthropic',
     });
   }
-  // Conduit's Anthropic-compatible endpoint mirrors Anthropic exactly:
-  // POST {base}/v1/messages with x-api-key (the sk-cdt-... key) and
-  // anthropic-version, same request + response body. (Bearer auth is only the
-  // separate OpenAI-compatible /api/v1 route, which we do not use.) Each
-  // configured Conduit key is its own fallback provider, tried in order after
-  // the direct key, so a rate limit on Anthropic rolls through them before
-  // OpenRouter.
-  const conduitKeys = conduitApiKeys();
-  conduitKeys.forEach((key, i) => {
-    list.push({
-      name: conduitKeys.length > 1 ? `conduit-${i + 1}` : 'conduit',
-      url: `${config.CONDUIT_BASE_URL.replace(/\/$/, '')}/v1/messages`,
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-      },
-      model: config.CONDUIT_MODEL,
-      kind: 'anthropic',
-    });
-  });
-  // OpenRouter last: keeps the assistant answering if BOTH Conduit and Anthropic
-  // are down or out of credit. OpenAI-compatible endpoint, so the system prompt
+  // OpenRouter last: keeps the assistant answering if Anthropic is unavailable
+  // or out of credit. OpenAI-compatible endpoint, so the system prompt
   // rides as the first message (no separate `system` field) and the reply is
   // read from choices[].message.content.
   if (config.OPENROUTER_API_KEY) {
@@ -113,7 +89,7 @@ interface ProviderResult {
 }
 
 /// Read a Claude Messages reply, tolerating BOTH a single JSON body and an
-/// Anthropic SSE stream. Conduit returns an event stream ("event: message_start
+/// Anthropic SSE stream. Some endpoints return an event stream ("event: message_start
 /// \ndata: {...}") even when stream:false is requested, which would choke
 /// res.json(); so detect the stream and collect its text deltas instead.
 async function parseClaudeReply(res: Response): Promise<string> {
@@ -367,7 +343,7 @@ assistantRoutes.post(
   }
 
   // Try each provider in order. The first that answers wins; a failure or
-  // timeout drops to the next, so a Conduit outage falls back to Anthropic.
+  // timeout drops to the next provider, so an Anthropic outage falls back to OpenRouter.
   let lastTimeout = false;
   for (const p of provs) {
     const controller = new AbortController();

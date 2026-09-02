@@ -125,7 +125,7 @@ adminRoutes.post('/agent-seed/:address', async (c) => {
   return c.json({ address, buyer, seller });
 });
 
-/// Assistant health: ping each configured provider (Anthropic primary, Conduit
+/// Assistant health: ping each configured provider (Anthropic primary,
 /// fallback) with a trivial prompt and report the result, so the key + model can
 /// be confirmed without digging through logs. Per provider: a 401 means a bad
 /// key, 400/404 means the key can't reach that model, 429 is quota. ok:true with
@@ -143,9 +143,9 @@ adminRoutes.get('/assistant-health', async (c) => {
 adminRoutes.get('/health', async (c) => {
   const checkedAt = Date.now();
 
-  // Model gateway. Direct Anthropic leads every chain; Conduit is the fallback.
+  // Model gateway. Direct Anthropic leads every chain; OpenRouter is the fallback.
   const providers = await pingAssistantProviders();
-  const primary = config.ANTHROPIC_API_KEY ? 'anthropic' : config.CONDUIT_API_KEY ? 'conduit' : 'none';
+  const primary = config.ANTHROPIC_API_KEY ? 'anthropic' : config.OPENROUTER_API_KEY ? 'openrouter' : 'none';
 
   // Operator funds: the Arc wallets behind seeding + USYC ops. Only the ones
   // with a key configured are shown. Native + ERC-20 USDC share one balance.
