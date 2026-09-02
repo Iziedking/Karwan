@@ -259,15 +259,16 @@ function BookSummaryCard({
       className="relative overflow-hidden"
       style={{
         background: 'var(--surface-1)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        color: 'var(--ink-1)',
+        border: '1px solid var(--rule-dark)',
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
         borderBottomLeftRadius: 22,
         borderBottomRightRadius: 4,
       }}
     >
-      <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)] flex items-center justify-between">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">{eyebrow}</span>
+      <div className="px-6 pt-6 pb-5 border-b border-[var(--rule-dark)] flex items-center justify-between">
+        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-2)]">{eyebrow}</span>
         <span
           aria-hidden
           className="w-[7px] h-[7px]"
@@ -277,7 +278,7 @@ function BookSummaryCard({
           }}
         />
       </div>
-      <div className="grid grid-cols-3 divide-x divide-white/[0.08]">
+      <div className="grid grid-cols-3 divide-x divide-[var(--rule-dark)]">
         <CardStat label={labels.active} value={active} />
         <CardStat label={labels.settled} value={settled} />
         <CardStat label={labels.volume} value={volume} decimals={2} unit="USDC" />
@@ -296,15 +297,15 @@ function CardStat({
   value: number;
   decimals?: number;
   unit?: string;
-}) {
+  }) {
   return (
     <div className="px-4 py-5">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">{label}</p>
-      <p className="mt-1.5 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--ink-2)]">{label}</p>
+      <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--ink-1)]">
         <AnimatedNumber value={value} decimals={decimals} />
       </p>
       {unit && (
-        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-faint)]">{unit}</p>
+        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--ink-2)]">{unit}</p>
       )}
     </div>
   );
