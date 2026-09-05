@@ -31,6 +31,35 @@ test('accepted delivery binds repository, submitter, merge, SHA, and trusted app
   assert.match(result.evidenceDigest, /^[0-9a-f]{64}$/);
 });
 
+test('evidence digest binds every nested check field', () => {
+  const baseline = evaluateGitHubDelivery(criteria, evidence).evidenceDigest;
+  const mutations: GitHubDeliveryEvidence[] = [
+    { ...evidence, checks: [{ ...evidence.checks![0]!, name: 'Different gate' }] },
+    { ...evidence, checks: [{ ...evidence.checks![0]!, appId: 7 }] },
+    { ...evidence, checks: [{ ...evidence.checks![0]!, conclusion: 'failure' }] },
+    { ...evidence, checks: [{ ...evidence.checks![0]!, sha: OTHER_SHA }] },
+  ];
+  for (const mutation of mutations) {
+    assert.notEqual(evaluateGitHubDelivery(criteria, mutation).evidenceDigest, baseline);
+  }
+});
+
+test('evidence digest is stable when object keys are inserted in another order', () => {
+  const reordered: GitHubDeliveryEvidence = {
+    checks: [{ sha: SHA, conclusion: 'success', appId: 4242, name: 'Karwan delivery gate' }],
+    merged: true,
+    submitter: 'Seller-Account',
+    deliverySha: SHA,
+    baseBranch: 'refs/heads/main',
+    repositoryId: 123456,
+    sourceFetchedAtUnix: 1_757_000_000,
+  };
+  assert.equal(
+    evaluateGitHubDelivery(criteria, reordered).evidenceDigest,
+    evaluateGitHubDelivery(criteria, evidence).evidenceDigest,
+  );
+});
+
 test('changed delivery SHA invalidates the prior evidence result', () => {
   const result = evaluateGitHubDelivery(criteria, {
     ...evidence,
@@ -54,4 +83,3 @@ test('source outage is unavailable rather than a failed trust result', () => {
   assert.equal(result.decisionCode, 'UNAVAILABLE');
   assert.equal(result.reasonCode, 'SOURCE_UNAVAILABLE');
 });
-

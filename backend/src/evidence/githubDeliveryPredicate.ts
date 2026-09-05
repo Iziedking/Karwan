@@ -58,8 +58,22 @@ export interface GitHubDeliveryResult {
   deliverySha: string | null;
 }
 
-function stableJson(value: object): string {
-  return JSON.stringify(value, Object.keys(value).sort());
+function stableJson(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+      .join(',')}}`;
+  }
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    throw new Error('evidence digest only accepts finite JSON numbers');
+  }
+  const encoded = JSON.stringify(value);
+  if (encoded === undefined) throw new Error('evidence digest only accepts JSON values');
+  return encoded;
 }
 
 function digest(value: object): string {
@@ -151,4 +165,3 @@ export function evaluateGitHubDelivery(
 
   return result('PASS', 'DELIVERY_ACCEPTED', criteria, evidence);
 }
-
