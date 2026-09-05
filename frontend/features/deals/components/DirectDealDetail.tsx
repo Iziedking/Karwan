@@ -27,7 +27,7 @@ import {
 } from './SettlementRecord';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
-import { hasUnresolvedPayoutRecovery } from '../moneyRecovery';
+import { findUnresolvedPayoutRecovery } from '../moneyRecovery';
 import { buildInviteUrl } from '../inviteLink';
 import { InviteLinkTools } from './InviteLinkTools';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -562,6 +562,25 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       const r = await api.releaseDirectDeal(jobId, address);
       if (r.settled) sfx.success();
       else sfx.send();
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setSettlementReloadKey((key) => key + 1);
+      setBusy(false);
+    }
+  }
+
+  async function onReconcilePayout(reference: string) {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.reconcileDirectDealPayout(jobId, reference, address);
+      sfx.success();
       refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
@@ -1355,14 +1374,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               milestonesReleased={milestonesReleased}
               busy={busy}
               deal={deal}
-              payoutNeedsReconciliation={hasUnresolvedPayoutRecovery(settlementMovements)}
+              payoutRecoveryReference={findUnresolvedPayoutRecovery(settlementMovements)?.reference}
               payoutRecoveryCopy={{
                 title: dd.settlementRecord.recoveryTitle,
                 body: dd.settlementRecord.recoveryBody,
                 action: dd.settlementRecord.reconcile,
                 busy: dd.settlementRecord.reconcileBusy,
               }}
-              onReconcilePayout={onRelease}
+              onReconcilePayout={onReconcilePayout}
               now={now}
               deliveryProof={deliveryProof}
               onDeliveryProofChange={setDeliveryProof}
@@ -1934,7 +1953,7 @@ function ActionPanel({
   onRespondToDelayAppeal,
   onRequestExtension,
   onRespondExtension,
-  payoutNeedsReconciliation,
+  payoutRecoveryReference,
   payoutRecoveryCopy,
   onReconcilePayout,
   copy,
@@ -1973,18 +1992,18 @@ function ActionPanel({
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
   onRespondExtension: (decision: 'approved' | 'declined') => void;
-  payoutNeedsReconciliation: boolean;
+  payoutRecoveryReference?: string;
   payoutRecoveryCopy: {
     title: string;
     body: string;
     action: string;
     busy: string;
   };
-  onReconcilePayout: () => void;
+  onReconcilePayout: (reference: string) => void;
   copy: Messages['directDealDetail']['actionPanel'];
 }) {
   if (
-    payoutNeedsReconciliation &&
+    payoutRecoveryReference &&
     (stage === 'awaiting-first-release' || stage === 'awaiting-final-release')
   ) {
     return (
@@ -1993,7 +2012,7 @@ function ActionPanel({
           <span className="font-semibold">{payoutRecoveryCopy.title}.</span>{' '}
           {payoutRecoveryCopy.body}
         </WindowNote>
-        <CTAPill onClick={onReconcilePayout} disabled={busy} busy={busy}>
+        <CTAPill onClick={() => onReconcilePayout(payoutRecoveryReference)} disabled={busy} busy={busy}>
           {busy ? payoutRecoveryCopy.busy : payoutRecoveryCopy.action}
         </CTAPill>
       </div>

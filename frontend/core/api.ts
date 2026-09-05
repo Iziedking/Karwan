@@ -3364,6 +3364,20 @@ export const api = {
       `/api/deals/direct/${jobId}/release`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
+  reconcileDirectDealPayout: (jobId: string, reference: string, caller: string) =>
+    json<{
+      accepted: boolean;
+      recovered: true;
+      alreadyCompleted?: boolean;
+      settled?: boolean;
+      jobId: string;
+      reference: string;
+      amountUsdc?: string;
+      txHash?: string;
+    }>(
+      `/api/deals/direct/${jobId}/payouts/${encodeURIComponent(reference)}/reconcile`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
   /// Published dispute/recovery timelines, read from the live platform config
   /// (the same values the watcher enforces). Renders on /docs/disputes.
   disputePolicy: () =>

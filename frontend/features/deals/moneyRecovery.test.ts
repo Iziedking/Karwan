@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { hasUnresolvedPayoutRecovery } from './moneyRecovery';
+import { findUnresolvedPayoutRecovery } from './moneyRecovery';
 import type { MoneyMovementView } from '@/core/api';
 
 function movement(
@@ -22,13 +22,13 @@ function movement(
 }
 
 test('detects a payout whose chain or receipt result needs reconciliation', () => {
-  assert.equal(hasUnresolvedPayoutRecovery([movement('needs_attention')]), true);
+  assert.equal(findUnresolvedPayoutRecovery([movement('needs_attention')])?.reference, 'movement-needs_attention-milestone_payout');
 });
 
 test('does not treat completed or funding records as payout recovery', () => {
-  assert.equal(hasUnresolvedPayoutRecovery([movement('completed')]), false);
+  assert.equal(findUnresolvedPayoutRecovery([movement('completed')]), undefined);
   assert.equal(
-    hasUnresolvedPayoutRecovery([movement('needs_attention', 'escrow_funding')]),
-    false,
+    findUnresolvedPayoutRecovery([movement('needs_attention', 'escrow_funding')]),
+    undefined,
   );
 });
