@@ -37,9 +37,11 @@ contract KarwanEvidenceRegistry is IReceiver {
 
     mapping(bytes32 reportId => bool used) public reportUsed;
     mapping(bytes32 dealId => uint64 termsVersion) public latestTermsVersion;
+    mapping(bytes32 dealId => uint64 evidenceRevision) public latestEvidenceRevision;
 
     struct EvidenceReceipt {
         uint64 termsVersion;
+        uint64 evidenceRevision;
         uint64 expiresAt;
         uint8 decisionCode;
         bytes32 evidenceCommitment;
@@ -53,6 +55,7 @@ contract KarwanEvidenceRegistry is IReceiver {
     event EvidenceReceiptRecorded(
         bytes32 indexed dealId,
         uint64 indexed termsVersion,
+        uint64 evidenceRevision,
         uint8 decisionCode,
         bytes32 evidenceCommitment,
         bytes32 verdictCommitment,
@@ -71,12 +74,14 @@ contract KarwanEvidenceRegistry is IReceiver {
     error InvalidChain(uint256 received, uint256 expected);
     error InvalidDealId();
     error InvalidTermsVersion();
+    error InvalidEvidenceRevision();
     error InvalidExpiry();
     error InvalidDecisionCode();
     error EmptyCommitment();
     error EmptyReportId();
     error ReportAlreadyUsed(bytes32 reportId);
-    error TermsVersionAlreadyRecorded(bytes32 dealId, uint64 termsVersion);
+    error StaleTermsVersion(bytes32 dealId, uint64 termsVersion);
+    error EvidenceRevisionAlreadyRecorded(bytes32 dealId, uint64 termsVersion, uint64 evidenceRevision);
     error NoCustody();
 
     constructor(
@@ -102,20 +107,21 @@ contract KarwanEvidenceRegistry is IReceiver {
     function onReport(bytes calldata metadata, bytes calldata report) external override {
         if (msg.sender != forwarder) revert InvalidForwarder(msg.sender);
         _validateMetadata(metadata);
-        if (report.length != 9 * 32) revert InvalidReportLength(report.length);
+        if (report.length != 10 * 32) revert InvalidReportLength(report.length);
 
         (
             bytes32 domain,
             uint256 chainId,
             bytes32 dealId,
             uint64 termsVersion,
+            uint64 evidenceRevision,
             uint64 expiresAt,
             bytes32 evidenceCommitment,
             bytes32 verdictCommitment,
             uint8 decisionCode,
             bytes32 reportId
         ) = abi.decode(
-            report, (bytes32, uint256, bytes32, uint64, uint64, bytes32, bytes32, uint8, bytes32)
+            report, (bytes32, uint256, bytes32, uint64, uint64, uint64, bytes32, bytes32, uint8, bytes32)
         );
 
         if (domain != REPORT_DOMAIN) revert InvalidDomain();
@@ -124,6 +130,7 @@ contract KarwanEvidenceRegistry is IReceiver {
         }
         if (dealId == bytes32(0)) revert InvalidDealId();
         if (termsVersion == 0) revert InvalidTermsVersion();
+        if (evidenceRevision == 0) revert InvalidEvidenceRevision();
         if (expiresAt < block.timestamp) revert InvalidExpiry();
         if (decisionCode < DECISION_PASS || decisionCode > DECISION_UNAVAILABLE) {
             revert InvalidDecisionCode();
@@ -133,14 +140,23 @@ contract KarwanEvidenceRegistry is IReceiver {
         }
         if (reportId == bytes32(0)) revert EmptyReportId();
         if (reportUsed[reportId]) revert ReportAlreadyUsed(reportId);
-        if (latestTermsVersion[dealId] >= termsVersion) {
-            revert TermsVersionAlreadyRecorded(dealId, termsVersion);
+        uint64 recordedTermsVersion = latestTermsVersion[dealId];
+        if (termsVersion < recordedTermsVersion) {
+            revert StaleTermsVersion(dealId, termsVersion);
+        }
+        if (
+            termsVersion == recordedTermsVersion
+                && evidenceRevision <= latestEvidenceRevision[dealId]
+        ) {
+            revert EvidenceRevisionAlreadyRecorded(dealId, termsVersion, evidenceRevision);
         }
 
         reportUsed[reportId] = true;
         latestTermsVersion[dealId] = termsVersion;
+        latestEvidenceRevision[dealId] = evidenceRevision;
         _receipts[dealId] = EvidenceReceipt({
             termsVersion: termsVersion,
+            evidenceRevision: evidenceRevision,
             expiresAt: expiresAt,
             decisionCode: decisionCode,
             evidenceCommitment: evidenceCommitment,
@@ -152,6 +168,7 @@ contract KarwanEvidenceRegistry is IReceiver {
         emit EvidenceReceiptRecorded(
             dealId,
             termsVersion,
+            evidenceRevision,
             decisionCode,
             evidenceCommitment,
             verdictCommitment,
@@ -204,4 +221,3 @@ contract KarwanEvidenceRegistry is IReceiver {
         }
     }
 }
-

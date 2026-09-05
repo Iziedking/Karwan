@@ -36,6 +36,7 @@ contract KarwanEvidenceRegistryTest is Test {
 
         KarwanEvidenceRegistry.EvidenceReceipt memory receipt = registry.receiptOf(DEAL_ID);
         assertEq(receipt.termsVersion, 1);
+        assertEq(receipt.evidenceRevision, 1);
         assertEq(receipt.decisionCode, registry.DECISION_PASS());
         assertEq(receipt.evidenceCommitment, EVIDENCE);
         assertEq(receipt.verdictCommitment, VERDICT);
@@ -95,6 +96,7 @@ contract KarwanEvidenceRegistryTest is Test {
                 block.chainid,
                 DEAL_ID,
                 uint64(1),
+                uint64(1),
                 uint64(2),
                 EVIDENCE,
                 VERDICT,
@@ -115,6 +117,7 @@ contract KarwanEvidenceRegistryTest is Test {
                 uint256(1),
                 DEAL_ID,
                 uint64(1),
+                uint64(1),
                 uint64(2),
                 EVIDENCE,
                 VERDICT,
@@ -131,7 +134,7 @@ contract KarwanEvidenceRegistryTest is Test {
         vm.stopPrank();
     }
 
-    function testRejectsReplayAndSameTermsVersion() public {
+    function testRejectsReplayAndSameEvidenceRevision() public {
         bytes32 reportId = keccak256("replay");
         bytes memory report = _report(DEAL_ID, 1, 100, EVIDENCE, VERDICT, reportId);
         vm.startPrank(FORWARDER);
@@ -142,7 +145,10 @@ contract KarwanEvidenceRegistryTest is Test {
         registry.onReport(_metadata(false), report);
         vm.expectRevert(
             abi.encodeWithSelector(
-                KarwanEvidenceRegistry.TermsVersionAlreadyRecorded.selector, DEAL_ID, uint64(1)
+                KarwanEvidenceRegistry.EvidenceRevisionAlreadyRecorded.selector,
+                DEAL_ID,
+                uint64(1),
+                uint64(1)
             )
         );
         registry.onReport(
@@ -152,12 +158,13 @@ contract KarwanEvidenceRegistryTest is Test {
         vm.stopPrank();
     }
 
-    function testCorrectedEvidenceRequiresNewTermsVersionAndRecordsMismatch() public {
+    function testCorrectedEvidenceUsesNewRevisionUnderAcceptedTerms() public {
         vm.startPrank(FORWARDER);
         registry.onReport(
             _metadata(false),
             _report(
                 DEAL_ID,
+                1,
                 1,
                 100,
                 EVIDENCE,
@@ -170,6 +177,7 @@ contract KarwanEvidenceRegistryTest is Test {
             _metadata(false),
             _report(
                 DEAL_ID,
+                1,
                 2,
                 100,
                 keccak256("evidence-corrected"),
@@ -181,7 +189,8 @@ contract KarwanEvidenceRegistryTest is Test {
         vm.stopPrank();
 
         KarwanEvidenceRegistry.EvidenceReceipt memory receipt = registry.receiptOf(DEAL_ID);
-        assertEq(receipt.termsVersion, 2);
+        assertEq(receipt.termsVersion, 1);
+        assertEq(receipt.evidenceRevision, 2);
         assertEq(receipt.decisionCode, registry.DECISION_PASS());
     }
 
@@ -206,13 +215,14 @@ contract KarwanEvidenceRegistryTest is Test {
         bytes32 reportId
     ) private view returns (bytes memory) {
         return _report(
-            dealId, termsVersion, expiresAt, evidenceCommitment, verdictCommitment, reportId, 1
+            dealId, termsVersion, 1, expiresAt, evidenceCommitment, verdictCommitment, reportId, 1
         );
     }
 
     function _report(
         bytes32 dealId,
         uint64 termsVersion,
+        uint64 evidenceRevision,
         uint64 expiresAt,
         bytes32 evidenceCommitment,
         bytes32 verdictCommitment,
@@ -224,6 +234,7 @@ contract KarwanEvidenceRegistryTest is Test {
             block.chainid,
             dealId,
             termsVersion,
+            evidenceRevision,
             expiresAt,
             evidenceCommitment,
             verdictCommitment,
