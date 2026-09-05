@@ -743,6 +743,20 @@ interface MessagesShape {
       daysSuffix: string;
       editRanges: string;
     };
+    agentTrustCard: {
+      tag: string;
+      headline: string;
+      body: string;
+      trackRecord: string;
+      connectedEvidence: string;
+      humanBacked: string;
+      notChecked: string;
+      unavailable: string;
+      pilotAllowance: string;
+      reportsPerDay: string;
+      noEvidence: string;
+      notCheckedBody: string;
+    };
     noProfile: {
       tag: string;
       headlinePrefix: string;
@@ -5639,6 +5653,20 @@ export const en: MessagesShape = {
       },
       daysSuffix: 'days',
       editRanges: 'Edit ranges',
+    },
+    agentTrustCard: {
+      tag: 'AGENT TRUST',
+      headline: 'Proof before confidence',
+      body: 'AgentKit checks a human-backed agent before a free report is granted. This is a pilot allowance, not a World guarantee.',
+      trackRecord: 'Track record',
+      connectedEvidence: 'Connected evidence',
+      humanBacked: 'Human-backed agent',
+      notChecked: 'Not checked',
+      unavailable: 'Unavailable',
+      pilotAllowance: 'Pilot allowance',
+      reportsPerDay: '3 reports / 24h',
+      noEvidence: 'No delivery evidence linked yet.',
+      notCheckedBody: 'Verify an AgentBook proof to unlock the shared allowance.',
     },
     noProfile: {
       tag: 'NO PROFILE YET',

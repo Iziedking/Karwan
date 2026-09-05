@@ -1788,6 +1788,14 @@ export interface ScoutReadEntry {
   read: ApiMarketRead;
 }
 
+export interface AgentKitResearchStatus {
+  verification: 'not-checked';
+  provider: 'world-agentbook';
+  mode: 'sandbox-ready' | 'unavailable';
+  allowancePolicy: { scope: 'counterparty-report'; reportsPer24Hours: number };
+  allowance: null;
+}
+
 export const api = {
   baseUrl: BASE,
   eventsUrl: (dealRoomId?: string, afterSequence?: number) => {
@@ -4266,6 +4274,8 @@ export const api = {
     }),
   recentScouts: (limit = 8) =>
     json<{ scouts: ScoutReadEntry[] }>(withCaller(`/api/research/scout/recent?limit=${limit}`)),
+  researchAgentKitStatus: () =>
+    json<AgentKitResearchStatus>(withCaller('/api/research/agentkit/status')),
 
   // Financier application (SME rail). Anyone who meets the bar (tenure on
   // Karwan, a stake, reputation >= COLD) can self-serve apply to fund factoring

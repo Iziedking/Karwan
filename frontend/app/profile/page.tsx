@@ -18,6 +18,7 @@ import { ReputationBadge } from '@/features/reputation/components/ReputationBadg
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { ProfileTierCard } from '@/features/reputation/components/ProfileTierCard';
 import { AgentResearchCard } from '@/features/reputation/components/AgentResearchCard';
+import { AgentTrustEvidenceCard } from '@/features/reputation/components/AgentTrustEvidenceCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
@@ -619,6 +620,9 @@ function ProfilePageInner() {
                 </div>
                 <div className="min-w-0 h-full">
                   <AgentResearchCard />
+                  <div className="mt-4">
+                    <AgentTrustEvidenceCard />
+                  </div>
                 </div>
               </div>
             </>
