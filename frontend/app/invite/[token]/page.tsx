@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, ApiError } from '@/core/api';
 import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
@@ -19,10 +19,8 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type InviteResponse = Awaited<ReturnType<typeof api.getDealInvite>>;
 
-/// /invite/[token] is the only page in Karwan that walks an unauthenticated
-/// recipient through email verification and binds them to a deal in a single
-/// flow. The page is intentionally permissive: anyone with the link can see
-/// the deal summary, but only the holder of the invited email can claim it.
+/// /invite/[token] is a public, privacy-safe preview. Only the verified
+/// recipient gets the private terms and an explicit claim action.
 export default function InvitePage() {
   const router = useRouter();
   const params = useParams<{ token: string }>();
@@ -33,10 +31,14 @@ export default function InvitePage() {
   const [data, setData] = useState<InviteResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [stage, setStage] = useState<'review' | 'send-code' | 'verify-code' | 'claiming'>('review');
+  const [stage, setStage] = useState<
+    'review' | 'send-code' | 'verify-code' | 'ready-to-claim' | 'claiming'
+  >('review');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [shareStatus, setShareStatus] = useState<'copied' | 'failed' | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -72,13 +74,11 @@ export default function InvitePage() {
     };
   }, [token, router]);
 
-  const sessionMatchesEmail = useMemo(
-    () =>
-      !!auth.email &&
-      !!data?.invite.email &&
-      auth.email.toLowerCase() === data.invite.email.toLowerCase(),
-    [auth.email, data?.invite.email],
-  );
+  useEffect(() => {
+    if (auth.email && !email) setEmail(auth.email);
+  }, [auth.email, email]);
+
+  const canClaim = data?.viewer.canClaim === true || stage === 'ready-to-claim';
 
   const claim = useCallback(async () => {
     if (!data) return;
@@ -105,16 +105,8 @@ export default function InvitePage() {
     }
   }, [data, token, router]);
 
-  // If the viewer is already signed in with the matching email, auto-claim
-  // when the data loads so the page acts as a deep link.
-  useEffect(() => {
-    if (sessionMatchesEmail && data && !busy && stage === 'review') {
-      void claim();
-    }
-  }, [sessionMatchesEmail, data, busy, stage, claim]);
-
   async function sendCode() {
-    if (!data) return;
+    if (!data || !email.trim()) return;
     setBusy(true);
     setActionError(null);
     try {
@@ -122,7 +114,7 @@ export default function InvitePage() {
       // (NEXT_PUBLIC_BACKEND_URL). A raw fetch('/api/...') resolves against
       // the current origin (karwan.site) and lands on Vercel's HTML 404 page,
       // which the .json() parser then chokes on as "<!DOCTYPE ..." not JSON.
-      await api.authOtpRequest(data.invite.email);
+      await api.authOtpRequest(email.trim());
       setStage('verify-code');
     } catch (err) {
       const msg =
@@ -144,11 +136,12 @@ export default function InvitePage() {
     setBusy(true);
     setActionError(null);
     try {
-      await api.authOtpVerify(data.invite.email, code.trim());
+      await api.authOtpVerify(email.trim(), code.trim());
       emitAuthChanged();
       await auth.refresh();
-      // Claim runs automatically from the effect above once the auth slice updates.
-      await claim();
+      const refreshed = await api.getDealInvite(token);
+      setData(refreshed);
+      setStage('ready-to-claim');
     } catch (err) {
       const msg =
         err instanceof ApiError && err.detail
@@ -158,6 +151,23 @@ export default function InvitePage() {
       setBusy(false);
     }
   }
+
+  const shareInvite = useCallback(async () => {
+    try {
+      const url = window.location.href;
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ title: 'Karwan deal invite', url });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        throw new Error('clipboard unavailable');
+      }
+      setShareStatus('copied');
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setShareStatus('failed');
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -191,7 +201,6 @@ export default function InvitePage() {
   const { invite, deal } = data;
 
   const heroIntroParts = ip.hero.intro.split('{email}');
-  const sendIntroParts = ip.sendCode.intro.split('{email}');
   const verifyIntroParts = ip.verifyCode.intro.split('{email}');
 
   return (
@@ -205,7 +214,7 @@ export default function InvitePage() {
         </HeroHeadline>
         <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[58ch]">
           {heroIntroParts[0].replace('{inviter}', deal.inviterMasked)}
-          <span className="text-[var(--lp-workspace-ink)] font-semibold">{invite.email}</span>
+          <span className="text-[var(--lp-workspace-ink)] font-semibold">{invite.emailHint}</span>
           {heroIntroParts[1] ?? ''}
         </p>
       </Band>
@@ -228,7 +237,7 @@ export default function InvitePage() {
                   {ip.deal.termsLabel}
                 </p>
                 <p className="text-[14px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
-                  {deal.terms}
+                  {deal.terms ?? deal.termsPreview}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[var(--lp-border-light)]">
@@ -261,18 +270,41 @@ export default function InvitePage() {
           </PageCard>
         </div>
 
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={shareInvite}
+            className="min-h-11 px-4 py-3 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] underline underline-offset-2 hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+          >
+            {ip.share.cta}
+          </button>
+          {shareStatus === 'copied' && <span className="text-[13px] text-[var(--lp-text-sub)]">{ip.share.copied}</span>}
+          {shareStatus === 'failed' && <span className="text-[13px] text-[#7a1f1a]">{ip.share.failed}</span>}
+        </div>
+
         <div className="mt-8 max-w-[58ch]">
-          {stage === 'review' && !sessionMatchesEmail && (
+          {stage === 'review' && !canClaim && (
             <div className="space-y-4">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                {sendIntroParts[0]}
-                <strong>{invite.email}</strong>
-                {sendIntroParts[1] ?? ''}
+                {ip.recipient.hint}
               </p>
+              <label className="block space-y-2">
+                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                  {ip.recipient.label}
+                </span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={ip.recipient.placeholder}
+                  className="form-input w-full max-w-[34rem] min-h-11"
+                />
+              </label>
               <button
                 type="button"
                 onClick={sendCode}
-                disabled={busy}
+                disabled={busy || !email.trim()}
                 className={cn(
                   'inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
                   'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
@@ -294,7 +326,7 @@ export default function InvitePage() {
             <div className="space-y-4">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 {verifyIntroParts[0]}
-                <strong>{invite.email}</strong>
+                <strong>{email}</strong>
                 {verifyIntroParts[1] ?? ''}
               </p>
               <input
@@ -332,6 +364,44 @@ export default function InvitePage() {
                   {ip.verifyCode.resend}
                 </button>
               </div>
+            </div>
+          )}
+
+          {stage === 'ready-to-claim' && (
+            <div className="space-y-4">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ip.claim.ready}</p>
+              <button
+                type="button"
+                onClick={claim}
+                disabled={busy}
+                className={cn(
+                  'inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                  'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+                style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 3 }}
+              >
+                {ip.claim.cta}
+              </button>
+            </div>
+          )}
+
+          {stage === 'review' && canClaim && (
+            <div className="space-y-4">
+              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ip.claim.ready}</p>
+              <button
+                type="button"
+                onClick={claim}
+                disabled={busy}
+                className={cn(
+                  'inline-flex min-h-11 items-center gap-2 px-5 py-3 mono text-[12px] font-bold uppercase tracking-[0.08em]',
+                  'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+                style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 3 }}
+              >
+                {ip.claim.cta}
+              </button>
             </div>
           )}
 

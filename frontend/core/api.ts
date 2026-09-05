@@ -3228,14 +3228,17 @@ export const api = {
         token: string;
         jobId: string;
         role: 'buyer' | 'seller';
-        email: string;
+        emailHint: string;
         expiresAt: number;
       };
+      viewer: { authenticated: boolean; canClaim: boolean };
       deal: {
         jobId: string;
         dealAmountUsdc: string;
         firstReleasePct: number;
-        terms: string;
+        termsPreview: string;
+        terms?: string;
+        termsDigest: string;
         deadlineUnix?: number;
         acceptanceDeadlineUnix?: number;
         inviterMasked: string;

@@ -3893,12 +3893,15 @@ export const fr: Messages = {
     },
     verifyCode: {
       intro: "Entrez le code à 6 chiffres que nous venons d'envoyer à {email}. Si vous ne le voyez pas, vérifiez vos spams.",
-      cta: 'Vérifier et réclamer',
+      cta: 'Vérifier le code',
       busy: 'Vérification…',
       resend: 'Renvoyer',
     },
     claiming: { status: "Liaison de l'escrow à votre portefeuille…" },
     errors: { codeSixDigits: 'Le code doit comporter 6 chiffres.' },
+    recipient: { label: 'E-mail invité', placeholder: "Saisissez l'adresse qui a reçu l'invitation", hint: "Seul le destinataire invité peut réclamer ce deal. L'aperçu protège l'adresse." },
+    claim: { cta: 'Vérifier et réclamer', ready: 'E-mail vérifié. Relisez le deal, puis réclamez-le explicitement.' },
+    share: { cta: "Partager le lien", copied: "Lien d'invitation copié.", failed: 'Copiez le lien depuis votre navigateur.' },
   },
   buyerHub: {
     signInGate: { tag: 'ESPACE ACHETEUR', body: 'Les demandes et les deals directs sont liés à votre wallet. Connectez-vous pour continuer.' },

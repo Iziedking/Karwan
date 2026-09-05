@@ -3893,12 +3893,15 @@ export const sw: Messages = {
     },
     verifyCode: {
       intro: 'Ingiza msimbo wa tarakimu 6 tuliotuma sasa hivi kwa {email}. Ukiukosa, angalia folda ya barua taka.',
-      cta: 'Thibitisha na udai',
+      cta: 'Thibitisha msimbo',
       busy: 'Inathibitisha…',
       resend: 'Tuma tena',
     },
     claiming: { status: 'Inafunga escrow kwa pochi yako…' },
     errors: { codeSixDigits: 'Msimbo lazima uwe na tarakimu 6.' },
+    recipient: { label: 'Barua pepe iliyoalikwa', placeholder: 'Weka barua pepe iliyopokea mwaliko huu', hint: 'Mpokeaji aliyealikwa pekee ndiye anaweza kudai. Hakikisho linaficha anwani.' },
+    claim: { cta: 'Kagua na udai', ready: 'Barua pepe imethibitishwa. Kagua mkataba, kisha udai waziwazi.' },
+    share: { cta: 'Shiriki kiungo cha mwaliko', copied: 'Kiungo cha mwaliko kimenakiliwa.', failed: 'Nakili kiungo kutoka kwenye kivinjari chako.' },
   },
   buyerHub: {
     signInGate: { tag: 'DAWATI YA MNUNUZI', body: 'Maombi na mikataba ya moja kwa moja imeunganishwa na wallet yako. Ingia ili kuendelea.' },

@@ -3698,6 +3698,9 @@ interface MessagesShape {
     verifyCode: { intro: string; cta: string; busy: string; resend: string };
     claiming: { status: string };
     errors: { codeSixDigits: string };
+    recipient: { label: string; placeholder: string; hint: string };
+    claim: { cta: string; ready: string };
+    share: { cta: string; copied: string; failed: string };
   };
   buyerHub: {
     signInGate: { tag: string; body: string };
@@ -8851,12 +8854,19 @@ export const en: MessagesShape = {
     },
     verifyCode: {
       intro: "Enter the 6-digit code we just emailed to {email}. If you don't see it, check your spam folder.",
-      cta: 'Verify and claim',
+      cta: 'Verify code',
       busy: 'Verifying…',
       resend: 'Resend',
     },
     claiming: { status: 'Binding the escrow to your wallet…' },
     errors: { codeSixDigits: 'Code must be 6 digits.' },
+    recipient: {
+      label: 'Invited email',
+      placeholder: 'Enter the email that received this invite',
+      hint: 'Only the invited recipient can claim this deal. The preview keeps the address private.',
+    },
+    claim: { cta: 'Review and claim', ready: 'Email verified. Review the deal, then claim it explicitly.' },
+    share: { cta: 'Share invite link', copied: 'Invite link copied.', failed: 'Copy the link from your browser.' },
   },
   buyerHub: {
     signInGate: { tag: 'BUYER DESK', body: 'Requests and direct deals are keyed to your wallet. Sign in to continue.' },
