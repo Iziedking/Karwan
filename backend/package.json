@@ -42,6 +42,7 @@
     "usyc:prove": "tsx --env-file=../.env src/scripts/prove-usyc.ts",
     "research:smoke": "tsx --env-file=../.env src/scripts/research-smoke.ts",
     "agentkit:sandbox": "tsx src/scripts/agentkit-sandbox.ts",
+    "cre:github:sandbox": "tsx src/scripts/cre-github-sandbox.ts",
     "identity:register": "tsx --env-file=../.env src/scripts/register-identities.ts",
     "agent:seller": "tsx --env-file=../.env src/scripts/seller-agent.ts",
     "agent:buyer": "tsx --env-file=../.env src/scripts/buyer-agent.ts",
