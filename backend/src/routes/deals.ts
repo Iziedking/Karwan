@@ -84,7 +84,14 @@ import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
 import { getBrief } from '../db/briefs.js';
-import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
+import {
+  completeInviteClaim,
+  createInvite,
+  getInvite,
+  getInviteByJob,
+  releaseInviteClaim,
+  reserveInviteClaim,
+} from '../db/dealInvites.js';
 import { pickEmailOwner, type EmailOwner } from '../identity/emailOwner.js';
 import { getUserByEmail } from '../db/users.js';
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
@@ -118,6 +125,7 @@ import {
   buildDirectDealFundingQuote,
   fundingAuthorizationMatches,
 } from '../deals/fundingQuote.js';
+import { termsDigest } from '../deals/termsDigest.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -417,6 +425,7 @@ dealsRoutes.post('/direct', async (c) => {
         role: 'seller',
         email: body.sellerEmail,
         expiresAt: inviteExpiresAt,
+        termsDigest: termsDigest(body.terms),
       });
       pendingCounterparty = {
         email: body.sellerEmail,
@@ -506,6 +515,7 @@ dealsRoutes.post('/direct', async (c) => {
     deadlineUnix,
     acceptanceDeadlineUnix,
     terms: body.terms,
+    termsDigest: termsDigest(body.terms),
     origin: 'direct',
     pendingCounterparty,
     requireStake: body.requireStake,
@@ -683,10 +693,16 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     return c.json({ error: 'no changes provided' }, 400);
   }
 
+  if (patch.terms !== undefined) {
+    patch.termsDigest = termsDigest(patch.terms);
+    patch.sellerApprovedTermsDigest = undefined;
+  }
+
   // Agreement applies to one exact version of the commercial terms. Any
   // buyer edit before funding sends the revised deal back to seller review.
   if (deal.sellerApprovedAt) {
     patch.sellerApprovedAt = undefined;
+    patch.sellerApprovedTermsDigest = undefined;
   }
 
   const updated = await patchDeal(jobId, patch);
@@ -781,11 +797,9 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   return c.json({ accepted: true, jobId, deal: updated }, 200);
 });
 
-/// Public summary of a pending invite. Returns the deal terms in a form safe
-/// to show a logged-out recipient (amount, terms, deadline, the invited email,
-/// the inviter's masked address). The recipient uses this to decide whether
-/// to claim. Returns 404 for unknown tokens, 410 for expired invites, and a
-/// "ready to claim" payload otherwise.
+/// Public summary of a pending invite. It deliberately excludes the invited
+/// email and commercial terms. A link can be forwarded or crawled, so the
+/// preview is useful but private details wait for recipient verification.
 dealsRoutes.get('/invite/:token', async (c) => {
   const token = c.req.param('token');
   const invite = getInvite(token);
@@ -802,20 +816,40 @@ dealsRoutes.get('/invite/:token', async (c) => {
   const deal = await getDeal(invite.jobId);
   if (!deal) return c.json({ error: 'underlying deal vanished' }, 404);
 
+  if (invite.termsDigest && invite.termsDigest !== termsDigest(deal.terms)) {
+    return c.json(
+      {
+        error: 'this invite refers to older deal terms',
+        code: 'STALE_TERMS',
+        jobId: invite.jobId,
+      },
+      409,
+    );
+  }
+  if (invite.claimingByAddress && (invite.claimLeaseUntil ?? 0) > Date.now()) {
+    return c.json({ error: 'this invite is being claimed', code: 'IN_PROGRESS' }, 409);
+  }
+
   const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
+  const session = readSession(c);
+  const viewerCanClaim =
+    !!session && !!session.email && session.email.trim().toLowerCase() === invite.email;
   return c.json({
     invite: {
       token: invite.token,
       jobId: invite.jobId,
       role: invite.role,
-      email: invite.email,
+      emailHint: maskInviteEmail(invite.email),
       expiresAt: invite.expiresAt,
     },
+    viewer: { authenticated: !!session, canClaim: viewerCanClaim },
     deal: {
       jobId: deal.jobId,
       dealAmountUsdc: deal.dealAmountUsdc,
       firstReleasePct: deal.firstReleasePct,
-      terms: deal.terms,
+      termsPreview: 'Private terms are shown after the invited email is verified.',
+      ...(viewerCanClaim ? { terms: deal.terms } : {}),
+      termsDigest: invite.termsDigest ?? termsDigest(deal.terms),
       deadlineUnix: deal.deadlineUnix,
       acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix,
       inviterMasked: maskedInviter,
@@ -853,6 +887,15 @@ async function resolveEmailOwner(email: string): Promise<EmailOwner> {
 /// A typoed invite must not hand the full address to the wrong recipient.
 function mask(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+function maskInviteEmail(email: string): string {
+  const [local = '', domain = ''] = email.split('@');
+  const visibleLocal = local.slice(0, 1);
+  const domainParts = domain.split('.');
+  const visibleDomain = domainParts[0]?.slice(0, 1) ?? '';
+  const suffix = domainParts.length > 1 ? `.${domainParts.at(-1)}` : '';
+  return `${visibleLocal}***@${visibleDomain}***${suffix}`;
 }
 
 dealsRoutes.post('/invite/:token/claim', async (c) => {
@@ -897,6 +940,19 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   if (session.address.toLowerCase() === deal.buyer) {
     return c.json({ error: 'inviter cannot also be the counterparty' }, 409);
   }
+  const pendingAddress = invite.role === 'seller' ? deal.seller : deal.buyer;
+  if (pendingAddress !== PENDING_COUNTERPARTY_ADDRESS) {
+    return c.json(
+      { error: 'this invite has already been bound to the deal', code: 'ALREADY_BOUND', jobId: invite.jobId },
+      409,
+    );
+  }
+  if (invite.termsDigest && invite.termsDigest !== termsDigest(deal.terms)) {
+    return c.json(
+      { error: 'this invite refers to older deal terms; ask the buyer for a new link', code: 'STALE_TERMS' },
+      409,
+    );
+  }
 
   const patch: Partial<DirectDeal> = invite.role === 'seller'
     ? { seller: session.address.toLowerCase() }
@@ -929,12 +985,33 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 
   // Clear pendingCounterparty by patching to undefined; the persistence layer
   // strips undefined values so the field drops out cleanly.
-  await patchDeal(invite.jobId, {
-    ...patch,
-    ...reanchor,
-    pendingCounterparty: undefined,
-  });
-  markInviteUsed(token, session.address);
+  const reservation = reserveInviteClaim(token, session.address);
+  if (!reservation.ok) {
+    const status = reservation.code === 'CLAIMED' ? 410 : 409;
+    return c.json(
+      {
+        error: reservation.code === 'CLAIMED' ? 'invite already claimed' : 'another claim is in progress',
+        code: reservation.code,
+        jobId: invite.jobId,
+      },
+      status,
+    );
+  }
+  try {
+    await patchDeal(invite.jobId, {
+      ...patch,
+      ...reanchor,
+      pendingCounterparty: undefined,
+    });
+    if (!completeInviteClaim(token, session.address)) {
+      releaseInviteClaim(token, session.address);
+      return c.json({ error: 'claim could not be finalized', code: 'CLAIM_FINALIZE_FAILED' }, 503);
+    }
+  } catch (err) {
+    releaseInviteClaim(token, session.address);
+    logger.error({ err: (err as Error).message, jobId: invite.jobId }, 'invite claim patch failed');
+    return c.json({ error: 'claim could not be completed', code: 'CLAIM_FAILED' }, 500);
+  }
   bus.emitEvent({
     type: 'deal.invite.claimed',
     jobId: invite.jobId,
@@ -1197,6 +1274,12 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
       409,
     );
   }
+  if (deal.sellerApprovedTermsDigest && deal.sellerApprovedTermsDigest !== termsDigest(deal.terms)) {
+    return c.json(
+      { error: 'the seller approval is for older terms; review again before funding', code: 'STALE_TERMS' },
+      409,
+    );
+  }
 
   const feeBps = await getEscrowFeeBps({ fresh: true });
   return c.json({
@@ -1283,6 +1366,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     const sellerApprovedAt = Date.now();
     await patchDeal(jobId, {
       sellerApprovedAt,
+      sellerApprovedTermsDigest: termsDigest(deal.terms),
       sellerAgentWalletId: sellerAgents.sellerWalletId,
       sellerAgentAddress: sellerAgents.sellerAddress,
     });
