@@ -114,8 +114,11 @@ export function createAgentKitVerifier(input: {
       if (response.status === 'unavailable') {
         return { status: 'unavailable', code: 'PROVIDER_UNAVAILABLE', message: response.message };
       }
-      if (response.status === 'rejected' || !response.result.verified) {
-        return { status: 'rejected', code: 'PROOF_REJECTED', message: response.message ?? 'agent proof rejected' };
+      if (response.status === 'rejected') {
+        return { status: 'rejected', code: 'PROOF_REJECTED', message: response.message };
+      }
+      if (!response.result.verified) {
+        return { status: 'rejected', code: 'PROOF_REJECTED', message: 'agent proof rejected' };
       }
       if (response.result.agentAddress.toLowerCase() !== checked.agentAddress) {
         return { status: 'rejected', code: 'PROOF_REJECTED', message: 'provider returned a different agent address' };

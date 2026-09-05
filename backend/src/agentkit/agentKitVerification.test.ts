@@ -70,3 +70,20 @@ test('provider cannot bind a proof to a different agent address', async () => {
   const result = await verifier.verify(request('nonce-3'));
   assert.equal(result.status, 'rejected');
 });
+
+test('an unverified provider result is rejected without reading a missing message', async () => {
+  const verifier = createAgentKitVerifier({
+    humanKeySecret: SECRET,
+    now: () => 1_500,
+    provider: {
+      async verify() {
+        return {
+          status: 'verified' as const,
+          result: { verified: false, agentAddress: AGENT, humanSubject: 'human-fixture-1', checkedAt: 1_500, expiresAt: 1_900 },
+        };
+      },
+    },
+  });
+  const result = await verifier.verify(request('nonce-4'));
+  assert.deepEqual(result, { status: 'rejected', code: 'PROOF_REJECTED', message: 'agent proof rejected' });
+});
