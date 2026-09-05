@@ -10,12 +10,15 @@ import {
 } from './researchAllowance.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const HUMAN = 'a'.repeat(64);
+const AGENT_A = '0x1111111111111111111111111111111111111111';
+const AGENT_B = '0x2222222222222222222222222222222222222222';
 
 test(
-  'Postgres AgentKit allowance shares across agents, rejects replay, and survives store restart',
+  'Postgres allowance commits only delivered reports, shares the cap, and survives restart',
   { skip: !testDatabaseUrl },
   async () => {
-    const pool = new pg.Pool({ connectionString: testDatabaseUrl, max: 8 });
+    const pool = new pg.Pool({ connectionString: testDatabaseUrl, max: 12 });
     const schema = `karwan_agentkit_${randomUUID().replaceAll('-', '')}`;
     assert.match(schema, /^karwan_agentkit_[a-f0-9]{32}$/);
     const client = await pool.connect();
@@ -23,7 +26,7 @@ test(
       await client.query(`CREATE SCHEMA "${schema}"`);
       await client.query(`SET search_path TO "${schema}"`);
       await runNumberedMigrations(client);
-      const transaction = async <T>(operation: (executor: typeof client) => Promise<T>): Promise<T> => {
+      const transaction = async <T>(operation: (executor: pg.PoolClient) => Promise<T>): Promise<T> => {
         const tx = await pool.connect();
         await tx.query('BEGIN');
         try {
@@ -38,30 +41,43 @@ test(
           tx.release();
         }
       };
-      const humanKeyDigest = 'a'.repeat(64);
-      const agentA = '0x1111111111111111111111111111111111111111';
-      const agentB = '0x2222222222222222222222222222222222222222';
       const store = new PostgresResearchAllowanceStore(client, transaction);
-      const results = await Promise.all([
-        store.consume({ humanKeyDigest, agentAddress: agentA, domain: 'karwan.research', nonce: 'a-1', nonceExpiresAt: 10_000, now: 1_000 }),
-        store.consume({ humanKeyDigest, agentAddress: agentB, domain: 'karwan.research', nonce: 'b-1', nonceExpiresAt: 10_000, now: 1_000 }),
-      ]);
-      assert.deepEqual(results.map((result) => result.snapshot.used).sort(), [1, 2]);
-      await store.recordBinding({ agentAddress: agentA, humanKeyDigest, verifier: 'world-agentbook', checkedAt: 1_000, expiresAt: 10_000, now: 1_000 });
-      await store.recordBinding({ agentAddress: agentB, humanKeyDigest, verifier: 'world-agentbook', checkedAt: 1_000, expiresAt: 10_000, now: 1_000 });
-      const restarted = new PostgresResearchAllowanceStore(client, transaction);
-      assert.equal((await restarted.get({ humanKeyDigest, now: 1_000 }))?.used, 2);
-      assert.equal((await restarted.listBindings(humanKeyDigest)).length, 2);
+      for (const [agentAddress, nonce] of [[AGENT_A, 'verify-a'], [AGENT_B, 'verify-b']] as const) {
+        await store.verifyBinding({ humanKeyDigest: HUMAN, agentAddress, verifier: 'world-agentbook', checkedAt: 1_000, expiresAt: 100_000, domain: 'karwan.research', nonce, nonceExpiresAt: 10_000, now: 1_000 });
+      }
+      assert.equal(await store.get({ humanKeyDigest: HUMAN, now: 1_000 }), null);
       await assert.rejects(
-        () => restarted.consume({ humanKeyDigest, agentAddress: agentA, domain: 'karwan.research', nonce: 'a-1', nonceExpiresAt: 10_000, now: 1_001 }),
+        () => store.verifyBinding({ humanKeyDigest: HUMAN, agentAddress: AGENT_A, verifier: 'world-agentbook', checkedAt: 1_001, expiresAt: 100_000, domain: 'karwan.research', nonce: 'verify-a', nonceExpiresAt: 10_000, now: 1_001 }),
         ResearchAllowanceReplayError,
       );
-      await restarted.consume({ humanKeyDigest, agentAddress: agentA, domain: 'karwan.research', nonce: 'a-2', nonceExpiresAt: 10_000, now: 1_002 });
+
+      const reservations = await Promise.all([0, 1, 2].map((index) => store.reserve({
+        agentAddress: index % 2 === 0 ? AGENT_A : AGENT_B,
+        requestId: `request-${index}`,
+        resourceId: `deal:${index}:counterparty`,
+        now: 2_000,
+      })));
+      assert.deepEqual(reservations.map((item) => item.snapshot.reserved).sort(), [1, 2, 3]);
       await assert.rejects(
-        () => restarted.consume({ humanKeyDigest, agentAddress: agentB, domain: 'karwan.research', nonce: 'b-2', nonceExpiresAt: 10_000, now: 1_003 }),
+        () => store.reserve({ agentAddress: AGENT_B, requestId: 'request-3', resourceId: 'deal:3:counterparty', now: 2_001 }),
         ResearchAllowanceExhaustedError,
       );
-      assert.equal((await restarted.get({ humanKeyDigest, now: 1_003 }))?.used, 3);
+
+      await store.release({ reservationId: reservations[0]!.reservation.id, reason: 'provider unavailable', now: 2_100 });
+      const replacement = await store.reserve({ agentAddress: AGENT_B, requestId: 'request-3', resourceId: 'deal:3:counterparty', now: 2_101 });
+      for (const [index, item] of [reservations[1]!, reservations[2]!, replacement].entries()) {
+        await store.commit({ reservationId: item.reservation.id, resultId: `report-${index}`, now: 3_000 + index });
+      }
+
+      const restarted = new PostgresResearchAllowanceStore(client, transaction);
+      assert.equal((await restarted.get({ humanKeyDigest: HUMAN, now: 4_000 }))?.used, 3);
+      assert.equal((await restarted.listBindings(HUMAN)).length, 2);
+      assert.equal((await restarted.getDelivered({ agentAddress: AGENT_B, resourceId: 'deal:1:counterparty' }))?.resultId, 'report-0');
+      const retry = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'another-request', resourceId: 'deal:1:counterparty', now: 4_001 });
+      assert.equal(retry.created, false);
+      assert.equal(retry.reservation.state, 'delivered');
+      const same = await restarted.commit({ reservationId: retry.reservation.id, resultId: 'report-0', now: 4_002 });
+      assert.equal(same.snapshot.used, 3);
     } finally {
       await client.query('RESET search_path');
       if (!/^karwan_agentkit_[a-f0-9]{32}$/.test(schema)) throw new Error(`refusing to drop unexpected schema ${schema}`);

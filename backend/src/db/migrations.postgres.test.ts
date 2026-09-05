@@ -43,7 +43,7 @@ test(
             `);
           }
 
-          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
           assert.deepEqual(await runNumberedMigrations(client), []);
           const tables = await client.query<{ table_name: string }>(
             `SELECT table_name FROM information_schema.tables
@@ -88,6 +88,7 @@ test(
             'agentkit_used_nonces_v1',
             'agentkit_bindings_v1',
             'deal_invites_v1',
+            'agentkit_research_reservations_v1',
           ]) {
             assert.equal(names.has(table), true, `${schema} is missing ${table}`);
           }

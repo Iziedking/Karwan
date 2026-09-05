@@ -594,6 +594,30 @@ CREATE INDEX deal_invites_expiry_idx
   ON deal_invites_v1 (expires_at);
 `;
 
+const AGENTKIT_REPORT_DELIVERY_SQL = `
+CREATE TABLE agentkit_research_reservations_v1 (
+  id TEXT PRIMARY KEY,
+  human_key_digest TEXT NOT NULL,
+  agent_address TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  period_start BIGINT NOT NULL,
+  resource_id TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('reserved', 'delivered', 'released')),
+  lease_expires_at BIGINT NOT NULL,
+  result_id TEXT,
+  result JSONB,
+  failure_reason TEXT,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  delivered_at BIGINT,
+  UNIQUE (human_key_digest, scope, resource_id),
+  FOREIGN KEY (human_key_digest, scope, period_start)
+    REFERENCES agentkit_research_allowances_v1 (human_key_digest, scope, period_start)
+);
+CREATE INDEX agentkit_research_reservations_pool_idx
+  ON agentkit_research_reservations_v1 (human_key_digest, scope, period_start, state, lease_expires_at);
+`;
+
 export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
   {
     version: 1,
@@ -689,6 +713,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 19,
     name: 'durable_deal_invites',
     sql: DEAL_INVITES_SQL,
+  },
+  {
+    version: 20,
+    name: 'agentkit_report_delivery_accounting',
+    sql: AGENTKIT_REPORT_DELIVERY_SQL,
   },
 ] as const;
 
