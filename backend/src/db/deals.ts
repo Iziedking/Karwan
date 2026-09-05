@@ -172,7 +172,11 @@ export interface DirectDeal {
   /// deliveryMatch.reason), because a paused payout that reads as "releasing
   /// shortly" is how a deal silently wedges: the seller waits on a clock that
   /// is not running and never learns they should appeal.
-  releaseBlockedReason?: 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+  releaseBlockedReason?:
+    | 'requirement-mismatch'
+    | 'evidence-unavailable'
+    | 'security-hold'
+    | 'no-agent-wallet';
   releaseBlockedAt?: number;
   // Set when the first milestone is released (by the buyer or by the auto
   // first-release). Starts the final-release window during which the buyer

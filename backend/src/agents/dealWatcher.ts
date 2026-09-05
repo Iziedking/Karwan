@@ -23,6 +23,10 @@ import { settleFactoringForDeal } from './factoringWatcher.js';
 import { settlePOFinancingForDeal } from './poWatcher.js';
 import { logger } from '../logger.js';
 import {
+  releaseBlockReasonForDelivery,
+  type ReleaseBlockReason,
+} from '../deals/releaseBlock.js';
+import {
   autoReleaseWindowMs,
   buildPairHistory,
   pairKey,
@@ -121,7 +125,7 @@ function publishMilestonePayoutShadow(
   }
 }
 
-type BlockReason = 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+type BlockReason = ReleaseBlockReason;
 
 /// Record (once) that the agent has stopped the auto-release clock, and why.
 /// Idempotent: re-entering the same reason on a later tick is a no-op, so the
@@ -367,12 +371,7 @@ async function tick() {
       // Both are recorded on the deal. The seller cannot see the buyer's private
       // deliveryMatch.reason, but they must see THAT the clock stopped, or they
       // wait forever on a countdown that already expired and never appeal.
-      const blockReason: BlockReason | null =
-        deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious'
-          ? 'security-hold'
-          : deal.deliveryMatch?.verdict === 'mismatch'
-            ? 'requirement-mismatch'
-            : null;
+      const blockReason: BlockReason | null = releaseBlockReasonForDelivery(deal);
       if (blockReason) {
         await markBlocked(deal.jobId, blockReason, deal.releaseBlockedReason, parties);
         continue;
