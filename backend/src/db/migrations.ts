@@ -540,6 +540,45 @@ CREATE INDEX agent_task_replays_task_created_idx
   ON agent_task_replays_v2 (task_id, created_at DESC);
 `;
 
+const AGENTKIT_RESEARCH_ALLOWANCE_SQL = `
+CREATE TABLE agentkit_research_allowances_v1 (
+  human_key_digest TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  period_start BIGINT NOT NULL,
+  allowance INTEGER NOT NULL CHECK (allowance > 0 AND allowance <= 100),
+  used INTEGER NOT NULL CHECK (used >= 0 AND used <= allowance),
+  version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0),
+  updated_at BIGINT NOT NULL,
+  PRIMARY KEY (human_key_digest, scope, period_start)
+);
+CREATE INDEX agentkit_research_allowances_period_idx
+  ON agentkit_research_allowances_v1 (period_start, updated_at DESC);
+
+CREATE TABLE agentkit_used_nonces_v1 (
+  signer TEXT NOT NULL,
+  domain TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  human_key_digest TEXT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  consumed_at BIGINT NOT NULL,
+  PRIMARY KEY (signer, domain, nonce)
+);
+CREATE INDEX agentkit_used_nonces_expiry_idx
+  ON agentkit_used_nonces_v1 (expires_at);
+
+CREATE TABLE agentkit_bindings_v1 (
+  agent_address TEXT PRIMARY KEY,
+  human_key_digest TEXT NOT NULL,
+  verifier TEXT NOT NULL CHECK (verifier = 'world-agentbook'),
+  checked_at BIGINT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0),
+  updated_at BIGINT NOT NULL
+);
+CREATE INDEX agentkit_bindings_human_idx
+  ON agentkit_bindings_v1 (human_key_digest, expires_at DESC);
+`;
+
 export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
   {
     version: 1,
@@ -625,6 +664,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 17,
     name: 'durable_task_replay_audit',
     sql: DURABLE_TASK_REPLAY_SQL,
+  },
+  {
+    version: 18,
+    name: 'agentkit_research_allowance',
+    sql: AGENTKIT_RESEARCH_ALLOWANCE_SQL,
   },
 ] as const;
 
