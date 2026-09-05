@@ -16,9 +16,17 @@ export function AgentTrustEvidenceCard() {
     return () => { cancelled = true; };
   }, []);
 
-  const checked = status?.verification === 'not-checked' && status.mode === 'sandbox-ready';
-  const statusLabel = checked ? copy.notChecked : copy.unavailable;
-  const allowance = status ? `${status.allowancePolicy.reportsPer24Hours} / 24h` : copy.unavailable;
+  const verified = status?.verification === 'verified';
+  const statusLabel = verified
+    ? copy.humanBacked
+    : status?.mode === 'sandbox-ready'
+      ? copy.notChecked
+      : copy.unavailable;
+  const allowance = status?.allowance
+    ? `${status.allowance.remaining} / ${status.allowance.allowance}`
+    : status
+      ? `${status.allowancePolicy.reportsPer24Hours} / 24h`
+      : copy.unavailable;
 
   return (
     <section
@@ -44,7 +52,7 @@ export function AgentTrustEvidenceCard() {
         <TrustRow label={copy.connectedEvidence} value={copy.noEvidence} />
         <TrustRow label={copy.pilotAllowance} value={allowance} mono />
       </dl>
-      {!checked && <p className="mt-3 text-[11px] leading-snug text-[var(--lp-text-muted)]">{copy.notCheckedBody}</p>}
+      {!verified && <p className="mt-3 text-[11px] leading-snug text-[var(--lp-text-muted)]">{copy.notCheckedBody}</p>}
     </section>
   );
 }

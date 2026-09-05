@@ -927,6 +927,22 @@ export interface CounterpartyReport {
     decisionImpact?: 'legacy_match_unchanged';
     evidenceId?: string;
   } | null;
+  complimentary?: {
+    resultId: string;
+    reused: boolean;
+    allowance: ResearchAllowanceSnapshot;
+  };
+}
+
+export interface ResearchAllowanceSnapshot {
+  scope: 'counterparty-report';
+  periodStart: number;
+  allowance: number;
+  used: number;
+  reserved: number;
+  remaining: number;
+  version: number;
+  updatedAt: number;
 }
 
 export interface LifecycleTiming {
@@ -1793,11 +1809,11 @@ export interface ScoutReadEntry {
 }
 
 export interface AgentKitResearchStatus {
-  verification: 'not-checked';
+  verification: 'not-checked' | 'verified';
   provider: 'world-agentbook';
   mode: 'sandbox-ready' | 'unavailable';
   allowancePolicy: { scope: 'counterparty-report'; reportsPer24Hours: number };
-  allowance: null;
+  allowance: ResearchAllowanceSnapshot | null;
 }
 
 export const api = {
@@ -3281,6 +3297,11 @@ export const api = {
   counterpartyReport: (jobId: string, caller?: string | null) =>
     json<CounterpartyReport>(
       withCaller(`/api/deals/direct/${jobId}/counterparty-report`, caller),
+    ),
+  complimentaryCounterpartyReport: (jobId: string, caller?: string | null) =>
+    json<CounterpartyReport>(
+      withCaller(`/api/deals/direct/${jobId}/counterparty-report/complimentary`, caller),
+      { method: 'POST', body: JSON.stringify({}) },
     ),
   acceptDirectDeal: (jobId: string, caller: string) =>
     json<{

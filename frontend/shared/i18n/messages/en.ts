@@ -1380,6 +1380,10 @@ interface MessagesShape {
       subtitle: string;
       loading: string;
       locked: string;
+      complimentaryAction: string;
+      complimentaryLoading: string;
+      complimentaryUnavailable: string;
+      complimentaryDelivered: string;
       empty: string;
       summaryTemplate: string;
       receiptTemplate: string;
@@ -6398,7 +6402,11 @@ export const en: MessagesShape = {
       eyebrow: 'WORK RECORD',
       subtitle: 'Real deals this seller delivered. Private to you, not on the public passport.',
       loading: 'Loading work record…',
-      locked: 'The agent did not pull a paid passport on this deal, so the full work record stays locked.',
+      locked: 'No paid passport was pulled for this deal. A verified human-backed agent can use one pilot report allowance instead.',
+      complimentaryAction: 'Use complimentary report',
+      complimentaryLoading: 'Preparing report…',
+      complimentaryUnavailable: 'The complimentary report is unavailable. Verify your agent, retry later, or continue with existing paid research.',
+      complimentaryDelivered: '{remaining} pilot reports remaining in this 24-hour period.',
       empty: 'No completed work on record yet.',
       summaryTemplate: '{total} deals · {clean} clean · {disputed} disputed · avg {avg}',
       receiptTemplate: 'Agent paid {amount} on Arc for this read',
