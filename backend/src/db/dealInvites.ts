@@ -1,6 +1,11 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
+import {
+  completeInviteClaim as completeClaimState,
+  releaseInviteClaim as releaseClaimState,
+  reserveInviteClaim as reserveClaimState,
+} from '../deals/inviteClaim.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'deal-invites.json');
 
@@ -19,11 +24,18 @@ export interface DealInvite {
   /// The email the invite was issued to. Recipient must verify ownership via
   /// the standard OTP route before claim is allowed. Stored lower-cased.
   email: string;
+  /// Exact commercial-terms version visible when this invite was issued.
+  termsDigest?: string;
   expiresAt: number;
   /// One-shot. Set when the recipient claims and the deal is bound. Later
   /// visits to /invite/[token] just redirect to /deals/[jobId].
   usedAt?: number;
   usedByAddress?: string;
+  /// A short durable lease prevents two requests from binding the same invite
+  /// while the underlying deal patch is awaiting storage.
+  claimingAt?: number;
+  claimingByAddress?: string;
+  claimLeaseUntil?: number;
   createdAt: number;
 }
 
@@ -45,15 +57,11 @@ function load(): void {
 }
 
 function persist(): void {
-  try {
-    const dir = dirname(STORE_PATH);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    const obj: Record<string, DealInvite> = {};
-    for (const [k, v] of store.entries()) obj[k] = v;
-    writeFileSync(STORE_PATH, JSON.stringify(obj, null, 2), 'utf8');
-  } catch (err) {
-    logger.warn({ err: (err as Error).message }, 'deal invites persist failed');
-  }
+  const dir = dirname(STORE_PATH);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const obj: Record<string, DealInvite> = {};
+  for (const [k, v] of store.entries()) obj[k] = v;
+  writeFileSync(STORE_PATH, JSON.stringify(obj, null, 2), 'utf8');
 }
 
 export function createInvite(input: Omit<DealInvite, 'createdAt'>): DealInvite {
@@ -90,6 +98,52 @@ export function markInviteUsed(token: string, address: string): DealInvite | nul
   store.set(inv.token, inv);
   persist();
   return inv;
+}
+
+export type InviteClaimResult =
+  | { ok: true; invite: DealInvite }
+  | { ok: false; code: 'NOT_FOUND' | 'CLAIMED' | 'IN_PROGRESS' };
+
+export function reserveInviteClaim(token: string, address: string, now = Date.now()): InviteClaimResult {
+  load();
+  const invite = store.get(token);
+  if (!invite) return { ok: false, code: 'NOT_FOUND' };
+  const result = reserveClaimState(invite, address, now);
+  if (!result.ok) return result;
+  const next = { ...invite, ...result.next };
+  store.set(token, next);
+  try {
+    persist();
+  } catch (err) {
+    store.set(token, invite);
+    logger.error({ err: (err as Error).message, token }, 'invite claim reservation failed');
+    return { ok: false, code: 'IN_PROGRESS' };
+  }
+  return { ok: true, invite: next };
+}
+
+export function completeInviteClaim(token: string, address: string, now = Date.now()): DealInvite | null {
+  load();
+  const invite = store.get(token);
+  if (!invite) return null;
+  const nextState = completeClaimState(invite, address, now);
+  if (!nextState) return null;
+  const next = { ...invite, ...nextState };
+  store.set(token, next);
+  persist();
+  return next;
+}
+
+export function releaseInviteClaim(token: string, address: string): DealInvite | null {
+  load();
+  const invite = store.get(token);
+  if (!invite) return null;
+  const nextState = releaseClaimState(invite, address);
+  if (!nextState) return null;
+  const next = { ...invite, ...nextState };
+  store.set(token, next);
+  persist();
+  return next;
 }
 
 /// Garbage-collect expired + claimed invites older than 30 days. Called on

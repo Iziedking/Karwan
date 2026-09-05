@@ -74,6 +74,8 @@ export interface DirectDeal {
   /// post-deadline buyer cancel + reputation slash path stays.
   deadlineUnix?: number;
   terms: string;
+  /// SHA-256 version of the exact off-chain terms currently awaiting approval.
+  termsDigest?: string;
   /// The agent's paid market read for this deal, carried over from the match
   /// proposal at acceptance so the research stays visible on the deal page for
   /// the whole lifecycle (the proposal banner is gone once the deal funds).
@@ -123,6 +125,9 @@ export interface DirectDeal {
   // money has moved yet. A buyer edit clears this marker so the seller must
   // approve the revised terms again.
   sellerApprovedAt?: number;
+  /// Digest that the seller approved. Funding must never use an approval for
+  /// a different terms version.
+  sellerApprovedTermsDigest?: string;
   // The escrow has been funded and verified Accepted on chain. Downstream
   // delivery, financing, settlement, and reputation code relies on this funded
   // meaning, so it remains distinct from sellerApprovedAt.
