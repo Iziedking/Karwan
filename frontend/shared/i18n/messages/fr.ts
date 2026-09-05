@@ -3926,7 +3926,7 @@ export const fr: Messages = {
       resend: 'Renvoyer',
     },
     claiming: { status: "Liaison de l'escrow à votre portefeuille…" },
-    errors: { codeSixDigits: 'Le code doit comporter 6 chiffres.' },
+    errors: { codeSixDigits: 'Le code doit comporter 6 chiffres.', recipientMismatch: "Cette identité vérifiée ne correspond pas au destinataire invité." },
     recipient: { label: 'E-mail invité', placeholder: "Saisissez l'adresse qui a reçu l'invitation", hint: "Seul le destinataire invité peut réclamer ce deal. L'aperçu protège l'adresse." },
     claim: { cta: 'Vérifier et réclamer', ready: 'E-mail vérifié. Relisez le deal, puis réclamez-le explicitement.' },
     share: {

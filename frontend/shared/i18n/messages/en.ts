@@ -3725,7 +3725,7 @@ interface MessagesShape {
     sendCode: { intro: string; cta: string; busy: string };
     verifyCode: { intro: string; cta: string; busy: string; resend: string };
     claiming: { status: string };
-    errors: { codeSixDigits: string };
+    errors: { codeSixDigits: string; recipientMismatch: string };
     recipient: { label: string; placeholder: string; hint: string };
     claim: { cta: string; ready: string };
     share: {
@@ -8926,7 +8926,10 @@ export const en: MessagesShape = {
       resend: 'Resend',
     },
     claiming: { status: 'Binding the escrow to your wallet…' },
-    errors: { codeSixDigits: 'Code must be 6 digits.' },
+    errors: {
+      codeSixDigits: 'Code must be 6 digits.',
+      recipientMismatch: 'This verified identity does not match the invited recipient.',
+    },
     recipient: {
       label: 'Invited email',
       placeholder: 'Enter the email that received this invite',

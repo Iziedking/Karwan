@@ -18,6 +18,10 @@ import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { buildInviteUrl } from '@/features/deals/inviteLink';
 import { InviteLinkTools } from '@/features/deals/components/InviteLinkTools';
+import {
+  InviteRecipientMismatchError,
+  verifyInviteRecipient,
+} from '@/features/deals/inviteVerification';
 
 type InviteResponse = Awaited<ReturnType<typeof api.getDealInvite>>;
 
@@ -41,10 +45,12 @@ export default function InvitePage() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadInvite = useCallback(() => {
     let alive = true;
-    if (!token) return;
-    api
+    if (!token) return () => { alive = false; };
+    setLoading(true);
+    setLoadError(null);
+    void api
       .getDealInvite(token)
       .then((r) => {
         if (!alive) return;
@@ -74,6 +80,8 @@ export default function InvitePage() {
       alive = false;
     };
   }, [token, router]);
+
+  useEffect(() => loadInvite(), [loadInvite, auth.address, auth.email]);
 
   useEffect(() => {
     if (auth.email && !email) setEmail(auth.email);
@@ -137,18 +145,28 @@ export default function InvitePage() {
     setBusy(true);
     setActionError(null);
     try {
-      await api.authOtpVerify(email.trim(), code.trim());
-      emitAuthChanged();
-      await auth.refresh();
-      const refreshed = await api.getDealInvite(token);
+      const refreshed = await verifyInviteRecipient({
+        email: email.trim(),
+        code: code.trim(),
+        token,
+        verifyOtp: api.authOtpVerify,
+        refreshAuth: async () => {
+          emitAuthChanged();
+          await auth.refresh();
+        },
+        loadInvite: api.getDealInvite,
+      });
       setData(refreshed);
       setStage('ready-to-claim');
     } catch (err) {
       const msg =
-        err instanceof ApiError && err.detail
+        err instanceof InviteRecipientMismatchError
+          ? ip.errors.recipientMismatch
+          : err instanceof ApiError && err.detail
           ? String(err.detail)
           : (err as Error).message;
       setActionError(msg);
+    } finally {
       setBusy(false);
     }
   }

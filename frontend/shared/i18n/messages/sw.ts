@@ -3926,7 +3926,7 @@ export const sw: Messages = {
       resend: 'Tuma tena',
     },
     claiming: { status: 'Inafunga escrow kwa pochi yako…' },
-    errors: { codeSixDigits: 'Msimbo lazima uwe na tarakimu 6.' },
+    errors: { codeSixDigits: 'Msimbo lazima uwe na tarakimu 6.', recipientMismatch: 'Utambulisho huu uliothibitishwa haulingani na mpokeaji aliyealikwa.' },
     recipient: { label: 'Barua pepe iliyoalikwa', placeholder: 'Weka barua pepe iliyopokea mwaliko huu', hint: 'Mpokeaji aliyealikwa pekee ndiye anaweza kudai. Hakikisho linaficha anwani.' },
     claim: { cta: 'Kagua na udai', ready: 'Barua pepe imethibitishwa. Kagua mkataba, kisha udai waziwazi.' },
     share: {
