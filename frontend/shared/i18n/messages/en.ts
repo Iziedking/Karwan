@@ -2975,8 +2975,15 @@ interface MessagesShape {
       pendingInvite: {
         eyebrow: string;
         bodyTemplate: string;
+        shareCta: string;
         copyCta: string;
         copied: string;
+        shared: string;
+        failed: string;
+        qrCta: string;
+        qrLoading: string;
+        qrUnavailable: string;
+        qrAlt: string;
       };
       acceptanceCountdown: {
         openSellerPrefix: string;
@@ -3721,7 +3728,18 @@ interface MessagesShape {
     errors: { codeSixDigits: string };
     recipient: { label: string; placeholder: string; hint: string };
     claim: { cta: string; ready: string };
-    share: { cta: string; copied: string; failed: string };
+    share: {
+      cta: string;
+      shareCta: string;
+      copyCta: string;
+      copied: string;
+      shared: string;
+      failed: string;
+      qrCta: string;
+      qrLoading: string;
+      qrUnavailable: string;
+      qrAlt: string;
+    };
   };
   buyerHub: {
     signInGate: { tag: string; body: string };
@@ -8138,8 +8156,15 @@ export const en: MessagesShape = {
       pendingInvite: {
         eyebrow: 'SHARE THE INVITE',
         bodyTemplate: 'Send {email} this link. They open it, verify the email, and the deal binds to their wallet.',
+        shareCta: 'Share',
         copyCta: 'Copy',
         copied: 'Copied',
+        shared: 'Share sheet opened.',
+        failed: 'Copy the link manually from the field above.',
+        qrCta: 'Show QR code',
+        qrLoading: 'Preparing QR',
+        qrUnavailable: 'QR is unavailable. The link above is still ready to copy.',
+        qrAlt: 'QR code for the private deal invite link',
       },
       acceptanceCountdown: {
         openSellerPrefix: 'You have',
@@ -8908,7 +8933,18 @@ export const en: MessagesShape = {
       hint: 'Only the invited recipient can claim this deal. The preview keeps the address private.',
     },
     claim: { cta: 'Review and claim', ready: 'Email verified. Review the deal, then claim it explicitly.' },
-    share: { cta: 'Share invite link', copied: 'Invite link copied.', failed: 'Copy the link from your browser.' },
+    share: {
+      cta: 'Share invite link',
+      shareCta: 'Share',
+      copyCta: 'Copy',
+      copied: 'Invite link copied.',
+      shared: 'Share sheet opened.',
+      failed: 'Copy the link from the field above.',
+      qrCta: 'Show QR code',
+      qrLoading: 'Preparing QR',
+      qrUnavailable: 'QR is unavailable. The link above is still ready to copy.',
+      qrAlt: 'QR code for this deal invite link',
+    },
   },
   buyerHub: {
     signInGate: { tag: 'BUYER DESK', body: 'Requests and direct deals are keyed to your wallet. Sign in to continue.' },

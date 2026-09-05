@@ -16,6 +16,8 @@ import {
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { buildInviteUrl } from '@/features/deals/inviteLink';
+import { InviteLinkTools } from '@/features/deals/components/InviteLinkTools';
 
 type InviteResponse = Awaited<ReturnType<typeof api.getDealInvite>>;
 
@@ -38,7 +40,6 @@ export default function InvitePage() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [shareStatus, setShareStatus] = useState<'copied' | 'failed' | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -152,23 +153,6 @@ export default function InvitePage() {
     }
   }
 
-  const shareInvite = useCallback(async () => {
-    try {
-      const url = window.location.href;
-      if (typeof navigator.share === 'function') {
-        await navigator.share({ title: 'Karwan deal invite', url });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        throw new Error('clipboard unavailable');
-      }
-      setShareStatus('copied');
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      setShareStatus('failed');
-    }
-  }, []);
-
   if (loading) {
     return (
       <FullBleed>
@@ -199,6 +183,8 @@ export default function InvitePage() {
   }
 
   const { invite, deal } = data;
+  const inviteUrl =
+    typeof window !== 'undefined' ? buildInviteUrl(window.location.origin, token) : `/invite/${token}`;
 
   const heroIntroParts = ip.hero.intro.split('{email}');
   const verifyIntroParts = ip.verifyCode.intro.split('{email}');
@@ -270,16 +256,12 @@ export default function InvitePage() {
           </PageCard>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={shareInvite}
-            className="min-h-11 px-4 py-3 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] underline underline-offset-2 hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-          >
-            {ip.share.cta}
-          </button>
-          {shareStatus === 'copied' && <span className="text-[13px] text-[var(--lp-text-sub)]">{ip.share.copied}</span>}
-          {shareStatus === 'failed' && <span className="text-[13px] text-[#7a1f1a]">{ip.share.failed}</span>}
+        <div className="mt-4 max-w-[58ch]">
+          <InviteLinkTools
+            url={inviteUrl}
+            copy={ip.share}
+            className="space-y-2 text-[var(--lp-dark)]"
+          />
         </div>
 
         <div className="mt-8 max-w-[58ch]">

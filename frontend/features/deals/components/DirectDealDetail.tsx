@@ -28,6 +28,8 @@ import {
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
 import { hasUnresolvedPayoutRecovery } from '../moneyRecovery';
+import { buildInviteUrl } from '../inviteLink';
+import { InviteLinkTools } from './InviteLinkTools';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
@@ -2704,9 +2706,8 @@ function PendingInviteCopy({
   email: string;
   copy: Messages['directDealDetail']['actionPanel']['pendingInvite'];
 }) {
-  const [copied, setCopied] = useState(false);
   const inviteUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/invite/${token}` : `/invite/${token}`;
+    typeof window !== 'undefined' ? buildInviteUrl(window.location.origin, token) : `/invite/${token}`;
   return (
     <div
       className="space-y-2 p-3"
@@ -2722,36 +2723,11 @@ function PendingInviteCopy({
       <p className="text-[12.5px] leading-snug text-[var(--lp-workspace-muted)]">
         {copy.bodyTemplate.replace('{email}', email)}
       </p>
-      <div className="flex items-center gap-2 flex-wrap">
-        <input
-          type="text"
-          value={inviteUrl}
-          readOnly
-          className="flex-1 min-w-0 bg-[var(--lp-workspace-raised)] border border-[var(--lp-workspace-border)] rounded-[3px] px-2.5 py-1.5 text-[12px] mono text-[var(--lp-workspace-ink)]"
-          onFocus={(e) => e.currentTarget.select()}
-        />
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(inviteUrl);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1800);
-            } catch {
-              // user can still select+copy manually
-            }
-          }}
-          className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
-          style={{
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
-          }}
-        >
-          {copied ? copy.copied : copy.copyCta}
-        </button>
-      </div>
+      <InviteLinkTools
+        url={inviteUrl}
+        copy={copy}
+        className="space-y-2"
+      />
     </div>
   );
 }
