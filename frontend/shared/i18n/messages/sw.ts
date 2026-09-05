@@ -2986,6 +2986,8 @@ export const sw: Messages = {
       deliveryReviewBody: 'Wakala wako alilinganisha uwasilishaji na ombi lako na hana uhakika unakidhi kikamilifu. Fungua na uthibitishe kabla ya kuachilia malipo.',
       deliveryOkLabel: 'Imekaguliwa, inakidhi ombi lako',
       deliveryOkBody: 'Wakala wako wa usalama alikagua kiungo na kubaini uwasilishaji unakidhi ombi lako. Fedha hubaki kwenye escrow hadi uziachilie.',
+      deliveryUnknownLabel: 'Ukaguzi wa uwasilishaji haupatikani',
+      deliveryUnknownBody: 'Karwan haikuweza kukamilisha ukaguzi wa uwasilishaji. Hii ni hali isiyojulikana, si kushindwa. Kagua kazi mwenyewe kabla ya kutoa malipo.',
     },
     progress: {
       eyebrow: 'MAENDELEO',
@@ -3020,6 +3022,10 @@ export const sw: Messages = {
       loadingLabel: 'Inakagua rekodi za malipo',
       errorBody: 'Rekodi za malipo hazipatikani sasa. Maelezo ya makubaliano yako hayajabadilika.',
       retry: 'Jaribu tena',
+      recoveryTitle: 'Hali ya malipo inahitaji kusawazishwa',
+      recoveryBody: 'Huenda muhamisho wa Arc uliopo tayari umefika kwenye mnyororo. Karwan itasawazisha muhamisho huo huo kabla ya kuzingatia malipo mapya.',
+      reconcile: 'Sawazisha hali ya malipo',
+      reconcileBusy: 'Inasawazisha…',
       kinds: { escrow_funding: 'Ufadhili wa escrow', milestone_payout: 'Malipo ya hatua' },
       states: {
         created: 'Ombi limerekodiwa', preparing: 'Malipo yanaandaliwa', submitted: 'Malipo yametumwa',
@@ -3125,7 +3131,8 @@ export const sw: Messages = {
       releaseBlocked: {
         buyerMismatch: 'Utoaji wa kiotomatiki umesimama. Uwasilishaji haulingani na ombi lako. Ukague, kisha toa malipo au kata rufaa.',
         sellerMismatch: 'Utoaji wa kiotomatiki umesimama. Mnunuzi lazima akague uwasilishaji huu kabla ya fedha yoyote kuhama. Akichelewa, kata rufaa kwenye mkataba.',
-        noAgent: 'Utoaji wa kiotomatiki haupatikani kwenye mkataba huu. Toa malipo mwenyewe, au kata rufaa.',
+      noAgent: 'Utoaji wa kiotomatiki haupatikani kwenye mkataba huu. Toa malipo mwenyewe, au kata rufaa.',
+      evidenceUnavailable: 'Utoaji wa kiotomatiki umesitishwa kwa sababu ukaguzi wa uwasilishaji haupatikani. Kagua kazi mwenyewe, kisha toa malipo au kata rufaa.',
       },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Muuzaji ametia alama imewasilishwa. Toa asilimia ya kwanza {firstPct}% sasa. Iliyobaki {remainPct}% itatolewa baada ya kuthibitisha.',

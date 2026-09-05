@@ -504,7 +504,11 @@ export interface DirectDeal {
   /// Why the agent stopped the auto-release clock. Visible to BOTH parties; the
   /// buyer's private deliveryMatch verdict never is. Without this the seller
   /// reads a countdown that already expired and never learns to appeal.
-  releaseBlockedReason?: 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+  releaseBlockedReason?:
+    | 'requirement-mismatch'
+    | 'evidence-unavailable'
+    | 'security-hold'
+    | 'no-agent-wallet';
   releaseBlockedAt?: number;
   /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
   /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for

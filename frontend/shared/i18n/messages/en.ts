@@ -2763,6 +2763,8 @@ interface MessagesShape {
       deliveryReviewBody: string;
       deliveryOkLabel: string;
       deliveryOkBody: string;
+      deliveryUnknownLabel: string;
+      deliveryUnknownBody: string;
     };
     progress: {
       eyebrow: string;
@@ -2797,6 +2799,10 @@ interface MessagesShape {
       loadingLabel: string;
       errorBody: string;
       retry: string;
+      recoveryTitle: string;
+      recoveryBody: string;
+      reconcile: string;
+      reconcileBusy: string;
       kinds: { escrow_funding: string; milestone_payout: string };
       states: {
         created: string;
@@ -2921,6 +2927,7 @@ interface MessagesShape {
         buyerMismatch: string;
         sellerMismatch: string;
         noAgent: string;
+        evidenceUnavailable: string;
       };
       awaitingFirstRelease: {
         buyerIntroTemplate: string;
@@ -7920,6 +7927,8 @@ export const en: MessagesShape = {
       deliveryReviewBody: 'Your agent reviewed the delivery against your request and is not sure it fully matches. Open it and confirm before you release.',
       deliveryOkLabel: 'Reviewed, matches your request',
       deliveryOkBody: 'Your security agent checked the link and found the delivery matches your request. Funds stay in escrow until you release.',
+      deliveryUnknownLabel: 'Delivery check unavailable',
+      deliveryUnknownBody: 'Karwan could not complete the delivery check. This is unknown, not a failure. Review the work yourself before releasing.',
     },
     progress: {
       eyebrow: 'PROGRESS',
@@ -7954,6 +7963,10 @@ export const en: MessagesShape = {
       loadingLabel: 'Checking settlement records',
       errorBody: 'Settlement records are unavailable right now. Your deal details are unchanged.',
       retry: 'Try again',
+      recoveryTitle: 'Payment status needs reconciliation',
+      recoveryBody: 'The existing Arc movement may already have reached the chain. Karwan will reconcile that same movement before any new payout is considered.',
+      reconcile: 'Reconcile payment status',
+      reconcileBusy: 'Reconciling…',
       kinds: {
         escrow_funding: 'Escrow funding',
         milestone_payout: 'Milestone payout',
@@ -8076,7 +8089,8 @@ export const en: MessagesShape = {
       releaseBlocked: {
         buyerMismatch: 'Auto-release is paused. The delivery does not match your request. Review it, then release or appeal.',
         sellerMismatch: 'Auto-release is paused. The buyer has to review this delivery before any funds move. If they stall, appeal the deal.',
-        noAgent: 'Auto-release is unavailable on this deal. Release manually, or appeal.',
+      noAgent: 'Auto-release is unavailable on this deal. Release manually, or appeal.',
+      evidenceUnavailable: 'Auto-release is paused because the delivery check is unavailable. Review the work yourself, then release or appeal.',
       },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Seller marked delivered. Release the first {firstPct}% now. The remaining {remainPct}% releases once you verify.',

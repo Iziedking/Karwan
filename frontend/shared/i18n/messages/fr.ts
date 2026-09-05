@@ -2986,6 +2986,8 @@ export const fr: Messages = {
       deliveryReviewBody: 'Votre agent a comparé la livraison à votre demande et n’est pas sûr qu’elle corresponde entièrement. Ouvrez-la et confirmez avant de libérer les fonds.',
       deliveryOkLabel: 'Vérifié, correspond à votre demande',
       deliveryOkBody: 'Votre agent de sécurité a vérifié le lien et constaté que la livraison correspond à votre demande. Les fonds restent sous séquestre jusqu’à ce que vous les libériez.',
+      deliveryUnknownLabel: 'Vérification de livraison indisponible',
+      deliveryUnknownBody: 'Karwan n’a pas pu terminer la vérification de livraison. Le résultat est inconnu, pas négatif. Examinez le travail avant de libérer les fonds.',
     },
     progress: {
       eyebrow: 'AVANCEMENT',
@@ -3020,6 +3022,10 @@ export const fr: Messages = {
       loadingLabel: 'Vérification des règlements',
       errorBody: 'Les règlements sont momentanément indisponibles. Les détails de l’accord restent inchangés.',
       retry: 'Réessayer',
+      recoveryTitle: 'Le statut du paiement doit être réconcilié',
+      recoveryBody: 'Le mouvement Arc existant a peut-être déjà atteint la chaîne. Karwan réconciliera ce même mouvement avant d’envisager un nouveau paiement.',
+      reconcile: 'Réconcilier le statut du paiement',
+      reconcileBusy: 'Réconciliation…',
       kinds: { escrow_funding: 'Financement du séquestre', milestone_payout: 'Paiement d’étape' },
       states: {
         created: 'Demande enregistrée', preparing: 'Paiement en préparation', submitted: 'Paiement envoyé',
@@ -3125,7 +3131,8 @@ export const fr: Messages = {
       releaseBlocked: {
         buyerMismatch: "La libération automatique est en pause. La livraison ne correspond pas à votre demande. Examinez-la, puis libérez ou contestez.",
         sellerMismatch: "La libération automatique est en pause. L'acheteur doit examiner cette livraison avant tout versement. S'il tarde, contestez l'accord.",
-        noAgent: 'La libération automatique est indisponible sur cet accord. Libérez manuellement, ou contestez.',
+      noAgent: 'La libération automatique est indisponible sur cet accord. Libérez manuellement, ou contestez.',
+      evidenceUnavailable: 'La libération automatique est suspendue car la vérification de livraison est indisponible. Examinez le travail, puis libérez ou contestez.',
       },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Vendeur a marqué livré. Libérez les premiers {firstPct} % maintenant. Les {remainPct} % restants sont libérés après vérification.',

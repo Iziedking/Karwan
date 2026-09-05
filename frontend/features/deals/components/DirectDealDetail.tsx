@@ -27,6 +27,7 @@ import {
 } from './SettlementRecord';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
+import { hasUnresolvedPayoutRecovery } from '../moneyRecovery';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
@@ -1161,6 +1162,28 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       </p>
                     </div>
                   )}
+                {viewerIsBuyer &&
+                  (deal.deliveryMatch?.verdict === 'unknown' ||
+                    deal.verificationStatus === 'unverifiable') && (
+                  <div
+                    className="px-4 py-3"
+                    style={{
+                      background: 'rgba(178, 84, 37, 0.10)',
+                      border: '1px solid rgba(178, 84, 37, 0.35)',
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
+                      [:{dd.terms.deliveryUnknownLabel}:]
+                    </p>
+                    <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                      {dd.terms.deliveryUnknownBody}
+                    </p>
+                  </div>
+                )}
               </div>
             </PageCard>
           )}
@@ -1330,6 +1353,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               milestonesReleased={milestonesReleased}
               busy={busy}
               deal={deal}
+              payoutNeedsReconciliation={hasUnresolvedPayoutRecovery(settlementMovements)}
+              payoutRecoveryCopy={{
+                title: dd.settlementRecord.recoveryTitle,
+                body: dd.settlementRecord.recoveryBody,
+                action: dd.settlementRecord.reconcile,
+                busy: dd.settlementRecord.reconcileBusy,
+              }}
+              onReconcilePayout={onRelease}
               now={now}
               deliveryProof={deliveryProof}
               onDeliveryProofChange={setDeliveryProof}
@@ -1901,6 +1932,9 @@ function ActionPanel({
   onRespondToDelayAppeal,
   onRequestExtension,
   onRespondExtension,
+  payoutNeedsReconciliation,
+  payoutRecoveryCopy,
+  onReconcilePayout,
   copy,
 }: {
   stage: DealStage;
@@ -1937,8 +1971,33 @@ function ActionPanel({
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
   onRespondExtension: (decision: 'approved' | 'declined') => void;
+  payoutNeedsReconciliation: boolean;
+  payoutRecoveryCopy: {
+    title: string;
+    body: string;
+    action: string;
+    busy: string;
+  };
+  onReconcilePayout: () => void;
   copy: Messages['directDealDetail']['actionPanel'];
 }) {
+  if (
+    payoutNeedsReconciliation &&
+    (stage === 'awaiting-first-release' || stage === 'awaiting-final-release')
+  ) {
+    return (
+      <div className="space-y-4">
+        <WindowNote tone="warning">
+          <span className="font-semibold">{payoutRecoveryCopy.title}.</span>{' '}
+          {payoutRecoveryCopy.body}
+        </WindowNote>
+        <CTAPill onClick={onReconcilePayout} disabled={busy} busy={busy}>
+          {busy ? payoutRecoveryCopy.busy : payoutRecoveryCopy.action}
+        </CTAPill>
+      </div>
+    );
+  }
+
   if (stage === 'settled') {
     const financed = Boolean(deal.factoringOfferId || deal.poFinancingId);
     const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
@@ -2347,6 +2406,8 @@ function ActionPanel({
     const blockedNote =
       blocked === 'no-agent-wallet'
         ? copy.releaseBlocked.noAgent
+        : blocked === 'evidence-unavailable'
+          ? copy.releaseBlocked.evidenceUnavailable
         : blocked === 'requirement-mismatch'
           ? viewerIsBuyer
             ? copy.releaseBlocked.buyerMismatch
