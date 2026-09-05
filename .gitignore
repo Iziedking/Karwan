@@ -157,6 +157,8 @@ audit/
 # hackathon submission documents: internal
 submission/
 banners/
+# ETHOnline 2026 internal planning, execution, and submission evidence.
+/docs/hackathons/ethonline2026/
 # deck generator, local tooling only
 scripts/build-checkpoint2-deck.py
 
