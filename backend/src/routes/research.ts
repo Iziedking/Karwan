@@ -28,9 +28,10 @@ import {
   type AgentKitVerifier,
 } from '../agentkit/agentKitVerification.js';
 import {
-  ResearchAllowanceExhaustedError,
   ResearchAllowanceExpiredError,
   ResearchAllowanceReplayError,
+  emptyResearchAllowanceSnapshot,
+  type AgentKitBindingRecord,
   type ResearchAllowanceStore,
 } from '../evidence/researchAllowance.js';
 
@@ -58,6 +59,27 @@ export function configureAgentKitResearch(input: {
     agentKitVerifier = unavailableAgentKitVerifier();
     agentKitAllowanceStore = null;
   };
+}
+
+export async function ownerAgentKitResearchAccess(
+  owner: string,
+  now = Date.now(),
+): Promise<{
+  store: ResearchAllowanceStore;
+  binding: AgentKitBindingRecord;
+  allowance: Awaited<ReturnType<ResearchAllowanceStore['get']>>;
+} | null> {
+  const store = agentKitResearchEnabled ? agentKitAllowanceStore : null;
+  if (!store) return null;
+  const wallets = await getAgentWallets(owner);
+  if (!wallets) return null;
+  for (const agentAddress of [wallets.buyerAddress, wallets.sellerAddress]) {
+    const binding = await store.getBinding(agentAddress);
+    if (binding && binding.expiresAt > now) {
+      return { store, binding, allowance: await store.get({ humanKeyDigest: binding.humanKeyDigest, now }) };
+    }
+  }
+  return null;
 }
 
 /**
@@ -200,14 +222,16 @@ const agentKitRequestSchema = z.object({
   proof: z.unknown(),
 });
 
-researchRoutes.get('/agentkit/status', (c) => {
-  if (!viewerAddress(c)) return c.json({ error: 'sign in first' }, 401);
+researchRoutes.get('/agentkit/status', async (c) => {
+  const owner = viewerAddress(c);
+  if (!owner) return c.json({ error: 'sign in first' }, 401);
+  const access = await ownerAgentKitResearchAccess(owner);
   return c.json({
-    verification: 'not-checked' as const,
+    verification: access ? 'verified' as const : 'not-checked' as const,
     provider: 'world-agentbook' as const,
     mode: agentKitResearchEnabled && agentKitAllowanceStore ? 'sandbox-ready' as const : 'unavailable' as const,
     allowancePolicy: { scope: 'counterparty-report' as const, reportsPer24Hours: 3 },
-    allowance: null,
+    allowance: access ? (access.allowance ?? emptyResearchAllowanceSnapshot()) : null,
   });
 });
 
@@ -222,30 +246,26 @@ researchRoutes.post('/agentkit/verify', async (c) => {
     return c.json({ error: result.message, code: result.code }, result.status === 'unavailable' ? 503 : 403);
   }
   try {
-    await agentKitAllowanceStore.recordBinding({
+    await agentKitAllowanceStore.verifyBinding({
       agentAddress: result.agentAddress,
       humanKeyDigest: result.humanKeyDigest,
       verifier: result.verifier,
       checkedAt: result.checkedAt,
       expiresAt: result.expiresAt,
-    });
-    const consumed = await agentKitAllowanceStore.consume({
-      humanKeyDigest: result.humanKeyDigest,
-      agentAddress: result.agentAddress,
       domain: parsed.data.domain,
       nonce: parsed.data.nonce,
       nonceExpiresAt: parsed.data.expiresAt,
     });
+    const allowance = await agentKitAllowanceStore.get({ humanKeyDigest: result.humanKeyDigest });
     return c.json({
       verification: 'verified' as const,
       provider: result.verifier,
-      allowance: consumed.snapshot,
+      allowance: allowance ?? emptyResearchAllowanceSnapshot(),
       boundAgentCount: (await agentKitAllowanceStore.listBindings(result.humanKeyDigest)).length,
     });
   } catch (error) {
     if (error instanceof ResearchAllowanceReplayError) return c.json({ error: error.message, code: 'NONCE_REPLAY' }, 409);
     if (error instanceof ResearchAllowanceExpiredError) return c.json({ error: error.message, code: 'NONCE_EXPIRED' }, 400);
-    if (error instanceof ResearchAllowanceExhaustedError) return c.json({ error: error.message, code: 'ALLOWANCE_EXHAUSTED' }, 429);
     logger.error({ err: error instanceof Error ? error.message : String(error) }, 'agentkit allowance failed');
     return c.json({ error: 'agentkit allowance unavailable', code: 'ALLOWANCE_UNAVAILABLE' }, 503);
   }

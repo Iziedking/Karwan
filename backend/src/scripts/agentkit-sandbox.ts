@@ -1,17 +1,11 @@
 /**
- * Local D2 proof only. The provider below is a fixture and never claims to be
- * World AgentBook. It exercises the same verifier, nonce, and allowance seams
- * without credentials, network access, wallet signing, or financial writes.
+ * Local proof only. The provider is a fixture and never claims to be World
+ * AgentBook. It exercises verification, report reservation, delivery, retry,
+ * release, and shared-human accounting without credentials or financial writes.
  */
-import {
-  AGENTKIT_DOMAIN,
-  createAgentKitVerifier,
-  unavailableAgentKitVerifier,
-} from '../agentkit/agentKitVerification.js';
-import {
-  InMemoryResearchAllowanceStore,
-  ResearchAllowanceReplayError,
-} from '../evidence/researchAllowance.js';
+import { AGENTKIT_DOMAIN, createAgentKitVerifier, unavailableAgentKitVerifier } from '../agentkit/agentKitVerification.js';
+import { InMemoryResearchAllowanceStore, ResearchAllowanceReplayError } from '../evidence/researchAllowance.js';
+import { deliverComplimentaryResearchReport } from '../evidence/researchReportDelivery.js';
 
 const SECRET = 'd2-local-simulation-secret-with-32-bytes';
 const HUMAN_SUBJECT = 'local-fixture-human';
@@ -21,15 +15,7 @@ const AGENTS = [
 ] as const;
 
 function request(agentAddress: string, nonce: string) {
-  return {
-    agentAddress,
-    domain: AGENTKIT_DOMAIN,
-    nonce,
-    issuedAt: 1_000,
-    expiresAt: 10_000,
-    signature: '0xlocal-fixture-proof',
-    proof: { executionMode: 'simulated' },
-  };
+  return { agentAddress, domain: AGENTKIT_DOMAIN, nonce, issuedAt: 1_000, expiresAt: 10_000, signature: '0xlocal-fixture-proof', proof: { executionMode: 'simulated' } };
 }
 
 const verifier = createAgentKitVerifier({
@@ -37,60 +23,74 @@ const verifier = createAgentKitVerifier({
   now: () => 2_000,
   provider: {
     async verify(input) {
-      return {
-        status: 'verified' as const,
-        result: {
-          verified: true,
-          agentAddress: input.agentAddress,
-          humanSubject: HUMAN_SUBJECT,
-          checkedAt: 2_000,
-          expiresAt: input.expiresAt,
-        },
-      };
+      return { status: 'verified' as const, result: { verified: true, agentAddress: input.agentAddress, humanSubject: HUMAN_SUBJECT, checkedAt: 2_000, expiresAt: input.expiresAt } };
     },
   },
 });
 
 const store = new InMemoryResearchAllowanceStore();
-const usage: Array<{ agentAddress: string; used: number; remaining: number }> = [];
+let humanKeyDigest = '';
 for (const [index, agentAddress] of AGENTS.entries()) {
-  const identity = await verifier.verify(request(agentAddress, `local-${index}`));
+  const identity = await verifier.verify(request(agentAddress, `verify-${index}`));
   if (identity.status !== 'verified') throw new Error(identity.message);
-  const result = await store.consume({
-    humanKeyDigest: identity.humanKeyDigest,
-    agentAddress: identity.agentAddress,
-    domain: AGENTKIT_DOMAIN,
-    nonce: `local-${index}`,
-    nonceExpiresAt: 10_000,
-    now: 2_000 + index,
-  });
-  usage.push({ agentAddress, used: result.snapshot.used, remaining: result.snapshot.remaining });
+  humanKeyDigest = identity.humanKeyDigest;
+  await store.verifyBinding({ ...identity, domain: AGENTKIT_DOMAIN, nonce: `verify-${index}`, nonceExpiresAt: 10_000, now: 2_000 + index });
 }
 
 let replay = 'not-tested';
-const first = await verifier.verify(request(AGENTS[0], 'local-0'));
+const first = await verifier.verify(request(AGENTS[0], 'verify-0'));
 if (first.status === 'verified') {
   try {
-    await store.consume({
-      humanKeyDigest: first.humanKeyDigest,
-      agentAddress: first.agentAddress,
-      domain: AGENTKIT_DOMAIN,
-      nonce: 'local-0',
-      nonceExpiresAt: 10_000,
-      now: 2_003,
-    });
+    await store.verifyBinding({ ...first, domain: AGENTKIT_DOMAIN, nonce: 'verify-0', nonceExpiresAt: 10_000, now: 2_003 });
   } catch (error) {
     replay = error instanceof ResearchAllowanceReplayError ? 'refused' : 'unexpected-error';
   }
 }
 
+let providerFailure = 'not-tested';
+try {
+  await deliverComplimentaryResearchReport({
+    store,
+    agentAddress: AGENTS[0],
+    requestId: 'failed-request',
+    resourceId: 'deal:failed:counterparty',
+    now: () => 3_000,
+    deliver: async () => { throw new Error('fixture provider unavailable'); },
+  });
+} catch {
+  providerFailure = 'released';
+}
+
+let deliveries = 0;
+const firstDelivery = await deliverComplimentaryResearchReport({
+  store,
+  agentAddress: AGENTS[0],
+  requestId: 'report-request-1',
+  resourceId: 'deal:shared:counterparty',
+  now: () => 4_000,
+  deliver: async () => { deliveries += 1; return { report: 'fixture-result' }; },
+});
+const retryDelivery = await deliverComplimentaryResearchReport({
+  store,
+  agentAddress: AGENTS[1],
+  requestId: 'report-request-2',
+  resourceId: 'deal:shared:counterparty',
+  now: () => 4_100,
+  deliver: async () => { deliveries += 1; return { report: 'should-not-run' }; },
+});
 const outage = await unavailableAgentKitVerifier('fixture outage').verify(request(AGENTS[0], 'outage-1'));
+
 process.stdout.write(`${JSON.stringify({
   executionMode: 'simulated',
   provider: 'fixture-not-world',
   boundAgents: AGENTS.length,
-  usage,
+  verificationAllowanceUsed: 0,
   replay,
+  providerFailure,
+  deliveryCount: deliveries,
+  firstDeliveryReused: firstDelivery.reused,
+  retryReused: retryDelivery.reused,
+  resultIdentityStable: firstDelivery.resultId === retryDelivery.resultId,
   outage: outage.status,
-  allowanceUsedAfterReplay: (await store.get({ humanKeyDigest: first.status === 'verified' ? first.humanKeyDigest : '0'.repeat(64), now: 2_003 }))?.used ?? null,
+  allowance: await store.get({ humanKeyDigest, now: 4_100 }),
 })}\n`);

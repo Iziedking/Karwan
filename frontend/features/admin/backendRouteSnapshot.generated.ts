@@ -166,6 +166,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/deals/direct/:jobId/cancel/propose" },
   { method: "POST", path: "/api/deals/direct/:jobId/claim" },
   { method: "GET", path: "/api/deals/direct/:jobId/counterparty-report" },
+  { method: "POST", path: "/api/deals/direct/:jobId/counterparty-report/complimentary" },
   { method: "POST", path: "/api/deals/direct/:jobId/delay-appeal" },
   { method: "POST", path: "/api/deals/direct/:jobId/delay-appeal-respond" },
   { method: "POST", path: "/api/deals/direct/:jobId/delivered" },

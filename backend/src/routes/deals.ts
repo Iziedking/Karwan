@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import {
@@ -132,6 +132,16 @@ import {
   fundingAuthorizationMatches,
 } from '../deals/fundingQuote.js';
 import { termsDigest } from '../deals/termsDigest.js';
+import { ownerAgentKitResearchAccess } from './research.js';
+import {
+  deliverComplimentaryResearchReport,
+  ResearchDeliveryInProgressError,
+} from '../evidence/researchReportDelivery.js';
+import {
+  emptyResearchAllowanceSnapshot,
+  ResearchAllowanceExhaustedError,
+  ResearchAllowanceExpiredError,
+} from '../evidence/researchAllowance.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -141,6 +151,8 @@ const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
   `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
 const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
 const mutualCancelMovementKey = (jobId: string) => `escrow_mutual_cancel:${jobId.toLowerCase()}`;
+const complimentaryReportResourceId = (jobId: string, subject: string) =>
+  `direct-deal:${jobId.toLowerCase()}:counterparty:${subject.toLowerCase()}`;
 
 function publicMoneyMovement(movement: MoneyMovement) {
   return {
@@ -1208,6 +1220,7 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   if (!isParty) {
     return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
   }
+  c.header('Cache-Control', 'no-store');
   // Report on the caller's counterparty, and gate on the SAME paid pull whose
   // receipt we show: the buyer paid to read the seller, the seller paid to read
   // the buyer. Unlocking the granular record on the payment that bought it (not
@@ -1219,6 +1232,31 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   // The subject's side on THIS deal decides which record renders: the buyer
   // vets the seller's delivered work, the seller vets the buyer's funded deals.
   const subjectRole: 'seller' | 'buyer' = callerIsBuyer ? 'seller' : 'buyer';
+  const complimentaryAccess = await ownerAgentKitResearchAccess(caller);
+  if (complimentaryAccess) {
+    const delivered = await complimentaryAccess.store.getDelivered({
+      agentAddress: complimentaryAccess.binding.agentAddress,
+      resourceId: complimentaryReportResourceId(jobId, subject),
+    });
+    const saved = delivered?.result;
+    if (
+      delivered?.resultId &&
+      saved &&
+      typeof saved === 'object' &&
+      (saved as { locked?: unknown }).locked === false &&
+      (saved as { subject?: unknown }).subject === subject &&
+      (saved as { record?: unknown }).record
+    ) {
+      return c.json({
+        ...(saved as { locked: false; subject: string; record: Awaited<ReturnType<typeof buildWorkRecord>> }),
+        complimentary: {
+          resultId: delivered.resultId,
+          reused: true,
+          allowance: complimentaryAccess.allowance ?? emptyResearchAllowanceSnapshot(),
+        },
+      });
+    }
+  }
 
   // Newer deals carry the durable pull; read the one for this subject.
   if (deal.passportPulls) {
@@ -1246,6 +1284,68 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   const record = await buildWorkRecord(subject, Date.now(), subjectRole);
   const payment = await paidPullReceipt(jobId);
   return c.json({ locked: false, subject, record, payment });
+});
+
+/// Explicitly exchanges one human-scoped pilot allowance unit for the same
+/// party-private work record used by the paid passport pull. The durable
+/// reservation is made before building the report and committed only after the
+/// complete result is persisted. Retries for the same deal/subject reuse that
+/// persisted result and never spend another unit.
+dealsRoutes.post('/direct/:jobId/counterparty-report/complimentary', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const caller = viewerAddress(c);
+  const isParty = !!caller && (caller === deal.buyer.toLowerCase() || caller === deal.seller.toLowerCase());
+  if (!caller || !isParty) {
+    return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
+  }
+  const access = await ownerAgentKitResearchAccess(caller);
+  if (!access) {
+    return c.json({ error: 'Verify a registered agent before using the complimentary report allowance.', code: 'AGENT_NOT_VERIFIED' }, 403);
+  }
+  const callerIsBuyer = caller === deal.buyer.toLowerCase();
+  const subject = callerIsBuyer ? deal.seller : deal.buyer;
+  const subjectRole: 'seller' | 'buyer' = callerIsBuyer ? 'seller' : 'buyer';
+  const resourceId = complimentaryReportResourceId(jobId, subject);
+  try {
+    const delivery = await deliverComplimentaryResearchReport({
+      store: access.store,
+      agentAddress: access.binding.agentAddress,
+      requestId: randomUUID(),
+      resourceId,
+      deliver: async () => ({
+        locked: false as const,
+        subject,
+        record: await buildWorkRecord(subject, Date.now(), subjectRole),
+      }),
+    });
+    c.header('Cache-Control', 'no-store');
+    return c.json({
+      ...delivery.result,
+      complimentary: {
+        resultId: delivery.resultId,
+        reused: delivery.reused,
+        allowance: delivery.allowance,
+      },
+    });
+  } catch (error) {
+    if (error instanceof ResearchAllowanceExhaustedError) {
+      return c.json({
+        error: error.message,
+        code: 'ALLOWANCE_EXHAUSTED',
+        paidContinuation: { kind: 'existing-research-credit', statusEndpoint: '/api/research/status' },
+      }, 429);
+    }
+    if (error instanceof ResearchAllowanceExpiredError) {
+      return c.json({ error: error.message, code: 'AGENT_BINDING_EXPIRED' }, 403);
+    }
+    if (error instanceof ResearchDeliveryInProgressError) {
+      return c.json({ error: error.message, code: 'REPORT_IN_PROGRESS' }, 409);
+    }
+    logger.error({ jobId, err: error instanceof Error ? error.message : String(error) }, 'complimentary counterparty report delivery failed');
+    return c.json({ error: 'counterparty report unavailable', code: 'REPORT_UNAVAILABLE' }, 503);
+  }
 });
 
 /// Legacy receipt path for deals created before the pull was persisted on the
