@@ -20,6 +20,9 @@ export function reserveInviteClaim(
 ): ReserveInviteClaimResult {
   if (current.usedAt) return { ok: false, code: 'CLAIMED' };
   if (current.claimingByAddress && (current.claimLeaseUntil ?? 0) > now) {
+    if (current.claimingByAddress.toLowerCase() === address.toLowerCase()) {
+      return { ok: true, next: current };
+    }
     return { ok: false, code: 'IN_PROGRESS' };
   }
   return {

@@ -48,11 +48,13 @@ import {
   listDealsForAddress,
   listAllDeals,
   dealMilestonePcts,
+  invalidateDealsCache,
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import {
+  getMoneyMovement,
   getMoneyMovementByOperationKey,
   listMoneyMovementsForAddress,
   listMoneyMovementsForJobParty,
@@ -80,18 +82,22 @@ import {
   findAdvancedUnfinishedPayout,
   fundingEscrowMatches,
 } from '../money/escrowProjection.js';
+import { validatePayoutRecoveryTarget } from '../money/payoutRecovery.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
 import { getBrief } from '../db/briefs.js';
 import {
   completeInviteClaim,
+  bindInviteClaimToDeal,
   createInvite,
   getInvite,
   getInviteByJob,
+  refreshInviteTerms,
   releaseInviteClaim,
   reserveInviteClaim,
 } from '../db/dealInvites.js';
+import { pgEnabled } from '../db/client.js';
 import { pickEmailOwner, type EmailOwner } from '../identity/emailOwner.js';
 import { getUserByEmail } from '../db/users.js';
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
@@ -419,7 +425,7 @@ dealsRoutes.post('/direct', async (c) => {
     } else {
       const token = randomBytes(32).toString('hex');
       inviteExpiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
-      createInvite({
+      await createInvite({
         token,
         jobId,
         role: 'seller',
@@ -759,7 +765,11 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   /// invite record. Fire-and-forget so a transient send failure never blocks
   /// the edit response, the buyer still gets a 200 either way.
   const pendingEmail = updated?.pendingCounterparty?.email ?? null;
-  const pendingInvite = pendingEmail ? getInviteByJob(jobId) : null;
+  const pendingInvite = pendingEmail
+    ? patch.termsDigest
+      ? await refreshInviteTerms(jobId, patch.termsDigest)
+      : await getInviteByJob(jobId)
+    : null;
   if (updated && pendingInvite && pendingEmail) {
     const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
     const claimUrl = `${base}/invite/${pendingInvite.token}`;
@@ -802,7 +812,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
 /// preview is useful but private details wait for recipient verification.
 dealsRoutes.get('/invite/:token', async (c) => {
   const token = c.req.param('token');
-  const invite = getInvite(token);
+  const invite = await getInvite(token);
   if (!invite) return c.json({ error: 'invite not found' }, 404);
   if (invite.usedAt) {
     return c.json(
@@ -832,8 +842,7 @@ dealsRoutes.get('/invite/:token', async (c) => {
 
   const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
   const session = readSession(c);
-  const viewerCanClaim =
-    !!session && !!session.email && session.email.trim().toLowerCase() === invite.email;
+  const viewerCanClaim = !!session && await sessionOwnsInviteEmail(session, invite.email);
   return c.json({
     invite: {
       token: invite.token,
@@ -873,6 +882,15 @@ async function walletOwnsEmail(address: string, email: string): Promise<boolean>
   return (profile.email ?? '').trim().toLowerCase() === email.trim().toLowerCase();
 }
 
+async function sessionOwnsInviteEmail(
+  session: { address: string; email?: string },
+  email: string,
+): Promise<boolean> {
+  const normalizedEmail = email.trim().toLowerCase();
+  return session.email?.trim().toLowerCase() === normalizedEmail
+    || await walletOwnsEmail(session.address, normalizedEmail);
+}
+
 /// Both lookups behind an email, handed to the pure rule in identity/emailOwner.
 async function resolveEmailOwner(email: string): Promise<EmailOwner> {
   const login = getUserByEmail(email);
@@ -900,7 +918,7 @@ function maskInviteEmail(email: string): string {
 
 dealsRoutes.post('/invite/:token/claim', async (c) => {
   const token = c.req.param('token');
-  const invite = getInvite(token);
+  const invite = await getInvite(token);
   if (!invite) return c.json({ error: 'invite not found' }, 404);
   if (invite.usedAt) {
     return c.json(
@@ -923,9 +941,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   // profile, and requiring an email session locked that person out of their own
   // deal: their only route in was an email signup, which mints a second wallet
   // at a different address and pays the deal into it.
-  const emailSessionOwns = !!session.email && session.email.toLowerCase() === invite.email;
-  const walletOwns = emailSessionOwns ? false : await walletOwnsEmail(session.address, invite.email);
-  if (!emailSessionOwns && !walletOwns) {
+  if (!await sessionOwnsInviteEmail(session, invite.email)) {
     return c.json(
       {
         error: 'this invite was sent to a different address',
@@ -942,6 +958,12 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   }
   const pendingAddress = invite.role === 'seller' ? deal.seller : deal.buyer;
   if (pendingAddress !== PENDING_COUNTERPARTY_ADDRESS) {
+    if (pendingAddress === session.address.toLowerCase()) {
+      const recovery = await reserveInviteClaim(token, session.address);
+      if (recovery.ok && await completeInviteClaim(token, session.address)) {
+        return c.json({ ok: true, recovered: true, jobId: invite.jobId, redirectTo: `/deals/${invite.jobId}` });
+      }
+    }
     return c.json(
       { error: 'this invite has already been bound to the deal', code: 'ALREADY_BOUND', jobId: invite.jobId },
       409,
@@ -985,7 +1007,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 
   // Clear pendingCounterparty by patching to undefined; the persistence layer
   // strips undefined values so the field drops out cleanly.
-  const reservation = reserveInviteClaim(token, session.address);
+  const reservation = await reserveInviteClaim(token, session.address);
   if (!reservation.ok) {
     const status = reservation.code === 'CLAIMED' ? 410 : 409;
     return c.json(
@@ -998,17 +1020,28 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
     );
   }
   try {
-    await patchDeal(invite.jobId, {
-      ...patch,
-      ...reanchor,
-      pendingCounterparty: undefined,
-    });
-    if (!completeInviteClaim(token, session.address)) {
-      releaseInviteClaim(token, session.address);
-      return c.json({ error: 'claim could not be finalized', code: 'CLAIM_FINALIZE_FAILED' }, 503);
+    const dealPatch = { ...patch, ...reanchor, pendingCounterparty: undefined };
+    if (pgEnabled) {
+      const bound = await bindInviteClaimToDeal({
+        token,
+        address: session.address,
+        pendingAddress: PENDING_COUNTERPARTY_ADDRESS,
+        patch: dealPatch,
+      });
+      if (!bound) {
+        await releaseInviteClaim(token, session.address);
+        return c.json({ error: 'claim could not be finalized', code: 'CLAIM_FINALIZE_FAILED' }, 503);
+      }
+      invalidateDealsCache();
+    } else {
+      await patchDeal(invite.jobId, dealPatch);
+      if (!await completeInviteClaim(token, session.address)) {
+        await releaseInviteClaim(token, session.address);
+        return c.json({ error: 'claim could not be finalized', code: 'CLAIM_FINALIZE_FAILED' }, 503);
+      }
     }
   } catch (err) {
-    releaseInviteClaim(token, session.address);
+    await releaseInviteClaim(token, session.address);
     logger.error({ err: (err as Error).message, jobId: invite.jobId }, 'invite claim patch failed');
     return c.json({ error: 'claim could not be completed', code: 'CLAIM_FAILED' }, 500);
   }
@@ -2701,6 +2734,85 @@ async function projectMilestonePayout(input: {
   }
   return settled;
 }
+
+dealsRoutes.post('/direct/:jobId/payouts/:reference/reconcile', async (c) => {
+  const jobId = c.req.param('jobId');
+  const reference = c.req.param('reference');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.buyer) {
+    return c.json({ error: 'only the buyer can reconcile this payout' }, 403);
+  }
+  const movement = await getMoneyMovement(reference);
+  if (!movement) return c.json({ error: 'payment reference not found', code: 'PAYOUT_NOT_FOUND' }, 404);
+  const account = await readEscrow(jobId);
+  const validation = validatePayoutRecoveryTarget(movement, {
+    reference,
+    jobId,
+    buyer: deal.buyer,
+    milestonesReleased: account.milestonesReleased,
+  });
+  if (!validation.ok) {
+    return c.json({ error: 'this payment reference is not eligible for reconciliation', code: validation.code }, 409);
+  }
+  if (movement.state === 'completed') {
+    return c.json({ accepted: true, recovered: true, alreadyCompleted: true, jobId, reference: movement.reference }, 200);
+  }
+  if (inFlight.has(jobId)) return c.json({ error: 'a payment check is already in progress for this deal' }, 409);
+
+  inFlight.add(jobId);
+  try {
+    const payoutLegBefore = movement.legs.find((leg) => leg.attempt === movement.attempt && leg.key === 'release');
+    await verifyConfirmedMoneyMovementLegByKey(movement.reference, 'release', { amountMicros: movement.amountMicros });
+    await markMoneyMovementVerifying(movement.reference);
+    const proof = await currentMoneyMovement(movement.reference);
+    const payoutLeg = proof.legs.find((leg) => leg.attempt === proof.attempt && leg.key === 'release') ?? payoutLegBefore;
+    const settled = await projectMilestonePayout({
+      deal,
+      milestoneIndex: movement.milestoneIndex!,
+      amountMicros: movement.amountMicros,
+      reference: movement.reference,
+      txHash: payoutLeg?.txHash,
+      confirmedAt: payoutLeg?.confirmedAt,
+    });
+    await completeMoneyMovement(movement.reference, {
+      amountMicros: movement.amountMicros,
+      summary: `Milestone ${movement.milestoneIndex! + 1} paid`,
+    });
+    return c.json({
+      accepted: true,
+      recovered: true,
+      settled,
+      jobId,
+      reference: movement.reference,
+      amountUsdc: formatUsdcMicros(movement.amountMicros),
+      ...(payoutLeg?.txHash ? { txHash: payoutLeg.txHash } : {}),
+    }, 200);
+  } catch (err) {
+    await markMoneyMovementNeedsAttention(
+      movement.reference,
+      'RECEIPT_RECONCILIATION_REQUIRED',
+      'karwan',
+    ).catch(() => undefined);
+    return c.json({
+      error: 'the existing payment is still being verified',
+      code: 'RECEIPT_RECONCILIATION_REQUIRED',
+      reference: movement.reference,
+      detail: (err as Error).message,
+    }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
 
 dealsRoutes.post('/direct/:jobId/release', async (c) => {
   const jobId = c.req.param('jobId');

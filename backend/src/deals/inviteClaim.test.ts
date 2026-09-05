@@ -40,3 +40,13 @@ test('only the reservation owner can release it', () => {
   assert.equal(releaseInviteClaim(first.next, '0xBBB'), null);
   assert.equal(releaseInviteClaim(first.next, '0xAAA')?.claimingByAddress, undefined);
 });
+
+test('the same claimant can recover an unexpired lease after interruption', () => {
+  const first = reserveInviteClaim({}, '0xAAA', 1_000, 120_000);
+  assert.equal(first.ok, true);
+  if (!first.ok) return;
+  assert.deepEqual(
+    reserveInviteClaim(first.next, '0xaaa', 1_001, 120_000),
+    { ok: true, next: first.next },
+  );
+});

@@ -361,3 +361,13 @@ export async function withPostgresTransaction<T>(
     client.release();
   }
 }
+
+/// Closes the shared pool after isolated integration tests or graceful process
+/// shutdown. Runtime callers normally leave lifecycle ownership to the server.
+export async function closePostgresPool(): Promise<void> {
+  if (!_pool) return;
+  const pool = _pool;
+  _pool = null;
+  _db = null;
+  await pool.end();
+}

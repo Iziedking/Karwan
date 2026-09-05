@@ -1,6 +1,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
+import { pgEnabled, postgresExecutor, withPostgresTransaction } from './client.js';
+import type { SqlExecutor } from './migrations.js';
+import type { DirectDeal } from './deals.js';
+import { termsDigest } from '../deals/termsDigest.js';
 import {
   completeInviteClaim as completeClaimState,
   releaseInviteClaim as releaseClaimState,
@@ -9,47 +13,70 @@ import {
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'deal-invites.json');
 
-/// Pending share-link invite for a direct deal. Lives until the recipient
-/// claims the link (binds their identity to the deal) or the invite expires.
-/// Storage stays flat-file because invites are short-lived (default 7 days)
-/// and rarely contended; PG mirror can come later if volume warrants.
 export interface DealInvite {
-  /// 64-char hex (32 bytes). Used as the path token in /invite/[token].
   token: string;
   jobId: string;
-  /// Which side the recipient fills in. Today buyers create the deal so most
-  /// invites are role='seller'. Inbound (someone asks a counterparty to pay
-  /// them) will use role='buyer'. Both directions share this shape.
   role: 'buyer' | 'seller';
-  /// The email the invite was issued to. Recipient must verify ownership via
-  /// the standard OTP route before claim is allowed. Stored lower-cased.
   email: string;
-  /// Exact commercial-terms version visible when this invite was issued.
   termsDigest?: string;
   expiresAt: number;
-  /// One-shot. Set when the recipient claims and the deal is bound. Later
-  /// visits to /invite/[token] just redirect to /deals/[jobId].
   usedAt?: number;
   usedByAddress?: string;
-  /// A short durable lease prevents two requests from binding the same invite
-  /// while the underlying deal patch is awaiting storage.
   claimingAt?: number;
   claimingByAddress?: string;
   claimLeaseUntil?: number;
   createdAt: number;
 }
 
+interface InviteRow extends Record<string, unknown> { data: DealInvite }
+
 const store = new Map<string, DealInvite>();
 let loaded = false;
+let legacyImport: Promise<void> | null = null;
+
+export function legacyInvitesForImport(invites: readonly DealInvite[]): DealInvite[] {
+  const used = invites.filter((invite) => invite.usedAt != null);
+  const newestPendingByJob = new Map<string, DealInvite>();
+  for (const invite of invites.filter((candidate) => candidate.usedAt == null)) {
+    const key = invite.jobId.toLowerCase();
+    const current = newestPendingByJob.get(key);
+    if (!current || invite.createdAt > current.createdAt) newestPendingByJob.set(key, invite);
+  }
+  return [...used, ...newestPendingByJob.values()];
+}
+
+async function ensureLegacyImported(): Promise<void> {
+  legacyImport ??= (async () => {
+    if (!existsSync(STORE_PATH)) return;
+    let invites: DealInvite[];
+    try {
+      invites = legacyInvitesForImport(
+        Object.values(JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, DealInvite>),
+      );
+    } catch (err) {
+      logger.error({ err: (err as Error).message }, 'legacy deal invite import could not read the source file');
+      throw err;
+    }
+    for (const invite of invites) {
+      await postgresExecutor().query(
+        `INSERT INTO deal_invites_v1 (token, job_id, email, expires_at, used_at, data)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+         ON CONFLICT DO NOTHING`,
+        [invite.token, invite.jobId.toLowerCase(), invite.email.toLowerCase(), invite.expiresAt, invite.usedAt ?? null, JSON.stringify(invite)],
+      );
+    }
+    if (invites.length > 0) logger.info({ count: invites.length }, 'legacy deal invites imported into Postgres');
+  })();
+  await legacyImport;
+}
 
 function load(): void {
   if (loaded) return;
   loaded = true;
   if (!existsSync(STORE_PATH)) return;
   try {
-    const raw = readFileSync(STORE_PATH, 'utf8');
-    const obj = JSON.parse(raw) as Record<string, DealInvite>;
-    for (const [k, v] of Object.entries(obj)) store.set(k, v);
+    const obj = JSON.parse(readFileSync(STORE_PATH, 'utf8')) as Record<string, DealInvite>;
+    for (const [key, invite] of Object.entries(obj)) store.set(key, invite);
     logger.info({ count: store.size }, 'deal invites loaded from disk');
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'deal invites load failed, starting empty');
@@ -59,52 +86,106 @@ function load(): void {
 function persist(): void {
   const dir = dirname(STORE_PATH);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const obj: Record<string, DealInvite> = {};
-  for (const [k, v] of store.entries()) obj[k] = v;
-  writeFileSync(STORE_PATH, JSON.stringify(obj, null, 2), 'utf8');
+  writeFileSync(STORE_PATH, JSON.stringify(Object.fromEntries(store), null, 2), 'utf8');
 }
 
-export function createInvite(input: Omit<DealInvite, 'createdAt'>): DealInvite {
+async function findByToken(executor: SqlExecutor, token: string, lock = false): Promise<DealInvite | null> {
+  const result = await executor.query<InviteRow>(
+    `SELECT data FROM deal_invites_v1 WHERE token = $1${lock ? ' FOR UPDATE' : ''}`,
+    [token],
+  );
+  return result.rows[0]?.data ?? null;
+}
+
+async function writeInvite(executor: SqlExecutor, invite: DealInvite): Promise<void> {
+  await executor.query(
+    `UPDATE deal_invites_v1
+     SET job_id = $2, email = $3, expires_at = $4, used_at = $5, data = $6::jsonb
+     WHERE token = $1`,
+    [invite.token, invite.jobId.toLowerCase(), invite.email, invite.expiresAt, invite.usedAt ?? null, JSON.stringify(invite)],
+  );
+}
+
+export async function createInvite(input: Omit<DealInvite, 'createdAt'>): Promise<DealInvite> {
+  const invite: DealInvite = { ...input, jobId: input.jobId.toLowerCase(), email: input.email.toLowerCase(), createdAt: Date.now() };
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    await postgresExecutor().query(
+      `INSERT INTO deal_invites_v1 (token, job_id, email, expires_at, used_at, data)
+       VALUES ($1, $2, $3, $4, NULL, $5::jsonb)`,
+      [invite.token, invite.jobId, invite.email, invite.expiresAt, JSON.stringify(invite)],
+    );
+    return invite;
+  }
   load();
-  const invite: DealInvite = {
-    ...input,
-    email: input.email.toLowerCase(),
-    createdAt: Date.now(),
-  };
   store.set(invite.token, invite);
   persist();
   return invite;
 }
 
-export function getInvite(token: string): DealInvite | null {
+export async function getInvite(token: string): Promise<DealInvite | null> {
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    return findByToken(postgresExecutor(), token);
+  }
   load();
   return store.get(token) ?? null;
 }
 
-export function getInviteByJob(jobId: string): DealInvite | null {
-  load();
-  for (const inv of store.values()) {
-    if (inv.jobId.toLowerCase() === jobId.toLowerCase() && !inv.usedAt) return inv;
+export async function getInviteByJob(jobId: string): Promise<DealInvite | null> {
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    const result = await postgresExecutor().query<InviteRow>(
+      `SELECT data FROM deal_invites_v1 WHERE job_id = $1 AND used_at IS NULL LIMIT 1`,
+      [jobId.toLowerCase()],
+    );
+    return result.rows[0]?.data ?? null;
   }
-  return null;
+  load();
+  return [...store.values()].find((invite) => invite.jobId.toLowerCase() === jobId.toLowerCase() && !invite.usedAt) ?? null;
 }
 
-export function markInviteUsed(token: string, address: string): DealInvite | null {
+export async function refreshInviteTerms(jobId: string, termsDigest: string): Promise<DealInvite | null> {
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    return withPostgresTransaction(async (tx) => {
+      const result = await tx.query<InviteRow>(
+        `SELECT data FROM deal_invites_v1 WHERE job_id = $1 AND used_at IS NULL LIMIT 1 FOR UPDATE`,
+        [jobId.toLowerCase()],
+      );
+      const current = result.rows[0]?.data;
+      if (!current) return null;
+      const next = { ...current, termsDigest };
+      await writeInvite(tx, next);
+      return next;
+    });
+  }
   load();
-  const inv = store.get(token);
-  if (!inv) return null;
-  inv.usedAt = Date.now();
-  inv.usedByAddress = address.toLowerCase();
-  store.set(inv.token, inv);
+  const current = [...store.values()].find((invite) => invite.jobId.toLowerCase() === jobId.toLowerCase() && !invite.usedAt);
+  if (!current) return null;
+  const next = { ...current, termsDigest };
+  store.set(next.token, next);
   persist();
-  return inv;
+  return next;
 }
 
 export type InviteClaimResult =
   | { ok: true; invite: DealInvite }
   | { ok: false; code: 'NOT_FOUND' | 'CLAIMED' | 'IN_PROGRESS' };
 
-export function reserveInviteClaim(token: string, address: string, now = Date.now()): InviteClaimResult {
+export async function reserveInviteClaim(token: string, address: string, now = Date.now()): Promise<InviteClaimResult> {
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    return withPostgresTransaction(async (tx) => {
+      const invite = await findByToken(tx, token, true);
+      if (!invite) return { ok: false, code: 'NOT_FOUND' };
+      const result = reserveClaimState(invite, address, now);
+      if (!result.ok) return result;
+      const next = { ...invite, ...result.next };
+      await writeInvite(tx, next);
+      return { ok: true, invite: next };
+    });
+  }
   load();
   const invite = store.get(token);
   if (!invite) return { ok: false, code: 'NOT_FOUND' };
@@ -112,9 +193,7 @@ export function reserveInviteClaim(token: string, address: string, now = Date.no
   if (!result.ok) return result;
   const next = { ...invite, ...result.next };
   store.set(token, next);
-  try {
-    persist();
-  } catch (err) {
+  try { persist(); } catch (err) {
     store.set(token, invite);
     logger.error({ err: (err as Error).message, token }, 'invite claim reservation failed');
     return { ok: false, code: 'IN_PROGRESS' };
@@ -122,41 +201,99 @@ export function reserveInviteClaim(token: string, address: string, now = Date.no
   return { ok: true, invite: next };
 }
 
-export function completeInviteClaim(token: string, address: string, now = Date.now()): DealInvite | null {
+export async function completeInviteClaim(token: string, address: string, now = Date.now()): Promise<DealInvite | null> {
+  return mutateClaim(token, (invite) => {
+    const state = completeClaimState(invite, address, now);
+    return state ? { ...invite, ...state } : null;
+  });
+}
+
+export async function bindInviteClaimToDeal(input: {
+  token: string;
+  address: string;
+  pendingAddress: string;
+  patch: Partial<DirectDeal>;
+  now?: number;
+}): Promise<{ invite: DealInvite; deal: DirectDeal } | null> {
+  if (!pgEnabled) return null;
+  await ensureLegacyImported();
+  return withPostgresTransaction(async (tx) => {
+    const invite = await findByToken(tx, input.token, true);
+    if (!invite) return null;
+    const dealResult = await tx.query<Record<string, unknown> & { data: DirectDeal }>(
+      'SELECT data FROM direct_deals WHERE job_id = $1 FOR UPDATE',
+      [invite.jobId.toLowerCase()],
+    );
+    const current = dealResult.rows[0]?.data;
+    if (!current) return null;
+    if (invite.termsDigest && invite.termsDigest !== termsDigest(current.terms)) return null;
+
+    const claimant = input.address.toLowerCase();
+    const currentCounterparty = invite.role === 'seller' ? current.seller : current.buyer;
+    if (currentCounterparty !== input.pendingAddress && currentCounterparty !== claimant) return null;
+    const nextDeal: DirectDeal = currentCounterparty === claimant
+      ? current
+      : { ...current, ...input.patch, updatedAt: input.now ?? Date.now() };
+    const nextState = completeClaimState(invite, claimant, input.now ?? Date.now());
+    if (!nextState) return null;
+    const nextInvite = { ...invite, ...nextState };
+
+    if (currentCounterparty !== claimant) {
+      await tx.query(
+        'UPDATE direct_deals SET buyer = $2, seller = $3, data = $4::jsonb WHERE job_id = $1',
+        [invite.jobId.toLowerCase(), nextDeal.buyer, nextDeal.seller, JSON.stringify(nextDeal)],
+      );
+    }
+    await writeInvite(tx, nextInvite);
+    return { invite: nextInvite, deal: nextDeal };
+  });
+}
+
+export async function releaseInviteClaim(token: string, address: string): Promise<DealInvite | null> {
+  return mutateClaim(token, (invite) => {
+    const state = releaseClaimState(invite, address);
+    return state ? { ...invite, ...state } : null;
+  });
+}
+
+async function mutateClaim(token: string, mutate: (invite: DealInvite) => DealInvite | null): Promise<DealInvite | null> {
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    return withPostgresTransaction(async (tx) => {
+      const invite = await findByToken(tx, token, true);
+      if (!invite) return null;
+      const next = mutate(invite);
+      if (!next) return null;
+      await writeInvite(tx, next);
+      return next;
+    });
+  }
   load();
   const invite = store.get(token);
   if (!invite) return null;
-  const nextState = completeClaimState(invite, address, now);
-  if (!nextState) return null;
-  const next = { ...invite, ...nextState };
+  const next = mutate(invite);
+  if (!next) return null;
   store.set(token, next);
   persist();
   return next;
 }
 
-export function releaseInviteClaim(token: string, address: string): DealInvite | null {
-  load();
-  const invite = store.get(token);
-  if (!invite) return null;
-  const nextState = releaseClaimState(invite, address);
-  if (!nextState) return null;
-  const next = { ...invite, ...nextState };
-  store.set(token, next);
-  persist();
-  return next;
-}
-
-/// Garbage-collect expired + claimed invites older than 30 days. Called on
-/// boot and on every getInvite when the store is large; cheap enough to skip
-/// a scheduled job for the testnet footprint.
-export function pruneStale(): number {
-  load();
+export async function pruneStale(): Promise<number> {
   const now = Date.now();
   const cutoff = now - 30 * 86_400_000;
+  if (pgEnabled) {
+    await ensureLegacyImported();
+    const result = await postgresExecutor().query<Record<string, unknown> & { token: string }>(
+      `DELETE FROM deal_invites_v1 WHERE (used_at IS NOT NULL AND used_at < $1) OR (used_at IS NULL AND expires_at < $2) RETURNING token`,
+      [cutoff, now],
+    );
+    return result.rows.length;
+  }
+  load();
   let removed = 0;
-  for (const [k, v] of store.entries()) {
-    if ((v.usedAt && v.usedAt < cutoff) || (!v.usedAt && v.expiresAt < now)) {
-      store.delete(k);
+  for (const [key, invite] of store.entries()) {
+    if ((invite.usedAt && invite.usedAt < cutoff) || (!invite.usedAt && invite.expiresAt < now)) {
+      store.delete(key);
       removed += 1;
     }
   }

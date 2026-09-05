@@ -29,7 +29,7 @@ class RecordingExecutor implements SqlExecutor {
 }
 
 test('numbered migrations are ordered and contain every durable runtime table', () => {
-  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
   const sql = NUMBERED_MIGRATIONS[0]!.sql;
   for (const table of [
     'deal_rooms',
@@ -106,11 +106,19 @@ test('numbered migrations are ordered and contain every durable runtime table', 
   assert.match(durableReplaySql, /CREATE TABLE agent_task_replays_v2/);
   assert.match(proposalRevisionSql, /UNIQUE \(job_id, revision\)/);
   assert.match(proposalRevisionSql, /UNIQUE \(job_id, proposal_fingerprint\)/);
+  const allowanceSql = NUMBERED_MIGRATIONS[17]!.sql;
+  assert.match(allowanceSql, /CREATE TABLE agentkit_research_allowances_v1/);
+  assert.match(allowanceSql, /CREATE TABLE agentkit_used_nonces_v1/);
+  assert.match(allowanceSql, /CREATE TABLE agentkit_bindings_v1/);
+  const inviteSql = NUMBERED_MIGRATIONS[18]!.sql;
+  assert.match(inviteSql, /CREATE TABLE deal_invites_v1/);
+  assert.match(inviteSql, /deal_invites_one_pending_per_job_idx/);
+  assert.match(inviteSql, /WHERE used_at IS NULL/);
 });
 
 test('migration runner applies each migration once across repeated startup', async () => {
   const executor = new RecordingExecutor();
-  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
   assert.deepEqual(await runNumberedMigrations(executor), []);
   assert.equal(executor.applied.get(1), 'agent_runtime_v2_foundations');
   assert.equal(executor.applied.get(2), 'durable_events_and_replay');
@@ -132,8 +140,10 @@ test('migration runner applies each migration once across repeated startup', asy
   assert.equal(executor.applied.get(15), 'matching_audit_reviews');
   assert.equal(executor.applied.get(16), 'match_proposal_revision_audit');
   assert.equal(executor.applied.get(17), 'durable_task_replay_audit');
-  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 17);
-  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 17);
+  assert.equal(executor.applied.get(18), 'agentkit_research_allowance');
+  assert.equal(executor.applied.get(19), 'durable_deal_invites');
+  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 19);
+  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 19);
 });
 
 test('migration runner rolls back a failed migration and always releases its lock', async () => {

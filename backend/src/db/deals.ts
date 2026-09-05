@@ -476,7 +476,7 @@ export function dealMilestonePcts(deal: Pick<DirectDeal, 'firstReleasePct' | 'mi
 const DEALS_CACHE_TTL_MS = Number(process.env.DEALS_CACHE_TTL_MS ?? 300_000);
 let allDealsCache: { at: number; rows: DirectDeal[] } | null = null;
 
-function invalidateDealsCache(): void {
+export function invalidateDealsCache(): void {
   allDealsCache = null;
 }
 

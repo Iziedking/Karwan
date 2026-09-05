@@ -579,6 +579,21 @@ CREATE INDEX agentkit_bindings_human_idx
   ON agentkit_bindings_v1 (human_key_digest, expires_at DESC);
 `;
 
+const DEAL_INVITES_SQL = `
+CREATE TABLE deal_invites_v1 (
+  token TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL,
+  email TEXT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  used_at BIGINT,
+  data JSONB NOT NULL
+);
+CREATE UNIQUE INDEX deal_invites_one_pending_per_job_idx
+  ON deal_invites_v1 (job_id) WHERE used_at IS NULL;
+CREATE INDEX deal_invites_expiry_idx
+  ON deal_invites_v1 (expires_at);
+`;
+
 export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
   {
     version: 1,
@@ -669,6 +684,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 18,
     name: 'agentkit_research_allowance',
     sql: AGENTKIT_RESEARCH_ALLOWANCE_SQL,
+  },
+  {
+    version: 19,
+    name: 'durable_deal_invites',
+    sql: DEAL_INVITES_SQL,
   },
 ] as const;
 
