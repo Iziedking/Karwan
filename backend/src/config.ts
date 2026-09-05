@@ -635,6 +635,10 @@ const envSchema = z.object({
   // provider and consume the separate research-credit ledger. Keep off until
   // provider, account bootstrap, and reconciliation gates are reviewed.
   EVIDENCE_RESEARCH_CREDIT_V2_ENABLED: envBool('EVIDENCE_RESEARCH_CREDIT_V2_ENABLED'),
+  // AgentKit/AgentBook verification is a separate identity gate. It defaults
+  // off until the provider adapter and Sandbox proof are configured.
+  AGENTKIT_VERIFICATION_V2_ENABLED: envBool('AGENTKIT_VERIFICATION_V2_ENABLED'),
+  AGENTKIT_HUMAN_KEY_SECRET: optionalString,
   EVENT_OUTBOX_V2_ENABLED: envBool('EVENT_OUTBOX_V2_ENABLED'),
 
   // Public origin of the frontend, used to embed deal links in Telegram

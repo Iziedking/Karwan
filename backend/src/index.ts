@@ -75,7 +75,7 @@ import { financierRoutes } from './routes/financier.js';
 import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
-import { configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
+import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
@@ -184,6 +184,8 @@ import {
 } from './agents/stakeFinancialProjection.js';
 import { PostgresEvidenceRuntimeRepository } from './evidence/runtime.js';
 import { PostgresResearchCreditStore } from './evidence/researchCredit.js';
+import { PostgresResearchAllowanceStore } from './evidence/researchAllowance.js';
+import { unavailableAgentKitVerifier } from './agentkit/agentKitVerification.js';
 import { createX402EvidenceAcquisitionAdapter } from './evidence/x402Adapter.js';
 import { PostgresAgentRuntimeRepository } from './db/agentRuntime.js';
 import { createFinancialCommandShadowHandlers } from './agents/financialCommandShadow.js';
@@ -630,6 +632,16 @@ async function boot() {
   } else {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
+  const disableAgentKitResearch = configureAgentKitResearch({
+    enabled: config.AGENTKIT_VERIFICATION_V2_ENABLED && schemaReady,
+    ...(config.AGENTKIT_VERIFICATION_V2_ENABLED && schemaReady
+      ? {
+          verifier: unavailableAgentKitVerifier('World AgentBook provider adapter is not configured'),
+          allowanceStore: new PostgresResearchAllowanceStore(postgresExecutor(), withPostgresTransaction),
+        }
+      : {}),
+  });
+  stopFns.push(disableAgentKitResearch);
   if (config.EVENT_OUTBOX_V2_ENABLED && schemaReady) {
     const outboxStore = new PostgresOutboxStore(withPostgresTransaction);
     const dispatcher = new OutboxDispatcher(

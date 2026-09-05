@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { formatUnits } from 'viem';
+import { z } from 'zod';
 import { config } from '../config.js';
 import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
@@ -21,6 +22,17 @@ import { saveScoutRead, recentScoutReads } from '../db/scoutReads.js';
 import { randomUUID } from 'node:crypto';
 import type { EvidenceAcquisitionShadowObserver } from '../agents/evidenceAcquisitionShadow.js';
 import { buildResearchScoutEvidenceAcquisitionObservation } from '../agents/evidenceAcquisitionProjection.js';
+import {
+  unavailableAgentKitVerifier,
+  type AgentKitVerificationRequest,
+  type AgentKitVerifier,
+} from '../agentkit/agentKitVerification.js';
+import {
+  ResearchAllowanceExhaustedError,
+  ResearchAllowanceExpiredError,
+  ResearchAllowanceReplayError,
+  type ResearchAllowanceStore,
+} from '../evidence/researchAllowance.js';
 
 /// "Agent research" activation. The user pays a one-time fee in USDC on Arc
 /// from their agent wallet; it becomes a prepaid credit the agent draws down as
@@ -29,6 +41,24 @@ import { buildResearchScoutEvidenceAcquisitionObservation } from '../agents/evid
 export const researchRoutes = new Hono();
 
 let researchScoutEvidenceShadowObserver: EvidenceAcquisitionShadowObserver | null = null;
+let agentKitResearchEnabled = false;
+let agentKitVerifier: AgentKitVerifier = unavailableAgentKitVerifier();
+let agentKitAllowanceStore: ResearchAllowanceStore | null = null;
+
+export function configureAgentKitResearch(input: {
+  enabled: boolean;
+  verifier?: AgentKitVerifier;
+  allowanceStore?: ResearchAllowanceStore;
+}): () => void {
+  agentKitResearchEnabled = input.enabled;
+  agentKitVerifier = input.verifier ?? unavailableAgentKitVerifier();
+  agentKitAllowanceStore = input.allowanceStore ?? null;
+  return () => {
+    agentKitResearchEnabled = false;
+    agentKitVerifier = unavailableAgentKitVerifier();
+    agentKitAllowanceStore = null;
+  };
+}
 
 /**
  * Installs the optional read-only scout evidence observer. The legacy scout
@@ -157,6 +187,67 @@ researchRoutes.post('/activate', async (c) => {
   } catch (err) {
     logger.error({ owner, err: (err as Error).message }, 'research activation failed');
     return c.json({ error: 'activation failed', detail: (err as Error).message }, 502);
+  }
+});
+
+const agentKitRequestSchema = z.object({
+  agentAddress: z.string(),
+  domain: z.string(),
+  nonce: z.string(),
+  issuedAt: z.number().int(),
+  expiresAt: z.number().int(),
+  signature: z.string(),
+  proof: z.unknown(),
+});
+
+researchRoutes.get('/agentkit/status', (c) => {
+  if (!viewerAddress(c)) return c.json({ error: 'sign in first' }, 401);
+  return c.json({
+    verification: 'not-checked' as const,
+    provider: 'world-agentbook' as const,
+    mode: agentKitResearchEnabled && agentKitAllowanceStore ? 'sandbox-ready' as const : 'unavailable' as const,
+    allowancePolicy: { scope: 'counterparty-report' as const, reportsPer24Hours: 3 },
+    allowance: null,
+  });
+});
+
+researchRoutes.post('/agentkit/verify', async (c) => {
+  if (!agentKitResearchEnabled || !agentKitAllowanceStore) {
+    return c.json({ error: 'agentkit verification unavailable', code: 'PROVIDER_UNAVAILABLE' }, 503);
+  }
+  const parsed = agentKitRequestSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'invalid agentkit proof', code: 'PROOF_REJECTED' }, 400);
+  const result = await agentKitVerifier.verify(parsed.data as AgentKitVerificationRequest);
+  if (result.status !== 'verified') {
+    return c.json({ error: result.message, code: result.code }, result.status === 'unavailable' ? 503 : 403);
+  }
+  try {
+    await agentKitAllowanceStore.recordBinding({
+      agentAddress: result.agentAddress,
+      humanKeyDigest: result.humanKeyDigest,
+      verifier: result.verifier,
+      checkedAt: result.checkedAt,
+      expiresAt: result.expiresAt,
+    });
+    const consumed = await agentKitAllowanceStore.consume({
+      humanKeyDigest: result.humanKeyDigest,
+      agentAddress: result.agentAddress,
+      domain: parsed.data.domain,
+      nonce: parsed.data.nonce,
+      nonceExpiresAt: parsed.data.expiresAt,
+    });
+    return c.json({
+      verification: 'verified' as const,
+      provider: result.verifier,
+      allowance: consumed.snapshot,
+      boundAgentCount: (await agentKitAllowanceStore.listBindings(result.humanKeyDigest)).length,
+    });
+  } catch (error) {
+    if (error instanceof ResearchAllowanceReplayError) return c.json({ error: error.message, code: 'NONCE_REPLAY' }, 409);
+    if (error instanceof ResearchAllowanceExpiredError) return c.json({ error: error.message, code: 'NONCE_EXPIRED' }, 400);
+    if (error instanceof ResearchAllowanceExhaustedError) return c.json({ error: error.message, code: 'ALLOWANCE_EXHAUSTED' }, 429);
+    logger.error({ err: error instanceof Error ? error.message : String(error) }, 'agentkit allowance failed');
+    return c.json({ error: 'agentkit allowance unavailable', code: 'ALLOWANCE_UNAVAILABLE' }, 503);
   }
 });
 
