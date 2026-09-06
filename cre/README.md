@@ -62,3 +62,37 @@ deployed receiver's workflow identity and Arc forwarder, and explicitly choose
 whether to add `--broadcast`. A simulation without `--broadcast` is not an Arc
 transaction. This repository does not contain credentials, private keys,
 deployment state, or an automatic financial action.
+
+## Production receiver sequence
+
+The workflow ID includes the binary, final config, workflow name, and owner.
+Because the final config includes the receiver address, use this order:
+
+1. Run `cre workflow supported-chains --output json` after login and inspect the
+   tenant's Arc Testnet production and mock forwarders. Do not use the mock
+   forwarder for a deployed workflow.
+2. Deploy `KarwanEvidenceRegistry` with the final production forwarder, workflow
+   owner, encoded workflow name, Arc chain ID, and a one-time binder. It starts
+   unbound and rejects every report.
+3. Put the deployed receiver address into `config.production.json`, set
+   `writeReport` to `true`, and finish every other production value. Any later
+   config change produces a different workflow ID.
+4. From `cre/github-delivery`, calculate the exact ID without deploying:
+
+   ```bash
+   ../../.scratch/cre-local.cmd workflow hash . \
+     --project-root . \
+     --target production-settings \
+     --public_key "$CRE_WORKFLOW_OWNER"
+   ```
+
+5. Set `CRE_WORKFLOW_ID` to the printed workflow hash. Rehearse and then perform
+   the registry's one-time binding with the owner-controlled Foundry keystore.
+6. Run the read-only registry verifier. Only after it passes should the owner
+   choose to register or activate the CRE workflow.
+
+`cre workflow hash` is a local compile/hash result. `cre workflow simulate` is
+simulated execution. `forge script` without `--broadcast` is a no-write
+rehearsal. Contract broadcast, CRE deploy/activate, secret creation, and real
+workflow execution are separate owner-controlled testnet actions. None of them
+is evidence of a mainnet or live financial result.
