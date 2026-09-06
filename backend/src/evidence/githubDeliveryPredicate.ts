@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { sha256, toBytes } from 'viem';
 
 /**
  * Pure GitHub delivery predicate.
@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
  * rebuild the same decision from a canonical API snapshot.
  */
 
-export const GITHUB_DELIVERY_POLICY_VERSION = 'github-delivery-v1';
+export const GITHUB_DELIVERY_POLICY_VERSION = 'github-delivery-v2';
 
 export type GitHubDeliveryDecisionCode = 'PASS' | 'MISMATCH' | 'UNAVAILABLE';
 
@@ -19,6 +19,7 @@ export interface GitHubDeliveryCriteria {
   requireMerged: boolean;
   requiredCheckName: string;
   trustedAppId: number;
+  shaMode: 'head' | 'merge';
 }
 
 export interface GitHubCheckEvidence {
@@ -32,6 +33,7 @@ export interface GitHubDeliveryEvidence {
   repositoryId: number | null;
   baseBranch: string | null;
   deliverySha: string | null;
+  submittedSha: string | null;
   submitter: string | null;
   merged: boolean | null;
   checks: readonly GitHubCheckEvidence[] | null;
@@ -46,6 +48,7 @@ export interface GitHubDeliveryResult {
     | 'REPOSITORY_MISMATCH'
     | 'BASE_BRANCH_MISMATCH'
     | 'DELIVERY_SHA_MISSING'
+    | 'DELIVERY_SHA_MISMATCH'
     | 'SUBMITTER_MISMATCH'
     | 'MERGE_REQUIRED'
     | 'CHECK_MISSING'
@@ -77,7 +80,20 @@ function stableJson(value: unknown): string {
 }
 
 function digest(value: object): string {
-  return createHash('sha256').update(stableJson(value), 'utf8').digest('hex');
+  return sha256(toBytes(stableJson(value))).slice(2);
+}
+
+function canonicalEvidence(evidence: GitHubDeliveryEvidence): GitHubDeliveryEvidence {
+  return {
+    ...evidence,
+    checks: evidence.checks === null
+      ? null
+      : [...evidence.checks].sort((left, right) => {
+          const leftJson = stableJson(left);
+          const rightJson = stableJson(right);
+          return leftJson < rightJson ? -1 : leftJson > rightJson ? 1 : 0;
+        }),
+  };
 }
 
 function normalizeBranch(value: string): string {
@@ -102,7 +118,7 @@ function result(
     decisionCode,
     reasonCode,
     policyVersion: GITHUB_DELIVERY_POLICY_VERSION,
-    evidenceDigest: digest(evidence),
+    evidenceDigest: digest(canonicalEvidence(evidence)),
     criteriaDigest: digest(criteria),
     deliverySha: evidence.deliverySha ? normalizeSha(evidence.deliverySha) : null,
   };
@@ -121,6 +137,7 @@ export function evaluateGitHubDelivery(
     evidence.repositoryId === null
     || evidence.baseBranch === null
     || evidence.deliverySha === null
+    || evidence.submittedSha === null
     || evidence.submitter === null
     || evidence.merged === null
     || evidence.checks === null
@@ -136,8 +153,12 @@ export function evaluateGitHubDelivery(
     return result('MISMATCH', 'BASE_BRANCH_MISMATCH', criteria, evidence);
   }
   const deliverySha = normalizeSha(evidence.deliverySha);
-  if (!/^[0-9a-f]{40}$/.test(deliverySha)) {
+  const submittedSha = normalizeSha(evidence.submittedSha);
+  if (!/^[0-9a-f]{40}$/.test(deliverySha) || !/^[0-9a-f]{40}$/.test(submittedSha)) {
     return result('MISMATCH', 'DELIVERY_SHA_MISSING', criteria, evidence);
+  }
+  if (submittedSha !== deliverySha) {
+    return result('MISMATCH', 'DELIVERY_SHA_MISMATCH', criteria, evidence);
   }
   if (normalizeSubmitter(evidence.submitter) !== normalizeSubmitter(criteria.expectedSubmitter)) {
     return result('MISMATCH', 'SUBMITTER_MISMATCH', criteria, evidence);
@@ -152,14 +173,17 @@ export function evaluateGitHubDelivery(
   if (matchingChecks.length === 0) {
     return result('MISMATCH', 'CHECK_MISSING', criteria, evidence);
   }
-  const check = matchingChecks[0];
-  if (check!.sha.trim().toLowerCase() !== deliverySha) {
+  const shaChecks = matchingChecks.filter(
+    (check) => check.sha.trim().toLowerCase() === deliverySha,
+  );
+  if (shaChecks.length === 0) {
     return result('MISMATCH', 'CHECK_SHA_MISMATCH', criteria, evidence);
   }
-  if (check!.appId !== criteria.trustedAppId) {
+  const trustedChecks = shaChecks.filter((check) => check.appId === criteria.trustedAppId);
+  if (trustedChecks.length === 0) {
     return result('MISMATCH', 'CHECK_APP_MISMATCH', criteria, evidence);
   }
-  if (check!.conclusion?.trim().toLowerCase() !== 'success') {
+  if (!trustedChecks.some((check) => check.conclusion?.trim().toLowerCase() === 'success')) {
     return result('MISMATCH', 'CHECK_NOT_SUCCESSFUL', criteria, evidence);
   }
 

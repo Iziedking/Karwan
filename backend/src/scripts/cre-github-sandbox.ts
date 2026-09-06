@@ -30,12 +30,14 @@ const criteria = {
   requireMerged: true,
   requiredCheckName: 'Karwan delivery gate',
   trustedAppId: 4242,
+  shaMode: 'head' as const,
 };
 const deliverySha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const acceptedEvidence: GitHubDeliveryEvidence = {
   repositoryId: criteria.repositoryId,
   baseBranch: 'refs/heads/main',
   deliverySha,
+  submittedSha: deliverySha,
   submitter: criteria.expectedSubmitter,
   merged: true,
   checks: [{ name: criteria.requiredCheckName, appId: criteria.trustedAppId, conclusion: 'success', sha: deliverySha }],
@@ -44,7 +46,7 @@ const acceptedEvidence: GitHubDeliveryEvidence = {
 
 const scenarios = [
   ['correct evidence', acceptedEvidence],
-  ['mismatched evidence', { ...acceptedEvidence, deliverySha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }],
+  ['mismatched evidence', { ...acceptedEvidence, submittedSha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' }],
   ['unavailable source', { ...acceptedEvidence, checks: null }],
 ] as const;
 
@@ -67,4 +69,3 @@ console.log(JSON.stringify({
   scenarios: results,
   claimBoundary: 'This proves deterministic predicate behavior only. It does not prove a CRE TEE, GitHub API freshness, receiver deployment, or an Arc receipt.',
 }, null, 2));
-

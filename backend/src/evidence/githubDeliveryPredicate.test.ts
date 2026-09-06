@@ -11,12 +11,14 @@ const criteria: GitHubDeliveryCriteria = {
   requireMerged: true,
   requiredCheckName: 'Karwan delivery gate',
   trustedAppId: 4242,
+  shaMode: 'head',
 };
 
 const evidence: GitHubDeliveryEvidence = {
   repositoryId: 123456,
   baseBranch: 'refs/heads/main',
   deliverySha: SHA,
+  submittedSha: SHA,
   submitter: 'Seller-Account',
   merged: true,
   checks: [{ name: 'Karwan delivery gate', appId: 4242, conclusion: 'success', sha: SHA }],
@@ -50,6 +52,7 @@ test('evidence digest is stable when object keys are inserted in another order',
     merged: true,
     submitter: 'Seller-Account',
     deliverySha: SHA,
+    submittedSha: SHA,
     baseBranch: 'refs/heads/main',
     repositoryId: 123456,
     sourceFetchedAtUnix: 1_757_000_000,
@@ -60,10 +63,29 @@ test('evidence digest is stable when object keys are inserted in another order',
   );
 });
 
-test('changed delivery SHA invalidates the prior evidence result', () => {
+test('check ordering neither changes the digest nor lets a spoof shadow a trusted run', () => {
+  const spoof = { name: 'Karwan delivery gate', appId: 7, conclusion: 'failure', sha: SHA };
+  const trusted = evidence.checks![0]!;
+  const first = evaluateGitHubDelivery(criteria, { ...evidence, checks: [spoof, trusted] });
+  const second = evaluateGitHubDelivery(criteria, { ...evidence, checks: [trusted, spoof] });
+  assert.equal(first.decisionCode, 'PASS');
+  assert.equal(second.decisionCode, 'PASS');
+  assert.equal(first.evidenceDigest, second.evidenceDigest);
+});
+
+test('submitted SHA must match the immutable GitHub delivery SHA', () => {
   const result = evaluateGitHubDelivery(criteria, {
     ...evidence,
-    deliverySha: OTHER_SHA,
+    submittedSha: OTHER_SHA,
+  });
+  assert.equal(result.decisionCode, 'MISMATCH');
+  assert.equal(result.reasonCode, 'DELIVERY_SHA_MISMATCH');
+});
+
+test('a check from another SHA cannot be reused for the delivery', () => {
+  const result = evaluateGitHubDelivery(criteria, {
+    ...evidence,
+    checks: [{ ...evidence.checks![0]!, sha: OTHER_SHA }],
   });
   assert.equal(result.decisionCode, 'MISMATCH');
   assert.equal(result.reasonCode, 'CHECK_SHA_MISMATCH');
