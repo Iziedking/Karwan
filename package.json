@@ -28,7 +28,8 @@
     "contracts:build": "cd contracts && forge build",
     "contracts:test": "cd contracts && forge test -vv",
     "cre:github:typecheck": "cd cre/github-delivery && bun run typecheck",
-    "cre:github:test": "cd cre/github-delivery && bun test"
+    "cre:github:test": "cd cre/github-delivery && bun test",
+    "candidate:verify": "node scripts/verify-release-candidate.mjs"
   },
   "engines": {
     "node": ">=20"
