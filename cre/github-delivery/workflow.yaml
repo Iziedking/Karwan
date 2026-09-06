@@ -4,7 +4,8 @@ staging-settings:
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.staging.json"
-    secrets-path: "../secrets.yaml"
+    # Fixture simulation must remain keyless. Production is the only target
+    # allowed to request the GitHub token and private delivery criteria.
 
 production-settings:
   user-workflow:

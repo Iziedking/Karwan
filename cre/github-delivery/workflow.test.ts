@@ -43,6 +43,14 @@ function makeRuntime(config: Config) {
 }
 
 describe('confidential GitHub delivery workflow', () => {
+  test('keeps fixture simulation independent of production secrets', async () => {
+    const settings = await Bun.file(new URL('./workflow.yaml', import.meta.url)).text();
+    const [staging, production] = settings.split('production-settings:');
+
+    expect(staging).not.toContain('secrets-path:');
+    expect(production).toContain('secrets-path: "../secrets.yaml"');
+  });
+
   test('generates an EVM report without a provider call or broadcast in fixture mode', () => {
     const { runtime, reports, logs } = makeRuntime(baseConfig);
     const output = JSON.parse(onCronTrigger(runtime));

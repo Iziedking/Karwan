@@ -4,6 +4,9 @@
 GitHub pull-request commit, then prepares a signed report for the existing
 `KarwanEvidenceRegistry` non-custodial receiver.
 
+The staging target is intentionally keyless and fixture-only. Only the
+production target loads the Vault DON secret mapping.
+
 ## Confidentiality boundary
 
 The GitHub token and accepted criteria JSON are Vault DON secrets. The
