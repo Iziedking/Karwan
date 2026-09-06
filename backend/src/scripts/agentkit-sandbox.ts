@@ -3,7 +3,7 @@
  * AgentBook. It exercises verification, report reservation, delivery, retry,
  * release, and shared-human accounting without credentials or financial writes.
  */
-import { AGENTKIT_DOMAIN, createAgentKitVerifier, unavailableAgentKitVerifier } from '../agentkit/agentKitVerification.js';
+import { createAgentKitVerifier, unavailableAgentKitVerifier } from '../agentkit/agentKitVerification.js';
 import { InMemoryResearchAllowanceStore, ResearchAllowanceReplayError } from '../evidence/researchAllowance.js';
 import { deliverComplimentaryResearchReport } from '../evidence/researchReportDelivery.js';
 
@@ -14,8 +14,10 @@ const AGENTS = [
   '0x2222222222222222222222222222222222222222',
 ] as const;
 
+const FIXTURE_RESOURCE = 'https://fixture.karwan.test/api/research/agentkit/verify';
+
 function request(agentAddress: string, nonce: string) {
-  return { agentAddress, domain: AGENTKIT_DOMAIN, nonce, issuedAt: 1_000, expiresAt: 10_000, signature: '0xlocal-fixture-proof', proof: { executionMode: 'simulated' } };
+  return { header: `${agentAddress}:${nonce}`, resourceUri: FIXTURE_RESOURCE };
 }
 
 const verifier = createAgentKitVerifier({
@@ -23,7 +25,9 @@ const verifier = createAgentKitVerifier({
   now: () => 2_000,
   provider: {
     async verify(input) {
-      return { status: 'verified' as const, result: { verified: true, agentAddress: input.agentAddress, humanSubject: HUMAN_SUBJECT, checkedAt: 2_000, expiresAt: input.expiresAt } };
+      const [agentAddress, nonce] = input.header.split(':');
+      if (!agentAddress || !nonce) return { status: 'rejected' as const, message: 'fixture header malformed' };
+      return { status: 'verified' as const, result: { verified: true, agentAddress, humanSubject: HUMAN_SUBJECT, checkedAt: 2_000, expiresAt: 10_000, domain: 'fixture.karwan.test', nonce } };
     },
   },
 });
@@ -34,14 +38,14 @@ for (const [index, agentAddress] of AGENTS.entries()) {
   const identity = await verifier.verify(request(agentAddress, `verify-${index}`));
   if (identity.status !== 'verified') throw new Error(identity.message);
   humanKeyDigest = identity.humanKeyDigest;
-  await store.verifyBinding({ ...identity, domain: AGENTKIT_DOMAIN, nonce: `verify-${index}`, nonceExpiresAt: 10_000, now: 2_000 + index });
+  await store.verifyBinding({ ...identity, nonceExpiresAt: identity.expiresAt, now: 2_000 + index });
 }
 
 let replay = 'not-tested';
 const first = await verifier.verify(request(AGENTS[0], 'verify-0'));
 if (first.status === 'verified') {
   try {
-    await store.verifyBinding({ ...first, domain: AGENTKIT_DOMAIN, nonce: 'verify-0', nonceExpiresAt: 10_000, now: 2_003 });
+    await store.verifyBinding({ ...first, nonceExpiresAt: first.expiresAt, now: 2_003 });
   } catch (error) {
     replay = error instanceof ResearchAllowanceReplayError ? 'refused' : 'unexpected-error';
   }
