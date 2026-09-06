@@ -1,0 +1,9 @@
+staging-settings:
+  rpcs:
+    - chain-name: arc-testnet
+      url: https://rpc.testnet.arc.network
+
+production-settings:
+  rpcs:
+    - chain-name: arc-testnet
+      url: https://rpc.testnet.arc.network
