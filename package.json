@@ -26,7 +26,9 @@
     "milestones:release": "npm run milestones:release --workspace=backend",
     "view": "npm run view --workspace=backend --",
     "contracts:build": "cd contracts && forge build",
-    "contracts:test": "cd contracts && forge test -vv"
+    "contracts:test": "cd contracts && forge test -vv",
+    "cre:github:typecheck": "cd cre/github-delivery && bun run typecheck",
+    "cre:github:test": "cd cre/github-delivery && bun test"
   },
   "engines": {
     "node": ">=20"
