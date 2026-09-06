@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
+import { AGENTKIT } from '@worldcoin/agentkit';
 import { formatUnits } from 'viem';
-import { z } from 'zod';
 import { config } from '../config.js';
 import { appendActivity } from '../db/activityLog.js';
 import { logger } from '../logger.js';
@@ -24,9 +24,10 @@ import type { EvidenceAcquisitionShadowObserver } from '../agents/evidenceAcquis
 import { buildResearchScoutEvidenceAcquisitionObservation } from '../agents/evidenceAcquisitionProjection.js';
 import {
   unavailableAgentKitVerifier,
-  type AgentKitVerificationRequest,
   type AgentKitVerifier,
 } from '../agentkit/agentKitVerification.js';
+import { canonicalAgentKitResourceUri, createAgentKitChallenge } from '../agentkit/agentKitChallenge.js';
+import { arcTestnet } from '../chain/client.js';
 import {
   ResearchAllowanceExpiredError,
   ResearchAllowanceReplayError,
@@ -212,16 +213,6 @@ researchRoutes.post('/activate', async (c) => {
   }
 });
 
-const agentKitRequestSchema = z.object({
-  agentAddress: z.string(),
-  domain: z.string(),
-  nonce: z.string(),
-  issuedAt: z.number().int(),
-  expiresAt: z.number().int(),
-  signature: z.string(),
-  proof: z.unknown(),
-});
-
 researchRoutes.get('/agentkit/status', async (c) => {
   const owner = viewerAddress(c);
   if (!owner) return c.json({ error: 'sign in first' }, 401);
@@ -229,19 +220,26 @@ researchRoutes.get('/agentkit/status', async (c) => {
   return c.json({
     verification: access ? 'verified' as const : 'not-checked' as const,
     provider: 'world-agentbook' as const,
-    mode: agentKitResearchEnabled && agentKitAllowanceStore ? 'sandbox-ready' as const : 'unavailable' as const,
+    mode: agentKitResearchEnabled && agentKitAllowanceStore ? 'configured' as const : 'unavailable' as const,
     allowancePolicy: { scope: 'counterparty-report' as const, reportsPer24Hours: 3 },
     allowance: access ? (access.allowance ?? emptyResearchAllowanceSnapshot()) : null,
   });
 });
 
 researchRoutes.post('/agentkit/verify', async (c) => {
+  c.header('Cache-Control', 'no-store');
   if (!agentKitResearchEnabled || !agentKitAllowanceStore) {
     return c.json({ error: 'agentkit verification unavailable', code: 'PROVIDER_UNAVAILABLE' }, 503);
   }
-  const parsed = agentKitRequestSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'invalid agentkit proof', code: 'PROOF_REJECTED' }, 400);
-  const result = await agentKitVerifier.verify(parsed.data as AgentKitVerificationRequest);
+  const resourceUri = canonicalAgentKitResourceUri(c.req.url, config.PUBLIC_API_BASE_URL);
+  const header = c.req.header(AGENTKIT);
+  if (!header) {
+    return c.json(createAgentKitChallenge({
+      resourceUri,
+      network: `eip155:${arcTestnet.id}`,
+    }), 402);
+  }
+  const result = await agentKitVerifier.verify({ header, resourceUri });
   if (result.status !== 'verified') {
     return c.json({ error: result.message, code: result.code }, result.status === 'unavailable' ? 503 : 403);
   }
@@ -252,9 +250,9 @@ researchRoutes.post('/agentkit/verify', async (c) => {
       verifier: result.verifier,
       checkedAt: result.checkedAt,
       expiresAt: result.expiresAt,
-      domain: parsed.data.domain,
-      nonce: parsed.data.nonce,
-      nonceExpiresAt: parsed.data.expiresAt,
+      domain: result.domain,
+      nonce: result.nonce,
+      nonceExpiresAt: result.expiresAt,
     });
     const allowance = await agentKitAllowanceStore.get({ humanKeyDigest: result.humanKeyDigest });
     return c.json({

@@ -6,7 +6,7 @@ import { logger as appLogger } from './logger.js';
 import { installProcessErrorHandlers } from './errorTracker.js';
 import { startProactiveSupervisor } from './llm/supervisor.js';
 import { config } from './config.js';
-import { publicClient } from './chain/client.js';
+import { arcTestnet, publicClient } from './chain/client.js';
 import { invalidateEscrowCache } from './chain/contracts.js';
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
@@ -185,7 +185,8 @@ import {
 import { PostgresEvidenceRuntimeRepository } from './evidence/runtime.js';
 import { PostgresResearchCreditStore } from './evidence/researchCredit.js';
 import { PostgresResearchAllowanceStore } from './evidence/researchAllowance.js';
-import { unavailableAgentKitVerifier } from './agentkit/agentKitVerification.js';
+import { createAgentKitVerifier } from './agentkit/agentKitVerification.js';
+import { createWorldAgentBookProvider } from './agentkit/worldAgentBookProvider.js';
 import { createX402EvidenceAcquisitionAdapter } from './evidence/x402Adapter.js';
 import { PostgresAgentRuntimeRepository } from './db/agentRuntime.js';
 import { createFinancialCommandShadowHandlers } from './agents/financialCommandShadow.js';
@@ -632,15 +633,49 @@ async function boot() {
   } else {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
+  const agentKitHumanKeySecret = config.AGENTKIT_HUMAN_KEY_SECRET;
+  const agentKitConfigured = Boolean(
+    config.AGENTKIT_VERIFICATION_V2_ENABLED
+      && schemaReady
+      && agentKitHumanKeySecret
+      && config.PUBLIC_API_BASE_URL,
+  );
+  if (config.AGENTKIT_VERIFICATION_V2_ENABLED && !agentKitConfigured) {
+    appLogger.error(
+      {
+        schemaReady,
+        humanKeySecretConfigured: Boolean(config.AGENTKIT_HUMAN_KEY_SECRET),
+        publicApiBaseUrlConfigured: Boolean(config.PUBLIC_API_BASE_URL),
+      },
+      'World AgentBook verification remains unavailable because boot requirements are missing',
+    );
+  }
   const disableAgentKitResearch = configureAgentKitResearch({
-    enabled: config.AGENTKIT_VERIFICATION_V2_ENABLED && schemaReady,
-    ...(config.AGENTKIT_VERIFICATION_V2_ENABLED && schemaReady
+    enabled: agentKitConfigured,
+    ...(agentKitConfigured
       ? {
-          verifier: unavailableAgentKitVerifier('World AgentBook provider adapter is not configured'),
+          verifier: createAgentKitVerifier({
+            provider: createWorldAgentBookProvider({
+              worldRpcUrl: config.AGENTKIT_WORLD_RPC_URL,
+              signatureRpcUrls: {
+                [`eip155:${arcTestnet.id}`]: config.ARC_TESTNET_RPC_URL,
+                ...(config.AGENTKIT_WORLD_RPC_URL
+                  ? { 'eip155:480': config.AGENTKIT_WORLD_RPC_URL }
+                  : {}),
+              },
+            }),
+            humanKeySecret: agentKitHumanKeySecret as string,
+          }),
           allowanceStore: new PostgresResearchAllowanceStore(postgresExecutor(), withPostgresTransaction),
         }
       : {}),
   });
+  if (agentKitConfigured) {
+    appLogger.info(
+      { agentBook: 'world-chain', verificationNetwork: `eip155:${arcTestnet.id}` },
+      'World AgentBook verification configured',
+    );
+  }
   stopFns.push(disableAgentKitResearch);
   if (config.EVENT_OUTBOX_V2_ENABLED && schemaReady) {
     const outboxStore = new PostgresOutboxStore(withPostgresTransaction);

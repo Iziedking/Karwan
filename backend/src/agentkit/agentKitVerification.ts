@@ -1,17 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-export const AGENTKIT_DOMAIN = 'karwan.research';
-
 export type AgentKitVerificationStatus = 'verified' | 'unavailable' | 'rejected';
 
 export interface AgentKitVerificationRequest {
-  agentAddress: string;
-  domain: string;
-  nonce: string;
-  issuedAt: number;
-  expiresAt: number;
-  signature: string;
-  proof: unknown;
+  header: string;
+  resourceUri: string;
 }
 
 export interface AgentKitVerifiedIdentity {
@@ -21,6 +14,8 @@ export interface AgentKitVerifiedIdentity {
   verifier: 'world-agentbook';
   checkedAt: number;
   expiresAt: number;
+  domain: string;
+  nonce: string;
 }
 
 export interface AgentKitVerificationFailure {
@@ -37,6 +32,8 @@ export interface AgentKitProviderResult {
   humanSubject: string;
   checkedAt: number;
   expiresAt: number;
+  domain: string;
+  nonce: string;
 }
 
 export interface AgentKitProvider {
@@ -66,23 +63,6 @@ function normalizeAddress(value: string): string {
   return address.toLowerCase();
 }
 
-function assertRequest(input: AgentKitVerificationRequest, now: number): AgentKitVerificationRequest {
-  const agentAddress = normalizeAddress(input.agentAddress);
-  if (input.domain !== AGENTKIT_DOMAIN) throw new AgentKitRequestError('agent proof domain is invalid');
-  if (!input.nonce.trim() || input.nonce.length > 256) throw new AgentKitRequestError('agent proof nonce is invalid');
-  if (!input.signature.trim()) throw new AgentKitRequestError('agent proof signature is required');
-  if (!Number.isSafeInteger(input.issuedAt) || !Number.isSafeInteger(input.expiresAt)) {
-    throw new AgentKitRequestError('agent proof timestamps are invalid');
-  }
-  if (input.expiresAt <= now || input.issuedAt > now + 60_000) {
-    throw new AgentKitRequestError('agent proof is expired or from the future');
-  }
-  if (input.expiresAt - input.issuedAt > 15 * 60_000) {
-    throw new AgentKitRequestError('agent proof lifetime is too long');
-  }
-  return { ...input, agentAddress };
-}
-
 export function deriveHumanKeyDigest(secret: string, humanSubject: string): string {
   const key = secret.trim();
   const subject = humanSubject.trim();
@@ -96,21 +76,28 @@ export function createAgentKitVerifier(input: {
   humanKeySecret: string;
   now?: () => number;
 }): AgentKitVerifier {
+  const humanKeySecret = input.humanKeySecret.trim();
+  if (humanKeySecret.length < 32) {
+    throw new AgentKitRequestError('agent identity secret is not configured');
+  }
   return {
     async verify(request) {
       const now = input.now?.() ?? Date.now();
-      let checked: AgentKitVerificationRequest;
       try {
-        checked = assertRequest(request, now);
-      } catch (error) {
-        return {
-          status: 'rejected',
-          code: 'PROOF_REJECTED',
-          message: error instanceof Error ? error.message : 'agent proof rejected',
-        };
+        new URL(request.resourceUri);
+      } catch {
+        return { status: 'rejected', code: 'PROOF_REJECTED', message: 'agent resource URI is invalid' };
+      }
+      if (!request.header.trim()) {
+        return { status: 'rejected', code: 'PROOF_REJECTED', message: 'agentkit header is required' };
       }
 
-      const response = await input.provider.verify(checked);
+      let response: Awaited<ReturnType<AgentKitProvider['verify']>>;
+      try {
+        response = await input.provider.verify(request);
+      } catch {
+        return { status: 'unavailable', code: 'PROVIDER_UNAVAILABLE', message: 'AgentKit provider is unavailable' };
+      }
       if (response.status === 'unavailable') {
         return { status: 'unavailable', code: 'PROVIDER_UNAVAILABLE', message: response.message };
       }
@@ -120,19 +107,24 @@ export function createAgentKitVerifier(input: {
       if (!response.result.verified) {
         return { status: 'rejected', code: 'PROOF_REJECTED', message: 'agent proof rejected' };
       }
-      if (response.result.agentAddress.toLowerCase() !== checked.agentAddress) {
-        return { status: 'rejected', code: 'PROOF_REJECTED', message: 'provider returned a different agent address' };
+      let agentAddress: string;
+      try {
+        agentAddress = normalizeAddress(response.result.agentAddress);
+      } catch {
+        return { status: 'rejected', code: 'PROOF_REJECTED', message: 'provider returned an invalid agent address' };
       }
-      if (response.result.expiresAt <= now || response.result.expiresAt > checked.expiresAt) {
+      if (response.result.expiresAt <= now) {
         return { status: 'rejected', code: 'PROOF_REJECTED', message: 'provider proof expiry is invalid' };
       }
       return {
         status: 'verified',
-        agentAddress: checked.agentAddress,
-        humanKeyDigest: deriveHumanKeyDigest(input.humanKeySecret, response.result.humanSubject),
+        agentAddress,
+        humanKeyDigest: deriveHumanKeyDigest(humanKeySecret, response.result.humanSubject),
         verifier: 'world-agentbook',
         checkedAt: response.result.checkedAt,
         expiresAt: response.result.expiresAt,
+        domain: response.result.domain,
+        nonce: response.result.nonce,
       };
     },
   };

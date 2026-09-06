@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  AGENTKIT_DOMAIN,
   createAgentKitVerifier,
   deriveHumanKeyDigest,
   unavailableAgentKitVerifier,
@@ -9,16 +8,21 @@ import {
 
 const AGENT = '0x1111111111111111111111111111111111111111';
 const SECRET = '01234567890123456789012345678901';
+const RESOURCE = 'https://fixture.karwan.test/api/research/agentkit/verify';
 
 function request(nonce = 'nonce-1') {
+  return { header: `${AGENT}:${nonce}`, resourceUri: RESOURCE };
+}
+
+function providerResult(agentAddress = AGENT, nonce = 'nonce-1') {
   return {
-    agentAddress: AGENT,
-    domain: AGENTKIT_DOMAIN,
+    verified: true,
+    agentAddress,
+    humanSubject: 'human-fixture-1',
+    checkedAt: 1_500,
+    expiresAt: 1_900,
+    domain: 'fixture.karwan.test',
     nonce,
-    issuedAt: 1_000,
-    expiresAt: 2_000,
-    signature: '0xsandbox-proof',
-    proof: { mode: 'fixture' },
   };
 }
 
@@ -30,7 +34,7 @@ test('provider verification derives an opaque app-scoped human key', async () =>
       async verify() {
         return {
           status: 'verified' as const,
-          result: { verified: true, agentAddress: AGENT, humanSubject: 'human-fixture-1', checkedAt: 1_500, expiresAt: 1_900 },
+          result: providerResult(),
         };
       },
     },
@@ -40,21 +44,35 @@ test('provider verification derives an opaque app-scoped human key', async () =>
   if (result.status !== 'verified') return;
   assert.equal(result.humanKeyDigest, deriveHumanKeyDigest(SECRET, 'human-fixture-1'));
   assert.equal(result.humanKeyDigest.includes('human-fixture'), false);
+  assert.equal(result.nonce, 'nonce-1');
+  assert.equal(result.domain, 'fixture.karwan.test');
 });
 
-test('malformed, expired, and provider-unavailable proofs never become verified', async () => {
+test('malformed requests and provider outages never become verified', async () => {
   const verifier = createAgentKitVerifier({
     humanKeySecret: SECRET,
-    now: () => 2_100,
-    provider: { async verify() { throw new Error('must not be called'); } },
+    now: () => 1_500,
+    provider: { async verify() { throw new Error('provider down'); } },
   });
-  const expired = await verifier.verify(request());
-  assert.equal(expired.status, 'rejected');
+  const malformed = await verifier.verify({ header: '', resourceUri: 'not a url' });
+  assert.equal(malformed.status, 'rejected');
+  const providerDown = await verifier.verify(request());
+  assert.equal(providerDown.status, 'unavailable');
   const unavailable = await unavailableAgentKitVerifier().verify(request('nonce-2'));
   assert.equal(unavailable.status, 'unavailable');
 });
 
-test('provider cannot bind a proof to a different agent address', async () => {
+test('short human-key secret fails at boot instead of after a provider lookup', () => {
+  assert.throws(
+    () => createAgentKitVerifier({
+      humanKeySecret: 'too-short',
+      provider: { async verify() { throw new Error('must not be called'); } },
+    }),
+    /identity secret is not configured/,
+  );
+});
+
+test('provider cannot return a malformed agent address', async () => {
   const verifier = createAgentKitVerifier({
     humanKeySecret: SECRET,
     now: () => 1_500,
@@ -62,7 +80,7 @@ test('provider cannot bind a proof to a different agent address', async () => {
       async verify() {
         return {
           status: 'verified' as const,
-          result: { verified: true, agentAddress: '0x2222222222222222222222222222222222222222', humanSubject: 'human-fixture-1', checkedAt: 1_500, expiresAt: 1_900 },
+          result: providerResult('not-an-address'),
         };
       },
     },
@@ -79,7 +97,7 @@ test('an unverified provider result is rejected without reading a missing messag
       async verify() {
         return {
           status: 'verified' as const,
-          result: { verified: false, agentAddress: AGENT, humanSubject: 'human-fixture-1', checkedAt: 1_500, expiresAt: 1_900 },
+          result: { ...providerResult(), verified: false },
         };
       },
     },

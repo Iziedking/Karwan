@@ -638,7 +638,8 @@ const envSchema = z.object({
   // AgentKit/AgentBook verification is a separate identity gate. It defaults
   // off until the provider adapter and Sandbox proof are configured.
   AGENTKIT_VERIFICATION_V2_ENABLED: envBool('AGENTKIT_VERIFICATION_V2_ENABLED'),
-  AGENTKIT_HUMAN_KEY_SECRET: optionalString,
+  AGENTKIT_HUMAN_KEY_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
+  AGENTKIT_WORLD_RPC_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
   EVENT_OUTBOX_V2_ENABLED: envBool('EVENT_OUTBOX_V2_ENABLED'),
 
   // Public origin of the frontend, used to embed deal links in Telegram
