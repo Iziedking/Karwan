@@ -1811,7 +1811,7 @@ export interface ScoutReadEntry {
 export interface AgentKitResearchStatus {
   verification: 'not-checked' | 'verified';
   provider: 'world-agentbook';
-  mode: 'sandbox-ready' | 'unavailable';
+  mode: 'configured' | 'unavailable';
   allowancePolicy: { scope: 'counterparty-report'; reportsPer24Hours: number };
   allowance: ResearchAllowanceSnapshot | null;
 }

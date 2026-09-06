@@ -19,7 +19,7 @@ export function AgentTrustEvidenceCard() {
   const verified = status?.verification === 'verified';
   const statusLabel = verified
     ? copy.humanBacked
-    : status?.mode === 'sandbox-ready'
+    : status?.mode === 'configured'
       ? copy.notChecked
       : copy.unavailable;
   const allowance = status?.allowance
