@@ -96,6 +96,9 @@ const envSchema = z.object({
 
   KARWAN_JOBBOARD_ADDR: optionalAddr,
   KARWAN_ESCROW_ADDR: optionalAddr,
+  /// Non-custodial Chainlink CRE evidence receipt registry. Optional until the
+  /// owner deploys and verifies it on Arc Testnet; unset means no chain read.
+  KARWAN_EVIDENCE_REGISTRY_ADDR: optionalAddr,
   /// SME trade-finance bundle (deployed 2026-06-09). Document anchors +
   /// factoring payee redirect + PoD acceptance live in the registry;
   /// single-funder PO financing custody lives in the PO contract. Both

@@ -87,6 +87,7 @@ function configuredContracts(): Array<{
 }> {
   return [
     { name: 'KarwanEscrow', kind: 'settlement', address: config.KARWAN_ESCROW_ADDR, holdsUsdc: true },
+    { name: 'KarwanEvidenceRegistry', kind: 'registry', address: config.KARWAN_EVIDENCE_REGISTRY_ADDR, holdsUsdc: false },
     { name: 'KarwanInvoiceRegistry', kind: 'financing', address: config.KARWAN_INVOICE_REGISTRY_ADDR, holdsUsdc: true },
     { name: 'KarwanPOFinancing', kind: 'financing', address: config.KARWAN_PO_FINANCING_ADDR, holdsUsdc: true },
     { name: 'KarwanVault', kind: 'staking', address: config.KARWAN_VAULT_ADDR, holdsUsdc: true },
