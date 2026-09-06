@@ -59,6 +59,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { proofSegments } from '../proofLinks';
+import { evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -1088,6 +1089,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 ) : null}
               </div>
             </PageCard>
+          )}
+          {deal.delivered && deal.evidenceReceipt && deal.evidenceReceipt.state !== 'not-configured' && (
+            <EvidenceReceiptCard
+              receipt={deal.evidenceReceipt}
+              onRefresh={() => void refresh()}
+              refreshing={isRefetching}
+              copy={dd.evidenceReceipt}
+            />
           )}
           {deal.delivered && deal.deliveryProof && (
             <PageCard>
@@ -3421,6 +3430,83 @@ function ProposeCancelModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function EvidenceReceiptCard({
+  receipt,
+  onRefresh,
+  refreshing,
+  copy,
+}: {
+  receipt: NonNullable<DirectDeal['evidenceReceipt']>;
+  onRefresh: () => void;
+  refreshing: boolean;
+  copy: Messages['directDealDetail']['evidenceReceipt'];
+}) {
+  const key = evidenceReceiptCopyKey(receipt.state);
+  const tone = evidenceReceiptTone(receipt.state);
+  const body = tone === 'positive'
+    ? copy.passBody
+    : receipt.state === 'mismatch'
+      ? copy.mismatchBody
+      : receipt.state === 'stale-terms' || receipt.state === 'expired'
+        ? copy.staleBody
+        : copy.unavailableBody;
+  const border = tone === 'positive'
+    ? 'rgba(79, 138, 63, 0.35)'
+    : tone === 'warning'
+      ? 'rgba(178, 84, 37, 0.35)'
+      : 'var(--lp-border-light)';
+
+  return (
+    <PageCard>
+      <CardHead label={copy.label} />
+      <div className="p-5 md:p-6 space-y-4" style={{ borderInlineStart: `3px solid ${border}` }}>
+        <div>
+          <p className="font-sans text-[18px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
+            {copy.states[key]}
+          </p>
+          <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+            {body}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+          <span>{copy.versionTemplate.replace('{version}', String(receipt.agreementVersion))}</span>
+          {receipt.evidenceRevision != null ? (
+            <span>{copy.revisionTemplate.replace('{revision}', String(receipt.evidenceRevision))}</span>
+          ) : null}
+          {receipt.recordedAt ? <span>{relativeTime(receipt.recordedAt * 1000)}</span> : null}
+        </div>
+        {receipt.reportId ? (
+          <div className="space-y-2">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              [:{copy.reportLabel}:]
+            </p>
+            <CopyId value={receipt.reportId} label={shortHash(receipt.reportId)} />
+          </div>
+        ) : null}
+        {receipt.evidenceCommitment ? (
+          <div className="space-y-2">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              [:{copy.commitmentLabel}:]
+            </p>
+            <CopyId value={receipt.evidenceCommitment} label={shortHash(receipt.evidenceCommitment)} />
+          </div>
+        ) : null}
+        {(receipt.state === 'read-unavailable' || receipt.state === 'not-recorded') ? (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="min-h-11 px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] border border-[var(--lp-outline-strong)] transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+            style={{ borderRadius: 10 }}
+          >
+            {copy.refresh}
+          </button>
+        ) : null}
+      </div>
+    </PageCard>
   );
 }
 

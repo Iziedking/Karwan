@@ -489,6 +489,27 @@ export interface DirectDeal {
   /// cancel; only mutual cancel or appeal.
   deadlineUnix?: number;
   terms: string;
+  agreementVersion?: number;
+  evidenceReceipt?: {
+    state:
+      | 'not-configured'
+      | 'not-recorded'
+      | 'pass'
+      | 'mismatch'
+      | 'unavailable'
+      | 'expired'
+      | 'stale-terms'
+      | 'read-unavailable';
+    agreementVersion: number;
+    registryAddress?: string;
+    termsVersion?: number;
+    evidenceRevision?: number;
+    expiresAt?: number;
+    recordedAt?: number;
+    evidenceCommitment?: string;
+    verdictCommitment?: string;
+    reportId?: string;
+  };
   /// Seller agreed to the current terms. No buyer funds have moved yet.
   sellerApprovedAt?: number;
   /// Escrow is funded and verified Accepted onchain.

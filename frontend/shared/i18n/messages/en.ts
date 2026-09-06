@@ -2770,6 +2770,28 @@ interface MessagesShape {
       deliveryUnknownLabel: string;
       deliveryUnknownBody: string;
     };
+    evidenceReceipt: {
+      label: string;
+      states: {
+        pass: string;
+        mismatch: string;
+        unavailable: string;
+        expired: string;
+        staleTerms: string;
+        readUnavailable: string;
+        notRecorded: string;
+        notConfigured: string;
+      };
+      passBody: string;
+      mismatchBody: string;
+      unavailableBody: string;
+      staleBody: string;
+      versionTemplate: string;
+      revisionTemplate: string;
+      reportLabel: string;
+      commitmentLabel: string;
+      refresh: string;
+    };
     progress: {
       eyebrow: string;
       titleLead: string;
@@ -7955,6 +7977,28 @@ export const en: MessagesShape = {
       deliveryOkBody: 'Your security agent checked the link and found the delivery matches your request. Funds stay in escrow until you release.',
       deliveryUnknownLabel: 'Delivery check unavailable',
       deliveryUnknownBody: 'Karwan could not complete the delivery check. This is unknown, not a failure. Review the work yourself before releasing.',
+    },
+    evidenceReceipt: {
+      label: 'ARC EVIDENCE RECEIPT',
+      states: {
+        pass: 'Delivery check passed',
+        mismatch: 'Delivery check mismatch',
+        unavailable: 'Delivery check unavailable',
+        expired: 'Delivery check expired',
+        staleTerms: 'Older agreement checked',
+        readUnavailable: 'Arc receipt unavailable',
+        notRecorded: 'Awaiting delivery check',
+        notConfigured: 'Delivery check not configured',
+      },
+      passBody: 'The recorded evidence matches this agreement version. Review the work before releasing payment.',
+      mismatchBody: 'The recorded evidence does not match the accepted criteria. Payment remains under human review.',
+      unavailableBody: 'The source could not be verified. This is unknown, not a failed delivery.',
+      staleBody: 'This receipt cannot verify the current agreement. Request fresh evidence before relying on it.',
+      versionTemplate: 'Agreement v{version}',
+      revisionTemplate: 'Evidence revision {revision}',
+      reportLabel: 'REPORT ID',
+      commitmentLabel: 'EVIDENCE COMMITMENT',
+      refresh: 'Check Arc again',
     },
     progress: {
       eyebrow: 'PROGRESS',

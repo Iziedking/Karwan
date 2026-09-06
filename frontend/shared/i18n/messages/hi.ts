@@ -2993,6 +2993,15 @@ export const hi: Messages = {
       deliveryUnknownLabel: 'डिलीवरी जाँच उपलब्ध नहीं है',
       deliveryUnknownBody: 'Karwan डिलीवरी जाँच पूरी नहीं कर सका। यह अज्ञात परिणाम है, विफलता नहीं। रिलीज़ से पहले काम स्वयं जाँचें।',
     },
+    evidenceReceipt: {
+      label: 'ARC प्रमाण रसीद',
+      states: { pass: 'डिलीवरी जाँच सफल', mismatch: 'डिलीवरी मेल नहीं खाती', unavailable: 'डिलीवरी जाँच उपलब्ध नहीं', expired: 'डिलीवरी जाँच समाप्त', staleTerms: 'पुराने समझौते की जाँच', readUnavailable: 'Arc रसीद उपलब्ध नहीं', notRecorded: 'डिलीवरी जाँच की प्रतीक्षा', notConfigured: 'डिलीवरी जाँच कॉन्फ़िगर नहीं' },
+      passBody: 'दर्ज प्रमाण इस समझौते के संस्करण से मेल खाता है। भुगतान जारी करने से पहले काम की समीक्षा करें।',
+      mismatchBody: 'दर्ज प्रमाण स्वीकृत मानदंडों से मेल नहीं खाता। भुगतान आपके मानवीय निर्णय में रहता है।',
+      unavailableBody: 'स्रोत सत्यापित नहीं हो सका। यह अज्ञात है, असफल डिलीवरी नहीं।',
+      staleBody: 'यह रसीद मौजूदा समझौते को सत्यापित नहीं करती। भरोसा करने से पहले नया प्रमाण माँगें।',
+      versionTemplate: 'समझौता v{version}', revisionTemplate: 'प्रमाण संशोधन {revision}', reportLabel: 'रिपोर्ट आईडी', commitmentLabel: 'प्रमाण कमिटमेंट', refresh: 'Arc फिर जाँचें',
+    },
     progress: {
       eyebrow: 'प्रगति',
       titleLead: 'यह डील',

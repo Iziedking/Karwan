@@ -2993,6 +2993,15 @@ export const fr: Messages = {
       deliveryUnknownLabel: 'Vérification de livraison indisponible',
       deliveryUnknownBody: 'Karwan n’a pas pu terminer la vérification de livraison. Le résultat est inconnu, pas négatif. Examinez le travail avant de libérer les fonds.',
     },
+    evidenceReceipt: {
+      label: 'REÇU DE PREUVE ARC',
+      states: { pass: 'Vérification réussie', mismatch: 'Écart de livraison', unavailable: 'Vérification indisponible', expired: 'Vérification expirée', staleTerms: 'Ancien accord vérifié', readUnavailable: 'Reçu Arc indisponible', notRecorded: 'Vérification en attente', notConfigured: 'Vérification non configurée' },
+      passBody: 'La preuve enregistrée correspond à cette version de l’accord. Examinez le travail avant de libérer le paiement.',
+      mismatchBody: 'La preuve enregistrée ne correspond pas aux critères acceptés. Le paiement reste soumis à votre décision.',
+      unavailableBody: 'La source n’a pas pu être vérifiée. Le résultat est inconnu, pas négatif.',
+      staleBody: 'Ce reçu ne vérifie pas l’accord actuel. Demandez une preuve récente avant de vous y fier.',
+      versionTemplate: 'Accord v{version}', revisionTemplate: 'Révision de preuve {revision}', reportLabel: 'ID DU RAPPORT', commitmentLabel: 'ENGAGEMENT DE PREUVE', refresh: 'Revérifier sur Arc',
+    },
     progress: {
       eyebrow: 'AVANCEMENT',
       titleLead: 'Où en est cette',
