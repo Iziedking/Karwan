@@ -19,14 +19,62 @@ contract KarwanEvidenceRegistryTest is Test {
 
     function setUp() public {
         registry = new KarwanEvidenceRegistry(
-            FORWARDER, WORKFLOW_OWNER, WORKFLOW_ID, WORKFLOW_NAME, block.chainid
+            FORWARDER, WORKFLOW_OWNER, WORKFLOW_NAME, block.chainid, address(this)
         );
+        registry.bindWorkflowId(WORKFLOW_ID);
     }
 
     function testSupportsReceiverAnd165() public view {
         assertTrue(registry.supportsInterface(type(IReceiver).interfaceId));
         assertTrue(registry.supportsInterface(0x01ffc9a7));
         assertFalse(registry.supportsInterface(0xffffffff));
+    }
+
+    function testRejectsZeroWorkflowNameAtDeployment() public {
+        vm.expectRevert(KarwanEvidenceRegistry.ZeroWorkflowName.selector);
+        new KarwanEvidenceRegistry(
+            FORWARDER, WORKFLOW_OWNER, bytes10(0), block.chainid, address(this)
+        );
+    }
+
+    function testRejectsZeroWorkflowBinderAtDeployment() public {
+        vm.expectRevert(KarwanEvidenceRegistry.ZeroWorkflowBinder.selector);
+        new KarwanEvidenceRegistry(
+            FORWARDER, WORKFLOW_OWNER, WORKFLOW_NAME, block.chainid, address(0)
+        );
+    }
+
+    function testUnboundRegistryFailsClosedAndBindsExactlyOnce() public {
+        KarwanEvidenceRegistry unbound = new KarwanEvidenceRegistry(
+            FORWARDER, WORKFLOW_OWNER, WORKFLOW_NAME, block.chainid, address(this)
+        );
+
+        vm.prank(FORWARDER);
+        vm.expectRevert(KarwanEvidenceRegistry.WorkflowIdNotBound.selector);
+        unbound.onReport(
+            _metadata(false), _report(DEAL_ID, 1, 2, EVIDENCE, VERDICT, keccak256("unbound"))
+        );
+
+        vm.prank(address(0xBAD));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                KarwanEvidenceRegistry.UnauthorizedWorkflowBinder.selector, address(0xBAD)
+            )
+        );
+        unbound.bindWorkflowId(WORKFLOW_ID);
+
+        vm.expectRevert(KarwanEvidenceRegistry.ZeroWorkflowId.selector);
+        unbound.bindWorkflowId(bytes32(0));
+
+        unbound.bindWorkflowId(WORKFLOW_ID);
+        assertEq(unbound.expectedWorkflowId(), WORKFLOW_ID);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                KarwanEvidenceRegistry.WorkflowIdAlreadyBound.selector, WORKFLOW_ID
+            )
+        );
+        unbound.bindWorkflowId(keccak256("replacement"));
     }
 
     function testAcceptsCorrectReportAndStoresOnlyCommitments() public {

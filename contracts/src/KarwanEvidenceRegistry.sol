@@ -11,6 +11,9 @@ import {IReceiver, IERC165} from "./interfaces/IReceiver.sol";
 /// deal and terms version. It never receives, transfers, releases, refunds,
 /// stakes, or otherwise controls USDC, native currency, escrow, or wallets.
 /// There is no owner, admin rescue, upgrade path, or arbitrary caller path.
+/// A deployment authority can bind the final workflow ID exactly once because
+/// the workflow ID commits to the configuration containing this receiver's
+/// address. Until that binding succeeds, report delivery fails closed.
 ///
 /// The report is deliberately a commitment boundary. GitHub credentials,
 /// private repository content, human identifiers, and the accepted terms never
@@ -31,9 +34,10 @@ contract KarwanEvidenceRegistry is IReceiver {
 
     address public immutable forwarder;
     address public immutable workflowOwner;
-    bytes32 public immutable expectedWorkflowId;
+    bytes32 public expectedWorkflowId;
     bytes10 public immutable expectedWorkflowName;
     uint256 public immutable expectedChainId;
+    address public immutable workflowBinder;
 
     mapping(bytes32 reportId => bool used) public reportUsed;
     mapping(bytes32 dealId => uint64 termsVersion) public latestTermsVersion;
@@ -62,10 +66,16 @@ contract KarwanEvidenceRegistry is IReceiver {
         bytes32 indexed reportId,
         uint64 expiresAt
     );
+    event WorkflowIdBound(bytes32 indexed workflowId, address indexed binder);
 
     error ZeroAddress();
     error ZeroWorkflowId();
+    error ZeroWorkflowName();
     error ZeroChainId();
+    error ZeroWorkflowBinder();
+    error UnauthorizedWorkflowBinder(address caller);
+    error WorkflowIdNotBound();
+    error WorkflowIdAlreadyBound(bytes32 workflowId);
     error InvalidForwarder(address caller);
     error InvalidMetadataLength(uint256 actualLength);
     error InvalidWorkflowMetadata();
@@ -81,31 +91,47 @@ contract KarwanEvidenceRegistry is IReceiver {
     error EmptyReportId();
     error ReportAlreadyUsed(bytes32 reportId);
     error StaleTermsVersion(bytes32 dealId, uint64 termsVersion);
-    error EvidenceRevisionAlreadyRecorded(bytes32 dealId, uint64 termsVersion, uint64 evidenceRevision);
+    error EvidenceRevisionAlreadyRecorded(
+        bytes32 dealId, uint64 termsVersion, uint64 evidenceRevision
+    );
     error NoCustody();
 
     constructor(
         address forwarder_,
         address workflowOwner_,
-        bytes32 workflowId_,
         bytes10 workflowName_,
-        uint256 chainId_
+        uint256 chainId_,
+        address workflowBinder_
     ) {
         if (forwarder_ == address(0) || workflowOwner_ == address(0)) {
             revert ZeroAddress();
         }
-        if (workflowId_ == bytes32(0)) revert ZeroWorkflowId();
+        if (workflowName_ == bytes10(0)) revert ZeroWorkflowName();
         if (chainId_ == 0) revert ZeroChainId();
+        if (workflowBinder_ == address(0)) revert ZeroWorkflowBinder();
         forwarder = forwarder_;
         workflowOwner = workflowOwner_;
-        expectedWorkflowId = workflowId_;
         expectedWorkflowName = workflowName_;
         expectedChainId = chainId_;
+        workflowBinder = workflowBinder_;
+    }
+
+    /// @notice Bind the final CRE workflow ID exactly once after the receiver
+    /// address has been placed in the workflow's production configuration.
+    function bindWorkflowId(bytes32 workflowId_) external {
+        if (msg.sender != workflowBinder) revert UnauthorizedWorkflowBinder(msg.sender);
+        if (expectedWorkflowId != bytes32(0)) {
+            revert WorkflowIdAlreadyBound(expectedWorkflowId);
+        }
+        if (workflowId_ == bytes32(0)) revert ZeroWorkflowId();
+        expectedWorkflowId = workflowId_;
+        emit WorkflowIdBound(workflowId_, msg.sender);
     }
 
     /// @inheritdoc IReceiver
     function onReport(bytes calldata metadata, bytes calldata report) external override {
         if (msg.sender != forwarder) revert InvalidForwarder(msg.sender);
+        if (expectedWorkflowId == bytes32(0)) revert WorkflowIdNotBound();
         _validateMetadata(metadata);
         if (report.length != 10 * 32) revert InvalidReportLength(report.length);
 
@@ -121,7 +147,8 @@ contract KarwanEvidenceRegistry is IReceiver {
             uint8 decisionCode,
             bytes32 reportId
         ) = abi.decode(
-            report, (bytes32, uint256, bytes32, uint64, uint64, uint64, bytes32, bytes32, uint8, bytes32)
+            report,
+            (bytes32, uint256, bytes32, uint64, uint64, uint64, bytes32, bytes32, uint8, bytes32)
         );
 
         if (domain != REPORT_DOMAIN) revert InvalidDomain();
