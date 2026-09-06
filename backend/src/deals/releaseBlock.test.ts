@@ -20,6 +20,18 @@ test('a clear mismatch pauses unattended release for buyer review', () => {
   );
 });
 
+test('CRE mismatch and unreadable receipts pause unattended release', () => {
+  assert.equal(
+    releaseBlockReasonForDelivery({ evidenceReceipt: { state: 'mismatch' } }),
+    'requirement-mismatch',
+  );
+  for (const state of ['unavailable', 'expired', 'stale-terms', 'read-unavailable'] as const) {
+    assert.equal(releaseBlockReasonForDelivery({ evidenceReceipt: { state } }), 'evidence-unavailable');
+  }
+  assert.equal(releaseBlockReasonForDelivery({ evidenceReceipt: { state: 'pass' } }), null);
+  assert.equal(releaseBlockReasonForDelivery({ evidenceReceipt: { state: 'not-recorded' } }), null);
+});
+
 test('link safety holds take precedence over requirement evidence', () => {
   assert.equal(
     releaseBlockReasonForDelivery({

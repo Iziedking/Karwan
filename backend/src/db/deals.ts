@@ -74,6 +74,9 @@ export interface DirectDeal {
   /// post-deadline buyer cancel + reputation slash path stays.
   deadlineUnix?: number;
   terms: string;
+  /// Monotonic commercial agreement version. Legacy rows read as version 1.
+  /// Every pre-funding buyer edit increments it; CRE receipts bind this value.
+  agreementVersion?: number;
   /// SHA-256 version of the exact off-chain terms currently awaiting approval.
   termsDigest?: string;
   /// The agent's paid market read for this deal, carried over from the match
@@ -495,6 +498,7 @@ export async function createDeal(
   const now = Date.now();
   const deal: DirectDeal = {
     ...input,
+    agreementVersion: input.agreementVersion ?? 1,
     buyer: input.buyer.toLowerCase(),
     seller: input.seller.toLowerCase(),
     delivered: false,

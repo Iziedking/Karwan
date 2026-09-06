@@ -26,6 +26,7 @@ import {
   releaseBlockReasonForDelivery,
   type ReleaseBlockReason,
 } from '../deals/releaseBlock.js';
+import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import {
   autoReleaseWindowMs,
   buildPairHistory,
@@ -371,7 +372,13 @@ async function tick() {
       // Both are recorded on the deal. The seller cannot see the buyer's private
       // deliveryMatch.reason, but they must see THAT the clock stopped, or they
       // wait forever on a countdown that already expired and never appeal.
-      const blockReason: BlockReason | null = releaseBlockReasonForDelivery(deal);
+      const evidenceReceipt = deal.delivered
+        ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1)
+        : undefined;
+      const blockReason: BlockReason | null = releaseBlockReasonForDelivery({
+        ...deal,
+        evidenceReceipt,
+      });
       if (blockReason) {
         await markBlocked(deal.jobId, blockReason, deal.releaseBlockedReason, parties);
         continue;

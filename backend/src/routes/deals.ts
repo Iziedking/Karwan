@@ -132,6 +132,7 @@ import {
   fundingAuthorizationMatches,
 } from '../deals/fundingQuote.js';
 import { termsDigest } from '../deals/termsDigest.js';
+import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import { ownerAgentKitResearchAccess } from './research.js';
 import {
   deliverComplimentaryResearchReport,
@@ -710,6 +711,8 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   if (Object.keys(patch).length === 0) {
     return c.json({ error: 'no changes provided' }, 400);
   }
+
+  patch.agreementVersion = (deal.agreementVersion ?? 1) + 1;
 
   if (patch.terms !== undefined) {
     patch.termsDigest = termsDigest(patch.terms);
@@ -4395,8 +4398,13 @@ function redactDeal(d: EnrichedDeal): EnrichedDeal {
 }
 
 async function enrich(deal: DirectDeal) {
+  const evidenceReceipt = deal.delivered
+    ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1)
+    : undefined;
   const base = {
     ...deal,
+    agreementVersion: deal.agreementVersion ?? 1,
+    evidenceReceipt,
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
     /// How long the payment terms or a shipment in transit hold the money,
     /// independent of the review ladder. Zero on an ordinary service deal.
