@@ -187,7 +187,7 @@ function StakePageInner() {
       </Band>
 
       <Band tone="light" compact id="vault" className="scroll-mt-24" dataGuide="stake-vault">
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.82fr)] lg:gap-10">
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-10">
           <section className="min-w-0">
             <SectionTag>{sp.vault.tag}</SectionTag>
             <HeroHeadline size="md">{sp.vault.heading}<Punc>.</Punc></HeroHeadline>
