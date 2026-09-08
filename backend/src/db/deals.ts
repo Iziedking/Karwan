@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { eq, or, desc } from 'drizzle-orm';
-import { db, pgEnabled } from './client.js';
+import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { directDeals } from './schema.js';
+import { agreementDigest } from '../deals/agreementDigest.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
 
@@ -79,6 +80,9 @@ export interface DirectDeal {
   agreementVersion?: number;
   /// SHA-256 version of the exact off-chain terms currently awaiting approval.
   termsDigest?: string;
+  /// SHA-256 of the canonical commercial agreement, including parties,
+  /// amount, milestones, deadlines, review/payment terms and documents.
+  agreementDigest?: string;
   /// The agent's paid market read for this deal, carried over from the match
   /// proposal at acceptance so the research stays visible on the deal page for
   /// the whole lifecycle (the proposal banner is gone once the deal funds).
@@ -131,6 +135,9 @@ export interface DirectDeal {
   /// Digest that the seller approved. Funding must never use an approval for
   /// a different terms version.
   sellerApprovedTermsDigest?: string;
+  /// Version and canonical digest the seller actually reviewed.
+  sellerApprovedAgreementVersion?: number;
+  sellerApprovedAgreementDigest?: string;
   // The escrow has been funded and verified Accepted on chain. Downstream
   // delivery, financing, settlement, and reputation code relies on this funded
   // meaning, so it remains distinct from sellerApprovedAt.
@@ -169,6 +176,24 @@ export interface DirectDeal {
   /// buyer looks before money moves; 'unknown' means it could not be judged. The
   /// proof is never withheld for a requirement verdict, the buyer is the judge.
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  /// Monotonic delivery revision. A correction creates a new revision and
+  /// invalidates receipts issued for the previous artifact.
+  deliveryRevision?: number;
+  deliveryEvidenceCommitment?: `0x${string}`;
+  /// Commitment supplied by the confidential evidence request for this
+  /// revision. It is intentionally separate from the local delivery artifact
+  /// hash because a CRE GitHub evidence digest is not a URL hash.
+  evidenceExpectedCommitment?: `0x${string}`;
+  deliveryHistory?: Array<{
+    revision: number;
+    submittedAt: number;
+    deliveryProof?: string;
+    verificationStatus?: DirectDeal['verificationStatus'];
+    deliveryMatch?: DirectDeal['deliveryMatch'];
+  }>;
+  /// Explicit policy marker. Undefined/false is legacy optional evidence;
+  /// true means absent, stale, failed or unreadable evidence pauses release.
+  evidenceRequired?: boolean;
   /// Why the agent is NOT running the auto-release clock on this deal. The
   /// watcher sets it the moment it decides to pause and clears it when the
   /// condition lifts. Both parties see the code (never the buyer's private
@@ -505,6 +530,7 @@ export async function createDeal(
     createdAt: now,
     updatedAt: now,
   };
+  deal.agreementDigest = agreementDigest(deal);
   const key = input.jobId.toLowerCase();
   if (pgEnabled) {
     await db().insert(directDeals).values({
@@ -532,6 +558,7 @@ export async function patchDeal(
   const existing = await getDeal(key);
   if (!existing) return null;
   const next: DirectDeal = { ...existing, ...patch, updatedAt: Date.now() };
+  next.agreementDigest = agreementDigest(next);
   if (pgEnabled) {
     await db()
       .update(directDeals)
@@ -545,6 +572,57 @@ export async function patchDeal(
   saveFile(store);
   invalidateDealsCache();
   return next;
+}
+
+/// Version-bound seller approval. Postgres takes a row lock and compares the
+/// exact agreement snapshot inside the transaction, so a buyer edit cannot
+/// land between the route's initial read and the post-provisioning approval.
+/// The flat-file fallback is protected by the route's in-flight guard and
+/// re-reads immediately before writing for deterministic local rehearsal.
+export async function approveSellerAgreement(
+  jobId: string,
+  expectedAgreementVersion: number,
+  expectedAgreementDigest: string,
+  patch: Partial<DirectDeal>,
+): Promise<{ ok: true; deal: DirectDeal } | { ok: false; deal: DirectDeal | null }> {
+  const key = jobId.toLowerCase();
+  if (pgEnabled) {
+    return withPostgresTransaction(async (tx) => {
+      const result = await tx.query<{ data: DirectDeal }>(
+        'SELECT data FROM direct_deals WHERE job_id = $1 FOR UPDATE',
+        [key],
+      );
+      const existing = result.rows[0]?.data ?? null;
+      if (!existing) return { ok: false, deal: null };
+      const currentVersion = existing.agreementVersion ?? 1;
+      const currentDigest = existing.agreementDigest ?? agreementDigest(existing);
+      if (currentVersion !== expectedAgreementVersion || currentDigest !== expectedAgreementDigest) {
+        return { ok: false, deal: existing };
+      }
+      const next: DirectDeal = {
+        ...existing,
+        ...patch,
+        agreementDigest: currentDigest,
+        updatedAt: Date.now(),
+      };
+      await tx.query(
+        'UPDATE direct_deals SET buyer = $1, seller = $2, data = $3::jsonb WHERE job_id = $4',
+        [next.buyer, next.seller, JSON.stringify(next), key],
+      );
+      invalidateDealsCache();
+      return { ok: true, deal: next };
+    });
+  }
+
+  const existing = await getDeal(key);
+  if (!existing) return { ok: false, deal: null };
+  const currentVersion = existing.agreementVersion ?? 1;
+  const currentDigest = existing.agreementDigest ?? agreementDigest(existing);
+  if (currentVersion !== expectedAgreementVersion || currentDigest !== expectedAgreementDigest) {
+    return { ok: false, deal: existing };
+  }
+  const next = await patchDeal(key, { ...patch, agreementDigest: currentDigest });
+  return next ? { ok: true, deal: next } : { ok: false, deal: null };
 }
 
 /// Deals where the address is either the buyer (creator) or the seller.

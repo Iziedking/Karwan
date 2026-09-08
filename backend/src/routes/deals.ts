@@ -45,6 +45,7 @@ import {
   createDeal,
   getDeal,
   patchDeal,
+  approveSellerAgreement,
   listDealsForAddress,
   listAllDeals,
   dealMilestonePcts,
@@ -132,6 +133,8 @@ import {
   fundingAuthorizationMatches,
 } from '../deals/fundingQuote.js';
 import { termsDigest } from '../deals/termsDigest.js';
+import { agreementDigest } from '../deals/agreementDigest.js';
+import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
 import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import { ownerAgentKitResearchAccess } from './research.js';
 import {
@@ -265,6 +268,9 @@ const createSchema = z
       )
       .max(20)
       .optional(),
+    /// Explicit opt-in for the confidential delivery-evidence lane. Legacy
+    /// deals remain optional until their agreement records this requirement.
+    evidenceRequired: z.boolean().optional().default(false),
   })
   .refine(
     (b) =>
@@ -306,6 +312,7 @@ const editSchema = z
       .refine((v) => v === undefined || v % 5 === 0, {
         message: 'requireStakePct must be a multiple of 5',
       }),
+    evidenceRequired: z.boolean().optional(),
   })
   .refine(
     (b) => {
@@ -320,6 +327,10 @@ const editSchema = z
   );
 
 const callerSchema = z.object({ caller: addrSchema });
+const sellerAcceptSchema = callerSchema.extend({
+  expectedAgreementVersion: z.number().int().positive(),
+  expectedAgreementDigest: z.string().regex(/^[a-fA-F0-9]{64}$/),
+});
 const fundSchema = z.object({
   caller: addrSchema,
   expectedFeeBps: z.number().int().min(0).max(10_000),
@@ -546,6 +557,7 @@ dealsRoutes.post('/direct', async (c) => {
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    evidenceRequired: body.evidenceRequired,
   });
 
   bus.emitEvent({
@@ -1410,9 +1422,18 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
       409,
     );
   }
-  if (deal.sellerApprovedTermsDigest && deal.sellerApprovedTermsDigest !== termsDigest(deal.terms)) {
+  const currentAgreementVersion = deal.agreementVersion ?? 1;
+  const currentAgreementDigest = deal.agreementDigest ?? agreementDigest(deal);
+  const currentApprovalMatches =
+    deal.sellerApprovedAgreementVersion === currentAgreementVersion
+    && deal.sellerApprovedAgreementDigest === currentAgreementDigest;
+  const legacyApprovalMatches =
+    !deal.sellerApprovedAgreementVersion
+    && !!deal.sellerApprovedTermsDigest
+    && deal.sellerApprovedTermsDigest === termsDigest(deal.terms);
+  if (!currentApprovalMatches && !legacyApprovalMatches) {
     return c.json(
-      { error: 'the seller approval is for older terms; review again before funding', code: 'STALE_TERMS' },
+      { error: 'the seller approval is for an older agreement; review again before funding', code: 'STALE_AGREEMENT' },
       409,
     );
   }
@@ -1433,7 +1454,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
 
   let body;
   try {
-    body = callerSchema.parse(await c.req.json());
+    body = sellerAcceptSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
@@ -1442,6 +1463,22 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   }
   if (body.caller.toLowerCase() !== deal.seller) {
     return c.json({ error: 'only the named seller can agree to this deal' }, 403);
+  }
+  const currentAgreementVersion = deal.agreementVersion ?? 1;
+  const currentAgreementDigest = deal.agreementDigest ?? agreementDigest(deal);
+  if (
+    body.expectedAgreementVersion !== currentAgreementVersion
+    || body.expectedAgreementDigest !== currentAgreementDigest
+  ) {
+    return c.json(
+      {
+        error: 'the agreement changed; review the latest version before accepting',
+        code: 'STALE_AGREEMENT',
+        agreementVersion: currentAgreementVersion,
+        agreementDigest: currentAgreementDigest,
+      },
+      409,
+    );
   }
   if (deal.tradeLane === 'finance') {
     const sellerType = await accountTypeOf(deal.seller);
@@ -1500,12 +1537,35 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     }
 
     const sellerApprovedAt = Date.now();
-    await patchDeal(jobId, {
-      sellerApprovedAt,
-      sellerApprovedTermsDigest: termsDigest(deal.terms),
-      sellerAgentWalletId: sellerAgents.sellerWalletId,
-      sellerAgentAddress: sellerAgents.sellerAddress,
-    });
+    const approval = await approveSellerAgreement(
+      jobId,
+      body.expectedAgreementVersion,
+      body.expectedAgreementDigest,
+      {
+        sellerApprovedAt,
+        sellerApprovedTermsDigest: termsDigest(deal.terms),
+        sellerApprovedAgreementVersion: body.expectedAgreementVersion,
+        sellerApprovedAgreementDigest: body.expectedAgreementDigest,
+        sellerAgentWalletId: sellerAgents.sellerWalletId,
+        sellerAgentAddress: sellerAgents.sellerAddress,
+      },
+    );
+    if (!approval.ok) {
+      const latest = approval.deal;
+      return c.json(
+        {
+          error: 'the agreement changed while approval was being prepared; review the latest version',
+          code: 'STALE_AGREEMENT',
+          ...(latest
+            ? {
+                agreementVersion: latest.agreementVersion ?? 1,
+                agreementDigest: latest.agreementDigest ?? agreementDigest(latest),
+              }
+            : {}),
+        },
+        409,
+      );
+    }
     bus.emitEvent({
       type: 'deal.seller-approved',
       jobId,
@@ -1604,6 +1664,29 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
       });
     }
 
+    // Seller-wallet provisioning can take long enough for a buyer edit to
+    // advance the agreement. Re-read the deal before preparing any movement so
+    // an approval for an older version cannot authorize the current terms.
+    const latestDeal = await getDeal(jobId);
+    if (!latestDeal) return c.json({ error: 'deal not found' }, 404);
+    const latestAgreementVersion = latestDeal.agreementVersion ?? 1;
+    const latestAgreementDigest = latestDeal.agreementDigest ?? agreementDigest(latestDeal);
+    const latestApprovalMatches =
+      latestDeal.sellerApprovedAgreementVersion === latestAgreementVersion
+      && latestDeal.sellerApprovedAgreementDigest === latestAgreementDigest;
+    const latestLegacyApprovalMatches =
+      !latestDeal.sellerApprovedAgreementVersion
+      && !!latestDeal.sellerApprovedTermsDigest
+      && latestDeal.sellerApprovedTermsDigest === termsDigest(latestDeal.terms);
+    if (!latestDeal.sellerApprovedAt || (!latestApprovalMatches && !latestLegacyApprovalMatches)) {
+      return c.json(
+        {
+          error: 'the seller approval is for an older agreement; review again before funding',
+          code: 'STALE_AGREEMENT',
+        },
+        409,
+      );
+    }
     const milestonePcts = dealMilestonePcts(deal);
     const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
     const operationKey = fundingMovementKey(jobId);
@@ -2256,13 +2339,23 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   if (!deal.acceptedAt) {
     return c.json({ error: 'accept the deal terms before marking it delivered' }, 409);
   }
-  // A held (flagged) delivery can be re-submitted with a corrected link to
-  // clear the hold; that is the primary resolution path. A normal, cleared
-  // delivery is final and can't be re-marked.
+  // A held or requirement-mismatched delivery can be re-submitted as an
+  // explicit correction. A clean delivery is final, and a settled/cancelled
+  // deal cannot be reopened by submitting a new artifact.
   const wasHeld =
     deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
-  if (deal.delivered && !wasHeld) {
+  const correctionRequested =
+    wasHeld
+    || deal.deliveryMatch?.verdict === 'partial'
+    || deal.deliveryMatch?.verdict === 'mismatch'
+    || deal.deliveryMatch?.verdict === 'unknown'
+    || deal.releaseBlockedReason === 'requirement-mismatch'
+    || deal.releaseBlockedReason === 'evidence-unavailable';
+  if (deal.delivered && !correctionRequested) {
     return c.json({ error: 'deal already marked delivered' }, 409);
+  }
+  if (deal.delivered && (deal.cancelledAt || deal.settledAt)) {
+    return c.json({ error: 'a closed deal cannot receive a delivery correction' }, 409);
   }
   // Goods deliver a shipment reference; everything else delivers a link.
   //
@@ -2513,6 +2606,20 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
   const isRedelivery = deal.delivered === true;
+  const deliveryRevision = (deal.deliveryRevision ?? (isRedelivery ? 1 : 0)) + 1;
+  const deliveryEvidenceCommitment = keccak256(
+    toBytes(JSON.stringify({ deliveryProof: body.deliveryProof ?? null, shipment: shipment ?? null })),
+  );
+  const deliveryHistory = [
+    ...(deal.deliveryHistory ?? []),
+    {
+      revision: deliveryRevision,
+      submittedAt: Date.now(),
+      ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
+      ...(verificationStatus ? { verificationStatus } : {}),
+      ...(deliveryMatch ? { deliveryMatch } : {}),
+    },
+  ].slice(-20);
 
   // v2b: mark the delivery ON CHAIN so the review window opens (deliveredAt),
   // which is what the seller claim path and the reclaim DeliveryPending guard
@@ -2542,7 +2649,10 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   await patchDeal(jobId, {
     delivered: true,
-    ...(deliveryMatch ? { deliveryMatch } : {}),
+    deliveryRevision,
+    deliveryEvidenceCommitment,
+    deliveryHistory,
+    deliveryMatch: deliveryMatch ?? undefined,
     // Reset the review clock to now on every (re)delivery. While a link is held
     // the auto-release is paused anyway, so a corrected clean link gives the
     // buyer a fresh, full window to review what they can finally see.
@@ -2551,8 +2661,11 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     ...(shipment ? { shipment } : {}),
     // Always overwrite the verdict + reasons so a corrected link clears the old
     // flag (reasons explicitly emptied when the new link is clean).
-    ...(verificationStatus ? { verificationStatus } : {}),
+    verificationStatus: verificationStatus ?? undefined,
     verificationReasons: verificationReasons ?? [],
+    releaseBlockedReason: undefined,
+    releaseBlockedAt: undefined,
+    evidenceExpectedCommitment: undefined,
   });
 
   // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
@@ -2688,6 +2801,24 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   }
   if (!deal.delivered) {
     return c.json({ error: 'mark the work delivered first', code: 'not-delivered' }, 409);
+  }
+  const claimEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
+    evidenceRevision: deal.deliveryRevision,
+    evidenceCommitment: deal.evidenceExpectedCommitment,
+  });
+  const claimBlockReason = releaseBlockReasonForDelivery({
+    ...deal,
+    evidenceRequired: deal.evidenceRequired,
+    evidenceReceipt: claimEvidenceReceipt,
+  });
+  if (claimBlockReason) {
+    return c.json(
+      {
+        error: 'seller claim is paused until the current delivery evidence is verified',
+        code: claimBlockReason,
+      },
+      409,
+    );
   }
   if (!deal.sellerAgentWalletId) {
     return c.json({ error: 'this deal has no seller agent wallet on record' }, 409);
@@ -2946,6 +3077,24 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
         error:
           'Karwan flagged the delivery link and is holding it for review. Release is paused until it clears.',
         code: 'delivery-held',
+      },
+      409,
+    );
+  }
+  const releaseEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
+    evidenceRevision: deal.deliveryRevision,
+    evidenceCommitment: deal.evidenceExpectedCommitment,
+  });
+  const releaseBlockReason = releaseBlockReasonForDelivery({
+    ...deal,
+    evidenceRequired: deal.evidenceRequired,
+    evidenceReceipt: releaseEvidenceReceipt,
+  });
+  if (releaseBlockReason) {
+    return c.json(
+      {
+        error: 'release is paused until the current delivery evidence is verified',
+        code: releaseBlockReason,
       },
       409,
     );
@@ -4399,11 +4548,15 @@ function redactDeal(d: EnrichedDeal): EnrichedDeal {
 
 async function enrich(deal: DirectDeal) {
   const evidenceReceipt = deal.delivered
-    ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1)
+    ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
+        evidenceRevision: deal.deliveryRevision,
+        evidenceCommitment: deal.evidenceExpectedCommitment,
+      })
     : undefined;
   const base = {
     ...deal,
     agreementVersion: deal.agreementVersion ?? 1,
+    agreementDigest: deal.agreementDigest ?? agreementDigest(deal),
     evidenceReceipt,
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
     /// How long the payment terms or a shipment in transit hold the money,

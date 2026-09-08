@@ -469,12 +469,23 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   }
 
   async function doAccept() {
-    if (!address) return;
+    if (!address || !deal) return;
     setShowAcceptConsent(false);
     setBusy(true);
     setErrorInfo(null);
     try {
-      await api.acceptDirectDeal(jobId, address);
+      const expectedAgreementVersion = deal.agreementVersion ?? 1;
+      const expectedAgreementDigest = deal.agreementDigest;
+      if (!expectedAgreementDigest) {
+        setErrorInfo({ code: 'STALE_AGREEMENT', message: dd.errors.approvalFailed });
+        return;
+      }
+      await api.acceptDirectDeal(
+        jobId,
+        address,
+        expectedAgreementVersion,
+        expectedAgreementDigest,
+      );
       sfx.send();
       refresh();
     } catch (err) {
