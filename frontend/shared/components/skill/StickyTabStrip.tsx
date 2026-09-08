@@ -6,7 +6,7 @@ import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
 import { ActionBeacon } from '@/shared/components/ActionBeacon';
 
-/// SKILL.md §4.5. The sticky section tab strip. Equal columns, mono labels,
+/// SKILL.md §4.5. The sticky section tab strip. Equal columns, proportional labels,
 /// right-aligned chevron in each cell. Active cell has a top 2px lime indicator
 /// animated with shared `layoutId` so it SLIDES between tabs (never fades in
 /// place). Sticks below the main nav with a subtle backdrop blur on scroll.
@@ -354,7 +354,7 @@ export function StickyTabStrip({
                   }
                 }}
                 className={cn(
-                  'group relative w-full min-h-11 cursor-pointer flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.06em] md:tracking-[0.08em] whitespace-nowrap transition-colors duration-[var(--dur-micro)] hover:bg-black/[0.035] focus-visible:bg-black/[0.035]',
+                  'group relative w-full min-h-11 cursor-pointer flex items-center justify-between gap-2 md:gap-3 py-3.5 md:py-5 px-3 md:px-4 font-sans text-[11px] md:text-[12px] font-semibold whitespace-nowrap transition-colors duration-[var(--dur-micro)] hover:bg-black/[0.035] focus-visible:bg-black/[0.035]',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset',
                 )}
                 style={{
@@ -392,7 +392,7 @@ export function StickyTabStrip({
                       borderRadius: 1,
                     }}
                   />
-                  [:{t.label}]
+                  {t.label}
                   {t.count != null ? (
                     <span className="font-sans text-[10px] font-extrabold tabular-nums tracking-normal md:text-[11px]">
                       {String(t.count).padStart(2, '0')}
@@ -478,7 +478,7 @@ export function StickyTabStrip({
               color: onDark ? 'var(--ink-2)' : 'var(--ink-inv-2)',
             }}
           >
-            <span className="font-mono text-[17px] leading-none">
+            <span className="font-sans text-[17px] leading-none">
               {side === 'start' ? '‹' : '›'}
             </span>
           </button>

@@ -594,14 +594,7 @@ function ProfilePageInner() {
   return (
     <main className="profile-route product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
       <div className="mx-auto max-w-[1120px]">
-        <Link
-          href="/profile"
-          className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-        >
-          <span aria-hidden>←</span>
-          Profile
-        </Link>
-        <header className="mt-3 border-b border-[var(--lp-border-light)] pb-5 sm:pb-6">
+        <header className="border-b border-[var(--lp-border-light)] pb-5 sm:pb-6">
           <h1 className="text-[clamp(2.25rem,5vw,4.25rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--lp-dark)]">
             {PROFILE_SECTION_TITLE[activeSection]}
           </h1>

@@ -110,6 +110,39 @@ interface MessagesShape {
       errorGeneric: string;
     };
   };
+  profileSignOut: { title: string; body: string; pending: string; error: string };
+  businessProfilePage: {
+    label: string;
+    open: string;
+    title: string;
+    intro: string;
+    findTitle: string;
+    findBody: string;
+    dealTitle: string;
+    dealBody: string;
+    payTitle: string;
+    payBody: string;
+    recordTitle: string;
+    recordBody: string;
+    setup: string;
+    manage: string;
+    manageBody: string;
+    edit: string;
+    notice: string;
+    setupTitle: string;
+    setupBody: string;
+    name: string;
+    nameHint: string;
+    confirm: string;
+    save: string;
+    error: string;
+    loadError: string;
+    retry: string;
+    noProfile: string;
+    create: string;
+    next: string;
+    nameTaken: string;
+  };
   onboarding: {
     languageStep: {
       eyebrow: string;
@@ -239,11 +272,15 @@ interface MessagesShape {
       body: string;
       checklist: string;
       doneBody: string;
+      agentTitle: string;
       activate: string;
+      checking: string;
       activating: string;
+      skip: string;
+      ready: string;
+      activationError: string;
       retry: string;
       continue: string;
-      skip: string;
       error: string;
     };
     validation: {
@@ -5047,6 +5084,44 @@ export const en: MessagesShape = {
       errorGeneric: 'Could not add a passkey.',
     },
   },
+  profileSignOut: {
+    title: "Sign out of Karwan?",
+    body: "You can sign in again to access your account and trades.",
+    pending: "Signing out…",
+    error: "Could not sign out. Please try again.",
+  },
+  businessProfilePage: {
+    label: "Business profile",
+    open: "Open a business profile",
+    title: "Your business, on Karwan",
+    intro: "Buy, sell, and settle local or cross-border trade from the same account. Build a trade record people can check.",
+    findTitle: "Meet buyers, sellers, and suppliers",
+    findBody: "Browse businesses, requests, and offers. Let your agents help find matches within your trade preferences.",
+    dealTitle: "Bring a deal from anywhere",
+    dealBody: "Turn an agreement from chat, email or a marketplace into a trade with clear terms.",
+    payTitle: "Agree how you get paid",
+    payBody: "Set delivery milestones and protect settlement in USDC.",
+    recordTitle: "Build your business reputation",
+    recordBody: "Keep delivery evidence and settled trades in a record counterparties can review.",
+    setup: "Set up business profile",
+    manage: "Company details and verification",
+    manageBody: "Add company information, submit evidence and follow your review status.",
+    edit: "Edit trade preferences",
+    notice: "Karwan currently supports one profile per account. This setup changes your personal profile to a business profile. Your sign-in, balances and existing trade history stay with this account.",
+    setupTitle: "Set up your business profile",
+    setupBody: "Start with the name you trade under. Next, add your company details.",
+    name: "Business name",
+    nameHint: "This name will appear on your Karwan profile.",
+    confirm: "I want to change this account to a business profile.",
+    save: "Save and continue",
+    error: "Could not save your business profile. Your details are still here. Please try again.",
+    loadError: "We could not load your profile. Try again before making changes.",
+    retry: "Try again",
+    noProfile: "Create your trade profile first, then add your business details.",
+    create: "Create a trade profile",
+    next: "Next: company details and verification",
+    nameTaken: "That name is already in use. Choose another business name.",
+  },
   onboarding: {
     languageStep: {
       eyebrow: 'STEP 1',
@@ -5063,8 +5138,8 @@ export const en: MessagesShape = {
       individual: {
         eyebrow: 'PERSONAL',
         title: 'Individual',
-        body: 'Buy services, sell your expertise, and settle deals under your own name.',
-        tagline: 'For freelancers, consultants, and independent traders.',
+        body: 'Buy or sell goods and services, then settle deals under your own name.',
+        tagline: 'For anyone trading in a personal capacity.',
       },
       business: {
         eyebrow: 'BUSINESS',
@@ -5110,16 +5185,16 @@ export const en: MessagesShape = {
       backArrow: 'Back',
       cards: {
         seller: {
-          eyebrow: 'TAKE WORK',
-          title: 'Sell your services',
-          body: 'Karwan watches relevant requests and prepares suitable matches. You decide which opportunities to pursue.',
-          tagline: 'For freelancers, specialists, and service providers.',
+          eyebrow: 'SELL',
+          title: 'Sell goods or services',
+          body: 'Karwan reviews relevant requests and prepares suitable matches. You decide which opportunities to pursue.',
+          tagline: 'For producers, traders, specialists, and service providers.',
         },
         buyer: {
-          eyebrow: 'HIRE SOMEONE',
-          title: 'Hire through Karwan',
-          body: 'Post a request. Karwan compares suitable counterparties and terms. You approve who to work with.',
-          tagline: 'For founders, teams, and procurement.',
+          eyebrow: 'BUY',
+          title: 'Buy goods or services',
+          body: 'Post a request. Karwan compares suitable counterparties and terms. You approve who to trade with.',
+          tagline: 'For individuals, teams, businesses, and procurement.',
         },
         both: {
           eyebrow: 'BOTH',
@@ -5138,13 +5213,13 @@ export const en: MessagesShape = {
         eyebrow: 'IDENTITY',
         title: 'About you',
         displayNameLabel: 'Display name',
-        displayNameHint: 'Shown to counterparties on deals. Example: Alex · Frontend developer.',
+        displayNameHint: 'Shown to counterparties on deals. Example: Alex · Coffee exporter.',
       },
       seller: {
-        eyebrow: 'TAKE WORK',
+        eyebrow: 'SELL',
         title: 'Seller profile',
-        skillsLabel: 'What can you deliver?',
-        skillsHint: 'Choose suggestions or add your own. These shape which requests your agent ranks.',
+        skillsLabel: 'What do you supply?',
+        skillsHint: 'Choose goods or service categories, or add your own. These shape which requests Karwan ranks.',
         skillSuggestions: {
           design: 'Design',
           development: 'Software development',
@@ -5158,31 +5233,31 @@ export const en: MessagesShape = {
         bioLabel: 'What do you sell or deliver?',
         bioHint: 'Be specific about the product or service, the buyer it helps, and the result you deliver.',
         minBudgetLabel: 'Min budget (USDC)',
-        minBudgetHint: 'Smallest job you will take, in USDC. Requests below this stay out of your matches.',
+        minBudgetHint: 'Smallest trade you will take, in USDC. Requests below this stay out of your matches.',
         maxBudgetLabel: 'Max budget (USDC)',
-        maxBudgetHint: 'Largest job you will take, in USDC. Requests priced above this are skipped.',
+        maxBudgetHint: 'Largest trade you will take, in USDC. Requests priced above this are skipped.',
         minDeadlineLabel: 'Min deadline (days)',
-        minDeadlineHint: 'Shortest delivery window you will accept. Jobs due sooner than this are skipped.',
+        minDeadlineHint: 'Shortest delivery window you will accept. Requests due sooner than this are skipped.',
         maxDeadlineLabel: 'Max deadline (days)',
         maxDeadlineHint: 'Longest delivery window you will commit to.',
       },
       buyer: {
-        eyebrow: 'HIRE SOMEONE',
+        eyebrow: 'BUY',
         title: 'Buyer profile',
-        maxBudgetLabel: 'Max budget per job (USDC)',
-        maxBudgetHint: 'The most you will pay for one job, in USDC. Karwan does not present terms above this limit.',
+        maxBudgetLabel: 'Max budget per trade (USDC)',
+        maxBudgetHint: 'The most you will pay for one trade, in USDC. Karwan does not present terms above this limit.',
         bidWindowLabel: 'Offer window (sec)',
         bidWindowHint: 'Time Karwan gathers offers before presenting the strongest matches.',
         minDeadlineLabel: 'Min deadline (days)',
-        minDeadlineHint: 'Shortest delivery time you would give a seller for a job.',
+        minDeadlineHint: 'Shortest delivery time you would give a seller.',
         maxDeadlineLabel: 'Max deadline (days)',
-        maxDeadlineHint: 'Longest delivery time you would allow a seller for a job.',
+        maxDeadlineHint: 'Longest delivery time you would allow a seller.',
         splitLabel: 'Milestone split',
         splitHint: 'Comma-separated percentages that total 100. Example: 50,50 or 30,40,30.',
       },
       matching: {
         eyebrow: 'AGENT MATCHING',
-        sellerTitle: 'Your agent will prioritize work in this range',
+        sellerTitle: 'Your agent will prioritize trades in this range',
         sellerBody: 'These limits shape every ranked match. You still review each request before anything moves.',
         buyerTitle: 'Your agent will shortlist offers inside these guardrails',
         buyerBody: 'Budget, timing, and payment stages are used to rank fit. You approve the final terms.',
@@ -5196,22 +5271,26 @@ export const en: MessagesShape = {
       defaultDisplayName: 'Karwan user {shortAddress}',
     },
     getReadyStep: {
-      headlinePrefix: 'Ready to ',
-      headlineAccent: 'begin',
-      body: 'Enable matching so Karwan can surface suitable counterparties and prepare terms for your review. You approve every deal.',
-      checklist: 'Matching workspace enabled',
-      doneBody: 'Your workspace is ready. Complete verification when required, or start exploring counterparties.',
-      activate: 'Enable matching →',
-      activating: 'Preparing workspace…',
-      retry: 'Try again',
-      continue: 'View profile →',
-      skip: 'Skip for now',
-      error: 'Setup could not finish. Try again, or enable matching later from your profile.',
+      headlinePrefix: "Profile ",
+      headlineAccent: "saved",
+      body: "Your details and trading preferences are saved.",
+      checklist: "Profile saved",
+      doneBody: "Karwan creates one buyer agent and one seller agent for managed trades. Test funds may arrive later.",
+      agentTitle: "Activate your trade agents",
+      activate: "Activate and continue",
+      checking: "Checking agents…",
+      activating: "Creating agents…",
+      skip: "Set up later",
+      ready: "Your agents are ready.",
+      activationError: "Your agents could not be created. Try again, or finish setup later from your profile.",
+      retry: "Try again",
+      continue: "View profile →",
+      error: "Your profile could not be loaded. Try again before continuing.",
     },
     validation: {
       displayName: 'Add a display name.',
       skills: 'Add at least one skill.',
-      bio: 'Write a short seller bio.',
+      bio: 'Describe what you sell or deliver.',
       sellerMinBudget: 'Set a seller minimum budget above 0.',
       sellerMaxBudget: 'Seller max budget must exceed the min.',
       sellerMinDeadline: 'Seller minimum deadline must be at least 1 day.',
@@ -5220,7 +5299,7 @@ export const en: MessagesShape = {
       bidWindow: 'Offer window must be at least 10 seconds.',
       buyerMinDeadline: 'Buyer minimum deadline must be at least 1 day.',
       buyerMaxDeadline: 'Buyer max deadline must be at least the min.',
-      splitEmpty: 'Milestone split needs at least one number.',
+      splitEmpty: "Enter 1 to 5 whole percentages, each above 0, totalling 100.",
       splitSum: 'Milestone split must add up to 100 (currently {sum}).',
     },
   },
@@ -5387,7 +5466,7 @@ export const en: MessagesShape = {
     eyebrow: 'ROLE',
     options: {
       buyer: { label: 'Buyer', description: 'Post requests, accept bids' },
-      seller: { label: 'Seller', description: 'Bid on requests, deliver work' },
+      seller: { label: 'Seller', description: 'Bid on requests, complete delivery' },
       both: { label: 'Both', description: 'One profile, both sides' },
     },
     businessOptions: {
@@ -5463,13 +5542,13 @@ export const en: MessagesShape = {
       sectionTag: 'Public activity',
       headlineTop: 'Recent',
       headlineAccent: 'Karwan activity',
-      description: 'Follow work requests, offers, protected payments, and completed trades.',
+      description: 'Follow trade requests, offers, protected payments, and completed trades.',
     },
     stream: {
       sectionTag: 'Public activity',
       headlinePrefix: 'Trade network ',
       headlineAccent: 'updates',
-      description: 'Recent work, offer, payment, and settlement activity across Karwan.',
+      description: 'Recent trade requests, offers, payments, and settlements across Karwan.',
     },
     filters: {
       searchPlaceholder: 'Search by deal or reference…',
@@ -5485,7 +5564,7 @@ export const en: MessagesShape = {
       eyebrow: 'NETWORK ACTIVITY',
       window: 'Last {n} updates',
       groups: {
-        jobs: 'Work requests',
+        jobs: 'Trade requests',
         negotiation: 'Offer reviews',
         settlement: 'Settlements',
         bridge: 'Transfers',
@@ -5813,8 +5892,8 @@ export const en: MessagesShape = {
       },
       sellerCard: {
         eyebrow: 'SELLER',
-        title: 'Take work',
-        body: 'List what you offer and accept the deals that fit.',
+        title: 'Sell',
+        body: 'List goods or services and accept the trades that fit.',
       },
       activityCard: {
         eyebrow: 'ACTIVITY',
@@ -7388,18 +7467,18 @@ export const en: MessagesShape = {
     signInBody: 'Live offers and requests matched to your profile. Sign in to watch both sides.',
     heroTag: 'MARKETPLACE',
     heroHeadlinePart1: 'Find the right',
-    heroHeadlinePart2Prefix: 'work, clients, and ',
-    heroAccent: 'opportunities',
-    heroBody: 'Browse live requests, offers, and business profiles on Karwan. Search for what you need, provide, or want to discover.',
+    heroHeadlinePart2Prefix: 'buyers, sellers, and ',
+    heroAccent: 'trade',
+    heroBody: 'Browse live requests, offers, and business profiles for goods and services. Search by what you want to buy, sell, source, or deliver.',
     filters: {
       all: 'All',
       offers: 'Offers',
       briefs: 'Requests',
     },
     findTag: 'DISCOVER',
-    findTitle: 'Discover work and clients.',
-    findBody: 'Search live requests, offers, and business profiles, then narrow by market and price. Review the details before choosing what to pursue.',
-    searchLabel: 'Search work, clients, and opportunities',
+    findTitle: 'Discover buyers, sellers, goods, and services.',
+    findBody: 'Search live requests, offers, and business profiles, then narrow by market and price. Review the trade and the other party before choosing what to pursue.',
+    searchLabel: 'Search buyers, sellers, goods, and services',
     searchPlaceholder: 'What are you looking for?',
     typeFilterLabel: 'Type',
     scopeFilterLabel: 'Market',
@@ -7427,7 +7506,7 @@ export const en: MessagesShape = {
     sections: {
       personalTitle: 'Open trades',
       personalNote: 'Requests and offers from individuals.',
-      hiringTitle: 'Businesses hiring',
+      hiringTitle: 'Business services',
       hiringNote: 'Service requests and offers involving a business.',
       businessTitle: 'Business trades',
       businessNote: 'Open trade-finance requests and offers.',
@@ -8546,65 +8625,65 @@ export const en: MessagesShape = {
     },
   },
   landingPage: {
-    tabs: { overview: 'OVERVIEW', howItWorks: 'WORKFLOW SUMMARY', flow: 'FLOW', getStarted: 'GET STARTED' },
+    tabs: { overview: 'Overview', howItWorks: 'How it works', flow: 'Deal flow', getStarted: 'Get started' },
     scrollCue: 'Scroll',
     hero: {
-      tag: 'CROSS-BORDER DEALS',
-      titleLine1: 'Agree.',
-      titleLine2: 'Deliver.',
-      titleAccent: 'Get paid.',
-      body: 'Cross-border deals with protected milestone payments, buyer review, and a receipt both sides can verify.',
-      ctaPrimary: 'Open Karwan',
-      ctaSecondary: 'How it works',
-      footnote: 'Built for global work',
+      tag: 'Karwan open market',
+      titleLine1: 'Trade with',
+      titleLine2: 'anyone,',
+      titleAccent: 'anywhere.',
+      body: 'Bring a buyer or seller from your street or another country. Agree on price and delivery, protect payment in USDC, and keep the trade record.',
+      ctaPrimary: 'Enter Karwan',
+      ctaSecondary: 'Enter Karwan',
+      footnote: 'Arc testnet. No real value.',
     },
-    ecosystem: { tag: 'BUILT ON' },
+    ecosystem: { tag: 'Built on' },
     directDeals: {
-      tag: 'DIRECT DEALS',
-      title: 'Bring your own counterparty.',
-      body: "You already agreed elsewhere. Invite the seller, set the amount, and review the delivery stages. No auction.",
-      tile1Title: "Invite the seller",
-      tile1Body: "Send an invitation. The seller signs in, reviews the terms, and accepts before the deal begins.",
-      tile2Title: 'Release in tranches',
-      tile2Body: 'A slice releases on delivery, the rest once you verify. A review window auto-releases if you go quiet.',
+      tag: 'Bring a deal',
+      title: 'Start with an agreement you already made.',
+      body: 'Set the goods or service, price, delivery, and payment stages. Invite the other side and keep the terms in one place.',
+      tile1Title: 'Agree on terms',
+      tile1Body: 'Both sides review the amount, timing, delivery stages, and release rules before the trade starts.',
+      tile2Title: 'Review delivery',
+      tile2Body: 'Goods or services are submitted for review before each payment stage is released.',
     },
     managedDeals: {
-      tag: 'MANAGED DEALS',
-      title: 'No counterparty yet? Agents bid for you.',
-      body: 'Describe what you need. Your agent compares offers inside the limits you set and brings the best match to you for approval.',
-      tile1Title: "Agents negotiate",
-      tile1Body: "Buyer and seller agents compare and revise offers inside the limits you set.",
-      tile2Title: 'Your approval comes first',
-      tile2Body: 'Nothing becomes active until you review and approve the final terms.',
+      tag: 'Find a match',
+      title: 'Find buyers, sellers, goods, or services.',
+      body: 'Browse the open market and review the people behind each request or offer before you decide.',
+      tile1Title: 'See the opportunity',
+      tile1Body: 'Review the request, price range, timing, and available counterparty history.',
+      tile2Title: 'Choose the next step',
+      tile2Body: 'Open a conversation or bring the opportunity into a clear deal.',
     },
     howItWorks: {
-      tag: 'HOW IT WORKS',
-      titleStart: 'Three steps.',
-      titleAccent: 'One',
-      titleEnd: 'deal.',
+      tag: 'How it works',
+      titleStart: 'One clear',
+      titleAccent: 'deal',
+      titleEnd: 'from start to finish.',
       rail1Title: 'Agree on terms',
       rail1Body: 'Confirm the amount, deadline, delivery stages, and what counts as complete.',
       rail2Title: 'Review delivery',
-      rail2Body: 'Payment stages become ready as work is delivered. Concerns go to human review.',
+      rail2Body: 'Payment stages become ready as goods or services are delivered. Concerns go to human review.',
       rail3Title: 'Keep the receipt',
       rail3Body: 'Both sides receive a clear record of the agreement, delivery, and payment.',
     },
     flow: {
-      tag: 'FLOW',
-      title: 'A deal, end to end.',
-      liveLabel: 'VISIBLE DEAL PROGRESS',
+      tag: 'Deal flow',
+      title: 'What happens to a deal.',
+      liveLabel: 'LIVE ACTIVITY',
       steps: {
-        posted: { tag: 'SHARED', label: 'Request shared' },
-        bids: { tag: 'OFFERS', label: 'Offers compared' },
-        accept: { tag: 'APPROVE', label: 'Buyer approves match' },
-        escrow: { tag: 'PROTECT', label: 'Payment protected' },
-        deliver: { tag: 'DELIVER', label: 'Seller submits work' },
-        settle: { tag: 'PAID', label: 'Seller paid' },
+        posted: { tag: 'Shared', label: 'A request or agreement is shared' },
+        bids: { tag: 'Match', label: 'The right counterparty is found' },
+        accept: { tag: 'Agree', label: 'Both sides approve the terms' },
+        escrow: { tag: 'Protect', label: 'Payment is protected in USDC' },
+        deliver: { tag: 'Deliver', label: 'Delivery is submitted for review' },
+        settle: { tag: 'Settle', label: 'Payment is released as agreed' },
       },
       kpis: {
-        dealsLabel: 'DEALS ON THE RAIL',
-        settledLabel: 'SETTLED',
-        volumeLabel: 'SETTLED VOLUME',
+        dealsLabel: 'Deals on Karwan',
+        settledLabel: 'Settled',
+        volumeLabel: 'Settled volume',
       },
     },
     tradeLanes: {
@@ -8643,22 +8722,22 @@ export const en: MessagesShape = {
       },
     },
     getStarted: {
-      tag: 'GET STARTED',
-      title: 'Three steps to a deal.',
+      tag: 'Get started',
+      title: 'Start with a trade.',
       step1Title: 'Sign in',
       step1Body: 'Use email, passkey, or a compatible wallet. Karwan keeps one account across every deal.',
       step2Title: 'Set your ranges',
-      step2Body: 'Buyer side, set budget, deadlines, milestone splits. Seller side, set skills, range, response time. Your agents read these on every match.',
+      step2Body: 'Set what you want to buy or sell, your price range, delivery window, and payment stages. Your agents use these limits on every match.',
       step3Title: 'Build your track record',
-      step3Body: 'Complete deals reliably. Karwan shows the record that helps future counterparties trust your work.',
+      step3Body: 'Complete trades reliably. Karwan keeps the delivery and payment record that future counterparties can review.',
     },
     finalCta: {
-      tag: 'OPEN A DEAL',
+      tag: 'Open Karwan',
       srLabel: 'Get started',
-      title: 'Open your first deal in about a minute.',
-      body: 'Direct or agent-run, your call. Settlement in minutes, not weeks.',
-      ctaPrimary: 'Open Karwan',
-      ctaSecondary: 'Read how it works',
+      title: 'Start with the deal you already have.',
+      body: 'Bring an agreement from anywhere, or look for the next one in the market.',
+      ctaPrimary: 'Enter Karwan',
+      ctaSecondary: 'Enter Karwan',
     },
   },
   legacyPage: {
@@ -9273,7 +9352,7 @@ export const en: MessagesShape = {
   docsIndexPage: {
     eyebrow: 'OVERVIEW',
     headline: 'How Karwan works',
-    intro: 'Karwan is a settlement workspace for person-to-person and business trade. USDC sits in milestone escrow on Arc while the work is delivered. The buyer reviews each release. Agents can find a counterparty and negotiate within the limits you set, then bring the terms back for your approval. Settled deals add to the account\'s on-chain reputation record. This guide explains the parts you can use today.',
+    intro: 'Karwan is an open market for person-to-person and business trade. A buyer or seller can bring a deal, agree on delivery, protect payment in USDC on Arc, and keep the trade record. The buyer reviews each release. Agents can look for a counterparty and negotiate within the limits you set, then bring the terms back for your approval. This guide explains the parts you can use today.',
     twoWays: {
       title: 'Two ways to open a deal',
       lede: 'Choose based on whether you already know who is on the other side.',
@@ -9651,10 +9730,10 @@ export const en: MessagesShape = {
     directDeal: {
       eyebrow: 'Direct deal',
       title: 'When you already have a counterparty',
-      body: 'You agreed with someone off-platform. Karwan just secures the money while the work gets done.',
+      body: 'You agreed with someone elsewhere. Karwan records the terms and protects payment while delivery is completed.',
       step1: { title: 'Agree and fund', cta: 'Open buyer dashboard', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet or email, the amount, deadline, and milestones. The seller agrees first. You then review the current fee and exact total before funding escrow.' },
-      step2: { title: 'Seller delivers', body: 'Work starts only after the deal shows escrow funded. When the work is done, the seller marks it delivered, which unlocks your releases.' },
-      step3: { title: 'Release in tranches', body: 'You release the first slice, then verify the work and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
+      step2: { title: 'Seller delivers', body: 'Delivery begins only after the deal shows escrow funded. When the agreed goods or service are delivered, the seller submits delivery for the buyer to review.' },
+      step3: { title: 'Release in tranches', body: 'You release the first slice, then verify the delivery and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
     },
     managedDeal: {
       eyebrow: 'Managed deal',
@@ -9737,9 +9816,9 @@ export const en: MessagesShape = {
     preamble: 'These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.',
     s1: {
       title: '1. What Karwan offers',
-      lead: 'Karwan is a settlement layer for cross-border work between businesses, freelancers, and individuals. The core pieces:',
+      lead: 'Karwan is an open market and settlement layer for local and cross-border trade between businesses and individuals. The core pieces:',
       bullets: {
-        deals: { label: 'Deals with escrow.', body: 'Open a deal directly with someone you already know, or post a request and let the market bid. Either way the money locks in a smart contract on Arc before work starts, and releases in milestones.' },
+        deals: { label: 'Deals with escrow.', body: 'Open a deal directly with someone you already know, or post a request and let the market bid. Either way, payment locks in a smart contract on Arc before delivery begins and releases in milestones.' },
         settlement: { label: 'Settlement in USDC.', body: 'All movement inside Karwan is in USDC, a dollar stablecoin issued by Circle.' },
         localCurrency: { label: 'Local currency.', body: 'Karwan does not convert to or from your local currency inside the product today. Converting is your own decision, made outside Karwan. Local currency access is being enabled region by region. Where it becomes available, it is provided by a licensed partner under their own terms and their own identity checks, and what you can reach depends on the region your account is registered in. Nothing here is a commitment to a date or to a particular region.' },
         invite: { label: 'Invite by email.', body: 'You can open a deal with someone who has no account. They claim it from an emailed link with a one-time code, and get paid without ever installing a wallet.' },
@@ -9949,10 +10028,10 @@ export const en: MessagesShape = {
       milestoneCaption: 'milestone payments with buyer review',
     },
     sectionWork: {
-      eyebrow: 'THE WORK',
+      eyebrow: 'THE TRADE',
       title: 'Describe what you need.',
       requestLabel: 'Request',
-      requestHint: 'Outline scope, deliverables, must-haves. The seller agent reads this to decide whether to bid.',
+      requestHint: 'Describe the goods or service, quantity, delivery terms, and must-haves. The seller agent reads this to decide whether to bid.',
       requestPlaceholder: 'e.g. 200 bags arabica green coffee, Lagos to Dubai. CIF, net 30. BoL on dispatch.',
     },
     sectionTerms: {
@@ -9971,7 +10050,7 @@ export const en: MessagesShape = {
     },
     customSplit: {
       eyebrow: 'CUSTOM MILESTONE SPLIT',
-      tooltip: 'Sets how your payment releases in stages as work lands. Off, it pays half at the first milestone and half on delivery. Your stages must add up to 100.',
+      tooltip: 'Sets how your payment releases as delivery is completed. Off, it pays half at the first milestone and half on final delivery. Your stages must add up to 100.',
     },
     intentWarning: {
       eyebrow: 'WAIT. IS THIS A REQUEST OR AN OFFER?',
@@ -10249,24 +10328,24 @@ export const en: MessagesShape = {
     },
     signInGate: {
       defaultTag: 'SIGN IN',
-      heroTag: 'SECURE TRADE',
-      heroTitle: 'Trade securely across borders',
+      heroTag: 'Karwan open market',
+      heroTitle: 'Buy, sell, and trade across borders',
       pageTitle: 'Sign in to continue',
-      heroBody: 'Karwan secures each payment, releases it as agreed work is delivered, and keeps a receipt both sides can verify. Agents help find and assess counterparties. You approve the final terms.',
+      heroBody: 'Meet buyers, sellers, and businesses. Bring an existing deal or let agents help you find a match. Completed delivery and payment add evidence to a trade record you can share.',
       pageBody: 'Sign in with email or wallet to continue securely across Karwan.',
       button: 'Sign in',
       pillars: {
         protection: {
-          title: 'Payment protection',
-          body: 'Funds are secured after both sides approve the terms.',
+          title: 'Find the right match',
+          body: 'Discover buyers, sellers, goods, and services. Review the available trade history before you agree.',
         },
         milestones: {
-          title: 'Milestone release',
-          body: 'Payments release in agreed parts as work is delivered.',
+          title: 'Bring a deal from anywhere',
+          body: 'Start from a chat, a social post, or an existing counterparty. Agree terms and protect payment in USDC.',
         },
         receipt: {
-          title: 'Verifiable receipt',
-          body: 'Every completed payment creates a receipt both sides can check.',
+          title: 'Reputation with evidence',
+          body: 'Build a record of completed trades, delivery, and payment that future counterparties can review.',
         },
       },
     },

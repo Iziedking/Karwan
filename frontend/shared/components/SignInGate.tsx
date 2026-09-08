@@ -47,9 +47,9 @@ export function SignInGate({
   const resolvedTag = tag ?? (isHero ? t.auth.signInGate.heroTag : t.auth.signInGate.defaultTag);
   const resolvedButton = buttonLabel ?? t.auth.signInGate.button;
   const heroPillars = [
-    { index: '[:001]', ...t.auth.signInGate.pillars.protection },
-    { index: '[:002]', ...t.auth.signInGate.pillars.milestones },
-    { index: '[:003]', ...t.auth.signInGate.pillars.receipt },
+    { index: '01', ...t.auth.signInGate.pillars.protection },
+    { index: '02', ...t.auth.signInGate.pillars.milestones },
+    { index: '03', ...t.auth.signInGate.pillars.receipt },
   ];
 
   const titleNode: ReactNode =
@@ -57,7 +57,7 @@ export function SignInGate({
     (isHero ? (
       <>
         {t.auth.signInGate.heroTitle}
-        <Punc>.</Punc>
+        .
       </>
     ) : (
       <>
@@ -78,7 +78,7 @@ export function SignInGate({
       >
         <div className={isHero ? '' : 'max-w-[52ch]'}>
           <div className="fade-up">
-            <SectionTag tone="dark" dot="live">
+            <SectionTag tone="dark">
               {resolvedTag}
             </SectionTag>
           </div>
@@ -88,7 +88,7 @@ export function SignInGate({
           <p
             className={
               isHero
-                ? 'fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[48ch]'
+                ? 'fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-workspace-muted)] max-w-[62ch]'
                 : 'fade-up fade-up-2 mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]'
             }
           >
@@ -103,7 +103,6 @@ export function SignInGate({
                     reduce
                       ? undefined
                       : {
-                          opacity: activePillar === index ? 1 : 0.56,
                           y: activePillar === index ? 0 : 2,
                         }
                   }
@@ -111,10 +110,10 @@ export function SignInGate({
                   className="border-t pt-3.5"
                   style={{ borderTopColor: activePillar === index ? 'var(--lp-accent)' : 'var(--lp-workspace-border)' }}
                 >
-                  <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+                  <span className="font-sans text-[11px] font-medium text-[var(--lp-workspace-muted)]">
                     {p.index}
                   </span>
-                  <p className="mt-2 font-sans text-[15px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
+                  <p className="mt-2 font-sans text-[15px] font-bold tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
                     {p.title}
                   </p>
                   <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-workspace-muted)]">{p.body}</p>

@@ -35,6 +35,7 @@ export default function AppHome() {
   }, [fetchState, isConnected, profile]);
 
   if (authLoading) return <HomeSkeleton />;
+  if (!isConnected) return <SignInGate variant="hero" />;
 
   if (!statusQuery.isPending && !statusQuery.data) {
     return (
@@ -54,7 +55,6 @@ export default function AppHome() {
     );
   }
 
-  if (!isConnected) return <SignInGate variant="hero" />;
   if (loading || !profile) return <HomeSkeleton />;
 
   const business = businessQuery.data;

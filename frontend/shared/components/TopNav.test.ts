@@ -2,10 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-test('the open profile trigger stays above its dismiss layer and toggles closed', () => {
+test('the profile control navigates directly to the hub without a dropdown', () => {
   const source = readFileSync(new URL('./TopNav.tsx', import.meta.url), 'utf8');
-
-  assert.match(source, /onClick=\{\(\) => setOpen\(\(v\) => !v\)\}/);
-  assert.match(source, /open && 'z-\[51\]'/);
-  assert.match(source, /data-preferences-dismiss-layer/);
+  const profileLink = source.slice(source.indexOf('function ProfileLink('));
+  assert.match(profileLink, /<Link\s+href="\/profile"\s+aria-label=\{t.profile\}/);
+  assert.doesNotMatch(profileLink, /aria-expanded|setOpen|data-preferences-dismiss-layer/);
 });

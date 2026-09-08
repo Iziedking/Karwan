@@ -29,6 +29,7 @@ export function SiteFooter() {
   const pathname = usePathname();
   const messages = useTranslations();
   const t = messages.footer;
+  const landing = messages.landingPage;
   if (pathname === '/market' || pathname === '/listings' || pathname.startsWith('/listings/')) {
     return null;
   }
@@ -85,13 +86,25 @@ export function SiteFooter() {
                 {/* Discover reuses the nav's own label rather than minting a
                     second string for the same destination, so the footer and
                     the nav can never disagree about what it is called. */}
-                <FooterLink href="/market">{messages.nav.market}</FooterLink>
-                <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
-                <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
-                <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
-                <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
-                <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
-                <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
+                {pathname === '/' ? (
+                  <>
+                    <FooterLink href="#overview">{landing.hero.tag}</FooterLink>
+                    <FooterLink href="#direct-deals">{landing.directDeals.tag}</FooterLink>
+                    <FooterLink href="#agent-matching">{landing.managedDeals.tag}</FooterLink>
+                    <FooterLink href="#flow">{landing.flow.tag}</FooterLink>
+                    <FooterLink href="/app">{landing.hero.ctaPrimary}</FooterLink>
+                  </>
+                ) : (
+                  <>
+                    <FooterLink href="/market">{messages.nav.market}</FooterLink>
+                    <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
+                    <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
+                    <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
+                    <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
+                    <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
+                    <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
+                  </>
+                )}
                 <FooterContact label={t.productLinks.contact} />
               </FooterCol>
               <FooterCol title={t.columns.network}>
@@ -128,16 +141,8 @@ export function SiteFooter() {
             </div>
           </div>
 
-          {/* Brand swatch strip. A quiet visual signature at the bottom of the
-              inner card. Three chips show the brand constants (lime, ink,
-              cream) so press or partners scrolling to the bottom for brand
-              basics get them without leaving the page. */}
-          <BrandSwatches />
-
-          {/* Hairline + bottom strip with operational pill */}
-          <div className="mt-6 pt-5 border-t border-[var(--lp-border-light)] flex flex-wrap items-center justify-between gap-4">
-            <OperationalPill />
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mono text-[11px] uppercase tracking-[0.06em] text-[var(--lp-text-muted)]">
+          <div className="mt-6 pt-5 border-t border-[var(--lp-border-light)] flex flex-wrap items-center justify-end gap-4">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-[var(--lp-text-muted)]">
               <span>{t.copyright.entity}</span>
               <span aria-hidden className="hidden sm:inline-block w-px h-3 bg-[var(--lp-border-light)]" />
               <span>{t.copyright.tagline}</span>
@@ -145,11 +150,8 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Heroic wordmark. closes the page like a Phantom move */}
+        {/* Heroic wordmark closes the page. */}
         <div className="mt-9 lg:mt-11">
-          <p className="text-center mono text-[10px] uppercase tracking-[0.22em] text-[var(--lp-text-muted)]">
-            [:{t.heroClose}:]
-          </p>
           <p
             aria-hidden
             className="mt-4 select-none text-center font-sans font-extrabold uppercase tracking-[-0.035em] leading-[0.86] text-[clamp(3.25rem,11vw,9.5rem)]"
@@ -276,27 +278,6 @@ function BrandSwatches() {
   );
 }
 
-function OperationalPill() {
-  const t = useTranslations().footer;
-  return (
-    <span
-      className="inline-flex items-center gap-2 px-3 py-1.5 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)] bg-[var(--lp-light)] border border-[var(--lp-border-light)]"
-      style={{ borderRadius: 999 }}
-    >
-      <span aria-hidden className="relative flex w-[7px] h-[7px]">
-        <span
-          className="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping"
-          style={{ background: 'var(--lp-accent)' }}
-        />
-        <span
-          className="relative inline-flex w-[7px] h-[7px] rounded-full"
-          style={{ background: 'var(--lp-accent)' }}
-        />
-      </span>
-      {t.status.operational}
-    </span>
-  );
-}
 
 function FooterCol({
   title,

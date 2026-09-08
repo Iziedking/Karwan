@@ -2,11 +2,12 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { getShellSurface, isPublicDiscoveryRoute } from '@/shared/utils/routes';
+import { getShellSurface } from '@/shared/utils/routes';
 import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
 import { RouteStage } from '@/shared/components/RouteStage';
 import { ProductBackLink } from '@/shared/components/ProductBackLink';
+import { PageTourButton } from '@/shared/guide/PageTourButton';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -41,8 +42,9 @@ export function ChromeFrame({
 
   if (routeOnlyShell === 'bare') {
     return (
-      <div className="flex min-h-screen flex-col">
-        <main className="flex-1">
+      <div className="product-chrome relative isolate flex min-h-screen flex-col overflow-x-clip">
+        <AmbientTradeSketch />
+        <main className="relative z-[1] flex-1">
           <RouteStage pathname={pathname}>{children}</RouteStage>
         </main>
       </div>
@@ -102,21 +104,21 @@ function CustomerChromeFrame({
 
   const workspace = shell === 'workspace' || shell === 'admin';
   const workspaceWithRail = workspace && auth.isAuthenticated;
-  const discovery = isPublicDiscoveryRoute(pathname);
   const focused = shell === 'focused';
   const mainClass = workspaceWithRail
     ? 'flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 md:py-8 lg:ps-[280px] lg:pe-8 xl:ps-[320px] 2xl:ps-[360px]'
     : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
   const platformCopy = workspace || focused;
-  const productArt = workspace || focused || discovery;
-
   return (
-    <div className={`relative flex min-h-screen flex-col overflow-x-clip isolate${productArt ? ' product-chrome' : ''}`}>
-      {productArt ? <div aria-hidden className="global-trade-sketch" /> : null}
+    <div className="product-chrome relative isolate flex min-h-screen flex-col overflow-x-clip">
+      <AmbientTradeSketch />
       {topNav}
       {workspace ? profileNudge : null}
       <main className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}>
-        <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} className="mb-2" />
+        <div className="relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden">
+          <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
+          <PageTourButton pathname={pathname} enabled={auth.isAuthenticated && (workspace || focused)} />
+        </div>
         <RouteStage pathname={pathname}>{children}</RouteStage>
       </main>
       {shell === 'public' ? footer : null}
@@ -127,4 +129,13 @@ function CustomerChromeFrame({
       {workspace || focused ? terms : null}
     </div>
   );
+}
+
+/**
+ * One ambient trade drawing for every customer route shell. Keeping it here
+ * makes the ship, port, bank, and ledger part of Karwan's canvas instead of a
+ * decoration individual pages need to remember to add.
+ */
+function AmbientTradeSketch() {
+  return <div aria-hidden="true" className="global-trade-sketch" />;
 }

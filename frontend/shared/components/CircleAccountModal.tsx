@@ -1,6 +1,8 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
+import { SIGNED_OUT_ROUTE } from '@/shared/auth/signedOutRoute';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcTestnet } from '@/core/wagmi';
@@ -19,6 +21,7 @@ interface Props {
 /// copy-to-clipboard, the live Arc USDC balance, and a sign-out chip.
 export function CircleAccountModal({ open, onClose }: Props) {
   const auth = useAuth();
+  const router = useRouter();
   const t = useTranslations().account.modal;
   const { copied, copy } = useClipboard();
   const { data } = useBalance({
@@ -48,6 +51,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
     try {
       await auth.signOut();
       onClose();
+      router.replace(SIGNED_OUT_ROUTE);
     } finally {
       setBusy(false);
     }

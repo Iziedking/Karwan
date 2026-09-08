@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useGuide, GUIDE_MASTERY_XP, type TourStep } from './GuideProvider';
 import { WELCOME_ID } from './tours';
 
@@ -39,13 +40,15 @@ export function PageTour({
     useGuide();
   // One auto-open attempt per mount; the pill stays available regardless.
   const autoTried = useRef(false);
+  const pathname = usePathname();
+  const serializedSteps = JSON.stringify(steps);
 
   useEffect(() => {
-    registerTour(id, steps, replayLabel);
+    // Dynamic forms rebuild their tour when direction or visible controls change.
+    const currentSteps: TourStep[] = JSON.parse(serializedSteps);
+    registerTour(id, currentSteps, replayLabel, pathname);
     return () => unregisterTour(id);
-    // Register once per page; steps + label are static per page id.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, serializedSteps, replayLabel, pathname, registerTour, unregisterTour]);
 
   useEffect(() => {
     if (!autoStart) return;

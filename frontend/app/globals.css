@@ -475,11 +475,12 @@ html[data-theme="dark"] {
    so only the pencil and natural-green strokes sit over the page canvas. */
 .global-trade-sketch {
   position: fixed;
-  inset: var(--lp-nav-h, 72px) 0 0;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
+  user-select: none;
   background-image: url('/media/karwan-trade-sketch-clean.png');
-  background-position: center top;
+  background-position: center 46%;
   background-repeat: no-repeat;
   background-size: auto min(780px, 78vh);
   opacity: 0.14;
@@ -488,9 +489,8 @@ html[data-theme="dark"] {
   mask-image: radial-gradient(ellipse 78% 74% at 52% 46%, #000 0%, rgba(0, 0, 0, 0.84) 58%, transparent 100%);
 }
 
-/* Let the shared trade drawing carry through product bands as a quiet paper
-   texture. Editorial and admin shells stay opaque; only routes that mount the
-   art receive this treatment. */
+/* Let the shared trade drawing carry through themed bands as quiet texture.
+   Cards remain opaque; only the broad page surfaces borrow transparency. */
 .product-chrome [data-surface="workspace"] {
   background-color: color-mix(in srgb, var(--lp-workspace-band) 88%, transparent);
 }
@@ -508,7 +508,7 @@ html[data-theme="dark"] .global-trade-sketch {
 
 @media (max-width: 767px) {
   .global-trade-sketch {
-    background-position: 52% top;
+    background-position: 52% 42%;
     background-size: auto min(560px, 72vh);
     opacity: 0.12;
   }
@@ -518,8 +518,71 @@ html[data-theme="dark"] .global-trade-sketch {
   }
 }
 
+@media print {
+  .global-trade-sketch {
+    display: none !important;
+  }
+}
+
 html[data-theme="dark"] .product-surface {
   --product-panel-shadow: 0 1px 0 rgba(255,255,255,0.025), 0 28px 80px -48px rgba(0,0,0,0.92);
+}
+
+.capability-intro {
+  --story-ink: var(--lp-dark);
+  --story-sub: var(--lp-text-sub);
+  --story-line: var(--lp-border-light);
+  margin-top: 18px;
+  min-width: 0;
+  color: var(--story-ink);
+}
+.capability-intro-landing {
+  --story-ink: #f4f6f1;
+  --story-sub: #bec5ba;
+  --story-line: rgba(255,255,255,.18);
+  margin-top: 0;
+}
+.capability-eyebrow { font-size: 13px; font-weight: 600; color: var(--story-sub); }
+.capability-scenes { display: grid; margin-top: 18px; }
+.capability-scene { grid-area: 1 / 1; display: flex; flex-direction: column; min-width: 0; }
+.capability-scene[data-active="false"] { pointer-events: none; }
+.capability-scene h2 {
+  max-width: 16ch;
+  font-size: clamp(2.5rem, 4.5vw, 4.4rem);
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -.055em;
+  text-wrap: balance;
+}
+.capability-body { max-width: 53ch; margin-top: 20px; font-size: 15px; line-height: 1.65; color: var(--story-sub); }
+.capability-handoff { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 22px 0; font-size: 12px; font-weight: 600; }
+.capability-handoff > span:not(.capability-handoff-line) { max-width: 42%; }
+.capability-handoff-line { position: relative; flex: 1; max-width: 90px; height: 1px; background: var(--story-line); }
+.capability-handoff-line > span { position: absolute; inset-inline-end: 0; top: -12px; font-size: 18px; color: var(--lp-accent); }
+[dir="rtl"] .capability-handoff-line > span { transform: scaleX(-1); }
+.capability-scene[data-active="true"] .capability-handoff-line { transform-origin: left; animation: capability-line-in .7s .35s both cubic-bezier(.16,1,.3,1); }
+.capability-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 2px; }
+.capability-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; border-radius: 999px; padding: 10px 18px; font-size: 14px; font-weight: 600; transition: background .2s; }
+.capability-action-primary { background: var(--lp-accent); color: var(--accent-ink); }
+.capability-action-primary:hover { background: var(--lp-accent-hover); }
+.capability-action-secondary { color: var(--story-ink); }
+.capability-action-secondary:hover { background: var(--story-line); }
+.capability-controls { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: center; margin-top: 22px; border-top: 1px solid var(--story-line); }
+.capability-controls button { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 0; font-size: 12px; font-weight: 500; color: var(--story-sub); }
+.capability-controls button:hover, .capability-controls button[aria-pressed="true"] { color: var(--story-ink); }
+.capability-controls .capability-play { min-width: 44px; margin-inline-start: auto; }
+.capability-selected { position: absolute; inset-inline: 0; bottom: 0; height: 2px; background: var(--lp-accent); }
+.capability-intro :is(a,button):focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 3px; }
+@keyframes capability-line-in { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@media (max-width: 639px) {
+  .capability-controls { gap: 0 12px; }
+  .capability-scenes { margin-top: 14px; }
+  .capability-scene h2 { font-size: clamp(2.3rem, 9vw, 3.4rem); line-height: 1.08; }
+  .capability-body { font-size: 14px; margin-top: 16px; }
+  .capability-handoff { margin: 14px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .capability-scene[data-active="true"] .capability-handoff-line { animation: none; }
 }
 
 .home-command-grid {
@@ -952,6 +1015,16 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
 .auth-sheet { animation: auth-sheet-up var(--dur-base) var(--ease-out) both; }
 .auth-capsule-backdrop { animation: auth-backdrop-in 180ms var(--ease-out) both; }
 .auth-capsule {
+  color-scheme: dark;
+  --lp-card: #151b17;
+  --lp-dark: #f4f6f2;
+  --lp-light: #1d261f;
+  --lp-text-sub: #b2bbb2;
+  --lp-text-muted: #a5afa6;
+  --lp-border-light: rgba(238, 244, 235, 0.14);
+  color: var(--lp-dark);
+  background: var(--lp-card);
+  font-family: var(--font-sans);
   animation: karwan-sheet-up var(--dur-base) var(--ease-out) both;
   transform-origin: bottom;
   overscroll-behavior: contain;
@@ -966,14 +1039,10 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
     transform-origin: center;
   }
 }
-.auth-capsule-choice {
-  --lp-card: #ffffff;
-  --lp-dark: #0a0a0b;
-  --lp-light: #f4f4f1;
-  --lp-text-sub: #5a5a57;
-  --lp-text-muted: #6e6e6a;
-  --lp-border-light: rgba(10, 10, 11, 0.12);
-  background: #ffffff;
+.auth-capsule .mono {
+  font-family: var(--font-sans);
+  text-transform: none;
+  letter-spacing: normal;
 }
 @keyframes feedback-nudge-in {
   0% { opacity: 0; transform: translateY(12px); }
@@ -1166,13 +1235,162 @@ html.theme-shifting *::after {
   --lp-panel-h: calc(100svh - var(--lp-chrome-h));
 }
 
+/* Public landing treatment. The film supplies atmosphere; the information
+   sits on calm, opaque-enough surfaces so the page feels like a product entry
+   point rather than a presentation slide. */
+/* One intent per screen. This is a height floor, never a clipped slide or
+   mandatory scroll snap; translated/mobile content can grow naturally. */
+#landing-root > .lp-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--lp-panel-h);
+}
+#landing-root > .lp-panel > div {
+  width: 100%;
+}
+#landing-root .mono {
+  font-family: var(--font-sans);
+}
+#landing-root .uppercase {
+  text-transform: none;
+}
+.landing-hero {
+  min-height: var(--lp-panel-h);
+}
+.landing-tabs {
+  background: var(--lp-band-dark) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.landing-action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 14px 14px 4px 14px;
+  padding: 12px 18px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
+  transition: transform 180ms var(--ease-out, ease), background-color 180ms var(--ease-out, ease), border-color 180ms var(--ease-out, ease);
+}
+.landing-action:hover { transform: translateY(-2px); }
+.landing-action:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 3px; }
+.landing-action-primary {
+  background: var(--lp-accent);
+  color: var(--lp-band-dark);
+  box-shadow: 0 4px 0 rgba(0,0,0,0.22);
+}
+.landing-action-secondary {
+  border: 1px solid rgba(255,255,255,0.34);
+  color: var(--lp-workspace-ink);
+}
+.landing-action-secondary:hover { border-color: rgba(255,255,255,0.72); background: rgba(255,255,255,0.08); }
+.landing-action-arrow { transition: transform 180ms var(--ease-out, ease); }
+.landing-action:hover .landing-action-arrow { transform: translateX(3px); }
+.landing-deal-card {
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 22px 22px 8px 22px;
+  padding: clamp(22px, 3vw, 32px);
+  background: rgba(13, 19, 15, 0.74);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(16px) saturate(115%);
+  -webkit-backdrop-filter: blur(16px) saturate(115%);
+}
+.landing-intent-progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--lp-accent);
+  transform-origin: left;
+  animation: landing-intent-progress 5.6s linear both;
+}
+@keyframes landing-intent-progress { from { transform: scaleX(0); opacity: 0.45; } to { transform: scaleX(1); opacity: 1; } }
+.landing-status-pill {
+  border: 1px solid rgba(175,201,91,0.42);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--lp-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.landing-platform-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  background: #191d19;
+  overflow: hidden;
+}
+.landing-platform-mark-tiktok { background: #000; }
+.landing-platform-tiktok { background: linear-gradient(135deg, #25f4ee, #111 48%, #fe2c55); text-shadow: 1px 1px 0 #fe2c55; }
+.landing-platform-instagram { background: linear-gradient(135deg, #f9ce34, #ee2a7b 54%, #6228d7); font-size: 23px; }
+.landing-platform-facebook { background: #1877f2; font-size: 24px; font-family: Arial, sans-serif; }
+.landing-platform-linkedin { background: #0a66c2; font-size: 13px; letter-spacing: -0.06em; }
+.landing-platform-x { background: #171717; border: 1px solid rgba(255,255,255,0.18); font-size: 17px; }
+.landing-source-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.045);
+  opacity: 0.58;
+  transition: opacity 180ms var(--ease-out, ease), transform 180ms var(--ease-out, ease), border-color 180ms var(--ease-out, ease), background-color 180ms var(--ease-out, ease);
+}
+.landing-source-button:hover { opacity: 0.9; transform: translateY(-2px); }
+.landing-source-button-active { border-color: var(--lp-accent); background: rgba(175,201,91,0.11); opacity: 1; }
+.landing-step {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 50%;
+  color: var(--lp-workspace-ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.landing-step-complete {
+  border-color: var(--lp-accent);
+  background: var(--lp-accent);
+  color: var(--lp-band-dark);
+}
+@media (max-width: 767px) {
+  .landing-hero {
+    min-height: auto;
+  }
+  .landing-deal-card {
+    max-width: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-action,
+  .landing-action-arrow { transition: none; }
+  .landing-intent-progress { animation: none; }
+}
+
 
 @media (max-width: 767px) {
   .lp-panel {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    min-height: 0;
+    justify-content: center;
+    min-height: var(--lp-panel-h);
   }
   .lp-panel#overview {
     justify-content: center;
@@ -1185,7 +1403,7 @@ html.theme-shifting *::after {
      on the row itself, never on these children, so pinning them to the row's
      width is safe. */
   .lp-panel > * { width: 100%; }
-  .lp-panel-grow { justify-content: flex-start; }
+  .lp-panel-grow { justify-content: center; }
 }
 
 /* The landing does NOT snap vertically. Rows are a screen tall so each one
@@ -1197,7 +1415,14 @@ html.theme-shifting *::after {
    landing under the sticky chrome, and for the explicit "next row" button, which
    computes the same offset itself. Discrete movement belongs to the horizontal
    card rails, where one card at a time IS the unit. */
-html.lp-snap { scroll-padding-top: var(--lp-chrome-h); }
+html.lp-snap {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--lp-chrome-h);
+  scrollbar-gutter: stable;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.lp-snap { scroll-behavior: auto; }
+}
 
 /* The media layer of a panel. The wrapper is the clip; the moving child inside
    it is what drifts, so the drift never paints outside the row. */

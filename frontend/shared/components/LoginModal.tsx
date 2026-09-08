@@ -549,10 +549,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 className="group min-h-[112px] w-full border border-[var(--lp-accent-hover)] bg-[var(--lp-accent)] px-5 py-4 text-start text-[var(--lp-band-dark)] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-band-dark)] focus-visible:ring-offset-2 sm:min-h-[124px]"
                 style={{ borderRadius: 16 }}
               >
-                <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-band-dark)]/70">
-                  [:01:]
-                </span>
-                <span className="mt-2 flex items-center justify-between gap-4">
+                <span className="flex items-center justify-between gap-4">
                   <span>
                     <span className="block font-sans text-[17px] font-extrabold tracking-[-0.02em] sm:text-[18px]">
                       {t.entry.newUser}
@@ -571,18 +568,15 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   setStage('pick-method');
                   setError(null);
                 }}
-                className="group min-h-[112px] w-full border border-[var(--lp-border-light)] bg-white px-5 py-4 text-start text-[#0a0a0b] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[#0a0a0b] hover:bg-[#f4f4f1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 sm:min-h-[124px]"
+                className="group min-h-[112px] w-full border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-4 text-start text-[var(--lp-dark)] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-card)] sm:min-h-[124px]"
                 style={{ borderRadius: 16 }}
               >
-                <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-                  [:02:]
-                </span>
-                <span className="mt-2 flex items-center justify-between gap-4">
+                <span className="flex items-center justify-between gap-4">
                   <span>
                     <span className="block font-sans text-[17px] font-extrabold tracking-[-0.02em] sm:text-[18px]">
                       {t.entry.returningUser}
                     </span>
-                    <span className="mt-1 block max-w-[32ch] text-[12px] leading-relaxed text-[#5a5a57]">
+                    <span className="mt-1 block max-w-[32ch] text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
                       {t.entry.returningUserBody}
                     </span>
                   </span>

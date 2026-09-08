@@ -7,6 +7,7 @@ import { isBusinessAccount } from '@/features/account/accountKind';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ProfileSignOut } from './ProfileSignOut';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -32,6 +33,7 @@ export function ProfileAccountHub({
 }: ProfileAccountHubProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const nav = useTranslations().nav;
+  const businessCopy = useTranslations().businessProfilePage;
   const business = isBusinessAccount(profile);
   const displayName =
     (business ? profile.smeProfile?.companyName : profile.displayName)?.trim() ||
@@ -44,15 +46,7 @@ export function ProfileAccountHub({
   return (
     <main className="product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
       <div className="mx-auto max-w-[1180px]">
-        <Link
-          href="/app"
-          className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-[14px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-        >
-          <span aria-hidden>←</span>
-          Home
-        </Link>
-
-        <header className="mt-4 grid gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:py-8">
+        <header className="grid gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:py-8">
           <span className="relative block size-[72px] shrink-0">
             {profile.xProfileImageUrl && !imageFailed ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -95,8 +89,8 @@ export function ProfileAccountHub({
               href="/profile/edit"
             />
             <HubRow
-              label="Business profile"
-              href={business ? '/business/verification' : '/onboarding'}
+              label={business ? businessCopy.label : businessCopy.open}
+              href="/profile/business"
             />
             <HubRow
               label="Account setup"
@@ -139,9 +133,12 @@ export function ProfileAccountHub({
           </HubSection>
         </div>
 
-        <p className="mt-6 text-center text-[12px] text-[var(--lp-text-muted)]">
-          Karwan account {shortAddress(address)}
-        </p>
+        <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
+          <p className="text-[12px] text-[var(--lp-text-muted)]">
+            Karwan account {shortAddress(address)}
+          </p>
+          <div className="ms-auto"><ProfileSignOut /></div>
+        </footer>
       </div>
     </main>
   );

@@ -27,6 +27,7 @@ const LANDING_NAV_VARS = {
   '--color-ink-dim': '#9a9a9a',
   '--color-ink-faint': '#6b6b6b',
   '--lp-workspace-band': '#0e0e0e',
+  '--lp-dark': '#f4f0ff',
 } as CSSProperties;
 
 export function TopNav() {
@@ -532,7 +533,7 @@ function LaunchAppCTA() {
     >
       Open Karwan
       <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
-        ↓
+        →
       </span>
     </Link>
   );

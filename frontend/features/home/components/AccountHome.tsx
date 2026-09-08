@@ -10,6 +10,9 @@ import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
+import { CapabilityIntro } from './CapabilityIntro';
+import { PageTour } from '@/shared/guide/PageTour';
+import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 
 type AccountKind = 'person' | 'business';
 
@@ -49,39 +52,28 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
       : profile.role === 'seller'
         ? 'Seller account'
         : 'Buyer account';
-  const heroTitle = getHeroTitle(accountKind, profile.role);
   const featuredTradeLabel = activeDeals.length > 0 ? 'Current trade' : 'Latest trade';
 
   return (
     <div className="product-surface home-workbench mx-auto w-full max-w-[1180px] pb-12 sm:pb-16">
+      <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
       <section className="home-command-grid" aria-labelledby="home-heading">
         <motion.header
+          data-guide="home-start"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
-          className="flex min-h-[360px] flex-col justify-between py-3 sm:min-h-[420px] sm:py-6"
+          className="min-w-0 py-3 sm:py-4"
         >
           <div>
             <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">Welcome back, {firstName}</p>
-            <h1 id="home-heading" className="mt-4 max-w-[13ch] text-[clamp(2.8rem,6.4vw,5.4rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">
-              {heroTitle}
-            </h1>
-            <p className="mt-5 max-w-[56ch] text-[15px] leading-6 text-[var(--lp-text-sub)] sm:text-[16px] sm:leading-7">
-              Agree on the work, protect payment in USDC, and record delivery.
-            </p>
+            <CapabilityIntro />
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/market" className="home-primary-action group inline-flex min-h-12 items-center gap-3 rounded-full bg-[var(--lp-accent)] px-5 text-[15px] font-bold text-[var(--accent-ink)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] motion-reduce:hover:translate-y-0">
-              Explore the open market <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">→</span>
-            </Link>
-            <Link href="/p2p" className="group inline-flex min-h-12 items-center gap-2 rounded-full px-4 text-[15px] font-bold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-              Bring a deal <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">↗</span>
-            </Link>
-          </div>
         </motion.header>
 
         <motion.aside
+          data-guide="home-money"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.54, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
@@ -122,7 +114,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
         </motion.aside>
       </section>
 
-      <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]" aria-label="Trades">
+      <section data-guide="home-deals" className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]" aria-label="Trades">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -171,13 +163,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
       </section>
     </div>
   );
-}
-
-function getHeroTitle(accountKind: AccountKind, role: UserProfile['role']): string {
-  if (accountKind === 'business') return 'Find clients and suppliers. Pay in USDC.';
-  if (role === 'seller') return 'Find work. Get paid in USDC.';
-  if (role === 'buyer') return 'Find people. Pay in USDC.';
-  return 'Find work. Hire people. Pay in USDC.';
 }
 
 function progressFor(stage?: DealStage): number {
