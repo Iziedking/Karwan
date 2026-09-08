@@ -134,18 +134,29 @@ test(
       assert.equal(conflictingReceipt.ok, false);
       if (!conflictingReceipt.ok) assert.equal(conflictingReceipt.code, 'RECEIPT_CONFLICT');
 
-      const correctedRequest = {
+      const staleRequest = {
         ...request,
         evidenceRevision: 3,
         submittedSha: 'b'.repeat(40),
         publishedAt: 3_000,
       };
-      const corrected = valueOrThrow(await queue.publish(correctedRequest, 3_000));
-      assert.equal(await queue.cancel(dealId, 3_001), 1);
-      assert.equal(await queue.claim([corrected.requestKey], 3_002, 1_000), null);
+      const newerRequest = {
+        ...request,
+        evidenceRevision: 4,
+        submittedSha: 'c'.repeat(40),
+        publishedAt: 3_001,
+      };
+      const stale = valueOrThrow(await queue.publish(staleRequest, 3_000));
+      const newer = valueOrThrow(await queue.publish(newerRequest, 3_001));
+      const staleClaim = await queue.claim([stale.requestKey], 3_002, 1_000);
+      assert.ok(staleClaim);
+      assert.equal(await queue.cancelRequest(stale.requestKey, 'wrong-lease', 3_003), 0);
+      assert.equal(await queue.cancelRequest(stale.requestKey, staleClaim?.record.leaseToken, 3_004), 1);
+      const newerClaim = await queue.claim([newer.requestKey], 3_005, 1_000);
+      assert.ok(newerClaim);
       const cancelled = await client.query<{ state: string; lease_token: string | null }>(
         'SELECT state, lease_token FROM cre_delivery_requests_v1 WHERE request_key = $1',
-        [corrected.requestKey],
+        [stale.requestKey],
       );
       assert.deepEqual(cancelled.rows[0], { state: 'cancelled', lease_token: null });
     } finally {
