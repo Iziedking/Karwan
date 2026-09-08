@@ -5,6 +5,7 @@ import pg from 'pg';
 import { runNumberedMigrations } from '../db/migrations.js';
 import {
   PostgresResearchAllowanceStore,
+  ResearchAllowanceConflictError,
   ResearchAllowanceExhaustedError,
   ResearchAllowanceReplayError,
 } from './researchAllowance.js';
@@ -63,10 +64,10 @@ test(
         ResearchAllowanceExhaustedError,
       );
 
-      await store.release({ reservationId: reservations[0]!.reservation.id, reason: 'provider unavailable', now: 2_100 });
+      await store.release({ reservationId: reservations[0]!.reservation.id, attemptToken: reservations[0]!.reservation.attemptToken, reason: 'provider unavailable', now: 2_100 });
       const replacement = await store.reserve({ agentAddress: AGENT_B, requestId: 'request-3', resourceId: 'deal:3:counterparty', now: 2_101 });
       for (const [index, item] of [reservations[1]!, reservations[2]!, replacement].entries()) {
-        await store.commit({ reservationId: item.reservation.id, resultId: `report-${index}`, now: 3_000 + index });
+        await store.commit({ reservationId: item.reservation.id, attemptToken: item.reservation.attemptToken, resultId: `report-${index}`, now: 3_000 + index });
       }
 
       const restarted = new PostgresResearchAllowanceStore(client, transaction);
@@ -76,8 +77,17 @@ test(
       const retry = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'another-request', resourceId: 'deal:1:counterparty', now: 4_001 });
       assert.equal(retry.created, false);
       assert.equal(retry.reservation.state, 'delivered');
-      const same = await restarted.commit({ reservationId: retry.reservation.id, resultId: 'report-0', now: 4_002 });
+      const same = await restarted.commit({ reservationId: retry.reservation.id, attemptToken: retry.reservation.attemptToken, resultId: 'report-0', now: 4_002 });
       assert.equal(same.snapshot.used, 3);
+
+      const expiring = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'request-expiring', resourceId: 'deal:expiring:counterparty', now: 5_000, leaseMs: 1_000 });
+      const expiredReplacement = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'request-expired-replacement', resourceId: 'deal:expiring:counterparty', now: 6_001 });
+      assert.notEqual(expiredReplacement.reservation.attemptToken, expiring.reservation.attemptToken);
+      await assert.rejects(
+        () => restarted.release({ reservationId: expiring.reservation.id, attemptToken: expiring.reservation.attemptToken, reason: 'stale worker', now: 6_002 }),
+        ResearchAllowanceConflictError,
+      );
+      await restarted.commit({ reservationId: expiredReplacement.reservation.id, attemptToken: expiredReplacement.reservation.attemptToken, resultId: 'replacement-report', now: 6_003 });
     } finally {
       await client.query('RESET search_path');
       if (!/^karwan_agentkit_[a-f0-9]{32}$/.test(schema)) throw new Error(`refusing to drop unexpected schema ${schema}`);

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { SqlExecutor } from '../db/migrations.js';
 import type { TransactionRunner } from '../events/domainEventStore.js';
 
@@ -31,6 +32,7 @@ export type ResearchReservationState = 'reserved' | 'delivered' | 'released';
 
 export interface ResearchReservationRecord {
   id: string;
+  attemptToken: string;
   humanKeyDigest: string;
   agentAddress: string;
   scope: string;
@@ -71,8 +73,8 @@ interface ReserveInput {
 export interface ResearchAllowanceStore {
   verifyBinding(input: VerifyBindingInput): Promise<AgentKitBindingRecord>;
   reserve(input: ReserveInput): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot; created: boolean }>;
-  commit(input: { reservationId: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
-  release(input: { reservationId: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
+  commit(input: { reservationId: string; attemptToken: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
+  release(input: { reservationId: string; attemptToken: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
   getDelivered(input: { agentAddress: string; resourceId: string; scope?: string }): Promise<ResearchReservationRecord | null>;
   get(input: { humanKeyDigest: string; scope?: string; now?: number }): Promise<ResearchAllowanceSnapshot | null>;
   getBinding(agentAddress: string): Promise<AgentKitBindingRecord | null>;
@@ -231,6 +233,7 @@ export class InMemoryResearchAllowanceStore implements ResearchAllowanceStore {
     const id = existing?.id ?? requestId;
     const reservation: ResearchReservationRecord = {
       id,
+      attemptToken: randomUUID(),
       humanKeyDigest: binding.humanKeyDigest,
       agentAddress,
       scope: normalizedScope,
@@ -248,10 +251,12 @@ export class InMemoryResearchAllowanceStore implements ResearchAllowanceStore {
     return { reservation, snapshot: this.snapshotFor(poolKey, normalizedScope, start, configuredAllowance, now), created: true };
   }
 
-  async commit(input: { reservationId: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async commit(input: { reservationId: string; attemptToken: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     const reservation = this.reservations.get(identifier(input.reservationId, 'research reservation id'));
     if (!reservation) throw new ResearchAllowanceConflictError('research reservation was not found');
+    const attemptToken = identifier(input.attemptToken, 'research reservation attempt token');
+    if (reservation.attemptToken !== attemptToken) throw new ResearchAllowanceConflictError('research reservation attempt is stale');
     const resultId = identifier(input.resultId, 'research result id');
     const poolKey = `${reservation.humanKeyDigest}:${reservation.scope}:${reservation.periodStart}`;
     const current = this.allowances.get(poolKey);
@@ -268,10 +273,12 @@ export class InMemoryResearchAllowanceStore implements ResearchAllowanceStore {
     return { reservation: delivered, snapshot: this.snapshotFor(poolKey, reservation.scope, reservation.periodStart, current.allowance, now) };
   }
 
-  async release(input: { reservationId: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async release(input: { reservationId: string; attemptToken: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     const reservation = this.reservations.get(identifier(input.reservationId, 'research reservation id'));
     if (!reservation) throw new ResearchAllowanceConflictError('research reservation was not found');
+    const attemptToken = identifier(input.attemptToken, 'research reservation attempt token');
+    if (reservation.attemptToken !== attemptToken) throw new ResearchAllowanceConflictError('research reservation attempt is stale');
     const poolKey = `${reservation.humanKeyDigest}:${reservation.scope}:${reservation.periodStart}`;
     const current = this.allowances.get(poolKey);
     if (!current) throw new ResearchAllowanceConflictError('research allowance was not persisted');
@@ -352,6 +359,7 @@ interface BindingRow extends Record<string, unknown> {
 
 interface ReservationRow extends Record<string, unknown> {
   id: string;
+  attempt_token: string;
   human_key_digest: string;
   agent_address: string;
   scope: string;
@@ -380,6 +388,7 @@ function rowBinding(row: BindingRow): AgentKitBindingRecord {
 function rowReservation(row: ReservationRow): ResearchReservationRecord {
   return {
     id: row.id,
+    attemptToken: row.attempt_token,
     humanKeyDigest: row.human_key_digest,
     agentAddress: row.agent_address,
     scope: row.scope,
@@ -469,25 +478,28 @@ export class PostgresResearchAllowanceStore implements ResearchAllowanceStore {
       const current = await postgresSnapshot(tx, allowanceRow, now);
       if (current.used + current.reserved >= current.allowance) throw new ResearchAllowanceExhaustedError();
       const id = existingRow?.id ?? requestId;
+      const attemptToken = randomUUID();
       const row = (await tx.query<ReservationRow>(`INSERT INTO agentkit_research_reservations_v1
-        (id,human_key_digest,agent_address,scope,period_start,resource_id,state,lease_expires_at,created_at,updated_at)
-        VALUES ($1,$2,$3,$4,$5,$6,'reserved',$7,$8,$8)
+        (id,attempt_token,human_key_digest,agent_address,scope,period_start,resource_id,state,lease_expires_at,created_at,updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,'reserved',$8,$9,$9)
         ON CONFLICT (id) DO UPDATE SET agent_address = EXCLUDED.agent_address,
           period_start = EXCLUDED.period_start, state = 'reserved',
           lease_expires_at = EXCLUDED.lease_expires_at, result_id = NULL, failure_reason = NULL,
-          delivered_at = NULL, updated_at = EXCLUDED.updated_at RETURNING *`,
-        [id, binding.humanKeyDigest, agentAddress, normalizedScope, start, resourceId, now + leaseValue(input.leaseMs), now])).rows[0];
+          attempt_token = EXCLUDED.attempt_token, delivered_at = NULL, updated_at = EXCLUDED.updated_at RETURNING *`,
+        [id, attemptToken, binding.humanKeyDigest, agentAddress, normalizedScope, start, resourceId, now + leaseValue(input.leaseMs), now])).rows[0];
       if (!row) throw new ResearchAllowanceConflictError('research reservation was not persisted');
       return { reservation: rowReservation(row), snapshot: await postgresSnapshot(tx, allowanceRow, now), created: true };
     });
   }
 
-  async commit(input: { reservationId: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async commit(input: { reservationId: string; attemptToken: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     return this.transaction(async (tx) => {
       const row = (await tx.query<ReservationRow>('SELECT * FROM agentkit_research_reservations_v1 WHERE id = $1 FOR UPDATE', [identifier(input.reservationId, 'research reservation id')])).rows[0];
       if (!row) throw new ResearchAllowanceConflictError('research reservation was not found');
       const reservation = rowReservation(row);
+      const attemptToken = identifier(input.attemptToken, 'research reservation attempt token');
+      if (reservation.attemptToken !== attemptToken) throw new ResearchAllowanceConflictError('research reservation attempt is stale');
       const allowanceRow = (await tx.query<AllowanceRow>(`SELECT * FROM agentkit_research_allowances_v1
         WHERE human_key_digest = $1 AND scope = $2 AND period_start = $3 FOR UPDATE`,
         [reservation.humanKeyDigest, reservation.scope, reservation.periodStart])).rows[0];
@@ -504,26 +516,28 @@ export class PostgresResearchAllowanceStore implements ResearchAllowanceStore {
         [reservation.humanKeyDigest, reservation.scope, reservation.periodStart, now])).rows[0];
       if (!updatedAllowance) throw new ResearchAllowanceExhaustedError();
       const delivered = (await tx.query<ReservationRow>(`UPDATE agentkit_research_reservations_v1
-        SET state = 'delivered', result_id = $2, result = $3::jsonb, delivered_at = $4, updated_at = $4
-        WHERE id = $1 RETURNING *`, [reservation.id, resultId, JSON.stringify(input.result ?? null), now])).rows[0];
+        SET state = 'delivered', result_id = $3, result = $4::jsonb, delivered_at = $5, updated_at = $5
+        WHERE id = $1 AND attempt_token = $2 RETURNING *`, [reservation.id, attemptToken, resultId, JSON.stringify(input.result ?? null), now])).rows[0];
       if (!delivered) throw new ResearchAllowanceConflictError('research delivery was not persisted');
       return { reservation: rowReservation(delivered), snapshot: await postgresSnapshot(tx, updatedAllowance, now) };
     });
   }
 
-  async release(input: { reservationId: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async release(input: { reservationId: string; attemptToken: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     return this.transaction(async (tx) => {
       const row = (await tx.query<ReservationRow>('SELECT * FROM agentkit_research_reservations_v1 WHERE id = $1 FOR UPDATE', [identifier(input.reservationId, 'research reservation id')])).rows[0];
       if (!row) throw new ResearchAllowanceConflictError('research reservation was not found');
       const reservation = rowReservation(row);
+      const attemptToken = identifier(input.attemptToken, 'research reservation attempt token');
+      if (reservation.attemptToken !== attemptToken) throw new ResearchAllowanceConflictError('research reservation attempt is stale');
       const allowanceRow = (await tx.query<AllowanceRow>(`SELECT * FROM agentkit_research_allowances_v1
         WHERE human_key_digest = $1 AND scope = $2 AND period_start = $3 FOR UPDATE`, [reservation.humanKeyDigest, reservation.scope, reservation.periodStart])).rows[0];
       if (!allowanceRow) throw new ResearchAllowanceConflictError('research allowance was not persisted');
       if (reservation.state === 'delivered') return { reservation, snapshot: await postgresSnapshot(tx, allowanceRow, now) };
       const released = (await tx.query<ReservationRow>(`UPDATE agentkit_research_reservations_v1
-        SET state = 'released', failure_reason = $2, updated_at = $3 WHERE id = $1 RETURNING *`,
-        [reservation.id, identifier(input.reason, 'research failure reason'), now])).rows[0];
+        SET state = 'released', failure_reason = $3, updated_at = $4 WHERE id = $1 AND attempt_token = $2 RETURNING *`,
+        [reservation.id, attemptToken, identifier(input.reason, 'research failure reason'), now])).rows[0];
       if (!released) throw new ResearchAllowanceConflictError('research release was not persisted');
       return { reservation: rowReservation(released), snapshot: await postgresSnapshot(tx, allowanceRow, now) };
     });
