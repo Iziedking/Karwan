@@ -618,6 +618,16 @@ CREATE INDEX agentkit_research_reservations_pool_idx
   ON agentkit_research_reservations_v1 (human_key_digest, scope, period_start, state, lease_expires_at);
 `;
 
+const AGENTKIT_REPORT_DELIVERY_FENCING_SQL = `
+ALTER TABLE agentkit_research_reservations_v1
+  ADD COLUMN IF NOT EXISTS attempt_token TEXT;
+UPDATE agentkit_research_reservations_v1
+  SET attempt_token = id
+  WHERE attempt_token IS NULL;
+ALTER TABLE agentkit_research_reservations_v1
+  ALTER COLUMN attempt_token SET NOT NULL;
+`;
+
 const CRE_DELIVERY_REQUEST_QUEUE_SQL = `
 CREATE TABLE cre_delivery_requests_v1 (
   request_key TEXT PRIMARY KEY,
@@ -750,6 +760,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 21,
     name: 'cre_delivery_request_queue',
     sql: CRE_DELIVERY_REQUEST_QUEUE_SQL,
+  },
+  {
+    version: 22,
+    name: 'agentkit_report_delivery_fencing',
+    sql: AGENTKIT_REPORT_DELIVERY_FENCING_SQL,
   },
 ] as const;
 
