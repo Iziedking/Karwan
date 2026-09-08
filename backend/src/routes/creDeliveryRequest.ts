@@ -13,7 +13,7 @@ import {
   publicCreDeliveryRequestWithLease,
 } from '../evidence/creDeliveryRequest.js';
 import {
-  cancelCreDeliveryRequests,
+  cancelCreDeliveryRequest,
   adoptLegacyCreDeliveryRequest,
   claimCreDeliveryRequest,
   completeCreDeliveryRequest,
@@ -56,7 +56,7 @@ creDeliveryRequestRoutes.get('/current', async (c) => {
   }
   const currentDeal = await getDeal(claimed.record.dealId);
   if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
-    await cancelCreDeliveryRequests(claimed.record.dealId).catch(() => undefined);
+    await cancelCreDeliveryRequest(claimed.record.requestKey, claimed.record.leaseToken).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
   return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken));
@@ -74,7 +74,7 @@ creDeliveryRequestRoutes.get('/:jobId', async (c) => {
   if (!claimed) return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
   const currentDeal = await getDeal(deal.jobId);
   if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
-    await cancelCreDeliveryRequests(deal.jobId).catch(() => undefined);
+    await cancelCreDeliveryRequest(claimed.record.requestKey, claimed.record.leaseToken).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
   return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken));
@@ -96,7 +96,7 @@ creDeliveryRequestRoutes.post('/:jobId', async (c) => {
   if (!queued.idempotent || !deal.creDeliveryRequest || creDeliveryRequestKey(deal.creDeliveryRequest) !== queued.value.requestKey) {
     const saved = await patchDeal(deal.jobId, { creDeliveryRequest: result.request });
     if (!saved) {
-      await cancelCreDeliveryRequests(deal.jobId).catch(() => undefined);
+      await cancelCreDeliveryRequest(queued.value.requestKey).catch(() => undefined);
       return c.json({ error: 'deal disappeared while publishing request', code: 'DEAL_NOT_FOUND' }, 404);
     }
   }
