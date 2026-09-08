@@ -6,8 +6,9 @@ export type Theme = 'light' | 'dark';
 /// What the user asked for, which is not the same as what gets painted.
 /// 'system' is a standing instruction to follow the machine, so it resolves
 /// freshly every time rather than being frozen into a stored 'light' or 'dark'.
-/// It is also the default: with no manual switch in the interface any more,
-/// most sessions run on it.
+/// The visible product control is an explicit light/dark toggle. Automatic is
+/// still understood for older saved account preferences, but a new session
+/// starts in dark until the visitor chooses otherwise.
 export type ThemePreference = Theme | 'system';
 
 /// Must stay in lockstep with the pre-paint script in app/layout.tsx, which runs
@@ -58,18 +59,17 @@ export function msUntilNextDaylightChange(now = new Date()): number {
   return Math.max(60_000, next.getTime() - now.getTime());
 }
 
-/// The stored preference, or 'system' when there is none. Anything unrecognised
-/// also reads as 'system': a value we cannot interpret is not a reason to force
-/// light on someone whose OS is dark.
+/// The stored preference, or dark when there is none. Anything unrecognised
+/// also falls back to dark so the first visit is stable and intentional.
 export function readPreference(): ThemePreference {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'dark';
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
   } catch {
     // Private browsing and blocked storage both throw here.
   }
-  return 'system';
+  return 'dark';
 }
 
 export function resolveTheme(pref: ThemePreference): Theme {
@@ -148,7 +148,7 @@ export function adoptPreferenceIfUnset(pref: ThemePreference): void {
 /// readable during SSR, so rendering the real control immediately would ship
 /// markup for the wrong theme and hydrate into a mismatch.
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>('light');
+  const [theme, setThemeState] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

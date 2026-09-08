@@ -62,6 +62,8 @@ export const fr: Messages = {
     preferencesAria: 'Préférences',
     settingsAriaTitle: 'Paramètres',
     controlLabels: {
+      account: 'Solde USDC',
+      notifications: 'Notifications',
       theme: 'Thème',
       sound: 'Son',
     },

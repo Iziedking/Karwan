@@ -462,7 +462,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
                 textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}
                 fill="var(--lp-workspace-faint)"
                 fontSize={10}
-                fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                fontFamily="var(--font-general-sans, sans-serif)"
                 letterSpacing="0.12em"
               >
                 {formatDayLabel(point.ts)}

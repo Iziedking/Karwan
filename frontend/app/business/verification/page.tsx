@@ -62,7 +62,7 @@ function BusinessVerificationPageInner() {
     <FullBleed>
       <Band tone="dark" compact overlay={<GridOverlay />}>
         <Link
-          href="/profile#identity"
+          href="/profile/setup"
           className="inline-flex min-h-11 items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
         >
           <span aria-hidden>←</span>

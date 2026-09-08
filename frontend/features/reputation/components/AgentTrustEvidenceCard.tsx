@@ -36,7 +36,7 @@ export function AgentTrustEvidenceCard() {
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">[:{copy.tag}:]</p>
+          <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{copy.tag}</p>
           <h3 id="agent-trust-card-title" className="mt-1.5 font-sans text-[17px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
             {copy.headline}
           </h3>

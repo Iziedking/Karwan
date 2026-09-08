@@ -199,7 +199,7 @@ export function ArcFundCard({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{af.header.eyebrow}:]
+            {af.header.eyebrow}
           </span>
           <h2 className="mt-1.5 font-sans text-[19px] sm:text-[21px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
             {af.header.title}
@@ -267,7 +267,7 @@ export function ArcFundCard({
         {/* RECIPIENT PICKER */}
         <div>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{af.recipient.eyebrow}:]
+            {af.recipient.eyebrow}
           </span>
           <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {options.map((o) => {
@@ -348,7 +348,7 @@ export function ArcFundCard({
         >
           <div className="flex items-baseline justify-between">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{af.amount.eyebrow}:]
+              {af.amount.eyebrow}
             </span>
             <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               Arc ·{' '}
@@ -450,7 +450,7 @@ export function ArcFundCard({
       {selectedAddress && (
         <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{gt.cta}:]
+            {gt.cta}
           </span>
           <div className="mt-3.5">
             <TopUpFromGateway recipient={selectedAddress} onFunded={refetchAll} />
@@ -462,7 +462,7 @@ export function ArcFundCard({
         <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
           <div className="flex items-baseline justify-between mb-3.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{af.activity.eyebrow}:]
+              {af.activity.eyebrow}
             </span>
             <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
               {records.length}{' '}

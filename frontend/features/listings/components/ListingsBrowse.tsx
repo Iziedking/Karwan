@@ -18,19 +18,8 @@ import {
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { Button } from '@/shared/components/Button';
-import { CtaArrow, withoutTrailingArrow } from '@/shared/components/CtaArrow';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
-import {
-  Accent,
-  Band,
-  CTAPill,
-  FullBleed,
-  GridOverlay,
-  HeroHeadline,
-  PageCard,
-  Punc,
-  SectionTag,
-} from '@/shared/components/Bands';
+import { Band, FullBleed, SectionTag } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
 import { MARKET_BIZ_TOUR_ID, MARKET_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -53,7 +42,6 @@ interface MarketSection {
 export function ListingsBrowse() {
   const translations = useTranslations();
   const copy = translations.listingsBrowse;
-  const homeHero = translations.appHome.hero;
   const { address, isAuthenticated } = useAuth();
   const { profile } = useUserProfile();
   const onBusinessTrack = isAuthenticated && isBusinessAccount(profile);
@@ -144,6 +132,7 @@ export function ListingsBrowse() {
   }
 
   return (
+    <div className="product-surface">
     <FullBleed>
       {isAuthenticated ? (
         <PageTour
@@ -155,56 +144,33 @@ export function ListingsBrowse() {
         />
       ) : null}
 
-      <Band tone="dark" compact overlay={<GridOverlay />}>
-        <SectionTag tone="dark" dot="live">
-          {copy.heroTag}
-        </SectionTag>
-        <HeroHeadline size="sm">
-          {copy.heroHeadlinePart1}{' '}
-          <br className="hidden md:inline" />
-          {copy.heroHeadlinePart2Prefix}
-          <Accent>{copy.heroAccent}</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <p className="mt-5 max-w-[56ch] text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-          {copy.heroBody}
-        </p>
-        <DiscoveryNav active="market" tone="dark" />
-        <div className="mt-6 flex flex-wrap gap-3">
-          <CTAPill href="/buyer">{withoutTrailingArrow(homeHero.postRequestCta)}</CTAPill>
-          <CTAPill
-            href={onBusinessTrack ? '/supply' : '/seller'}
-            variant="secondary"
-            tone="dark"
-          >
-            {withoutTrailingArrow(homeHero.postOfferCta)}
-          </CTAPill>
-        </div>
-      </Band>
-
       <Band tone="light" compact>
-        <div className="mt-2 border-b border-[var(--lp-border-light)] pb-6 pt-6 sm:pt-8">
-          <SectionTag>{copy.findTag}</SectionTag>
-          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.55fr)] lg:items-end">
+        <div className="market-hero border-b border-[var(--lp-border-light)] pb-6 pt-2 sm:pt-3">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.48fr)] lg:items-end">
             <div>
-              <h2 className="max-w-[18ch] font-sans text-[clamp(1.65rem,3vw,2.5rem)] font-extrabold uppercase leading-[0.98] tracking-[-0.025em] text-[var(--lp-dark)]">
-                {copy.findTitle}
-              </h2>
-              <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                {copy.findBody}
+              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">Open market</p>
+              <h1 className="mt-2 max-w-[17ch] text-[clamp(2.8rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">
+                Find the next trade worth doing.
+              </h1>
+              <p className="mt-5 max-w-[58ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">
+                Compare work requests, service offers, businesses, budgets, and trade history before you open a conversation.
               </p>
             </div>
-            <p
-              className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] lg:text-end"
-              aria-live="polite"
-            >
-              {refreshing && !loading ? `${copy.refreshing} · ` : ''}
-              {!loading ? resultCopy : ''}
-            </p>
+            <div className="market-pulse" aria-live="polite">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--lp-text-sub)]"><span data-live="true" className={`size-2 rounded-full bg-[var(--lp-accent)] ${refreshing ? 'motion-safe:animate-pulse' : ''}`} />{refreshing && !loading ? copy.refreshing : 'Market current'}</span>
+                <span className="text-[12px] font-semibold text-[var(--lp-text-muted)]">{!loading ? resultCopy : ''}</span>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[12px] bg-[var(--lp-border-light)]">
+                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">Work requests</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'request').length}</p></div>
+                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">Service offers</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'offer').length}</p></div>
+              </div>
+            </div>
           </div>
+          <DiscoveryNav active="market" tone="light" />
         </div>
 
-        <div className="py-6" role="search" aria-label={copy.searchLabel}>
+        <div className="market-searchbar py-5" role="search" aria-label={copy.searchLabel}>
           <label className="block max-w-2xl">
             <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {copy.searchLabel}
@@ -287,38 +253,27 @@ export function ListingsBrowse() {
         {loading ? <MarketSkeleton /> : null}
 
         {emptyMarket ? (
-          <PageCard>
-            <div className="px-6 py-10 sm:px-8 sm:py-12">
-              <SectionTag>{copy.emptyAllTag}</SectionTag>
-              <h2 className="mt-4 max-w-[20ch] font-sans text-[24px] font-extrabold uppercase leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">
-                {copy.emptyAllBody}
-              </h2>
-              <div className="mt-6 flex flex-wrap gap-4">
-                <DiscoveryAction href="/buyer" label={withoutTrailingArrow(homeHero.postRequestCta)} />
-                <DiscoveryAction
-                  href={onBusinessTrack ? '/supply' : '/seller'}
-                  label={withoutTrailingArrow(homeHero.postOfferCta)}
-                />
-              </div>
-            </div>
-          </PageCard>
+          <div className="border-s-2 border-[var(--lp-accent)] px-5 py-8 sm:px-7 sm:py-10">
+            <SectionTag>{copy.emptyAllTag}</SectionTag>
+            <h2 className="mt-4 max-w-[20ch] font-sans text-[24px] font-extrabold uppercase leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">
+              {copy.emptyAllBody}
+            </h2>
+          </div>
         ) : null}
 
         {emptyFilter ? (
-          <PageCard>
-            <div className="px-6 py-10 sm:px-8 sm:py-12">
-              <SectionTag>{copy.emptyFilteredTag}</SectionTag>
-              <h2 className="mt-4 font-sans text-[24px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
-                {copy.emptyFilteredTitle}
-              </h2>
-              <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                {copy.emptyFilteredBody}
-              </p>
-              <Button type="button" variant="outline" onClick={clearFilters} className="mt-6">
-                {copy.clearFilters}
-              </Button>
-            </div>
-          </PageCard>
+          <div className="border-s-2 border-[var(--lp-accent)] px-5 py-8 sm:px-7 sm:py-10">
+            <SectionTag>{copy.emptyFilteredTag}</SectionTag>
+            <h2 className="mt-4 font-sans text-[24px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+              {copy.emptyFilteredTitle}
+            </h2>
+            <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              {copy.emptyFilteredBody}
+            </p>
+            <Button type="button" variant="outline" onClick={clearFilters} className="mt-6">
+              {copy.clearFilters}
+            </Button>
+          </div>
         ) : null}
 
         {!loading && !allUnavailable && filteredCards.length > 0 ? (
@@ -338,7 +293,7 @@ export function ListingsBrowse() {
                       {section.note}
                     </p>
                   </div>
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {section.cards.map((card) => (
                       <MarketCard
                         key={`${card.side}-${card.id}`}
@@ -354,6 +309,7 @@ export function ListingsBrowse() {
         ) : null}
       </Band>
     </FullBleed>
+    </div>
   );
 }
 
@@ -435,7 +391,7 @@ function FilterButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-[8px] border px-3 mono text-[10px] font-semibold uppercase tracking-[0.08em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+      className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[8px] border px-3 text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
         borderColor: pressed ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
         background: pressed ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
@@ -481,18 +437,6 @@ function MarketSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-function DiscoveryAction({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="group inline-flex min-h-11 items-center gap-2 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-colors hover:text-[var(--lp-accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-    >
-      {label}
-      <CtaArrow />
-    </Link>
   );
 }
 
@@ -599,7 +543,7 @@ function MarketCard({
   return (
     <Link
       href={card.href}
-      className="group relative block overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)] transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] motion-reduce:hover:translate-y-0"
+      className="market-card group relative block overflow-hidden transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] motion-reduce:hover:translate-y-0"
       style={cardStyle}
     >
       {content}

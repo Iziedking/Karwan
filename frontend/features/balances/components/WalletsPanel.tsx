@@ -11,7 +11,7 @@ type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
 type WalletsCopy = Messages['walletsPanel'];
 
 function fmt(v: string | null | undefined): string {
-  if (v === null || v === undefined) return '—';
+  if (v === null || v === undefined) return 'Unavailable';
   const n = Number(v);
   if (!Number.isFinite(n)) return v;
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -93,7 +93,6 @@ function CopyAddress({
 }
 
 function Row({
-  tag,
   title,
   purpose,
   address,
@@ -105,7 +104,6 @@ function Row({
   copiedLabel,
   walletKind,
 }: {
-  tag: string;
   title: string;
   purpose: string;
   address?: string;
@@ -151,10 +149,7 @@ function Row({
         <div className="flex min-w-0 items-center gap-3">
           <WalletGlyph kind={walletKind} />
           <div className="min-w-0">
-            <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{tag}:]
-            </span>
-            <p className="mt-0.5 flex items-center gap-1.5 font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+            <p className="flex items-center gap-1.5 font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
               {title}
               <LpHint>{purpose}</LpHint>
             </p>
@@ -202,7 +197,7 @@ function FaucetButton({
       onClick={onClick}
       disabled={busy}
       aria-busy={busy}
-      className="inline-flex items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50 hover:bg-black/[0.03]"
+      className="inline-flex min-h-11 items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50 hover:bg-black/[0.03]"
       style={{
         borderColor: 'var(--lp-border-light)',
         color: 'var(--lp-text-sub)',
@@ -291,7 +286,6 @@ export function WalletsPanel({ address }: { address?: string }) {
       <ul className="space-y-2.5">
         <Row
           walletKind="identity"
-          tag={wp.rows.identity.tag}
           title={wp.rows.identity.title}
           purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
           address={data?.identity.address}
@@ -314,7 +308,6 @@ export function WalletsPanel({ address }: { address?: string }) {
           <>
             <Row
               walletKind="agent"
-              tag={wp.rows.buyer.tag}
               title={wp.rows.buyer.title}
               purpose={wp.rows.buyer.purpose}
               address={agents.buyer.address}
@@ -332,7 +325,6 @@ export function WalletsPanel({ address }: { address?: string }) {
             />
             <Row
               walletKind="agent"
-              tag={wp.rows.seller.tag}
               title={wp.rows.seller.title}
               purpose={wp.rows.seller.purpose}
               address={agents.seller.address}

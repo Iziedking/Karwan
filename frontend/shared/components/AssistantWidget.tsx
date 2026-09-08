@@ -755,7 +755,7 @@ async function runConfirmIntent(
     });
     return {
       successText: `Sent. Your ${p.agent} agent is funded.`,
-      viewHref: '/profile#wallets',
+      viewHref: '/profile/wallets',
       viewLabel: 'Your wallets',
     };
   }
@@ -836,7 +836,7 @@ async function runConfirmIntent(
       successText: outcome === 'completed'
         ? 'Withdrawal completed. Check your wallet before counting on the funds.'
         : 'Withdrawal is being confirmed. It is not complete yet.',
-      viewHref: '/profile#agents',
+      viewHref: '/profile/agent-funds',
       viewLabel: 'View your wallets',
       txHash: r.txHash,
     };
@@ -1016,7 +1016,7 @@ async function runConfirmIntent(
         successText: completed
           ? `Your ${p.agent} agent is funded.`
           : `Your ${p.agent} agent funding is being confirmed. It is not complete yet.`,
-        viewHref: '/profile#agents',
+        viewHref: '/profile/agent-funds',
         viewLabel: 'Your wallets',
         ...(r.txHash ? { txHash: r.txHash } : { refId: r.transferId }),
       };
@@ -1036,7 +1036,7 @@ async function runConfirmIntent(
       successText: outcome === 'completed'
         ? `Your ${p.agent} agent is funded.`
         : `Your ${p.agent} agent funding is being confirmed. It is not complete yet.`,
-      viewHref: '/profile#agents',
+      viewHref: '/profile/agent-funds',
       viewLabel: 'Your wallets',
       txHash: r.txHash,
       refId: r.reference,

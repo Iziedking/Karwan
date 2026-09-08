@@ -2,10 +2,11 @@
 
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { getShellSurface } from '@/shared/utils/routes';
+import { getShellSurface, isPublicDiscoveryRoute } from '@/shared/utils/routes';
 import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
 import { RouteStage } from '@/shared/components/RouteStage';
+import { ProductBackLink } from '@/shared/components/ProductBackLink';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -100,17 +101,22 @@ function CustomerChromeFrame({
   useFloatGuard();
 
   const workspace = shell === 'workspace' || shell === 'admin';
+  const workspaceWithRail = workspace && auth.isAuthenticated;
+  const discovery = isPublicDiscoveryRoute(pathname);
   const focused = shell === 'focused';
-  const mainClass = workspace
-    ? 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-8 md:py-10'
+  const mainClass = workspaceWithRail
+    ? 'flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 md:py-8 lg:ps-[280px] lg:pe-8 xl:ps-[320px] 2xl:ps-[360px]'
     : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
   const platformCopy = workspace || focused;
+  const productArt = workspace || focused || discovery;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className={`relative flex min-h-screen flex-col overflow-x-clip isolate${productArt ? ' product-chrome' : ''}`}>
+      {productArt ? <div aria-hidden className="global-trade-sketch" /> : null}
       {topNav}
       {workspace ? profileNudge : null}
-      <main className={`${mainClass}${platformCopy ? ' platform-copy' : ''}`}>
+      <main className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}>
+        <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} className="mb-2" />
         <RouteStage pathname={pathname}>{children}</RouteStage>
       </main>
       {shell === 'public' ? footer : null}

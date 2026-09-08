@@ -29,6 +29,9 @@ export function SiteFooter() {
   const pathname = usePathname();
   const messages = useTranslations();
   const t = messages.footer;
+  if (pathname === '/market' || pathname === '/listings' || pathname.startsWith('/listings/')) {
+    return null;
+  }
   return (
     <footer
       className="bg-[var(--lp-light)] text-[var(--lp-dark)]"

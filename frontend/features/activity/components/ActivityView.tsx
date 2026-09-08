@@ -140,23 +140,9 @@ export function ActivityView({ explorer }: { explorer: string }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Three registers, in the order someone opening this page wants them:
-          the network's headline counters, then the user's own money with real
-          amounts and receipts, then the network pulse. The pulse has every
-          amount and party stripped, so it can never answer "what did I do";
-          the ledger above it is what answers that. */}
-      <ActivityStats
-        counts={counts}
-        activeGroups={groups}
-        onToggleGroup={toggleGroup}
-        windowSize={events.length}
-      />
-
-      <div className="pt-2 border-t border-[var(--lp-border-light)]" />
-
-      <section className="overflow-hidden rounded-xl border border-[var(--lp-border-light)]" data-guide="activity-register">
-        <div role="tablist" aria-label={t.moneyTitle} className="flex flex-wrap items-stretch gap-1 border-b border-[var(--lp-border-light)] bg-[var(--lp-wash)] p-2">
+    <div className="space-y-5">
+      <section className="activity-ledger overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]" data-guide="activity-register">
+        <div role="tablist" aria-label={t.moneyTitle} className="flex flex-wrap items-stretch gap-1 border-b border-[var(--lp-border-light)] p-2">
           <ActivityPanelTab
             active={activePanel === 'money'}
             label={t.moneyTitle}
@@ -174,14 +160,14 @@ export function ActivityView({ explorer }: { explorer: string }) {
         </div>
 
         {activePanel === 'money' ? (
-          <div id="activity-money-panel" className="p-4 sm:p-5" data-guide="activity-money">
+          <div id="activity-money-panel" className="p-3 sm:p-4" data-guide="activity-money">
             <MyMoneyLedger nested />
           </div>
         ) : (
-          <div id="activity-events-panel" className="min-w-0 space-y-4 p-4 sm:p-5" data-guide="activity-stream">
+          <div id="activity-events-panel" className="min-w-0 space-y-4 p-3 sm:p-4" data-guide="activity-stream">
         <div ref={streamTopRef} className="flex items-baseline justify-between gap-3 scroll-mt-24">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{t.streamEyebrow}:]
+          <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+            {t.streamEyebrow}
           </span>
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {filtered.length === 0
@@ -262,6 +248,13 @@ export function ActivityView({ explorer }: { explorer: string }) {
           </div>
         )}
       </section>
+
+      <ActivityStats
+        counts={counts}
+        activeGroups={groups}
+        onToggleGroup={toggleGroup}
+        windowSize={events.length}
+      />
     </div>
   );
 }
@@ -288,7 +281,7 @@ function StreamSkeleton({ label }: { label: string }) {
 function StreamError({ body, retryLabel, onRetry }: { body: string; retryLabel: string; onRetry: () => void }) {
   return (
     <div role="alert" className="rounded-xl border border-[var(--lp-border-light)] p-5 text-center space-y-3">
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">[:UNAVAILABLE:]</p>
+      <p className="text-[13px] font-semibold text-[var(--lp-dark)]">Activity unavailable</p>
       <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch] mx-auto">{body}</p>
       <button
         type="button"
@@ -344,7 +337,7 @@ function ActivityPanelTab({
     >
       {tag && (
         <span className="block mono text-[8px] uppercase tracking-[0.12em] leading-tight opacity-70 sm:text-[10px] sm:tracking-[0.18em]">
-          [:{tag}:]
+          {tag}
         </span>
       )}
       <span className={`block whitespace-nowrap text-[10px] leading-tight font-bold uppercase tracking-normal sm:text-[13px] sm:tracking-[0.02em] ${tag ? 'mt-0.5 sm:mt-1' : ''}`}>

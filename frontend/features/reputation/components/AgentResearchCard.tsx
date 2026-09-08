@@ -84,7 +84,7 @@ export function AgentResearchCard() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            [:AGENT RESEARCH:]
+            Agent research
           </p>
           <p className="mt-1.5 font-sans text-[17px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
             Research credit

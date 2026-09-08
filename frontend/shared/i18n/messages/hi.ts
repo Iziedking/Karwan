@@ -62,6 +62,8 @@ export const hi: Messages = {
     preferencesAria: 'प्राथमिकताएँ',
     settingsAriaTitle: 'सेटिंग्स',
     controlLabels: {
+      account: 'USDC बैलेंस',
+      notifications: 'सूचनाएँ',
       theme: 'थीम',
       sound: 'ध्वनि',
     },

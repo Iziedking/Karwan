@@ -31,7 +31,7 @@ test('receipt SVG carries the Karwan reference and excludes wallet addresses', (
   assert.match(svg, /KWN-AB12-CD34-EF56/);
   assert.match(svg, /counterparty/);
   assert.match(svg, /KARWAN\./);
-  assert.match(svg, /M104 124 L111 98 L116 113 L121 98 L128 124/);
+  assert.doesNotMatch(svg, /M104 124 L111 98 L116 113 L121 98 L128 124/);
   assert.match(svg, /Transaction receipt/);
   assert.match(svg, /<circle cx="54" cy="48" r="18"\/>/);
   assert.doesNotMatch(svg, /0x1234567890123456789012345678901234567890/);

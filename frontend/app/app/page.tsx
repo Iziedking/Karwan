@@ -1,161 +1,42 @@
 'use client';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/shared/utils/cn';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
-import { DealsFeed } from '@/features/deals/components/DealsFeed';
-import { LiveNetworkBand, type LiveNetworkStats } from '@/features/home/components/LiveNetworkBand';
-import { PageTour } from '@/shared/guide/PageTour';
-import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
-/// Below-the-fold bands. Dynamically imported so motion (NetworkTicker) and
-/// the in-house SVG chart (OnChainProofBand) do not ship in the initial
-/// /app bundle. Both render purely client-side, so SSR is off; the bands
-/// fade in once the route is interactive.
-///
-/// Each `loading` placeholder reserves the band's eventual height so the
-/// footer (and everything else below) doesn't get yanked downward when the
-/// real component mounts. Without these, /app's CLS was 1.77 locally
-/// (Speed Insights screenshot), dominated by `footer.bg-[var(--lp-light)]`
-/// shifting 0.6452 + 0.1531 and `section.relative.left-1/2.w-bleed`
-/// (NetworkTicker's wrapper) shifting 0.3968 as each band mounted. Heights
-/// are tuned to the rendered desktop size; a slight over-reserve is fine,
-/// any under-reserve brings CLS back.
-const NetworkTicker = dynamic(
-  () => import('@/features/activity/components/NetworkTicker').then((m) => m.NetworkTicker),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        aria-hidden
-        className="relative left-1/2 w-bleed -translate-x-1/2"
-        style={{ minHeight: 160, background: 'var(--lp-workspace-band)' }}
-      />
-    ),
-  },
-);
-const OnChainProofBand = dynamic(
-  () => import('@/features/network/components/OnChainProofBand').then((m) => m.OnChainProofBand),
-  {
-    ssr: false,
-    loading: () => (
-      <div
-        aria-hidden
-        style={{ minHeight: 600, background: 'var(--lp-workspace-band)' }}
-      />
-    ),
-  },
-);
-/// Business-track home. Only loaded for accounts on the business track, so its
-/// chart + heavy bands never ship in the person-home bundle.
-const BusinessHome = dynamic(
-  () => import('@/features/home/components/BusinessHome').then((m) => m.BusinessHome),
-  { ssr: false },
-);
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { useAuth } from '@/shared/hooks/useAuth';
-import { useActivation } from '@/shared/hooks/useActivation';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
-import { SignInGate } from '@/shared/components/SignInGate';
-import { MigrationBanner } from '@/shared/components/MigrationBanner';
-import { QuickStartBand } from '@/shared/components/QuickStartBand';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-  CTAPill,
-} from '@/shared/components/Bands';
 import { isBusinessAccount } from '@/features/account/accountKind';
+import { AccountHome } from '@/features/home/components/AccountHome';
+import { Band, FullBleed, GridOverlay, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
+import { SignInGate } from '@/shared/components/SignInGate';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export default function AppHome() {
   const t = useTranslations().appHome;
-  const router = useRouter();
   const { profile, isConnected, loading, fetchState } = useUserProfile();
-  /// Pull `isLoading` from useAuth directly so we can hold the skeleton
-  /// until auth resolves. Otherwise the page paints `SignInGate variant="hero"`
-  /// briefly for already-authed users, then snaps to the real content,
-  /// that flip was a major CLS contributor on /app (Speed Insights showed
-  /// 0.82 sustained).
   const { isLoading: authLoading } = useAuth();
-  const activation = useActivation();
-
-  /// Backend health probe + network-wide stats. Both ride the shared
-  /// QueryClient cache, so navigating away and back doesn't re-blank the
-  /// hero stat tiles. The dealsStats key is invalidated by the SSE bridge
-  /// on every deal lifecycle event.
   const statusQuery = useQuery({
     queryKey: qk.status(),
     queryFn: () => api.status(),
     staleTime: 60_000,
   });
-  const status = statusQuery.data ?? null;
-  const statusChecked = !statusQuery.isPending;
-
-  const statsQuery = useQuery({
-    queryKey: qk.dealsStats(),
-    queryFn: () => api.dealsStats(),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-  const stats: LiveNetworkStats | null = statsQuery.data
-    ? {
-        deals: statsQuery.data.total,
-        direct: statsQuery.data.direct,
-        agent: statsQuery.data.agent,
-        settled: statsQuery.data.settled,
-        usdc: statsQuery.data.volumeUsdc,
-      }
-    : null;
-
-  /// Whether the account is a business decides which home renders: a business
-  /// gets the trade desk, an individual keeps the P2P home. Uses the canonical
-  /// isBusinessAccount predicate (onboarding accountKind OR verified accountType
-  /// OR a live business envelope), so a verified business is never stranded on
-  /// the individual home just because accountKind was never set. Reads off the
-  /// already-loaded profile, so there is no extra fetch and no hero flash.
   const businessQuery = useQuery({
     queryKey: qk.business.status(profile?.address),
     queryFn: () => api.getBusinessStatus(profile!.address),
     enabled: !!profile?.address && isBusinessAccount(profile),
     staleTime: 60_000,
   });
-  const business = businessQuery.data ?? null;
-  const onBusinessTrack = isBusinessAccount(profile);
 
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {
-      router.replace('/onboarding');
+      window.location.assign('/onboarding');
     }
-  }, [isConnected, fetchState, profile, router]);
+  }, [fetchState, isConnected, profile]);
 
-  // Hold only for auth to resolve (prevents the signed-out hero flash). The
-  // status probe is a backend liveness check that nothing here renders from, so
-  // it must NOT gate the page: blocking on it being pending is what stalled the
-  // hero behind a slow /api/status while the static footer painted instantly.
-  // Offline is still caught below, but only once the probe has actually settled.
-  if (authLoading) {
-    return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">{t.settlementDeskEyebrow}</SectionTag>
-          <div className="mt-7 space-y-4">
-            <div className="h-14 w-3/4 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-            <div className="h-4 w-1/2 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-          </div>
-        </Band>
-      </FullBleed>
-    );
-  }
+  if (authLoading) return <HomeSkeleton />;
 
-  if (statusChecked && !status) {
+  if (!statusQuery.isPending && !statusQuery.data) {
     return (
       <FullBleed>
         <Band tone="light">
@@ -163,7 +44,7 @@ export default function AppHome() {
           <HeroHeadline>
             {t.backendOffline.title}<Punc>.</Punc>
           </HeroHeadline>
-          <p className="mt-5 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-md">
+          <p className="mt-5 max-w-md text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
             {t.backendOffline.bodyPrefix}
             <span className="mono text-[var(--lp-dark)]">{api.baseUrl}</span>
             {t.backendOffline.bodySuffix}
@@ -173,653 +54,34 @@ export default function AppHome() {
     );
   }
 
-  if (!isConnected) {
-    return <SignInGate variant="hero" />;
-  }
+  if (!isConnected) return <SignInGate variant="hero" />;
+  if (loading || !profile) return <HomeSkeleton />;
 
-  if (loading || !profile) {
-    return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <SectionTag tone="dark">{t.settlementDeskEyebrow}</SectionTag>
-          <div className="mt-7 space-y-4">
-            <div className="h-14 w-3/4 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-            <div className="h-4 w-1/2 rounded-md bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-          </div>
-        </Band>
-      </FullBleed>
-    );
-  }
-
-  if (onBusinessTrack) {
-    const companyName =
-      business?.company?.companyName || profile.smeProfile?.companyName || profile.displayName;
-    return (
-      <BusinessHome
-        profile={profile}
-        status={business?.status ?? 'none'}
-        companyName={companyName}
-        stats={stats}
-      />
-    );
-  }
+  const business = businessQuery.data;
+  const businessAccount = isBusinessAccount(profile);
+  const displayName = businessAccount
+    ? business?.company?.companyName || profile.smeProfile?.companyName || profile.displayName
+    : profile.displayName;
 
   return (
+    <AccountHome
+      profile={profile}
+      displayName={displayName}
+      accountKind={businessAccount ? 'business' : 'person'}
+    />
+  );
+}
+
+function HomeSkeleton() {
+  return (
     <FullBleed>
-      <PageTour id={HOME_TOUR_ID} steps={HOME_STEPS} />
-      <MigrationBanner />
-      {/* HERO */}
-      <Band
-        tone="dark"
-        overlay={<GridOverlay />}
-        // Keep the first action band in view on the initial workspace paint.
-        // The hero still has editorial breathing room, but its lower rail no
-        // longer pushes `[:WHERE TO START:]` below the fold.
-        className="!pb-[clamp(24px,4vw,56px)]"
-      >
-        <div className="max-w-5xl">
-          <div className="min-w-0">
-            <div className="fade-up">
-              <SectionTag tone="dark" dot="live">
-                {t.settlementDeskEyebrow}
-              </SectionTag>
-            </div>
-            <div className="fade-up fade-up-1">
-              {/* The greeting stays in the display caps; the username renders in
-                  its natural case and is allowed to wrap, so a long single-word
-                  handle reads cleanly and never overflows on a phone. */}
-              <HeroHeadline className="break-words">
-                {t.hero.welcomeBack}
-                <br />
-                {/* Defensive clamp: new names cap at 40 on input, but a pre-cap
-                    row could still carry a pasted sentence. Truncate the render
-                    so an over-long value never dominates the hero. */}
-                <span className="normal-case">
-                  {profile.displayName.length > 40
-                    ? `${profile.displayName.slice(0, 40).trimEnd()}…`
-                    : profile.displayName}
-                </span>
-                <Punc>.</Punc>
-              </HeroHeadline>
-            </div>
-            <p className="fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]">
-              {t.hero.description}
-            </p>
-            <div
-              data-guide="home-start"
-              className="fade-up fade-up-3 mt-7 flex flex-wrap items-center gap-3"
-            >
-              {(profile.role === 'buyer' || profile.role === 'both') && (
-                <CTAPill href="/buyer">{t.hero.postRequestCta}</CTAPill>
-              )}
-              {(profile.role === 'seller' || profile.role === 'both') && (
-                <CTAPill
-                  href="/seller"
-                  variant={profile.role === 'seller' ? 'primary' : 'secondary'}
-                  tone="dark"
-                >
-                  {t.hero.postOfferCta}
-                </CTAPill>
-              )}
-              <Link
-                href="/activity"
-                className="hidden"
-              >
-                {t.hero.viewActivityCta}
-                <span aria-hidden>→</span>
-              </Link>
-            </div>
-          </div>
-          {!activation.loading && activation.activated && (
-            <div className="fade-up fade-up-4 mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--lp-workspace-border)] pt-5">
-              <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
-                {t.heroAgentCard.eyebrow}
-              </span>
-              <span className="inline-flex items-center gap-2 text-[13px] text-[var(--lp-workspace-muted)]">
-                <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
-                <strong className="font-semibold text-[var(--lp-workspace-ink)]">{t.heroAgentCard.statePrefix}</strong>
-                {t.heroAgentCard.stateActive}
-              </span>
-              <span className="text-[12px] text-[var(--lp-workspace-faint)]">{t.heroAgentCard.stateBody}</span>
-            </div>
-          )}
-        </div>
-      </Band>
-
-      {/* QUICK START. First-run orientation for brand-new users; hides once
-          agents are activated or the user dismisses it. */}
-      <QuickStartBand />
-
-      {/* START HERE */}
-      <Band tone="light">
-        <div className="flex min-h-[320px] flex-col justify-center md:min-h-[360px]">
-          <SectionTag>{t.threeDoors.sectionTag}</SectionTag>
-          <div data-guide="home-doors" className="mt-6 grid md:grid-cols-3 border-y border-[var(--lp-border-light)]">
-            {[
-              { href: '/buyer', card: t.threeDoors.buyerCard },
-              { href: '/seller', card: t.threeDoors.sellerCard },
-              { href: '/activity', card: t.threeDoors.activityCard },
-            ].map(({ href, card }, index) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'group flex items-center justify-between gap-5 py-8 transition-colors hover:bg-black/[0.025] md:py-9',
-                  'md:px-6 md:first:ps-0 md:last:pe-0',
-                  'max-md:border-b max-md:last:border-b-0 max-md:border-[var(--lp-border-light)]',
-                  index > 0 && 'md:border-s md:border-[var(--lp-border-light)]',
-                )}
-              >
-                <div>
-                  <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                    {card.eyebrow}
-                  </span>
-                  <h3 className="mt-2 font-sans text-[20px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)]">
-                    {card.title}
-                  </h3>
-                  <p className="mt-1 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">{card.body}</p>
-                </div>
-                <span aria-hidden className="mono text-[16px] text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-1">+</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </Band>
-
-      {/* LIVE NETWORK */}
-      <LiveNetworkBand stats={stats} />
-
-      {/* ON-CHAIN PROOF. Numbers and a 30-day chart read directly from contract
-          events on the current production deploy. Provable by anyone who curls
-          /api/network/onchain or hits the contract addresses on Arc Explorer. */}
-      <OnChainProofBand />
-
-      {/* NETWORK PULSE. A self-evident sliding ticker of recent deals. The
-          LIVE NETWORK band above already frames it, so it carries no separate
-          header (that band was pure restatement of the two proof surfaces). */}
-      <div className="hidden md:block">
-        <NetworkTicker />
-      </div>
-
-      {/* DEALS ACROSS KARWAN */}
-      <Band tone="light">
-        <SectionTag>{t.yourBook.sectionTag}</SectionTag>
-        <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
-          {t.yourBook.headlinePrefix}<Accent>{t.yourBook.headlineAccent}</Accent><Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
-          <div
-            data-guide="home-deals"
-            className="bg-[var(--lp-card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_56px_-20px_rgba(0,0,0,0.12)] lg:rounded-tl-[28px] lg:rounded-tr-[28px] lg:rounded-bl-[28px] lg:rounded-br-[6px]"
-            style={{
-              marginLeft: 'clamp(20px,5vw,72px)',
-              marginRight: 'clamp(20px,5vw,72px)',
-            }}
-          >
-            <DealsFeed />
-          </div>
+      <Band tone="dark" overlay={<GridOverlay />}>
+        <SectionTag tone="dark">Account home</SectionTag>
+        <div className="mt-7 max-w-2xl space-y-4">
+          <div className="h-14 w-3/4 animate-pulse rounded-md bg-[var(--lp-workspace-soft)] motion-reduce:animate-none" />
+          <div className="h-4 w-1/2 animate-pulse rounded-md bg-[var(--lp-workspace-soft)] motion-reduce:animate-none" />
         </div>
       </Band>
     </FullBleed>
-  );
-}
-
-// Hero agent card. small "control panel" vignette on the right of hero
-
-function HeroAgentCard({
-  dealsRunning,
-  settled,
-  usdcThrough,
-}: {
-  dealsRunning: number | null;
-  settled: number | null;
-  usdcThrough: number | null;
-}) {
-  const t = useTranslations().appHome.heroAgentCard;
-  return (
-    <div
-      className="relative overflow-hidden"
-      style={{
-        background: 'var(--lp-workspace-raised)',
-        color: 'var(--lp-workspace-ink)',
-        border: '1px solid var(--lp-workspace-border)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)]">
-        <div className="flex items-center justify-between">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-            {t.eyebrow}
-          </span>
-          <span
-            aria-hidden
-            data-instrument-blink
-            className="w-[7px] h-[7px]"
-            style={{
-              background: 'var(--lp-accent)',
-              animation: 'instrumentBlink 1.6s ease-in-out infinite',
-            }}
-          />
-        </div>
-        <p className="mt-4 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
-          {t.statePrefix} <span className="text-[var(--lp-accent)]">{t.stateActive}</span>
-        </p>
-        <p className="mt-1.5 text-[12px] text-[var(--lp-workspace-muted)] leading-relaxed">
-          {t.stateBody}
-        </p>
-      </div>
-      <div className="grid grid-cols-3 divide-x divide-[var(--lp-workspace-border)]">
-        <MiniStat label={t.miniLabels.running} value={dealsRunning} />
-        <MiniStat label={t.miniLabels.settled} value={settled} />
-        <MiniStat
-          label={t.miniLabels.volume}
-          value={usdcThrough}
-          decimals={2}
-          unit="USDC"
-        />
-      </div>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  decimals = 0,
-  unit,
-}: {
-  label: string;
-  value: number | null;
-  decimals?: number;
-  unit?: string;
-}) {
-  return (
-    <div className="px-4 py-4">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">{label}</p>
-      <p className="mt-1.5 font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em]">
-        {value == null ? '-' : <AnimatedNumber value={value} decimals={decimals} />}
-      </p>
-      {unit && (
-        <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-workspace-muted)]">{unit}</p>
-      )}
-    </div>
-  );
-}
-
-// Feature card with internal vignette. the Phantom move
-
-function FeatureCard({
-  href,
-  tone,
-  eyebrow,
-  title,
-  body,
-  vignette,
-}: {
-  href: string;
-  tone: 'cream' | 'dark' | 'accent';
-  eyebrow: string;
-  title: string;
-  body: string;
-  vignette: ReactNode;
-}) {
-  const surface =
-    tone === 'dark'
-      ? 'bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] border border-[var(--lp-workspace-border)]'
-      : tone === 'accent'
-        ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
-        : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
-  const eyebrowColor =
-    tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : tone === 'accent' ? 'text-[var(--lp-dark)]/65' : 'text-[var(--lp-text-muted)]';
-  const muted =
-    tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : tone === 'accent' ? 'text-[var(--lp-dark)]/75' : 'text-[var(--lp-text-sub)]';
-  const vignetteBg =
-    tone === 'dark'
-      ? 'var(--lp-workspace-soft)'
-      : tone === 'accent'
-        ? 'rgba(0,0,0,0.06)'
-        : 'var(--lp-light)';
-  const vignetteBorder =
-    tone === 'dark'
-      ? 'var(--lp-workspace-border)'
-      : tone === 'accent'
-        ? 'rgba(0,0,0,0.08)'
-        : 'var(--lp-border-light)';
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'group block relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
-        'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
-        'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
-        surface,
-      )}
-      style={{
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
-      }}
-    >
-      <div className="px-6 pt-6 pb-5">
-        <div className="flex items-center justify-between">
-          <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
-            {eyebrow}
-          </span>
-          <span
-            aria-hidden
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full transition-transform duration-200 group-hover:rotate-[20deg] group-hover:translate-x-0.5"
-            style={{
-              background:
-                tone === 'dark'
-                  ? 'rgba(255,255,255,0.08)'
-                  : tone === 'accent'
-                    ? 'rgba(0,0,0,0.08)'
-                    : 'var(--lp-light)',
-            }}
-          >
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path
-                d="M5 11l6-6M5.5 5h5.5v5.5"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-        </div>
-        <h3 className="mt-5 font-sans text-[26px] font-extrabold uppercase tracking-[-0.02em] leading-[1.02]">
-          {title}
-        </h3>
-        <p className={cn('mt-3 text-pretty text-[13.5px] leading-relaxed', muted)}>{body}</p>
-      </div>
-      <div
-        className="mx-5 mb-5 overflow-hidden min-h-[176px] flex flex-col"
-        style={{
-          background: vignetteBg,
-          border: `1px solid ${vignetteBorder}`,
-          borderTopLeftRadius: 14,
-          borderTopRightRadius: 14,
-          borderBottomLeftRadius: 14,
-          borderBottomRightRadius: 4,
-        }}
-      >
-        {vignette}
-      </div>
-    </Link>
-  );
-}
-
-// Vignettes. tiny mockups of what each door opens onto
-
-function BriefVignette() {
-  // Progress ticks fill one by one, hold, then reset. 7 ticks + 2-step pause.
-  const total = 7;
-  const cycle = total + 3;
-  const t = useTranslations().appHome.briefVignette;
-  const [step, setStep] = useState(0);
-  const [bids, setBids] = useState(4);
-
-  useEffect(() => {
-    const id = setInterval(() => setStep((s) => (s + 1) % cycle), 580);
-    return () => clearInterval(id);
-  }, [cycle]);
-
-  // Bump bid count occasionally to feel alive
-  useEffect(() => {
-    const id = setInterval(() => setBids((b) => (b >= 7 ? 4 : b + 1)), 4200);
-    return () => clearInterval(id);
-  }, []);
-
-  const filled = Math.min(step, total);
-
-  return (
-    <div className="px-4 py-4 space-y-3 flex-1 flex flex-col">
-      <div className="flex items-center justify-between">
-        <span className="mono text-[9px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          {t.eyebrowPrefix} 0x12ab
-        </span>
-        <span className="mono text-[10px] tabular-nums text-[var(--lp-text-sub)]">{t.timeStamp}</span>
-      </div>
-      <p className="text-[13px] font-semibold leading-snug text-[var(--lp-dark)]">
-        {t.sampleBrief}
-      </p>
-      <div className="flex items-baseline gap-1.5">
-        <span className="font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
-          200
-        </span>
-        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          USDC
-        </span>
-        <span className="ms-2 mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
-          {t.daysBids.replace('{bids}', String(bids))}
-        </span>
-      </div>
-      <div className="flex gap-[2px] pt-1">
-        {Array.from({ length: total }).map((_, i) => {
-          const isFresh = i === filled - 1;
-          const isFilled = i < filled;
-          return (
-            <span
-              key={i}
-              className="flex-1 h-[4px] transition-colors duration-500"
-              style={{
-                background: isFresh
-                  ? 'var(--lp-accent)'
-                  : isFilled
-                    ? 'var(--lp-dark)'
-                    : 'rgba(0,0,0,0.08)',
-                boxShadow: isFresh ? '0 0 10px 1px rgba(175, 201, 91,0.7)' : 'none',
-              }}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function BidVignette() {
-  // Re-trigger score ramp every cycle so the card always has visible motion.
-  // The "season" counter forces the requestAnimationFrame ramp to restart.
-  const t = useTranslations().appHome.bidVignette;
-  const [score, setScore] = useState(0);
-  const [price, setPrice] = useState(30);
-  const [season, setSeason] = useState(0);
-
-  useEffect(() => {
-    let raf = 0;
-    const start = performance.now();
-    const target = 82 + Math.floor(Math.random() * 7); // 82-88
-    const duration = 1600;
-    setScore(0);
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setScore(Math.round(eased * target));
-      if (t < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [season]);
-
-  useEffect(() => {
-    const id = setInterval(() => setSeason((s) => s + 1), 5400);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPrice((p) => {
-        const delta = Math.floor(Math.random() * 5) - 2; // -2..+2
-        return Math.max(27, Math.min(34, p + delta));
-      });
-    }, 2400);
-    return () => clearInterval(id);
-  }, []);
-
-  const filledSegments = Math.max(0, Math.min(10, Math.round((score / 100) * 10)));
-
-  return (
-    <div className="px-4 py-4 space-y-3 flex-1 flex flex-col">
-      <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-accent)]">
-            {t.eyebrow}
-          </span>
-          <span className="mono text-[10px] text-[var(--lp-workspace-muted)]">0x1d36...35Ce</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] text-[var(--lp-workspace-muted)]">
-          <span
-            aria-hidden
-            data-instrument-blink
-            className="w-[5px] h-[5px]"
-            style={{
-              background: 'var(--lp-accent)',
-              animation: 'instrumentBlink 1.6s ease-in-out infinite',
-            }}
-          />
-          {t.live}
-        </span>
-      </div>
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
-            {price}
-          </span>
-          <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">USDC</span>
-        </div>
-        <div className="flex items-baseline gap-1">
-          <span
-            key={season}
-            className="font-sans text-[18px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-accent)] fade-up"
-          >
-            {score}
-          </span>
-          <span className="mono text-[9px] tracking-[0.08em] text-[var(--lp-workspace-muted)]">{t.scoreSuffix}</span>
-        </div>
-      </div>
-      <div className="flex gap-[2px]">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <span
-            key={i}
-            className="flex-1 h-[3px] transition-colors"
-            style={{
-              background: i < filledSegments ? 'var(--lp-accent)' : 'rgba(255,255,255,0.10)',
-              transitionDuration: '320ms',
-              transitionDelay: `${i * 28}ms`,
-            }}
-          />
-        ))}
-      </div>
-      <div className="flex justify-between text-[10px] mono text-[var(--lp-workspace-muted)] pt-1">
-        <span>{t.counter.replace('{price}', '27')}</span>
-        <span>{t.eta}</span>
-      </div>
-    </div>
-  );
-}
-
-function StreamVignette() {
-  // A rotating window of 3 visible events out of a pool. Every ~3 seconds a new
-  // event arrives at the top and the older rows shift down; the bottom row drops.
-  const t = useTranslations().appHome.streamVignette;
-  const pool = useMemo(
-    () =>
-      [
-        { label: 'bid.scored', addr: '0x12ab...cd34', tone: 'buyer' as const },
-        { label: 'deal.matched', addr: '0xa045...03c5', tone: 'system' as const },
-        { label: 'escrow.funded', addr: '0xb2ca...f9c9', tone: 'buyer' as const },
-        { label: 'milestone.released', addr: '0x4d61...4f75', tone: 'buyer' as const },
-        { label: 'counter.issued', addr: '0xc469...6cb0', tone: 'buyer' as const },
-        { label: 'listing.posted', addr: '0xf4ea...5c8b', tone: 'seller' as const },
-        { label: 'bid.submitted', addr: '0x17e6...1176', tone: 'seller' as const },
-      ],
-    [],
-  );
-  const [head, setHead] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setHead((h) => (h + 1) % pool.length), 3200);
-    return () => clearInterval(id);
-  }, [pool.length]);
-
-  const window = [0, 1, 2].map((i) => ({
-    ...pool[(head + i) % pool.length],
-    age: i === 0 ? t.now : i === 1 ? '12s' : '38s',
-  }));
-
-  const toneColor = (tone: 'buyer' | 'seller' | 'system') =>
-    tone === 'buyer'
-      ? 'var(--lp-dark)'
-      : tone === 'seller'
-        ? 'rgba(0,0,0,0.65)'
-        : 'rgba(0,0,0,0.4)';
-
-  return (
-    <div className="px-4 py-4 relative flex-1 flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <span className="mono text-[9px] uppercase tracking-[0.2em] font-semibold text-[var(--lp-dark)]/70">
-          {t.eyebrow}
-        </span>
-        <span className="inline-flex items-center gap-1.5 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-dark)]/70">
-          <span
-            aria-hidden
-            data-instrument-blink
-            className="w-[5px] h-[5px]"
-            style={{
-              background: 'var(--lp-band-dark)',
-              animation: 'instrumentBlink 1.6s ease-in-out infinite',
-            }}
-          />
-          {t.live}
-        </span>
-      </div>
-      <span
-        aria-hidden
-        className="absolute start-[27px] top-[44px] bottom-[18px] w-px"
-        style={{ background: 'rgba(0,0,0,0.18)' }}
-      />
-      <ol key={head} className="space-y-1.5">
-        {window.map((r, i) => (
-          <li
-            key={i}
-            className={cn(
-              'flex items-center gap-3 relative slide-in rounded-md px-1.5 py-1 -mx-1.5',
-              i === 0 && 'row-flash',
-            )}
-            style={{ animationDelay: `${i * 60}ms`, opacity: 1 - i * 0.12 }}
-          >
-            <span
-              aria-hidden
-              className="relative shrink-0 w-2 h-2 rounded-full z-10"
-              style={{
-                background: toneColor(r.tone),
-                outline: i === 0 ? '2px solid var(--lp-accent)' : 'none',
-                outlineOffset: '-1px',
-                boxShadow: i === 0 ? '0 0 0 4px rgba(175, 201, 91,0.32)' : 'none',
-              }}
-            />
-            <div className="flex-1 min-w-0 flex items-baseline justify-between gap-2">
-              <span className="mono text-[11px] font-semibold tabular-nums tracking-tight text-[var(--lp-dark)]">
-                {r.label}
-              </span>
-              <span className="mono text-[10px] tabular-nums text-[var(--lp-dark)]/65">
-                {r.addr}
-              </span>
-            </div>
-            <span className="mono text-[9px] tabular-nums text-[var(--lp-dark)]/55 shrink-0">
-              {r.age}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
   );
 }

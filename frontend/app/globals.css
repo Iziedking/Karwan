@@ -9,6 +9,32 @@
   }
 }
 
+/* Dedicated profile pages use the same clear, proportional product language as
+   the profile hub. Legacy account controls can keep their behaviour without
+   carrying the old terminal-style typography into these routes. */
+.profile-route .mono {
+  font-family: var(--font-sans) !important;
+}
+
+.profile-route .uppercase {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.profile-route .karwan-section-tag {
+  gap: 0;
+  font-family: var(--font-sans) !important;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.profile-route .karwan-section-tag-decor,
+.profile-route .karwan-section-dot {
+  display: none;
+}
+
 @keyframes karwan-sheet-inline {
   from {
     transform: translate3d(100%, 0, 0);
@@ -58,13 +84,12 @@
   --color-critical: #7a1f1a;
   --color-critical-soft: rgba(122, 31, 26, 0.08);
 
+  /* Wise-inspired product typography: one clear sans family throughout the
+     product. Compatibility aliases intentionally resolve to the same face so
+     legacy utility classes cannot reintroduce mono or serif text. */
   --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  /* Reading copy uses Poppins Regular. Display, controls, values and system
-     metadata remain on the established General Sans and Geist Mono stack. */
-  --font-body: var(--font-poppins), var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* Legacy serif call sites resolve to the product sans so every user-facing
-     write-up keeps the same Robinhood-style voice. */
+  --font-body: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-mono: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   --font-serif: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
 
   --shadow-card: 0 1px 0 rgba(12, 14, 16, 0.04), 0 12px 28px -16px rgba(12, 14, 16, 0.08);
@@ -263,30 +288,30 @@ html[data-theme="dark"] {
 html[data-theme="dark"] {
   /* "ink" inverts. Every `text-[var(--lp-dark)]` across the app now reads as
      a soft white on the new dark surfaces. */
-  --lp-dark: var(--ink-1);
+  --lp-dark: #f4f6f2;
   /* Page-level surface (was cream) becomes a near-black with a hint of warmth
      so the cream→dark transition keeps the same compositional feel. */
   /* NOTE: this is the SAME value as --lp-band-dark below. Anything painting
      --lp-light on a --lp-band-dark surface is invisible in dark mode, which
      is how a selected chip lost its label. Use #ffffff for text on a fixed
      dark band, never --lp-light. */
-  --lp-light: var(--surface-0);
+  --lp-light: #0a0d0b;
   /* Cards rise one notch above the surface for the same "panel on paper" feel
      the light theme has with white-on-cream. */
-  --lp-card: var(--surface-1);
+  --lp-card: #131814;
   /* Borders invert from ink-on-cream to light-on-black. */
-  --lp-border-light: var(--rule-dark);
-  --lp-border-subtle: var(--rule-dark);
+  --lp-border-light: rgba(238, 244, 235, 0.105);
+  --lp-border-subtle: rgba(238, 244, 235, 0.075);
   /* Muted/sub text bumps brighter so 11–12px mono labels stay legible. */
-  --lp-text-muted: var(--ink-2);
-  --lp-text-sub: var(--ink-1);
+  --lp-text-muted: #879087;
+  --lp-text-sub: #bcc4bc;
   --lp-accent-on-light: var(--accent);
   /* Fields RISE above both panel surfaces rather than receding. Recessing them
      was tried on paper and measures worse: every colour darker than --lp-light
      lands within 1.07:1 of it, because there is very little room left below
      #14141a. Raising to #26262e reads 1.22:1 against the page and 1.13:1 against
      a card, so a field is identifiable on either. */
-  --lp-field: var(--surface-2);
+  --lp-field: #1a211c;
   /* The border is what actually carries the field, so it meets the 3:1 that WCAG
      asks of a UI component boundary (3.05:1 measured against --lp-field). The
      inherited 9% white hairline managed 1.29:1. */
@@ -296,14 +321,15 @@ html[data-theme="dark"] {
   --lp-outline-hover: rgba(255, 255, 255, 0.55);
   /* Preserve the approved dark workspace byte-for-byte while light mode uses
      the paper-led composition above. */
-  --lp-workspace-band: var(--surface-0);
-  --lp-workspace-raised: rgba(255, 255, 255, 0.04);
-  --lp-workspace-ink: #FFFFFF;
-  --lp-workspace-muted: rgba(255, 255, 255, 0.62);
-  --lp-workspace-faint: rgba(255, 255, 255, 0.45);
-  --lp-workspace-border: rgba(255, 255, 255, 0.10);
-  --lp-workspace-soft: rgba(255, 255, 255, 0.06);
-  --lp-workspace-grid: rgba(255, 255, 255, 0.06);
+  --lp-workspace-band: #0a0d0b;
+  --lp-workspace-raised: #151b17;
+  --lp-workspace-ink: #f4f6f2;
+  --lp-workspace-muted: #b2bbb2;
+  --lp-workspace-faint: #7d877e;
+  --lp-workspace-border: rgba(238, 244, 235, 0.11);
+  --lp-workspace-soft: rgba(238, 244, 235, 0.065);
+  --lp-workspace-grid: rgba(238, 244, 235, 0.04);
+  --product-panel-shadow: 0 1px 0 rgba(255,255,255,0.035), 0 28px 80px -48px rgba(0,0,0,0.9);
   --lp-control-active-bg: var(--lp-accent);
   --lp-control-active-ink: var(--ink-inv-0);
   --lp-control-active-border: var(--lp-accent);
@@ -429,7 +455,433 @@ html[data-theme="dark"] {
   }
 }
 
-.mono { font-family: var(--font-mono); font-feature-settings: "calt" 0; }
+.mono { font-family: var(--font-general-sans), var(--font-geist), ui-sans-serif, sans-serif; font-feature-settings: "ss01", "cv11", "tnum"; }
+
+/* Product surfaces use one proportional type system. The public landing page
+   keeps its existing editorial treatment until its own pass. */
+.platform-copy,
+.product-surface {
+  font-family: var(--font-sans);
+}
+
+/* Product workspace: quiet depth, open composition, and data-led movement.
+   The landing page does not opt into these classes. */
+.product-surface {
+  --product-panel-shadow: 0 18px 60px -42px rgba(10, 13, 11, 0.28);
+}
+
+/* A single trade-lane drawing gives the workspace a sense of place without
+   turning the product surface into a hero. The PNG has a real alpha channel,
+   so only the pencil and natural-green strokes sit over the page canvas. */
+.global-trade-sketch {
+  position: fixed;
+  inset: var(--lp-nav-h, 72px) 0 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url('/media/karwan-trade-sketch-clean.png');
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: auto min(780px, 78vh);
+  opacity: 0.14;
+  filter: sepia(0.22) saturate(1.35) hue-rotate(10deg) brightness(0.96) contrast(1.04);
+  mix-blend-mode: multiply;
+  mask-image: radial-gradient(ellipse 78% 74% at 52% 46%, #000 0%, rgba(0, 0, 0, 0.84) 58%, transparent 100%);
+}
+
+/* Let the shared trade drawing carry through product bands as a quiet paper
+   texture. Editorial and admin shells stay opaque; only routes that mount the
+   art receive this treatment. */
+.product-chrome [data-surface="workspace"] {
+  background-color: color-mix(in srgb, var(--lp-workspace-band) 88%, transparent);
+}
+
+.product-chrome [data-surface="paper"] {
+  background-color: color-mix(in srgb, var(--lp-light) 88%, transparent);
+}
+
+html[data-theme="dark"] .global-trade-sketch {
+  opacity: 0.055;
+  filter: saturate(0.72) brightness(1.05);
+  mix-blend-mode: normal;
+  mask-image: radial-gradient(ellipse 78% 74% at 52% 46%, #000 0%, rgba(0, 0, 0, 0.84) 58%, transparent 100%);
+}
+
+@media (max-width: 767px) {
+  .global-trade-sketch {
+    background-position: 52% top;
+    background-size: auto min(560px, 72vh);
+    opacity: 0.12;
+  }
+
+  html[data-theme="dark"] .global-trade-sketch {
+    opacity: 0.045;
+  }
+}
+
+html[data-theme="dark"] .product-surface {
+  --product-panel-shadow: 0 1px 0 rgba(255,255,255,0.025), 0 28px 80px -48px rgba(0,0,0,0.92);
+}
+
+.home-command-grid {
+  display: grid;
+  gap: clamp(20px, 4vw, 56px);
+  border-bottom: 1px solid var(--lp-border-light);
+  padding-bottom: clamp(22px, 4vw, 42px);
+}
+
+.home-position,
+.trade-route {
+  background: var(--lp-card);
+  border: 1px solid var(--lp-border-light);
+  box-shadow: var(--product-panel-shadow);
+}
+
+.home-position {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 360px;
+  flex-direction: column;
+  overflow: hidden;
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: 28px 28px 8px 28px;
+}
+
+.home-position::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--lp-accent);
+  content: '';
+  transform-origin: left;
+  animation: account-current 700ms var(--ease-out) both;
+}
+
+@keyframes account-current {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+.trade-route {
+  min-width: 0;
+  padding: clamp(20px, 3vw, 28px);
+  border-radius: 22px 22px 6px 22px;
+}
+
+.deal-flow {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+}
+
+.deal-flow::before {
+  position: absolute;
+  inset-inline: 14px;
+  top: 14px;
+  height: 1px;
+  background: var(--lp-border-light);
+  content: '';
+}
+
+.deal-flow::after {
+  position: absolute;
+  inset-inline: 14px;
+  top: 13px;
+  inline-size: auto;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--lp-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--lp-accent) 24%, transparent);
+  content: '';
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: deal-flow-line 900ms var(--ease-out) 100ms both;
+}
+
+[dir="rtl"] .deal-flow::after {
+  transform-origin: right;
+}
+
+.deal-flow li {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  opacity: 0;
+  transform: translateY(7px);
+  animation: deal-flow-step-in 420ms var(--ease-out) var(--flow-delay, 120ms) both;
+}
+
+.deal-flow-node {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1px solid var(--lp-border-light);
+  border-radius: 50%;
+  background: var(--lp-card);
+  color: var(--lp-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out), color 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.deal-flow-node::after {
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--lp-accent) 54%, transparent);
+  border-radius: 50%;
+  content: '';
+  opacity: 0;
+  transform: scale(0.72);
+  animation: deal-flow-ring 520ms var(--ease-out) calc(var(--flow-delay, 120ms) + 110ms) both;
+}
+
+.deal-flow-node-mark {
+  display: block;
+  animation: deal-flow-mark 360ms var(--ease-out) calc(var(--flow-delay, 120ms) + 90ms) both;
+}
+
+.deal-flow-label {
+  max-width: 10ch;
+  padding-inline-end: 8px;
+  color: var(--lp-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.deal-flow .is-complete .deal-flow-node,
+.deal-flow .is-active .deal-flow-node {
+  border-color: var(--lp-accent);
+  background: var(--lp-accent);
+  color: var(--accent-ink);
+}
+
+.deal-flow .is-active .deal-flow-node {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--lp-accent) 14%, transparent);
+  transform: scale(1.05);
+}
+
+@keyframes deal-flow-line {
+  from { transform: scaleX(0); opacity: 0; }
+  20% { opacity: 1; }
+  to { transform: scaleX(var(--flow-scale, 0)); opacity: 1; }
+}
+
+@keyframes deal-flow-step-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes deal-flow-ring {
+  0% { opacity: 0; transform: scale(0.72); }
+  38% { opacity: 0.74; }
+  100% { opacity: 0; transform: scale(1.24); }
+}
+
+@keyframes deal-flow-mark {
+  from { opacity: 0; transform: scale(0.55); }
+  70% { opacity: 1; transform: scale(1.12); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.deal-flow .is-complete .deal-flow-label,
+.deal-flow .is-active .deal-flow-label {
+  color: var(--lp-dark);
+}
+
+.trade-book > li + li {
+  border-top: 1px solid var(--lp-border-light);
+}
+
+@media (min-width: 960px) {
+  .home-command-grid {
+    grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
+    align-items: stretch;
+  }
+  .home-position {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 639px) {
+  .home-position {
+    min-height: 330px;
+    border-radius: 22px 22px 7px 22px;
+  }
+  .deal-flow-label {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-position::before { animation: none; }
+  .deal-flow::after,
+  .deal-flow li,
+  .deal-flow-node::after,
+  .deal-flow-node-mark { animation: none; }
+  .deal-flow li { opacity: 1; transform: none; }
+  .deal-flow .is-active .deal-flow-node { transform: none; }
+}
+
+.account-launcher,
+.market-pulse {
+  border: 1px solid var(--lp-border-light);
+  background: var(--lp-card);
+  box-shadow: var(--product-panel-shadow);
+}
+
+.account-launcher {
+  height: fit-content;
+  padding: 22px;
+  border-radius: 22px 22px 7px 22px;
+}
+
+.market-pulse {
+  padding: 18px;
+  border-radius: 18px 18px 6px 18px;
+}
+
+.market-searchbar {
+  position: sticky;
+  top: var(--lp-nav-h, 72px);
+  z-index: 12;
+  margin-inline: -12px;
+  padding-inline: 12px;
+  background: color-mix(in srgb, var(--lp-light) 94%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.market-card {
+  min-height: 238px;
+  box-shadow: var(--product-panel-shadow);
+}
+
+.market-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--lp-accent);
+  content: '';
+  opacity: 0;
+  transform: scaleY(0.35);
+  transition: opacity 200ms var(--ease-out), transform 240ms var(--ease-out);
+}
+
+.market-card:hover::before,
+.market-card:focus-visible::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.activity-ledger {
+  box-shadow: var(--product-panel-shadow);
+}
+
+.deal-command-panel {
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--product-panel-shadow);
+}
+
+.deal-command-panel::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--lp-accent);
+  content: '';
+}
+
+html[data-theme="dark"] [data-chrome="nav"] {
+  background: rgba(10, 13, 11, 0.94);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.025);
+}
+
+html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
+  box-shadow: none;
+}
+
+@media (min-width: 1280px) {
+  .market-grid > .market-card:first-child {
+    grid-column: span 2;
+  }
+  .market-grid > .market-card:first-child h3 {
+    max-width: 28ch;
+    font-size: 24px;
+    line-height: 1.12;
+  }
+}
+
+@media (max-width: 959px) {
+  .market-searchbar {
+    top: 64px;
+  }
+}
+
+@media (max-width: 639px) {
+  .account-launcher,
+  .market-pulse {
+    border-radius: 18px 18px 6px 18px;
+  }
+  .market-searchbar {
+    margin-inline: -4px;
+    padding-inline: 4px;
+    backdrop-filter: blur(12px);
+  }
+  .market-card {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-card::before { transition: none; }
+}
+
+.platform-copy .mono,
+.platform-copy .font-mono,
+.product-surface .mono,
+.product-surface .font-mono {
+  font-family: var(--font-sans) !important;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  letter-spacing: normal !important;
+}
+
+.platform-copy .uppercase,
+.product-surface .uppercase {
+  text-transform: none !important;
+}
+
+.platform-copy .karwan-section-tag,
+.product-surface .karwan-section-tag {
+  gap: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal !important;
+  text-transform: none;
+}
+
+.platform-copy .karwan-section-tag > span:not(.karwan-section-tag-decor),
+.product-surface .karwan-section-tag > span:not(.karwan-section-tag-decor) {
+  display: inline;
+}
+
+.platform-copy .karwan-section-tag-decor,
+.product-surface .karwan-section-tag-decor {
+  display: none;
+}
+
+.platform-copy .karwan-section-dot:not([data-live]),
+.product-surface .karwan-section-dot:not([data-live]) {
+  display: none !important;
+}
 /* Product copy. Opt-in per element rather than a blanket p{} rule, because the
    app sets plenty of <p> that is metadata rather than prose (mono tags, stat
    values, address strings) and those must stay where they are. */
@@ -1105,7 +1557,7 @@ html.float-clear [data-float-launcher] {
   .celebrate-sheen { display: none !important; }
 }
 
-/* Editorial display utility — Instrument Serif at a generous size with tight tracking. */
+/* Display utility — the same clear sans family at a generous size with tight tracking. */
 .display {
   font-family: var(--font-serif);
   font-weight: 400;

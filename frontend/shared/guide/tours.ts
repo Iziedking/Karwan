@@ -310,58 +310,6 @@ export const DEAL_STEPS: TourStep[] = [
   },
 ];
 
-/// Profile tour. Spotlights each part of the redesigned profile in page order,
-/// role-aware because funding works differently for Circle vs web3 wallets.
-/// Bumped to v4 for the wallet-first profile redesign: wallets now lead the
-/// deck and the first step points directly at the faucet entry point. The
-/// bridge moved to the hero Top up
-/// card, wallets became a holdings view, and a folded multi-chain breakdown was
-/// added, so returning users should see the refreshed walkthrough.
-export const PROFILE_TOUR_ID = 'profile-v4';
-export function buildProfileSteps(isCircle: boolean): TourStep[] {
-  return [
-    {
-      target: 'profile-faucet',
-      title: 'Get test USDC',
-      body: 'Wallets open first. Choose Get USDC on the wallet you want to seed, then follow the faucet flow.',
-    },
-    {
-      target: 'profile-balances',
-      title: 'See your balances',
-      body: 'Expand the holdings view when you need balances from other supported chains.',
-    },
-    {
-      target: 'profile-nav',
-      title: 'Move between profile surfaces',
-      body: 'Use the tabs to switch between wallets, money, deals, agents, setup, and contact settings.',
-    },
-    {
-      target: 'profile-topup',
-      title: 'Bring USDC to Arc',
-      body: isCircle
-        ? 'Open Top up to send USDC to the wallet shown. Karwan moves it onto Arc for you.'
-        : 'Open Top up to move USDC from Base or Ethereum to Arc from your own wallet.',
-    },
-    {
-      target: 'profile-identity',
-      title: 'Review setup',
-      body: 'Review your role and the limits your agents follow. Activate agents here if they are not running.',
-    },
-    {
-      target: 'profile-agents',
-      title: 'Agent funds',
-      body: isCircle
-        ? 'Fund the agent wallet used for escrow, or withdraw to your own wallet. Circle handles signing.'
-        : 'Fund the agent wallet used for escrow, or withdraw to your own wallet.',
-    },
-    {
-      target: 'profile-preferences',
-      title: 'Contact preferences',
-      body: 'Choose where Karwan sends deal updates.',
-    },
-  ];
-}
-
 /// Activity stream tour. The general feed is a privacy pulse now: it shows that
 /// the network is alive without revealing any deal's parties or amounts.
 export const ACTIVITY_TOUR_ID = 'activity-v3';

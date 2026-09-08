@@ -62,6 +62,8 @@ export const ar: Messages = {
     preferencesAria: 'التفضيلات',
     settingsAriaTitle: 'الإعدادات',
     controlLabels: {
+      account: 'رصيد USDC',
+      notifications: 'الإشعارات',
       theme: 'المظهر',
       sound: 'الصوت',
     },

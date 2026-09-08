@@ -12,11 +12,12 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Locale } from '@/shared/i18n/locales';
 import { adoptPreferenceIfUnset, setThemePreference } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
+import { ThemeControl } from '@/shared/components/ThemeControl';
 
 type Saver = (patch: UserSettings) => Promise<void>;
 
 const DEFAULT_SETTINGS: UserSettings = {
-  theme: 'system',
+  theme: 'dark',
   soundEnabled: true,
   notificationsMuted: false,
   publicPassport: true,
@@ -157,15 +158,7 @@ export function SettingsBand() {
       </Row>
 
       <Row label={t.settings.theme}>
-        <ToggleGroup
-          value={settings.theme ?? 'system'}
-          options={[
-            { value: 'light', label: t.settings.themeLight },
-            { value: 'dark', label: t.settings.themeDark },
-            { value: 'system', label: t.settings.themeSystem },
-          ]}
-          onChange={(v) => onThemeChange(v as ThemePreference)}
-        />
+        <ThemeControl onChange={onThemeChange} />
       </Row>
 
       <Row label={t.settings.sound}>

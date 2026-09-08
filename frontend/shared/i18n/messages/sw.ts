@@ -62,6 +62,8 @@ export const sw: Messages = {
     preferencesAria: 'Mapendelo',
     settingsAriaTitle: 'Mipangilio',
     controlLabels: {
+      account: 'Salio la USDC',
+      notifications: 'Arifa',
       theme: 'Mandhari',
       sound: 'Sauti',
     },
