@@ -64,7 +64,7 @@ export interface CreEvidenceReceiptBinding {
   boundAt: number;
 }
 
-type DealForRequest = Pick<
+export type DealForRequest = Pick<
   DirectDeal,
   | 'jobId'
   | 'delivered'
@@ -75,6 +75,31 @@ type DealForRequest = Pick<
   | 'creEvidenceReceipt'
   | 'evidenceExpectedCommitment'
 >;
+
+export type CreDeliveryRequestQueueClassification =
+  | { kind: 'absent' }
+  | { kind: 'current'; request: CreDeliveryRequest }
+  | { kind: 'stale'; request: CreDeliveryRequest }
+  | { kind: 'expired'; request: CreDeliveryRequest };
+
+/// The deal JSON row is a compatibility mirror during queue adoption. Only a
+/// request that still matches the live agreement and delivery may be imported;
+/// stale rows are never force-republished into an active queue revision.
+export function classifyCreDeliveryRequestForQueue(
+  deal: DealForRequest,
+  nowSeconds = Math.floor(Date.now() / 1_000),
+): CreDeliveryRequestQueueClassification {
+  const request = deal.creDeliveryRequest;
+  if (!request) return { kind: 'absent' };
+  const current = deal.delivered
+    && deal.evidenceRequired === true
+    && request.dealId.toLowerCase() === deal.jobId.toLowerCase()
+    && request.termsVersion === (deal.agreementVersion ?? 1)
+    && request.evidenceRevision === (deal.deliveryRevision ?? 0);
+  if (!current) return { kind: 'stale', request };
+  if (request.expiresAt <= nowSeconds) return { kind: 'expired', request };
+  return { kind: 'current', request };
+}
 
 export type DeliveryRequestBuildResult =
   | { ok: true; request: CreDeliveryRequest; idempotent: boolean }

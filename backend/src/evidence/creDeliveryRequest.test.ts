@@ -4,6 +4,7 @@ import {
   bearerTokenMatches,
   bindCreEvidenceReceipt,
   buildCreDeliveryRequest,
+  classifyCreDeliveryRequestForQueue,
   deliveryRequestInputSchema,
   evidenceReceiptBindingInputSchema,
   publicCreDeliveryRequest,
@@ -74,6 +75,16 @@ test('current selection ignores stale requests and refuses an ambiguous queue', 
   const selected = selectCurrentCreDeliveryRequest([{ ...baseDeal, creDeliveryRequest: first.request }, second], secondId, now);
   assert.equal(selected.kind, 'ok');
   if (selected.kind === 'ok') assert.equal(selected.request.dealId, secondId);
+});
+
+test('classifies JSON-mirrored requests before queue adoption', () => {
+  const published = buildCreDeliveryRequest(baseDeal, input, now);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  assert.equal(classifyCreDeliveryRequestForQueue(baseDeal, now).kind, 'absent');
+  assert.equal(classifyCreDeliveryRequestForQueue({ ...baseDeal, creDeliveryRequest: published.request }, now).kind, 'current');
+  assert.equal(classifyCreDeliveryRequestForQueue({ ...baseDeal, deliveryRevision: 3, creDeliveryRequest: published.request }, now).kind, 'stale');
+  assert.equal(classifyCreDeliveryRequestForQueue({ ...baseDeal, creDeliveryRequest: published.request }, now + 3_601).kind, 'expired');
 });
 
 test('binds a receipt only to the current published request and is idempotent', () => {
