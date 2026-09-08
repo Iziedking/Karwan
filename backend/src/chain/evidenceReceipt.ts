@@ -11,6 +11,7 @@ export type EvidenceReceiptState =
   | 'unavailable'
   | 'expired'
   | 'stale-terms'
+  | 'stale-delivery'
   | 'read-unavailable';
 
 export interface EvidenceReceiptView {
@@ -19,6 +20,7 @@ export interface EvidenceReceiptView {
   registryAddress?: Address;
   termsVersion?: number;
   evidenceRevision?: number;
+  expectedEvidenceRevision?: number;
   expiresAt?: number;
   recordedAt?: number;
   evidenceCommitment?: Hex;
@@ -42,6 +44,7 @@ export function classifyEvidenceReceipt(
   agreementVersion: number,
   nowSeconds: number,
   registryAddress?: Address,
+  expected?: { evidenceRevision?: number; evidenceCommitment?: Hex },
 ): EvidenceReceiptView {
   if (raw.termsVersion === 0n) {
     return { state: 'not-recorded', agreementVersion, registryAddress };
@@ -58,6 +61,18 @@ export function classifyEvidenceReceipt(
     reportId: raw.reportId,
   };
   if (detail.termsVersion !== agreementVersion) return { ...detail, state: 'stale-terms' };
+  if (
+    expected?.evidenceRevision !== undefined
+    && detail.evidenceRevision !== expected.evidenceRevision
+  ) {
+    return { ...detail, expectedEvidenceRevision: expected.evidenceRevision, state: 'stale-delivery' };
+  }
+  if (
+    expected?.evidenceCommitment !== undefined
+    && detail.evidenceCommitment !== expected.evidenceCommitment
+  ) {
+    return { ...detail, expectedEvidenceRevision: expected.evidenceRevision, state: 'stale-delivery' };
+  }
   if (detail.expiresAt < nowSeconds) return { ...detail, state: 'expired' };
   if (raw.decisionCode === 1) return { ...detail, state: 'pass' };
   if (raw.decisionCode === 2) return { ...detail, state: 'mismatch' };
@@ -67,6 +82,7 @@ export function classifyEvidenceReceipt(
 export async function readEvidenceReceipt(
   dealId: string,
   agreementVersion: number,
+  expected?: { evidenceRevision?: number; evidenceCommitment?: Hex },
 ): Promise<EvidenceReceiptView> {
   const registryAddress = config.KARWAN_EVIDENCE_REGISTRY_ADDR as Address | undefined;
   if (!registryAddress) return { state: 'not-configured', agreementVersion };
@@ -82,6 +98,7 @@ export async function readEvidenceReceipt(
       agreementVersion,
       Math.floor(Date.now() / 1_000),
       registryAddress,
+      expected,
     );
   } catch {
     return { state: 'read-unavailable', agreementVersion, registryAddress };

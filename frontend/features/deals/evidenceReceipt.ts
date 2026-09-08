@@ -8,6 +8,7 @@ export type EvidenceReceiptCopyKey =
   | 'unavailable'
   | 'expired'
   | 'staleTerms'
+  | 'staleDelivery'
   | 'readUnavailable'
   | 'notRecorded'
   | 'notConfigured';
@@ -19,6 +20,7 @@ export function evidenceReceiptCopyKey(state: State): EvidenceReceiptCopyKey {
     case 'unavailable': return 'unavailable';
     case 'expired': return 'expired';
     case 'stale-terms': return 'staleTerms';
+    case 'stale-delivery': return 'staleDelivery';
     case 'read-unavailable': return 'readUnavailable';
     case 'not-recorded': return 'notRecorded';
     case 'not-configured': return 'notConfigured';

@@ -3039,7 +3039,7 @@ export const ar: Messages = {
     },
     evidenceReceipt: {
       label: 'إيصال دليل ARC',
-      states: { pass: 'نجح فحص التسليم', mismatch: 'عدم تطابق التسليم', unavailable: 'فحص التسليم غير متاح', expired: 'انتهت صلاحية الفحص', staleTerms: 'تم فحص اتفاق أقدم', readUnavailable: 'إيصال Arc غير متاح', notRecorded: 'بانتظار فحص التسليم', notConfigured: 'فحص التسليم غير مهيأ' },
+      states: { pass: 'نجح فحص التسليم', mismatch: 'عدم تطابق التسليم', unavailable: 'فحص التسليم غير متاح', expired: 'انتهت صلاحية الفحص', staleTerms: 'تم فحص اتفاق أقدم', staleDelivery: 'تم فحص تسليم أقدم', readUnavailable: 'إيصال Arc غير متاح', notRecorded: 'بانتظار فحص التسليم', notConfigured: 'فحص التسليم غير مهيأ' },
       passBody: 'يطابق الدليل المسجل نسخة الاتفاق هذه. راجع العمل قبل تحرير الدفعة.',
       mismatchBody: 'لا يطابق الدليل المسجل المعايير المقبولة. تبقى الدفعة خاضعة لمراجعتك.',
       unavailableBody: 'تعذر التحقق من المصدر. النتيجة غير معروفة وليست فشلاً في التسليم.',

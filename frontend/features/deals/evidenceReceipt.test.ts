@@ -5,6 +5,7 @@ import { evidenceReceiptCopyKey, evidenceReceiptTone } from './evidenceReceipt.j
 test('maps every chain receipt state to deliberate UI copy', () => {
   assert.equal(evidenceReceiptCopyKey('pass'), 'pass');
   assert.equal(evidenceReceiptCopyKey('stale-terms'), 'staleTerms');
+  assert.equal(evidenceReceiptCopyKey('stale-delivery'), 'staleDelivery');
   assert.equal(evidenceReceiptCopyKey('read-unavailable'), 'readUnavailable');
 });
 

@@ -3039,7 +3039,7 @@ export const fr: Messages = {
     },
     evidenceReceipt: {
       label: 'REÇU DE PREUVE ARC',
-      states: { pass: 'Vérification réussie', mismatch: 'Écart de livraison', unavailable: 'Vérification indisponible', expired: 'Vérification expirée', staleTerms: 'Ancien accord vérifié', readUnavailable: 'Reçu Arc indisponible', notRecorded: 'Vérification en attente', notConfigured: 'Vérification non configurée' },
+      states: { pass: 'Vérification réussie', mismatch: 'Écart de livraison', unavailable: 'Vérification indisponible', expired: 'Vérification expirée', staleTerms: 'Ancien accord vérifié', staleDelivery: 'Ancienne livraison vérifiée', readUnavailable: 'Reçu Arc indisponible', notRecorded: 'Vérification en attente', notConfigured: 'Vérification non configurée' },
       passBody: 'La preuve enregistrée correspond à cette version de l’accord. Examinez le travail avant de libérer le paiement.',
       mismatchBody: 'La preuve enregistrée ne correspond pas aux critères acceptés. Le paiement reste soumis à votre décision.',
       unavailableBody: 'La source n’a pas pu être vérifiée. Le résultat est inconnu, pas négatif.',

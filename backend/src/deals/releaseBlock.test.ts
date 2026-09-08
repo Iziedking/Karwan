@@ -25,11 +25,22 @@ test('CRE mismatch and unreadable receipts pause unattended release', () => {
     releaseBlockReasonForDelivery({ evidenceReceipt: { state: 'mismatch' } }),
     'requirement-mismatch',
   );
-  for (const state of ['unavailable', 'expired', 'stale-terms', 'read-unavailable'] as const) {
+  for (const state of ['unavailable', 'expired', 'stale-terms', 'stale-delivery', 'read-unavailable'] as const) {
     assert.equal(releaseBlockReasonForDelivery({ evidenceReceipt: { state } }), 'evidence-unavailable');
   }
   assert.equal(releaseBlockReasonForDelivery({ evidenceReceipt: { state: 'pass' } }), null);
   assert.equal(releaseBlockReasonForDelivery({ evidenceReceipt: { state: 'not-recorded' } }), null);
+});
+
+test('required evidence blocks absent or unconfigured receipts', () => {
+  assert.equal(
+    releaseBlockReasonForDelivery({ evidenceRequired: true, evidenceReceipt: { state: 'not-recorded' } }),
+    'evidence-unavailable',
+  );
+  assert.equal(
+    releaseBlockReasonForDelivery({ evidenceRequired: true, evidenceReceipt: { state: 'not-configured' } }),
+    'evidence-unavailable',
+  );
 });
 
 test('link safety holds take precedence over requirement evidence', () => {

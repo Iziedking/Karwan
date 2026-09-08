@@ -2817,6 +2817,7 @@ interface MessagesShape {
         unavailable: string;
         expired: string;
         staleTerms: string;
+        staleDelivery: string;
         readUnavailable: string;
         notRecorded: string;
         notConfigured: string;
@@ -8069,6 +8070,7 @@ export const en: MessagesShape = {
         unavailable: 'Delivery check unavailable',
         expired: 'Delivery check expired',
         staleTerms: 'Older agreement checked',
+        staleDelivery: 'Older delivery checked',
         readUnavailable: 'Payment proof unavailable',
         notRecorded: 'Awaiting delivery check',
         notConfigured: 'Delivery check not configured',

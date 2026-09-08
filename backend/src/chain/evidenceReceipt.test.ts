@@ -27,6 +27,19 @@ test('rejects expired and stale agreement receipts before trusting PASS', () => 
   assert.equal(classifyEvidenceReceipt(raw, 1, 2_000_000_001).state, 'expired');
 });
 
+test('rejects a PASS receipt recorded for an older delivery revision or artifact', () => {
+  assert.equal(
+    classifyEvidenceReceipt(raw, 1, 1_950_000_000, undefined, { evidenceRevision: 3 }).state,
+    'stale-delivery',
+  );
+  assert.equal(
+    classifyEvidenceReceipt(raw, 1, 1_950_000_000, undefined, {
+      evidenceCommitment: `0x${'44'.repeat(32)}`,
+    }).state,
+    'stale-delivery',
+  );
+});
+
 test('recognizes an empty registry slot', () => {
   assert.deepEqual(classifyEvidenceReceipt({ ...raw, termsVersion: 0n }, 1, 1_950_000_000), {
     state: 'not-recorded',

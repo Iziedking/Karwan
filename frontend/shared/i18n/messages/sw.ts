@@ -3039,7 +3039,7 @@ export const sw: Messages = {
     },
     evidenceReceipt: {
       label: 'RISITI YA USHAHIDI ARC',
-      states: { pass: 'Ukaguzi wa uwasilishaji umepita', mismatch: 'Uwasilishaji haulingani', unavailable: 'Ukaguzi haupatikani', expired: 'Ukaguzi umeisha muda', staleTerms: 'Makubaliano ya zamani yalikaguliwa', readUnavailable: 'Risiti ya Arc haipatikani', notRecorded: 'Inasubiri ukaguzi', notConfigured: 'Ukaguzi haujasanidiwa' },
+      states: { pass: 'Ukaguzi wa uwasilishaji umepita', mismatch: 'Uwasilishaji haulingani', unavailable: 'Ukaguzi haupatikani', expired: 'Ukaguzi umeisha muda', staleTerms: 'Makubaliano ya zamani yalikaguliwa', staleDelivery: 'Uwasilishaji wa zamani ulikaguliwa', readUnavailable: 'Risiti ya Arc haipatikani', notRecorded: 'Inasubiri ukaguzi', notConfigured: 'Ukaguzi haujasanidiwa' },
       passBody: 'Ushahidi uliorekodiwa unalingana na toleo hili la makubaliano. Kagua kazi kabla ya kutoa malipo.',
       mismatchBody: 'Ushahidi uliorekodiwa haulingani na vigezo vilivyokubaliwa. Malipo yanasubiri uamuzi wako.',
       unavailableBody: 'Chanzo hakikuweza kuthibitishwa. Hii haijulikani, si uwasilishaji ulioshindwa.',

@@ -373,10 +373,14 @@ async function tick() {
       // deliveryMatch.reason, but they must see THAT the clock stopped, or they
       // wait forever on a countdown that already expired and never appeal.
       const evidenceReceipt = deal.delivered
-        ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1)
+        ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
+            evidenceRevision: deal.deliveryRevision,
+            evidenceCommitment: deal.evidenceExpectedCommitment,
+          })
         : undefined;
       const blockReason: BlockReason | null = releaseBlockReasonForDelivery({
         ...deal,
+        evidenceRequired: deal.evidenceRequired,
         evidenceReceipt,
       });
       if (blockReason) {
