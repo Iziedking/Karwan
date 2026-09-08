@@ -7,6 +7,7 @@ import {
   type CreEvidenceReceiptBinding,
   publicCreDeliveryRequest,
 } from './creDeliveryRequest.js';
+import type { SqlExecutor } from '../db/migrations.js';
 
 export type CreDeliveryRequestState = 'pending' | 'leased' | 'completed' | 'expired' | 'cancelled';
 
@@ -31,6 +32,14 @@ export interface CreClaimResult {
 
 async function postgresRuntime(): Promise<typeof import('../db/client.js')> {
   return import('../db/client.js');
+}
+
+export type CreDeliveryRequestQueueTransaction = <T>(
+  operation: (executor: SqlExecutor) => Promise<T>,
+) => Promise<T>;
+
+export interface CreDeliveryRequestQueueSqlRuntime {
+  withTransaction: CreDeliveryRequestQueueTransaction;
 }
 
 const FLAT_STORE_PATH = resolve(process.cwd(), 'data', 'cre-delivery-requests.json');
@@ -130,6 +139,30 @@ interface QueueRow extends Record<string, unknown> {
   created_at: number | string;
   updated_at: number | string;
   completed_at: number | string | null;
+}
+
+export class PostgresCreDeliveryRequestQueue {
+  constructor(private readonly sql: CreDeliveryRequestQueueSqlRuntime) {}
+
+  publish(request: CreDeliveryRequest, nowMs = Date.now()): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
+    return publishPostgres(this.sql, request, nowMs);
+  }
+
+  claim(requestKeys: readonly string[], nowMs = Date.now(), leaseMs = 90_000): Promise<CreClaimResult | null> {
+    return claimPostgres(this.sql, requestKeys, nowMs, leaseMs);
+  }
+
+  complete(
+    request: CreDeliveryRequest,
+    receipt: CreEvidenceReceiptBinding,
+    nowMs = Date.now(),
+  ): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
+    return completePostgres(this.sql, request, receipt, nowMs);
+  }
+
+  cancel(dealId: string, nowMs = Date.now()): Promise<number> {
+    return cancelPostgres(this.sql, dealId, nowMs);
+  }
 }
 
 function activeRevisionRecord(records: Iterable<CreDeliveryRequestRecord>, request: CreDeliveryRequest): CreDeliveryRequestRecord | undefined {
@@ -279,9 +312,12 @@ function publishFlat(request: CreDeliveryRequest, nowMs: number): CreQueueResult
   return { ok: true, value: record, idempotent: false };
 }
 
-async function publishPostgres(request: CreDeliveryRequest, nowMs: number): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
-  const { withPostgresTransaction } = await postgresRuntime();
-  return withPostgresTransaction(async (tx) => {
+async function publishPostgres(
+  sql: CreDeliveryRequestQueueSqlRuntime,
+  request: CreDeliveryRequest,
+  nowMs: number,
+): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
+  return sql.withTransaction(async (tx) => {
     const seconds = nowSeconds(nowMs);
     await tx.query(
       `UPDATE cre_delivery_requests_v1
@@ -332,7 +368,12 @@ export async function publishCreDeliveryRequest(
   request: CreDeliveryRequest,
   nowMs = Date.now(),
 ): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
-  if ((await postgresRuntime()).pgEnabled) return publishPostgres(request, nowMs);
+  const runtime = await postgresRuntime();
+  if (runtime.pgEnabled) {
+    return new PostgresCreDeliveryRequestQueue({
+      withTransaction: runtime.withPostgresTransaction,
+    }).publish(request, nowMs);
+  }
   return withFlatStore(() => publishFlat(request, nowMs));
 }
 
@@ -360,10 +401,14 @@ function claimFlat(requestKeys: readonly string[], nowMs: number, leaseMs: numbe
   return { record: claimed };
 }
 
-async function claimPostgres(requestKeys: readonly string[], nowMs: number, leaseMs: number): Promise<CreClaimResult | null> {
+async function claimPostgres(
+  sql: CreDeliveryRequestQueueSqlRuntime,
+  requestKeys: readonly string[],
+  nowMs: number,
+  leaseMs: number,
+): Promise<CreClaimResult | null> {
   if (requestKeys.length === 0) return null;
-  const { withPostgresTransaction } = await postgresRuntime();
-  return withPostgresTransaction(async (tx) => {
+  return sql.withTransaction(async (tx) => {
     const seconds = nowSeconds(nowMs);
     await tx.query(
       `UPDATE cre_delivery_requests_v1
@@ -404,7 +449,12 @@ export async function claimCreDeliveryRequest(
   nowMs = Date.now(),
   leaseMs = 90_000,
 ): Promise<CreClaimResult | null> {
-  if ((await postgresRuntime()).pgEnabled) return claimPostgres(requestKeys, nowMs, leaseMs);
+  const runtime = await postgresRuntime();
+  if (runtime.pgEnabled) {
+    return new PostgresCreDeliveryRequestQueue({
+      withTransaction: runtime.withPostgresTransaction,
+    }).claim(requestKeys, nowMs, leaseMs);
+  }
   return withFlatStore(() => claimFlat(requestKeys, nowMs, leaseMs));
 }
 
@@ -452,9 +502,13 @@ function completeFlat(request: CreDeliveryRequest, receipt: CreEvidenceReceiptBi
   return { ok: true, value: completed, idempotent: false };
 }
 
-async function completePostgres(request: CreDeliveryRequest, receipt: CreEvidenceReceiptBinding, nowMs: number): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
-  const { withPostgresTransaction } = await postgresRuntime();
-  return withPostgresTransaction(async (tx) => {
+async function completePostgres(
+  sql: CreDeliveryRequestQueueSqlRuntime,
+  request: CreDeliveryRequest,
+  receipt: CreEvidenceReceiptBinding,
+  nowMs: number,
+): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
+  return sql.withTransaction(async (tx) => {
     const result = await tx.query<QueueRow>('SELECT * FROM cre_delivery_requests_v1 WHERE request_key = $1 FOR UPDATE', [creDeliveryRequestKey(request)]);
     const row = result.rows[0];
     if (!row) return { ok: false, code: 'REQUEST_NOT_FOUND', message: 'the delivery request is not in the durable queue' };
@@ -490,7 +544,12 @@ export async function completeCreDeliveryRequest(
   receipt: CreEvidenceReceiptBinding,
   nowMs = Date.now(),
 ): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
-  if ((await postgresRuntime()).pgEnabled) return completePostgres(request, receipt, nowMs);
+  const runtime = await postgresRuntime();
+  if (runtime.pgEnabled) {
+    return new PostgresCreDeliveryRequestQueue({
+      withTransaction: runtime.withPostgresTransaction,
+    }).complete(request, receipt, nowMs);
+  }
   return withFlatStore(() => completeFlat(request, receipt, nowMs));
 }
 
@@ -507,9 +566,8 @@ async function cancelFlat(dealId: string, nowMs: number): Promise<number> {
   return cancelled;
 }
 
-async function cancelPostgres(dealId: string, nowMs: number): Promise<number> {
-  const { withPostgresTransaction } = await postgresRuntime();
-  return withPostgresTransaction(async (tx) => {
+async function cancelPostgres(sql: CreDeliveryRequestQueueSqlRuntime, dealId: string, nowMs: number): Promise<number> {
+  return sql.withTransaction(async (tx) => {
     const result = await tx.query<{ count: string }>(
       `WITH cancelled AS (
          UPDATE cre_delivery_requests_v1
@@ -524,6 +582,11 @@ async function cancelPostgres(dealId: string, nowMs: number): Promise<number> {
 }
 
 export async function cancelCreDeliveryRequests(dealId: string, nowMs = Date.now()): Promise<number> {
-  if ((await postgresRuntime()).pgEnabled) return cancelPostgres(dealId, nowMs);
+  const runtime = await postgresRuntime();
+  if (runtime.pgEnabled) {
+    return new PostgresCreDeliveryRequestQueue({
+      withTransaction: runtime.withPostgresTransaction,
+    }).cancel(dealId, nowMs);
+  }
   return withFlatStore(() => cancelFlat(dealId, nowMs));
 }
