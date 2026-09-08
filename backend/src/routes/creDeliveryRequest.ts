@@ -5,6 +5,7 @@ import {
   bearerTokenMatches,
   bindCreEvidenceReceipt,
   buildCreDeliveryRequest,
+  classifyCreDeliveryRequestForQueue,
   creDeliveryRequestKey,
   deliveryRequestInputSchema,
   evidenceReceiptBindingInputSchema,
@@ -12,6 +13,7 @@ import {
 } from '../evidence/creDeliveryRequest.js';
 import {
   cancelCreDeliveryRequests,
+  adoptLegacyCreDeliveryRequest,
   claimCreDeliveryRequest,
   completeCreDeliveryRequest,
   publishCreDeliveryRequest,
@@ -35,15 +37,18 @@ creDeliveryRequestRoutes.use('*', async (c, next) => {
 
 creDeliveryRequestRoutes.get('/current', async (c) => {
   const requestedDealId = c.req.query('dealId');
-  const nowSeconds = Math.floor(Date.now() / 1_000);
-  const eligibleKeys = (await listAllDeals())
-    .filter((deal) => deal.creDeliveryRequest)
-    .filter((deal) => deal.delivered && deal.evidenceRequired)
-    .filter((deal) => (deal.agreementVersion ?? 1) === deal.creDeliveryRequest!.termsVersion)
-    .filter((deal) => (deal.deliveryRevision ?? 0) === deal.creDeliveryRequest!.evidenceRevision)
-    .filter((deal) => deal.creDeliveryRequest!.expiresAt > nowSeconds)
-    .filter((deal) => !requestedDealId || deal.jobId.toLowerCase() === requestedDealId.toLowerCase())
-    .map((deal) => creDeliveryRequestKey(deal.creDeliveryRequest!));
+  const eligibleKeys: string[] = [];
+  for (const deal of await listAllDeals()) {
+    if (requestedDealId && deal.jobId.toLowerCase() !== requestedDealId.toLowerCase()) continue;
+    const classification = classifyCreDeliveryRequestForQueue(deal);
+    if (classification.kind !== 'current') continue;
+    const adopted = await adoptLegacyCreDeliveryRequest(classification.request);
+    if (!adopted.ok) {
+      if (requestedDealId) return c.json({ error: adopted.message, code: adopted.code }, 409);
+      continue;
+    }
+    eligibleKeys.push(adopted.value.requestKey);
+  }
   const claimed = await claimCreDeliveryRequest(eligibleKeys);
   if (!claimed) {
     return c.json({ error: 'no active delivery request', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
@@ -58,8 +63,13 @@ creDeliveryRequestRoutes.get('/current', async (c) => {
 
 creDeliveryRequestRoutes.get('/:jobId', async (c) => {
   const deal = await getDeal(c.req.param('jobId'));
-  if (!deal?.creDeliveryRequest) return c.json({ error: 'delivery request not found', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
-  const claimed = await claimCreDeliveryRequest([creDeliveryRequestKey(deal.creDeliveryRequest)]);
+  if (!deal) return c.json({ error: 'delivery request not found', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
+  const classification = classifyCreDeliveryRequestForQueue(deal);
+  if (classification.kind === 'absent') return c.json({ error: 'delivery request not found', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
+  if (classification.kind !== 'current') return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
+  const adopted = await adoptLegacyCreDeliveryRequest(classification.request);
+  if (!adopted.ok) return c.json({ error: adopted.message, code: adopted.code }, 409);
+  const claimed = await claimCreDeliveryRequest([adopted.value.requestKey]);
   if (!claimed) return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
   const currentDeal = await getDeal(deal.jobId);
   if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
@@ -104,7 +114,9 @@ creDeliveryRequestRoutes.post('/:jobId/receipt', async (c) => {
   const result = bindCreEvidenceReceipt(deal, input);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, result.code.endsWith('CONFLICT') ? 409 : 422);
   if (!deal.creDeliveryRequest) return c.json({ error: 'delivery request not found', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
-  const completed = await completeCreDeliveryRequest(deal.creDeliveryRequest, result.binding);
+  const adopted = await adoptLegacyCreDeliveryRequest(deal.creDeliveryRequest);
+  if (!adopted.ok) return c.json({ error: adopted.message, code: adopted.code }, 409);
+  const completed = await completeCreDeliveryRequest(adopted.value, result.binding);
   if (!completed.ok) return c.json({ error: completed.message, code: completed.code }, 409);
   if (!result.idempotent) {
     const saved = await patchDeal(deal.jobId, {
