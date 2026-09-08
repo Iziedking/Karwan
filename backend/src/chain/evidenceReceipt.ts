@@ -44,9 +44,14 @@ export function classifyEvidenceReceipt(
   agreementVersion: number,
   nowSeconds: number,
   registryAddress?: Address,
-  expected?: { evidenceRevision?: number; evidenceCommitment?: Hex },
+  expected?: { evidenceRevision?: number; evidenceCommitment?: Hex; reportId?: Hex; requireBinding?: boolean },
 ): EvidenceReceiptView {
   if (raw.termsVersion === 0n) {
+    return { state: 'not-recorded', agreementVersion, registryAddress };
+  }
+  // A chain verdict is not current until the request completion binds its exact
+  // report. This prevents a replaced worker's chain write from bypassing fencing.
+  if (expected?.requireBinding && (!expected.reportId || !expected.evidenceCommitment || !expected.evidenceRevision)) {
     return { state: 'not-recorded', agreementVersion, registryAddress };
   }
   const detail = {
@@ -73,6 +78,9 @@ export function classifyEvidenceReceipt(
   ) {
     return { ...detail, expectedEvidenceRevision: expected.evidenceRevision, state: 'stale-delivery' };
   }
+  if (expected?.reportId && detail.reportId.toLowerCase() !== expected.reportId.toLowerCase()) {
+    return { ...detail, state: 'stale-delivery' };
+  }
   if (detail.expiresAt < nowSeconds) return { ...detail, state: 'expired' };
   if (raw.decisionCode === 1) return { ...detail, state: 'pass' };
   if (raw.decisionCode === 2) return { ...detail, state: 'mismatch' };
@@ -82,7 +90,7 @@ export function classifyEvidenceReceipt(
 export async function readEvidenceReceipt(
   dealId: string,
   agreementVersion: number,
-  expected?: { evidenceRevision?: number; evidenceCommitment?: Hex },
+  expected?: { evidenceRevision?: number; evidenceCommitment?: Hex; reportId?: Hex; requireBinding?: boolean },
 ): Promise<EvidenceReceiptView> {
   const registryAddress = config.KARWAN_EVIDENCE_REGISTRY_ADDR as Address | undefined;
   if (!registryAddress) return { state: 'not-configured', agreementVersion };

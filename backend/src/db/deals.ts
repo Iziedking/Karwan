@@ -619,7 +619,7 @@ export async function approveSellerAgreement(
       const existing = result.rows[0]?.data ?? null;
       if (!existing) return { ok: false, deal: null };
       const currentVersion = existing.agreementVersion ?? 1;
-      const currentDigest = existing.agreementDigest ?? agreementDigest(existing);
+      const currentDigest = agreementDigest(existing);
       if (currentVersion !== expectedAgreementVersion || currentDigest !== expectedAgreementDigest) {
         return { ok: false, deal: existing };
       }
@@ -641,7 +641,7 @@ export async function approveSellerAgreement(
   const existing = await getDeal(key);
   if (!existing) return { ok: false, deal: null };
   const currentVersion = existing.agreementVersion ?? 1;
-  const currentDigest = existing.agreementDigest ?? agreementDigest(existing);
+  const currentDigest = agreementDigest(existing);
   if (currentVersion !== expectedAgreementVersion || currentDigest !== expectedAgreementDigest) {
     return { ok: false, deal: existing };
   }

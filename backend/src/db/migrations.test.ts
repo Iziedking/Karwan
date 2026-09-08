@@ -29,7 +29,7 @@ class RecordingExecutor implements SqlExecutor {
 }
 
 test('numbered migrations are ordered and contain every durable runtime table', () => {
-  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
   const sql = NUMBERED_MIGRATIONS[0]!.sql;
   for (const table of [
     'deal_rooms',
@@ -127,7 +127,7 @@ test('numbered migrations are ordered and contain every durable runtime table', 
 
 test('migration runner applies each migration once across repeated startup', async () => {
   const executor = new RecordingExecutor();
-  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
+  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
   assert.deepEqual(await runNumberedMigrations(executor), []);
   assert.equal(executor.applied.get(1), 'agent_runtime_v2_foundations');
   assert.equal(executor.applied.get(2), 'durable_events_and_replay');
@@ -153,8 +153,8 @@ test('migration runner applies each migration once across repeated startup', asy
   assert.equal(executor.applied.get(19), 'durable_deal_invites');
   assert.equal(executor.applied.get(20), 'agentkit_report_delivery_accounting');
   assert.equal(executor.applied.get(21), 'cre_delivery_request_queue');
-  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 21);
-  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 21);
+  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 22);
+  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 22);
 });
 
 test('migration runner rolls back a failed migration and always releases its lock', async () => {

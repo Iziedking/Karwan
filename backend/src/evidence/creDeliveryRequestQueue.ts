@@ -516,7 +516,14 @@ export async function claimCreDeliveryRequest(
 }
 
 function sameReceipt(left: CreEvidenceReceiptBinding, right: CreEvidenceReceiptBinding): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  // PostgreSQL jsonb reorders object keys; boundAt is local bookkeeping.
+  return left.termsVersion === right.termsVersion
+    && left.evidenceRevision === right.evidenceRevision
+    && left.expiresAt === right.expiresAt
+    && left.decisionCode === right.decisionCode
+    && left.evidenceCommitment.toLowerCase() === right.evidenceCommitment.toLowerCase()
+    && left.verdictCommitment.toLowerCase() === right.verdictCommitment.toLowerCase()
+    && left.reportId.toLowerCase() === right.reportId.toLowerCase();
 }
 
 function completeFlat(request: CreDeliveryRequest, receipt: CreEvidenceReceiptBinding, nowMs: number): CreQueueResult<CreDeliveryRequestRecord> {

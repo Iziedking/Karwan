@@ -44,6 +44,32 @@ jobs:
       - name: Application shell contract
         run: npm --prefix frontend run check:shell
 
+      - name: Admin route inventory
+        run: npm --prefix frontend run check:admin-routes
+
+  cre:
+    name: CRE workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install application dependencies
+        run: npm ci
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: Install locked CRE dependencies
+        working-directory: cre/github-delivery
+        run: bun install --frozen-lockfile
+      - name: CRE typecheck
+        run: npm run cre:github:typecheck
+      - name: CRE deterministic tests
+        run: npm run cre:github:test
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -97,7 +123,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [typecheck, test]
+    needs: [typecheck, test, cre]
     steps:
       - uses: actions/checkout@v4
 

@@ -31,3 +31,8 @@ test('agreement digest changes when a commercial field changes', () => {
   assert.notEqual(original, agreementDigest({ ...base, deadlineUnix: 1_900_000_000 }));
   assert.notEqual(original, agreementDigest({ ...base, paymentTerms: 'net30' }));
 });
+
+test('required delivery evidence changes the accepted agreement digest', () => {
+  const required = { ...base, evidenceRequired: true };
+  assert.notEqual(agreementDigest(base), agreementDigest(required));
+});

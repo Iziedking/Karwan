@@ -751,6 +751,13 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     name: 'cre_delivery_request_queue',
     sql: CRE_DELIVERY_REQUEST_QUEUE_SQL,
   },
+  {
+    version: 22,
+    name: 'research_reservation_lease_fencing',
+    sql: `ALTER TABLE agentkit_research_reservations_v1 ADD COLUMN IF NOT EXISTS lease_token TEXT;
+      UPDATE agentkit_research_reservations_v1 SET state = 'released', failure_reason = 'lease fencing rollout'
+      WHERE state = 'reserved' AND lease_token IS NULL;`,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

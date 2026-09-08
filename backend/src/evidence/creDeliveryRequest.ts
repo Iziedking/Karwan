@@ -70,6 +70,8 @@ export interface CreEvidenceReceiptBinding {
 export type DealForRequest = Pick<
   DirectDeal,
   | 'jobId'
+  | 'cancelledAt'
+  | 'settledAt'
   | 'delivered'
   | 'evidenceRequired'
   | 'agreementVersion'
@@ -94,7 +96,7 @@ export function classifyCreDeliveryRequestForQueue(
 ): CreDeliveryRequestQueueClassification {
   const request = deal.creDeliveryRequest;
   if (!request) return { kind: 'absent' };
-  const current = deal.delivered
+  const current = !deal.cancelledAt && !deal.settledAt && deal.delivered
     && deal.evidenceRequired === true
     && request.dealId.toLowerCase() === deal.jobId.toLowerCase()
     && request.termsVersion === (deal.agreementVersion ?? 1)
@@ -116,6 +118,9 @@ export function buildCreDeliveryRequest(
   const jobId = deal.jobId.toLowerCase();
   if (!bytes32Schema.safeParse(jobId).success) {
     return { ok: false, code: 'INVALID_DEAL_ID', message: 'deal id is not a bytes32 value' };
+  }
+  if (deal.cancelledAt || deal.settledAt) {
+    return { ok: false, code: 'DEAL_CLOSED', message: 'closed deals cannot publish evidence work' };
   }
   if (!deal.delivered) {
     return { ok: false, code: 'DELIVERY_REQUIRED', message: 'mark the current delivery before publishing evidence work' };
@@ -188,6 +193,7 @@ export function selectCurrentCreDeliveryRequest(
     .filter((request) => {
       const deal = deals.find((candidate) => candidate.jobId.toLowerCase() === request.dealId.toLowerCase());
       return !!deal
+        && !deal.cancelledAt && !deal.settledAt
         && deal.delivered
         && deal.evidenceRequired === true
         && (deal.agreementVersion ?? 1) === request.termsVersion
@@ -212,7 +218,7 @@ export function bindCreEvidenceReceipt(
 ): EvidenceReceiptBindingResult {
   const request = deal.creDeliveryRequest;
   if (!request) return { ok: false, code: 'REQUEST_NOT_PUBLISHED', message: 'publish the current delivery request first' };
-  if (!deal.delivered || !deal.evidenceRequired) {
+  if (deal.cancelledAt || deal.settledAt || !deal.delivered || !deal.evidenceRequired) {
     return { ok: false, code: 'DELIVERY_NOT_ELIGIBLE', message: 'the current deal does not require a bindable evidence receipt' };
   }
   if (

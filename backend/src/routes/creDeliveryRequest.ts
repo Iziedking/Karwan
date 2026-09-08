@@ -31,6 +31,7 @@ function disabled(c: Context) {
 }
 
 creDeliveryRequestRoutes.use('*', async (c, next) => {
+  c.header('Cache-Control', 'no-store');
   if (!config.CRE_DELIVERY_REQUEST_TOKEN) return disabled(c);
   if (!authorized(c)) return c.json({ error: 'invalid CRE delivery request credentials' }, 401);
   await next();
@@ -55,7 +56,8 @@ creDeliveryRequestRoutes.get('/current', async (c) => {
     return c.json({ error: 'no active delivery request', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
   }
   const currentDeal = await getDeal(claimed.record.dealId);
-  if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
+  const current = currentDeal ? classifyCreDeliveryRequestForQueue(currentDeal) : undefined;
+  if (current?.kind !== 'current' || creDeliveryRequestKey(current.request) !== claimed.record.requestKey) {
     await cancelCreDeliveryRequest(claimed.record.requestKey, claimed.record.leaseToken).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
@@ -73,7 +75,8 @@ creDeliveryRequestRoutes.get('/:jobId', async (c) => {
   const claimed = await claimCreDeliveryRequest([adopted.value.requestKey]);
   if (!claimed) return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
   const currentDeal = await getDeal(deal.jobId);
-  if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
+  const current = currentDeal ? classifyCreDeliveryRequestForQueue(currentDeal) : undefined;
+  if (current?.kind !== 'current' || creDeliveryRequestKey(current.request) !== claimed.record.requestKey) {
     await cancelCreDeliveryRequest(claimed.record.requestKey, claimed.record.leaseToken).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }

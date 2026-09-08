@@ -690,6 +690,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
 
   const patch: Partial<DirectDeal> = {};
+  if (body.evidenceRequired !== undefined) patch.evidenceRequired = body.evidenceRequired;
   if (body.dealAmountUsdc !== undefined) {
     patch.dealAmountUsdc = body.dealAmountUsdc.toString();
   }
@@ -1424,7 +1425,7 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
     );
   }
   const currentAgreementVersion = deal.agreementVersion ?? 1;
-  const currentAgreementDigest = deal.agreementDigest ?? agreementDigest(deal);
+  const currentAgreementDigest = agreementDigest(deal);
   const currentApprovalMatches =
     deal.sellerApprovedAgreementVersion === currentAgreementVersion
     && deal.sellerApprovedAgreementDigest === currentAgreementDigest;
@@ -1466,7 +1467,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     return c.json({ error: 'only the named seller can agree to this deal' }, 403);
   }
   const currentAgreementVersion = deal.agreementVersion ?? 1;
-  const currentAgreementDigest = deal.agreementDigest ?? agreementDigest(deal);
+  const currentAgreementDigest = agreementDigest(deal);
   if (
     body.expectedAgreementVersion !== currentAgreementVersion
     || body.expectedAgreementDigest !== currentAgreementDigest
@@ -1560,7 +1561,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
           ...(latest
             ? {
                 agreementVersion: latest.agreementVersion ?? 1,
-                agreementDigest: latest.agreementDigest ?? agreementDigest(latest),
+                agreementDigest: agreementDigest(latest),
               }
             : {}),
         },
@@ -1671,7 +1672,7 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     const latestDeal = await getDeal(jobId);
     if (!latestDeal) return c.json({ error: 'deal not found' }, 404);
     const latestAgreementVersion = latestDeal.agreementVersion ?? 1;
-    const latestAgreementDigest = latestDeal.agreementDigest ?? agreementDigest(latestDeal);
+    const latestAgreementDigest = agreementDigest(latestDeal);
     const latestApprovalMatches =
       latestDeal.sellerApprovedAgreementVersion === latestAgreementVersion
       && latestDeal.sellerApprovedAgreementDigest === latestAgreementDigest;
@@ -2811,6 +2812,8 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   const claimEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
     evidenceRevision: deal.deliveryRevision,
     evidenceCommitment: deal.evidenceExpectedCommitment,
+    reportId: deal.creEvidenceReceipt?.reportId,
+    requireBinding: deal.evidenceRequired === true,
   });
   const claimBlockReason = releaseBlockReasonForDelivery({
     ...deal,
@@ -3090,6 +3093,8 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
   const releaseEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
     evidenceRevision: deal.deliveryRevision,
     evidenceCommitment: deal.evidenceExpectedCommitment,
+    reportId: deal.creEvidenceReceipt?.reportId,
+    requireBinding: deal.evidenceRequired === true,
   });
   const releaseBlockReason = releaseBlockReasonForDelivery({
     ...deal,
@@ -4557,12 +4562,14 @@ async function enrich(deal: DirectDeal) {
     ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
         evidenceRevision: deal.deliveryRevision,
         evidenceCommitment: deal.evidenceExpectedCommitment,
+        reportId: deal.creEvidenceReceipt?.reportId,
+        requireBinding: deal.evidenceRequired === true,
       })
     : undefined;
   const base = {
     ...deal,
     agreementVersion: deal.agreementVersion ?? 1,
-    agreementDigest: deal.agreementDigest ?? agreementDigest(deal),
+    agreementDigest: agreementDigest(deal),
     evidenceReceipt,
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
     /// How long the payment terms or a shipment in transit hold the money,

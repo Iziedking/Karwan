@@ -47,3 +47,10 @@ test('recognizes an empty registry slot', () => {
     registryAddress: undefined,
   });
 });
+
+test('required evidence must match a bound report before PASS is trusted', () => {
+  const unbound = { requireBinding: true, evidenceRevision: 2 };
+  assert.equal(classifyEvidenceReceipt(raw, 1, 1950000000, undefined, unbound).state, 'not-recorded');
+  const wrongReport = { ...unbound, evidenceCommitment: raw.evidenceCommitment, reportId: ('0x' + '44'.repeat(32)) as typeof raw.reportId };
+  assert.equal(classifyEvidenceReceipt(raw, 1, 1950000000, undefined, wrongReport).state, 'stale-delivery');
+});

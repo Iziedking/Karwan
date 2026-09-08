@@ -63,11 +63,21 @@ test(
         ResearchAllowanceExhaustedError,
       );
 
-      await store.release({ reservationId: reservations[0]!.reservation.id, reason: 'provider unavailable', now: 2_100 });
+      await store.release({ reservationId: reservations[0]!.reservation.id, leaseToken: reservations[0]!.reservation.leaseToken, reason: 'provider unavailable', now: 2_100 });
       const replacement = await store.reserve({ agentAddress: AGENT_B, requestId: 'request-3', resourceId: 'deal:3:counterparty', now: 2_101 });
       for (const [index, item] of [reservations[1]!, reservations[2]!, replacement].entries()) {
-        await store.commit({ reservationId: item.reservation.id, resultId: `report-${index}`, now: 3_000 + index });
+        await store.commit({ reservationId: item.reservation.id, leaseToken: item.reservation.leaseToken, resultId: `report-${index}`, now: 3_000 + index });
       }
+
+      // A replaced lease must be fenced even when the resource row is reused.
+      const fencingHuman = 'b'.repeat(64);
+      await store.verifyBinding({ humanKeyDigest: fencingHuman, agentAddress: AGENT_A, verifier: 'world-agentbook', checkedAt: 4000, expiresAt: 200000, domain: 'karwan.research', nonce: 'fence', nonceExpiresAt: 200000, now: 4000 });
+      const oldLease = await store.reserve({ agentAddress: AGENT_A, requestId: 'old-lease', resourceId: 'fence', now: 5000 });
+      const replacementLease = await store.reserve({ agentAddress: AGENT_A, requestId: 'new-lease', resourceId: 'fence', now: 36000 });
+      await assert.rejects(() => store.release({ reservationId: oldLease.reservation.id, leaseToken: oldLease.reservation.leaseToken, reason: 'late failure', now: 37000 }));
+      await assert.rejects(() => store.commit({ reservationId: oldLease.reservation.id, leaseToken: oldLease.reservation.leaseToken, resultId: 'old', now: 37000 }));
+      assert.equal((await store.commit({ reservationId: replacementLease.reservation.id, leaseToken: replacementLease.reservation.leaseToken, resultId: 'new', now: 37000 })).snapshot.used, 1);
+      await store.verifyBinding({ humanKeyDigest: HUMAN, agentAddress: AGENT_A, verifier: 'world-agentbook', checkedAt: 38000, expiresAt: 200000, domain: 'karwan.research', nonce: 'restore', nonceExpiresAt: 200000, now: 38000 });
 
       const restarted = new PostgresResearchAllowanceStore(client, transaction);
       assert.equal((await restarted.get({ humanKeyDigest: HUMAN, now: 4_000 }))?.used, 3);
@@ -76,7 +86,7 @@ test(
       const retry = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'another-request', resourceId: 'deal:1:counterparty', now: 4_001 });
       assert.equal(retry.created, false);
       assert.equal(retry.reservation.state, 'delivered');
-      const same = await restarted.commit({ reservationId: retry.reservation.id, resultId: 'report-0', now: 4_002 });
+      const same = await restarted.commit({ reservationId: retry.reservation.id, leaseToken: retry.reservation.leaseToken, resultId: 'report-0', now: 4_002 });
       assert.equal(same.snapshot.used, 3);
     } finally {
       await client.query('RESET search_path');

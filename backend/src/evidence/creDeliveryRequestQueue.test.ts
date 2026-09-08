@@ -124,6 +124,8 @@ test('completes a lease once and rejects a conflicting replay', () => {
   const retry = queue.complete(request, leasedReceipt, nowMs + 3);
   assert.equal(retry.ok, true);
   if (retry.ok) assert.equal(retry.idempotent, true);
+  const reordered = Object.fromEntries(Object.entries(leasedReceipt).reverse()) as typeof leasedReceipt;
+  assert.equal(queue.complete(request, { ...reordered, boundAt: nowMs + 4 }, nowMs + 4).ok, true);
   const conflict = queue.complete(request, { ...receipt, decisionCode: 2 }, nowMs + 4);
   assert.equal(conflict.ok, false);
   if (!conflict.ok) assert.equal(conflict.code, 'RECEIPT_CONFLICT');

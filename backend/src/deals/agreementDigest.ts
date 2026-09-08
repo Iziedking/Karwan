@@ -14,6 +14,7 @@ export interface AgreementDigestInput {
   acceptanceDeadlineUnix?: number;
   terms: string;
   requireStake?: boolean;
+  evidenceRequired?: boolean;
   requireStakePct?: number;
   tradeType?: string;
   tradeLane?: string;
@@ -46,6 +47,8 @@ export function agreementDigest(input: AgreementDigestInput): string {
     acceptanceDeadlineUnix: input.acceptanceDeadlineUnix ?? null,
     terms: input.terms,
     requireStake: input.requireStake ?? false,
+    // Preserve historical optional-evidence digests; required checks are consent.
+    ...(input.evidenceRequired ? { evidenceRequired: true } : {}),
     requireStakePct: input.requireStakePct ?? null,
     tradeType: input.tradeType ?? null,
     tradeLane: input.tradeLane ?? null,

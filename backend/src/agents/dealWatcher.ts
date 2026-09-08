@@ -376,6 +376,8 @@ async function tick() {
         ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
             evidenceRevision: deal.deliveryRevision,
             evidenceCommitment: deal.evidenceExpectedCommitment,
+            reportId: deal.creEvidenceReceipt?.reportId,
+            requireBinding: deal.evidenceRequired === true,
           })
         : undefined;
       const blockReason: BlockReason | null = releaseBlockReasonForDelivery({

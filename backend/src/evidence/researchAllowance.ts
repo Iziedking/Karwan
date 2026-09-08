@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { SqlExecutor } from '../db/migrations.js';
 import type { TransactionRunner } from '../events/domainEventStore.js';
 
@@ -38,6 +39,7 @@ export interface ResearchReservationRecord {
   resourceId: string;
   state: ResearchReservationState;
   leaseExpiresAt: number;
+  leaseToken: string;
   resultId?: string;
   result?: unknown;
   failureReason?: string;
@@ -71,8 +73,8 @@ interface ReserveInput {
 export interface ResearchAllowanceStore {
   verifyBinding(input: VerifyBindingInput): Promise<AgentKitBindingRecord>;
   reserve(input: ReserveInput): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot; created: boolean }>;
-  commit(input: { reservationId: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
-  release(input: { reservationId: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
+  commit(input: { reservationId: string; leaseToken: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
+  release(input: { reservationId: string; leaseToken: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }>;
   getDelivered(input: { agentAddress: string; resourceId: string; scope?: string }): Promise<ResearchReservationRecord | null>;
   get(input: { humanKeyDigest: string; scope?: string; now?: number }): Promise<ResearchAllowanceSnapshot | null>;
   getBinding(agentAddress: string): Promise<AgentKitBindingRecord | null>;
@@ -238,6 +240,7 @@ export class InMemoryResearchAllowanceStore implements ResearchAllowanceStore {
       resourceId,
       state: 'reserved',
       leaseExpiresAt: now + leaseValue(input.leaseMs),
+      leaseToken: randomUUID(),
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
     };
@@ -248,10 +251,11 @@ export class InMemoryResearchAllowanceStore implements ResearchAllowanceStore {
     return { reservation, snapshot: this.snapshotFor(poolKey, normalizedScope, start, configuredAllowance, now), created: true };
   }
 
-  async commit(input: { reservationId: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async commit(input: { reservationId: string; leaseToken: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     const reservation = this.reservations.get(identifier(input.reservationId, 'research reservation id'));
     if (!reservation) throw new ResearchAllowanceConflictError('research reservation was not found');
+    assertReservationLease(reservation, input.leaseToken, now);
     const resultId = identifier(input.resultId, 'research result id');
     const poolKey = `${reservation.humanKeyDigest}:${reservation.scope}:${reservation.periodStart}`;
     const current = this.allowances.get(poolKey);
@@ -268,13 +272,14 @@ export class InMemoryResearchAllowanceStore implements ResearchAllowanceStore {
     return { reservation: delivered, snapshot: this.snapshotFor(poolKey, reservation.scope, reservation.periodStart, current.allowance, now) };
   }
 
-  async release(input: { reservationId: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async release(input: { reservationId: string; leaseToken: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     const reservation = this.reservations.get(identifier(input.reservationId, 'research reservation id'));
     if (!reservation) throw new ResearchAllowanceConflictError('research reservation was not found');
     const poolKey = `${reservation.humanKeyDigest}:${reservation.scope}:${reservation.periodStart}`;
     const current = this.allowances.get(poolKey);
     if (!current) throw new ResearchAllowanceConflictError('research allowance was not persisted');
+    assertReservationLease(reservation, input.leaseToken, now);
     if (reservation.state === 'delivered') return { reservation, snapshot: this.snapshotFor(poolKey, reservation.scope, reservation.periodStart, current.allowance, now) };
     const released: ResearchReservationRecord = { ...reservation, state: 'released', failureReason: identifier(input.reason, 'research failure reason'), updatedAt: now };
     this.reservations.set(released.id, released);
@@ -359,6 +364,7 @@ interface ReservationRow extends Record<string, unknown> {
   resource_id: string;
   state: ResearchReservationState;
   lease_expires_at: string | number;
+  lease_token: string | null;
   result_id: string | null;
   result: unknown | null;
   failure_reason: string | null;
@@ -387,6 +393,7 @@ function rowReservation(row: ReservationRow): ResearchReservationRecord {
     resourceId: row.resource_id,
     state: row.state,
     leaseExpiresAt: integer(row.lease_expires_at, 'reservation lease'),
+    leaseToken: row.lease_token ?? '',
     ...(row.result_id ? { resultId: row.result_id } : {}),
     ...(row.result == null ? {} : { result: row.result }),
     ...(row.failure_reason ? { failureReason: row.failure_reason } : {}),
@@ -404,6 +411,31 @@ async function postgresSnapshot(executor: SqlExecutor, row: AllowanceRow, now: n
     [row.human_key_digest, row.scope, row.period_start, now],
   );
   return snapshot({ scope: row.scope, periodStart: integer(row.period_start, 'allowance period'), allowance: integer(row.allowance, 'allowance'), used: integer(row.used, 'allowance used'), reserved: integer(reserved.rows[0]?.count ?? 0, 'allowance reserved'), version: integer(row.version, 'allowance version'), updatedAt: integer(row.updated_at, 'allowance updated_at') });
+}
+
+
+// Mutations authenticate the attempt, not just the reusable resource ID.
+// Null tokens on migrated rows cannot authorize an old worker.
+function assertReservationLease(reservation: ResearchReservationRecord, token: string, now: number): void {
+  if (!token || token !== reservation.leaseToken) throw new ResearchAllowanceConflictError('research lease was replaced');
+  if (reservation.state !== 'delivered' && reservation.leaseExpiresAt <= now) {
+    throw new ResearchAllowanceExpiredError('research reservation lease expired');
+  }
+}
+
+// Reserve, commit and release all lock allowance before reservation. Read the
+// pool key without a lock, then re-read the reservation under lock and fence it.
+async function lockReservation(executor: SqlExecutor, id: string) {
+  const initial = (await executor.query<ReservationRow>('SELECT * FROM agentkit_research_reservations_v1 WHERE id = $1', [id])).rows[0];
+  if (!initial) throw new ResearchAllowanceConflictError('research reservation was not found');
+  const allowanceRow = (await executor.query<AllowanceRow>(
+    'SELECT * FROM agentkit_research_allowances_v1 WHERE human_key_digest = $1 AND scope = $2 AND period_start = $3 FOR UPDATE',
+    [initial.human_key_digest, initial.scope, initial.period_start],
+  )).rows[0];
+  if (!allowanceRow) throw new ResearchAllowanceConflictError('research allowance was not persisted');
+  const row = (await executor.query<ReservationRow>('SELECT * FROM agentkit_research_reservations_v1 WHERE id = $1 FOR UPDATE', [id])).rows[0];
+  if (!row || String(row.period_start) !== String(initial.period_start)) throw new ResearchAllowanceConflictError('research lease was replaced');
+  return { reservation: rowReservation(row), allowanceRow };
 }
 
 export class PostgresResearchAllowanceStore implements ResearchAllowanceStore {
@@ -453,10 +485,10 @@ export class PostgresResearchAllowanceStore implements ResearchAllowanceStore {
       if (!allowanceRow) throw new ResearchAllowanceConflictError('research allowance was not persisted');
       if (integer(allowanceRow.allowance, 'allowance') !== configuredAllowance) throw new ResearchAllowanceConflictError('research allowance policy changed during a period');
       await tx.query(`UPDATE agentkit_research_reservations_v1 SET state = 'released',
-        failure_reason = 'reservation expired', updated_at = $4
-        WHERE human_key_digest = $1 AND scope = $2 AND period_start = $3
-          AND state = 'reserved' AND lease_expires_at <= $4`,
-        [binding.humanKeyDigest, normalizedScope, start, now]);
+        failure_reason = 'reservation expired', updated_at = $3
+        WHERE human_key_digest = $1 AND scope = $2
+          AND state = 'reserved' AND lease_expires_at <= $3`,
+        [binding.humanKeyDigest, normalizedScope, now]);
       const conflicts = await tx.query<ReservationRow>(`SELECT * FROM agentkit_research_reservations_v1
         WHERE id = $1 OR (human_key_digest = $2 AND scope = $3 AND resource_id = $4)
         ORDER BY created_at ASC FOR UPDATE`, [requestId, binding.humanKeyDigest, normalizedScope, resourceId]);
@@ -470,28 +502,23 @@ export class PostgresResearchAllowanceStore implements ResearchAllowanceStore {
       if (current.used + current.reserved >= current.allowance) throw new ResearchAllowanceExhaustedError();
       const id = existingRow?.id ?? requestId;
       const row = (await tx.query<ReservationRow>(`INSERT INTO agentkit_research_reservations_v1
-        (id,human_key_digest,agent_address,scope,period_start,resource_id,state,lease_expires_at,created_at,updated_at)
-        VALUES ($1,$2,$3,$4,$5,$6,'reserved',$7,$8,$8)
+        (id,human_key_digest,agent_address,scope,period_start,resource_id,state,lease_expires_at,created_at,updated_at,lease_token)
+        VALUES ($1,$2,$3,$4,$5,$6,'reserved',$7,$8,$8,$9)
         ON CONFLICT (id) DO UPDATE SET agent_address = EXCLUDED.agent_address,
           period_start = EXCLUDED.period_start, state = 'reserved',
-          lease_expires_at = EXCLUDED.lease_expires_at, result_id = NULL, failure_reason = NULL,
+          lease_expires_at = EXCLUDED.lease_expires_at, lease_token = EXCLUDED.lease_token, result_id = NULL, result = NULL, failure_reason = NULL,
           delivered_at = NULL, updated_at = EXCLUDED.updated_at RETURNING *`,
-        [id, binding.humanKeyDigest, agentAddress, normalizedScope, start, resourceId, now + leaseValue(input.leaseMs), now])).rows[0];
+        [id, binding.humanKeyDigest, agentAddress, normalizedScope, start, resourceId, now + leaseValue(input.leaseMs), now, randomUUID()])).rows[0];
       if (!row) throw new ResearchAllowanceConflictError('research reservation was not persisted');
       return { reservation: rowReservation(row), snapshot: await postgresSnapshot(tx, allowanceRow, now), created: true };
     });
   }
 
-  async commit(input: { reservationId: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async commit(input: { reservationId: string; leaseToken: string; resultId: string; result?: unknown; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     return this.transaction(async (tx) => {
-      const row = (await tx.query<ReservationRow>('SELECT * FROM agentkit_research_reservations_v1 WHERE id = $1 FOR UPDATE', [identifier(input.reservationId, 'research reservation id')])).rows[0];
-      if (!row) throw new ResearchAllowanceConflictError('research reservation was not found');
-      const reservation = rowReservation(row);
-      const allowanceRow = (await tx.query<AllowanceRow>(`SELECT * FROM agentkit_research_allowances_v1
-        WHERE human_key_digest = $1 AND scope = $2 AND period_start = $3 FOR UPDATE`,
-        [reservation.humanKeyDigest, reservation.scope, reservation.periodStart])).rows[0];
-      if (!allowanceRow) throw new ResearchAllowanceConflictError('research allowance was not persisted');
+      const { reservation, allowanceRow } = await lockReservation(tx, identifier(input.reservationId, 'research reservation id'));
+      assertReservationLease(reservation, input.leaseToken, now);
       const resultId = identifier(input.resultId, 'research result id');
       if (reservation.state === 'delivered') {
         if (reservation.resultId !== resultId) throw new ResearchAllowanceConflictError('research reservation already has another result');
@@ -511,15 +538,11 @@ export class PostgresResearchAllowanceStore implements ResearchAllowanceStore {
     });
   }
 
-  async release(input: { reservationId: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
+  async release(input: { reservationId: string; leaseToken: string; reason: string; now?: number }): Promise<{ reservation: ResearchReservationRecord; snapshot: ResearchAllowanceSnapshot }> {
     const now = input.now ?? Date.now();
     return this.transaction(async (tx) => {
-      const row = (await tx.query<ReservationRow>('SELECT * FROM agentkit_research_reservations_v1 WHERE id = $1 FOR UPDATE', [identifier(input.reservationId, 'research reservation id')])).rows[0];
-      if (!row) throw new ResearchAllowanceConflictError('research reservation was not found');
-      const reservation = rowReservation(row);
-      const allowanceRow = (await tx.query<AllowanceRow>(`SELECT * FROM agentkit_research_allowances_v1
-        WHERE human_key_digest = $1 AND scope = $2 AND period_start = $3 FOR UPDATE`, [reservation.humanKeyDigest, reservation.scope, reservation.periodStart])).rows[0];
-      if (!allowanceRow) throw new ResearchAllowanceConflictError('research allowance was not persisted');
+      const { reservation, allowanceRow } = await lockReservation(tx, identifier(input.reservationId, 'research reservation id'));
+      assertReservationLease(reservation, input.leaseToken, now);
       if (reservation.state === 'delivered') return { reservation, snapshot: await postgresSnapshot(tx, allowanceRow, now) };
       const released = (await tx.query<ReservationRow>(`UPDATE agentkit_research_reservations_v1
         SET state = 'released', failure_reason = $2, updated_at = $3 WHERE id = $1 RETURNING *`,

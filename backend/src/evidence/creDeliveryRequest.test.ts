@@ -133,3 +133,18 @@ test('lease-bound report IDs change when a replacement worker receives a new lea
   );
   assert.equal(creDeliveryReportId(base), creDeliveryReportId({ ...base }));
 });
+
+
+test('terminal deals cannot publish, select, adopt or bind evidence work', () => {
+  const published = buildCreDeliveryRequest(baseDeal, input, now);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  const receipt = { ...input, decisionCode: 1, evidenceCommitment: '0x' + 'c'.repeat(64), verdictCommitment: '0x' + 'd'.repeat(64), reportId: '0x' + 'e'.repeat(64) };
+  for (const terminal of [{ cancelledAt: now }, { settledAt: now }]) {
+    const deal = { ...baseDeal, ...terminal, creDeliveryRequest: published.request };
+    assert.equal(buildCreDeliveryRequest(deal, input, now).ok, false);
+    assert.equal(classifyCreDeliveryRequestForQueue(deal, now).kind, 'stale');
+    assert.equal(selectCurrentCreDeliveryRequest([deal], undefined, now).kind, 'none');
+    assert.equal(bindCreEvidenceReceipt(deal, receipt, now).ok, false);
+  }
+});
