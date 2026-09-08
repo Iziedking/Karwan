@@ -26,12 +26,11 @@ interface Props {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/// One intent-led flow:
-///   1. choose-path  -> New here or returning
-///   2. pick-method  -> Email or Wallet
-///   3. enter-email  -> user types email, we look up account + passkey state
-///   4. auth         -> passkey ceremony OR email code, decided by lookup
-type Stage = 'choose-path' | 'pick-method' | 'enter-email' | 'auth' | 'intent-mismatch';
+/// One neutral flow:
+///   1. pick-method  -> Email or Wallet
+///   2. enter-email  -> user types email, we look up account + passkey state
+///   3. auth         -> passkey ceremony OR email code, decided by lookup
+type Stage = 'pick-method' | 'enter-email' | 'auth' | 'intent-mismatch';
 type IntentMismatch = 'needs-create' | 'needs-sign-in';
 
 interface AuthPlan {
@@ -53,8 +52,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   const router = useRouter();
   const tAll = useTranslations();
   const t = tAll.auth.modal;
-  const [stage, setStage] = useState<Stage>('choose-path');
-  const [entryIntent, setEntryIntent] = useState<AuthEntryIntent | null>(null);
+  const [stage, setStage] = useState<Stage>('pick-method');
+  const [entryIntent, setEntryIntent] = useState<AuthEntryIntent | null>('neutral');
   const [email, setEmail] = useState('');
   const [plan, setPlan] = useState<AuthPlan | null>(null);
   const [intentMismatch, setIntentMismatch] = useState<IntentMismatch | null>(null);
@@ -119,8 +118,10 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   // Reset when the modal opens.
   useEffect(() => {
     if (!open) return;
-    setStage('choose-path');
-    setEntryIntent(null);
+    // Account state is resolved after the email or wallet proof. Asking the
+    // visitor to self-classify first adds a choice without improving routing.
+    setStage('pick-method');
+    setEntryIntent('neutral');
     routedAuthRef.current = false;
     setEmail('');
     setPlan(null);
@@ -139,10 +140,9 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
       .catch(() => setPasskeyConfigured(null));
   }, [open]);
 
-  // Route only after the backend has resolved both identity and profile. The
-  // visitor's New/Returning choice shapes the flow, but it is never treated as
-  // account truth: a missing profile always enters onboarding and an existing
-  // profile always continues without exposing a destructive create path.
+  // Route only after the backend has resolved both identity and profile. A
+  // missing profile always enters onboarding and an existing profile continues
+  // without exposing a destructive create path.
   useEffect(() => {
     if (!open || !isAuthenticated || !entryIntent || routedAuthRef.current) return;
     routedAuthRef.current = true;
@@ -413,9 +413,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   return createPortal(
     <div
       className={`auth-capsule-backdrop fixed inset-0 z-[100] flex items-end overflow-hidden ${
-        stage === 'choose-path'
-          ? 'justify-center sm:items-center sm:p-6'
-          : 'justify-end'
+        'justify-end'
       }`}
       style={{ background: 'rgba(14,14,14,0.65)' }}
       onClick={() => !busy && onClose()}
@@ -429,9 +427,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         aria-describedby="karwan-auth-description"
         onClick={(e) => e.stopPropagation()}
         className={`auth-capsule max-h-[94dvh] w-full overflow-y-auto rounded-t-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[var(--shadow-pop)] ${
-          stage === 'choose-path'
-            ? 'auth-capsule-choice sm:h-auto sm:max-h-[calc(100dvh-48px)] sm:w-[min(680px,calc(100vw-48px))] sm:rounded-[20px]'
-            : 'sm:h-full sm:max-h-none sm:w-[620px] sm:rounded-none sm:rounded-s-[18px]'
+          'sm:h-full sm:max-h-none sm:w-[620px] sm:rounded-none sm:rounded-s-[18px]'
         }`}
         style={{
           overscrollBehavior: 'contain',
@@ -440,7 +436,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-5 pb-1 pt-4 sm:px-6 sm:pt-6">
           <div className="flex items-center gap-2 min-w-0">
-            {stage !== 'choose-path' && stage !== 'intent-mismatch' && (
+            {stage !== 'pick-method' && stage !== 'intent-mismatch' && (
               <button
                 type="button"
                 onClick={() => {
@@ -461,8 +457,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                     setError(null);
                     return;
                   }
-                  setStage('choose-path');
-                  setEntryIntent(null);
+                  setStage('pick-method');
+                  setEntryIntent('neutral');
                   setError(null);
                 }}
                 aria-label={t.aria.back}
@@ -480,7 +476,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
               </button>
             )}
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] truncate">
-              {(stage === 'choose-path' || stage === 'pick-method') && t.eyebrow.welcome}
+              {stage === 'pick-method' && t.eyebrow.welcome}
               {stage === 'enter-email' && t.eyebrow.email}
               {stage === 'auth' && (plan?.exists ? t.eyebrow.signIn : t.eyebrow.createAccount)}
               {stage === 'intent-mismatch' &&
@@ -507,9 +503,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         {/* Title block, fixed height keeps the modal from jumping between stages */}
         <div className="px-5 pb-4 pt-1 sm:px-6 sm:pb-5 sm:pt-2">
           <h2 id="karwan-auth-title" className="font-sans text-[23px] font-extrabold leading-[1.08] tracking-[-0.025em] text-[var(--lp-dark)] sm:text-[26px]">
-            {stage === 'choose-path' && t.title.choosePath}
-            {stage === 'pick-method' &&
-              (entryIntent === 'new' ? t.title.createAccount : t.title.signIn)}
+            {stage === 'pick-method' && t.title.signIn}
             {stage === 'enter-email' && t.title.askEmail}
             {stage === 'auth' && plan?.exists && (otpSent ? t.title.checkInbox : t.title.welcomeBack)}
             {stage === 'auth' && !plan?.exists && (otpSent ? t.title.checkInbox : t.title.createAccount)}
@@ -517,7 +511,6 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
             {stage === 'intent-mismatch' && intentMismatch === 'needs-sign-in' && t.mismatch.needsSignInTitle}
           </h2>
           <p id="karwan-auth-description" className="mt-2 max-w-[38ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)] sm:text-[14px]">
-            {stage === 'choose-path' && t.subtitle.choosePath}
             {stage === 'pick-method' && t.subtitle.pickMethod}
             {stage === 'enter-email' && t.subtitle.lookup}
             {stage === 'auth' && plan?.exists && !otpSent && (
@@ -536,55 +529,6 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
 
         {/* Body */}
         <div className="space-y-3.5 px-5 pb-5 sm:space-y-4 sm:px-6 sm:pb-6">
-          {stage === 'choose-path' && (
-            <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-              <button
-                type="button"
-                data-auth-primary
-                onClick={() => {
-                  setEntryIntent('new');
-                  setStage('pick-method');
-                  setError(null);
-                }}
-                className="group min-h-[112px] w-full border border-[var(--lp-accent-hover)] bg-[var(--lp-accent)] px-5 py-4 text-start text-[var(--lp-band-dark)] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-band-dark)] focus-visible:ring-offset-2 sm:min-h-[124px]"
-                style={{ borderRadius: 16 }}
-              >
-                <span className="flex items-center justify-between gap-4">
-                  <span>
-                    <span className="block font-sans text-[17px] font-extrabold tracking-[-0.02em] sm:text-[18px]">
-                      {t.entry.newUser}
-                    </span>
-                    <span className="mt-1 block max-w-[32ch] text-[12px] leading-relaxed text-black/65">
-                      {t.entry.newUserBody}
-                    </span>
-                  </span>
-                  <span aria-hidden className="text-[18px] text-[var(--lp-band-dark)] transition-transform group-hover:translate-x-1">→</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEntryIntent('returning');
-                  setStage('pick-method');
-                  setError(null);
-                }}
-                className="group min-h-[112px] w-full border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-4 text-start text-[var(--lp-dark)] transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-card)] sm:min-h-[124px]"
-                style={{ borderRadius: 16 }}
-              >
-                <span className="flex items-center justify-between gap-4">
-                  <span>
-                    <span className="block font-sans text-[17px] font-extrabold tracking-[-0.02em] sm:text-[18px]">
-                      {t.entry.returningUser}
-                    </span>
-                    <span className="mt-1 block max-w-[32ch] text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
-                      {t.entry.returningUserBody}
-                    </span>
-                  </span>
-                  <span aria-hidden className="text-[18px] transition-transform group-hover:translate-x-1">→</span>
-                </span>
-              </button>
-            </div>
-          )}
           {stage === 'pick-method' && (
             <>
               <button
@@ -596,7 +540,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   setError(null);
                 }}
                 disabled={passkeyConfigured === false}
-                className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] font-sans text-[15px] font-bold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -639,7 +583,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                         openConnectModal();
                       }
                     }}
-                    className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-transparent text-[var(--lp-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] font-sans text-[15px] font-bold bg-transparent text-[var(--lp-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 12,
@@ -685,7 +629,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
               <button
                 type="submit"
                 disabled={busy || !email}
-                className="w-full inline-flex min-h-11 items-center justify-center gap-2 px-5 py-[13px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-center gap-2 px-5 py-[13px] font-sans text-[15px] font-bold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -705,7 +649,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 data-auth-primary
                 onClick={runPasskey}
                 disabled={busy}
-                className="w-full inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-[14px] font-sans text-[15px] font-bold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -741,7 +685,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 data-auth-primary
                 onClick={sendOtp}
                 disabled={busy}
-                className="w-full inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                className="w-full inline-flex min-h-11 items-center justify-center gap-2.5 px-5 py-[14px] font-sans text-[15px] font-bold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                 style={{
                   borderTopLeftRadius: 12,
                   borderTopRightRadius: 12,
@@ -829,7 +773,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 <button
                   type="submit"
                   disabled={busy || otpCode.length !== 6}
-                  className="inline-flex min-h-11 items-center gap-2 px-5 py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
+                  className="inline-flex min-h-11 items-center gap-2 px-5 py-[12px] font-sans text-[15px] font-bold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
                   style={{
                     borderTopLeftRadius: 12,
                     borderTopRightRadius: 12,
@@ -860,7 +804,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 type="button"
                 data-auth-primary
                 onClick={continueFromMismatch}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--lp-band-dark)] px-6 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] text-white transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--lp-band-dark)] px-6 py-3 font-sans text-[15px] font-bold text-white transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
               >
                 {intentMismatch === 'needs-create'
                   ? t.mismatch.createAccount

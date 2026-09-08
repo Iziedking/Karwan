@@ -73,3 +73,33 @@ test('embedded onboarding authentication stays on the current step', () => {
     { kind: 'continue', destination: null },
   );
 });
+
+test('a neutral entry follows the resolved account state without a mismatch step', () => {
+  assert.deepEqual(
+    postAuthDestination({
+      intent: 'neutral',
+      accountExists: false,
+      profileExists: false,
+      requestedHref: '/app',
+    }),
+    { kind: 'continue', destination: '/onboarding' },
+  );
+  assert.deepEqual(
+    postAuthDestination({
+      intent: 'neutral',
+      accountExists: true,
+      profileExists: true,
+      requestedHref: '/app',
+    }),
+    { kind: 'continue', destination: '/app' },
+  );
+  assert.deepEqual(
+    postAuthDestination({
+      intent: 'neutral',
+      accountExists: true,
+      profileExists: false,
+      requestedHref: '/app',
+    }),
+    { kind: 'continue', destination: '/onboarding' },
+  );
+});
