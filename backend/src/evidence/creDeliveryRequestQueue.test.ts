@@ -166,3 +166,21 @@ test('redelivery cancellation fences the prior request', () => {
   assert.equal(completion.ok, false);
   if (!completion.ok) assert.equal(completion.code, 'REQUEST_CANCELLED');
 });
+
+test('stale claim cleanup cancels only the claimed request', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const prior = queue.publish(request, nowMs);
+  const corrected = queue.publish({ ...request, evidenceRevision: request.evidenceRevision + 1 }, nowMs + 1);
+  assert.equal(prior.ok, true);
+  assert.equal(corrected.ok, true);
+  if (!prior.ok || !corrected.ok) return;
+
+  const claimed = queue.claim([prior.value.requestKey], nowMs + 2, 100);
+  assert.ok(claimed);
+  if (!claimed) return;
+  assert.equal(queue.cancelRequest(prior.value.requestKey, 'wrong-lease', nowMs + 3), 0);
+  assert.equal(queue.cancelRequest(prior.value.requestKey, claimed.record.leaseToken, nowMs + 4), 1);
+  const replacement = queue.claim([corrected.value.requestKey], nowMs + 5, 100);
+  assert.ok(replacement);
+  assert.equal(replacement?.record.requestKey, corrected.value.requestKey);
+});

@@ -185,6 +185,10 @@ export class PostgresCreDeliveryRequestQueue {
   cancel(dealId: string, nowMs = Date.now()): Promise<number> {
     return cancelPostgres(this.sql, dealId, nowMs);
   }
+
+  cancelRequest(requestKey: string, leaseToken?: string, nowMs = Date.now()): Promise<number> {
+    return cancelRequestPostgres(this.sql, requestKey, leaseToken, nowMs);
+  }
 }
 
 function activeRevisionRecord(records: Iterable<CreDeliveryRequestRecord>, request: CreDeliveryRequest): CreDeliveryRequestRecord | undefined {
@@ -300,6 +304,20 @@ export class InMemoryCreDeliveryRequestQueue {
       cancelled += 1;
     }
     return cancelled;
+  }
+
+  cancelRequest(requestKey: string, leaseToken?: string, nowMs = Date.now()): number {
+    const record = this.records.get(requestKey);
+    if (!record || (record.state !== 'pending' && record.state !== 'leased')) return 0;
+    if (leaseToken !== undefined && (record.state !== 'leased' || record.leaseToken !== leaseToken)) return 0;
+    this.records.set(requestKey, {
+      ...record,
+      state: 'cancelled',
+      leaseToken: undefined,
+      leaseExpiresAt: undefined,
+      updatedAt: nowMs,
+    });
+    return 1;
   }
 
   get(requestKey: string): CreDeliveryRequestRecord | undefined {
@@ -628,6 +646,28 @@ async function cancelPostgres(sql: CreDeliveryRequestQueueSqlRuntime, dealId: st
   });
 }
 
+async function cancelRequestPostgres(
+  sql: CreDeliveryRequestQueueSqlRuntime,
+  requestKey: string,
+  leaseToken: string | undefined,
+  nowMs: number,
+): Promise<number> {
+  return sql.withTransaction(async (tx) => {
+    const result = await tx.query<{ count: string }>(
+      `WITH cancelled AS (
+         UPDATE cre_delivery_requests_v1
+         SET state = 'cancelled', lease_token = NULL, lease_expires_at = NULL, updated_at = $3
+         WHERE request_key = $1
+           AND state IN ('pending', 'leased')
+           AND ($2::text IS NULL OR (state = 'leased' AND lease_token = $2))
+         RETURNING request_key
+       ) SELECT count(*)::text AS count FROM cancelled`,
+      [requestKey, leaseToken ?? null, nowMs],
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  });
+}
+
 export async function cancelCreDeliveryRequests(dealId: string, nowMs = Date.now()): Promise<number> {
   const runtime = await postgresRuntime();
   if (runtime.pgEnabled) {
@@ -636,4 +676,32 @@ export async function cancelCreDeliveryRequests(dealId: string, nowMs = Date.now
     }).cancel(dealId, nowMs);
   }
   return withFlatStore(() => cancelFlat(dealId, nowMs));
+}
+
+export async function cancelCreDeliveryRequest(
+  requestKey: string,
+  leaseToken?: string,
+  nowMs = Date.now(),
+): Promise<number> {
+  const runtime = await postgresRuntime();
+  if (runtime.pgEnabled) {
+    return new PostgresCreDeliveryRequestQueue({
+      withTransaction: runtime.withPostgresTransaction,
+    }).cancelRequest(requestKey, leaseToken, nowMs);
+  }
+  return withFlatStore(() => {
+    const records = readFlatRecords();
+    const record = records.get(requestKey);
+    if (!record || (record.state !== 'pending' && record.state !== 'leased')) return 0;
+    if (leaseToken !== undefined && (record.state !== 'leased' || record.leaseToken !== leaseToken)) return 0;
+    records.set(requestKey, {
+      ...record,
+      state: 'cancelled',
+      leaseToken: undefined,
+      leaseExpiresAt: undefined,
+      updatedAt: nowMs,
+    });
+    writeFlatRecords(records);
+    return 1;
+  });
 }
