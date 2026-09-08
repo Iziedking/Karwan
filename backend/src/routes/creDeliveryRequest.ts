@@ -10,6 +10,7 @@ import {
   deliveryRequestInputSchema,
   evidenceReceiptBindingInputSchema,
   publicCreDeliveryRequest,
+  publicCreDeliveryRequestWithLease,
 } from '../evidence/creDeliveryRequest.js';
 import {
   cancelCreDeliveryRequests,
@@ -58,7 +59,7 @@ creDeliveryRequestRoutes.get('/current', async (c) => {
     await cancelCreDeliveryRequests(claimed.record.dealId).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
-  return c.json(publicCreDeliveryRequest(claimed.record));
+  return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken));
 });
 
 creDeliveryRequestRoutes.get('/:jobId', async (c) => {
@@ -76,7 +77,7 @@ creDeliveryRequestRoutes.get('/:jobId', async (c) => {
     await cancelCreDeliveryRequests(deal.jobId).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
-  return c.json(publicCreDeliveryRequest(claimed.record));
+  return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken));
 });
 
 creDeliveryRequestRoutes.post('/:jobId', async (c) => {

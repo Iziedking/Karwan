@@ -21,6 +21,7 @@ import {
   evaluateGitHubDelivery,
   type GitHubDeliveryResult,
 } from '../../backend/src/evidence/githubDeliveryPredicate.js';
+import { creDeliveryReportId } from '../../backend/src/evidence/creReportIdentity.js';
 import { loadFixtureEvidence } from './fixtureSource.js';
 import { confidentialCriteriaSchema, loadGitHubEvidence } from './githubSource.js';
 
@@ -82,6 +83,7 @@ const deliveryRequestSchema = z.object({
   expiresAt: z.number().int().positive(),
   pullNumber: z.number().int().positive(),
   submittedSha: shaSchema,
+  leaseToken: z.string().uuid().optional(),
 }).strict();
 
 type DeliveryRequest = z.infer<typeof deliveryRequestSchema>;
@@ -99,10 +101,15 @@ function buildReportPayload(config: Config, request: DeliveryRequest, result: Gi
     parseAbiParameters('string policyVersion, bytes32 criteriaCommitment, bytes32 evidenceCommitment, uint8 decisionCode'),
     [result.policyVersion, criteriaCommitment, evidenceCommitment, decisionCode],
   ));
-  const reportId = keccak256(encodeAbiParameters(
-    parseAbiParameters('bytes32 dealId, uint64 termsVersion, uint64 evidenceRevision, bytes32 evidenceCommitment, bytes32 verdictCommitment, uint8 decisionCode'),
-    [request.dealId as Hex, BigInt(request.termsVersion), BigInt(request.evidenceRevision), evidenceCommitment, verdictCommitment, decisionCode],
-  ));
+  const reportId = creDeliveryReportId({
+    dealId: request.dealId as `0x${string}`,
+    termsVersion: request.termsVersion,
+    evidenceRevision: request.evidenceRevision,
+    evidenceCommitment: evidenceCommitment as `0x${string}`,
+    verdictCommitment: verdictCommitment as `0x${string}`,
+    decisionCode,
+    leaseToken: request.leaseToken,
+  });
 
   return encodeAbiParameters(
     parseAbiParameters('bytes32 domain, uint256 chainId, bytes32 dealId, uint64 termsVersion, uint64 evidenceRevision, uint64 expiresAt, bytes32 evidenceCommitment, bytes32 verdictCommitment, uint8 decisionCode, bytes32 reportId'),
