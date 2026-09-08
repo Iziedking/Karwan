@@ -5,6 +5,7 @@ import {
   bindCreEvidenceReceipt,
   buildCreDeliveryRequest,
   classifyCreDeliveryRequestForQueue,
+  creDeliveryReportId,
   deliveryRequestInputSchema,
   evidenceReceiptBindingInputSchema,
   publicCreDeliveryRequest,
@@ -115,4 +116,20 @@ test('bearer authentication is fail-closed and constant-time for equal-length se
   assert.equal(bearerTokenMatches('Bearer wrong', 'secret'), false);
   assert.equal(bearerTokenMatches('Basic secret', 'secret'), false);
   assert.equal(bearerTokenMatches('Bearer secret', 'secret'), true);
+});
+
+test('lease-bound report IDs change when a replacement worker receives a new lease', () => {
+  const base = {
+    dealId,
+    termsVersion: 3,
+    evidenceRevision: 2,
+    evidenceCommitment: `0x${'c'.repeat(64)}` as `0x${string}`,
+    verdictCommitment: `0x${'d'.repeat(64)}` as `0x${string}`,
+    decisionCode: 1,
+  };
+  assert.notEqual(
+    creDeliveryReportId({ ...base, leaseToken: '11111111-1111-4111-8111-111111111111' }),
+    creDeliveryReportId({ ...base, leaseToken: '22222222-2222-4222-8222-222222222222' }),
+  );
+  assert.equal(creDeliveryReportId(base), creDeliveryReportId({ ...base }));
 });

@@ -2,6 +2,9 @@ import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import type { DirectDeal } from '../db/deals.js';
 
+export { creDeliveryReportId } from './creReportIdentity.js';
+export type { CreDeliveryReportIdentity } from './creReportIdentity.js';
+
 const bytes32Schema = z.string().regex(/^0x[0-9a-fA-F]{64}$/);
 const shaSchema = z.string().regex(/^[0-9a-fA-F]{40}$/);
 const commitmentSchema = bytes32Schema;
@@ -165,6 +168,10 @@ export function publicCreDeliveryRequest(request: CreDeliveryRequest) {
     pullNumber: request.pullNumber,
     submittedSha: request.submittedSha,
   };
+}
+
+export function publicCreDeliveryRequestWithLease(request: CreDeliveryRequest, leaseToken: string) {
+  return { ...publicCreDeliveryRequest(request), leaseToken };
 }
 
 export function selectCurrentCreDeliveryRequest(
