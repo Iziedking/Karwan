@@ -37,18 +37,43 @@ const receipt = evidenceReceiptBindingInputSchema.parse({
   reportId: `0x${'d'.repeat(64)}`,
 });
 
-test('publishes one active request per delivery revision and is idempotent', () => {
+test('adopts one legacy JSON request per delivery revision and is idempotent', () => {
   const queue = new InMemoryCreDeliveryRequestQueue();
-  const first = queue.publish(request, nowMs);
+  const first = queue.adoptLegacy(request, nowMs);
   assert.equal(first.ok, true);
   if (!first.ok) return;
   assert.equal(first.idempotent, false);
-  const retry = queue.publish(request, nowMs + 1);
+  const retry = queue.adoptLegacy(request, nowMs + 1);
   assert.equal(retry.ok, true);
   if (retry.ok) assert.equal(retry.idempotent, true);
-  const conflict = queue.publish({ ...request, pullNumber: request.pullNumber + 1 }, nowMs + 2);
+  const conflict = queue.adoptLegacy({ ...request, pullNumber: request.pullNumber + 1 }, nowMs + 2);
   assert.equal(conflict.ok, false);
   if (!conflict.ok) assert.equal(conflict.code, 'REQUEST_CONFLICT');
+});
+
+test('an adopted request still uses the normal claim and receipt lifecycle', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const adopted = queue.adoptLegacy(request, nowMs);
+  assert.equal(adopted.ok, true);
+  if (!adopted.ok) return;
+  const claimed = queue.claim([adopted.value.requestKey], nowMs + 1, 100);
+  assert.ok(claimed);
+  const completed = queue.complete(request, receipt, nowMs + 2);
+  assert.equal(completed.ok, true);
+  if (completed.ok) assert.equal(completed.value.state, 'completed');
+});
+
+test('a corrected delivery cannot adopt the prior revision or bypass its cancellation fence', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const prior = queue.adoptLegacy(request, nowMs);
+  assert.equal(prior.ok, true);
+  assert.equal(queue.cancel(dealId, nowMs + 1), 1);
+  const corrected = { ...request, evidenceRevision: request.evidenceRevision + 1 };
+  const next = queue.adoptLegacy(corrected, nowMs + 2);
+  assert.equal(next.ok, true);
+  if (next.ok) assert.notEqual(next.value.requestKey, prior.ok ? prior.value.requestKey : '');
+  const oldClaim = queue.claim([prior.ok ? prior.value.requestKey : ''], nowMs + 3);
+  assert.equal(oldClaim, null);
 });
 
 test('claims only once, then recovers an expired lease without duplicating the request', () => {

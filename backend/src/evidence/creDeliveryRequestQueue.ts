@@ -148,6 +148,10 @@ export class PostgresCreDeliveryRequestQueue {
     return publishPostgres(this.sql, request, nowMs);
   }
 
+  adoptLegacy(request: CreDeliveryRequest, nowMs = Date.now()): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
+    return this.publish(request, nowMs);
+  }
+
   claim(requestKeys: readonly string[], nowMs = Date.now(), leaseMs = 90_000): Promise<CreClaimResult | null> {
     return claimPostgres(this.sql, requestKeys, nowMs, leaseMs);
   }
@@ -204,6 +208,10 @@ export class InMemoryCreDeliveryRequestQueue {
     };
     this.records.set(key, record);
     return { ok: true, value: record, idempotent: false };
+  }
+
+  adoptLegacy(request: CreDeliveryRequest, nowMs = Date.now()): CreQueueResult<CreDeliveryRequestRecord> {
+    return this.publish(request, nowMs);
   }
 
   claim(requestKeys: readonly string[], nowMs = Date.now(), leaseMs = 90_000): CreClaimResult | null {
@@ -375,6 +383,16 @@ export async function publishCreDeliveryRequest(
     }).publish(request, nowMs);
   }
   return withFlatStore(() => publishFlat(request, nowMs));
+}
+
+/// Legacy adoption is intentionally the same idempotent publish boundary. It
+/// never overwrites an active revision, and it cannot bypass queue leases,
+/// receipt completion, or redelivery cancellation.
+export async function adoptLegacyCreDeliveryRequest(
+  request: CreDeliveryRequest,
+  nowMs = Date.now(),
+): Promise<CreQueueResult<CreDeliveryRequestRecord>> {
+  return publishCreDeliveryRequest(request, nowMs);
 }
 
 function claimFlat(requestKeys: readonly string[], nowMs: number, leaseMs: number): CreClaimResult | null {
