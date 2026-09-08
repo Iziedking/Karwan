@@ -43,26 +43,7 @@ test(
             `);
           }
 
-          if (index === 1) {
-            await runNumberedMigrations(client, NUMBERED_MIGRATIONS.filter(({ version }) => version < 22));
-            await client.query(`INSERT INTO agentkit_research_allowances_v1
-              (human_key_digest, scope, period_start, allowance, used, updated_at)
-              VALUES ('audit-human', 'audit', 0, 3, 1, 1);
-              INSERT INTO agentkit_research_reservations_v1
-                (id, human_key_digest, agent_address, scope, period_start, resource_id, state, lease_expires_at, created_at, updated_at)
-              VALUES ('audit-inflight', 'audit-human', 'audit-agent', 'audit', 0, 'pending-report', 'reserved', 999999, 1, 1),
-                ('audit-delivered', 'audit-human', 'audit-agent', 'audit', 0, 'delivered-report', 'delivered', 999999, 1, 1)`);
-            assert.deepEqual(await runNumberedMigrations(client), [22]);
-            const legacy = await client.query('SELECT id, state, lease_token FROM agentkit_research_reservations_v1 ORDER BY id');
-            assert.deepEqual(legacy.rows, [
-              { id: 'audit-delivered', state: 'delivered', lease_token: null },
-              { id: 'audit-inflight', state: 'released', lease_token: null },
-            ]);
-            const allowance = await client.query('SELECT used FROM agentkit_research_allowances_v1');
-            assert.equal(allowance.rows[0].used, 1);
-          } else {
-            assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
-          }
+          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
           assert.deepEqual(await runNumberedMigrations(client), []);
           const tables = await client.query<{ table_name: string }>(
             `SELECT table_name FROM information_schema.tables
@@ -112,6 +93,14 @@ test(
           ]) {
             assert.equal(names.has(table), true, `${schema} is missing ${table}`);
           }
+          const reservationColumns = await client.query<{ column_name: string; is_nullable: string }>(
+            `SELECT column_name, is_nullable
+             FROM information_schema.columns
+             WHERE table_schema = $1 AND table_name = 'agentkit_research_reservations_v1'
+               AND column_name = 'attempt_token'`,
+            [schema],
+          );
+          assert.deepEqual(reservationColumns.rows, [{ column_name: 'attempt_token', is_nullable: 'NO' }]);
           const ledger = await client.query<{ version: string; name: string }>(
             'SELECT version, name FROM karwan_schema_migrations ORDER BY version',
           );

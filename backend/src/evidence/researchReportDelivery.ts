@@ -54,7 +54,8 @@ export async function deliverComplimentaryResearchReport<TResult>(input: {
     result = await input.deliver();
   } catch (error) {
     await input.store.release({
-      reservationId: reserved.reservation.id, leaseToken: reserved.reservation.leaseToken,
+      reservationId: reserved.reservation.id,
+      attemptToken: reserved.reservation.attemptToken,
       reason: error instanceof Error ? error.message : 'research delivery failed',
       now: input.now?.() ?? Date.now(),
     });
@@ -63,7 +64,8 @@ export async function deliverComplimentaryResearchReport<TResult>(input: {
 
   const resultId = researchResultId(input.resourceId, result);
   const committed = await input.store.commit({
-    reservationId: reserved.reservation.id, leaseToken: reserved.reservation.leaseToken,
+    reservationId: reserved.reservation.id,
+    attemptToken: reserved.reservation.attemptToken,
     resultId,
     result,
     now: input.now?.() ?? Date.now(),

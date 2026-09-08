@@ -123,6 +123,9 @@ test('numbered migrations are ordered and contain every durable runtime table', 
   assert.match(creQueueSql, /state TEXT NOT NULL CHECK/);
   assert.match(creQueueSql, /cre_delivery_requests_one_active_revision_idx/);
   assert.match(creQueueSql, /lease_token TEXT/);
+  const fencingSql = NUMBERED_MIGRATIONS[21]!.sql;
+  assert.match(fencingSql, /ADD COLUMN IF NOT EXISTS attempt_token TEXT/);
+  assert.match(fencingSql, /ALTER COLUMN attempt_token SET NOT NULL/);
 });
 
 test('migration runner applies each migration once across repeated startup', async () => {
@@ -153,6 +156,7 @@ test('migration runner applies each migration once across repeated startup', asy
   assert.equal(executor.applied.get(19), 'durable_deal_invites');
   assert.equal(executor.applied.get(20), 'agentkit_report_delivery_accounting');
   assert.equal(executor.applied.get(21), 'cre_delivery_request_queue');
+  assert.equal(executor.applied.get(22), 'agentkit_report_delivery_fencing');
   assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 22);
   assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 22);
 });
