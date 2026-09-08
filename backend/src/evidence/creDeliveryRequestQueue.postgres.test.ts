@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import pg from 'pg';
 import { runNumberedMigrations, type SqlExecutor } from '../db/migrations.js';
-import type { CreDeliveryRequest, CreEvidenceReceiptBinding } from './creDeliveryRequest.js';
+import { creDeliveryReportId, type CreDeliveryRequest, type CreEvidenceReceiptBinding } from './creDeliveryRequest.js';
 import {
   CreDeliveryRequestQueueSqlRuntime,
   CreQueueResult,
@@ -64,6 +64,22 @@ test(
       reportId: `0x${'e'.repeat(64)}`,
     };
 
+    const receiptForLease = (leaseToken: string, overrides: Partial<CreEvidenceReceiptBinding> = {}): CreEvidenceReceiptBinding => {
+      const next = { ...receipt, ...overrides };
+      return {
+        ...next,
+        reportId: creDeliveryReportId({
+          dealId: request.dealId,
+          termsVersion: request.termsVersion,
+          evidenceRevision: request.evidenceRevision,
+          evidenceCommitment: next.evidenceCommitment,
+          verdictCommitment: next.verdictCommitment,
+          decisionCode: next.decisionCode,
+          leaseToken,
+        }),
+      };
+    };
+
     try {
       await client.query(`CREATE SCHEMA "${schema}"`);
       await client.query(`SET search_path TO "${schema}"`);
@@ -106,12 +122,15 @@ test(
       const recovered = await queue.claim([requestKey], 2_101, 1_000);
       assert.ok(recovered);
       assert.equal(recovered.record.state, 'leased');
-      const completed = valueOrThrow(await queue.complete(request, receipt, 2_200));
+      const staleReplacement = await queue.complete(request, receiptForLease(firstClaim.record.leaseToken), 2_200);
+      assert.equal(staleReplacement.ok, false);
+      if (!staleReplacement.ok) assert.equal(staleReplacement.code, 'REQUEST_LEASE_MISMATCH');
+      const completed = valueOrThrow(await queue.complete(request, receiptForLease(recovered.record.leaseToken), 2_201));
       assert.equal(completed.state, 'completed');
-      const replay = await queue.complete(request, receipt, 2_201);
+      const replay = await queue.complete(request, receiptForLease(recovered.record.leaseToken), 2_202);
       assert.equal(replay.ok, true);
       if (replay.ok) assert.equal(replay.idempotent, true);
-      const conflictingReceipt = await queue.complete(request, { ...receipt, decisionCode: 2 }, 2_202);
+      const conflictingReceipt = await queue.complete(request, receiptForLease(recovered.record.leaseToken, { decisionCode: 2 }), 2_203);
       assert.equal(conflictingReceipt.ok, false);
       if (!conflictingReceipt.ok) assert.equal(conflictingReceipt.code, 'RECEIPT_CONFLICT');
 

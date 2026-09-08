@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
+  creDeliveryReportId,
   creDeliveryRequestKey,
   type CreDeliveryRequest,
   type CreEvidenceReceiptBinding,
@@ -24,10 +25,10 @@ export interface CreDeliveryRequestRecord extends CreDeliveryRequest {
 
 export type CreQueueResult<T> =
   | { ok: true; value: T; idempotent?: boolean }
-  | { ok: false; code: 'REQUEST_CONFLICT' | 'REQUEST_NOT_FOUND' | 'REQUEST_NOT_CLAIMED' | 'REQUEST_EXPIRED' | 'REQUEST_CANCELLED' | 'RECEIPT_CONFLICT'; message: string };
+  | { ok: false; code: 'REQUEST_CONFLICT' | 'REQUEST_NOT_FOUND' | 'REQUEST_NOT_CLAIMED' | 'REQUEST_EXPIRED' | 'REQUEST_CANCELLED' | 'REQUEST_LEASE_MISMATCH' | 'RECEIPT_CONFLICT'; message: string };
 
 export interface CreClaimResult {
-  record: CreDeliveryRequestRecord;
+  record: CreDeliveryRequestRecord & { leaseToken: string; leaseExpiresAt: number };
 }
 
 async function postgresRuntime(): Promise<typeof import('../db/client.js')> {
@@ -122,6 +123,23 @@ function rowToRecord(row: QueueRow): CreDeliveryRequestRecord {
     updatedAt: Number(row.updated_at),
     ...(row.completed_at == null ? {} : { completedAt: Number(row.completed_at) }),
   });
+}
+
+function claimResult(record: CreDeliveryRequestRecord): CreClaimResult | null {
+  if (!record.leaseToken || record.leaseExpiresAt === undefined) return null;
+  return { record: record as CreClaimResult['record'] };
+}
+
+function receiptMatchesLease(request: CreDeliveryRequest, receipt: CreEvidenceReceiptBinding, leaseToken: string): boolean {
+  return receipt.reportId.toLowerCase() === creDeliveryReportId({
+    dealId: request.dealId,
+    termsVersion: request.termsVersion,
+    evidenceRevision: request.evidenceRevision,
+    evidenceCommitment: receipt.evidenceCommitment,
+    verdictCommitment: receipt.verdictCommitment,
+    decisionCode: receipt.decisionCode,
+    leaseToken,
+  }).toLowerCase();
 }
 
 interface QueueRow extends Record<string, unknown> {
@@ -229,7 +247,7 @@ export class InMemoryCreDeliveryRequestQueue {
       updatedAt: nowMs,
     };
     this.records.set(next.requestKey, claimed);
-    return { record: claimed };
+    return claimResult(claimed);
   }
 
   complete(request: CreDeliveryRequest, receipt: CreEvidenceReceiptBinding, nowMs = Date.now()): CreQueueResult<CreDeliveryRequestRecord> {
@@ -257,6 +275,9 @@ export class InMemoryCreDeliveryRequestQueue {
     }
     if (existing.state !== 'leased') return { ok: false, code: 'REQUEST_NOT_CLAIMED', message: 'claim the delivery request before posting its receipt' };
     if ((existing.leaseExpiresAt ?? 0) <= nowMs) return { ok: false, code: 'REQUEST_EXPIRED', message: 'the delivery request lease has elapsed' };
+    if (!existing.leaseToken || !receiptMatchesLease(request, receipt, existing.leaseToken)) {
+      return { ok: false, code: 'REQUEST_LEASE_MISMATCH', message: 'the receipt was produced by a different delivery request lease' };
+    }
     const completed: CreDeliveryRequestRecord = {
       ...existing,
       state: 'completed',
@@ -416,7 +437,7 @@ function claimFlat(requestKeys: readonly string[], nowMs: number, leaseMs: numbe
   };
   records.set(next.requestKey, claimed);
   writeFlatRecords(records);
-  return { record: claimed };
+  return claimResult(claimed);
 }
 
 async function claimPostgres(
@@ -458,7 +479,7 @@ async function claimPostgres(
       [token, nowMs + leaseMs, nowMs, row.request_key],
     );
     const claimedRow = claimed.rows[0];
-    return claimedRow ? { record: rowToRecord(claimedRow) } : null;
+    return claimedRow ? claimResult(rowToRecord(claimedRow)) : null;
   });
 }
 
@@ -506,6 +527,11 @@ function completeFlat(request: CreDeliveryRequest, receipt: CreEvidenceReceiptBi
     }
     return { ok: true, value: existing, idempotent: true };
   }
+  if (existing.state !== 'leased') return { ok: false, code: 'REQUEST_NOT_CLAIMED', message: 'claim the delivery request before posting its receipt' };
+  if ((existing.leaseExpiresAt ?? 0) <= nowMs) return { ok: false, code: 'REQUEST_EXPIRED', message: 'the delivery request lease has elapsed' };
+  if (!existing.leaseToken || !receiptMatchesLease(request, receipt, existing.leaseToken)) {
+    return { ok: false, code: 'REQUEST_LEASE_MISMATCH', message: 'the receipt was produced by a different delivery request lease' };
+  }
   const completed: CreDeliveryRequestRecord = {
     ...existing,
     state: 'completed',
@@ -543,6 +569,9 @@ async function completePostgres(
     }
     if (existing.state !== 'leased') return { ok: false, code: 'REQUEST_NOT_CLAIMED', message: 'claim the delivery request before posting its receipt' };
     if ((existing.leaseExpiresAt ?? 0) <= nowMs) return { ok: false, code: 'REQUEST_EXPIRED', message: 'the delivery request lease has elapsed' };
+    if (!existing.leaseToken || !receiptMatchesLease(request, receipt, existing.leaseToken)) {
+      return { ok: false, code: 'REQUEST_LEASE_MISMATCH', message: 'the receipt was produced by a different delivery request lease' };
+    }
     const completed = await tx.query<QueueRow>(
       `UPDATE cre_delivery_requests_v1
        SET state = 'completed', receipt = $1::jsonb, lease_token = NULL,

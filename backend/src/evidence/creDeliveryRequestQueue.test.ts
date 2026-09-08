@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { deliveryRequestInputSchema, evidenceReceiptBindingInputSchema, buildCreDeliveryRequest } from './creDeliveryRequest.js';
+import { creDeliveryReportId, deliveryRequestInputSchema, evidenceReceiptBindingInputSchema, buildCreDeliveryRequest } from './creDeliveryRequest.js';
 import { InMemoryCreDeliveryRequestQueue } from './creDeliveryRequestQueue.js';
 
 const nowSeconds = 1_800_000_000;
@@ -37,6 +37,22 @@ const receipt = evidenceReceiptBindingInputSchema.parse({
   reportId: `0x${'d'.repeat(64)}`,
 });
 
+function receiptForLease(leaseToken: string, overrides: Partial<typeof receipt> = {}) {
+  const next = { ...receipt, ...overrides };
+  return {
+    ...next,
+    reportId: creDeliveryReportId({
+      dealId: request.dealId,
+      termsVersion: request.termsVersion,
+      evidenceRevision: request.evidenceRevision,
+      evidenceCommitment: next.evidenceCommitment,
+      verdictCommitment: next.verdictCommitment,
+      decisionCode: next.decisionCode,
+      leaseToken,
+    }),
+  };
+}
+
 test('adopts one legacy JSON request per delivery revision and is idempotent', () => {
   const queue = new InMemoryCreDeliveryRequestQueue();
   const first = queue.adoptLegacy(request, nowMs);
@@ -58,7 +74,7 @@ test('an adopted request still uses the normal claim and receipt lifecycle', () 
   if (!adopted.ok) return;
   const claimed = queue.claim([adopted.value.requestKey], nowMs + 1, 100);
   assert.ok(claimed);
-  const completed = queue.complete(request, receipt, nowMs + 2);
+  const completed = queue.complete(request, receiptForLease(claimed.record.leaseToken), nowMs + 2);
   assert.equal(completed.ok, true);
   if (completed.ok) assert.equal(completed.value.state, 'completed');
 });
@@ -98,12 +114,14 @@ test('completes a lease once and rejects a conflicting replay', () => {
   const unclaimed = queue.complete(request, receipt, nowMs + 1);
   assert.equal(unclaimed.ok, false);
   if (!unclaimed.ok) assert.equal(unclaimed.code, 'REQUEST_NOT_CLAIMED');
-  assert.ok(queue.claim([published.value.requestKey], nowMs + 1));
-  const first = queue.complete(request, receipt, nowMs + 2);
+  const claimed = queue.claim([published.value.requestKey], nowMs + 1);
+  assert.ok(claimed);
+  const leasedReceipt = receiptForLease(claimed.record.leaseToken);
+  const first = queue.complete(request, leasedReceipt, nowMs + 2);
   assert.equal(first.ok, true);
   if (!first.ok) return;
   assert.equal(first.idempotent, false);
-  const retry = queue.complete(request, receipt, nowMs + 3);
+  const retry = queue.complete(request, leasedReceipt, nowMs + 3);
   assert.equal(retry.ok, true);
   if (retry.ok) assert.equal(retry.idempotent, true);
   const conflict = queue.complete(request, { ...receipt, decisionCode: 2 }, nowMs + 4);
@@ -120,6 +138,22 @@ test('rejects a receipt from a worker whose lease expired', () => {
   const expired = queue.complete(request, receipt, nowMs + 12);
   assert.equal(expired.ok, false);
   if (!expired.ok) assert.equal(expired.code, 'REQUEST_EXPIRED');
+});
+
+test('rejects a stale worker after its replacement lease is claimed', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const published = queue.publish(request, nowMs);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  const first = queue.claim([published.value.requestKey], nowMs + 1, 10);
+  assert.ok(first);
+  const replacement = queue.claim([published.value.requestKey], nowMs + 12, 100);
+  assert.ok(replacement);
+  const stale = queue.complete(request, receiptForLease(first.record.leaseToken), nowMs + 13);
+  assert.equal(stale.ok, false);
+  if (!stale.ok) assert.equal(stale.code, 'REQUEST_LEASE_MISMATCH');
+  const current = queue.complete(request, receiptForLease(replacement.record.leaseToken), nowMs + 14);
+  assert.equal(current.ok, true);
 });
 
 test('redelivery cancellation fences the prior request', () => {
