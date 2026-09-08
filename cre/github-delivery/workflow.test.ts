@@ -4,6 +4,7 @@ import { configSchema, initWorkflow, onCronTrigger, type Config } from './workfl
 
 const baseConfig: Config = {
   schedule: '0 0 0 1 1 *',
+  requestMode: 'config',
   sourceMode: 'fixture',
   fixtureScenario: 'accepted',
   githubTokenSecretId: 'GITHUB_READ_TOKEN',
