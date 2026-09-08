@@ -1,0 +1,109 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { deliveryRequestInputSchema, evidenceReceiptBindingInputSchema, buildCreDeliveryRequest } from './creDeliveryRequest.js';
+import { InMemoryCreDeliveryRequestQueue } from './creDeliveryRequestQueue.js';
+
+const nowSeconds = 1_800_000_000;
+const nowMs = nowSeconds * 1_000;
+const dealId = `0x${'a'.repeat(64)}` as `0x${string}`;
+const deal = {
+  jobId: dealId,
+  delivered: true,
+  evidenceRequired: true,
+  agreementVersion: 4,
+  deliveryRevision: 7,
+} as const;
+const requestResult = buildCreDeliveryRequest(
+  deal,
+  deliveryRequestInputSchema.parse({
+    termsVersion: 4,
+    evidenceRevision: 7,
+    expiresAt: nowSeconds + 3_600,
+    pullNumber: 11,
+    submittedSha: 'A'.repeat(40),
+  }),
+  nowSeconds,
+);
+assert.equal(requestResult.ok, true);
+if (!requestResult.ok) throw new Error('fixture request did not build');
+const request = requestResult.request;
+const receipt = evidenceReceiptBindingInputSchema.parse({
+  termsVersion: 4,
+  evidenceRevision: 7,
+  expiresAt: request.expiresAt,
+  decisionCode: 1,
+  evidenceCommitment: `0x${'b'.repeat(64)}`,
+  verdictCommitment: `0x${'c'.repeat(64)}`,
+  reportId: `0x${'d'.repeat(64)}`,
+});
+
+test('publishes one active request per delivery revision and is idempotent', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const first = queue.publish(request, nowMs);
+  assert.equal(first.ok, true);
+  if (!first.ok) return;
+  assert.equal(first.idempotent, false);
+  const retry = queue.publish(request, nowMs + 1);
+  assert.equal(retry.ok, true);
+  if (retry.ok) assert.equal(retry.idempotent, true);
+  const conflict = queue.publish({ ...request, pullNumber: request.pullNumber + 1 }, nowMs + 2);
+  assert.equal(conflict.ok, false);
+  if (!conflict.ok) assert.equal(conflict.code, 'REQUEST_CONFLICT');
+});
+
+test('claims only once, then recovers an expired lease without duplicating the request', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const published = queue.publish(request, nowMs);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  const first = queue.claim([published.value.requestKey], nowMs + 1, 100);
+  assert.ok(first);
+  const concurrent = queue.claim([published.value.requestKey], nowMs + 2, 100);
+  assert.equal(concurrent, null);
+  const recovered = queue.claim([published.value.requestKey], nowMs + 102, 100);
+  assert.ok(recovered);
+  assert.equal(recovered?.record.requestKey, published.value.requestKey);
+});
+
+test('completes a lease once and rejects a conflicting replay', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const published = queue.publish(request, nowMs);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  const unclaimed = queue.complete(request, receipt, nowMs + 1);
+  assert.equal(unclaimed.ok, false);
+  if (!unclaimed.ok) assert.equal(unclaimed.code, 'REQUEST_NOT_CLAIMED');
+  assert.ok(queue.claim([published.value.requestKey], nowMs + 1));
+  const first = queue.complete(request, receipt, nowMs + 2);
+  assert.equal(first.ok, true);
+  if (!first.ok) return;
+  assert.equal(first.idempotent, false);
+  const retry = queue.complete(request, receipt, nowMs + 3);
+  assert.equal(retry.ok, true);
+  if (retry.ok) assert.equal(retry.idempotent, true);
+  const conflict = queue.complete(request, { ...receipt, decisionCode: 2 }, nowMs + 4);
+  assert.equal(conflict.ok, false);
+  if (!conflict.ok) assert.equal(conflict.code, 'RECEIPT_CONFLICT');
+});
+
+test('rejects a receipt from a worker whose lease expired', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const published = queue.publish(request, nowMs);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  assert.ok(queue.claim([published.value.requestKey], nowMs + 1, 10));
+  const expired = queue.complete(request, receipt, nowMs + 12);
+  assert.equal(expired.ok, false);
+  if (!expired.ok) assert.equal(expired.code, 'REQUEST_EXPIRED');
+});
+
+test('redelivery cancellation fences the prior request', () => {
+  const queue = new InMemoryCreDeliveryRequestQueue();
+  const published = queue.publish(request, nowMs);
+  assert.equal(published.ok, true);
+  if (!published.ok) return;
+  assert.equal(queue.cancel(dealId, nowMs + 1), 1);
+  const completion = queue.complete(request, receipt, nowMs + 2);
+  assert.equal(completion.ok, false);
+  if (!completion.ok) assert.equal(completion.code, 'REQUEST_CANCELLED');
+});
