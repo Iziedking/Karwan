@@ -786,6 +786,9 @@ const envSchema = z.object({
   /// endpoint refuses everything, which is the right default for a box that has
   /// no sweep configured.
   SIGNAL_INGEST_TOKEN: optionalString,
+  /// Dedicated bearer secret for the internal CRE delivery-request bridge.
+  /// Unset disables publication and read access; it is never the admin token.
+  CRE_DELIVERY_REQUEST_TOKEN: optionalString,
   /// The authorization server's own identity. It MUST equal the origin the
   /// metadata document is served from: clients validate that the `issuer` in
   /// the document matches the URL they fetched it from, and reject it if not.

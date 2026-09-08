@@ -184,6 +184,30 @@ export interface DirectDeal {
   /// revision. It is intentionally separate from the local delivery artifact
   /// hash because a CRE GitHub evidence digest is not a URL hash.
   evidenceExpectedCommitment?: `0x${string}`;
+  /// The exact per-delivery request published for the confidential evidence
+  /// worker. Raw criteria and provider credentials never live here.
+  creDeliveryRequest?: {
+    dealId: `0x${string}`;
+    termsVersion: number;
+    evidenceRevision: number;
+    expiresAt: number;
+    pullNumber: number;
+    submittedSha: string;
+    publishedAt: number;
+  };
+  /// The authenticated bridge's receipt identity for the same request. The
+  /// registry remains authoritative; this binding only lets the backend reject
+  /// a receipt for a different delivery before using its commitment as expected.
+  creEvidenceReceipt?: {
+    termsVersion: number;
+    evidenceRevision: number;
+    expiresAt: number;
+    decisionCode: number;
+    evidenceCommitment: `0x${string}`;
+    verdictCommitment: `0x${string}`;
+    reportId: `0x${string}`;
+    boundAt: number;
+  };
   deliveryHistory?: Array<{
     revision: number;
     submittedAt: number;
