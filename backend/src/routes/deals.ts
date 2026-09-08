@@ -2666,6 +2666,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     releaseBlockedReason: undefined,
     releaseBlockedAt: undefined,
     evidenceExpectedCommitment: undefined,
+    creDeliveryRequest: undefined,
+    creEvidenceReceipt: undefined,
   });
 
   // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
