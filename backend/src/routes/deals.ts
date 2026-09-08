@@ -141,6 +141,7 @@ import {
   deliverComplimentaryResearchReport,
   ResearchDeliveryInProgressError,
 } from '../evidence/researchReportDelivery.js';
+import { cancelCreDeliveryRequests } from '../evidence/creDeliveryRequestQueue.js';
 import {
   emptyResearchAllowanceSnapshot,
   ResearchAllowanceExhaustedError,
@@ -2668,6 +2669,9 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     evidenceExpectedCommitment: undefined,
     creDeliveryRequest: undefined,
     creEvidenceReceipt: undefined,
+  });
+  await cancelCreDeliveryRequests(jobId).catch((err: unknown) => {
+    logger.warn({ jobId, err: err instanceof Error ? err.message : String(err) }, 'cre delivery queue cancellation failed after redelivery');
   });
 
   // First delivery announces "delivered"; a re-delivery doesn't re-announce it.

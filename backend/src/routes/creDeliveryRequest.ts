@@ -5,11 +5,17 @@ import {
   bearerTokenMatches,
   bindCreEvidenceReceipt,
   buildCreDeliveryRequest,
+  creDeliveryRequestKey,
   deliveryRequestInputSchema,
   evidenceReceiptBindingInputSchema,
   publicCreDeliveryRequest,
-  selectCurrentCreDeliveryRequest,
 } from '../evidence/creDeliveryRequest.js';
+import {
+  cancelCreDeliveryRequests,
+  claimCreDeliveryRequest,
+  completeCreDeliveryRequest,
+  publishCreDeliveryRequest,
+} from '../evidence/creDeliveryRequestQueue.js';
 
 export const creDeliveryRequestRoutes = new Hono();
 
@@ -29,22 +35,38 @@ creDeliveryRequestRoutes.use('*', async (c, next) => {
 
 creDeliveryRequestRoutes.get('/current', async (c) => {
   const requestedDealId = c.req.query('dealId');
-  const selection = selectCurrentCreDeliveryRequest(await listAllDeals(), requestedDealId);
-  if (selection.kind === 'ambiguous') {
-    return c.json({ error: 'multiple active delivery requests; specify dealId', code: 'CRE_REQUEST_AMBIGUOUS' }, 409);
-  }
-  if (selection.kind === 'none') {
+  const nowSeconds = Math.floor(Date.now() / 1_000);
+  const eligibleKeys = (await listAllDeals())
+    .filter((deal) => deal.creDeliveryRequest)
+    .filter((deal) => deal.delivered && deal.evidenceRequired)
+    .filter((deal) => (deal.agreementVersion ?? 1) === deal.creDeliveryRequest!.termsVersion)
+    .filter((deal) => (deal.deliveryRevision ?? 0) === deal.creDeliveryRequest!.evidenceRevision)
+    .filter((deal) => deal.creDeliveryRequest!.expiresAt > nowSeconds)
+    .filter((deal) => !requestedDealId || deal.jobId.toLowerCase() === requestedDealId.toLowerCase())
+    .map((deal) => creDeliveryRequestKey(deal.creDeliveryRequest!));
+  const claimed = await claimCreDeliveryRequest(eligibleKeys);
+  if (!claimed) {
     return c.json({ error: 'no active delivery request', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
   }
-  return c.json(publicCreDeliveryRequest(selection.request));
+  const currentDeal = await getDeal(claimed.record.dealId);
+  if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
+    await cancelCreDeliveryRequests(claimed.record.dealId).catch(() => undefined);
+    return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
+  }
+  return c.json(publicCreDeliveryRequest(claimed.record));
 });
 
 creDeliveryRequestRoutes.get('/:jobId', async (c) => {
   const deal = await getDeal(c.req.param('jobId'));
   if (!deal?.creDeliveryRequest) return c.json({ error: 'delivery request not found', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
-  const selection = selectCurrentCreDeliveryRequest([deal], deal.jobId);
-  if (selection.kind !== 'ok') return c.json({ error: 'delivery request is stale or expired', code: 'CRE_REQUEST_STALE' }, 409);
-  return c.json(publicCreDeliveryRequest(selection.request));
+  const claimed = await claimCreDeliveryRequest([creDeliveryRequestKey(deal.creDeliveryRequest)]);
+  if (!claimed) return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
+  const currentDeal = await getDeal(deal.jobId);
+  if (!currentDeal?.creDeliveryRequest || creDeliveryRequestKey(currentDeal.creDeliveryRequest) !== claimed.record.requestKey) {
+    await cancelCreDeliveryRequests(deal.jobId).catch(() => undefined);
+    return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
+  }
+  return c.json(publicCreDeliveryRequest(claimed.record));
 });
 
 creDeliveryRequestRoutes.post('/:jobId', async (c) => {
@@ -58,11 +80,16 @@ creDeliveryRequestRoutes.post('/:jobId', async (c) => {
   if (!deal) return c.json({ error: 'deal not found', code: 'DEAL_NOT_FOUND' }, 404);
   const result = buildCreDeliveryRequest(deal, input);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, result.code === 'REQUEST_CONFLICT' ? 409 : 422);
-  if (!result.idempotent) {
+  const queued = await publishCreDeliveryRequest(result.request);
+  if (!queued.ok) return c.json({ error: queued.message, code: queued.code }, queued.code === 'REQUEST_CONFLICT' ? 409 : 503);
+  if (!queued.idempotent || !deal.creDeliveryRequest || creDeliveryRequestKey(deal.creDeliveryRequest) !== queued.value.requestKey) {
     const saved = await patchDeal(deal.jobId, { creDeliveryRequest: result.request });
-    if (!saved) return c.json({ error: 'deal disappeared while publishing request', code: 'DEAL_NOT_FOUND' }, 404);
+    if (!saved) {
+      await cancelCreDeliveryRequests(deal.jobId).catch(() => undefined);
+      return c.json({ error: 'deal disappeared while publishing request', code: 'DEAL_NOT_FOUND' }, 404);
+    }
   }
-  return c.json({ ok: true, idempotent: result.idempotent, request: publicCreDeliveryRequest(result.request) }, result.idempotent ? 200 : 201);
+  return c.json({ ok: true, idempotent: queued.idempotent, request: publicCreDeliveryRequest(queued.value) }, queued.idempotent ? 200 : 201);
 });
 
 creDeliveryRequestRoutes.post('/:jobId/receipt', async (c) => {
@@ -76,6 +103,9 @@ creDeliveryRequestRoutes.post('/:jobId/receipt', async (c) => {
   if (!deal) return c.json({ error: 'deal not found', code: 'DEAL_NOT_FOUND' }, 404);
   const result = bindCreEvidenceReceipt(deal, input);
   if (!result.ok) return c.json({ error: result.message, code: result.code }, result.code.endsWith('CONFLICT') ? 409 : 422);
+  if (!deal.creDeliveryRequest) return c.json({ error: 'delivery request not found', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
+  const completed = await completeCreDeliveryRequest(deal.creDeliveryRequest, result.binding);
+  if (!completed.ok) return c.json({ error: completed.message, code: completed.code }, 409);
   if (!result.idempotent) {
     const saved = await patchDeal(deal.jobId, {
       creEvidenceReceipt: result.binding,
@@ -83,5 +113,5 @@ creDeliveryRequestRoutes.post('/:jobId/receipt', async (c) => {
     });
     if (!saved) return c.json({ error: 'deal disappeared while binding receipt', code: 'DEAL_NOT_FOUND' }, 404);
   }
-  return c.json({ ok: true, idempotent: result.idempotent, binding: result.binding }, result.idempotent ? 200 : 201);
+  return c.json({ ok: true, idempotent: completed.idempotent ?? result.idempotent, binding: result.binding }, completed.idempotent || result.idempotent ? 200 : 201);
 });
