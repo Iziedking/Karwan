@@ -40,6 +40,19 @@ export interface CreDeliveryRequest {
   publishedAt: number;
 }
 
+/// Stable identity for the durable request queue. The submitted SHA and pull
+/// number are included so a retry with altered provider input cannot collide
+/// with an earlier attempt for the same delivery revision.
+export function creDeliveryRequestKey(request: CreDeliveryRequest): string {
+  return [
+    request.dealId.toLowerCase(),
+    request.termsVersion,
+    request.evidenceRevision,
+    request.pullNumber,
+    request.submittedSha.toLowerCase(),
+  ].join(':');
+}
+
 export interface CreEvidenceReceiptBinding {
   termsVersion: number;
   evidenceRevision: number;

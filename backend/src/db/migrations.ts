@@ -618,6 +618,33 @@ CREATE INDEX agentkit_research_reservations_pool_idx
   ON agentkit_research_reservations_v1 (human_key_digest, scope, period_start, state, lease_expires_at);
 `;
 
+const CRE_DELIVERY_REQUEST_QUEUE_SQL = `
+CREATE TABLE cre_delivery_requests_v1 (
+  request_key TEXT PRIMARY KEY,
+  deal_id TEXT NOT NULL,
+  terms_version BIGINT NOT NULL CHECK (terms_version > 0),
+  evidence_revision BIGINT NOT NULL CHECK (evidence_revision > 0),
+  expires_at BIGINT NOT NULL CHECK (expires_at > 0),
+  pull_number BIGINT NOT NULL CHECK (pull_number > 0),
+  submitted_sha TEXT NOT NULL CHECK (submitted_sha ~ '^[0-9a-fA-F]{40}$'),
+  state TEXT NOT NULL CHECK (state IN ('pending', 'leased', 'completed', 'expired', 'cancelled')),
+  lease_token TEXT,
+  lease_expires_at BIGINT,
+  receipt JSONB,
+  created_at BIGINT NOT NULL CHECK (created_at >= 0),
+  updated_at BIGINT NOT NULL CHECK (updated_at >= 0),
+  completed_at BIGINT,
+  UNIQUE (deal_id, terms_version, evidence_revision, pull_number, submitted_sha)
+);
+CREATE UNIQUE INDEX cre_delivery_requests_one_active_revision_idx
+  ON cre_delivery_requests_v1 (deal_id, terms_version, evidence_revision)
+  WHERE state IN ('pending', 'leased');
+CREATE INDEX cre_delivery_requests_claim_idx
+  ON cre_delivery_requests_v1 (state, expires_at, created_at, request_key);
+CREATE INDEX cre_delivery_requests_deal_idx
+  ON cre_delivery_requests_v1 (deal_id, terms_version, evidence_revision, updated_at DESC);
+`;
+
 export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
   {
     version: 1,
@@ -718,6 +745,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 20,
     name: 'agentkit_report_delivery_accounting',
     sql: AGENTKIT_REPORT_DELIVERY_SQL,
+  },
+  {
+    version: 21,
+    name: 'cre_delivery_request_queue',
+    sql: CRE_DELIVERY_REQUEST_QUEUE_SQL,
   },
 ] as const;
 

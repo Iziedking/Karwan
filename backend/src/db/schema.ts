@@ -19,6 +19,7 @@ import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
 import type { IssuedAttestation } from './attestations.js';
 import type { MoneyMovement } from '../money/model.js';
+import type { CreEvidenceReceiptBinding } from '../evidence/creDeliveryRequest.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
 // column. A few fields are also surfaced as real columns so they can be
@@ -152,6 +153,32 @@ export const eventHistory = pgTable(
     tsIdx: index('event_history_ts_idx').on(t.ts),
     /// recent(limit, jobId) needs per-job lookups; cheap with this index.
     jobTsIdx: index('event_history_job_ts_idx').on(t.jobId, t.ts),
+  }),
+);
+
+/// Durable CRE request attempts. The deal JSON keeps a compatibility mirror,
+/// while this table owns queue identity, lease recovery and receipt completion.
+export const creDeliveryRequests = pgTable(
+  'cre_delivery_requests_v1',
+  {
+    requestKey: text('request_key').primaryKey(),
+    dealId: text('deal_id').notNull(),
+    termsVersion: bigint('terms_version', { mode: 'number' }).notNull(),
+    evidenceRevision: bigint('evidence_revision', { mode: 'number' }).notNull(),
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    pullNumber: bigint('pull_number', { mode: 'number' }).notNull(),
+    submittedSha: text('submitted_sha').notNull(),
+    state: text('state').notNull(),
+    leaseToken: text('lease_token'),
+    leaseExpiresAt: bigint('lease_expires_at', { mode: 'number' }),
+    receipt: jsonb('receipt').$type<CreEvidenceReceiptBinding>(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+    completedAt: bigint('completed_at', { mode: 'number' }),
+  },
+  (t) => ({
+    activeClaimIdx: index('cre_delivery_requests_claim_idx').on(t.state, t.expiresAt, t.createdAt, t.requestKey),
+    dealIdx: index('cre_delivery_requests_deal_idx').on(t.dealId, t.termsVersion, t.evidenceRevision, t.updatedAt),
   }),
 );
 
