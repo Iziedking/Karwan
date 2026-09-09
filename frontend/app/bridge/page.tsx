@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -10,6 +10,7 @@ import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySe
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
+import { MoneyRailStatus } from '@/features/money/components/MoneyRailStatus';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
 import {
@@ -61,11 +62,44 @@ type Direction = 'in' | 'out';
 /// one source chain to one destination and is the right tool for a one-off fast
 /// transfer, so it sits behind a switch rather than competing for the same space.
 export default function BridgePage() {
+  return (
+    <Suspense fallback={<BridgePageFallback />}>
+      <BridgePageContent />
+    </Suspense>
+  );
+}
+
+function BridgePageContent() {
   const t = useTranslations().bridge;
+  const params = useSearchParams();
+  const publicRecipient = params.get('recipient');
+  const isPublicPayment = !!publicRecipient && /^0x[a-fA-F0-9]{40}$/.test(publicRecipient);
+  if (isPublicPayment) return <BridgePageInner />;
   return (
     <AuthGuard gateTag={t.signInGate.tag} gateBody={t.signInGate.body}>
       <BridgePageInner />
     </AuthGuard>
+  );
+}
+
+function BridgePageFallback() {
+  return (
+    <div className="product-surface">
+      <FullBleed>
+        <Band tone="light" compact>
+          <div
+            aria-hidden
+            className="motion-safe:animate-pulse motion-reduce:animate-none"
+            style={{
+              minHeight: 220,
+              background: 'var(--lp-card)',
+              border: '1px solid var(--lp-border-light)',
+              borderRadius: 22,
+            }}
+          />
+        </Band>
+      </FullBleed>
+    </div>
   );
 }
 
@@ -77,6 +111,12 @@ function BridgePageInner() {
   const requestedDirection = params.get('direction');
   const requestedIntent = params.get('intent');
   const outIntent = requestedIntent === 'send' ? 'send' : 'move';
+  const requestedRecipient = params.get('recipient') ?? undefined;
+  const publicPayment = !!requestedRecipient && /^0x[a-fA-F0-9]{40}$/.test(requestedRecipient);
+  const requestedAmountRaw = params.get('amount');
+  const requestedAmount = requestedAmountRaw && Number.isFinite(Number(requestedAmountRaw)) && Number(requestedAmountRaw) > 0
+    ? Number(requestedAmountRaw)
+    : undefined;
   const [direction, setDirection] = useState<Direction>(requestedDirection === 'out' ? 'out' : 'in');
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -91,8 +131,8 @@ function BridgePageInner() {
   // to see no choice at all, which meant the pooled balance and the card route
   // were invisible to the people most likely to want them.
   const rails = useMemo(
-    () => railsFor({ method: method === 'circle' ? 'circle' : method ? 'web3' : null, direction }),
-    [method, direction],
+    () => railsFor({ method: publicPayment ? 'web3' : method === 'circle' ? 'circle' : method ? 'web3' : null, direction }),
+    [method, direction, publicPayment],
   );
 
   const [rail, setRail] = useState<DepositRail>(() => defaultRail(rails));
@@ -162,12 +202,15 @@ function BridgePageInner() {
           </div>
 
           <div data-guide="bridge-rails">
+            <MoneyRailStatus direction={direction} />
             <RailSlider rails={rails} active={rail} onChange={setRail}>
               <RailPanel
                 rail={rail}
                 direction={direction}
                 state={rails.find((option) => option.id === rail)?.state ?? 'ready'}
                 agents={agents ?? undefined}
+                prefillRecipient={requestedRecipient}
+                prefillAmount={requestedAmount}
               />
             </RailSlider>
           </div>
@@ -188,11 +231,15 @@ function RailPanel({
   direction,
   state,
   agents,
+  prefillRecipient,
+  prefillAmount,
 }: {
   rail: DepositRail;
   direction: Direction;
   state: 'ready' | 'soon';
   agents: Parameters<typeof BridgeCard>[0]['agents'];
+  prefillRecipient?: string;
+  prefillAmount?: number;
 }) {
   const copy = useTranslations().depositRails;
 
@@ -216,7 +263,9 @@ function RailPanel({
   if (state === 'soon') {
     return <ComingSoonPanel body={copy.cctp.blurb} action={copy.cctp.title} soon={copy.soon} />;
   }
-  return direction === 'in' ? <BridgeCard agents={agents} /> : <BridgeOutCard />;
+  return direction === 'in' ? (
+    <BridgeCard agents={agents} prefillRecipient={prefillRecipient} prefillAmount={prefillAmount} />
+  ) : <BridgeOutCard />;
 }
 
 /// A rail that is real and not open yet. It says what it will do and offers no

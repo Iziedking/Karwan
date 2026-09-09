@@ -49,6 +49,13 @@ export interface DirectDeal {
   /// sell the handle mid-deal and redirect the money. The handle is also not a
   /// verification, so it never gates anything.
   sellerPaytag?: string;
+  /// The place where the parties first found the trade. This is provenance,
+  /// not a claim that Karwan can read or verify the source platform.
+  sourceContext?: {
+    channel: 'karwan' | 'email' | 'tiktok' | 'instagram' | 'facebook' | 'x' | 'linkedin' | 'other';
+    reference?: string;
+    label?: string;
+  };
   // Per-user agent wallets bound to this deal at creation. The buyer agent funds
   // the escrow and signs releases; the seller agent is named as the on-chain
   // seller and receives payouts, and signs a seller appeal. Optional so deals

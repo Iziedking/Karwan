@@ -1006,6 +1006,8 @@ interface MessagesShape {
       shareBody: string;
       copyLink: string;
       copied: string;
+      sendCta: string;
+      sendBody: string;
       recipientLabel: string;
       expiresTemplate: string;
       waiting: string;
@@ -6072,6 +6074,8 @@ export const en: MessagesShape = {
       shareBody: 'Send this link or QR code to the person paying. Karwan carries verified USDC to your Arc balance.',
       copyLink: 'Copy link',
       copied: 'Link copied',
+      sendCta: 'Pay from a wallet',
+      sendBody: 'Sign in to choose your chain and send the requested amount. Karwan keeps the destination and amount ready for your review.',
       recipientLabel: 'Pays into your Karwan balance',
       expiresTemplate: 'Expires {time}',
       waiting: 'Waiting for payment',

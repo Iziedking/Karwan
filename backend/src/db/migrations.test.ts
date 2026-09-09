@@ -29,7 +29,10 @@ class RecordingExecutor implements SqlExecutor {
 }
 
 test('numbered migrations are ordered and contain every durable runtime table', () => {
-  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
+  assert.deepEqual(
+    NUMBERED_MIGRATIONS.map((migration) => migration.version),
+    Array.from({ length: NUMBERED_MIGRATIONS.length }, (_, index) => index + 1),
+  );
   const sql = NUMBERED_MIGRATIONS[0]!.sql;
   for (const table of [
     'deal_rooms',
@@ -126,11 +129,17 @@ test('numbered migrations are ordered and contain every durable runtime table', 
   const fencingSql = NUMBERED_MIGRATIONS[21]!.sql;
   assert.match(fencingSql, /ADD COLUMN IF NOT EXISTS attempt_token TEXT/);
   assert.match(fencingSql, /ALTER COLUMN attempt_token SET NOT NULL/);
+  assert.match(NUMBERED_MIGRATIONS[22]!.sql, /CREATE TABLE money_rail_intents/);
+  assert.match(NUMBERED_MIGRATIONS[23]!.sql, /CREATE TABLE world_id_nullifiers_v1/);
+  assert.match(NUMBERED_MIGRATIONS[24]!.sql, /ADD COLUMN IF NOT EXISTS version BIGINT/);
 });
 
 test('migration runner applies each migration once across repeated startup', async () => {
   const executor = new RecordingExecutor();
-  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
+  assert.deepEqual(
+    await runNumberedMigrations(executor),
+    NUMBERED_MIGRATIONS.map((migration) => migration.version),
+  );
   assert.deepEqual(await runNumberedMigrations(executor), []);
   assert.equal(executor.applied.get(1), 'agent_runtime_v2_foundations');
   assert.equal(executor.applied.get(2), 'durable_events_and_replay');
@@ -157,8 +166,11 @@ test('migration runner applies each migration once across repeated startup', asy
   assert.equal(executor.applied.get(20), 'agentkit_report_delivery_accounting');
   assert.equal(executor.applied.get(21), 'cre_delivery_request_queue');
   assert.equal(executor.applied.get(22), 'agentkit_report_delivery_fencing');
-  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 22);
-  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 22);
+  assert.equal(executor.applied.get(23), 'money_rail_intents');
+  assert.equal(executor.applied.get(24), 'world_id_proof_nullifiers');
+  assert.equal(executor.applied.get(25), 'money_rail_intent_version_cas');
+  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, NUMBERED_MIGRATIONS.length);
+  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, NUMBERED_MIGRATIONS.length);
 });
 
 test('migration runner rolls back a failed migration and always releases its lock', async () => {

@@ -22,6 +22,7 @@ export interface AgreementDigestInput {
   paymentTerms?: string;
   counterpartyCompany?: unknown;
   documentRefs?: unknown;
+  sourceContext?: unknown;
 }
 
 function canonicalize(value: unknown): unknown {
@@ -56,6 +57,7 @@ export function agreementDigest(input: AgreementDigestInput): string {
     paymentTerms: input.paymentTerms ?? null,
     counterpartyCompany: input.counterpartyCompany ?? null,
     documentRefs: input.documentRefs ?? null,
+    sourceContext: input.sourceContext ?? null,
   });
   return createHash('sha256').update(JSON.stringify(canonical), 'utf8').digest('hex');
 }

@@ -1053,6 +1053,8 @@ export const fr: Messages = {
       shareBody: 'Envoyez ce lien ou ce QR code à la personne qui paie. Karwan achemine les USDC vérifiés vers votre solde Arc.',
       copyLink: 'Copier le lien',
       copied: 'Lien copié',
+      sendCta: 'Payer depuis un portefeuille',
+      sendBody: 'Connectez-vous pour choisir votre réseau et envoyer le montant demandé. Karwan garde la destination et le montant prêts à vérifier.',
       recipientLabel: 'Vers votre solde Karwan',
       expiresTemplate: 'Expire {time}',
       waiting: 'En attente du paiement',

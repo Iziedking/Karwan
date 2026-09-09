@@ -53,6 +53,7 @@ function RequestCard({
 }) {
   const link = typeof window !== 'undefined' ? window.location.href : '';
   const active = request.status === 'open';
+  const senderHref = `/bridge?direction=in&rail=cctp&recipient=${encodeURIComponent(request.recipientAddress)}${request.amountUsdc ? `&amount=${encodeURIComponent(request.amountUsdc)}` : ''}`;
   const statusLabel = active
     ? copy.waiting
     : request.status === 'matched'
@@ -101,21 +102,41 @@ function RequestCard({
           <p className="mt-2 mono break-all text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
             {request.recipientAddress}
           </p>
-          <button
-            type="button"
-            onClick={onCopyAddress}
-            className="mt-4 inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em]"
-            style={{
-              background: 'var(--lp-control-active-bg)',
-              color: 'var(--lp-control-active-ink)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
-            }}
-          >
-            {copied ? copy.copied : copy.copyLink}
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onCopyAddress}
+              className="inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em]"
+              style={{
+                background: 'var(--lp-control-active-bg)',
+                color: 'var(--lp-control-active-ink)',
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {copied ? copy.copied : copy.copyLink}
+            </button>
+            {active ? (
+              <a
+                href={senderHref}
+                className="inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em]"
+                style={{
+                  background: 'transparent',
+                  color: 'var(--lp-dark)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderTopLeftRadius: 10,
+                  borderTopRightRadius: 10,
+                  borderBottomLeftRadius: 10,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                {copy.sendCta}
+              </a>
+            ) : null}
+          </div>
+          {active ? <p className="mt-3 max-w-[42ch] text-[12px] leading-relaxed text-[var(--lp-text-muted)]">{copy.sendBody}</p> : null}
         </div>
         <RequestQr value={link} label={copy.qrAlt} />
       </div>

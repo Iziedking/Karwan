@@ -25,6 +25,7 @@ type TradeType = 'service' | 'goods' | 'mixed';
 type IncotermsCode = 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
 type PaymentTermsCode = 'immediate' | 'net30' | 'net60' | 'net90';
 type DocumentKind = 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+type TradeSourceChannel = 'karwan' | 'email' | 'tiktok' | 'instagram' | 'facebook' | 'x' | 'linkedin' | 'other';
 
 // Shared with the request form: one trade vocabulary, in `tradeTerms`, rather
 // than two copies whose glosses had already drifted apart.
@@ -95,6 +96,21 @@ export function DirectDealForm() {
       ? Number(initialAmountRaw)
       : undefined;
   const initialTerms = search.get('terms') ?? '';
+  const initialSourceChannel = search.get('source');
+  const sourceChannels: ReadonlyArray<TradeSourceChannel> = [
+    'karwan',
+    'email',
+    'tiktok',
+    'instagram',
+    'facebook',
+    'x',
+    'linkedin',
+    'other',
+  ];
+  const sourceChannel: TradeSourceChannel = sourceChannels.includes(initialSourceChannel as TradeSourceChannel)
+    ? (initialSourceChannel as TradeSourceChannel)
+    : 'karwan';
+  const sourceReference = search.get('sourceRef');
 
   const [seller, setSeller] = useState(initialSeller);
   /// Counterparty mode. 'wallet' takes a 0x address (existing flow); 'email'
@@ -330,6 +346,10 @@ export function DirectDealForm() {
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
         counterpartyCompany: tradeType !== 'service' ? counterpartyCompany : undefined,
         documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
+        sourceContext: {
+          channel: sourceChannel,
+          ...(sourceReference ? { reference: sourceReference } : {}),
+        },
       });
       sfx.send();
       // Land on the deal page in both modes. The detail page surfaces

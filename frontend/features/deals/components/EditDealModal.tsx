@@ -55,11 +55,13 @@ export function EditDealModal({
   caller,
   onClose,
   onSaved,
+  mode = 'edit',
 }: {
   deal: DirectDeal;
   caller: string;
   onClose: () => void;
   onSaved: () => Promise<void> | void;
+  mode?: 'edit' | 'counter';
 }) {
   const t = useTranslations();
   const em = t.editDealModal;
@@ -108,7 +110,7 @@ export function EditDealModal({
       const deadlineDays = Math.floor(totalSeconds / 86400);
       const deadlineHours = Math.ceil((totalSeconds % 86400) / 3600);
 
-      await api.editDirectDeal(deal.jobId, {
+      const termsBody = {
         caller,
         dealAmountUsdc: amount,
         deadlineDays,
@@ -118,7 +120,9 @@ export function EditDealModal({
         firstReleasePct: firstPct,
         requireStake,
         ...(requireStake ? { requireStakePct } : {}),
-      });
+      };
+      if (mode === 'counter') await api.counterDirectDeal(deal.jobId, termsBody);
+      else await api.editDirectDeal(deal.jobId, termsBody);
       sfx.send();
       await onSaved();
       onClose();

@@ -269,6 +269,13 @@ const createSchema = z
       )
       .max(20)
       .optional(),
+    sourceContext: z
+      .object({
+        channel: z.enum(['karwan', 'email', 'tiktok', 'instagram', 'facebook', 'x', 'linkedin', 'other']),
+        reference: z.string().trim().max(400).optional(),
+        label: z.string().trim().max(120).optional(),
+      })
+      .optional(),
     /// Explicit opt-in for the confidential delivery-evidence lane. Legacy
     /// deals remain optional until their agreement records this requirement.
     evidenceRequired: z.boolean().optional().default(false),
@@ -558,6 +565,7 @@ dealsRoutes.post('/direct', async (c) => {
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    sourceContext: body.sourceContext,
     evidenceRequired: body.evidenceRequired,
   });
 
@@ -833,6 +841,84 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
       );
     });
   }
+  return c.json({ accepted: true, jobId, deal: updated }, 200);
+});
+
+/// Seller-side counter. A counter is a new commercial version, not an edit of
+/// the buyer's request. It never changes the parties, cannot run after escrow
+/// funding, and clears any stale seller approval before the buyer reviews it.
+dealsRoutes.post('/direct/:jobId/counter', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = editSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.seller) {
+    return c.json({ error: 'only the seller can counter this deal' }, 403);
+  }
+  if (deal.pendingCounterparty) {
+    return c.json({ error: 'claim the invite before countering the deal' }, 409);
+  }
+  if (deal.acceptedAt) {
+    return c.json({ error: 'this deal has already been funded; terms are locked', code: 'ACCEPTED' }, 409);
+  }
+  if (deal.cancelledAt || deal.settledAt) {
+    return c.json({ error: 'this deal is no longer open for a counter' }, 409);
+  }
+
+  const patch: Partial<DirectDeal> = {};
+  if (body.evidenceRequired !== undefined) patch.evidenceRequired = body.evidenceRequired;
+  if (body.dealAmountUsdc !== undefined) patch.dealAmountUsdc = body.dealAmountUsdc.toString();
+  if (body.terms !== undefined) patch.terms = body.terms;
+  if (body.firstReleasePct !== undefined) patch.firstReleasePct = body.firstReleasePct;
+  if (body.deadlineDays !== undefined || body.deadlineHours !== undefined) {
+    const days = body.deadlineDays ?? 0;
+    const hours = body.deadlineHours ?? 0;
+    const totalSeconds = days * 86400 + hours * 3600;
+    patch.deadlineUnix = totalSeconds > 0 ? Math.floor(Date.now() / 1000) + totalSeconds : undefined;
+  }
+  if (body.acceptanceWindowHours !== undefined) {
+    patch.acceptanceDeadlineUnix = Math.floor(Date.now() / 1000) + body.acceptanceWindowHours * 3600;
+  }
+  if (body.requireStake !== undefined) {
+    patch.requireStake = body.requireStake;
+    patch.requireStakePct = body.requireStake
+      ? body.requireStakePct ?? deal.requireStakePct ?? 50
+      : undefined;
+  } else if (body.requireStakePct !== undefined && deal.requireStake) {
+    patch.requireStakePct = body.requireStakePct;
+  }
+  if (Object.keys(patch).length === 0) return c.json({ error: 'no counter terms provided' }, 400);
+
+  patch.agreementVersion = (deal.agreementVersion ?? 1) + 1;
+  if (patch.terms !== undefined) patch.termsDigest = termsDigest(patch.terms);
+  patch.sellerApprovedAt = undefined;
+  patch.sellerApprovedTermsDigest = undefined;
+  patch.sellerApprovedAgreementVersion = undefined;
+  patch.sellerApprovedAgreementDigest = undefined;
+
+  const updated = await patchDeal(jobId, patch);
+  if (!updated) return c.json({ error: 'deal disappeared while countering' }, 409);
+  bus.emitEvent({
+    type: 'deal.direct.edited',
+    jobId,
+    actor: 'seller',
+    payload: {
+      buyer: deal.buyer,
+      seller: deal.seller,
+      countered: true,
+      fields: Object.keys(patch),
+      changedLabels: ['Seller proposed revised terms for buyer review'],
+    },
+  });
   return c.json({ accepted: true, jobId, deal: updated }, 200);
 });
 

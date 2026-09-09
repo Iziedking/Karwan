@@ -1053,6 +1053,8 @@ export const sw: Messages = {
       shareBody: 'Tuma kiungo au QR kwa anayelipa. Karwan hupeleka USDC iliyothibitishwa kwenye salio lako la Arc.',
       copyLink: 'Nakili kiungo',
       copied: 'Kiungo kimenakiliwa',
+      sendCta: 'Lipa kutoka kwa wallet',
+      sendBody: 'Ingia ili uchague chain na utume kiasi kilichoombwa. Karwan itaweka anwani na kiasi tayari ukague.',
       recipientLabel: 'Inaingia kwenye salio lako la Karwan',
       expiresTemplate: 'Inaisha {time}',
       waiting: 'Inasubiri malipo',

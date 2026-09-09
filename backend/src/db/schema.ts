@@ -20,6 +20,7 @@ import type { AssistantUsage } from './assistantUsage.js';
 import type { IssuedAttestation } from './attestations.js';
 import type { MoneyMovement } from '../money/model.js';
 import type { DepositRequest } from '../money/depositRequests.js';
+import type { MoneyRailIntent } from '../money/railIntent.js';
 import type { CreEvidenceReceiptBinding } from '../evidence/creDeliveryRequest.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
@@ -84,6 +85,30 @@ export const depositRequests = pgTable(
   (t) => ({
     ownerCreatedIdx: index('deposit_requests_owner_created_idx').on(t.owner, t.createdAt),
     statusExpiresIdx: index('deposit_requests_status_expires_idx').on(t.status, t.expiresAt),
+  }),
+);
+
+/// Durable provider boundary for bank, card, Gateway, and bridge intents.
+/// `data` keeps the full state machine while the indexed columns make owner,
+/// idempotency, and recovery reads cheap. A provider callback can therefore
+/// resume the same intent after a process restart instead of creating a second
+/// deposit or payout.
+export const moneyRailIntents = pgTable(
+  'money_rail_intents',
+  {
+    id: text('id').primaryKey(),
+    idempotencyKey: text('idempotency_key').notNull().unique(),
+    owner: text('owner').notNull(),
+    rail: text('rail').notNull(),
+    direction: text('direction').notNull(),
+    status: text('status').notNull(),
+    version: bigint('version', { mode: 'number' }).notNull(),
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<MoneyRailIntent>().notNull(),
+  },
+  (t) => ({
+    ownerUpdatedIdx: index('money_rail_intents_owner_updated_idx').on(t.owner, t.updatedAt),
+    statusUpdatedIdx: index('money_rail_intents_status_updated_idx').on(t.status, t.updatedAt),
   }),
 );
 

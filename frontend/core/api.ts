@@ -515,6 +515,7 @@ export interface DirectDeal {
   jobId: string;
   buyer: string;
   seller: string;
+  sourceContext?: TradeSourceContext;
   /// Managed seller account recorded by the escrow. Absent when the seller
   /// trades directly from their identity wallet.
   sellerAgentAddress?: string;
@@ -3327,6 +3328,7 @@ export const api = {
       kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
       label?: string;
     }>;
+    sourceContext?: TradeSourceContext;
   }) =>
     json<{
       deal: DirectDeal;
@@ -4263,6 +4265,31 @@ export const api = {
   // the user deposits. Session-scoped, so no address argument.
   getGatewayBalance: () =>
     json<{ balance: GatewayBalance; stale?: boolean }>('/api/gateway/balance'),
+  /// Provider-neutral money movement orchestration. The API records intent and
+  /// capability truth; the existing wallet/Gateway/CCTP actions remain the
+  /// execution surfaces until a provider checkout is configured.
+  moneyCapabilities: () =>
+    json<{ capabilities: MoneyRailCapability[]; settlementHome: 'Arc'; supportedAsset: 'USDC' }>(
+      '/api/money/capabilities',
+    ),
+  moneyIntents: () =>
+    json<{ intents: MoneyRailIntentView[] }>('/api/money/intents'),
+  createMoneyIntent: (body: CreateMoneyIntentBody) =>
+    json<{
+      intent: MoneyRailIntentView;
+      created: boolean;
+      next: 'provider_checkout' | 'wallet_or_gateway' | 'recipient_confirmation';
+    }>('/api/money/intents', { method: 'POST', body: JSON.stringify(body) }),
+  retryMoneyIntent: (id: string) =>
+    json<{ intent: MoneyRailIntentView }>(`/api/money/intents/${encodeURIComponent(id)}/retry`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  cancelMoneyIntent: (id: string) =>
+    json<{ intent: MoneyRailIntentView }>(`/api/money/intents/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
   /// Server-side Circle-account deposit. Browser-controlled web3 deposits use
   /// the App Kit rail; this adapter is the durable receipt path for custodial
   /// identity/agent wallets.
@@ -4449,6 +4476,25 @@ export const api = {
       `/api/workspaces/${encodeURIComponent(workspaceId)}/availability`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
+  counterDirectDeal: (
+    jobId: string,
+    body: {
+      caller: string;
+      dealAmountUsdc?: number;
+      deadlineDays?: number;
+      deadlineHours?: number;
+      acceptanceWindowHours?: number;
+      terms?: string;
+      firstReleasePct?: number;
+      requireStake?: boolean;
+      requireStakePct?: number;
+      evidenceRequired?: boolean;
+    },
+  ) =>
+    json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
+      `/api/deals/direct/${jobId}/counter`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   removeTradeAvailability: (workspaceId: string, availabilityId: string) =>
     json<{ ok: true }>(
       `/api/workspaces/${encodeURIComponent(workspaceId)}/availability/${encodeURIComponent(availabilityId)}`,
@@ -4569,6 +4615,70 @@ export interface GatewayChainBalance {
   key: string;
   confirmed: string;
   pending: string;
+}
+
+export interface TradeSourceContext {
+  channel: 'karwan' | 'email' | 'tiktok' | 'instagram' | 'facebook' | 'x' | 'linkedin' | 'other';
+  reference?: string;
+  label?: string;
+}
+
+export type MoneyRailKind =
+  | 'gateway_deposit'
+  | 'cctp_deposit'
+  | 'arc_transfer'
+  | 'bank_deposit'
+  | 'card_onramp'
+  | 'bank_withdrawal'
+  | 'card_offramp';
+
+export type MoneyRailCapabilityState = 'live' | 'configured' | 'unavailable';
+
+export interface MoneyRailCapability {
+  rail: MoneyRailKind;
+  direction: 'in' | 'out';
+  state: MoneyRailCapabilityState;
+  provider: string;
+}
+
+export interface MoneyRailIntentView {
+  id: string;
+  rail: MoneyRailKind;
+  direction: 'in' | 'out';
+  inputCurrency: string;
+  inputAmountMinor: string;
+  expectedUsdcMicros: string | null;
+  recipientAddress: string | null;
+  sourceChain: string | null;
+  status:
+    | 'created'
+    | 'awaiting_provider'
+    | 'provider_submitted'
+    | 'settlement_pending'
+    | 'completed'
+    | 'needs_attention'
+    | 'cancelled'
+    | 'refunded';
+  settlementReference: string | null;
+  movementReference: string | null;
+  failureCode: string | null;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+  completedAt: number | null;
+  cancelledAt: number | null;
+}
+
+export interface CreateMoneyIntentBody {
+  idempotencyKey: string;
+  rail: MoneyRailKind;
+  direction: 'in' | 'out';
+  inputCurrency: string;
+  inputAmountMinor: string;
+  expectedUsdcMicros?: string;
+  thirdPartyPayer?: string;
+  recipientAddress?: string;
+  sourceChain?: string;
 }
 
 export type DepositRequestStatus =
