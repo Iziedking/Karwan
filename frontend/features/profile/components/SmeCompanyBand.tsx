@@ -418,9 +418,9 @@ function SmeViewRows(props: {
     t.employeeBands[props.employeeBand as keyof typeof t.employeeBands] ?? props.employeeBand;
   return (
     <dl className="space-y-3">
-      <ViewRow label={t.view.name} value={props.companyName || '—'} />
-      <ViewRow label={t.view.sector} value={props.sector ? sectorLabel : '—'} />
-      <ViewRow label={t.view.region} value={props.region || '—'} />
+      <ViewRow label={t.view.name} value={props.companyName || 'Not set'} />
+      <ViewRow label={t.view.sector} value={props.sector ? sectorLabel : 'Not set'} />
+      <ViewRow label={t.view.region} value={props.region || 'Not set'} />
       {props.yearFounded ? <ViewRow label={t.view.founded} value={String(props.yearFounded)} /> : null}
       {props.employeeBand ? (
         <ViewRow label={t.view.size} value={sizeLabel} />
@@ -537,7 +537,7 @@ function SmeEditGrid(props: {
           onChange={(e) => props.setSector(e.target.value as Sector | '')}
           className="form-input"
         >
-          <option value="">—</option>
+          <option value="">Select</option>
           {SECTOR_VALUES.map((v) => (
             <option key={v} value={v}>
               {t.sectors[v]}
@@ -577,7 +577,7 @@ function SmeEditGrid(props: {
           onChange={(e) => props.setEmployeeBand(e.target.value as EmployeeBand | '')}
           className="form-input"
         >
-          <option value="">—</option>
+          <option value="">Select</option>
           {EMPLOYEE_BAND_VALUES.map((v) => (
             <option key={v} value={v}>
               {t.employeeBands[v]}
@@ -625,7 +625,7 @@ function SmeEditGrid(props: {
           onChange={(e) => props.setAnnualVolumeBand(e.target.value as VolumeBand | '')}
           className="form-input"
         >
-          <option value="">—</option>
+          <option value="">Select</option>
           {(Object.keys(VOLUME_BAND_KEYS) as Array<keyof typeof VOLUME_BAND_KEYS>).map((v) => (
             <option key={v} value={v}>
               {t.volumeBands[VOLUME_BAND_KEYS[v]]}

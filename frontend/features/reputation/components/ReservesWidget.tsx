@@ -231,7 +231,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
                 textAnchor="end"
                 fontSize="10"
                 fill="var(--lp-text-muted)"
-                fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+                fontFamily="var(--font-general-sans, sans-serif)"
               >
                 {fmt(t.toString())}
               </text>
@@ -263,7 +263,7 @@ function AccrualChart({ history, loaded }: { history: HistoryPoint[]; loaded: bo
               textAnchor={i === 0 ? 'start' : i === padded.length - 1 ? 'end' : 'middle'}
               fontSize="10"
               fill="var(--lp-text-muted)"
-              fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+              fontFamily="var(--font-general-sans, sans-serif)"
             >
               {p.day.slice(5)}
             </text>

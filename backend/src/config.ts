@@ -96,6 +96,9 @@ const envSchema = z.object({
 
   KARWAN_JOBBOARD_ADDR: optionalAddr,
   KARWAN_ESCROW_ADDR: optionalAddr,
+  /// Non-custodial Chainlink CRE evidence receipt registry. Optional until the
+  /// owner deploys and verifies it on Arc Testnet; unset means no chain read.
+  KARWAN_EVIDENCE_REGISTRY_ADDR: optionalAddr,
   /// SME trade-finance bundle (deployed 2026-06-09). Document anchors +
   /// factoring payee redirect + PoD acceptance live in the registry;
   /// single-funder PO financing custody lives in the PO contract. Both
@@ -635,6 +638,11 @@ const envSchema = z.object({
   // provider and consume the separate research-credit ledger. Keep off until
   // provider, account bootstrap, and reconciliation gates are reviewed.
   EVIDENCE_RESEARCH_CREDIT_V2_ENABLED: envBool('EVIDENCE_RESEARCH_CREDIT_V2_ENABLED'),
+  // AgentKit/AgentBook verification is a separate identity gate. It defaults
+  // off until the provider adapter and Sandbox proof are configured.
+  AGENTKIT_VERIFICATION_V2_ENABLED: envBool('AGENTKIT_VERIFICATION_V2_ENABLED'),
+  AGENTKIT_HUMAN_KEY_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
+  AGENTKIT_WORLD_RPC_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
   EVENT_OUTBOX_V2_ENABLED: envBool('EVENT_OUTBOX_V2_ENABLED'),
 
   // Public origin of the frontend, used to embed deal links in Telegram
@@ -778,6 +786,9 @@ const envSchema = z.object({
   /// endpoint refuses everything, which is the right default for a box that has
   /// no sweep configured.
   SIGNAL_INGEST_TOKEN: optionalString,
+  /// Dedicated bearer secret for the internal CRE delivery-request bridge.
+  /// Unset disables publication and read access; it is never the admin token.
+  CRE_DELIVERY_REQUEST_TOKEN: optionalString,
   /// The authorization server's own identity. It MUST equal the origin the
   /// metadata document is served from: clients validate that the `issuer` in
   /// the document matches the URL they fetched it from, and reject it if not.

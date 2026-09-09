@@ -348,10 +348,13 @@ function WorkRecordSection({
   const [state, setState] = useState<
     { kind: 'loading' } | { kind: 'error' } | { kind: 'done'; data: CounterpartyReport }
   >({ kind: 'loading' });
+  const [requestingComplimentary, setRequestingComplimentary] = useState(false);
+  const [complimentaryError, setComplimentaryError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setState({ kind: 'loading' });
+    setComplimentaryError(false);
     api
       .counterpartyReport(jobId, caller)
       .then((data) => {
@@ -364,6 +367,20 @@ function WorkRecordSection({
       cancelled = true;
     };
   }, [jobId, caller]);
+
+  const requestComplimentary = async () => {
+    if (requestingComplimentary) return;
+    setRequestingComplimentary(true);
+    setComplimentaryError(false);
+    try {
+      const data = await api.complimentaryCounterpartyReport(jobId, caller);
+      setState({ kind: 'done', data });
+    } catch {
+      setComplimentaryError(true);
+    } finally {
+      setRequestingComplimentary(false);
+    }
+  };
 
   if (state.kind === 'error') return null;
   const payment = state.kind === 'done' ? state.data.payment : null;
@@ -427,12 +444,35 @@ function WorkRecordSection({
         </>
       )}
 
+      {state.kind === 'done' && state.data.complimentary && (
+        <div className="mt-3 border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5">
+          <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+            {wr.complimentaryDelivered.replace('{remaining}', String(state.data.complimentary.allowance.remaining))}
+          </p>
+        </div>
+      )}
+
       {state.kind === 'loading' && (
         <p className="mt-3 mono text-[11px] text-[var(--lp-text-muted)]">{wr.loading}</p>
       )}
 
       {state.kind === 'done' && state.data.locked && (
-        <p className="mt-3 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{wr.locked}</p>
+        <div className="mt-3">
+          <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{wr.locked}</p>
+          <button
+            type="button"
+            onClick={() => void requestComplimentary()}
+            disabled={requestingComplimentary}
+            className="mt-3 min-h-11 border border-[var(--lp-dark)] bg-[var(--lp-dark)] px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:cursor-wait disabled:opacity-60"
+          >
+            {requestingComplimentary ? wr.complimentaryLoading : wr.complimentaryAction}
+          </button>
+          {complimentaryError && (
+            <p role="alert" className="mt-2 text-[11px] leading-relaxed text-[var(--lp-text-muted)]">
+              {wr.complimentaryUnavailable}
+            </p>
+          )}
+        </div>
       )}
 
       {state.kind === 'done' && !state.data.locked && state.data.record && (

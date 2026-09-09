@@ -540,6 +540,121 @@ CREATE INDEX agent_task_replays_task_created_idx
   ON agent_task_replays_v2 (task_id, created_at DESC);
 `;
 
+const AGENTKIT_RESEARCH_ALLOWANCE_SQL = `
+CREATE TABLE agentkit_research_allowances_v1 (
+  human_key_digest TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  period_start BIGINT NOT NULL,
+  allowance INTEGER NOT NULL CHECK (allowance > 0 AND allowance <= 100),
+  used INTEGER NOT NULL CHECK (used >= 0 AND used <= allowance),
+  version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0),
+  updated_at BIGINT NOT NULL,
+  PRIMARY KEY (human_key_digest, scope, period_start)
+);
+CREATE INDEX agentkit_research_allowances_period_idx
+  ON agentkit_research_allowances_v1 (period_start, updated_at DESC);
+
+CREATE TABLE agentkit_used_nonces_v1 (
+  signer TEXT NOT NULL,
+  domain TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  human_key_digest TEXT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  consumed_at BIGINT NOT NULL,
+  PRIMARY KEY (signer, domain, nonce)
+);
+CREATE INDEX agentkit_used_nonces_expiry_idx
+  ON agentkit_used_nonces_v1 (expires_at);
+
+CREATE TABLE agentkit_bindings_v1 (
+  agent_address TEXT PRIMARY KEY,
+  human_key_digest TEXT NOT NULL,
+  verifier TEXT NOT NULL CHECK (verifier = 'world-agentbook'),
+  checked_at BIGINT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0),
+  updated_at BIGINT NOT NULL
+);
+CREATE INDEX agentkit_bindings_human_idx
+  ON agentkit_bindings_v1 (human_key_digest, expires_at DESC);
+`;
+
+const DEAL_INVITES_SQL = `
+CREATE TABLE deal_invites_v1 (
+  token TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL,
+  email TEXT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  used_at BIGINT,
+  data JSONB NOT NULL
+);
+CREATE UNIQUE INDEX deal_invites_one_pending_per_job_idx
+  ON deal_invites_v1 (job_id) WHERE used_at IS NULL;
+CREATE INDEX deal_invites_expiry_idx
+  ON deal_invites_v1 (expires_at);
+`;
+
+const AGENTKIT_REPORT_DELIVERY_SQL = `
+CREATE TABLE agentkit_research_reservations_v1 (
+  id TEXT PRIMARY KEY,
+  human_key_digest TEXT NOT NULL,
+  agent_address TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  period_start BIGINT NOT NULL,
+  resource_id TEXT NOT NULL,
+  state TEXT NOT NULL CHECK (state IN ('reserved', 'delivered', 'released')),
+  lease_expires_at BIGINT NOT NULL,
+  result_id TEXT,
+  result JSONB,
+  failure_reason TEXT,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL,
+  delivered_at BIGINT,
+  UNIQUE (human_key_digest, scope, resource_id),
+  FOREIGN KEY (human_key_digest, scope, period_start)
+    REFERENCES agentkit_research_allowances_v1 (human_key_digest, scope, period_start)
+);
+CREATE INDEX agentkit_research_reservations_pool_idx
+  ON agentkit_research_reservations_v1 (human_key_digest, scope, period_start, state, lease_expires_at);
+`;
+
+const AGENTKIT_REPORT_DELIVERY_FENCING_SQL = `
+ALTER TABLE agentkit_research_reservations_v1
+  ADD COLUMN IF NOT EXISTS attempt_token TEXT;
+UPDATE agentkit_research_reservations_v1
+  SET attempt_token = id
+  WHERE attempt_token IS NULL;
+ALTER TABLE agentkit_research_reservations_v1
+  ALTER COLUMN attempt_token SET NOT NULL;
+`;
+
+const CRE_DELIVERY_REQUEST_QUEUE_SQL = `
+CREATE TABLE cre_delivery_requests_v1 (
+  request_key TEXT PRIMARY KEY,
+  deal_id TEXT NOT NULL,
+  terms_version BIGINT NOT NULL CHECK (terms_version > 0),
+  evidence_revision BIGINT NOT NULL CHECK (evidence_revision > 0),
+  expires_at BIGINT NOT NULL CHECK (expires_at > 0),
+  pull_number BIGINT NOT NULL CHECK (pull_number > 0),
+  submitted_sha TEXT NOT NULL CHECK (submitted_sha ~ '^[0-9a-fA-F]{40}$'),
+  state TEXT NOT NULL CHECK (state IN ('pending', 'leased', 'completed', 'expired', 'cancelled')),
+  lease_token TEXT,
+  lease_expires_at BIGINT,
+  receipt JSONB,
+  created_at BIGINT NOT NULL CHECK (created_at >= 0),
+  updated_at BIGINT NOT NULL CHECK (updated_at >= 0),
+  completed_at BIGINT,
+  UNIQUE (deal_id, terms_version, evidence_revision, pull_number, submitted_sha)
+);
+CREATE UNIQUE INDEX cre_delivery_requests_one_active_revision_idx
+  ON cre_delivery_requests_v1 (deal_id, terms_version, evidence_revision)
+  WHERE state IN ('pending', 'leased');
+CREATE INDEX cre_delivery_requests_claim_idx
+  ON cre_delivery_requests_v1 (state, expires_at, created_at, request_key);
+CREATE INDEX cre_delivery_requests_deal_idx
+  ON cre_delivery_requests_v1 (deal_id, terms_version, evidence_revision, updated_at DESC);
+`;
+
 export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
   {
     version: 1,
@@ -625,6 +740,31 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 17,
     name: 'durable_task_replay_audit',
     sql: DURABLE_TASK_REPLAY_SQL,
+  },
+  {
+    version: 18,
+    name: 'agentkit_research_allowance',
+    sql: AGENTKIT_RESEARCH_ALLOWANCE_SQL,
+  },
+  {
+    version: 19,
+    name: 'durable_deal_invites',
+    sql: DEAL_INVITES_SQL,
+  },
+  {
+    version: 20,
+    name: 'agentkit_report_delivery_accounting',
+    sql: AGENTKIT_REPORT_DELIVERY_SQL,
+  },
+  {
+    version: 21,
+    name: 'cre_delivery_request_queue',
+    sql: CRE_DELIVERY_REQUEST_QUEUE_SQL,
+  },
+  {
+    version: 22,
+    name: 'agentkit_report_delivery_fencing',
+    sql: AGENTKIT_REPORT_DELIVERY_FENCING_SQL,
   },
 ] as const;
 

@@ -489,8 +489,34 @@ export interface DirectDeal {
   /// cancel; only mutual cancel or appeal.
   deadlineUnix?: number;
   terms: string;
+  agreementVersion?: number;
+  agreementDigest?: string;
+  evidenceReceipt?: {
+    state:
+      | 'not-configured'
+      | 'not-recorded'
+      | 'pass'
+      | 'mismatch'
+      | 'unavailable'
+      | 'expired'
+      | 'stale-terms'
+      | 'stale-delivery'
+      | 'read-unavailable';
+    agreementVersion: number;
+    registryAddress?: string;
+    termsVersion?: number;
+    evidenceRevision?: number;
+    expectedEvidenceRevision?: number;
+    expiresAt?: number;
+    recordedAt?: number;
+    evidenceCommitment?: string;
+    verdictCommitment?: string;
+    reportId?: string;
+  };
   /// Seller agreed to the current terms. No buyer funds have moved yet.
   sellerApprovedAt?: number;
+  sellerApprovedAgreementVersion?: number;
+  sellerApprovedAgreementDigest?: string;
   /// Escrow is funded and verified Accepted onchain.
   acceptedAt?: number;
   delivered: boolean;
@@ -504,7 +530,11 @@ export interface DirectDeal {
   /// Why the agent stopped the auto-release clock. Visible to BOTH parties; the
   /// buyer's private deliveryMatch verdict never is. Without this the seller
   /// reads a countdown that already expired and never learns to appeal.
-  releaseBlockedReason?: 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+  releaseBlockedReason?:
+    | 'requirement-mismatch'
+    | 'evidence-unavailable'
+    | 'security-hold'
+    | 'no-agent-wallet';
   releaseBlockedAt?: number;
   /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
   /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for
@@ -526,6 +556,10 @@ export interface DirectDeal {
   /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
   /// pause auto-release; the proof is always shown, the buyer decides.
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  deliveryRevision?: number;
+  deliveryEvidenceCommitment?: string;
+  evidenceExpectedCommitment?: string;
+  evidenceRequired?: boolean;
   reviewWindowStartedAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;
@@ -923,6 +957,30 @@ export interface CounterpartyReport {
     decisionImpact?: 'legacy_match_unchanged';
     evidenceId?: string;
   } | null;
+  complimentary?: {
+    resultId: string;
+    reused: boolean;
+    allowance: ResearchAllowanceSnapshot;
+  };
+}
+
+export interface ResearchAllowanceSnapshot {
+  scope: 'counterparty-report';
+  periodStart: number;
+  allowance: number;
+  used: number;
+  reserved: number;
+  remaining: number;
+  version: number;
+  updatedAt: number;
+}
+
+export interface LifecycleTiming {
+  sellerResponseMs: number | null;
+  sellerCompletionMs: number | null;
+  buyerVerificationMs: number | null;
+  buyerReleaseMs: number | null;
+  samples: { sellerResponse: number; sellerCompletion: number; buyerVerification: number; buyerRelease: number };
 }
 
 export interface LifecycleTiming {
@@ -1786,6 +1844,14 @@ export interface ScoutReadEntry {
   owner: string;
   ts: number;
   read: ApiMarketRead;
+}
+
+export interface AgentKitResearchStatus {
+  verification: 'not-checked' | 'verified';
+  provider: 'world-agentbook';
+  mode: 'configured' | 'unavailable';
+  allowancePolicy: { scope: 'counterparty-report'; reportsPer24Hours: number };
+  allowance: ResearchAllowanceSnapshot | null;
 }
 
 export const api = {
@@ -3213,6 +3279,7 @@ export const api = {
       kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
       label?: string;
     }>;
+    evidenceRequired?: boolean;
   }) =>
     json<{
       deal: DirectDeal;
@@ -3228,14 +3295,17 @@ export const api = {
         token: string;
         jobId: string;
         role: 'buyer' | 'seller';
-        email: string;
+        emailHint: string;
         expiresAt: number;
       };
+      viewer: { authenticated: boolean; canClaim: boolean };
       deal: {
         jobId: string;
         dealAmountUsdc: string;
         firstReleasePct: number;
-        terms: string;
+        termsPreview: string;
+        terms?: string;
+        termsDigest: string;
         deadlineUnix?: number;
         acceptanceDeadlineUnix?: number;
         inviterMasked: string;
@@ -3267,7 +3337,17 @@ export const api = {
     json<CounterpartyReport>(
       withCaller(`/api/deals/direct/${jobId}/counterparty-report`, caller),
     ),
-  acceptDirectDeal: (jobId: string, caller: string) =>
+  complimentaryCounterpartyReport: (jobId: string, caller?: string | null) =>
+    json<CounterpartyReport>(
+      withCaller(`/api/deals/direct/${jobId}/counterparty-report/complimentary`, caller),
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  acceptDirectDeal: (
+    jobId: string,
+    caller: string,
+    expectedAgreementVersion: number,
+    expectedAgreementDigest: string,
+  ) =>
     json<{
       accepted: boolean;
       jobId: string;
@@ -3275,7 +3355,10 @@ export const api = {
       sellerApprovedAt?: number;
     }>(
       `/api/deals/direct/${jobId}/accept`,
-      { method: 'POST', body: JSON.stringify({ caller }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({ caller, expectedAgreementVersion, expectedAgreementDigest }),
+      },
     ),
   directDealFundingQuote: (jobId: string, caller: string) =>
     json<{ quote: DirectDealFundingQuote }>(
@@ -3347,6 +3430,20 @@ export const api = {
       receiptPending?: boolean;
     }>(
       `/api/deals/direct/${jobId}/release`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  reconcileDirectDealPayout: (jobId: string, reference: string, caller: string) =>
+    json<{
+      accepted: boolean;
+      recovered: true;
+      alreadyCompleted?: boolean;
+      settled?: boolean;
+      jobId: string;
+      reference: string;
+      amountUsdc?: string;
+      txHash?: string;
+    }>(
+      `/api/deals/direct/${jobId}/payouts/${encodeURIComponent(reference)}/reconcile`,
       { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   /// Published dispute/recovery timelines, read from the live platform config
@@ -3504,6 +3601,7 @@ export const api = {
       firstReleasePct?: number;
       requireStake?: boolean;
       requireStakePct?: number;
+      evidenceRequired?: boolean;
     },
   ) =>
     json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
@@ -4263,6 +4361,8 @@ export const api = {
     }),
   recentScouts: (limit = 8) =>
     json<{ scouts: ScoutReadEntry[] }>(withCaller(`/api/research/scout/recent?limit=${limit}`)),
+  researchAgentKitStatus: () =>
+    json<AgentKitResearchStatus>(withCaller('/api/research/agentkit/status')),
 
   // Financier application (SME rail). Anyone who meets the bar (tenure on
   // Karwan, a stake, reputation >= COLD) can self-serve apply to fund factoring

@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useBalance, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -17,7 +17,7 @@ import { ChainLogo, type ChainKey } from './ChainLogo';
 /// to hide it. lg-only so the nav never overflows on smaller screens (matching
 /// the old chip). Reads Arc directly, so it is the same balance for Circle and
 /// web3 identities regardless of the connected wallet's chain.
-function NavBalance() {
+function NavBalance({ alwaysVisible = false }: { alwaysVisible?: boolean }) {
   const bc = useTranslations().balancesCard;
   const auth = useAuth();
   const [hidden, setHidden] = useState(false);
@@ -29,7 +29,7 @@ function NavBalance() {
   if (!auth.isAuthenticated || !auth.address) return null;
   const human = data ? formatUnits(data.value, data.decimals) : null;
   return (
-    <span className="hidden lg:inline-flex items-center gap-1.5">
+    <span className={alwaysVisible ? 'inline-flex items-center gap-1.5' : 'hidden lg:inline-flex items-center gap-1.5'}>
       <span className="font-sans text-[13px] font-extrabold tabular-nums tracking-[-0.01em] text-[var(--color-ink)]">
         {hidden ? '••••' : isLoading || !human ? '-' : formatUsdc(human, { withSuffix: false })}
       </span>
@@ -65,32 +65,32 @@ function NavBalance() {
 }
 
 /// The account pill: the identity's Arc balance (with hide toggle) alongside a
-/// name button that opens the account manager. One shape for all authed states
-/// (Circle, web3 session-without-wallet, web3 connected) so the balance and
-/// hide affordance are identical everywhere.
+/// compact wallet-status button that opens the account manager. The profile
+/// name already lives in the adjacent profile control, so repeating it here
+/// only adds noise.
 function IdentityPill({
   leading,
-  name,
   title,
   onOpen,
+  alwaysShowBalance = false,
 }: {
   leading: ReactNode;
-  name: string;
   title?: string;
   onOpen: () => void;
+  alwaysShowBalance?: boolean;
 }) {
   return (
     <div className="inline-flex min-h-11 items-center gap-1.5 ps-2.5 pe-2.5 rounded-full border border-[var(--color-line-strong)] bg-[var(--color-surface)] whitespace-nowrap shrink-0 hover:bg-[var(--color-surface-2)] transition-colors">
-      <NavBalance />
+      <NavBalance alwaysVisible={alwaysShowBalance} />
       <button
         type="button"
         onClick={onOpen}
         suppressHydrationWarning
         aria-label={title}
-        className="inline-flex min-h-11 items-center gap-1.5 mono text-[11px] tabular-nums text-[var(--color-ink)]"
+        title={title}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 text-[var(--color-ink)]"
       >
         {leading}
-        <span className="font-medium max-w-[10ch] sm:max-w-[18ch] truncate">{name}</span>
       </button>
     </div>
   );
@@ -124,7 +124,13 @@ function chainKeyFromId(id: number): ChainKey | null {
 ///      the wallet menu + chain switcher stay intact.
 ///   4. Not authenticated. a single "Log in" pill that opens LoginModal
 ///      with both paths visible.
-export function ConnectWalletButton() {
+export function ConnectWalletButton({
+  respondToAccountRequest = false,
+  alwaysShowBalance = false,
+}: {
+  respondToAccountRequest?: boolean;
+  alwaysShowBalance?: boolean;
+} = {}) {
   const auth = useAuth();
   const t = useTranslations().auth.walletPill;
   const [loginOpen, setLoginOpen] = useState(false);
@@ -138,6 +144,13 @@ export function ConnectWalletButton() {
   // alias so the logged-out branch reads as before.
   const open = loginOpen;
   const setOpen = setLoginOpen;
+
+  useEffect(() => {
+    if (!respondToAccountRequest) return;
+    const openAccount = () => setAccountOpen(true);
+    window.addEventListener('karwan:open-account', openAccount);
+    return () => window.removeEventListener('karwan:open-account', openAccount);
+  }, [respondToAccountRequest]);
 
   if (auth.isLoading) {
     return (
@@ -175,9 +188,9 @@ export function ConnectWalletButton() {
       <>
         <IdentityPill
           leading={accountLeading}
-          name={auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
           title={auth.email ?? auth.address}
           onOpen={() => setAccountOpen(true)}
+          alwaysShowBalance={alwaysShowBalance}
         />
         <CircleAccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />
       </>
@@ -213,9 +226,9 @@ export function ConnectWalletButton() {
                     return (
                       <IdentityPill
                         leading={accountLeading}
-                        name={auth.email ? auth.email.split('@')[0] : shortAddr(auth.address)}
                         title={auth.email ?? auth.address}
                         onOpen={() => setAccountOpen(true)}
+                        alwaysShowBalance={alwaysShowBalance}
                       />
                     );
                   }
@@ -309,9 +322,9 @@ export function ConnectWalletButton() {
                 return (
                   <IdentityPill
                     leading={accountLeading}
-                    name={account.displayName}
                     title={account.displayName}
                     onOpen={openAccountModal}
+                    alwaysShowBalance={alwaysShowBalance}
                   />
                 );
               })()}

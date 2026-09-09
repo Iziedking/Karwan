@@ -1,0 +1,18 @@
+{
+  "schedule": "0 0 0 1 1 *",
+  "sourceMode": "fixture",
+  "fixtureScenario": "mismatched",
+  "githubTokenSecretId": "GITHUB_READ_TOKEN",
+  "criteriaSecretId": "DELIVERY_CRITERIA_JSON",
+  "dealId": "0x716efda684f30ea0b296fca6e3b67f52a92b59bb574d5136d0b178c82030a7d7",
+  "termsVersion": 1,
+  "evidenceRevision": 1,
+  "expiresAt": 2000000000,
+  "pullNumber": 42,
+  "submittedSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "chainId": 5042002,
+  "chainSelectorName": "arc-testnet",
+  "receiverAddress": "0x0000000000000000000000000000000000000001",
+  "gasLimit": "500000",
+  "writeReport": false
+}

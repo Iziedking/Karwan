@@ -28,6 +28,8 @@ build/
 out/
 .next/
 .turbo/
+**/.cre_build_tmp.*
+**/binary.wasm
 
 # foundry
 cache/
@@ -157,6 +159,8 @@ audit/
 # hackathon submission documents: internal
 submission/
 banners/
+# ETHOnline 2026 internal planning, execution, and submission evidence.
+/docs/hackathons/ethonline2026/
 # deck generator, local tooling only
 scripts/build-checkpoint2-deck.py
 
@@ -171,3 +175,37 @@ docs/space-paytag-2026-08-16.md
 .agent/
 .agents/
 .codex/
+
+# Internal documentation is private by default. Explicitly allow public docs.
+# Add future public documents here deliberately; do not force-add private plans.
+/docs/*
+!/docs/agent-workflows.md
+!/docs/architecture.md
+!/docs/circle-agent-marketplace-services.md
+!/docs/circle-integration.md
+!/docs/circle-product-feedback.md
+!/docs/reputation-model.md
+!/docs/terms-and-conditions.md
+!/docs/why-karwan.md
+!/docs/work-verification.md
+!/docs/diagrams/
+/docs/diagrams/*
+!/docs/diagrams/architecture.png
+!/docs/diagrams/architecture.svg
+!/docs/email/
+/docs/email/*
+!/docs/email/newsletter-sme-update.html
+!/docs/email/newsletter-template.html
+
+# Planning and internal working documents outside docs/.
+**/PLANbook.md
+**/planbook.md
+**/plan.md
+**/todo*.md
+**/*_AUDIT.md
+**/*_RESEARCH.md
+**/*_UI_BRIEF.md
+**/PROMPT_LOG*.md
+**/EXECUTION_LEDGER*.md
+**/internal/
+**/planning/

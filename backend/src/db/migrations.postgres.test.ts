@@ -43,7 +43,7 @@ test(
             `);
           }
 
-          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
           assert.deepEqual(await runNumberedMigrations(client), []);
           const tables = await client.query<{ table_name: string }>(
             `SELECT table_name FROM information_schema.tables
@@ -84,9 +84,23 @@ test(
             'matching_audit_reviews_v2',
             'match_proposal_revisions_v2',
             'agent_task_replays_v2',
+            'agentkit_research_allowances_v1',
+            'agentkit_used_nonces_v1',
+            'agentkit_bindings_v1',
+            'deal_invites_v1',
+            'agentkit_research_reservations_v1',
+            'cre_delivery_requests_v1',
           ]) {
             assert.equal(names.has(table), true, `${schema} is missing ${table}`);
           }
+          const reservationColumns = await client.query<{ column_name: string; is_nullable: string }>(
+            `SELECT column_name, is_nullable
+             FROM information_schema.columns
+             WHERE table_schema = $1 AND table_name = 'agentkit_research_reservations_v1'
+               AND column_name = 'attempt_token'`,
+            [schema],
+          );
+          assert.deepEqual(reservationColumns.rows, [{ column_name: 'attempt_token', is_nullable: 'NO' }]);
           const ledger = await client.query<{ version: string; name: string }>(
             'SELECT version, name FROM karwan_schema_migrations ORDER BY version',
           );

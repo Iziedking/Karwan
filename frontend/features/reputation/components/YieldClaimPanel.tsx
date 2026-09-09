@@ -130,22 +130,22 @@ export function YieldClaimPanel() {
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)]">
+      <div className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[var(--lp-border-light)] bg-[var(--lp-border-light)] md:grid-cols-3">
         {tiles.map((t) => (
           <div
             key={t.label}
-            className="bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
+            className="min-w-0 bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
           >
-            <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="flex min-h-[30px] items-start mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
             </p>
-            <p className="mt-1.5 font-sans text-[24px] sm:text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)]">
-              {t.value}
-              <span className="ms-1.5 text-[13px] font-semibold text-[var(--lp-text-muted)] tracking-normal">
+            <p className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-sans text-[24px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)] sm:text-[28px]">
+              <span className="whitespace-nowrap">{t.value}</span>
+              <span className="shrink-0 text-[13px] font-semibold tracking-normal text-[var(--lp-text-muted)]">
                 USDC
               </span>
             </p>
-            <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)]">
+            <p className="mt-1.5 min-h-[32px] text-[11px] leading-snug text-[var(--lp-text-sub)]">
               {t.hint}
             </p>
           </div>

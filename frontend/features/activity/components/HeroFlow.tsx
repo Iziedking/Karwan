@@ -171,7 +171,7 @@ export function HeroFlow() {
             fontSize="13"
             fontWeight="900"
             fill="#0e0e0e"
-            fontFamily="var(--font-geist-mono, monospace)"
+            fontFamily="var(--font-general-sans, sans-serif)"
           >
             $
           </text>

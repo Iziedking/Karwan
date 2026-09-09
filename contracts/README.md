@@ -3,6 +3,7 @@
 - `KarwanJobBoard.sol` — RFQ post, bid, counter-offer, accept
 - `KarwanEscrow.sol` — milestone USDC custody
 - `KarwanReputation.sol` — deal-outcome recording
+- `KarwanEvidenceRegistry.sol` — non-custodial CRE delivery receipts
 
 ## Setup
 
@@ -62,3 +63,66 @@ the only thing controlling who signs.
 Inline env vars that the scripts read with `vm.envOr` / `vm.envAddress` (e.g.
 `USYC_TELLER_ADDR` for the treasury deploy) keep working as before, since they
 are values the script consumes, not signing material.
+
+## Evidence registry on Arc Testnet
+
+`KarwanEvidenceRegistry` is bound to one CRE workflow and has no custody,
+upgrade, rescue, or ongoing admin role. Deployment uses a one-time workflow
+binder because the final CRE workflow ID commits to the production config, and
+that config contains the receiver address. Reports fail closed until the ID is
+bound. After binding, the binder cannot replace it.
+
+The scripts require these environment variables:
+
+```text
+CRE_FORWARDER_ADDR=
+CRE_WORKFLOW_OWNER=
+CRE_WORKFLOW_ID=
+CRE_WORKFLOW_NAME=karwan-git-prod
+EVIDENCE_REGISTRY_BINDER_ADDR=
+KARWAN_EVIDENCE_REGISTRY_ADDR=
+```
+
+Before deploying, the owner must run the authenticated tenant-scoped CRE chain
+directory and confirm that Arc Testnet's production `forwarderAddress` is the
+address pinned in `EvidenceRegistryDeploymentConfig.sol`. The script rejects
+the known Arc simulation forwarder and any unreviewed production address.
+
+Run the deploy script once without `--broadcast`. This is a Foundry simulation,
+not an Arc transaction:
+
+```bash
+forge script script/DeployEvidenceRegistry.s.sol:DeployEvidenceRegistry \
+  --rpc-url arc_testnet \
+  --account karwan-deployer \
+  --sender "$EVIDENCE_REGISTRY_BINDER_ADDR"
+```
+
+Only after reviewing that output, the owner may repeat the exact command with
+`--broadcast`. Put the resulting address into the final CRE production config,
+including `writeReport: true`, then calculate the final workflow hash. Set that
+hash as `CRE_WORKFLOW_ID` before running the binding script.
+
+Rehearse the binding without `--broadcast`, then let the one-time binder repeat
+the exact command with `--broadcast`:
+
+```bash
+forge script script/BindEvidenceRegistryWorkflow.s.sol:BindEvidenceRegistryWorkflow \
+  --rpc-url arc_testnet \
+  --account karwan-deployer \
+  --sender "$EVIDENCE_REGISTRY_BINDER_ADDR"
+```
+
+Finally, run the read-only verifier. It checks bytecode, all workflow identity
+fields, Arc chain ID, and ERC-165/IReceiver support, then reports any native
+balance without treating forced native transfers as authority. It never starts
+a broadcast:
+
+```bash
+forge script script/VerifyEvidenceRegistry.s.sol:VerifyEvidenceRegistry \
+  --rpc-url arc_testnet
+```
+
+If the production workflow config, owner, name, or forwarder changes after the
+ID is bound, deploy a new registry. The existing registry deliberately has no
+mutation path for replacing its trust identity.

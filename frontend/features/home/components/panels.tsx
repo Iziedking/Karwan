@@ -169,7 +169,7 @@ export function PanelContent({
   if (!isPanel) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: reduce ? 0 : 18 }}
+        initial={reduce ? false : { opacity: 0, y: 18 }}
         whileInView={{ opacity: 1, y: 0 }}
         whileHover={hoverLift && !reduce ? { y: -2 } : undefined}
         viewport={{ once: true, amount: 0.15 }}
@@ -266,6 +266,7 @@ export function PanelAdvance({
     <motion.button
       type="button"
       onClick={onAdvance}
+      tabIndex={active ? 0 : -1}
       animate={{ opacity: active ? 1 : 0 }}
       transition={{ duration: reduce ? 0 : dur.base, ease: ease.out }}
       className={cn(

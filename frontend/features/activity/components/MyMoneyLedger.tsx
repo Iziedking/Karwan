@@ -157,8 +157,8 @@ export function MyMoneyLedger({
     <section className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         {!nested && (
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{t.eyebrow}:]
+          <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+            {t.eyebrow}
           </span>
         )}
         {items && items.length > 0 && (
@@ -272,7 +272,7 @@ export function MyMoneyLedger({
                       rel="noopener noreferrer"
                       className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                     >
-                      {t.receiptProof}
+                      View payment proof
                     </a>
                   )}
                   {(() => {
@@ -292,7 +292,7 @@ export function MyMoneyLedger({
                         // wrapping row rather than fitting inside half of one.
                         className="mobile-meta inline-flex min-h-11 shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] whitespace-nowrap text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                       >
-                        <span className="text-start">{reference}</span>
+                        <span className="text-start">Karwan ref {reference}</span>
                         <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
                       </button>
                     );

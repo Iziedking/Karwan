@@ -34,6 +34,48 @@ export function isPublicDiscoveryRoute(pathname: string | null | undefined): boo
   return ['/market', '/listings', '/partners'].some((route) => matchesRoute(pathname, route));
 }
 
+/**
+ * Return the nearest useful parent for product-level navigation. This keeps
+ * detail and settings views recoverable without guessing browser history,
+ * which may point outside Karwan after a shared link is opened.
+ */
+export function getProductBackHref(
+  pathname: string | null | undefined,
+  isAuthenticated = true,
+): string | null {
+  if (!pathname || pathname === '/app') return null;
+  if (matchesRoute(pathname, '/settings')) return '/profile';
+  if (pathname === '/profile') return '/app';
+  if (matchesRoute(pathname, '/profile/business/setup')) return '/profile/business';
+  if (matchesRoute(pathname, '/business/verification')) return '/profile/business';
+  if (matchesRoute(pathname, '/profile')) return '/profile';
+  if (matchesRoute(pathname, '/activity/all-time')) return '/activity';
+  if (matchesRoute(pathname, '/listings')) return '/market';
+  if (matchesRoute(pathname, '/partners')) return '/market';
+  if (matchesRoute(pathname, '/market')) return isAuthenticated ? '/app' : '/';
+  if (matchesRoute(pathname, '/onboarding')) return '/';
+  if (matchesRoute(pathname, '/cashout')) return isAuthenticated ? '/app' : '/';
+
+  const appParents = [
+    '/account',
+    '/activity',
+    '/bridge',
+    '/business',
+    '/b2b',
+    '/buyer',
+    '/deals',
+    '/financier',
+    '/jobs',
+    '/legacy',
+    '/p2p',
+    '/seller',
+    '/stake',
+    '/supply',
+  ];
+  if (appParents.some((route) => matchesRoute(pathname, route))) return '/app';
+  return null;
+}
+
 /** Routes that may be read without starting the account authentication flow. */
 export function isPublicAccessRoute(pathname: string | null | undefined): boolean {
   return isPublicEditorialRoute(pathname) || isPublicDiscoveryRoute(pathname);
@@ -42,7 +84,7 @@ export function isPublicAccessRoute(pathname: string | null | undefined): boolea
 /** Task flows that keep identity controls but remove navigation distractions. */
 export function isFocusedRoute(pathname: string | null | undefined): boolean {
   if (!pathname) return false;
-  return matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/cashout');
+  return matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/cashout') || matchesRoute(pathname, '/profile/business/setup');
 }
 
 /**
@@ -55,7 +97,7 @@ export function isFocusedRoute(pathname: string | null | undefined): boolean {
  * with their navigation taken away and no reason given.
  */
 function isFocusedForEveryone(pathname: string | null | undefined): boolean {
-  return !!pathname && matchesRoute(pathname, '/onboarding');
+  return !!pathname && (matchesRoute(pathname, '/onboarding') || matchesRoute(pathname, '/profile/business/setup'));
 }
 
 /** First-contact invitation pages own their complete page shell. */

@@ -9,7 +9,6 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
-import { LpHint } from '@/shared/components/LpHint';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
@@ -51,11 +50,6 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   FullBleed,
   Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
 } from '@/shared/components/Bands';
 
 type Direction = 'in' | 'out';
@@ -76,13 +70,21 @@ export default function BridgePage() {
 }
 
 function BridgePageInner() {
-  const t = useTranslations().bridge;
   const c = useTranslations().bridgeChooser;
   const { agents } = useActivation();
   const { method } = useAuth();
   const params = useSearchParams();
-  const [direction, setDirection] = useState<Direction>('in');
+  const requestedDirection = params.get('direction');
+  const requestedIntent = params.get('intent');
+  const outIntent = requestedIntent === 'send' ? 'send' : 'move';
+  const [direction, setDirection] = useState<Direction>(requestedDirection === 'out' ? 'out' : 'in');
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (requestedDirection === 'in' || requestedDirection === 'out') {
+      setDirection(requestedDirection);
+    }
+  }, [requestedDirection]);
 
   // Which rails exist for this account and this direction lives in railModel,
   // not here. Both account types get the same chooser now: an email account used
@@ -109,27 +111,30 @@ function BridgePageInner() {
     setRail((current) => reconcileRail(current, rails));
   }, [rails]);
 
+  const pageTitle = direction === 'in' ? 'Add USDC' : outIntent === 'send' ? 'Send USDC' : 'Move USDC';
+  const pageBody = direction === 'in'
+    ? 'Choose how you want to add USDC to your Karwan account.'
+    : outIntent === 'send'
+      ? 'Choose an available balance and a supported destination.'
+      : 'Move available USDC between supported chains.';
+
   return (
+    <div className="product-surface">
     <FullBleed>
       {/* The page owns its tour. It used to live inside the Transfer card, which
           is one of four rails, so the Tour pill appeared and disappeared as the
           user switched rails and was absent entirely for an email account, which
           lands on Direct. */}
       <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
-      <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="flex items-center gap-2">
-          <SectionTag tone="dark">{t.sectionTag}</SectionTag>
-          <LpHint side="bottom" align="start">
-            Deposit and withdraw your assets. {t.description}
-          </LpHint>
-        </div>
-        <HeroHeadline size="md">
-          {t.headlinePrefix}<Accent>USDC</Accent>
-          <Punc>.</Punc>
-        </HeroHeadline>
+      <Band tone="light" compact>
+        <header className="max-w-[620px] border-b border-[var(--lp-border-light)] pb-5">
+          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">USDC balance</p>
+          <h1 className="mt-1 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-none tracking-[-0.045em] text-[var(--lp-dark)]">{pageTitle}</h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{pageBody}</p>
+        </header>
       </Band>
 
-      <Band tone="light" compact>
+      <Band tone="light" compact className="!pt-0 md:!pt-0">
         <div className="max-w-xl">
           {/* Direction first, rail second. Which way the money goes is the
               question every account has; which rail carries it depends on the
@@ -145,10 +150,10 @@ function BridgePageInner() {
               }}
             >
               <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
-                {t.directions.toArc}
+                Add
               </DirToggle>
               <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-                {t.directions.fromArc}
+                {outIntent === 'send' ? 'Send' : 'Move'}
               </DirToggle>
             </div>
             <div data-guide="bridge-history" className="w-full sm:w-auto">
@@ -171,6 +176,7 @@ function BridgePageInner() {
 
       <BridgeHistoryModal open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </FullBleed>
+    </div>
   );
 }
 

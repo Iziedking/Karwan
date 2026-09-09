@@ -58,11 +58,11 @@ const CARD_STYLE = {
   background: 'var(--lp-card)',
   color: 'var(--lp-dark)',
   border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
-  borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  borderBottomLeftRadius: 20,
+  borderBottomRightRadius: 7,
+  boxShadow: 'var(--product-panel-shadow, 0 18px 56px -28px rgba(0,0,0,0.18))',
 } as const;
 
 /// USDC balance for one address across Arc + every CCTP source chain. Native on
@@ -151,9 +151,11 @@ type View = 'you' | 'buyer' | 'seller';
 export function BalancesCard({
   buyerAgent,
   sellerAgent,
+  openByDefault = false,
 }: {
   buyerAgent?: string;
   sellerAgent?: string;
+  openByDefault?: boolean;
 } = {}) {
   // Source of truth is the unified auth hook. covers both wagmi-connected
   // web3 users and Circle passkey/email users (their identity DCW address).
@@ -166,7 +168,7 @@ export function BalancesCard({
   // holdings the wallet cards already show, spread across chains) never crowds
   // the page or exposes balances on a demo recording. One tap on the header
   // opens it. Not persisted: it resets on remount.
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openByDefault);
   const bc = useTranslations().balancesCard;
 
   const buyer = (buyerAgent as `0x${string}` | undefined) ?? undefined;

@@ -1,8 +1,9 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { eq, or, desc } from 'drizzle-orm';
-import { db, pgEnabled } from './client.js';
+import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { directDeals } from './schema.js';
+import { agreementDigest } from '../deals/agreementDigest.js';
 
 const STORE_PATH = resolve(process.cwd(), 'data', 'direct-deals.json');
 
@@ -74,6 +75,14 @@ export interface DirectDeal {
   /// post-deadline buyer cancel + reputation slash path stays.
   deadlineUnix?: number;
   terms: string;
+  /// Monotonic commercial agreement version. Legacy rows read as version 1.
+  /// Every pre-funding buyer edit increments it; CRE receipts bind this value.
+  agreementVersion?: number;
+  /// SHA-256 version of the exact off-chain terms currently awaiting approval.
+  termsDigest?: string;
+  /// SHA-256 of the canonical commercial agreement, including parties,
+  /// amount, milestones, deadlines, review/payment terms and documents.
+  agreementDigest?: string;
   /// The agent's paid market read for this deal, carried over from the match
   /// proposal at acceptance so the research stays visible on the deal page for
   /// the whole lifecycle (the proposal banner is gone once the deal funds).
@@ -123,6 +132,12 @@ export interface DirectDeal {
   // money has moved yet. A buyer edit clears this marker so the seller must
   // approve the revised terms again.
   sellerApprovedAt?: number;
+  /// Digest that the seller approved. Funding must never use an approval for
+  /// a different terms version.
+  sellerApprovedTermsDigest?: string;
+  /// Version and canonical digest the seller actually reviewed.
+  sellerApprovedAgreementVersion?: number;
+  sellerApprovedAgreementDigest?: string;
   // The escrow has been funded and verified Accepted on chain. Downstream
   // delivery, financing, settlement, and reputation code relies on this funded
   // meaning, so it remains distinct from sellerApprovedAt.
@@ -161,13 +176,59 @@ export interface DirectDeal {
   /// buyer looks before money moves; 'unknown' means it could not be judged. The
   /// proof is never withheld for a requirement verdict, the buyer is the judge.
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
+  /// Monotonic delivery revision. A correction creates a new revision and
+  /// invalidates receipts issued for the previous artifact.
+  deliveryRevision?: number;
+  deliveryEvidenceCommitment?: `0x${string}`;
+  /// Commitment supplied by the confidential evidence request for this
+  /// revision. It is intentionally separate from the local delivery artifact
+  /// hash because a CRE GitHub evidence digest is not a URL hash.
+  evidenceExpectedCommitment?: `0x${string}`;
+  /// The exact per-delivery request published for the confidential evidence
+  /// worker. Raw criteria and provider credentials never live here.
+  creDeliveryRequest?: {
+    dealId: `0x${string}`;
+    termsVersion: number;
+    evidenceRevision: number;
+    expiresAt: number;
+    pullNumber: number;
+    submittedSha: string;
+    publishedAt: number;
+  };
+  /// The authenticated bridge's receipt identity for the same request. The
+  /// registry remains authoritative; this binding only lets the backend reject
+  /// a receipt for a different delivery before using its commitment as expected.
+  creEvidenceReceipt?: {
+    termsVersion: number;
+    evidenceRevision: number;
+    expiresAt: number;
+    decisionCode: number;
+    evidenceCommitment: `0x${string}`;
+    verdictCommitment: `0x${string}`;
+    reportId: `0x${string}`;
+    boundAt: number;
+  };
+  deliveryHistory?: Array<{
+    revision: number;
+    submittedAt: number;
+    deliveryProof?: string;
+    verificationStatus?: DirectDeal['verificationStatus'];
+    deliveryMatch?: DirectDeal['deliveryMatch'];
+  }>;
+  /// Explicit policy marker. Undefined/false is legacy optional evidence;
+  /// true means absent, stale, failed or unreadable evidence pauses release.
+  evidenceRequired?: boolean;
   /// Why the agent is NOT running the auto-release clock on this deal. The
   /// watcher sets it the moment it decides to pause and clears it when the
   /// condition lifts. Both parties see the code (never the buyer's private
   /// deliveryMatch.reason), because a paused payout that reads as "releasing
   /// shortly" is how a deal silently wedges: the seller waits on a clock that
   /// is not running and never learns they should appeal.
-  releaseBlockedReason?: 'requirement-mismatch' | 'security-hold' | 'no-agent-wallet';
+  releaseBlockedReason?:
+    | 'requirement-mismatch'
+    | 'evidence-unavailable'
+    | 'security-hold'
+    | 'no-agent-wallet';
   releaseBlockedAt?: number;
   // Set when the first milestone is released (by the buyer or by the auto
   // first-release). Starts the final-release window during which the buyer
@@ -467,7 +528,7 @@ export function dealMilestonePcts(deal: Pick<DirectDeal, 'firstReleasePct' | 'mi
 const DEALS_CACHE_TTL_MS = Number(process.env.DEALS_CACHE_TTL_MS ?? 300_000);
 let allDealsCache: { at: number; rows: DirectDeal[] } | null = null;
 
-function invalidateDealsCache(): void {
+export function invalidateDealsCache(): void {
   allDealsCache = null;
 }
 
@@ -486,12 +547,14 @@ export async function createDeal(
   const now = Date.now();
   const deal: DirectDeal = {
     ...input,
+    agreementVersion: input.agreementVersion ?? 1,
     buyer: input.buyer.toLowerCase(),
     seller: input.seller.toLowerCase(),
     delivered: false,
     createdAt: now,
     updatedAt: now,
   };
+  deal.agreementDigest = agreementDigest(deal);
   const key = input.jobId.toLowerCase();
   if (pgEnabled) {
     await db().insert(directDeals).values({
@@ -519,6 +582,7 @@ export async function patchDeal(
   const existing = await getDeal(key);
   if (!existing) return null;
   const next: DirectDeal = { ...existing, ...patch, updatedAt: Date.now() };
+  next.agreementDigest = agreementDigest(next);
   if (pgEnabled) {
     await db()
       .update(directDeals)
@@ -532,6 +596,57 @@ export async function patchDeal(
   saveFile(store);
   invalidateDealsCache();
   return next;
+}
+
+/// Version-bound seller approval. Postgres takes a row lock and compares the
+/// exact agreement snapshot inside the transaction, so a buyer edit cannot
+/// land between the route's initial read and the post-provisioning approval.
+/// The flat-file fallback is protected by the route's in-flight guard and
+/// re-reads immediately before writing for deterministic local rehearsal.
+export async function approveSellerAgreement(
+  jobId: string,
+  expectedAgreementVersion: number,
+  expectedAgreementDigest: string,
+  patch: Partial<DirectDeal>,
+): Promise<{ ok: true; deal: DirectDeal } | { ok: false; deal: DirectDeal | null }> {
+  const key = jobId.toLowerCase();
+  if (pgEnabled) {
+    return withPostgresTransaction(async (tx) => {
+      const result = await tx.query<{ data: DirectDeal }>(
+        'SELECT data FROM direct_deals WHERE job_id = $1 FOR UPDATE',
+        [key],
+      );
+      const existing = result.rows[0]?.data ?? null;
+      if (!existing) return { ok: false, deal: null };
+      const currentVersion = existing.agreementVersion ?? 1;
+      const currentDigest = agreementDigest(existing);
+      if (currentVersion !== expectedAgreementVersion || currentDigest !== expectedAgreementDigest) {
+        return { ok: false, deal: existing };
+      }
+      const next: DirectDeal = {
+        ...existing,
+        ...patch,
+        agreementDigest: currentDigest,
+        updatedAt: Date.now(),
+      };
+      await tx.query(
+        'UPDATE direct_deals SET buyer = $1, seller = $2, data = $3::jsonb WHERE job_id = $4',
+        [next.buyer, next.seller, JSON.stringify(next), key],
+      );
+      invalidateDealsCache();
+      return { ok: true, deal: next };
+    });
+  }
+
+  const existing = await getDeal(key);
+  if (!existing) return { ok: false, deal: null };
+  const currentVersion = existing.agreementVersion ?? 1;
+  const currentDigest = agreementDigest(existing);
+  if (currentVersion !== expectedAgreementVersion || currentDigest !== expectedAgreementDigest) {
+    return { ok: false, deal: existing };
+  }
+  const next = await patchDeal(key, { ...patch, agreementDigest: currentDigest });
+  return next ? { ok: true, deal: next } : { ok: false, deal: null };
 }
 
 /// Deals where the address is either the buyer (creator) or the seller.

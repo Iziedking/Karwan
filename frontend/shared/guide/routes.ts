@@ -1,9 +1,6 @@
-/// Routes where coachmark tours never run. Two kinds: public / marketing pages
-/// (landing, docs, info), and active setup flows where a popup would talk over
-/// the task the user is mid-way through (onboarding language/profile, invite
-/// claim, cashout). Used both to gate STARTING a tour and to hide an
-/// already-open tour's overlay if the user navigates into one of these flows,
-/// so a tour started elsewhere never paints over onboarding.
+/// Public/editorial, operator and initial sign-in flows never run customer
+/// coachmarks. Sensitive signed-in forms can offer manual guidance, but the
+/// welcome component separately blocks automatic tours on focused flows.
 export function isNoTourRoute(pathname: string | null): boolean {
   if (!pathname) return true;
   if (pathname === '/') return true;
@@ -14,6 +11,9 @@ export function isNoTourRoute(pathname: string | null): boolean {
     pathname.startsWith('/terms') ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/invite') ||
-    pathname.startsWith('/cashout')
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/brand') ||
+    pathname.startsWith('/newsletter') ||
+    pathname.startsWith('/credit-passport')
   );
 }

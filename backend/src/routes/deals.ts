@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import {
@@ -45,14 +45,17 @@ import {
   createDeal,
   getDeal,
   patchDeal,
+  approveSellerAgreement,
   listDealsForAddress,
   listAllDeals,
   dealMilestonePcts,
+  invalidateDealsCache,
   type DirectDeal,
 } from '../db/deals.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import {
+  getMoneyMovement,
   getMoneyMovementByOperationKey,
   listMoneyMovementsForAddress,
   listMoneyMovementsForJobParty,
@@ -80,11 +83,22 @@ import {
   findAdvancedUnfinishedPayout,
   fundingEscrowMatches,
 } from '../money/escrowProjection.js';
+import { validatePayoutRecoveryTarget } from '../money/payoutRecovery.js';
 import { buildWorkRecord } from '../agents/workRecord.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { resolvePaytag } from '../paytag/resolve.js';
 import { getBrief } from '../db/briefs.js';
-import { createInvite, getInvite, getInviteByJob, markInviteUsed } from '../db/dealInvites.js';
+import {
+  completeInviteClaim,
+  bindInviteClaimToDeal,
+  createInvite,
+  getInvite,
+  getInviteByJob,
+  refreshInviteTerms,
+  releaseInviteClaim,
+  reserveInviteClaim,
+} from '../db/dealInvites.js';
+import { pgEnabled } from '../db/client.js';
 import { pickEmailOwner, type EmailOwner } from '../identity/emailOwner.js';
 import { getUserByEmail } from '../db/users.js';
 import { findProfileByEmail, getProfile } from '../db/profiles.js';
@@ -118,6 +132,21 @@ import {
   buildDirectDealFundingQuote,
   fundingAuthorizationMatches,
 } from '../deals/fundingQuote.js';
+import { termsDigest } from '../deals/termsDigest.js';
+import { agreementDigest } from '../deals/agreementDigest.js';
+import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
+import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
+import { ownerAgentKitResearchAccess } from './research.js';
+import {
+  deliverComplimentaryResearchReport,
+  ResearchDeliveryInProgressError,
+} from '../evidence/researchReportDelivery.js';
+import { cancelCreDeliveryRequests } from '../evidence/creDeliveryRequestQueue.js';
+import {
+  emptyResearchAllowanceSnapshot,
+  ResearchAllowanceExhaustedError,
+  ResearchAllowanceExpiredError,
+} from '../evidence/researchAllowance.js';
 
 // ERC-20 USDC on Arc uses 6 decimals for escrow accounting.
 const USDC_DECIMALS = 6;
@@ -127,6 +156,8 @@ const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
   `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
 const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
 const mutualCancelMovementKey = (jobId: string) => `escrow_mutual_cancel:${jobId.toLowerCase()}`;
+const complimentaryReportResourceId = (jobId: string, subject: string) =>
+  `direct-deal:${jobId.toLowerCase()}:counterparty:${subject.toLowerCase()}`;
 
 function publicMoneyMovement(movement: MoneyMovement) {
   return {
@@ -238,6 +269,9 @@ const createSchema = z
       )
       .max(20)
       .optional(),
+    /// Explicit opt-in for the confidential delivery-evidence lane. Legacy
+    /// deals remain optional until their agreement records this requirement.
+    evidenceRequired: z.boolean().optional().default(false),
   })
   .refine(
     (b) =>
@@ -279,6 +313,7 @@ const editSchema = z
       .refine((v) => v === undefined || v % 5 === 0, {
         message: 'requireStakePct must be a multiple of 5',
       }),
+    evidenceRequired: z.boolean().optional(),
   })
   .refine(
     (b) => {
@@ -293,6 +328,10 @@ const editSchema = z
   );
 
 const callerSchema = z.object({ caller: addrSchema });
+const sellerAcceptSchema = callerSchema.extend({
+  expectedAgreementVersion: z.number().int().positive(),
+  expectedAgreementDigest: z.string().regex(/^[a-fA-F0-9]{64}$/),
+});
 const fundSchema = z.object({
   caller: addrSchema,
   expectedFeeBps: z.number().int().min(0).max(10_000),
@@ -411,12 +450,13 @@ dealsRoutes.post('/direct', async (c) => {
     } else {
       const token = randomBytes(32).toString('hex');
       inviteExpiresAt = Date.now() + config.DEAL_INVITE_TTL_MS;
-      createInvite({
+      await createInvite({
         token,
         jobId,
         role: 'seller',
         email: body.sellerEmail,
         expiresAt: inviteExpiresAt,
+        termsDigest: termsDigest(body.terms),
       });
       pendingCounterparty = {
         email: body.sellerEmail,
@@ -506,6 +546,7 @@ dealsRoutes.post('/direct', async (c) => {
     deadlineUnix,
     acceptanceDeadlineUnix,
     terms: body.terms,
+    termsDigest: termsDigest(body.terms),
     origin: 'direct',
     pendingCounterparty,
     requireStake: body.requireStake,
@@ -517,6 +558,7 @@ dealsRoutes.post('/direct', async (c) => {
     paymentTerms: body.paymentTerms,
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
+    evidenceRequired: body.evidenceRequired,
   });
 
   bus.emitEvent({
@@ -648,6 +690,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
 
   const patch: Partial<DirectDeal> = {};
+  if (body.evidenceRequired !== undefined) patch.evidenceRequired = body.evidenceRequired;
   if (body.dealAmountUsdc !== undefined) {
     patch.dealAmountUsdc = body.dealAmountUsdc.toString();
   }
@@ -683,10 +726,18 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     return c.json({ error: 'no changes provided' }, 400);
   }
 
+  patch.agreementVersion = (deal.agreementVersion ?? 1) + 1;
+
+  if (patch.terms !== undefined) {
+    patch.termsDigest = termsDigest(patch.terms);
+    patch.sellerApprovedTermsDigest = undefined;
+  }
+
   // Agreement applies to one exact version of the commercial terms. Any
   // buyer edit before funding sends the revised deal back to seller review.
   if (deal.sellerApprovedAt) {
     patch.sellerApprovedAt = undefined;
+    patch.sellerApprovedTermsDigest = undefined;
   }
 
   const updated = await patchDeal(jobId, patch);
@@ -743,7 +794,11 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   /// invite record. Fire-and-forget so a transient send failure never blocks
   /// the edit response, the buyer still gets a 200 either way.
   const pendingEmail = updated?.pendingCounterparty?.email ?? null;
-  const pendingInvite = pendingEmail ? getInviteByJob(jobId) : null;
+  const pendingInvite = pendingEmail
+    ? patch.termsDigest
+      ? await refreshInviteTerms(jobId, patch.termsDigest)
+      : await getInviteByJob(jobId)
+    : null;
   if (updated && pendingInvite && pendingEmail) {
     const base = (config.FRONTEND_BASE_URL ?? '').replace(/\/$/, '');
     const claimUrl = `${base}/invite/${pendingInvite.token}`;
@@ -781,14 +836,12 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   return c.json({ accepted: true, jobId, deal: updated }, 200);
 });
 
-/// Public summary of a pending invite. Returns the deal terms in a form safe
-/// to show a logged-out recipient (amount, terms, deadline, the invited email,
-/// the inviter's masked address). The recipient uses this to decide whether
-/// to claim. Returns 404 for unknown tokens, 410 for expired invites, and a
-/// "ready to claim" payload otherwise.
+/// Public summary of a pending invite. It deliberately excludes the invited
+/// email and commercial terms. A link can be forwarded or crawled, so the
+/// preview is useful but private details wait for recipient verification.
 dealsRoutes.get('/invite/:token', async (c) => {
   const token = c.req.param('token');
-  const invite = getInvite(token);
+  const invite = await getInvite(token);
   if (!invite) return c.json({ error: 'invite not found' }, 404);
   if (invite.usedAt) {
     return c.json(
@@ -802,20 +855,39 @@ dealsRoutes.get('/invite/:token', async (c) => {
   const deal = await getDeal(invite.jobId);
   if (!deal) return c.json({ error: 'underlying deal vanished' }, 404);
 
+  if (invite.termsDigest && invite.termsDigest !== termsDigest(deal.terms)) {
+    return c.json(
+      {
+        error: 'this invite refers to older deal terms',
+        code: 'STALE_TERMS',
+        jobId: invite.jobId,
+      },
+      409,
+    );
+  }
+  if (invite.claimingByAddress && (invite.claimLeaseUntil ?? 0) > Date.now()) {
+    return c.json({ error: 'this invite is being claimed', code: 'IN_PROGRESS' }, 409);
+  }
+
   const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
+  const session = readSession(c);
+  const viewerCanClaim = !!session && await sessionOwnsInviteEmail(session, invite.email);
   return c.json({
     invite: {
       token: invite.token,
       jobId: invite.jobId,
       role: invite.role,
-      email: invite.email,
+      emailHint: maskInviteEmail(invite.email),
       expiresAt: invite.expiresAt,
     },
+    viewer: { authenticated: !!session, canClaim: viewerCanClaim },
     deal: {
       jobId: deal.jobId,
       dealAmountUsdc: deal.dealAmountUsdc,
       firstReleasePct: deal.firstReleasePct,
-      terms: deal.terms,
+      termsPreview: 'Private terms are shown after the invited email is verified.',
+      ...(viewerCanClaim ? { terms: deal.terms } : {}),
+      termsDigest: invite.termsDigest ?? termsDigest(deal.terms),
       deadlineUnix: deal.deadlineUnix,
       acceptanceDeadlineUnix: deal.acceptanceDeadlineUnix,
       inviterMasked: maskedInviter,
@@ -839,6 +911,15 @@ async function walletOwnsEmail(address: string, email: string): Promise<boolean>
   return (profile.email ?? '').trim().toLowerCase() === email.trim().toLowerCase();
 }
 
+async function sessionOwnsInviteEmail(
+  session: { address: string; email?: string },
+  email: string,
+): Promise<boolean> {
+  const normalizedEmail = email.trim().toLowerCase();
+  return session.email?.trim().toLowerCase() === normalizedEmail
+    || await walletOwnsEmail(session.address, normalizedEmail);
+}
+
 /// Both lookups behind an email, handed to the pure rule in identity/emailOwner.
 async function resolveEmailOwner(email: string): Promise<EmailOwner> {
   const login = getUserByEmail(email);
@@ -855,9 +936,18 @@ function mask(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+function maskInviteEmail(email: string): string {
+  const [local = '', domain = ''] = email.split('@');
+  const visibleLocal = local.slice(0, 1);
+  const domainParts = domain.split('.');
+  const visibleDomain = domainParts[0]?.slice(0, 1) ?? '';
+  const suffix = domainParts.length > 1 ? `.${domainParts.at(-1)}` : '';
+  return `${visibleLocal}***@${visibleDomain}***${suffix}`;
+}
+
 dealsRoutes.post('/invite/:token/claim', async (c) => {
   const token = c.req.param('token');
-  const invite = getInvite(token);
+  const invite = await getInvite(token);
   if (!invite) return c.json({ error: 'invite not found' }, 404);
   if (invite.usedAt) {
     return c.json(
@@ -880,9 +970,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   // profile, and requiring an email session locked that person out of their own
   // deal: their only route in was an email signup, which mints a second wallet
   // at a different address and pays the deal into it.
-  const emailSessionOwns = !!session.email && session.email.toLowerCase() === invite.email;
-  const walletOwns = emailSessionOwns ? false : await walletOwnsEmail(session.address, invite.email);
-  if (!emailSessionOwns && !walletOwns) {
+  if (!await sessionOwnsInviteEmail(session, invite.email)) {
     return c.json(
       {
         error: 'this invite was sent to a different address',
@@ -896,6 +984,25 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   if (!deal) return c.json({ error: 'underlying deal vanished' }, 404);
   if (session.address.toLowerCase() === deal.buyer) {
     return c.json({ error: 'inviter cannot also be the counterparty' }, 409);
+  }
+  const pendingAddress = invite.role === 'seller' ? deal.seller : deal.buyer;
+  if (pendingAddress !== PENDING_COUNTERPARTY_ADDRESS) {
+    if (pendingAddress === session.address.toLowerCase()) {
+      const recovery = await reserveInviteClaim(token, session.address);
+      if (recovery.ok && await completeInviteClaim(token, session.address)) {
+        return c.json({ ok: true, recovered: true, jobId: invite.jobId, redirectTo: `/deals/${invite.jobId}` });
+      }
+    }
+    return c.json(
+      { error: 'this invite has already been bound to the deal', code: 'ALREADY_BOUND', jobId: invite.jobId },
+      409,
+    );
+  }
+  if (invite.termsDigest && invite.termsDigest !== termsDigest(deal.terms)) {
+    return c.json(
+      { error: 'this invite refers to older deal terms; ask the buyer for a new link', code: 'STALE_TERMS' },
+      409,
+    );
   }
 
   const patch: Partial<DirectDeal> = invite.role === 'seller'
@@ -929,12 +1036,44 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 
   // Clear pendingCounterparty by patching to undefined; the persistence layer
   // strips undefined values so the field drops out cleanly.
-  await patchDeal(invite.jobId, {
-    ...patch,
-    ...reanchor,
-    pendingCounterparty: undefined,
-  });
-  markInviteUsed(token, session.address);
+  const reservation = await reserveInviteClaim(token, session.address);
+  if (!reservation.ok) {
+    const status = reservation.code === 'CLAIMED' ? 410 : 409;
+    return c.json(
+      {
+        error: reservation.code === 'CLAIMED' ? 'invite already claimed' : 'another claim is in progress',
+        code: reservation.code,
+        jobId: invite.jobId,
+      },
+      status,
+    );
+  }
+  try {
+    const dealPatch = { ...patch, ...reanchor, pendingCounterparty: undefined };
+    if (pgEnabled) {
+      const bound = await bindInviteClaimToDeal({
+        token,
+        address: session.address,
+        pendingAddress: PENDING_COUNTERPARTY_ADDRESS,
+        patch: dealPatch,
+      });
+      if (!bound) {
+        await releaseInviteClaim(token, session.address);
+        return c.json({ error: 'claim could not be finalized', code: 'CLAIM_FINALIZE_FAILED' }, 503);
+      }
+      invalidateDealsCache();
+    } else {
+      await patchDeal(invite.jobId, dealPatch);
+      if (!await completeInviteClaim(token, session.address)) {
+        await releaseInviteClaim(token, session.address);
+        return c.json({ error: 'claim could not be finalized', code: 'CLAIM_FINALIZE_FAILED' }, 503);
+      }
+    }
+  } catch (err) {
+    await releaseInviteClaim(token, session.address);
+    logger.error({ err: (err as Error).message, jobId: invite.jobId }, 'invite claim patch failed');
+    return c.json({ error: 'claim could not be completed', code: 'CLAIM_FAILED' }, 500);
+  }
   bus.emitEvent({
     type: 'deal.invite.claimed',
     jobId: invite.jobId,
@@ -1098,6 +1237,7 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   if (!isParty) {
     return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
   }
+  c.header('Cache-Control', 'no-store');
   // Report on the caller's counterparty, and gate on the SAME paid pull whose
   // receipt we show: the buyer paid to read the seller, the seller paid to read
   // the buyer. Unlocking the granular record on the payment that bought it (not
@@ -1109,6 +1249,31 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   // The subject's side on THIS deal decides which record renders: the buyer
   // vets the seller's delivered work, the seller vets the buyer's funded deals.
   const subjectRole: 'seller' | 'buyer' = callerIsBuyer ? 'seller' : 'buyer';
+  const complimentaryAccess = await ownerAgentKitResearchAccess(caller);
+  if (complimentaryAccess) {
+    const delivered = await complimentaryAccess.store.getDelivered({
+      agentAddress: complimentaryAccess.binding.agentAddress,
+      resourceId: complimentaryReportResourceId(jobId, subject),
+    });
+    const saved = delivered?.result;
+    if (
+      delivered?.resultId &&
+      saved &&
+      typeof saved === 'object' &&
+      (saved as { locked?: unknown }).locked === false &&
+      (saved as { subject?: unknown }).subject === subject &&
+      (saved as { record?: unknown }).record
+    ) {
+      return c.json({
+        ...(saved as { locked: false; subject: string; record: Awaited<ReturnType<typeof buildWorkRecord>> }),
+        complimentary: {
+          resultId: delivered.resultId,
+          reused: true,
+          allowance: complimentaryAccess.allowance ?? emptyResearchAllowanceSnapshot(),
+        },
+      });
+    }
+  }
 
   // Newer deals carry the durable pull; read the one for this subject.
   if (deal.passportPulls) {
@@ -1136,6 +1301,68 @@ dealsRoutes.get('/direct/:jobId/counterparty-report', async (c) => {
   const record = await buildWorkRecord(subject, Date.now(), subjectRole);
   const payment = await paidPullReceipt(jobId);
   return c.json({ locked: false, subject, record, payment });
+});
+
+/// Explicitly exchanges one human-scoped pilot allowance unit for the same
+/// party-private work record used by the paid passport pull. The durable
+/// reservation is made before building the report and committed only after the
+/// complete result is persisted. Retries for the same deal/subject reuse that
+/// persisted result and never spend another unit.
+dealsRoutes.post('/direct/:jobId/counterparty-report/complimentary', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const caller = viewerAddress(c);
+  const isParty = !!caller && (caller === deal.buyer.toLowerCase() || caller === deal.seller.toLowerCase());
+  if (!caller || !isParty) {
+    return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
+  }
+  const access = await ownerAgentKitResearchAccess(caller);
+  if (!access) {
+    return c.json({ error: 'Verify a registered agent before using the complimentary report allowance.', code: 'AGENT_NOT_VERIFIED' }, 403);
+  }
+  const callerIsBuyer = caller === deal.buyer.toLowerCase();
+  const subject = callerIsBuyer ? deal.seller : deal.buyer;
+  const subjectRole: 'seller' | 'buyer' = callerIsBuyer ? 'seller' : 'buyer';
+  const resourceId = complimentaryReportResourceId(jobId, subject);
+  try {
+    const delivery = await deliverComplimentaryResearchReport({
+      store: access.store,
+      agentAddress: access.binding.agentAddress,
+      requestId: randomUUID(),
+      resourceId,
+      deliver: async () => ({
+        locked: false as const,
+        subject,
+        record: await buildWorkRecord(subject, Date.now(), subjectRole),
+      }),
+    });
+    c.header('Cache-Control', 'no-store');
+    return c.json({
+      ...delivery.result,
+      complimentary: {
+        resultId: delivery.resultId,
+        reused: delivery.reused,
+        allowance: delivery.allowance,
+      },
+    });
+  } catch (error) {
+    if (error instanceof ResearchAllowanceExhaustedError) {
+      return c.json({
+        error: error.message,
+        code: 'ALLOWANCE_EXHAUSTED',
+        paidContinuation: { kind: 'existing-research-credit', statusEndpoint: '/api/research/status' },
+      }, 429);
+    }
+    if (error instanceof ResearchAllowanceExpiredError) {
+      return c.json({ error: error.message, code: 'AGENT_BINDING_EXPIRED' }, 403);
+    }
+    if (error instanceof ResearchDeliveryInProgressError) {
+      return c.json({ error: error.message, code: 'REPORT_IN_PROGRESS' }, 409);
+    }
+    logger.error({ jobId, err: error instanceof Error ? error.message : String(error) }, 'complimentary counterparty report delivery failed');
+    return c.json({ error: 'counterparty report unavailable', code: 'REPORT_UNAVAILABLE' }, 503);
+  }
 });
 
 /// Legacy receipt path for deals created before the pull was persisted on the
@@ -1197,6 +1424,21 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
       409,
     );
   }
+  const currentAgreementVersion = deal.agreementVersion ?? 1;
+  const currentAgreementDigest = agreementDigest(deal);
+  const currentApprovalMatches =
+    deal.sellerApprovedAgreementVersion === currentAgreementVersion
+    && deal.sellerApprovedAgreementDigest === currentAgreementDigest;
+  const legacyApprovalMatches =
+    !deal.sellerApprovedAgreementVersion
+    && !!deal.sellerApprovedTermsDigest
+    && deal.sellerApprovedTermsDigest === termsDigest(deal.terms);
+  if (!currentApprovalMatches && !legacyApprovalMatches) {
+    return c.json(
+      { error: 'the seller approval is for an older agreement; review again before funding', code: 'STALE_AGREEMENT' },
+      409,
+    );
+  }
 
   const feeBps = await getEscrowFeeBps({ fresh: true });
   return c.json({
@@ -1214,7 +1456,7 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
 
   let body;
   try {
-    body = callerSchema.parse(await c.req.json());
+    body = sellerAcceptSchema.parse(await c.req.json());
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
@@ -1223,6 +1465,22 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   }
   if (body.caller.toLowerCase() !== deal.seller) {
     return c.json({ error: 'only the named seller can agree to this deal' }, 403);
+  }
+  const currentAgreementVersion = deal.agreementVersion ?? 1;
+  const currentAgreementDigest = agreementDigest(deal);
+  if (
+    body.expectedAgreementVersion !== currentAgreementVersion
+    || body.expectedAgreementDigest !== currentAgreementDigest
+  ) {
+    return c.json(
+      {
+        error: 'the agreement changed; review the latest version before accepting',
+        code: 'STALE_AGREEMENT',
+        agreementVersion: currentAgreementVersion,
+        agreementDigest: currentAgreementDigest,
+      },
+      409,
+    );
   }
   if (deal.tradeLane === 'finance') {
     const sellerType = await accountTypeOf(deal.seller);
@@ -1281,11 +1539,35 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
     }
 
     const sellerApprovedAt = Date.now();
-    await patchDeal(jobId, {
-      sellerApprovedAt,
-      sellerAgentWalletId: sellerAgents.sellerWalletId,
-      sellerAgentAddress: sellerAgents.sellerAddress,
-    });
+    const approval = await approveSellerAgreement(
+      jobId,
+      body.expectedAgreementVersion,
+      body.expectedAgreementDigest,
+      {
+        sellerApprovedAt,
+        sellerApprovedTermsDigest: termsDigest(deal.terms),
+        sellerApprovedAgreementVersion: body.expectedAgreementVersion,
+        sellerApprovedAgreementDigest: body.expectedAgreementDigest,
+        sellerAgentWalletId: sellerAgents.sellerWalletId,
+        sellerAgentAddress: sellerAgents.sellerAddress,
+      },
+    );
+    if (!approval.ok) {
+      const latest = approval.deal;
+      return c.json(
+        {
+          error: 'the agreement changed while approval was being prepared; review the latest version',
+          code: 'STALE_AGREEMENT',
+          ...(latest
+            ? {
+                agreementVersion: latest.agreementVersion ?? 1,
+                agreementDigest: agreementDigest(latest),
+              }
+            : {}),
+        },
+        409,
+      );
+    }
     bus.emitEvent({
       type: 'deal.seller-approved',
       jobId,
@@ -1384,6 +1666,29 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
       });
     }
 
+    // Seller-wallet provisioning can take long enough for a buyer edit to
+    // advance the agreement. Re-read the deal before preparing any movement so
+    // an approval for an older version cannot authorize the current terms.
+    const latestDeal = await getDeal(jobId);
+    if (!latestDeal) return c.json({ error: 'deal not found' }, 404);
+    const latestAgreementVersion = latestDeal.agreementVersion ?? 1;
+    const latestAgreementDigest = agreementDigest(latestDeal);
+    const latestApprovalMatches =
+      latestDeal.sellerApprovedAgreementVersion === latestAgreementVersion
+      && latestDeal.sellerApprovedAgreementDigest === latestAgreementDigest;
+    const latestLegacyApprovalMatches =
+      !latestDeal.sellerApprovedAgreementVersion
+      && !!latestDeal.sellerApprovedTermsDigest
+      && latestDeal.sellerApprovedTermsDigest === termsDigest(latestDeal.terms);
+    if (!latestDeal.sellerApprovedAt || (!latestApprovalMatches && !latestLegacyApprovalMatches)) {
+      return c.json(
+        {
+          error: 'the seller approval is for an older agreement; review again before funding',
+          code: 'STALE_AGREEMENT',
+        },
+        409,
+      );
+    }
     const milestonePcts = dealMilestonePcts(deal);
     const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
     const operationKey = fundingMovementKey(jobId);
@@ -2036,13 +2341,23 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   if (!deal.acceptedAt) {
     return c.json({ error: 'accept the deal terms before marking it delivered' }, 409);
   }
-  // A held (flagged) delivery can be re-submitted with a corrected link to
-  // clear the hold; that is the primary resolution path. A normal, cleared
-  // delivery is final and can't be re-marked.
+  // A held or requirement-mismatched delivery can be re-submitted as an
+  // explicit correction. A clean delivery is final, and a settled/cancelled
+  // deal cannot be reopened by submitting a new artifact.
   const wasHeld =
     deal.verificationStatus === 'suspicious' || deal.verificationStatus === 'malicious';
-  if (deal.delivered && !wasHeld) {
+  const correctionRequested =
+    wasHeld
+    || deal.deliveryMatch?.verdict === 'partial'
+    || deal.deliveryMatch?.verdict === 'mismatch'
+    || deal.deliveryMatch?.verdict === 'unknown'
+    || deal.releaseBlockedReason === 'requirement-mismatch'
+    || deal.releaseBlockedReason === 'evidence-unavailable';
+  if (deal.delivered && !correctionRequested) {
     return c.json({ error: 'deal already marked delivered' }, 409);
+  }
+  if (deal.delivered && (deal.cancelledAt || deal.settledAt)) {
+    return c.json({ error: 'a closed deal cannot receive a delivery correction' }, 409);
   }
   // Goods deliver a shipment reference; everything else delivers a link.
   //
@@ -2293,6 +2608,20 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   const nowHeld = verificationStatus === 'suspicious' || verificationStatus === 'malicious';
   const isRedelivery = deal.delivered === true;
+  const deliveryRevision = (deal.deliveryRevision ?? (isRedelivery ? 1 : 0)) + 1;
+  const deliveryEvidenceCommitment = keccak256(
+    toBytes(JSON.stringify({ deliveryProof: body.deliveryProof ?? null, shipment: shipment ?? null })),
+  );
+  const deliveryHistory = [
+    ...(deal.deliveryHistory ?? []),
+    {
+      revision: deliveryRevision,
+      submittedAt: Date.now(),
+      ...(body.deliveryProof ? { deliveryProof: body.deliveryProof } : {}),
+      ...(verificationStatus ? { verificationStatus } : {}),
+      ...(deliveryMatch ? { deliveryMatch } : {}),
+    },
+  ].slice(-20);
 
   // v2b: mark the delivery ON CHAIN so the review window opens (deliveredAt),
   // which is what the seller claim path and the reclaim DeliveryPending guard
@@ -2322,7 +2651,10 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
 
   await patchDeal(jobId, {
     delivered: true,
-    ...(deliveryMatch ? { deliveryMatch } : {}),
+    deliveryRevision,
+    deliveryEvidenceCommitment,
+    deliveryHistory,
+    deliveryMatch: deliveryMatch ?? undefined,
     // Reset the review clock to now on every (re)delivery. While a link is held
     // the auto-release is paused anyway, so a corrected clean link gives the
     // buyer a fresh, full window to review what they can finally see.
@@ -2331,8 +2663,16 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     ...(shipment ? { shipment } : {}),
     // Always overwrite the verdict + reasons so a corrected link clears the old
     // flag (reasons explicitly emptied when the new link is clean).
-    ...(verificationStatus ? { verificationStatus } : {}),
+    verificationStatus: verificationStatus ?? undefined,
     verificationReasons: verificationReasons ?? [],
+    releaseBlockedReason: undefined,
+    releaseBlockedAt: undefined,
+    evidenceExpectedCommitment: undefined,
+    creDeliveryRequest: undefined,
+    creEvidenceReceipt: undefined,
+  });
+  await cancelCreDeliveryRequests(jobId).catch((err: unknown) => {
+    logger.warn({ jobId, err: err instanceof Error ? err.message : String(err) }, 'cre delivery queue cancellation failed after redelivery');
   });
 
   // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
@@ -2468,6 +2808,26 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   }
   if (!deal.delivered) {
     return c.json({ error: 'mark the work delivered first', code: 'not-delivered' }, 409);
+  }
+  const claimEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
+    evidenceRevision: deal.deliveryRevision,
+    evidenceCommitment: deal.evidenceExpectedCommitment,
+    reportId: deal.creEvidenceReceipt?.reportId,
+    requireBinding: deal.evidenceRequired === true,
+  });
+  const claimBlockReason = releaseBlockReasonForDelivery({
+    ...deal,
+    evidenceRequired: deal.evidenceRequired,
+    evidenceReceipt: claimEvidenceReceipt,
+  });
+  if (claimBlockReason) {
+    return c.json(
+      {
+        error: 'seller claim is paused until the current delivery evidence is verified',
+        code: claimBlockReason,
+      },
+      409,
+    );
   }
   if (!deal.sellerAgentWalletId) {
     return c.json({ error: 'this deal has no seller agent wallet on record' }, 409);
@@ -2618,6 +2978,85 @@ async function projectMilestonePayout(input: {
   return settled;
 }
 
+dealsRoutes.post('/direct/:jobId/payouts/:reference/reconcile', async (c) => {
+  const jobId = c.req.param('jobId');
+  const reference = c.req.param('reference');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.buyer) {
+    return c.json({ error: 'only the buyer can reconcile this payout' }, 403);
+  }
+  const movement = await getMoneyMovement(reference);
+  if (!movement) return c.json({ error: 'payment reference not found', code: 'PAYOUT_NOT_FOUND' }, 404);
+  const account = await readEscrow(jobId);
+  const validation = validatePayoutRecoveryTarget(movement, {
+    reference,
+    jobId,
+    buyer: deal.buyer,
+    milestonesReleased: account.milestonesReleased,
+  });
+  if (!validation.ok) {
+    return c.json({ error: 'this payment reference is not eligible for reconciliation', code: validation.code }, 409);
+  }
+  if (movement.state === 'completed') {
+    return c.json({ accepted: true, recovered: true, alreadyCompleted: true, jobId, reference: movement.reference }, 200);
+  }
+  if (inFlight.has(jobId)) return c.json({ error: 'a payment check is already in progress for this deal' }, 409);
+
+  inFlight.add(jobId);
+  try {
+    const payoutLegBefore = movement.legs.find((leg) => leg.attempt === movement.attempt && leg.key === 'release');
+    await verifyConfirmedMoneyMovementLegByKey(movement.reference, 'release', { amountMicros: movement.amountMicros });
+    await markMoneyMovementVerifying(movement.reference);
+    const proof = await currentMoneyMovement(movement.reference);
+    const payoutLeg = proof.legs.find((leg) => leg.attempt === proof.attempt && leg.key === 'release') ?? payoutLegBefore;
+    const settled = await projectMilestonePayout({
+      deal,
+      milestoneIndex: movement.milestoneIndex!,
+      amountMicros: movement.amountMicros,
+      reference: movement.reference,
+      txHash: payoutLeg?.txHash,
+      confirmedAt: payoutLeg?.confirmedAt,
+    });
+    await completeMoneyMovement(movement.reference, {
+      amountMicros: movement.amountMicros,
+      summary: `Milestone ${movement.milestoneIndex! + 1} paid`,
+    });
+    return c.json({
+      accepted: true,
+      recovered: true,
+      settled,
+      jobId,
+      reference: movement.reference,
+      amountUsdc: formatUsdcMicros(movement.amountMicros),
+      ...(payoutLeg?.txHash ? { txHash: payoutLeg.txHash } : {}),
+    }, 200);
+  } catch (err) {
+    await markMoneyMovementNeedsAttention(
+      movement.reference,
+      'RECEIPT_RECONCILIATION_REQUIRED',
+      'karwan',
+    ).catch(() => undefined);
+    return c.json({
+      error: 'the existing payment is still being verified',
+      code: 'RECEIPT_RECONCILIATION_REQUIRED',
+      reference: movement.reference,
+      detail: (err as Error).message,
+    }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
 dealsRoutes.post('/direct/:jobId/release', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
@@ -2647,6 +3086,26 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
         error:
           'Karwan flagged the delivery link and is holding it for review. Release is paused until it clears.',
         code: 'delivery-held',
+      },
+      409,
+    );
+  }
+  const releaseEvidenceReceipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
+    evidenceRevision: deal.deliveryRevision,
+    evidenceCommitment: deal.evidenceExpectedCommitment,
+    reportId: deal.creEvidenceReceipt?.reportId,
+    requireBinding: deal.evidenceRequired === true,
+  });
+  const releaseBlockReason = releaseBlockReasonForDelivery({
+    ...deal,
+    evidenceRequired: deal.evidenceRequired,
+    evidenceReceipt: releaseEvidenceReceipt,
+  });
+  if (releaseBlockReason) {
+    return c.json(
+      {
+        error: 'release is paused until the current delivery evidence is verified',
+        code: releaseBlockReason,
       },
       409,
     );
@@ -4099,8 +4558,19 @@ function redactDeal(d: EnrichedDeal): EnrichedDeal {
 }
 
 async function enrich(deal: DirectDeal) {
+  const evidenceReceipt = deal.delivered
+    ? await readEvidenceReceipt(deal.jobId, deal.agreementVersion ?? 1, {
+        evidenceRevision: deal.deliveryRevision,
+        evidenceCommitment: deal.evidenceExpectedCommitment,
+        reportId: deal.creEvidenceReceipt?.reportId,
+        requireBinding: deal.evidenceRequired === true,
+      })
+    : undefined;
   const base = {
     ...deal,
+    agreementVersion: deal.agreementVersion ?? 1,
+    agreementDigest: agreementDigest(deal),
+    evidenceReceipt,
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
     /// How long the payment terms or a shipment in transit hold the money,
     /// independent of the review ladder. Zero on an ordinary service deal.

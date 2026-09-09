@@ -6,6 +6,7 @@ import { useTerms } from '@/shared/hooks/useTerms';
 import { useGuide } from './GuideProvider';
 import { WELCOME_ID, WELCOME_STEPS } from './tours';
 import { isNoTourRoute } from './routes';
+import { isFocusedRoute, isPublicAccessRoute } from '@/shared/utils/routes';
 
 /// Fires the first-run welcome tour once a signed-in user is on an app page
 /// (it speaks in the second person about "your" deals, so it waits for auth,
@@ -28,7 +29,7 @@ export function GuideWelcome() {
     if (terms.needsAcceptance) return;
     // Wait until they leave the landing/marketing pages; re-checks on each
     // navigation because the layout (and this component) persist across routes.
-    if (isNoTourRoute(pathname)) return;
+    if (isNoTourRoute(pathname) || isFocusedRoute(pathname) || isPublicAccessRoute(pathname)) return;
     fired.current = true;
     const t = setTimeout(() => startTour(WELCOME_ID, WELCOME_STEPS), 900);
     return () => clearTimeout(t);

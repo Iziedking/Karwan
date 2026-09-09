@@ -29,7 +29,7 @@ class RecordingExecutor implements SqlExecutor {
 }
 
 test('numbered migrations are ordered and contain every durable runtime table', () => {
-  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(NUMBERED_MIGRATIONS.map((migration) => migration.version), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
   const sql = NUMBERED_MIGRATIONS[0]!.sql;
   for (const table of [
     'deal_rooms',
@@ -106,11 +106,31 @@ test('numbered migrations are ordered and contain every durable runtime table', 
   assert.match(durableReplaySql, /CREATE TABLE agent_task_replays_v2/);
   assert.match(proposalRevisionSql, /UNIQUE \(job_id, revision\)/);
   assert.match(proposalRevisionSql, /UNIQUE \(job_id, proposal_fingerprint\)/);
+  const allowanceSql = NUMBERED_MIGRATIONS[17]!.sql;
+  assert.match(allowanceSql, /CREATE TABLE agentkit_research_allowances_v1/);
+  assert.match(allowanceSql, /CREATE TABLE agentkit_used_nonces_v1/);
+  assert.match(allowanceSql, /CREATE TABLE agentkit_bindings_v1/);
+  const inviteSql = NUMBERED_MIGRATIONS[18]!.sql;
+  assert.match(inviteSql, /CREATE TABLE deal_invites_v1/);
+  assert.match(inviteSql, /deal_invites_one_pending_per_job_idx/);
+  assert.match(inviteSql, /WHERE used_at IS NULL/);
+  const reportDeliverySql = NUMBERED_MIGRATIONS[19]!.sql;
+  assert.match(reportDeliverySql, /CREATE TABLE agentkit_research_reservations_v1/);
+  assert.match(reportDeliverySql, /UNIQUE \(human_key_digest, scope, resource_id\)/);
+  assert.match(reportDeliverySql, /reserved.*delivered.*released/);
+  const creQueueSql = NUMBERED_MIGRATIONS[20]!.sql;
+  assert.match(creQueueSql, /CREATE TABLE cre_delivery_requests_v1/);
+  assert.match(creQueueSql, /state TEXT NOT NULL CHECK/);
+  assert.match(creQueueSql, /cre_delivery_requests_one_active_revision_idx/);
+  assert.match(creQueueSql, /lease_token TEXT/);
+  const fencingSql = NUMBERED_MIGRATIONS[21]!.sql;
+  assert.match(fencingSql, /ADD COLUMN IF NOT EXISTS attempt_token TEXT/);
+  assert.match(fencingSql, /ALTER COLUMN attempt_token SET NOT NULL/);
 });
 
 test('migration runner applies each migration once across repeated startup', async () => {
   const executor = new RecordingExecutor();
-  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(await runNumberedMigrations(executor), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
   assert.deepEqual(await runNumberedMigrations(executor), []);
   assert.equal(executor.applied.get(1), 'agent_runtime_v2_foundations');
   assert.equal(executor.applied.get(2), 'durable_events_and_replay');
@@ -132,8 +152,13 @@ test('migration runner applies each migration once across repeated startup', asy
   assert.equal(executor.applied.get(15), 'matching_audit_reviews');
   assert.equal(executor.applied.get(16), 'match_proposal_revision_audit');
   assert.equal(executor.applied.get(17), 'durable_task_replay_audit');
-  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 17);
-  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 17);
+  assert.equal(executor.applied.get(18), 'agentkit_research_allowance');
+  assert.equal(executor.applied.get(19), 'durable_deal_invites');
+  assert.equal(executor.applied.get(20), 'agentkit_report_delivery_accounting');
+  assert.equal(executor.applied.get(21), 'cre_delivery_request_queue');
+  assert.equal(executor.applied.get(22), 'agentkit_report_delivery_fencing');
+  assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, 22);
+  assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, 22);
 });
 
 test('migration runner rolls back a failed migration and always releases its lock', async () => {

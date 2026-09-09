@@ -6,7 +6,7 @@ import { logger as appLogger } from './logger.js';
 import { installProcessErrorHandlers } from './errorTracker.js';
 import { startProactiveSupervisor } from './llm/supervisor.js';
 import { config } from './config.js';
-import { publicClient } from './chain/client.js';
+import { arcTestnet, publicClient } from './chain/client.js';
 import { invalidateEscrowCache } from './chain/contracts.js';
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
@@ -22,6 +22,7 @@ import { settingsRoutes } from './routes/settings.js';
 import { termsRoutes } from './routes/terms.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
+import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
 import { paytagRoutes } from './routes/paytag.js';
 import { cashoutRoutes } from './routes/cashout.js';
 import { networkRoutes } from './routes/network.js';
@@ -75,7 +76,11 @@ import { financierRoutes } from './routes/financier.js';
 import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
+<<<<<<< HEAD
 import { configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
+=======
+import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
+>>>>>>> ethonline2026-cre-delivery-queue-hardening
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
@@ -184,6 +189,12 @@ import {
 } from './agents/stakeFinancialProjection.js';
 import { PostgresEvidenceRuntimeRepository } from './evidence/runtime.js';
 import { PostgresResearchCreditStore } from './evidence/researchCredit.js';
+<<<<<<< HEAD
+=======
+import { PostgresResearchAllowanceStore } from './evidence/researchAllowance.js';
+import { createAgentKitVerifier } from './agentkit/agentKitVerification.js';
+import { createWorldAgentBookProvider } from './agentkit/worldAgentBookProvider.js';
+>>>>>>> ethonline2026-cre-delivery-queue-hardening
 import { createX402EvidenceAcquisitionAdapter } from './evidence/x402Adapter.js';
 import { PostgresAgentRuntimeRepository } from './db/agentRuntime.js';
 import { createFinancialCommandShadowHandlers } from './agents/financialCommandShadow.js';
@@ -359,6 +370,7 @@ app.route('/api/bridge', bridgeRoutes);
 app.route('/api/gateway', gatewayRoutes);
 app.route('/api/reputation', reputationRoutes);
 app.route('/api/deals', dealsRoutes);
+app.route('/api/cre/delivery-request', creDeliveryRequestRoutes);
 app.route('/api/cashout', cashoutRoutes);
 app.route('/api/network', networkRoutes);
 app.route('/api/activation', activationRoutes);
@@ -630,6 +642,53 @@ async function boot() {
   } else {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
+<<<<<<< HEAD
+=======
+  const agentKitHumanKeySecret = config.AGENTKIT_HUMAN_KEY_SECRET;
+  const agentKitConfigured = Boolean(
+    config.AGENTKIT_VERIFICATION_V2_ENABLED
+      && schemaReady
+      && agentKitHumanKeySecret
+      && config.PUBLIC_API_BASE_URL,
+  );
+  if (config.AGENTKIT_VERIFICATION_V2_ENABLED && !agentKitConfigured) {
+    appLogger.error(
+      {
+        schemaReady,
+        humanKeySecretConfigured: Boolean(config.AGENTKIT_HUMAN_KEY_SECRET),
+        publicApiBaseUrlConfigured: Boolean(config.PUBLIC_API_BASE_URL),
+      },
+      'World AgentBook verification remains unavailable because boot requirements are missing',
+    );
+  }
+  const disableAgentKitResearch = configureAgentKitResearch({
+    enabled: agentKitConfigured,
+    ...(agentKitConfigured
+      ? {
+          verifier: createAgentKitVerifier({
+            provider: createWorldAgentBookProvider({
+              worldRpcUrl: config.AGENTKIT_WORLD_RPC_URL,
+              signatureRpcUrls: {
+                [`eip155:${arcTestnet.id}`]: config.ARC_TESTNET_RPC_URL,
+                ...(config.AGENTKIT_WORLD_RPC_URL
+                  ? { 'eip155:480': config.AGENTKIT_WORLD_RPC_URL }
+                  : {}),
+              },
+            }),
+            humanKeySecret: agentKitHumanKeySecret as string,
+          }),
+          allowanceStore: new PostgresResearchAllowanceStore(postgresExecutor(), withPostgresTransaction),
+        }
+      : {}),
+  });
+  if (agentKitConfigured) {
+    appLogger.info(
+      { agentBook: 'world-chain', verificationNetwork: `eip155:${arcTestnet.id}` },
+      'World AgentBook verification configured',
+    );
+  }
+  stopFns.push(disableAgentKitResearch);
+>>>>>>> ethonline2026-cre-delivery-queue-hardening
   if (config.EVENT_OUTBOX_V2_ENABLED && schemaReady) {
     const outboxStore = new PostgresOutboxStore(withPostgresTransaction);
     const dispatcher = new OutboxDispatcher(

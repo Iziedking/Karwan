@@ -1,0 +1,16 @@
+staging-settings:
+  user-workflow:
+    workflow-name: "karwan-git-staging"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.staging.json"
+    # Fixture simulation must remain keyless. Production is the only target
+    # allowed to request the GitHub token and private delivery criteria.
+
+production-settings:
+  user-workflow:
+    workflow-name: "karwan-git-prod"
+  workflow-artifacts:
+    workflow-path: "./main.ts"
+    config-path: "./config.production.json"
+    secrets-path: "../secrets.yaml"

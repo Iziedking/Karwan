@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   getShellSurface,
+  getProductBackHref,
   isBareRoute,
   isFocusedRoute,
   isPublicAccessRoute,
@@ -59,5 +60,12 @@ assert.equal(getShellSurface('/admin/treasury', true), 'admin');
 assert.equal(getShellSurface('/app', false), 'workspace');
 assert.equal(getShellSurface('/app', true), 'workspace');
 assert.equal(isPublicAccessRoute('/marketplace'), false, 'route prefixes must stop at boundaries');
+
+assert.equal(getProductBackHref('/profile/business'), '/profile');
+assert.equal(getProductBackHref('/profile/business/setup'), '/profile/business');
+assert.equal(getProductBackHref('/business/verification'), '/profile/business');
+for (const signedIn of [true, false]) {
+  assert.equal(getShellSurface('/profile/business/setup', signedIn), 'focused');
+}
 
 console.log('Shell route model passed.');

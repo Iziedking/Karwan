@@ -52,7 +52,17 @@ export function shortenHash(hash: string): string {
 /// goes through this, so the ledger row, the receipt panel and the exported
 /// image can never disagree about what the sentence says.
 export function readableMovementText(value: string): string {
-  return shortenDealIds(redactWalletAddresses(value));
+  return shortenDealIds(redactWalletAddresses(value))
+    .replace(/\b(buyer|seller) agent wallet\b/gi, '$1 trade account')
+    .replace(/\b(buyer|seller) agent\b/gi, '$1 trade account')
+    .replace(/\bsign-in wallet\b/gi, 'main account')
+    .replace(/\bbaseSepolia\b/g, 'Base Sepolia')
+    .replace(/\barbitrumSepolia\b/g, 'Arbitrum Sepolia')
+    .replace(/\boptimismSepolia\b/g, 'Optimism Sepolia')
+    .replace(/\bpolygonAmoy\b/g, 'Polygon Amoy')
+    .replace(/\bavalancheFuji\b/g, 'Avalanche Fuji')
+    .replace(/\bunichainSepolia\b/g, 'Unichain Sepolia')
+    .replace(/Escrow funded and protection activated/gi, 'USDC secured and protection activated');
 }
 
 function escapeSvg(value: string): string {
@@ -120,15 +130,13 @@ export function buildReceiptSvg(data: ReceiptExportData): string {
     <rect width="1200" height="100%" fill="#eef0e8"/>
     <rect x="36" y="48" width="1128" height="${height - 96}" rx="26" fill="#ffffff" stroke="#d9ddd1"/>
     ${watermarkMarkup}
-    <rect x="88" y="82" width="56" height="56" rx="12" fill="#0e0e0e"/>
-    <path d="M104 124 L111 98 L116 113 L121 98 L128 124" fill="none" stroke="#AFC95B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="168" y="119" fill="#10110f" font-family="Arial, sans-serif" font-size="31" font-weight="800" letter-spacing="1.2">KARWAN<tspan fill="#afc95b">.</tspan></text>
+    <text x="88" y="119" fill="#10110f" font-family="Arial, sans-serif" font-size="31" font-weight="800" letter-spacing="1.2">KARWAN</text>
     <text x="1112" y="118" text-anchor="end" fill="#4e554c" font-family="Arial, sans-serif" font-size="22">Transaction receipt</text>
     <line x1="88" y1="176" x2="1112" y2="176" stroke="#d9ddd1"/>
-    <text x="88" y="224" fill="#767a74" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" letter-spacing="3">[:RECEIPT:]</text>
-    <text x="600" y="300" text-anchor="middle" fill="#10110f" font-family="Arial, sans-serif" font-size="48" font-weight="800" letter-spacing="-1">${escapeSvg(data.amount ?? '—')}</text>
+    <text x="88" y="224" fill="#767a74" font-family="Arial, sans-serif" font-size="16" letter-spacing="3">RECEIPT</text>
+    <text x="600" y="300" text-anchor="middle" fill="#10110f" font-family="Arial, sans-serif" font-size="48" font-weight="800" letter-spacing="-1">${escapeSvg(data.amount ?? '-')}</text>
     <text x="600" y="344" text-anchor="middle" fill="#10110f" font-family="Arial, sans-serif" font-size="25">${escapeSvg(data.status)}</text>
-    <text x="600" y="378" text-anchor="middle" fill="#767a74" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" letter-spacing="1">${escapeSvg(data.date)}</text>
+    <text x="600" y="378" text-anchor="middle" fill="#767a74" font-family="Arial, sans-serif" font-size="16" letter-spacing="1">${escapeSvg(data.date)}</text>
     <line x1="88" y1="410" x2="1112" y2="410" stroke="#d9ddd1"/>
     ${detailMarkup}
     <line x1="88" y1="${noteY - 24}" x2="1112" y2="${noteY - 24}" stroke="#d9ddd1"/>
@@ -151,7 +159,7 @@ function wrapSvgText(value: string, maxChars: number): string[] {
     }
   }
   if (line) lines.push(line);
-  return lines.length ? lines : ['—'];
+  return lines.length ? lines : ['-'];
 }
 
 function svgField(label: string, lines: string[], y: number): string {
@@ -159,7 +167,7 @@ function svgField(label: string, lines: string[], y: number): string {
     .slice(0, 3)
     .map((line, index) => `<tspan x="1112" dy="${index === 0 ? 0 : 27}">${escapeSvg(line)}</tspan>`)
     .join('');
-  return `<text x="88" y="${y}" fill="#767a74" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" letter-spacing="2">${escapeSvg(label)}</text>
+  return `<text x="88" y="${y}" fill="#767a74" font-family="Arial, sans-serif" font-size="16" letter-spacing="2">${escapeSvg(label)}</text>
     <text x="1112" y="${y + 34}" text-anchor="end" fill="#10110f" font-family="Arial, sans-serif" font-size="24" font-weight="700">${valueMarkup}</text>`;
 }
 
