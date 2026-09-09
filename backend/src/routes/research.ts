@@ -22,8 +22,6 @@ import { saveScoutRead, recentScoutReads } from '../db/scoutReads.js';
 import { randomUUID } from 'node:crypto';
 import type { EvidenceAcquisitionShadowObserver } from '../agents/evidenceAcquisitionShadow.js';
 import { buildResearchScoutEvidenceAcquisitionObservation } from '../agents/evidenceAcquisitionProjection.js';
-<<<<<<< HEAD
-=======
 import {
   unavailableAgentKitVerifier,
   type AgentKitVerifier,
@@ -37,7 +35,6 @@ import {
   type AgentKitBindingRecord,
   type ResearchAllowanceStore,
 } from '../evidence/researchAllowance.js';
->>>>>>> ethonline2026-cre-delivery-queue-hardening
 
 /// "Agent research" activation. The user pays a one-time fee in USDC on Arc
 /// from their agent wallet; it becomes a prepaid credit the agent draws down as
@@ -46,8 +43,6 @@ import {
 export const researchRoutes = new Hono();
 
 let researchScoutEvidenceShadowObserver: EvidenceAcquisitionShadowObserver | null = null;
-<<<<<<< HEAD
-=======
 let agentKitResearchEnabled = false;
 let agentKitVerifier: AgentKitVerifier = unavailableAgentKitVerifier();
 let agentKitAllowanceStore: ResearchAllowanceStore | null = null;
@@ -87,7 +82,6 @@ export async function ownerAgentKitResearchAccess(
   }
   return null;
 }
->>>>>>> ethonline2026-cre-delivery-queue-hardening
 
 /**
  * Installs the optional read-only scout evidence observer. The legacy scout

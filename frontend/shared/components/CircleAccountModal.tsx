@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcTestnet } from '@/core/wagmi';
@@ -8,6 +9,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { SIGNED_OUT_ROUTE } from '@/shared/auth/signedOutRoute';
 
 interface Props {
   open: boolean;
@@ -18,6 +20,7 @@ interface Props {
 /// users. Shows the bound email, the underlying 0x identity address, a
 /// copy-to-clipboard, the live Arc USDC balance, and a sign-out chip.
 export function CircleAccountModal({ open, onClose }: Props) {
+  const router = useRouter();
   const auth = useAuth();
   const t = useTranslations().account.modal;
   const { copied, copy } = useClipboard();
@@ -48,6 +51,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
     try {
       await auth.signOut();
       onClose();
+      router.replace(SIGNED_OUT_ROUTE);
     } finally {
       setBusy(false);
     }

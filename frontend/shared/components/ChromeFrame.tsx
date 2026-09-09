@@ -6,6 +6,7 @@ import { getShellSurface } from '@/shared/utils/routes';
 import { useScrollQuiet } from '@/shared/hooks/useScrollQuiet';
 import { useFloatGuard } from '@/shared/hooks/useFloatGuard';
 import { RouteStage } from '@/shared/components/RouteStage';
+import { AmbientTradeSketch } from '@/shared/components/AmbientTradeSketch';
 
 interface ChromeFrameProps {
   topNav: React.ReactNode;
@@ -41,6 +42,7 @@ export function ChromeFrame({
   if (routeOnlyShell === 'bare') {
     return (
       <div className="flex min-h-screen flex-col">
+        <div aria-hidden="true" className="global-trade-sketch"><AmbientTradeSketch /></div>
         <main className="flex-1">
           <RouteStage pathname={pathname}>{children}</RouteStage>
         </main>
@@ -108,6 +110,7 @@ function CustomerChromeFrame({
 
   return (
     <div className="flex min-h-screen flex-col">
+      <div aria-hidden="true" className="global-trade-sketch"><AmbientTradeSketch /></div>
       {topNav}
       {workspace ? profileNudge : null}
       <main className={`${mainClass}${platformCopy ? ' platform-copy' : ''}`}>

@@ -61,9 +61,9 @@ interface GuideContextValue {
   /// knows what to launch. PageTour also auto-opens the tour once for a
   /// newcomer (after the first-run welcome); the pill is the on-demand trigger
   /// thereafter and on every page.
-  registerTour: (id: string, steps: TourStep[], label?: string) => void;
+  registerTour: (id: string, steps: TourStep[], label?: string, pathname?: string) => void;
   unregisterTour: (id: string) => void;
-  currentTour: { id: string; steps: TourStep[]; label: string } | null;
+  currentTour: { id: string; steps: TourStep[]; label: string; pathname?: string } | null;
 }
 
 /// Transactions after which a user is treated as having "mastered" the app:
@@ -166,7 +166,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<ActiveTour | null>(null);
   const [actions, setActions] = useState<Record<string, number>>({});
   const [currentTour, setCurrentTour] = useState<
-    { id: string; steps: TourStep[]; label: string } | null
+    { id: string; steps: TourStep[]; label: string; pathname?: string } | null
   >(null);
   // Consecutive bail-outs. A ref because no UI depends on the live value; it is
   // persisted so the "5 skips and stop" rule survives reloads.
@@ -287,8 +287,8 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     setActive(null);
   }, []);
 
-  const registerTour = useCallback((id: string, steps: TourStep[], label = 'Tour') => {
-    setCurrentTour({ id, steps, label });
+  const registerTour = useCallback((id: string, steps: TourStep[], label = 'Tour', pathname?: string) => {
+    setCurrentTour({ id, steps, label, pathname });
   }, []);
 
   const unregisterTour = useCallback((id: string) => {

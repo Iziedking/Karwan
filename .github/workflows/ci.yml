@@ -44,11 +44,6 @@ jobs:
       - name: Application shell contract
         run: npm --prefix frontend run check:shell
 
-<<<<<<< HEAD
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-=======
       - name: Admin route inventory
         run: npm --prefix frontend run check:admin-routes
 
@@ -78,7 +73,6 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
->>>>>>> ethonline2026-cre-delivery-queue-hardening
     timeout-minutes: 20
     services:
       postgres:
@@ -129,11 +123,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
-<<<<<<< HEAD
-    needs: [typecheck, test]
-=======
     needs: [typecheck, test, cre]
->>>>>>> ethonline2026-cre-delivery-queue-hardening
     steps:
       - uses: actions/checkout@v4
 

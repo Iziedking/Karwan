@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useActivation } from '@/shared/hooks/useActivation';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { api, type UserRole } from '@/core/api';
@@ -119,7 +120,9 @@ function OnboardingInner() {
   const [milestoneSplit, setMilestoneSplit] = useState('50,50');
 
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
 
   const validationIssues: string[] = (() => {
     if (!role) return [];
@@ -234,8 +237,10 @@ function OnboardingInner() {
   useEffect(() => {
     if (!address) {
       setProfileGate(false);
+      setProfileLoadFailed(false);
       return;
     }
+    setProfileLoadFailed(false);
     setProfileGate(true);
     let cancelled = false;
     api
@@ -278,6 +283,7 @@ function OnboardingInner() {
       })
       .catch(() => {
         if (cancelled) return;
+        setProfileLoadFailed(true);
         setProfileGate(false);
       });
     return () => {
@@ -287,6 +293,9 @@ function OnboardingInner() {
 
   async function submit() {
     if (!address || !role) return;
+    if (profileLoadFailed) return;
+    if (profileLoadFailed || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setError(null);
 
@@ -337,9 +346,11 @@ function OnboardingInner() {
       // Profile saved. Hand off to workspace setup, then route onward to the
       // app or the business verification page.
       setStep('getReady');
+      submittingRef.current = false;
       setSubmitting(false);
     } catch {
       setError(t.onboarding.profileStep.error);
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -550,9 +561,7 @@ function OnboardingInner() {
           {step === 'getReady' && address && (
             <GetReadyStep
               address={address}
-              onDone={() =>
-                router.push(accountType === 'business' ? '/business/verification' : '/profile')
-              }
+              onDone={() => router.push('/app')}
               onBack={() => setStep('profile')}
             />
           )}
@@ -675,6 +684,7 @@ function GetReadyStep({
   onBack: () => void;
 }) {
   const onboarding = useTranslations().onboarding;
+  const { activate, activating } = useActivation();
   const back = onboarding.roleStep.backArrow;
   const t = onboarding.getReadyStep;
   const [phase, setPhase] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
@@ -682,13 +692,14 @@ function GetReadyStep({
   const [error, setError] = useState<string | null>(null);
 
   async function run() {
-    if (phase === 'running') return;
+    if (phase === 'running' || activating) return;
     setPhase('running');
     setError(null);
     try {
-        // Preserve the existing activation contract while the interface frames
-        // the outcome as enabling matching, with every deal requiring approval.
-      await api.activate(address);
+      // Preserve the existing activation contract while the interface frames
+      // the outcome as enabling matching, with every deal requiring approval.
+      await activate();
+      onDone();
       setAgentsOnline(true);
       setPhase('done');
     } catch {

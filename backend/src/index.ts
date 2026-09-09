@@ -76,11 +76,7 @@ import { financierRoutes } from './routes/financier.js';
 import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
-<<<<<<< HEAD
-import { configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
-=======
 import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
->>>>>>> ethonline2026-cre-delivery-queue-hardening
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
@@ -189,12 +185,9 @@ import {
 } from './agents/stakeFinancialProjection.js';
 import { PostgresEvidenceRuntimeRepository } from './evidence/runtime.js';
 import { PostgresResearchCreditStore } from './evidence/researchCredit.js';
-<<<<<<< HEAD
-=======
 import { PostgresResearchAllowanceStore } from './evidence/researchAllowance.js';
 import { createAgentKitVerifier } from './agentkit/agentKitVerification.js';
 import { createWorldAgentBookProvider } from './agentkit/worldAgentBookProvider.js';
->>>>>>> ethonline2026-cre-delivery-queue-hardening
 import { createX402EvidenceAcquisitionAdapter } from './evidence/x402Adapter.js';
 import { PostgresAgentRuntimeRepository } from './db/agentRuntime.js';
 import { createFinancialCommandShadowHandlers } from './agents/financialCommandShadow.js';
@@ -642,8 +635,6 @@ async function boot() {
   } else {
     appLogger.warn('DATABASE_URL not set, using flat-file persistence (dev only)');
   }
-<<<<<<< HEAD
-=======
   const agentKitHumanKeySecret = config.AGENTKIT_HUMAN_KEY_SECRET;
   const agentKitConfigured = Boolean(
     config.AGENTKIT_VERIFICATION_V2_ENABLED
@@ -688,7 +679,6 @@ async function boot() {
     );
   }
   stopFns.push(disableAgentKitResearch);
->>>>>>> ethonline2026-cre-delivery-queue-hardening
   if (config.EVENT_OUTBOX_V2_ENABLED && schemaReady) {
     const outboxStore = new PostgresOutboxStore(withPostgresTransaction);
     const dispatcher = new OutboxDispatcher(

@@ -1234,6 +1234,37 @@ html[data-theme="dark"] .form-input::placeholder {
   touch-action: pan-y;
   scrollbar-width: thin;
 }
+
+/* A quiet, shared visual cue that every customer route belongs to the same
+   trade network. The layer is decorative only and never intercepts input. */
+.global-trade-sketch {
+  position: fixed;
+  inset: auto 0 0 auto;
+  z-index: 0;
+  width: min(42vw, 520px);
+  height: min(42vw, 520px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.16;
+  background-image: url('/media/karwan-trade-sketch-clean.png');
+  background-position: right bottom;
+  background-repeat: no-repeat;
+  background-size: contain;
+  mix-blend-mode: multiply;
+}
+
+html[data-theme="dark"] .global-trade-sketch {
+  opacity: 0.12;
+  mix-blend-mode: screen;
+  filter: invert(1) grayscale(1);
+}
+
+@media print {
+  .global-trade-sketch {
+    display: none !important;
+  }
+}
+
 @media (max-width: 767px) {
   .profile-deck-card {
     /* The document is the only vertical scroll owner on phones. A nested

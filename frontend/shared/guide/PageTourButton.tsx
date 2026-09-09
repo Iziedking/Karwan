@@ -11,7 +11,8 @@ export function PageTourButton({ pathname, enabled }: { pathname: string; enable
   const { locale } = useLocale();
   const { currentTour, startTour } = useGuide();
   const fallback = routeGuidance(pathname, locale);
-  const tour = fallback ?? currentTour;
+  const routeTour = currentTour?.pathname === pathname ? currentTour : null;
+  const tour = fallback ?? routeTour;
   const tourId = tour?.id;
   const [visible, setVisible] = useState(false);
 

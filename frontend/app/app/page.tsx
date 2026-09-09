@@ -97,7 +97,6 @@ export default function AppHome() {
     staleTime: 60_000,
   });
   const status = statusQuery.data ?? null;
-  const statusChecked = !statusQuery.isPending;
 
   const statsQuery = useQuery({
     queryKey: qk.dealsStats(),
@@ -155,7 +154,9 @@ export default function AppHome() {
     );
   }
 
-  if (statusChecked && !status) {
+  if (!isConnected) return <SignInGate variant="hero" />;
+
+  if (!statusQuery.isPending && !statusQuery.data) {
     return (
       <FullBleed>
         <Band tone="light">
@@ -171,10 +172,6 @@ export default function AppHome() {
         </Band>
       </FullBleed>
     );
-  }
-
-  if (!isConnected) {
-    return <SignInGate variant="hero" />;
   }
 
   if (loading || !profile) {

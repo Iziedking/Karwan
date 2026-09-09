@@ -38,6 +38,20 @@ export interface ReleaseItem {
   body: string;
 }
 
+function parseReleaseDate(heading: string): number {
+  const normalized = heading.trim();
+  const direct = Date.parse(`${normalized} 12:00:00 UTC`);
+  if (!Number.isNaN(direct)) return direct;
+
+  // Release windows are written as "July 6 to July 26, 2026". Use the end of
+  // the window as the publication date so a shipped section remains eligible
+  // until the date it says it finished.
+  const range = /^(.+?)\s+to\s+(.+?),\s*(\d{4})$/i.exec(normalized);
+  if (!range) return NaN;
+  const ranged = Date.parse(`${range[2]}, ${range[3]} 12:00:00 UTC`);
+  return Number.isNaN(ranged) ? NaN : ranged;
+}
+
 function slug(value: string): string {
   return value
     .toLowerCase()
@@ -66,16 +80,15 @@ export function parseReleaseNotes(markdown: string): ReleaseItem[] {
     body = [];
   };
 
-  for (const line of lines) {
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\r$/, '');
     const dateMatch = /^##\s+(?!#)(.*)$/.exec(line);
     if (dateMatch) {
       flush();
       dateHeading = dateMatch[1]!.trim();
-      // "July 27, 2026" parses natively. A heading that does not parse is
-      // skipped rather than guessed at, because a wrong date on a citation is
-      // worse than a missing signal.
-      const parsed = Date.parse(`${dateHeading} 12:00:00 UTC`);
-      publishedAt = Number.isNaN(parsed) ? NaN : parsed;
+      // A heading that does not parse is skipped rather than guessed at,
+      // because a wrong date on a citation is worse than a missing signal.
+      publishedAt = parseReleaseDate(dateHeading);
       continue;
     }
 
