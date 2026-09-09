@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { api, type AdminDealRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
+import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
 /// Admin deals monitor: every deal as a searchable table. Search by ID, buyer,
 /// seller, or stage; open any deal in the full deal page. This is how an
@@ -111,19 +112,22 @@ export default function AdminDeals() {
 
   return (
     <div>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <h1 className="font-sans text-[26px] font-extrabold tracking-[-0.01em]">Deals</h1>
+      <AdminPageHeader
+        eyebrow="DEAL OPERATIONS"
+        title="Review the trade book"
+        description="Find a deal, read the current state, and take a reviewed action when the record calls for it. Money-moving actions stay behind confirmation."
+        meta={deals ? `${filtered.length} of ${deals.length} deals shown` : 'Waiting for the deal book'}
+        action={
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search ID, wallet, stage..."
-          className="bg-[#161616] border border-white/15 rounded-lg px-3 py-2 text-[13px] text-white font-mono w-full sm:w-[320px] focus:border-white/40 outline-none"
+          placeholder="Search deal, party, stage"
+          aria-label="Search deals"
+          className="min-h-11 w-full rounded-lg border border-white/15 bg-[#111114] px-3 font-mono text-[12px] text-white outline-none transition placeholder:text-white/25 focus:border-[#AFC95B]/60 sm:w-[320px]"
         />
-      </div>
-      {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
-      <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-        {deals ? `${filtered.length} / ${deals.length}` : 'loading...'}
-      </p>
+        }
+      />
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
 
       <div className="mt-4 space-y-3 md:hidden">
         {paged.map((d) => (

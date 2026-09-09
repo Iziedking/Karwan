@@ -4,6 +4,7 @@ import { api, type AdminTicketRow } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
 import { stripMarkdown } from '@/shared/utils/format';
+import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
 /// Admin support tickets: the third operator channel (with Telegram + email).
 /// Pick up an open ticket and reply here; the reply relays to the user's chat
@@ -118,11 +119,13 @@ export default function AdminSupport() {
 
   return (
     <div>
-      <h1 className="font-sans text-[26px] font-extrabold tracking-[-0.01em]">Support</h1>
-      {err && <p className="mt-2 text-[13px] text-[#e0794f]">{err}</p>}
-      <p className="mt-1 text-[13px] text-white/45">
-        Open tickets. Reply here, in Telegram, or by email — all three share the conversation.
-      </p>
+      <AdminPageHeader
+        eyebrow="CUSTOMER SUPPORT"
+        title="Keep the conversation moving"
+        description="Pick up an open conversation, answer in Karwan, and leave the customer with a clear next step. Replies stay in the same thread across the available channels."
+        meta={tickets ? `${tickets.length} open conversations` : 'Waiting for open conversations'}
+      />
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
 
       <div className="mt-5 grid md:grid-cols-[320px_1fr] gap-4">
         {/* ticket list */}
@@ -155,7 +158,7 @@ export default function AdminSupport() {
         <div className="border border-white/10 rounded-xl flex flex-col min-h-[50vh] max-h-[70vh]">
           {!selected ? (
             <div className="flex-1 grid place-items-center text-white/30 text-[13px]">
-              Select a ticket
+              Select a conversation
             </div>
           ) : (
             <>
