@@ -75,9 +75,9 @@ export default function InvitePage() {
   const sessionMatchesEmail = useMemo(
     () =>
       !!auth.email &&
-      !!data?.invite.email &&
-      auth.email.toLowerCase() === data.invite.email.toLowerCase(),
-    [auth.email, data?.invite.email],
+      !!data?.invite.emailHint &&
+      auth.email.toLowerCase() === data.invite.emailHint.toLowerCase(),
+    [auth.email, data?.invite.emailHint],
   );
 
   const claim = useCallback(async () => {
@@ -122,7 +122,7 @@ export default function InvitePage() {
       // (NEXT_PUBLIC_BACKEND_URL). A raw fetch('/api/...') resolves against
       // the current origin (karwan.site) and lands on Vercel's HTML 404 page,
       // which the .json() parser then chokes on as "<!DOCTYPE ..." not JSON.
-      await api.authOtpRequest(data.invite.email);
+      await api.authOtpRequest(data.invite.emailHint);
       setStage('verify-code');
     } catch (err) {
       const msg =
@@ -144,7 +144,7 @@ export default function InvitePage() {
     setBusy(true);
     setActionError(null);
     try {
-      await api.authOtpVerify(data.invite.email, code.trim());
+      await api.authOtpVerify(data.invite.emailHint, code.trim());
       emitAuthChanged();
       await auth.refresh();
       // Claim runs automatically from the effect above once the auth slice updates.
@@ -205,7 +205,7 @@ export default function InvitePage() {
         </HeroHeadline>
         <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)] max-w-[58ch]">
           {heroIntroParts[0].replace('{inviter}', deal.inviterMasked)}
-          <span className="text-[var(--lp-workspace-ink)] font-semibold">{invite.email}</span>
+          <span className="text-[var(--lp-workspace-ink)] font-semibold">{invite.emailHint}</span>
           {heroIntroParts[1] ?? ''}
         </p>
       </Band>
@@ -266,7 +266,7 @@ export default function InvitePage() {
             <div className="space-y-4">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 {sendIntroParts[0]}
-                <strong>{invite.email}</strong>
+                <strong>{invite.emailHint}</strong>
                 {sendIntroParts[1] ?? ''}
               </p>
               <button
@@ -294,7 +294,7 @@ export default function InvitePage() {
             <div className="space-y-4">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 {verifyIntroParts[0]}
-                <strong>{invite.email}</strong>
+                <strong>{invite.emailHint}</strong>
                 {verifyIntroParts[1] ?? ''}
               </p>
               <input

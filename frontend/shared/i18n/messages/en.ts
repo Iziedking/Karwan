@@ -675,7 +675,26 @@ interface MessagesShape {
       nextAria: string;
     };
   };
+  profileSignOut: {
+    title: string;
+    body: string;
+    pending: string;
+    error: string;
+  };
   profile: {
+    agentTrustCard: {
+      tag: string;
+      headline: string;
+      body: string;
+      humanBacked: string;
+      notChecked: string;
+      unavailable: string;
+      trackRecord: string;
+      connectedEvidence: string;
+      noEvidence: string;
+      pilotAllowance: string;
+      notCheckedBody: string;
+    };
     signInGate: { tag: string; body: string };
     loadError: { tag: string; title: string; body: string };
     tabs: {
@@ -864,6 +883,38 @@ interface MessagesShape {
       live: string;
       now: string;
     };
+  };
+  businessProfilePage: {
+    title: string;
+    intro: string;
+    label: string;
+    manageBody: string;
+    manage: string;
+    edit: string;
+    setup: string;
+    notice: string;
+    loadError: string;
+    retry: string;
+    findTitle: string;
+    findBody: string;
+    dealTitle: string;
+    dealBody: string;
+    payTitle: string;
+    payBody: string;
+    recordTitle: string;
+    recordBody: string;
+    open: string;
+    setupTitle: string;
+    setupBody: string;
+    noProfile: string;
+    create: string;
+    nameTaken: string;
+    error: string;
+    name: string;
+    nameHint: string;
+    confirm: string;
+    save: string;
+    next: string;
   };
   businessHome: {
     deskEyebrow: string;
@@ -1387,6 +1438,10 @@ interface MessagesShape {
       sellerCompletion: string;
       timingPending: string;
       timingSampleTemplate: string;
+      complimentaryDelivered: string;
+      complimentaryLoading: string;
+      complimentaryAction: string;
+      complimentaryUnavailable: string;
     };
   };
   listingDetail: {
@@ -4869,6 +4924,12 @@ interface MessagesShape {
 }
 
 export const en: MessagesShape = {
+  profileSignOut: {
+    title: 'Sign out of Karwan?',
+    body: 'Your profile stays safe, and you can sign in again whenever you need it.',
+    pending: 'Signing out…',
+    error: 'Could not sign out completely. Please try again.',
+  },
   common: {
     save: 'Save',
     cancel: 'Cancel',
@@ -5563,6 +5624,19 @@ export const en: MessagesShape = {
     },
   },
   profile: {
+    agentTrustCard: {
+      tag: 'AGENT TRUST',
+      headline: 'Human-backed agent access',
+      body: 'This card shows whether the research agent is linked to a verified human and what evidence it can use.',
+      humanBacked: 'Human-backed',
+      notChecked: 'Not checked',
+      unavailable: 'Unavailable',
+      trackRecord: 'Track record',
+      connectedEvidence: 'Connected evidence',
+      noEvidence: 'No evidence yet',
+      pilotAllowance: 'Pilot allowance',
+      notCheckedBody: 'Verification is optional and never authorizes money movement.',
+    },
     signInGate: {
       tag: 'PROFILE',
       body: 'Sign in with email or wallet to manage your account, balances, and agents.',
@@ -5781,6 +5855,38 @@ export const en: MessagesShape = {
       live: 'live',
       now: 'now',
     },
+  },
+  businessProfilePage: {
+    title: 'Business profile',
+    intro: 'Build a trusted business identity for every trade you make on Karwan.',
+    label: 'Business account',
+    manageBody: 'Manage your verification and keep your trading profile current.',
+    manage: 'Open verification',
+    edit: 'Edit profile',
+    setup: 'Set up business profile',
+    notice: 'Add your company details to unlock business trading tools.',
+    loadError: 'We could not load your profile.',
+    retry: 'Retry',
+    findTitle: 'Be found by buyers',
+    findBody: 'Show a clear business identity so serious counterparties can find you.',
+    dealTitle: 'Secure every deal',
+    dealBody: 'Create protected trade terms with milestones and transparent release rules.',
+    payTitle: 'Get paid globally',
+    payBody: 'Settle cross-border work in USDC without waiting on bank rails.',
+    recordTitle: 'Build a record',
+    recordBody: 'Every completed trade strengthens your portable Karwan reputation.',
+    open: 'Open business profile',
+    setupTitle: 'Set up your business profile',
+    setupBody: 'Add the identity buyers and sellers should see before they trade with you.',
+    noProfile: 'Complete your account setup before creating a business profile.',
+    create: 'Complete setup',
+    nameTaken: 'That business name is already in use.',
+    error: 'We could not save your business profile.',
+    name: 'Business name',
+    nameHint: 'Use the name customers and counterparties know you by.',
+    confirm: 'I confirm this is the business identity I want to use.',
+    save: 'Save business profile',
+    next: 'Next: verification',
   },
   businessHome: {
     deskEyebrow: 'TRADE DESK',
@@ -6363,6 +6469,10 @@ export const en: MessagesShape = {
       sellerCompletion: 'Seller completion',
       timingPending: 'Not enough completed deals yet',
       timingSampleTemplate: '{count} completed {unit}',
+      complimentaryDelivered: 'Complimentary read delivered · {remaining} remaining',
+      complimentaryLoading: 'Requesting complimentary read…',
+      complimentaryAction: 'Request complimentary read',
+      complimentaryUnavailable: 'Complimentary read unavailable right now.',
     },
   },
   listingDetail: {

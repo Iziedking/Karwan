@@ -432,11 +432,15 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
   async function doAccept() {
     if (!address) return;
+    if (deal?.agreementVersion == null || !deal.agreementDigest) {
+      setErrorInfo({ message: dd.errors.approvalFailed });
+      return;
+    }
     setShowAcceptConsent(false);
     setBusy(true);
     setErrorInfo(null);
     try {
-      await api.acceptDirectDeal(jobId, address);
+      await api.acceptDirectDeal(jobId, address, deal.agreementVersion, deal.agreementDigest);
       sfx.send();
       refresh();
     } catch (err) {

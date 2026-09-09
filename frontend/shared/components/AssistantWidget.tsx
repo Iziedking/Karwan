@@ -931,7 +931,11 @@ async function runConfirmIntent(
   }
   if (action.intent === 'accept_deal') {
     const p = action.payload as { jobId: string; caller: string };
-    await api.acceptDirectDeal(p.jobId, p.caller);
+    const { deal } = await api.directDeal(p.jobId, p.caller);
+    if (deal.agreementVersion == null || !deal.agreementDigest) {
+      throw new Error('deal_terms_unavailable');
+    }
+    await api.acceptDirectDeal(p.jobId, p.caller, deal.agreementVersion, deal.agreementDigest);
     return {
       successText: 'Terms agreed. The buyer will review the exact total and fund escrow next.',
       viewHref: `/deals/${p.jobId}`,

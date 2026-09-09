@@ -18,6 +18,8 @@ interface ConfirmOpts {
   title: string;
   message?: string;
   confirmLabel?: string;
+  cancelLabel?: string;
+  compact?: boolean;
   danger?: boolean;
 }
 
@@ -261,7 +263,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                           data-dialog-cancel
                           onClick={() => closeActive(active.kind === 'prompt' ? null : false)}
                         >
-                          Cancel
+                          {active.kind === 'confirm' ? (active.options.cancelLabel ?? 'Cancel') : 'Cancel'}
                         </Button>
                         <Button
                           type="submit"
