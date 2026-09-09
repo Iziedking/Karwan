@@ -29,6 +29,7 @@ const { CCTP_CHAINS } = await import('../chain/cctpChains.js');
 const { bus } = await import('../events.js');
 const { saveAgentWallets } = await import('../db/agentWallets.js');
 const { listActivityForAddress } = await import('../db/activityLog.js');
+const { createDepositRequest, getDepositRequest, saveDepositRequest } = await import('../money/depositRequests.js');
 
 const OWNER = '0xbef47cb8000000000000000000000000000000aa';
 const OTHER = '0xcafe0000000000000000000000000000000000bb';
@@ -206,6 +207,21 @@ test('case does not decide who gets paid', async () => {
   );
   assert.equal(seen.length, 1);
   assert.equal(seen[0]!.owner, OWNER);
+});
+
+test('a signed inbound deposit carries its original QR request reference', async () => {
+  const request = createDepositRequest({ owner: OWNER, amountUsdc: '42', now: Date.now() });
+  await saveDepositRequest(request);
+
+  const seen = await credits(deposit({ id: 'tx-qr-request', amounts: ['42'], txHash: '0xqr' }));
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0]!.requestId, request.token);
+  assert.equal(seen[0]!.txHash, '0xqr');
+
+  const stored = await getDepositRequest(request.token);
+  assert.equal(stored?.status, 'matched');
+  assert.equal(stored?.matchedTxId, 'tx-qr-request');
+  assert.equal(stored?.matchedChain, 'Base');
 });
 
 test.after(() => stop());

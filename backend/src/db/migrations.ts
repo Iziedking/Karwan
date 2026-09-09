@@ -628,6 +628,31 @@ ALTER TABLE agentkit_research_reservations_v1
   ALTER COLUMN attempt_token SET NOT NULL;
 `;
 
+const QR_DEPOSIT_MATCHING_SQL = `
+ALTER TABLE deposit_requests
+  ADD COLUMN IF NOT EXISTS amount_usdc TEXT,
+  ADD COLUMN IF NOT EXISTS matched_tx_id TEXT,
+  ADD COLUMN IF NOT EXISTS matched_chain TEXT,
+  ADD COLUMN IF NOT EXISTS matched_at BIGINT;
+
+UPDATE deposit_requests
+SET amount_usdc = NULLIF(data ->> 'amountUsdc', '')
+WHERE amount_usdc IS NULL;
+
+UPDATE deposit_requests
+SET matched_tx_id = NULLIF(data ->> 'matchedTxId', ''),
+    matched_chain = NULLIF(data ->> 'matchedChain', ''),
+    matched_at = NULLIF(data ->> 'matchedAt', '')::BIGINT
+WHERE matched_tx_id IS NULL
+  AND data ? 'matchedTxId';
+
+CREATE INDEX IF NOT EXISTS deposit_requests_owner_amount_idx
+  ON deposit_requests (owner, amount_usdc, status);
+CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_matched_tx_idx
+  ON deposit_requests (matched_tx_id)
+  WHERE matched_tx_id IS NOT NULL;
+`;
+
 const MONEY_RAIL_INTENTS_SQL = `
 CREATE TABLE money_rail_intents (
   id TEXT PRIMARY KEY,
@@ -813,6 +838,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       ALTER TABLE money_rail_intents
         ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0);
     `,
+  },
+  {
+    version: 26,
+    name: 'qr_deposit_matching_durability',
+    sql: QR_DEPOSIT_MATCHING_SQL,
   },
 ] as const;
 

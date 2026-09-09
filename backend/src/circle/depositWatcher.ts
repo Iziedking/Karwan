@@ -264,8 +264,10 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
   if (alreadyHandled(n.id)) return;
 
   // A request is matched only when it is the single open request with the
-  // exact amount. If the recipient has two identical requests, we deliberately
-  // leave both open for support to resolve rather than guessing.
+  // exact amount. The request row also stores the provider transaction id
+  // behind a unique constraint, so replays and concurrent deliveries cannot
+  // assign one transfer twice. If the recipient has two identical requests,
+  // we deliberately leave both open for support to resolve rather than guess.
   const matchedRequest = await matchDepositRequest({
     owner,
     amountUsdc,

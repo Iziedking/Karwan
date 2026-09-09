@@ -78,13 +78,19 @@ export const depositRequests = pgTable(
     token: text('token').primaryKey(),
     owner: text('owner').notNull(),
     status: text('status').notNull(),
+    amountUsdc: text('amount_usdc'),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    matchedTxId: text('matched_tx_id'),
+    matchedChain: text('matched_chain'),
+    matchedAt: bigint('matched_at', { mode: 'number' }),
     data: jsonb('data').$type<DepositRequest>().notNull(),
   },
   (t) => ({
     ownerCreatedIdx: index('deposit_requests_owner_created_idx').on(t.owner, t.createdAt),
     statusExpiresIdx: index('deposit_requests_status_expires_idx').on(t.status, t.expiresAt),
+    ownerAmountIdx: index('deposit_requests_owner_amount_idx').on(t.owner, t.amountUsdc, t.status),
+    matchedTxIdx: uniqueIndex('deposit_requests_matched_tx_idx').on(t.matchedTxId),
   }),
 );
 

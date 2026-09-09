@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db, pgEnabled } from '../db/client.js';
 import { depositRequests } from '../db/schema.js';
 
@@ -126,8 +126,12 @@ export async function saveDepositRequest(request: DepositRequest): Promise<Depos
         token: request.token,
         owner: request.owner,
         status: request.status,
+        amountUsdc: request.amountUsdc,
         createdAt: request.createdAt,
         expiresAt: request.expiresAt,
+        matchedTxId: request.matchedTxId ?? null,
+        matchedChain: request.matchedChain ?? null,
+        matchedAt: request.matchedAt ?? null,
         data: request,
       })
       .onConflictDoUpdate({
@@ -135,7 +139,11 @@ export async function saveDepositRequest(request: DepositRequest): Promise<Depos
         set: {
           owner: request.owner,
           status: request.status,
+          amountUsdc: request.amountUsdc,
           expiresAt: request.expiresAt,
+          matchedTxId: request.matchedTxId ?? null,
+          matchedChain: request.matchedChain ?? null,
+          matchedAt: request.matchedAt ?? null,
           data: request,
         },
       });
@@ -188,6 +196,14 @@ export async function matchDepositRequest(input: {
   now?: number;
 }): Promise<DepositRequest | null> {
   const now = input.now ?? Date.now();
+  // A provider can deliver the same transaction again under a new
+  // notification id. The durable transaction column makes that replay
+  // idempotent even after a process restart.
+  const previouslyMatched = await getDepositRequestByTxId(input.txId);
+  if (previouslyMatched) {
+    return previouslyMatched.owner === input.owner.toLowerCase() ? previouslyMatched : null;
+  }
+
   const request = selectDepositRequest(await listDepositRequests(input.owner, 50), input);
   if (!request) return null;
   const next: DepositRequest = {
@@ -198,7 +214,37 @@ export async function matchDepositRequest(input: {
     matchedAt: now,
     updatedAt: now,
   };
+  if (pgEnabled) {
+    // The request row is the compare-and-set boundary. A duplicate provider
+    // event or two different deposits racing for one request cannot overwrite
+    // the first confirmed match.
+    const rows = await db()
+      .update(depositRequests)
+      .set({
+        status: 'matched',
+        matchedTxId: input.txId,
+        matchedChain: input.chain,
+        matchedAt: now,
+        data: next,
+      })
+      .where(and(eq(depositRequests.token, request.token), eq(depositRequests.status, 'open')))
+      .returning({ data: depositRequests.data });
+    return (rows[0]?.data as DepositRequest | undefined) ?? null;
+  }
+
   return saveDepositRequest(next);
+}
+
+async function getDepositRequestByTxId(txId: string): Promise<DepositRequest | null> {
+  if (pgEnabled) {
+    const rows = await db()
+      .select({ data: depositRequests.data })
+      .from(depositRequests)
+      .where(eq(depositRequests.matchedTxId, txId))
+      .limit(1);
+    return (rows[0]?.data as DepositRequest | undefined) ?? null;
+  }
+  return Object.values(loadFile()).find((request) => request.matchedTxId === txId) ?? null;
 }
 
 export function selectDepositRequest(
