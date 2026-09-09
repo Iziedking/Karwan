@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   FullBleed,
   Band,
@@ -9,7 +9,6 @@ import {
   HeroHeadline,
   Punc,
   Accent,
-  CTAPill,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -110,16 +109,14 @@ function StakePageInner() {
   const { data } = useReputation(address);
   const sp = useTranslations().stakePage;
   const tp = useTranslations().tierProgress;
+  const reduce = useReducedMotion();
+  const [reserveOpen, setReserveOpen] = useState(false);
 
   const rawTier = data?.tier;
   const tier: Tier = rawTier && ORDER.includes(rawTier as Tier)
     ? (rawTier as Tier)
     : 'NEW';
   const score = Math.round(data?.score ?? 0);
-  /// Points are not the only gate, and the backend already knows which one is
-  /// binding. This page handled the DEALS ceiling and then fell through to the
-  /// same points maths for the concentration one, so a wallet held at COLD by
-  /// trading with a single counterparty read "TO ESTABLISHED 0 pts".
   const progress = tierProgress({
     score,
     tier,
@@ -128,50 +125,33 @@ function StakePageInner() {
   });
   const progressLabel = tierProgressLabel(progress, tp, (t) => t);
   const nextTier = progress.kind === 'top' || progress.kind === 'unknown' ? null : progress.nextTier;
-  /// The score earned a higher tier than the wallet holds. Worth saying out
-  /// loud, because otherwise 434 sitting beside NEW reads as a broken number.
   const capped = data?.tierCappedBy != null;
 
   return (
     <FullBleed>
       <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
-      {/* HERO */}
+
       <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="max-w-[60ch] fade-up">
+        <div className="max-w-[68ch] fade-up">
           <div className="flex items-center gap-2">
-            <SectionTag tone="dark" dot="live">
-              {sp.hero.tag}
-            </SectionTag>
+            <SectionTag tone="dark" dot="live">{sp.hero.tag}</SectionTag>
             <Hint glow side="bottom" align="start">{sp.hero.body}</Hint>
           </div>
           <HeroHeadline size="md">
             {sp.hero.line1Prefix} <Accent>{sp.hero.line1Accent}</Accent>
             <Punc>.</Punc>{' '}
-            <br className="hidden md:block" />
             {sp.hero.line2Prefix} <Accent>{sp.hero.line2Accent}</Accent>
             <Punc>.</Punc>
           </HeroHeadline>
-          <div className="mt-7">
-            <CTAPill href="#vault">{sp.vault.heading}</CTAPill>
-          </div>
         </div>
 
-        {/* POSITION READOUT: count-up score + tier. The tier column has a
-            hard 200px minimum and fits to content, so long tier strings
-            like ESTABLISHED render in full without ever truncating. The
-            other two columns share the remaining width. */}
-        <div className="fade-up mt-9 max-w-[760px] grid grid-cols-2 sm:grid-cols-[minmax(0,1fr)_minmax(200px,max-content)_minmax(0,1fr)] gap-px overflow-hidden rounded-2xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)]">
+        <div className="fade-up mt-8 grid max-w-[760px] grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)] sm:grid-cols-[minmax(0,1fr)_minmax(200px,max-content)_minmax(0,1fr)]">
           <Stat label={sp.position.reputation}>
-            <span className="tabular-nums">
-              <CountUp value={score} />
-            </span>
-            <span className="text-[var(--lp-workspace-faint)] text-[15px]"> / 1000</span>
+            <span className="tabular-nums"><CountUp value={score} /></span>
+            <span className="text-[15px] text-[var(--lp-workspace-faint)]"> / 1000</span>
           </Stat>
           <Stat label={sp.position.tier} fit>
             <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
-            {/* Name the ceiling. A score of 707 reading ESTABLISHED is not a
-                fault, but nothing said so: the reason sat in the next column
-                and this line claimed one settlement would lift it. */}
             {capped ? (
               <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
                 {data?.tierCappedBy === 'concentration'
@@ -181,25 +161,21 @@ function StakePageInner() {
             ) : null}
           </Stat>
           <Stat
-            label={
-              nextTier
-                ? sp.position.toNextTemplate.replace('{tier}', nextTier)
-                : sp.position.status
-            }
+            label={nextTier ? sp.position.toNextTemplate.replace('{tier}', nextTier) : sp.position.status}
             wide
             wrap
           >
             {progress.kind === 'deals' ? (
               <span className="tabular-nums">
                 <CountUp value={progress.deals} />{' '}
-                <span className="text-[var(--lp-workspace-faint)] text-[15px]">
+                <span className="text-[15px] text-[var(--lp-workspace-faint)]">
                   {progress.deals === 1 ? sp.position.dealOne : sp.position.dealMany}
                 </span>
               </span>
             ) : progress.kind === 'points' ? (
               <span className="tabular-nums">
                 <CountUp value={progress.points} />{' '}
-                <span className="text-[var(--lp-workspace-faint)] text-[15px]">{sp.position.pts}</span>
+                <span className="text-[15px] text-[var(--lp-workspace-faint)]">{sp.position.pts}</span>
               </span>
             ) : progress.kind === 'concentration' ? (
               <span className="text-[15px] text-[var(--lp-workspace-muted)]">{progressLabel}</span>
@@ -210,122 +186,121 @@ function StakePageInner() {
         </div>
       </Band>
 
-      {/* NETWORK YIELD: protocol-wide accrual, three tiles + live chart. */}
-      <Band tone="light" compact dataGuide="stake-network-yield">
-        <div className="flex items-center gap-2">
-          <SectionTag>{pb.stake.networkYield}</SectionTag>
-          <Hint glow side="bottom" align="start">
-            Idle stake earns real yield through Hashnote USYC, tokenized US
-            Treasuries. Settled on Arc, provable on chain.
-          </Hint>
-        </div>
-        <HeroHeadline size="md">
-          {pb.stake.tokenizedTbills}<Punc>.</Punc> {pb.stake.verifiedYield}<Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-9">
-          <UsycReservesWidget />
-        </div>
-        <div className="mt-5">
-          <ReservesWidget />
-        </div>
-      </Band>
-
-      {/* PER-ACCOUNT YIELD: the connected wallet's slice + Claim CTA. */}
-      <Band tone="light" compact dataGuide="stake-your-yield">
-        <div className="flex items-center gap-2">
-          <SectionTag>{pb.stake.yourYield}</SectionTag>
-          <Hint glow side="bottom" align="start">
-            Your share of the protocol&apos;s yield. Claim to your wallet
-            anytime, non-custodial.
-          </Hint>
-        </div>
-        <HeroHeadline size="md">
-          {pb.stake.earnedByYou}<Punc>.</Punc> {pb.stake.claimableByYou}<Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-9">
-          <YieldClaimPanel />
-        </div>
-      </Band>
-
-      {/* STAKE INTERFACE: deposit + withdraw against the live KarwanVault. */}
       <Band tone="light" compact id="vault" className="scroll-mt-24" dataGuide="stake-vault">
-        <SectionTag>{sp.vault.tag}</SectionTag>
-        <HeroHeadline size="md">
-          {sp.vault.heading}
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-10">
-          {/* Signing to stake and signing to let your agent use it are one
-              thought, so the link is offered here rather than in onboarding.
-              The card hides itself once every agent resolves. */}
-          <AgentStakeBinding />
-          <StakeCard />
-          <LegacyStakeNudge />
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-10">
+          <section className="min-w-0">
+            <SectionTag>{sp.vault.tag}</SectionTag>
+            <HeroHeadline size="md">{sp.vault.heading}<Punc>.</Punc></HeroHeadline>
+            <div className="mt-8">
+              <AgentStakeBinding />
+              <StakeCard />
+              <LegacyStakeNudge />
+            </div>
+          </section>
+
+          <aside
+            className="min-w-0 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6"
+            data-guide="stake-your-yield"
+          >
+            <div className="flex items-center gap-2">
+              <SectionTag>{pb.stake.yourYield}</SectionTag>
+              <Hint glow side="bottom" align="start">
+                Your share of the protocol&apos;s yield. Claim to your wallet anytime, non-custodial.
+              </Hint>
+            </div>
+            <h2 className="mt-4 max-w-[16ch] font-sans text-[clamp(1.7rem,3vw,2.6rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.03em] text-[var(--lp-dark)]">
+              {pb.stake.earnedByYou}<Punc>.</Punc> {pb.stake.claimableByYou}<Punc>.</Punc>
+            </h2>
+            <div className="mt-6">
+              <YieldClaimPanel />
+            </div>
+          </aside>
         </div>
       </Band>
 
-      {/* TIER LADDER: what stake unlocks in the agent loop. */}
+      <Band tone="light" compact dataGuide="stake-network-yield">
+        <button
+          type="button"
+          aria-expanded={reserveOpen}
+          aria-controls="stake-reserve-details"
+          onClick={() => setReserveOpen((open) => !open)}
+          className="group grid min-h-11 w-full grid-cols-[minmax(0,1fr)_44px] items-center gap-4 border-y border-[var(--lp-border-light)] py-5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+        >
+          <span className="min-w-0">
+            <span className="flex items-center gap-2">
+              <SectionTag>{pb.stake.networkYield}</SectionTag>
+              <Hint glow side="bottom" align="start">
+                Idle stake earns real yield through Hashnote USYC, tokenized US Treasuries. Settled on Arc, provable on chain.
+              </Hint>
+            </span>
+            <span className="mt-3 block font-sans text-[clamp(1.45rem,3vw,2.4rem)] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] text-[var(--lp-dark)]">
+              {pb.stake.tokenizedTbills}<Punc>.</Punc> {pb.stake.verifiedYield}<Punc>.</Punc>
+            </span>
+          </span>
+          <span
+            aria-hidden
+            className={`grid size-11 place-items-center rounded-full border border-[var(--lp-border-light)] text-[22px] text-[var(--lp-text-sub)] transition-transform duration-300 motion-reduce:transition-none ${reserveOpen ? 'rotate-180' : ''}`}
+          >
+            ↓
+          </span>
+        </button>
+
+        <AnimatePresence initial={false}>
+          {reserveOpen ? (
+            <motion.div
+              id="stake-reserve-details"
+              role="region"
+              initial={reduce ? false : { height: 0, opacity: 0, y: -8 }}
+              animate={{ height: 'auto', opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0, y: -8 }}
+              transition={{ duration: reduce ? 0 : 0.45, ease: EASE }}
+              className="overflow-hidden"
+            >
+              <div className="grid gap-5 pt-6 lg:grid-cols-2">
+                <UsycReservesWidget />
+                <ReservesWidget />
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </Band>
+
       <Band tone="light" compact>
         <div className="flex items-center gap-2">
           <SectionTag>{sp.ladder.tag}</SectionTag>
           <Hint glow side="bottom" align="start">{sp.ladder.body}</Hint>
         </div>
         <HeroHeadline size="md">
-          {sp.ladder.headingPrefix} <Accent>{sp.ladder.headingAccent}</Accent>
-          <Punc>.</Punc>
+          {sp.ladder.headingPrefix} <Accent>{sp.ladder.headingAccent}</Accent><Punc>.</Punc>
         </HeroHeadline>
-        <ul className="mt-9 space-y-2.5">
+
+        <ul className="mt-8 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           {ORDER.map((t, i) => {
             const here = t === tier;
             return (
-              <Reveal key={t} delay={i * 0.05}>
+              <Reveal key={t} delay={i * 0.04}>
                 <li
-                  className="relative overflow-hidden flex items-start gap-4 px-5 py-4 ps-6"
+                  className="relative h-full min-h-[150px] overflow-hidden rounded-[14px_14px_4px_14px] border p-5"
                   style={{
-                    background: here ? 'rgba(175, 201, 91,0.08)' : 'var(--lp-card)',
-                    border: here ? '1px solid var(--lp-accent)' : '1px solid var(--lp-border-light)',
-                    borderTopLeftRadius: 14,
-                    borderTopRightRadius: 14,
-                    borderBottomLeftRadius: 14,
-                    borderBottomRightRadius: 4,
+                    background: here ? 'rgba(175,201,91,0.08)' : 'var(--lp-card)',
+                    borderColor: here ? 'var(--lp-accent)' : 'var(--lp-border-light)',
                   }}
                 >
-                  <span
-                    aria-hidden
-                    className="absolute start-0 top-0 bottom-0 w-[3px]"
-                    style={{ background: TIER_HUE[t] }}
-                  />
-                  <span
-                    aria-hidden
-                    className="mt-1 inline-block w-2.5 h-2.5 shrink-0"
-                    style={{ background: TIER_HUE[t], borderRadius: 2 }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                      <p className="font-sans text-[16px] font-extrabold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
-                        {t}
-                        {here && (
-                          <span
-                            className="ms-2 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5 align-middle"
-                            style={{
-                              background: 'rgba(175, 201, 91,0.18)',
-                              color: 'var(--lp-band-dark)',
-                              borderRadius: 3,
-                            }}
-                          >
-                            {sp.ladder.youBadge}
-                          </span>
-                        )}
-                      </p>
-                      <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
-                        {BREAKS[i]}
-                        {i < ORDER.length - 1 ? ` - ${BREAKS[i + 1] - 1}` : '+'}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[13px] leading-snug text-[var(--lp-text-sub)] max-w-[60ch]">
-                      {sp.ladder.unlock[t]}
+                  <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: TIER_HUE[t] }} />
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+                      {t}
                     </p>
+                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+                      {BREAKS[i]}{i < ORDER.length - 1 ? `–${BREAKS[i + 1] - 1}` : '+'}
+                    </span>
                   </div>
+                  {here ? (
+                    <span className="mt-3 inline-flex rounded-full bg-[rgba(175,201,91,0.18)] px-2 py-1 mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)]">
+                      {sp.ladder.youBadge}
+                    </span>
+                  ) : null}
+                  <p className="mt-4 text-[13px] leading-snug text-[var(--lp-text-sub)]">{sp.ladder.unlock[t]}</p>
                 </li>
               </Reveal>
             );

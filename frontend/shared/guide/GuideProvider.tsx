@@ -9,22 +9,18 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import {
-  useFloatingClearance,
-  floatingClearanceStyle,
-} from '@/shared/hooks/useFloatingClearance';
 import { createPortal } from 'react-dom';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
-import { isLandingRoute } from '@/shared/utils/routes';
+import { GUIDE_COPY } from './routeGuidance';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
 /// spotlights its tools one at a time with a plain-language line. Tours open
 /// once on first visit and are remembered per-tour; a single "skip all tips"
 /// turns them off everywhere for people who already know their way around.
-/// Built to the Karwan UI law: lime accent, bracket-tag metadata, asymmetric
-/// corners, motion with reduced-motion fallback.
+/// Manual guidance stays available beside page navigation, even when automatic
+/// tips are disabled. Tours explain controls without activating them.
 
 export interface TourStep {
   /// `data-guide` value of the element to spotlight. Omit for a centered card
@@ -38,6 +34,7 @@ interface ActiveTour {
   id: string;
   steps: TourStep[];
   index: number;
+  pathname: string;
 }
 
 interface GuideContextValue {
@@ -61,9 +58,9 @@ interface GuideContextValue {
   /// knows what to launch. PageTour also auto-opens the tour once for a
   /// newcomer (after the first-run welcome); the pill is the on-demand trigger
   /// thereafter and on every page.
-  registerTour: (id: string, steps: TourStep[], label?: string, pathname?: string) => void;
+  registerTour: (id: string, steps: TourStep[], label: string, pathname: string) => void;
   unregisterTour: (id: string) => void;
-  currentTour: { id: string; steps: TourStep[]; label: string; pathname?: string } | null;
+  currentTour: { id: string; steps: TourStep[]; label: string; pathname: string } | null;
 }
 
 /// Transactions after which a user is treated as having "mastered" the app:
@@ -161,16 +158,21 @@ function computeExperience(actions: Record<string, number>): number {
 }
 
 export function GuideProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [disabled, setDisabled] = useState(false);
   const [seen, setSeen] = useState<Set<string>>(() => new Set());
   const [active, setActive] = useState<ActiveTour | null>(null);
   const [actions, setActions] = useState<Record<string, number>>({});
   const [currentTour, setCurrentTour] = useState<
-    { id: string; steps: TourStep[]; label: string; pathname?: string } | null
+    { id: string; steps: TourStep[]; label: string; pathname: string } | null
   >(null);
   // Consecutive bail-outs. A ref because no UI depends on the live value; it is
   // persisted so the "5 skips and stop" rule survives reloads.
   const skipsRef = useRef(0);
+
+  useEffect(() => {
+    setActive((current) => current?.pathname !== pathname ? null : current);
+  }, [pathname]);
 
   // Hydrate persisted state on the client (avoids SSR localStorage access).
   useEffect(() => {
@@ -249,9 +251,9 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     (id: string, steps: TourStep[], opts?: { force?: boolean }) => {
       if (steps.length === 0) return;
       if (!opts?.force && (disabled || seen.has(id))) return;
-      setActive({ id, steps, index: 0 });
+      setActive({ id, steps, index: 0, pathname });
     },
-    [disabled, seen],
+    [disabled, seen, pathname],
   );
 
   const next = useCallback(() => {
@@ -287,7 +289,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     setActive(null);
   }, []);
 
-  const registerTour = useCallback((id: string, steps: TourStep[], label = 'Tour', pathname?: string) => {
+  const registerTour = useCallback((id: string, steps: TourStep[], label: string, pathname: string) => {
     setCurrentTour({ id, steps, label, pathname });
   }, []);
 
@@ -349,62 +351,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
     <GuideContext.Provider value={value}>
       {children}
       <GuideOverlay />
-      <FloatingActions />
     </GuideContext.Provider>
-  );
-}
-
-/// On-demand tour helper. Feedback already lives in the public footer and the
-/// signed-in assistant owns support inside the workspace, so a second floating
-/// feedback control would compete with the mobile task navigation.
-function FloatingActions() {
-  const { currentTour, startTour, hasActive } = useGuide();
-  const pathname = usePathname();
-  if (hasActive) return null;
-  // Landing/marketing pages stay clean: no Ask, no Feedback, no Tour pill there.
-  if (isLandingRoute(pathname)) return null;
-  // Never surface the Tour pill on a setup/public flow. currentTour is normally
-  // null there (the page registers no tour), but a stale registration from the
-  // previous page can linger for a navigation frame; this makes it unconditional.
-  const showTour = !!currentTour && !isNoTourRoute(pathname);
-  /// Folds away in step with the assistant launcher, so the two never leave one
-  /// of them sitting alone on top of a pager.
-  const clearance = useFloatingClearance('start');
-
-  // On mobile the labels are hidden and the pill collapses to an icon-only
-  // round button so it stops covering hero copy at the bottom of the fold.
-  // Desktop keeps the wide pill with the label since there's plenty of room.
-  const pill =
-    'z-[60] inline-flex min-h-11 min-w-11 items-center justify-center sm:justify-start gap-0 sm:gap-1.5 p-2 sm:px-3 sm:py-2 mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)] bg-[var(--lp-card)] border border-[var(--lp-border-light)] hover:border-[var(--lp-accent)] transition-colors';
-  const corner = {
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 3,
-    boxShadow: '0 6px 18px -10px rgba(0,0,0,0.3)',
-  } as const;
-
-  if (!showTour || !currentTour) return null;
-
-  return (
-    <button
-      type="button"
-      onClick={() => startTour(currentTour.id, currentTour.steps, { force: true })}
-      data-float-launcher
-      data-float-side="start"
-      className={`fixed bottom-24 start-4 md:bottom-5 md:start-5 ${pill}`}
-      style={{ ...corner, ...floatingClearanceStyle(clearance) }}
-      aria-label={`Take a guided tour: ${currentTour.label}`}
-    >
-      <span
-        aria-hidden
-        className="inline-flex items-center justify-center w-4 h-4 sm:w-3.5 sm:h-3.5 rounded-full text-[10px] sm:text-[9px] font-bold"
-        style={{ background: 'var(--lp-accent)', color: 'var(--lp-band-dark)' }}
-      >
-        ?
-      </span>
-      <span className="hidden sm:inline">{currentTour.label}</span>
-    </button>
   );
 }
 
@@ -416,11 +363,44 @@ function prefersReducedMotion(): boolean {
 }
 
 function GuideOverlay() {
-  const a11y = useTranslations().a11y;
+  const { locale } = useLocale();
+  const copy = GUIDE_COPY[locale];
   const { active, next, prev, close, dismissAll } = useGuide();
   const pathname = usePathname();
   const step = active ? active.steps[active.index] : undefined;
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const open = !!active && active.pathname === pathname && !isNoTourRoute(pathname);
+
+  // WAI-ARIA modal dialog pattern, read 2026-09-08. Keep keyboard users inside
+  // the guidance and return to its launcher, never a financial form control.
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    panel?.focus();
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !panel?.contains(event.target)) panel?.focus();
+    };
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !panel) return;
+      const buttons = Array.from(panel.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+      const first = buttons[0];
+      const last = buttons.at(-1);
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    };
+    document.addEventListener('focusin', containFocus);
+    document.addEventListener('keydown', trap);
+    return () => {
+      document.removeEventListener('focusin', containFocus);
+      document.removeEventListener('keydown', trap);
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
+    };
+  }, [open]);
 
   // Track the spotlight target's position. Scroll it into view on step change,
   // then keep the highlight glued to it through scroll / resize.
@@ -451,20 +431,19 @@ function GuideOverlay() {
 
   // Keyboard: Esc closes, arrows step.
   useEffect(() => {
-    if (!active) return;
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close(true);
-      else if (e.key === 'ArrowRight') next();
-      else if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'Escape') { e.preventDefault(); close(true); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); locale === 'ar' ? prev() : next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); locale === 'ar' ? next() : prev(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active, next, prev, close]);
+  }, [open, next, prev, close, locale]);
 
-  // Never paint over a setup flow (onboarding, invite, cashout) or a public
-  // page, even if a tour was started elsewhere and the user navigated in. The
-  // tour stays in state and resumes when they leave the flow.
-  if (!active || !step || isNoTourRoute(pathname) || typeof document === 'undefined') return null;
+  // A tour belongs to the page that opened it. It never resumes over another
+  // page or an initial onboarding/invitation flow.
+  if (!open || !active || !step || typeof document === 'undefined') return null;
 
   const total = active.steps.length;
   const isLast = active.index === total - 1;
@@ -472,7 +451,7 @@ function GuideOverlay() {
   const reduced = prefersReducedMotion();
 
   return createPortal(
-    <div aria-live="polite" role="dialog" aria-modal="true">
+    <div>
       {/* Click blocker so the page underneath isn't interactive mid-tour. */}
       <div
         onClick={() => close(true)}
@@ -517,6 +496,12 @@ function GuideOverlay() {
           fade-up animation animates transform and would clobber a translateX,
           which pushed the card off-screen on mobile. */}
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="page-tour-title"
+        aria-describedby="page-tour-body"
+        tabIndex={-1}
         style={{
           position: 'fixed',
           left: 12,
@@ -526,7 +511,7 @@ function GuideOverlay() {
           maxWidth: 420,
           zIndex: 1002,
         }}
-        className={reduced ? undefined : 'fade-up'}
+        className={`max-h-[calc(100dvh-32px)] overflow-y-auto outline-none ${reduced ? '' : 'fade-up'}`}
       >
         <div
           style={{
@@ -541,23 +526,22 @@ function GuideOverlay() {
           className="p-5"
         >
           <div className="flex items-center justify-between gap-3">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:TIP {active.index + 1}/{total}:]
+            <span className="font-sans text-[12px] text-[var(--lp-text-sub)]">
+              {copy.step} {active.index + 1}/{total}
             </span>
             <button
               type="button"
-              onClick={dismissAll}
-              className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
-              title={a11y.turnOffTips}
+              onClick={() => close(true)}
+              className="min-h-11 rounded-full px-3 font-sans text-[13px] font-semibold text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
             >
-              Skip all tips
+              {copy.close}
             </button>
           </div>
 
-          <h3 className="mt-2 font-sans text-[18px] font-extrabold tracking-[-0.01em] leading-tight text-[var(--lp-dark)]">
+          <h3 id="page-tour-title" aria-live="polite" className="mt-2 font-sans text-[20px] font-semibold tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
             {step.title}
           </h3>
-          <p className="body-copy mt-1.5 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p id="page-tour-body" aria-live="polite" className="body-copy mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
             {step.body}
           </p>
 
@@ -583,15 +567,15 @@ function GuideOverlay() {
                 <button
                   type="button"
                   onClick={prev}
-                  className="mono text-[11px] uppercase tracking-[0.1em] font-semibold px-3 py-2 text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
+                  className="min-h-11 rounded-full font-sans text-[14px] font-semibold px-4 py-2 text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
                 >
-                  Back
+                  {copy.back}
                 </button>
               )}
               <button
                 type="button"
                 onClick={next}
-                className="inline-flex items-center gap-1.5 mono text-[11px] uppercase tracking-[0.08em] font-bold px-4 py-2 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[#10170b] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
                 style={{
                   borderTopLeftRadius: 10,
                   borderTopRightRadius: 10,
@@ -599,11 +583,12 @@ function GuideOverlay() {
                   borderBottomRightRadius: 3,
                 }}
               >
-                {isLast ? 'Done' : 'Next'}
-                {!isLast && <span aria-hidden>→</span>}
+                {isLast ? copy.done : copy.next}
+                {!isLast && <span aria-hidden className="rtl-flip">→</span>}
               </button>
             </div>
           </div>
+          <button type="button" onClick={dismissAll} className="mt-3 min-h-11 rounded-full px-2 text-start font-sans text-[12px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{copy.stopTips}</button>
         </div>
       </div>
     </div>,

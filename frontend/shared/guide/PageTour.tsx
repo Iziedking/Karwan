@@ -38,9 +38,9 @@ export function PageTour({
 }) {
   const { registerTour, unregisterTour, startTour, hasActive, disabled, experience, isSeen } =
     useGuide();
-  const pathname = usePathname();
   // One auto-open attempt per mount; the pill stays available regardless.
   const autoTried = useRef(false);
+  const pathname = usePathname();
   const serializedSteps = JSON.stringify(steps);
 
   useEffect(() => {

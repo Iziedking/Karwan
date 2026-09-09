@@ -1,15 +1,12 @@
 'use client';
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/shared/utils/cn';
 import { ConnectWalletButton } from './ConnectWallet';
-import { ThemeControl } from './ThemeControl';
-import { SoundToggle } from './SoundToggle';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
-import { ProfileAvatar } from './ProfileAvatar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -19,7 +16,7 @@ import { getShellSurface } from '@/shared/utils/routes';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
-import { useTheme } from '@/shared/hooks/useTheme';
+import { WalletAvatar } from './WalletAvatar';
 
 const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
@@ -30,6 +27,7 @@ const LANDING_NAV_VARS = {
   '--color-ink-dim': '#9a9a9a',
   '--color-ink-faint': '#6b6b6b',
   '--lp-workspace-band': '#0e0e0e',
+  '--lp-dark': '#f4f0ff',
 } as CSSProperties;
 
 export function TopNav() {
@@ -45,11 +43,6 @@ export function TopNav() {
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
   const { profile, address: profileAddress } = useUserProfile();
-  const { theme, mounted: themeMounted } = useTheme();
-  // Keep the server/first client render on the compact overflow control so a
-  // dark preference never hydrates into the light-theme identity pill. Once
-  // the painted theme is known, the white theme gets the initials/X avatar.
-  const showLightMobileIdentity = themeMounted && theme === 'light';
   // Business and individual are two separate rails. A business sees B2B Trades
   // and the SME-rail home; an individual sees P2P Trades. The Financier desk is
   // shown to both (anyone can provide capital). Until the profile loads we treat
@@ -100,85 +93,34 @@ export function TopNav() {
   }, []);
 
   return (
+    <>
     <header
       ref={barRef}
       style={pathname === '/' ? LANDING_NAV_VARS : undefined}
       data-chrome="nav"
-      className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--lp-workspace-band)]"
+      className={cn(
+        'sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--lp-workspace-band)]',
+        pathname !== '/' && 'product-surface',
+      )}
     >
-      <div className="mx-auto flex h-[60px] max-w-[1440px] items-center gap-2.5 px-3 sm:h-[68px] sm:gap-5 sm:px-6 lg:gap-8">
-        {/* LEFT. The mark alone, and it always goes to the landing page.
-            It used to sit beside a KARWAN wordmark and route to /app inside the
-            product, which made the one element every page shares mean two
-            different things depending on where you were. */}
-        <div className="flex items-center gap-3 sm:gap-5 min-w-0 shrink-0">
-          <Link href="/" aria-label="Karwan" className="group inline-flex items-center shrink-0">
+      <div className="mx-auto flex h-[64px] max-w-[1600px] items-center gap-2.5 px-4 sm:h-[72px] sm:gap-5 sm:px-6 lg:gap-8">
+        <div className="flex min-w-0 shrink-0 items-center">
+          <Link href="/" aria-label="Karwan" className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
             <span
               aria-hidden
-              className="inline-flex h-11 w-11 items-center justify-center border border-white/10 text-[var(--lp-accent)] shadow-[0_2px_0_rgba(0,0,0,0.15)] transition-transform duration-200 group-hover:-translate-y-0.5 sm:h-14 sm:w-14"
-              style={{
-                background: '#0e0e0e',
-                borderTopLeftRadius: 14,
-                borderTopRightRadius: 14,
-                borderBottomLeftRadius: 14,
-                borderBottomRightRadius: 4,
-              }}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:-translate-y-0.5 sm:h-11 sm:w-11"
             >
-              <Logo />
+              {/* Use the canonical Karwan mark; do not wrap it in the old
+                  white placeholder tile. The asset owns its dark tile and
+                  lime mark treatment. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/karwan-app-icon.svg" alt="" width="44" height="44" className="size-full" />
+            </span>
+            <span className="hidden font-sans text-[18px] font-extrabold tracking-[-0.04em] text-[var(--lp-dark)] sm:inline">
+              karwan
             </span>
           </Link>
         </div>
-
-        {/* Desktop workspace navigation is task-based and flat. The active
-            indicator slides between destinations without turning the header
-            into a row of nested pills. Mobile uses WorkspaceBottomNav. */}
-        {showFullChrome && (
-          <nav className="mx-auto hidden h-full items-center gap-1 lg:flex">
-            <NavLink
-              href="/app"
-              active={pathname === '/app'}
-              title={t.nav.hints.home}
-            >
-              {t.nav.home}
-            </NavLink>
-            <NavLink href={biz ? '/b2b' : '/p2p'} active={tradesActive}>
-              {t.nav.trades}
-            </NavLink>
-            <NavLink
-              href={discoverHref}
-              active={discoverActive}
-              title={t.nav.hints.market}
-            >
-              {t.nav.market}
-            </NavLink>
-            {SME_TRADES_ENABLED ? (
-              <NavLink
-                href="/financier"
-                active={pathname.startsWith('/financier')}
-                title={a11y.fundFactoringAndPos}
-              >
-                {t.nav.finance}
-              </NavLink>
-            ) : (
-              <NavLinkSoon
-                href="/financier"
-                active={pathname.startsWith('/financier')}
-                title={a11y.fundFactoringAndPos}
-                soonLabel={t.nav.soonBadge}
-              >
-                {t.nav.finance}
-              </NavLinkSoon>
-            )}
-            <NavLink
-              href="/activity"
-              active={pathname.startsWith('/activity')}
-              title={t.nav.hints.activity}
-              signal={unreadCount > 0}
-            >
-              {t.nav.activity}
-            </NavLink>
-          </nav>
-        )}
 
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -187,7 +129,6 @@ export function TopNav() {
               {/* Sign-in and onboarding have no preferences menu yet, and they
                   are the screens with the most reading and form-filling on
                   them. The control rides in the nav there instead. */}
-              <ThemeControl />
               {authLoading ? (
                 <span
                   aria-hidden
@@ -200,49 +141,23 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
-                <div className="hidden md:inline-flex items-center gap-0.5 px-1 py-1 rounded-full border border-[var(--color-line)] bg-[var(--color-surface)]">
-                  <NotificationBell />
-                  <QuickControls
-                    isAuthenticated={isAuthenticated}
-                    settingsActive={pathname.startsWith('/settings')}
-                    profileActionCount={openDeals.actionCount}
-                  />
-                </div>
-                {/* Mobile keeps the high-signal bell and a compact preferences
-                    menu. Sound, reputation, profile, help, and settings remain
-                    one thumb away instead of disappearing at small widths. */}
-                <div className="md:hidden inline-flex items-center gap-0.5">
-                  <NotificationBell />
-                  <QuickControls
-                    isAuthenticated={isAuthenticated}
-                    settingsActive={pathname.startsWith('/settings')}
-                    profileActionCount={openDeals.actionCount}
-                    mobileTrigger={showLightMobileIdentity}
-                    profile={profile}
-                    identityName={profile?.displayName ?? authEmail?.split('@')[0] ?? ''}
-                    identityAddress={profileAddress ?? authAddress}
-                  />
-                  <span className={cn(showLightMobileIdentity ? 'hidden' : 'inline-flex', 'md:hidden')}>
-                    <ConnectWalletButton />
-                  </span>
-                </div>
-                <span className="hidden md:inline-flex">
-                  <ConnectWalletButton />
-                </span>
-                <span className="hidden md:inline-flex">
-                  <ProfileAvatar actionCount={openDeals.actionCount} />
-                </span>
+                <NotificationBell />
+                <ProfileLink
+                  profileActionCount={openDeals.actionCount}
+                  profile={profile}
+                  identityName={profile?.displayName ?? authEmail?.split('@')[0] ?? ''}
+                  identityAddress={profileAddress ?? authAddress}
+                />
               </>
           ) : !publicSurface ? (
-            // Signed-out app chrome: the sign-in button and the theme control,
-            // nothing else. Don't tease the app surface (nav rail, balance,
+            // Signed-out app chrome: the sign-in button, nothing else. Don't
+            // tease the app surface (nav rail, balance,
             // bell, settings) before the user has signed in. While auth is
             // still resolving, reserve the same approximate width so the bar
             // doesn't shift content once the button paints. This was one of the
             // dominant CLS contributors across every app route (RES dashboard,
             // last 7 days).
             <>
-              <ThemeControl />
               {authLoading ? (
                 <span
                   aria-hidden
@@ -259,6 +174,152 @@ export function TopNav() {
         </div>
       </div>
     </header>
+    {showFullChrome ? (
+      <WorkspaceRail
+        pathname={pathname}
+        tradeHref={biz ? '/b2b' : '/p2p'}
+        discoverHref={discoverHref}
+        tradesActive={tradesActive}
+        discoverActive={discoverActive}
+        financeEnabled={SME_TRADES_ENABLED}
+        unread={unreadCount > 0}
+        financeLabel={a11y.fundFactoringAndPos}
+        soonLabel={t.nav.soonBadge}
+      />
+    ) : null}
+    </>
+  );
+}
+
+function WorkspaceRail({
+  pathname,
+  tradeHref,
+  discoverHref,
+  tradesActive,
+  discoverActive,
+  financeEnabled,
+  unread,
+  financeLabel,
+  soonLabel,
+}: {
+  pathname: string;
+  tradeHref: string;
+  discoverHref: string;
+  tradesActive: boolean;
+  discoverActive: boolean;
+  financeEnabled: boolean;
+  unread: boolean;
+  financeLabel: string;
+  soonLabel: string;
+}) {
+  const t = useTranslations().nav;
+  const financeActive = pathname.startsWith('/financier');
+
+  return (
+    <aside
+      data-chrome="workspace-rail"
+      className="pointer-events-none fixed inset-y-0 start-0 z-20 hidden w-full lg:block"
+      style={{ top: 'calc(var(--lp-nav-h, 72px) + 16px)' }}
+    >
+      <nav
+        aria-label="workspace navigation"
+        className="pointer-events-auto absolute flex w-[220px] flex-col gap-1"
+        style={{ left: 'max(20px, calc(50% - 680px))' }}
+      >
+        <RailLink href="/app" active={pathname === '/app'} icon="home">
+          {t.home}
+        </RailLink>
+        <RailLink href={tradeHref} active={tradesActive} icon="trade">
+          {t.trades}
+        </RailLink>
+        <RailLink href={discoverHref} active={discoverActive} icon="discover">
+          {t.market}
+        </RailLink>
+        <RailLink
+          href="/financier"
+          active={financeActive}
+          icon="finance"
+          ariaLabel={financeLabel}
+          badge={!financeEnabled ? soonLabel : undefined}
+        >
+          {t.finance}
+        </RailLink>
+        <RailLink href="/activity" active={pathname.startsWith('/activity')} icon="activity" signal={unread}>
+          {t.activity}
+        </RailLink>
+      </nav>
+    </aside>
+  );
+}
+
+function RailLink({
+  href,
+  active,
+  icon,
+  children,
+  ariaLabel,
+  badge,
+  signal = false,
+}: {
+  href: string;
+  active: boolean;
+  icon: 'home' | 'trade' | 'discover' | 'finance' | 'activity';
+  children: React.ReactNode;
+  ariaLabel?: string;
+  badge?: string;
+  signal?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={ariaLabel}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'group flex min-h-12 w-full items-center gap-3 rounded-full px-4 text-[15px] font-medium transition-colors duration-200',
+        active
+          ? 'text-[var(--color-ink)]'
+          : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
+      )}
+      style={active ? { background: 'var(--color-surface-2)' } : undefined}
+    >
+      <RailIcon name={icon} active={active} />
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {badge ? (
+        <span
+          className="mono rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
+          style={{ background: 'color-mix(in oklab, var(--lp-accent) 20%, transparent)', color: 'var(--color-ink)' }}
+        >
+          {badge}
+        </span>
+      ) : signal ? (
+        <span aria-hidden className="size-2 rounded-full bg-[var(--lp-accent)]" />
+      ) : null}
+    </Link>
+  );
+}
+
+function RailIcon({ name, active }: { name: 'home' | 'trade' | 'discover' | 'finance' | 'activity'; active: boolean }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className={cn('shrink-0 transition-colors', active ? 'text-[var(--lp-accent)]' : 'text-[var(--color-ink-dim)]')}
+    >
+      {name === 'home' ? (
+        <path d="m4 10 8-6 8 6v9H4v-9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      ) : name === 'trade' ? (
+        <path d="M7 5v12m0 0-3-3m3 3 3-3M17 19V7m0 0-3 3m3-3 3 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      ) : name === 'discover' ? (
+        <path d="m14.5 4.5-2.1 5.9-5.9 2.1 5.9 2.1 2.1 5.9 2.1-5.9 5.9-2.1-5.9-2.1-2.1-5.9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      ) : name === 'finance' ? (
+        <path d="M4 19h16M6 17V9m4 8V5m4 12v-6m4 6V7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      ) : (
+        <path d="M5 5v14m0-10h13l-3-3m3 3-3 3M19 19V5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
   );
 }
 
@@ -364,218 +425,69 @@ function NavLinkSoon({
 }
 
 
-/// Collapses the low-frequency controls (theme, sound, settings) behind a single
-/// overflow button so the top bar shows fewer icons. Theme and sound also live
-/// on the Settings page; keeping them here means logged-out visitors can still
-/// reach them. Notifications stay outside this menu since unread count is
-/// high-signal and should be visible at a glance.
-function QuickControls({
-  isAuthenticated,
-  settingsActive,
+/// The account control is a direct route into the profile hub. Preferences and
+/// notifications stay in the header because they are global, not profile data.
+function ProfileLink({
   profileActionCount,
-  mobileTrigger = false,
   profile,
   identityName,
   identityAddress,
 }: {
-  isAuthenticated: boolean;
-  settingsActive: boolean;
   profileActionCount: number;
-  mobileTrigger?: boolean;
   profile?: UserProfile | null;
   identityName?: string;
   identityAddress?: string | null;
 }) {
-  const t = useTranslations().nav;
-  const [open, setOpen] = useState(false);
-  const menuId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
+  const messages = useTranslations();
+  const t = messages.nav;
   const [imageFailed, setImageFailed] = useState(false);
   const xImage = !imageFailed ? profile?.xProfileImageUrl?.trim() : undefined;
   const initials = getProfileInitials(identityName ?? '', identityAddress ?? null);
-
-  // Close on any navigation. The outside-click handler below cannot do this:
-  // the links are INSIDE the menu, so it ignores them, and routing is
-  // client-side so the nav never unmounts. Tapping Profile changed the page and
-  // left the menu sitting open on top of it.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
 
   useEffect(() => {
     setImageFailed(false);
   }, [profile?.xProfileImageUrl]);
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={mobileTrigger ? t.profile : t.preferencesAria}
-        aria-expanded={open}
-        aria-controls={menuId}
-        data-mobile-profile-trigger={mobileTrigger ? 'true' : undefined}
-        className={cn(
-          'relative',
-          mobileTrigger
-            ? 'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-1.5 transition-colors'
-            : 'inline-flex items-center justify-center w-11 h-11 rounded-full transition-colors',
-          open && 'z-[51]',
-          open || settingsActive
-            ? 'bg-[var(--color-surface-2)] text-[var(--color-ink)]'
-            : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
-          mobileTrigger && 'border-[var(--color-line)]',
-        )}
-        style={mobileTrigger ? { borderColor: 'var(--color-line-strong)' } : undefined}
-      >
-        {mobileTrigger ? (
-          <>
-            <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-line)] bg-[var(--color-surface)] text-[11px] font-semibold tracking-[0.04em] text-[var(--color-ink)]">
-              {xImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={xImage}
-                  alt=""
-                  width={32}
-                  height={32}
-                  className="size-8 object-cover"
-                  onError={() => setImageFailed(true)}
-                />
-              ) : (
-                initials
-              )}
-            </span>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </>
-        ) : (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-            <circle cx="3" cy="8" r="1.35" />
-            <circle cx="8" cy="8" r="1.35" />
-            <circle cx="13" cy="8" r="1.35" />
-          </svg>
-        )}
-      </button>
-      {open && (
-        <>
-          <div
-            aria-hidden
-            data-preferences-dismiss-layer
-            className="fixed inset-0 z-40 bg-black/10"
-            onPointerDown={() => setOpen(false)}
-            onClick={() => setOpen(false)}
-          />
-          <div
-            id={menuId}
-            className="absolute end-0 top-full z-50 pt-2 max-md:fixed max-md:inset-x-4 max-md:top-[76px] max-md:w-auto"
-          >
-          <div
-            role="menu"
-            onClick={(event) => {
-              // Any link dismisses it, without each one having to remember to.
-              // The theme and sound controls above are deliberately not links:
-              // changing them should leave the menu where it is so you can see
-              // what changed.
-              if ((event.target as HTMLElement).closest('a')) setOpen(false);
-            }}
-            className="w-[min(302px,calc(100vw-32px))] p-2 border bg-[var(--color-surface)] fade-up"
-            style={{
-              borderColor: 'var(--color-line)',
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              borderBottomLeftRadius: 16,
-              borderBottomRightRadius: 4,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 50px -18px rgba(0,0,0,0.28)',
-            }}
-          >
-            <ControlRow label={t.controlLabels.theme}>
-              <ThemeControl />
-            </ControlRow>
-            <ControlRow label={t.controlLabels.sound}>
-              <SoundToggle />
-            </ControlRow>
-            <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
-            <Link
-              href="/how-it-works"
-              className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
-            >
-              <span>{t.help}</span>
-              <span aria-hidden className="text-[var(--color-ink-faint)]">
-                →
-              </span>
-            </Link>
-            {isAuthenticated && (
-              <>
-                <div className="my-1 h-px" style={{ background: 'var(--color-line)' }} />
-                <MenuLink href="/profile" signal={profileActionCount > 0}>{t.profile}</MenuLink>
-                <MenuLink href="/stake">{t.reputation}</MenuLink>
-                <Link
-                  href="/settings"
-                  className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 rounded-lg text-[13px] text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
-                >
-                  <span>{t.allSettings}</span>
-                  <span aria-hidden className="text-[var(--color-ink-faint)]">
-                    →
-                  </span>
-                </Link>
-              </>
-            )}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function MenuLink({
-  href,
-  children,
-  signal = false,
-}: {
-  href: string;
-  children: React.ReactNode;
-  signal?: boolean;
-}) {
-  return (
     <Link
-      href={href}
-      className="flex min-h-11 items-center justify-between gap-3 px-2.5 py-2.5 text-[13px] text-[var(--color-ink)] transition-colors hover:bg-[var(--color-surface-2)]"
-      style={{ borderRadius: 8 }}
+      href="/profile"
+      aria-label={t.profile}
+      className="group relative inline-flex min-h-11 max-w-[min(240px,45vw)] items-center gap-2 rounded-full border border-[var(--color-line-strong)] py-1 ps-1 pe-2.5 text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
     >
-      <span className="inline-flex items-center gap-2">
-        {children}
-        {signal ? <ActionBeacon /> : null}
-      </span>
-      <span aria-hidden className="text-[var(--color-ink-faint)]">→</span>
+        <span className="relative grid size-9 shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[11px] font-semibold tracking-[0.04em] text-[var(--color-ink)] sm:size-10">
+          <span className="grid size-full place-items-center overflow-hidden rounded-full">
+            {xImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={xImage}
+                alt=""
+                width={40}
+                height={40}
+                className="size-full object-cover"
+                onError={() => setImageFailed(true)}
+              />
+            ) : identityAddress ? (
+              <WalletAvatar address={identityAddress} size={40} />
+            ) : (
+              initials
+            )}
+          </span>
+          {profileActionCount > 0 ? <ActionBeacon className="absolute -bottom-0.5 -end-0.5" /> : null}
+        </span>
+        <span className="hidden min-w-0 max-w-[180px] truncate text-[14px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
+          {identityName}
+        </span>
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 18 18"
+          fill="none"
+          aria-hidden
+          className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+        >
+          <path d="M3 9h11m-4-4 4 4-4 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
     </Link>
-  );
-}
-
-function ControlRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div role="menuitem" className="flex min-h-12 items-center justify-between gap-3 px-2.5 py-1.5 rounded-lg">
-      <span className="text-[13px] text-[var(--color-ink-dim)]">{label}</span>
-      {children}
-    </div>
   );
 }
 
@@ -621,7 +533,7 @@ function LaunchAppCTA() {
     >
       Open Karwan
       <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
-        ↓
+        →
       </span>
     </Link>
   );
@@ -634,18 +546,4 @@ function getProfileInitials(name: string, address: string | null): string {
   if (compact.length >= 2) return compact.slice(0, 2).toUpperCase();
   if (address) return address.replace(/^0x/i, '').slice(0, 2).toUpperCase();
   return 'KW';
-}
-
-function Logo() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 17 L10 7 L12 13 L14 7 L17 17"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
 }

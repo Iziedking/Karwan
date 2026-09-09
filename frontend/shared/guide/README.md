@@ -7,7 +7,9 @@ tours stay consistent and never collide.
 ## Pieces
 
 - `GuideProvider` — context + the spotlight overlay (rendered once, mounted in `AppProviders`). Owns the experience score, the per-tour "seen" set, the global "skip all tips" flag, and the 5-consecutive-skips cutoff.
-- `PageTour` — drop on a page with `id` + `steps`. It leaves a quiet replay pill; set `autoStart` only on a genuinely introductory surface. The global welcome tour is the single automatic orientation layer.
+- `PageTour`: registers a page's current steps. The registration is route-scoped and updates when the form changes. Set `autoStart` only on a genuinely introductory surface.
+- `PageTourButton`: the labelled, in-flow button next to page navigation in ChromeFrame. It stays reachable on mobile and after automatic tips are disabled. No floating corner launcher.
+- `routeGuidance.ts`: localized manual guidance for standalone account and sensitive pages that do not register their own spotlight tour. Route fallbacks take precedence where older registered copy no longer fits the page.
 - `GuideWelcome` — first-run "start here" tour. Skips public/marketing routes; fires on the first app page after sign-in.
 - `tours.ts` — all step definitions in one place.
 
@@ -24,11 +26,13 @@ tours stay consistent and never collide.
 
 4. **Spotlights vs overview.** Add `data-guide="<value>"` to the element a step points at and set `target` on the step. Steps with no `target` render as centered overview cards. Anchor real, visible elements (not zero-height markers).
 
-5. **Plain language, Karwan UI law.** Terse, no jargon (USDC = "digital dollars ~$1", escrow = "held safely", gas = "network fee"). No em dashes. Lime accent, bracket-tag metadata, asymmetric corners, reduced-motion honored.
+5. **Plain language.** Proportional fonts, sentence case, no internal labels or em dashes. Use USDC explicitly and do not imply test tokens have monetary value. Honor reduced motion. Keep the visible Close, Back and Next buttons at least 44px tall.
 
 6. **Feed experience from real actions.** Call `recordAction('<distinct-type>')` from genuine successes (post-job, post-listing, stake-deposit, bridge). Experience is quality-weighted: distinct tools advance mastery; spamming one action plateaus. Don't bump on trivial/UI events.
 
 7. **Never on public routes.** The landing, docs, how-it-works, feedback, and terms pages get no tours (`GuideWelcome` + page tours just aren't mounted there).
+
+8. **No actions in a tour.** A step may scroll to and explain a control. It never clicks, fills, submits, transfers or signs. Keyboard focus stays in the tour and returns to its launcher. Changing routes closes the tour rather than showing stale instructions over a different form. Signed-in cash-out and business setup offer manual guidance without an automatic welcome.
 
 ## Adding a tour to a new page
 

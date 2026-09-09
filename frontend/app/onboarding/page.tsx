@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { LoginModal } from '@/shared/components/LoginModal';
+import { parseMilestoneSplit } from '@/features/onboarding/validation';
 import { api, type UserRole } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { FormError } from '@/shared/components/FormError';
@@ -122,7 +123,6 @@ function OnboardingInner() {
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
 
   const validationIssues: string[] = (() => {
     if (!role) return [];
@@ -147,13 +147,8 @@ function OnboardingInner() {
       if (!(buyerMax > 0)) issues.push(v.buyerMaxBudget);
       if (!(buyerMinDays > 0)) issues.push(v.buyerMinDeadline);
       if (!(buyerMaxDays >= buyerMinDays)) issues.push(v.buyerMaxDeadline);
-      const pcts = milestoneSplit
-        .split(',')
-        .map((s) => Number(s.trim()))
-        .filter((n) => Number.isFinite(n));
-      const sum = pcts.reduce((a, b) => a + b, 0);
-      if (pcts.length === 0) issues.push(v.splitEmpty);
-      else if (sum !== 100) issues.push(v.splitSum.replace('{sum}', String(sum)));
+      const pcts = parseMilestoneSplit(milestoneSplit);
+      if (!pcts) issues.push(v.splitEmpty);
     }
 
     return issues;
@@ -174,7 +169,7 @@ function OnboardingInner() {
   // Each step is its own screen, so start it at the top. Without this, a user
   // who scrolled to the bottom of the tall profile form to submit lands on the
   // short "get ready" step still scrolled down, seeing the footer and having to
-  // scroll up to find the activate button.
+  // scroll up to find the continue button.
   useEffect(() => {
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
   }, [step]);
@@ -233,14 +228,15 @@ function OnboardingInner() {
   // exists → stay loading until the route changes). Prevents the body from
   // flashing on returning users with a cached wallet.
   const [profileGate, setProfileGate] = useState(false);
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
+  const [profileRetry, setProfileRetry] = useState(0);
 
   useEffect(() => {
+    setProfileLoadFailed(false);
     if (!address) {
       setProfileGate(false);
-      setProfileLoadFailed(false);
       return;
     }
-    setProfileLoadFailed(false);
     setProfileGate(true);
     let cancelled = false;
     api
@@ -264,6 +260,7 @@ function OnboardingInner() {
         setDisplayName(p.displayName ?? '');
         if (p.seller) {
           setSkills(p.seller.skills.join(', '));
+          setTradeType(p.seller.tradeType ?? null);
           setBio(p.seller.bio ?? '');
           setSellerMin(p.seller.minBudgetUsdc);
           setSellerMax(p.seller.maxBudgetUsdc);
@@ -289,12 +286,10 @@ function OnboardingInner() {
     return () => {
       cancelled = true;
     };
-  }, [address, router, editMode]);
+  }, [address, router, editMode, profileRetry]);
 
   async function submit() {
-    if (!address || !role) return;
-    if (profileLoadFailed) return;
-    if (profileLoadFailed || submittingRef.current) return;
+    if (!address || !role || !canSubmit || profileGate || profileLoadFailed || submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);
@@ -302,10 +297,7 @@ function OnboardingInner() {
     const wantsSeller = role === 'seller' || role === 'both';
     const wantsBuyer = role === 'buyer' || role === 'both';
 
-    const milestonePcts = milestoneSplit
-      .split(',')
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n));
+    const milestonePcts = parseMilestoneSplit(milestoneSplit) ?? [];
 
     try {
       await api.saveProfile({
@@ -346,12 +338,12 @@ function OnboardingInner() {
       // Profile saved. Hand off to workspace setup, then route onward to the
       // app or the business verification page.
       setStep('getReady');
-      submittingRef.current = false;
       setSubmitting(false);
     } catch {
       setError(t.onboarding.profileStep.error);
-      submittingRef.current = false;
       setSubmitting(false);
+    } finally {
+      submittingRef.current = false;
     }
   }
 
@@ -361,6 +353,18 @@ function OnboardingInner() {
   // cached wallet would otherwise see the language step flash before the
   // redirect to /app fires. New users hit this for a single fetch round-trip
   // (usually <100ms) then the form renders.
+  if (profileLoadFailed) {
+    return (
+      <FullBleed>
+        <Band tone="dark" compact>
+          <div className="mx-auto max-w-xl space-y-6 py-16">
+            <FormError>{t.onboarding.getReadyStep.error}</FormError>
+            <CTAPill onClick={() => setProfileRetry((n) => n + 1)}>{t.onboarding.getReadyStep.retry}</CTAPill>
+          </div>
+        </Band>
+      </FullBleed>
+    );
+  }
   if (profileGate) {
     return <OnboardingShell />;
   }
@@ -560,9 +564,7 @@ function OnboardingInner() {
 
           {step === 'getReady' && address && (
             <GetReadyStep
-              address={address}
               onDone={() => router.push('/app')}
-              onBack={() => setStep('profile')}
             />
           )}
         </div>
@@ -671,153 +673,68 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
   );
 }
 
-/// Closing onboarding step. The backend activation contract is preserved, but
-/// the UI describes the user outcome: a matching workspace that is ready for
-/// use. Funding remains a separate, explicit action on the account surface.
-function GetReadyStep({
-  address,
-  onDone,
-  onBack,
-}: {
-  address: string;
-  onDone: () => void;
-  onBack: () => void;
-}) {
-  const onboarding = useTranslations().onboarding;
-  const { activate, activating } = useActivation();
-  const back = onboarding.roleStep.backArrow;
-  const t = onboarding.getReadyStep;
-  const [phase, setPhase] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
-  const [agentsOnline, setAgentsOnline] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// Reached only after saveProfile succeeds. Activation stays explicit because
+// it provisions wallets; test funding is asynchronous and is never claimed as
+// part of this screen's success state.
+function GetReadyStep({ onDone }: { onDone: () => void }) {
+  const t = useTranslations().onboarding.getReadyStep;
+  const { activated, loading, activating, error, activate } = useActivation();
 
-  async function run() {
-    if (phase === 'running' || activating) return;
-    setPhase('running');
-    setError(null);
+  async function activateAndContinue() {
     try {
-      // Preserve the existing activation contract while the interface frames
-      // the outcome as enabling matching, with every deal requiring approval.
       await activate();
       onDone();
-      setAgentsOnline(true);
-      setPhase('done');
     } catch {
-      setError(t.error);
-      setPhase('error');
+      // useActivation owns the error state rendered below.
     }
   }
 
-  const checks = [{ label: t.checklist, done: agentsOnline }];
+  const actionLabel = loading
+    ? t.checking
+    : activating
+      ? t.activating
+      : activated
+        ? t.continue
+        : t.activate;
 
   return (
-    <div className="fade-up max-w-2xl mx-auto">
-      <div
-        className="overflow-hidden p-8 md:p-10"
-        style={{
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
-        }}
-      >
-        <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-          {t.body}
-        </p>
-
-        <ul className="mt-8 space-y-3.5" aria-live="polite">
-          {checks.map((c, i) => {
-            const active = phase === 'running' && !c.done && (i === 0 || checks[i - 1].done);
-            return (
-              <li key={c.label} className="flex items-center gap-3">
-                <span
-                  aria-hidden
-                  className="inline-flex items-center justify-center w-5 h-5 shrink-0 transition-colors duration-300"
-                  data-instrument-blink={active || undefined}
-                  style={{
-                    borderRadius: 6,
-                    background: c.done ? 'var(--lp-accent)' : 'transparent',
-                    border: c.done
-                      ? '1px solid var(--lp-accent)'
-                      : '1px solid var(--lp-border-light)',
-                    animation: active ? 'instrumentBlink 1.4s ease-in-out infinite' : undefined,
-                  }}
-                >
-                  {c.done && (
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M3 8.5 L6.5 12 L13 5"
-                        stroke="#0e0e0e"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    'text-[14px] transition-colors duration-300',
-                    c.done ? 'text-[var(--lp-dark)] font-medium' : 'text-[var(--lp-text-muted)]',
-                  )}
-                >
-                  {c.label}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-
-        {phase === 'done' && (
-          <p className="mt-8 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
+    <div className="mx-auto max-w-2xl rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-8 md:p-10">
+      <p className="text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{t.body}</p>
+      <p className="mt-7 flex items-center gap-3 font-semibold">
+        <span aria-hidden className="grid size-8 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-band-dark)]">✓</span>
+        {t.checklist}
+      </p>
+      <div className="my-8 border-s border-[var(--lp-accent)] ps-4" aria-live="polite">
+        <h2 className="font-sans text-[21px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">
+          {activated ? t.ready : t.agentTitle}
+        </h2>
+        {!activated && (
+          <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
             {t.doneBody}
           </p>
         )}
-
-        <div className="mt-9 flex items-center gap-5">
-          {phase === 'done' ? (
-            <CTAPill onClick={onDone} tone="light">
-              {t.continue}
-            </CTAPill>
-          ) : (
-            <CTAPill onClick={run} disabled={phase === 'running'} tone="light">
-              {phase === 'running'
-                ? t.activating
-                : phase === 'error'
-                  ? t.retry
-                  : t.activate}
-            </CTAPill>
-          )}
+      </div>
+      {error && <FormError>{t.activationError}</FormError>}
+      <div className="mt-6 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <CTAPill
+          onClick={activated ? onDone : () => void activateAndContinue()}
+          disabled={loading}
+          busy={activating}
+          tone="light"
+        >
+          {actionLabel}
+        </CTAPill>
+        {!activated && (
           <button
             type="button"
             onClick={onDone}
-            className="inline-flex min-h-11 items-center mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors"
+            disabled={activating}
+            className="inline-flex min-h-11 items-center px-2 font-sans text-[13px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t.skip}
           </button>
-        </div>
-
-        {error && (
-          <FormError className="mt-5">{error}</FormError>
         )}
       </div>
-      {phase !== 'running' && phase !== 'done' && (
-        <div className="mt-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
-          >
-            <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
-              ←
-            </span>
-            {back}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -1634,10 +1551,7 @@ function ProfileStep(props: {
   ];
   const [panel, setPanel] = useState(0);
   const currentPanel = panels[Math.min(panel, panels.length - 1)] ?? 'identity';
-  const splitValues = props.milestoneSplit
-    .split(',')
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isFinite(value));
+  const splitValues = parseMilestoneSplit(props.milestoneSplit);
   const panelValid =
     currentPanel === 'identity'
       ? props.displayName.trim().length > 0
@@ -1651,8 +1565,7 @@ function ProfileStep(props: {
           : props.buyerMax > 0 &&
             props.buyerMinDays > 0 &&
             props.buyerMaxDays >= props.buyerMinDays &&
-            splitValues.length > 0 &&
-            splitValues.reduce((sum, value) => sum + value, 0) === 100;
+            splitValues !== null;
 
   return (
     <div className="space-y-6 fade-up">

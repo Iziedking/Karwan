@@ -22,27 +22,11 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 // application errors in the console.
 const SPEED_INSIGHTS_AVAILABLE = process.env.VERCEL === '1';
 
-// Geist, Geist Mono, and Instrument Serif are self-hosted (woff2 in ./fonts)
-// instead of pulled from next/font/google. The Google fetch runs at build time
-// and fails in network-restricted build environments (the local Docker image
-// could not reach fonts.googleapis.com). Serving them same-origin matches the
-// General Sans treatment below and makes the build offline-safe.
+// Geist is self-hosted as a fallback (woff2 in ./fonts) instead of pulled from
+// next/font/google. The product itself uses General Sans throughout.
 const geist = localFont({
   src: [{ path: './fonts/Geist-Variable.woff2', weight: '100 900', style: 'normal' }],
   variable: '--font-geist',
-  display: 'swap',
-});
-const geistMono = localFont({
-  src: [{ path: './fonts/GeistMono-Variable.woff2', weight: '100 900', style: 'normal' }],
-  variable: '--font-geist-mono',
-  display: 'swap',
-});
-const instrumentSerif = localFont({
-  src: [
-    { path: './fonts/InstrumentSerif-Regular.woff2', weight: '400', style: 'normal' },
-    { path: './fonts/InstrumentSerif-Italic.woff2', weight: '400', style: 'italic' },
-  ],
-  variable: '--font-instrument-serif',
   display: 'swap',
 });
 
@@ -63,20 +47,10 @@ const generalSans = localFont({
   adjustFontFallback: 'Arial',
 });
 
-// Poppins Regular is reserved for explanatory product copy. Display headings,
-// navigation, financial values, controls, and verifiable labels keep Karwan's
-// existing General Sans and Geist Mono hierarchy.
-const poppins = localFont({
-  src: [{ path: './fonts/Poppins-Regular.ttf', weight: '400', style: 'normal' }],
-  variable: '--font-poppins',
-  display: 'swap',
-  adjustFontFallback: 'Arial',
-});
-
 const SITE_URL = 'https://karwan.site';
-const TITLE = 'Karwan · cross-border SME settlement';
+const TITLE = 'Karwan · open market for internet trade';
 const DESCRIPTION =
-  'Agent-mediated, USDC-settled, milestone-escrowed deals on Arc. Built on Circle.';
+  'Bring a buyer or seller from anywhere. Agree on price and delivery, protect payment in USDC, and keep the trade record.';
 
 /// Viewport tag lives in its own export per the Next.js 15 metadata split.
 /// themeColor reads as #0e0e0e so Android Chrome paints the address bar in
@@ -135,20 +109,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={DEFAULT_LOCALE}
       dir="ltr"
-      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} ${generalSans.variable} ${poppins.variable}`}
+      className={`${geist.variable} ${generalSans.variable}`}
       suppressHydrationWarning
     >
       <head>
         {/* Pre-paint theme. Mirrors shared/hooks/useTheme.ts; the two must agree
             or the page paints one theme and swaps to the other.
 
-            The stored value is a PREFERENCE, so 'system' is a legal entry and
-            has to fall through to the automatic rule: the machine's own dark
-            setting first, then the hour on its clock (dark from 19:00 to 07:00
-            local). Keep the two boundary hours identical to the hook. */}
+            The stored value is a PREFERENCE. Older 'system' entries still
+            resolve automatically, but a new visitor defaults to dark until
+            they choose light. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'){var h=new Date().getHours();t=(window.matchMedia('(prefers-color-scheme: dark)').matches||h>=19||h<7)?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'&&t!=='system'){t='dark';}if(t==='system'){var h=new Date().getHours();t=(window.matchMedia('(prefers-color-scheme: dark)').matches||h>=19||h<7)?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
           }}
         />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and

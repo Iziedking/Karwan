@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { SIGNED_OUT_ROUTE } from '@/shared/auth/signedOutRoute';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { arcTestnet } from '@/core/wagmi';
@@ -9,7 +10,6 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { SIGNED_OUT_ROUTE } from '@/shared/auth/signedOutRoute';
 
 interface Props {
   open: boolean;
@@ -20,8 +20,8 @@ interface Props {
 /// users. Shows the bound email, the underlying 0x identity address, a
 /// copy-to-clipboard, the live Arc USDC balance, and a sign-out chip.
 export function CircleAccountModal({ open, onClose }: Props) {
-  const router = useRouter();
   const auth = useAuth();
+  const router = useRouter();
   const t = useTranslations().account.modal;
   const { copied, copy } = useClipboard();
   const { data } = useBalance({
@@ -67,7 +67,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
         aria-modal="true"
         aria-label={t.ariaDialog}
         onClick={(e) => e.stopPropagation()}
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[400px] sm:rounded-none sm:rounded-s-[16px]"
+        className="product-surface karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[400px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
@@ -93,20 +93,10 @@ export function CircleAccountModal({ open, onClose }: Props) {
           <div
             aria-hidden
             className="mx-auto inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
-            style={{
-              background: '#0e0e0e',
-              border: '1px solid var(--lp-border-light)',
-            }}
+            style={{ border: '1px solid var(--lp-border-light)' }}
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M7 17 L10 7 L12 13 L14 7 L17 17"
-                stroke="var(--lp-accent)"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/karwan-app-icon.svg" alt="" width="64" height="64" className="size-16 rounded-full" />
           </div>
           {auth.email && (
             <p className="mono text-[12px] tracking-[0.04em] text-[var(--lp-text-sub)] mb-1">
@@ -193,7 +183,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
         </div>
 
         <p className="px-6 pb-5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] text-center leading-relaxed">
-          {t.fundHint}
+          Your Karwan account can hold available USDC for trades and transfers.
         </p>
       </div>
     </div>,

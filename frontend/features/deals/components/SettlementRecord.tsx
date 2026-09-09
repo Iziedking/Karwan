@@ -103,14 +103,11 @@ export function SettlementRecord({
     <section
       aria-labelledby="settlement-record-heading"
       data-float-guard
-      className="mt-8 border-t border-[var(--lp-workspace-border)] pt-8"
+      className="mt-7 border-t border-[var(--lp-workspace-border)] pt-7"
     >
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
-        <span aria-hidden className="me-2 inline-block size-1 bg-[var(--lp-workspace-faint)]" />
-        [:SETTLEMENT RECORD]
-      </p>
+      <p className="text-[13px] font-semibold text-[var(--lp-workspace-muted)]">Settlement record</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <h3 id="settlement-record-heading" className="font-display text-[22px] font-bold tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
+        <h3 id="settlement-record-heading" className="font-display text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
           {copy.title}
         </h3>
         <p className="max-w-[44ch] text-[12px] leading-relaxed text-[var(--lp-workspace-muted)] sm:text-end">
@@ -179,7 +176,7 @@ export function SettlementRecord({
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="mono text-[10px] uppercase tracking-[0.17em] text-[var(--lp-workspace-faint)]">
-                      [:{String(index + 1).padStart(2, '0')}] {kindLabel}
+                      Payment {index + 1} · {kindLabel}
                     </p>
                     <p className="mt-3 font-display text-[26px] font-bold leading-none tabular-nums text-[var(--lp-workspace-ink)]">
                       {movement.amountUsdc} <span className="mono text-[11px] tracking-[0.14em] text-[var(--lp-workspace-muted)]">USDC</span>
@@ -239,13 +236,13 @@ export function SettlementRecord({
 
                 {expanded && (
                   <div id={`proof-${movement.reference}`} className="mt-4 border-t border-[var(--lp-workspace-border)] pt-4">
-                    <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">[:PROOF]</p>
+                    <p className="text-[11px] font-semibold text-[var(--lp-workspace-faint)]">Payment proof</p>
                     <ol className="mt-3 space-y-3">
                       {movement.legs.map((leg, legIndex) => (
                         <li key={`${movement.reference}:${leg.key}`} className="grid gap-2 border-s border-[var(--lp-workspace-border)] ps-3 sm:grid-cols-[1fr_auto] sm:items-start">
                           <div className="min-w-0">
                             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
-                              [:{String(legIndex + 1).padStart(2, '0')}] {copy.legStates[leg.state]}
+                              Step {legIndex + 1} · {copy.legStates[leg.state]}
                             </p>
                             <p className="mt-1 text-[13px] text-[var(--lp-workspace-ink)]">{leg.label}</p>
                             {leg.providerId && (
@@ -284,7 +281,7 @@ export function SettlementRecord({
 
       {fetchState !== 'loading' && legacyReceipts.length > 0 && (
         <div className="mt-5 border-t border-[var(--lp-workspace-border)] pt-4">
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">[:{copy.legacyTitle}]</p>
+          <p className="text-[11px] font-semibold text-[var(--lp-workspace-faint)]">{copy.legacyTitle}</p>
           <p className="mt-2 text-[12px] leading-relaxed text-[var(--lp-workspace-muted)]">{copy.legacyBody}</p>
           <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
             {legacyReceipts.map((receipt) => (

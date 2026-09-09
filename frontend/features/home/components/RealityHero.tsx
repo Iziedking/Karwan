@@ -1,28 +1,73 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
+import { nextTradeIntentIndex, TRADE_INTENT_INTERVAL_MS } from '../tradeIntentRotation';
+import { PlatformMark } from './PlatformMark';
 
-/** A cinematic full-bleed landing hero for Karwan's trade-lane footage.
- *
- * The film fills the screen exactly: the free height between the sticky chrome
- * and the bottom of the viewport, published as `--lp-panel-h` (globals.css,
- * "Landing panels"). It used to guess at `100svh - 4rem`, which on most phones
- * left the cream band under it showing a centimetre of itself along the bottom
- * edge, and the hero read as a cropped mistake rather than a frame.
- *
- * The film also drifts and dims as the row leaves, so the row arriving is the
- * brighter of the two and the change of row is something you see, not just
- * something that happens.
- */
+const tradeIntents = [
+  {
+    id: 'tiktok',
+    platform: 'TikTok Shop',
+    label: 'Social commerce',
+    title: 'Source 200 custom tote bags',
+    detail: 'A creator shares a supplier request. Karwan turns it into a clear deal.',
+    amount: '1,240 USDC',
+    status: 'New intent',
+  },
+  {
+    id: 'instagram',
+    platform: 'Instagram',
+    label: 'Product enquiry',
+    title: 'Order 80 leather sandals',
+    detail: 'A buyer brings a social-shop enquiry into a deal with quantity and delivery terms.',
+    amount: '2,100 USDC',
+    status: 'Review terms',
+  },
+  {
+    id: 'facebook',
+    platform: 'Facebook Marketplace',
+    label: 'Cross-border purchase',
+    title: 'Source 40 solar lamps',
+    detail: 'Buyer and supplier keep price, delivery, and evidence together.',
+    amount: '3,600 USDC',
+    status: 'Delivery due',
+  },
+  {
+    id: 'x',
+    platform: 'X',
+    label: 'Logistics request',
+    title: 'Book a Lagos to Accra freight run',
+    detail: 'A public logistics request becomes a private agreement with delivery evidence.',
+    amount: '1,850 USDC',
+    status: 'Counterparty found',
+  },
+  {
+    id: 'linkedin',
+    platform: 'LinkedIn',
+    label: 'Supplier contract',
+    title: 'Settle a wholesale invoice',
+    detail: 'Pay in USDC, review the delivery, and keep the record.',
+    amount: '5,200 USDC',
+    status: 'Ready to agree',
+  },
+] as const;
+
+/** The landing front door: real trade footage on the left, a legible deal
+ * object on the right. The object is a visual explanation of the product,
+ * not a claim about a particular live trade. */
 export function RealityHero() {
   const lp = useTranslations().landingPage;
   const reduce = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
+  const [intentIndex, setIntentIndex] = useState(0);
+  const [documentVisible, setDocumentVisible] = useState(true);
+  const heroInView = useInView(frameRef, { amount: 0.3 });
+  const intent = tradeIntents[intentIndex];
 
   useEffect(() => {
     const video = videoRef.current;
@@ -30,24 +75,40 @@ export function RealityHero() {
     if (reduce) {
       video.pause();
       video.currentTime = 0;
-    } else {
-      void video.play().catch(() => {
-        // A blocked autoplay still leaves the poster and copy usable.
-      });
+      return;
     }
+    void video.play().catch(() => {
+      // The poster and product explanation remain useful when autoplay is blocked.
+    });
   }, [reduce]);
 
+  useEffect(() => {
+    const sync = () => setDocumentVisible(document.visibilityState === 'visible');
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, []);
+
+  useEffect(() => {
+    if (reduce || !heroInView || !documentVisible) return;
+    const timer = window.setTimeout(
+      () => setIntentIndex((current) => nextTradeIntentIndex(current, tradeIntents.length)),
+      TRADE_INTENT_INTERVAL_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [documentVisible, heroInView, intentIndex, reduce]);
+
   const { scrollYProgress } = useScroll({ target: frameRef, offset: ['start start', 'end start'] });
-  const filmY = useTransform(scrollYProgress, [0, 1], [0, 70]);
-  const filmScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
-  const filmDim = useTransform(scrollYProgress, [0, 0.85], [1, 0.35]);
-  const copyY = useTransform(scrollYProgress, [0, 1], [0, -48]);
-  const copyFade = useTransform(scrollYProgress, [0, 0.62], [1, 0]);
+  const filmY = useTransform(scrollYProgress, [0, 1], [0, 44]);
+  const filmScale = useTransform(scrollYProgress, [0, 1], [1, 1.06]);
+  const filmDim = useTransform(scrollYProgress, [0, 0.85], [1, 0.45]);
+  const contentY = useTransform(scrollYProgress, [0, 1], [0, -28]);
+  const contentFade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
   return (
     <div
       ref={frameRef}
-      className="relative isolate overflow-hidden bg-[var(--lp-workspace-band)] text-[var(--lp-workspace-ink)]"
+      className="landing-hero relative isolate overflow-hidden bg-[var(--lp-workspace-band)] text-[var(--lp-workspace-ink)]"
       style={{ minHeight: 'var(--lp-panel-h)' }}
     >
       <motion.div
@@ -69,106 +130,104 @@ export function RealityHero() {
           <source src="/media/karwan-reality.mp4" type="video/mp4" />
         </video>
       </motion.div>
+
       <div
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
-        style={{ background: 'linear-gradient(180deg, rgba(10,10,11,0.84) 0%, rgba(10,10,11,0.33) 42%, rgba(10,10,11,0.7) 100%)' }}
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(8,10,9,0.92) 0%, rgba(8,10,9,0.7) 42%, rgba(8,10,9,0.48) 100%), linear-gradient(180deg, rgba(8,10,9,0.4) 0%, rgba(8,10,9,0.72) 100%)',
+        }}
       />
 
       <motion.div
-        className="relative z-10 flex items-center justify-center px-5 py-20 sm:px-8 sm:py-24 lg:px-16"
-        style={{ minHeight: 'var(--lp-panel-h)', ...(reduce ? {} : { y: copyY, opacity: copyFade }) }}
+        className="relative z-10 mx-auto grid min-h-[var(--lp-panel-h)] w-full max-w-[1440px] items-center gap-12 px-[clamp(20px,5vw,72px)] py-[clamp(92px,12vh,144px)] lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.72fr)] lg:gap-16"
+        style={reduce ? undefined : { y: contentY, opacity: contentFade }}
       >
         <motion.div
-          className="mx-auto w-full max-w-4xl text-center"
-          initial={{ opacity: 0, y: reduce ? 0 : 22 }}
+          className="max-w-[690px]"
+          initial={{ opacity: 0, y: reduce ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: reduce ? 0.18 : dur.hero, ease: ease.out }}
         >
-          <span className="inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
-            <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-            [:{lp.hero.tag}]
-          </span>
-          <h1 className="mx-auto mt-8 max-w-[12ch] font-sans text-[clamp(3.5rem,9vw,8rem)] font-extrabold uppercase leading-[0.88] tracking-[-0.045em] text-balance">
-            {lp.hero.titleLine1}{' '}
-            {lp.hero.titleLine2}{' '}
+          <p className="text-[13px] font-semibold text-[var(--lp-workspace-ink)]/72">{lp.hero.tag}</p>
+          <h1
+            id="landing-heading"
+            className="mt-5 max-w-[12ch] text-balance text-[clamp(3rem,6.6vw,6.4rem)] font-semibold leading-[0.9] tracking-[-0.065em]"
+          >
+            {lp.hero.titleLine1} {lp.hero.titleLine2}{' '}
             <span className="text-[var(--lp-accent)]">{lp.hero.titleAccent}</span>
           </h1>
-          <p className="mx-auto mt-8 max-w-[39ch] text-pretty font-sans text-[clamp(1.15rem,2.2vw,1.6rem)] font-medium leading-[1.34] tracking-[-0.015em] text-[var(--lp-workspace-ink)]">
+          <p className="mt-7 max-w-[54ch] text-pretty text-[clamp(0.98rem,1.45vw,1.15rem)] leading-[1.6] text-[var(--lp-workspace-ink)]/72">
             {lp.hero.body}
           </p>
-          <motion.div
-            className="mt-9 flex flex-wrap items-center justify-center gap-3"
-            initial={{ opacity: 0, y: reduce ? 0 : 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: reduce ? 0.18 : dur.base, delay: reduce ? 0 : 0.16, ease: ease.out }}
-          >
-            <Link href="/app" className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] bg-[var(--lp-accent)] px-6 py-3 mono text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b]">
-              {lp.hero.ctaPrimary}
-              <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">↘</span>
-            </Link>
-            <Link href="/how-it-works" className="group inline-flex min-h-11 items-center justify-center gap-2 rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] border border-[var(--lp-workspace-ink)] px-6 py-3 mono text-[13px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-workspace-ink)] transition-colors duration-200 hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)]">
-              {lp.hero.ctaSecondary}
-              <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">↗</span>
-            </Link>
-          </motion.div>
-          <motion.p
-            className="mono mt-8 text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]"
-            animate={reduce ? undefined : { opacity: [0.55, 1, 0.55] }}
-            transition={reduce ? undefined : { duration: 3.2, ease: 'easeInOut', repeat: Infinity }}
-          >
-            {lp.hero.footnote}
-          </motion.p>
+          <Link href="/app" className="landing-action landing-action-primary mt-8">
+            {lp.hero.ctaPrimary}<span aria-hidden className="landing-action-arrow">→</span>
+          </Link>
+          <p className="mt-7 text-[12px] text-[var(--lp-workspace-ink)]/55">{lp.hero.footnote}</p>
+        </motion.div>
+
+        <motion.div
+          className="landing-deal-card w-full max-w-[470px] justify-self-start lg:justify-self-end"
+          initial={{ opacity: 0, y: reduce ? 0 : 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduce ? 0.18 : dur.slow, delay: reduce ? 0 : 0.22, ease: ease.out }}
+        >
+          <div aria-live="polite" aria-atomic="true">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={intent.id}
+              initial={{ opacity: 0, y: reduce ? 0 : 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: reduce ? 0 : -10 }}
+              transition={{ duration: reduce ? 0.12 : 0.38, ease: ease.out }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <PlatformMark id={intent.id} />
+                  <div>
+                    <p className="text-[11px] font-semibold tracking-[0.08em] text-[var(--lp-workspace-ink)]/55">{intent.platform}</p>
+                    <p className="mt-1 text-[13px] text-[var(--lp-workspace-ink)]/72">{intent.label}</p>
+                  </div>
+                </div>
+                <span className="landing-status-pill">{intent.status}</span>
+              </div>
+
+              <p className="mt-8 max-w-[17ch] text-[clamp(1.5rem,3vw,2.25rem)] font-semibold leading-[1.02] tracking-[-0.04em]">{intent.title}</p>
+              <p className="mt-3 max-w-[38ch] text-[13px] leading-relaxed text-[var(--lp-workspace-ink)]/62">{intent.detail}</p>
+
+              <div className="mt-7 flex items-end justify-between gap-4 border-y border-white/15 py-5">
+                <div>
+                  <p className="text-[12px] text-[var(--lp-workspace-ink)]/55">Trade value</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums tracking-[-0.04em]">{intent.amount}</p>
+                </div>
+                <p className="text-end text-[12px] text-[var(--lp-workspace-ink)]/55">Milestones<br />and delivery proof</p>
+              </div>
+
+              <div className="mt-5 flex items-center justify-between gap-3 text-[13px]">
+                <span className="text-[var(--lp-workspace-ink)]/62">Example trade intent</span>
+                <Link href="/app" className="inline-flex min-h-11 items-center text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2">Enter Karwan →</Link>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+          </div>
+          {!reduce ? <span key={intent.id} aria-hidden className="landing-intent-progress" /> : null}
+          <div className="mt-6 flex items-center gap-2" aria-label="Trade sources">
+            {tradeIntents.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-label={`Show ${item.platform} trade intent`}
+                aria-pressed={intentIndex === index}
+                onClick={() => setIntentIndex(index)}
+                className={intentIndex === index ? 'landing-source-button landing-source-button-active' : 'landing-source-button'}
+              >
+                <PlatformMark id={item.id} />
+              </button>
+            ))}
+          </div>
         </motion.div>
       </motion.div>
-
-      <div className="pointer-events-none absolute inset-x-5 bottom-5 z-10 flex items-end justify-between gap-4 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] sm:inset-x-8 lg:inset-x-16">
-        <span>[:KARWAN REALITY]</span>
-        <span className="hidden sm:inline">CROSS-BORDER WORK IN MOTION</span>
-      </div>
-    </div>
-  );
-}
-
-const realityKits = [
-  { id: 'escrow', tag: '[:ESCROW]', value: 'USDC HELD', detail: 'MILESTONE 01' },
-  { id: 'lane', tag: '[:TRADE LANE]', value: 'LAGOS → DUBAI', detail: 'CROSS-BORDER' },
-  { id: 'settle', tag: '[:SETTLE]', value: 'RELEASE READY', detail: 'ON ARC TESTNET' },
-];
-
-/** Operational vocabulary sits in its own editorial rail below the film. */
-export function RealityKitRail() {
-  const reduce = useReducedMotion();
-  const [active, setActive] = useState(0);
-
-  useEffect(() => {
-    if (reduce) return;
-    const timer = window.setInterval(() => setActive((index) => (index + 1) % realityKits.length), 2800);
-    return () => window.clearInterval(timer);
-  }, [reduce]);
-
-  return (
-    <div className="border-y border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] px-[clamp(20px,5vw,72px)] py-4 text-[var(--lp-workspace-ink)]">
-      <div className="mx-auto grid max-w-[1440px] gap-3 sm:grid-cols-3">
-        {realityKits.map((kit, index) => (
-          <motion.div
-            key={kit.id}
-            animate={reduce ? undefined : { opacity: active === index ? 1 : 0.48, y: active === index ? 0 : 2 }}
-            transition={{ duration: reduce ? 0 : 0.35, ease: ease.out }}
-            className="flex min-h-11 items-center justify-between gap-4 border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)] px-3 py-2.5 sm:px-4"
-            style={{ borderRadius: 10 }}
-          >
-            <span className="flex items-center gap-2 mono text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] sm:text-[10px]">
-              <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-              {kit.tag}
-            </span>
-            <span className="text-end">
-              <span className="block font-sans text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--lp-workspace-ink)]">{kit.value}</span>
-              <span className="mt-0.5 block mono text-[8px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{kit.detail}</span>
-            </span>
-          </motion.div>
-        ))}
-      </div>
     </div>
   );
 }

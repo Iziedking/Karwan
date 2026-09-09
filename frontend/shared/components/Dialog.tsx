@@ -18,9 +18,9 @@ interface ConfirmOpts {
   title: string;
   message?: string;
   confirmLabel?: string;
-  cancelLabel?: string;
-  compact?: boolean;
   danger?: boolean;
+  compact?: boolean;
+  cancelLabel?: string;
 }
 
 interface PromptOpts {
@@ -176,6 +176,8 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
     closeActive(active.kind === 'prompt' ? value : true);
   }
 
+  const compact = active?.kind === 'confirm' && active.options.compact;
+
   const provider = (
     <DialogContext.Provider value={{ confirm, prompt, notify }}>
       {children}
@@ -186,7 +188,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                 {active ? (
                   <motion.div
                     key="dialog"
-                    className="fixed inset-0 z-[200] flex items-end bg-black/60 sm:items-stretch sm:justify-end"
+                    className={`fixed inset-0 z-[200] flex items-end bg-black/60 sm:justify-end ${compact ? 'sm:p-6' : 'sm:items-stretch'}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -204,7 +206,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       aria-modal="true"
                       aria-labelledby="karwan-dialog-title"
                       aria-describedby={active.options.message ? 'karwan-dialog-message' : undefined}
-                      className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:h-full sm:max-h-none sm:w-[440px] sm:rounded-none sm:rounded-s-[16px]"
+                      className={`flex max-h-[92dvh] w-full flex-col overflow-y-auto rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:w-[440px] ${compact ? 'product-surface sm:rounded-[20px]' : 'sm:h-full sm:max-h-none sm:rounded-none sm:rounded-s-[16px]'}`}
                       initial={sheetHiddenState(reduce, desktop)}
                       animate={{ opacity: 1, x: 0, y: 0 }}
                       exit={sheetHiddenState(reduce, desktop)}
@@ -212,12 +214,12 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       onMouseDown={(event) => event.stopPropagation()}
                     >
                       <header className="border-b border-[var(--color-line)] px-6 pb-5 pt-6">
-                        <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+                        {!compact && <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
                           • [:{active.kind === 'prompt' ? 'INPUT REQUIRED' : 'REVIEW ACTION'}]
-                        </p>
+                        </p>}
                         <h2
                           id="karwan-dialog-title"
-                          className="mt-3 font-sans text-[26px] font-bold leading-[1.02] tracking-[-0.025em]"
+                          className={`${compact ? '' : 'mt-3'} font-sans text-[26px] font-bold leading-[1.02] tracking-[-0.025em]`}
                         >
                           {active.options.title}
                         </h2>
@@ -231,7 +233,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                         ) : null}
                       </header>
 
-                      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                      {!compact && <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
                         {active.kind === 'prompt' ? (
                           <label className="block">
                             <span className="mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
@@ -254,20 +256,22 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                             [:READY FOR YOUR DECISION]
                           </p>
                         )}
-                      </div>
+                      </div>}
 
                       <footer className="grid grid-cols-2 gap-3 border-t border-[var(--color-line)] bg-[var(--color-surface-2)] px-6 py-5">
                         <Button
                           type="button"
                           variant="outline"
+                          className={compact ? '!font-sans !normal-case !tracking-normal !text-[14px]' : undefined}
                           data-dialog-cancel
                           onClick={() => closeActive(active.kind === 'prompt' ? null : false)}
                         >
-                          {active.kind === 'confirm' ? (active.options.cancelLabel ?? 'Cancel') : 'Cancel'}
+                          {active.kind === 'confirm' ? active.options.cancelLabel ?? 'Cancel' : 'Cancel'}
                         </Button>
                         <Button
                           type="submit"
                           variant={active.kind === 'confirm' && active.options.danger ? 'critical' : 'primary'}
+                          className={compact ? '!font-sans !normal-case !tracking-normal !text-[14px]' : undefined}
                         >
                           {active.options.confirmLabel ?? (active.kind === 'prompt' ? 'Save' : 'Confirm')}
                         </Button>

@@ -3,10 +3,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { api } from '@/core/api';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { cn } from '@/shared/utils/cn';
-import { StickyTabStrip, type Tab } from '@/shared/components/skill';
 import { dur, ease } from '@/shared/motion/tokens';
 import { RealityHero } from '@/features/home/components/RealityHero';
 import {
@@ -54,17 +52,9 @@ const LANDING_PAGE_VARS = {
 
 export default function HomePage() {
   const lp = useTranslations().landingPage;
-  const [active, setActive] = useState<string>('overview');
   // Rows snap to the screen on a phone. Scoped to this page's lifetime so no
   // other route inherits the behaviour.
   usePanelSnap();
-
-  const tabs: Tab[] = [
-    { id: 'overview', label: lp.tabs.overview, hash: 'overview' },
-    { id: 'how-it-works', label: lp.tabs.howItWorks, hash: 'how-it-works' },
-    { id: 'flow', label: lp.tabs.flow, hash: 'flow' },
-    { id: 'get-started', label: lp.tabs.getStarted, hash: 'get-started' },
-  ];
 
   // Load top-down. The browser's default scroll restoration drops a refresh
   // back at the last position (often the footer), which also makes the
@@ -81,30 +71,8 @@ export default function HomePage() {
     };
   }, []);
 
-  // Drive sticky tab active state from scroll position.
-  useEffect(() => {
-    const ids = tabs.map((t) => t.hash).filter(Boolean) as string[];
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      { threshold: [0.2, 0.5, 0.8], rootMargin: '-100px 0px -50% 0px' },
-    );
-    for (const id of ids) {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    <div className="-mt-10 -mb-10" style={LANDING_PAGE_VARS}>
-      <StickyTabStrip tabs={tabs} active={active} onChange={setActive} onDark />
-
+    <div id="landing-root" className="-mt-10 -mb-10" style={LANDING_PAGE_VARS}>
       {/* HERO. A real trade-lane film carries the emotional weight; the copy
           remains centered, sparse, and readable over a controlled scrim. The
           film is sized to the exact free height of the screen, so the row under
@@ -119,8 +87,6 @@ export default function HomePage() {
       <DealPathsSection direct={lp.directDeals} managed={lp.managedDeals} />
 
       <FlowSection copy={lp.flow} />
-      <TradeLanesSection copy={lp.tradeLanes} />
-      <EarlyTradesSection copy={lp.earlyTrades} />
       <GetStartedSection copy={lp.getStarted} />
 
       {/* FINAL CTA. dark */}
@@ -139,9 +105,6 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
             <CTAPill href="/app">{lp.finalCta.ctaPrimary}</CTAPill>
-            <CTAPill href="/how-it-works" variant="secondary" tone="dark">
-              {lp.finalCta.ctaSecondary}
-            </CTAPill>
           </div>
         </PanelContent>
       </Band>
@@ -151,6 +114,7 @@ export default function HomePage() {
 
 // How it works. three-rails typographic row, replaces the old "spine" grid
 function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
+  const reduce = useReducedMotion();
   const rails = [
     { n: '001', title: copy.rail1Title, body: copy.rail1Body },
     { n: '002', title: copy.rail2Title, body: copy.rail2Body },
@@ -179,29 +143,26 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
               />
             </PanelMedia>
           </div>
-          <div className="relative z-10 flex flex-col justify-center px-[clamp(20px,5vw,72px)] py-[clamp(28px,8vw,112px)] lg:ps-[clamp(28px,4vw,68px)]">
+          <div className="relative z-10 flex flex-col justify-center px-[clamp(20px,5vw,72px)] py-8 lg:ps-[clamp(28px,4vw,68px)]">
             <PanelContent>
             <SectionTag>{copy.tag}</SectionTag>
-            <h2 className="mt-6 max-w-[11ch] font-sans text-[clamp(1.85rem,5.4vw,5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.035em] text-balance">
+            <h2 className="mt-6 max-w-[11ch] font-sans text-[clamp(1.85rem,4vw,3.5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.035em] text-balance">
               {copy.titleStart} <span className="text-[var(--lp-accent-on-light)]">{copy.titleAccent}</span> {copy.titleEnd}
             </h2>
-            <p className="mt-7 max-w-[38ch] text-[15px] leading-[1.6] text-[var(--lp-text-sub)]">
-              Funds, delivery, and proof stay in one visible settlement path.
-            </p>
             </PanelContent>
-            <ol className="mt-8 grid border-t border-[var(--lp-border-light)] sm:mt-12">
+            <ol className="mt-8 grid border-t border-[var(--lp-border-light)] sm:mt-8">
             {rails.map((r, i) => (
               <motion.li
                 key={r.n}
-                initial={{ opacity: 0, x: 18 }}
+                initial={reduce ? false : { opacity: 0, x: 18 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: dur.slow, ease: ease.out, delay: i * 0.08 }}
-                className="grid grid-cols-[52px_1fr] gap-4 border-b border-[var(--lp-border-light)] py-5 sm:grid-cols-[64px_1fr] sm:gap-5 sm:py-6"
+                className="grid grid-cols-[52px_1fr] gap-4 border-b border-[var(--lp-border-light)] py-5 sm:grid-cols-[64px_1fr] sm:gap-5 sm:py-4"
               >
-                <span className="mono pt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">[:{r.n}]</span>
+                <span className="pt-1 text-[11px] font-semibold tabular-nums text-[var(--lp-text-sub)]">{r.n}</span>
                 <div>
-                  <h3 className="font-sans text-[clamp(1.35rem,2.6vw,2.1rem)] font-bold uppercase leading-[0.98] tracking-[-0.025em] text-[var(--lp-dark)]">
+                  <h3 className="font-sans text-[clamp(1.25rem,2vw,1.6rem)] font-bold uppercase leading-[0.98] tracking-[-0.025em] text-[var(--lp-dark)]">
                     {r.title}
                   </h3>
                   <p className="mt-3 max-w-[42ch] text-[14px] leading-[1.5] text-[var(--lp-text-sub)]">{r.body}</p>
@@ -218,24 +179,29 @@ function HowItWorksSection({ copy }: { copy: LandingCopy['howItWorks'] }) {
 
 function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeals']; managed: LandingCopy['managedDeals'] }) {
   const pb = useTranslations().pageBits;
+  const reduce = useReducedMotion();
   const cards = [
-    // The direct path is a human agreement, so the handshake is the visual
-    // shorthand. Agent matching gets its own cutout, separated from the source
-    // artwork's background so both halves share one Karwan surface.
     { copy: direct, image: '/media/landing/onboard-cutout.png', glyph: <GlyphWallet />, index: '001' },
     { copy: managed, image: '/media/landing/agent_matched-clean.png', glyph: <GlyphAuction />, index: '002' },
   ];
+
   return (
     <Band tone="dark" panel="grow">
-      <PanelContent><SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag><h2 className="mt-6 font-sans text-[clamp(2rem,7vw,3rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.025em]">{pb.chooseHowDealStarts}</h2></PanelContent>
+      <PanelContent>
+        <SectionTag tone="dark">{direct.tag} / {managed.tag}</SectionTag>
+        <h2 className="mt-6 max-w-[18ch] font-sans text-[clamp(2rem,7vw,3rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.025em]">
+          {pb.chooseHowDealStarts}
+        </h2>
+      </PanelContent>
+
       <div className="mt-10 grid gap-6 lg:mt-14 lg:grid-cols-2">
         {cards.map(({ copy, image, glyph, index }, cardIndex) => (
           <motion.article
             key={copy.tag}
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={reduce ? false : { opacity: 0, y: 22, scale: 0.985 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
             viewport={{ once: true, amount: 0.16 }}
-            transition={{ duration: dur.slow, ease: ease.out, delay: cardIndex * 0.08 }}
+            transition={{ duration: reduce ? 0 : dur.slow, ease: ease.out, delay: cardIndex * 0.08 }}
             className="overflow-hidden rounded-[22px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)]"
           >
             <div className="flex min-h-[340px] min-w-0 flex-col px-5 py-8 sm:px-8 sm:py-10 lg:min-h-[360px] lg:px-10 lg:py-11">
@@ -256,7 +222,9 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
                   ].map((tile, tileIndex) => (
                     <li key={tile.title} className="grid gap-3 py-4 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-5">
                       <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">[:{String(tileIndex + 1).padStart(3, '0')}]</span>
-                      <p className="text-[13px] leading-[1.55] text-[var(--lp-workspace-muted)]"><strong className="text-[var(--lp-workspace-ink)]">{tile.title}.</strong>{' '}{tile.body}</p>
+                      <p className="text-[13px] leading-[1.55] text-[var(--lp-workspace-muted)]">
+                        <strong className="text-[var(--lp-workspace-ink)]">{tile.title}.</strong>{' '}{tile.body}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -282,7 +250,6 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
     </Band>
   );
 }
-
 // Flow. deal end to end. Six stage chips on a hairline track + three KPIs
 /// Compact "1.2M" / "412K" formatting for the KPI band. Returns value + unit
 /// separately because KpiBlock renders them in different type sizes.
@@ -293,37 +260,10 @@ function compactUsdc(volume: number): { value: string; unit: string } {
 }
 
 function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
-  // Real platform numbers, not marketing copy: the same aggregate endpoint
-  // the app itself uses. '—' until the fetch lands; a failed fetch just keeps
-  // the placeholders (the landing must render without the API).
-  const [stats, setStats] = useState<{
-    settled: number;
-    total: number;
-    volumeUsdc: number;
-  } | null>(null);
-  useEffect(() => {
-    let alive = true;
-    api
-      .dealsStats()
-      .then((r) => {
-        if (alive) setStats({ settled: r.settled, total: r.total, volumeUsdc: r.volumeUsdc });
-      })
-      .catch(() => {
-        /* placeholders stay */
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const volume = stats ? compactUsdc(stats.volumeUsdc) : null;
+  const footnote = useTranslations().landingPage.hero.footnote;
   const reduce = useReducedMotion();
   const [activeStep, setActiveStep] = useState(0);
 
-  useEffect(() => {
-    if (reduce) return;
-    const timer = window.setInterval(() => setActiveStep((step) => (step + 1) % 6), 2600);
-    return () => window.clearInterval(timer);
-  }, [reduce]);
 
   const steps: Array<{
     tag: string;
@@ -355,7 +295,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
             className="inline-block w-[6px] h-[6px]"
             style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
           />
-          {copy.liveLabel}
+          {footnote}
         </p>
       </PanelContent>
 
@@ -370,13 +310,14 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
         <div className="p-8 md:p-12">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-0">
             {steps.map((s, i) => (
-              <motion.div
+              <motion.button
                 key={s.tag}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
+                type="button"
+                aria-pressed={activeStep === i}
+                onClick={() => setActiveStep(i)}
+                initial={false}
                 transition={{ duration: dur.base, ease: ease.out, delay: i * 0.07 }}
-                className="relative px-4 py-6"
+                className="relative min-h-11 px-4 py-6 text-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]"
                 data-flow-active={activeStep === i ? 'true' : undefined}
                 animate={reduce ? undefined : { opacity: activeStep === i ? 1 : 0.58, y: activeStep === i ? 0 : 2 }}
                 style={{
@@ -392,7 +333,7 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                     className="mono text-[10px] tabular-nums uppercase tracking-[0.1em]"
                     style={{ color: '#E6E6E3' }}
                   >
-                    [{String(i + 1).padStart(2, '0')}]
+                    {String(i + 1).padStart(2, '0')}
                   </span>
                   <FlowChip variant={s.state}>{s.tag}</FlowChip>
                 </div>
@@ -410,30 +351,11 @@ function FlowSection({ copy }: { copy: LandingCopy['flow'] }) {
                     }}
                   />
                 )}
-              </motion.div>
+              </motion.button>
             ))}
           </div>
 
-          <div
-            className="mt-12 pt-8 grid md:grid-cols-3 gap-8"
-            style={{ borderTop: '1px solid var(--lp-border-subtle)' }}
-          >
-            <KpiBlock
-              label={copy.kpis.dealsLabel}
-              value={stats ? String(stats.total) : '—'}
-              unit=""
-            />
-            <KpiBlock
-              label={copy.kpis.settledLabel}
-              value={stats ? String(stats.settled) : '—'}
-              unit=""
-            />
-            <KpiBlock
-              label={copy.kpis.volumeLabel}
-              value={volume ? volume.value : '—'}
-              unit={volume ? volume.unit : ''}
-            />
-          </div>
+
         </div>
       </div>
     </Band>
@@ -480,7 +402,7 @@ function KpiBlock({
           className="mono text-[10px] uppercase tracking-[0.12em]"
           style={{ color: 'var(--lp-workspace-muted)' }}
         >
-          [:{label}]
+          {label}
         </span>
         {live && (
           <span className="relative inline-flex w-[6px] h-[6px]">
@@ -562,7 +484,7 @@ function TradeLanesSection({ copy }: { copy: LandingCopy['tradeLanes'] }) {
             <span
               className="mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]"
             >
-              [:{l.id}]
+                  {l.id}
             </span>
             <span
               className="font-sans text-[clamp(1.25rem,2.4vw,2rem)] font-bold uppercase leading-tight tracking-[-0.025em] text-[var(--lp-workspace-ink)]"
@@ -782,10 +704,11 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
     { n: '003', title: copy.step3Title, body: copy.step3Body },
   ];
   const [open, setOpen] = useState<string | null>('001');
+  const reduce = useReducedMotion();
   return (
     <Band id="get-started" tone="light" panel="grow" className="!max-w-none !px-0 !py-0">
       <div className="relative isolate overflow-hidden border-y border-black/10">
-        <div className="relative mx-auto max-w-[1080px] px-[clamp(20px,5vw,72px)] py-[clamp(36px,9vw,132px)]">
+        <div className="relative mx-auto max-w-[1080px] px-[clamp(20px,5vw,72px)] py-[clamp(36px,5vw,72px)]">
        <div className="relative z-10">
        <PanelContent>
         <SectionTag>{copy.tag}</SectionTag>
@@ -794,7 +717,7 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
         </h2>
       </PanelContent>
 
-      <ul className="mt-8 lg:mt-0">
+      <ul className="mt-8">
         {steps.map((s, i) => {
           const isOpen = open === s.n;
           return (
@@ -809,13 +732,16 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : s.n)}
-                className="w-full grid grid-cols-[100px_1fr_auto] gap-6 items-baseline py-6 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+                id={`setup-trigger-${s.n}`}
+                aria-expanded={isOpen}
+                aria-controls={`setup-panel-${s.n}`}
+                className="w-full grid grid-cols-[32px_minmax(0,1fr)_24px] gap-3 sm:grid-cols-[64px_minmax(0,1fr)_24px] sm:gap-6 items-baseline py-6 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
               >
                 <span
                   className="mono text-[11px] font-semibold uppercase tracking-[0.1em]"
                   style={{ color: 'var(--lp-text-sub)' }}
                 >
-                  [:{s.n}]
+                  {s.n}
                 </span>
                 <span
                   className="font-sans font-bold uppercase tracking-[-0.025em] leading-none"
@@ -839,14 +765,17 @@ function GetStartedSection({ copy }: { copy: LandingCopy['getStarted'] }) {
                 {isOpen && (
                   <motion.div
                     key="body"
+                    id={`setup-panel-${s.n}`}
+                    role="region"
+                    aria-labelledby={`setup-trigger-${s.n}`}
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: dur.base, ease: ease.out }}
+                    transition={{ duration: reduce ? 0 : dur.base, ease: ease.out }}
                     className="overflow-hidden"
                   >
                     <p
-                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ms-0 sm:ms-[100px]"
+                      className="text-[15px] leading-[1.65] pb-7 max-w-[60ch] ms-0 sm:ms-[88px]"
                       style={{ color: 'var(--lp-text-sub)' }}
                     >
                       {s.body}
@@ -955,12 +884,11 @@ function SectionTag({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 mono text-[12px] font-medium uppercase tracking-[0.08em]',
+        'inline-flex items-center text-[12px] font-semibold tracking-[0.02em]',
         tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-sub)]',
       )}
     >
-      <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-      [:{children}]
+      {children}
     </span>
   );
 }
@@ -977,8 +905,8 @@ function CTAPill({
   tone?: 'dark' | 'light';
 }) {
   const base =
-    'inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase ' +
-    'tracking-[0.08em] rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] ' +
+    'inline-flex min-h-11 items-center gap-2 px-[22px] py-[13px] text-[13px] font-semibold ' +
+    'rounded-tl-[14px] rounded-tr-[14px] rounded-br-[4px] rounded-bl-[14px] ' +
     'transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none ' +
     'focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2';
   if (variant === 'primary') {

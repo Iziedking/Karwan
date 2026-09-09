@@ -20,6 +20,7 @@ export function Band({
   overlay,
   className,
   compact,
+  tight,
   id,
   dataGuide,
 }: {
@@ -28,6 +29,7 @@ export function Band({
   overlay?: ReactNode;
   className?: string;
   compact?: boolean;
+  tight?: boolean;
   id?: string;
   dataGuide?: string;
 }) {
@@ -48,8 +50,15 @@ export function Band({
       {overlay}
       <Reveal
         className={cn(
-          'relative mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)]',
-          compact ? 'py-[clamp(28px,4vw,48px)]' : 'py-[clamp(40px,6vw,88px)]',
+          // Keep workspace pages on the same readable measure as AccountHome.
+          // The surface still bleeds edge to edge, but the content should not
+          // become a dashboard-wide slab on large monitors.
+          'relative mx-auto max-w-[1240px] px-[clamp(20px,3.6vw,52px)]',
+          tight
+            ? 'py-[clamp(16px,2.2vw,24px)]'
+            : compact
+              ? 'py-[clamp(24px,3.2vw,40px)]'
+              : 'py-[clamp(32px,4.5vw,64px)]',
         )}
       >
         {children}
@@ -96,12 +105,12 @@ export function SectionTag({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em]',
+        'karwan-section-tag inline-flex items-center gap-2 mono text-[11px] font-medium uppercase tracking-[0.16em]',
         tone === 'dark' ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
       )}
     >
       {dot === 'live' ? (
-        <span aria-hidden className="relative flex w-[7px] h-[7px]">
+        <span aria-hidden data-live="true" className="karwan-section-dot relative flex w-[7px] h-[7px]">
           <span
             className="absolute inset-0 rounded-full opacity-60 motion-safe:animate-ping"
             style={{ background: 'var(--lp-accent)' }}
@@ -114,9 +123,11 @@ export function SectionTag({
       ) : (
         // Static eyebrows use a muted dot, not lime, so the accent stays reserved
         // for one thing per view and headlines carry the hierarchy.
-        <span aria-hidden className="w-1 h-1 rounded-full bg-current opacity-40" />
+        <span aria-hidden className="karwan-section-dot w-1 h-1 rounded-full bg-current opacity-40" />
       )}
-      [:{children}:]
+      <span className="karwan-section-tag-decor" aria-hidden>[:</span>
+      <span>{children}</span>
+      <span className="karwan-section-tag-decor" aria-hidden>:]</span>
     </span>
   );
 }
@@ -356,11 +367,11 @@ export function PageCard({
         className,
       )}
       style={{
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: asymmetric ? 5 : 22,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 18,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: asymmetric ? 6 : 18,
+        boxShadow: 'var(--product-panel-shadow, 0 18px 56px -28px rgba(0,0,0,0.18))',
       }}
     >
       {children}

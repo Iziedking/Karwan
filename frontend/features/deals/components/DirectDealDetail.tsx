@@ -27,6 +27,9 @@ import {
 } from './SettlementRecord';
 import { useDirectDeal } from '../hooks/useDirectDeals';
 import { stageOf, StageBadge, type DealStage } from './DirectDealList';
+import { findUnresolvedPayoutRecovery } from '../moneyRecovery';
+import { buildInviteUrl } from '../inviteLink';
+import { InviteLinkTools } from './InviteLinkTools';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
@@ -56,6 +59,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { proofSegments } from '../proofLinks';
+import { evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -138,6 +142,40 @@ function fundingSafetyLine(
     return viewerIsBuyer ? copy.activeBuyer : copy.activeSeller;
   }
   return null;
+}
+
+function nextStepFor(
+  stage: DealStage,
+  viewerIsBuyer: boolean,
+  viewerIsSeller: boolean,
+): { title: string; body: string } {
+  if (stage === 'awaiting-acceptance') {
+    return viewerIsSeller
+      ? { title: 'Review and accept the agreement', body: 'Check the terms before you confirm this trade.' }
+      : { title: 'Waiting for the seller', body: 'The seller needs to review and accept the agreement.' };
+  }
+  if (stage === 'awaiting-funding') {
+    return viewerIsBuyer
+      ? { title: 'Secure the agreed USDC', body: 'Review the amount and protection terms before funding.' }
+      : { title: 'Waiting for protected funding', body: 'Delivery starts after the buyer secures the agreed USDC.' };
+  }
+  if (stage === 'awaiting-delivery') {
+    return viewerIsSeller
+      ? { title: 'Submit the agreed delivery', body: 'Add the work or shipment evidence the buyer needs to review.' }
+      : { title: 'Waiting for delivery', body: 'The seller is preparing the agreed work or shipment evidence.' };
+  }
+  if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release') {
+    return viewerIsBuyer
+      ? { title: 'Review the delivery evidence', body: 'Check what was delivered before choosing the next settlement step.' }
+      : { title: 'Waiting for the buyer’s review', body: 'The delivery record is ready for the buyer’s decision.' };
+  }
+  if (stage === 'disputed') {
+    return { title: 'This trade is under review', body: 'Funds remain protected while the open issue is resolved.' };
+  }
+  if (stage === 'cancelled') {
+    return { title: 'This trade was cancelled', body: 'The final status and any available receipt remain below.' };
+  }
+  return { title: 'Settlement complete', body: 'The delivery and payment records are available below.' };
 }
 
 export function DirectDealDetail({ jobId }: { jobId: string }) {
@@ -432,15 +470,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
   async function doAccept() {
     if (!address) return;
-    if (deal?.agreementVersion == null || !deal.agreementDigest) {
-      setErrorInfo({ message: dd.errors.approvalFailed });
-      return;
-    }
     setShowAcceptConsent(false);
     setBusy(true);
     setErrorInfo(null);
     try {
-      await api.acceptDirectDeal(jobId, address, deal.agreementVersion, deal.agreementDigest);
+      await api.acceptDirectDeal(jobId, address);
       sfx.send();
       refresh();
     } catch (err) {
@@ -563,6 +597,25 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       const r = await api.releaseDirectDeal(jobId, address);
       if (r.settled) sfx.success();
       else sfx.send();
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setSettlementReloadKey((key) => key + 1);
+      setBusy(false);
+    }
+  }
+
+  async function onReconcilePayout(reference: string) {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.reconcileDirectDealPayout(jobId, reference, address);
+      sfx.success();
       refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
@@ -780,49 +833,86 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     deal.tradeType === 'goods' ||
     deal.tradeType === 'mixed';
   const counterpartyName = deal.counterpartyCompany?.name;
+  const nextStep = nextStepFor(stage, viewerIsBuyer, viewerIsSeller);
 
   return (
+    <div className="product-surface">
     <FullBleed>
       <PageTour id={DEAL_TOUR_ID} steps={DEAL_STEPS} />
-      {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="fade-up">
-          <div className="flex flex-wrap items-center gap-3">
-            <SectionTag tone="dark">{isB2B ? 'B2B TRADE' : dd.hero.eyebrow}</SectionTag>
-            <StageBadge stage={stage} />
-            {isB2B && (
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[9px] font-bold uppercase tracking-[0.16em]"
-                style={{
-                  background: 'color-mix(in oklab, var(--lp-positive) 16%, transparent)',
-                  border: '1px solid color-mix(in oklab, var(--lp-positive) 45%, transparent)',
-                  color: 'var(--lp-positive)',
-                  borderRadius: 4,
-                }}
-                title={counterpartyName ? `Verified business: ${counterpartyName}` : 'Verified business'}
-              >
-                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <circle cx="8" cy="8" r="7" fill="var(--lp-positive)" />
-                  <path d="M4.8 8.2l2 2 4-4.4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Verified business
+      {/* Hero and current progression form one command surface. */}
+      <Band tone="light" tight>
+        <div className="deal-command-grid grid items-stretch gap-6 border-b border-[var(--lp-border-light)] pb-7 lg:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
+          <div className="fade-up flex min-w-0 flex-col justify-between py-2 sm:py-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{isB2B ? 'Business trade' : 'Protected trade'}</span>
+              <StageBadge stage={stage} />
+              {isB2B && (
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[9px] font-bold uppercase tracking-[0.16em]"
+                  style={{
+                    background: 'color-mix(in oklab, var(--lp-positive) 16%, transparent)',
+                    border: '1px solid color-mix(in oklab, var(--lp-positive) 45%, transparent)',
+                    color: 'var(--lp-positive)',
+                    borderRadius: 4,
+                  }}
+                  title={counterpartyName ? `Verified business: ${counterpartyName}` : 'Verified business'}
+                >
+                  <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden>
+                    <circle cx="8" cy="8" r="7" fill="var(--lp-positive)" />
+                    <path d="M4.8 8.2l2 2 4-4.4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Verified business
+                </span>
+              )}
+            </div>
+            <h1 className="mt-4 max-w-[16ch] text-[clamp(2.8rem,6vw,5.1rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">
+              {counterpartyName ? `Trade with ${counterpartyName}` : isB2B ? 'Business trade' : 'Protected trade'}
+            </h1>
+            <p className="mt-2 line-clamp-2 max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{deal.terms}</p>
+            <div className="mt-8 flex flex-wrap items-baseline gap-2">
+              <span className="text-[clamp(2.8rem,6vw,4.8rem)] font-semibold leading-none tracking-[-0.065em] text-[var(--lp-dark)] tabular-nums">
+                {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
               </span>
-            )}
+              <span className="text-[13px] font-semibold text-[var(--lp-text-muted)]">USDC</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-[var(--lp-text-muted)]">
+              {deal.receiptReferences?.[0] ? (
+                <span className="mono font-bold uppercase tracking-[0.12em]">{deal.receiptReferences[0]} · Karwan reference</span>
+              ) : null}
+              <span>{dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}</span>
+            </div>
+          </div>
+
+          <div className="deal-command-panel fade-up fade-up-1 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6">
+            <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">Next step</p>
+            <p className="mt-2 text-[23px] font-semibold leading-tight tracking-[-0.035em] text-[var(--lp-dark)]">{nextStep.title}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+              {nextStep.body}
+            </p>
+            {stage !== 'settled' && stage !== 'cancelled' ? (
+              <a href="#action" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[13px] font-bold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+                Continue to next step
+              </a>
+            ) : null}
+            <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5" data-guide="deal-flow">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[13px] font-semibold text-[var(--lp-dark)]">Trade progress</p>
+                <span className="text-[12px] text-[var(--lp-text-muted)]">Agreement to settlement</span>
+              </div>
+              <ProgressTrack
+                milestonePcts={milestonePcts}
+                milestonesReleased={milestonesReleased}
+                stage={stage}
+                rail={rail}
+                copy={
+                  SME_TRADES_ENABLED && deal.tradeType === 'goods'
+                    ? { ...dd.progressTrack, ...GOODS_PROGRESS_LABELS }
+                    : dd.progressTrack
+                }
+              />
+            </div>
           </div>
         </div>
-        <div className="fade-up fade-up-1 mt-7 flex items-baseline gap-3 flex-wrap">
-          <h1 className="font-sans font-extrabold tabular-nums uppercase tracking-[-0.025em] leading-[0.95] text-[clamp(3rem,7vw,5.5rem)]">
-            {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
-            <Punc>.</Punc>
-          </h1>
-          <span className="mono text-[14px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-            USDC
-          </span>
-        </div>
-        <p className="fade-up fade-up-2 mt-5 mono text-[11px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)] flex items-center gap-2 flex-wrap">
-          <CopyId value={deal.jobId} label={shortHash(deal.jobId, 10, 6)} />
-          <span>· {dd.hero.openedTemplate.replace('{when}', relativeTime(deal.createdAt))}</span>
-        </p>
       </Band>
 
       {deal.marketRead && (
@@ -856,7 +946,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           >
             <div className="min-w-0">
               <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                [:{dd.legacyBanner.eyebrow}:]
+                {dd.legacyBanner.eyebrow}
               </p>
               <p className="mt-1 font-sans text-[14px] font-extrabold text-[var(--lp-dark)] leading-snug">
                 {dd.legacyBanner.title}
@@ -911,10 +1001,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                   className="w-full min-h-11 mt-1 flex items-center justify-between gap-2 text-start hover:opacity-80 transition-opacity"
                 >
                   <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                    Agent read on the counterparty
+                    Counterparty insight
                   </span>
                   <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-accent)] shrink-0">
-                    view report ↗
+                    View details ↗
                   </span>
                 </button>
               )}
@@ -994,7 +1084,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
                     style={{ color: 'var(--lp-accent)' }}
                   >
-                    [:{dd.funding.protectedEyebrow}:]
+                    {dd.funding.protectedEyebrow}
                   </p>
                   <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
                     {fundingSafetyLine(stage, viewerIsBuyer, dd.fundingSafety)}
@@ -1028,7 +1118,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
 
           {deal.shipment && (
             <PageCard>
-              <CardHead label="SHIPMENT" />
+              <CardHead label="Shipment" />
               <div className="p-5 md:p-6 space-y-3">
                 <p className="text-[14px] text-[var(--lp-text-sub)]">
                   {deal.shipment.carrierName}
@@ -1071,6 +1161,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </div>
             </PageCard>
           )}
+          {deal.delivered && deal.evidenceReceipt && deal.evidenceReceipt.state !== 'not-configured' && (
+            <EvidenceReceiptCard
+              receipt={deal.evidenceReceipt}
+              onRefresh={() => void refresh()}
+              refreshing={isRefetching}
+              copy={dd.evidenceReceipt}
+            />
+          )}
           {deal.delivered && deal.deliveryProof && (
             <PageCard>
               <CardHead label={dd.terms.deliveryProofLabel} />
@@ -1103,7 +1201,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       }}
                     >
                       <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
-                        [:{dd.terms.deliveryVerifyingLabel}:]
+                        {dd.terms.deliveryVerifyingLabel}
                       </p>
                       <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
                         {dd.terms.deliveryVerifyingBody}
@@ -1130,7 +1228,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                     }}
                   >
                     <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
-                      [:{dd.terms.deliveryReviewLabel}:]
+                      {dd.terms.deliveryReviewLabel}
                     </p>
                     <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
                       {dd.terms.deliveryReviewBody}
@@ -1158,13 +1256,35 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       }}
                     >
                       <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent)]">
-                        [:{dd.terms.deliveryOkLabel}:]
+                        {dd.terms.deliveryOkLabel}
                       </p>
                       <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
                         {dd.terms.deliveryOkBody}
                       </p>
                     </div>
                   )}
+                {viewerIsBuyer &&
+                  (deal.deliveryMatch?.verdict === 'unknown' ||
+                    deal.verificationStatus === 'unverifiable') && (
+                  <div
+                    className="px-4 py-3"
+                    style={{
+                      background: 'rgba(178, 84, 37, 0.10)',
+                      border: '1px solid rgba(178, 84, 37, 0.35)',
+                      borderTopLeftRadius: 10,
+                      borderTopRightRadius: 10,
+                      borderBottomLeftRadius: 10,
+                      borderBottomRightRadius: 3,
+                    }}
+                  >
+                    <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#b25425]">
+                      {dd.terms.deliveryUnknownLabel}
+                    </p>
+                    <p className="mt-1.5 text-[13px] leading-snug text-[var(--lp-text-sub)]">
+                      {dd.terms.deliveryUnknownBody}
+                    </p>
+                  </div>
+                )}
               </div>
             </PageCard>
           )}
@@ -1256,32 +1376,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </>
       )}
 
-      {/* PROGRESS */}
-      <Band tone="light" compact>
-        <SectionTag dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
-          {dd.progress.eyebrow}
-        </SectionTag>
-        <HeroHeadline as="h2" size="md">
-          {dd.progress.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.progress.titleAccent}</span>
-          <Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-8" data-guide="deal-flow">
-          <PageCard>
-            <ProgressTrack
-              milestonePcts={milestonePcts}
-              milestonesReleased={milestonesReleased}
-              stage={stage}
-              rail={rail}
-              copy={
-                SME_TRADES_ENABLED && deal.tradeType === 'goods'
-                  ? { ...dd.progressTrack, ...GOODS_PROGRESS_LABELS }
-                  : dd.progressTrack
-              }
-            />
-          </PageCard>
-        </div>
-      </Band>
-
       {/* ACTIONS */}
       <Band tone="dark" compact>
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
@@ -1334,6 +1428,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               milestonesReleased={milestonesReleased}
               busy={busy}
               deal={deal}
+              payoutRecoveryReference={findUnresolvedPayoutRecovery(settlementMovements)?.reference}
+              payoutRecoveryCopy={{
+                title: dd.settlementRecord.recoveryTitle,
+                body: dd.settlementRecord.recoveryBody,
+                action: dd.settlementRecord.reconcile,
+                busy: dd.settlementRecord.reconcileBusy,
+              }}
+              onReconcilePayout={onReconcilePayout}
               now={now}
               deliveryProof={deliveryProof}
               onDeliveryProofChange={setDeliveryProof}
@@ -1363,7 +1465,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             {canPropose && (
               <div className="mt-5 pt-5 border-t border-[var(--lp-workspace-border)]">
                 <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-                  [:{dd.proposeBlock.orEyebrow}:]
+                  {dd.proposeBlock.orEyebrow}
                 </p>
                 <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-workspace-muted)]">
                   {stage === 'disputed'
@@ -1505,6 +1607,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         caller={address ?? undefined}
       />
     </FullBleed>
+    </div>
   );
 }
 
@@ -1547,8 +1650,8 @@ function ProofText({ text, linkify }: { text: string; linkify: boolean }) {
 function CardHead({ label }: { label: string }) {
   return (
     <div className="px-5 md:px-6 pt-5 pb-3 border-b border-[var(--lp-border-light)]">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{label}:]
+      <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+        {label}
       </span>
     </div>
   );
@@ -1571,7 +1674,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
       </HeroHeadline>
       <div className="mt-8 grid md:grid-cols-2 gap-5">
         <PageCard>
-          <CardHead label="TERMS" />
+          <CardHead label="Agreement" />
           <div className="p-5 md:p-6 space-y-4">
             <div className="flex items-center flex-wrap gap-3">
               {deal.incoterms ? (
@@ -1602,7 +1705,7 @@ function TradeContextBand({ deal }: { deal: DirectDeal }) {
         </PageCard>
         {hasCompany ? (
           <PageCard>
-            <CardHead label="COUNTERPARTY" />
+            <CardHead label="Counterparty" />
             <div className="p-5 md:p-6 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 {company?.name ? (
@@ -1815,19 +1918,19 @@ function ProgressTrack({
   const terminal = stage === 'settled' || stage === 'disputed' || stage === 'cancelled';
 
   return (
-    <div className="p-6 md:p-7">
-      <ol className="space-y-3.5">
+    <div className="pt-4">
+      <ol className="deal-progress-list grid gap-2 sm:grid-cols-2">
         {steps.map((s, i) => {
           const done = s.done;
           const active = i === firstPending && !terminal;
           return (
-            <li key={s.key} className="flex items-center gap-3.5">
+            <li key={s.key} className="flex min-h-10 items-center gap-3 rounded-[10px] bg-[var(--lp-light)] px-3 py-2">
               <span
                 aria-hidden
                 data-instrument-blink={active || undefined}
-                className="shrink-0 inline-block w-[11px] h-[11px]"
+                className="shrink-0 inline-block size-[9px] rounded-full"
                 style={{
-                  background: done ? rail : active ? rail : 'rgba(0,0,0,0.08)',
+                  background: done ? rail : active ? rail : 'var(--lp-border-light)',
                   opacity: done ? 1 : active ? 0.65 : 1,
                   animation: active ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
                 }}
@@ -1905,6 +2008,9 @@ function ActionPanel({
   onRespondToDelayAppeal,
   onRequestExtension,
   onRespondExtension,
+  payoutRecoveryReference,
+  payoutRecoveryCopy,
+  onReconcilePayout,
   copy,
 }: {
   stage: DealStage;
@@ -1941,8 +2047,33 @@ function ActionPanel({
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
   onRespondExtension: (decision: 'approved' | 'declined') => void;
+  payoutRecoveryReference?: string;
+  payoutRecoveryCopy: {
+    title: string;
+    body: string;
+    action: string;
+    busy: string;
+  };
+  onReconcilePayout: (reference: string) => void;
   copy: Messages['directDealDetail']['actionPanel'];
 }) {
+  if (
+    payoutRecoveryReference &&
+    (stage === 'awaiting-first-release' || stage === 'awaiting-final-release')
+  ) {
+    return (
+      <div className="space-y-4">
+        <WindowNote tone="warning">
+          <span className="font-semibold">{payoutRecoveryCopy.title}.</span>{' '}
+          {payoutRecoveryCopy.body}
+        </WindowNote>
+        <CTAPill onClick={() => onReconcilePayout(payoutRecoveryReference)} disabled={busy} busy={busy}>
+          {busy ? payoutRecoveryCopy.busy : payoutRecoveryCopy.action}
+        </CTAPill>
+      </div>
+    );
+  }
+
   if (stage === 'settled') {
     const financed = Boolean(deal.factoringOfferId || deal.poFinancingId);
     const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
@@ -1962,7 +2093,7 @@ function ActionPanel({
             </Body>
             {deal.cancelReason && (
               <div>
-                <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">[:ruling:]</p>
+                <p className="text-[11px] font-semibold text-[var(--lp-workspace-faint)]">Decision</p>
                 <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-muted)] px-3 py-2.5 border border-[var(--lp-workspace-border)] rounded-[4px]">
                   &ldquo;{deal.cancelReason}&rdquo;
                 </p>
@@ -1985,7 +2116,7 @@ function ActionPanel({
             cleared funds for days. The number is the argument. */}
         {!resolved && deal.lastSettleMs != null && (
           <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
-            [:{copy.settled.settleTimeEyebrow}:]{' '}
+            {copy.settled.settleTimeEyebrow}{' '}
             <span className="tabular-nums font-semibold" style={{ color: 'var(--lp-accent)' }}>
               {fmtSettleTime(deal.lastSettleMs)}
             </span>
@@ -2073,7 +2204,7 @@ function ActionPanel({
         {deal.cancelReason && (deal.cancelKind === 'mutual' || deal.cancelKind === 'platform-attributed') && (
           <div className="mt-1">
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">
-              [:{copy.cancelled.reasonEyebrow}:]
+              {copy.cancelled.reasonEyebrow}
             </p>
             <p className="mt-1 text-[13px] text-[var(--lp-workspace-muted)] leading-relaxed whitespace-pre-wrap">
               {deal.cancelReason}
@@ -2231,7 +2362,7 @@ function ActionPanel({
           </Body>
           <label className="block space-y-1.5">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-              [:{copy.awaitingDelivery.proofEyebrow}:]
+              {copy.awaitingDelivery.proofEyebrow}
             </span>
             <textarea
               value={deliveryProof}
@@ -2351,6 +2482,8 @@ function ActionPanel({
     const blockedNote =
       blocked === 'no-agent-wallet'
         ? copy.releaseBlocked.noAgent
+        : blocked === 'evidence-unavailable'
+          ? copy.releaseBlocked.evidenceUnavailable
         : blocked === 'requirement-mismatch'
           ? viewerIsBuyer
             ? copy.releaseBlocked.buyerMismatch
@@ -2406,7 +2539,7 @@ function ActionPanel({
                 clears the hold and resumes the release. */}
             <label className="block space-y-1.5">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-                [:{copy.awaitingFirstRelease.resubmitLabel}:]
+                {copy.awaitingFirstRelease.resubmitLabel}
               </span>
               <textarea
                 value={deliveryProof}
@@ -2617,7 +2750,7 @@ function DelayAppealResponder({
     <div className="space-y-3 p-4 border border-[rgba(239,127,99,0.35)]" style={{ background: 'rgba(239,127,99,0.08)', borderRadius: 4 }}>
       <div className="space-y-1">
         <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: '#ef7f63' }}>
-          [:{copy.eyebrow}:]
+          {copy.eyebrow}
         </p>
         <p className="text-[13px] leading-relaxed text-[var(--lp-workspace-ink)]">
           {copy.prefix}{' '}
@@ -2647,9 +2780,8 @@ function PendingInviteCopy({
   email: string;
   copy: Messages['directDealDetail']['actionPanel']['pendingInvite'];
 }) {
-  const [copied, setCopied] = useState(false);
   const inviteUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/invite/${token}` : `/invite/${token}`;
+    typeof window !== 'undefined' ? buildInviteUrl(window.location.origin, token) : `/invite/${token}`;
   return (
     <div
       className="space-y-2 p-3"
@@ -2660,41 +2792,16 @@ function PendingInviteCopy({
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
-        [:{copy.eyebrow}:]
+        {copy.eyebrow}
       </p>
       <p className="text-[12.5px] leading-snug text-[var(--lp-workspace-muted)]">
         {copy.bodyTemplate.replace('{email}', email)}
       </p>
-      <div className="flex items-center gap-2 flex-wrap">
-        <input
-          type="text"
-          value={inviteUrl}
-          readOnly
-          className="flex-1 min-w-0 bg-[var(--lp-workspace-raised)] border border-[var(--lp-workspace-border)] rounded-[3px] px-2.5 py-1.5 text-[12px] mono text-[var(--lp-workspace-ink)]"
-          onFocus={(e) => e.currentTarget.select()}
-        />
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(inviteUrl);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1800);
-            } catch {
-              // user can still select+copy manually
-            }
-          }}
-          className="px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
-          style={{
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
-            borderBottomLeftRadius: 8,
-            borderBottomRightRadius: 2,
-          }}
-        >
-          {copied ? copy.copied : copy.copyCta}
-        </button>
-      </div>
+      <InviteLinkTools
+        url={inviteUrl}
+        copy={copy}
+        className="space-y-2"
+      />
     </div>
   );
 }
@@ -2825,7 +2932,7 @@ function ExtensionPendingNote({
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] opacity-70">
-        [:{copy.eyebrow}:]
+        {copy.eyebrow}
       </p>
       <p className="mt-1.5 text-[13px] leading-relaxed">
         {copy.prefix}{' '}
@@ -2872,7 +2979,7 @@ function ExtensionBuyerBanner({
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
-        [:{copy.eyebrow}:]
+        {copy.eyebrow}
       </p>
       <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">
         {copy.requestPrefix}{' '}
@@ -2927,7 +3034,7 @@ function AcceptConsentModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{copy.eyebrow}:]
+            {copy.eyebrow}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight text-[var(--lp-dark)]">
             {copy.title}
@@ -3023,7 +3130,7 @@ function FundingConsentModal({
       >
         <div className="px-5 sm:px-6 pt-6 pb-4 border-b border-[var(--lp-border-light)]">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{copy.eyebrow}:]
+            {copy.eyebrow}
           </span>
           <h2
             id="funding-consent-title"
@@ -3141,7 +3248,7 @@ function CancelProposalBanner({
       </div>
       <div className="px-4 py-3 space-y-2.5">
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{copy.reasonEyebrow}:]
+          {copy.reasonEyebrow}
         </p>
         <p className="text-[13px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
           {proposal.reason}
@@ -3280,7 +3387,7 @@ function ProposeCancelModal({
       >
         <div className="px-6 pt-6 pb-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{disputed ? copy.eyebrowResolution : copy.eyebrowCancellation}:]
+            {disputed ? copy.eyebrowResolution : copy.eyebrowCancellation}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
             {disputed ? copy.titleDispute : copy.titleCancel}
@@ -3303,7 +3410,7 @@ function ProposeCancelModal({
 
           <div className="space-y-2">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{disputed ? copy.kindEyebrowResolution : copy.kindEyebrowKind}:]
+              {disputed ? copy.kindEyebrowResolution : copy.kindEyebrowKind}
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {KIND_OPTIONS.map((opt) => {
@@ -3347,7 +3454,7 @@ function ProposeCancelModal({
 
           <label className="block space-y-2">
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{copy.reasonEyebrow}:]
+              {copy.reasonEyebrow}
             </span>
             <textarea
               value={reason}
@@ -3369,6 +3476,83 @@ function ProposeCancelModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function EvidenceReceiptCard({
+  receipt,
+  onRefresh,
+  refreshing,
+  copy,
+}: {
+  receipt: NonNullable<DirectDeal['evidenceReceipt']>;
+  onRefresh: () => void;
+  refreshing: boolean;
+  copy: Messages['directDealDetail']['evidenceReceipt'];
+}) {
+  const key = evidenceReceiptCopyKey(receipt.state);
+  const tone = evidenceReceiptTone(receipt.state);
+  const body = tone === 'positive'
+    ? copy.passBody
+    : receipt.state === 'mismatch'
+      ? copy.mismatchBody
+      : receipt.state === 'stale-terms' || receipt.state === 'expired'
+        ? copy.staleBody
+        : copy.unavailableBody;
+  const border = tone === 'positive'
+    ? 'rgba(79, 138, 63, 0.35)'
+    : tone === 'warning'
+      ? 'rgba(178, 84, 37, 0.35)'
+      : 'var(--lp-border-light)';
+
+  return (
+    <PageCard>
+      <CardHead label={copy.label} />
+      <div className="p-5 md:p-6 space-y-4" style={{ borderInlineStart: `3px solid ${border}` }}>
+        <div>
+          <p className="font-sans text-[18px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
+            {copy.states[key]}
+          </p>
+          <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+            {body}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
+          <span>{copy.versionTemplate.replace('{version}', String(receipt.agreementVersion))}</span>
+          {receipt.evidenceRevision != null ? (
+            <span>{copy.revisionTemplate.replace('{revision}', String(receipt.evidenceRevision))}</span>
+          ) : null}
+          {receipt.recordedAt ? <span>{relativeTime(receipt.recordedAt * 1000)}</span> : null}
+        </div>
+        {receipt.reportId ? (
+          <div className="space-y-2">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              {copy.reportLabel}
+            </p>
+            <CopyId value={receipt.reportId} label={shortHash(receipt.reportId)} />
+          </div>
+        ) : null}
+        {receipt.evidenceCommitment ? (
+          <div className="space-y-2">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+              {copy.commitmentLabel}
+            </p>
+            <CopyId value={receipt.evidenceCommitment} label={shortHash(receipt.evidenceCommitment)} />
+          </div>
+        ) : null}
+        {(receipt.state === 'read-unavailable' || receipt.state === 'not-recorded') ? (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="min-h-11 px-3 py-2 mono text-[11px] font-bold uppercase tracking-[0.12em] border border-[var(--lp-outline-strong)] transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+            style={{ borderRadius: 10 }}
+          >
+            {copy.refresh}
+          </button>
+        ) : null}
+      </div>
+    </PageCard>
   );
 }
 
@@ -3525,7 +3709,7 @@ function GoodsShipmentFields({
     <div className="space-y-2.5">
       <label className="block space-y-1.5">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-          [:CARRIER:]
+          Carrier
         </span>
         {/* The options render in a NATIVE popup the page cannot style, and that
             popup is white on most platforms. Inheriting the field's white text
@@ -3553,7 +3737,7 @@ function GoodsShipmentFields({
       </label>
       <label className="block space-y-1.5">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-          [:TRACKING NUMBER:]
+          Tracking number
         </span>
         <input
           value={shipment.trackingNumber}
@@ -3566,7 +3750,7 @@ function GoodsShipmentFields({
       {selected?.needsUrl ? (
         <label className="block space-y-1.5">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-            [:TRACKING PAGE:]
+            Tracking page
           </span>
           <input
             value={shipment.trackingUrl}

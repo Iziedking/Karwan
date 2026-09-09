@@ -7,7 +7,6 @@ import { labelFor } from './PendingDealsBand';
 import type { OpenDirectDeal } from '../hooks/useOpenDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Button } from '@/shared/components/Button';
-import { SectionTag } from '@/shared/components/Bands';
 
 export function ProfileOpenDealsPanel({
   address,
@@ -27,25 +26,22 @@ export function ProfileOpenDealsPanel({
 
   return (
     <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--lp-border-light)] pb-5">
-        <div className="max-w-[54ch]">
-          <SectionTag dot="live">{t.deals.sectionTag}</SectionTag>
-          <h2 className="mt-3 font-sans text-[28px] font-extrabold uppercase leading-none tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[34px]">
-            {t.deals.headline}<span className="text-[var(--lp-accent)]">.</span>
-          </h2>
-          <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{t.deals.body}</p>
-        </div>
-        {showError ? (
+      {showError ? (
+        <div className="flex justify-end border-b border-[var(--lp-border-light)] pb-4">
           <Button type="button" variant="outline" onClick={onRetry}>
             {t.matches.retry}
           </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {showError ? (
         <p role="status" className="border-b border-[var(--lp-border-light)] py-4 text-[13px] text-[var(--lp-text-sub)]">
           {t.matches.loadError}
         </p>
+      ) : null}
+
+      {!showError && fetchState === 'success' && matches.length === 0 && directDeals.length === 0 ? (
+        <p className="py-8 text-[15px] font-semibold text-[var(--lp-text-sub)]">No open deals.</p>
       ) : null}
 
       {matches.length > 0 ? (
@@ -89,7 +85,7 @@ export function ProfileOpenDealsPanel({
                   >
                     <span className="min-w-0">
                       <span className="block mono text-[10px] uppercase tracking-[0.17em] text-[var(--lp-text-muted)]">
-                        [:{role} · {t.card.contextDeal}:]
+                        {role} · {t.card.contextDeal}
                       </span>
                       <span className="mt-2 flex flex-wrap items-baseline gap-2">
                         <strong className="font-sans text-[24px] font-extrabold leading-none tracking-[-0.025em] text-[var(--lp-dark)]">

@@ -10,12 +10,6 @@ import { ACTIVITY_TOUR_ID, ACTIVITY_STEPS } from '@/shared/guide/tours';
 import {
   FullBleed,
   Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-  PageCard,
 } from '@/shared/components/Bands';
 
 export default function ActivityPage() {
@@ -46,43 +40,16 @@ function ActivityPageInner({
   explorer: string;
 }) {
   return (
+    <div className="product-surface">
     <FullBleed>
       <PageTour id={ACTIVITY_TOUR_ID} steps={ACTIVITY_STEPS} />
-      {/* HERO */}
-      {/* Keep the activity title close to the stream it labels. The compact
-          band should size to its content instead of reserving a second block
-          of editorial whitespace above the first record. */}
-      <Band
-        tone="dark"
-        overlay={<GridOverlay />}
-        compact
-        className="min-h-[88px] !pt-2 !pb-3 sm:min-h-[112px] sm:!pt-4 sm:!pb-4"
-      >
-        <div className="max-w-[58ch]">
-          <div className="fade-up">
-            <SectionTag tone="dark" dot="live">
-              {t.hero.sectionTag}
-            </SectionTag>
-          </div>
-          <div className="fade-up fade-up-1">
-            <HeroHeadline size="md">
-              {t.hero.headlineTop}
-              <br />
-              <Accent>{t.hero.headlineAccent}</Accent><Punc>.</Punc>
-            </HeroHeadline>
-          </div>
-        </div>
-      </Band>
-
-      {/* STREAM SECTION. The hero already frames this, and ActivityView carries
-          its own [:event stream:] eyebrow + counts, so no restated header here. */}
-      <Band tone="light" compact className="!pt-0 md:!pt-0">
+      <Band tone="light" compact>
+        <header className="activity-hero mb-5 border-b border-[var(--lp-border-light)] pb-5">
+          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">Your records</p>
+          <h1 className="mt-2 text-[clamp(2.8rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">Activity</h1>
+        </header>
         <div className="fade-up fade-up-1">
-          <PageCard>
-            <div className="p-6 md:p-8">
-              <ActivityView explorer={explorer} />
-            </div>
-          </PageCard>
+          <ActivityView explorer={explorer} />
         </div>
 
         {/* The stream above is a live window and only reaches back as far as
@@ -91,11 +58,11 @@ function ActivityPageInner({
         <Link
           href="/activity/all-time"
           data-floating-avoid
-          className="fade-up fade-up-2 mt-4 group grid gap-3 rounded-xl border border-[var(--lp-border-light)] p-4 transition-colors hover:border-[var(--lp-ink)] sm:flex sm:items-center sm:justify-between sm:gap-4 md:p-6"
+          className="fade-up fade-up-2 mt-4 group grid gap-3 border-t border-[var(--lp-border-light)] px-1 py-4 transition-colors hover:border-[var(--lp-ink)] sm:flex sm:items-center sm:justify-between sm:gap-4 md:py-5"
         >
           <span className="min-w-0">
             <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{t.allTime.sectionTag}:]
+              {t.allTime.sectionTag}
             </span>
             <span className="mobile-readable mt-1.5 block text-[15px] font-bold text-[var(--lp-ink)]">
               {t.allTime.entryTitle}
@@ -107,5 +74,6 @@ function ActivityPageInner({
         </Link>
       </Band>
     </FullBleed>
+    </div>
   );
 }

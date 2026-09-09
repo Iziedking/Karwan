@@ -490,7 +490,6 @@ export interface DirectDeal {
   deadlineUnix?: number;
   terms: string;
   agreementVersion?: number;
-  agreementDigest?: string;
   evidenceReceipt?: {
     state:
       | 'not-configured'
@@ -500,13 +499,11 @@ export interface DirectDeal {
       | 'unavailable'
       | 'expired'
       | 'stale-terms'
-      | 'stale-delivery'
       | 'read-unavailable';
     agreementVersion: number;
     registryAddress?: string;
     termsVersion?: number;
     evidenceRevision?: number;
-    expectedEvidenceRevision?: number;
     expiresAt?: number;
     recordedAt?: number;
     evidenceCommitment?: string;
@@ -515,8 +512,6 @@ export interface DirectDeal {
   };
   /// Seller agreed to the current terms. No buyer funds have moved yet.
   sellerApprovedAt?: number;
-  sellerApprovedAgreementVersion?: number;
-  sellerApprovedAgreementDigest?: string;
   /// Escrow is funded and verified Accepted onchain.
   acceptedAt?: number;
   delivered: boolean;
@@ -556,10 +551,6 @@ export interface DirectDeal {
   /// from link safety). 'partial'/'mismatch' surface a buyer review notice and
   /// pause auto-release; the proof is always shown, the buyer decides.
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown'; reason: string };
-  deliveryRevision?: number;
-  deliveryEvidenceCommitment?: string;
-  evidenceExpectedCommitment?: string;
-  evidenceRequired?: boolean;
   reviewWindowStartedAt?: number;
   reviewExtensionMs?: number;
   reviewExtensionCount?: number;
@@ -973,14 +964,6 @@ export interface ResearchAllowanceSnapshot {
   remaining: number;
   version: number;
   updatedAt: number;
-}
-
-export interface LifecycleTiming {
-  sellerResponseMs: number | null;
-  sellerCompletionMs: number | null;
-  buyerVerificationMs: number | null;
-  buyerReleaseMs: number | null;
-  samples: { sellerResponse: number; sellerCompletion: number; buyerVerification: number; buyerRelease: number };
 }
 
 export interface LifecycleTiming {
@@ -3279,7 +3262,6 @@ export const api = {
       kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
       label?: string;
     }>;
-    evidenceRequired?: boolean;
   }) =>
     json<{
       deal: DirectDeal;
@@ -3342,12 +3324,7 @@ export const api = {
       withCaller(`/api/deals/direct/${jobId}/counterparty-report/complimentary`, caller),
       { method: 'POST', body: JSON.stringify({}) },
     ),
-  acceptDirectDeal: (
-    jobId: string,
-    caller: string,
-    expectedAgreementVersion: number,
-    expectedAgreementDigest: string,
-  ) =>
+  acceptDirectDeal: (jobId: string, caller: string) =>
     json<{
       accepted: boolean;
       jobId: string;
@@ -3355,10 +3332,7 @@ export const api = {
       sellerApprovedAt?: number;
     }>(
       `/api/deals/direct/${jobId}/accept`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ caller, expectedAgreementVersion, expectedAgreementDigest }),
-      },
+      { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   directDealFundingQuote: (jobId: string, caller: string) =>
     json<{ quote: DirectDealFundingQuote }>(
@@ -3601,7 +3575,6 @@ export const api = {
       firstReleasePct?: number;
       requireStake?: boolean;
       requireStakePct?: number;
-      evidenceRequired?: boolean;
     },
   ) =>
     json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
