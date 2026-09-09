@@ -14,6 +14,7 @@ const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const HUMAN = 'a'.repeat(64);
 const AGENT_A = '0x1111111111111111111111111111111111111111';
 const AGENT_B = '0x2222222222222222222222222222222222222222';
+const AGENT_C = '0x3333333333333333333333333333333333333333';
 
 test(
   'Postgres allowance commits only delivered reports, shares the cap, and survives restart',
@@ -72,13 +73,12 @@ test(
 
       // A replaced attempt must be fenced even when the resource row is reused.
       const fencingHuman = 'b'.repeat(64);
-      await store.verifyBinding({ humanKeyDigest: fencingHuman, agentAddress: AGENT_A, verifier: 'world-agentbook', checkedAt: 4000, expiresAt: 200000, domain: 'karwan.research', nonce: 'fence', nonceExpiresAt: 200000, now: 4000 });
-      const oldLease = await store.reserve({ agentAddress: AGENT_A, requestId: 'old-lease', resourceId: 'fence', now: 5000 });
-      const replacementLease = await store.reserve({ agentAddress: AGENT_A, requestId: 'new-lease', resourceId: 'fence', now: 36000 });
+      await store.verifyBinding({ humanKeyDigest: fencingHuman, agentAddress: AGENT_C, verifier: 'world-agentbook', checkedAt: 4000, expiresAt: 200000, domain: 'karwan.research', nonce: 'fence', nonceExpiresAt: 200000, now: 4000 });
+      const oldLease = await store.reserve({ agentAddress: AGENT_C, requestId: 'old-lease', resourceId: 'fence', now: 5000 });
+      const replacementLease = await store.reserve({ agentAddress: AGENT_C, requestId: 'new-lease', resourceId: 'fence', now: 36000 });
       await assert.rejects(() => store.release({ reservationId: oldLease.reservation.id, attemptToken: oldLease.reservation.attemptToken, reason: 'late failure', now: 37000 }));
       await assert.rejects(() => store.commit({ reservationId: oldLease.reservation.id, attemptToken: oldLease.reservation.attemptToken, resultId: 'old', now: 37000 }));
       assert.equal((await store.commit({ reservationId: replacementLease.reservation.id, attemptToken: replacementLease.reservation.attemptToken, resultId: 'new', now: 37000 })).snapshot.used, 1);
-      await store.verifyBinding({ humanKeyDigest: HUMAN, agentAddress: AGENT_A, verifier: 'world-agentbook', checkedAt: 38000, expiresAt: 200000, domain: 'karwan.research', nonce: 'restore', nonceExpiresAt: 200000, now: 38000 });
 
       const restarted = new PostgresResearchAllowanceStore(client, transaction);
       assert.equal((await restarted.get({ humanKeyDigest: HUMAN, now: 4_000 }))?.used, 3);
