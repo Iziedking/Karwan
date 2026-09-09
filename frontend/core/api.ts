@@ -196,12 +196,59 @@ export interface UserSettings {
   publicPassport?: boolean;
 }
 
+export type WorkspaceKind = 'personal' | 'business';
+export type WorkspaceStatus = 'active' | 'setup' | 'suspended' | 'closed';
+export type BusinessVerificationStatus = 'not_started' | 'in_progress' | 'submitted' | 'needs_information' | 'verified' | 'rejected' | 'expired';
+
+export interface TradeAvailability {
+  id: string;
+  tradeType: 'goods' | 'services';
+  title: string;
+  description?: string;
+  region?: string;
+  unit?: string;
+  active: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Workspace {
+  id: string;
+  kind: WorkspaceKind;
+  name: string;
+  status: WorkspaceStatus;
+  ownerAddress: string;
+  walletAddress: string;
+  balanceScope: 'identity';
+  business?: {
+    legalName: string;
+    verificationStatus: BusinessVerificationStatus;
+    company?: Record<string, unknown>;
+  };
+  availability?: TradeAvailability[];
+  createdAt: number;
+  updatedAt: number;
+  membership?: {
+    workspaceId: string;
+    address: string;
+    role: 'owner';
+    createdAt: number;
+  };
+}
+
 export interface UserProfile {
   address: string;
   role: UserRole;
   displayName: string;
   createdAt: number;
   updatedAt: number;
+  workspaces?: Workspace[];
+  workspaceMemberships?: Array<{
+    workspaceId: string;
+    address: string;
+    role: 'owner';
+    createdAt: number;
+  }>;
   xHandle?: string;
   xUserId?: string;
   xProfileImageUrl?: string;
@@ -4357,6 +4404,37 @@ export const api = {
     json<{ ok: boolean; status: 'approved' | 'applied'; grandfathered?: boolean }>(
       '/api/financier/apply',
       { method: 'POST' },
+    ),
+
+  // One identity, with optional personal and business workspaces. Workspace
+  // reads are session-scoped and use the same identity wallet/balance in v1.
+  getWorkspaces: () =>
+    json<{ workspaces: Workspace[]; wallet: { address: string; balanceScope: 'identity' } }>(
+      '/api/workspaces',
+    ),
+  createBusinessWorkspace: (name: string) =>
+    json<{ workspace: Workspace }>('/api/workspaces/business', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  updateWorkspace: (workspaceId: string, body: { name?: string; company?: Workspace['business'] }) =>
+    json<{ workspace: Workspace }>(`/api/workspaces/${encodeURIComponent(workspaceId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  getTradeAvailability: (workspaceId: string) =>
+    json<{ availability: TradeAvailability[] }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/availability`,
+    ),
+  saveTradeAvailability: (workspaceId: string, body: Omit<TradeAvailability, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) =>
+    json<{ availability: TradeAvailability }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/availability`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  removeTradeAvailability: (workspaceId: string, availabilityId: string) =>
+    json<{ ok: true }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/availability/${encodeURIComponent(availabilityId)}`,
+      { method: 'DELETE' },
     ),
 
   // --- verified-business accounts ---------------------------------------

@@ -411,7 +411,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
         {/* Live agent payments: streams each x402 nanopayment the agents make
             for this deal. Renders nothing until there's activity. */}
         <div className="mt-6 fade-up fade-up-2">
-          <AgentX402Panel jobId={job.jobId} />
+          <AgentX402Panel jobId={job.jobId} viewerRole={viewerIsBuyer ? 'buyer' : 'seller'} />
         </div>
 
         {/* OUT OF REACH. The only topical match is priced far past the budget,

@@ -17,7 +17,7 @@ import {
   Accent,
   CTAPill,
 } from '@/shared/components/Bands';
-import { isBusinessAccount } from '@/features/account/accountKind';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 // Matches the onboarding form inputs so edit and setup look identical.
 const INPUT_CLS =
@@ -43,6 +43,7 @@ function ProfileEditInner() {
   const t = useTranslations().profile;
   const ob = useTranslations().onboarding;
   const { profile, address, fetchState } = useUserProfile();
+  const { isBusinessWorkspace } = useWorkspaceContext();
 
   const [hydrated, setHydrated] = useState(false);
   const [role, setRole] = useState<UserRole>('both');
@@ -66,7 +67,7 @@ function ProfileEditInner() {
   // surfaces from fighting. But the agent RANGES (budgets, deadlines, skills,
   // milestones) still live here and are identical for both account kinds, so a
   // business must be able to reach this editor. No redirect.
-  const isBusiness = isBusinessAccount(profile);
+  const isBusiness = isBusinessWorkspace;
 
   // Prefill from the saved profile once. A signed-in user with no profile has
   // not onboarded yet, so send them to onboarding rather than an empty form.

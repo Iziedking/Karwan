@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -85,8 +84,7 @@ export function DirectDealForm() {
   // The trade-context band (goods/Incoterms/payment terms/company/docs) is a
   // business surface. Individuals never see it, so a P2P direct deal stays the
   // simple service flow.
-  const { profile } = useUserProfile();
-  const isBusiness = isBusinessAccount(profile);
+  const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
   // "Make offer" links from a listing detail land here with seller/amount/terms
   // pre-filled. Read once on mount; further changes come from user input.
   const search = useSearchParams();

@@ -19,7 +19,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { isBusinessAccount } from '@/features/account/accountKind';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -162,6 +162,7 @@ export function PostJobForm() {
   const { activate, activating, agents } = useActivation();
   const buyerAgent = agents?.buyer;
   const { profile, loading: profileLoading } = useUserProfile();
+  const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
   const { recordAction } = useGuide();
   // Initial values from URL query params. BriefComposer sets these after the
   // natural-language extractor lands so the form mounts pre-filled. Parsing
@@ -390,7 +391,6 @@ export function PostJobForm() {
   // a business surface. Individuals on P2P never see it, so their request stays
   // the simple service flow. Businesses keep it, including when they post a
   // service request to hire a person (tradeType defaults to 'service').
-  const isBusiness = isBusinessAccount(profile);
 
   return (
     <>

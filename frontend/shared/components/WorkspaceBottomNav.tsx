@@ -4,14 +4,13 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface } from '@/shared/utils/routes';
-import { isBusinessAccount } from '@/features/account/accountKind';
 
 type IconName = 'home' | 'trade' | 'discover' | 'activity' | 'account';
 
@@ -33,9 +32,8 @@ export function WorkspaceBottomNav() {
   const auth = useAuth();
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
-  const { profile } = useUserProfile();
   const t = useTranslations().nav;
-  const business = isBusinessAccount(profile);
+  const { isBusinessWorkspace: business } = useWorkspaceContext();
   const shell = getShellSurface(pathname, auth.isAuthenticated);
 
   if (!auth.isAuthenticated || shell !== 'workspace') return null;

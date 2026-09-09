@@ -16,6 +16,7 @@ import { GuideProvider } from '@/shared/guide/GuideProvider';
 import { AssistantWidget } from '@/shared/components/AssistantWidget';
 import { SiweGate } from '@/shared/components/SiweGate';
 import { GlobalLoadingSplash } from '@/shared/components/GlobalLoadingSplash';
+import { WorkspaceProvider } from '@/shared/hooks/useWorkspaceContext';
 import type { Locale } from '@/shared/i18n/locales';
 
 type Mode = 'light' | 'dark';
@@ -68,10 +69,12 @@ export function AppProviders({
       <SiweGate />
       <QueryInvalidator />
       <LiveCallerSync />
-      <GuideProvider>
-        {children}
-        <AssistantWidget />
-      </GuideProvider>
+      <WorkspaceProvider>
+        <GuideProvider>
+          {children}
+          <AssistantWidget />
+        </GuideProvider>
+      </WorkspaceProvider>
     </RainbowKitProvider>
   );
   // /admin owns an isolated wallet provider and operator-token transport. Do

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { api, type Partner } from '@/core/api';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import { filterPartners, type PartnerSort } from '@/features/discovery/model';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
@@ -21,7 +20,7 @@ import {
   SectionTag,
 } from '@/shared/components/Bands';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 
@@ -40,8 +39,8 @@ type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 export function PartnersBrowse() {
   const copy = useTranslations().partnersBrowse;
   const auth = useAuth();
-  const { profile } = useUserProfile();
-  const businessAccount = auth.isAuthenticated && isBusinessAccount(profile);
+  const { isBusinessWorkspace } = useWorkspaceContext();
+  const businessAccount = auth.isAuthenticated && isBusinessWorkspace;
   const canOpenBusinessDeal = SME_TRADES_ENABLED && businessAccount;
 
   const [query, setQuery] = useState('');

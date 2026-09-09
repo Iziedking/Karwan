@@ -20,12 +20,63 @@ export interface UserSettings {
   publicPassport?: boolean;
 }
 
+export type WorkspaceKind = 'personal' | 'business';
+export type WorkspaceStatus = 'active' | 'setup' | 'suspended' | 'closed';
+export type BusinessVerificationStatus = 'not_started' | 'in_progress' | 'submitted' | 'needs_information' | 'verified' | 'rejected' | 'expired';
+
+export interface TradeAvailability {
+  id: string;
+  tradeType: 'goods' | 'services';
+  title: string;
+  description?: string;
+  region?: string;
+  unit?: string;
+  active: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Workspace {
+  id: string;
+  kind: WorkspaceKind;
+  name: string;
+  status: WorkspaceStatus;
+  ownerAddress: string;
+  /// v1 deliberately points every workspace at the person's identity wallet.
+  walletAddress: string;
+  balanceScope: 'identity';
+  business?: {
+    legalName: string;
+    verificationStatus: BusinessVerificationStatus;
+    company?: Partial<NonNullable<UserProfile['smeProfile']>>;
+  };
+  availability?: TradeAvailability[];
+  createdAt: number;
+  updatedAt: number;
+  membership?: {
+    workspaceId: string;
+    address: string;
+    role: 'owner';
+    createdAt: number;
+  };
+}
+
 export interface UserProfile {
   address: string;
   role: Role;
   displayName: string;
   createdAt: number;
   updatedAt: number;
+  /// One person identity can own a personal workspace and an optional business
+  /// workspace. These are additive v1 records; legacy profile fields remain as
+  /// a compatibility projection while clients migrate to workspace context.
+  workspaces?: Workspace[];
+  workspaceMemberships?: Array<{
+    workspaceId: string;
+    address: string;
+    role: 'owner';
+    createdAt: number;
+  }>;
   /// X (formerly Twitter) handle without the `@`. When set, key public events
   /// for this user (deal opened, settled) get queued for broadcast on the
   /// Karwan X account tagging this handle. Stored as the handle string only;

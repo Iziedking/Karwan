@@ -10,13 +10,14 @@ import { useNotifications } from '@/features/notifications/hooks/useNotification
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { getShellSurface } from '@/shared/utils/routes';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
+import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
@@ -43,12 +44,12 @@ export function TopNav() {
   const { unreadCount } = useNotifications();
   const openDeals = useOpenDeals();
   const { profile, address: profileAddress } = useUserProfile();
-  // Business and individual are two separate rails. A business sees B2B Trades
-  // and the SME-rail home; an individual sees P2P Trades. The Financier desk is
-  // shown to both (anyone can provide capital). Until the profile loads we treat
-  // the account as a person so the nav never flashes business items to an
-  // individual.
-  const biz = isBusinessAccount(profile);
+  // The selected workspace controls the home/trade context. Personal and
+  // business workspaces share this identity and wallet; the switcher makes the
+  // context visible before a consequential action. The Financier desk remains
+  // available to both workspaces.
+  const { isBusinessWorkspace } = useWorkspaceContext();
+  const biz = isBusinessWorkspace;
   const shell = getShellSurface(pathname, isAuthenticated);
   const publicSurface = shell === 'public';
   const workspaceSurface = shell === 'workspace' || shell === 'admin';
@@ -123,7 +124,7 @@ export function TopNav() {
         </div>
 
         {/* INLINE-END. control cluster */}
-        <div className="ms-auto flex items-center gap-1.5 sm:gap-2 min-w-0">
+        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           {focusedSurface ? (
             <>
               {/* Sign-in and onboarding have no preferences menu yet, and they
@@ -142,6 +143,7 @@ export function TopNav() {
           ) : showAppChrome ? (
               <>
                 <NotificationBell />
+                <WorkspaceSwitcher compact />
                 <ProfileLink
                   profileActionCount={openDeals.actionCount}
                   profile={profile}
@@ -452,7 +454,7 @@ function ProfileLink({
     <Link
       href="/profile"
       aria-label={t.profile}
-      className="group relative inline-flex min-h-11 max-w-[min(240px,45vw)] items-center gap-2 rounded-full border border-[var(--color-line-strong)] py-1 ps-1 pe-2.5 text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      className="group relative inline-flex min-h-11 max-w-[min(240px,calc(100vw-112px))] shrink-0 items-center gap-2 rounded-full border border-[var(--color-line-strong)] py-1 ps-1 pe-2.5 text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(240px,45vw)]"
     >
         <span className="relative grid size-9 shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[11px] font-semibold tracking-[0.04em] text-[var(--color-ink)] sm:size-10">
           <span className="grid size-full place-items-center overflow-hidden rounded-full">

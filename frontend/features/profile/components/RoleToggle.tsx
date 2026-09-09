@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, type UserProfile, type UserRole, ApiError } from '@/core/api';
-import { isBusinessAccount } from '@/features/account/accountKind';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Option = { value: UserRole; label: string; description: string };
@@ -22,9 +22,10 @@ export function RoleToggle({
   onUpdate: (next: UserProfile) => void;
 }) {
   const t = useTranslations().roleToggle;
+  const { isBusinessWorkspace } = useWorkspaceContext();
   // A business reads as a company sourcing/supplying goods and services, not an
   // individual buyer/seller, so it gets the business-framed labels.
-  const opts = isBusinessAccount(profile) ? t.businessOptions : t.options;
+  const opts = isBusinessWorkspace ? t.businessOptions : t.options;
   const OPTIONS: Option[] = [
     { value: 'buyer', ...opts.buyer },
     { value: 'seller', ...opts.seller },
