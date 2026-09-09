@@ -196,6 +196,11 @@ docs/space-paytag-2026-08-16.md
 /docs/email/*
 !/docs/email/newsletter-sme-update.html
 !/docs/email/newsletter-template.html
+!/docs/images/
+/docs/images/*
+!/docs/images/karwan-landing-current.png
+!/docs/images/karwan-docs-current.png
+!/docs/images/karwan-how-it-works-current.png
 
 # Planning and internal working documents outside docs/.
 **/PLANbook.md

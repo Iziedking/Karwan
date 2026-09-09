@@ -5,6 +5,11 @@ is implemented in the repository and deployed through independent, default-off
 rollout flags. Until a gate is enabled and its rollout report passes, the
 existing buyer, seller, and settlement paths remain authoritative.
 
+The runtime serves one identity with a personal workspace and an optional
+owner-only business workspace. A workspace changes trade context and business
+verification eligibility. It does not create a second login, customer wallet,
+or customer USDC balance. Team permissions remain roadmap work.
+
 ## What the runtime guarantees
 
 - User intent is captured in versioned mandates. An agent cannot widen a price,
@@ -42,9 +47,9 @@ flowchart LR
     L --> M[Activity, notification, and next action]
 ```
 
-The same state machine covers person-to-person and business trade. Business
-verification, account type, lane, stake, and evidence rules change eligibility,
-not the reliability model.
+The same state machine covers personal and business trade. Workspace context,
+business verification, account type, lane, stake, and evidence rules change
+eligibility, not the reliability model.
 
 ## Workflow map
 
