@@ -394,13 +394,20 @@ async function publishPostgres(
         (request_key, deal_id, terms_version, evidence_revision, expires_at, pull_number,
          submitted_sha, state, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $8)
-       ON CONFLICT (request_key) DO NOTHING
+       ON CONFLICT DO NOTHING
        RETURNING *`,
       [key, request.dealId.toLowerCase(), request.termsVersion, request.evidenceRevision, request.expiresAt, request.pullNumber, request.submittedSha.toLowerCase(), nowMs],
     );
     const insertedRow = inserted.rows[0];
     if (insertedRow) return { ok: true, value: rowToRecord(insertedRow), idempotent: false };
-    const existing = await tx.query<QueueRow>('SELECT * FROM cre_delivery_requests_v1 WHERE request_key = $1 FOR UPDATE', [key]);
+    const existing = await tx.query<QueueRow>(
+      `SELECT * FROM cre_delivery_requests_v1
+       WHERE request_key = $1
+          OR (deal_id = $2 AND terms_version = $3 AND evidence_revision = $4)
+       ORDER BY created_at ASC, request_key ASC
+       LIMIT 1 FOR UPDATE`,
+      [key, request.dealId.toLowerCase(), request.termsVersion, request.evidenceRevision],
+    );
     const existingRow = existing.rows[0];
     if (!existingRow) return { ok: false, code: 'REQUEST_NOT_FOUND', message: 'request disappeared while publishing' };
     const existingRecord = rowToRecord(existingRow);

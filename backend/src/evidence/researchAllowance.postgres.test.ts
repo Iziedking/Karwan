@@ -90,8 +90,8 @@ test(
       const same = await restarted.commit({ reservationId: retry.reservation.id, attemptToken: retry.reservation.attemptToken, resultId: 'report-0', now: 4_002 });
       assert.equal(same.snapshot.used, 3);
 
-      const expiring = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'request-expiring', resourceId: 'deal:expiring:counterparty', now: 5_000, leaseMs: 1_000 });
-      const expiredReplacement = await restarted.reserve({ agentAddress: AGENT_A, requestId: 'request-expired-replacement', resourceId: 'deal:expiring:counterparty', now: 6_001 });
+      const expiring = await restarted.reserve({ agentAddress: AGENT_C, requestId: 'request-expiring', resourceId: 'deal:expiring:counterparty', now: 5_000, leaseMs: 1_000 });
+      const expiredReplacement = await restarted.reserve({ agentAddress: AGENT_C, requestId: 'request-expired-replacement', resourceId: 'deal:expiring:counterparty', now: 6_001 });
       assert.notEqual(expiredReplacement.reservation.attemptToken, expiring.reservation.attemptToken);
       await assert.rejects(
         () => restarted.release({ reservationId: expiring.reservation.id, attemptToken: expiring.reservation.attemptToken, reason: 'stale worker', now: 6_002 }),
