@@ -5,6 +5,7 @@ import { logger } from '../logger.js';
 import { listAllAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { routeDepositToArc, bridgeIdForDeposit } from './depositRouter.js';
+import { matchDepositRequest } from '../money/depositRequests.js';
 /// Base58, so it cannot live in CCTP_CHAINS, which types `usdc` as a hex
 /// address. Shared with the Solana balance reader so one mint address decides
 /// both what counts as a deposit and what counts as a balance.
@@ -258,14 +259,24 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
   const amountUsdc = n.amounts?.[0] ?? null;
   if (!amountUsdc) return;
 
+  const originChain = friendlyChainName(n.blockchain);
+
   if (alreadyHandled(n.id)) return;
+
+  // A request is matched only when it is the single open request with the
+  // exact amount. If the recipient has two identical requests, we deliberately
+  // leave both open for support to resolve rather than guessing.
+  const matchedRequest = await matchDepositRequest({
+    owner,
+    amountUsdc,
+    txId: n.id,
+    chain: originChain,
+  });
 
   logger.info(
     { owner, blockchain: n.blockchain, amountUsdc, txId: n.id, txHash: n.txHash },
     'deposit credited from webhook',
   );
-
-  const originChain = friendlyChainName(n.blockchain);
 
   // `address` is what proves ownership to the SSE projection: events.ts
   // matches on owner/user/address and pulses everything else to {}. Without
@@ -286,6 +297,7 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
       // one overwriting the rest. Already client-visible via /api/bridge/list.
       bridgeId: bridgeIdForDeposit(n.id),
       source: 'deposit',
+      ...(matchedRequest ? { requestId: matchedRequest.token } : {}),
       ...(n.txHash ? { txHash: n.txHash } : {}),
     },
   });
@@ -304,7 +316,12 @@ async function handle(event: KarwanEvent, fetchToken: FetchToken): Promise<void>
     // Structured too, so the reader's locale decides the wording rather than
     // this file's English. The summary stays as the fallback. The chain name is
     // a proper noun and is not translated.
-    params: { t: 'depositCreditedFrom', amount: amountUsdc, chain: originChain },
+    params: {
+      t: 'depositCreditedFrom',
+      amount: amountUsdc,
+      chain: originChain,
+      ...(matchedRequest ? { requestId: matchedRequest.token } : {}),
+    },
     amountUsdc,
     // The hop that carries this deposit to Arc, named the same way the router
     // names it. /activity/me drops this row when that hop has a record of its

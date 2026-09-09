@@ -2987,6 +2987,24 @@ export const api = {
       chains: Array<{ key: string; name: string; address: string }>;
       solana: { key: string; name: string; address: string } | null;
     }>(`/api/deposit/address?address=${address}`),
+  createDepositRequest: (body: {
+    amountUsdc?: string;
+    purpose?: string;
+    ttlMinutes?: number;
+  }) =>
+    json<{ request: DepositRequestPublic }>('/api/deposit/requests', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getDepositRequest: (token: string) =>
+    json<{ request: DepositRequestPublic }>(`/api/deposit/requests/${encodeURIComponent(token)}`),
+  listDepositRequests: () =>
+    json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests'),
+  cancelDepositRequest: (token: string) =>
+    json<{ request: DepositRequestPublic }>(
+      `/api/deposit/requests/${encodeURIComponent(token)}/cancel`,
+      { method: 'POST' },
+    ),
   /// Arc-USDC faucet for one of the user's own wallets (identity hub or an
   /// agent). Testnet only.
   faucet: (address: string, target: 'identity' | 'buyer' | 'seller') =>
@@ -4551,6 +4569,24 @@ export interface GatewayChainBalance {
   key: string;
   confirmed: string;
   pending: string;
+}
+
+export type DepositRequestStatus =
+  | 'open'
+  | 'matched'
+  | 'expired'
+  | 'cancelled'
+  | 'needs_attention';
+
+export interface DepositRequestPublic {
+  requestId: string;
+  recipientAddress: string;
+  amountUsdc: string | null;
+  purpose: string;
+  expiresAt: number;
+  status: DepositRequestStatus;
+  createdAt: number;
+  acceptedChains: string[];
 }
 
 export interface ChatMessage {

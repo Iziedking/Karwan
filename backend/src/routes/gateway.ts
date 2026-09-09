@@ -317,7 +317,7 @@ const fundAgentSchema = z.object({
 const spendInFlight = new Set<string>();
 
 /// Fund one of the caller's agent wallets from their unified Gateway balance.
-/// Same-chain Arc spend, backend-signed by the caller's Gateway EOA (no delegate).
+/// Same-chain Arc spend, using the configured owner path for this account.
 gatewayRoutes.post('/fund-agent', async (c) => {
   const address = sessionAddress(c);
   if (!address) return c.json({ error: 'unauthorized' }, 401);
@@ -404,7 +404,7 @@ const cashOutSchema = z.object({
 });
 
 /// Cash out from the caller's unified balance to another chain (cross-chain
-/// Gateway spend). Works for every account type — the Gateway EOA signs.
+/// Gateway spend). Works for every account type supported by the owner path.
 gatewayRoutes.post('/cash-out', async (c) => {
   const address = sessionAddress(c);
   if (!address) return c.json({ error: 'unauthorized' }, 401);

@@ -19,6 +19,7 @@ import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
 import type { IssuedAttestation } from './attestations.js';
 import type { MoneyMovement } from '../money/model.js';
+import type { DepositRequest } from '../money/depositRequests.js';
 import type { CreEvidenceReceiptBinding } from '../evidence/creDeliveryRequest.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
@@ -66,6 +67,25 @@ export const bridges = pgTable('bridges', {
   bridgeId: text('bridge_id').primaryKey(),
   data: jsonb('data').$type<BridgeRelay>().notNull(),
 });
+
+/// Shareable payment requests. The request token is the public lookup key;
+/// recipient and lifecycle data stay in the JSONB record so the attribution
+/// rules can evolve without exposing internal payment plumbing to the browser.
+export const depositRequests = pgTable(
+  'deposit_requests',
+  {
+    token: text('token').primaryKey(),
+    owner: text('owner').notNull(),
+    status: text('status').notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<DepositRequest>().notNull(),
+  },
+  (t) => ({
+    ownerCreatedIdx: index('deposit_requests_owner_created_idx').on(t.owner, t.createdAt),
+    statusExpiresIdx: index('deposit_requests_status_expires_idx').on(t.status, t.expiresAt),
+  }),
+);
 
 /// One logical movement of money, issued before any chain interaction. The
 /// reference is the user-facing receipt key; operationKey is the idempotency

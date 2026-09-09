@@ -992,6 +992,32 @@ interface MessagesShape {
     fromTemplate: string;
     stages: { moving: string; arrived: string; stuck: string };
     groups: { evm: string; solana: string };
+    request: {
+      tag: string;
+      title: string;
+      body: string;
+      amountLabel: string;
+      amountOptional: string;
+      purposeLabel: string;
+      purposePlaceholder: string;
+      create: string;
+      creating: string;
+      shareTitle: string;
+      shareBody: string;
+      copyLink: string;
+      copied: string;
+      recipientLabel: string;
+      expiresTemplate: string;
+      waiting: string;
+      matched: string;
+      expired: string;
+      cancelled: string;
+      needsAttention: string;
+      qrAlt: string;
+      error: string;
+      unavailableTitle: string;
+      unavailableBody: string;
+    };
   };
   bridge: {
     signInGate: { tag: string; body: string };
@@ -5054,9 +5080,9 @@ export const en: MessagesShape = {
     language: 'Language',
     languageHint: 'Used for the app, notifications, and emails.',
     theme: 'Theme',
-    themeLight: 'Light',
+    themeLight: 'White',
     themeDark: 'Dark',
-    themeSystem: 'System',
+    themeSystem: 'Daylight',
     sound: 'Sound',
     soundOn: 'On',
     soundOff: 'Off',
@@ -6032,6 +6058,32 @@ export const en: MessagesShape = {
       stuck: 'Needs a retry',
     },
     groups: { evm: 'EVM chains', solana: 'Solana' },
+    request: {
+      tag: '[:ASK FOR USDC:]',
+      title: 'Share a payment request',
+      body: 'Give someone a clear amount and purpose. They can pay from a supported chain without signing in first.',
+      amountLabel: 'Amount',
+      amountOptional: 'Optional',
+      purposeLabel: 'What is this for?',
+      purposePlaceholder: 'e.g. payment for the solar lamps',
+      create: 'Create request',
+      creating: 'Creating request',
+      shareTitle: 'Request ready to share',
+      shareBody: 'Send this link or QR code to the person paying. Karwan carries verified USDC to your Arc balance.',
+      copyLink: 'Copy link',
+      copied: 'Link copied',
+      recipientLabel: 'Pays into your Karwan balance',
+      expiresTemplate: 'Expires {time}',
+      waiting: 'Waiting for payment',
+      matched: 'Payment matched',
+      expired: 'Request expired',
+      cancelled: 'Request cancelled',
+      needsAttention: 'Needs attention',
+      qrAlt: 'QR code for this payment request',
+      error: 'Could not create a request. Try again.',
+      unavailableTitle: 'This request is not available.',
+      unavailableBody: 'It may have expired, been cancelled, or the link may be incomplete.',
+    },
   },
   bridge: {
     signInGate: {

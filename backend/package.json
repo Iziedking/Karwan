@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node ../scripts/run-tests.mjs src",
+    "test:deposit-requests": "node --env-file=../.env --import tsx --test src/money/depositRequests.test.ts",
     "test:ci": "node ../scripts/run-tests.mjs src --concurrency=4",
     "smoke-test": "tsx --env-file=../.env src/scripts/smoke-test.ts",
     "scan:lifetime": "tsx --env-file=../.env src/scripts/scan-lifetime.ts",

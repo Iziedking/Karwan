@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/core/api';
+import { api, type DepositRequestPublic } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -50,6 +50,13 @@ export function DepositCard() {
   const refreshMoney = useMoneyRefresh();
   const [group, setGroup] = useState<Group>('evm');
   const [copied, setCopied] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [request, setRequest] = useState<DepositRequestPublic | null>(null);
+  const [requestAmount, setRequestAmount] = useState('');
+  const [requestPurpose, setRequestPurpose] = useState('');
+  const [requestBusy, setRequestBusy] = useState(false);
+  const [requestError, setRequestError] = useState(false);
+  const [requestCopied, setRequestCopied] = useState(false);
   /// Every deposit seen this session, newest first, each with its own progress.
   const [deposits, setDeposits] = useState<Deposit[]>([]);
 
@@ -144,6 +151,37 @@ export function DepositCard() {
     }
   }, [shown]);
 
+  const createRequest = useCallback(async () => {
+    setRequestBusy(true);
+    setRequestError(false);
+    try {
+      const result = await api.createDepositRequest({
+        ...(requestAmount.trim() ? { amountUsdc: requestAmount.trim() } : {}),
+        ...(requestPurpose.trim() ? { purpose: requestPurpose.trim() } : {}),
+      });
+      setRequest(result.request);
+    } catch {
+      setRequestError(true);
+    } finally {
+      setRequestBusy(false);
+    }
+  }, [requestAmount, requestPurpose]);
+
+  const requestLink = request
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/deposit/request/${request.requestId}`
+    : '';
+
+  const copyRequestLink = useCallback(async () => {
+    if (!requestLink) return;
+    try {
+      await navigator.clipboard.writeText(requestLink);
+      setRequestCopied(true);
+      window.setTimeout(() => setRequestCopied(false), 2200);
+    } catch {
+      // The link stays visible below, so clipboard permission is optional.
+    }
+  }, [requestLink]);
+
   if (isLoading) return <DepositSkeleton />;
 
   // Nothing provisioned means nothing is watching, and inviting a deposit that
@@ -210,6 +248,25 @@ export function DepositCard() {
             {copied ? t.copied : t.copy}
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              setRequestOpen((open) => !open);
+              setRequestError(false);
+            }}
+            className="mt-3 inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors"
+            style={{
+              color: 'var(--lp-dark)',
+              border: '1px solid var(--lp-border-light)',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {t.request.title}
+          </button>
+
           <div className="mt-6">
             <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
               {t.acceptsLabel}
@@ -220,6 +277,23 @@ export function DepositCard() {
           </div>
         </div>
       </div>
+
+      {requestOpen ? (
+        <DepositRequestComposer
+          copy={t.request}
+          amount={requestAmount}
+          purpose={requestPurpose}
+          setAmount={setRequestAmount}
+          setPurpose={setRequestPurpose}
+          busy={requestBusy}
+          error={requestError}
+          request={request}
+          link={requestLink}
+          copied={requestCopied}
+          onCreate={createRequest}
+          onCopyLink={copyRequestLink}
+        />
+      ) : null}
 
       <div className="mt-7 pt-5" style={{ borderTop: '1px solid var(--lp-border-light)' }}>
         {deposits.length > 0 ? (
@@ -457,5 +531,144 @@ function DepositSkeleton() {
         style={{ minHeight: 300 }}
       />
     </Shell>
+  );
+}
+
+function DepositRequestComposer({
+  copy,
+  amount,
+  purpose,
+  setAmount,
+  setPurpose,
+  busy,
+  error,
+  request,
+  link,
+  copied,
+  onCreate,
+  onCopyLink,
+}: {
+  copy: ReturnType<typeof useTranslations>['deposit']['request'];
+  amount: string;
+  purpose: string;
+  setAmount: (value: string) => void;
+  setPurpose: (value: string) => void;
+  busy: boolean;
+  error: boolean;
+  request: DepositRequestPublic | null;
+  link: string;
+  copied: boolean;
+  onCreate: () => void;
+  onCopyLink: () => void;
+}) {
+  return (
+    <div
+      className="mt-7 border-t pt-6"
+      style={{ borderColor: 'var(--lp-border-light)' }}
+      data-guide="deposit-request"
+    >
+      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        {copy.tag}
+      </span>
+      {!request ? (
+        <>
+          <p className="mt-3 text-[18px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">
+            {copy.title}
+          </p>
+          <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+            {copy.body}
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                {copy.amountLabel} <span className="font-normal">({copy.amountOptional})</span>
+              </span>
+              <input
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => setAmount(event.target.value)}
+                placeholder="0.00"
+                className="min-h-11 w-full px-4 py-3 text-[14px] text-[var(--lp-dark)] outline-none"
+                style={{
+                  background: 'var(--lp-light)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderRadius: 10,
+                }}
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                {copy.purposeLabel}
+              </span>
+              <input
+                value={purpose}
+                onChange={(event) => setPurpose(event.target.value)}
+                placeholder={copy.purposePlaceholder}
+                className="min-h-11 w-full px-4 py-3 text-[14px] text-[var(--lp-dark)] outline-none"
+                style={{
+                  background: 'var(--lp-light)',
+                  border: '1px solid var(--lp-border-light)',
+                  borderRadius: 10,
+                }}
+              />
+            </label>
+          </div>
+          {error ? (
+            <p className="mt-3 text-[13px] text-[var(--lp-danger)]" role="alert">
+              {copy.error}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onCreate}
+            className="mt-5 inline-flex min-h-11 items-center px-5 py-3 text-[13px] font-bold transition-opacity disabled:opacity-60"
+            style={{
+              background: 'var(--lp-control-active-bg)',
+              color: 'var(--lp-control-active-ink)',
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {busy ? copy.creating : copy.create}
+          </button>
+        </>
+      ) : (
+        <div className="mt-4 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
+          <Qr value={link} label={copy.qrAlt} />
+          <div className="min-w-0">
+            <p className="text-[18px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">
+              {copy.shareTitle}
+            </p>
+            <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+              {copy.shareBody}
+            </p>
+            <p className="mt-4 text-[13px] font-semibold text-[var(--lp-dark)]">
+              {request.amountUsdc ? `${request.amountUsdc} USDC · ` : ''}{request.purpose}
+            </p>
+            <p className="mt-1 mono break-all text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
+              {link}
+            </p>
+            <button
+              type="button"
+              onClick={onCopyLink}
+              className="mt-4 inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em]"
+              style={{
+                background: 'var(--lp-control-active-bg)',
+                color: 'var(--lp-control-active-ink)',
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              {copied ? copy.copied : copy.copyLink}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { isSessionSelf } from '../auth/session.js';
+import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
 import { invalidateDepositIndex } from '../circle/depositWatcher.js';
@@ -20,6 +20,14 @@ import {
   type CctpChainKey,
 } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
+import {
+  cancelDepositRequest,
+  createDepositRequest,
+  getDepositRequest,
+  listDepositRequests,
+  saveDepositRequest,
+  toPublicRequest,
+} from '../money/depositRequests.js';
 
 /// Everything the deposit card needs, with Circle's vocabulary left behind.
 ///
@@ -33,6 +41,12 @@ import { logger } from '../logger.js';
 /// Polygon. Solana is a different curve and can never share it, so it is
 /// reported separately rather than folded in and quietly wrong.
 export const depositRoutes = new Hono();
+
+const requestBodySchema = z.object({
+  amountUsdc: z.union([z.string(), z.number()]).optional(),
+  purpose: z.string().max(120).optional(),
+  ttlMinutes: z.number().int().min(5).max(7 * 24 * 60).optional(),
+});
 
 const addrSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 
@@ -144,4 +158,51 @@ depositRoutes.get('/address', async (c) => {
   }
 
   return c.json({ supported: true, chains, solana });
+});
+
+/// Create a shareable request for a third party to pay this account. The
+/// request does not move money; it records the recipient and the user's intent
+/// before a sender opens the public link.
+depositRoutes.post('/requests', async (c) => {
+  const owner = sessionAddress(c);
+  if (!owner) return c.json({ error: 'sign in first' }, 401);
+  const parsed = requestBodySchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) return c.json({ error: 'invalid deposit request' }, 400);
+  try {
+    const request = createDepositRequest({ owner, ...parsed.data });
+    await saveDepositRequest(request);
+    return c.json({ request: toPublicRequest(request) }, 201);
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'invalid deposit request' }, 400);
+  }
+});
+
+/// Public by design. A recipient can share this URL with someone who is not
+/// signed in. It returns only what the sender needs to confirm the request.
+depositRoutes.get('/requests/:token', async (c) => {
+  const token = c.req.param('token');
+  const request = await getDepositRequest(token);
+  if (!request) return c.json({ error: 'request not found' }, 404);
+  const publicRequest = toPublicRequest(request);
+  if (publicRequest.status === 'expired' && request.status === 'open') {
+    await saveDepositRequest({ ...request, status: 'expired', updatedAt: Date.now() });
+  }
+  return c.json({ request: publicRequest });
+});
+
+/// The recipient's own request history. No public caller can enumerate tokens.
+depositRoutes.get('/requests', async (c) => {
+  const owner = sessionAddress(c);
+  if (!owner) return c.json({ requests: [] });
+  const requests = await listDepositRequests(owner, 20);
+  const now = Date.now();
+  return c.json({ requests: requests.map((request) => toPublicRequest(request, now)) });
+});
+
+depositRoutes.post('/requests/:token/cancel', async (c) => {
+  const owner = sessionAddress(c);
+  if (!owner) return c.json({ error: 'sign in first' }, 401);
+  const request = await cancelDepositRequest(owner, c.req.param('token'));
+  if (!request) return c.json({ error: 'request not found' }, 404);
+  return c.json({ request: toPublicRequest(request) });
 });
