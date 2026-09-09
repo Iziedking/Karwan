@@ -29,7 +29,6 @@ export function SiteFooter() {
   const pathname = usePathname();
   const messages = useTranslations();
   const t = messages.footer;
-  const landing = messages.landingPage;
   if (pathname === '/market' || pathname === '/listings' || pathname.startsWith('/listings/')) {
     return null;
   }
@@ -83,28 +82,18 @@ export function SiteFooter() {
                 screens so three columns don't feel cramped. */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 sm:gap-x-7 md:gap-y-8">
               <FooterCol title={t.columns.product}>
-                {/* Discover reuses the nav's own label rather than minting a
-                    second string for the same destination, so the footer and
-                    the nav can never disagree about what it is called. */}
-                {pathname === '/' ? (
-                  <>
-                    <FooterLink href="#overview">{landing.hero.tag}</FooterLink>
-                    <FooterLink href="#direct-deals">{landing.directDeals.tag}</FooterLink>
-                    <FooterLink href="#agent-matching">{landing.managedDeals.tag}</FooterLink>
-                    <FooterLink href="#flow">{landing.flow.tag}</FooterLink>
-                    <FooterLink href="/app">{landing.hero.ctaPrimary}</FooterLink>
-                  </>
-                ) : (
-                  <>
-                    <FooterLink href="/market">{messages.nav.market}</FooterLink>
-                    <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
-                    <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
-                    <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
-                    <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
-                    <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
-                    <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
-                  </>
-                )}
+                {/* Keep this menu useful and stable across the landing page and
+                    the app. Contact stays last so the list reads like the
+                    reference Product menu. */}
+                <>
+                  <FooterLink href="/market">{messages.nav.market}</FooterLink>
+                  <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
+                  <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
+                  <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>
+                  <FooterLink href="/brand">{t.productLinks.brand}</FooterLink>
+                  <FooterLink href="/terms">{t.productLinks.terms}</FooterLink>
+                  <FooterLink href="/feedback">{t.productLinks.feedback}</FooterLink>
+                </>
                 <FooterContact label={t.productLinks.contact} />
               </FooterCol>
               <FooterCol title={t.columns.network}>

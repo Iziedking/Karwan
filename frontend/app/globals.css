@@ -166,9 +166,8 @@ html[data-theme="dark"] {
   --lp-positive: var(--color-positive);
   --lp-card: var(--paper-1);       /* card surface over --lp-light */
   --lp-band-dark: var(--surface-0);/* fixed dark bands and dark CTAs */
-  /* Light mode is warm canvas with white raised content. These roles were once
-     inverted, which made full-width rows pure white and cards disappear into
-     a darker fill. */
+  /* Light mode uses a pale blue-gray platform canvas with warm paper raised
+     content, keeping full-width rows and cards distinct without glare. */
   --lp-workspace-band: var(--karwan-canvas);
   --lp-workspace-raised: var(--karwan-card);
   --lp-workspace-ink: var(--ink-inv-0);
@@ -194,7 +193,7 @@ html[data-theme="dark"] {
   --lp-border-light: var(--rule-light);
   /* Form fields, split out from --lp-card because an input and the panel it sits
      in want the SAME colour in light mode and different ones in dark. Light: a
-     white field on cream reads as a field. Dark: --lp-card and --lp-light are 8
+     warm paper field on the blue-gray canvas reads as a field. Dark: --lp-card and --lp-light are 8
      RGB points apart, so a field painted with either disappears into the panel
      (1.08:1 measured). These aliases keep light mode byte-identical and give the
      dark override somewhere to land. */
@@ -222,7 +221,7 @@ html[data-theme="dark"] {
      separation without a pure-white glare. The landing page keeps its fixed
      dark treatment through LANDING_NAV_VARS and dark bands. */
   --karwan-green: #AFC95B;
-  --karwan-canvas: #ECECE9;
+  --karwan-canvas: #E4EAEE;
   --karwan-card: #F4F4F1;
 
   /* Surface */
@@ -231,7 +230,7 @@ html[data-theme="dark"] {
   --surface-2: #1A1A1F;   /* deeper inset, inputs on dark */
   --paper-0:   var(--karwan-canvas); /* light workspace canvas */
   --paper-1:   var(--karwan-card);   /* raised cards on light */
-  --paper-2:   #E3E3DF;   /* inset on light */
+  --paper-2:   #ECECE7;   /* inset on light */
 
   /* Ink */
   --ink-0:     #FFFFFF;
