@@ -643,6 +643,14 @@ const envSchema = z.object({
   AGENTKIT_VERIFICATION_V2_ENABLED: envBool('AGENTKIT_VERIFICATION_V2_ENABLED'),
   AGENTKIT_HUMAN_KEY_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
   AGENTKIT_WORLD_RPC_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+  /// World ID 4.x RP configuration. Keep the signing key server-only; when
+  /// any required value is missing the Sandbox proof route stays unavailable.
+  WORLD_ID_ENABLED: envBool('WORLD_ID_ENABLED'),
+  WORLD_ID_APP_ID: optionalString,
+  WORLD_ID_RP_ID: optionalString,
+  WORLD_ID_ACTION: z.preprocess(blankToUndefined, z.string().regex(/^[a-z0-9][a-z0-9_-]{2,63}$/).optional()),
+  WORLD_ID_SIGNING_KEY: z.preprocess(blankToUndefined, z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()),
+  WORLD_ID_ENVIRONMENT: z.enum(['staging', 'production']).default('staging'),
   EVENT_OUTBOX_V2_ENABLED: envBool('EVENT_OUTBOX_V2_ENABLED'),
 
   // Public origin of the frontend, used to embed deal links in Telegram
@@ -833,6 +841,13 @@ const envSchema = z.object({
     blankToUndefined,
     z.coerce.number().int().optional(),
   ),
+  /// Fiat rails stay unavailable until a named provider, verified webhook
+  /// secret, and corridor policy are configured together. The app exposes the
+  /// state instead of presenting an unbacked bank or card button.
+  FIAT_RAILS_ENABLED: envBool('FIAT_RAILS_ENABLED'),
+  BANK_RAIL_PROVIDER: optionalString,
+  CARD_RAIL_PROVIDER: optionalString,
+  MONEY_RAIL_WEBHOOK_SECRET: optionalString,
 });
 
 const parsed = envSchema.safeParse(process.env);

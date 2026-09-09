@@ -628,6 +628,36 @@ ALTER TABLE agentkit_research_reservations_v1
   ALTER COLUMN attempt_token SET NOT NULL;
 `;
 
+const MONEY_RAIL_INTENTS_SQL = `
+CREATE TABLE money_rail_intents (
+  id TEXT PRIMARY KEY,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  owner TEXT NOT NULL,
+  rail TEXT NOT NULL,
+  direction TEXT NOT NULL CHECK (direction IN ('in', 'out')),
+  status TEXT NOT NULL,
+  version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0),
+  updated_at BIGINT NOT NULL,
+  data JSONB NOT NULL
+);
+CREATE INDEX money_rail_intents_owner_updated_idx
+  ON money_rail_intents (owner, updated_at DESC);
+CREATE INDEX money_rail_intents_status_updated_idx
+  ON money_rail_intents (status, updated_at DESC);
+`;
+
+const WORLD_ID_PROOF_SQL = `
+CREATE TABLE world_id_nullifiers_v1 (
+  nullifier NUMERIC(78, 0) NOT NULL,
+  action TEXT NOT NULL,
+  environment TEXT NOT NULL CHECK (environment IN ('staging', 'production')),
+  verified_at BIGINT NOT NULL,
+  PRIMARY KEY (nullifier, action)
+);
+CREATE INDEX world_id_nullifiers_verified_idx
+  ON world_id_nullifiers_v1 (verified_at DESC);
+`;
+
 const CRE_DELIVERY_REQUEST_QUEUE_SQL = `
 CREATE TABLE cre_delivery_requests_v1 (
   request_key TEXT PRIMARY KEY,
@@ -765,6 +795,24 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 22,
     name: 'agentkit_report_delivery_fencing',
     sql: AGENTKIT_REPORT_DELIVERY_FENCING_SQL,
+  },
+  {
+    version: 23,
+    name: 'money_rail_intents',
+    sql: MONEY_RAIL_INTENTS_SQL,
+  },
+  {
+    version: 24,
+    name: 'world_id_proof_nullifiers',
+    sql: WORLD_ID_PROOF_SQL,
+  },
+  {
+    version: 25,
+    name: 'money_rail_intent_version_cas',
+    sql: `
+      ALTER TABLE money_rail_intents
+        ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 1 CHECK (version > 0);
+    `,
   },
 ] as const;
 

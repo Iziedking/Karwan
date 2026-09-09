@@ -1,0 +1,126 @@
+import { Hono } from 'hono';
+import { config } from '../config.js';
+import { withPostgresTransaction } from '../db/client.js';
+import {
+  createWorldIdRpSignature,
+  createWorldIdVerifier,
+  parseWorldIdResult,
+  type IdKitResponseShape,
+  type WorldIdEnvironment,
+  type WorldIdVerifier,
+} from '../worldid/idkitProof.js';
+
+export interface WorldIdNullifierStore {
+  claim(input: { nullifiers: string[]; action: string; environment: WorldIdEnvironment }): Promise<boolean>;
+}
+
+export function createPostgresWorldIdNullifierStore(): WorldIdNullifierStore {
+  return {
+    async claim({ nullifiers, action, environment }) {
+      return withPostgresTransaction(async (tx) => {
+        for (const nullifier of nullifiers) {
+          const result = await tx.query(
+            `INSERT INTO world_id_nullifiers_v1 (nullifier, action, environment, verified_at)
+             VALUES ($1::numeric, $2, $3, $4)
+             ON CONFLICT (nullifier, action) DO NOTHING`,
+            [BigInt(nullifier).toString(), action, environment, Date.now()],
+          );
+          if (result.rows.length === 0) return false;
+        }
+        return true;
+      });
+    },
+  };
+}
+
+let configuredStore: WorldIdNullifierStore | null = null;
+let configuredVerifier: WorldIdVerifier = createWorldIdVerifier();
+
+export function configureWorldIdProof(input: {
+  store?: WorldIdNullifierStore;
+  verifier?: WorldIdVerifier;
+}): () => void {
+  configuredStore = input.store ?? null;
+  configuredVerifier = input.verifier ?? createWorldIdVerifier();
+  return () => {
+    configuredStore = null;
+    configuredVerifier = createWorldIdVerifier();
+  };
+}
+
+function configured(): boolean {
+  return Boolean(
+    config.WORLD_ID_ENABLED
+      && config.WORLD_ID_APP_ID
+      && config.WORLD_ID_RP_ID
+      && config.WORLD_ID_ACTION
+      && config.WORLD_ID_SIGNING_KEY
+      && configuredStore,
+  );
+}
+
+export const worldIdRoutes = new Hono();
+
+worldIdRoutes.get('/status', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({
+    configured: configured(),
+    environment: config.WORLD_ID_ENVIRONMENT,
+    action: configured() ? config.WORLD_ID_ACTION : null,
+    appId: configured() ? config.WORLD_ID_APP_ID : null,
+    rpId: configured() ? config.WORLD_ID_RP_ID : null,
+    provider: 'world-id-developer-portal' as const,
+    proofMode: configured() ? 'sandbox-or-production' as const : 'unavailable' as const,
+  });
+});
+
+worldIdRoutes.post('/rp-signature', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  if (!configured()) return c.json({ error: 'World ID Sandbox is not configured', code: 'WORLD_ID_UNAVAILABLE' }, 503);
+  const body = (await c.req.json().catch(() => ({}))) as { action?: unknown };
+  if (body.action !== config.WORLD_ID_ACTION) {
+    return c.json({ error: 'World ID action is not allowed', code: 'WORLD_ID_ACTION_MISMATCH' }, 400);
+  }
+  try {
+    return c.json(createWorldIdRpSignature({
+      signingKeyHex: config.WORLD_ID_SIGNING_KEY as string,
+      action: config.WORLD_ID_ACTION as string,
+    }));
+  } catch {
+    return c.json({ error: 'World ID signing is unavailable', code: 'WORLD_ID_SIGNING_FAILED' }, 503);
+  }
+});
+
+worldIdRoutes.post('/verify', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  if (!configured()) return c.json({ error: 'World ID Sandbox is not configured', code: 'WORLD_ID_UNAVAILABLE' }, 503);
+  const body = (await c.req.json().catch(() => ({}))) as { idkitResponse?: IdKitResponseShape };
+  if (!body.idkitResponse || typeof body.idkitResponse !== 'object') {
+    return c.json({ error: 'IDKit response is required', code: 'WORLD_ID_RESPONSE_MISSING' }, 400);
+  }
+  let parsed: ReturnType<typeof parseWorldIdResult>;
+  try {
+    parsed = parseWorldIdResult({
+      result: body.idkitResponse,
+      expectedAction: config.WORLD_ID_ACTION as string,
+      expectedEnvironment: config.WORLD_ID_ENVIRONMENT,
+    });
+  } catch (error) {
+    return c.json({ error: error instanceof Error ? error.message : 'World ID response is invalid', code: 'WORLD_ID_RESPONSE_INVALID' }, 400);
+  }
+  const remote = await configuredVerifier.verify({ rpId: config.WORLD_ID_RP_ID as string, result: body.idkitResponse });
+  if (!remote.ok) return c.json({ error: remote.reason, code: 'WORLD_ID_PROOF_REJECTED' }, 403);
+  const accepted = await configuredStore!.claim({
+    nullifiers: parsed.nullifiers,
+    action: parsed.action,
+    environment: parsed.environment,
+  });
+  if (!accepted) return c.json({ error: 'World ID proof has already been used for this action', code: 'WORLD_ID_NULLIFIER_REPLAY' }, 409);
+  return c.json({
+    verified: true,
+    provider: 'world-id-developer-portal' as const,
+    environment: parsed.environment,
+    action: parsed.action,
+    nullifierCount: parsed.nullifiers.length,
+  });
+});

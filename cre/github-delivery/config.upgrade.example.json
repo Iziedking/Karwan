@@ -1,0 +1,14 @@
+{
+  "schedule": "*/15 * * * *",
+  "requestMode": "confidential-http",
+  "sourceMode": "github",
+  "requestUrl": "https://replace-with-karwan-api.example/api/cre/delivery-requests/REQUEST_KEY",
+  "requestSecretId": "karwan_delivery_request_token",
+  "githubTokenSecretId": "karwan_github_read_token",
+  "criteriaSecretId": "karwan_github_delivery_criteria",
+  "chainId": 5042002,
+  "chainSelectorName": "arc-testnet",
+  "receiverAddress": "0x0000000000000000000000000000000000000000",
+  "gasLimit": "500000",
+  "writeReport": true
+}
