@@ -16,7 +16,6 @@ import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
-import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 const LANDING_NAV_VARS = {
@@ -143,7 +142,6 @@ export function TopNav() {
           ) : showAppChrome ? (
               <>
                 <NotificationBell />
-                <WorkspaceSwitcher compact />
                 <ProfileLink
                   profileActionCount={openDeals.actionCount}
                   profile={profile}
@@ -427,8 +425,9 @@ function NavLinkSoon({
 }
 
 
-/// The account control is a direct route into the profile hub. Preferences and
-/// notifications stay in the header because they are global, not profile data.
+/// The account control is a direct route into the profile hub. Workspace
+/// switching lives there with the account tools, while notifications remain in
+/// the header because they are time-sensitive global signals.
 function ProfileLink({
   profileActionCount,
   profile,
