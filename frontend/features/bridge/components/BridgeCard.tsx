@@ -342,9 +342,10 @@ export function BridgeCard({
     return isAddress(trimmed) ? (trimmed as `0x${string}`) : null;
   }, [customAddress]);
 
-  /// EOA-vs-contract check on the chosen recipient. Identity + known agents
+  /// Address check on the chosen recipient. Identity + known agents
   /// short-circuit the RPC read by being passed in as trusted; Custom hits
-  /// Arc Testnet's `eth_getCode` after a debounce.
+  /// Arc Testnet's `eth_getCode` after a debounce. Smart-wallet recipients
+  /// remain eligible after the read resolves, while the warning stays visible.
   const trustedAddresses = useMemo(
     () => [identityAddress, buyerAgent, sellerAgent],
     [identityAddress, buyerAgent, sellerAgent],
@@ -363,12 +364,13 @@ export function BridgeCard({
           ? sellerAgent
           : (customCandidate ?? undefined);
 
-  /// Custom must resolve to an EOA before bridging proceeds. Trusted wallets
-  /// resolve immediately; for fresh paste the verify hook flips to `eoa`
-  /// within ~350ms, or stays `checking` while waiting on the RPC.
+  /// Custom must resolve to a valid wallet address before bridging proceeds.
+  /// Trusted wallets resolve immediately; a fresh paste may resolve to `eoa`
+  /// or `contract` after the RPC read. Both are valid recipient shapes here,
+  /// including Circle SCAs. The unresolved state remains ineligible.
   const recipientReady =
     recipientKind === 'custom'
-      ? customKind.kind === 'eoa' && !!customCandidate
+      ? (customKind.kind === 'eoa' || customKind.kind === 'contract') && !!customCandidate
       : !!mintRecipient;
 
   const sourceIsAppKitOnly = isAppKitOnlyChainKey(sourceKey);

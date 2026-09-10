@@ -21,7 +21,7 @@ test('provisions one personal workspace against the identity wallet', () => {
   assert.equal(result.workspaceMemberships?.[0]?.role, 'owner');
 });
 
-test('projects an existing legacy business profile into an owner workspace without another wallet', () => {
+test('projects an existing legacy business profile into only a business workspace', () => {
   const result = withWorkspaceDefaults(baseProfile({
     accountKind: 'business',
     smeProfile: { companyName: 'Amina Foods', sector: 'agriculture' },
@@ -32,7 +32,33 @@ test('projects an existing legacy business profile into an owner workspace witho
   assert.equal(business.name, 'Amina Foods');
   assert.equal(business.business?.verificationStatus, 'verified');
   assert.equal(business.walletAddress, baseProfile().address);
-  assert.equal(result.workspaceMemberships?.filter((membership) => membership.role === 'owner').length, 2);
+  assert.equal(result.workspaces?.filter((workspace) => workspace.kind === 'personal').length, 0);
+  assert.equal(result.workspaceMemberships?.filter((membership) => membership.role === 'owner').length, 1);
+});
+
+test('keeps a linked business workspace beside a personal identity workspace', () => {
+  const initial = withWorkspaceDefaults(baseProfile());
+  const result = withWorkspaceDefaults({
+    ...initial,
+    workspaces: [
+      ...(initial.workspaces ?? []),
+      {
+        id: 'business:linked',
+        kind: 'business',
+        name: 'Amina Foods',
+        status: 'setup',
+        ownerAddress: baseProfile().address.toLowerCase(),
+        walletAddress: baseProfile().address.toLowerCase(),
+        balanceScope: 'identity',
+        createdAt: 1_700_000_000_000,
+        updatedAt: 1_700_000_000_000,
+        business: { legalName: 'Amina Foods', verificationStatus: 'not_started' },
+      },
+    ],
+  });
+  assert.deepEqual(result.workspaces?.map((workspace) => workspace.kind), ['personal', 'business']);
+  assert.equal(result.workspaces?.[0]?.name, 'Amina');
+  assert.equal(result.workspaces?.[1]?.name, 'Amina Foods');
 });
 
 test('keeps user-created workspace records stable across migration reads', () => {

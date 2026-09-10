@@ -2254,6 +2254,7 @@ export const api = {
     json<{
       pending: Array<{
         address: string;
+        workspaceId?: string;
         docHash?: string;
         docKind?: string;
         label?: string;
@@ -2266,11 +2267,12 @@ export const api = {
     applicant: string,
     decision: 'approve' | 'reject',
     reasonHash?: string,
+    workspaceId?: string,
   ) =>
     json<{ ok: true; decision: string; txHash: string }>('/api/admin/business/review', {
       method: 'POST',
       headers: adminHeaders(),
-      body: JSON.stringify({ applicant, decision, ...(reasonHash ? { reasonHash } : {}) }),
+      body: JSON.stringify({ applicant, decision, ...(reasonHash ? { reasonHash } : {}), ...(workspaceId ? { workspaceId } : {}) }),
     }),
   adminAssistantHealth: () =>
     json<{
@@ -4503,7 +4505,7 @@ export const api = {
 
   // --- verified-business accounts ---------------------------------------
   /// Public verification status + compact company snapshot for an address.
-  getBusinessStatus: (address: string) =>
+  getBusinessStatus: (address: string, workspaceId?: string) =>
     json<{
       accountType: 'person' | 'business';
       status: 'none' | 'submitted' | 'verified' | 'rejected';
@@ -4514,7 +4516,7 @@ export const api = {
       /// (not the build-time NEXT_PUBLIC var) so a frontend built without that
       /// var still registers whenever the backend has the contract wired.
       registryAddr?: string | null;
-    }>(`/api/business/status/${address}`),
+    }>(`/api/business/status/${address}${workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''}`),
   getVerificationEligibility: (address: string) =>
     json<VerificationEligibilityResponse>(`/api/verification/eligibility/${address}`),
   /// Web3 path: the caller has signed submitRegistration locally and reports
@@ -4571,6 +4573,7 @@ export interface VerificationEligibilityResponse {
 
 export interface BusinessRegisterBody {
   address: string;
+  workspaceId?: string;
   company: {
     companyName: string;
     sector?: 'agriculture' | 'textiles' | 'electronics' | 'logistics' | 'manufacturing' | 'services' | 'other';

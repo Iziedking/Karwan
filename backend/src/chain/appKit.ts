@@ -1,6 +1,13 @@
-import { AppKit } from '@circle-fin/app-kit';
-import { createCircleWalletsAdapter } from '@circle-fin/adapter-circle-wallets';
+import type { AppKit as AppKitType } from '@circle-fin/app-kit';
+import { appKit as circleAppKit, circleWalletsAdapter } from '../circle/sdkCompat.js';
 import { config } from '../config.js';
+
+/// Circle packages: @circle-fin/app-kit and @circle-fin/adapter-circle-wallets
+/// (installed versions are pinned in package-lock.json). The runtime shim is
+/// used because tsx otherwise evaluates the adapter's ESM entry point against
+/// a different developer-wallet export surface on Node 22.
+const { AppKit } = circleAppKit;
+const { createCircleWalletsAdapter } = circleWalletsAdapter;
 
 /// Single shared App Kit instance. Use this for any new bridge / send / swap /
 /// unified-balance feature instead of hand-rolling CCTP burn / attestation /
@@ -20,7 +27,7 @@ import { config } from '../config.js';
 /// app keeps booting in environments without Circle creds (e.g., local tests).
 
 interface AppKitBundle {
-  kit: AppKit;
+  kit: AppKitType;
   circleAdapter: ReturnType<typeof createCircleWalletsAdapter>;
 }
 
@@ -36,7 +43,7 @@ function build(): AppKitBundle | null {
 
 const bundle = build();
 
-export const kit: AppKit | null = bundle?.kit ?? null;
+export const kit: AppKitType | null = bundle?.kit ?? null;
 export const circleAdapter: ReturnType<typeof createCircleWalletsAdapter> | null =
   bundle?.circleAdapter ?? null;
 

@@ -10,7 +10,6 @@ import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySe
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
-import { MoneyRailStatus } from '@/features/money/components/MoneyRailStatus';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
 import {
@@ -202,7 +201,6 @@ function BridgePageInner() {
           </div>
 
           <div data-guide="bridge-rails">
-            <MoneyRailStatus direction={direction} />
             <RailSlider rails={rails} active={rail} onChange={setRail}>
               <RailPanel
                 rail={rail}

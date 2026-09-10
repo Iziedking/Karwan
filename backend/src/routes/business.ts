@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { readSession } from '../auth/session.js';
 import { accountKindOf } from '../profile/accountType.js';
 import { getProfile, upsertProfile, listProfiles, findProfileByName } from '../db/profiles.js';
+import { getOwnedWorkspace, updateBusinessWorkspace } from '../db/workspaces.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -11,13 +12,12 @@ import { config } from '../config.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 
-/// Verified-business accounts. A wallet registers as a business by anchoring a
-/// registration or tax-doc hash on KarwanBusinessRegistry (web3 users sign
-/// submitRegistration themselves; Circle users get the -circle sister route).
-/// Karwan reviews and approves; approval flips the profile to accountType
-/// 'business'. Company details ("what the business does") live on the profile's
-/// smeProfile and can be updated freely; sensitive changes (legal name, the
-/// anchored document) require a fresh registration that re-enters review.
+/// Business workspaces register by anchoring a registration or tax-doc hash on
+/// KarwanBusinessRegistry. Standalone business identities retain the legacy
+/// profile projection; a business workspace linked to a personal identity
+/// keeps company details and verification state on that workspace instead.
+/// Web3 users sign submitRegistration themselves; Circle users use the sister
+/// route. Karwan reviews and approves both paths.
 ///
 /// On-chain writes follow the trade.ts pattern: the wallet that owns the action
 /// signs, the backend mirrors after a confirmed tx. The reviewer's approve /
@@ -72,6 +72,7 @@ const NAME_EDIT_LIFETIME_MAX = 5;
 
 const registerBodySchema = z.object({
   address: addrSchema,
+  workspaceId: z.string().min(1).max(120).optional(),
   company: companySchema,
   docHash: hashSchema,
   docKind: docKindSchema.default('registration'),
@@ -82,6 +83,7 @@ const registerBodySchema = z.object({
 
 const reviewBodySchema = z.object({
   applicant: addrSchema,
+  workspaceId: z.string().min(1).max(120).optional(),
   decision: z.enum(['approve', 'reject']),
   /// sha256 of the human-readable rejection reason; required on reject.
   reasonHash: hashSchema.optional(),
@@ -98,6 +100,7 @@ async function recordSubmission(
   docKind: 'registration' | 'tax' | 'other',
   label: string | undefined,
   submitTxHash: string | undefined,
+  workspaceId?: string,
 ) {
   const existing = await getProfile(address);
   if (!existing) throw new Error('profile not found');
@@ -111,39 +114,61 @@ async function recordSubmission(
   // without the on-chain reviewer wallet being wired. Off in production.
   const autoApprove = config.BUSINESS_AUTO_APPROVE;
   const now = Date.now();
-  await upsertProfile({
-    ...existing,
-    // Registering a business puts the account on the SME rail (business home,
-    // nav, tours, profile) immediately: accountKind is the rail and follows the
-    // act of registering. accountType (finance-lane access) flips on approval.
-    // Without this, a registered business kept accountKind 'person' and every
-    // accountKind-gated surface rendered it as an individual.
-    accountKind: 'business' as const,
-    ...(autoApprove ? { accountType: 'business' as const } : {}),
-    smeProfile: {
-      ...(existing.smeProfile ?? {}),
+  const business = {
+    legalName: company.companyName,
+    verificationStatus: autoApprove ? 'verified' as const : 'submitted' as const,
+    docHash: docHash.toLowerCase(),
+    docKind,
+    label,
+    submitTxHash: submitTxHash?.toLowerCase(),
+    submittedAt: now,
+    ...(autoApprove ? { reviewedAt: now, verifiedAt: now } : {}),
+    company: {
       companyName: company.companyName,
-      sector: company.sector ?? existing.smeProfile?.sector,
-      region: company.region ?? existing.smeProfile?.region,
-      yearFounded: company.yearFounded ?? existing.smeProfile?.yearFounded,
-      employeeBand: company.employeeBand ?? existing.smeProfile?.employeeBand,
-      websiteUrl: company.websiteUrl ?? existing.smeProfile?.websiteUrl,
+      sector: company.sector,
+      region: company.region,
+      yearFounded: company.yearFounded,
+      employeeBand: company.employeeBand,
+      websiteUrl: company.websiteUrl,
       ...(autoApprove ? { verifiedAt: now } : {}),
     },
-    business: {
-      status: autoApprove ? 'verified' : 'submitted',
-      docHash: docHash.toLowerCase(),
-      docKind,
-      label,
-      submitTxHash: submitTxHash?.toLowerCase(),
-      submittedAt: now,
-      ...(autoApprove ? { reviewedAt: now, verifiedAt: now } : {}),
-    },
-  });
+  };
+  if (workspaceId) {
+    const owned = await getOwnedWorkspace(address, workspaceId);
+    if (!owned || owned.workspace.kind !== 'business') throw new Error('business workspace not found');
+    await updateBusinessWorkspace(address, workspaceId, {
+      name: company.companyName,
+      company: business,
+    });
+  } else {
+    await upsertProfile({
+      ...existing,
+      ...(autoApprove ? { accountType: 'business' as const } : {}),
+      smeProfile: {
+        ...(existing.smeProfile ?? {}),
+        companyName: company.companyName,
+        sector: company.sector ?? existing.smeProfile?.sector,
+        region: company.region ?? existing.smeProfile?.region,
+        yearFounded: company.yearFounded ?? existing.smeProfile?.yearFounded,
+        employeeBand: company.employeeBand ?? existing.smeProfile?.employeeBand,
+        websiteUrl: company.websiteUrl ?? existing.smeProfile?.websiteUrl,
+        ...(autoApprove ? { verifiedAt: now } : {}),
+      },
+      business: {
+        status: autoApprove ? 'verified' : 'submitted',
+        docHash: docHash.toLowerCase(),
+        docKind,
+        label,
+        submitTxHash: submitTxHash?.toLowerCase(),
+        submittedAt: now,
+        ...(autoApprove ? { reviewedAt: now, verifiedAt: now } : {}),
+      },
+    });
+  }
   bus.emitEvent({
     type: autoApprove ? 'business.verified' : 'business.registration.submitted',
     actor: 'platform',
-    payload: { address, docKind, txHash: submitTxHash },
+    payload: { address, docKind, txHash: submitTxHash, workspaceId },
   });
 
   // Ping the operator team on a new submission that awaits review, with a button
@@ -167,17 +192,14 @@ async function recordSubmission(
 
 /// POST /api/business/register: web3 path. The caller has signed
 /// submitRegistration(docHash) with their own wallet and reports the tx hash.
-/// Backend records the company snapshot + the submitted state.
+/// Backend records the company snapshot + submitted state for the selected
+/// business workspace, or the legacy standalone business profile.
 businessRoutes.post('/register', async (c) => {
   if (!config.KARWAN_BUSINESS_REGISTRY_ADDR) {
     return c.json({ error: 'business registry not configured' }, 503);
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
-  if ((await accountKindOf(session.address)) !== 'business') {
-    return c.json({ error: 'Business registration is for business accounts.', code: 'sme_rail_only' }, 403);
-  }
-
   let body;
   try {
     body = registerBodySchema.parse(await c.req.json());
@@ -186,6 +208,12 @@ businessRoutes.post('/register', async (c) => {
   }
   if (body.address.toLowerCase() !== session.address.toLowerCase()) {
     return c.json({ error: 'address must match session' }, 403);
+  }
+  if (body.workspaceId) {
+    const owned = await getOwnedWorkspace(session.address, body.workspaceId);
+    if (!owned || owned.workspace.kind !== 'business') return c.json({ error: 'business workspace not found' }, 403);
+  } else if ((await accountKindOf(session.address)) !== 'business') {
+    return c.json({ error: 'Select your business workspace before registering.', code: 'business_workspace_required' }, 403);
   }
 
   try {
@@ -196,6 +224,7 @@ businessRoutes.post('/register', async (c) => {
       body.docKind,
       body.label,
       body.txHash,
+      body.workspaceId,
     );
     return c.json({ ok: true, status: 'submitted' });
   } catch (err) {
@@ -212,10 +241,6 @@ businessRoutes.post('/register-circle', async (c) => {
   }
   const session = readSession(c);
   if (!session) return c.json({ error: 'not authenticated' }, 401);
-  if ((await accountKindOf(session.address)) !== 'business') {
-    return c.json({ error: 'Business registration is for business accounts.', code: 'sme_rail_only' }, 403);
-  }
-
   let body;
   try {
     body = registerBodySchema.parse(await c.req.json());
@@ -225,6 +250,12 @@ businessRoutes.post('/register-circle', async (c) => {
   const caller = body.address.toLowerCase();
   if (caller !== session.address.toLowerCase()) {
     return c.json({ error: 'address must match session' }, 403);
+  }
+  if (body.workspaceId) {
+    const owned = await getOwnedWorkspace(caller, body.workspaceId);
+    if (!owned || owned.workspace.kind !== 'business') return c.json({ error: 'business workspace not found' }, 403);
+  } else if ((await accountKindOf(session.address)) !== 'business') {
+    return c.json({ error: 'Select your business workspace before registering.', code: 'business_workspace_required' }, 403);
   }
 
   const user = getUserByAddress(caller);
@@ -255,6 +286,7 @@ businessRoutes.post('/register-circle', async (c) => {
       body.docKind,
       body.label,
       result.txHash,
+      body.workspaceId,
     );
     return c.json({ ok: true, status: 'submitted', txHash: result.txHash });
   } catch (err) {
@@ -356,6 +388,31 @@ businessRoutes.get('/status/:address', async (c) => {
   if (!profile) {
     return c.json({ accountType: 'person', status: 'none', company: null });
   }
+  const workspaceId = c.req.query('workspaceId');
+  const workspace = workspaceId
+    ? profile.workspaces?.find((candidate) => candidate.id === workspaceId && candidate.kind === 'business')
+    : undefined;
+  if (workspaceId && !workspace) {
+    return c.json({ error: 'business workspace not found' }, 404);
+  }
+  if (workspace) {
+    const company = workspace.business?.company;
+    return c.json({
+      accountType: profile.accountType ?? 'person',
+      status:
+        workspace.business?.verificationStatus === 'verified'
+          ? 'verified'
+          : workspace.business?.verificationStatus === 'submitted'
+            ? 'submitted'
+            : workspace.business?.verificationStatus === 'rejected'
+              ? 'rejected'
+              : 'none',
+      company: company
+        ? { companyName: company.companyName, sector: company.sector, region: company.region }
+        : { companyName: workspace.business?.legalName },
+      registryAddr: config.KARWAN_BUSINESS_REGISTRY_ADDR ?? null,
+    });
+  }
   const sme = profile.smeProfile;
   return c.json({
     accountType: profile.accountType ?? 'person',
@@ -389,35 +446,51 @@ businessRoutes.get('/status/:address', async (c) => {
 export const businessAdminRoutes = new Hono();
 businessAdminRoutes.use('*', requireAdmin);
 
-/// GET /api/admin/business/pending: the review queue. Lists every profile whose
-/// business registration is awaiting a decision.
+/// GET /api/admin/business/pending: the review queue. Lists both legacy
+/// standalone registrations and registrations attached to a business workspace.
 businessAdminRoutes.get('/pending', async (c) => {
   const profiles = await listProfiles();
-  const pending = profiles
-    .filter((p) => p.business?.status === 'submitted')
-    .map((p) => ({
-      address: p.address,
-      docHash: p.business?.docHash,
-      docKind: p.business?.docKind,
-      label: p.business?.label,
-      submittedAt: p.business?.submittedAt,
-      submitTxHash: p.business?.submitTxHash,
-      company: p.smeProfile
-        ? {
-            companyName: p.smeProfile.companyName,
-            sector: p.smeProfile.sector,
-            region: p.smeProfile.region,
-          }
-        : null,
-    }))
+  const pending = profiles.flatMap((p) => {
+    const rows: Array<Record<string, unknown> & { submittedAt?: number }> = [];
+    if (p.business?.status === 'submitted') {
+      rows.push({
+        address: p.address,
+        docHash: p.business.docHash,
+        docKind: p.business.docKind,
+        label: p.business.label,
+        submittedAt: p.business.submittedAt,
+        submitTxHash: p.business.submitTxHash,
+        company: p.smeProfile
+          ? {
+              companyName: p.smeProfile.companyName,
+              sector: p.smeProfile.sector,
+              region: p.smeProfile.region,
+            }
+          : null,
+      });
+    }
+    for (const workspace of p.workspaces ?? []) {
+      if (workspace.kind !== 'business' || workspace.business?.verificationStatus !== 'submitted') continue;
+      rows.push({
+        address: p.address,
+        workspaceId: workspace.id,
+        docHash: workspace.business.docHash,
+        docKind: workspace.business.docKind,
+        label: workspace.business.label,
+        submittedAt: workspace.business.submittedAt,
+        submitTxHash: workspace.business.submitTxHash,
+        company: workspace.business.company ?? { companyName: workspace.business.legalName },
+      });
+    }
+    return rows;
+  })
     .sort((a, b) => (a.submittedAt ?? 0) - (b.submittedAt ?? 0));
   return c.json({ pending });
 });
 
 /// POST /api/admin/business/review: reviewer approves or rejects a submitted
 /// registration. Backend signs registry.approve / registry.reject with the
-/// reviewer DCW, then mirrors the result: approve flips accountType to
-/// 'business'; reject records the reason.
+/// reviewer DCW, then mirrors the result on the submitted profile or workspace.
 businessAdminRoutes.post('/review', async (c) => {
   if (!config.KARWAN_BUSINESS_REGISTRY_ADDR) {
     return c.json({ error: 'business registry not configured' }, 503);
@@ -439,7 +512,16 @@ businessAdminRoutes.post('/review', async (c) => {
 
   const profile = await getProfile(applicant);
   if (!profile) return c.json({ error: 'profile not found' }, 404);
-  if (profile.business?.status !== 'submitted') {
+  const targetWorkspace = body.workspaceId
+    ? profile.workspaces?.find((workspace) => workspace.id === body.workspaceId && workspace.kind === 'business')
+    : undefined;
+  const awaitingReview = targetWorkspace
+    ? targetWorkspace.business?.verificationStatus === 'submitted'
+    : profile.business?.status === 'submitted';
+  if (body.workspaceId && !targetWorkspace) {
+    return c.json({ error: 'business workspace not found' }, 404);
+  }
+  if (!awaitingReview) {
     return c.json({ error: 'applicant is not awaiting review' }, 409);
   }
 
@@ -466,17 +548,31 @@ businessAdminRoutes.post('/review', async (c) => {
 
     const now = Date.now();
     if (body.decision === 'approve') {
-      await upsertProfile({
-        ...profile,
-        accountType: 'business',
-        accountKind: 'business',
-        business: {
-          ...(profile.business ?? { status: 'submitted' }),
-          status: 'verified',
-          reviewedAt: now,
-          verifiedAt: now,
-        },
-      });
+      if (targetWorkspace) {
+        await upsertProfile({
+          ...profile,
+          workspaces: profile.workspaces?.map((workspace) => workspace.id === targetWorkspace.id
+            ? {
+                ...workspace,
+                status: 'active',
+                business: { ...(workspace.business ?? { legalName: workspace.name, verificationStatus: 'submitted' }), verificationStatus: 'verified', reviewedAt: now, verifiedAt: now },
+                updatedAt: now,
+              }
+            : workspace),
+        });
+      } else {
+        await upsertProfile({
+          ...profile,
+          accountType: 'business',
+          accountKind: 'business',
+          business: {
+            ...(profile.business ?? { status: 'submitted' }),
+            status: 'verified',
+            reviewedAt: now,
+            verifiedAt: now,
+          },
+        });
+      }
       bus.emitEvent({
         type: 'business.verified',
         actor: 'platform',
@@ -484,15 +580,28 @@ businessAdminRoutes.post('/review', async (c) => {
       });
       logger.info({ applicant, txHash: result.txHash }, 'business: verified');
     } else {
-      await upsertProfile({
-        ...profile,
-        business: {
-          ...(profile.business ?? { status: 'submitted' }),
-          status: 'rejected',
-          reviewedAt: now,
-          rejectReason: body.reasonHash,
-        },
-      });
+      if (targetWorkspace) {
+        await upsertProfile({
+          ...profile,
+          workspaces: profile.workspaces?.map((workspace) => workspace.id === targetWorkspace.id
+            ? {
+                ...workspace,
+                business: { ...(workspace.business ?? { legalName: workspace.name, verificationStatus: 'submitted' }), verificationStatus: 'rejected', reviewedAt: now, rejectReason: body.reasonHash },
+                updatedAt: now,
+              }
+            : workspace),
+        });
+      } else {
+        await upsertProfile({
+          ...profile,
+          business: {
+            ...(profile.business ?? { status: 'submitted' }),
+            status: 'rejected',
+            reviewedAt: now,
+            rejectReason: body.reasonHash,
+          },
+        });
+      }
       bus.emitEvent({
         type: 'business.rejected',
         actor: 'platform',

@@ -72,10 +72,30 @@ function ownerMembership(workspace: Workspace, profile: UserProfile): WorkspaceM
 
 export function withWorkspaceDefaults(profile: UserProfile): UserProfile {
   const existing = profile.workspaces ?? [];
-  const personal = existing.find((workspace) => workspace.kind === 'personal') ?? personalWorkspace(profile);
-  const hasLegacyBusiness = profile.accountKind === 'business' || !!profile.smeProfile || profile.business?.status !== undefined && profile.business.status !== 'none';
+  // A business onboarding choice is an identity boundary, not a request to
+  // create a second profile. Legacy business fields are included so old
+  // records migrate to one business workspace without manufacturing a
+  // personal workspace with the company name.
+  const isBusinessIdentity =
+    profile.accountKind === 'business' ||
+    profile.accountType === 'business' ||
+    !!profile.smeProfile ||
+    (profile.business?.status !== undefined && profile.business.status !== 'none');
+  const personal = isBusinessIdentity
+    ? undefined
+    : existing.find((workspace) => workspace.kind === 'personal') ?? personalWorkspace(profile);
+  const hasLegacyBusiness = isBusinessIdentity;
   const business = existing.find((workspace) => workspace.kind === 'business') ?? (hasLegacyBusiness ? legacyBusinessWorkspace(profile) : null);
-  const workspaces = [personal, ...(business ? [business] : []), ...existing.filter((workspace) => workspace.id !== personal.id && workspace.id !== business?.id)];
+  const workspaces = [
+    ...(personal ? [personal] : []),
+    ...(business ? [business] : []),
+    ...existing.filter(
+      (workspace) =>
+        workspace.id !== personal?.id &&
+        workspace.id !== business?.id &&
+        !(isBusinessIdentity && workspace.kind === 'personal'),
+    ),
+  ];
   const memberships = workspaces.map((workspace) => existing.find((candidate) => candidate.id === workspace.id)?.membership ?? ownerMembership(workspace, profile));
   return {
     ...profile,
@@ -138,7 +158,6 @@ export async function createBusinessWorkspace(address: string, input: { name: st
   const membership = ownerMembership(workspace, ensured.profile);
   const saved = await upsertProfile({
     ...ensured.profile,
-    accountKind: 'business',
     workspaces: [...(ensured.profile.workspaces ?? []), workspace],
     workspaceMemberships: [...(ensured.profile.workspaceMemberships ?? []), membership],
   });

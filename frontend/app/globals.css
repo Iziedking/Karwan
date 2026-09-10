@@ -1014,13 +1014,6 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
 .auth-sheet { animation: auth-sheet-up var(--dur-base) var(--ease-out) both; }
 .auth-capsule-backdrop { animation: auth-backdrop-in 180ms var(--ease-out) both; }
 .auth-capsule {
-  color-scheme: dark;
-  --lp-card: #151b17;
-  --lp-dark: #f4f6f2;
-  --lp-light: #1d261f;
-  --lp-text-sub: #b2bbb2;
-  --lp-text-muted: #a5afa6;
-  --lp-border-light: rgba(238, 244, 235, 0.14);
   color: var(--lp-dark);
   background: var(--lp-card);
   font-family: var(--font-sans);
@@ -1028,6 +1021,22 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
   transform-origin: bottom;
   overscroll-behavior: contain;
 }
+/* Preserve the established dark auth treatment while allowing light mode to
+   inherit the platform-wide paper and ink tokens above. */
+html[data-theme="dark"] .auth-capsule {
+  color-scheme: dark;
+  --lp-card: #151b17;
+  --lp-dark: #f4f6f2;
+  --lp-light: #1d261f;
+  --lp-text-sub: #b2bbb2;
+  --lp-text-muted: #a5afa6;
+  --lp-border-light: rgba(238, 244, 235, 0.14);
+}
+/* Authentication follows the selected app theme. Keep the wallet method
+   visibly card-like on light surfaces while preserving the approved dark
+   treatment. */
+.auth-wallet-method { background: var(--lp-light); }
+html[data-theme="dark"] .auth-wallet-method { background: transparent; }
 @media (min-width: 640px) {
   .auth-capsule {
     animation-name: karwan-sheet-inline;

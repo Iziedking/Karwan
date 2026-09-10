@@ -12,6 +12,7 @@ import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
 type Pending = {
   address: string;
+  workspaceId?: string;
   docHash?: string;
   docKind?: string;
   label?: string;
@@ -56,9 +57,10 @@ export default function AdminBusiness() {
       confirmLabel: 'Approve',
     });
     if (!ok) return;
-    setBusy(p.address);
+    const busyKey = `${p.address}:${p.workspaceId ?? ''}`;
+    setBusy(busyKey);
     try {
-      const r = await api.adminReviewBusiness(p.address, 'approve');
+      const r = await api.adminReviewBusiness(p.address, 'approve', undefined, p.workspaceId);
       await reload();
       notify(`Verified. Tx ${short(r.txHash)}`);
     } catch (e) {
@@ -79,10 +81,11 @@ export default function AdminBusiness() {
       notify('A reason is required', 'error');
       return;
     }
-    setBusy(p.address);
+    const busyKey = `${p.address}:${p.workspaceId ?? ''}`;
+    setBusy(busyKey);
     try {
       const reasonHash = await sha256Hex(reason.trim());
-      const r = await api.adminReviewBusiness(p.address, 'reject', reasonHash);
+      const r = await api.adminReviewBusiness(p.address, 'reject', reasonHash, p.workspaceId);
       await reload();
       notify(`Rejected. Tx ${short(r.txHash)}`);
     } catch (e) {
@@ -109,7 +112,7 @@ export default function AdminBusiness() {
           </div>
         ) : null}
         {(pending ?? []).map((p) => (
-          <article key={p.address} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <article key={`${p.address}:${p.workspaceId ?? ''}`} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[15px] font-bold text-white/90">{p.company?.companyName || 'â€”'}</p>
@@ -132,8 +135,8 @@ export default function AdminBusiness() {
               </div>
             </dl>
             <div className="mt-3 grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => approve(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-[#7fae6f]/30 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9ac58b] disabled:opacity-40">Approve</button>
-              <button type="button" onClick={() => reject(p)} disabled={busy === p.address} className="min-h-11 rounded-lg border border-[#e0794f]/30 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#e79a79] disabled:opacity-40">Reject</button>
+              <button type="button" onClick={() => approve(p)} disabled={busy === `${p.address}:${p.workspaceId ?? ''}`} className="min-h-11 rounded-lg border border-[#7fae6f]/30 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#9ac58b] disabled:opacity-40">Approve</button>
+              <button type="button" onClick={() => reject(p)} disabled={busy === `${p.address}:${p.workspaceId ?? ''}`} className="min-h-11 rounded-lg border border-[#e0794f]/30 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#e79a79] disabled:opacity-40">Reject</button>
             </div>
           </article>
         ))}
@@ -158,7 +161,7 @@ export default function AdminBusiness() {
               </tr>
             ) : null}
             {(pending ?? []).map((p) => (
-              <tr key={p.address} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
+              <tr key={`${p.address}:${p.workspaceId ?? ''}`} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
                 <td className="px-3 py-2.5">
                   <div className="text-white/85">{p.company?.companyName || '—'}</div>
                   <div className="text-[11px] text-white/45">
@@ -185,7 +188,7 @@ export default function AdminBusiness() {
                     <button
                       type="button"
                       onClick={() => approve(p)}
-                      disabled={busy === p.address}
+                      disabled={busy === `${p.address}:${p.workspaceId ?? ''}`}
                       className="text-[#7fae6f] hover:text-white disabled:opacity-40"
                     >
                       approve
@@ -193,7 +196,7 @@ export default function AdminBusiness() {
                     <button
                       type="button"
                       onClick={() => reject(p)}
-                      disabled={busy === p.address}
+                      disabled={busy === `${p.address}:${p.workspaceId ?? ''}`}
                       className="text-[#e0794f] hover:text-white disabled:opacity-40"
                     >
                       reject

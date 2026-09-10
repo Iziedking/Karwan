@@ -121,17 +121,19 @@ export function BridgeOutCard() {
   const destName = isArcDest ? 'Arc' : SOURCE_CHAINS[destKey].name;
   const destShort = isArcDest ? 'Arc' : SOURCE_CHAINS[destKey].shortName;
   const recipientValid = ADDRESS_RE.test(recipient.trim());
-  /// Guard the recipient against contract addresses and typos. The on-chain
-  /// code check runs on Arc, so it only applies to the Arc destination (an
-  /// address can be an EOA on Arc but a contract elsewhere); other chains fall
-  /// back to a format check. The user's own address is trusted (no round-trip).
+  /// Check the recipient for typos and bytecode. The on-chain code check runs
+  /// on Arc, so it only applies to the Arc destination (an address can be an
+  /// EOA on Arc but a contract elsewhere); other chains fall back to a format
+  /// check. The user's own address is trusted (no round-trip). A contract result
+  /// stays visible as a warning because Circle SCAs are valid smart-wallet
+  /// recipients. Only an address that is still being checked remains blocked.
   const recipientCheck = useAddressKind(recipient, {
     enabled: isArcDest && recipientValid,
     trustedAddresses: [auth.address, ...knownKarwanWallets],
   });
   const trustedRecipient = isTrustedRecipient(recipient, [auth.address, ...knownKarwanWallets]);
   const recipientBlocked =
-    isArcDest && !trustedRecipient && (recipientCheck.kind === 'contract' || recipientCheck.kind === 'checking');
+    isArcDest && !trustedRecipient && recipientCheck.kind === 'checking';
   const displayRecipientKind = trustedRecipient ? 'eoa' : recipientCheck.kind;
   const canSubmit =
     !!auth.address &&

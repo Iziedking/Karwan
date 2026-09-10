@@ -49,6 +49,14 @@ export interface Workspace {
     legalName: string;
     verificationStatus: BusinessVerificationStatus;
     company?: Partial<NonNullable<UserProfile['smeProfile']>>;
+    docHash?: string;
+    docKind?: 'registration' | 'tax' | 'other';
+    label?: string;
+    submitTxHash?: string;
+    submittedAt?: number;
+    reviewedAt?: number;
+    verifiedAt?: number;
+    rejectReason?: string;
   };
   availability?: TradeAvailability[];
   createdAt: number;

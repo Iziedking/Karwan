@@ -182,6 +182,24 @@ profileRoutes.post('/', async (c) => {
   // before this rule. Case-insensitive, trimmed.
   const self = body.address.toLowerCase();
   const existing = await getProfile(self);
+  // Account type is selected once during onboarding. A business identity must
+  // not quietly become a personal identity, and adding a business workspace
+  // must never rewrite a personal identity into a business identity.
+  const establishedKind = existing?.accountKind ?? (
+    existing?.accountType === 'business' ||
+    (existing?.business?.status !== undefined && existing.business.status !== 'none')
+      ? 'business'
+      : undefined
+  );
+  if (establishedKind && body.accountKind && establishedKind !== body.accountKind) {
+    return c.json(
+      {
+        error: 'Account type cannot be changed after setup. Add a business workspace from your personal account instead.',
+        code: 'account_kind_immutable',
+      },
+      409,
+    );
+  }
   const currentName = existing?.displayName?.trim().toLowerCase();
   if (body.displayName.trim().toLowerCase() !== currentName) {
     const nameOwner = await findProfileByName(body.displayName);

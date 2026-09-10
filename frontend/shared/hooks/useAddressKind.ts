@@ -18,12 +18,12 @@ interface UseAddressKindOptions {
   enabled?: boolean;
 }
 
-/// Resolves whether an EVM address is an externally-owned account (EOA) or a
-/// contract on Arc Testnet, so the UI can warn before a user sends funds
-/// somewhere that may never return them. Debounced so a paste flicker
-/// doesn't fire a half-typed request. Trusted addresses (identity wallet,
-/// agent wallets the user owns) short-circuit to `eoa` without a network
-/// call.
+/// Resolves whether an EVM address has bytecode on Arc Testnet, allowing the UI
+/// to distinguish a normal wallet from a smart-wallet recipient. This is a
+/// warning signal, not proof that a destination cannot receive funds. Debounced
+/// so a paste flicker doesn't fire a half-typed request. Trusted addresses
+/// (identity wallet, agent wallets the user owns) short-circuit to `eoa` without
+/// a network call.
 export function useAddressKind(
   address: string | null | undefined,
   opts: UseAddressKindOptions = {},

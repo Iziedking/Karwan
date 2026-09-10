@@ -95,15 +95,15 @@ export function AgentWithdrawCard({
 
   const destValid = ADDR_RE.test(dest.trim());
   const amountValid = typeof amount === 'number' && amount > 0;
-  /// EOA-vs-contract verification on the destination. The user's own wallets
+  /// Address verification on the destination. The user's own wallets
   /// (identity + both agent SCAs) are passed in as trusted so the common
   /// "withdraw to my own agent / identity" path skips the RPC and never
   /// trips the "contract address, funds may be locked" warning. Circle SCAs
   /// have bytecode (4337), so without the trust list they classified as
-  /// contracts and blocked submit, which was confusing on a withdraw flow
-  /// where pasting your own buyer agent address is a perfectly normal move.
-  /// Any address NOT on the trust list still goes through the real check
-  /// so a fat-finger paste to some random contract still gets warned.
+  /// contracts. A detected contract remains a warning rather than a hard block
+  /// because Circle SCAs are valid smart-wallet recipients. Any address NOT on
+  /// the trust list still goes through the real check so a fat-finger paste to
+  /// some random contract is called out before sending.
   const trustedAddresses = useMemo(
     () => [address, buyerAgent, sellerAgent].filter((a): a is string => !!a),
     [address, buyerAgent, sellerAgent],
@@ -115,7 +115,6 @@ export function AgentWithdrawCard({
     isConnected &&
     !!selectedAgent?.address &&
     destValid &&
-    !destIsContract &&
     amountValid &&
     phase !== 'sending';
 

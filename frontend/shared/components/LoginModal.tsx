@@ -639,7 +639,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                         openConnectModal();
                       }
                     }}
-                    className="w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-transparent text-[var(--lp-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="auth-wallet-method w-full inline-flex min-h-11 items-center justify-between gap-3 px-5 py-[14px] mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 12,
@@ -775,7 +775,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   disabled={busy}
-                  className="form-input-dark mono text-[18px] tabular-nums tracking-[0.4em]"
+                  className="form-input mono text-[18px] tabular-nums tracking-[0.4em]"
                   autoFocus
                 />
               </label>

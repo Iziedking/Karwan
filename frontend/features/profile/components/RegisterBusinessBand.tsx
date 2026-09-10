@@ -6,6 +6,7 @@ import { useWriteContract } from 'wagmi';
 import { api, type BusinessRegisterBody } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { SectionTag, HeroHeadline, Punc, PageCard } from '@/shared/components/Bands';
 import { Reveal } from '@/shared/components/Reveal';
 
@@ -56,6 +57,8 @@ export function RegisterBusinessBand({
 }) {
   const t = useTranslations().registerBusiness;
   const { method } = useAuth();
+  const { activeWorkspace } = useWorkspaceContext();
+  const workspaceId = activeWorkspace?.kind === 'business' ? activeWorkspace.id : undefined;
   const { writeContractAsync } = useWriteContract();
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -76,7 +79,7 @@ export function RegisterBusinessBand({
     async function load() {
       setLoadFailed(false);
       try {
-        const result = await api.getBusinessStatus(address);
+        const result = await api.getBusinessStatus(address, workspaceId);
         if (cancelled) return;
         setStatus(result.status);
         onStatusChange?.(result.status);
@@ -99,7 +102,7 @@ export function RegisterBusinessBand({
     return () => {
       cancelled = true;
     };
-  }, [address, onStatusChange, reloadKey, startEditing]);
+  }, [address, onStatusChange, reloadKey, startEditing, workspaceId]);
 
   async function submit() {
     setError(null);
@@ -116,6 +119,7 @@ export function RegisterBusinessBand({
       const docHash = await sha256Hex(file);
       const body: BusinessRegisterBody = {
         address,
+        ...(workspaceId ? { workspaceId } : {}),
         company: {
           companyName: companyName.trim(),
           sector: sector || undefined,
