@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import pg from 'pg';
-import { runNumberedMigrations, type SqlExecutor } from '../db/migrations.js';
+import { NUMBERED_MIGRATIONS, runNumberedMigrations, type SqlExecutor } from '../db/migrations.js';
 import { creDeliveryReportId, type CreDeliveryRequest, type CreEvidenceReceiptBinding } from './creDeliveryRequest.js';
 import {
   CreDeliveryRequestQueueSqlRuntime,
@@ -85,7 +85,7 @@ test(
       await client.query(`SET search_path TO "${schema}"`);
       assert.deepEqual(
         await runNumberedMigrations(client),
-        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+        NUMBERED_MIGRATIONS.map((migration) => migration.version),
       );
 
       const publications = await Promise.all([
