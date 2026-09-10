@@ -1,8 +1,17 @@
 # Reputation model
 
-> The reputation score is the golden ticket on Karwan. It gates whose bids the agent prefers, whose briefs the agent trusts, who gets premium pricing, and who clears human review. Every other signal on the platform feeds into or out of it.
+> Reputation is a trade record, not a guarantee. It helps Karwan explain
+> counterparty history and apply the matching rules shown in the product.
 
-This document specifies the model. The current `KarwanReputation.sol` keeps three counters per address (`success`, `disputed`, `failed`) and divides them. That gets us a starting point, not a moat. The model below is what we replace it with: a formula that resists farming, rewards stake, penalises spam, and decays cleanly.
+This document specifies the model. The current `KarwanReputation.sol` keeps
+three counters per address (`success`, `disputed`, `failed`) and divides them.
+The model below adds stake, activity, tenure, and anti-farming controls around
+that on-chain history.
+
+Personal and business workspaces share one customer identity. Reputation is
+reported for the identity wallet and can show the workspace and trade context
+that produced an outcome. Adding a business workspace does not create a new
+score or a second balance.
 
 ## 1. What reputation means
 
@@ -30,11 +39,11 @@ can be held, and the tier is the lowest of the three.
 
 **Settled deals** (`TIER_MIN_DEALS`, env-tunable): COLD 1, ESTABLISHED 3,
 STRONG 8, ELITE 15. The additive model is deliberate, so stake and tenure earn
-points with no deal closed, but standing now gates other people's money: it
-decides financing eligibility and how much collateral a seller posts. Before this,
-a wallet reached ESTABLISHED, the financing benchmark, having never completed a
-deal, and ELITE, which waives PO collateral entirely, in fourteen days on five
-deals and 100 USDC staked.
+points with no deal closed. Standing informs matching and the trade controls
+shown in the product. Any financing eligibility remains subject to a separately
+enabled policy. Before this, a wallet reached ESTABLISHED, the financing
+benchmark, having never completed a deal, and ELITE, which waives PO collateral
+entirely, in fourteen days on five deals and 100 USDC staked.
 
 **Counterparty concentration**: hard (>=80% of settled deals with one
 counterparty) caps at COLD, soft (>=60%) caps at ESTABLISHED. `concentrationRatio`
@@ -307,5 +316,12 @@ Tuning happens via env, no redeploy. The formula itself stays version-pinned (`R
 
 ---
 
-**One-paragraph framing for README / pitch:**
-On Karwan, reputation is the platform's golden ticket. It is a composite score in [0, 1000] across five terms: activity, completion, stake, time, and a negative penalty term for spam, cancellations, abandoned negotiations, and lost disputes. Users grow reputation by completing deals and locking USDC in the KarwanVault, with no forced lock period and a 3-day cool-down on withdrawal. On Arc Testnet the vault holds plain USDC. On mainnet the same vault routes deposits through Hashnote USYC so the same stake also earns ~5% APY. The agent loop reads reputation directly. ELITE counterparties get first-look pricing, NEW counterparties get countered hard and routed to human review. Spam and griefing patterns are detected on rolling windows and shrink the score in days, not months. The score is a number you can grow, lose, and rebuild, which is the only way trust on a marketplace ever works.
+**One-paragraph framing for README / product copy:**
+Karwan reputation is a visible summary of completed trade history, stake,
+activity, tenure, and negative outcomes. It helps a buyer or seller understand
+the available record and helps matching apply the rules configured for the
+current trade. It is tied to the customer identity wallet, while personal and
+business workspaces provide context for the trade. It is not a safety guarantee,
+a financing approval, or proof of identity. On Arc Testnet, the vault holds
+testnet USDC and withdrawal follows the configured cooldown. Any future yield,
+financing, referral, or cross-chain reputation path remains separately gated.

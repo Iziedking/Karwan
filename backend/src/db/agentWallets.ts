@@ -63,12 +63,9 @@ export interface AgentWallets {
   /// linkable receipt every subsequent payment draws down from. Refreshed each
   /// time ensureGatewayFunding tops the deposit up.
   x402LastDeposit?: { txHash: string; at: number };
-  /// Dedicated EOA DCW that OWNS the user's unified Gateway balance, kept
-  /// separate from the internal x402 payment float. Gateway rejects EIP-1271
-  /// signatures, so the depositor/signer must be an EOA; USDC deposited here
-  /// (via depositFor from the user's identity or agent SCAs) forms one
-  /// cross-chain balance the backend can later spend to fund agent wallets or
-  /// cash out, with no user signature. Lazy-provisioned on first deposit.
+  /// Legacy dedicated EOA DCW for unified Gateway balances. New email accounts
+  /// use their Circle identity SCA directly; this field remains for accounts
+  /// created before that owner path was enabled and is never silently migrated.
   gatewayWallet?: { walletId: string; address: string };
 }
 

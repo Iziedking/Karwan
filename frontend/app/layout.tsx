@@ -121,7 +121,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             they choose light. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'&&t!=='system'){t='dark';}if(t==='system'){var h=new Date().getHours();t=(window.matchMedia('(prefers-color-scheme: dark)').matches||h>=19||h<7)?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'&&t!=='system'){t='dark';}if(t==='system'){var h=new Date().getHours();t=(h>=19||h<7)?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
           }}
         />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and

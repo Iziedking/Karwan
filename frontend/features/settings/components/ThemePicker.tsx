@@ -8,17 +8,19 @@ import {
   type ThemePreference,
 } from '@/shared/hooks/useTheme';
 
-/// The theme control, for surfaces where there is no other one.
-///
-/// There is no nav toggle any more: the app runs on Automatic, which reads the
-/// machine's own dark setting and, failing that, the hour on its clock. This
-/// picker exists so that decision is visible and reversible, not so it has to
-/// be made. Automatic is listed first because it is where every device starts.
+/// The theme control for All settings. Daylight follows the device's local
+/// clock, while White and Dark are explicit choices.
 ///
 /// Shows all three states rather than cycling through them. A toggle asks the
 /// user to work out which state the icon represents; a picker shows them where
 /// they are and what the alternatives are.
-export function ThemePicker() {
+export function ThemePicker({
+  onChange,
+  showLabel = true,
+}: {
+  onChange?: (next: ThemePreference) => void;
+  showLabel?: boolean;
+}) {
   const t = useTranslations();
   const { theme, mounted } = useTheme();
   const [preference, setPreference] = useState<ThemePreference>('system');
@@ -32,6 +34,7 @@ export function ThemePicker() {
   function choose(next: ThemePreference) {
     setThemePreference(next);
     setPreference(next);
+    onChange?.(next);
   }
 
   const options: { value: ThemePreference; icon: React.ReactNode; label: string }[] = [
@@ -42,9 +45,11 @@ export function ThemePicker() {
 
   return (
     <div className="inline-flex flex-wrap items-center gap-2.5">
-      <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        {t.settings.theme}
-      </span>
+      {showLabel ? (
+        <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+          {t.settings.theme}
+        </span>
+      ) : null}
       <div role="group" aria-label={t.settings.theme} className="inline-flex gap-1.5">
         {options.map((o) => {
           // Before mount nothing is marked current. Painting one as active
@@ -71,9 +76,8 @@ export function ThemePicker() {
             >
               {o.icon}
               {o.label}
-              {/* Automatic resolves to one of the other two, and which one is
-                  worth stating: the row otherwise reads as three equal choices
-                  with no clue what the active one produced. */}
+              {/* Daylight resolves to one of the other two, and stating which
+                  one is active makes the mode legible at a glance. */}
               {active && o.value === 'system' && mounted && (
                 <span aria-hidden className="text-[var(--lp-text-muted)]">
                   {theme === 'dark' ? '· ' + t.settings.themeDark : '· ' + t.settings.themeLight}

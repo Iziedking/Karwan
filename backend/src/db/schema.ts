@@ -19,6 +19,8 @@ import type { ActivityEntry } from './activityLog.js';
 import type { AssistantUsage } from './assistantUsage.js';
 import type { IssuedAttestation } from './attestations.js';
 import type { MoneyMovement } from '../money/model.js';
+import type { DepositRequest } from '../money/depositRequests.js';
+import type { MoneyRailIntent } from '../money/railIntent.js';
 import type { CreEvidenceReceiptBinding } from '../evidence/creDeliveryRequest.js';
 
 // Profiles and direct deals keep their full TypeScript shape in a JSONB `data`
@@ -66,6 +68,55 @@ export const bridges = pgTable('bridges', {
   bridgeId: text('bridge_id').primaryKey(),
   data: jsonb('data').$type<BridgeRelay>().notNull(),
 });
+
+/// Shareable payment requests. The request token is the public lookup key;
+/// recipient and lifecycle data stay in the JSONB record so the attribution
+/// rules can evolve without exposing internal payment plumbing to the browser.
+export const depositRequests = pgTable(
+  'deposit_requests',
+  {
+    token: text('token').primaryKey(),
+    owner: text('owner').notNull(),
+    status: text('status').notNull(),
+    amountUsdc: text('amount_usdc'),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(),
+    matchedTxId: text('matched_tx_id'),
+    matchedChain: text('matched_chain'),
+    matchedAt: bigint('matched_at', { mode: 'number' }),
+    data: jsonb('data').$type<DepositRequest>().notNull(),
+  },
+  (t) => ({
+    ownerCreatedIdx: index('deposit_requests_owner_created_idx').on(t.owner, t.createdAt),
+    statusExpiresIdx: index('deposit_requests_status_expires_idx').on(t.status, t.expiresAt),
+    ownerAmountIdx: index('deposit_requests_owner_amount_idx').on(t.owner, t.amountUsdc, t.status),
+    matchedTxIdx: uniqueIndex('deposit_requests_matched_tx_idx').on(t.matchedTxId),
+  }),
+);
+
+/// Durable provider boundary for bank, card, Gateway, and bridge intents.
+/// `data` keeps the full state machine while the indexed columns make owner,
+/// idempotency, and recovery reads cheap. A provider callback can therefore
+/// resume the same intent after a process restart instead of creating a second
+/// deposit or payout.
+export const moneyRailIntents = pgTable(
+  'money_rail_intents',
+  {
+    id: text('id').primaryKey(),
+    idempotencyKey: text('idempotency_key').notNull().unique(),
+    owner: text('owner').notNull(),
+    rail: text('rail').notNull(),
+    direction: text('direction').notNull(),
+    status: text('status').notNull(),
+    version: bigint('version', { mode: 'number' }).notNull(),
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
+    data: jsonb('data').$type<MoneyRailIntent>().notNull(),
+  },
+  (t) => ({
+    ownerUpdatedIdx: index('money_rail_intents_owner_updated_idx').on(t.owner, t.updatedAt),
+    statusUpdatedIdx: index('money_rail_intents_status_updated_idx').on(t.status, t.updatedAt),
+  }),
+);
 
 /// One logical movement of money, issued before any chain interaction. The
 /// reference is the user-facing receipt key; operationKey is the idempotency

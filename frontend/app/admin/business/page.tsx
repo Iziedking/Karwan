@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/core/api';
 import { CopyId } from '@/shared/components/CopyId';
 import { useDialog } from '@/shared/components/Dialog';
+import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
 /// Admin business review: the on-chain verification queue. Approve signs
 /// approve(applicant) on the registry via the reviewer wallet and flips the
@@ -93,16 +94,13 @@ export default function AdminBusiness() {
 
   return (
     <div>
-      <h1 className="font-sans text-[26px] font-extrabold tracking-[-0.01em]">Business review</h1>
-      <p className="mt-2 text-[13px] text-white/45 leading-relaxed max-w-[640px]">
-        The on-chain verification queue. Approve signs approve() on the registry through
-        the reviewer wallet and flips the account to verified. The Profiles tab keeps a
-        separate off-chain override for a stuck case.
-      </p>
-      {err && <p className="mt-3 text-[13px] text-[#e0794f]">{err}</p>}
-      <p className="mt-3 mono text-[10px] uppercase tracking-[0.14em] text-white/35">
-        {pending ? `${pending.length} awaiting review` : 'loading...'}
-      </p>
+      <AdminPageHeader
+        eyebrow="BUSINESS REVIEW"
+        title="Verify the businesses entering the market"
+        description="Check the submitted company evidence, then approve or decline the business profile. The decision is separate from the person's identity."
+        meta={pending ? `${pending.length} awaiting review` : 'Waiting for the verification queue'}
+      />
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
 
       <div className="mt-4 space-y-3 md:hidden">
         {pending && pending.length === 0 ? (

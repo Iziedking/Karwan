@@ -20,7 +20,6 @@ import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { ProfileOpenDealsPanel } from '@/features/notifications/components/ProfileOpenDealsPanel';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -37,6 +36,7 @@ import {
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountHub';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 type ProfileSection = 'wallets' | 'open-deals' | 'agents' | 'identity' | 'preferences';
 
@@ -97,6 +97,7 @@ function ProfilePageInner() {
   const pathname = usePathname();
   const activeSection = PROFILE_SECTION_BY_PATH[pathname] ?? null;
   const { profile: loadedProfile, address, fetchState } = useUserProfile();
+  const { isBusinessWorkspace } = useWorkspaceContext();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const activation = useActivation();
   const openDeals = useOpenDeals();
@@ -156,7 +157,7 @@ function ProfilePageInner() {
     );
   }
 
-  const isBusiness = isBusinessAccount(profile);
+  const isBusiness = isBusinessWorkspace;
 
   const profilePanels: ProfilePanel[] = [
     {

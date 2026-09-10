@@ -1,5 +1,130 @@
 # Release notes
 
+## ETHOnline 2026 build window: September 5 to September 9, 2026
+
+This build window focused Karwan on one demonstrable trade loop: a buyer or
+seller brings an agreement from any online channel, both parties review the
+same terms, agents add evidence without taking payment authority away from the
+people in the deal, and Arc records the settlement. The work was organized to
+leave a repeatable product foundation that can support more providers, chains,
+and trade types after the event.
+
+### Consumer trade entry and agreement integrity
+
+- Expanded the product story from a freelancer marketplace to an open market
+  for goods, services, invoices, and purchase orders sourced from social posts,
+  chat, links, and QR requests.
+- Preserved source context as part of the trade intent and the immutable agreed
+  terms digest, so a deal can move into Karwan without losing where it started.
+- Hardened invite claiming, counterparty privacy, accepted terms versions, and
+  delivery binding so an old or forwarded link cannot silently fund a different
+  agreement.
+- Kept the human approval boundary explicit: agents can research, score, and
+  explain a trade, while a person still accepts terms, funds escrow, and
+  approves release.
+
+### Consumer account and mobile experience
+
+- Reworked the public landing and authenticated account surfaces around the
+  Trade Anywhere flow, with clearer actions for bringing in a trade, finding a
+  counterparty, reviewing trust, and protecting payment.
+- Consolidated account money actions into a single movement surface with
+  readable direction, rail status, history, and receipt states.
+- Added a shareable third-party deposit request path with a public review page,
+  prefilled amount and recipient, expiry handling, QR support, and safe request
+  cancellation.
+- Improved mobile navigation, account guidance, profile and reputation views,
+  deal detail, activity, settings, stake, bridge, and support surfaces while
+  preserving the existing Karwan identity and multilingual message parity.
+- Kept product copy provider-neutral where a banking or fiat corridor still
+  needs its final operational configuration.
+
+### Money movement and settlement foundations
+
+- Added durable, idempotent money-rail intents for Gateway deposits, CCTP
+  deposits, Arc transfers, bank deposits, card onramps, withdrawals, and
+  offramps.
+- Added request matching, provider-event verification, retry-safe recovery,
+  cancellation, refund states, and Karwan reference binding for settlement
+  records.
+- Preserved the existing Arc USDC settlement path and made the new request
+  layer additive, so a third party can fund a recipient without exposing wallet
+  implementation details in the product flow.
+
+### World identity and agent continuity
+
+- Pinned `@worldcoin/idkit-core` and added server-side World ID RP signing,
+  strict action, environment, nonce, and nullifier checks, and raw Developer
+  Portal verification.
+- Added durable nullifier storage and replay protection through the
+  `world_id_nullifiers_v1` migration.
+- Added `/api/world-id/status`, `/rp-signature`, and `/verify` routes with
+  fail-closed configuration behavior and no payment authority attached to a
+  proof.
+- Added a staging-only Sandbox runner that creates a World simulator connector,
+  polls for the result, and submits it to Karwan with an explicit execution
+  mode.
+- Kept AgentBook registration and resolution as a separate, inspectable path so
+  the submission can show how multiple agents remain attached to one human
+  allowance without inventing an identity result.
+
+### Chainlink CRE delivery evidence
+
+- Added the CRE Upgrade evidence path for GitHub delivery checks bound to an
+  immutable pull-request SHA, accepted terms version, evidence revision, and
+  allowlisted check producer.
+- Added `VerifyEvidenceReceipt.s.sol`, a read-only Foundry assertion that checks
+  the deployed receiver's exact receipt fields, recording time, and consumed
+  report replay key.
+- Added a strict Upgrade configuration example with confidential HTTP mode,
+  Arc Testnet chain identity, secret references, receiver address, gas limit,
+  and `writeReport: true`.
+- Documented the required order for receiver deployment, workflow hashing,
+  one-time workflow binding, production execution, and receipt verification so
+  the evidence remains reproducible at the submitted revision.
+
+### Reliability, security, and verification
+
+- Fenced delivery and research workers with lease and attempt identities so an
+  expired worker cannot publish a stale result or cancel a newer request.
+- Reconciled legacy delivery requests through the durable queue before claims
+  and invalidated evidence on redelivery.
+- Added focused tests for World proof parsing, nullifier replay, CRE delivery
+  integrity, report replay protection, and receiver receipt assertions.
+- Maintained deterministic CRE fixture tests and Foundry contract tests so
+  local verification stays separate from testnet execution.
+- Updated the submission evidence pack with the demo sequence, negative-case
+  matrix, reuse and AI disclosure, daily execution ledger, and the artifacts to
+  capture for World, Chainlink, and Arc.
+
+### Submission closeout
+
+The final closeout will use dedicated test identities, a controlled GitHub
+repository, Arc Testnet USDC, and a frozen candidate revision. The same deal
+will carry the accepted terms, agent research result, private delivery verdict,
+receiver receipt, funding receipt, release receipt, and recovery traces. The
+release notes and evidence pack will be updated with observed identifiers and
+transaction data as each runtime check completes, keeping the submission
+auditable and ready for a larger production rollout.
+
+
+### Remaining release gates
+
+- Real bank and card providers, FX, compliance, refunds, and corridor
+  reconciliation still require provisioned provider integrations.
+- Direct one-transaction CCTP settlement into custom Karwan escrow still
+  requires a verified receiver hook in the deployed contract.
+
+### Verification
+
+- Frontend tests: 268 passing.
+- Backend tests: 946 passing, 32 intentionally skipped.
+- Frontend production build: 66 pages generated.
+- Frontend typecheck, shell route check, localization parity, and diff checks
+  passed.
+- The backend typecheck still reports the existing
+  `src/scripts/world-id-sandbox.ts` spread-types issue.
+
 ## July 27, 2026
 
 ### Invoice factoring is opt-in

@@ -1,8 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
-import { isBusinessAccount } from '@/features/account/accountKind';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
@@ -44,12 +43,12 @@ export default function SupplyPage() {
 
 function SupplyPageInner() {
   const { address } = useAuth();
-  const { profile } = useUserProfile();
+  const { isBusinessWorkspace } = useWorkspaceContext();
   const { activated, agents } = useActivation();
   const sp = useTranslations().supplyPage;
 
   // An individual posts on the P2P desk; this is the company book.
-  if (!isBusinessAccount(profile)) {
+  if (!isBusinessWorkspace) {
     return (
       <FullBleed>
         <Band tone="dark" compact overlay={<GridOverlay />}>

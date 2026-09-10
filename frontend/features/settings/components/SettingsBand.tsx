@@ -10,9 +10,9 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { purgeStoredNotifications } from '@/shared/utils/notificationStore';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Locale } from '@/shared/i18n/locales';
-import { adoptPreferenceIfUnset, setThemePreference } from '@/shared/hooks/useTheme';
+import { adoptPreferenceIfUnset } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
-import { ThemeControl } from '@/shared/components/ThemeControl';
+import { ThemePicker } from './ThemePicker';
 
 type Saver = (patch: UserSettings) => Promise<void>;
 
@@ -122,12 +122,6 @@ export function SettingsBand() {
 
   function onThemeChange(next: ThemePreference) {
     save({ theme: next });
-    // Goes through the shared writer rather than setting data-theme directly.
-    // Writing only the attribute was the bug: the choice applied instantly and
-    // then died at the next navigation, because the pre-paint script reads
-    // localStorage and nothing had written it. It also leaves any other mounted
-    // switcher showing the theme the user just left.
-    setThemePreference(next);
   }
 
   return (
@@ -158,7 +152,7 @@ export function SettingsBand() {
       </Row>
 
       <Row label={t.settings.theme}>
-        <ThemeControl onChange={onThemeChange} />
+        <ThemePicker onChange={onThemeChange} showLabel={false} />
       </Row>
 
       <Row label={t.settings.sound}>

@@ -1,9 +1,9 @@
 import type { UserProfile } from '@/core/api';
 
-/// The single person/business predicate for the whole frontend. Business
-/// accounts live entirely in the SME rail; individuals live entirely in P2P.
-/// The decision is made here so nav, route guards, the home, and tours all
-/// agree.
+/// Legacy profile-level fallback for older routes that have not yet received
+/// the selected workspace context. New navigation, home, and route guards use
+/// the workspace provider so one identity can move between personal and
+/// business workspaces without creating a second account.
 ///
 /// Primary signal is the onboarding choice (`accountKind`). The fallbacks cover
 /// legacy profiles created before `accountKind` existed: a verified business

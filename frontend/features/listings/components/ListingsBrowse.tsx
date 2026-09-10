@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import {
   buildDiscoveryCards,
@@ -23,7 +22,7 @@ import { Band, FullBleed, SectionTag } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
 import { MARKET_BIZ_TOUR_ID, MARKET_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
@@ -43,8 +42,8 @@ export function ListingsBrowse() {
   const translations = useTranslations();
   const copy = translations.listingsBrowse;
   const { address, isAuthenticated } = useAuth();
-  const { profile } = useUserProfile();
-  const onBusinessTrack = isAuthenticated && isBusinessAccount(profile);
+  const { isBusinessWorkspace } = useWorkspaceContext();
+  const onBusinessTrack = isAuthenticated && isBusinessWorkspace;
   const audience: DiscoveryAudience = !isAuthenticated
     ? 'public'
     : onBusinessTrack

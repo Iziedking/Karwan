@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { api, ApiError } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
-import { isBusinessAccount } from '@/features/account/accountKind';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useQueryClient } from '@tanstack/react-query';
@@ -87,12 +87,12 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
   const t = useTranslations().profileEmail;
   const qc = useQueryClient();
   const { profile, loading: profileLoading } = useUserProfile();
+  const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
   const auth = useAuth();
   // Until auth + profile resolve we can't tell verified from not, so hold the
   // body in a neutral skeleton instead of flashing the "Add email" form before
   // the verified card paints.
   const notReady = auth.isLoading || profileLoading;
-  const isBusiness = isBusinessAccount(profile);
   // An email-login user's verified email is their login email even before the
   // backend backfills profile.email, so prefer it for display + prefill.
   const sessionEmail = auth.method === 'circle' ? auth.email : undefined;

@@ -13,6 +13,7 @@ import {
   matchingReviewReasonLabel,
   MATCHING_REVIEW_DECISIONS,
 } from '@/features/admin/matchingReviewPresentation';
+import { AdminPageHeader } from '@/features/admin/AdminPageHeader';
 
 type Draft = { decision: AdminMatchingReviewDecision; note: string };
 
@@ -108,15 +109,14 @@ export default function AdminMatchingPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">[:MATCHING REVIEW:]</p>
-      <h1 className="mt-2 font-sans text-[24px] font-extrabold">Shadow disagreements</h1>
-      <p className="mt-2 text-[13px] text-white/55 max-w-[70ch]">
-        Review evidence before any future winner cutover. These dispositions are immutable audit
-        records only: legacy matching remains authoritative and no review can trigger a wallet,
-        provider, notification, or financial action.
-      </p>
+      <AdminPageHeader
+        eyebrow="MATCHING REVIEW"
+        title="Review recommendations before they change"
+        description="Compare the current matcher with the shadow result, record the evidence behind your decision, and keep the live market unchanged until the review is complete."
+        meta={summary ? `${summary.comparison.diverged} disagreements in the current window` : 'Waiting for review evidence'}
+      />
 
-      {err && <p className="mt-4 text-[12px] text-[#e0794f] border border-[#e0794f]/30 bg-[#e0794f]/10 rounded-lg px-3 py-2">{err}</p>}
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
       {notice && <p className="mt-4 text-[12px] text-white/70 border border-white/15 bg-white/5 rounded-lg px-3 py-2">{notice}</p>}
 
       <section className="mt-6 border border-white/10 rounded-xl p-5 bg-[#161616]">

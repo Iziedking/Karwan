@@ -11,6 +11,11 @@ Nanopayments, Agent Marketplace, and Circle Skills.** The application runtime
 also uses **USDC, Developer-Controlled Wallets, Gateway, CCTP with Bridge Kit,
 and USYC.**
 
+The customer model stays unified across these rails: one person identity and
+login, one personal workspace, and an optional owner-only business workspace.
+The customer keeps one identity wallet and one USDC balance in v1. Operational
+agent wallets are separate from that customer identity and balance.
+
 ## Circle Agent Stack
 
 The five Agent Stack surfaces have different trust boundaries in Karwan.
@@ -31,8 +36,9 @@ reconciliation flow is documented in
 
 ## USDC on Arc
 
-The settlement asset for escrow, milestone release, factoring, purchase-order
-custody, repayment, staking, and fees. On Arc, USDC is also the native gas token.
+The settlement asset for escrow, milestone release, staking, and fees. On Arc,
+USDC is also the native gas token. Financing and repayment are planned product
+extensions, not part of the unified workspace MVP.
 
 - ERC-20 interface at `0x3600000000000000000000000000000000000000`, 6 decimals.
 - Native gas view is 18 decimals. **They are one balance, not two tokens.**
@@ -42,8 +48,10 @@ custody, repayment, staking, and fees. On Arc, USDC is also the native gas token
 
 ## Circle Wallets (Developer-Controlled)
 
-Package: `@circle-fin/developer-controlled-wallets`. Every user gets an identity
-wallet and two agent wallets, provisioned on sign-in, so no one handles a key.
+Package: `@circle-fin/developer-controlled-wallets`. Email and passkey customers
+get one identity wallet and two operational agent wallets, provisioned on
+sign-in, so no one handles a key. A business workspace does not create another
+customer wallet or balance. Web3 customers sign in with their own wallet.
 
 - Setup: `backend/src/circle/wallets.ts`, using `initiateDeveloperControlledWalletsClient`
   then `createWalletSet` → `createWallets({ blockchains: ['ARC-TESTNET'], accountType: 'SCA' })`.

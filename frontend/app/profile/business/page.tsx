@@ -1,15 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export default function BusinessProfilePage() {
   const t = useTranslations().businessProfilePage;
   const common = useTranslations().common;
   const { profile, fetchState, isConnected, refresh } = useUserProfile();
-  const business = isBusinessAccount(profile);
+  const { isBusinessWorkspace: business } = useWorkspaceContext();
   const pending = isConnected && (fetchState === 'loading' || fetchState === 'idle');
   const benefits = [
     [t.findTitle, t.findBody, 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75 M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0'],

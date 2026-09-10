@@ -196,12 +196,59 @@ export interface UserSettings {
   publicPassport?: boolean;
 }
 
+export type WorkspaceKind = 'personal' | 'business';
+export type WorkspaceStatus = 'active' | 'setup' | 'suspended' | 'closed';
+export type BusinessVerificationStatus = 'not_started' | 'in_progress' | 'submitted' | 'needs_information' | 'verified' | 'rejected' | 'expired';
+
+export interface TradeAvailability {
+  id: string;
+  tradeType: 'goods' | 'services';
+  title: string;
+  description?: string;
+  region?: string;
+  unit?: string;
+  active: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Workspace {
+  id: string;
+  kind: WorkspaceKind;
+  name: string;
+  status: WorkspaceStatus;
+  ownerAddress: string;
+  walletAddress: string;
+  balanceScope: 'identity';
+  business?: {
+    legalName: string;
+    verificationStatus: BusinessVerificationStatus;
+    company?: Record<string, unknown>;
+  };
+  availability?: TradeAvailability[];
+  createdAt: number;
+  updatedAt: number;
+  membership?: {
+    workspaceId: string;
+    address: string;
+    role: 'owner';
+    createdAt: number;
+  };
+}
+
 export interface UserProfile {
   address: string;
   role: UserRole;
   displayName: string;
   createdAt: number;
   updatedAt: number;
+  workspaces?: Workspace[];
+  workspaceMemberships?: Array<{
+    workspaceId: string;
+    address: string;
+    role: 'owner';
+    createdAt: number;
+  }>;
   xHandle?: string;
   xUserId?: string;
   xProfileImageUrl?: string;
@@ -468,6 +515,7 @@ export interface DirectDeal {
   jobId: string;
   buyer: string;
   seller: string;
+  sourceContext?: TradeSourceContext;
   /// Managed seller account recorded by the escrow. Absent when the seller
   /// trades directly from their identity wallet.
   sellerAgentAddress?: string;
@@ -2940,6 +2988,24 @@ export const api = {
       chains: Array<{ key: string; name: string; address: string }>;
       solana: { key: string; name: string; address: string } | null;
     }>(`/api/deposit/address?address=${address}`),
+  createDepositRequest: (body: {
+    amountUsdc?: string;
+    purpose?: string;
+    ttlMinutes?: number;
+  }) =>
+    json<{ request: DepositRequestPublic }>('/api/deposit/requests', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getDepositRequest: (token: string) =>
+    json<{ request: DepositRequestPublic }>(`/api/deposit/requests/${encodeURIComponent(token)}`),
+  listDepositRequests: () =>
+    json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests'),
+  cancelDepositRequest: (token: string) =>
+    json<{ request: DepositRequestPublic }>(
+      `/api/deposit/requests/${encodeURIComponent(token)}/cancel`,
+      { method: 'POST' },
+    ),
   /// Arc-USDC faucet for one of the user's own wallets (identity hub or an
   /// agent). Testnet only.
   faucet: (address: string, target: 'identity' | 'buyer' | 'seller') =>
@@ -3262,6 +3328,7 @@ export const api = {
       kind: 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
       label?: string;
     }>;
+    sourceContext?: TradeSourceContext;
   }) =>
     json<{
       deal: DirectDeal;
@@ -4198,6 +4265,31 @@ export const api = {
   // the user deposits. Session-scoped, so no address argument.
   getGatewayBalance: () =>
     json<{ balance: GatewayBalance; stale?: boolean }>('/api/gateway/balance'),
+  /// Provider-neutral money movement orchestration. The API records intent and
+  /// capability truth; the existing wallet/Gateway/CCTP actions remain the
+  /// execution surfaces until a provider checkout is configured.
+  moneyCapabilities: () =>
+    json<{ capabilities: MoneyRailCapability[]; settlementHome: 'Arc'; supportedAsset: 'USDC' }>(
+      '/api/money/capabilities',
+    ),
+  moneyIntents: () =>
+    json<{ intents: MoneyRailIntentView[] }>('/api/money/intents'),
+  createMoneyIntent: (body: CreateMoneyIntentBody) =>
+    json<{
+      intent: MoneyRailIntentView;
+      created: boolean;
+      next: 'provider_checkout' | 'wallet_or_gateway' | 'recipient_confirmation';
+    }>('/api/money/intents', { method: 'POST', body: JSON.stringify(body) }),
+  retryMoneyIntent: (id: string) =>
+    json<{ intent: MoneyRailIntentView }>(`/api/money/intents/${encodeURIComponent(id)}/retry`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  cancelMoneyIntent: (id: string) =>
+    json<{ intent: MoneyRailIntentView }>(`/api/money/intents/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
   /// Server-side Circle-account deposit. Browser-controlled web3 deposits use
   /// the App Kit rail; this adapter is the durable receipt path for custodial
   /// identity/agent wallets.
@@ -4359,6 +4451,56 @@ export const api = {
       { method: 'POST' },
     ),
 
+  // One identity, with optional personal and business workspaces. Workspace
+  // reads are session-scoped and use the same identity wallet/balance in v1.
+  getWorkspaces: () =>
+    json<{ workspaces: Workspace[]; wallet: { address: string; balanceScope: 'identity' } }>(
+      '/api/workspaces',
+    ),
+  createBusinessWorkspace: (name: string) =>
+    json<{ workspace: Workspace }>('/api/workspaces/business', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
+  updateWorkspace: (workspaceId: string, body: { name?: string; company?: Workspace['business'] }) =>
+    json<{ workspace: Workspace }>(`/api/workspaces/${encodeURIComponent(workspaceId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  getTradeAvailability: (workspaceId: string) =>
+    json<{ availability: TradeAvailability[] }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/availability`,
+    ),
+  saveTradeAvailability: (workspaceId: string, body: Omit<TradeAvailability, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) =>
+    json<{ availability: TradeAvailability }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/availability`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  counterDirectDeal: (
+    jobId: string,
+    body: {
+      caller: string;
+      dealAmountUsdc?: number;
+      deadlineDays?: number;
+      deadlineHours?: number;
+      acceptanceWindowHours?: number;
+      terms?: string;
+      firstReleasePct?: number;
+      requireStake?: boolean;
+      requireStakePct?: number;
+      evidenceRequired?: boolean;
+    },
+  ) =>
+    json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
+      `/api/deals/direct/${jobId}/counter`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  removeTradeAvailability: (workspaceId: string, availabilityId: string) =>
+    json<{ ok: true }>(
+      `/api/workspaces/${encodeURIComponent(workspaceId)}/availability/${encodeURIComponent(availabilityId)}`,
+      { method: 'DELETE' },
+    ),
+
   // --- verified-business accounts ---------------------------------------
   /// Public verification status + compact company snapshot for an address.
   getBusinessStatus: (address: string) =>
@@ -4473,6 +4615,88 @@ export interface GatewayChainBalance {
   key: string;
   confirmed: string;
   pending: string;
+}
+
+export interface TradeSourceContext {
+  channel: 'karwan' | 'email' | 'tiktok' | 'instagram' | 'facebook' | 'x' | 'linkedin' | 'other';
+  reference?: string;
+  label?: string;
+}
+
+export type MoneyRailKind =
+  | 'gateway_deposit'
+  | 'cctp_deposit'
+  | 'arc_transfer'
+  | 'bank_deposit'
+  | 'card_onramp'
+  | 'bank_withdrawal'
+  | 'card_offramp';
+
+export type MoneyRailCapabilityState = 'live' | 'configured' | 'unavailable';
+
+export interface MoneyRailCapability {
+  rail: MoneyRailKind;
+  direction: 'in' | 'out';
+  state: MoneyRailCapabilityState;
+  provider: string;
+}
+
+export interface MoneyRailIntentView {
+  id: string;
+  rail: MoneyRailKind;
+  direction: 'in' | 'out';
+  inputCurrency: string;
+  inputAmountMinor: string;
+  expectedUsdcMicros: string | null;
+  recipientAddress: string | null;
+  sourceChain: string | null;
+  status:
+    | 'created'
+    | 'awaiting_provider'
+    | 'provider_submitted'
+    | 'settlement_pending'
+    | 'completed'
+    | 'needs_attention'
+    | 'cancelled'
+    | 'refunded';
+  settlementReference: string | null;
+  movementReference: string | null;
+  failureCode: string | null;
+  version: number;
+  createdAt: number;
+  updatedAt: number;
+  completedAt: number | null;
+  cancelledAt: number | null;
+}
+
+export interface CreateMoneyIntentBody {
+  idempotencyKey: string;
+  rail: MoneyRailKind;
+  direction: 'in' | 'out';
+  inputCurrency: string;
+  inputAmountMinor: string;
+  expectedUsdcMicros?: string;
+  thirdPartyPayer?: string;
+  recipientAddress?: string;
+  sourceChain?: string;
+}
+
+export type DepositRequestStatus =
+  | 'open'
+  | 'matched'
+  | 'expired'
+  | 'cancelled'
+  | 'needs_attention';
+
+export interface DepositRequestPublic {
+  requestId: string;
+  recipientAddress: string;
+  amountUsdc: string | null;
+  purpose: string;
+  expiresAt: number;
+  status: DepositRequestStatus;
+  createdAt: number;
+  acceptedChains: string[];
 }
 
 export interface ChatMessage {

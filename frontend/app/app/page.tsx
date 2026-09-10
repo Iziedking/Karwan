@@ -4,17 +4,19 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { AccountHome } from '@/features/home/components/AccountHome';
+import { BusinessHome } from '@/features/home/components/BusinessHome';
 import { Band, FullBleed, GridOverlay, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 export default function AppHome() {
   const t = useTranslations().appHome;
   const { profile, isConnected, loading, fetchState } = useUserProfile();
+  const { activeWorkspace, isBusinessWorkspace } = useWorkspaceContext();
   const { isLoading: authLoading } = useAuth();
   const statusQuery = useQuery({
     queryKey: qk.status(),
@@ -24,7 +26,7 @@ export default function AppHome() {
   const businessQuery = useQuery({
     queryKey: qk.business.status(profile?.address),
     queryFn: () => api.getBusinessStatus(profile!.address),
-    enabled: !!profile?.address && isBusinessAccount(profile),
+    enabled: !!profile?.address && isBusinessWorkspace,
     staleTime: 60_000,
   });
 
@@ -58,16 +60,27 @@ export default function AppHome() {
   if (loading || !profile) return <HomeSkeleton />;
 
   const business = businessQuery.data;
-  const businessAccount = isBusinessAccount(profile);
-  const displayName = businessAccount
+  const displayName = isBusinessWorkspace
     ? business?.company?.companyName || profile.smeProfile?.companyName || profile.displayName
     : profile.displayName;
+
+  if (isBusinessWorkspace && activeWorkspace) {
+    return (
+      <BusinessHome
+        profile={profile}
+        status={business?.status ?? 'none'}
+        companyName={activeWorkspace.name || displayName}
+        workspaceId={activeWorkspace.id}
+        stats={null}
+      />
+    );
+  }
 
   return (
     <AccountHome
       profile={profile}
       displayName={displayName}
-      accountKind={businessAccount ? 'business' : 'person'}
+      accountKind="person"
     />
   );
 }

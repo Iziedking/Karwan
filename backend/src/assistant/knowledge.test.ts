@@ -24,3 +24,11 @@ test('assistant keeps all three wallet roles distinct', () => {
   assert.match(KARWAN_ASSISTANT_SYSTEM, /SELLER AGENT wallet/);
   assert.doesNotMatch(KARWAN_ASSISTANT_SYSTEM, /AGENT wallets hold no funds of their own/);
 });
+
+test('assistant explains the unified identity and workspace model', () => {
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /one person identity and one login/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /personal workspace and can add an owner-only business workspace/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /one wallet and one USDC balance/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Team permissions and multi-user business access are roadmap work/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Sign-in method and workspace are different things/);
+});

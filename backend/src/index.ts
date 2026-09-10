@@ -17,6 +17,7 @@ import { milestonesRoutes } from './routes/milestones.js';
 import { balancesRoutes } from './routes/balances.js';
 import { activityRoutes } from './routes/activity.js';
 import { profileRoutes } from './routes/profile.js';
+import { workspaceRoutes } from './routes/workspaces.js';
 import { newsletterRoutes } from './routes/newsletter.js';
 import { settingsRoutes } from './routes/settings.js';
 import { termsRoutes } from './routes/terms.js';
@@ -77,6 +78,7 @@ import { smeRoutes } from './routes/sme.js';
 import { assistantRoutes } from './routes/assistant.js';
 import { supportRoutes, startSupportSweeper } from './routes/support.js';
 import { configureAgentKitResearch, configureResearchScoutEvidenceShadow, researchRoutes } from './routes/research.js';
+import { configureWorldIdProof, createPostgresWorldIdNullifierStore, worldIdRoutes } from './routes/worldId.js';
 import { diagnoseRoutes } from './routes/diagnose.js';
 import { businessRoutes, businessAdminRoutes } from './routes/business.js';
 import { verificationRoutes } from './routes/verification.js';
@@ -84,6 +86,7 @@ import { partnersRoutes } from './routes/partners.js';
 import { x402Routes } from './routes/x402.js';
 import { feedbackRoutes } from './routes/feedback.js';
 import { circleWebhookRoutes } from './routes/circle-webhook.js';
+import { moneyRoutes } from './routes/money.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
@@ -356,6 +359,7 @@ app.route('/api/milestones', milestonesRoutes);
 app.route('/api/balances', balancesRoutes);
 app.route('/api/activity', activityRoutes);
 app.route('/api/profile', profileRoutes);
+app.route('/api/workspaces', workspaceRoutes);
 app.route('/api/paytag', paytagRoutes);
 app.route('/api/newsletter', newsletterRoutes);
 app.route('/api/settings', settingsRoutes);
@@ -368,6 +372,7 @@ app.route('/api/cashout', cashoutRoutes);
 app.route('/api/network', networkRoutes);
 app.route('/api/activation', activationRoutes);
 app.route('/api/deposit', depositRoutes);
+app.route('/api/money', moneyRoutes);
 // Root-mounted on purpose: a verifier derives /.well-known and /schemas from the
 // issuer domain, so they cannot live under /api.
 app.route('/', attestationRoutes);
@@ -413,6 +418,7 @@ app.route('/api/sme', smeRoutes);
 app.route('/api/assistant', assistantRoutes);
 app.route('/api/support', supportRoutes);
 app.route('/api/research', researchRoutes);
+app.route('/api/world-id', worldIdRoutes);
 app.route('/api/diagnose', diagnoseRoutes);
 app.route('/api/business', businessRoutes);
 app.route('/api/verification', verificationRoutes);
@@ -679,6 +685,35 @@ async function boot() {
     );
   }
   stopFns.push(disableAgentKitResearch);
+  const worldIdConfigured = Boolean(
+    config.WORLD_ID_ENABLED
+      && schemaReady
+      && config.WORLD_ID_APP_ID
+      && config.WORLD_ID_RP_ID
+      && config.WORLD_ID_ACTION
+      && config.WORLD_ID_SIGNING_KEY,
+  );
+  const disableWorldId = configureWorldIdProof({
+    ...(worldIdConfigured ? { store: createPostgresWorldIdNullifierStore() } : {}),
+  });
+  if (config.WORLD_ID_ENABLED && !worldIdConfigured) {
+    appLogger.error(
+      {
+        schemaReady,
+        appIdConfigured: Boolean(config.WORLD_ID_APP_ID),
+        rpIdConfigured: Boolean(config.WORLD_ID_RP_ID),
+        actionConfigured: Boolean(config.WORLD_ID_ACTION),
+        signingKeyConfigured: Boolean(config.WORLD_ID_SIGNING_KEY),
+      },
+      'World ID proof remains unavailable because boot requirements are missing',
+    );
+  } else if (worldIdConfigured) {
+    appLogger.info(
+      { environment: config.WORLD_ID_ENVIRONMENT, action: config.WORLD_ID_ACTION },
+      'World ID proof verification configured',
+    );
+  }
+  stopFns.push(disableWorldId);
   if (config.EVENT_OUTBOX_V2_ENABLED && schemaReady) {
     const outboxStore = new PostgresOutboxStore(withPostgresTransaction);
     const dispatcher = new OutboxDispatcher(

@@ -4,7 +4,9 @@
 
 Karwan is building an open market for secure local and cross-border trade. Two people or businesses can meet on a social network, in a marketplace, through chat, or in person, then move the agreement into one protected flow: set the terms, secure USDC in milestone escrow, verify delivery, release payment, and leave both sides with a portable trade record.
 
-That record is also the foundation for working capital. A supplier with an accepted order or invoice can ask approved financiers for an advance. Financiers compete on terms, the supplier chooses, and repayment comes from the settlement flow instead of an informal promise.
+That record can support future working-capital products. Financing is a planned
+extension of the protected trade record, not a promise that the current
+testnet build provides credit or advances.
 
 The current build runs on Arc Testnet (chain `5042002`), where USDC is also the gas token. It is live at [karwan.site](https://karwan.site), with the API at [api.karwan.site](https://api.karwan.site).
 
@@ -17,7 +19,10 @@ Karwan brings four jobs into one system:
 1. **Capture the trade where it starts.** A planned browser companion will let a user draft a deal beside X, TikTok, Facebook, Instagram, LinkedIn, or another website. The counterparty will be able to review and accept through a normal Karwan link without installing anything.
 2. **Secure performance, not just payment.** The parties agree the amount, milestones, evidence, deadline, cancellation path, and dispute path before funds are locked.
 3. **Settle across borders in USDC.** Escrow releases only against the agreed outcome. CCTP and Circle Gateway handle supported on-chain routes. Local-currency bank payout is planned per corridor through approved, regulated payout infrastructure, with fees and foreign exchange shown before confirmation.
-4. **Finance eligible trade.** Karwan-native invoices, purchase orders, delivery evidence, settlement history, and counterparty concentration give financiers a clearer basis for pricing risk. Funding is opt-in, terms are disclosed, and the financier earns the agreed spread only when the financed trade repays.
+4. **Prepare eligible trade for future finance.** Karwan-native trade records,
+   delivery evidence, settlement history, and counterparty concentration can
+   support a later financing product. Financing is not presented as live in the
+   current testnet release.
 
 The flywheel is simple: more protected trades create better records; better records make financing easier to price; more available capital helps more trades complete.
 
@@ -28,24 +33,44 @@ The flywheel is simple: more protected trades create better records; better reco
 | Trade entry | Direct deals, email invites, business requests, offers, and agent-assisted matching in the Karwan web app | A user-invoked browser companion that can start a protected trade beside any supported site, with X as the first focused surface |
 | Protection | Milestone escrow, delivery review, cancellation, extension, dispute resolution, and settlement receipts | Source-aware trade drafts, stronger evidence capture, and corridor-specific policy controls |
 | Settlement | USDC on Arc, CCTP routes, Circle Gateway, wallet and bridge surfaces | Mainnet release after audit and control gates; local bank payout through approved corridors and partners |
-| Trade finance | Invoice factoring, purchase-order financing, a financier desk, and credit-passport signals | A broader quote market for eligible Karwan-originated receivables and orders, with transparent pricing, concentration limits, and repayment waterfalls |
+| Trade finance | Workspace-aware trade context, goods and services availability records, business verification status, and trade history | Invoice factoring, purchase-order financing, and a financier quote market after the required policy and settlement gates pass |
 
 The browser companion, mainnet settlement, and local bank payout are roadmap items, not capabilities in the current testnet release.
 
-![Karwan architecture](./docs/diagrams/architecture.png)
+![Karwan architecture](./docs/diagrams/architecture.svg)
+
+## One account, two workspaces
+
+The current identity model is one person and one login. Every account starts
+with a personal workspace. An owner can add a business workspace under that
+same identity without creating a second account, wallet, or USDC balance.
+Workspace context is visible before sensitive actions. Business verification
+is separate from personal identity verification. The current business
+workspace is owner-only; team permissions are on the roadmap.
+
+## Current UI snapshots
+
+These images were captured from the local build on 2026-09-09 and show the
+public landing page, documentation index, and How Karwan Works page.
+
+![Karwan landing page](./docs/images/karwan-landing-current.png)
+
+![Karwan documentation](./docs/images/karwan-docs-current.png)
+
+![How Karwan Works](./docs/images/karwan-how-it-works-current.png)
 
 ## What the build covers
 
-- Buyer and Seller desks for individual trade, Buyer Desk and Supply Desk for business trade.
+- Personal trade surfaces and a business workspace focused on Find supply, Post what we offer, and Bring a deal.
 - Direct deals with a named counterparty, plus agent-assisted matching and negotiation. Money never moves without a human approval or a contract-defined automatic outcome.
 - A Postgres-backed agent runtime with versioned mandates and offers, deterministic matching, evidence and staking gates, idempotent financial commands, ordered event replay, dead letters, and failure-injection rollout checks. V2 behaviors stay behind independent default-off flags until their review gates pass.
 - Milestone escrow with delivery review, cancellation, mutual extension, and dispute outcomes enforced by the contracts.
-- Invoice factoring and purchase-order financing, a financier desk, and a public credit passport per business address.
+- Business availability records for goods and services, business verification status, reputation, and trade history.
 - Reputation, staking, tier progression, and yield surfaces.
 - Idle balances routed into Hashnote USYC, tokenized Treasury bills, through an ERC-4626 Teller. Real allowlisted USYC rather than a mock: the token is permissioned, so holding any at all is the proof.
 - Five paid data endpoints served over x402 and settled through Circle Gateway Nanopayments, so a lender can read a settled-deal record without asking Karwan for access.
 - USDC into and out of Arc over CCTP across eleven EVM testnets and Solana devnet, plus a Circle Gateway unified balance spendable from one signature.
-- Activity, wallet, bridge, profile, settings, and business-account workspaces.
+- Activity, wallet, bridge, profile, settings, and unified personal and business workspaces.
 - Business registration and a verification status workflow.
 - Interface in English, Arabic, French, Hindi, and Swahili, with right-to-left layout for Arabic.
 
@@ -110,7 +135,7 @@ automation continues through Karwan's Developer-Controlled Wallet SCAs.
 | Agent Wallets | User-custody wallets with spending and recipient policies for operator-controlled research and Agent Marketplace payments. They are isolated from customer deal wallets. |
 | Agent Marketplace | The Discovery API supplies the current paid x402 service catalogue, schemas, networks, prices, and payment metadata. It is not Karwan's people or SME counterparty directory. |
 | Circle Skills | Installed build and operations knowledge for wallet policy, funding, CCTP, Gateway, and nanopayment workflows. Karwan's runtime policy remains versioned and tested in this repository. |
-| USDC on Arc | The settlement asset for escrow, milestone release, factoring, purchase-order advances, repayment, staking, and fees. On Arc it is also the gas token, so a business never buys a second asset to move its own money. |
+| USDC on Arc | The settlement asset for escrow, milestone release, staking, and fees. On Arc it is also the gas token, so a customer never buys a second asset to move its own money. |
 | Developer-Controlled Wallets | An identity wallet and two agent wallets per user, provisioned on sign-in with an email or a passkey. Web3 users sign in with their own wallet through Sign-In with Ethereum instead. |
 | CCTP V2 through App Kit | USDC into and out of Arc in both directions. Outbound uses the Forwarding Service to submit the destination mint, so a supplier cashes out without holding that chain's gas token. |
 | Circle Gateway | One pooled USDC balance across chains, spendable to any of them from a single signature. Also the settlement rail for x402, netting per-call payments into batched on-chain settlement. |

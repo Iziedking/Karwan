@@ -1,12 +1,13 @@
 # Karwan terms and conditions
 
-Last updated: 2026-08-08. Version: 2.1.0.
+Last updated: 2026-09-09. Version: 2.2.0.
 
 These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.
 
 ## 1. What Karwan offers
 
-Karwan is a settlement layer for cross-border work between businesses, freelancers, and individuals. The core pieces:
+Karwan is an open market for local and cross-border trade between individuals
+and businesses. The core pieces:
 
 - **Deals with escrow.** Open a deal directly with someone you already know, or post a request and let the market bid. Either way the money locks in a smart contract on Arc before work starts, and releases in milestones.
 - **Settlement in USDC.** All movement inside Karwan is in USDC, a dollar stablecoin issued by Circle.
@@ -18,11 +19,21 @@ Karwan is a settlement layer for cross-border work between businesses, freelance
 - **The assistant.** An in-product AI assistant answers questions and can prepare actions for you. Anything that moves money is shown to you and needs your confirmation before it runs. You can ask it for a person at any point, which opens a support ticket.
 - **Staking.** You can lock USDC in the vault. It raises your tier and acts as deal insurance the escrow contract can draw on if you lose a dispute.
 
-Some of this is still rolling out. Business registration, invoice factoring, purchase-order financing, and the financier side are behind flags and are not available to every account. Anything labelled "coming soon" or shown behind a beta flag is not guaranteed to ship on a fixed date.
+Some of this is still rolling out. Business workspace features, business
+verification, financing, and the financier side are behind flags or limited by
+the current testnet build. Anything labelled "coming soon" or shown behind a
+beta flag is not guaranteed to ship on a fixed date.
 
 ## 2. How your account is held
 
 Karwan settles in USDC. How your balance is held depends on how you signed in.
+
+One person has one Karwan identity and login. The account starts with a
+personal workspace. An owner may add a business workspace under that identity
+without creating a second customer wallet or USDC balance. The active
+workspace is shown before sensitive actions. Business verification is separate
+from personal identity verification. The current business workspace is
+owner-only; team permissions are planned, not live.
 
 **If you connected your own wallet,** you hold it. You approve every movement yourself, and Karwan cannot move anything without you.
 
@@ -71,7 +82,10 @@ Reputation is computed from settled deal history. The summary:
 
 The full formula lives in `docs/reputation-model.md`. Agents read the tier and apply tier-aware behaviour: a high tier gets priority and can skip the auction in some flows, a new account pays a premium on first deals. An agent never overrides the limits you set.
 
-Reputation is written against the account that settled the deal. If you use an agent wallet, the record follows that wallet.
+Reputation is written against the identity wallet that settled the deal. If
+you use an agent wallet, the record follows the customer identity and the
+settled trade context. Switching between personal and business workspaces does
+not create a second reputation account or balance.
 
 ## 6. Verification and account status
 
@@ -87,7 +101,11 @@ A skill-verification label, when shown, applies only to the named skill and the 
 
 ### Business verification
 
-A business account may submit registration and tax-document evidence when the business verification workflow is enabled for that account. The document is hashed in the browser and the document itself is not sent as the verification payload. The account may show an unverified, pending, verified, rejected, expired, or revoked state.
+A business workspace may submit registration and tax-document evidence when
+the business verification workflow is enabled for that workspace. The
+document is hashed in the browser and the document itself is not sent as the
+verification payload. The workspace may show an unverified, pending, verified,
+rejected, expired, or revoked state.
 
 Business verification confirms only that the enabled review and registry path accepted the submitted business evidence at the time shown. It does not confirm that the business is licensed for your transaction, that its goods or services exist, that it will perform, that it is solvent, or that it is safe to trade with. You must perform any legal, sanctions, tax, licensing, and counterparty checks that apply to you.
 

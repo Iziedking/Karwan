@@ -775,7 +775,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   disabled={busy}
-                  className="form-input mono text-[18px] tabular-nums tracking-[0.4em]"
+                  className="form-input-dark mono text-[18px] tabular-nums tracking-[0.4em]"
                   autoFocus
                 />
               </label>

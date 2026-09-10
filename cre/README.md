@@ -96,3 +96,28 @@ simulated execution. `forge script` without `--broadcast` is a no-write
 rehearsal. Contract broadcast, CRE deploy/activate, secret creation, and real
 workflow execution are separate owner-controlled testnet actions. None of them
 is evidence of a mainnet or live financial result.
+
+## Chainlink Upgrade state-change evidence
+
+The Upgrade category needs an accepted Chainlink result to change blockchain
+state; a CRE simulation, a generated report, or a frontend display alone is
+not enough. Copy `config.upgrade.example.json` to an owner-managed config,
+replace every placeholder, set `writeReport` to `true`, and use that same final
+config when hashing, binding, and activating the workflow. After an accepted
+Arc Testnet run, capture the receiver transaction hash and the receipt fields
+from `EvidenceReceiptRecorded`. Then run this read-only assertion:
+
+```text
+cd contracts
+forge script script/VerifyEvidenceReceipt.s.sol:VerifyEvidenceReceipt \
+  --rpc-url "$ARC_TESTNET_RPC_URL"
+```
+
+The required environment values are `KARWAN_EVIDENCE_REGISTRY_ADDR`,
+`EVIDENCE_DEAL_ID`, `EVIDENCE_TERMS_VERSION`, `EVIDENCE_REVISION`,
+`EVIDENCE_DECISION_CODE`, `EVIDENCE_COMMITMENT`,
+`EVIDENCE_VERDICT_COMMITMENT`, and `EVIDENCE_REPORT_ID`. This command is
+read-only and fails unless the deployed receiver contains the exact accepted
+receipt and has consumed the report replay key. Karwan's backend release gates
+already read the same `receiptOf(dealId)` state, so the state change has a
+visible product consequence rather than being a disconnected demo.

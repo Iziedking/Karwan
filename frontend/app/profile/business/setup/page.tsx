@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, type UserProfile } from '@/core/api';
 import { qk } from '@/core/queryKeys';
-import { isBusinessAccount } from '@/features/account/accountKind';
-import { businessSetupInput } from '@/features/profile/businessSetup';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
 export default function BusinessSetupPage() {
   const t = useTranslations().businessProfilePage;
@@ -38,25 +37,22 @@ function BusinessSetupForm({ profile }: { profile: UserProfile }) {
   const t = useTranslations().businessProfilePage;
   const common = useTranslations().common;
   const router = useRouter();
-  const qc = useQueryClient();
-  const business = isBusinessAccount(profile);
-  const [name, setName] = useState(business ? profile.displayName : '');
-  const [confirmed, setConfirmed] = useState(false);
+  const queryClient = useQueryClient();
+  const { workspaces, switchWorkspace } = useWorkspaceContext();
+  const existingBusiness = workspaces.find((workspace) => workspace.kind === 'business');
+  const [name, setName] = useState(existingBusiness?.name ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving || !name.trim() || (!business && !confirmed)) return;
+    if (saving || !name.trim()) return;
     setSaving(true);
     setError(null);
     try {
-      // Refresh before building the payload: another tab may have edited limits.
-      // A failed read must never fall back to an incomplete profile write.
-      const current = await api.getProfile(profile.address);
-      if (!current.profile) throw new Error('profile_missing');
-      const result = await api.saveProfile(businessSetupInput(current.profile, name, confirmed));
-      qc.setQueryData(qk.profile.me(profile.address), result.profile);
+      const result = await api.createBusinessWorkspace(name);
+      queryClient.setQueryData(qk.workspaces.me(profile.address), (current: { workspaces?: UserProfile['workspaces'] } | undefined) => current ? { ...current, workspaces: [...(current.workspaces ?? []), ...(current.workspaces?.some((workspace) => workspace.id === result.workspace.id) ? [] : [result.workspace])] } : { workspaces: [result.workspace] });
+      switchWorkspace(result.workspace.id);
       window.dispatchEvent(new Event(PROFILE_SAVED_EVENT));
       router.push('/business/verification');
     } catch (err) {
@@ -72,17 +68,9 @@ function BusinessSetupForm({ profile }: { profile: UserProfile }) {
         <input id="business-name" name="organization" autoComplete="organization" required maxLength={40} value={name} onChange={(e) => setName(e.target.value)} disabled={saving} aria-describedby="business-name-hint" className="mt-3 min-h-[52px] w-full rounded-xl border border-[var(--lp-outline)] bg-[var(--lp-light)] px-4 text-base text-[var(--lp-dark)] outline-none focus:border-[var(--lp-accent)] focus:ring-2 focus:ring-[var(--lp-accent)]" />
         <p id="business-name-hint" className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{t.nameHint}</p>
       </div>
-      {!business && (
-        <div className="border-t border-[var(--lp-border-light)] pt-5">
-          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.notice}</p>
-          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 py-2 text-[14px] font-medium text-[var(--lp-dark)]">
-            <input type="checkbox" required checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} disabled={saving} className="size-5 shrink-0 accent-[var(--lp-accent)]" />{t.confirm}
-          </label>
-        </div>
-      )}
       {error && <p role="alert" className="text-sm leading-relaxed text-[var(--lp-text-sub)]">{error}</p>}
       <div>
-        <button type="submit" disabled={saving || !name.trim() || (!business && !confirmed)} className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-full bg-[var(--lp-accent)] px-5 py-3 text-[15px] font-bold text-[#10170b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? common.loading : t.save}<span aria-hidden>→</span></button>
+        <button type="submit" disabled={saving || !name.trim()} className="flex min-h-[52px] w-full items-center justify-between gap-3 rounded-full bg-[var(--lp-accent)] px-5 py-3 text-[15px] font-bold text-[#10170b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50">{saving ? common.loading : t.save}<span aria-hidden>→</span></button>
         <p className="mt-3 text-center text-[12px] text-[var(--lp-text-sub)]">{t.next}</p>
         <Link href="/profile/business" className="mt-2 flex min-h-11 items-center justify-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4">{common.cancel}</Link>
       </div>

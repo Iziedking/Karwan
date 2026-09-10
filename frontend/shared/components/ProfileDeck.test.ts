@@ -21,9 +21,10 @@ test('vertical and diagonal scrolling never pages the profile deck', () => {
 
 test('mobile profile cards leave vertical scrolling to the document', () => {
   const css = readFileSync(new URL('../../app/globals.css', import.meta.url), 'utf8');
-  const mobileDeckStart = css.indexOf('@media (max-width: 767px) {\n  .profile-deck-card');
-  const nextSection = css.indexOf('/* RainbowKit account modal', mobileDeckStart);
-  const mobileDeckCss = css.slice(mobileDeckStart, nextSection);
+  const normalizedCss = css.replace(/\r\n/g, '\n');
+  const mobileDeckStart = normalizedCss.indexOf('@media (max-width: 767px) {\n  .profile-deck-card');
+  const nextSection = normalizedCss.indexOf('/* RainbowKit account modal', mobileDeckStart);
+  const mobileDeckCss = normalizedCss.slice(mobileDeckStart, nextSection);
 
   assert.ok(mobileDeckStart >= 0, 'mobile profile deck rule is missing');
   assert.match(mobileDeckCss, /max-height:\s*none/);

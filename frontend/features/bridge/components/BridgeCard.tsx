@@ -220,11 +220,15 @@ function RouteGlyph({ from, size = 22 }: { from: string; size?: number }) {
 
 export function BridgeCard({
   agents,
+  prefillAmount,
+  prefillRecipient,
 }: {
   /// Buyer + seller agent EVM addresses, when the signed-in user has them
   /// provisioned. Both are surfaced in the recipient picker alongside the
   /// user's own identity wallet and a Custom option.
   agents?: { buyer?: string; seller?: string };
+  prefillAmount?: number | '';
+  prefillRecipient?: string;
 }) {
   const bc = useTranslations().bridgeCard;
   const { isConnected, address: web3Address, connector } = useAccount();
@@ -272,7 +276,7 @@ export function BridgeCard({
       b.sourceChainKey === sourceKey &&
       (b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning'),
   );
-  const [amount, setAmount] = useState<number | ''>('');
+  const [amount, setAmount] = useState<number | ''>(prefillAmount ?? '');
   /// Source-chain dropdown, previously a 6-tile grid that took too much
   /// vertical space and felt cluttered next to the slim BRIDGE FROM ARC
   /// destination dropdown. Mirrors that pattern: a single button shows the
@@ -290,11 +294,29 @@ export function BridgeCard({
   /// path needs no decisions. Sending to an agent or a pasted address is a
   /// deliberate choice made through the "Send somewhere else" disclosure.
   const [recipientKind, setRecipientKind] = useState<RecipientKind>('identity');
-  const [customAddress, setCustomAddress] = useState('');
+  const [customAddress, setCustomAddress] = useState(prefillRecipient ?? '');
   /// The full recipient picker stays collapsed until the user asks to send
   /// somewhere other than their own wallet, so the default form is amount
   /// plus one button.
   const [recipientOpen, setRecipientOpen] = useState(false);
+
+  // A public deposit request can hand a signed-in sender into this form with
+  // the amount and recipient already filled. Nothing is submitted implicitly;
+  // the sender still chooses a source chain and signs the movement themselves.
+  useEffect(() => {
+    if (prefillAmount !== undefined) setAmount(prefillAmount);
+  }, [prefillAmount]);
+  useEffect(() => {
+    const recipient = prefillRecipient?.trim();
+    if (!recipient || !isAddress(recipient)) return;
+    if (identityAddress && recipient.toLowerCase() === identityAddress.toLowerCase()) {
+      setRecipientKind('identity');
+      return;
+    }
+    setCustomAddress(recipient);
+    setRecipientKind('custom');
+    setRecipientOpen(true);
+  }, [identityAddress, prefillRecipient]);
   /// Funding path. Default is connect-wallet: bring USDC from any wallet and
   /// one signature moves it to Arc, no deposit address to provision. Circle
   /// users can opt into the deposit-address fallback, which is the only path
@@ -625,7 +647,7 @@ export function BridgeCard({
   /// older "buyer agent not configured" full-card fallback no longer fits.
   /// If something genuinely upstream is broken (no identity), guard early
   /// rather than render the picker against an empty option set.
-  if (!identityAddress && !buyerAgent && !sellerAgent) {
+  if (!identityAddress && !buyerAgent && !sellerAgent && !(prefillRecipient && isAddress(prefillRecipient))) {
     return (
       <div style={CARD_STYLE} className="p-6 h-full flex flex-col">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">

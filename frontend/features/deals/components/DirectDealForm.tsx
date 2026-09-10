@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useUserProfile } from '@/shared/hooks/useUserProfile';
+import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { isBusinessAccount } from '@/features/account/accountKind';
 import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -26,6 +25,7 @@ type TradeType = 'service' | 'goods' | 'mixed';
 type IncotermsCode = 'EXW' | 'FCA' | 'FOB' | 'CIF' | 'DAP' | 'DDP';
 type PaymentTermsCode = 'immediate' | 'net30' | 'net60' | 'net90';
 type DocumentKind = 'invoice' | 'po' | 'bol' | 'coo' | 'pod' | 'other';
+type TradeSourceChannel = 'karwan' | 'email' | 'tiktok' | 'instagram' | 'facebook' | 'x' | 'linkedin' | 'other';
 
 // Shared with the request form: one trade vocabulary, in `tradeTerms`, rather
 // than two copies whose glosses had already drifted apart.
@@ -85,8 +85,7 @@ export function DirectDealForm() {
   // The trade-context band (goods/Incoterms/payment terms/company/docs) is a
   // business surface. Individuals never see it, so a P2P direct deal stays the
   // simple service flow.
-  const { profile } = useUserProfile();
-  const isBusiness = isBusinessAccount(profile);
+  const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
   // "Make offer" links from a listing detail land here with seller/amount/terms
   // pre-filled. Read once on mount; further changes come from user input.
   const search = useSearchParams();
@@ -97,6 +96,21 @@ export function DirectDealForm() {
       ? Number(initialAmountRaw)
       : undefined;
   const initialTerms = search.get('terms') ?? '';
+  const initialSourceChannel = search.get('source');
+  const sourceChannels: ReadonlyArray<TradeSourceChannel> = [
+    'karwan',
+    'email',
+    'tiktok',
+    'instagram',
+    'facebook',
+    'x',
+    'linkedin',
+    'other',
+  ];
+  const sourceChannel: TradeSourceChannel = sourceChannels.includes(initialSourceChannel as TradeSourceChannel)
+    ? (initialSourceChannel as TradeSourceChannel)
+    : 'karwan';
+  const sourceReference = search.get('sourceRef');
 
   const [seller, setSeller] = useState(initialSeller);
   /// Counterparty mode. 'wallet' takes a 0x address (existing flow); 'email'
@@ -332,6 +346,10 @@ export function DirectDealForm() {
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
         counterpartyCompany: tradeType !== 'service' ? counterpartyCompany : undefined,
         documentRefs: documentRefs.length > 0 ? documentRefs : undefined,
+        sourceContext: {
+          channel: sourceChannel,
+          ...(sourceReference ? { reference: sourceReference } : {}),
+        },
       });
       sfx.send();
       // Land on the deal page in both modes. The detail page surfaces

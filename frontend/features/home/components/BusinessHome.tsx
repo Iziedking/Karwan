@@ -1,7 +1,9 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { UserProfile } from '@/core/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, type TradeAvailability, type UserProfile } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { DealsFeed } from '@/features/deals/components/DealsFeed';
@@ -45,11 +47,13 @@ export function BusinessHome({
   profile,
   status,
   companyName,
+  workspaceId,
   stats,
 }: {
   profile: UserProfile;
   status: BusinessStatus;
   companyName: string;
+  workspaceId: string;
   stats: LiveNetworkStats | null;
 }) {
   const t = useTranslations();
@@ -105,18 +109,15 @@ export function BusinessHome({
               {/* A business's primary action is its own B2B trade (agent-matched
                   via /buyer, or a direct deal). The financier desk, where they
                   fund other businesses' invoices, is a secondary capability. */}
-              <CTAPill href="/buyer">{bh.hero.newTradeCta}</CTAPill>
-              <CTAPill href="/buyer?mode=direct" variant="secondary" tone="dark">
-                {bh.hero.directDealCta}
-              </CTAPill>
-              {/* Supply, not /seller: that desk is the individual lane, and a
-                  company posting there would drop its offers into the
-                  person-to-person pool. */}
+              <CTAPill href="/partners">Find supply</CTAPill>
               <CTAPill href="/supply" variant="secondary" tone="dark">
-                {bh.hero.postOfferCta}
+                Post what we offer
+              </CTAPill>
+              <CTAPill href="/buyer?mode=direct" variant="secondary" tone="dark">
+                Bring a deal
               </CTAPill>
               <CTAPill href="/financier" variant="secondary" tone="dark">
-                {bh.hero.financierDeskCta}
+                Finance a trade
               </CTAPill>
               <span className="ms-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--lp-workspace-border)] mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-workspace-muted)]">
                 <span aria-hidden className="w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
@@ -137,6 +138,8 @@ export function BusinessHome({
       </Band>
 
       <PendingDealsBand tone="light" />
+
+      <BusinessAvailability workspaceId={workspaceId} />
 
       {/* TRADE ANALYTICS. the company's own book, with a cumulative-volume chart */}
       <Band tone="light">
@@ -200,6 +203,102 @@ export function BusinessHome({
         </div>
       </Band>
     </FullBleed>
+  );
+}
+
+function BusinessAvailability({ workspaceId }: { workspaceId: string }) {
+  const queryClient = useQueryClient();
+  const [title, setTitle] = useState('');
+  const [tradeType, setTradeType] = useState<'goods' | 'services'>('goods');
+  const [region, setRegion] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: qk.workspaces.availability(workspaceId),
+    queryFn: () => api.getTradeAvailability(workspaceId),
+    staleTime: 30_000,
+  });
+  const records = query.data?.availability ?? [];
+
+  async function addRecord() {
+    if (!title.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.saveTradeAvailability(workspaceId, {
+        tradeType,
+        title: title.trim(),
+        ...(region.trim() ? { region: region.trim() } : {}),
+        active: true,
+      });
+      setTitle('');
+      setRegion('');
+      await queryClient.invalidateQueries({ queryKey: qk.workspaces.availability(workspaceId) });
+    } catch {
+      setError('Could not save this availability yet. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeRecord(record: TradeAvailability) {
+    try {
+      await api.removeTradeAvailability(workspaceId, record.id);
+      await queryClient.invalidateQueries({ queryKey: qk.workspaces.availability(workspaceId) });
+    } catch {
+      setError('Could not remove this record yet. Try again.');
+    }
+  }
+
+  return (
+    <Band tone="dark">
+      <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
+        <div>
+          <SectionTag tone="dark">What we offer</SectionTag>
+          <HeroHeadline as="h2" className="text-[clamp(2rem,4.6vw,3.75rem)]">
+            Make supply <Accent>easy to find</Accent>.
+          </HeroHeadline>
+          <p className="mt-5 max-w-[42ch] text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
+            Keep a simple, current record of the goods and services your business can trade.
+          </p>
+        </div>
+        <div className="rounded-[20px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] p-5 md:p-6">
+          <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,0.7fr)_auto] sm:items-end">
+            <label className="text-[12px] text-[var(--lp-workspace-muted)]">
+              Type
+              <select value={tradeType} onChange={(event) => setTradeType(event.target.value as 'goods' | 'services')} className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[13px] text-[var(--lp-workspace-ink)] outline-none focus:border-[var(--lp-accent)]">
+                <option value="goods">Goods</option>
+                <option value="services">Services</option>
+              </select>
+            </label>
+            <label className="text-[12px] text-[var(--lp-workspace-muted)]">
+              What can you trade?
+              <input value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void addRecord(); }} placeholder="e.g. Solar lamps" className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[13px] text-[var(--lp-workspace-ink)] outline-none placeholder:text-[var(--lp-workspace-faint)] focus:border-[var(--lp-accent)]" />
+            </label>
+            <label className="text-[12px] text-[var(--lp-workspace-muted)]">
+              Region
+              <input value={region} onChange={(event) => setRegion(event.target.value)} placeholder="Optional" className="mt-2 min-h-11 w-full rounded-xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-band)] px-3 text-[13px] text-[var(--lp-workspace-ink)] outline-none placeholder:text-[var(--lp-workspace-faint)] focus:border-[var(--lp-accent)]" />
+            </label>
+            <button type="button" onClick={() => void addRecord()} disabled={!title.trim() || saving} className="min-h-11 rounded-full bg-[var(--lp-accent)] px-4 text-[13px] font-bold text-[#10170b] disabled:cursor-not-allowed disabled:opacity-50">{saving ? 'Saving…' : 'Add'}</button>
+          </div>
+          {error ? <p role="alert" className="mt-3 text-[12px] text-[var(--lp-workspace-muted)]">{error}</p> : null}
+          <div className="mt-5 border-t border-[var(--lp-workspace-border)] pt-4">
+            {query.isPending ? <p className="text-[12px] text-[var(--lp-workspace-muted)]">Loading availability…</p> : records.length === 0 ? <p className="text-[12px] text-[var(--lp-workspace-muted)]">Nothing listed yet. Add the first thing this business is ready to trade.</p> : (
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {records.map((record) => (
+                  <li key={record.id} className="flex items-center gap-3 rounded-xl border border-[var(--lp-workspace-border)] px-3 py-3">
+                    <span className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-accent)]">{record.tradeType}</span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--lp-workspace-ink)]">{record.title}</span>
+                    {record.region ? <span className="hidden truncate text-[11px] text-[var(--lp-workspace-muted)] sm:block">{record.region}</span> : null}
+                    <button type="button" onClick={() => void removeRecord(record)} aria-label={`Remove ${record.title}`} className="text-[16px] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]">×</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    </Band>
   );
 }
 

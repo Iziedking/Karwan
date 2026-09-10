@@ -1593,6 +1593,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <EditDealModal
           deal={deal}
           caller={address}
+          mode={viewerIsSeller ? 'counter' : 'edit'}
           onClose={() => setEditOpen(false)}
           onSaved={refresh}
         />
@@ -2261,9 +2262,19 @@ function ActionPanel({
               {copy.awaitingAcceptance.trustedMatchSuffix}
             </div>
           )}
-          <CTAPill disabled={busy} busy={busy} onClick={onAccept}>
-            {busy ? copy.awaitingAcceptance.acceptBusy : copy.awaitingAcceptance.acceptCta}
-          </CTAPill>
+          <div className="flex flex-wrap gap-2">
+            <CTAPill disabled={busy} busy={busy} onClick={onAccept}>
+              {busy ? copy.awaitingAcceptance.acceptBusy : copy.awaitingAcceptance.acceptCta}
+            </CTAPill>
+            <CTAPill
+              variant="secondary"
+              tone="dark"
+              onClick={onEdit}
+              disabled={busy}
+            >
+              {copy.awaitingAcceptance.editTermsCta}
+            </CTAPill>
+          </div>
         </div>
       );
     }

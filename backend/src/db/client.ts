@@ -67,6 +67,27 @@ export async function ensureSchema(): Promise<void> {
       bridge_id TEXT PRIMARY KEY,
       data JSONB NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS deposit_requests (
+      token TEXT PRIMARY KEY,
+      owner TEXT NOT NULL,
+      status TEXT NOT NULL,
+      amount_usdc TEXT,
+      created_at BIGINT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      matched_tx_id TEXT,
+      matched_chain TEXT,
+      matched_at BIGINT,
+      data JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS deposit_requests_owner_created_idx
+      ON deposit_requests (owner, created_at);
+    CREATE INDEX IF NOT EXISTS deposit_requests_status_expires_idx
+      ON deposit_requests (status, expires_at);
+    CREATE INDEX IF NOT EXISTS deposit_requests_owner_amount_idx
+      ON deposit_requests (owner, amount_usdc, status);
+    CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_matched_tx_idx
+      ON deposit_requests (matched_tx_id)
+      WHERE matched_tx_id IS NOT NULL;
     CREATE TABLE IF NOT EXISTS money_movements (
       reference TEXT PRIMARY KEY,
       operation_key TEXT NOT NULL UNIQUE,

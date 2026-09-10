@@ -4,11 +4,9 @@ import { useEffect, useState } from 'react';
 export type Theme = 'light' | 'dark';
 
 /// What the user asked for, which is not the same as what gets painted.
-/// 'system' is a standing instruction to follow the machine, so it resolves
-/// freshly every time rather than being frozen into a stored 'light' or 'dark'.
-/// The visible product control is an explicit light/dark toggle. Automatic is
-/// still understood for older saved account preferences, but a new session
-/// starts in dark until the visitor chooses otherwise.
+/// 'system' is retained as the stored compatibility value for the visible
+/// Daylight option. It resolves from local time rather than being frozen into
+/// a stored 'light' or 'dark' value.
 export type ThemePreference = Theme | 'system';
 
 /// Must stay in lockstep with the pre-paint script in app/layout.tsx, which runs
@@ -32,19 +30,10 @@ function isNightLocally(now = new Date()): boolean {
   return hour >= NIGHT_FROM_HOUR || hour < DAY_FROM_HOUR;
 }
 
-function osPrefersDark(): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-/// The automatic theme: the machine's own setting first, then the hour on its
-/// clock. A device set to dark stays dark all day, because that setting is a
-/// stated preference. A device with no preference (or set to light) follows
-/// daylight, so evening reading is dark and daytime reading is paper.
-function systemTheme(): Theme {
-  if (typeof window === 'undefined') return 'light';
-  if (osPrefersDark()) return 'dark';
-  return isNightLocally() ? 'dark' : 'light';
+/// Daylight uses local device time. Date's local getters follow the timezone
+/// configured on the device, including its daylight-saving transitions.
+export function resolveDaylightTheme(now = new Date()): Theme {
+  return isNightLocally(now) ? 'dark' : 'light';
 }
 
 /// Milliseconds until the automatic theme could next change, i.e. the next
@@ -73,7 +62,7 @@ export function readPreference(): ThemePreference {
 }
 
 export function resolveTheme(pref: ThemePreference): Theme {
-  return pref === 'system' ? systemTheme() : pref;
+  return pref === 'system' ? resolveDaylightTheme() : pref;
 }
 
 export function readTheme(): Theme {
@@ -94,7 +83,7 @@ export function applyTheme(theme: Theme): void {
   // hook's mount call agrees with it and no crossfade fires.
   if (current === theme) return;
 
-  // Now that the theme changes on its own (at dusk, or when the OS flips), the
+  // Now that the theme changes on its own at the daylight boundaries, the
   // change has to be legible as a change. A whole page swapping ink and paper
   // between one frame and the next reads as a glitch; the same swap over
   // 380ms reads as the room's light changing, which is what it is.
@@ -139,8 +128,8 @@ export function adoptPreferenceIfUnset(pref: ThemePreference): void {
   setThemePreference(pref);
 }
 
-/// Read-only view of the painted theme, kept live: it follows the OS switch,
-/// the daylight boundary, and any other control that writes a preference.
+/// Read-only view of the painted theme, kept live: it follows the daylight
+/// boundary and any other control that writes a preference.
 /// Writes go through `setThemePreference`, not through here.
 ///
 /// `mounted` is false through the server render and the first client render.
@@ -162,26 +151,24 @@ export function useTheme() {
     };
     window.addEventListener(CHANGE_EVENT, onChange);
 
-    // While the preference is 'system', follow the OS live. Without this,
-    // "system" only meant "whatever the system was at page load", so a machine
-    // that flips at sunset would leave the app on the wrong theme until reload.
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const onSystem = () => {
+    // While the stored preference is 'system' (shown as Daylight), follow the
+    // local clock live. Without this, a tab left open at sunset would remain on
+    // the daytime surface until the next reload.
+    const onDaylight = () => {
       if (readPreference() !== 'system') return;
-      const next = systemTheme();
+      const next = resolveDaylightTheme();
       applyTheme(next);
       setThemeState(next);
     };
-    media.addEventListener('change', onSystem);
 
-    // The other half of "automatic": the clock. Without this, a session left
+    // The other half of Daylight: the clock. Without this, a session left
     // open through sunset kept the daytime theme until the next reload. One
     // timer per boundary crossing, rescheduled from the theme it just applied,
     // so an all-night tab costs two wakeups.
     let timer = 0;
     const scheduleDaylight = () => {
       timer = window.setTimeout(() => {
-        onSystem();
+        onDaylight();
         scheduleDaylight();
       }, msUntilNextDaylightChange());
     };
@@ -189,12 +176,11 @@ export function useTheme() {
 
     // A machine that slept through the boundary comes back on the wrong theme,
     // and no timer fires for the hours it was asleep.
-    const onWake = () => onSystem();
+    const onWake = () => onDaylight();
     document.addEventListener('visibilitychange', onWake);
 
     return () => {
       window.removeEventListener(CHANGE_EVENT, onChange);
-      media.removeEventListener('change', onSystem);
       document.removeEventListener('visibilitychange', onWake);
       window.clearTimeout(timer);
     };

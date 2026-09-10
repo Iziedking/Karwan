@@ -43,6 +43,12 @@ export const qk = {
       ['business', 'status', (address ?? 'anon').toLowerCase()] as const,
   },
 
+  workspaces: {
+    me: (address: string | null | undefined) =>
+      ['workspaces', 'me', (address ?? 'anon').toLowerCase()] as const,
+    availability: (workspaceId: string) => ['workspaces', 'availability', workspaceId] as const,
+  },
+
   activity: {
     financeJobIds: () => ['activity', 'finance-jobids'] as const,
   },
@@ -99,6 +105,8 @@ export type QueryKey = ReturnType<
   | typeof qk.profile.me
   | typeof qk.profile.byAddress
   | typeof qk.business.status
+  | typeof qk.workspaces.me
+  | typeof qk.workspaces.availability
   | typeof qk.activity.financeJobIds
   | typeof qk.notifications
   | typeof qk.vault.positions

@@ -59,7 +59,7 @@ client names, raw provider identifiers, or unredacted wallet/contract data.
 
 ## lane-specific controls
 
-### trade lane (businesses and smes)
+### goods and business trade lane
 
 1. bind the invoice or purchase order digest to the agreement before funding;
 2. require a commercial document with issuer, buyer, seller, amount, currency,
@@ -75,7 +75,7 @@ EPCIS is a useful interoperability model for goods: it represents events in
    interfaces that trading partners can share. See the [GS1 EPCIS
    standard](https://www.gs1.org/standards/epcis).
 
-### p2p and freelancer lane
+### personal trade lane
 
 Use a bounded milestone rather than a vague “completed” link. Accept one or
 more of:

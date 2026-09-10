@@ -102,6 +102,8 @@ export default function AdminOverview() {
     { label: 'System issues', value: view.systemIssues, href: '/admin/diagnostics', copy: view.systemIssues ? 'One or more checks need attention.' : 'No degraded checks reported.' },
   ];
 
+  const nextQueue = queues.find((queue) => queue.value > 0);
+
   return (
     <div>
       <div className="flex flex-col gap-5 border-b border-white/10 pb-7 xl:flex-row xl:items-end xl:justify-between">
@@ -119,6 +121,38 @@ export default function AdminOverview() {
           <button type="button" onClick={() => void load()} className="min-h-11 rounded-lg border border-[#e0794f]/30 px-3 mono text-[9px] font-bold uppercase tracking-[0.1em] text-[#efaa8d]">Retry</button>
         </div>
       )}
+
+      <section aria-labelledby="next-action-heading" className="mt-7 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        <div className="rounded-xl border border-[#AFC95B]/25 border-l-2 bg-[#AFC95B]/[0.055] p-5">
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#AFC95B]">[:START HERE:]</p>
+          <h2 id="next-action-heading" className="mt-2 text-[22px] font-extrabold tracking-[-0.02em]">
+            {nextQueue ? nextQueue.label : 'The queue is clear'}
+          </h2>
+          <p className="mt-2 max-w-[58ch] text-[12px] leading-5 text-white/50">
+            {nextQueue ? nextQueue.copy : 'No urgent exception is waiting. Review the operating picture, then keep an eye on active trade.'}
+          </p>
+          <Link href={nextQueue?.href ?? '/admin/deals'} className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-lg bg-[#AFC95B] px-4 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#0A0A0B] transition hover:bg-[#c5dc70]">
+            {nextQueue ? `Open ${nextQueue.label.toLowerCase()}` : 'Review active trade'} <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-[#111114] p-5">
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-white/35">[:OPERATOR LOOP:]</p>
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 xl:grid-cols-2">
+            {[
+              ['01', 'Review', 'Read the evidence.'],
+              ['02', 'Decide', 'Choose the next state.'],
+              ['03', 'Confirm', 'Check the consequence.'],
+              ['04', 'Record', 'Leave an audit trail.'],
+            ].map(([number, label, copy]) => (
+              <div key={number} className="border-t border-white/10 pt-2">
+                <p className="mono text-[9px] text-[#AFC95B]">{number}</p>
+                <p className="mt-1 text-[12px] font-bold text-white/80">{label}</p>
+                <p className="mt-1 text-[10px] leading-4 text-white/35">{copy}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section aria-labelledby="attention-heading" className="mt-7">
         <div className="flex items-end justify-between gap-4"><div><p className="mono text-[9px] uppercase tracking-[0.15em] text-white/30">Priority queue</p><h2 id="attention-heading" className="mt-2 text-[18px] font-extrabold">Review before routine work</h2></div><p className="text-[10px] text-white/28">Live operator data</p></div>

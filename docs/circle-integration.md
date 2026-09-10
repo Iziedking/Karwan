@@ -4,6 +4,12 @@ How each Circle product is used in Karwan. Active paths and default-off rollout
 paths are named separately so code presence is never confused with production
 authority.
 
+The account model is unified across the Circle paths. One person has one login
+and one customer identity wallet or connected wallet. That identity can hold a
+personal workspace and an owner-only business workspace. The workspaces share
+one customer USDC balance in v1. Agent wallets are operational wallets, not
+additional customer accounts.
+
 ## Products in use
 
 ### Circle Agent Stack
@@ -105,7 +111,7 @@ at signing time.
 
 ### Circle Gateway
 
-Gateway gives a business one pooled USDC balance across the twelve chains above.
+Gateway gives the customer one pooled USDC balance across the twelve chains above.
 Deposit once, then spend to any chain from a single signature, with no chain
 switching and no source-chain gas.
 

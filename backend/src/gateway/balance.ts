@@ -19,13 +19,11 @@ import type { MoneyMovementState } from '../money/model.js';
 
 /// Karwan's unified Gateway balance (autonomy backbone, Stage 2 = deposit + read).
 ///
-/// Each user gets ONE dedicated EOA DCW that OWNS their unified USDC balance,
-/// distinct from the internal x402 payment float. Gateway rejects EIP-1271
-/// signatures, so the depositor/signer is an EOA — which signs its own burn
-/// intents directly, so NO delegate (addDelegate) is needed (that mechanism is
-/// only for SCA depositors; Karwan chose the cleaner EOA-depositor path, same as
-/// the x402 rail). USDC deposited here forms one balance the backend can later
-/// spend to fund agent wallets or cash out, all with no user signature.
+/// An email account's Circle identity SCA owns its unified USDC balance. A
+/// legacy EOA remains supported for records created before the SCA path landed,
+/// and web3-only accounts still use their separately provisioned Gateway owner.
+/// Standard Gateway transfers support ERC-1271 through the Circle SCA path;
+/// x402 nanopayments remain a separate EOA-only rail.
 ///
 /// Stage 2 ships DEPOSIT + READ only. Spend (fund agents from this balance) is
 /// Stage 3, so this stays UNSURFACED until then — a user must not deposit into a
@@ -50,13 +48,19 @@ async function provisionGatewayWallet(userAddress: string): Promise<GatewayWalle
   if (!config.CIRCLE_WALLET_SET_ID) {
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
   }
+  const identity = getUserByAddress(userAddress);
+  if (identity?.circleIdentityWalletId) {
+    const ref = { walletId: identity.circleIdentityWalletId, address: userAddress.toLowerCase() };
+    logger.info({ userAddress, gatewayAddress: ref.address }, 'gateway: using Circle identity SCA as unified-balance owner');
+    return ref;
+  }
   const client = circleWalletsClient();
   const res = await client.createWallets({
     blockchains: [ARC_TESTNET_BLOCKCHAIN],
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
-    // EOA on purpose: Gateway rejects EIP-1271, so the owner must recover via
-    // plain ecrecover to sign burn intents in Stage 3.
+    // Web3-only accounts have no Circle SCA, so retain the legacy EOA owner
+    // until a browser-signed ERC-1271 owner path is available for them.
     accountType: 'EOA',
     metadata: [{ name: 'karwan-gateway-balance', refId: userAddress.toLowerCase() }],
   });
@@ -90,6 +94,15 @@ export interface GatewayDepositResult {
   source: GatewayDepositSource;
   reference: string;
   movementState: MoneyMovementState;
+}
+
+function gatewayOwnerForRecord(record: AgentWallets): GatewayWalletRef | null {
+  if (record.gatewayWallet) return record.gatewayWallet;
+  const identity = getUserByAddress(record.userAddress);
+  if (identity?.circleIdentityWalletId) {
+    return { walletId: identity.circleIdentityWalletId, address: record.userAddress.toLowerCase() };
+  }
+  return null;
 }
 
 export class GatewayDepositError extends Error {
@@ -168,7 +181,7 @@ export async function depositToGateway(
     return {
       depositTxHash: completedDepositTx,
       approveTxHash: gatewayLegTx(current, 'gateway_approve'),
-      gatewayAddress: record.gatewayWallet?.address ?? '',
+      gatewayAddress: gatewayOwnerForRecord(record)?.address ?? '',
       amountUsd,
       source,
       reference: current.reference,
@@ -311,12 +324,12 @@ export async function sweepToUnifiedBalance(
 }
 
 /// Read the user's unified Gateway balance (available USD on Arc), or null when
-/// they have no Gateway EOA yet (never deposited).
+/// they have no Gateway owner yet (never deposited).
 export async function readUserGatewayBalance(
   userAddress: string,
 ): Promise<{ available: number; gatewayAddress: string } | null> {
   const record = await getAgentWallets(userAddress.toLowerCase());
-  const gw = record?.gatewayWallet;
+  const gw = record ? gatewayOwnerForRecord(record) : null;
   if (!gw) return null;
   const available = await gatewayAvailableUsd(gw.address);
   return { available, gatewayAddress: gw.address };

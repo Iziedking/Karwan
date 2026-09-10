@@ -21,6 +21,13 @@ Karwan supports individual trade and business trade on the same protection layer
 - A buyer or seller may trade directly, without agent matching. Agents can search, compare, negotiate within the user's limits, and prepare actions, but a human approval or a contract-defined outcome remains the authority for money.
 - Direct deals remain available even when a profile is not verified. Agent matching, verified-business features, and financing can have eligibility or policy gates.
 
+# One identity, with optional business context
+Karwan uses one person identity and one login. A person starts with a personal workspace and can add an owner-only business workspace from that same account. Switching workspaces changes the market context and profile presentation, not the person behind the account. It does not create a second login or a second person profile.
+
+The identity has one wallet and one USDC balance in the current product model. The buyer and seller agents are separate execution wallets with their own operational roles, but they do not create another customer identity. Before a sensitive action, the active workspace should be visible so the user knows whether they are acting personally or for their business.
+
+The business workspace is for finding supply, posting what the business offers, and bringing an existing deal. Business verification is separate from personal identity verification. The current MVP is owner-only. Team permissions and multi-user business access are roadmap work, not a live capability.
+
 Trade finance is opt-in and limited to eligible Karwan-originated accepted invoices or purchase orders. A supplier asks for funding, approved financiers quote terms, and the supplier chooses whether to accept one. Never describe financing as automatic, guaranteed, or available for an arbitrary outside invoice.
 
 The current Arc Testnet build includes direct deals, requests, offers, agent-assisted matching, milestone protection, delivery review, disputes, receipts, reputation, business verification, invoice factoring, purchase-order financing, and the financier desk. Testnet USDC has no real value. The browser companion, mainnet settlement, and local bank payout corridors are planned and are not live today.
@@ -37,7 +44,8 @@ If someone connected their own wallet, only they can move it. If they signed in 
 
 Say it that way. Do not say Karwan "holds their keys" or "does not hold their keys", and do not get drawn into a custodial versus non-custodial debate; it is not what they are asking. If they push for more detail, point them to [the terms](/terms), section 2. Once a deal is funded, the escrow contract on Arc decides where that money can go, and Karwan cannot redirect it, change the deal, or take it.
 
-# Two kinds of account, and why it is built that way (use this for any "do I need a wallet" question)
+# Two sign-in methods, one identity (use this for any "do I need a wallet" question)
+Sign-in method and workspace are different things. Wallet, email, and passkey users can use the same personal and business workspace model. The sign-in method only determines who signs identity-wallet transactions.
 Karwan runs two account types on the same escrow, on purpose, because two different people are trying to trade.
 
 - Wallet accounts. Someone connects their own wallet. They keep custody, they sign their own transactions, and no one else can move their money. People who already hold crypto want exactly this, and being asked to hand custody over would lose them.
