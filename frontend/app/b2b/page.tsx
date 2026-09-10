@@ -9,49 +9,51 @@ import {
   GridOverlay,
   SectionTag,
   HeroHeadline,
-  Punc,
 } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// P2P Trades is a plain nav item that lands here: a desk picker. The buyer and
-/// seller desks each get a card; clicking one routes to its surface. Mirrors the
-/// onboarding account-kind picker (cream + lime accent, asymmetric corners).
+/// Business trade entry point. Keep the business action model distinct from
+/// the personal P2P buyer and seller desks.
 export default function B2BHubPage() {
-  const pb = useTranslations().pageBits;
-  const t = useTranslations().nav;
-  const p = { eyebrow: 'B2B TRADES', title: 'Pick a desk', lede: 'Two ways in. Buy through a managed request, or publish what your company supplies.' };
+  const t = useTranslations();
+  const bt = t.businessTradeDesk;
   return (
-    <AuthGuard gateTag={p.eyebrow} gateBody={p.lede}>
+    <AuthGuard gateTag={bt.eyebrow} gateBody={bt.description}>
       <AccountGate kind="business">
       <FullBleed>
         <Band tone="dark" compact overlay={<GridOverlay />}>
           <div className="fade-up">
-            <SectionTag tone="dark">{p.eyebrow}</SectionTag>
+              <SectionTag tone="dark">{bt.eyebrow}</SectionTag>
           </div>
           <div className="fade-up fade-up-1">
             <HeroHeadline size="sm">
-              {p.title}
-              <Punc>.</Punc>
+              {bt.title}
             </HeroHeadline>
           </div>
           <p className="fade-up fade-up-2 mt-4 max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">
-            {p.lede}
+            {bt.description}
           </p>
         </Band>
 
         <Band tone="light" compact>
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-5 fade-up">
+          <div className="grid gap-4 sm:grid-cols-3 sm:gap-5 fade-up">
             <DeskCard
-              href="/buyer"
+              href="/partners"
               tone="cream"
-              title={t.tradesDropdown.buyerTitle}
-              sub={t.tradesDropdown.buyerSub}
+              title={bt.findSupply}
+              sub={bt.findSupplySub}
             />
             <DeskCard
               href="/supply"
               tone="accent"
-              title={pb.supplyDesk}
-              sub="Publish an offer. Let buyers and agents find your company."
+              title={bt.postOffer}
+              sub={bt.postOfferSub}
+            />
+            <DeskCard
+              href="/buyer?mode=direct"
+              tone="cream"
+              title={bt.bringDeal}
+              sub={bt.bringDealSub}
             />
           </div>
         </Band>

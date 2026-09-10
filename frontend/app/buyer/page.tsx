@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { BusinessTradeDesk } from '@/features/buyer/components/BusinessTradeDesk';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
@@ -40,10 +40,14 @@ export default function BuyerPage() {
 }
 
 function BuyerPageInner() {
+  const { isBusinessWorkspace } = useWorkspaceContext();
+  return isBusinessWorkspace ? <BusinessTradeDesk /> : <PersonalBuyerDesk />;
+}
+
+function PersonalBuyerDesk() {
   const auth = useAuth();
   const address = auth.address;
   const { agents, activated } = useActivation();
-  const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const bh = useTranslations().buyerHub;
@@ -108,14 +112,6 @@ function BuyerPageInner() {
               >
                 {bh.hero.openDealCta}
               </a>
-              {isBusiness && (
-                <Link
-                  href="/partners"
-                  className="mono text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--lp-accent)] hover:underline"
-                >
-                  Find partners →
-                </Link>
-              )}
               {address && (
                 <span className="ms-1">
                   <AddressPill address={shortAddress(address)} tone="dark" />

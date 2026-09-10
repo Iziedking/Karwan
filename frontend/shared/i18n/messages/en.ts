@@ -956,6 +956,19 @@ interface MessagesShape {
       headlineAccent: string;
     };
   };
+  businessTradeDesk: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    findSupply: string;
+    findSupplySub: string;
+    postOffer: string;
+    postOfferSub: string;
+    bringDeal: string;
+    bringDealSub: string;
+    openDeal: string;
+    openDealDescription: string;
+  };
   profileEmail: {
     headlineIndividual: string;
     headlineBusiness: string;
@@ -5139,7 +5152,7 @@ export const en: MessagesShape = {
     manage: "Company details and verification",
     manageBody: "Add company information, submit evidence and follow your review status.",
     edit: "Edit trade preferences",
-    notice: "Karwan currently supports one profile per account. This setup changes your personal profile to a business profile. Your sign-in, balances and existing trade history stay with this account.",
+    notice: "Your personal account stays personal. This adds a linked business workspace under the same sign-in, wallet, and balance.",
     setupTitle: "Set up your business profile",
     setupBody: "Start with the name you trade under. Next, add your company details.",
     name: "Business name",
@@ -6023,6 +6036,20 @@ export const en: MessagesShape = {
       headlinePrefix: 'Your ',
       headlineAccent: 'deal history',
     },
+  },
+  businessTradeDesk: {
+    eyebrow: 'BUSINESS TRADE DESK',
+    title: 'Trade through your business.',
+    description:
+      'Find supply, show what your company can provide, or bring a deal from anywhere. Karwan keeps the terms, delivery, and settlement together.',
+    findSupply: 'Find supply',
+    findSupplySub: 'Browse goods and services from businesses ready to trade.',
+    postOffer: 'Post what we offer',
+    postOfferSub: 'Keep a simple record of what your company can supply.',
+    bringDeal: 'Bring a deal',
+    bringDealSub: 'Name a counterparty and agree the trade in one place.',
+    openDeal: 'Open a deal',
+    openDealDescription: 'Start with the counterparty, amount, delivery terms, and payment plan.',
   },
   profileEmail: {
     headlineIndividual: 'Email',
