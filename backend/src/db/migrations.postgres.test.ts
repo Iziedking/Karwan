@@ -43,7 +43,7 @@ test(
             `);
           }
 
-          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
+          assert.deepEqual(await runNumberedMigrations(client), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]);
           assert.deepEqual(await runNumberedMigrations(client), []);
           const tables = await client.query<{ table_name: string }>(
             `SELECT table_name FROM information_schema.tables

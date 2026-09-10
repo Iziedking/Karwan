@@ -100,6 +100,10 @@ const verifyResponse = await fetch(`${apiBase}/api/world-id/verify`, {
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ idkitResponse: result }),
 });
-const verification = await verifyResponse.json();
+const verification: unknown = await verifyResponse.json();
 if (!verifyResponse.ok) throw new Error(`World ID proof rejected: ${JSON.stringify(verification)}`);
-console.log(JSON.stringify({ ...verification, executionMode: 'world-id-sandbox' }, null, 2));
+const verificationObject =
+  verification !== null && typeof verification === 'object' && !Array.isArray(verification)
+    ? (verification as Record<string, unknown>)
+    : { verification };
+console.log(JSON.stringify({ ...verificationObject, executionMode: 'world-id-sandbox' }, null, 2));

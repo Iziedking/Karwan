@@ -629,6 +629,19 @@ ALTER TABLE agentkit_research_reservations_v1
 `;
 
 const QR_DEPOSIT_MATCHING_SQL = `
+CREATE TABLE IF NOT EXISTS deposit_requests (
+  token TEXT PRIMARY KEY,
+  owner TEXT NOT NULL,
+  status TEXT NOT NULL,
+  amount_usdc TEXT,
+  created_at BIGINT NOT NULL,
+  expires_at BIGINT NOT NULL,
+  matched_tx_id TEXT,
+  matched_chain TEXT,
+  matched_at BIGINT,
+  data JSONB NOT NULL
+);
+
 ALTER TABLE deposit_requests
   ADD COLUMN IF NOT EXISTS amount_usdc TEXT,
   ADD COLUMN IF NOT EXISTS matched_tx_id TEXT,
