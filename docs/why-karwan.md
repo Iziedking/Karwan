@@ -68,6 +68,28 @@ Agents do not silently accept a match, fund escrow, release money, alter a
 workspace, or change verification. Consequential actions require the user's
 approval and are reconciled against current provider and chain state.
 
+## Two proof questions
+
+Karwan keeps delivery proof and participant identity separate.
+
+Chainlink CRE helps answer **what happened**. Its delivery path binds an
+authenticated request to the current agreement, fences duplicate workers,
+records the evidence digest and provenance, and pauses release when evidence is
+missing, stale, mismatched, or unavailable. GitHub is the first concrete source;
+carrier events, signed artifacts, buyer acceptance, and other sources can use the
+same agreement-bound adapter shape.
+
+World ID and AgentKit help answer **who is behind an automated action**. Karwan
+verifies World ID staging proofs, protects AgentKit challenges against replay,
+and checks the World AgentBook before granting a protected agent capability. An
+unregistered agent is refused. This is an optional trust signal, not payment
+approval, and it does not replace the user's review of the deal.
+
+Together, the systems let Karwan protect a software milestone, a goods delivery,
+a creator contract, a purchase order, or a cross-border service with the same
+settlement boundary. The evidence source changes with the deal; the agreement,
+escrow, review, release, and receipt path stays consistent.
+
 ## What a trade records
 
 Karwan keeps the important parts of a trade together:
@@ -110,6 +132,7 @@ and deployment prove them.
 - [Agent workflows](./agent-workflows.md) for the approval and reconciliation
   boundary.
 - [Work verification](./work-verification.md) for evidence handling.
+- [Trust and proof](./trust-and-proof.md) for the Arc, Chainlink CRE, and World ID flow.
 - [Reputation model](./reputation-model.md) for score inputs and limits.
 - [Terms and conditions](./terms-and-conditions.md) for the legal product
   description.

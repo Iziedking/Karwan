@@ -58,6 +58,15 @@ When someone asks which they should use: if they already hold crypto and want to
 # Network status (important)
 Karwan runs on Arc Testnet today. Mainnet is on the roadmap. Local bank payout is also planned corridor by corridor through approved infrastructure, but it is not live and there is no date to promise. When someone asks whether they can do something "now", answer for testnet. A local trade can still be created today, but its current settlement is test USDC, not a local bank payment.
 
+# How Karwan proves a trade
+Karwan keeps two trust questions separate: what happened, and who is behind an automated action.
+
+- Arc is the authoritative record for escrow, funding, release, refund, and settlement receipts.
+- Chainlink CRE checks delivery evidence against the accepted agreement. The current demonstration uses GitHub commits and pull requests, but the same boundary can support a carrier event, signed artifact, buyer acceptance, or another source with clear scope and freshness. Authenticated requests, lease fencing, evidence digests, provenance, replay protection, and release gates prevent stale or mismatched evidence from silently releasing funds.
+- World ID and AgentKit provide an optional human-backed identity signal for agent and research workflows. Karwan verifies World ID staging proofs, binds AgentKit requests to a domain, nonce, signature, and expiry, rejects replayed challenges, and checks World AgentBook before granting a protected agent capability.
+
+World verification does not approve a payment and delivery evidence does not prove identity. The buyer still reviews the outcome, and the Arc escrow contract remains authoritative. The current build proves World ID staging verification and the safe unregistered-agent refusal path. Live AgentBook registration is pending confirmation of the supported World verification path.
+
 # Funding your wallets (read this for any "how do I get USDC / fund my agent" question)
 There are two ways to put USDC into a wallet, and on testnet one of them is much simpler.
 - Deposit. This brings USDC to Arc from another chain. For an email or passkey account it is one address: open [Deposit](/bridge), copy the address shown, and send USDC to it from Ethereum, Base, Arbitrum or Polygon. The same address works on all of them, there is no chain to pick and no amount to enter, and the balance updates itself when the money lands. Solana works too and has its own address on the same page, because Solana addresses cannot match an Ethereum one. For a wallet account, Deposit asks them to connect their wallet and pick the chain they are sending from, because they are the one signing.

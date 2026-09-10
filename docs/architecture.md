@@ -28,6 +28,10 @@ workspace without creating another account.
 - **Storage.** Postgres is the durable store for profile, workspace, deal,
   activity, and agent-operation metadata. A flat-file fallback supports local
   cold starts. The chain remains the source of truth for financial state.
+- **Trust adapters.** Chainlink CRE handles authenticated delivery evidence and
+  confidential source checks. World ID and AgentKit provide an optional
+  human-backed identity signal for protected agent workflows. These adapters
+  inform policy; they do not become a second escrow ledger or payment authority.
 
 ![Karwan architecture](./diagrams/architecture.svg)
 
@@ -103,6 +107,26 @@ The backend keeps agent work on a deterministic path:
 The full reliability boundary is documented in
 [agent-workflows.md](./agent-workflows.md). Rollout flags remain default-off
 where a newer agent path has not completed review and reconciliation work.
+
+## Evidence and identity boundaries
+
+Karwan uses separate seams for separate claims:
+
+1. **Agreement and escrow.** The parties approve versioned terms and fund USDC
+   escrow on Arc Testnet.
+2. **Delivery evidence.** A source adapter submits evidence bound to the current
+   agreement. The Chainlink CRE path authenticates the request, checks source
+   integrity, fences duplicate workers, and records the result for release policy.
+3. **Participant or agent identity.** World ID staging proofs and AgentKit
+   challenge checks can gate an agent or research capability. World AgentBook
+   lookup refuses an unregistered agent. This signal does not approve a payment.
+4. **Human decision and chain state.** A buyer reviews the accepted outcome, and
+   the Arc contracts remain authoritative for funding, release, refund, and
+   receipts.
+
+The same shape works for a GitHub commit, a signed file, a carrier event, a
+buyer acceptance, or another source with a clear scope and freshness rule. See
+[trust-and-proof.md](./trust-and-proof.md) for the public product flow.
 
 ## Settlement and transfer rails
 

@@ -4665,6 +4665,14 @@ export const sw: Messages = {
       arc: 'Chenya 5042002. Vibao vinakamilika chini ya sekunde moja. USDC ni token asilia ya gesi, na rejista za utambulisho na sifa za ERC-8004 tayari zimewekwa.',
       usyc: 'Mtaji wa biashara kwa asili hukaa bila shughuli, na fedha inayokaa inapaswa kupata mapato. Hazina inashikilia Hashnote USYC halisi iliyoidhinishwa kwenye Arc Testnet kupitia kiolesura cha kawaida cha Teller cha ERC-4626, ikipimwa kwa oracle hai ya mnyororo. Mtaji wa hisa usio na shughuli hupita njia ileile inayosimamiwa na opereta. Escrow hai inabeba njia ileile ya kupitisha kwa fedha zinazokaa wakati wa deal za muda mrefu, kwa kikomo cha asilimia 80 ya salio, ingawa hakuna salio la escrow lililopitishwa bado.',
     },
+    trust: {
+      eyebrow: 'Uaminifu na ushahidi', title: 'Maswali mawili, ukaguzi miwili.',
+      evidenceTitle: 'Nini kilitokea?', identityTitle: 'Nani yuko nyuma ya hatua hii?',
+      body: 'Karwan hutenganisha ushahidi wa uwasilishaji na utambulisho wa mshiriki. Arc huhifadhi rekodi ya fedha, Chainlink CRE hukagua kilichowasilishwa, na World ID pamoja na AgentKit zinaweza kuonyesha nani yuko nyuma ya hatua ya kiotomatiki.',
+      evidence: 'Chainlink CRE hufunga ombi la uwasilishaji lililothibitishwa kwenye makubaliano, hukagua chanzo, huzuia wafanyakazi wanaorudia, na husitisha malipo ikiwa ushahidi haupo, ni wa zamani au haulingani. GitHub ni chanzo cha kwanza; matukio ya usafirishaji, faili zilizosainiwa na kukubali kwa mnunuzi vinaweza kutumia mpaka huo.',
+      identity: 'Uthibitisho wa World ID wa staging na changamoto za AgentKit hutoa ishara ya hiari ya binadamu nyuma ya wakala. Karwan hukagua domain, nonce, sahihi, muda wa kuisha, hali ya replay na usajili wa World AgentBook kabla ya kutoa uwezo uliolindwa. Mnunuzi bado ndiye anayeidhinisha deal.',
+      boundary: 'Arc hubaki mamlaka ya escrow na settlement. World haikubali malipo, na ushahidi wa uwasilishaji si uthibitisho wa utambulisho.',
+    },
     roadmap: {
       eyebrow: 'Ramani ya safari', title: 'Kinachofuata', body: 'Kinachosafirishwa baada ya jenzi ya sasa ya testnet.',
       fileDelivery: { title: 'Uwasilishaji wa faili', body: 'Wasilisha kazi kama faili badala ya kiungo tu, ikiwa na mfumo uleule wa uchanganuzi nyuma yake. Cloudflare R2 kwa kasi, na IPFS kwa uwasilishaji unaoshikamana na maudhui na usioweza kuchezewa wa nyaraka za biashara za siri.' },

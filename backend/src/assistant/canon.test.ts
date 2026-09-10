@@ -31,6 +31,6 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
 });
 
 test('canon version records the market-definition update', () => {
-  assert.equal(canonVersion, '0.2.0');
-  assert.equal(canonUpdated, '2026-09-01');
+  assert.equal(canonVersion, '0.2.1');
+  assert.equal(canonUpdated, '2026-09-10');
 });

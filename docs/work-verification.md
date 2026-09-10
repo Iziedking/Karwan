@@ -14,6 +14,22 @@ This is deliberately separate from identity verification. A verified business
 may still submit weak delivery evidence, and a person may submit strong work
 evidence without claiming to represent a registered company.
 
+## Chainlink and World in the evidence boundary
+
+Chainlink CRE is the delivery-evidence execution seam. Karwan binds each
+delivery request to the current agreement, checks the source result, fences
+expired workers, and records the evidence digest and provenance before release
+policy can accept it. The first concrete source is GitHub, but the policy is
+source-agnostic: a carrier event, signed artifact, buyer acceptance, or registry
+record can use the same envelope when its scope and freshness are clear.
+
+World ID and AgentKit address a different claim. They provide an optional
+human-backed identity signal for agent and research workflows. Karwan verifies
+staging proofs, rejects replayed challenges, and checks World AgentBook before
+granting a protected capability. An identity result does not prove delivery and
+does not authorize a payment. The buyer's approval and the Arc escrow contract
+remain the release boundary.
+
 ## evidence hierarchy
 
 Evidence is scored on four dimensions: issuer trust, integrity, independence,

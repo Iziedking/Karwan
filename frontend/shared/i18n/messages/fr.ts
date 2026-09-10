@@ -4665,6 +4665,14 @@ export const fr: Messages = {
       arc: 'Chaîne 5042002. Les blocs finalisent en moins d\'une seconde. USDC est le jeton de gaz natif, et les registres d\'identité et de réputation ERC-8004 sont déjà déployés.',
       usyc: 'Le capital commercial est inactif par nature, et l\'argent qui dort devrait rapporter. La trésorerie détient du vrai Hashnote USYC autorisé sur Arc Testnet via l\'interface standard ERC-4626 du Teller, marqué à l\'oracle on-chain en direct. Le principal de mise inactif passe par le même chemin médié par l\'opérateur. L\'entiercement en ligne porte le même chemin de balayage pour les fonds laissés inactifs pendant les transactions à long terme, plafonné à 80 pour cent du flottant, bien qu\'aucun solde d\'entiercement n\'ait encore été balayé.',
     },
+    trust: {
+      eyebrow: 'Preuve et confiance', title: 'Deux questions, deux contrôles.',
+      evidenceTitle: 'Que s’est-il passé ?', identityTitle: 'Qui est derrière cette action ?',
+      body: 'Karwan sépare la preuve de livraison de l’identité du participant. Arc enregistre l’argent, Chainlink CRE vérifie ce qui a été livré, et World ID avec AgentKit peuvent vérifier qui se trouve derrière une action automatisée.',
+      evidence: 'Chainlink CRE lie une demande de livraison authentifiée à l’accord accepté, vérifie la source, bloque les travailleurs en double et suspend la libération si la preuve manque, est ancienne ou ne correspond pas. GitHub est la première source; les événements de transport, fichiers signés et validations de l’acheteur peuvent suivre la même frontière.',
+      identity: 'Les preuves World ID de staging et les défis AgentKit fournissent un signal humain optionnel. Karwan vérifie le domaine, le nonce, la signature, l’expiration, le rejeu et l’inscription World AgentBook avant d’accorder une capacité protégée. L’acheteur approuve toujours la transaction.',
+      boundary: 'Arc reste l’autorité pour le séquestre et le règlement. World ne valide pas un paiement et une preuve de livraison ne prouve pas l’identité.',
+    },
     roadmap: {
       eyebrow: 'Feuille de route', title: 'À venir', body: 'Ce qui suit la build testnet actuelle.',
       fileDelivery: { title: 'Livraison de fichiers', body: 'Livrez le travail sous forme de fichier plutôt qu\'un simple lien, avec le même pipeline d\'analyse derrière. Cloudflare R2 pour la vitesse, IPFS pour une livraison adressée par contenu et à l\'épreuve des falsifications de documents commerciaux confidentiels.' },

@@ -12,6 +12,8 @@ The current build runs on Arc Testnet (chain `5042002`), where USDC is also the 
 
 Karwan is testnet software. Testnet USDC has no real value. Do not use the build for real funds or treat it as a regulated financial, identity, employment, lending, or payout service.
 
+Karwan answers two trust questions in one trade flow: what happened, and who is behind an automated action. Arc is the settlement record. Chainlink CRE checks delivery evidence before release decisions. World ID and AgentKit provide an optional human-backed identity signal for agent and research workflows. The buyer still approves the agreed outcome.
+
 ## The market Karwan is building
 
 Karwan brings four jobs into one system:
@@ -72,6 +74,7 @@ public landing page, documentation index, and How Karwan Works page.
 - USDC into and out of Arc over CCTP across eleven EVM testnets and Solana devnet, plus a Circle Gateway unified balance spendable from one signature.
 - Activity, wallet, bridge, profile, settings, and unified personal and business workspaces.
 - Business registration and a verification status workflow.
+- A reusable trust boundary: authenticated evidence delivery and release gates through Chainlink CRE, plus World ID staging verification, AgentKit challenge protection, and World AgentBook lookup for agent workflows.
 - Interface in English, Arabic, French, Hindi, and Swahili, with right-to-left layout for Arabic.
 
 Some integrations and policy controls sit behind configuration flags. A capability is live only when the product exposes it and the backend and contract paths behind it are switched on.
@@ -168,6 +171,7 @@ The backend suite runs with `npm test --workspace=backend` and needs a populated
 - [docs/circle-agent-marketplace-services.md](./docs/circle-agent-marketplace-services.md) for paid evidence discovery and provider policy.
 - [docs/terms-and-conditions.md](./docs/terms-and-conditions.md) for the terms users accept in product.
 - [docs/why-karwan.md](./docs/why-karwan.md) for the problem the build is aimed at.
+- [docs/trust-and-proof.md](./docs/trust-and-proof.md) for how Arc, Chainlink CRE, and World ID work together across different deal types.
 - [contracts/README.md](./contracts/README.md) for building, testing, and deploying the contracts.
 - [RELEASE_NOTES.md](./RELEASE_NOTES.md) for what changed and when.
 

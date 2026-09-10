@@ -9,6 +9,12 @@ people in the deal, and Arc records the settlement. The work was organized to
 leave a repeatable product foundation that can support more providers, chains,
 and trade types after the event.
 
+The trust model now has two visible answers. Chainlink CRE helps establish what
+happened by checking delivery evidence against the accepted agreement. World ID
+and AgentKit help establish who is behind an automated action through signed
+challenges, replay protection, and AgentBook lookup. Arc remains the settlement
+record, and the user remains the decision maker for consequential money actions.
+
 ### Consumer trade entry and agreement integrity
 
 - Expanded the product story from a freelancer marketplace to an open market
@@ -66,7 +72,9 @@ and trade types after the event.
   mode.
 - Kept AgentBook registration and resolution as a separate, inspectable path so
   the submission can show how multiple agents remain attached to one human
-  allowance without inventing an identity result.
+  allowance without inventing an identity result. The local integration now
+  reaches the World AgentBook provider and safely rejects an unregistered agent;
+  live registration remains pending the supported World verification path.
 
 ### Chainlink CRE delivery evidence
 
@@ -93,6 +101,9 @@ and trade types after the event.
   integrity, report replay protection, and receiver receipt assertions.
 - Maintained deterministic CRE fixture tests and Foundry contract tests so
   local verification stays separate from testnet execution.
+- Kept the public evidence model source-agnostic: GitHub is the first concrete
+  adapter, while carrier events, signed files, buyer acceptance, and other
+  agreement-bound sources can use the same release gates.
 - Updated the submission evidence pack with the demo sequence, negative-case
   matrix, reuse and AI disclosure, daily execution ledger, and the artifacts to
   capture for World, Chainlink, and Arc.

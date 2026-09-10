@@ -119,6 +119,38 @@ export default function HowItWorksPage() {
         </Card>
       </section>
 
+      {/* TRUST AND PROOF */}
+      <section className="space-y-6">
+        <div className="max-w-2xl">
+          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            {t.trust.eyebrow}
+          </span>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">
+            {t.trust.title}
+          </h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
+            {t.trust.body}
+          </p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <p className="text-[14px] font-semibold">{t.trust.evidenceTitle}</p>
+            <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
+              {t.trust.evidence}
+            </p>
+          </Card>
+          <Card>
+            <p className="text-[14px] font-semibold">{t.trust.identityTitle}</p>
+            <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
+              {t.trust.identity}
+            </p>
+          </Card>
+        </div>
+        <p className="text-[12px] text-[var(--color-ink-faint)] leading-relaxed max-w-2xl">
+          {t.trust.boundary}
+        </p>
+      </section>
+
       {/* STAKE AND REPUTATION */}
       <section className="space-y-6">
         <div className="max-w-2xl">

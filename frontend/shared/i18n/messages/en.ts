@@ -4362,6 +4362,10 @@ interface MessagesShape {
       usdc: string; dcw: string; cctp: string; appKit: string;
       gateway: string; arc: string; usyc: string;
     };
+    trust: {
+      eyebrow: string; title: string; evidenceTitle: string; identityTitle: string; body: string;
+      evidence: string; identity: string; boundary: string;
+    };
     roadmap: {
       eyebrow: string; title: string; body: string;
       fileDelivery: { title: string; body: string };
@@ -9829,6 +9833,14 @@ export const en: MessagesShape = {
       gateway: 'One pooled USDC balance across twelve chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas. It is also the rail that settles the agents\' per-call payments.',
       arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
       usyc: 'Trade capital is idle by nature, and money that sits should earn. The treasury holds real allowlisted Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same operator-mediated path. The live escrow carries the same sweep path for funds left idle during long-dated trades, capped at 80 percent of float, though no escrow balance has been swept yet.',
+    },
+    trust: {
+      eyebrow: 'Trust and proof', title: 'Two questions, two checks.',
+      evidenceTitle: 'What happened?', identityTitle: 'Who is behind the action?',
+      body: 'Karwan keeps delivery evidence separate from participant identity. Arc records the money, Chainlink CRE checks what was delivered, and World ID plus AgentKit can check who is behind an automated action.',
+      evidence: 'Chainlink CRE binds an authenticated delivery request to the accepted agreement, checks the source result, fences duplicate workers, and pauses release when evidence is missing, stale, or mismatched. GitHub is the first source; carrier events, signed files, and buyer acceptance can use the same boundary.',
+      identity: 'World ID staging proofs and AgentKit challenges provide an optional human-backed signal. Karwan checks the domain, nonce, signature, expiry, replay state, and World AgentBook registration before granting a protected agent capability. The buyer still approves the deal.',
+      boundary: 'Arc remains authoritative for escrow and settlement. World verification does not approve a payment, and delivery evidence does not prove identity.',
     },
     roadmap: {
       eyebrow: 'Roadmap',

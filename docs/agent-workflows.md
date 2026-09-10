@@ -51,6 +51,26 @@ The same state machine covers personal and business trade. Workspace context,
 business verification, account type, lane, stake, and evidence rules change
 eligibility, not the reliability model.
 
+## Evidence and agent identity
+
+The runtime treats two questions separately:
+
+- **Delivery:** Chainlink CRE receives an authenticated request tied to the
+  current agreement, checks the source result, and returns evidence with its
+  digest, provenance, and delivery identity. Lease fencing prevents an expired
+  or duplicate worker from publishing stale evidence. A missing, mismatched, or
+  unavailable result blocks release until a safe review path exists.
+- **Agent identity:** World ID staging proofs establish a human-backed signal;
+  AgentKit challenges bind the request to a domain, nonce, signature, and expiry;
+  and World AgentBook lookup refuses an agent that is not registered. This path
+  can gate research or agent capabilities, but it never signs a payment or
+  replaces the user's deal approval.
+
+GitHub is the first evidence source in the CRE demonstration. A carrier event,
+signed artifact, buyer acceptance, or another source can use the same adapter
+boundary as long as its scope, freshness, issuer, and verification state are
+recorded.
+
 ## Workflow map
 
 | Workflow | What the agent does | Authority boundary | Durable record |

@@ -1,6 +1,6 @@
 {
-  "canonVersion": "0.2.0",
-  "canonUpdated": "2026-09-01",
+  "canonVersion": "0.2.1",
+  "canonUpdated": "2026-09-10",
   "docs": [
     {
       "id": "brand-colour",
@@ -325,6 +325,27 @@
         }
       ],
       "body": "Karwan is an open market for secure local and cross-border trade. People and\nbusinesses can buy or sell services, goods, supplies and eligible business\norders. A trade may be local, with both parties in the same country, or\ncross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Browser capture, mainnet settlement and local bank payout are\nplanned expansion, not current capabilities."
+    },
+    {
+      "id": "trust-and-proof",
+      "title": "Trust and proof",
+      "status": "live",
+      "updated": "2026-09-10",
+      "tags": [
+        "trust",
+        "chainlink",
+        "world-id",
+        "agentkit",
+        "arc"
+      ],
+      "path": "docs/trust-and-proof.md",
+      "sources": [
+        {
+          "url": "https://karwan.site/docs",
+          "date": "2026-09-10"
+        }
+      ],
+      "body": "Karwan keeps two trust questions separate: what happened, and who is behind an automated action.\n\nArc is the authoritative record for escrow, funding, release, refund, and settlement receipts. Chainlink CRE checks delivery evidence against the accepted agreement. The current demonstration uses GitHub commits and pull requests, but a carrier event, signed artifact, buyer acceptance, or another source with clear scope and freshness can use the same boundary. Authenticated requests, lease fencing, evidence digests, provenance, replay protection, and release gates prevent stale or mismatched evidence from silently releasing funds.\n\nWorld ID and AgentKit provide an optional human-backed identity signal for agent and research workflows. Karwan verifies World ID staging proofs, binds AgentKit requests to a domain, nonce, signature, and expiry, rejects replayed challenges, and checks World AgentBook before granting a protected agent capability. World verification does not approve a payment and delivery evidence does not prove identity. The buyer still reviews the outcome, and the Arc escrow contract remains authoritative.\n\nThe current build proves World ID staging verification and the safe unregistered-agent refusal path. Live AgentBook registration is pending confirmation of the supported World verification path. Karwan is running on Arc Testnet, so testnet USDC has no real value."
     }
   ],
   "facts": [
