@@ -4658,6 +4658,7 @@ async function enrich(deal: DirectDeal) {
     agreementDigest: agreementDigest(deal),
     evidenceReceipt,
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
+    deadlineReclaimGraceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
     /// How long the payment terms or a shipment in transit hold the money,
     /// independent of the review ladder. Zero on an ordinary service deal.
     termsFloorMs: termsFloorMs(deal),

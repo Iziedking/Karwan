@@ -681,6 +681,10 @@ export interface DirectDeal {
   createdAt: number;
   updatedAt: number;
   reviewWindowMs?: number;
+  /// Grace after a missed delivery deadline before buyer reclaim is allowed.
+  /// The backend exposes the effective value so the UI never guesses when a
+  /// manual reclaim can succeed.
+  deadlineReclaimGraceMs?: number;
   onChain: DirectDealOnChain | null;
   /// True when the funds are still on a previous escrow contract. The deal
   /// detail page renders a banner pointing at /legacy so actions don't fail

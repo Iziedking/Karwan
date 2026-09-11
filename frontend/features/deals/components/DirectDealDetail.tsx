@@ -2428,7 +2428,11 @@ function ActionPanel({
       );
     }
     const hasDeadline = !!deal.deadlineUnix;
-    const deadlinePassed = hasDeadline && now > (deal.deadlineUnix as number) * 1000;
+    const deadlineMs = hasDeadline ? (deal.deadlineUnix as number) * 1000 : null;
+    const deadlinePassed = deadlineMs !== null && now > deadlineMs;
+    const reclaimGraceMs = deal.deadlineReclaimGraceMs ?? 86_400_000;
+    const reclaimReadyAt = deadlineMs === null ? null : deadlineMs + reclaimGraceMs;
+    const reclaimGraceOpen = reclaimReadyAt !== null && now < reclaimReadyAt;
     return (
       <div className="space-y-4">
         {ext && (
@@ -2447,14 +2451,34 @@ function ActionPanel({
           {!hasDeadline && ' ' + copy.awaitingDelivery.buyerNoDeadlineTail}
           {hasDeadline && !deadlinePassed && ' ' + copy.awaitingDelivery.buyerHasDeadlineTail}
         </Body>
+        {hasDeadline && !deadlinePassed && deadlineMs !== null && (
+          <WindowNote tone="muted">
+            {copy.awaitingDelivery.buyerDeadlinePrefix}{' '}
+            <span className="mono font-semibold">{fmtCountdown(deadlineMs - now)}</span>{' '}
+            {copy.awaitingDelivery.buyerDeadlineSuffix}
+          </WindowNote>
+        )}
         {deadlinePassed && (
           <>
             <WindowNote tone="warning">
               {copy.awaitingDelivery.buyerDeadlinePassedNote}
             </WindowNote>
-            <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
-              {busy ? copy.awaitingDelivery.reclaimBusy : copy.awaitingDelivery.reclaimCta}
-            </CTAPill>
+            {reclaimGraceOpen && reclaimReadyAt !== null ? (
+              <WindowNote tone="muted">
+                {copy.awaitingDelivery.buyerGracePrefix}{' '}
+                <span className="mono font-semibold">{fmtCountdown(reclaimReadyAt - now)}</span>{' '}
+                {copy.awaitingDelivery.buyerGraceSuffix}
+              </WindowNote>
+            ) : (
+              <>
+                <WindowNote tone="muted">
+                  {copy.awaitingDelivery.buyerReclaimReadyNote}
+                </WindowNote>
+                <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
+                  {busy ? copy.awaitingDelivery.reclaimBusy : copy.awaitingDelivery.reclaimCta}
+                </CTAPill>
+              </>
+            )}
           </>
         )}
       </div>
@@ -3028,19 +3052,21 @@ function AcceptConsentModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[120] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-stretch sm:justify-end sm:pb-0"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby="propose-resolution-title"
         onClick={(e) => e.stopPropagation()}
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full touch-pan-y overscroll-contain overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.35)',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <div className="px-6 pt-6 pb-3">
@@ -3400,7 +3426,7 @@ function ProposeCancelModal({
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
             {disputed ? copy.eyebrowResolution : copy.eyebrowCancellation}
           </span>
-          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
+          <h2 id="propose-resolution-title" className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-tight">
             {disputed ? copy.titleDispute : copy.titleCancel}
             <span style={{ color: 'var(--lp-accent)' }}>.</span>
           </h2>

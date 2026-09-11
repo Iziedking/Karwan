@@ -3025,7 +3025,12 @@ interface MessagesShape {
         buyerIntro: string;
         buyerNoDeadlineTail: string;
         buyerHasDeadlineTail: string;
+        buyerDeadlinePrefix: string;
+        buyerDeadlineSuffix: string;
         buyerDeadlinePassedNote: string;
+        buyerGracePrefix: string;
+        buyerGraceSuffix: string;
+        buyerReclaimReadyNote: string;
         reclaimCta: string;
         reclaimBusy: string;
       };
@@ -8321,8 +8326,13 @@ export const en: MessagesShape = {
         extensionRequestCta: 'Request extension',
         buyerIntro: 'Seller accepted. Waiting for delivery.',
         buyerNoDeadlineTail: 'No delivery deadline was set on this deal, so the seller can deliver whenever. Propose a mutual cancellation or open an appeal if you need to call it off.',
-        buyerHasDeadlineTail: 'If they miss the deadline, you get the full escrow back automatically after a 24h grace. You can also reclaim it now.',
-        buyerDeadlinePassedNote: 'Deadline passed without delivery. Reclaim the full escrow now, or leave it and the refund runs automatically after a 24h grace.',
+        buyerHasDeadlineTail: 'If they miss the deadline, your full escrow returns automatically after the reclaim window.',
+        buyerDeadlinePrefix: 'Seller has',
+        buyerDeadlineSuffix: 'to deliver. Your USDC stays protected until then.',
+        buyerDeadlinePassedNote: 'Deadline passed without delivery. Your funds remain protected during the reclaim window.',
+        buyerGracePrefix: 'Seller missed the deadline. Automatic refund starts in',
+        buyerGraceSuffix: 'You can reclaim the funds after the reclaim window ends.',
+        buyerReclaimReadyNote: 'The seller did not deliver. Your refund is ready to claim.',
         reclaimCta: 'Cancel & reclaim funds',
         reclaimBusy: 'Working…',
       },
