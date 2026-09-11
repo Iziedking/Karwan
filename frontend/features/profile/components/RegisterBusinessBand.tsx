@@ -233,7 +233,7 @@ export function RegisterBusinessBand({
               />
             ) : null}
 
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               {mode === 'workflow' && canSubmitEvidence && editing ? (
                 <>
                   <button
@@ -266,14 +266,15 @@ export function RegisterBusinessBand({
               ) : mode === 'summary' && status !== 'verified' ? (
                 <Link
                   href="/business/verification"
-                  className="inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent-ink)]"
+                  className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full bg-[var(--lp-accent)] px-4 py-2 text-[13px] font-bold text-[var(--lp-band-dark)] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
                 >
-                  {status === 'rejected' ? t.actions.resubmit : t.actions.openWorkflow}
+                  <span>{status === 'rejected' ? t.actions.resubmit : t.actions.openWorkflow}</span>
+                  <span aria-hidden>→</span>
                 </Link>
               ) : mode === 'summary' && status === 'verified' ? (
                 <Link
                   href="/business/verification"
-                  className="inline-flex min-h-11 items-center mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-accent-ink)]"
+                  className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline)] px-4 py-2 text-[13px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:border-[var(--lp-outline-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
                 >
                   {t.actions.view}
                 </Link>

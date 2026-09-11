@@ -199,6 +199,15 @@ function ProfilePageInner() {
           </div>
         </div>
 
+        {/* Business setup is the first required action for a business workspace.
+            Keep it above agent preferences and company trade details so the
+            registration path is visible as soon as the workspace opens. */}
+        {SME_TRADES_ENABLED && address && isBusiness ? (
+          <div data-guide="profile-business-verification">
+            <RegisterBusinessBand address={address} />
+          </div>
+        ) : null}
+
         {/* ROLE + AGENT DETAILS */}
         {profile ? (
           <>
@@ -408,9 +417,6 @@ function ProfilePageInner() {
             one re-renders nothing else on this page. */}
         {/* Company section anchor: a business's EDIT DETAILS scrolls here. */}
         <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
-        {SME_TRADES_ENABLED && address && isBusiness ? (
-          <RegisterBusinessBand address={address} />
-        ) : null}
         {SME_TRADES_ENABLED && address && isBusiness ? (
           <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
         ) : null}

@@ -35,8 +35,9 @@ export function ProfileAccountHub({
   const [imageFailed, setImageFailed] = useState(false);
   const nav = useTranslations().nav;
   const businessCopy = useTranslations().businessProfilePage;
-  const { isBusinessWorkspace } = useWorkspaceContext();
+  const { isBusinessWorkspace, workspaces } = useWorkspaceContext();
   const business = isBusinessWorkspace;
+  const hasBusinessWorkspace = workspaces.some((workspace) => workspace.kind === 'business');
   const displayName =
     (business ? profile.smeProfile?.companyName : profile.displayName)?.trim() ||
     profile.displayName?.trim() ||
@@ -48,7 +49,7 @@ export function ProfileAccountHub({
   return (
     <main className="product-surface min-w-0 overflow-x-clip min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
       <div className="mx-auto min-w-0 max-w-[1180px]">
-        <header className="grid min-w-0 gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:py-8">
+        <header className="grid min-w-0 gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:py-8">
           <span className="relative block size-[72px] shrink-0">
             {profile.xProfileImageUrl && !imageFailed ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -78,10 +79,6 @@ export function ProfileAccountHub({
             </h1>
             <p className="mt-1 break-words [overflow-wrap:anywhere] text-[14px] text-[var(--lp-text-sub)]">{contact}</p>
           </div>
-          <div className="flex min-w-0 max-w-full flex-wrap gap-2 sm:flex-col sm:items-end">
-            <Link href="/profile/edit" className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--lp-outline)] px-4 text-[14px] font-bold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">Edit profile</Link>
-            <Link href="/stake" className="inline-flex min-h-11 items-center text-[13px] font-bold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">View trade reputation →</Link>
-          </div>
         </header>
 
         <div className="mt-5 flex items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 sm:px-5">
@@ -99,7 +96,8 @@ export function ProfileAccountHub({
               href="/profile/edit"
             />
             <HubRow
-              label={business ? businessCopy.label : businessCopy.open}
+              label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
+              description={!business && hasBusinessWorkspace ? businessCopy.manageBody : undefined}
               href="/profile/business"
             />
             <HubRow

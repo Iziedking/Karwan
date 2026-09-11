@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -17,8 +18,9 @@ export default function BusinessProfilePage() {
   const messages = useTranslations();
   const t = messages.businessProfilePage;
   const common = messages.common;
+  const router = useRouter();
   const { fetchState, isConnected, refresh } = useUserProfile();
-  const { activeWorkspace, workspaces, isBusinessWorkspace } = useWorkspaceContext();
+  const { activeWorkspace, workspaces, isBusinessWorkspace, switchWorkspace } = useWorkspaceContext();
   const pending = isConnected && (fetchState === 'loading' || fetchState === 'idle');
   const businessWorkspace = workspaces.find((workspace) => workspace.kind === 'business');
   const showingBusiness = isBusinessWorkspace && activeWorkspace?.kind === 'business';
@@ -61,10 +63,23 @@ export default function BusinessProfilePage() {
           </section>
         ) : businessWorkspace ? (
           <section className="mt-8 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">{t.label}</p>
-            <h2 className="mt-2 break-words text-2xl font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{businessWorkspace.name}</h2>
-            <p className="mt-2 max-w-[54ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.notice}</p>
-            <p className="mt-4 text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.setup}</p>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">{t.label}</p>
+                <h2 className="mt-2 break-words text-2xl font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{businessWorkspace.name}</h2>
+                <p className="mt-2 max-w-[54ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.notice}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  switchWorkspace(businessWorkspace.id);
+                  router.push('/business/verification');
+                }}
+                className="inline-flex min-h-11 shrink-0 items-center justify-between gap-4 rounded-full bg-[var(--lp-accent)] px-5 py-3 text-[14px] font-bold text-[#10170b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+              >
+                {t.setup}<span aria-hidden>→</span>
+              </button>
+            </div>
           </section>
         ) : null}
 
