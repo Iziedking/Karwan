@@ -36,3 +36,23 @@ test('required delivery evidence changes the accepted agreement digest', () => {
   const required = { ...base, evidenceRequired: true };
   assert.notEqual(agreementDigest(base), agreementDigest(required));
 });
+
+test('high-signal identity policy changes the accepted agreement digest', () => {
+  const highSignal = {
+    ...base,
+    verificationPolicy: 'high_signal' as const,
+    verificationSubject: 'seller' as const,
+  };
+  assert.notEqual(agreementDigest(base), agreementDigest(highSignal));
+  assert.notEqual(
+    agreementDigest(highSignal),
+    agreementDigest({ ...highSignal, verificationSubject: 'both' }),
+  );
+});
+
+test('standard verification preserves the legacy agreement digest', () => {
+  assert.equal(
+    agreementDigest(base),
+    agreementDigest({ ...base, verificationPolicy: 'standard', verificationSubject: 'seller' }),
+  );
+});

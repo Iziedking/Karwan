@@ -20,6 +20,8 @@ export interface AgreementDigestInput {
   tradeLane?: string;
   incoterms?: string;
   paymentTerms?: string;
+  verificationPolicy?: 'standard' | 'high_signal';
+  verificationSubject?: 'buyer' | 'seller' | 'both';
   counterpartyCompany?: unknown;
   documentRefs?: unknown;
   sourceContext?: unknown;
@@ -55,6 +57,14 @@ export function agreementDigest(input: AgreementDigestInput): string {
     tradeLane: input.tradeLane ?? null,
     incoterms: input.incoterms ?? null,
     paymentTerms: input.paymentTerms ?? null,
+    // Keep standard and legacy agreements byte-for-byte compatible. The new
+    // identity gate becomes part of consent only when explicitly enabled.
+    ...(input.verificationPolicy === 'high_signal'
+      ? {
+          verificationPolicy: 'high_signal',
+          verificationSubject: input.verificationSubject ?? 'seller',
+        }
+      : {}),
     counterpartyCompany: input.counterpartyCompany ?? null,
     documentRefs: input.documentRefs ?? null,
     sourceContext: input.sourceContext ?? null,

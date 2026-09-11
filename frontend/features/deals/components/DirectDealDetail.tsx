@@ -60,6 +60,7 @@ import {
 } from '@/shared/components/Bands';
 import { proofSegments } from '../proofLinks';
 import { evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
+import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -192,6 +193,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [settlementFetchState, setSettlementFetchState] =
     useState<SettlementRecordFetchState>('loading');
   const [settlementReloadKey, setSettlementReloadKey] = useState(0);
+  const [conversationOpen, setConversationOpen] = useState(false);
 
   // Notifications append #action when they want the user to land on the action
   // card (e.g. "Match accepted, deliver when ready"). Scroll once the deal data
@@ -479,7 +481,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       refresh();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
-      setErrorInfo({ code, message: dd.errors.approvalFailed });
+      const detail = err instanceof ApiError ? err.message : undefined;
+      setErrorInfo({
+        code,
+        message: detail?.trim() ? detail : dd.errors.approvalFailed,
+      });
     } finally {
       setBusy(false);
     }
@@ -913,6 +919,31 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </div>
           </div>
         </div>
+        <nav
+          aria-label="Deal sections"
+          className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-[var(--lp-text-muted)]"
+        >
+          <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-sub)]">
+            Deal overview
+          </span>
+          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-overview">
+            {dd.parties.cardLabel} and {dd.funding.cardLabel}
+          </a>
+          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-terms">
+            {dd.terms.title}
+          </a>
+          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-actions">
+            {dd.actions.eyebrow}
+          </a>
+          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-record">
+            {dd.settlementRecord.title}
+          </a>
+          {address ? (
+            <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-conversation">
+              {dd.chat.eyebrow}
+            </a>
+          ) : null}
+        </nav>
       </Band>
 
       {deal.marketRead && (
@@ -972,8 +1003,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </Band>
       )}
 
+      {address && deal.verificationPolicy === 'high_signal' ? (
+        <Band tone="light" compact>
+          <HighSignalVerificationCard deal={deal} caller={address} onRefresh={() => void refresh()} />
+        </Band>
+      ) : null}
+
       {/* PARTIES + FUNDING */}
-      <Band tone="light" compact>
+      <Band tone="light" compact id="deal-overview">
         <div className="grid md:grid-cols-2 gap-5" data-guide="deal-money">
           <PageCard>
             <CardHead label={dd.parties.cardLabel} />
@@ -1097,7 +1134,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       </Band>
 
       {/* TERMS + (optional) DELIVERY PROOF */}
-      <Band tone="light" compact>
+      <Band tone="light" compact id="deal-terms">
         <SectionTag>{dd.terms.eyebrow}</SectionTag>
         <HeroHeadline as="h2" size="md">
           {dd.terms.title}<Punc>.</Punc>
@@ -1377,7 +1414,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       )}
 
       {/* ACTIONS */}
-      <Band tone="dark" compact>
+      <Band tone="dark" compact id="deal-actions">
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
           <div className="max-w-[42ch]">
             <SectionTag tone="dark" dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
@@ -1508,6 +1545,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             )}
           </div>
         </div>
+        <div id="deal-record" className="mt-8 border-t border-[var(--lp-workspace-border)] pt-8">
         <SettlementRecord
           movements={settlementMovements}
           fetchState={settlementFetchState}
@@ -1516,11 +1554,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           onRetry={() => setSettlementReloadKey((key) => key + 1)}
           canShareReceipts={viewerIsBuyer}
         />
+        </div>
       </Band>
 
       {/* CHAT */}
       {address && (
-        <Band tone="light" compact>
+        <Band tone="light" compact id="deal-conversation">
           <SectionTag>{dd.chat.eyebrow}</SectionTag>
           <HeroHeadline as="h2" size="md">
             {dd.chat.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.chat.titleAccent}</span>
@@ -1529,7 +1568,20 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
             {dd.chat.body}
           </p>
-          <div className="mt-8">
+          <div className="mt-4 flex justify-start">
+            <button
+              type="button"
+              aria-expanded={conversationOpen}
+              aria-controls="deal-conversation-panel"
+              onClick={() => setConversationOpen((open) => !open)}
+              className="inline-flex min-h-11 items-center gap-4 rounded-full border border-[var(--lp-outline-strong)] px-4 text-[13px] font-bold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-dark)] hover:text-[var(--lp-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              <span>{conversationOpen ? dd.chat.closeLabel : dd.chat.openLabel}</span>
+              <span aria-hidden>{conversationOpen ? '↑' : '→'}</span>
+            </button>
+          </div>
+          {conversationOpen && (
+          <div id="deal-conversation-panel" className="mt-6">
             <PageCard>
               <ChatPanel
                 jobId={jobId}
@@ -1544,6 +1596,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               />
             </PageCard>
           </div>
+          )}
         </Band>
       )}
 
@@ -2433,6 +2486,7 @@ function ActionPanel({
     const reclaimGraceMs = deal.deadlineReclaimGraceMs ?? 86_400_000;
     const reclaimReadyAt = deadlineMs === null ? null : deadlineMs + reclaimGraceMs;
     const reclaimGraceOpen = reclaimReadyAt !== null && now < reclaimReadyAt;
+    const recoveryRunning = deal.deadlineRecovery?.state === 'running';
     return (
       <div className="space-y-4">
         {ext && (
@@ -2468,6 +2522,10 @@ function ActionPanel({
                 {copy.awaitingDelivery.buyerGracePrefix}{' '}
                 <span className="mono font-semibold">{fmtCountdown(reclaimReadyAt - now)}</span>{' '}
                 {copy.awaitingDelivery.buyerGraceSuffix}
+              </WindowNote>
+            ) : recoveryRunning ? (
+              <WindowNote tone="muted">
+                {copy.awaitingDelivery.reclaimRecoveryRunning}
               </WindowNote>
             ) : (
               <>

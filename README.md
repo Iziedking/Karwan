@@ -14,6 +14,17 @@ Karwan is testnet software. Testnet USDC has no real value. Do not use the build
 
 Karwan answers two trust questions in one trade flow: what happened, and who is behind an automated action. Arc is the settlement record. Chainlink CRE checks delivery evidence before release decisions. World ID and AgentKit provide an optional human-backed identity signal for agent and research workflows. The buyer still approves the agreed outcome.
 
+For higher-risk or higher-value deals, a buyer can add a **high-signal identity
+requirement** to the agreement. The buyer chooses whether the seller, the buyer,
+or both parties must complete a World ID check before the seller can accept or
+the buyer can fund. The deal page opens the official World ID request widget;
+Karwan verifies the signed request context, action, nonce, environment, expiry,
+and replay state before recording the result. Karwan stores a one-way proof
+reference, not biometric data or a raw nullifier. This check is an additional
+trust signal. It does not approve payment, release escrow, or decide a dispute.
+If World credentials are unavailable, the deal remains blocked and shows a
+recoverable status instead of treating the party as verified.
+
 ## The market Karwan is building
 
 Karwan brings four jobs into one system:
@@ -75,6 +86,7 @@ public landing page, documentation index, and How Karwan Works page.
 - Activity, wallet, bridge, profile, settings, and unified personal and business workspaces.
 - Business registration and a verification status workflow.
 - A reusable trust boundary: authenticated evidence delivery and release gates through Chainlink CRE, plus World ID staging verification, AgentKit challenge protection, and World AgentBook lookup for agent workflows.
+- High-signal direct deals with party selection (seller, buyer, or both), signed World ID request context, nonce and nullifier replay protection, agreement-digest binding, party-scoped verification status, and durable verification audit events. The gate protects acceptance and funding while leaving final money decisions with the parties and the escrow contract.
 - Interface in English, Arabic, French, Hindi, and Swahili, with right-to-left layout for Arabic.
 
 Some integrations and policy controls sit behind configuration flags. A capability is live only when the product exposes it and the backend and contract paths behind it are switched on.

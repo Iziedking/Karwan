@@ -15,6 +15,36 @@ and AgentKit help establish who is behind an automated action through signed
 challenges, replay protection, and AgentBook lookup. Arc remains the settlement
 record, and the user remains the decision maker for consequential money actions.
 
+### Deal architecture flow
+
+The ETHOnline build now connects the consumer entry point, identity signal,
+delivery evidence, and settlement state in one bounded flow:
+
+```mermaid
+flowchart TD
+    A[Discovery: social post, chat, email, marketplace, or QR] --> B[Karwan deal draft]
+    B --> C[Agree amount, milestones, evidence, deadline, and review rules]
+    C --> D{High-signal verification required?}
+    D -- No --> E[Both parties accept the agreement]
+    D -- Yes --> F[Select seller, buyer, or both]
+    F --> G[World ID request with signed RP context]
+    G --> H{Action, nonce, expiry, replay, and proof checks pass?}
+    H -- No --> I[Keep acceptance and funding blocked]
+    H -- Yes --> E
+    E --> J[Buyer funds USDC escrow on Arc]
+    J --> K[Seller delivers against a milestone]
+    K --> L[Chainlink CRE checks evidence bound to the agreement]
+    L --> M{Evidence current and valid?}
+    M -- No --> N[Pause, reconcile, or route to human review]
+    M -- Yes --> O[Buyer reviews the delivery]
+    O --> P[Release, claim, cancel, or dispute under the contract]
+    P --> Q[Settlement receipt and durable audit record]
+```
+
+World ID supplies an optional participant signal, and CRE supplies a delivery
+evidence boundary. Neither system moves funds. Arc escrow and the buyer's
+reviewed decision remain authoritative for settlement.
+
 ### Consumer trade entry and agreement integrity
 
 - Expanded the product story from a freelancer marketplace to an open market
@@ -75,6 +105,29 @@ record, and the user remains the decision maker for consequential money actions.
   allowance without inventing an identity result. The local integration now
   reaches the World AgentBook provider and safely rejects an unregistered agent;
   live registration remains pending the supported World verification path.
+
+### High-signal deal verification
+
+- Added an optional high-signal verification policy to direct deals. The buyer
+  can require verification from the seller, the buyer, or both parties before
+  acceptance and funding continue.
+- Added party-scoped status, request, and verification routes. Requests carry a
+  signed RP context, action, nonce, environment, and expiry; verification binds
+  the returned proof to those values before changing deal state.
+- Added nonce replay protection and nullifier replay protection. Karwan stores a
+  SHA-256 proof reference rather than a raw nullifier or biometric data.
+- Bound the selected verification policy and subject to the agreement digest, so
+  changing the requirement creates a new agreement state instead of silently
+  reusing an earlier acceptance.
+- Added durable `deal.high-signal.requested`, `deal.high-signal.verified`, and
+  `deal.high-signal.rejected` events. Event payloads record the role, subject,
+  provider, environment, and result code without exposing proof material.
+- Added a deal-page World ID flow using the official IDKit request widget. The
+  check is a trust signal for higher-risk deals; it does not authorize payment,
+  release, or dispute outcomes. Live completion still depends on World
+  credential access in the target environment.
+- Added focused tests for selected-party requirements, both-party requirements,
+  unavailable credentials, rejected proofs, digest changes, and replay safety.
 
 ### Chainlink CRE delivery evidence
 

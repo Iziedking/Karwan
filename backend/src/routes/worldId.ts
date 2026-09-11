@@ -59,6 +59,86 @@ function configured(): boolean {
   );
 }
 
+export function worldIdProofConfigured(): boolean {
+  return configured();
+}
+
+export interface ConfiguredWorldIdVerification {
+  verified: true;
+  environment: WorldIdEnvironment;
+  action: string;
+  nullifiers: string[];
+}
+
+/** Shared verifier for deal-specific policies and the public World ID route. */
+export async function verifyConfiguredWorldId(input: {
+  idkitResponse: IdKitResponseShape;
+  expectedNonce?: string;
+}): Promise<
+  | ConfiguredWorldIdVerification
+  | { verified: false; code: 'WORLD_ID_UNAVAILABLE' | 'WORLD_ID_RESPONSE_INVALID' | 'WORLD_ID_PROOF_REJECTED' | 'WORLD_ID_NULLIFIER_REPLAY'; error: string }
+> {
+  if (!configured()) {
+    return { verified: false, code: 'WORLD_ID_UNAVAILABLE', error: 'World ID verification is not configured' };
+  }
+  let parsed: ReturnType<typeof parseWorldIdResult>;
+  try {
+    parsed = parseWorldIdResult({
+      result: input.idkitResponse,
+      expectedAction: config.WORLD_ID_ACTION as string,
+      expectedEnvironment: config.WORLD_ID_ENVIRONMENT,
+      expectedNonce: input.expectedNonce,
+    });
+  } catch (error) {
+    return {
+      verified: false,
+      code: 'WORLD_ID_RESPONSE_INVALID',
+      error: error instanceof Error ? error.message : 'World ID response is invalid',
+    };
+  }
+  let remote: Awaited<ReturnType<WorldIdVerifier['verify']>>;
+  try {
+    remote = await configuredVerifier.verify({
+      rpId: config.WORLD_ID_RP_ID as string,
+      result: input.idkitResponse,
+    });
+  } catch {
+    return {
+      verified: false,
+      code: 'WORLD_ID_UNAVAILABLE',
+      error: 'World ID verification service is unavailable',
+    };
+  }
+  if (!remote.ok) return { verified: false, code: 'WORLD_ID_PROOF_REJECTED', error: remote.reason };
+  let accepted: boolean;
+  try {
+    accepted = await configuredStore!.claim({
+      nullifiers: parsed.nullifiers,
+      action: parsed.action,
+      environment: parsed.environment,
+    });
+  } catch {
+    return {
+      verified: false,
+      code: 'WORLD_ID_UNAVAILABLE',
+      error: 'World ID replay protection is unavailable',
+    };
+  }
+  if (!accepted) {
+    return {
+      verified: false,
+      code: 'WORLD_ID_NULLIFIER_REPLAY',
+      error: 'World ID proof has already been used for this action',
+    };
+  }
+  return {
+    verified: true,
+    environment: parsed.environment,
+    action: parsed.action,
+    nullifiers: parsed.nullifiers,
+  };
+}
+
 export const worldIdRoutes = new Hono();
 
 worldIdRoutes.get('/status', (c) => {
@@ -98,29 +178,16 @@ worldIdRoutes.post('/verify', async (c) => {
   if (!body.idkitResponse || typeof body.idkitResponse !== 'object') {
     return c.json({ error: 'IDKit response is required', code: 'WORLD_ID_RESPONSE_MISSING' }, 400);
   }
-  let parsed: ReturnType<typeof parseWorldIdResult>;
-  try {
-    parsed = parseWorldIdResult({
-      result: body.idkitResponse,
-      expectedAction: config.WORLD_ID_ACTION as string,
-      expectedEnvironment: config.WORLD_ID_ENVIRONMENT,
-    });
-  } catch (error) {
-    return c.json({ error: error instanceof Error ? error.message : 'World ID response is invalid', code: 'WORLD_ID_RESPONSE_INVALID' }, 400);
+  const result = await verifyConfiguredWorldId({ idkitResponse: body.idkitResponse });
+  if (!result.verified) {
+    const status = result.code === 'WORLD_ID_RESPONSE_INVALID' ? 400 : result.code === 'WORLD_ID_NULLIFIER_REPLAY' ? 409 : result.code === 'WORLD_ID_PROOF_REJECTED' ? 403 : 503;
+    return c.json({ error: result.error, code: result.code }, status);
   }
-  const remote = await configuredVerifier.verify({ rpId: config.WORLD_ID_RP_ID as string, result: body.idkitResponse });
-  if (!remote.ok) return c.json({ error: remote.reason, code: 'WORLD_ID_PROOF_REJECTED' }, 403);
-  const accepted = await configuredStore!.claim({
-    nullifiers: parsed.nullifiers,
-    action: parsed.action,
-    environment: parsed.environment,
-  });
-  if (!accepted) return c.json({ error: 'World ID proof has already been used for this action', code: 'WORLD_ID_NULLIFIER_REPLAY' }, 409);
   return c.json({
     verified: true,
     provider: 'world-id-developer-portal' as const,
-    environment: parsed.environment,
-    action: parsed.action,
-    nullifierCount: parsed.nullifiers.length,
+    environment: result.environment,
+    action: result.action,
+    nullifierCount: result.nullifiers.length,
   });
 });

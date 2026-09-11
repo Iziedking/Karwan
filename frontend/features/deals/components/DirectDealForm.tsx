@@ -124,6 +124,8 @@ export function DirectDealForm() {
   /// Stake percentage when requireStake is on. Slider 50..100 in 5% steps,
   /// default 50%. Translates to on-chain reservationBps = pct * 100.
   const [requireStakePct, setRequireStakePct] = useState(50);
+  const [highSignal, setHighSignal] = useState(false);
+  const [highSignalSubject, setHighSignalSubject] = useState<'seller' | 'buyer' | 'both'>('seller');
   // Numeric fields always start empty; the placeholder "0" renders instead
   // of any autofilled number. The only exception is when the user arrives
   // from a listing's "Make offer" deep link with ?amount= in the URL, which
@@ -341,6 +343,8 @@ export function DirectDealForm() {
         firstReleasePct: firstPct as number,
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
+        verificationPolicy: highSignal ? 'high_signal' : 'standard',
+        verificationSubject: highSignal ? highSignalSubject : undefined,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
         incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
@@ -1019,6 +1023,64 @@ export function DirectDealForm() {
           )}
         </div>
       </label>
+
+      <div
+        className={cn(
+          'px-4 py-3 transition-colors',
+          highSignal
+            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
+            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)]',
+        )}
+        style={{
+          border: '1px solid',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={highSignal}
+            onChange={(e) => setHighSignal(e.target.checked)}
+            disabled={submitting}
+            className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0"
+            aria-describedby="high-signal-help"
+          />
+          <span className="min-w-0">
+            <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
+              High-signal identity check
+            </span>
+            <span id="high-signal-help" className="mt-1.5 block text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
+              Ask for a World ID credential before the selected party accepts or funds. Karwan stores a proof reference, never biometric data, and still requires human payment approval.
+            </span>
+          </span>
+        </label>
+        {highSignal ? (
+          <div className="mt-3 flex flex-wrap gap-2 ps-7" role="radiogroup" aria-label="Who must verify">
+            {(['seller', 'buyer', 'both'] as const).map((subject) => (
+              <button
+                key={subject}
+                type="button"
+                role="radio"
+                aria-checked={highSignalSubject === subject}
+                onClick={() => setHighSignalSubject(subject)}
+                disabled={submitting}
+                className="min-h-11 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.12em] border transition-colors"
+                style={{
+                  background: highSignalSubject === subject ? 'var(--lp-control-active-bg)' : 'transparent',
+                  color: highSignalSubject === subject ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+                  borderColor: highSignalSubject === subject ? 'var(--lp-control-active-border)' : 'var(--lp-outline)',
+                  borderRadius: 7,
+                }}
+              >
+                {subject === 'both' ? 'Both parties' : subject}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {/* SUBMIT */}
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import {
@@ -77,6 +77,16 @@ import {
   executeEscrowRefundMovement,
   remainingEscrowMicros,
 } from '../money/escrowRefund.js';
+import {
+  claimDeadlineRecovery,
+  completeDeadlineRecovery,
+  deadlineRecoveryBackoffMs,
+  deadlineRecoveryReadyAt,
+  ensureDeadlineRecovery,
+  failDeadlineRecovery,
+  getDeadlineRecovery,
+  recordDeadlineRecoveryMovement,
+} from '../deals/deadlineRecovery.js';
 import { executeEscrowMutualCancelMovement } from '../money/escrowMutualCancel.js';
 import {
   expectedMilestonePayout,
@@ -142,6 +152,20 @@ import {
   ResearchDeliveryInProgressError,
 } from '../evidence/researchReportDelivery.js';
 import { cancelCreDeliveryRequests } from '../evidence/creDeliveryRequestQueue.js';
+import {
+  createHighSignalVerification,
+  highSignalBlockedMessage,
+  isHighSignalSubject,
+  isHighSignalVerified,
+  updateHighSignalParty,
+  type HighSignalSubject,
+  type VerificationRole,
+} from '../deals/highSignalVerification.js';
+import {
+  verifyConfiguredWorldId,
+  worldIdProofConfigured,
+} from './worldId.js';
+import { createWorldIdRpSignature, type IdKitResponseShape } from '../worldid/idkitProof.js';
 import {
   emptyResearchAllowanceSnapshot,
   ResearchAllowanceExhaustedError,
@@ -279,6 +303,10 @@ const createSchema = z
     /// Explicit opt-in for the confidential delivery-evidence lane. Legacy
     /// deals remain optional until their agreement records this requirement.
     evidenceRequired: z.boolean().optional().default(false),
+    /// Optional World ID gate for sensitive deals. This is a counterparty
+    /// policy, not a payment authorization.
+    verificationPolicy: z.enum(['standard', 'high_signal']).optional().default('standard'),
+    verificationSubject: z.enum(['buyer', 'seller', 'both']).optional().default('seller'),
   })
   .refine(
     (b) =>
@@ -321,6 +349,8 @@ const editSchema = z
         message: 'requireStakePct must be a multiple of 5',
       }),
     evidenceRequired: z.boolean().optional(),
+    verificationPolicy: z.enum(['standard', 'high_signal']).optional(),
+    verificationSubject: z.enum(['buyer', 'seller', 'both']).optional(),
   })
   .refine(
     (b) => {
@@ -367,6 +397,37 @@ const appealSchema = z.object({
 });
 
 const inFlight = new Set<string>();
+
+function dealPartyRole(deal: DirectDeal, caller: string): VerificationRole | null {
+  const address = caller.toLowerCase();
+  if (address === deal.buyer) return 'buyer';
+  if (address === deal.seller) return 'seller';
+  return null;
+}
+
+function highSignalSubjectFor(deal: DirectDeal): HighSignalSubject | null {
+  if (deal.verificationPolicy !== 'high_signal') return null;
+  const subject = deal.verificationSubject ?? deal.highSignalVerification?.subject;
+  return isHighSignalSubject(subject) ? subject : 'seller';
+}
+
+function highSignalStateFor(deal: DirectDeal) {
+  const subject = highSignalSubjectFor(deal);
+  return subject ? deal.highSignalVerification ?? createHighSignalVerification(subject) : undefined;
+}
+
+function highSignalGate(deal: DirectDeal, role: VerificationRole) {
+  const state = highSignalStateFor(deal);
+  if (!state || isHighSignalVerified(state, role)) return null;
+  return {
+    error: highSignalBlockedMessage(role),
+    code: 'HIGH_SIGNAL_VERIFICATION_REQUIRED' as const,
+    provider: 'world-id' as const,
+    subject: state.subject,
+    role,
+    status: state[role]?.status ?? 'pending',
+  };
+}
 
 export const dealsRoutes = new Hono();
 
@@ -567,6 +628,12 @@ dealsRoutes.post('/direct', async (c) => {
     documentRefs: body.documentRefs,
     sourceContext: body.sourceContext,
     evidenceRequired: body.evidenceRequired,
+    verificationPolicy: body.verificationPolicy,
+    verificationSubject: body.verificationPolicy === 'high_signal' ? body.verificationSubject : undefined,
+    highSignalVerification:
+      body.verificationPolicy === 'high_signal'
+        ? createHighSignalVerification(body.verificationSubject)
+        : undefined,
   });
 
   bus.emitEvent({
@@ -699,6 +766,14 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
 
   const patch: Partial<DirectDeal> = {};
   if (body.evidenceRequired !== undefined) patch.evidenceRequired = body.evidenceRequired;
+  if (body.verificationPolicy !== undefined || body.verificationSubject !== undefined) {
+    const policy = body.verificationPolicy ?? deal.verificationPolicy ?? 'standard';
+    const subject = body.verificationSubject ?? deal.verificationSubject ?? 'seller';
+    patch.verificationPolicy = policy;
+    patch.verificationSubject = policy === 'high_signal' ? subject : undefined;
+    patch.highSignalVerification =
+      policy === 'high_signal' ? createHighSignalVerification(subject) : undefined;
+  }
   if (body.dealAmountUsdc !== undefined) {
     patch.dealAmountUsdc = body.dealAmountUsdc.toString();
   }
@@ -876,6 +951,14 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
 
   const patch: Partial<DirectDeal> = {};
   if (body.evidenceRequired !== undefined) patch.evidenceRequired = body.evidenceRequired;
+  if (body.verificationPolicy !== undefined || body.verificationSubject !== undefined) {
+    const policy = body.verificationPolicy ?? deal.verificationPolicy ?? 'standard';
+    const subject = body.verificationSubject ?? deal.verificationSubject ?? 'seller';
+    patch.verificationPolicy = policy;
+    patch.verificationSubject = policy === 'high_signal' ? subject : undefined;
+    patch.highSignalVerification =
+      policy === 'high_signal' ? createHighSignalVerification(subject) : undefined;
+  }
   if (body.dealAmountUsdc !== undefined) patch.dealAmountUsdc = body.dealAmountUsdc.toString();
   if (body.terms !== undefined) patch.terms = body.terms;
   if (body.firstReleasePct !== undefined) patch.firstReleasePct = body.firstReleasePct;
@@ -1532,6 +1615,190 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
   });
 });
 
+const highSignalCallerSchema = z.object({ caller: addrSchema });
+const highSignalVerifySchema = highSignalCallerSchema.extend({
+  idkitResponse: z.record(z.unknown()),
+});
+
+function highSignalPublicState(deal: DirectDeal, callerRole: VerificationRole | null) {
+  const state = highSignalStateFor(deal);
+  return {
+    policy: deal.verificationPolicy ?? 'standard',
+    subject: state?.subject ?? null,
+    provider: state?.provider ?? null,
+    callerRole,
+    callerStatus: callerRole && state ? state[callerRole]?.status ?? null : null,
+    buyerStatus: state?.buyer?.status ?? null,
+    sellerStatus: state?.seller?.status ?? null,
+  };
+}
+
+dealsRoutes.get('/direct/:jobId/high-signal', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const caller = c.req.query('caller');
+  const parsedCaller = caller ? addrSchema.safeParse(caller) : null;
+  const callerRole = parsedCaller?.success ? dealPartyRole(deal, parsedCaller.data) : null;
+  if (caller && !callerRole) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  return c.json({
+    ...highSignalPublicState(deal, callerRole),
+    world: {
+      configured: worldIdProofConfigured(),
+      environment: config.WORLD_ID_ENVIRONMENT,
+      action: worldIdProofConfigured() ? config.WORLD_ID_ACTION : null,
+      appId: worldIdProofConfigured() ? config.WORLD_ID_APP_ID : null,
+      rpId: worldIdProofConfigured() ? config.WORLD_ID_RP_ID : null,
+    },
+  });
+});
+
+dealsRoutes.post('/direct/:jobId/high-signal/request', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = highSignalCallerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const callerRole = dealPartyRole(deal, body.caller);
+  if (!callerRole) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  const state = highSignalStateFor(deal);
+  if (!state || !state[callerRole] || isHighSignalVerified(state, callerRole)) {
+    return c.json({ ...highSignalPublicState(deal, callerRole), request: null }, 200);
+  }
+  if (!worldIdProofConfigured()) {
+    await patchDeal(jobId, {
+      highSignalVerification: updateHighSignalParty(state, callerRole, {
+        status: 'unavailable',
+        requestedAt: Date.now(),
+      }),
+    });
+    return c.json({
+      error: 'World ID verification is not available for this deal right now',
+      code: 'WORLD_ID_UNAVAILABLE',
+    }, 503);
+  }
+  try {
+    const request = createWorldIdRpSignature({
+      signingKeyHex: config.WORLD_ID_SIGNING_KEY as string,
+      action: config.WORLD_ID_ACTION as string,
+    });
+    const updatedState = updateHighSignalParty(state, callerRole, {
+      status: 'pending',
+      requestedAt: Date.now(),
+      pendingNonce: request.nonce,
+    });
+    await patchDeal(jobId, { highSignalVerification: updatedState });
+    bus.emitEvent({
+      type: 'deal.high-signal.requested',
+      jobId,
+      actor: callerRole,
+      payload: {
+        role: callerRole,
+        subject: updatedState.subject,
+        provider: 'world-id',
+        environment: config.WORLD_ID_ENVIRONMENT,
+      },
+    });
+    return c.json({
+      ...highSignalPublicState({ ...deal, highSignalVerification: updatedState }, callerRole),
+      request: {
+        provider: 'world-id' as const,
+        action: config.WORLD_ID_ACTION,
+        appId: config.WORLD_ID_APP_ID,
+        rpId: config.WORLD_ID_RP_ID,
+        environment: config.WORLD_ID_ENVIRONMENT,
+        ...request,
+      },
+    }, 200);
+  } catch {
+    return c.json({ error: 'World ID signing is unavailable', code: 'WORLD_ID_SIGNING_FAILED' }, 503);
+  }
+});
+
+dealsRoutes.post('/direct/:jobId/high-signal/verify', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = highSignalVerifySchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const callerRole = dealPartyRole(deal, body.caller);
+  if (!callerRole) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  const state = highSignalStateFor(deal);
+  if (!state || !state[callerRole]) {
+    return c.json({ error: 'this deal does not require high-signal verification for this party', code: 'HIGH_SIGNAL_NOT_REQUIRED' }, 409);
+  }
+  if (state[callerRole]?.status === 'verified') {
+    return c.json({ verified: true, ...highSignalPublicState(deal, callerRole) }, 200);
+  }
+  if (!state[callerRole]?.pendingNonce) {
+    return c.json({ error: 'request a fresh World ID verification challenge first', code: 'WORLD_ID_REQUEST_REQUIRED' }, 409);
+  }
+  const result = await verifyConfiguredWorldId({
+    idkitResponse: body.idkitResponse as IdKitResponseShape,
+    expectedNonce: state[callerRole].pendingNonce,
+  });
+  if (!result.verified) {
+    const status = result.code === 'WORLD_ID_RESPONSE_INVALID' ? 400 : result.code === 'WORLD_ID_NULLIFIER_REPLAY' ? 409 : result.code === 'WORLD_ID_PROOF_REJECTED' ? 403 : 503;
+    await patchDeal(jobId, {
+      highSignalVerification: updateHighSignalParty(state, callerRole, {
+        status: result.code === 'WORLD_ID_UNAVAILABLE' ? 'unavailable' : 'rejected',
+      }),
+    });
+    bus.emitEvent({
+      type: 'deal.high-signal.rejected',
+      jobId,
+      actor: callerRole,
+      payload: {
+        role: callerRole,
+        subject: state.subject,
+        provider: 'world-id',
+        code: result.code,
+      },
+    });
+    return c.json({ error: result.error, code: result.code }, status);
+  }
+  const nullifierDigest = createHash('sha256').update(result.nullifiers.join('|')).digest('hex');
+  const updatedState = updateHighSignalParty(state, callerRole, {
+    status: 'verified',
+    verifiedAt: Date.now(),
+    environment: result.environment,
+    nullifierDigest,
+    pendingNonce: undefined,
+  });
+  const updated = await patchDeal(jobId, { highSignalVerification: updatedState });
+  bus.emitEvent({
+    type: 'deal.high-signal.verified',
+    jobId,
+    actor: callerRole,
+    payload: {
+      role: callerRole,
+      subject: updatedState.subject,
+      provider: 'world-id',
+      environment: result.environment,
+    },
+  });
+  return c.json({
+    verified: true,
+    ...highSignalPublicState(updated ?? { ...deal, highSignalVerification: updatedState }, callerRole),
+    provider: 'world-id' as const,
+    environment: result.environment,
+  }, 200);
+});
+
 /// Seller agrees to the current commercial terms. This may provision their
 /// agent identity, but it never approves, transfers, or locks the buyer's USDC.
 /// The buyer performs the separate, exact-amount funding authorization below.
@@ -1552,6 +1819,8 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   if (body.caller.toLowerCase() !== deal.seller) {
     return c.json({ error: 'only the named seller can agree to this deal' }, 403);
   }
+  const sellerHighSignalGate = highSignalGate(deal, 'seller');
+  if (sellerHighSignalGate) return c.json(sellerHighSignalGate, 409);
   const currentAgreementVersion = deal.agreementVersion ?? 1;
   const currentAgreementDigest = agreementDigest(deal);
   if (
@@ -1695,6 +1964,8 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
   if (body.caller.toLowerCase() !== deal.buyer) {
     return c.json({ error: 'only the buyer can fund this deal' }, 403);
   }
+  const buyerHighSignalGate = highSignalGate(deal, 'buyer');
+  if (buyerHighSignalGate) return c.json(buyerHighSignalGate, 409);
   // Finance-lane (SME/B2B) deals require the accepting seller to be a verified
   // business. Catches the pending-invite case where the counterparty wasn't
   // known at create time.
@@ -1757,6 +2028,8 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     // an approval for an older version cannot authorize the current terms.
     const latestDeal = await getDeal(jobId);
     if (!latestDeal) return c.json({ error: 'deal not found' }, 404);
+    const latestBuyerHighSignalGate = highSignalGate(latestDeal, 'buyer');
+    if (latestBuyerHighSignalGate) return c.json(latestBuyerHighSignalGate, 409);
     const latestAgreementVersion = latestDeal.agreementVersion ?? 1;
     const latestAgreementDigest = agreementDigest(latestDeal);
     const latestApprovalMatches =
@@ -4104,6 +4377,26 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   if (refundMicros <= 0n) {
     return c.json({ error: 'there is no remaining escrow to refund', code: 'ESCROW_EMPTY' }, 409);
   }
+  const recovery = await ensureDeadlineRecovery({
+    jobId,
+    deadlineUnix: deal.deadlineUnix,
+    availableAt: deadlineRecoveryReadyAt(
+      deal.deadlineUnix,
+      config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
+    ),
+    now: Date.now(),
+  });
+  if (Date.now() < recovery.availableAt) {
+    return c.json(
+      {
+        error: 'the reclaim grace window has not passed yet',
+        code: 'GRACE_OPEN',
+        recoveryState: recovery.state,
+        availableAt: recovery.availableAt,
+      },
+      409,
+    );
+  }
   const refundAmountUsdc = formatUsdcMicros(refundMicros);
   const refundSummary = `Reclaimed ${refundAmountUsdc} USDC from the deal the seller did not deliver`;
   const refundInput = {
@@ -4119,25 +4412,31 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   };
 
   inFlight.add(jobId);
+  const recoveryLease = await claimDeadlineRecovery({ jobId, now: Date.now() });
+  if (!recoveryLease) {
+    inFlight.delete(jobId);
+    return c.json(
+      {
+        error: 'recovery is already in progress or awaiting retry',
+        code: 'RECOVERY_IN_PROGRESS',
+        recoveryState: recovery.state,
+      },
+      409,
+    );
+  }
+  const recoveryAttempt = recovery.attempt + 1;
   let refundReference: string | undefined;
   try {
     const reason = 'buyer cancel: seller did not deliver by deadline';
     const ensuredRefund = await ensureEscrowRefundMovement(refundInput);
     refundReference = ensuredRefund.movement.reference;
+    await recordDeadlineRecoveryMovement(recoveryLease, refundReference);
     let refundResult;
     if (config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED) {
       // v2b post-accept: the same trustless reclaim the watcher uses. It
       // enforces deadline + grace and the "nothing pending review" rule on
-      // chain, and records Failed atomically. Pre-check the grace so the buyer
-      // gets a clean 409 instead of an on-chain DeadlineNotPassed revert; the
-      // on-chain grace matches DEAL_DEADLINE_RECLAIM_GRACE_MS threaded at fund.
-      if (Date.now() < deal.deadlineUnix * 1000 + config.DEAL_DEADLINE_RECLAIM_GRACE_MS) {
-        inFlight.delete(jobId);
-        return c.json(
-          { error: 'the reclaim grace window has not passed yet', code: 'GRACE_OPEN' },
-          409,
-        );
-      }
+      // chain, and records Failed atomically. The shared recovery ledger
+      // gates both this route and the watcher before this call.
       refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
         reclaimAfterDeadline(jobId, deal.buyerAgentWalletId!, options),
       );
@@ -4192,6 +4491,17 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     if (!(config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED)) {
       await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
     }
+    try {
+      await completeDeadlineRecovery(recoveryLease, {
+        movementReference: refundResult.movement.reference,
+        txHash: refundTxHash,
+      });
+    } catch (recoveryError) {
+      logger.error(
+        { jobId, err: (recoveryError as Error).message },
+        'refund completed but recovery ledger could not be finalized',
+      );
+    }
     return c.json(
       {
         accepted: true,
@@ -4204,6 +4514,18 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
       200,
     );
   } catch (err) {
+    try {
+      await failDeadlineRecovery(recoveryLease, {
+        error: (err as Error).message,
+        nextAvailableAt: Date.now() + deadlineRecoveryBackoffMs(recoveryAttempt),
+        now: Date.now(),
+      });
+    } catch (recoveryError) {
+      logger.error(
+        { jobId, err: (recoveryError as Error).message },
+        'refund failed and recovery ledger could not record the retry',
+      );
+    }
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'cancel failed');
     const attentionReference =
@@ -4632,6 +4954,7 @@ function redactDeal(d: EnrichedDeal): EnrichedDeal {
   next.sellerAgentAddress = maskAddress(d.sellerAgentAddress);
   delete next.cancelReason;
   delete next.deliveryProof;
+  if ('deadlineRecovery' in next) delete next.deadlineRecovery;
   if (next.cancellationProposal) {
     next.cancellationProposal = {
       proposedBy: next.cancellationProposal.proposedBy,
@@ -4668,6 +4991,9 @@ async function enrich(deal: DirectDeal) {
   // No escrow exists on chain until the seller agrees and the buyer funds.
   if (!deal.acceptedAt) return { ...base, onChain: null };
   try {
+    const deadlineRecovery = deal.deadlineUnix
+      ? await getDeadlineRecovery(deal.jobId).catch(() => null)
+      : null;
     const account = await readEscrow(deal.jobId);
     // Legacy detection: state==None on the new escrow + a configured legacy
     // address = the funds are still on the pre-v2.D contract. Tag the deal
@@ -4709,6 +5035,18 @@ async function enrich(deal: DirectDeal) {
 
     return {
       ...base,
+      ...(deadlineRecovery
+        ? {
+            deadlineRecovery: {
+              state: deadlineRecovery.state,
+              availableAt: deadlineRecovery.availableAt,
+              attempt: deadlineRecovery.attempt,
+              movementReference: deadlineRecovery.movementReference,
+              txHash: deadlineRecovery.txHash,
+              updatedAt: deadlineRecovery.updatedAt,
+            },
+          }
+        : {}),
       releaseEligibleAtMs,
       onChain: {
         state: account.state,

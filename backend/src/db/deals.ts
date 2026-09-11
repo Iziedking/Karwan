@@ -225,6 +225,11 @@ export interface DirectDeal {
   /// Explicit policy marker. Undefined/false is legacy optional evidence;
   /// true means absent, stale, failed or unreadable evidence pauses release.
   evidenceRequired?: boolean;
+  /// Optional high-signal counterparty policy. This gates the selected party's
+  /// acceptance/funding action; it never authorizes a payment or release.
+  verificationPolicy?: 'standard' | 'high_signal';
+  verificationSubject?: 'buyer' | 'seller' | 'both';
+  highSignalVerification?: import('../deals/highSignalVerification.js').HighSignalVerification;
   /// Why the agent is NOT running the auto-release clock on this deal. The
   /// watcher sets it the moment it decides to pause and clears it when the
   /// condition lifts. Both parties see the code (never the buyer's private

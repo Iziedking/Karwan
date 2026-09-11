@@ -538,6 +538,15 @@ export interface DirectDeal {
   deadlineUnix?: number;
   terms: string;
   agreementVersion?: number;
+  verificationPolicy?: 'standard' | 'high_signal';
+  verificationSubject?: 'buyer' | 'seller' | 'both';
+  highSignalVerification?: {
+    mode: 'high_signal';
+    subject: 'buyer' | 'seller' | 'both';
+    provider: 'world-id';
+    buyer?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number };
+    seller?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number };
+  };
   evidenceReceipt?: {
     state:
       | 'not-configured'
@@ -685,6 +694,17 @@ export interface DirectDeal {
   /// The backend exposes the effective value so the UI never guesses when a
   /// manual reclaim can succeed.
   deadlineReclaimGraceMs?: number;
+  /// Durable reclaim state shared by the buyer route and the background watcher.
+  /// The last error stays private to operators; the client only receives safe
+  /// progress and proof fields.
+  deadlineRecovery?: {
+    state: 'waiting' | 'running' | 'succeeded' | 'failed';
+    availableAt: number;
+    attempt: number;
+    movementReference?: string;
+    txHash?: string;
+    updatedAt: number;
+  };
   onChain: DirectDealOnChain | null;
   /// True when the funds are still on a previous escrow contract. The deal
   /// detail page renders a banner pointing at /legacy so actions don't fail
@@ -3335,6 +3355,8 @@ export const api = {
       label?: string;
     }>;
     sourceContext?: TradeSourceContext;
+    verificationPolicy?: 'standard' | 'high_signal';
+    verificationSubject?: 'buyer' | 'seller' | 'both';
   }) =>
     json<{
       deal: DirectDeal;
@@ -3406,6 +3428,31 @@ export const api = {
     }>(
       `/api/deals/direct/${jobId}/accept`,
       { method: 'POST', body: JSON.stringify({ caller }) },
+    ),
+  highSignalStatus: (jobId: string, caller?: string) =>
+    json<{
+      policy: 'standard' | 'high_signal';
+      subject: 'buyer' | 'seller' | 'both' | null;
+      provider: 'world-id' | null;
+      callerRole: 'buyer' | 'seller' | null;
+      callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
+      buyerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
+      sellerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
+      world: { configured: boolean; environment: 'staging' | 'production'; action: string | null; appId: string | null; rpId: string | null };
+    }>(`/api/deals/direct/${jobId}/high-signal${caller ? `?caller=${encodeURIComponent(caller)}` : ''}`),
+  requestHighSignal: (jobId: string, caller: string) =>
+    json<{
+      policy: 'standard' | 'high_signal';
+      callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
+      request: { provider: 'world-id'; action: string; appId: string; rpId: string; environment: 'staging' | 'production'; nonce: string; sig: string; created_at: number; expires_at: number } | null;
+    }>(`/api/deals/direct/${jobId}/high-signal/request`, {
+      method: 'POST', body: JSON.stringify({ caller }),
+    }),
+  verifyHighSignal: (jobId: string, caller: string, idkitResponse: Record<string, unknown>) =>
+    json<{ verified: boolean; callerStatus: 'verified'; provider: 'world-id'; environment: 'staging' | 'production' }>(
+      `/api/deals/direct/${jobId}/high-signal/verify`, {
+        method: 'POST', body: JSON.stringify({ caller, idkitResponse }),
+      },
     ),
   directDealFundingQuote: (jobId: string, caller: string) =>
     json<{ quote: DirectDealFundingQuote }>(
@@ -3648,6 +3695,8 @@ export const api = {
       firstReleasePct?: number;
       requireStake?: boolean;
       requireStakePct?: number;
+      verificationPolicy?: 'standard' | 'high_signal';
+      verificationSubject?: 'buyer' | 'seller' | 'both';
     },
   ) =>
     json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
@@ -4494,6 +4543,8 @@ export const api = {
       firstReleasePct?: number;
       requireStake?: boolean;
       requireStakePct?: number;
+      verificationPolicy?: 'standard' | 'high_signal';
+      verificationSubject?: 'buyer' | 'seller' | 'both';
       evidenceRequired?: boolean;
     },
   ) =>
