@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
 import Link from 'next/link';
-import { api, ApiError } from '@/core/api';
+import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
   FullBleed,
@@ -152,10 +152,8 @@ export function FeedbackForm() {
         ...(shots.length > 0 ? { screenshots: shots.map((s) => ({ dataUrl: s.dataUrl })) } : {}),
       });
       setDoneId(res.id);
-    } catch (err) {
-      const detail =
-        err instanceof ApiError && err.detail ? JSON.stringify(err.detail) : (err as Error).message;
-      setError(detail || fb.errors.submitFailed);
+    } catch {
+      setError(fb.errors.submitFailed);
     } finally {
       setBusy(false);
     }
@@ -207,7 +205,8 @@ export function FeedbackForm() {
                           key={key}
                           type="button"
                           onClick={() => setCategory(key)}
-                          className="text-start px-3 py-2.5 transition-colors"
+                          aria-pressed={on}
+                          className="group min-h-[112px] text-start p-4 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
                           style={{
                             background: on ? 'var(--lp-control-active-bg)' : 'var(--lp-light)',
                             border: `1px solid ${on ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)'}`,
@@ -217,15 +216,24 @@ export function FeedbackForm() {
                             borderBottomRightRadius: 3,
                           }}
                         >
-                          <span
-                            className="block mono text-[11px] font-bold uppercase tracking-[0.08em]"
-                            style={{ color: on ? 'var(--lp-accent)' : 'var(--lp-dark)' }}
-                          >
-                            {c.label}
+                          <span className="flex items-center justify-between gap-3">
+                            <span
+                              className="block text-[13px] font-bold"
+                              style={{ color: on ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)' }}
+                            >
+                              {c.label}
+                            </span>
+                            <span
+                              aria-hidden
+                              className="size-2 shrink-0 rounded-full"
+                              style={{
+                                background: on ? 'var(--lp-control-active-ink)' : 'var(--lp-text-muted)',
+                              }}
+                            />
                           </span>
                           <span
-                            className="block mt-0.5 text-[11px] leading-snug"
-                            style={{ color: on ? 'rgba(255,255,255,0.6)' : 'var(--lp-text-muted)' }}
+                            className="block mt-3 text-[12px] leading-snug"
+                            style={{ color: on ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)' }}
                           >
                             {c.blurb}
                           </span>
@@ -242,7 +250,7 @@ export function FeedbackForm() {
                     onChange={(e) => setTitle(e.target.value)}
                     maxLength={140}
                     placeholder={fb.placeholders.title}
-                    className="w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
+                    className="min-h-12 w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 10,
@@ -262,7 +270,7 @@ export function FeedbackForm() {
                     maxLength={4000}
                     rows={6}
                     placeholder={fb.placeholders.message}
-                    className="w-full px-3.5 py-3 text-[14px] leading-relaxed text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors resize-y"
+                    className="min-h-[148px] w-full resize-y px-3.5 py-3 text-[14px] leading-relaxed text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                     style={{
                       border: '1px solid var(--lp-border-light)',
                       borderTopLeftRadius: 10,
@@ -287,7 +295,7 @@ export function FeedbackForm() {
                     }}
                     onDragLeave={() => setDragging(false)}
                     onDrop={onDrop}
-                    className="px-4 py-6 text-center transition-colors"
+                    className="min-h-[112px] px-4 py-6 text-center transition-colors"
                     style={{
                       border: `1.5px dashed ${dragging ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
                       background: dragging ? 'rgba(175, 201, 91,0.06)' : 'var(--lp-light)',
@@ -354,7 +362,7 @@ export function FeedbackForm() {
                       onChange={(e) => setWhere(e.target.value)}
                       maxLength={500}
                       placeholder={fb.placeholders.where}
-                      className="w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
+                      className="min-h-12 w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                       style={{
                         border: '1px solid var(--lp-border-light)',
                         borderTopLeftRadius: 10,
@@ -370,7 +378,7 @@ export function FeedbackForm() {
                       onChange={(e) => setContact(e.target.value)}
                       maxLength={200}
                       placeholder={fb.placeholders.contact}
-                      className="w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
+                      className="min-h-12 w-full px-3.5 py-3 text-[14px] text-[var(--lp-dark)] bg-[var(--lp-light)] outline-none focus:border-[var(--lp-accent)] transition-colors"
                       style={{
                         border: '1px solid var(--lp-border-light)',
                         borderTopLeftRadius: 10,
@@ -393,24 +401,22 @@ export function FeedbackForm() {
 
                 {error && (
                   <p
-                    className="text-[13px] px-3.5 py-2.5"
+                    className="border-s-2 px-3.5 py-2 text-[13px] leading-relaxed"
                     style={{
-                      color: '#b03d3a',
-                      background: 'rgba(176,61,58,0.08)',
-                      border: '1px solid rgba(176,61,58,0.30)',
-                      borderRadius: 8,
+                      color: 'var(--neg)',
+                      borderColor: 'var(--neg)',
                     }}
                   >
-                    {error}
+                    • {error}
                   </p>
                 )}
 
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex flex-col items-stretch gap-3 pt-1 sm:flex-row sm:items-center">
                   <button
                     type="button"
                     onClick={submit}
                     disabled={busy}
-                    className="inline-flex items-center gap-2 px-5 py-3 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 text-[13px] font-semibold bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors disabled:opacity-60"
                     style={{
                       borderTopLeftRadius: 10,
                       borderTopRightRadius: 10,
@@ -437,8 +443,8 @@ export function FeedbackForm() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-2">
-        [:{label}:]
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+        {label}
       </p>
       {children}
     </div>
