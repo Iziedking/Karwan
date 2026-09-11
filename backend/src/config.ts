@@ -797,6 +797,11 @@ const envSchema = z.object({
   /// Dedicated bearer secret for the internal CRE delivery-request bridge.
   /// Unset disables publication and read access; it is never the admin token.
   CRE_DELIVERY_REQUEST_TOKEN: optionalString,
+  /// Reconciles accepted CRE evidence receipts from the Arc registry back into
+  /// the leased delivery queue. Keep off until the production registry address
+  /// and CRE workflow are configured together.
+  CRE_EVIDENCE_RECONCILER_ENABLED: envBool('CRE_EVIDENCE_RECONCILER_ENABLED'),
+  CRE_EVIDENCE_RECONCILER_INTERVAL_MS: z.coerce.number().int().positive().default(30_000),
   /// The authorization server's own identity. It MUST equal the origin the
   /// metadata document is served from: clients validate that the `issuer` in
   /// the document matches the URL they fetched it from, and reject it if not.

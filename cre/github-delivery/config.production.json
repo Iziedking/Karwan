@@ -1,14 +1,14 @@
 {
   "schedule": "0 0 0 1 1 *",
   "requestMode": "confidential-http",
-  "requestUrl": "https://api.example.invalid/api/cre/delivery-request/current",
+  "requestUrl": "https://api.karwan.site/api/cre/delivery-request/current",
   "requestSecretId": "DELIVERY_REQUEST_TOKEN",
   "sourceMode": "github",
   "githubTokenSecretId": "GITHUB_READ_TOKEN",
   "criteriaSecretId": "DELIVERY_CRITERIA_JSON",
   "chainId": 5042002,
   "chainSelectorName": "arc-testnet",
-  "receiverAddress": "0x0000000000000000000000000000000000000000",
+  "receiverAddress": "0x07542B70Bd7F7E81d7398011ECdFb80dFddE1311",
   "gasLimit": "500000",
-  "writeReport": false
+  "writeReport": true
 }

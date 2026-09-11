@@ -111,6 +111,7 @@ import { startFactoringWatcher } from './agents/factoringWatcher.js';
 import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
+import { startCreEvidenceReconciler } from './evidence/creEvidenceReconciler.js';
 import { startTrendScout } from './agents/trendScout.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startDepositWatcher } from './circle/depositWatcher.js';
@@ -525,6 +526,15 @@ function bootAgents() {
     stopFns.push(startReleaseWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'release watcher not started');
+  }
+  try {
+    if (config.CRE_EVIDENCE_RECONCILER_ENABLED) {
+      stopFns.push(startCreEvidenceReconciler());
+    } else {
+      appLogger.info('CRE receipt reconciler disabled via CRE_EVIDENCE_RECONCILER_ENABLED');
+    }
+  } catch (err) {
+    appLogger.warn({ err: (err as Error).message }, 'CRE receipt reconciler not started');
   }
   try {
     if (config.REPUTATION_RECONCILER_ENABLED) {

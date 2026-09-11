@@ -23,6 +23,26 @@ only:
 The workflow source and its decision logic are not confidential. Local CRE
 simulation is not a real TEE and must use synthetic data.
 
+## Receipt reconciliation
+
+The delivery request endpoint leases one exact delivery revision to CRE. After
+the workflow writes its report, the backend's opt-in CRE receipt reconciler
+reads `receiptOf(dealId)` from `KarwanEvidenceRegistry`, validates the terms,
+revision, expiry, commitments, decision and lease-derived report ID, then marks
+the queue item complete. A chain receipt is never enough by itself: a release
+is still blocked until this queue binding succeeds. Enable it on the production
+backend only when the registry address and the live CRE workflow are configured:
+
+```text
+CRE_EVIDENCE_RECONCILER_ENABLED=true
+CRE_EVIDENCE_RECONCILER_INTERVAL_MS=30000
+```
+
+The reconciler does not claim pending work, move funds, or decide a verdict. It
+only closes a lease that the CRE worker already claimed and whose exact report
+is present on Arc. World AgentBook verification remains an independent
+eligibility signal and is not required for the GitHub evidence path.
+
 ## Delivery semantics
 
 The private criteria select one SHA mode:
