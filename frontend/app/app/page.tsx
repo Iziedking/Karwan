@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { AccountHome } from '@/features/home/components/AccountHome';
-import { BusinessHome } from '@/features/home/components/BusinessHome';
 import { Band, FullBleed, GridOverlay, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
 import { SignInGate } from '@/shared/components/SignInGate';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -23,13 +22,6 @@ export default function AppHome() {
     queryFn: () => api.status(),
     staleTime: 60_000,
   });
-  const businessQuery = useQuery({
-    queryKey: qk.business.status(profile?.address),
-    queryFn: () => api.getBusinessStatus(profile!.address),
-    enabled: !!profile?.address && isBusinessWorkspace,
-    staleTime: 60_000,
-  });
-
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {
       window.location.assign('/onboarding');
@@ -59,28 +51,15 @@ export default function AppHome() {
 
   if (loading || !profile) return <HomeSkeleton />;
 
-  const business = businessQuery.data;
   const displayName = isBusinessWorkspace
-    ? business?.company?.companyName || profile.smeProfile?.companyName || profile.displayName
+    ? activeWorkspace?.name || profile.smeProfile?.companyName || profile.displayName
     : profile.displayName;
-
-  if (isBusinessWorkspace && activeWorkspace) {
-    return (
-      <BusinessHome
-        profile={profile}
-        status={business?.status ?? 'none'}
-        companyName={activeWorkspace.name || displayName}
-        workspaceId={activeWorkspace.id}
-        stats={null}
-      />
-    );
-  }
 
   return (
     <AccountHome
       profile={profile}
       displayName={displayName}
-      accountKind="person"
+      accountKind={isBusinessWorkspace ? 'business' : 'person'}
     />
   );
 }

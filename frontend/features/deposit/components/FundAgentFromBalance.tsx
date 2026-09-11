@@ -14,9 +14,9 @@ import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 /// of them have never funded, and the rail is the plumbing the deposit work
 /// exists to keep off their screen.
 ///
-/// The money is already in the right place. Deposits auto-route to the Arc
-/// identity wallet, so funding an agent is one backend-signed transfer on Arc,
-/// with no bridge, no chain to pick and no signature prompt.
+/// The money is already in the user's confirmed pooled balance. Funding an
+/// agent is one session-scoped Gateway spend to Arc, with no bridge, no chain
+/// to pick and no wallet signature prompt.
 export function FundAgentFromBalance({
   agent,
   amountUsdc,
@@ -41,7 +41,7 @@ export function FundAgentFromBalance({
     setError(null);
     try {
       requestIdRef.current ??= crypto.randomUUID();
-      await api.fundAgent({ address, agent, amountUsdc, requestId: requestIdRef.current });
+      await api.gatewayFundAgent(agent, amountUsdc, requestIdRef.current);
       requestIdRef.current = null;
       setPhase('done');
       refreshMoney();

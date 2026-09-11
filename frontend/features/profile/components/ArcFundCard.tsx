@@ -453,7 +453,11 @@ export function ArcFundCard({
             {gt.cta}
           </span>
           <div className="mt-3.5">
-            <TopUpFromGateway recipient={selectedAddress} onFunded={refetchAll} />
+            <TopUpFromGateway
+              recipient={selectedAddress}
+              agent={selected}
+              onFunded={refetchAll}
+            />
           </div>
         </div>
       )}

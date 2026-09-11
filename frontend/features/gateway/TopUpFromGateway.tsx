@@ -1,6 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
+import { api } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
 import { useGatewayBalance } from './useGatewayBalance';
@@ -20,23 +22,30 @@ import { gatewayTopUpErrorPresentation } from './errorPresentation';
 /// shortfall). Omit it on a wallets panel, where the user picks.
 export function TopUpFromGateway({
   recipient,
+  agent,
   amount,
   onFunded,
 }: {
   /// Arc address to credit. An agent SCA is fine.
   recipient: string;
+  /// When supplied, use Karwan's session-scoped pooled-balance funding route.
+  /// This keeps Circle accounts and disconnected wallet sessions out of the
+  /// wallet-signer Gateway rail while preserving the generic recipient flow.
+  agent?: 'buyer' | 'seller';
   /// USDC to move. Omit to let the user type it.
   amount?: number;
   onFunded?: () => void;
 }) {
   const t = useTranslations().gatewayTopUp;
   const errCopy = useTranslations().chainErrors;
+  const auth = useAuth();
   const { connector, isConnected } = useAccount();
   const { confirmed, loading, refresh } = useGatewayBalance();
   const [typed, setTyped] = useState('');
   const [phase, setPhase] = useState<'idle' | 'moving' | 'done' | 'error'>('idle');
   const [steps, setSteps] = useState<StepMap>({});
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef<string | null>(null);
 
   const asks = amount == null;
   const value = asks ? Number(typed) : amount;
@@ -44,9 +53,40 @@ export function TopUpFromGateway({
   const covers = valid && confirmed >= value;
 
   async function run() {
-    // Not enough pooled, no wallet, or nothing typed yet: send them to the rail
-    // rather than fail. Only an EOA can sign a spend, so a missing wallet lands
-    // here too.
+    // A selected agent is a first-party destination. Use the session-scoped
+    // backend route so Circle accounts and disconnected web3 sessions can
+    // spend an already-confirmed pooled balance without opening the Gateway
+    // rail or asking for an unrelated wallet signature.
+    if (covers && agent && auth.address) {
+      setError(null);
+      setPhase('moving');
+      setSteps({});
+      try {
+        requestIdRef.current ??= crypto.randomUUID();
+        await api.gatewayFundAgent(agent, value, requestIdRef.current);
+        requestIdRef.current = null;
+        await refresh();
+        setPhase('done');
+        setTyped('');
+        onFunded?.();
+      } catch (err) {
+        setPhase('error');
+        const failure = gatewayTopUpErrorPresentation({
+          err,
+          confirmed,
+          amount: value,
+          chainCopy: errCopy,
+          fallback: t.failed,
+          feePreparationFailed: t.feePreparationFailed,
+        });
+        setError(failure.message);
+        if (failure.refreshBalance) await refresh();
+      }
+      return;
+    }
+
+    // Not enough pooled balance, or no first-party agent context: send the
+    // user to the rail rather than pretend the generic wallet path can finish.
     if (!covers || !isConnected || !connector) {
       openGatewayRail();
       return;
