@@ -666,6 +666,27 @@ CREATE UNIQUE INDEX IF NOT EXISTS deposit_requests_matched_tx_idx
   WHERE matched_tx_id IS NOT NULL;
 `;
 
+const DEAL_DEADLINE_RECOVERY_SQL = `
+CREATE TABLE IF NOT EXISTS deal_deadline_recoveries_v1 (
+  job_id TEXT PRIMARY KEY,
+  deadline_unix BIGINT NOT NULL CHECK (deadline_unix > 0),
+  available_at BIGINT NOT NULL CHECK (available_at >= 0),
+  state TEXT NOT NULL CHECK (state IN ('waiting', 'running', 'succeeded', 'failed')),
+  attempt BIGINT NOT NULL DEFAULT 0 CHECK (attempt >= 0),
+  lease_token TEXT,
+  lease_expires_at BIGINT,
+  movement_reference TEXT,
+  tx_hash TEXT,
+  last_error TEXT,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS deal_deadline_recoveries_due_idx
+  ON deal_deadline_recoveries_v1 (state, available_at, updated_at);
+CREATE INDEX IF NOT EXISTS deal_deadline_recoveries_updated_idx
+  ON deal_deadline_recoveries_v1 (updated_at DESC);
+`;
+
 const MONEY_RAIL_INTENTS_SQL = `
 CREATE TABLE money_rail_intents (
   id TEXT PRIMARY KEY,
@@ -856,6 +877,11 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 26,
     name: 'qr_deposit_matching_durability',
     sql: QR_DEPOSIT_MATCHING_SQL,
+  },
+  {
+    version: 27,
+    name: 'deal_deadline_recovery_ledger',
+    sql: DEAL_DEADLINE_RECOVERY_SQL,
   },
 ] as const;
 

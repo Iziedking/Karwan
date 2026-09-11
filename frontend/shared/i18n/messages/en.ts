@@ -2950,6 +2950,8 @@ interface MessagesShape {
       titleLead: string;
       titleAccent: string;
       body: string;
+      openLabel: string;
+      closeLabel: string;
       counterpartySellerTemplate: string;
       counterpartyBuyerTemplate: string;
     };
@@ -3031,6 +3033,7 @@ interface MessagesShape {
         buyerGracePrefix: string;
         buyerGraceSuffix: string;
         buyerReclaimReadyNote: string;
+        reclaimRecoveryRunning: string;
         reclaimCta: string;
         reclaimBusy: string;
       };
@@ -8256,6 +8259,8 @@ export const en: MessagesShape = {
       titleLead: 'Talk to your',
       titleAccent: 'counterparty',
       body: 'Private trade conversation. Telegram receives a copy only when you connect it.',
+      openLabel: 'Open conversation',
+      closeLabel: 'Hide conversation',
       counterpartySellerTemplate: 'seller {address}',
       counterpartyBuyerTemplate: 'buyer {address}',
     },
@@ -8333,6 +8338,7 @@ export const en: MessagesShape = {
         buyerGracePrefix: 'Seller missed the deadline. Automatic refund starts in',
         buyerGraceSuffix: 'You can reclaim the funds after the reclaim window ends.',
         buyerReclaimReadyNote: 'The seller did not deliver. Your refund is ready to claim.',
+        reclaimRecoveryRunning: 'Recovery is in progress. Your funds stay protected while Karwan verifies the refund.',
         reclaimCta: 'Cancel & reclaim funds',
         reclaimBusy: 'Working…',
       },

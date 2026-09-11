@@ -48,9 +48,9 @@ const generalSans = localFont({
 });
 
 const SITE_URL = 'https://karwan.site';
-const TITLE = 'Karwan · open market for internet trade';
+const TITLE = 'Karwan · secure local and cross-border trade';
 const DESCRIPTION =
-  'Bring a buyer or seller from anywhere. Agree on price and delivery, protect payment in USDC, and keep the trade record.';
+  'Find a counterparty, bring any deal, and protect payment in USDC while Karwan keeps the trade record.';
 
 /// Viewport tag lives in its own export per the Next.js 15 metadata split.
 /// themeColor reads as #0e0e0e so Android Chrome paints the address bar in

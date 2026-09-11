@@ -134,6 +134,8 @@ test('numbered migrations are ordered and contain every durable runtime table', 
   assert.match(NUMBERED_MIGRATIONS[24]!.sql, /ADD COLUMN IF NOT EXISTS version BIGINT/);
   assert.match(NUMBERED_MIGRATIONS[25]!.sql, /CREATE TABLE IF NOT EXISTS deposit_requests/);
   assert.match(NUMBERED_MIGRATIONS[25]!.sql, /deposit_requests_matched_tx_idx/);
+  assert.match(NUMBERED_MIGRATIONS[26]!.sql, /CREATE TABLE IF NOT EXISTS deal_deadline_recoveries_v1/);
+  assert.match(NUMBERED_MIGRATIONS[26]!.sql, /deal_deadline_recoveries_due_idx/);
 });
 
 test('migration runner applies each migration once across repeated startup', async () => {
@@ -172,6 +174,7 @@ test('migration runner applies each migration once across repeated startup', asy
   assert.equal(executor.applied.get(24), 'world_id_proof_nullifiers');
   assert.equal(executor.applied.get(25), 'money_rail_intent_version_cas');
   assert.equal(executor.applied.get(26), 'qr_deposit_matching_durability');
+  assert.equal(executor.applied.get(27), 'deal_deadline_recovery_ledger');
   assert.equal(executor.calls.filter((call) => call.sql === 'BEGIN').length, NUMBERED_MIGRATIONS.length);
   assert.equal(executor.calls.filter((call) => call.sql === 'COMMIT').length, NUMBERED_MIGRATIONS.length);
 });

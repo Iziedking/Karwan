@@ -5,7 +5,7 @@ import { ImageResponse } from 'next/og';
 // this og:image too. Kept font-free (default sans) so the build never depends on
 // loading a custom typeface at the edge.
 export const runtime = 'edge';
-export const alt = 'Karwan · open market for internet trade';
+export const alt = 'Karwan · secure local and cross-border trade';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -37,7 +37,7 @@ export default function OpengraphImage() {
               textTransform: 'uppercase',
             }}
           >
-            Open market for internet trade
+            Open market · local + cross-border trade
           </div>
         </div>
 
@@ -69,13 +69,13 @@ export default function OpengraphImage() {
               lineHeight: 1.3,
             }}
           >
-            Bring any deal. Agree terms, protect payment in USDC, and keep the trade record.
+            Find a counterparty. Bring any deal. Protect payment in USDC and keep the trade record.
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, color: '#9A9A95', fontSize: 27 }}>
           <div style={{ display: 'flex', width: 12, height: 12, background: ACCENT, borderRadius: 6 }} />
-          <div style={{ display: 'flex' }}>Built on Arc. Powered by Circle.</div>
+          <div style={{ display: 'flex' }}>Settlement on Arc · clear terms · protected payment</div>
         </div>
       </div>
     ),
