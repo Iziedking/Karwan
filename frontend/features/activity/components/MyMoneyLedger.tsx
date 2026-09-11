@@ -181,14 +181,17 @@ export function MyMoneyLedger({
           {t.empty}
         </p>
       ) : (
-        <ul className="divide-y divide-[var(--lp-border-light)]">
+        <ul className="space-y-2">
           {visible.map(({ item, repeat }) => {
             const href = explorerFor(item);
             return (
               <li
                 key={item.id}
                 data-ledger-status={item.status}
-                className="group relative py-4 ps-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-within:bg-[var(--lp-light)] sm:py-3"
+                className="group relative overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] px-3.5 py-4 ps-4 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-[var(--lp-accent)] focus-within:border-[var(--lp-accent)] sm:py-3.5"
+                style={{
+                  background: 'var(--lp-light)',
+                }}
               >
                 <span
                   aria-hidden
@@ -264,7 +267,7 @@ export function MyMoneyLedger({
                     );
                   })()}
                 </div>
-                <div className="mt-2 flex w-full flex-wrap items-center justify-start gap-x-3 border-t border-[var(--lp-border-light)] pt-1 sm:mt-1 sm:justify-end sm:gap-x-2 sm:border-0 sm:pt-0">
+                <div className="mt-3 flex w-full flex-wrap items-center justify-start gap-x-3 gap-y-1 sm:justify-end sm:gap-x-2">
                   {href && (
                     <a
                       href={href}
