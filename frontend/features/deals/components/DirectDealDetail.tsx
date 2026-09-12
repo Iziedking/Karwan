@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -1198,7 +1198,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <HeroHeadline as="h2" size="md">
           {dd.terms.title}<Punc>.</Punc>
         </HeroHeadline>
-        <div className="mt-8 grid md:grid-cols-2 gap-5">
+        <div className="mt-8">
+          <DealSlideshow>
           <PageCard>
             <div className="p-5 md:p-6">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap">
@@ -1257,7 +1258,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </div>
             </PageCard>
           )}
-          {deal.delivered && deal.evidenceReceipt && deal.evidenceReceipt.state !== 'not-configured' && (
+          {deal.evidenceRequired === true &&
+            deal.delivered &&
+            deal.evidenceReceipt &&
+            deal.evidenceReceipt.state !== 'not-configured' && (
             <EvidenceReceiptCard
               receipt={deal.evidenceReceipt}
               onRefresh={() => void refresh()}
@@ -1450,6 +1454,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </PageCard>
             );
           })()}
+          </DealSlideshow>
         </div>
       </Band>
 
@@ -1729,6 +1734,59 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         caller={address ?? undefined}
       />
     </FullBleed>
+    </div>
+  );
+}
+
+function DealSlideshow({ children }: { children: ReactNode }) {
+  const slides = Children.toArray(children);
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    setSlideIndex((current) => Math.min(current, Math.max(slides.length - 1, 0)));
+  }, [slides.length]);
+
+  if (slides.length === 0) return null;
+
+  const atStart = slideIndex === 0;
+  const atEnd = slideIndex === slides.length - 1;
+
+  return (
+    <div>
+      <div
+        key={slideIndex}
+        aria-live="polite"
+        className="min-h-[180px]"
+      >
+        {slides[slideIndex]}
+      </div>
+      {slides.length > 1 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <span className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            Detail {slideIndex + 1} of {slides.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSlideIndex((current) => Math.max(0, current - 1))}
+              disabled={atStart}
+              aria-label="Previous deal detail"
+              className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[12px] font-semibold transition-colors hover:bg-[var(--lp-dark)] hover:text-[var(--lp-bg)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlideIndex((current) => Math.min(slides.length - 1, current + 1))}
+              disabled={atEnd}
+              aria-label="Next deal detail"
+              className="inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[12px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
