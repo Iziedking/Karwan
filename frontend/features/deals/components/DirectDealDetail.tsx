@@ -179,6 +179,32 @@ function nextStepFor(
   return { title: 'Settlement complete', body: 'The delivery and payment records are available below.' };
 }
 
+type DealSectionId = 'overview' | 'terms' | 'actions' | 'record' | 'conversation';
+
+const DEAL_SECTION_ANCHORS: Record<DealSectionId, string> = {
+  overview: 'deal-overview',
+  terms: 'deal-terms',
+  actions: 'deal-actions',
+  record: 'deal-record',
+  conversation: 'deal-conversation',
+};
+
+function dealSectionFromHash(hash: string): DealSectionId {
+  switch (hash.replace(/^#/, '')) {
+    case 'deal-terms':
+      return 'terms';
+    case 'action':
+    case 'deal-actions':
+      return 'actions';
+    case 'deal-record':
+      return 'record';
+    case 'deal-conversation':
+      return 'conversation';
+    default:
+      return 'overview';
+  }
+}
+
 export function DirectDealDetail({ jobId }: { jobId: string }) {
   const dd = useTranslations().directDealDetail;
   const auth = useAuth();
@@ -194,21 +220,23 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     useState<SettlementRecordFetchState>('loading');
   const [settlementReloadKey, setSettlementReloadKey] = useState(0);
   const [conversationOpen, setConversationOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<DealSectionId>(() =>
+    typeof window === 'undefined' ? 'overview' : dealSectionFromHash(window.location.hash),
+  );
 
-  // Notifications append #action when they want the user to land on the action
-  // card (e.g. "Match accepted, deliver when ready"). Scroll once the deal data
-  // is on the page so the section is sized and the anchor lands cleanly.
+  // Notifications and shared links can still target a deal section. The hash
+  // now selects a view instead of forcing the reader through a long scroll.
   useEffect(() => {
-    if (typeof window === 'undefined' || !deal) return;
-    if (window.location.hash !== '#action') return;
-    const el = document.getElementById('action');
-    if (!el) return;
-    // Defer one frame so layout settles after data hydration.
-    const id = window.requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [deal]);
+    if (typeof window === 'undefined') return;
+    const syncFromHash = () => setActiveSection(dealSectionFromHash(window.location.hash));
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
+    window.addEventListener('popstate', syncFromHash);
+    return () => {
+      window.removeEventListener('hashchange', syncFromHash);
+      window.removeEventListener('popstate', syncFromHash);
+    };
+  }, []);
   const [deliveryProof, setDeliveryProof] = useState('');
   /// Goods deliver a shipment reference instead of a link. Held here so the
   /// seller's typing survives the poll-driven refresh of the deal.
@@ -847,6 +875,20 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     deal.tradeType === 'mixed';
   const counterpartyName = deal.counterpartyCompany?.name;
   const nextStep = nextStepFor(stage, viewerIsBuyer, viewerIsSeller);
+  const sectionItems: Array<{ id: DealSectionId; label: string }> = [
+    { id: 'overview', label: `${dd.parties.cardLabel} and ${dd.funding.cardLabel}` },
+    { id: 'terms', label: dd.terms.title },
+    { id: 'actions', label: dd.actions.eyebrow },
+    { id: 'record', label: dd.settlementRecord.title },
+    ...(address ? [{ id: 'conversation' as const, label: dd.chat.eyebrow }] : []),
+  ];
+  const openSection = (section: DealSectionId) => {
+    setActiveSection(section);
+    if (typeof window === 'undefined') return;
+    const hash = `#${DEAL_SECTION_ANCHORS[section]}`;
+    if (window.location.hash === hash) return;
+    window.history.pushState(null, '', hash);
+  };
 
   return (
     <div className="product-surface">
@@ -930,33 +972,36 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </div>
         <nav
           aria-label="Deal sections"
-          className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-[var(--lp-text-muted)]"
+          role="tablist"
+          className="mt-5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--lp-text-muted)]"
         >
-          <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-sub)]">
-            Deal overview
-          </span>
-          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-overview">
-            {dd.parties.cardLabel} and {dd.funding.cardLabel}
-          </a>
-          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-terms">
-            {dd.terms.title}
-          </a>
-          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-actions">
-            {dd.actions.eyebrow}
-          </a>
-          <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-record">
-            {dd.settlementRecord.title}
-          </a>
-          {address ? (
-            <a className="transition-colors hover:text-[var(--lp-dark)]" href="#deal-conversation">
-              {dd.chat.eyebrow}
-            </a>
-          ) : null}
+          {sectionItems.map((section) => {
+            const selected = activeSection === section.id;
+            return (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls={DEAL_SECTION_ANCHORS[section.id]}
+                onClick={() => openSection(section.id)}
+                className={`inline-flex min-h-11 items-center rounded-full border px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+                  selected
+                    ? 'border-[var(--lp-accent)] bg-[var(--lp-accent)] font-semibold text-[var(--accent-ink)]'
+                    : 'border-[var(--lp-border-light)] hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)]'
+                }`}
+              >
+                {section.label}
+              </button>
+            );
+          })}
         </nav>
       </Band>
 
-      {deal.marketRead && (
-        <Band tone="light" compact>
+      {activeSection === 'overview' && (
+        <>
+          {deal.marketRead && (
+            <Band tone="light" compact>
           <div className="fade-up">
             <SectionTag>{dd.agentResearch.tag}</SectionTag>
             <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
@@ -968,8 +1013,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               <MarketReadCard mr={deal.marketRead} role={viewerRole ?? undefined} />
             </div>
           </div>
-        </Band>
-      )}
+            </Band>
+          )}
 
       {deal.legacyEscrow && (
         <Band tone="light" compact>
@@ -1143,6 +1188,11 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       </Band>
 
       {/* TERMS + (optional) DELIVERY PROOF */}
+      </>
+      )}
+
+      {activeSection === 'terms' && (
+        <>
       <Band tone="light" compact id="deal-terms">
         <SectionTag>{dd.terms.eyebrow}</SectionTag>
         <HeroHeadline as="h2" size="md">
@@ -1422,8 +1472,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </>
       )}
 
+      </>
+      )}
+
       {/* ACTIONS */}
-      <Band tone="dark" compact id="deal-actions">
+      {activeSection === 'actions' && (
+        <Band tone="dark" compact id="deal-actions">
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
           <div className="max-w-[42ch]">
             <SectionTag tone="dark" dot={stage !== 'settled' && stage !== 'cancelled' ? 'live' : undefined}>
@@ -1554,20 +1608,25 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             )}
           </div>
         </div>
-        <div id="deal-record" className="mt-8 border-t border-[var(--lp-workspace-border)] pt-8">
-        <SettlementRecord
-          movements={settlementMovements}
-          fetchState={settlementFetchState}
-          fundTxHash={deal.fundTxHash}
-          refundTxHash={deal.refundTxHash}
-          onRetry={() => setSettlementReloadKey((key) => key + 1)}
-          canShareReceipts={viewerIsBuyer}
-        />
-        </div>
       </Band>
 
+      )}
+
+      {activeSection === 'record' && (
+        <Band tone="dark" compact id="deal-record">
+          <SettlementRecord
+            movements={settlementMovements}
+            fetchState={settlementFetchState}
+            fundTxHash={deal.fundTxHash}
+            refundTxHash={deal.refundTxHash}
+            onRetry={() => setSettlementReloadKey((key) => key + 1)}
+            canShareReceipts={viewerIsBuyer}
+          />
+        </Band>
+      )}
+
       {/* CHAT */}
-      {address && (
+      {address && activeSection === 'conversation' && (
         <Band tone="light" compact id="deal-conversation">
           <SectionTag>{dd.chat.eyebrow}</SectionTag>
           <HeroHeadline as="h2" size="md">
