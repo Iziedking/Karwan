@@ -3346,6 +3346,8 @@ export const api = {
     /// Stake percentage when requireStake is true. 50-100 in 5% steps.
     /// Translates to on-chain reservationBps = pct * 100.
     requireStakePct?: number;
+    /// Explicit opt-in for the confidential CRE delivery-evidence lane.
+    evidenceRequired?: boolean;
     /// SME trade-finance fields (Phase 2 Track 2). All optional; legacy
     /// service-flow deals continue to post without them.
     tradeType?: 'service' | 'goods' | 'mixed';
@@ -3705,6 +3707,7 @@ export const api = {
       firstReleasePct?: number;
       requireStake?: boolean;
       requireStakePct?: number;
+      evidenceRequired?: boolean;
       verificationPolicy?: 'standard' | 'high_signal';
       verificationSubject?: 'buyer' | 'seller' | 'both';
     },

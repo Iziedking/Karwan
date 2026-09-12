@@ -124,6 +124,10 @@ export function DirectDealForm() {
   /// Stake percentage when requireStake is on. Slider 50..100 in 5% steps,
   /// default 50%. Translates to on-chain reservationBps = pct * 100.
   const [requireStakePct, setRequireStakePct] = useState(50);
+  /// Explicit opt-in for the Chainlink CRE delivery-evidence lane. Ordinary
+  /// deals remain lightweight; selecting this records the requirement in the
+  /// agreement before either party accepts it.
+  const [evidenceRequired, setEvidenceRequired] = useState(false);
   const [highSignal, setHighSignal] = useState(false);
   const [highSignalSubject, setHighSignalSubject] = useState<'seller' | 'buyer' | 'both'>('seller');
   // Numeric fields always start empty; the placeholder "0" renders instead
@@ -343,6 +347,7 @@ export function DirectDealForm() {
         firstReleasePct: firstPct as number,
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
+        evidenceRequired,
         verificationPolicy: highSignal ? 'high_signal' : 'standard',
         verificationSubject: highSignal ? highSignalSubject : undefined,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
@@ -1021,6 +1026,45 @@ export function DirectDealForm() {
               )}
             </div>
           )}
+        </div>
+      </label>
+
+      <label
+        className={cn(
+          'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
+          evidenceRequired
+            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
+            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+        )}
+        style={{
+          border: '1px solid',
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          borderBottomLeftRadius: 12,
+          borderBottomRightRadius: 3,
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={evidenceRequired}
+          onChange={(e) => setEvidenceRequired(e.target.checked)}
+          disabled={submitting}
+          className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
+          aria-describedby="delivery-evidence-help"
+        />
+        <div className="min-w-0">
+          <span
+            className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+            style={{ color: evidenceRequired ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+          >
+            CRE delivery evidence
+          </span>
+          <p
+            id="delivery-evidence-help"
+            className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
+          >
+            Require a verifiable delivery record before release. Chainlink CRE checks the agreed source and records the result on Arc. GitHub is the first supported source.
+          </p>
         </div>
       </label>
 
