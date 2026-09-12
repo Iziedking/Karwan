@@ -10,7 +10,7 @@ import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
-import { CapabilityIntro } from './CapabilityIntro';
+import { TradeStart } from './TradeStart';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 
@@ -66,18 +66,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           className="min-w-0 py-3 sm:py-4"
         >
           <div>
-            {accountKind === 'business' ? (
-              <BusinessHomeIntro
-                companyName={name}
-                copy={translations.businessTradeDesk}
-                welcomeBack={translations.businessHome.hero.welcomeBack}
-              />
-            ) : (
-              <>
-                <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">Welcome back, {firstName}</p>
-                <CapabilityIntro />
-              </>
-            )}
+            <p className="text-[14px] font-semibold text-[var(--lp-text-sub)]">{translations.businessHome.hero.welcomeBack} {firstName}</p>
+            <TradeStart business={accountKind === 'business'} />
           </div>
 
         </motion.header>
@@ -175,63 +165,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   );
 }
 
-function BusinessHomeIntro({
-  companyName,
-  copy,
-  welcomeBack,
-}: {
-  companyName: string;
-  copy: ReturnType<typeof useTranslations>['businessTradeDesk'];
-  welcomeBack: string;
-}) {
-  return (
-    <div>
-      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
-        {copy.eyebrow}
-      </p>
-      <p className="mt-3 text-[14px] font-semibold text-[var(--lp-text-sub)]">
-        {welcomeBack} {companyName}
-      </p>
-      <h1 id="home-heading" className="mt-2 max-w-[14ch] text-[clamp(2.6rem,5.5vw,4.7rem)] font-semibold leading-[0.95] tracking-[-0.065em] text-[var(--lp-dark)]">
-        {copy.title}
-      </h1>
-      <p className="mt-5 max-w-[48ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">
-        {copy.description}
-      </p>
-      <div className="mt-6 flex flex-wrap gap-2">
-        <BusinessAction href="/partners" primary>
-          {copy.findSupply}
-        </BusinessAction>
-        <BusinessAction href="/supply">{copy.postOffer}</BusinessAction>
-        <BusinessAction href="/buyer?mode=direct">{copy.bringDeal}</BusinessAction>
-      </div>
-    </div>
-  );
-}
-
-function BusinessAction({
-  href,
-  primary = false,
-  children,
-}: {
-  href: string;
-  primary?: boolean;
-  children: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`inline-flex min-h-11 items-center rounded-full px-4 text-[13px] font-bold transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:hover:translate-y-0 ${
-        primary
-          ? 'bg-[var(--lp-dark)] text-[var(--lp-accent)] hover:bg-[var(--lp-band-dark)]'
-          : 'border border-[var(--lp-border-light)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)]'
-      }`}
-    >
-      {children}
-      <span aria-hidden className="ms-2 text-[15px]">→</span>
-    </Link>
-  );
-}
 
 function progressFor(stage?: DealStage): number {
   if (!stage) return -1;
