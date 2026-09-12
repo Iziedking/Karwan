@@ -27,6 +27,10 @@ import { confidentialCriteriaSchema, loadGitHubEvidence } from './githubSource.j
 
 const bytes32Schema = z.string().regex(/^0x[0-9a-fA-F]{64}$/);
 const shaSchema = z.string().regex(/^[0-9a-fA-F]{40}$/);
+// CRE CLI v1.33.0's WASM validator rejects this valid HTTPS endpoint when
+// the standard Zod URL check is used. Keep the boundary strict for HTTP(S)
+// without depending on the simulator's URL implementation. Verified 2026-09-11.
+const httpUrlSchema = z.string().regex(/^https?:\/\/[^\s]+$/i, 'requestUrl must be an absolute HTTP(S) URL');
 
 export const configSchema = z.object({
   schedule: z.string().min(1),
@@ -34,7 +38,7 @@ export const configSchema = z.object({
   /// keeps mutable deal/delivery inputs out of the workflow identity and
   /// loads the authenticated request inside the TEE.
   requestMode: z.enum(['config', 'confidential-http']).default('config'),
-  requestUrl: z.string().url().optional(),
+  requestUrl: httpUrlSchema.optional(),
   requestSecretId: z.string().min(1).optional(),
   sourceMode: z.enum(['fixture', 'github']),
   fixtureScenario: z.enum(['accepted', 'mismatched', 'corrected', 'unavailable']).optional(),

@@ -104,6 +104,18 @@ describe('confidential GitHub delivery workflow', () => {
     })).toThrow('receiverAddress must be deployed');
   });
 
+  test('accepts the production confidential request endpoint', () => {
+    const config = configSchema.parse({
+      ...baseConfig,
+      requestMode: 'confidential-http',
+      requestUrl: 'https://api.karwan.site/api/cre/delivery-request/current',
+      requestSecretId: 'DELIVERY_REQUEST_TOKEN',
+      sourceMode: 'github',
+    });
+
+    expect(config.requestUrl).toBe('https://api.karwan.site/api/cre/delivery-request/current');
+  });
+
   test('rejects an expired report before crossing the confidential boundary', () => {
     const { runtime, reports } = makeRuntime({ ...baseConfig, expiresAt: 1_756_999_999 });
     expect(() => onCronTrigger(runtime)).toThrow('EVIDENCE_REPORT_EXPIRED');

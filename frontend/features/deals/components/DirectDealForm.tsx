@@ -1053,7 +1053,7 @@ export function DirectDealForm() {
               High-signal identity check
             </span>
             <span id="high-signal-help" className="mt-1.5 block text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-              Ask for a World ID credential before the selected party accepts or funds. Karwan stores a proof reference, never biometric data, and still requires human payment approval.
+              Ask for a World ID Selfie Check (Beta) before the selected party accepts or funds. Selfie Check does not require Orb access. Karwan stores a proof reference, never biometric data, and still requires human payment approval.
             </span>
           </span>
         </label>
