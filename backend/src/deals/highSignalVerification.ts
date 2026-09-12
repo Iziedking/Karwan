@@ -15,6 +15,7 @@ export interface HighSignalPartyState {
   environment?: 'staging' | 'production';
   nullifierDigest?: string;
   pendingNonce?: string;
+  agreementKey?: string;
 }
 
 export interface HighSignalVerification {
@@ -67,4 +68,16 @@ export function highSignalBlockedMessage(role: VerificationRole): string {
   return role === 'seller'
     ? 'This high-signal deal requires the seller to verify with World ID before accepting the terms.'
     : 'This high-signal deal requires the buyer to verify with World ID before funding.';
+}
+
+/** Old receipts are retained, but only a check bound to this agreement and environment satisfies its gate. */
+export function highSignalForContext(state: HighSignalVerification, agreementKey: string, environment: 'staging' | 'production') {
+  let current = state;
+  for (const role of ['buyer', 'seller'] as const) {
+    const party = current[role];
+    if (party?.status === 'verified' && (party.agreementKey !== agreementKey || party.environment !== environment)) {
+      current = updateHighSignalParty(current, role, { status: 'pending' });
+    }
+  }
+  return current;
 }

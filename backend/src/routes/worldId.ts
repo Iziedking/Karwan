@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { config } from '../config.js';
-import { withPostgresTransaction } from '../db/client.js';
+import { pgEnabled, withPostgresTransaction } from '../db/client.js';
+import { createWorldDealSessions } from '../worldid/dealSessions.js';
 import {
   createWorldIdRpSignature,
   createWorldIdVerifier,
@@ -14,21 +15,34 @@ export interface WorldIdNullifierStore {
   claim(input: { nullifiers: string[]; action: string; environment: WorldIdEnvironment }): Promise<boolean>;
 }
 
-export function createPostgresWorldIdNullifierStore(): WorldIdNullifierStore {
+export function createPostgresWorldIdNullifierStore(
+  transaction: typeof withPostgresTransaction = withPostgresTransaction,
+): WorldIdNullifierStore {
+  const replay = new Error('World ID nullifier already claimed');
   return {
     async claim({ nullifiers, action, environment }) {
-      return withPostgresTransaction(async (tx) => {
-        for (const nullifier of nullifiers) {
+      if (nullifiers.length === 0) return false;
+      try {
+        return await transaction(async (tx) => {
+        // Stable ordering avoids lock inversions for multi-credential proofs.
+        const normalized = [...new Set(nullifiers.map((value) => BigInt(value).toString()))].sort();
+        for (const nullifier of normalized) {
           const result = await tx.query(
             `INSERT INTO world_id_nullifiers_v1 (nullifier, action, environment, verified_at)
              VALUES ($1::numeric, $2, $3, $4)
-             ON CONFLICT (nullifier, action) DO NOTHING`,
-            [BigInt(nullifier).toString(), action, environment, Date.now()],
+             ON CONFLICT (nullifier, action) DO NOTHING
+             RETURNING nullifier`,
+            [nullifier, action, environment, Date.now()],
           );
-          if (result.rows.length === 0) return false;
+          // Throw so a later conflict rolls back earlier inserts in this proof.
+          if (result.rows.length === 0) throw replay;
         }
         return true;
-      });
+        });
+      } catch (error) {
+        if (error === replay) return false;
+        throw error;
+      }
     },
   };
 }
@@ -61,6 +75,19 @@ function configured(): boolean {
 
 export function worldIdProofConfigured(): boolean {
   return configured();
+}
+
+export function worldIdDealSessionsConfigured(): boolean {
+  return configured() && pgEnabled;
+}
+
+export function worldIdDealSessions() {
+  if (!worldIdDealSessionsConfigured()) throw new Error('World ID deal sessions are unavailable');
+  return createWorldDealSessions({
+    transaction: withPostgresTransaction, verifier: configuredVerifier,
+    rpId: config.WORLD_ID_RP_ID!, appId: config.WORLD_ID_APP_ID!,
+    signingKey: config.WORLD_ID_SIGNING_KEY!, environment: config.WORLD_ID_ENVIRONMENT,
+  });
 }
 
 export interface ConfiguredWorldIdVerification {

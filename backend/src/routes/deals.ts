@@ -1,6 +1,6 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { parseUnits, formatUnits, keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import {
@@ -154,18 +154,18 @@ import {
 import { cancelCreDeliveryRequests } from '../evidence/creDeliveryRequestQueue.js';
 import {
   createHighSignalVerification,
+  highSignalForContext,
   highSignalBlockedMessage,
   isHighSignalSubject,
   isHighSignalVerified,
-  updateHighSignalParty,
   type HighSignalSubject,
   type VerificationRole,
 } from '../deals/highSignalVerification.js';
 import {
-  verifyConfiguredWorldId,
-  worldIdProofConfigured,
+  worldIdDealSessions,
+  worldIdDealSessionsConfigured,
 } from './worldId.js';
-import { createWorldIdRpSignature, type IdKitResponseShape } from '../worldid/idkitProof.js';
+import { WorldSessionError, worldAgreementKey } from '../worldid/dealSessions.js';
 import {
   emptyResearchAllowanceSnapshot,
   ResearchAllowanceExhaustedError,
@@ -413,7 +413,8 @@ function highSignalSubjectFor(deal: DirectDeal): HighSignalSubject | null {
 
 function highSignalStateFor(deal: DirectDeal) {
   const subject = highSignalSubjectFor(deal);
-  return subject ? deal.highSignalVerification ?? createHighSignalVerification(subject) : undefined;
+  if (!subject) return undefined;
+  return highSignalForContext(deal.highSignalVerification ?? createHighSignalVerification(subject), worldAgreementKey(deal), config.WORLD_ID_ENVIRONMENT);
 }
 
 function highSignalGate(deal: DirectDeal, role: VerificationRole) {
@@ -1634,6 +1635,7 @@ function highSignalPublicState(deal: DirectDeal, callerRole: VerificationRole | 
 }
 
 dealsRoutes.get('/direct/:jobId/high-signal', async (c) => {
+  c.header('Cache-Control', 'no-store');
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
@@ -1644,159 +1646,67 @@ dealsRoutes.get('/direct/:jobId/high-signal', async (c) => {
   return c.json({
     ...highSignalPublicState(deal, callerRole),
     world: {
-      configured: worldIdProofConfigured(),
+      configured: worldIdDealSessionsConfigured(),
       environment: config.WORLD_ID_ENVIRONMENT,
-      action: worldIdProofConfigured() ? config.WORLD_ID_ACTION : null,
-      appId: worldIdProofConfigured() ? config.WORLD_ID_APP_ID : null,
-      rpId: worldIdProofConfigured() ? config.WORLD_ID_RP_ID : null,
+      action: null,
+      proofMode: 'session',
+      appId: worldIdDealSessionsConfigured() ? config.WORLD_ID_APP_ID : null,
+      rpId: worldIdDealSessionsConfigured() ? config.WORLD_ID_RP_ID : null,
     },
   });
 });
 
+function worldSessionFailure(c: Context, error: unknown) {
+  if (error instanceof WorldSessionError) return c.json({ error: error.message, code: error.code }, error.status);
+  logger.error({ error: error instanceof Error ? error.message : 'unknown' }, 'World ID deal check unavailable');
+  return c.json({ error: 'World ID is unavailable. Try again shortly.', code: 'WORLD_ID_UNAVAILABLE' }, 503);
+}
+
 dealsRoutes.post('/direct/:jobId/high-signal/request', async (c) => {
+  c.header('Cache-Control', 'no-store');
   const jobId = c.req.param('jobId');
+  let body;
+  try { body = highSignalCallerSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  let body;
-  try {
-    body = highSignalCallerSchema.parse(await c.req.json());
-  } catch (err) {
-    return c.json({ error: invalidBodyMessage(err) }, 400);
-  }
-  if (!isSessionSelf(c, body.caller)) {
-    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
-  }
-  const callerRole = dealPartyRole(deal, body.caller);
-  if (!callerRole) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  const role = dealPartyRole(deal, body.caller);
+  if (!role) return c.json({ error: 'caller is not a party to this deal' }, 403);
   const state = highSignalStateFor(deal);
-  if (!state || !state[callerRole] || isHighSignalVerified(state, callerRole)) {
-    return c.json({ ...highSignalPublicState(deal, callerRole), request: null }, 200);
+  if (!state || !state[role] || isHighSignalVerified(state, role)) {
+    return c.json({ ...highSignalPublicState(deal, role), request: null }, 200);
   }
-  if (!worldIdProofConfigured()) {
-    await patchDeal(jobId, {
-      highSignalVerification: updateHighSignalParty(state, callerRole, {
-        status: 'unavailable',
-        requestedAt: Date.now(),
-      }),
-    });
-    return c.json({
-      error: 'World ID verification is not available for this deal right now',
-      code: 'WORLD_ID_UNAVAILABLE',
-    }, 503);
-  }
+  if (!worldIdDealSessionsConfigured()) return c.json({
+    error: 'World ID verification is unavailable. This deal still requires the check.',
+    code: 'WORLD_ID_UNAVAILABLE',
+  }, 503);
   try {
-    const request = createWorldIdRpSignature({
-      signingKeyHex: config.WORLD_ID_SIGNING_KEY as string,
-      action: config.WORLD_ID_ACTION as string,
-    });
-    const updatedState = updateHighSignalParty(state, callerRole, {
-      status: 'pending',
-      requestedAt: Date.now(),
-      pendingNonce: request.nonce,
-    });
-    await patchDeal(jobId, { highSignalVerification: updatedState });
-    bus.emitEvent({
-      type: 'deal.high-signal.requested',
-      jobId,
-      actor: callerRole,
-      payload: {
-        role: callerRole,
-        subject: updatedState.subject,
-        provider: 'world-id',
-        environment: config.WORLD_ID_ENVIRONMENT,
-      },
-    });
-    return c.json({
-      ...highSignalPublicState({ ...deal, highSignalVerification: updatedState }, callerRole),
-      request: {
-        provider: 'world-id' as const,
-        action: config.WORLD_ID_ACTION,
-        appId: config.WORLD_ID_APP_ID,
-        rpId: config.WORLD_ID_RP_ID,
-        environment: config.WORLD_ID_ENVIRONMENT,
-        ...request,
-      },
-    }, 200);
-  } catch {
-    return c.json({ error: 'World ID signing is unavailable', code: 'WORLD_ID_SIGNING_FAILED' }, 503);
-  }
+    const request = await worldIdDealSessions().request(jobId, body.caller, role);
+    return c.json({ ...highSignalPublicState(deal, role), request }, 200);
+  } catch (error) { return worldSessionFailure(c, error); }
 });
 
 dealsRoutes.post('/direct/:jobId/high-signal/verify', async (c) => {
+  c.header('Cache-Control', 'no-store');
   const jobId = c.req.param('jobId');
+  let body;
+  try { body = highSignalVerifySchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  let body;
+  const role = dealPartyRole(deal, body.caller);
+  if (!role) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  if (!worldIdDealSessionsConfigured()) return c.json({ error: 'World ID is unavailable. Try again shortly.', code: 'WORLD_ID_UNAVAILABLE' }, 503);
   try {
-    body = highSignalVerifySchema.parse(await c.req.json());
-  } catch (err) {
-    return c.json({ error: invalidBodyMessage(err) }, 400);
-  }
-  if (!isSessionSelf(c, body.caller)) {
-    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
-  }
-  const callerRole = dealPartyRole(deal, body.caller);
-  if (!callerRole) return c.json({ error: 'caller is not a party to this deal' }, 403);
-  const state = highSignalStateFor(deal);
-  if (!state || !state[callerRole]) {
-    return c.json({ error: 'this deal does not require high-signal verification for this party', code: 'HIGH_SIGNAL_NOT_REQUIRED' }, 409);
-  }
-  if (state[callerRole]?.status === 'verified') {
-    return c.json({ verified: true, ...highSignalPublicState(deal, callerRole) }, 200);
-  }
-  if (!state[callerRole]?.pendingNonce) {
-    return c.json({ error: 'request a fresh World ID verification challenge first', code: 'WORLD_ID_REQUEST_REQUIRED' }, 409);
-  }
-  const result = await verifyConfiguredWorldId({
-    idkitResponse: body.idkitResponse as IdKitResponseShape,
-    expectedNonce: state[callerRole].pendingNonce,
-  });
-  if (!result.verified) {
-    const status = result.code === 'WORLD_ID_RESPONSE_INVALID' ? 400 : result.code === 'WORLD_ID_NULLIFIER_REPLAY' ? 409 : result.code === 'WORLD_ID_PROOF_REJECTED' ? 403 : 503;
-    await patchDeal(jobId, {
-      highSignalVerification: updateHighSignalParty(state, callerRole, {
-        status: result.code === 'WORLD_ID_UNAVAILABLE' ? 'unavailable' : 'rejected',
-      }),
-    });
-    bus.emitEvent({
-      type: 'deal.high-signal.rejected',
-      jobId,
-      actor: callerRole,
-      payload: {
-        role: callerRole,
-        subject: state.subject,
-        provider: 'world-id',
-        code: result.code,
-      },
-    });
-    return c.json({ error: result.error, code: result.code }, status);
-  }
-  const nullifierDigest = createHash('sha256').update(result.nullifiers.join('|')).digest('hex');
-  const updatedState = updateHighSignalParty(state, callerRole, {
-    status: 'verified',
-    verifiedAt: Date.now(),
-    environment: result.environment,
-    nullifierDigest,
-    pendingNonce: undefined,
-  });
-  const updated = await patchDeal(jobId, { highSignalVerification: updatedState });
-  bus.emitEvent({
-    type: 'deal.high-signal.verified',
-    jobId,
-    actor: callerRole,
-    payload: {
-      role: callerRole,
-      subject: updatedState.subject,
-      provider: 'world-id',
-      environment: result.environment,
-    },
-  });
-  return c.json({
-    verified: true,
-    ...highSignalPublicState(updated ?? { ...deal, highSignalVerification: updatedState }, callerRole),
-    provider: 'world-id' as const,
-    environment: result.environment,
-  }, 200);
+    const updated = await worldIdDealSessions().verify(jobId, body.caller, role, body.idkitResponse);
+    invalidateDealsCache();
+    return c.json({
+      verified: true, ...highSignalPublicState(updated, role),
+      provider: 'world-id' as const, environment: config.WORLD_ID_ENVIRONMENT,
+    }, 200);
+  } catch (error) { return worldSessionFailure(c, error); }
 });
 
 /// Seller agrees to the current commercial terms. This may provision their

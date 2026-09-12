@@ -31,3 +31,13 @@ test('parseWorldIdResult rejects a proof without a valid nullifier', () => {
   };
   assert.throws(() => parseWorldIdResult({ result: { ...base, responses: [] }, expectedAction: base.action, expectedEnvironment: 'staging' }), /nullifier/);
 });
+
+test('uniqueness endpoint cannot consume a session proof or flatten its replay pair', () => {
+  const base = { nonce: 'nonce-12345678', action: 'research', environment: 'staging' as const };
+  for (const result of [
+    { ...base, session_id: 'session_ab', responses: [{ nullifier: '0xabc' }] },
+    { ...base, responses: [{ nullifier: '0xabc', session_nullifier: ['0x1', '0x2'] }] },
+  ]) {
+    assert.throws(() => parseWorldIdResult({ result, expectedAction: 'research', expectedEnvironment: 'staging' }), /authenticated deal endpoint/);
+  }
+});

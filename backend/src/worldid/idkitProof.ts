@@ -29,7 +29,7 @@ export const WORLD_ID_VERIFY_ORIGIN = 'https://developer.world.org/api/v4/verify
 
 export function createWorldIdRpSignature(input: {
   signingKeyHex: string;
-  action: string;
+  action?: string;
 }): { sig: string; nonce: string; created_at: number; expires_at: number } {
   const signed = signRequest({ signingKeyHex: input.signingKeyHex, action: input.action });
   return {
@@ -47,6 +47,9 @@ export function parseWorldIdResult(input: {
   expectedNonce?: string;
 }): WorldIdProofResult {
   const { result } = input;
+  if (result.session_id !== undefined || result.responses?.some((response) => response.session_nullifier !== undefined)) {
+    throw new Error('Session proofs require the authenticated deal endpoint');
+  }
   if (result.action !== input.expectedAction) throw new Error('World ID action mismatch');
   if (result.environment !== input.expectedEnvironment) throw new Error('World ID environment mismatch');
   if (typeof result.nonce !== 'string' || result.nonce.length < 8) throw new Error('World ID nonce missing');
@@ -54,9 +57,6 @@ export function parseWorldIdResult(input: {
   const nullifiers = (result.responses ?? []).flatMap((response) => {
     const values = [] as string[];
     if (typeof response.nullifier === 'string') values.push(response.nullifier);
-    if (Array.isArray(response.session_nullifier)) {
-      values.push(...response.session_nullifier.filter((value): value is string => typeof value === 'string'));
-    }
     return values;
   });
   const unique = [...new Set(nullifiers.map((value) => value.toLowerCase()))];

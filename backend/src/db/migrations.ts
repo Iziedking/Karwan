@@ -883,6 +883,39 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     name: 'deal_deadline_recovery_ledger',
     sql: DEAL_DEADLINE_RECOVERY_SQL,
   },
+  {
+    version: 28,
+    name: 'world_id_deal_sessions',
+    sql: `
+      CREATE TABLE world_id_sessions_v1 (
+        rp_id TEXT NOT NULL,
+        environment TEXT NOT NULL CHECK (environment IN ('staging', 'production')),
+        wallet TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        PRIMARY KEY (rp_id, environment, wallet),
+        UNIQUE (rp_id, environment, session_id)
+      );
+      CREATE TABLE world_id_deal_checks_v1 (
+        rp_id TEXT NOT NULL,
+        environment TEXT NOT NULL CHECK (environment IN ('staging', 'production')),
+        nonce TEXT NOT NULL,
+        job_id TEXT NOT NULL REFERENCES direct_deals(job_id),
+        role TEXT NOT NULL CHECK (role IN ('buyer', 'seller')),
+        wallet TEXT NOT NULL,
+        agreement_digest TEXT NOT NULL,
+        expires_at BIGINT NOT NULL,
+        request JSONB NOT NULL,
+        replay_key TEXT,
+        response_digest TEXT,
+        completed_at BIGINT,
+        PRIMARY KEY (rp_id, environment, nonce),
+        UNIQUE (rp_id, environment, replay_key)
+      );
+      CREATE INDEX world_id_deal_checks_context_idx
+        ON world_id_deal_checks_v1 (job_id, role, agreement_digest, expires_at DESC);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;
