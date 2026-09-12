@@ -7,27 +7,12 @@ import { rateLimit } from '../middleware/rateLimit.js';
 import { readSession } from '../auth/session.js';
 import { assistantAgentEnabled, runAssistantAgent } from '../assistant/agent.js';
 import { consumeAssistantQuota } from '../db/assistantUsage.js';
-import { requiresLiveAccountState } from '../assistant/safety.js';
+import { requiresLiveAccountState, staticFallbackMessages, privateAssistantProviders, proposalReply } from '../assistant/safety.js';
 
-/// In-app support assistant. Grounded in the Karwan knowledge base; answers
-/// product questions and hands users direct in-app links.
-///
-/// The route requires a signed-in session. Stateful prompts use the
-/// authenticated tool-calling loop; static product questions may use the
-/// provider chain, while account-state questions fail closed without live data.
-/*
-///  - Anonymous / signed-out: a thin proxy over the provider chain below. Holds
-///    no tools, sees no account data, pure product guidance.
-///  - Signed-in: an authenticated tool-calling loop (assistant/agent.ts) that can
-///    READ the caller's own balance and deals and answer from real numbers. Still
-///    read-only — no tool moves money. Runs on the direct-Anthropic model only
-///    (privacy). A failure here falls back to the anonymous path so the user is
-///    never stranded.
-*/
-/// Provider chain: direct Anthropic first, then OpenRouter as the last-resort
-/// fallback. Anthropic speaks the /v1/messages format; OpenRouter speaks the
-/// OpenAI chat-completions format, so callProvider builds the request and parses
-/// the reply per provider `kind`. A failure on one drops to the next.
+/// Authenticated support. Private answers require successful scoped reads.
+/// Generic help may fall back to direct Anthropic without prior chat history.
+/// Provider health probes below may inspect other configured providers, but
+/// authenticated chat never forwards account content to those providers.
 export const assistantRoutes = new Hono();
 
 const MAX_OUTPUT_TOKENS = 600;
@@ -240,10 +225,7 @@ const bodySchema = z.object({
     .max(40),
 });
 
-// The assistant serves signed-out visitors too, so it stays session-free, but
-// every call is a paid LLM request: without a limit, anonymous volume drives
-// the Claude bill directly. 20 messages per 10 minutes per IP is generous for
-// a human conversation and ruinous for a script.
+// Keep both the IP burst limit and the signed-in account quota.
 assistantRoutes.post(
   '/chat',
   rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'assistant-chat' }),
@@ -257,7 +239,7 @@ assistantRoutes.post(
     return c.json({ error: 'not authenticated', code: 'assistant_signin_required' }, 401);
   }
 
-  const provs = assistantProviders();
+  const provs = privateAssistantProviders(assistantProviders());
   if (provs.length === 0) {
     return c.json({ error: 'assistant-unavailable' }, 503);
   }
@@ -319,6 +301,10 @@ assistantRoutes.post(
         method: session.method,
         messages,
       });
+      // Confirmation cards retain their existing authorization gates. Discard
+      // generated prose here so it cannot call a merely prepared action done.
+      const preparedReply = proposalReply(actions);
+      if (preparedReply) return c.json({ reply: preparedReply, actions });
       // Never let a tool-less model answer a stateful prompt. The only safe
       // response when the account read model was not consulted is an honest
       // retry message, not an optimistic status.
@@ -342,14 +328,16 @@ assistantRoutes.post(
     return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
   }
 
-  // Try each provider in order. The first that answers wins; a failure or
-  // timeout drops to the next provider, so an Anthropic outage falls back to OpenRouter.
+  // Only generic help can fall back, and only through the direct provider.
+  // Never forward account conversation history to a proxy or tool-less model.
+  const fallbackMessages = staticFallbackMessages(messages);
+  if (!fallbackMessages) return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
   let lastTimeout = false;
   for (const p of provs) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15_000);
     try {
-      const r = await callProvider(p, messages, MAX_OUTPUT_TOKENS, controller.signal);
+      const r = await callProvider(p, fallbackMessages, MAX_OUTPUT_TOKENS, controller.signal);
       if (r.ok && r.reply) return c.json({ reply: r.reply });
       logger.error(
         { provider: p.name, status: r.status, detail: r.detail?.slice(0, 300) },

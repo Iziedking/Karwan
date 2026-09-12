@@ -574,14 +574,14 @@ export function buildPostRequestConfirm(
     { label: 'You need', value: brief.length > 140 ? `${brief.slice(0, 137)}…` : brief },
     { label: 'Budget', value: `${i.budgetUsdc} USDC` },
     { label: 'Deadline', value: deadlineLabel },
-    { label: 'Matching', value: 'Your agent finds and scores developers' },
+    { label: 'Matching', value: 'Your agent compares matching sellers and offers' },
   ];
   return {
     kind: 'confirm',
     id: `post_request:${brief.toLowerCase().slice(0, 40)}:${i.budgetUsdc}:${confirmNonce()}`,
     intent: 'post_request',
     title: 'Post this request',
-    summary: 'Your buyer agent runs the auction: it matches developers, scores them on skill and reputation, and brings you proposals to approve. Nothing is paid until you approve a match.',
+    summary: 'Posting authorises your buyer agent to match and fund a deal within your budget and saved spending settings after seller acceptance. Another buyer funding click may not be required. Review your settings on the buyer desk before posting if you are unsure.',
     fields,
     payload: { posterAddress: i.caller, brief, budgetUsdc: i.budgetUsdc, deadlineDays: i.deadlineDays },
     confirmLabel: 'Post request',
