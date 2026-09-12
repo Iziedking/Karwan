@@ -122,10 +122,11 @@ reviewed decision remain authoritative for settlement.
 - Added durable `deal.high-signal.requested`, `deal.high-signal.verified`, and
   `deal.high-signal.rejected` events. Event payloads record the role, subject,
   provider, environment, and result code without exposing proof material.
-- Added a deal-page World ID flow using the official IDKit request widget. The
-  check is a trust signal for higher-risk deals; it does not authorize payment,
-  release, or dispute outcomes. Live completion still depends on World
-  credential access in the target environment.
+- Added a deal-page World ID Selfie Check (Beta) flow using the official IDKit
+  request widget. Selfie Check uses the user's device camera and does not
+  require Orb access. It is a liveness and continuity signal for higher-risk
+  deals; it does not authorize payment, release, or dispute outcomes. Live
+  completion still depends on Selfie Check access in the target environment.
 - Added focused tests for selected-party requirements, both-party requirements,
   unavailable credentials, rejected proofs, digest changes, and replay safety.
 

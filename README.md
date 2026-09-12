@@ -16,8 +16,9 @@ Karwan answers two trust questions in one trade flow: what happened, and who is 
 
 For higher-risk or higher-value deals, a buyer can add a **high-signal identity
 requirement** to the agreement. The buyer chooses whether the seller, the buyer,
-or both parties must complete a World ID check before the seller can accept or
-the buyer can fund. The deal page opens the official World ID request widget;
+or both parties must complete a World ID Selfie Check (Beta) before the seller
+can accept or the buyer can fund. Selfie Check uses the user's device camera and
+does not require Orb access. The deal page opens the official World ID request widget;
 Karwan verifies the signed request context, action, nonce, environment, expiry,
 and replay state before recording the result. Karwan stores a one-way proof
 reference, not biometric data or a raw nullifier. This check is an additional
