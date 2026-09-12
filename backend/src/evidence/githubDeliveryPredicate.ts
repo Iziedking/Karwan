@@ -1,4 +1,4 @@
-import { sha256, toBytes } from 'viem';
+import { sha256, toBytes, toHex } from 'viem';
 
 /**
  * Pure GitHub delivery predicate.
@@ -80,7 +80,11 @@ function stableJson(value: unknown): string {
 }
 
 function digest(value: object): string {
-  return sha256(toBytes(stableJson(value))).slice(2);
+  // Request the byte form explicitly before converting to hex. CRE's
+  // confidential runtime can serialize the default hash result as base64;
+  // report commitments must remain canonical 64-character hex strings for
+  // ABI encoding and the Arc registry.
+  return toHex(sha256(toBytes(stableJson(value)), 'bytes')).slice(2);
 }
 
 function canonicalEvidence(evidence: GitHubDeliveryEvidence): GitHubDeliveryEvidence {
