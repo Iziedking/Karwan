@@ -887,6 +887,16 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 28,
     name: 'world_id_deal_sessions',
     sql: `
+      -- The legacy schema is normally created by ensureSchema before numbered
+      -- migrations. Keep this parent available when the ledger is applied to
+      -- an empty database or isolated test schema so the FK below is valid.
+      CREATE TABLE IF NOT EXISTS direct_deals (
+        job_id TEXT PRIMARY KEY,
+        buyer TEXT NOT NULL,
+        seller TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        data JSONB NOT NULL
+      );
       CREATE TABLE world_id_sessions_v1 (
         rp_id TEXT NOT NULL,
         environment TEXT NOT NULL CHECK (environment IN ('staging', 'production')),

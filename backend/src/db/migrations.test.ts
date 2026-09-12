@@ -136,6 +136,9 @@ test('numbered migrations are ordered and contain every durable runtime table', 
   assert.match(NUMBERED_MIGRATIONS[25]!.sql, /deposit_requests_matched_tx_idx/);
   assert.match(NUMBERED_MIGRATIONS[26]!.sql, /CREATE TABLE IF NOT EXISTS deal_deadline_recoveries_v1/);
   assert.match(NUMBERED_MIGRATIONS[26]!.sql, /deal_deadline_recoveries_due_idx/);
+  const worldSessionSql = NUMBERED_MIGRATIONS[27]!.sql;
+  assert.match(worldSessionSql, /CREATE TABLE IF NOT EXISTS direct_deals/);
+  assert.match(worldSessionSql, /REFERENCES direct_deals\(job_id\)/);
 });
 
 test('migration runner applies each migration once across repeated startup', async () => {
