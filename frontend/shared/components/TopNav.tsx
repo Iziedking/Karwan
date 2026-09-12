@@ -17,6 +17,7 @@ import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { ArcLaunchCountdown } from './ArcLaunchCountdown';
 
 const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
@@ -122,6 +123,8 @@ export function TopNav() {
           </Link>
         </div>
 
+        <ArcLaunchCountdown />
+
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           {focusedSurface ? (
@@ -214,6 +217,27 @@ function WorkspaceRail({
 }) {
   const t = useTranslations().nav;
   const financeActive = pathname.startsWith('/financier');
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem('karwan-workspace-rail-collapsed') === '1');
+    } catch {
+      // Storage can be unavailable in privacy-restricted browsers.
+    }
+  }, []);
+
+  const toggleRail = () => {
+    setCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem('karwan-workspace-rail-collapsed', next ? '1' : '0');
+      } catch {
+        // The rail remains usable even when the preference cannot persist.
+      }
+      return next;
+    });
+  };
 
   return (
     <aside
@@ -223,16 +247,35 @@ function WorkspaceRail({
     >
       <nav
         aria-label="workspace navigation"
-        className="pointer-events-auto absolute flex w-[220px] flex-col gap-1"
+        className={cn(
+          'pointer-events-auto absolute flex flex-col gap-1 transition-[width] duration-300 ease-out',
+          collapsed ? 'w-[72px]' : 'w-[220px]',
+        )}
         style={{ left: 'max(20px, calc(50% - 680px))' }}
       >
-        <RailLink href="/app" active={pathname === '/app'} icon="home">
+        <button
+          type="button"
+          data-chrome="workspace-rail-toggle"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          onClick={toggleRail}
+          className={cn(
+            'mb-1 inline-flex min-h-11 items-center rounded-full border border-[var(--color-line)] text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
+            collapsed ? 'w-11 justify-center self-center' : 'w-full justify-between px-4',
+          )}
+        >
+          <span aria-hidden className="text-[18px] leading-none">{collapsed ? '→' : '←'}</span>
+          <span className={cn('mono text-[9px] font-semibold uppercase tracking-[0.14em]', collapsed && 'sr-only')}>
+            {collapsed ? 'Expand' : 'Collapse'}
+          </span>
+        </button>
+        <RailLink href="/app" active={pathname === '/app'} icon="home" collapsed={collapsed} ariaLabel={t.home}>
           {t.home}
         </RailLink>
-        <RailLink href={tradeHref} active={tradesActive} icon="trade">
+        <RailLink href={tradeHref} active={tradesActive} icon="trade" collapsed={collapsed} ariaLabel={t.trades}>
           {t.trades}
         </RailLink>
-        <RailLink href={discoverHref} active={discoverActive} icon="discover">
+        <RailLink href={discoverHref} active={discoverActive} icon="discover" collapsed={collapsed} ariaLabel={t.market}>
           {t.market}
         </RailLink>
         <RailLink
@@ -240,11 +283,12 @@ function WorkspaceRail({
           active={financeActive}
           icon="finance"
           ariaLabel={financeLabel}
+          collapsed={collapsed}
           badge={!financeEnabled ? soonLabel : undefined}
         >
           {t.finance}
         </RailLink>
-        <RailLink href="/activity" active={pathname.startsWith('/activity')} icon="activity" signal={unread}>
+        <RailLink href="/activity" active={pathname.startsWith('/activity')} icon="activity" collapsed={collapsed} signal={unread} ariaLabel={t.activity}>
           {t.activity}
         </RailLink>
       </nav>
@@ -258,6 +302,7 @@ function RailLink({
   icon,
   children,
   ariaLabel,
+  collapsed,
   badge,
   signal = false,
 }: {
@@ -266,6 +311,7 @@ function RailLink({
   icon: 'home' | 'trade' | 'discover' | 'finance' | 'activity';
   children: React.ReactNode;
   ariaLabel?: string;
+  collapsed?: boolean;
   badge?: string;
   signal?: boolean;
 }) {
@@ -275,7 +321,8 @@ function RailLink({
       aria-label={ariaLabel}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group flex min-h-12 w-full items-center gap-3 rounded-full px-4 text-[15px] font-medium transition-colors duration-200',
+        'group relative flex min-h-12 w-full items-center rounded-full text-[15px] font-medium transition-colors duration-200',
+        collapsed ? 'justify-center px-0' : 'gap-3 px-4',
         active
           ? 'text-[var(--color-ink)]'
           : 'text-[var(--color-ink-dim)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
@@ -283,8 +330,8 @@ function RailLink({
       style={active ? { background: 'var(--color-surface-2)' } : undefined}
     >
       <RailIcon name={icon} active={active} />
-      <span className="min-w-0 flex-1 truncate">{children}</span>
-      {badge ? (
+      <span className={cn('min-w-0 flex-1 truncate', collapsed && 'sr-only')}>{children}</span>
+      {badge && !collapsed ? (
         <span
           className="mono rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em]"
           style={{ background: 'color-mix(in oklab, var(--lp-accent) 20%, transparent)', color: 'var(--color-ink)' }}
@@ -292,7 +339,7 @@ function RailLink({
           {badge}
         </span>
       ) : signal ? (
-        <span aria-hidden className="size-2 rounded-full bg-[var(--lp-accent)]" />
+        <span aria-hidden className={cn('size-2 rounded-full bg-[var(--lp-accent)]', collapsed ? 'absolute end-2 top-2' : '')} />
       ) : null}
     </Link>
   );

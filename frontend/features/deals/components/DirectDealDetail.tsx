@@ -61,6 +61,7 @@ import {
 import { proofSegments } from '../proofLinks';
 import { evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
+import { SwipeToPay } from './SwipeToPay';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -914,8 +915,26 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     const nextSection = sectionItems[nextIndex];
     if (nextSection) openSection(nextSection.id);
   };
-  const firstSection = sectionIndex <= 0;
-  const lastSection = sectionIndex >= sectionItems.length - 1;
+  const viewTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const handleViewTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button,a,input,textarea,select,[role="tab"]')) {
+      viewTouchStart.current = null;
+      return;
+    }
+    const touch = event.changedTouches[0];
+    if (touch) viewTouchStart.current = { x: touch.clientX, y: touch.clientY };
+  };
+  const handleViewTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = viewTouchStart.current;
+    viewTouchStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 56 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
+    moveSection(dx < 0 ? 1 : -1);
+  };
 
   return (
     <div className="product-surface">
@@ -1031,33 +1050,21 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             View {sectionIndex + 1} of {sectionItems.length}
           </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => moveSection(-1)}
-              disabled={firstSection}
-              aria-label="Previous deal view"
-              className="inline-flex min-h-11 items-center gap-2 border border-[var(--lp-border-light)] px-3.5 text-[11px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ borderRadius: 10 }}
-            >
-              <span aria-hidden>←</span>
-              Previous
-            </button>
-            <button
-              type="button"
-              onClick={() => moveSection(1)}
-              disabled={lastSection}
-              aria-label="Next deal view"
-              className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-3.5 text-[11px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ borderRadius: 10 }}
-            >
-              Next
-              <span aria-hidden>→</span>
-            </button>
-          </div>
+          <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Swipe left or right
+          </span>
         </div>
       </Band>
 
+      <div
+        data-deal-view-deck
+        role="region"
+        aria-label="Deal views. Swipe left or right to change view."
+        className="deal-view-deck"
+        onTouchStart={handleViewTouchStart}
+        onTouchEnd={handleViewTouchEnd}
+        onTouchCancel={() => { viewTouchStart.current = null; }}
+      >
       {activeSection === 'overview' && (
         <>
           <div id="deal-overview">
@@ -1745,11 +1752,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         currentIndex={sectionIndex}
         total={sectionItems.length}
         currentLabel={sectionItems[sectionIndex]?.label ?? 'Deal overview'}
-        onPrevious={() => moveSection(-1)}
-        onNext={() => moveSection(1)}
-        previousDisabled={firstSection}
-        nextDisabled={lastSection}
       />
+      </div>
 
       {showAcceptConsent && (
         <AcceptConsentModal
@@ -1820,52 +1824,32 @@ function DealViewPager({
   currentIndex,
   total,
   currentLabel,
-  onPrevious,
-  onNext,
-  previousDisabled,
-  nextDisabled,
 }: {
   currentIndex: number;
   total: number;
   currentLabel: string;
-  onPrevious: () => void;
-  onNext: () => void;
-  previousDisabled: boolean;
-  nextDisabled: boolean;
 }) {
   return (
     <div className="mx-auto max-w-[1180px] px-5 py-5 sm:px-8 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
         <div>
           <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            Deal view {currentIndex + 1} of {total}
+            Current view
           </p>
           <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">{currentLabel}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onPrevious}
-            disabled={previousDisabled}
-            aria-label="Previous deal view"
-            className="inline-flex min-h-11 items-center gap-2 border border-[var(--lp-border-light)] px-4 text-[12px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ borderRadius: 10 }}
-          >
-            <span aria-hidden>←</span>
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={nextDisabled}
-            aria-label="Next deal view"
-            className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-4 text-[12px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ borderRadius: 10 }}
-          >
-            Next
-            <span aria-hidden>→</span>
-          </button>
-        </div>
+        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          {currentIndex + 1} / {total} · swipe to continue
+        </span>
+      </div>
+      <div className="mt-3 flex gap-1.5" aria-hidden>
+        {Array.from({ length: total }, (_, index) => (
+          <span
+            key={index}
+            className="h-1 flex-1 rounded-full transition-colors duration-200"
+            style={{ background: index === currentIndex ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
+          />
+        ))}
       </div>
     </div>
   );
@@ -1874,6 +1858,7 @@ function DealViewPager({
 function DealSlideshow({ children }: { children: ReactNode }) {
   const slides = Children.toArray(children);
   const [slideIndex, setSlideIndex] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     setSlideIndex((current) => Math.min(current, Math.max(slides.length - 1, 0)));
@@ -1881,11 +1866,29 @@ function DealSlideshow({ children }: { children: ReactNode }) {
 
   if (slides.length === 0) return null;
 
-  const atStart = slideIndex === 0;
-  const atEnd = slideIndex === slides.length - 1;
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest('button,a,input,textarea,select')) {
+      touchStart.current = null;
+      return;
+    }
+    const touch = event.changedTouches[0];
+    if (touch) touchStart.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 52 || Math.abs(dx) <= Math.abs(dy) * 1.25) return;
+    setSlideIndex((current) => Math.min(Math.max(current + (dx < 0 ? 1 : -1), 0), slides.length - 1));
+  };
 
   return (
-    <div>
+    <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} onTouchCancel={() => { touchStart.current = null; }} style={{ touchAction: 'pan-y' }}>
       <div
         key={slideIndex}
         aria-live="polite"
@@ -1898,26 +1901,9 @@ function DealSlideshow({ children }: { children: ReactNode }) {
           <span className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             Detail {slideIndex + 1} of {slides.length}
           </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSlideIndex((current) => Math.max(0, current - 1))}
-              disabled={atStart}
-              aria-label="Previous deal detail"
-              className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[12px] font-semibold transition-colors hover:bg-[var(--lp-dark)] hover:text-[var(--lp-bg)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-inherit"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={() => setSlideIndex((current) => Math.min(slides.length - 1, current + 1))}
-              disabled={atEnd}
-              aria-label="Next deal detail"
-              className="inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[12px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            Swipe to browse
+          </span>
         </div>
       ) : null}
     </div>
@@ -2634,22 +2620,34 @@ function ActionPanel({
           <div className="flex flex-wrap gap-2">
             {escrowHeld ? (
               // No quote to wait on: there is nothing left to price.
-              <CTAPill onClick={onFund} disabled={busy} busy={busy}>
-                {copy.awaitingFunding.activateCta}
-              </CTAPill>
+              <>
+                <div className="hidden md:block">
+                  <CTAPill onClick={onFund} disabled={busy} busy={busy}>
+                    {copy.awaitingFunding.activateCta}
+                  </CTAPill>
+                </div>
+                <SwipeToPay disabled={busy} label={copy.awaitingFunding.activateCta} onConfirm={onFund} />
+              </>
             ) : fundingQuoteState === 'error' ? (
               <CTAPill onClick={onRetryQuote} disabled={busy}>
                 {copy.awaitingFunding.retryQuoteCta}
               </CTAPill>
             ) : (
-              <CTAPill
-                onClick={onFund}
-                disabled={busy || fundingQuoteState !== 'ready' || !hasFundingQuote}
-              >
-                {fundingQuoteState === 'loading' || fundingQuoteState === 'idle'
-                  ? copy.awaitingFunding.quoteBusy
-                  : copy.awaitingFunding.reviewCta}
-              </CTAPill>
+              <>
+                <div className="hidden md:block">
+                  <CTAPill
+                    onClick={onFund}
+                    disabled={busy || fundingQuoteState !== 'ready' || !hasFundingQuote}
+                  >
+                    {fundingQuoteState === 'loading' || fundingQuoteState === 'idle'
+                      ? copy.awaitingFunding.quoteBusy
+                      : copy.awaitingFunding.reviewCta}
+                  </CTAPill>
+                </div>
+                {fundingQuoteState === 'ready' && hasFundingQuote ? (
+                  <SwipeToPay disabled={busy} label={copy.awaitingFunding.reviewCta} onConfirm={onFund} />
+                ) : null}
+              </>
             )}
             <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
               {copy.awaitingFunding.editTermsCta}

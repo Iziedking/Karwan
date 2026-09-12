@@ -1021,6 +1021,15 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
   transform-origin: bottom;
   overscroll-behavior: contain;
 }
+
+@keyframes arc-countdown-pulse {
+  0% { transform: scale(0.82); opacity: 0.8; }
+  65% { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+.deal-view-deck {
+  touch-action: pan-y;
+}
 /* Preserve the established dark auth treatment while allowing light mode to
    inherit the platform-wide paper and ink tokens above. */
 html[data-theme="dark"] .auth-capsule {
