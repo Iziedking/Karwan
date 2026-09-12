@@ -887,7 +887,6 @@ export function DirectDealForm() {
           onChange={(e) => setRequireStake(e.target.checked)}
           disabled={submitting}
           className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
-          aria-describedby="require-stake-help"
         />
         <div className="min-w-0">
           <span
@@ -897,12 +896,6 @@ export function DirectDealForm() {
             {c.security}
             <Hint>{dd.trustedMatch.body}</Hint>
           </span>
-          <p
-            id="require-stake-help"
-            className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
-          >
-            {c.securityHelp}
-          </p>
           {requireStake && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <input
@@ -958,7 +951,6 @@ export function DirectDealForm() {
           onChange={(e) => setEvidenceRequired(e.target.checked)}
           disabled={submitting}
           className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
-          aria-describedby="delivery-evidence-help"
         />
         <div className="min-w-0">
           <span
@@ -970,12 +962,6 @@ export function DirectDealForm() {
               {c.evidenceHelp}
             </Hint>
           </span>
-          <p
-            id="delivery-evidence-help"
-            className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
-          >
-            {c.evidenceHelp}
-          </p>
         </div>
       </label>
 
@@ -1001,7 +987,6 @@ export function DirectDealForm() {
             onChange={(e) => setHighSignal(e.target.checked)}
             disabled={submitting}
             className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0"
-            aria-describedby="high-signal-help"
           />
           <span className="min-w-0">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)] inline-flex items-center gap-1.5">
@@ -1009,9 +994,6 @@ export function DirectDealForm() {
               <Hint>
                 {c.identityHelp}
               </Hint>
-            </span>
-            <span id="high-signal-help" className="mt-1.5 block text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-              {c.identityHelp}
             </span>
           </span>
         </label>
