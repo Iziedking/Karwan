@@ -91,13 +91,13 @@ export const BUYER_STEPS: TourStep[] = [
     target: 'buyer-deadline',
   },
   {
-    title: 'Set a negotiation limit',
-    body: 'Tolerance is the maximum amount above budget your agent may accept. Zero keeps the cap fixed.',
+    title: 'Adjust optional settings',
+    body: 'Open this section to adjust price flexibility, seller requirements or payment stages. You still review the agreed terms before payment.',
     target: 'buyer-tolerance',
   },
   {
-    title: 'Post for offers',
-    body: 'Your agent collects offers and returns a match for your approval. Funding never starts automatically.',
+    title: 'Review your request',
+    body: 'Check the price limit and payment stages before posting. Your agent matches on Karwan and funds from your balance when the seller accepts within your authorised settings.',
     target: 'buyer-submit',
   },
 ];

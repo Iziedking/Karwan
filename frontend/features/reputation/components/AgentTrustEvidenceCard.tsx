@@ -48,8 +48,6 @@ export function AgentTrustEvidenceCard() {
       <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--lp-text-sub)]">{copy.body}</p>
       <dl className="mt-4 grid gap-2 sm:grid-cols-2">
         <TrustRow label={copy.humanBacked} value={statusLabel} />
-        <TrustRow label={copy.trackRecord} value={copy.notChecked} />
-        <TrustRow label={copy.connectedEvidence} value={copy.noEvidence} />
         <TrustRow label={copy.pilotAllowance} value={allowance} mono />
       </dl>
       {!verified && <p className="mt-3 text-[11px] leading-snug text-[var(--lp-text-muted)]">{copy.notCheckedBody}</p>}

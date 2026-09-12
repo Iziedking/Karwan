@@ -4,9 +4,9 @@
 
 Karwan is building an open market for secure local and cross-border trade. Two people or businesses can meet on a social network, in a marketplace, through chat, or in person, then move the agreement into one protected flow: set the terms, secure USDC in milestone escrow, verify delivery, release payment, and leave both sides with a portable trade record.
 
-That record can support future working-capital products. Financing is a planned
-extension of the protected trade record, not a promise that the current
-testnet build provides credit or advances.
+That record also supports Karwan's implemented financier, invoice-factoring and
+purchase-order financing paths. Availability depends on deployment flags and
+eligibility; their presence in source is not a promise of available credit.
 
 The current build runs on Arc Testnet (chain `5042002`), where USDC is also the gas token. It is live at [karwan.site](https://karwan.site), with the API at [api.karwan.site](https://api.karwan.site).
 
@@ -19,12 +19,22 @@ requirement** to the agreement. The buyer chooses whether the seller, the buyer,
 or both parties must complete a World ID Selfie Check (Beta) before the seller
 can accept or the buyer can fund. Selfie Check uses the user's device camera and
 does not require Orb access. The deal page opens the official World ID request widget;
-Karwan verifies the signed request context, action, nonce, environment, expiry,
-and replay state before recording the result. Karwan stores a one-way proof
-reference, not biometric data or a raw nullifier. This check is an additional
+Karwan uses World ID v4 sessions for returning users: each deal requires a fresh
+proof bound to its account, role, agreement version, nonce and environment.
+PostgreSQL commits the private account/session binding, replay receipt and deal
+result in one transaction. The public deal stores a one-way proof reference,
+not the private session identifier. Existing uniqueness/action replay records
+remain separate and are not cleared. Karwan does not store biometric data. This check is an additional
 trust signal. It does not approve payment, release escrow, or decide a dispute.
 If World credentials are unavailable, the deal remains blocked and shows a
 recoverable status instead of treating the party as verified.
+
+The session implementation requires migration 28 and a World tenant with v4
+Selfie access. Local database tests cover two-deal continuity, replay, expiry,
+restart and rollback using a provider fixture. A real returning-user Sandbox
+run is still a release gate, not a result claimed by those tests. Historical
+receipts remain stored; checks without the current agreement/environment binding
+must be completed again before they satisfy acceptance or funding requirements.
 
 ## The market Karwan is building
 
@@ -33,10 +43,10 @@ Karwan brings four jobs into one system:
 1. **Capture the trade where it starts.** A planned browser companion will let a user draft a deal beside X, TikTok, Facebook, Instagram, LinkedIn, or another website. The counterparty will be able to review and accept through a normal Karwan link without installing anything.
 2. **Secure performance, not just payment.** The parties agree the amount, milestones, evidence, deadline, cancellation path, and dispute path before funds are locked.
 3. **Settle across borders in USDC.** Escrow releases only against the agreed outcome. CCTP and Circle Gateway handle supported on-chain routes. Local-currency bank payout is planned per corridor through approved, regulated payout infrastructure, with fees and foreign exchange shown before confirmation.
-4. **Prepare eligible trade for future finance.** Karwan-native trade records,
-   delivery evidence, settlement history, and counterparty concentration can
-   support a later financing product. Financing is not presented as live in the
-   current testnet release.
+4. **Make eligible trade easier to finance.** Financier quotes, invoice factoring
+   and purchase-order financing build on trade records and settlement history.
+   These paths are implemented and gated; production availability must be checked
+   against the deployed configuration and eligibility rules.
 
 The flywheel is simple: more protected trades create better records; better records make financing easier to price; more available capital helps more trades complete.
 
@@ -47,7 +57,7 @@ The flywheel is simple: more protected trades create better records; better reco
 | Trade entry | Direct deals, email invites, business requests, offers, and agent-assisted matching in the Karwan web app | A user-invoked browser companion that can start a protected trade beside any supported site, with X as the first focused surface |
 | Protection | Milestone escrow, delivery review, cancellation, extension, dispute resolution, and settlement receipts | Source-aware trade drafts, stronger evidence capture, and corridor-specific policy controls |
 | Settlement | USDC on Arc, CCTP routes, Circle Gateway, wallet and bridge surfaces | Mainnet release after audit and control gates; local bank payout through approved corridors and partners |
-| Trade finance | Workspace-aware trade context, goods and services availability records, business verification status, and trade history | Invoice factoring, purchase-order financing, and a financier quote market after the required policy and settlement gates pass |
+| Trade finance | Implemented financier, invoice-factoring and purchase-order financing paths, subject to deployment flags and eligibility | Broader underwriting and funding access after policy, liquidity and mainnet gates pass |
 
 The browser companion, mainnet settlement, and local bank payout are roadmap items, not capabilities in the current testnet release.
 
@@ -87,7 +97,7 @@ public landing page, documentation index, and How Karwan Works page.
 - Activity, wallet, bridge, profile, settings, and unified personal and business workspaces.
 - Business registration and a verification status workflow.
 - A reusable trust boundary: authenticated evidence delivery and release gates through Chainlink CRE, plus World ID staging verification, AgentKit challenge protection, and World AgentBook lookup for agent workflows.
-- High-signal direct deals with party selection (seller, buyer, or both), signed World ID request context, nonce and nullifier replay protection, agreement-digest binding, party-scoped verification status, and durable verification audit events. The gate protects acceptance and funding while leaving final money decisions with the parties and the escrow contract.
+- High-signal direct deals with party selection (seller, buyer, or both), signed World ID session requests, per-proof replay protection, agreement-version binding, party-scoped verification status, and durable verification receipts. The gate protects acceptance and funding while leaving final money decisions with the parties and the escrow contract.
 - Interface in English, Arabic, French, Hindi, and Swahili, with right-to-left layout for Arabic.
 
 Some integrations and policy controls sit behind configuration flags. A capability is live only when the product exposes it and the backend and contract paths behind it are switched on.

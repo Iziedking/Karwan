@@ -187,21 +187,19 @@ function StakePageInner() {
       </Band>
 
       <Band tone="light" compact id="vault" className="scroll-mt-24" dataGuide="stake-vault">
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-10">
-          <section className="min-w-0">
+        <div className="grid items-start gap-8 [grid-template-areas:'stake-heading'_'stake-body'_'yield-heading'_'yield-body'] lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-x-10 lg:gap-y-8 lg:[grid-template-areas:'stake-heading_yield-heading'_'stake-body_yield-body']">
+          <header className="min-w-0 [grid-area:stake-heading]">
             <SectionTag>{sp.vault.tag}</SectionTag>
             <HeroHeadline size="md">{sp.vault.heading}<Punc>.</Punc></HeroHeadline>
-            <div className="mt-8">
-              <AgentStakeBinding />
-              <StakeCard />
-              <LegacyStakeNudge />
-            </div>
-          </section>
+          </header>
 
-          <aside
-            className="min-w-0 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-6"
-            data-guide="stake-your-yield"
-          >
+          <div className="min-w-0 [grid-area:stake-body]">
+            <AgentStakeBinding />
+            <StakeCard />
+            <LegacyStakeNudge />
+          </div>
+
+          <header className="min-w-0 [grid-area:yield-heading]">
             <div className="flex items-center gap-2">
               <SectionTag>{pb.stake.yourYield}</SectionTag>
               <Hint glow side="bottom" align="start">
@@ -211,9 +209,13 @@ function StakePageInner() {
             <h2 className="mt-4 max-w-[16ch] font-sans text-[clamp(1.7rem,3vw,2.6rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.03em] text-[var(--lp-dark)]">
               {pb.stake.earnedByYou}<Punc>.</Punc> {pb.stake.claimableByYou}<Punc>.</Punc>
             </h2>
-            <div className="mt-6">
-              <YieldClaimPanel />
-            </div>
+          </header>
+
+          <aside
+            className="min-w-0 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 [grid-area:yield-body] sm:p-6"
+            data-guide="stake-your-yield"
+          >
+            <YieldClaimPanel />
           </aside>
         </div>
       </Band>
