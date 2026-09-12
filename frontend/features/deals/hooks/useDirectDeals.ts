@@ -16,10 +16,15 @@ function stateOf(query: {
   isError: boolean;
   isSuccess: boolean;
   fetchStatus: 'fetching' | 'paused' | 'idle';
+  data?: unknown;
 }, enabled: boolean): FetchState {
   if (!enabled) return 'idle';
-  if (query.isError) return 'error';
-  if (query.isSuccess) return 'success';
+  // Keep rendering the last durable deal snapshot when a background refresh
+  // fails. The retry control is useful only when there is no usable deal data;
+  // replacing a live agreement with an error page makes a transient API/DB
+  // blip look like the deal disappeared.
+  if (query.isError && query.data == null) return 'error';
+  if (query.isSuccess || query.data != null) return 'success';
   return 'loading';
 }
 
@@ -42,9 +47,7 @@ export function useDirectDeals() {
   return {
     deals: (query.data ?? []) as DirectDeal[],
     fetchState: stateOf(query, isAuthed && !!address),
-    refresh: () => {
-      qc.invalidateQueries({ queryKey: qk.deals.list(address) });
-    },
+    refresh: () => qc.invalidateQueries({ queryKey: qk.deals.list(address) }),
   };
 }
 
@@ -71,7 +74,6 @@ function classifyDealError(err: unknown): DealErrorKind {
 
 export function useDirectDeal(jobId: string) {
   const auth = useAuth();
-  const qc = useQueryClient();
   const viewer = auth.address;
 
   const query = useQuery({
@@ -81,7 +83,12 @@ export function useDirectDeal(jobId: string) {
     /// auth is still loading sends no caller hint, which the backend reads
     /// as a non-party and returns 403 'private' even on a party's own deal.
     enabled: !auth.isLoading,
-    staleTime: 30_000,
+    // A deal is a live agreement, not catalogue data. Always reconcile the
+    // persisted snapshot when the view opens or the connection returns.
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
     retry: (failureCount, err) => {
       const kind = classifyDealError(err);
       // A non-party 403 is a stable answer; never retry it.
@@ -95,6 +102,14 @@ export function useDirectDeal(jobId: string) {
       return failureCount < 1;
     },
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    // The initial retry budget is deliberately finite, but a backend restart
+    // should still heal the view without making the user reload the browser.
+    refetchInterval: (current) =>
+      current.state.status === 'error' &&
+      classifyDealError(current.state.error) === 'transient'
+        ? 5_000
+        : false,
+    refetchIntervalInBackground: false,
   });
 
   const errorCode =
@@ -106,8 +121,10 @@ export function useDirectDeal(jobId: string) {
   return {
     deal: (query.data ?? null) as DirectDeal | null,
     fetchState: stateOf(query, !auth.isLoading) as FetchState,
-    refresh: () => {
-      qc.invalidateQueries({ queryKey: qk.deals.item(jobId, viewer) });
+    // Return the real request promise. Deal actions await this to avoid
+    // rendering the stale pre-action state after a successful mutation.
+    refresh: async () => {
+      await query.refetch();
     },
     errorCode,
     errorKind,

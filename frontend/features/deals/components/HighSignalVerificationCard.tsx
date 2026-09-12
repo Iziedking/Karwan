@@ -1,59 +1,81 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { IDKitRequestWidget, selfieCheckLegacy, type IDKitResult } from '@worldcoin/idkit';
-import { api, ApiError, type DirectDeal } from '@/core/api';
+import React, { useEffect, useRef, useState } from 'react';
+import { IDKitSessionWidget, CredentialRequest, any, type IDKitResultSession } from '@worldcoin/idkit';
+import { api, type DirectDeal } from '@/core/api';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 type Role = 'buyer' | 'seller';
 
-export function HighSignalVerificationCard({
+type Props = { deal: DirectDeal; caller: string; onRefresh: () => void };
+
+export function HighSignalVerificationCard(props: Props) {
+  const { deal, caller } = props;
+  // A pending World App request must never follow the user into another deal/account.
+  return <DealWorldCheck key={`${deal.jobId}:${caller.toLowerCase()}:${deal.agreementVersion ?? 1}:${deal.agreementDigest ?? ''}:${deal.verificationPolicy}:${deal.verificationSubject}`} {...props} />;
+}
+
+function DealWorldCheck({
   deal,
   caller,
   onRefresh,
-}: {
-  deal: DirectDeal;
-  caller: string;
-  onRefresh: () => void;
-}) {
-  const role: Role | null = caller.toLowerCase() === deal.buyer ? 'buyer' : caller.toLowerCase() === deal.seller ? 'seller' : null;
+}: Props) {
+  const copy = useTranslations().worldCheck;
+  const role: Role | null = caller.toLowerCase() === deal.buyer.toLowerCase() ? 'buyer' : caller.toLowerCase() === deal.seller.toLowerCase() ? 'seller' : null;
   const [state, setState] = useState<Awaited<ReturnType<typeof api.highSignalStatus>> | null>(null);
   const [request, setRequest] = useState<Awaited<ReturnType<typeof api.requestHighSignal>>['request']>(null);
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
 
   useEffect(() => {
+    if (deal.verificationPolicy !== 'high_signal' || !role) return;
     let live = true;
     api.highSignalStatus(deal.jobId, caller).then((next) => {
       if (live) setState(next);
     }).catch(() => {
-      if (live) setError('Verification status is temporarily unavailable.');
+      if (live) setError(copy.error);
     });
     return () => { live = false; };
-  }, [caller, deal.jobId, deal.highSignalVerification]);
+  }, [caller, deal.jobId, deal.highSignalVerification, deal.verificationPolicy, role, copy.error]);
 
   if (deal.verificationPolicy !== 'high_signal' || !role) return null;
-  const status = state?.callerStatus ?? deal.highSignalVerification?.[role]?.status ?? 'pending';
+  const party = deal.highSignalVerification?.[role];
+  const staleAgreement = !deal.agreementDigest || party?.agreementKey !== `${deal.agreementVersion ?? 1}:${deal.agreementDigest}`;
+  const status = state?.callerStatus ?? (staleAgreement ? 'pending' : party?.status) ?? 'pending';
   const required = state?.subject === 'both' || state?.subject === role || deal.verificationSubject === role || deal.verificationSubject === 'both';
   if (!required) return null;
 
   async function begin() {
+    if (request && request.expires_at * 1000 > Date.now()) {
+      setError(null);
+      setWidgetOpen(true);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const result = await api.requestHighSignal(deal.jobId, caller);
+      if (!active.current) return;
+      if (result.request && result.request.proofMode !== 'session') {
+        setError(copy.unavailable);
+        return;
+      }
       setRequest(result.request);
       if (result.request) setWidgetOpen(true);
       onRefresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'World ID verification is unavailable.');
+    } catch {
+      setError(copy.error);
     } finally {
       setBusy(false);
     }
   }
 
   const verified = status === 'verified';
-  const unavailable = status === 'unavailable';
+  const providerUnavailable = state?.world ? !state.world.configured : false;
+  const unavailable = status === 'unavailable' || providerUnavailable;
   const rpContext = request
     ? {
         rp_id: request.rpId,
@@ -64,8 +86,20 @@ export function HighSignalVerificationCard({
       }
     : null;
 
-  async function handleVerify(result: IDKitResult) {
-    await api.verifyHighSignal(deal.jobId, caller, result as unknown as Record<string, unknown>);
+  async function handleVerify(result: IDKitResultSession) {
+    if (!active.current) throw new Error(copy.error);
+    try {
+      await api.verifyHighSignal(deal.jobId, caller, result as unknown as Record<string, unknown>);
+      if (!active.current) return;
+      setState((previous) => previous ? { ...previous, callerStatus: 'verified' } : previous);
+    } catch (error) {
+      if (active.current) {
+        setError(copy.error);
+        setRequest(null);
+        setWidgetOpen(false);
+      }
+      throw error;
+    }
   }
 
   return (
@@ -79,20 +113,19 @@ export function HighSignalVerificationCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">High-signal deal</p>
+          <p className="text-[12px] font-semibold text-[var(--lp-text-sub)]">{copy.title}</p>
           <h2 id="high-signal-title" className="mt-2 text-[18px] font-bold text-[var(--lp-dark)]">
-            {verified ? 'Selfie Check recorded' : 'Verify before this deal moves forward'}
+            {verified ? copy.verified : copy[role]}
           </h2>
           <p className="mt-2 max-w-[58ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-            {verified
-              ? 'Your proof is recorded as a privacy-preserving trust signal. It does not authorize a payment or release.'
-              : 'This buyer selected a Selfie Check signal for a sensitive deal. Karwan keeps the proof result, not biometric data.'}
+            {verified ? copy.recordedBody : copy.body}
           </p>
         </div>
         <span className="mono rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-          {status.replace('_', ' ')}
+          {verified ? copy.verified : unavailable ? copy.unavailableLabel : status === 'rejected' ? copy.rejected : copy.pending}
         </span>
       </div>
+      <p className="mt-3 max-w-[62ch] text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{copy.limit}</p>
 
       {!verified ? (
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -100,46 +133,40 @@ export function HighSignalVerificationCard({
             type="button"
             onClick={begin}
             disabled={busy}
-            className="min-h-11 rounded-[10px] rounded-br-[3px] bg-[var(--lp-accent)] px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-band-dark)] disabled:opacity-60"
+            className="min-h-11 rounded-[10px] rounded-br-[3px] px-4 py-2.5 text-[13px] font-bold disabled:opacity-60"
+            style={{ background: 'var(--lp-accent)', color: 'var(--accent-ink)' }}
           >
-            {busy ? 'Preparing…' : unavailable ? 'Retry Selfie Check' : 'Prepare Selfie Check'}
+            {busy ? copy.preparing : request ? copy.resume : copy.start}
           </button>
-          <span className="text-[11px] text-[var(--lp-text-muted)]">You complete the Selfie Check beta flow in a supported World client.</span>
-        </div>
-      ) : null}
-      {request ? (
-        <div className="mt-4 space-y-2 rounded-[10px] border border-[var(--lp-border-light)] p-3">
-          <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">Verification request ready</p>
-          <p className="text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
-            Open the World credential client with action <strong>{request.action}</strong>. The Selfie Check beta challenge expires at {new Date(request.expires_at * 1000).toLocaleTimeString()}.
-          </p>
         </div>
       ) : null}
       {request && rpContext ? (
-        <IDKitRequestWidget
+        <IDKitSessionWidget
+          key={request.nonce}
           open={widgetOpen}
           onOpenChange={setWidgetOpen}
           app_id={request.appId as `app_${string}`}
-          action={request.action}
           rp_context={rpContext}
           environment={request.environment}
-          allow_legacy_proofs={true}
-          preset={selfieCheckLegacy()}
+          existing_session_id={request.sessionId as `session_${string}` | undefined}
+          require_user_presence={true}
+          constraints={any(CredentialRequest('selfie'))}
           handleVerify={handleVerify}
           onSuccess={() => {
+            if (!active.current) return;
             setWidgetOpen(false);
             setRequest(null);
             onRefresh();
           }}
-          onError={(code) => setError(`World ID could not complete: ${code}`)}
+          onError={() => setError(copy.error)}
         />
       ) : null}
       {unavailable ? (
         <p className="mt-4 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
-          World verification is not configured for this environment right now. Retry when the credential service is available; the deal remains protected until the selected party verifies.
+          {copy.unavailable}
         </p>
       ) : null}
-      {error ? <p className="mt-3 text-[12px] text-[#b03d3a]">{error}</p> : null}
+      {error ? <p role="alert" className="mt-3 text-[12px] text-[var(--lp-dark)]">{error}</p> : null}
     </section>
   );
 }

@@ -11,9 +11,10 @@ type Mode = 'managed' | 'direct';
 export function NewDealPanel() {
   const a11y = useTranslations().a11y;
   const t = useTranslations().dealPanel;
+  const c = useTranslations().dealCreation;
   const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
-    { value: 'managed', label: t.managedLabel, blurb: t.managedBlurb },
-    { value: 'direct', label: t.directLabel, blurb: t.directBlurb },
+    { value: 'managed', label: t.managedLabel, blurb: c.requestNext },
+    { value: 'direct', label: t.directLabel, blurb: c.directFlow },
   ];
   // When the user arrives here via a "Make offer" link from a listing detail
   // page (/buyer?seller=0x...&amount=...&terms=...), default to the direct
@@ -22,17 +23,18 @@ export function NewDealPanel() {
   // action links to.
   const search = useSearchParams();
   const initialMode: Mode =
-    search.get('seller') || search.get('mode') === 'direct' ? 'direct' : 'managed';
+    search.get('seller') || search.get('sellerEmail') || search.get('mode') === 'direct' ? 'direct' : 'managed';
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [visited, setVisited] = useState<Record<Mode, boolean>>({ managed: initialMode === 'managed', direct: initialMode === 'direct' });
   const active = MODES.find((m) => m.value === mode)!;
 
   return (
     <div className="space-y-7" id="deal-composer">
       <div>
         <div
-          role="tablist"
+          role="group"
           aria-label={a11y.dealType}
-          className="inline-flex p-1 gap-1"
+          className="grid grid-cols-2 gap-1 p-1"
           style={{
             background: 'var(--lp-light)',
             border: '1px solid var(--lp-border-light)',
@@ -48,10 +50,9 @@ export function NewDealPanel() {
               <button
                 key={m.value}
                 type="button"
-                role="tab"
-                aria-selected={isActive}
-                onClick={() => setMode(m.value)}
-                className="min-h-11 px-4 py-2 mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-[background-color,color,box-shadow] duration-200"
+                aria-pressed={isActive}
+                onClick={() => { setMode(m.value); setVisited(previous => ({ ...previous, [m.value]: true })); }}
+                className="min-h-11 px-4 py-2 text-[14px] font-semibold transition-[background-color,color,box-shadow] duration-200"
                 style={{
                   background: isActive ? 'var(--lp-control-active-bg)' : 'transparent',
                   color: isActive ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
@@ -67,13 +68,14 @@ export function NewDealPanel() {
             );
           })}
         </div>
-        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
+        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[64ch]">
           {active.blurb}
         </p>
       </div>
 
       <ActivationGate>
-        {mode === 'managed' ? <BriefComposer /> : <DirectDealComposer />}
+        {visited.managed ? <div hidden={mode !== 'managed'}><BriefComposer /></div> : null}
+        {visited.direct ? <div hidden={mode !== 'direct'}><DirectDealComposer /></div> : null}
       </ActivationGate>
     </div>
   );

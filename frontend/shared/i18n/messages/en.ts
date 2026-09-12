@@ -439,6 +439,56 @@ interface MessagesShape {
     cancelDefault: string;
     backdropAria: string;
   };
+  dealCreation: {
+    buyerRole: string;
+    currencyNote: string;
+    documents: string;
+    priceDeadline: string;
+    sellerRole: string;
+    title: string;
+    intro: string;
+    review: string;
+    reviewTitle: string;
+    edit: string;
+    confirmDirect: string;
+    confirmRequest: string;
+    directNext: string;
+    managedNext: string;
+    fees: string;
+    limit: string;
+    requestNext: string;
+    directFlow: string;
+    optional: string;
+    responseWindow: string;
+    seller: string;
+    email: string;
+    wallet: string;
+    delivery: string;
+    payment: string;
+    splitHelp: string;
+    splitRemaining: string;
+    noDeadline: string;
+    required: string;
+    requestRequired: string;
+    safeguards: string;
+    none: string;
+    security: string;
+    securityHelp: string;
+    evidence: string;
+    evidenceHelp: string;
+    identity: string;
+    identityHelp: string;
+    both: string;
+    who: string;
+    defaultSplit: string;
+    placeholder: string;
+    budgetHint: string;
+    tolerance: string;
+    toleranceHint: string;
+    authorisation: string;
+    extra: string;
+    notes: string;
+  };
   dealPanel: {
     managedLabel: string;
     managedBlurb: string;
@@ -2858,6 +2908,7 @@ interface MessagesShape {
         unavailable: string;
         expired: string;
         staleTerms: string;
+        staleDelivery: string;
         readUnavailable: string;
         notRecorded: string;
         notConfigured: string;
@@ -2866,6 +2917,9 @@ interface MessagesShape {
       mismatchBody: string;
       unavailableBody: string;
       staleBody: string;
+      pendingBody: string;
+      notConfiguredBody: string;
+      readUnavailableBody: string;
       versionTemplate: string;
       revisionTemplate: string;
       reportLabel: string;
@@ -4349,6 +4403,24 @@ interface MessagesShape {
     };
     callout: { title: string; body: string };
   };
+  worldCheck: {
+    unavailableLabel: string;
+    title: string;
+    verified: string;
+    buyer: string;
+    seller: string;
+    body: string;
+    limit: string;
+    start: string;
+    resume: string;
+    preparing: string;
+    error: string;
+    unavailable: string;
+    pending: string;
+    waiting: string;
+    rejected: string;
+    recordedBody: string;
+  };
   howItWorksPage: {
     header: { eyebrow: string; title: string; body: string };
     directDeal: {
@@ -5508,11 +5580,61 @@ export const en: MessagesShape = {
     cancelDefault: 'Cancel',
     backdropAria: 'Cancel',
   },
+  dealCreation: {
+    buyerRole: 'Buyer',
+    currencyNote: 'Settlement is in USDC. Local-currency conversion is not included.',
+    documents: 'Documents',
+    priceDeadline: 'Price and deadline',
+    sellerRole: 'Seller',
+    "title": "Create a trade",
+    "intro": "Find a seller through Karwan, or bring someone you already know.",
+    "review": "Review details",
+    "reviewTitle": "Check before you create",
+    "edit": "Edit details",
+    "confirmDirect": "Create deal",
+    "confirmRequest": "Post and authorise matching",
+    "directNext": "This creates the agreement, not a payment. The seller must agree before you review the exact total and fund the deal.",
+    "managedNext": "Posting authorises your agent to match and negotiate on Karwan. When the seller accepts within your authorised price range, your agent funds the deal from your balance. No separate buyer funding approval is required.",
+    "fees": "The price limit excludes platform fees and network costs. Your trading balance must cover these too.",
+    "limit": "Authorised price limit",
+    "requestNext": "Agents find and negotiate with sellers on Karwan. Seller acceptance within your settings can trigger funding from your balance.",
+    "directFlow": "Add your seller and agreed terms. Review, create, then fund after the seller agrees.",
+    "optional": "Optional deal requirements",
+    "responseWindow": "Seller response time",
+    "seller": "Who are you trading with?",
+    "email": "Email",
+    "wallet": "Wallet or paytag",
+    "delivery": "What should they deliver?",
+    "payment": "How is payment split?",
+    "splitHelp": "Choose the percentage for the first payment stage. The rest belongs to the final stage. Delivery review and claim rules apply.",
+    "splitRemaining": "Final stage: {n}%",
+    "noDeadline": "No delivery deadline. You cannot reclaim just because delivery is late.",
+    "required": "Complete the required fields to review. Delivery deadline is optional for direct deals.",
+    "requestRequired": "Add a description, budget and delivery deadline to review.",
+    "safeguards": "Selected requirements",
+    "none": "None",
+    "security": "Seller security reserve",
+    "securityHelp": "Requires seller stake before acceptance. It can be reduced if a dispute is decided against the seller.",
+    "evidence": "Check delivery evidence",
+    "evidenceHelp": "Chainlink CRE checks the agreed source. GitHub is currently supported. A check does not guarantee work quality.",
+    "identity": "World ID presence check",
+    "identityHelp": "Requires a fresh Selfie check before the chosen party accepts or funds. It does not prove honesty or guarantee delivery.",
+    "both": "Both parties",
+    "who": "Who must verify",
+    "defaultSplit": "Your saved buyer payment stages",
+    "placeholder": "e.g. Design a bakery logo with two revisions. Deliver SVG and PNG files within 7 days.",
+    "budgetHint": "Your target price in USDC. Optional price flexibility increases the authorised limit.",
+    "tolerance": "Price flexibility",
+    "toleranceHint": "The extra percentage your agent may agree above budget. Leave blank or 0 to ask you about higher prices.",
+    "authorisation": "What you are authorising",
+    "extra": "Business details",
+    "notes": "Review all details. Nothing has been created yet."
+  },
   dealPanel: {
     managedLabel: 'Find me a seller',
-    managedBlurb: 'Post a request. Your agent runs the bidding. You wake up to a matched deal, ready for you to fund.',
+    managedBlurb: 'Post what you need. Your agent looks for matching offers on Karwan. Review the seller and agree the terms before payment.',
     directLabel: 'I have a seller',
-    directBlurb: 'You already agreed with a counterparty. Open an escrow naming their wallet, skip the auction.',
+    directBlurb: 'Invite your seller and record what you agreed. You both review the terms before you secure the payment.',
   },
   roleToggle: {
     ariaGroup: 'Account type',
@@ -8157,21 +8279,25 @@ export const en: MessagesShape = {
       deliveryUnknownBody: 'Karwan could not complete the delivery check. This is unknown, not a failure. Review the work yourself before releasing.',
     },
     evidenceReceipt: {
-      label: 'ARC EVIDENCE RECEIPT',
+      label: 'Delivery check · Chainlink CRE',
       states: {
         pass: 'Delivery check passed',
         mismatch: 'Delivery check mismatch',
         unavailable: 'Delivery check unavailable',
         expired: 'Delivery check expired',
         staleTerms: 'Older agreement checked',
-        readUnavailable: 'Payment proof unavailable',
+        staleDelivery: 'Earlier delivery checked',
+        readUnavailable: 'Delivery record unavailable',
         notRecorded: 'Awaiting delivery check',
         notConfigured: 'Delivery check not configured',
       },
       passBody: 'The recorded evidence matches this agreement version. Review the work before releasing payment.',
       mismatchBody: 'The recorded evidence does not match the accepted criteria. Payment remains under human review.',
       unavailableBody: 'The source could not be verified. This is unknown, not a failed delivery.',
-      staleBody: 'This receipt cannot verify the current agreement. Request fresh evidence before relying on it.',
+      staleBody: 'This result is expired or belongs to earlier terms or delivery. A fresh check is needed before relying on it.',
+      pendingBody: 'No result has been recorded for this delivery yet. Check again shortly; this does not mean the work failed.',
+      notConfiguredBody: 'This deal requires a delivery check, but the checking service is not configured. Contact support before relying on a result.',
+      readUnavailableBody: 'Karwan could not read the delivery record. Try again; this does not tell us whether the work passed or failed.',
       versionTemplate: 'Agreement v{version}',
       revisionTemplate: 'Evidence revision {revision}',
       reportLabel: 'Evidence report',
@@ -9824,6 +9950,24 @@ export const en: MessagesShape = {
       body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Treasury yield through real Hashnote USYC is already live on testnet.',
     },
   },
+  worldCheck: {
+    unavailableLabel: "Unavailable",
+    title: "World ID · Selfie Check",
+    verified: "Selfie Check recorded",
+    buyer: "Verify before funding this deal.",
+    seller: "Verify before accepting this deal.",
+    body: "Complete a camera check in World ID App. Karwan receives a proof, not your selfie.",
+    limit: "This is a liveness signal, not a guarantee of identity, trustworthiness or delivery. It does not approve a payment.",
+    start: "Verify with World ID",
+    resume: "Continue verification",
+    preparing: "Preparing verification…",
+    error: "Verification could not be completed. Try again or contact support if it continues.",
+    unavailable: "Verification is unavailable. Try again later or contact support. Acceptance or funding stays blocked until this deal's required check is complete.",
+    pending: "Verification needed",
+    waiting: "Waiting for counterparty",
+    rejected: "Try verification again",
+    recordedBody: "Your result is recorded for this deal. Continue to the deal action when you are ready.",
+  },
   howItWorksPage: {
     header: {
       eyebrow: 'Documentation',
@@ -9836,7 +9980,7 @@ export const en: MessagesShape = {
       body: 'You found someone through a chat, marketplace, social post, or referral. Karwan records the terms and protects payment while goods or services are delivered.',
       step1: { title: 'Agree and fund', cta: 'Open buyer dashboard', bodyA: 'On ', bodyB: ', pick "I have a seller". Enter their wallet or email, the amount, deadline, and milestones. The seller agrees first. You then review the current fee and exact total before funding escrow.' },
       step2: { title: 'Seller delivers', body: 'Delivery begins only after the deal shows escrow funded. When the agreed goods or service are delivered, the seller submits delivery for the buyer to review.' },
-      step3: { title: 'Release in tranches', body: 'You release the first slice, then verify the delivery and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
+      step3: { title: 'Review and pay', body: 'You release the first slice, then verify the delivery and release the rest. The escrow settles, the platform fee is collected, and the seller\'s reputation is recorded on chain.' },
     },
     managedDeal: {
       eyebrow: 'Find supply',
@@ -9878,12 +10022,12 @@ export const en: MessagesShape = {
       usyc: 'Trade capital is idle by nature, and money that sits should earn. The treasury holds real allowlisted Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same operator-mediated path. The live escrow carries the same sweep path for funds left idle during long-dated trades, capped at 80 percent of float, though no escrow balance has been swept yet.',
     },
     trust: {
-      eyebrow: 'Trust and proof', title: 'Two questions, two checks.',
+      eyebrow: 'Trust and proof', title: 'Know what each check means',
       evidenceTitle: 'What happened?', identityTitle: 'Who is behind the action?',
       body: 'Karwan keeps delivery evidence separate from participant identity. Arc records the money, Chainlink CRE checks what was delivered, and World ID plus AgentKit can check who is behind an automated action.',
-      evidence: 'Chainlink CRE binds an authenticated delivery request to the accepted agreement, checks the source result, fences duplicate workers, and pauses release when evidence is missing, stale, or mismatched. GitHub is the first source; carrier events, signed files, and buyer acceptance can use the same boundary.',
-      identity: 'World ID staging proofs and AgentKit challenges provide an optional human-backed signal. Karwan checks the domain, nonce, signature, expiry, replay state, and World AgentBook registration before granting a protected agent capability. The buyer still approves the deal.',
-      boundary: 'Arc remains authoritative for escrow and settlement. World verification does not approve a payment, and delivery evidence does not prove identity.',
+      evidence: "For deals that require it, Chainlink CRE checks the configured GitHub criteria and records a result on Arc. The deal distinguishes a match, a mismatch, an unavailable source and an outdated result. A passed check is not a guarantee of work quality.",
+      identity: "World ID Selfie Check adds an optional liveness check before accepting or funding a deal. Separately, AgentKit checks AgentBook registration for a human-backed agent’s shared research allowance. Neither signal guarantees a trustworthy trader.",
+      boundary: "These checks do not authorize payments. Review the delivery, fees and deadlines yourself. Arc escrow rules still govern releases, refunds and disputes.",
     },
     roadmap: {
       eyebrow: 'Roadmap',
@@ -9901,8 +10045,8 @@ export const en: MessagesShape = {
       q2: { q: 'What is the platform fee?', a: '1.5% of the deal amount, split evenly between buyer and seller. The buyer funds the deal amount and their half of the fee; the seller nets the deal amount minus their half. The fee collects on chain as each milestone releases.' },
       q3: { q: 'Who controls my agent wallet, and how do I fund it?', a: 'Your agent wallet is a Circle Developer-Controlled Wallet whose owner is you. Karwan can sign on its behalf to negotiate while you sleep, but it never opens an escrow without your sign-off. You can sweep funds out of it at any time from the profile page. To fund a wallet while Karwan is on Arc Testnet, every wallet on the profile has a Get USDC button: it copies that wallet address and opens the Circle faucet so you claim test USDC in seconds, no bridging needed. Deposit is there for when you bring real USDC to Arc.' },
       q4: { q: 'Are the smart contracts deployed?', a: 'Yes. The escrow, vault, reputation, treasury, and job-board contracts are live on Arc Testnet (chain 5042002). The current addresses are in the public repository. Every event in the activity feed links to its transaction on the Arc explorer.' },
-      q5: { q: 'How does the escrow release?', a: 'The buyer releases each milestone with a single click. The seller gets their share, the treasury gets the platform fee in proportion, and the final release marks the escrow settled. The final milestone always needs an explicit buyer click; it never auto-releases.' },
-      q6: { q: 'What if a deal goes to dispute?', a: 'A buyer can dispute from the funded or delivered state. The escrow moves to a disputed state and either side can resolve through the contract. A refund returns the money to the buyer and slashes the seller\'s reserved stake to the buyer as insurance. A release sends the money to the seller. The outcome lands on both parties\' on-chain reputation record.' },
+      q5: { q: 'How does the escrow release?', a: "Review delivery and release the agreed milestones. If a review deadline expires, the contract may allow the seller to claim the current milestone, including the final one. Check the deadline and available actions on the deal; do not assume inaction keeps funds frozen." },
+      q6: { q: 'What if a deal goes to dispute?', a: "A dispute freezes the unreleased balance. You can propose a resolution for the other party to accept. If you cannot agree, recovery depends on the configured contract and arbiter. Opening a dispute is not an automatic refund." },
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
       q8: { q: 'What kinds of trade can I use?', a: 'Karwan is for local and cross-border goods or services. Start from a known counterparty with Bring a deal, or use Find supply to publish a request or offer. The current settlement path runs on Arc Testnet, so testnet balances and receipts have no real value.' },
       q9: { q: 'Where does the agent reasoning run?', a: 'Agents search, compare, research, and prepare recommendations within your limits. Deterministic backend rules enforce budget, deadline, eligibility, evidence, and approval boundaries. Agents do not silently accept a match, fund escrow, release money, or change workspace authority.' },
@@ -9967,7 +10111,7 @@ export const en: MessagesShape = {
       title: '4. How a deal settles',
       lead: 'Once escrow is funded, these are the rules that move the money.',
       bullets: {
-        release: { label: 'Milestone release.', body: 'The buyer releases each milestone. The final milestone always needs an explicit click from the buyer and never releases on a timer.' },
+        release: { label: 'Milestone release.', body: "Review delivery and release the agreed milestones. If a review deadline expires, the contract may allow the seller to claim the current milestone, including the final one. Check the deadline and available actions on the deal; do not assume inaction keeps funds frozen." },
         autoRelease: { label: 'Automatic release.', body: 'Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.' },
         deadline: { label: 'A missed deadline.', body: 'When a delivery deadline passes with nothing delivered, the buyer is alerted and can reclaim or grant an extension. If nobody acts and the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller.' },
         cancel: { label: 'Cancelling.', body: 'A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.' },

@@ -548,8 +548,8 @@ export interface DirectDeal {
     mode: 'high_signal';
     subject: 'buyer' | 'seller' | 'both';
     provider: 'world-id';
-    buyer?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number };
-    seller?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number };
+    buyer?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
+    seller?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
   };
   evidenceReceipt?: {
     state:
@@ -560,6 +560,7 @@ export interface DirectDeal {
       | 'unavailable'
       | 'expired'
       | 'stale-terms'
+      | 'stale-delivery'
       | 'read-unavailable';
     agreementVersion: number;
     registryAddress?: string;
@@ -3457,7 +3458,7 @@ export const api = {
     json<{
       policy: 'standard' | 'high_signal';
       callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
-      request: { provider: 'world-id'; action: string; appId: string; rpId: string; environment: 'staging' | 'production'; nonce: string; sig: string; created_at: number; expires_at: number } | null;
+      request: { provider: 'world-id'; proofMode: 'session'; sessionId?: string; appId: string; rpId: string; environment: 'staging' | 'production'; nonce: string; sig: string; created_at: number; expires_at: number } | null;
     }>(`/api/deals/direct/${jobId}/high-signal/request`, {
       method: 'POST', body: JSON.stringify({ caller }),
     }),

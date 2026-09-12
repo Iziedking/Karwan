@@ -60,6 +60,7 @@ import {
 } from '@/shared/components/Bands';
 import { proofSegments } from '../proofLinks';
 import { evidenceReceiptBodyKey, evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
+import { worldCheckOverview } from '../worldCheckOverview';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
 
@@ -259,7 +260,9 @@ function milestonePctsFor(deal: DirectDeal): number[] {
 }
 
 export function DirectDealDetail({ jobId }: { jobId: string }) {
-  const dd = useTranslations().directDealDetail;
+  const messages = useTranslations();
+  const dd = messages.directDealDetail;
+  const worldCopy = messages.worldCheck;
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
@@ -481,8 +484,22 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   }
 
   const stage = stageOf(deal);
-  const viewerIsBuyer = !!address && address.toLowerCase() === deal.buyer;
-  const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
+  const viewerIsBuyer = !!address && address.toLowerCase() === deal.buyer.toLowerCase();
+  const viewerIsSeller = !!address && address.toLowerCase() === deal.seller.toLowerCase();
+  const worldViewerRole = viewerIsBuyer ? 'buyer' : viewerIsSeller ? 'seller' : null;
+  const worldOverview = worldCheckOverview(deal, worldViewerRole);
+  const worldStatusLabel = worldOverview.state === 'verified'
+    ? worldCopy.verified
+    : worldOverview.state === 'waiting'
+      ? worldCopy.waiting
+      : worldOverview.state === 'unavailable'
+        ? worldCopy.unavailableLabel
+        : worldOverview.state === 'rejected'
+          ? worldCopy.rejected
+          : worldCopy.pending;
+  const evidenceStatusLabel = deal.evidenceReceipt
+    ? dd.evidenceReceipt.states[evidenceReceiptCopyKey(deal.evidenceReceipt.state)]
+    : dd.evidenceReceipt.states.notRecorded;
   const fundingSummary =
     fundingQuote ??
     safeOnChainFundingSummary(deal.onChain);
@@ -1153,6 +1170,42 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                       ) : null}
                     </div>
                   </div>
+
+                  {(worldOverview.visible || deal.evidenceRequired === true) ? (
+                    <div className="mt-5 grid gap-2 border-t border-[var(--lp-border-light)] pt-5 sm:grid-cols-2">
+                      {worldOverview.visible && worldOverview.actionable ? (
+                        <button
+                          type="button"
+                          onClick={() => openSection('actions')}
+                          className="flex min-h-14 items-center justify-between gap-4 rounded-[12px] border border-[var(--lp-border-light)] px-4 py-3 text-start transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                        >
+                          <span>
+                            <span className="block text-[12px] font-semibold text-[var(--lp-dark)]">{worldCopy.title}</span>
+                          </span>
+                          <span className="shrink-0 text-[11px] font-semibold text-[var(--lp-accent)]">{worldStatusLabel} →</span>
+                        </button>
+                      ) : worldOverview.visible ? (
+                        <div className="flex min-h-14 items-center justify-between gap-4 rounded-[12px] border border-[var(--lp-border-light)] px-4 py-3 text-start">
+                          <span>
+                            <span className="block text-[12px] font-semibold text-[var(--lp-dark)]">{worldCopy.title}</span>
+                          </span>
+                          <span className="shrink-0 text-[11px] font-semibold text-[var(--lp-text-muted)]">{worldStatusLabel}</span>
+                        </div>
+                      ) : null}
+                      {deal.evidenceRequired === true ? (
+                        <button
+                          type="button"
+                          onClick={() => openSection('terms')}
+                          className="flex min-h-14 items-center justify-between gap-4 rounded-[12px] border border-[var(--lp-border-light)] px-4 py-3 text-start transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                        >
+                          <span>
+                            <span className="block text-[12px] font-semibold text-[var(--lp-dark)]">{dd.evidenceReceipt.label}</span>
+                          </span>
+                          <span className="shrink-0 text-[11px] font-semibold text-[var(--lp-accent)]">{evidenceStatusLabel} →</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </PageCard>
             </div>
@@ -1214,12 +1267,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           </div>
         </Band>
       )}
-
-      {address && deal.verificationPolicy === 'high_signal' ? (
-        <Band tone="light" compact>
-          <HighSignalVerificationCard deal={deal} caller={address} onRefresh={() => void refresh()} />
-        </Band>
-      ) : null}
 
           </div>
       </>
@@ -1673,6 +1720,15 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               scrollMarginTop: 96,
             }}
           >
+            {address && deal.verificationPolicy === 'high_signal' ? (
+              <div className="mb-5">
+                <HighSignalVerificationCard
+                  deal={deal}
+                  caller={address}
+                  onRefresh={() => void refresh()}
+                />
+              </div>
+            ) : null}
             {proposal && (
               <div className="mb-4">
                 <CancelProposalBanner

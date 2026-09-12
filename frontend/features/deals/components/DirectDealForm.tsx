@@ -7,9 +7,10 @@ import { api, ApiError, type Partner } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { CreationReview } from './CreationReview';
+import { validAmount, validWhole } from '../creationValidation';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -49,6 +50,7 @@ const DOC_KIND_LABEL_DD: Record<DocumentKind, string> = {
   other: 'OTHER',
 };
 
+
 async function sha256OfFileDD(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   const hashBuffer = await crypto.subtle.digest('SHA-256', buf);
@@ -74,6 +76,10 @@ export function DirectDealForm() {
   const t = useTranslations();
   const tt = t.tradeTerms;
   const dd = t.directDeal;
+  const c = t.dealCreation;
+  const [reviewing, setReviewing] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const inFlight = useRef(false);
   const router = useRouter();
   // Source of truth covers both wagmi web3 users and Circle passkey/email
   // users. Direct-deal create is backend-signed (the buyer agent DCW opens
@@ -116,8 +122,8 @@ export function DirectDealForm() {
   /// Counterparty mode. 'wallet' takes a 0x address (existing flow); 'email'
   /// takes an email and mints a one-shot shareable invite link instead. Funding
   /// stays parked until the recipient claims the link.
-  const [counterpartyMode, setCounterpartyMode] = useState<'wallet' | 'email'>('wallet');
-  const [counterpartyEmail, setCounterpartyEmail] = useState('');
+  const [counterpartyMode, setCounterpartyMode] = useState<'wallet' | 'email'>(search.get('sellerEmail') ? 'email' : 'wallet');
+  const [counterpartyEmail, setCounterpartyEmail] = useState(search.get('sellerEmail') ?? '');
   /// Trusted-match opt-in. When true, the seller's accept panel will surface a
   /// stake requirement. Default off, most casual deals don't need it.
   const [requireStake, setRequireStake] = useState(false);
@@ -271,7 +277,7 @@ export function DirectDealForm() {
     counterpartyMode === 'wallet'
       ? (sellerValid && !sameWallet) || !!paytagHit
       : emailValid;
-  const amountValid = typeof amount === 'number' && amount > 0;
+  const amountValid = validAmount(amount);
   // Single-input deadline with a min/hr/day unit toggle. Bounds per unit
   // mirror the buyer brief form so behaviour is identical across surfaces.
   // Empty value = open-ended (no delivery deadline, no unilateral cancel for
@@ -280,10 +286,8 @@ export function DirectDealForm() {
     deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 180;
   const deadlineValid =
     deadlineValue === '' ||
-    (typeof deadlineValue === 'number' &&
-      deadlineValue >= 1 &&
-      deadlineValue <= deadlineMax);
-  const pctValid = typeof firstPct === 'number' && firstPct >= 1 && firstPct <= 99;
+    validWhole(deadlineValue, 1, deadlineMax);
+  const pctValid = validWhole(firstPct, 1, 99);
   const termsValid = terms.trim().length > 0;
 
   const canSubmit =
@@ -293,11 +297,8 @@ export function DirectDealForm() {
     deadlineValid &&
     pctValid &&
     termsValid &&
-    !submitting;
+    !submitting && !hashingFile;
 
-  const previewAmount = typeof amount === 'number' ? amount : 0;
-  const previewPct = typeof firstPct === 'number' ? firstPct : 0;
-  const previewDeadlineValue = typeof deadlineValue === 'number' ? deadlineValue : 0;
   const previewUnitLabel =
     deadlineUnit === 'min'
       ? dd.preview.unitMin
@@ -320,7 +321,9 @@ export function DirectDealForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit || !address) return;
+    if (!canSubmit || !address || inFlight.current) return;
+    if (!reviewing) { setReviewing(true); return; }
+    inFlight.current = true;
     setSubmitting(true);
     setError(null);
     try {
@@ -375,6 +378,7 @@ export function DirectDealForm() {
       const detail = err instanceof ApiError ? err.detail : undefined;
       setError(typeof detail === 'string' && detail.trim() ? detail : dd.errorPrefix);
       setSubmitting(false);
+      inFlight.current = false;
     }
   }
 
@@ -385,101 +389,22 @@ export function DirectDealForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-7">
-      {/* DEAL PREVIEW */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background: 'var(--lp-workspace-raised)',
-          color: 'var(--lp-workspace-ink)',
-          border: '1px solid var(--lp-workspace-border)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none opacity-40 grid-drift"
-          style={{
-            backgroundImage:
-              'linear-gradient(var(--lp-workspace-grid) 1px, transparent 1px), linear-gradient(90deg, var(--lp-workspace-grid) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-            maskImage: 'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
-            WebkitMaskImage:
-              'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
-          }}
-        />
-        <div className="relative px-6 py-6">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-            {dd.preview.eyebrow}
-          </p>
-          <div className="mt-3 flex items-baseline gap-2 flex-wrap">
-            <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
-              {previewAmount}
-            </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-              USDC
-            </span>
-            <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-[var(--lp-workspace-border)]" />
-            <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
-              {previewDeadlineValue}
-            </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-              {previewUnitLabel}
-            </span>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-workspace-muted)]">
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                aria-hidden
-                data-instrument-blink
-                className="w-[6px] h-[6px]"
-                style={{
-                  background: 'var(--lp-accent)',
-                  animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                }}
-              />
-              {dd.preview.deliveryPctTemplate.replace('{n}', String(previewPct))}
-            </span>
-            <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
-            <span>
-              {dd.preview.verificationPctTemplate.replace('{n}', String(100 - previewPct))}
-            </span>
-            <span aria-hidden className="w-px h-3 bg-white/20" />
-            <span>{dd.preview.directEscrow}</span>
-          </div>
-        </div>
-      </div>
-
+    <form ref={formRef} onSubmit={submit} className="space-y-7">
+      <fieldset hidden={reviewing} disabled={submitting || reviewing} className="space-y-7 min-w-0">
       {/* COUNTERPARTY */}
       <FieldSection
         eyebrow={dd.counterparty.eyebrow}
-        title={
-          counterpartyMode === 'wallet'
-            ? dd.counterparty.titleWallet
-            : dd.counterparty.titleEmail
-        }
+        title={c.seller}
       >
-        <div className="flex items-center justify-between gap-3 pb-3">
-          <p className="text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-            {counterpartyMode === 'wallet'
-              ? dd.counterparty.helperWallet
-              : dd.counterparty.helperEmail}
-          </p>
-          <label className="inline-flex min-h-11 items-center gap-2 px-2 shrink-0 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={counterpartyMode === 'email'}
-              onChange={(e) => setCounterpartyMode(e.target.checked ? 'email' : 'wallet')}
-              disabled={submitting}
-              className="accent-[var(--lp-accent)]"
-            />
-            <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
-              {dd.counterparty.sendByEmailLabel}
-            </span>
-          </label>
+        <div role="group" aria-label={c.seller} className="flex flex-wrap gap-2">
+          {(['wallet', 'email'] as const).map((mode) => (
+            <button key={mode} type="button" aria-pressed={counterpartyMode === mode}
+              onClick={() => setCounterpartyMode(mode)} disabled={submitting}
+              className="min-h-11 rounded-xl border px-4 text-[14px] font-semibold"
+              style={{ background: counterpartyMode === mode ? 'var(--lp-control-active-bg)' : 'transparent', color: counterpartyMode === mode ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)', borderColor: 'var(--lp-outline)' }}>
+              {mode === 'email' ? c.email : paytagAllowed ? c.wallet : dd.counterparty.walletLabel}
+            </button>
+          ))}
         </div>
         {counterpartyMode === 'wallet' ? (
           <FormLabel
@@ -510,19 +435,19 @@ export function DirectDealForm() {
               </p>
             )}
             {paytagMissing && !paytagLooking && (
-              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
                 {dd.counterparty.paytagNotFound}
               </span>
             )}
             {seller.length > 0 && !sellerValid && !sellerLooksLikePaytag && (
-              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
                 {paytagAllowed
                   ? dd.counterparty.walletOrPaytagInvalid
                   : dd.counterparty.walletInvalid}
               </span>
             )}
             {sameWallet && (
-              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
                 {dd.counterparty.walletSelfWarning}
               </span>
             )}
@@ -584,7 +509,7 @@ export function DirectDealForm() {
               className="form-input"
             />
             {counterpartyEmail.length > 3 && !emailValid && (
-              <span className="mono text-[11px] text-[#7a1f1a] mt-1.5 inline-block">
+              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
                 {dd.counterparty.emailInvalid}
               </span>
             )}
@@ -592,9 +517,29 @@ export function DirectDealForm() {
         )}
       </FieldSection>
 
+      {/* DELIVERABLE */}
+      <FieldSection eyebrow={dd.deliverable.eyebrow} title={c.delivery}>
+        <FormLabel label={dd.deliverable.termsLabel} hint={dd.deliverable.termsHint}>
+          <textarea
+            value={terms}
+            onChange={(e) => setTerms(e.target.value)}
+            rows={3}
+            disabled={submitting}
+            placeholder={
+              tradeType === 'goods'
+                ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums.'
+                : tradeType === 'mixed'
+                  ? 'e.g. Equipment install on site, including shipping and commissioning.'
+                  : dd.deliverable.termsPlaceholder
+            }
+            className="form-input form-textarea"
+          />
+        </FormLabel>
+      </FieldSection>
+
       {/* TERMS */}
-      <FieldSection eyebrow={dd.terms.eyebrow} title={dd.terms.title}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <FieldSection eyebrow={dd.terms.eyebrow} title={c.priceDeadline}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <FormLabel label={dd.terms.amountLabel} unit="USDC">
             <input
               type="number"
@@ -644,10 +589,17 @@ export function DirectDealForm() {
               />
             </div>
           </FormLabel>
+        </div>
+        {deadlineValue === '' ? <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">{c.noDeadline}</p> : null}
+      </FieldSection>
+
+      <FieldSection eyebrow={dd.terms.eyebrow} title={c.payment}>
+        <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">{c.splitHelp}</p>
+        <div className="max-w-sm">
           <FormLabel
             label={dd.terms.deliveryPctLabel}
             unit="%"
-            hint={dd.terms.deliveryPctHint}
+            hint={c.splitHelp}
           >
             <input
               type="number"
@@ -662,68 +614,9 @@ export function DirectDealForm() {
               className="form-input form-input-num"
             />
           </FormLabel>
-          <FormLabel
-            label={dd.terms.acceptanceWindowLabel}
-            hint={dd.terms.acceptanceWindowHint}
-          >
-            <div className="flex flex-wrap gap-1.5">
-              {(
-                [
-                  { label: dd.terms.presets.fifteenMin, value: 0.25 },
-                  { label: dd.terms.presets.oneHr, value: 1 },
-                  { label: dd.terms.presets.sixHr, value: 6 },
-                  { label: dd.terms.presets.dayOne, value: 24 },
-                  { label: dd.terms.presets.threeDays, value: 72 },
-                  { label: dd.terms.presets.sevenDays, value: 168 },
-                ] as const
-              ).map((opt) => {
-                const active = acceptanceHours === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => setAcceptanceHours(opt.value)}
-                    className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
-                      color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-                      border: active
-                        ? '1px solid var(--lp-control-active-border)'
-                        : '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 7,
-                      borderTopRightRadius: 7,
-                      borderBottomLeftRadius: 7,
-                      borderBottomRightRadius: 2,
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </FormLabel>
-        </div>
-      </FieldSection>
 
-      {/* DELIVERABLE */}
-      <FieldSection eyebrow={dd.deliverable.eyebrow} title={dd.deliverable.title}>
-        <FormLabel label={dd.deliverable.termsLabel} hint={dd.deliverable.termsHint}>
-          <textarea
-            value={terms}
-            onChange={(e) => setTerms(e.target.value)}
-            rows={3}
-            disabled={submitting}
-            placeholder={
-              tradeType === 'goods'
-                ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums.'
-                : tradeType === 'mixed'
-                  ? 'e.g. Equipment install on site, including shipping and commissioning.'
-                  : dd.deliverable.termsPlaceholder
-            }
-            className="form-input form-textarea"
-          />
-        </FormLabel>
+        </div>
+        {pctValid ? <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{c.splitRemaining.replace('{n}', String(100 - Number(firstPct)))}</p> : null}
       </FieldSection>
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
@@ -851,7 +744,7 @@ export function DirectDealForm() {
               </FormLabel>
             </div>
             <FormLabel
-              label="Documents"
+              label={c.documents}
               hint="Files stay on your device. Karwan records a tamper-evident receipt after the deal is accepted."
             >
               <input
@@ -923,36 +816,50 @@ export function DirectDealForm() {
       </FieldSection>
       )}
 
-      {/* FUNDING SUMMARY. The contract fee is owner-settable, so the proposal
-          must not present a hardcoded total as authoritative. The buyer sees
-          and authorizes the live quote only after the seller agrees. */}
-      {amountValid && (
-        <div
-          className="overflow-hidden"
-          style={{
-            background: 'var(--lp-light)',
-            border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 4,
-          }}
-        >
-          <div className="px-5 py-4 border-b border-[var(--lp-border-light)]">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-              {dd.funding.header}
-            </p>
-          </div>
-          <div className="px-5 py-4 space-y-2.5">
-            <FeeLine label={dd.funding.youFundLabel} value={previewAmount} strong />
-            <p className="text-[12.5px] leading-relaxed text-[var(--lp-text-sub)]">
-              {dd.funding.footerTemplate
-                .replace('{delivery}', String(previewPct))
-                .replace('{verification}', String(100 - previewPct))}
-            </p>
-          </div>
-        </div>
-      )}
+      <details className="border-y border-[var(--lp-border-light)]">
+        <summary className="flex min-h-11 cursor-pointer items-center justify-between py-3 text-[15px] font-semibold text-[var(--lp-dark)]">{c.optional}<span aria-hidden>＋</span></summary>
+        <div className="space-y-4 pb-5">
+          <FormLabel
+            label={dd.terms.acceptanceWindowLabel}
+            hint={dd.terms.acceptanceWindowHint}
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  { label: dd.terms.presets.fifteenMin, value: 0.25 },
+                  { label: dd.terms.presets.oneHr, value: 1 },
+                  { label: dd.terms.presets.sixHr, value: 6 },
+                  { label: dd.terms.presets.dayOne, value: 24 },
+                  { label: dd.terms.presets.threeDays, value: 72 },
+                  { label: dd.terms.presets.sevenDays, value: 168 },
+                ] as const
+              ).map((opt) => {
+                const active = acceptanceHours === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => setAcceptanceHours(opt.value)}
+                    className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
+                      color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+                      border: active
+                        ? '1px solid var(--lp-control-active-border)'
+                        : '1px solid var(--lp-border-light)',
+                      borderTopLeftRadius: 7,
+                      borderTopRightRadius: 7,
+                      borderBottomLeftRadius: 7,
+                      borderBottomRightRadius: 2,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </FormLabel>
 
       {/* TRUSTED MATCH toggle. When on, the seller will see a stake
           requirement on their accept panel. Off-default, most direct deals
@@ -984,16 +891,17 @@ export function DirectDealForm() {
         />
         <div className="min-w-0">
           <span
-            className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
-            style={{ color: requireStake ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+            className="text-[14px] font-semibold inline-flex items-center gap-1.5"
+            style={{ color: 'var(--lp-dark)' }}
           >
-            {dd.trustedMatch.eyebrow}
+            {c.security}
+            <Hint>{dd.trustedMatch.body}</Hint>
           </span>
           <p
             id="require-stake-help"
             className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
           >
-            {dd.trustedMatch.body}
+            {c.securityHelp}
           </p>
           {requireStake && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -1054,16 +962,19 @@ export function DirectDealForm() {
         />
         <div className="min-w-0">
           <span
-            className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
-            style={{ color: evidenceRequired ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+            className="text-[14px] font-semibold inline-flex items-center gap-1.5"
+            style={{ color: 'var(--lp-dark)' }}
           >
-            CRE delivery evidence
+            {c.evidence}
+            <Hint>
+              {c.evidenceHelp}
+            </Hint>
           </span>
           <p
             id="delivery-evidence-help"
             className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]"
           >
-            Require a verifiable delivery record before release. Chainlink CRE checks the agreed source and records the result on Arc. GitHub is the first supported source.
+            {c.evidenceHelp}
           </p>
         </div>
       </label>
@@ -1093,16 +1004,19 @@ export function DirectDealForm() {
             aria-describedby="high-signal-help"
           />
           <span className="min-w-0">
-            <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
-              High-signal identity check
+            <span className="text-[14px] font-semibold text-[var(--lp-dark)] inline-flex items-center gap-1.5">
+              {c.identity}
+              <Hint>
+                {c.identityHelp}
+              </Hint>
             </span>
             <span id="high-signal-help" className="mt-1.5 block text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
-              Ask for a World ID Selfie Check (Beta) before the selected party accepts or funds. Selfie Check does not require Orb access. Karwan stores a proof reference, never biometric data, and still requires human payment approval.
+              {c.identityHelp}
             </span>
           </span>
         </label>
         {highSignal ? (
-          <div className="mt-3 flex flex-wrap gap-2 ps-7" role="radiogroup" aria-label="Who must verify">
+          <div className="mt-3 flex flex-wrap gap-2 ps-7" role="radiogroup" aria-label={c.who}>
             {(['seller', 'buyer', 'both'] as const).map((subject) => (
               <button
                 key={subject}
@@ -1119,12 +1033,39 @@ export function DirectDealForm() {
                   borderRadius: 7,
                 }}
               >
-                {subject === 'both' ? 'Both parties' : subject}
+                {subject === 'both' ? c.both : subject === 'seller' ? c.sellerRole : c.buyerRole}
               </button>
             ))}
           </div>
         ) : null}
       </div>
+
+
+        </div>
+      </details>
+      </fieldset>
+
+      {reviewing ? <CreationReview busy={submitting} onEdit={() => {
+        setReviewing(false);
+        requestAnimationFrame(() => formRef.current?.querySelector<HTMLInputElement>('input')?.focus());
+      }} rows={[
+        { label: c.seller, value: counterpartyMode === 'email' ? counterpartyEmail : seller },
+        { label: c.delivery, value: terms },
+        { label: dd.terms.amountLabel, value: `${amount} USDC` },
+        { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : `${submitDays * 24 + submitHours} ${dd.preview.unitHr}` },
+        { label: c.payment, value: `${firstPct}% / ${100 - Number(firstPct)}%` },
+        { label: c.responseWindow, value: `${acceptanceHours} ${dd.preview.unitHr}` },
+        { label: c.safeguards, value: [
+          requireStake ? `${c.security}: ${requireStakePct}%` : '',
+          evidenceRequired ? c.evidenceHelp : '',
+          highSignal ? `${c.identity}: ${highSignalSubject === 'both' ? c.both : highSignalSubject === 'seller' ? c.sellerRole : c.buyerRole}. ${c.identityHelp}` : '',
+        ].filter(Boolean).join('\n') || c.none },
+        ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companyName, companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
+        ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
+      ]}>
+        <p>{c.directNext}</p>
+        <p className="mt-2 text-[var(--lp-text-sub)]">{c.currencyNote}</p>
+      </CreationReview> : null}
 
       {/* SUBMIT */}
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
@@ -1132,7 +1073,7 @@ export function DirectDealForm() {
           type="submit"
           disabled={!canSubmit}
           className={cn(
-            'group inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em]',
+            'group inline-flex items-center gap-2 px-[22px] py-[13px] text-[14px] font-semibold',
             'transition-[transform,box-shadow] duration-150',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
             !canSubmit
@@ -1159,7 +1100,7 @@ export function DirectDealForm() {
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           )}
-          {submitting ? dd.submit.opening : dd.submit.open}
+          {submitting ? dd.submit.opening : reviewing ? c.confirmDirect : c.review}
           {!submitting && (
             <span
               aria-hidden
@@ -1169,15 +1110,15 @@ export function DirectDealForm() {
             </span>
           )}
         </button>
-        {!submitting && (
-          <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-            {dd.submit.fundsCaption}
+        {!submitting && !reviewing && (
+          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">
+            {canSubmit ? c.directNext : c.required}
           </p>
         )}
       </div>
 
       {error && (
-        <p className="mono text-[12px] text-[#7a1f1a]">
+        <p className="mono text-[12px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">
           {error}
         </p>
       )}
@@ -1198,12 +1139,9 @@ function FieldSection({
   return (
     <section className="space-y-4">
       <div className="space-y-1.5">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-text-muted)]">
-          {eyebrow}
-        </p>
-        <h3 className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+        <h2 className="text-[18px] font-semibold tracking-tight text-[var(--lp-dark)]">
           {title}
-        </h3>
+        </h2>
       </div>
       {children}
     </section>
@@ -1224,7 +1162,7 @@ function FormLabel({
   return (
     <label className="block space-y-2">
       <span className="flex items-center gap-2 justify-between">
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--lp-dark)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
@@ -1295,41 +1233,6 @@ function DeadlineUnitPicker({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function FeeLine({
-  label,
-  value,
-  strong,
-  faint,
-}: {
-  label: string;
-  value: number;
-  strong?: boolean;
-  faint?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span
-        className={cn(
-          'mono text-[11px] uppercase tracking-[0.1em]',
-          faint ? 'text-[var(--lp-text-muted)]' : 'text-[var(--lp-text-sub)]',
-        )}
-      >
-        {label}
-      </span>
-      <span
-        className={cn(
-          'tabular-nums tracking-tight',
-          strong
-            ? 'font-sans font-extrabold text-[20px] text-[var(--lp-dark)]'
-            : 'font-mono text-[13px] text-[var(--lp-dark)]',
-        )}
-      >
-        {formatUsdc(value)}
-      </span>
     </div>
   );
 }

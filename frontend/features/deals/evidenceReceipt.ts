@@ -8,6 +8,7 @@ export type EvidenceReceiptCopyKey =
   | 'unavailable'
   | 'expired'
   | 'staleTerms'
+  | 'staleDelivery'
   | 'readUnavailable'
   | 'notRecorded'
   | 'notConfigured';
@@ -19,13 +20,30 @@ export function evidenceReceiptCopyKey(state: State): EvidenceReceiptCopyKey {
     case 'unavailable': return 'unavailable';
     case 'expired': return 'expired';
     case 'stale-terms': return 'staleTerms';
+    case 'stale-delivery': return 'staleDelivery';
     case 'read-unavailable': return 'readUnavailable';
     case 'not-recorded': return 'notRecorded';
     case 'not-configured': return 'notConfigured';
     default: {
       const exhaustive: never = state;
-      return exhaustive;
+      void exhaustive;
+      // A newer server must never produce blank copy in an older client.
+      return 'readUnavailable';
     }
+  }
+}
+
+export function evidenceReceiptBodyKey(state: State) {
+  switch (state) {
+    case 'pass': return 'passBody';
+    case 'mismatch': return 'mismatchBody';
+    case 'expired':
+    case 'stale-terms':
+    case 'stale-delivery': return 'staleBody';
+    case 'not-recorded': return 'pendingBody';
+    case 'not-configured': return 'notConfiguredBody';
+    case 'unavailable': return 'unavailableBody';
+    default: return 'readUnavailableBody';
   }
 }
 

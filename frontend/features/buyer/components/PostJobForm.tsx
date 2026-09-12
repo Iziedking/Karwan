@@ -10,7 +10,10 @@ import { chainErrorMessage } from '@/shared/utils/chainError';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
+import { CreationReview } from '@/features/deals/components/CreationReview';
+import { validAmount, validWhole, authorisedPrice } from '@/features/deals/creationValidation';
 import { sfx } from '@/shared/utils/sfx';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { cn } from '@/shared/utils/cn';
@@ -141,10 +144,10 @@ function OptionTick({
         className="w-4 h-4 shrink-0 cursor-pointer accent-[var(--lp-accent)]"
       />
       <span
-        className="inline-flex min-w-0 items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em]"
-        style={{ color: checked ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
+        className="inline-flex min-w-0 items-center gap-1.5 text-[12px] font-semibold"
+        style={{ color: 'var(--lp-dark)' }}
       >
-        <span className="truncate">[:{label}:]</span>
+        <span>{label}</span>
         <Hint>{tooltip}</Hint>
       </span>
     </label>
@@ -152,7 +155,12 @@ function OptionTick({
 }
 
 export function PostJobForm() {
+  const { locale } = useLocale();
   const t = useTranslations().postJob;
+  const c = useTranslations().dealCreation;
+  const [reviewing, setReviewing] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const inFlight = useRef(false);
   const tt = useTranslations().tradeTerms;
   const errCopy = useTranslations().chainErrors;
   const router = useRouter();
@@ -164,9 +172,7 @@ export function PostJobForm() {
   const { profile, loading: profileLoading } = useUserProfile();
   const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
   const { recordAction } = useGuide();
-  // Initial values from URL query params. BriefComposer sets these after the
-  // natural-language extractor lands so the form mounts pre-filled. Parsing
-  // is defensive: bad values fall through to the empty defaults.
+  // Structured links may prefill the request. Values still need explicit review.
   const search = useSearchParams();
   const initialBrief = search.get('brief') ?? '';
   const initialBudgetRaw = search.get('budget');
@@ -199,6 +205,7 @@ export function PostJobForm() {
   // Custom milestone split. Off = the buyer profile default (50/50) stands.
   // On = these tranches are carried into escrow when the agent finds a deal.
   const [customSplit, setCustomSplit] = useState(Boolean(parsedInitialSplit?.pcts));
+  const [optionsOpen, setOptionsOpen] = useState(initialTrustedMatch || Boolean(parsedInitialSplit?.pcts) || initialTolerance != null);
   const [splitText, setSplitText] = useState(parsedInitialSplit?.pcts?.join(', ') ?? '50, 50');
   // SME trade-finance state. Split into separate hooks per the Vercel
   // `rerender-split-combined-hooks` rule. Each picker mutates only its own
@@ -255,8 +262,7 @@ export function PostJobForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (
-      !address ||
-      !brief ||
+      !address || disabled || inFlight.current ||
       typeof budget !== 'number' ||
       typeof deadlineValue !== 'number'
     )
@@ -265,6 +271,8 @@ export function PostJobForm() {
       setIntentWarned(true);
       return;
     }
+    if (!reviewing) { setReviewing(true); return; }
+    inFlight.current = true;
     setSubmitting(true);
     setError(null);
     setInsufficientBalance(false);
@@ -312,19 +320,22 @@ export function PostJobForm() {
         setError(chainErrorMessage(err, errCopy, errCopy.generic));
       }
       setSubmitting(false);
+      inFlight.current = false;
     }
   }
 
   const split = parseMilestoneSplit(splitText);
   const disabled =
-    submitting || !brief.trim() || !budget || !deadlineValue || (customSplit && !split.pcts);
+    submitting || hashingFile || profileLoading || !profile?.buyer || !brief.trim() || !validAmount(budget, 5_000_000) ||
+    !validWhole(deadlineValue, 1, deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90) ||
+    (tolerance !== '' && !validWhole(tolerance, 0, 50)) || (customSplit && !split.pcts);
   const buttonLabel = submitting
     ? elapsed < 8
       ? t.submit.submittingShort
       : elapsed < 30
         ? t.submit.waitingArcTemplate.replace('{seconds}', String(elapsed))
         : t.submit.waitingCircleTemplate.replace('{seconds}', String(elapsed))
-    : t.submit.postOnChain;
+    : reviewing ? c.confirmRequest : c.review;
 
   if (!isConnected) {
     return (
@@ -382,7 +393,6 @@ export function PostJobForm() {
       : deadlineUnit === 'hr'
         ? t.preview.unitHrShort
         : t.preview.unitDaysShort;
-  const previewTol = typeof tolerance === 'number' ? tolerance : 0;
   const ceiling =
     typeof budget === 'number' && typeof tolerance === 'number'
       ? (budget * (1 + tolerance / 100)).toFixed(2)
@@ -395,79 +405,11 @@ export function PostJobForm() {
   return (
     <>
     <PageTour id={BUYER_TOUR_ID} steps={BUYER_STEPS} />
-    <form onSubmit={submit} className="space-y-7">
-      {/* DEAL PREVIEW. big editorial display */}
-      <div
-        aria-live="polite"
-        className="relative overflow-hidden lg:sticky lg:top-24 lg:z-10"
-        style={{
-          background: 'var(--lp-workspace-raised)',
-          color: 'var(--lp-workspace-ink)',
-          border: '1px solid var(--lp-workspace-border)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
-          borderBottomLeftRadius: 18,
-          borderBottomRightRadius: 4,
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none opacity-40 grid-drift"
-          style={{
-            backgroundImage:
-              'linear-gradient(var(--lp-workspace-grid) 1px, transparent 1px), linear-gradient(90deg, var(--lp-workspace-grid) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-            maskImage: 'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
-            WebkitMaskImage:
-              'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
-          }}
-        />
-        <div className="relative px-6 py-6">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-muted)]">
-            {t.preview.eyebrow}
-          </p>
-          <div className="mt-3 flex items-baseline gap-2 flex-wrap">
-            <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
-              {previewAmount}
-            </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-              USDC
-            </span>
-            <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-[var(--lp-workspace-border)]" />
-            <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
-              {previewDeadline}
-            </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-              {previewUnitLabel}
-            </span>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-workspace-muted)]">
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                aria-hidden
-                data-instrument-blink
-                className="w-[6px] h-[6px]"
-                style={{
-                  background: 'var(--lp-accent)',
-                  animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                }}
-              />
-              {t.preview.tolerancePrefix} {previewTol}%
-            </span>
-            {ceiling && (
-              <>
-                <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
-                <span>{t.preview.ceilingPrefix} {ceiling} USDC</span>
-              </>
-            )}
-            <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
-            <span>{t.preview.milestoneCaption}</span>
-          </div>
-        </div>
-      </div>
+    <form ref={formRef} onSubmit={submit} className="space-y-7">
+      <fieldset hidden={reviewing} disabled={submitting || reviewing} className="min-w-0 space-y-6">
 
       {/* THE WORK */}
-      <FieldSection eyebrow={t.sectionWork.eyebrow} title={t.sectionWork.title} dataGuide="buyer-brief">
+      <div data-guide="buyer-brief">
         <FormLabel
           label={t.sectionWork.requestLabel}
           hint={t.sectionWork.requestHint}
@@ -486,12 +428,12 @@ export function PostJobForm() {
                 ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums, payment net 30.'
                 : tradeType === 'mixed'
                   ? 'e.g. Equipment install on site, 2 weeks, includes shipping and commissioning.'
-                  : t.sectionWork.requestPlaceholder
+                  : c.placeholder
             }
             className="form-input form-textarea"
           />
         </FormLabel>
-      </FieldSection>
+      </div>
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
           for individuals so the P2P request stays the simple service flow. */}
@@ -613,7 +555,7 @@ export function PostJobForm() {
               </FormLabel>
             </div>
             <FormLabel
-              label="Documents"
+              label={c.documents}
               hint="Hashes anchor on chain when the deal is accepted. Files stay on your device."
             >
               <input
@@ -686,12 +628,12 @@ export function PostJobForm() {
       )}
 
       {/* TERMS */}
-      <FieldSection eyebrow={t.sectionTerms.eyebrow} title={t.sectionTerms.title}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FormLabel
             label={t.sectionTerms.budgetLabel}
             unit="USDC"
-            hint={t.sectionTerms.budgetHint}
+            hint={c.budgetHint}
             dataGuide="buyer-budget"
           >
             <input
@@ -740,10 +682,18 @@ export function PostJobForm() {
               />
             </div>
           </FormLabel>
+        </div>
+      </div>
+
+      <details open={optionsOpen} onToggle={(event) => setOptionsOpen(event.currentTarget.open)} className="border-y border-[var(--lp-border-light)]">
+        <summary data-guide="buyer-tolerance" className="flex min-h-11 cursor-pointer items-center gap-3 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+          {TRADE_ENTRY_COPY[locale].options}<span aria-hidden className="ms-auto">{optionsOpen ? '−' : '+'}</span>
+        </summary>
+        <div className="space-y-4 pb-5">
           <FormLabel
-            label={t.sectionTerms.toleranceLabel}
+            label={c.tolerance}
             unit="%"
-            hint={t.sectionTerms.toleranceHint}
+            hint={c.toleranceHint}
             dataGuide="buyer-tolerance"
           >
             <input
@@ -759,20 +709,10 @@ export function PostJobForm() {
               className="form-input form-input-num"
             />
           </FormLabel>
-        </div>
-      </FieldSection>
-
-      {/* The two request options, side by side, one line each.
-          Each carried a paragraph of explanation on the card, which made two
-          tall blocks stacked down the form for two ticks. The explanation is
-          the same words, in the tooltip, where it is read once and then never
-          again. Trusted match flips agent ranking to reputation and stake
-          first and gates bids on the seller's free stake; custom split sets
-          how escrow releases in tranches instead of the profile's 50/50. */}
       <div className="grid gap-3 sm:grid-cols-2">
         <OptionTick
-          label={t.trustedMatch.eyebrow}
-          tooltip={t.trustedMatch.body}
+          label={c.security}
+          tooltip={c.securityHelp}
           checked={trustedMatch}
           disabled={submitting}
           onChange={setTrustedMatch}
@@ -810,7 +750,7 @@ export function PostJobForm() {
                     disabled={submitting}
                     onClick={() => setSplitText(preset)}
                     className={cn(
-                      'mono text-[11px] uppercase tracking-[0.12em] font-bold px-2.5 py-1.5 border transition-colors',
+                      'min-h-11 mono text-[11px] uppercase tracking-[0.12em] font-bold px-2.5 py-1.5 border transition-colors',
                       active
                         ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
                         : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
@@ -852,10 +792,13 @@ export function PostJobForm() {
                   .join('  ·  ')}
               </p>
             ) : (
-              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[#7a1f1a]">{split.error}</p>
+              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{split.error}</p>
             )}
         </div>
       </div>
+
+        </div>
+      </details>
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
           ("I sell..."). User can click submit again to post anyway. */}
@@ -897,14 +840,37 @@ export function PostJobForm() {
         </div>
       )}
 
+      </fieldset>
+
+      {reviewing ? <CreationReview busy={submitting} onEdit={() => {
+        setReviewing(false);
+        requestAnimationFrame(() => formRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus());
+      }} rows={[
+        { label: t.sectionWork.requestLabel, value: brief },
+        { label: t.sectionTerms.budgetLabel, value: `${budget} USDC` },
+        { label: t.sectionTerms.deadlineLabel, value: `${deadlineValue} ${previewUnitLabel}` },
+        { label: c.limit, value: `${authorisedPrice(Number(budget), tolerance)} USDC` },
+        { label: c.payment, value: customSplit ? split.pcts?.map(p => p + '%').join(' / ') : `${c.defaultSplit}: ${profile?.buyer?.milestonePcts.join('%, ')}%` },
+        { label: c.safeguards, value: trustedMatch ? c.securityHelp : c.none },
+        ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
+        ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
+      ]}>
+        <p className="font-semibold">{c.authorisation}</p>
+        <p className="mt-2">{c.managedNext}</p>
+        <p className="mt-2 text-[var(--lp-text-sub)]">{c.fees}</p>
+      </CreationReview> : null}
+
       {/* SUBMIT */}
+      {!reviewing && previewAmount > 0 && previewDeadline > 0 ? (
+        <p className="text-[14px] leading-6 text-[var(--lp-dark)]">{c.limit}: <strong>{authorisedPrice(previewAmount, tolerance)} USDC</strong>. {c.fees}</p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
         <button
           type="submit"
           data-guide="buyer-submit"
           disabled={disabled}
           className={cn(
-            'group inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em]',
+            'group inline-flex items-center gap-2 px-[22px] py-[13px] text-[14px] font-semibold',
             'transition-[transform,box-shadow] duration-150',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
             disabled
@@ -946,9 +912,9 @@ export function PostJobForm() {
             {t.submit.pendingHelper}
           </p>
         )}
-        {!submitting && (
-          <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-snug">
-            {t.submit.feeCaption}
+        {!submitting && !reviewing && (
+          <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">
+            {disabled ? c.requestRequired : c.requestNext}
           </p>
         )}
       </div>
@@ -992,7 +958,7 @@ export function PostJobForm() {
       ) : (
         error && (
           <div className="space-y-1.5">
-            <p className="mono text-[12px] text-[#7a1f1a]">{t.errors.postFailedPrefix} {error}</p>
+            <p className="mono text-[12px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{t.errors.postFailedPrefix} {error}</p>
             {/activate|agent wallet/i.test(error) && (
               <button
                 type="button"
@@ -1061,7 +1027,7 @@ function FormLabel({
   return (
     <label className="block space-y-2" data-guide={dataGuide}>
       <span className="flex items-center gap-2 justify-between">
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)]">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--lp-dark)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
