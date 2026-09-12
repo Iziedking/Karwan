@@ -1470,12 +1470,18 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </div>
             </PageCard>
           )}
-          {deal.evidenceRequired === true &&
-            deal.delivered &&
-            deal.evidenceReceipt &&
-            (
+          {deal.evidenceRequired === true && deal.delivered && (
             <EvidenceReceiptCard
-              receipt={deal.evidenceReceipt}
+              // A required check must stay visible while the reconciler has
+              // not recorded its first result. Without this fallback the
+              // release gate looked like an ordinary two-step payout because
+              // the card was omitted when `evidenceReceipt` was still absent.
+              receipt={
+                deal.evidenceReceipt ?? {
+                  state: 'not-recorded',
+                  agreementVersion: deal.agreementVersion ?? 1,
+                }
+              }
               onRefresh={() => void refresh()}
               refreshing={isRefetching}
               copy={dd.evidenceReceipt}
@@ -2529,6 +2535,19 @@ function ActionPanel({
     );
   }
 
+  // CRE is an explicit release gate for deals that opted into delivery
+  // evidence. The backend enforces this too, but the client must fail closed
+  // before the reconciler has written `releaseBlockedReason` or a receipt.
+  // Ordinary deals keep the existing release path unchanged.
+  const creCheckRequired = deal.evidenceRequired === true && deal.delivered === true;
+  const creCheckPassed = deal.evidenceReceipt?.state === 'pass';
+  const creReleaseBlocked = creCheckRequired && !creCheckPassed;
+  const releaseBlocked =
+    creReleaseBlocked ||
+    deal.releaseBlockedReason != null ||
+    deal.verificationStatus === 'suspicious' ||
+    deal.verificationStatus === 'malicious';
+
   if (stage === 'settled') {
     const financed = Boolean(deal.factoringOfferId || deal.poFinancingId);
     const releasedFromDispute = deal.cancelKind === 'release-from-dispute';
@@ -2988,7 +3007,7 @@ function ActionPanel({
     // Until this shipped, a paused deal still rendered "the agent will release
     // shortly" and the seller waited on a timer that was never running.
     const blocked = !held ? (deal.releaseBlockedReason ?? null) : null;
-    const stopped = held || blocked !== null;
+    const stopped = releaseBlocked;
     const open = !stopped && endsAt != null && msLeft > 0;
     const expired = !stopped && endsAt != null && msLeft <= 0;
     const blockedNote =
@@ -3000,6 +3019,8 @@ function ActionPanel({
           ? viewerIsBuyer
             ? copy.releaseBlocked.buyerMismatch
             : copy.releaseBlocked.sellerMismatch
+          : creReleaseBlocked
+            ? copy.releaseBlocked.evidenceUnavailable
           : null;
 
     if (viewerIsBuyer) {
@@ -3028,7 +3049,7 @@ function ActionPanel({
             </WindowNote>
           )}
           <div className="flex flex-wrap gap-2">
-            <CTAPill disabled={busy || held} onClick={onRelease}>
+            <CTAPill disabled={busy || releaseBlocked} onClick={onRelease}>
               {busy ? copy.awaitingFirstRelease.releaseBusy : copy.awaitingFirstRelease.releaseCtaTemplate.replace('{firstPct}', String(firstPct))}
             </CTAPill>
             <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
@@ -3097,7 +3118,7 @@ function ActionPanel({
             {/* v2b: the buyer's window elapsed with no release or dispute, so the
                 seller can force the payout themselves — the on-chain safety net
                 for a vanished buyer. The contract re-checks the window + hold. */}
-            {V2B_LIVE && !held && (
+            {V2B_LIVE && !releaseBlocked && (
               <CTAPill onClick={onClaim} disabled={busy} busy={busy}>
                 {busy ? 'Claiming…' : `Claim ${firstPct}% now`}
               </CTAPill>
@@ -3156,6 +3177,9 @@ function ActionPanel({
             .replace('{rest}', String(rest))}
         </Body>
         {milestoneReadout}
+        {creReleaseBlocked && (
+          <WindowNote tone="warning">{copy.releaseBlocked.evidenceUnavailable}</WindowNote>
+        )}
         {appealOpen && !responseExpired && (
           <DelayAppealResponder
             msLeft={responseMsLeft}
@@ -3176,7 +3200,7 @@ function ActionPanel({
           </WindowNote>
         )}
         <div className="flex flex-wrap gap-2">
-          <CTAPill disabled={busy} busy={busy} onClick={onRelease}>
+          <CTAPill disabled={busy || releaseBlocked} busy={busy} onClick={onRelease}>
             {busy ? copy.awaitingFinalRelease.releaseBusy : copy.awaitingFinalRelease.releaseCtaTemplate.replace('{rest}', String(rest))}
           </CTAPill>
           <CTAPill variant="secondary" tone="dark" onClick={onAppeal} disabled={busy}>
@@ -3195,6 +3219,9 @@ function ActionPanel({
           .replace('{rest}', String(rest))}
       </Body>
       {milestoneReadout}
+      {creReleaseBlocked && (
+        <WindowNote tone="warning">{copy.releaseBlocked.evidenceUnavailable}</WindowNote>
+      )}
       {appealOpen && !responseExpired && (
         <WindowNote tone="warning">
           {copy.awaitingFinalRelease.sellerAppealOpenPrefix}{' '}
