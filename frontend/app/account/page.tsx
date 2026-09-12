@@ -44,10 +44,6 @@ function AccountPageInner() {
         </aside>
       </section>
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Link href="/profile" className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">Profile and security</Link>
-        <Link href="/activity" className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">Statements and receipts</Link>
-      </div>
     </div>
   );
 }
