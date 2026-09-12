@@ -1,7 +1,6 @@
 import {
   cre,
   getNetwork,
-  hexToBase64,
   ok,
   prepareReportRequest,
   text,
@@ -197,7 +196,10 @@ export function onCronTrigger(runtime: TeeRuntime<Config>): string {
       throw new Error('ARC_TESTNET_CHAIN_ID_MISMATCH');
     }
     new cre.capabilities.EVMClient(network.chainSelector.selector).writeReport(donRuntime, {
-      receiver: hexToBase64(config.receiverAddress as Address),
+      // `writeReport` accepts the JSON form of the receiver as a hex address.
+      // The SDK converts it to bytes internally; passing base64 here makes
+      // that conversion try to parse the base64 text as hexadecimal.
+      receiver: config.receiverAddress as Address,
       report,
       gasConfig: { gasLimit: config.gasLimit },
     }).result();
