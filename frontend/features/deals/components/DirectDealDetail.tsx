@@ -179,10 +179,19 @@ function nextStepFor(
   return { title: 'Settlement complete', body: 'The delivery and payment records are available below.' };
 }
 
-type DealSectionId = 'overview' | 'terms' | 'actions' | 'record' | 'conversation';
+type DealSectionId =
+  | 'overview'
+  | 'parties'
+  | 'funding'
+  | 'terms'
+  | 'actions'
+  | 'record'
+  | 'conversation';
 
 const DEAL_SECTION_ANCHORS: Record<DealSectionId, string> = {
   overview: 'deal-overview',
+  parties: 'deal-parties',
+  funding: 'deal-funding',
   terms: 'deal-terms',
   actions: 'deal-actions',
   record: 'deal-record',
@@ -191,6 +200,10 @@ const DEAL_SECTION_ANCHORS: Record<DealSectionId, string> = {
 
 function dealSectionFromHash(hash: string): DealSectionId {
   switch (hash.replace(/^#/, '')) {
+    case 'deal-parties':
+      return 'parties';
+    case 'deal-funding':
+      return 'funding';
     case 'deal-terms':
       return 'terms';
     case 'action':
@@ -876,19 +889,33 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const counterpartyName = deal.counterpartyCompany?.name;
   const nextStep = nextStepFor(stage, viewerIsBuyer, viewerIsSeller);
   const sectionItems: Array<{ id: DealSectionId; label: string }> = [
-    { id: 'overview', label: `${dd.parties.cardLabel} and ${dd.funding.cardLabel}` },
-    { id: 'terms', label: dd.terms.title },
-    { id: 'actions', label: dd.actions.eyebrow },
+    { id: 'overview', label: 'Deal overview' },
+    { id: 'parties', label: dd.parties.cardLabel },
+    { id: 'funding', label: dd.funding.cardLabel },
+    { id: 'terms', label: 'The agreement' },
+    { id: 'actions', label: 'Next step' },
     { id: 'record', label: dd.settlementRecord.title },
     ...(address ? [{ id: 'conversation' as const, label: dd.chat.eyebrow }] : []),
   ];
-  const openSection = (section: DealSectionId) => {
+  const sectionIndex = Math.max(
+    sectionItems.findIndex((section) => section.id === activeSection),
+    0,
+  );
+  const openSection = (section: DealSectionId, replace = false) => {
     setActiveSection(section);
     if (typeof window === 'undefined') return;
     const hash = `#${DEAL_SECTION_ANCHORS[section]}`;
     if (window.location.hash === hash) return;
-    window.history.pushState(null, '', hash);
+    if (replace) window.history.replaceState(null, '', hash);
+    else window.history.pushState(null, '', hash);
   };
+  const moveSection = (direction: -1 | 1) => {
+    const nextIndex = Math.min(Math.max(sectionIndex + direction, 0), sectionItems.length - 1);
+    const nextSection = sectionItems[nextIndex];
+    if (nextSection) openSection(nextSection.id);
+  };
+  const firstSection = sectionIndex <= 0;
+  const lastSection = sectionIndex >= sectionItems.length - 1;
 
   return (
     <div className="product-surface">
@@ -947,9 +974,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               {nextStep.body}
             </p>
             {stage !== 'settled' && stage !== 'cancelled' ? (
-              <a href="#action" className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[13px] font-bold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+              <button
+                type="button"
+                onClick={() => openSection('actions')}
+                className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[13px] font-bold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+              >
                 Continue to next step
-              </a>
+              </button>
             ) : null}
             <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5" data-guide="deal-flow">
               <div className="flex items-center justify-between gap-3">
@@ -973,7 +1004,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <nav
           aria-label="Deal sections"
           role="tablist"
-          className="mt-5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--lp-text-muted)]"
+          className="mt-5 flex gap-1 overflow-x-auto pb-1 text-[11px] text-[var(--lp-text-muted)]"
         >
           {sectionItems.map((section) => {
             const selected = activeSection === section.id;
@@ -985,10 +1016,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 aria-selected={selected}
                 aria-controls={DEAL_SECTION_ANCHORS[section.id]}
                 onClick={() => openSection(section.id)}
-                className={`inline-flex min-h-11 items-center rounded-full border px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
+                className={`inline-flex min-h-11 shrink-0 items-center border-b-2 px-3.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
                   selected
-                    ? 'border-[var(--lp-accent)] bg-[var(--lp-accent)] font-semibold text-[var(--accent-ink)]'
-                    : 'border-[var(--lp-border-light)] hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)]'
+                    ? 'border-[var(--lp-accent)] font-semibold text-[var(--lp-dark)]'
+                    : 'border-transparent hover:border-[var(--lp-outline-strong)] hover:text-[var(--lp-dark)]'
                 }`}
               >
                 {section.label}
@@ -996,10 +1027,40 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             );
           })}
         </nav>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
+          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            View {sectionIndex + 1} of {sectionItems.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => moveSection(-1)}
+              disabled={firstSection}
+              aria-label="Previous deal view"
+              className="inline-flex min-h-11 items-center gap-2 border border-[var(--lp-border-light)] px-3.5 text-[11px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ borderRadius: 10 }}
+            >
+              <span aria-hidden>←</span>
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => moveSection(1)}
+              disabled={lastSection}
+              aria-label="Next deal view"
+              className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-3.5 text-[11px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ borderRadius: 10 }}
+            >
+              Next
+              <span aria-hidden>→</span>
+            </button>
+          </div>
+        </div>
       </Band>
 
       {activeSection === 'overview' && (
         <>
+          <div id="deal-overview">
           {deal.marketRead && (
             <Band tone="light" compact>
           <div className="fade-up">
@@ -1063,9 +1124,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </Band>
       ) : null}
 
-      {/* PARTIES + FUNDING */}
-      <Band tone="light" compact id="deal-overview">
-        <div className="grid md:grid-cols-2 gap-5" data-guide="deal-money">
+          </div>
+      </>
+      )}
+
+      {activeSection === 'parties' && (
+      <Band tone="light" compact id="deal-parties">
+        <div className="max-w-[760px]" data-guide="deal-money">
           <PageCard>
             <CardHead label={dd.parties.cardLabel} />
             <div className="p-5 md:p-6 space-y-4">
@@ -1101,7 +1166,13 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               )}
             </div>
           </PageCard>
+        </div>
+      </Band>
+      )}
 
+      {activeSection === 'funding' && (
+      <Band tone="light" compact id="deal-funding">
+        <div className="max-w-[760px]" data-guide="deal-money">
           <PageCard>
             <CardHead label={dd.funding.cardLabel} />
             <div className="p-5 md:p-6 space-y-2.5">
@@ -1186,9 +1257,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           </PageCard>
         </div>
       </Band>
-
-      {/* TERMS + (optional) DELIVERY PROOF */}
-      </>
       )}
 
       {activeSection === 'terms' && (
@@ -1673,6 +1741,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </Band>
       )}
 
+      <DealViewPager
+        currentIndex={sectionIndex}
+        total={sectionItems.length}
+        currentLabel={sectionItems[sectionIndex]?.label ?? 'Deal overview'}
+        onPrevious={() => moveSection(-1)}
+        onNext={() => moveSection(1)}
+        previousDisabled={firstSection}
+        nextDisabled={lastSection}
+      />
+
       {showAcceptConsent && (
         <AcceptConsentModal
           busy={busy}
@@ -1734,6 +1812,61 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         caller={address ?? undefined}
       />
     </FullBleed>
+    </div>
+  );
+}
+
+function DealViewPager({
+  currentIndex,
+  total,
+  currentLabel,
+  onPrevious,
+  onNext,
+  previousDisabled,
+  nextDisabled,
+}: {
+  currentIndex: number;
+  total: number;
+  currentLabel: string;
+  onPrevious: () => void;
+  onNext: () => void;
+  previousDisabled: boolean;
+  nextDisabled: boolean;
+}) {
+  return (
+    <div className="mx-auto max-w-[1180px] px-5 py-5 sm:px-8 lg:px-10">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
+        <div>
+          <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            Deal view {currentIndex + 1} of {total}
+          </p>
+          <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">{currentLabel}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onPrevious}
+            disabled={previousDisabled}
+            aria-label="Previous deal view"
+            className="inline-flex min-h-11 items-center gap-2 border border-[var(--lp-border-light)] px-4 text-[12px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderRadius: 10 }}
+          >
+            <span aria-hidden>←</span>
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={nextDisabled}
+            aria-label="Next deal view"
+            className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-4 text-[12px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderRadius: 10 }}
+          >
+            Next
+            <span aria-hidden>→</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
