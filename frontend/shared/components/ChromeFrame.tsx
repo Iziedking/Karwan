@@ -106,7 +106,7 @@ function CustomerChromeFrame({
   const workspaceWithRail = workspace && auth.isAuthenticated;
   const focused = shell === 'focused';
   const mainClass = workspaceWithRail
-    ? 'flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 md:py-8 lg:ps-[280px] lg:pe-8 xl:ps-[320px] 2xl:ps-[360px]'
+    ? 'workspace-main flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 md:py-8 lg:pe-8'
     : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
   const platformCopy = workspace || focused;
   return (
@@ -114,7 +114,10 @@ function CustomerChromeFrame({
       <AmbientTradeSketch />
       {topNav}
       {workspace ? profileNudge : null}
-      <main className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}>
+      <main
+        data-workspace-main={workspaceWithRail ? 'true' : undefined}
+        className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}
+      >
         <div className="relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden">
           <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
           <PageTourButton pathname={pathname} enabled={auth.isAuthenticated && (workspace || focused)} />

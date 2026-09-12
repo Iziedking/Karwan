@@ -463,7 +463,12 @@ function WorkRecordSection({
             type="button"
             onClick={() => void requestComplimentary()}
             disabled={requestingComplimentary}
-            className="mt-3 min-h-11 border border-[var(--lp-dark)] bg-[var(--lp-dark)] px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-white disabled:cursor-wait disabled:opacity-60"
+            className="mt-3 inline-flex min-h-11 items-center justify-center border px-4 py-2 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'var(--accent-ink)',
+              borderColor: 'var(--lp-accent)',
+            }}
           >
             {requestingComplimentary ? wr.complimentaryLoading : wr.complimentaryAction}
           </button>

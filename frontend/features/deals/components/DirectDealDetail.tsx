@@ -219,6 +219,45 @@ function dealSectionFromHash(hash: string): DealSectionId {
   }
 }
 
+function safeOnChainFundingSummary(onChain: DirectDeal['onChain']) {
+  if (!onChain) return null;
+  try {
+    return onChainFundingSummary({
+      dealAmountWei: onChain.dealAmountWei,
+      sellerNetWei: onChain.sellerNetWei,
+      feeTotalWei: onChain.feeTotalWei,
+    });
+  } catch {
+    // A partial chain snapshot must not blank the whole deal page. The
+    // agreement and action views can still render while the funding read
+    // catches up; the funding view will show its unavailable state.
+    return null;
+  }
+}
+
+function isValidMilestonePcts(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    value.length <= 5 &&
+    value.every((pct) => Number.isInteger(pct) && pct > 0 && pct < 100) &&
+    value.reduce((total, pct) => total + pct, 0) === 100
+  );
+}
+
+function milestonePctsFor(deal: DirectDeal): number[] {
+  if (isValidMilestonePcts(deal.onChain?.milestonePcts)) {
+    return deal.onChain.milestonePcts;
+  }
+  if (isValidMilestonePcts(deal.milestonePcts)) {
+    return deal.milestonePcts;
+  }
+  const first = deal.firstReleasePct;
+  return Number.isInteger(first) && first > 0 && first < 100
+    ? [first, 100 - first]
+    : [50, 50];
+}
+
 export function DirectDealDetail({ jobId }: { jobId: string }) {
   const dd = useTranslations().directDealDetail;
   const auth = useAuth();
@@ -446,23 +485,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const viewerIsSeller = !!address && address.toLowerCase() === deal.seller;
   const fundingSummary =
     fundingQuote ??
-    (deal.onChain
-      ? onChainFundingSummary({
-          dealAmountWei: deal.onChain.dealAmountWei,
-          sellerNetWei: deal.onChain.sellerNetWei,
-          feeTotalWei: deal.onChain.feeTotalWei,
-        })
-      : null);
+    safeOnChainFundingSummary(deal.onChain);
   // Milestone split. The on-chain escrow is the source of truth once funded; a
   // managed deal can carry 2 to 5 milestones. Direct deals (and the brief
   // window before the escrow is read) resolve to the two-part shape implied by
   // firstReleasePct. milestonesReleased drives all per-stage progress.
-  const milestonePcts =
-    deal.onChain?.milestonePcts && deal.onChain.milestonePcts.length >= 2
-      ? deal.onChain.milestonePcts
-      : deal.milestonePcts && deal.milestonePcts.length >= 2
-        ? deal.milestonePcts
-        : [deal.firstReleasePct, 100 - deal.firstReleasePct];
+  const milestonePcts = milestonePctsFor(deal);
   const milestonesReleased = deal.onChain?.milestonesReleased ?? 0;
 
   if (!isConnected) {
@@ -1068,6 +1096,68 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {activeSection === 'overview' && (
         <>
           <div id="deal-overview">
+          <Band tone="light" compact>
+            <div className="max-w-[980px]">
+              <PageCard>
+                <CardHead label="Deal overview" />
+                <div className="p-5 md:p-6">
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    <OverviewFact label="Status">
+                      <StageBadge stage={stage} />
+                    </OverviewFact>
+                    <OverviewFact label="Amount">
+                      <span className="text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">
+                        {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
+                        <span className="text-[12px] text-[var(--lp-text-muted)]">USDC</span>
+                      </span>
+                    </OverviewFact>
+                    <OverviewFact label="Buyer">
+                      <span className="mono text-[12px] text-[var(--lp-dark)]">
+                        {viewerIsBuyer ? 'You' : shortAddress(deal.buyer)}
+                      </span>
+                    </OverviewFact>
+                    <OverviewFact label="Seller">
+                      <span className="mono text-[12px] text-[var(--lp-dark)]">
+                        {viewerIsSeller ? 'You' : shortAddress(deal.seller)}
+                      </span>
+                    </OverviewFact>
+                  </div>
+
+                  <div className="mt-6 grid gap-5 border-t border-[var(--lp-border-light)] pt-5 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.72fr)]">
+                    <div>
+                      <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                        Agreement
+                      </p>
+                      <p className="mt-2 max-w-[64ch] whitespace-pre-wrap text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                        {deal.terms}
+                      </p>
+                    </div>
+                    <div className="md:border-s md:border-[var(--lp-border-light)] md:ps-5">
+                      <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+                        Next step
+                      </p>
+                      <p className="mt-2 text-[16px] font-semibold leading-tight text-[var(--lp-dark)]">
+                        {nextStep.title}
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                        {nextStep.body}
+                      </p>
+                      {stage !== 'settled' && stage !== 'cancelled' ? (
+                        <button
+                          type="button"
+                          onClick={() => openSection('actions')}
+                          className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[12px] font-bold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+                        >
+                          Open next step <span className="ms-2" aria-hidden>→</span>
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </PageCard>
+            </div>
+          </Band>
+
           {deal.marketRead && (
             <Band tone="light" compact>
           <div className="fade-up">
@@ -2160,6 +2250,17 @@ function TextRow({ label, value }: { label: string; value: string }) {
       <span className="max-w-[55%] text-end text-[12.5px] font-semibold text-[var(--lp-dark)]">
         {value}
       </span>
+    </div>
+  );
+}
+
+function OverviewFact({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+        {label}
+      </p>
+      <div className="mt-2 min-h-7 flex items-center">{children}</div>
     </div>
   );
 }

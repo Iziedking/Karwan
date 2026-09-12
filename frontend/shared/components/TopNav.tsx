@@ -227,6 +227,13 @@ function WorkspaceRail({
     }
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.workspaceRail = collapsed ? 'collapsed' : 'expanded';
+    return () => {
+      delete document.documentElement.dataset.workspaceRail;
+    };
+  }, [collapsed]);
+
   const toggleRail = () => {
     setCollapsed((current) => {
       const next = !current;
@@ -246,12 +253,13 @@ function WorkspaceRail({
       style={{ top: 'calc(var(--lp-nav-h, 72px) + 16px)' }}
     >
       <nav
+        id="workspace-navigation"
         aria-label="workspace navigation"
         className={cn(
           'pointer-events-auto absolute flex flex-col gap-1 transition-[width] duration-300 ease-out',
           collapsed ? 'w-[72px]' : 'w-[220px]',
         )}
-        style={{ left: 'max(20px, calc(50% - 680px))' }}
+        style={{ left: 'max(20px, calc(50% - 800px))' }}
       >
         <button
           type="button"
@@ -260,13 +268,20 @@ function WorkspaceRail({
           aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
           onClick={toggleRail}
           className={cn(
-            'mb-1 inline-flex min-h-11 items-center rounded-full border border-[var(--color-line)] text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)]',
-            collapsed ? 'w-11 justify-center self-center' : 'w-full justify-between px-4',
+            'group mb-1 inline-flex size-11 shrink-0 items-center justify-center self-start rounded-full border border-[var(--color-line)] text-[var(--color-ink-dim)] transition-[background-color,border-color,color,transform] duration-200 hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] hover:-translate-y-0.5',
           )}
+          aria-controls="workspace-navigation"
         >
-          <span aria-hidden className="text-[18px] leading-none">{collapsed ? '→' : '←'}</span>
-          <span className={cn('mono text-[9px] font-semibold uppercase tracking-[0.14em]', collapsed && 'sr-only')}>
-            {collapsed ? 'Expand' : 'Collapse'}
+          <span
+            aria-hidden
+            className={cn(
+              'inline-flex transition-transform duration-300 ease-out',
+              collapsed ? 'rotate-180' : 'rotate-0',
+            )}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M15 5 8 12l7 7M8 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </span>
         </button>
         <RailLink href="/app" active={pathname === '/app'} icon="home" collapsed={collapsed} ariaLabel={t.home}>

@@ -45,8 +45,8 @@ export function ArcLaunchCountdown() {
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="mono block truncate text-[8px] font-bold uppercase tracking-[0.14em] text-[var(--color-ink-dim)] sm:text-[9px]">
-          [:ARC MAINNET]
+        <span className="block truncate text-[9px] font-semibold tracking-[0.04em] text-[var(--color-ink-dim)] sm:text-[10px]">
+          Arc Mainnet
         </span>
         <span className="mono mt-0.5 inline-flex min-w-0 items-baseline gap-1 text-[10px] font-bold tabular-nums tracking-[0.08em] sm:text-[11px]" aria-live="polite">
           {live ? (
