@@ -543,6 +543,7 @@ export interface DirectDeal {
   agreementDigest?: string;
   verificationPolicy?: 'standard' | 'high_signal';
   verificationSubject?: 'buyer' | 'seller' | 'both';
+  evidenceRequired?: boolean;
   highSignalVerification?: {
     mode: 'high_signal';
     subject: 'buyer' | 'seller' | 'both';
