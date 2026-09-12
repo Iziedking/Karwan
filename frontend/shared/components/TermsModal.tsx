@@ -78,11 +78,11 @@ export function TermsModal() {
       role="dialog"
       aria-modal="true"
       aria-label={t.aria}
-      className="fixed inset-0 z-[100] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[100] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
       style={{ background: 'rgba(10, 10, 11, 0.78)' }}
     >
       <div
-        className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[22px] bg-[var(--lp-card)] sm:h-full sm:max-h-none sm:w-[560px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter relative flex max-h-[calc(100dvh-5rem)] min-h-0 w-full flex-col overflow-hidden rounded-t-[22px] bg-[var(--lp-card)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(560px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           border: '1px solid var(--lp-border-light)',
           boxShadow: '0 24px 60px -20px rgba(0,0,0,0.5)',

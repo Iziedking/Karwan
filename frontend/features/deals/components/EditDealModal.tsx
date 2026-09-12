@@ -24,6 +24,10 @@ const ACCEPTANCE_PRESETS: ReadonlyArray<{
   { key: 'sevenDays', value: 168 },
 ];
 
+function withoutBracketTag(value: string): string {
+  return value.replace(/^\[:\s*/, '').replace(/\s*:\]$/, '').trim();
+}
+
 /// Convert the stored deadlineUnix into a (value, unit) pair that fits the same
 /// picker the create form uses. Picks the largest unit that yields a clean
 /// integer so the buyer sees "3 d" instead of "72 hr" when they originally set
@@ -137,7 +141,7 @@ export function EditDealModal({
 
   const body = (
     <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[80] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
@@ -145,7 +149,7 @@ export function EditDealModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[576px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[22px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(576px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-card)',
           color: 'var(--lp-dark)',
@@ -306,10 +310,11 @@ export function EditDealModal({
             />
             <div className="min-w-0">
               <span
-                className="mono text-[10px] font-bold uppercase tracking-[0.16em]"
+                className="mono text-[10px] font-bold uppercase tracking-[0.16em] inline-flex items-center gap-1.5"
                 style={{ color: requireStake ? 'var(--lp-band-dark)' : 'var(--lp-dark)' }}
               >
-                {dd.trustedMatch.eyebrow}
+                {withoutBracketTag(dd.trustedMatch.eyebrow)}
+                <Hint>{dd.trustedMatch.body}</Hint>
               </span>
               <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-text-sub)]">
                 {em.trustedMatchBodyShort}

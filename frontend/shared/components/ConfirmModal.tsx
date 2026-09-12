@@ -58,7 +58,7 @@ export function ConfirmModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[100] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
@@ -76,7 +76,7 @@ export function ConfirmModal({
       {/* Panel. Dark Karwan surface, asymmetric corners, lime accent rule
           at the top mirroring the email shell. */}
       <div
-        className="karwan-sheet-enter relative max-h-[92dvh] w-full overflow-y-auto rounded-t-[18px] sm:h-full sm:max-h-none sm:w-[420px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter relative max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[18px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(420px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-band-dark)',
           border: '1px solid var(--rule-dark)',

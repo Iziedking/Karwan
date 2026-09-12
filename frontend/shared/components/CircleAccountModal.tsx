@@ -59,7 +59,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end bg-black/60 sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[100] flex items-end bg-black/60 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
       onClick={() => !busy && onClose()}
     >
       <div
@@ -67,7 +67,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
         aria-modal="true"
         aria-label={t.ariaDialog}
         onClick={(e) => e.stopPropagation()}
-        className="product-surface karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[400px] sm:rounded-none sm:rounded-s-[16px]"
+        className="product-surface karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[22px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(400px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',

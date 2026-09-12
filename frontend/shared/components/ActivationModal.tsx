@@ -122,7 +122,7 @@ export function ActivationModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-end bg-black/60 sm:items-stretch sm:justify-end"
+          className="fixed inset-0 z-[100] flex items-end bg-black/60 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -136,7 +136,7 @@ export function ActivationModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="activation-title"
-            className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
+            className="flex max-h-[calc(100dvh-5rem)] min-h-0 w-full flex-col overflow-hidden rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(480px,calc(100vw-2rem))] sm:rounded-[18px]"
             initial={sheetHiddenState(reduce, desktop)}
             animate={{ opacity: 1, x: 0, y: 0 }}
             exit={sheetHiddenState(reduce, desktop)}

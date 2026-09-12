@@ -415,7 +415,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
       className={`auth-capsule-backdrop fixed inset-0 z-[100] flex items-end overflow-hidden ${
         stage === 'choose-path'
           ? 'justify-center sm:items-center sm:p-6'
-          : 'justify-end'
+          : 'justify-end sm:items-center sm:p-4 md:p-6'
       }`}
       style={{ background: 'rgba(14,14,14,0.65)' }}
       onClick={() => !busy && onClose()}
@@ -431,7 +431,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         className={`auth-capsule max-h-[94dvh] w-full overflow-y-auto rounded-t-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[var(--shadow-pop)] ${
           stage === 'choose-path'
             ? 'auth-capsule-choice sm:h-auto sm:max-h-[calc(100dvh-48px)] sm:w-[min(680px,calc(100vw-48px))] sm:rounded-[20px]'
-            : 'sm:h-full sm:max-h-none sm:w-[620px] sm:rounded-none sm:rounded-s-[18px]'
+            : 'sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(620px,calc(100vw-2rem))] sm:rounded-[18px]'
         }`}
         style={{
           overscrollBehavior: 'contain',

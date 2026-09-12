@@ -73,7 +73,7 @@ export function ConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-[120] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[120] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
     >
       <button
         type="button"
@@ -82,7 +82,7 @@ export function ConfirmDialog({
         className="absolute inset-0 bg-black/55"
       />
       <div
-        className="karwan-sheet-enter relative max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] px-6 py-6 sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter relative max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[22px] px-6 py-6 sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(480px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-card)',
           color: 'var(--lp-dark)',

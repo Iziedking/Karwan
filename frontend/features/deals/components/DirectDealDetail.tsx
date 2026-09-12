@@ -59,7 +59,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { proofSegments } from '../proofLinks';
-import { evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
+import { evidenceReceiptBodyKey, evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
 
@@ -1426,7 +1426,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           {deal.evidenceRequired === true &&
             deal.delivered &&
             deal.evidenceReceipt &&
-            deal.evidenceReceipt.state !== 'not-configured' && (
+            (
             <EvidenceReceiptCard
               receipt={deal.evidenceReceipt}
               onRefresh={() => void refresh()}
@@ -1725,7 +1725,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onStillReviewing={onStillReviewing}
               onAppeal={onAppeal}
               onCancel={onCancel}
-              onEdit={() => setEditOpen(true)}
+              onEdit={viewerIsBuyer ? () => setEditOpen(true) : undefined}
               onRaiseDelayAppeal={onRaiseDelayAppeal}
               onRespondToDelayAppeal={onRespondToDelayAppeal}
               onRequestExtension={onRequestExtension}
@@ -1887,11 +1887,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           copy={dd.proposeCancelModal}
         />
       )}
-      {editOpen && address && (
+      {editOpen && address && viewerIsBuyer && (
         <EditDealModal
           deal={deal}
           caller={address}
-          mode={viewerIsSeller ? 'counter' : 'edit'}
           onClose={() => setEditOpen(false)}
           onSaved={refresh}
         />
@@ -2442,7 +2441,7 @@ function ActionPanel({
   onStillReviewing: () => void;
   onAppeal: () => void;
   onCancel: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
   onRaiseDelayAppeal: () => void;
   onRespondToDelayAppeal: (reason: string) => void;
   onRequestExtension: () => void;
@@ -2665,14 +2664,16 @@ function ActionPanel({
             <CTAPill disabled={busy} busy={busy} onClick={onAccept}>
               {busy ? copy.awaitingAcceptance.acceptBusy : copy.awaitingAcceptance.acceptCta}
             </CTAPill>
-            <CTAPill
-              variant="secondary"
-              tone="dark"
-              onClick={onEdit}
-              disabled={busy}
-            >
-              {copy.awaitingAcceptance.editTermsCta}
-            </CTAPill>
+            {onEdit ? (
+              <CTAPill
+                variant="secondary"
+                tone="dark"
+                onClick={onEdit}
+                disabled={busy}
+              >
+                {copy.awaitingAcceptance.editTermsCta}
+              </CTAPill>
+            ) : null}
           </div>
         </div>
       );
@@ -2693,9 +2694,11 @@ function ActionPanel({
         )}
         <AcceptanceCountdown deal={deal} now={now} viewerIsSeller={false} copy={copy.acceptanceCountdown} />
         <div className="flex flex-wrap gap-2">
-          <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
-            {copy.awaitingAcceptance.editTermsCta}
-          </CTAPill>
+          {onEdit ? (
+            <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
+              {copy.awaitingAcceptance.editTermsCta}
+            </CTAPill>
+          ) : null}
           <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
             {busy ? copy.awaitingAcceptance.cancelBusy : copy.awaitingAcceptance.cancelCta}
           </CTAPill>
@@ -2750,9 +2753,11 @@ function ActionPanel({
                 ) : null}
               </>
             )}
-            <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
-              {copy.awaitingFunding.editTermsCta}
-            </CTAPill>
+            {onEdit ? (
+              <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
+                {copy.awaitingFunding.editTermsCta}
+              </CTAPill>
+            ) : null}
             <CTAPill variant="secondary" tone="dark" onClick={onCancel} disabled={busy} busy={busy}>
               {busy ? copy.awaitingFunding.cancelBusy : copy.awaitingFunding.cancelCta}
             </CTAPill>
@@ -3468,7 +3473,7 @@ function AcceptConsentModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-stretch sm:justify-end sm:pb-0"
+      className="fixed inset-0 z-[120] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 sm:pb-4 md:p-6"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
@@ -3477,7 +3482,7 @@ function AcceptConsentModal({
         aria-modal="true"
         aria-labelledby="propose-resolution-title"
         onClick={(e) => e.stopPropagation()}
-        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full touch-pan-y overscroll-contain overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full touch-pan-y overscroll-contain overflow-y-auto rounded-t-[22px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(480px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
@@ -3562,7 +3567,7 @@ function FundingConsentModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[80] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
       style={{ background: 'rgba(14,14,14,0.62)' }}
       onClick={() => !busy && onClose()}
       onKeyDown={onKeyDown}
@@ -3574,7 +3579,7 @@ function FundingConsentModal({
         aria-labelledby="funding-consent-title"
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] outline-none sm:h-full sm:max-h-none sm:w-[512px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[22px] outline-none sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(512px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
@@ -3822,7 +3827,7 @@ function ProposeCancelModal({
       ];
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end sm:items-stretch sm:justify-end"
+      className="fixed inset-0 z-[80] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
       style={{ background: 'rgba(14,14,14,0.55)' }}
       onClick={() => !busy && onClose()}
     >
@@ -3830,7 +3835,7 @@ function ProposeCancelModal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="karwan-sheet-enter max-h-[92dvh] w-full overflow-y-auto rounded-t-[22px] sm:h-full sm:max-h-none sm:w-[480px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[22px] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(480px,calc(100vw-2rem))] sm:rounded-[18px]"
         style={{
           background: 'var(--lp-card)',
           color: 'var(--lp-dark)',
@@ -3945,13 +3950,7 @@ function EvidenceReceiptCard({
 }) {
   const key = evidenceReceiptCopyKey(receipt.state);
   const tone = evidenceReceiptTone(receipt.state);
-  const body = tone === 'positive'
-    ? copy.passBody
-    : receipt.state === 'mismatch'
-      ? copy.mismatchBody
-      : receipt.state === 'stale-terms' || receipt.state === 'expired'
-        ? copy.staleBody
-        : copy.unavailableBody;
+  const body = copy[evidenceReceiptBodyKey(receipt.state)];
   const border = tone === 'positive'
     ? 'rgba(79, 138, 63, 0.35)'
     : tone === 'warning'
@@ -3993,7 +3992,7 @@ function EvidenceReceiptCard({
             <CopyId value={receipt.evidenceCommitment} label={shortHash(receipt.evidenceCommitment)} />
           </div>
         ) : null}
-        {(receipt.state === 'read-unavailable' || receipt.state === 'not-recorded') ? (
+        {receipt.state !== 'pass' ? (
           <button
             type="button"
             onClick={onRefresh}

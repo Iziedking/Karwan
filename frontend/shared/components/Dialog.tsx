@@ -188,7 +188,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                 {active ? (
                   <motion.div
                     key="dialog"
-                    className={`fixed inset-0 z-[200] flex items-end bg-black/60 sm:justify-end ${compact ? 'sm:p-6' : 'sm:items-stretch'}`}
+                    className="fixed inset-0 z-[200] flex items-end bg-black/60 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -206,7 +206,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       aria-modal="true"
                       aria-labelledby="karwan-dialog-title"
                       aria-describedby={active.options.message ? 'karwan-dialog-message' : undefined}
-                      className={`flex max-h-[92dvh] w-full flex-col overflow-y-auto rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:w-[440px] ${compact ? 'product-surface sm:rounded-[20px]' : 'sm:h-full sm:max-h-none sm:rounded-none sm:rounded-s-[16px]'}`}
+                      className={`flex max-h-[calc(100dvh-5rem)] min-h-0 w-full flex-col overflow-y-auto rounded-t-[24px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)] shadow-[var(--shadow-pop)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(440px,calc(100vw-2rem))] sm:rounded-[18px] ${compact ? 'product-surface' : ''}`}
                       initial={sheetHiddenState(reduce, desktop)}
                       animate={{ opacity: 1, x: 0, y: 0 }}
                       exit={sheetHiddenState(reduce, desktop)}
