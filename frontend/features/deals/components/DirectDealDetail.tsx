@@ -857,7 +857,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <div className="deal-command-grid grid items-stretch gap-6 border-b border-[var(--lp-border-light)] pb-7 lg:grid-cols-[minmax(0,1.12fr)_minmax(340px,0.88fr)]">
           <div className="fade-up flex min-w-0 flex-col justify-between py-2 sm:py-4">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{isB2B ? 'Business trade' : 'Protected trade'}</span>
               <StageBadge stage={stage} />
               {isB2B && (
                 <span
@@ -878,16 +877,19 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 </span>
               )}
             </div>
-            <h1 className="mt-4 max-w-[16ch] text-[clamp(2.8rem,6vw,5.1rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">
-              {counterpartyName ? `Trade with ${counterpartyName}` : isB2B ? 'Business trade' : 'Protected trade'}
+            <p className="mt-5 max-w-[42ch] text-[14px] font-medium text-[var(--lp-text-sub)]">
+              {counterpartyName ? `Trade with ${counterpartyName}` : isB2B ? 'Business trade' : 'Direct trade'}
+            </p>
+            <h1
+              className="mt-2 flex flex-wrap items-baseline gap-x-3 text-[clamp(4rem,10vw,8.5rem)] font-semibold leading-[0.86] tracking-[-0.075em] text-[var(--lp-dark)] tabular-nums"
+              aria-label={`${formatUsdc(deal.dealAmountUsdc, { withSuffix: false })} USDC`}
+            >
+              <span>{formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}</span>
+              <span className="text-[clamp(1.1rem,2vw,1.6rem)] font-semibold tracking-[-0.03em] text-[var(--lp-text-muted)]">
+                USDC
+              </span>
             </h1>
             <p className="mt-2 line-clamp-2 max-w-[62ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{deal.terms}</p>
-            <div className="mt-8 flex flex-wrap items-baseline gap-2">
-              <span className="text-[clamp(2.8rem,6vw,4.8rem)] font-semibold leading-none tracking-[-0.065em] text-[var(--lp-dark)] tabular-nums">
-                {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}
-              </span>
-              <span className="text-[13px] font-semibold text-[var(--lp-text-muted)]">USDC</span>
-            </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-[var(--lp-text-muted)]">
               {deal.receiptReferences?.[0] ? (
                 <span className="mono font-bold uppercase tracking-[0.12em]">{deal.receiptReferences[0]} · Karwan reference</span>
