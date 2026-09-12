@@ -41,6 +41,8 @@ export interface CreDeliveryRequest {
   pullNumber: number;
   submittedSha: string;
   publishedAt: number;
+  repositoryOwner?: string;
+  repositoryName?: string;
 }
 
 /// Stable identity for the durable request queue. The submitted SHA and pull
@@ -79,6 +81,7 @@ export type DealForRequest = Pick<
   | 'creDeliveryRequest'
   | 'creEvidenceReceipt'
   | 'evidenceExpectedCommitment'
+  | 'creAutoPublication'
 >;
 
 export type CreDeliveryRequestQueueClassification =
@@ -175,8 +178,11 @@ export function publicCreDeliveryRequest(request: CreDeliveryRequest) {
   };
 }
 
-export function publicCreDeliveryRequestWithLease(request: CreDeliveryRequest, leaseToken: string) {
-  return { ...publicCreDeliveryRequest(request), leaseToken };
+export function publicCreDeliveryRequestWithLease(request: CreDeliveryRequest, leaseToken: string, source: CreDeliveryRequest = request) {
+  return {
+    ...publicCreDeliveryRequest(request), leaseToken,
+    ...(source.repositoryOwner && source.repositoryName ? { repositoryOwner: source.repositoryOwner, repositoryName: source.repositoryName } : {}),
+  };
 }
 
 export function selectCurrentCreDeliveryRequest(

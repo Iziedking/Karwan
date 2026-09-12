@@ -797,6 +797,11 @@ const envSchema = z.object({
   /// Dedicated bearer secret for the internal CRE delivery-request bridge.
   /// Unset disables publication and read access; it is never the admin token.
   CRE_DELIVERY_REQUEST_TOKEN: optionalString,
+  /// Publish the seller's GitHub submission automatically. Separate from execution.
+  CRE_AUTO_PUBLISH_ENABLED: envBool('CRE_AUTO_PUBLISH_ENABLED'),
+  CRE_GITHUB_READ_TOKEN: optionalString,
+  CRE_GITHUB_SHA_MODE: z.enum(['head', 'merge']).default('merge'),
+  CRE_REQUEST_LEASE_MS: z.coerce.number().int().min(60_000).max(3_600_000).default(600_000),
   /// Reconciles accepted CRE evidence receipts from the Arc registry back into
   /// the leased delivery queue. Keep off until the production registry address
   /// and CRE workflow are configured together.

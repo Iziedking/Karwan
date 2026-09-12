@@ -2901,6 +2901,8 @@ interface MessagesShape {
       deliveryUnknownBody: string;
     };
     evidenceReceipt: {
+      resultLabel: string;
+      execution: { awaitingDelivery: { label: string; body: string }; awaitingRequest: { label: string; body: string }; queued: { label: string; body: string }; checking: { label: string; body: string }; confirming: { label: string; body: string }; pass: { label: string; body: string }; mismatch: { label: string; body: string }; unavailable: { label: string; body: string }; };
       label: string;
       states: {
         pass: string;
@@ -8279,6 +8281,41 @@ export const en: MessagesShape = {
       deliveryUnknownBody: 'Karwan could not complete the delivery check. This is unknown, not a failure. Review the work yourself before releasing.',
     },
     evidenceReceipt: {
+      resultLabel: "Result",
+      execution: {
+  "awaitingDelivery": {
+    "label": "Awaiting delivery",
+    "body": "The seller must mark the work delivered before a check can be requested."
+  },
+  "awaitingRequest": {
+    "label": "Awaiting request",
+    "body": "Delivery is recorded. A verification request has not been queued yet."
+  },
+  "queued": {
+    "label": "Queued",
+    "body": "This delivery is queued. Waiting for a verifier to pick it up."
+  },
+  "checking": {
+    "label": "Checking",
+    "body": "A verifier has claimed this request. Waiting for its result."
+  },
+  "confirming": {
+    "label": "Awaiting receipt",
+    "body": "The request is complete. Karwan is waiting for the matching Arc receipt."
+  },
+  "pass": {
+    "label": "Passed",
+    "body": "The recorded evidence matches this agreement and delivery. Review the work before releasing payment."
+  },
+  "mismatch": {
+    "label": "Mismatch",
+    "body": "The recorded evidence does not match the accepted criteria. Review the result before deciding what happens next."
+  },
+  "unavailable": {
+    "label": "Unavailable",
+    "body": "Karwan cannot confirm a current result. The request may need attention; this does not mean the work failed."
+  }
+},
       label: 'Delivery check · Chainlink CRE',
       states: {
         pass: 'Delivery check passed',

@@ -87,7 +87,9 @@ const deliveryRequestSchema = z.object({
   pullNumber: z.number().int().positive(),
   submittedSha: shaSchema,
   leaseToken: z.string().uuid().optional(),
-}).strict();
+  repositoryOwner: z.string().regex(/^[A-Za-z0-9-]{1,39}$/).optional(),
+  repositoryName: z.string().regex(/^[A-Za-z0-9_.-]{1,100}$/).optional(),
+}).strict().refine((request) => Boolean(request.repositoryOwner) === Boolean(request.repositoryName), 'repository identity requires both fields');
 
 type DeliveryRequest = z.infer<typeof deliveryRequestSchema>;
 
@@ -131,7 +133,7 @@ function buildReportPayload(config: Config, request: DeliveryRequest, result: Gi
   );
 }
 
-function loadDeliveryRequest(runtime: TeeRuntime<Config>, config: Config): DeliveryRequest {
+function loadDeliveryRequest(runtime: TeeRuntime<Config>, config: Config): DeliveryRequest | null {
   if (config.requestMode !== 'confidential-http') {
     return deliveryRequestSchema.parse({
       dealId: config.dealId,
@@ -151,6 +153,11 @@ function loadDeliveryRequest(runtime: TeeRuntime<Config>, config: Config): Deliv
       'User-Agent': { values: ['karwan-cre-delivery-request'] },
     },
   }).result();
+  if (response.statusCode === 404) {
+    try {
+      if (JSON.parse(text(response)).code === 'CRE_REQUEST_NOT_FOUND') return null;
+    } catch { /* An unrelated 404 is a configuration error, not an empty queue. */ }
+  }
   if (!ok(response)) throw new Error('DELIVERY_REQUEST_UNAVAILABLE');
   return deliveryRequestSchema.parse(JSON.parse(text(response)));
 }
@@ -158,6 +165,7 @@ function loadDeliveryRequest(runtime: TeeRuntime<Config>, config: Config): Deliv
 export function onCronTrigger(runtime: TeeRuntime<Config>): string {
   const config = runtime.config;
   const request = loadDeliveryRequest(runtime, config);
+  if (!request) return JSON.stringify({ executionMode: 'idle', reportGenerated: false, reportWrite: 'not-broadcast' });
   if (request.expiresAt <= Math.floor(runtime.now().getTime() / 1_000)) {
     throw new Error('EVIDENCE_REPORT_EXPIRED');
   }
@@ -175,6 +183,7 @@ export function onCronTrigger(runtime: TeeRuntime<Config>): string {
         runtime.getSecret({ id: config.githubTokenSecretId }).result().value,
         request.pullNumber,
         request.submittedSha,
+        request.repositoryOwner && request.repositoryName ? { owner: request.repositoryOwner, repository: request.repositoryName } : undefined,
       );
   const result = evaluateGitHubDelivery(source.criteria, source.evidence);
   const payload = buildReportPayload(config, request, result);

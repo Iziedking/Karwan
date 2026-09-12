@@ -551,6 +551,9 @@ export interface DirectDeal {
     buyer?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
     seller?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
   };
+  creVerification?: {
+    state: 'awaitingDelivery' | 'awaitingRequest' | 'queued' | 'checking' | 'confirming' | 'pass' | 'mismatch' | 'unavailable';
+  };
   evidenceReceipt?: {
     state:
       | 'not-configured'

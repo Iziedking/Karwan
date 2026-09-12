@@ -1,5 +1,5 @@
 {
-  "schedule": "0 0 0 1 1 *",
+  "schedule": "0 * * * * *",
   "requestMode": "confidential-http",
   "requestUrl": "https://api.karwan.site/api/cre/delivery-request/current",
   "requestSecretId": "DELIVERY_REQUEST_TOKEN",

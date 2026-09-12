@@ -51,7 +51,7 @@ creDeliveryRequestRoutes.get('/current', async (c) => {
     }
     eligibleKeys.push(adopted.value.requestKey);
   }
-  const claimed = await claimCreDeliveryRequest(eligibleKeys);
+  const claimed = await claimCreDeliveryRequest(eligibleKeys, Date.now(), config.CRE_REQUEST_LEASE_MS);
   if (!claimed) {
     return c.json({ error: 'no active delivery request', code: 'CRE_REQUEST_NOT_FOUND' }, 404);
   }
@@ -61,7 +61,7 @@ creDeliveryRequestRoutes.get('/current', async (c) => {
     await cancelCreDeliveryRequest(claimed.record.requestKey, claimed.record.leaseToken).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
-  return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken));
+  return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken, current.request));
 });
 
 creDeliveryRequestRoutes.get('/:jobId', async (c) => {
@@ -72,7 +72,7 @@ creDeliveryRequestRoutes.get('/:jobId', async (c) => {
   if (classification.kind !== 'current') return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
   const adopted = await adoptLegacyCreDeliveryRequest(classification.request);
   if (!adopted.ok) return c.json({ error: adopted.message, code: adopted.code }, 409);
-  const claimed = await claimCreDeliveryRequest([adopted.value.requestKey]);
+  const claimed = await claimCreDeliveryRequest([adopted.value.requestKey], Date.now(), config.CRE_REQUEST_LEASE_MS);
   if (!claimed) return c.json({ error: 'delivery request is stale, leased or expired', code: 'CRE_REQUEST_STALE' }, 409);
   const currentDeal = await getDeal(deal.jobId);
   const current = currentDeal ? classifyCreDeliveryRequestForQueue(currentDeal) : undefined;
@@ -80,7 +80,7 @@ creDeliveryRequestRoutes.get('/:jobId', async (c) => {
     await cancelCreDeliveryRequest(claimed.record.requestKey, claimed.record.leaseToken).catch(() => undefined);
     return c.json({ error: 'delivery request became stale while it was being claimed', code: 'CRE_REQUEST_STALE' }, 409);
   }
-  return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken));
+  return c.json(publicCreDeliveryRequestWithLease(claimed.record, claimed.record.leaseToken, current.request));
 });
 
 creDeliveryRequestRoutes.post('/:jobId', async (c) => {

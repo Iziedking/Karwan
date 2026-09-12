@@ -43,7 +43,76 @@ only closes a lease that the CRE worker already claimed and whose exact report
 is present on Arc. World AgentBook verification remains an independent
 eligibility signal and is not required for the GitHub evidence path.
 
-## Delivery semantics
+## Automatic submission and status
+
+With automatic publication enabled, the seller submits an exact GitHub PR URL
+through **Mark delivered**. The backend reads that PR, pins its head or merged
+commit, and persists a request for the current agreement and delivery revision.
+The seller does not run a terminal command. The production workflow is scheduled
+once a minute; an empty queue is a normal idle run.
+
+The deal room shows **Queued** only after a durable queue entry exists and
+**Checking** while CRE holds its lease. **Passed**, **Mismatch**, or
+**Unavailable** reflect the current receipt or an actual inability to check.
+An intermediate receipt-confirmation state covers reconciliation. The open deal
+polls while verification is pending. A pass satisfies the evidence requirement;
+it does not itself send an escrow payment.
+
+Backend configuration, after the matching hosted workflow is active:
+
+```text
+CRE_AUTO_PUBLISH_ENABLED=true
+CRE_GITHUB_SHA_MODE=merge
+CRE_REQUEST_LEASE_MS=600000
+CRE_EVIDENCE_RECONCILER_ENABLED=true
+CRE_EVIDENCE_RECONCILER_INTERVAL_MS=30000
+```
+
+`CRE_DELIVERY_REQUEST_TOKEN` must match the workflow's Vault secret and
+`KARWAN_EVIDENCE_REGISTRY_ADDR` must identify the receiver bound to that exact
+workflow. For private repositories or authenticated GitHub rate limits, configure
+the backend's `CRE_GITHUB_READ_TOKEN` securely as well. Vault storage alone does
+not provide the backend with this token. Never source the entire production
+`.env` as a shell script or print its values.
+
+`CRE_GITHUB_SHA_MODE` must match `shaMode` in the confidential criteria. In merge
+mode the PR must already be merged. The workflow fetches the submitted
+repository, then checks it against the configured private repository ID and
+policy. The current integration has one configured confidential policy; it does
+not yet provision arbitrary buyer-specific repository policies through the UI.
+
+Publication retries at most three times, separated by at least a minute. A
+restart reuses the persisted commit instead of repinning a changed PR. Requests
+expire after an hour; leases last ten minutes. Expired work requires a corrected
+delivery or operator attention. Invalid URLs, inaccessible PRs, and unmet merge
+requirements do not produce a passing result. Corrections get a new revision.
+
+Automatic publication defaults to disabled. Enabling it creates queue entries;
+it does not deploy a hosted CRE workflow. A local simulation is not evidence
+that the hosted schedule is running.
+
+### Activation checkpoint, 13 September 2026
+
+Authenticated CLI inspection returned no deployed workflows. Arc receiver
+`0x07542B70Bd7F7E81d7398011ECdFb80dFddE1311` is permanently bound to the older
+workflow ID
+`0x0023b58ea1796e15d63cf56b2f0109a1575606b6fe9f0e9f6ca614d20660ec51`.
+The updated code and schedule require a new receiver and the production receiver
+sequence below. Do not activate the updated workflow against the old receiver.
+
+Choose the deployment registry before deploying the receiver. A private-registry
+workflow uses the CRE organization owner; an onchain-registry workflow uses its
+linked wallet owner. Confirm the owner from the authenticated account rather
+than assuming the Arc deployer and workflow owner are the same address. See
+[Chainlink's deployment guide](https://docs.chain.link/cre/guides/operations/deploying-workflows).
+
+The final config must contain the new receiver before hashing. Freeze the exact
+compiled artifact and config for binding and deployment. After activation and
+backend release, submit one fresh CRE-enabled deal, observe its queue lease,
+verify the Arc receipt transaction and backend binding, and check the displayed
+verdict before testing settlement. This live proof remains outstanding.
+
+## Commit and check policy
 
 The private criteria select one SHA mode:
 

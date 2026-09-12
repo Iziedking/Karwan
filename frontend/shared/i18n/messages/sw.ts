@@ -3130,6 +3130,41 @@ export const sw: Messages = {
       deliveryUnknownBody: 'Karwan haikuweza kukamilisha ukaguzi wa uwasilishaji. Hii ni hali isiyojulikana, si kushindwa. Kagua kazi mwenyewe kabla ya kutoa malipo.',
     },
     evidenceReceipt: {
+      resultLabel: "Matokeo",
+      execution: {
+  "awaitingDelivery": {
+    "label": "Inasubiri uwasilishaji",
+    "body": "Muuzaji lazima aweke kazi kuwa imewasilishwa kabla ya kuomba ukaguzi."
+  },
+  "awaitingRequest": {
+    "label": "Inasubiri ombi",
+    "body": "Uwasilishaji umerekodiwa. Ombi la ukaguzi bado halijawekwa kwenye foleni."
+  },
+  "queued": {
+    "label": "Kwenye foleni",
+    "body": "Uwasilishaji huu uko kwenye foleni. Unasubiri mhakiki auchukue."
+  },
+  "checking": {
+    "label": "Inakaguliwa",
+    "body": "Mhakiki amechukua ombi hili. Matokeo yake yanasubiriwa."
+  },
+  "confirming": {
+    "label": "Inasubiri risiti",
+    "body": "Ombi limekamilika. Karwan inasubiri risiti inayolingana kwenye Arc."
+  },
+  "pass": {
+    "label": "Imepita",
+    "body": "Ushahidi uliorekodiwa unalingana na makubaliano na uwasilishaji huu. Kagua kazi kabla ya kuachilia malipo."
+  },
+  "mismatch": {
+    "label": "Hailingani",
+    "body": "Ushahidi uliorekodiwa haulingani na vigezo vilivyokubaliwa. Kagua matokeo kabla ya kuamua hatua inayofuata."
+  },
+  "unavailable": {
+    "label": "Haipatikani",
+    "body": "Karwan haiwezi kuthibitisha matokeo ya sasa. Ombi linaweza kuhitaji kushughulikiwa; hii haimaanishi kazi imeshindwa."
+  }
+},
       label: 'Ukaguzi wa uwasilishaji · Chainlink CRE',
       states: { staleDelivery: 'Uwasilishaji wa awali ulikaguliwa', pass: 'Ukaguzi wa uwasilishaji umepita', mismatch: 'Uwasilishaji haulingani', unavailable: 'Ukaguzi haupatikani', expired: 'Ukaguzi umeisha muda', staleTerms: 'Makubaliano ya zamani yalikaguliwa', readUnavailable: 'Risiti ya Arc haipatikani', notRecorded: 'Inasubiri ukaguzi', notConfigured: 'Ukaguzi haujasanidiwa' },
       passBody: 'Ushahidi uliorekodiwa unalingana na toleo hili la makubaliano. Kagua kazi kabla ya kutoa malipo.',

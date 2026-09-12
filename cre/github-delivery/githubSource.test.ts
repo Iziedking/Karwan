@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { TeeRuntime } from '@chainlink/cre-sdk';
 import { loadGitHubEvidence, type ConfidentialCriteria } from './githubSource.js';
+import { evaluateGitHubDelivery } from '../../backend/src/evidence/githubDeliveryPredicate.js';
 
 const SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const MERGE_SHA = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
@@ -68,6 +69,15 @@ function checks(sha = SHA) {
 }
 
 describe('loadGitHubEvidence', () => {
+  test('a submitted PR from another repository cannot verify the policy repository PR with the same number', () => {
+    const { runtime, requests } = makeRuntime([
+      { statusCode: 200, body: pull({ base: { ref: 'main', repo: { id: 999999 } } }) },
+      { statusCode: 200, body: checks() },
+    ]);
+    const result = loadGitHubEvidence(runtime, criteria, TOKEN, 42, SHA, { owner: 'another-owner', repository: 'another-repo' });
+    expect(requests[0]?.url).toBe('https://api.github.com/repos/another-owner/another-repo/pulls/42');
+    expect(evaluateGitHubDelivery(result.criteria, result.evidence).reasonCode).toBe('REPOSITORY_MISMATCH');
+  });
   test('uses only the fixed GitHub API root and binds the chosen head SHA', () => {
     const { runtime, requests } = makeRuntime([
       { statusCode: 200, body: pull() },

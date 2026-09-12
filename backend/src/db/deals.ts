@@ -225,6 +225,13 @@ export interface DirectDeal {
   /// Explicit policy marker. Undefined/false is legacy optional evidence;
   /// true means absent, stale, failed or unreadable evidence pauses release.
   evidenceRequired?: boolean;
+  creAutoPublication?: {
+    revision: number;
+    attempts: number;
+    nextAttemptAt: number;
+    published?: boolean;
+    error?: 'invalid-proof' | 'github-unavailable' | 'not-merged' | 'publish-unavailable';
+  };
   /// Optional high-signal counterparty policy. This gates the selected party's
   /// acceptance/funding action; it never authorizes a payment or release.
   verificationPolicy?: 'standard' | 'high_signal';
@@ -608,6 +615,53 @@ export async function patchDeal(
   saveFile(store);
   invalidateDealsCache();
   return next;
+}
+
+async function mutateLockedDeal(jobId: string, apply: (current: DirectDeal | undefined) => DirectDeal | null): Promise<DirectDeal | null> {
+  const key = jobId.toLowerCase();
+  if (pgEnabled) {
+    return withPostgresTransaction(async (tx) => {
+      const result = await tx.query<{ data: DirectDeal }>('SELECT data FROM direct_deals WHERE job_id = $1 FOR UPDATE', [key]);
+      const next = apply(result.rows[0]?.data);
+      if (!next) return null;
+      await tx.query('UPDATE direct_deals SET data = $1::jsonb WHERE job_id = $2', [JSON.stringify(next), key]);
+      invalidateDealsCache();
+      return next;
+    });
+  }
+  const store = loadFile();
+  const next = apply(store[key]);
+  if (!next) return null;
+  store[key] = next;
+  saveFile(store);
+  invalidateDealsCache();
+  return next;
+}
+
+/** Two concurrent submissions must not persist different proofs at the same revision. */
+export function recordDeliveryRevision(snapshot: DirectDeal, patch: Partial<DirectDeal>): Promise<DirectDeal | null> {
+  return mutateLockedDeal(snapshot.jobId, (current) => {
+    if (!current || current.cancelledAt || current.settledAt
+      || (current.agreementVersion ?? 1) !== (snapshot.agreementVersion ?? 1)
+      || (current.deliveryRevision ?? 0) !== (snapshot.deliveryRevision ?? 0)
+      || patch.deliveryRevision !== (current.deliveryRevision ?? 0) + 1) return null;
+    return { ...current, ...patch, updatedAt: Date.now() };
+  });
+}
+
+/** Compare the delivery under a row lock before attaching background CRE work. */
+export async function updateCrePublication(
+  snapshot: DirectDeal,
+  update: (current: DirectDeal) => Pick<Partial<DirectDeal>, 'creDeliveryRequest' | 'creAutoPublication'> | null,
+): Promise<DirectDeal | null> {
+  const apply = (current: DirectDeal | undefined): DirectDeal | null => {
+    if (!current || !current.evidenceRequired || !current.delivered || current.cancelledAt || current.settledAt
+      || current.agreementVersion !== snapshot.agreementVersion || current.deliveryRevision !== snapshot.deliveryRevision
+      || current.deliveryProof !== snapshot.deliveryProof) return null;
+    const patch = update(current);
+    return patch ? { ...current, ...patch, updatedAt: Date.now() } : null;
+  };
+  return mutateLockedDeal(snapshot.jobId, apply);
 }
 
 /// Version-bound seller approval. Postgres takes a row lock and compares the

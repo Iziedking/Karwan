@@ -44,6 +44,33 @@ export interface CreDeliveryRequestQueueSqlRuntime {
 }
 
 const FLAT_STORE_PATH = resolve(process.cwd(), 'data', 'cre-delivery-requests.json');
+
+export type CreQueueProgress = Pick<CreDeliveryRequestRecord, 'state' | 'expiresAt' | 'leaseExpiresAt'>;
+
+/** Status reads must never claim, renew, expire or otherwise mutate work. */
+export async function readCreQueueProgressFromSql(sql: SqlExecutor, requestKey: string): Promise<CreQueueProgress | null> {
+  const result = await sql.query<{ state: CreDeliveryRequestState; expires_at: string | number; lease_expires_at: string | number | null }>(
+    'SELECT state, expires_at, lease_expires_at FROM cre_delivery_requests_v1 WHERE request_key = $1',
+    [requestKey],
+  );
+  const row = result.rows[0];
+  return row ? {
+    state: row.state,
+    expiresAt: Number(row.expires_at),
+    ...(row.lease_expires_at == null ? {} : { leaseExpiresAt: Number(row.lease_expires_at) }),
+  } : null;
+}
+
+export async function readCreQueueProgress(requestKey: string): Promise<CreQueueProgress | null> {
+  const runtime = await postgresRuntime();
+  if (runtime.pgEnabled) return readCreQueueProgressFromSql(runtime.postgresExecutor(), requestKey);
+  if (!existsSync(FLAT_STORE_PATH)) return null;
+  // Unlike queue recovery, a corrupt store is an unavailable status, not an empty queue.
+  const records = JSON.parse(readFileSync(FLAT_STORE_PATH, 'utf8')) as Record<string, CreDeliveryRequestRecord>;
+  const record = records[requestKey];
+  return record ? { state: record.state, expiresAt: record.expiresAt, leaseExpiresAt: record.leaseExpiresAt } : null;
+}
+
 let flatStoreLock = Promise.resolve();
 
 function samePublicRequest(left: CreDeliveryRequest, right: CreDeliveryRequest): boolean {

@@ -3130,6 +3130,41 @@ export const fr: Messages = {
       deliveryUnknownBody: 'Karwan n’a pas pu terminer la vérification de livraison. Le résultat est inconnu, pas négatif. Examinez le travail avant de libérer les fonds.',
     },
     evidenceReceipt: {
+      resultLabel: "Résultat",
+      execution: {
+  "awaitingDelivery": {
+    "label": "En attente de livraison",
+    "body": "Le vendeur doit marquer le travail comme livré avant de demander une vérification."
+  },
+  "awaitingRequest": {
+    "label": "En attente de demande",
+    "body": "La livraison est enregistrée. Aucune demande de vérification n’est encore en file."
+  },
+  "queued": {
+    "label": "En file",
+    "body": "Cette livraison est en file. Un vérificateur doit la prendre en charge."
+  },
+  "checking": {
+    "label": "Vérification en cours",
+    "body": "Un vérificateur a pris cette demande en charge. Son résultat est attendu."
+  },
+  "confirming": {
+    "label": "En attente du reçu",
+    "body": "La demande est terminée. Karwan attend le reçu Arc correspondant."
+  },
+  "pass": {
+    "label": "Validé",
+    "body": "Les preuves enregistrées correspondent à cet accord et à cette livraison. Examinez le travail avant de libérer le paiement."
+  },
+  "mismatch": {
+    "label": "Non conforme",
+    "body": "Les preuves enregistrées ne correspondent pas aux critères acceptés. Examinez le résultat avant de décider de la suite."
+  },
+  "unavailable": {
+    "label": "Indisponible",
+    "body": "Karwan ne peut pas confirmer de résultat actuel. La demande peut nécessiter une intervention ; cela ne signifie pas que le travail a échoué."
+  }
+},
       label: 'Vérification de livraison · Chainlink CRE',
       states: { staleDelivery: 'Livraison antérieure vérifiée', pass: 'Vérification réussie', mismatch: 'Écart de livraison', unavailable: 'Vérification indisponible', expired: 'Vérification expirée', staleTerms: 'Ancien accord vérifié', readUnavailable: 'Reçu Arc indisponible', notRecorded: 'Vérification en attente', notConfigured: 'Vérification non configurée' },
       passBody: 'La preuve enregistrée correspond à cette version de l’accord. Examinez le travail avant de libérer le paiement.',

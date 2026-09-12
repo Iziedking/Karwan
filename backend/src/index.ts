@@ -112,6 +112,7 @@ import { startPOWatcher } from './agents/poWatcher.js';
 import { startJobExpiryWatcher } from './agents/jobExpiryWatcher.js';
 import { startReleaseWatcher } from './agents/releaseWatcher.js';
 import { startCreEvidenceReconciler } from './evidence/creEvidenceReconciler.js';
+import { startCreAutoPublisher } from './evidence/creAutoPublication.js';
 import { startTrendScout } from './agents/trendScout.js';
 import { startBalanceWatcher } from './chain/balanceWatcher.js';
 import { startDepositWatcher } from './circle/depositWatcher.js';
@@ -536,6 +537,7 @@ function bootAgents() {
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'CRE receipt reconciler not started');
   }
+  stopFns.push(startCreAutoPublisher());
   try {
     if (config.REPUTATION_RECONCILER_ENABLED) {
       stopFns.push(startReputationReconciler());

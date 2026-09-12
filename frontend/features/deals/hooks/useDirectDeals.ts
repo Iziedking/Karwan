@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiError, type DirectDeal } from '@/core/api';
 import { qk } from '@/core/queryKeys';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { creVerificationPollInterval } from '../creVerification';
 
 /// react-query backed deal hooks. Sibling components asking for the same
 /// list share a single fetch; cache survives mount + hard refresh through
@@ -108,7 +109,7 @@ export function useDirectDeal(jobId: string) {
       current.state.status === 'error' &&
       classifyDealError(current.state.error) === 'transient'
         ? 5_000
-        : false,
+        : creVerificationPollInterval(current.state.data),
     refetchIntervalInBackground: false,
   });
 

@@ -151,7 +151,11 @@ import {
   deliverComplimentaryResearchReport,
   ResearchDeliveryInProgressError,
 } from '../evidence/researchReportDelivery.js';
-import { cancelCreDeliveryRequests } from '../evidence/creDeliveryRequestQueue.js';
+import { cancelCreDeliveryRequest } from '../evidence/creDeliveryRequestQueue.js';
+import { creDeliveryRequestKey } from '../evidence/creDeliveryRequest.js';
+import { readCreVerificationProgress } from '../evidence/creVerificationProgress.js';
+import { automaticallyPublishCreDelivery } from '../evidence/creAutoPublication.js';
+import { recordDeliveryRevision } from '../db/deals.js';
 import {
   createHighSignalVerification,
   highSignalForContext,
@@ -2621,7 +2625,9 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     || deal.deliveryMatch?.verdict === 'mismatch'
     || deal.deliveryMatch?.verdict === 'unknown'
     || deal.releaseBlockedReason === 'requirement-mismatch'
-    || deal.releaseBlockedReason === 'evidence-unavailable';
+    || deal.releaseBlockedReason === 'evidence-unavailable'
+    || Boolean(deal.creAutoPublication?.error)
+    || Boolean(deal.creEvidenceReceipt && deal.creEvidenceReceipt.decisionCode !== 1);
   if (deal.delivered && !correctionRequested) {
     return c.json({ error: 'deal already marked delivered' }, 409);
   }
@@ -2918,7 +2924,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     }
   }
 
-  await patchDeal(jobId, {
+  const recordedDelivery = await recordDeliveryRevision(deal, {
     delivered: true,
     deliveryRevision,
     deliveryEvidenceCommitment,
@@ -2939,9 +2945,18 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     evidenceExpectedCommitment: undefined,
     creDeliveryRequest: undefined,
     creEvidenceReceipt: undefined,
+    creAutoPublication: undefined,
   });
-  await cancelCreDeliveryRequests(jobId).catch((err: unknown) => {
-    logger.warn({ jobId, err: err instanceof Error ? err.message : String(err) }, 'cre delivery queue cancellation failed after redelivery');
+  if (!recordedDelivery) return c.json({ error: 'The delivery changed while this submission was being saved. Refresh the deal before submitting again.', code: 'STALE_DELIVERY' }, 409);
+  // Cancel only the previous request. A recovery worker may already have
+  // published the new revision after the delivery was saved above.
+  if (deal.creDeliveryRequest) {
+    await cancelCreDeliveryRequest(creDeliveryRequestKey(deal.creDeliveryRequest)).catch(() => {
+      logger.warn({ jobId }, 'prior CRE request cancellation failed after redelivery');
+    });
+  }
+  await automaticallyPublishCreDelivery(jobId).catch(() => {
+    logger.warn({ jobId }, 'CRE automatic publication deferred to recovery');
   });
 
   // First delivery announces "delivered"; a re-delivery doesn't re-announce it.
@@ -4890,6 +4905,7 @@ async function enrich(deal: DirectDeal) {
     agreementVersion: deal.agreementVersion ?? 1,
     agreementDigest: agreementDigest(deal),
     evidenceReceipt,
+    creVerification: await readCreVerificationProgress(deal, evidenceReceipt),
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
     deadlineReclaimGraceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
     /// How long the payment terms or a shipment in transit hold the money,

@@ -128,4 +128,20 @@ describe('confidential GitHub delivery workflow', () => {
     expect(handlers[0]?.fn).toBe(onCronTrigger);
     expect(handlers[0]?.requirements).toBeDefined();
   });
+
+  test('an empty delivery queue is idle and generates no report', () => {
+    const { runtime, reports } = makeRuntime({ ...baseConfig, requestMode: 'confidential-http', requestUrl: 'https://api.karwan.site/api/cre/delivery-request/current', requestSecretId: 'DELIVERY_REQUEST_TOKEN' });
+    (runtime as unknown as { callCapability: unknown }).callCapability = () => ({ result: () => ({ statusCode: 404, body: new TextEncoder().encode(JSON.stringify({ code: 'CRE_REQUEST_NOT_FOUND' })) }) });
+    expect(JSON.parse(onCronTrigger(runtime))).toEqual({ executionMode: 'idle', reportGenerated: false, reportWrite: 'not-broadcast' });
+    expect(reports).toHaveLength(0);
+  });
+
+  test('authentication and unrelated 404 errors never masquerade as an empty queue', () => {
+    for (const statusCode of [401,403,404,500]) {
+      const { runtime, reports } = makeRuntime({ ...baseConfig, requestMode: 'confidential-http', requestUrl: 'https://api.karwan.site/api/cre/delivery-request/current', requestSecretId: 'DELIVERY_REQUEST_TOKEN' });
+      (runtime as unknown as { callCapability: unknown }).callCapability = () => ({ result: () => ({ statusCode, body: new TextEncoder().encode('{"error":"unavailable"}') }) });
+      expect(() => onCronTrigger(runtime)).toThrow('DELIVERY_REQUEST_UNAVAILABLE');
+      expect(reports).toHaveLength(0);
+    }
+  });
 });

@@ -96,9 +96,13 @@ export function loadGitHubEvidence(
   token: string,
   pullNumber: number,
   submittedSha: string,
+  submittedRepository?: Pick<ConfidentialCriteria, 'owner' | 'repository'>,
 ): { criteria: GitHubDeliveryCriteria; evidence: GitHubDeliveryEvidence } {
   const criteria = criteriaForPredicate(confidentialCriteria);
-  const repoPath = `${encodeURIComponent(confidentialCriteria.owner)}/${encodeURIComponent(confidentialCriteria.repository)}`;
+  // Automatic submissions carry the actual repository. Never substitute the
+  // policy repository merely because both repositories have a PR numbered 1.
+  const source = submittedRepository ?? confidentialCriteria;
+  const repoPath = `${encodeURIComponent(source.owner)}/${encodeURIComponent(source.repository)}`;
 
   try {
     const pull = pullSchema.parse(fetchJson(

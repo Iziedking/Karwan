@@ -59,7 +59,8 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { proofSegments } from '../proofLinks';
-import { evidenceReceiptBodyKey, evidenceReceiptCopyKey, evidenceReceiptTone } from '../evidenceReceipt';
+import { evidenceReceiptBodyKey } from '../evidenceReceipt';
+import { creVerificationState, type CreVerificationState } from '../creVerification';
 import { worldCheckOverview } from '../worldCheckOverview';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
@@ -497,9 +498,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         : worldOverview.state === 'rejected'
           ? worldCopy.rejected
           : worldCopy.pending;
-  const evidenceStatusLabel = deal.evidenceReceipt
-    ? dd.evidenceReceipt.states[evidenceReceiptCopyKey(deal.evidenceReceipt.state)]
-    : dd.evidenceReceipt.states.notRecorded;
+  const verificationState = creVerificationState(deal);
+  const evidenceStatusLabel = dd.evidenceReceipt.execution[verificationState].label;
   const fundingSummary =
     fundingQuote ??
     safeOnChainFundingSummary(deal.onChain);
@@ -1412,6 +1412,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         </HeroHeadline>
         <div className="mt-8">
           <DealSlideshow>
+          <div className="space-y-4">
           <PageCard>
             <div className="p-5 md:p-6">
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap">
@@ -1424,6 +1425,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               </p>
             </div>
           </PageCard>
+          {deal.evidenceRequired === true && (
+            <EvidenceReceiptCard
+              receipt={deal.evidenceReceipt ?? { state: 'not-recorded', agreementVersion: deal.agreementVersion ?? 1 }}
+              progress={verificationState}
+              onRefresh={() => void refresh()}
+              refreshing={isRefetching}
+              copy={dd.evidenceReceipt}
+            />
+          )}
+          </div>
 
           {deal.shipment && (
             <PageCard>
@@ -1469,23 +1480,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 ) : null}
               </div>
             </PageCard>
-          )}
-          {deal.evidenceRequired === true && deal.delivered && (
-            <EvidenceReceiptCard
-              // A required check must stay visible while the reconciler has
-              // not recorded its first result. Without this fallback the
-              // release gate looked like an ordinary two-step payout because
-              // the card was omitted when `evidenceReceipt` was still absent.
-              receipt={
-                deal.evidenceReceipt ?? {
-                  state: 'not-recorded',
-                  agreementVersion: deal.agreementVersion ?? 1,
-                }
-              }
-              onRefresh={() => void refresh()}
-              refreshing={isRefetching}
-              copy={dd.evidenceReceipt}
-            />
           )}
           {deal.delivered && deal.deliveryProof && (
             <PageCard>
@@ -4021,19 +4015,24 @@ function ProposeCancelModal({
 }
 
 function EvidenceReceiptCard({
+  progress,
   receipt,
   onRefresh,
   refreshing,
   copy,
 }: {
+  progress: CreVerificationState;
   receipt: NonNullable<DirectDeal['evidenceReceipt']>;
   onRefresh: () => void;
   refreshing: boolean;
   copy: Messages['directDealDetail']['evidenceReceipt'];
 }) {
-  const key = evidenceReceiptCopyKey(receipt.state);
-  const tone = evidenceReceiptTone(receipt.state);
-  const body = copy[evidenceReceiptBodyKey(receipt.state)];
+  const tone = progress === 'pass' ? 'positive' : progress === 'mismatch' || progress === 'unavailable' ? 'warning' : 'neutral';
+  const body = progress === 'unavailable' && receipt.state !== 'not-recorded'
+    ? copy[evidenceReceiptBodyKey(receipt.state)]
+    : copy.execution[progress].body;
+  const finalResult = progress === 'pass' || progress === 'mismatch' || progress === 'unavailable';
+  const steps = ['queued', 'checking', finalResult ? progress : 'result'] as const;
   const border = tone === 'positive'
     ? 'rgba(79, 138, 63, 0.35)'
     : tone === 'warning'
@@ -4043,10 +4042,18 @@ function EvidenceReceiptCard({
   return (
     <PageCard>
       <CardHead label={copy.label} />
+      <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-5 md:px-6 text-[12px] text-[var(--lp-text-muted)]" aria-label={copy.label}>
+        {steps.map((step, index) => (
+          <li key={step} aria-current={step === progress || (step === 'result' && progress === 'confirming') ? 'step' : undefined} className="flex items-center gap-3 aria-[current=step]:font-bold aria-[current=step]:text-[var(--lp-dark)]">
+            {index > 0 && <span aria-hidden="true">→</span>}
+            <span>{step === 'result' ? copy.resultLabel : copy.execution[step].label}</span>
+          </li>
+        ))}
+      </ol>
       <div className="p-5 md:p-6 space-y-4" style={{ borderInlineStart: `3px solid ${border}` }}>
-        <div>
+        <div role="status" aria-live="polite" aria-atomic="true">
           <p className="font-sans text-[18px] font-bold uppercase tracking-[-0.01em] text-[var(--lp-dark)]">
-            {copy.states[key]}
+            {copy.execution[progress].label}
           </p>
           <p className="mt-1.5 max-w-[62ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
             {body}
