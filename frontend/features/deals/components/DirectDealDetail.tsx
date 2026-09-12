@@ -476,7 +476,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     setBusy(true);
     setErrorInfo(null);
     try {
-      await api.acceptDirectDeal(jobId, address);
+      if (deal?.agreementVersion == null || !deal.agreementDigest) {
+        throw new Error('The current agreement could not be verified. Refresh the deal and try again.');
+      }
+      await api.acceptDirectDeal(jobId, {
+        caller: address,
+        expectedAgreementVersion: deal.agreementVersion,
+        expectedAgreementDigest: deal.agreementDigest,
+      });
       sfx.send();
       refresh();
     } catch (err) {

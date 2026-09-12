@@ -538,6 +538,9 @@ export interface DirectDeal {
   deadlineUnix?: number;
   terms: string;
   agreementVersion?: number;
+  /// Digest of the exact terms/version snapshot the seller must approve.
+  /// The backend rejects an approval that omits or mismatches this value.
+  agreementDigest?: string;
   verificationPolicy?: 'standard' | 'high_signal';
   verificationSubject?: 'buyer' | 'seller' | 'both';
   highSignalVerification?: {
@@ -3419,7 +3422,14 @@ export const api = {
       withCaller(`/api/deals/direct/${jobId}/counterparty-report/complimentary`, caller),
       { method: 'POST', body: JSON.stringify({}) },
     ),
-  acceptDirectDeal: (jobId: string, caller: string) =>
+  acceptDirectDeal: (
+    jobId: string,
+    body: {
+      caller: string;
+      expectedAgreementVersion: number;
+      expectedAgreementDigest: string;
+    },
+  ) =>
     json<{
       accepted: boolean;
       jobId: string;
@@ -3427,7 +3437,7 @@ export const api = {
       sellerApprovedAt?: number;
     }>(
       `/api/deals/direct/${jobId}/accept`,
-      { method: 'POST', body: JSON.stringify({ caller }) },
+      { method: 'POST', body: JSON.stringify(body) },
     ),
   highSignalStatus: (jobId: string, caller?: string) =>
     json<{

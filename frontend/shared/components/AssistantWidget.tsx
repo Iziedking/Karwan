@@ -931,7 +931,18 @@ async function runConfirmIntent(
   }
   if (action.intent === 'accept_deal') {
     const p = action.payload as { jobId: string; caller: string };
-    await api.acceptDirectDeal(p.jobId, p.caller);
+    // Acceptance is bound to the exact terms the assistant just showed. Read
+    // the current snapshot first so a stale assistant card cannot approve a
+    // later edit, and let the backend enforce the digest under its lock.
+    const { deal } = await api.directDeal(p.jobId, p.caller);
+    if (deal.agreementVersion == null || !deal.agreementDigest) {
+      throw new Error('The current agreement could not be verified. Refresh the deal and try again.');
+    }
+    await api.acceptDirectDeal(p.jobId, {
+      caller: p.caller,
+      expectedAgreementVersion: deal.agreementVersion,
+      expectedAgreementDigest: deal.agreementDigest,
+    });
     return {
       successText: 'Terms agreed. The buyer will review the exact total and fund escrow next.',
       viewHref: `/deals/${p.jobId}`,
