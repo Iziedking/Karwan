@@ -8,7 +8,7 @@
   "criteriaSecretId": "DELIVERY_CRITERIA_JSON",
   "chainId": 5042002,
   "chainSelectorName": "arc-testnet",
-  "receiverAddress": "0x07542B70Bd7F7E81d7398011ECdFb80dFddE1311",
+  "receiverAddress": "0xb63d5Ef3dC0b2a8297fCE1261C9481C6D6647F93",
   "gasLimit": "500000",
   "writeReport": true
 }

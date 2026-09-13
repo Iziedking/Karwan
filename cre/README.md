@@ -93,6 +93,11 @@ that the hosted schedule is running.
 
 ### Activation checkpoint, 13 September 2026
 
+Update: the replacement receiver is now deployed and bound, and the private
+workflow is Active. Hosted execution is blocked by a repeated confidential
+runtime error. See [deployment evidence and the support message](./DEPLOYMENT.md).
+The paragraphs below describe the earlier deployment preparation.
+
 Authenticated CLI inspection returned no deployed workflows. Arc receiver
 `0x07542B70Bd7F7E81d7398011ECdFb80dFddE1311` is permanently bound to the older
 workflow ID
@@ -106,11 +111,19 @@ linked wallet owner. Confirm the owner from the authenticated account rather
 than assuming the Arc deployer and workflow owner are the same address. See
 [Chainlink's deployment guide](https://docs.chain.link/cre/guides/operations/deploying-workflows).
 
+The production target now selects `deployment-registry: private`. The prepared
+replacement uses organization owner
+`0x6aE4fE38dFbBc609D720b2f0814d72E1a94Cc104`, verified by comparing CRE's
+authenticated-owner hash with an explicit-owner hash of the same frozen binary
+and config. The Arc deployer remains the one-time binder. Deployment preparation
+and a successful Foundry rehearsal do not mean the receiver is deployed or the
+hosted workflow is active.
+
 The final config must contain the new receiver before hashing. Freeze the exact
 compiled artifact and config for binding and deployment. After activation and
 backend release, submit one fresh CRE-enabled deal, observe its queue lease,
 verify the Arc receipt transaction and backend binding, and check the displayed
-verdict before testing settlement. This live proof remains outstanding.
+verdict before testing settlement. A successful live verification remains outstanding.
 
 ## Commit and check policy
 

@@ -10,6 +10,7 @@ staging-settings:
 production-settings:
   user-workflow:
     workflow-name: "karwan-git-prod"
+    deployment-registry: "private"
   workflow-artifacts:
     workflow-path: "./main.ts"
     config-path: "./config.production.json"
