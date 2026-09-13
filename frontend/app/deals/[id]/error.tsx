@@ -43,7 +43,14 @@ export default function DealError({
       return;
     }
 
-    window.sessionStorage.setItem(recoveryKey, String(now));
+    try {
+      window.sessionStorage.setItem(recoveryKey, String(now));
+    } catch {
+      // Reads can succeed even when storage is full or writes are blocked.
+      // Do not reload unless the loop guard was persisted.
+      setShowFallback(true);
+      return;
+    }
     window.location.reload();
   }, [error]);
 
