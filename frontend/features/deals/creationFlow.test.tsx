@@ -34,6 +34,14 @@ test('review must precede each creation call, while required protections stay in
   assert.doesNotMatch(direct, /grid-drift|DEAL PREVIEW/);
 });
 
+test('direct creation primes the confirmed deal before opening its route', () => {
+  const direct = read('./components/DirectDealForm.tsx');
+  const prime = direct.indexOf('primeCreatedDirectDeal(queryClient, r.deal, address)');
+  const navigate = direct.indexOf('router.push(`/deals/${r.deal.jobId}`)');
+  assert.ok(prime > direct.indexOf('await api.createDirectDeal'));
+  assert.ok(navigate > prime);
+});
+
 test('switching deal paths keeps visited forms mounted and uses accessible choice buttons', () => {
   const source = read('./components/NewDealPanel.tsx');
   assert.match(source, /hidden=\{mode !== 'managed'\}/);

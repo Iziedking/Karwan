@@ -1,6 +1,7 @@
 ﻿'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { api, ApiError, type Partner } from '@/core/api';
@@ -11,6 +12,7 @@ import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { CreationReview } from './CreationReview';
 import { validAmount, validWhole } from '../creationValidation';
+import { primeCreatedDirectDeal } from '../creationHandoff';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -81,6 +83,7 @@ export function DirectDealForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
   // Source of truth covers both wagmi web3 users and Circle passkey/email
   // users. Direct-deal create is backend-signed (the buyer agent DCW opens
   // escrow), so no actual wallet signature is needed here either way. The
@@ -363,6 +366,10 @@ export function DirectDealForm() {
           ...(sourceReference ? { reference: sourceReference } : {}),
         },
       });
+      // The create response is already a confirmed, durable deal. Prime both
+      // viewer-scoped caches before navigation so the deal page renders that
+      // snapshot immediately while its normal background read reconciles.
+      primeCreatedDirectDeal(queryClient, r.deal, address);
       sfx.send();
       // Land on the deal page in both modes. The detail page surfaces
       // PendingInviteCopy when the deal has a pending email counterparty, so

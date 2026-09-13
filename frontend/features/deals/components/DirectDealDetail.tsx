@@ -62,6 +62,7 @@ import { proofSegments } from '../proofLinks';
 import { evidenceReceiptBodyKey } from '../evidenceReceipt';
 import { creVerificationState, type CreVerificationState } from '../creVerification';
 import { worldCheckOverview } from '../worldCheckOverview';
+import { dealRouteRecoveryKey } from '../dealRouteRecovery';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
 
@@ -414,6 +415,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!deal || typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.removeItem(dealRouteRecoveryKey(window.location.pathname));
+    } catch {
+      // Recovery storage is optional. A rendered deal is already the success
+      // condition, so there is nothing else to repair here.
+    }
+  }, [deal, jobId]);
 
   if (fetchState === 'loading') {
     /// Reserve roughly the height of the resolved deal hero band so the
