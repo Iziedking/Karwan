@@ -39,6 +39,12 @@ test('every supported language includes all entry labels', () => {
   const keys = Object.keys(TRADE_ENTRY_COPY.en).sort();
   for (const copy of Object.values(TRADE_ENTRY_COPY)) {
     assert.deepEqual(Object.keys(copy).sort(), keys);
-    assert.ok(Object.values(copy).every((value) => value.trim()));
+    for (const [key, value] of Object.entries(copy)) {
+      if (typeof value === 'string') {
+        assert.ok(value.trim(), key);
+        continue;
+      }
+      assert.ok(Object.values(value).every((label) => label.trim()), key);
+    }
   }
 });

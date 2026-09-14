@@ -6,11 +6,13 @@ export const tradeEntryRoutes = (business: boolean) => ({
   agreement: business ? '/buyer?mode=direct#bring-a-deal' : '/buyer?mode=direct#new-deal',
 });
 
-type Copy = { title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
-  agreement: string; scope: string; tools: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string };
+type Copy = { startHere: string; title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
+  agreement: string; scope: string; tools: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
+  journey: { brief: string; match: string; agree: string; settle: string } };
 
 export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
   en: {
+    startHere: 'Start here',
     options: 'Optional request settings',
     title: 'Start a trade',
     body: 'Tell Karwan what you need or offer. Review the match and agree the deal before payment.',
@@ -20,8 +22,10 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     agreement: 'I already have an agreement',
     scope: 'Matching starts within Karwan. Finding customers across other websites is planned.',
     tools: 'Balance and optional research', buyTitle: 'What do you need?', sellTitle: 'What do you offer?',
+    journey: { brief: 'Brief', match: 'Match', agree: 'Agree', settle: 'Settle' },
   },
   fr: {
+    startHere: 'Commencez ici',
     options: 'Réglages facultatifs de la demande',
     title: 'Commencer un échange',
     body: 'Dites à Karwan ce que vous cherchez ou proposez. Examinez la mise en relation et convenez des conditions avant de payer.',
@@ -31,8 +35,10 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     agreement: 'J’ai déjà un accord',
     scope: 'Les mises en relation se font sur Karwan. La recherche de clients sur d’autres sites est prévue.',
     tools: 'Solde et recherche facultative', buyTitle: 'De quoi avez-vous besoin ?', sellTitle: 'Que proposez-vous ?',
+    journey: { brief: 'Besoin', match: 'Mise en relation', agree: 'Accord', settle: 'Règlement' },
   },
   ar: {
+    startHere: 'ابدأ هنا',
     options: 'إعدادات الطلب الاختيارية',
     title: 'ابدأ صفقة',
     body: 'أخبر Karwan بما تحتاجه أو تقدمه. راجع الطرف المقترح واتفق على الصفقة قبل الدفع.',
@@ -42,8 +48,10 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     agreement: 'لدي اتفاق بالفعل',
     scope: 'تبدأ المطابقة داخل Karwan. البحث عن عملاء عبر مواقع أخرى ضمن الخطط المستقبلية.',
     tools: 'الرصيد والبحث الاختياري', buyTitle: 'ماذا تحتاج؟', sellTitle: 'ماذا تقدم؟',
+    journey: { brief: 'الطلب', match: 'المطابقة', agree: 'الاتفاق', settle: 'التسوية' },
   },
   hi: {
+    startHere: 'यहाँ से शुरू करें',
     options: 'अनुरोध की वैकल्पिक सेटिंग',
     title: 'व्यापार शुरू करें',
     body: 'Karwan को बताएं कि आपको क्या चाहिए या आप क्या देते हैं। भुगतान से पहले मिलान देखें और सौदे की शर्तें तय करें।',
@@ -53,8 +61,10 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     agreement: 'मेरा समझौता पहले से है',
     scope: 'मिलान अभी Karwan के भीतर होता है। दूसरी वेबसाइटों पर ग्राहक खोजना भविष्य की योजना है।',
     tools: 'शेष राशि और वैकल्पिक शोध', buyTitle: 'आपको क्या चाहिए?', sellTitle: 'आप क्या देते हैं?',
+    journey: { brief: 'ज़रूरत', match: 'मिलान', agree: 'सहमति', settle: 'निपटान' },
   },
   sw: {
+    startHere: 'Anza hapa',
     options: 'Mipangilio ya hiari ya ombi',
     title: 'Anza biashara',
     body: 'Iambie Karwan unachohitaji au unachotoa. Kagua mlingano na ukubaliane kuhusu biashara kabla ya malipo.',
@@ -64,5 +74,6 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     agreement: 'Tayari nina makubaliano',
     scope: 'Ulinganishaji unaanza ndani ya Karwan. Kutafuta wateja kwenye tovuti nyingine kumepangwa.',
     tools: 'Salio na utafiti wa hiari', buyTitle: 'Unahitaji nini?', sellTitle: 'Unatoa nini?',
+    journey: { brief: 'Hitaji', match: 'Ulinganifu', agree: 'Kubali', settle: 'Malipo' },
   },
 };
