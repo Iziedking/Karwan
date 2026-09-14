@@ -18,6 +18,7 @@ import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { ArcLaunchCountdown } from './ArcLaunchCountdown';
+import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 
 const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
@@ -144,6 +145,7 @@ export function TopNav() {
             </>
           ) : showAppChrome ? (
               <>
+                <WorkspaceSwitcher compact />
                 <NotificationBell />
                 <ProfileLink
                   profileActionCount={openDeals.actionCount}

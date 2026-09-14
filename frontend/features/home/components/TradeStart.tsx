@@ -3,27 +3,32 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'motion/react';
-import { useLocale } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
 
 export function TradeStart({ business = false, headingId = 'home-heading' }: { business?: boolean; headingId?: string }) {
   const { locale } = useLocale();
+  const messages = useTranslations();
   const reduced = useReducedMotion();
   const copy = TRADE_ENTRY_COPY[locale];
+  const businessCopy = messages.businessTradeDesk;
   const routes = tradeEntryRoutes(business);
-  const actions = [
-    { id: 'sell', href: routes.sell, title: copy.sell, body: copy.sellBody },
-    {
-      id: 'buy',
-      href: routes.buy,
-      title: copy.buy,
-      body: business ? copy.businessBuyBody : copy.buyBody,
-    },
-    { id: 'agreement', href: routes.agreement, title: copy.agreement, body: '' },
-  ] as const;
+  const actions = business
+    ? [
+        { id: 'buy', href: routes.buy, title: businessCopy.findSupply, body: businessCopy.findSupplySub },
+        { id: 'sell', href: routes.sell, title: businessCopy.postOffer, body: businessCopy.postOfferSub },
+        { id: 'agreement', href: routes.agreement, title: businessCopy.bringDeal, body: businessCopy.bringDealSub },
+      ]
+    : [
+        { id: 'sell', href: routes.sell, title: copy.sell, body: copy.sellBody },
+        { id: 'buy', href: routes.buy, title: copy.buy, body: copy.buyBody },
+        { id: 'agreement', href: routes.agreement, title: copy.agreement, body: '' },
+      ];
   return (
     <div className="min-w-0">
-      <h1 id={headingId} className="mt-4 max-w-[18ch] text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{copy.title}<span className="text-[var(--lp-accent)]">.</span></h1>
+      <h1 id={headingId} className="mt-4 max-w-[18ch] text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">
+        {business ? businessCopy.title : <>{copy.title}<span className="text-[var(--lp-accent)]">.</span></>}
+      </h1>
       <div className="mt-7 grid gap-3" role="list">
         {actions.map((action, index) => (
           <motion.div

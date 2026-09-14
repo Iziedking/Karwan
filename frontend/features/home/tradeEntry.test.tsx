@@ -14,9 +14,12 @@ test('entry routes reach real personal and business surfaces without changing wo
   assert.equal(tradeEntryRoutes(false).agreement, '/buyer?mode=direct#new-deal');
 });
 
-test('business entry describes the business catalogue, not the personal brief form', () => {
+test('business entry opens the business desk, not the personal brief form', () => {
   const html = renderToStaticMarkup(createElement(TradeStart, { business: true }));
-  assert.match(html, /Browse what businesses offer/);
+  assert.match(html, /Trade through your business/);
+  assert.match(html, /Find supply/);
+  assert.match(html, /Post what we offer/);
+  assert.match(html, /Bring a deal/);
   assert.match(html, /href="\/partners"/);
   assert.doesNotMatch(html, /Describe what you need, your budget and your deadline/);
 });

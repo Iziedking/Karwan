@@ -2,11 +2,17 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { cn } from '@/shared/utils/cn';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
   const { workspaces, activeWorkspace, isLoading, switchWorkspace } = useWorkspaceContext();
+  const router = useRouter();
+  const messages = useTranslations();
+  const businessCopy = messages.businessProfilePage;
+  const personalLabel = messages.onboarding.accountTypeStep.individual.title;
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -21,11 +27,24 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
 
   if (isLoading || !activeWorkspace) return null;
 
+  const activeKindLabel = activeWorkspace.kind === 'business' ? businessCopy.label : personalLabel;
+
+  function selectWorkspace(workspaceId: string) {
+    const workspace = workspaces.find((candidate) => candidate.id === workspaceId);
+    if (!workspace) return;
+    switchWorkspace(workspace.id);
+    setOpen(false);
+    // A workspace switch changes the operating context. Returning to the home
+    // surface prevents a personal or business detail page from being mistaken
+    // for the newly selected workspace's view.
+    router.push('/app');
+  }
+
   return (
     <div ref={rootRef} className="relative z-40">
       <button
         type="button"
-        aria-label={`Current workspace: ${activeWorkspace.name}`}
+        aria-label={`${activeKindLabel}: ${activeWorkspace.name}`}
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className={cn(
@@ -36,6 +55,7 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
         <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[10px] font-black text-[#10170b]">
           {activeWorkspace.kind === 'business' ? 'B' : 'P'}
         </span>
+        <span className="hidden text-[11px] font-semibold text-[var(--color-ink-dim)] sm:inline">{activeKindLabel}</span>
         <span className={cn('min-w-0 truncate', compact && 'hidden sm:block')}>
           {activeWorkspace.name}
         </span>
@@ -44,16 +64,12 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
 
       {open ? (
         <div className="absolute end-0 top-[calc(100%+8px)] w-[min(290px,calc(100vw-32px))] overflow-hidden rounded-[18px] border border-[var(--color-line-strong)] bg-[var(--color-surface)] p-2 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
-          <div className="px-3 pb-2 pt-2">
-            <p className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--color-ink-dim)]">Workspace</p>
-            <p className="mt-1 text-[12px] leading-5 text-[var(--color-ink-dim)]">Same identity, wallet, and USDC balance.</p>
-          </div>
           <div className="space-y-1">
             {workspaces.map((workspace) => (
               <button
                 key={workspace.id}
                 type="button"
-                onClick={() => { switchWorkspace(workspace.id); setOpen(false); }}
+                onClick={() => selectWorkspace(workspace.id)}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-start transition-colors hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
                   workspace.id === activeWorkspace.id && 'bg-[var(--color-surface-2)]',
@@ -64,7 +80,7 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-semibold text-[var(--color-ink)]">{workspace.name}</span>
-                  <span className="mt-0.5 block text-[11px] text-[var(--color-ink-dim)]">{workspace.kind === 'business' ? 'Business workspace' : 'Personal workspace'}</span>
+                  <span className="mt-0.5 block text-[11px] text-[var(--color-ink-dim)]">{workspace.kind === 'business' ? businessCopy.label : personalLabel}</span>
                 </span>
                 {workspace.id === activeWorkspace.id ? <span aria-hidden className="text-[var(--lp-accent)]">✓</span> : null}
               </button>
@@ -72,7 +88,7 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
           </div>
           {!workspaces.some((workspace) => workspace.kind === 'business') ? (
             <Link href="/profile/business/setup" onClick={() => setOpen(false)} className="mt-2 flex min-h-11 items-center justify-between rounded-[12px] border border-dashed border-[var(--color-line-strong)] px-3 text-[12px] font-semibold text-[var(--color-ink)] hover:border-[var(--lp-accent)]">
-              Add a business workspace <span aria-hidden>＋</span>
+              {businessCopy.open} <span aria-hidden>＋</span>
             </Link>
           ) : null}
         </div>
