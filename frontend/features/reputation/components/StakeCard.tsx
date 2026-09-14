@@ -736,7 +736,7 @@ export function StakeCard() {
               className="mono text-[9px] font-bold uppercase tracking-[0.18em]"
               style={{ color: '#b25425' }}
             >
-              [:{sc.wrongNetwork.eyebrow}:]
+              {sc.wrongNetwork.eyebrow}
             </p>
             <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
               {sc.wrongNetwork.body}
@@ -946,7 +946,7 @@ export function StakeCard() {
         >
           <div className="min-w-0 flex-1">
             <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-              [:{sc.confirm.eyebrow}:]
+              {sc.confirm.eyebrow}
             </p>
             <p className="mt-1 text-[13px] leading-snug text-[var(--lp-dark)]">
               {sc.confirm.coolPrefix} <span className="font-bold tabular-nums">{pendingWithdraw.coolingTotal} USDC</span> {sc.confirm.coolMiddle} <span className="font-bold">{sc.confirm.daysTemplate.replace('{days}', String(cooldownDays))}</span>.
@@ -1064,7 +1064,7 @@ export function StakeCard() {
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
     <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-      [:{children}:]
+      {children}
     </span>
   );
 }
@@ -1262,7 +1262,7 @@ function YieldNote({ copy }: { copy: Messages['stakeCard']['yield'] }) {
       }}
     >
       <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-        [:{copy.eyebrow}:]
+        {copy.eyebrow}
       </p>
       <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-dark)]">
         {copy.bodyPrefix}{' '}

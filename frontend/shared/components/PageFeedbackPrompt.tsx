@@ -75,7 +75,7 @@ export function PageFeedbackPrompt() {
         </button>
         <div className="pe-10">
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{t.eyebrow}:]
+            {t.eyebrow}
           </p>
           <p
             id="page-feedback-title"

@@ -116,7 +116,7 @@ export default function AdminMatchingPage() {
         meta={summary ? `${summary.comparison.diverged} disagreements in the current window` : 'Waiting for review evidence'}
       />
 
-      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
       {notice && <p className="mt-4 text-[12px] text-white/70 border border-white/15 bg-white/5 rounded-lg px-3 py-2">{notice}</p>}
 
       <section className="mt-6 border border-white/10 rounded-xl p-5 bg-[#161616]">

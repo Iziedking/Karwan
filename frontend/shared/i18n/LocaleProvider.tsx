@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { DEFAULT_LOCALE, isLocale, isRtl, type Locale } from './locales';
 import { MESSAGES, type Messages } from './messages';
+import { cleanUiMessages } from './uiCopy';
 
 const LOCALE_COOKIE = 'karwan-locale';
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
@@ -86,7 +87,7 @@ export function LocaleProvider({
   }, []);
 
   const value = useMemo<LocaleContextValue>(
-    () => ({ locale, setLocale, t: MESSAGES[locale] }),
+    () => ({ locale, setLocale, t: cleanUiMessages(MESSAGES[locale]) }),
     [locale, setLocale],
   );
 
@@ -98,7 +99,7 @@ export function useLocale(): LocaleContextValue {
   if (!ctx) {
     // Fallback rather than throw, so any component used in a test or storybook
     // without the provider still renders English copy instead of crashing.
-    return { locale: DEFAULT_LOCALE, setLocale: () => {}, t: MESSAGES[DEFAULT_LOCALE] };
+    return { locale: DEFAULT_LOCALE, setLocale: () => {}, t: cleanUiMessages(MESSAGES[DEFAULT_LOCALE]) };
   }
   return ctx;
 }

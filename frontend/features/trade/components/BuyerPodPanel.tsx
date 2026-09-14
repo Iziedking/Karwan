@@ -143,7 +143,7 @@ function BuyerPodPanelInner({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
-            [:CONFIRM DELIVERY:]
+            Confirm delivery
           </p>
           <p className="mt-1.5 text-[14px] text-[var(--lp-dark)] leading-snug max-w-[50ch]">
             Seller marked the shipment as delivered. Sign Proof of Delivery on

@@ -52,7 +52,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {`[:${tc.eyebrow}:]`}
+            {tc.eyebrow}
           </span>
           <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none">
             {tc.title}

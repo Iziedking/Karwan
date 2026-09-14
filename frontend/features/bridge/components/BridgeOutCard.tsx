@@ -180,7 +180,7 @@ export function BridgeOutCard() {
     <div data-guide="bridge-out" style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
       <div className="px-6 pt-6 pb-4">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:{t.header.eyebrow}:]
+          {t.header.eyebrow}
         </span>
         <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
           {t.header.title}
@@ -195,7 +195,7 @@ export function BridgeOutCard() {
             {/* DESTINATION DROPDOWN */}
             <div className="relative">
               <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:{t.form.destinationEyebrow}:]
+                {t.form.destinationEyebrow}
               </span>
               <button
                 type="button"
@@ -282,7 +282,7 @@ export function BridgeOutCard() {
             >
               <div className="px-4 pt-3 pb-0.5 flex items-baseline justify-between">
                 <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  [:{t.form.amountEyebrow}:]
+                  {t.form.amountEyebrow}
                 </span>
                 {arcBalance != null && Number(arcBalance) > 0 ? (
                   <button
@@ -365,7 +365,7 @@ export function BridgeOutCard() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  [:{t.form.landsAtPrefix} {destShort.toUpperCase()}:]
+                  {t.form.landsAtPrefix} {destShort.toUpperCase()}
                 </span>
                 {auth.address && (
                   <button

@@ -125,7 +125,7 @@ export function RailSlider({
           the form, because choosing the rail IS the question this page asks. */}
       <div className="mt-5">
         <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-          [:{copy[active].tag}:]
+          {copy[active].tag}
         </span>
         <div className="mt-2 flex items-center gap-2">
           <h2 className="text-[26px] font-extrabold uppercase leading-[1.1] tracking-tight text-[var(--lp-dark)]">

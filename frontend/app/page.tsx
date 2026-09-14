@@ -92,9 +92,7 @@ export default function HomePage() {
       {/* FINAL CTA. dark */}
       <Band tone="dark" panel className="text-center">
         <PanelContent className="mx-auto max-w-2xl space-y-6">
-          {/* The screen-reader label sits outside the bracket tag: inside it,
-              the hidden span's surrounding whitespace rendered as a gap after
-              the colon, so the tag read "[: OPEN A DEAL]". */}
+          {/* Keep the screen-reader label separate from the compact section label. */}
           <span className="sr-only">{lp.finalCta.srLabel}</span>
           <SectionTag tone="dark">{lp.finalCta.tag}</SectionTag>
           <h2 className="font-sans font-extrabold uppercase tracking-[-0.02em] leading-[1.02] text-balance text-[clamp(1.75rem,3.6vw,3rem)]">
@@ -208,7 +206,7 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
               <PanelContent index={1}>
                 <div className="flex items-center gap-2 text-[var(--lp-accent)]">
                   <span className="grid size-10 place-items-center rounded-[12px] border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)]">{glyph}</span>
-                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">[:{index}]</span>
+                  <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">{index}</span>
                 </div>
                 <SectionTag tone="dark">{copy.tag}</SectionTag>
                 <h3 className="mt-5 max-w-[17ch] font-sans text-[clamp(1.8rem,3.5vw,3.2rem)] font-extrabold uppercase leading-[0.94] tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
@@ -221,7 +219,7 @@ function DealPathsSection({ direct, managed }: { direct: LandingCopy['directDeal
                     { title: copy.tile2Title, body: copy.tile2Body },
                   ].map((tile, tileIndex) => (
                     <li key={tile.title} className="grid gap-3 py-4 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-5">
-                      <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">[:{String(tileIndex + 1).padStart(3, '0')}]</span>
+                      <span className="mono pt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-accent)]">{String(tileIndex + 1).padStart(3, '0')}</span>
                       <p className="text-[13px] leading-[1.55] text-[var(--lp-workspace-muted)]">
                         <strong className="text-[var(--lp-workspace-ink)]">{tile.title}.</strong>{' '}{tile.body}
                       </p>
@@ -593,7 +591,7 @@ function EarlyTradesSection({ copy }: { copy: LandingCopy['earlyTrades'] }) {
                 className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
                 style={{ color: 'var(--lp-workspace-muted)' }}
               >
-                [:{c.tag}]
+                {c.tag}
               </span>
               <span
                 aria-hidden

@@ -127,7 +127,7 @@ export default function AdminDeals() {
         />
         }
       />
-      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
 
       <div className="mt-4 space-y-3 md:hidden">
         {paged.map((d) => (

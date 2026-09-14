@@ -41,7 +41,7 @@ function DeskEmpty({ tag, body }: { tag: string; body: string }) {
   return (
     <div className="py-4">
       <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        [:{tag}:]
+        {tag}
       </span>
       <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
         {body}
@@ -496,7 +496,7 @@ function InvoiceCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:FACE VALUE:]
+              Face value
             </p>
             <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}
@@ -787,7 +787,7 @@ function OfferModal({
       >
         <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:OFFER:]
+            Offer
           </span>
           <button
             type="button"
@@ -1056,7 +1056,7 @@ function POCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:CAPITAL REQUESTED:]
+              Capital requested
             </p>
             <p className="mt-1 serif text-[32px] tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
               {formatUsdc(deal.poFinancingRequestedAdvanceUsdc ?? deal.dealAmountUsdc, { withSuffix: false })}{' '}
@@ -1335,7 +1335,7 @@ function FundModal({
       >
         <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:FUND PO:]
+              Fund PO
           </span>
           <button
             type="button"

@@ -341,7 +341,7 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
               <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-band-dark)' }} />
               <div className="flex-1 px-5 py-4">
                 <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-3">
-                  [:TRADE CONTEXT:]
+                  Trade context
                 </p>
                 <div className="flex flex-wrap gap-2.5">
                   {tradeChips.map((c) => (
@@ -538,7 +538,7 @@ function StatTile({
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{label.toUpperCase()}:]
+        {label.toUpperCase()}
       </p>
       <div className="mt-3 flex items-baseline gap-1.5">
         <span

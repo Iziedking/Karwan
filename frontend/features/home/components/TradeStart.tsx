@@ -2,30 +2,51 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { motion, useReducedMotion } from 'motion/react';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
 
 export function TradeStart({ business = false, headingId = 'home-heading' }: { business?: boolean; headingId?: string }) {
   const { locale } = useLocale();
+  const reduced = useReducedMotion();
   const copy = TRADE_ENTRY_COPY[locale];
   const routes = tradeEntryRoutes(business);
+  const actions = [
+    { id: 'sell', href: routes.sell, title: copy.sell, body: copy.sellBody },
+    {
+      id: 'buy',
+      href: routes.buy,
+      title: copy.buy,
+      body: business ? copy.businessBuyBody : copy.buyBody,
+    },
+    { id: 'agreement', href: routes.agreement, title: copy.agreement, body: '' },
+  ] as const;
   return (
     <div className="min-w-0">
-      <h1 id={headingId} className="mt-4 max-w-[18ch] text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{copy.title}</h1>
-      <p className="mt-4 max-w-[54ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">{copy.body}</p>
-      <div className="mt-7 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
-        {(['sell', 'buy'] as const).map((intent) => (
-          <Link key={intent} href={routes[intent]} className="group flex min-h-11 items-center justify-between gap-4 py-5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
-            <span className="min-w-0">
-              <span className="block text-[19px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{copy[intent]}</span>
-              <span className="mt-1 block max-w-[47ch] text-[13px] leading-5 text-[var(--lp-text-sub)]">{business && intent === 'buy' ? copy.businessBuyBody : copy[`${intent}Body`]}</span>
-            </span>
-            <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-transform motion-safe:group-hover:translate-x-0.5 rtl:rotate-180">→</span>
-          </Link>
+      <h1 id={headingId} className="mt-4 max-w-[18ch] text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{copy.title}<span className="text-[var(--lp-accent)]">.</span></h1>
+      <div className="mt-7 grid gap-3" role="list">
+        {actions.map((action, index) => (
+          <motion.div
+            key={action.id}
+            role="listitem"
+            initial={reduced ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduced ? 0 : 0.32, delay: reduced ? 0 : index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Link
+              href={action.href}
+              className="group flex min-h-[92px] items-center gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-4 text-start transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:min-h-[104px] sm:px-5"
+            >
+              <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[12px] font-semibold tabular-nums text-[var(--lp-text-sub)]">{String(index + 1).padStart(2, '0')}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[18px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{action.title}</span>
+                {action.body ? <span className="mt-1 block max-w-[46ch] text-[13px] leading-5 text-[var(--lp-text-sub)]">{action.body}</span> : null}
+              </span>
+              <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--accent-ink)] transition-transform duration-200 motion-safe:group-hover:translate-x-1 rtl:rotate-180">→</span>
+            </Link>
+          </motion.div>
         ))}
       </div>
-      <Link href={routes.agreement} className="mt-3 inline-flex min-h-11 items-center gap-2 text-[13px] font-semibold text-[var(--lp-dark)] underline decoration-[var(--lp-border-light)] underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{copy.agreement}<span aria-hidden>→</span></Link>
-      <p className="mt-3 max-w-[58ch] text-[12px] leading-5 text-[var(--lp-text-sub)]">{copy.scope}</p>
     </div>
   );
 }

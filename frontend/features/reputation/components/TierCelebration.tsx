@@ -198,7 +198,7 @@ export function TierCelebration({ address }: { address?: string | null }) {
 
           <div className="min-w-0 flex-1">
             <p className="mono text-[10px] uppercase tracking-[0.2em]" style={{ color: labelInk }}>
-              [:{t.eyebrow}:]
+              {t.eyebrow}
             </p>
             <p className="mt-1.5 font-sans text-[22px] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-[var(--color-ink)] sm:text-[26px]">
               {t.achievementPrefix} <span style={{ color: wordInk }}>{tier}</span>

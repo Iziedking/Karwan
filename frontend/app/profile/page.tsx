@@ -170,7 +170,7 @@ function ProfilePageInner() {
           <TierCelebration address={address} />
         </div>
 
-        {/* [:01] stays visible after activation so users can still read the
+        {/* Step 01 stays visible after activation so users can still read the
             desk state; only the corrective action decays. */}
         <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">

@@ -357,7 +357,7 @@ function PartnerCard({
         <div className="flex h-full min-h-0 flex-col p-5 sm:p-6">
           <div className="flex items-center gap-2 mono text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
             <span aria-hidden className="h-1.5 w-1.5 shrink-0 bg-[var(--lp-accent)]" />
-            <span>[:{String(position).padStart(2, '0')}:]</span>
+            <span>{String(position).padStart(2, '0')}</span>
           </div>
 
           <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -371,7 +371,7 @@ function PartnerCard({
 
           {tradeMeta.length > 0 ? (
             <p className="mt-3 break-words mono text-[9px] font-semibold uppercase leading-[1.7] tracking-[0.12em] text-[var(--lp-text-sub)]">
-              [:{tradeMeta.join(' · ')}:]
+              {tradeMeta.join(' · ')}
             </p>
           ) : null}
 
@@ -438,7 +438,7 @@ function CapRow({ index, label, value }: { index: number; label: string; value: 
   return (
     <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] items-start gap-4 border-b border-[var(--lp-border-light)] py-3.5 last:border-b-0">
       <dt className="flex min-w-0 items-baseline gap-2 mono text-[9px] uppercase leading-[1.5] tracking-[0.12em] text-[var(--lp-text-muted)]">
-        <span className="shrink-0 text-[var(--lp-accent-on-light)]">[:{String(index).padStart(2, '0')}]</span>
+        <span className="shrink-0 text-[var(--lp-accent-on-light)]">{String(index).padStart(2, '0')}</span>
         <span>{label}</span>
       </dt>
       <dd className="min-w-0 break-words text-end text-[13px] leading-[1.5] text-[var(--lp-dark)]">{value}</dd>

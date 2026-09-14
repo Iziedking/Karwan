@@ -48,7 +48,7 @@ export default function AdminDisputesPage() {
 
   return (
     <main className="px-5 py-8 md:px-8 max-w-[1000px]">
-      <h1 className="mono text-[12px] uppercase tracking-[0.18em] font-bold">[:DISPUTES:]</h1>
+      <h1 className="mono text-[12px] uppercase tracking-[0.18em] font-bold">Disputes</h1>
       <p className="mt-2 text-[13px] text-zinc-600 max-w-[70ch]">
         A disputed escrow is frozen until two arbiter owners sign the same ruling. Sign here with
         your own wallet. The relay pays the gas.
@@ -213,7 +213,7 @@ function DisputeCard({
           style={{ borderRadius: 8, background: 'rgba(255,255,255,0.04)' }}
         >
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-            [:RETIRED ESCROW:]
+            Retired escrow
           </p>
           <p className="mt-2">
             This deal is held by escrow generation {dispute.venue?.generation}

@@ -161,7 +161,7 @@ export default function AdminFeedbackPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{t.eyebrow}:]
+              {t.eyebrow}
             </p>
             <h1 className="mt-2 font-sans text-[clamp(1.8rem,4vw,2.75rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95]">
               {t.title}

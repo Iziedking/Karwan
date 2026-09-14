@@ -626,7 +626,7 @@ function SmePassportBand({
       style={{ borderColor: 'var(--color-line)', background: 'var(--color-surface)' }}
     >
       <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--color-line)' }}>
-        <p className="eyebrow">[:COMPANY:]</p>
+        <p className="eyebrow">Company</p>
       </div>
       <div className="p-6 md:p-7 grid md:grid-cols-2 gap-6">
         {hasProfile ? (

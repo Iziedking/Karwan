@@ -396,7 +396,7 @@ function DailyAreaChart({ series, loading, errored, onRetry }: DailyAreaChartPro
       >
         <div className="flex items-center justify-between px-5 pt-4">
           <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
-            [:{t.activityEyebrow}:]
+            {t.activityEyebrow}
           </p>
           <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)] tabular-nums">
             {t.maxPerDay.replace('{max}', String(maxY))}

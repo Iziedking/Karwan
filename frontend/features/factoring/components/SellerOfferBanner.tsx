@@ -182,7 +182,7 @@ export function SellerOfferBanner({
     return (
       <FactoringRequestBand
         tone={poRequestedAt ? 'waiting' : 'idle'}
-        tag={poRequestedAt ? '[:FULFILMENT CAPITAL REQUESTED:]' : '[:PO FINANCING:]'}
+        tag={poRequestedAt ? 'Fulfilment capital requested' : 'PO financing'}
         line={poRequestedAt
           ? `Financiers can fund up to ${formatUsdc(requestedAmount, { withSuffix: false })} USDC.`
           : 'Request working capital before delivery.'}
@@ -206,7 +206,7 @@ export function SellerOfferBanner({
     return (
       <FactoringRequestBand
         tone="idle"
-        tag="[:GET PAID EARLY:]"
+        tag="Get paid early"
         line="Open this invoice to financiers instead of waiting for buyer release."
         cta={requestBusy ? 'Sending…' : 'Ask for early payout'}
         onClick={askForEarlyPayout}
@@ -224,7 +224,7 @@ export function SellerOfferBanner({
     return (
       <FactoringRequestBand
         tone="waiting"
-        tag="[:EARLY PAYOUT REQUESTED:]"
+        tag="Early payout requested"
         line="Financiers can see this invoice and bid. You accept or ignore."
         cta={requestBusy ? 'Working…' : 'Withdraw request'}
         onClick={withdrawEarlyPayout}
@@ -259,7 +259,7 @@ export function SellerOfferBanner({
       >
         <div className="min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.18em] font-bold text-[var(--lp-dark)]">
-            [:EARLY PAYOUT AVAILABLE:]
+            Early payout available
           </p>
           <p className="mt-1.5 text-[14px] text-[var(--lp-dark)] leading-snug">
             Settle now instead of waiting for buyer release.
@@ -453,7 +453,7 @@ function OffersModal({
       >
         <div className="px-5 py-4 border-b border-[var(--lp-border-light)] flex items-center justify-between gap-3">
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:OFFERS:]
+            Offers
           </span>
           <button
             type="button"

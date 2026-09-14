@@ -311,7 +311,7 @@ export function EventList({
           const txHref = txExplorerHref(explorer, e.payload, txHash);
           const chips = chipsFor(e.payload, el);
           const href = hrefForEvent(e);
-          // Full message stays in backend logs. The [:WHERE:] scope chip
+          // Full message stays in backend logs. The scope chip
           // (added by chipsFor) gives users enough context to ask for
           // support without leaking stack traces or internal paths.
           const body = (

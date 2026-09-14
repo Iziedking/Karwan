@@ -85,7 +85,7 @@ export function OutOfReachCard({
       }}
     >
       <span className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{c.tag}:]
+        {c.tag}
       </span>
       <h3 className="mt-2 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
         {c.title}

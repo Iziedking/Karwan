@@ -12,12 +12,7 @@ import { ActionBeacon } from '@/shared/components/ActionBeacon';
 /// place). Sticks below the main nav with a subtle backdrop blur on scroll.
 ///
 /// Pattern per page (from skill §4.5):
-///   /home:    [:OVERVIEW] [:HOW IT WORKS] [:FLOW] [:GET STARTED]
-///   /buyer:   [:OPEN ORDERS] [:IN ESCROW] [:DISPUTES] [:HISTORY]
-///   /seller:  [:JOBS] [:MILESTONES] [:PAYOUTS] [:RATINGS]
-///   /market:  [:LANES] [:RATES] [:LIQUIDITY] [:PARTNERS]
-///   /Activity: [:LIVE] [:SETTLEMENTS] [:NOTIFICATIONS] [:AUDIT]
-///   /profile: [:IDENTITY] [:WALLETS] [:AGENTS] [:PREFERENCES]
+///   Navigation remains compact and action-led across product workspaces.
 
 export interface Tab {
   id: string;

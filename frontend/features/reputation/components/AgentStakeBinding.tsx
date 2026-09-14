@@ -125,7 +125,7 @@ export function AgentStakeBinding() {
       }}
     >
       <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        [:{t.tag}:]
+        {t.tag}
       </span>
       <h3 className="mt-2 font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
         {t.title}

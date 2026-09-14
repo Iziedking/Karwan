@@ -235,7 +235,7 @@ export function ProfileDeck({
                 }}
               >
                 <span className="block px-6 pt-6 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  [:{p.label}:]
+                  {p.label}
                 </span>
               </div>
             </button>

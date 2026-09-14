@@ -225,7 +225,7 @@ function BracketMessage({ tag, body }: { tag: string; body?: string }) {
   return (
     <div className="py-10 text-center space-y-2.5 max-w-[46ch] mx-auto">
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{tag}:]
+        {tag}
       </p>
       {body && <p className="body-copy text-[14px] text-[var(--lp-text-sub)]">{body}</p>}
     </div>
@@ -410,7 +410,7 @@ function Section({
   return (
     <section className="space-y-3">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{tag}:]
+        {tag}
       </span>
       {body && (
         <p className="body-copy text-[13px] text-[var(--lp-text-sub)] max-w-[62ch]">{body}</p>

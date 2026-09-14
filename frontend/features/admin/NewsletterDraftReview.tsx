@@ -68,7 +68,7 @@ export function NewsletterDraftReview({
       <div className="p-5 border-b border-white/10">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[#AFC95B]">[:REVIEW BEFORE SAVE:]</p>
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[#AFC95B]">Review before save</p>
             <h2 id="newsletter-review-title" className="mt-2 text-[20px] font-bold">Review this draft</h2>
             <p className="mt-1 text-[12px] text-white/50">Nothing has changed on the issue yet. Check the clean reading view, then save.</p>
             {draft.source && <p className="mt-2 mono text-[10px] uppercase tracking-[0.12em] text-white/35">imported from {draft.source}</p>}
@@ -91,7 +91,7 @@ export function NewsletterDraftReview({
       </div>
       {view === 'branded' && draft.sourceHtml ? (
         <div className="bg-[#f4f4f1] p-3 sm:p-5">
-          <p className="mono px-2 pb-3 text-[10px] uppercase tracking-[0.14em] text-[#6e6e6a]">[:BRANDED HTML PREVIEW:]</p>
+          <p className="mono px-2 pb-3 text-[10px] uppercase tracking-[0.14em] text-[#6e6e6a]">Branded HTML preview</p>
           <iframe title="Branded newsletter preview" srcDoc={draft.sourceHtml} sandbox="" className="h-[820px] w-full border border-black/10 bg-[#f4f4f1]" />
         </div>
       ) : (
@@ -102,7 +102,7 @@ export function NewsletterDraftReview({
         <div className="mt-8 space-y-8">
           {draft.sections.map((section, index) => (
             <article key={section.key} className="border-t border-black/10 pt-5">
-              <p className="mono text-[10px] uppercase tracking-[0.14em] text-[#6e6e6a]">[:{String(index + 1).padStart(2, '0')} · {section.key}:]</p>
+              <p className="mono text-[10px] uppercase tracking-[0.14em] text-[#6e6e6a]">{String(index + 1).padStart(2, '0')} · {section.key}</p>
               <h4 className="mt-2 text-[18px] font-bold">{section.heading}</h4>
               {section.body ? <Body body={section.body} /> : <p className="mt-3 text-[13px] text-[#a33d2d]">This section is empty.</p>}
             </article>

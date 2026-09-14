@@ -108,7 +108,7 @@ export default function AdminOverview() {
     <div>
       <div className="flex flex-col gap-5 border-b border-white/10 pb-7 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-[720px]">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">[:CONTROL ROOM:]</p>
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">Control room</p>
           <h1 className="mt-3 font-sans text-[clamp(32px,4vw,52px)] font-black leading-none tracking-[-0.04em]">What needs attention now?</h1>
           <p className="mt-4 text-[13px] leading-6 text-white/48">Start with exceptions, then monitor active trade and agent work. Wallet signing remains disconnected until a reviewed on-chain action needs it.</p>
         </div>
@@ -124,7 +124,7 @@ export default function AdminOverview() {
 
       <section aria-labelledby="next-action-heading" className="mt-7 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="rounded-xl border border-[#AFC95B]/25 border-l-2 bg-[#AFC95B]/[0.055] p-5">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#AFC95B]">[:START HERE:]</p>
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-[#AFC95B]">Start here</p>
           <h2 id="next-action-heading" className="mt-2 text-[22px] font-extrabold tracking-[-0.02em]">
             {nextQueue ? nextQueue.label : 'The queue is clear'}
           </h2>
@@ -136,7 +136,7 @@ export default function AdminOverview() {
           </Link>
         </div>
         <div className="rounded-xl border border-white/10 bg-[#111114] p-5">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-white/35">[:OPERATOR LOOP:]</p>
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.15em] text-white/35">Operator loop</p>
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 xl:grid-cols-2">
             {[
               ['01', 'Review', 'Read the evidence.'],

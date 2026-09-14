@@ -10,17 +10,17 @@ import { Band, SectionTag, HeroHeadline, Punc, CTAPill } from '@/shared/componen
 
 const PILLARS: ReadonlyArray<{ tag: string; title: string; body: string }> = [
   {
-    tag: '[:001]',
+    tag: '001',
     title: 'Invoice factoring',
     body: 'Suppliers draw early payout against an accepted invoice. Financiers fund at a tiered discount and are repaid on settlement.',
   },
   {
-    tag: '[:002]',
+    tag: '002',
     title: 'PO financing',
     body: 'Working capital against a purchase order, released to the supplier on verified proof of delivery.',
   },
   {
-    tag: '[:003]',
+    tag: '003',
     title: 'Credit passport',
     body: 'Every counterparty carries a portable, on-chain record of completed deals, repayment behaviour, and concentration.',
   },

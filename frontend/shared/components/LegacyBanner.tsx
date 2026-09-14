@@ -104,7 +104,7 @@ export function LegacyBanner() {
                 borderRadius: 3,
               }}
             >
-              [:{t.eyebrowPrefix}{' '}
+              {t.eyebrowPrefix}{' '}
               {state.closesAtMs ? (
                 <Countdown targetMs={state.closesAtMs} />
               ) : (

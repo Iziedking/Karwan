@@ -145,7 +145,7 @@ export function ActivationModal({
           >
             <header className="border-b border-[var(--color-line)] px-6 pb-5 pt-6">
               <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-                • [:AGENT SETUP]
+                • Agent setup
               </p>
               <h2
                 id="activation-title"
@@ -195,7 +195,7 @@ export function ActivationModal({
               ) : null}
               {saved ? (
                 <p className="mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-positive)]">
-                  • [:SAVED] {t.savedNote}
+                  • Saved {t.savedNote}
                 </p>
               ) : null}
             </div>
@@ -266,7 +266,7 @@ function NameField({
   return (
     <label className="block">
       <span className="flex items-baseline justify-between gap-3 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-        <span>• [:{label}]</span>
+        <span>• {label}</span>
         {address ? (
           <span className="normal-case tracking-normal">{shortAddress(address)}</span>
         ) : null}

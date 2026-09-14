@@ -98,7 +98,7 @@ export function ConfirmDialog({
             borderRadius: 3,
           }}
         >
-          [:{t.eyebrow}:]
+              {t.eyebrow}
         </span>
         <h2 className="font-sans text-[22px] font-extrabold tracking-[-0.01em] leading-tight">
           {title}

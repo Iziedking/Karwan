@@ -86,7 +86,7 @@ export default function AdminDiagnostics() {
   return (
     <div className="space-y-8">
       <div>
-        <p className={LABEL}>[:DIAGNOSTICS:]</p>
+        <p className={LABEL}>Diagnostics</p>
         <h1 className="mt-2 font-sans text-[26px] font-extrabold text-white">Diagnostics</h1>
         <p className="mt-1 text-[13px] text-white/50 max-w-[64ch]">
           Live backend health and the agent gas seed, so a failing model key, an unfunded operator
@@ -146,7 +146,7 @@ function HealthOverview() {
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <p className={LABEL}>[:BACKEND HEALTH:]</p>
+          <p className={LABEL}>Backend health</p>
           <div className="mt-1.5 flex items-center gap-2 flex-wrap">
             {data && <Dot ok={healthy} />}
             <h2 className="font-sans text-[18px] font-bold" style={{ color: data ? (healthy ? 'var(--lp-accent)' : '#e0794f') : '#fff' }}>
@@ -301,7 +301,7 @@ function AgentSeedPanel() {
 
   return (
     <section className={PANEL}>
-      <p className={LABEL}>[:AGENT GAS SEED:]</p>
+      <p className={LABEL}>Agent gas seed</p>
       <h2 className="mt-1.5 font-sans text-[18px] font-bold text-white">Agent funding</h2>
       <p className="mt-1 text-[13px] text-white/50 max-w-[60ch]">
         Check an account's agent balances against the operator wallet, then seed the agents if they
@@ -368,7 +368,7 @@ function AgentSeedPanel() {
       )}
       {result && (
         <div className="mt-4 space-y-1.5">
-          <p className={LABEL}>[:SEED RESULT:]</p>
+          <p className={LABEL}>Seed result</p>
           {(['buyer', 'seller'] as const).map((k) => {
             const r = result[k];
             return (

@@ -142,7 +142,7 @@ export default function BrandPage() {
           <PageCard>
             <div className="p-6 md:p-7 space-y-3">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
-                [:{t.voice.wordsWeUseLabel}:]
+                {t.voice.wordsWeUseLabel}
               </p>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 {t.voice.wordsWeUseBody}
@@ -152,7 +152,7 @@ export default function BrandPage() {
           <PageCard>
             <div className="p-6 md:p-7 space-y-3">
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[#b03d3a]">
-                [:{t.voice.wordsWeAvoidLabel}:]
+                {t.voice.wordsWeAvoidLabel}
               </p>
               <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
                 {t.voice.wordsWeAvoidBody}
@@ -253,7 +253,7 @@ function LogoCard({
         {preview}
         <div className="px-5 py-4 space-y-2 border-t border-[var(--lp-border-light)]">
           <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:{label.toUpperCase()}:]
+            {label.toUpperCase()}
           </p>
           <div className="flex flex-wrap items-center gap-1">
             <a
@@ -332,7 +332,7 @@ function ColorChip({
         <div className="px-5 py-4 flex items-center justify-between gap-3">
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{name.toUpperCase()}:]
+              {name.toUpperCase()}
             </p>
             <p className="mt-1 mono text-[14px] tabular-nums text-[var(--lp-dark)]">
               {hex}

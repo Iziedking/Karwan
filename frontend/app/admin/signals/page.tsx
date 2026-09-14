@@ -142,7 +142,7 @@ export default function AdminSignalsPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">[:SIGNALS:]</p>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Signals</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">The pipeline</h1>
       <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
         What the newsletter drafts from. Paste a link, an article or a raw note, and say what you

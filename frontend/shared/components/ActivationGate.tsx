@@ -33,7 +33,7 @@ export function ActivationGate({ children }: { children: ReactNode }) {
       <section className="overflow-hidden rounded-t-[16px] rounded-bl-[16px] rounded-br-[4px] border border-[var(--color-line)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">
         <p className="inline-flex items-center gap-2 mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
           <span aria-hidden className="size-1.5 rounded-[1px] bg-[var(--warn)]" />
-          [:AGENT SETUP]
+          Agent setup
         </p>
         <div className="mt-4 flex items-start gap-3">
           <span

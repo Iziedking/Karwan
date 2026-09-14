@@ -215,7 +215,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                     >
                       <header className="border-b border-[var(--color-line)] px-6 pb-5 pt-6">
                         {!compact && <p className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-                          • [:{active.kind === 'prompt' ? 'INPUT REQUIRED' : 'REVIEW ACTION'}]
+                          • {active.kind === 'prompt' ? 'Input required' : 'Review action'}
                         </p>}
                         <h2
                           id="karwan-dialog-title"
@@ -237,7 +237,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                         {active.kind === 'prompt' ? (
                           <label className="block">
                             <span className="mono text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-                              • [:VALUE]
+                              • Value
                             </span>
                             <input
                               ref={inputRef}
@@ -253,7 +253,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                           </FormError>
                         ) : (
                           <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
-                            [:READY FOR YOUR DECISION]
+                            Ready for your decision
                           </p>
                         )}
                       </div>}
@@ -304,7 +304,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                       className="mono text-[10px] font-semibold uppercase tracking-[0.12em]"
                       style={{ color: toast.tone === 'error' ? 'var(--neg)' : 'var(--pos)' }}
                     >
-                      • [:{toast.tone === 'error' ? 'ATTENTION' : 'DONE'}]
+                      • {toast.tone === 'error' ? 'Attention' : 'Done'}
                     </p>
                     <p className="mt-1.5 text-[13px] leading-snug text-[var(--color-ink)]">
                       {toast.message}

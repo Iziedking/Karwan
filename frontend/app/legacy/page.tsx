@@ -993,7 +993,7 @@ function DealRow({
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            [:{(copy.deals.roles[deal.role] ?? deal.role).toUpperCase()} · {(copy.deals.stateLabels[deal.stateLabel] ?? deal.stateLabel).toUpperCase()} · {copy.deals.row.genTemplate.replace('{n}', String(deal.generation))}:] {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
+            {(copy.deals.roles[deal.role] ?? deal.role).toUpperCase()} · {(copy.deals.stateLabels[deal.stateLabel] ?? deal.stateLabel).toUpperCase()} · {copy.deals.row.genTemplate.replace('{n}', String(deal.generation))}: {deal.jobId.slice(0, 10)}…{deal.jobId.slice(-6)}
           </p>
           <p className="mt-1.5 font-sans text-[22px] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
             {formatUsdc(deal.dealAmountUsdc, { withSuffix: false })}{' '}

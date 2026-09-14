@@ -31,7 +31,7 @@ export default function NewsletterArchivePage() {
 
   return (
     <main className="mx-auto max-w-[680px] px-5 py-16 sm:py-24">
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink)]/40">[:DISPATCH:]</p>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink)]/40">Dispatch</p>
       <h1 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold leading-[1.15]">
         What we have been doing
       </h1>

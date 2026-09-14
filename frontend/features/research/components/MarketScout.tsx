@@ -94,7 +94,7 @@ export function MarketScout() {
     <div className="p-5" style={CARD_STYLE}>
       <div className="flex items-center justify-between gap-3">
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:SCOUT THE MARKET:]
+          Scout the market
         </span>
         {creditUsdc != null && (
           <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">

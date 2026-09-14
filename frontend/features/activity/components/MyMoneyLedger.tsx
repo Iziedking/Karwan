@@ -93,7 +93,7 @@ function when(ts: number, justNow: string): string {
 
 export function MyMoneyLedger({
   /// Set when the ledger sits inside a panel that already carries the
-  /// `[:YOUR MONEY:]` label. The tile on /activity did, so the phrase appeared
+  /// The tile on /activity used the same heading, so the phrase appeared
   /// twice, two lines apart, which on a phone read as a rendering fault.
   nested = false,
 }: {

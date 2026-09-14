@@ -244,7 +244,7 @@ function BrandSwatches() {
   return (
     <div className="mt-8 lg:mt-10 flex flex-wrap items-center gap-x-5 gap-y-3">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{t.brand.label}:]
+        {t.brand.label}
       </span>
       <div className="flex items-center gap-2">
         {swatches.map((s) => (

@@ -65,7 +65,7 @@ export function PendingMatchesSignal() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block mono text-[10px] font-semibold uppercase tracking-[0.17em] text-[var(--lp-band-dark)]/85">
-                [:{t.matches.inlineEyebrow}:]
+                {t.matches.inlineEyebrow}
               </span>
               <span className="mt-1 block max-w-[44ch] font-sans text-[12px] font-medium leading-5 text-[var(--lp-band-dark)]/70">
                 {t.matches.inlineSubtitle}
@@ -210,7 +210,7 @@ export function MatchRow({
               className="mono text-[10px] uppercase tracking-[0.18em]"
               style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
             >
-              [:{role} · {stateCopy.tag}:]
+              {role} · {stateCopy.tag}
             </span>
             <div className="mt-2 flex items-baseline gap-2">
               <span

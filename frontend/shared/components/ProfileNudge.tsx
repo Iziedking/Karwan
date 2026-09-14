@@ -76,7 +76,7 @@ export function ProfileNudge() {
   let copy: NudgeCopy | null = null;
   if (kind === 'profile') {
     copy = {
-      step: '[:STEP 01/02]',
+      step: 'Step 01/02',
       title: profileCopy.titleFragment,
       body: profileCopy.bodyFragment,
       cta: profileCopy.cta,
@@ -85,7 +85,7 @@ export function ProfileNudge() {
   }
   if (kind === 'activation') {
     copy = {
-      step: '[:STEP 02/02]',
+      step: 'Step 02/02',
       title: activationCopy.title,
       body: activationCopy.body,
       cta: activationCopy.cta,

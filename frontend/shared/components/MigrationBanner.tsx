@@ -57,7 +57,7 @@ export function MigrationBanner() {
               className="inline-block mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-0.5 mb-2"
               style={{ background: '#ffb800', color: '#3a0e0a', borderRadius: 3 }}
             >
-              [:{t.eyebrow}:]
+              {t.eyebrow}
             </span>
             <p className="font-sans text-[15px] sm:text-[16px] font-semibold leading-snug text-white whitespace-pre-line">
               {notice}

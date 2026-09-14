@@ -142,7 +142,7 @@ function CashoutPageInner() {
               href={`/deals/${jobId}`}
               className="inline-flex min-h-11 items-center gap-1.5 hover:text-[var(--lp-accent)] transition-colors"
             >
-              [:{cp.hero.backToDeal}:]
+              {cp.hero.backToDeal}
             </Link>
           </div>
         </div>
@@ -488,7 +488,7 @@ function WithdrawForm({ info, copy }: { info: CashoutInfo; copy: CashoutCopy }) 
           role="status"
         >
           <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            [:COMING SOON:]
+            Coming soon
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
             {copy.comingSoon.body}
@@ -1115,7 +1115,7 @@ function destLabel(k: DestKey): string {
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-      [:{children}:]
+      {children}
     </span>
   );
 }

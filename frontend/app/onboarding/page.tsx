@@ -1235,7 +1235,7 @@ function MatchingPreview({
   return (
     <div className="border-s-2 border-[var(--lp-accent)] bg-[var(--lp-light)] px-4 py-4 sm:px-5">
       <p className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        [:{eyebrow}:]
+        {eyebrow}
       </p>
       <p className="mt-2 text-pretty font-sans text-[17px] font-extrabold leading-snug tracking-[-0.02em] text-[var(--lp-dark)]">
         {title}

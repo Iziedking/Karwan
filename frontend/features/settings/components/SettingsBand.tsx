@@ -137,7 +137,7 @@ export function SettingsBand() {
     >
       <header className="mb-5">
         <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-          [:{t.settings.eyebrow}:]
+          {t.settings.eyebrow}
         </span>
         <h2 className="mt-2 font-sans text-[22px] font-extrabold tracking-[-0.02em] text-[var(--color-ink)]">
           {t.settings.title}
@@ -195,7 +195,7 @@ export function SettingsBand() {
         style={{ borderColor: 'var(--color-line)' }}
       >
         <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-critical)] mb-2">
-          [:{t.settings.dangerZone}:]
+          {t.settings.dangerZone}
         </p>
         <p className="text-[13px] text-[var(--color-ink-dim)] max-w-[52ch]">
           {t.settings.accountDeleteHint}

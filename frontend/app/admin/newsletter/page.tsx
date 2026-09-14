@@ -277,7 +277,7 @@ export default function AdminNewsletterPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">[:NEWSLETTER:]</p>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Newsletter</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">Issues</h1>
       <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
         Drafted from the signal pipeline when there is real news. Approving marks an issue ready.

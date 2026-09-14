@@ -221,7 +221,7 @@ function Console({ token, onLock }: { token: string; onLock: () => void }) {
         <header className="flex items-end justify-between gap-4 border-b border-zinc-800 pb-5">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-              [:USYC RESERVES:]
+              USYC reserves
             </p>
             <h1 className="mt-1 text-3xl font-serif tracking-tight">Yield monitor</h1>
           </div>

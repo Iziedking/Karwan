@@ -184,7 +184,7 @@ export function POLinesPanel() {
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-          [:MY PO LINES:]
+          My PO lines
         </span>
         <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
           {total} line{total === 1 ? '' : 's'}

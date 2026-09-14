@@ -89,7 +89,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
             >
               <span className="min-w-0 flex-1 text-[12px] text-[var(--lp-workspace-muted)]">
                 <span className="me-2 mono text-[9px] text-[var(--lp-workspace-faint)]">
-                  [:{String(index + 1).padStart(2, '0')}]
+                  {String(index + 1).padStart(2, '0')}
                 </span>
                 {label}
               </span>
@@ -112,7 +112,7 @@ export function VerificationStatusCard({ address }: { address: string }) {
           >
             <span className="min-w-0 flex-1 text-[12px] text-[var(--lp-workspace-muted)] group-hover:text-[var(--lp-workspace-ink)]">
               <span className="me-2 mono text-[9px] text-[var(--lp-workspace-faint)]">
-                [:{String(capabilities.length + 1).padStart(2, '0')}]
+                {String(capabilities.length + 1).padStart(2, '0')}
               </span>
               {t.publicPassport}
             </span>

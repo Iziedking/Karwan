@@ -99,7 +99,7 @@ export function RoleToggle({
       {/* block, not inline: the control below is inline-flex, so an inline
           eyebrow would flow alongside it instead of sitting above it. */}
       <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{t.eyebrow}:]
+        {t.eyebrow}
       </span>
 
       <div

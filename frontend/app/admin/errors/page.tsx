@@ -75,7 +75,7 @@ export default function AdminErrors() {
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className={LABEL}>[:ERRORS:]</p>
+          <p className={LABEL}>Errors</p>
           <h1 className="mt-2 font-sans text-[26px] font-extrabold text-white">Runtime errors</h1>
           <p className="mt-1 text-[13px] text-white/50 max-w-[68ch]">
             Backend errors captured as they happen, each with the supervisor&apos;s read-first
@@ -89,7 +89,7 @@ export default function AdminErrors() {
 
       {s && (
         <section>
-          <p className={LABEL}>[:SUPERVISOR:]</p>
+          <p className={LABEL}>Supervisor</p>
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <StatTile label="Diagnosed" value={s.diagnosed} />
             <StatTile label="Deduped" value={s.deduped} />

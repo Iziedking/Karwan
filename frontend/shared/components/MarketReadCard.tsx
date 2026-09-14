@@ -84,7 +84,7 @@ export function MarketReadCard({
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-          [:MARKET READ:]
+          Market read
         </span>
         <div className="flex items-center gap-2">
           {mr.priceBandUsdc && mr.priceBandUsdc.low !== mr.priceBandUsdc.high ? (
@@ -131,7 +131,7 @@ export function MarketReadCard({
       {(mr.priceObservations?.length ?? 0) > 0 && (
         <div className="mt-2.5">
           <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            [:PRICES FOUND IN SOURCES:]
+            Prices found in sources
           </p>
           <ul className="mt-1.5 space-y-1.5">
             {mr.priceObservations!.slice(0, 4).map((o, i) => {

@@ -125,7 +125,7 @@ export default function AdminSupport() {
         description="Pick up an open conversation, answer in Karwan, and leave the customer with a clear next step. Replies stay in the same thread across the available channels."
         meta={tickets ? `${tickets.length} open conversations` : 'Waiting for open conversations'}
       />
-      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• [:ERR] {err}</p>}
+      {err && <p role="alert" className="mt-5 border-l-2 border-[#e0794f] px-3 py-2 text-[12px] text-[#efaa8d]">• Error: {err}</p>}
 
       <div className="mt-5 grid md:grid-cols-[320px_1fr] gap-4">
         {/* ticket list */}

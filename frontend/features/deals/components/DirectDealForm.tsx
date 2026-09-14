@@ -629,7 +629,7 @@ export function DirectDealForm() {
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
           for individuals so a P2P direct deal stays the simple service flow. */}
       {SME_TRADES_ENABLED && isBusiness && (
-      <FieldSection eyebrow="[:TRADE CONTEXT:]" title={tt.sectionTitle}>
+      <FieldSection eyebrow="Trade context" title={tt.sectionTitle}>
         <FormLabel label={tt.tradeType}>
           <div className="flex gap-2 flex-wrap">
             {(['service', 'goods', 'mixed'] as const).map((opt) => (

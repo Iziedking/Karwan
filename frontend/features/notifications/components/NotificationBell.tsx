@@ -101,7 +101,7 @@ export function NotificationBell() {
             style={{ borderBottom: '1px solid var(--lp-border-light)' }}
           >
             <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{t.sectionTag}:]
+              {t.sectionTag}
             </span>
             {notifications.length > 0 && (
               <div className="flex items-center gap-3">

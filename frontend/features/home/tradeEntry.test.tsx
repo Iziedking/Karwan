@@ -27,7 +27,8 @@ test('home explains both sides of trade with one heading and no prerequisite jar
   assert.equal((html.match(/<a\b/g) ?? []).length, 3);
   assert.match(html, /Find customers/);
   assert.match(html, /Find something to buy/);
-  assert.match(html, /other websites is planned/);
+  assert.match(html, /I already have an agreement/);
+  assert.doesNotMatch(html, /other websites is planned/);
   assert.doesNotMatch(html, /stake|pooled|workspace|research credit|<button/);
 });
 

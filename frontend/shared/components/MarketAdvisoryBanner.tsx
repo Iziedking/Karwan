@@ -81,7 +81,7 @@ export function MarketAdvisoryBanner({ jobId }: { jobId: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#9a7b2f]">
-          [:MARKET CHECK:]
+          Market check
         </span>
         <button
           type="button"

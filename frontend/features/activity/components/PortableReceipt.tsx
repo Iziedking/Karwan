@@ -114,7 +114,7 @@ export function PortableReceipt({
       >
         <div className="karwan-receipt-chrome flex items-start justify-between gap-4">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">[:RECEIPT:]</p>
+            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">Receipt</p>
             <h2 id="karwan-receipt-title" className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-[var(--lp-dark)]">
               {copy.receiptTitle}
             </h2>

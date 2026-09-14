@@ -84,7 +84,7 @@ export default function AdminRouteDirectoryPage() {
     <div>
       <div className="flex flex-col gap-5 border-b border-white/10 pb-7 xl:flex-row xl:items-end xl:justify-between">
         <div className="max-w-[720px]">
-          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">[:BACKEND MAP:]</p>
+          <p className="mono text-[9px] font-bold uppercase tracking-[0.17em] text-[#AFC95B]">Backend map</p>
           <h1 className="mt-3 font-sans text-[clamp(30px,4vw,48px)] font-black leading-none tracking-[-0.035em]">API directory</h1>
           <p className="mt-4 text-[13px] leading-6 text-white/48">Every mounted backend endpoint is searchable here. Reviewed workspaces handle real operator actions; routes without a workspace remain visible for engineering traceability.</p>
         </div>

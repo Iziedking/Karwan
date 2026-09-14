@@ -167,7 +167,7 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
                       className="mono text-[10px] uppercase tracking-[0.18em]"
                       style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
                     >
-                      [:{role} · {t.card.contextDeal}:]
+                      {role} · {t.card.contextDeal}
                     </span>
                     <div className="mt-2 flex items-baseline gap-2">
                       <span

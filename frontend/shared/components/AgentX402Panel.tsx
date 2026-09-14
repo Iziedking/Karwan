@@ -167,7 +167,7 @@ export function AgentX402Panel({
     >
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <span className="inline-flex items-center mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-          [:AGENT PAYMENTS:]
+          Agent payments
           <Hint side="bottom" align="start">
             <span className="block">
               Your agents pay per call for the data they use to evaluate a match. Reputation checks

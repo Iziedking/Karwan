@@ -76,7 +76,7 @@ export function FinancierApply({
     <div className="max-w-[640px] mx-auto py-12">
       <PageTour id={FINANCIER_APPLY_TOUR_ID} steps={FINANCIER_APPLY_STEPS} />
       <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:FINANCIER:]
+        Financier
       </p>
       <h1 className="mt-2 font-sans text-[30px] sm:text-[36px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-[1.05]">
         Fund trade, earn the spread<span className="text-[var(--lp-accent)]">.</span>

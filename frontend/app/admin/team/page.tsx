@@ -210,7 +210,7 @@ export default function AdminTeamPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">[:TEAM:]</p>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Team</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">People</h1>
       <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
         Invite somebody and they get an email with a link to set a password. After that they sign in

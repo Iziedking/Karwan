@@ -54,7 +54,7 @@ export default function AdminRuntimePage() {
 
   return (
     <div>
-      <p className={labelClass}>[:AGENT RUNTIME:]</p>
+      <p className={labelClass}>Agent runtime</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">Operational runtime</h1>
       <p className="mt-2 text-[13px] text-white/55 max-w-[72ch]">
         Read-only visibility into durable retries, active work, and dead letters. This surface

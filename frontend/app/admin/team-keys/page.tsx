@@ -145,7 +145,7 @@ export default function AdminTeamKeysPage() {
 
   return (
     <div>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">[:TEAM KEYS:]</p>
+      <p className="mono text-[10px] uppercase tracking-[0.18em] text-white/40">Team keys</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">Canon access</h1>
       <p className="mt-2 text-[13px] text-white/55 max-w-[68ch]">
         One key per person per machine. A key lets the team MCP read the canon and answer from it.

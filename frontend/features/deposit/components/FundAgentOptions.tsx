@@ -76,7 +76,7 @@ export function FundAgentOptions({
   return (
     <div className="space-y-3">
       <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        [:{copy.eyebrow}:]
+        {copy.eyebrow}
       </p>
 
       <div className="space-y-1.5">

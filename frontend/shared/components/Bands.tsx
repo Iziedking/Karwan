@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { Reveal } from './Reveal';
 import { withoutTrailingArrow } from './CtaArrow';
+import { stripMechanicalTags } from '@/shared/i18n/uiCopy';
 
 /// Phantom-grade landing primitives for the in-app routes. Full-bleed band
 /// sections, uppercase extrabold display headlines with lime-accent punctuation,
@@ -102,6 +103,7 @@ export function SectionTag({
   tone?: 'dark' | 'light';
   dot?: 'live';
 }) {
+  const label = typeof children === 'string' ? stripMechanicalTags(children) : children;
   return (
     <span
       className={cn(
@@ -125,9 +127,7 @@ export function SectionTag({
         // for one thing per view and headlines carry the hierarchy.
         <span aria-hidden className="karwan-section-dot w-1 h-1 rounded-full bg-current opacity-40" />
       )}
-      <span className="karwan-section-tag-decor" aria-hidden>[:</span>
-      <span>{children}</span>
-      <span className="karwan-section-tag-decor" aria-hidden>:]</span>
+      <span>{label}</span>
     </span>
   );
 }

@@ -6,7 +6,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// Body-text wrapper for docs pages. Sets typography for h2/h3/p/ul/code so
 /// each page can write JSX without restating the same Tailwind classes on
 /// every element. Headings get the lime accent dot on the left to echo the
-/// SectionTag/[:tag:] grammar without overusing the bracket form.
+/// Section labels stay readable without mechanical bracket punctuation.
 export function Prose({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('docs-prose', className)}>{children}</div>;
 }
@@ -69,7 +69,7 @@ export function DocsListItem({ children }: { children: ReactNode }) {
 export function DocsEyebrow({ children }: { children: ReactNode }) {
   return (
     <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-      [:{children}:]
+      {children}
     </p>
   );
 }
@@ -161,7 +161,7 @@ export function DocsCallout({
         className="mono text-[10px] uppercase tracking-[0.16em]"
         style={{ color: accent }}
       >
-        [:{title}:]
+        {title}
       </p>
       <div className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
         {children}

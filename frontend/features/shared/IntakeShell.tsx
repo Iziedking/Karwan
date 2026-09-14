@@ -232,7 +232,7 @@ export function IntakeShell({
               }}
             >
               <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-band-dark)]">
-                [:NEEDS YOUR INPUT:]
+                Needs your input
               </p>
               <ul className="mt-2 space-y-1.5 text-[13px] leading-snug text-[var(--lp-dark)]">
                 {notes.map((n, i) => (

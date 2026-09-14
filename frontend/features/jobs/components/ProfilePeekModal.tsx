@@ -393,7 +393,7 @@ function WorkRecordSection({
   return (
     <div className="min-h-0 overflow-y-auto border-t border-[var(--lp-border-light)] px-6 pb-8 pt-5">
       <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        [:{role === 'seller' ? wr.eyebrow : wr.buyerEyebrow}:]
+        {role === 'seller' ? wr.eyebrow : wr.buyerEyebrow}
       </span>
       <p className="mt-1.5 text-[12px] leading-snug text-[var(--lp-text-sub)]">
         {role === 'seller' ? wr.subtitle : wr.buyerSubtitle}

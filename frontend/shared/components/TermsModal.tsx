@@ -95,7 +95,7 @@ export function TermsModal() {
         >
           <div>
             <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              [:{t.eyebrow}:]
+              {t.eyebrow}
             </p>
             <h2 className="mt-1.5 font-sans text-[22px] font-extrabold tracking-[-0.02em]">
               {t.title}

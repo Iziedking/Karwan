@@ -1,9 +1,10 @@
 'use client';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { stripMechanicalTags } from '@/shared/i18n/uiCopy';
 
 /// SKILL.md §4.1. The signature element. Mono uppercase 11–12px wrapped in
-/// `[:WORD]` brackets with a 1px square dot leading. Sits 8–12px above the
+/// Compact section labels with a 1px square dot leading. Sits 8–12px above the
 /// title it labels, never inline.
 ///
 /// Variants:
@@ -35,6 +36,7 @@ export function BracketTag({
   className?: string;
   onDark?: boolean;
 }) {
+  const label = typeof children === 'string' ? stripMechanicalTags(children) : children;
   const dotColor =
     variant === 'muted'
       ? onDark
@@ -63,7 +65,7 @@ export function BracketTag({
           style={{ background: dotColor, borderRadius: 1 }}
         />
       </span>
-      <span>[:{children}]</span>
+      <span>{label}</span>
     </span>
   );
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { stripMechanicalTags } from '@/shared/i18n/uiCopy';
 
 export function Card({
   title,
@@ -32,7 +33,7 @@ export function Card({
           <div className="min-w-0">
             {eyebrow && (
               <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)] mb-1">
-                • [:{eyebrow}:]
+                {stripMechanicalTags(eyebrow)}
               </p>
             )}
             {title && <h2 className="text-[15px] font-medium text-[var(--color-ink)] tracking-tight truncate">{title}</h2>}

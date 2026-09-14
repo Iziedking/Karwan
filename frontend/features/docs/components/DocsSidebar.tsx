@@ -29,7 +29,7 @@ export function DocsSidebar() {
   return (
     <aside className="lg:sticky lg:top-[88px] lg:self-start">
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-4">
-        [:{t.sidebar.eyebrow}:]
+        {t.sidebar.eyebrow}
       </p>
       <nav className="flex flex-col gap-1">
         {DOCS_SECTIONS.map((section) => {

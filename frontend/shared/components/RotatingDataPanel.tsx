@@ -78,7 +78,7 @@ export function RotatingDataPanel({
       <div className="flex min-h-16 items-center justify-between gap-4 border-b border-[var(--lp-workspace-border)] px-4 py-3 sm:px-5">
         <div className="min-w-0">
           <p className="mono truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-workspace-muted)]">
-            [:{active.label}:]
+            {active.label}
           </p>
           <p className="mt-1 mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)] tabular-nums">
             {String(activeIndex + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}

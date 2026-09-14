@@ -139,7 +139,7 @@ export default function NewsletterIssuePage({ params }: { params: Promise<{ slug
   return (
     <main className="mx-auto max-w-[680px] px-5 py-16 sm:py-24">
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink)]/40">
-        {issue.monthInReview ? '[:MONTH IN REVIEW:]' : '[:DISPATCH:]'} ·{' '}
+        {issue.monthInReview ? 'Month in review' : 'Dispatch'} ·{' '}
         {new Date(issue.sentAt).toLocaleDateString('en-GB', {
           day: 'numeric',
           month: 'long',

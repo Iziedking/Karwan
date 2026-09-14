@@ -225,7 +225,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
           demand so a match card does not read like an operator log. */}
       {proposal.paidSignal && (
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
-          <span>[:{mb.paidData.label}:]</span>
+          <span>{mb.paidData.label}</span>
           <span className="normal-case tracking-normal text-[11px]">
             seller verification funded · ${proposal.paidSignal.amountUsd}
           </span>

@@ -139,7 +139,7 @@ export function BridgeHistoryModal({
               id="bridge-history-title"
               className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]"
             >
-              [:HISTORY:]
+              History
             </span>
             <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} />
           </div>
@@ -173,7 +173,7 @@ export function BridgeHistoryModal({
               }}
             >
               <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                [:NO BRIDGES YET:]
+                No bridges yet
               </p>
               <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">
                 Your transfer history shows up here once you move USDC in or out of Arc.
@@ -181,7 +181,7 @@ export function BridgeHistoryModal({
             </div>
           ) : filtered.length === 0 ? (
             <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] py-6 text-center">
-              [:NONE IN THIS FILTER:]
+              None in this filter
             </p>
           ) : (
             <ul className="space-y-2">
