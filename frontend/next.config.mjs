@@ -22,7 +22,15 @@ const securityHeaders = [
 /// a different issuer, and a manifest whose own URLs do not resolve is not usable by
 /// anyone. So the site proxies them to the backend rather than keeping a
 /// hand-maintained copy that can drift from the code that emits attestations.
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8787';
+// Match the browser API client: a production build without an explicit
+// backend env must still proxy attestation documents to the public API.
+const configuredBackend = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
+const BACKEND = (
+  configuredBackend ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://api.karwan.site'
+    : 'http://localhost:8787')
+).replace(/\/+$/, '');
 
 const nextConfig = {
   reactStrictMode: true,
