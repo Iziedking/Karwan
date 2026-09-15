@@ -52,6 +52,7 @@
     "agent:buyer-timer-soak": "tsx src/scripts/buyer-timer-shadow-soak.ts",
     "agent:buyer-timer-live-soak": "tsx src/scripts/buyer-timer-shadow-live-soak.ts",
     "job:post": "tsx --env-file=../.env src/scripts/post-test-job.ts",
+    "market:seed": "tsx --env-file=../.env src/scripts/seed-marketplace.ts",
     "milestones:release": "tsx --env-file=../.env src/scripts/release-milestones.ts",
     "view": "tsx --env-file=../.env src/scripts/view-cli.ts",
     "sme:testkit": "tsx --env-file=../.env src/scripts/sme-testkit.ts"

@@ -12,6 +12,9 @@ export interface Listing {
   id: string;
   sellerUser: string;
   sellerAgent: string;
+  /// Stable operator seed identity. It is internal metadata and must be
+  /// removed from every public projection.
+  seedKey?: string;
   title: string;
   description: string;
   askingPriceUsdc: number;
@@ -93,16 +96,23 @@ export function createListing(
     id,
     sellerUser: input.sellerUser.toLowerCase(),
     sellerAgent: input.sellerAgent.toLowerCase(),
+    seedKey: input.seedKey,
     title: input.title,
     description: input.description,
     askingPriceUsdc: input.askingPriceUsdc,
     negotiationMaxDecreasePct: input.negotiationMaxDecreasePct,
     postedAt: now,
     expiresAt: now + ttlDays * 24 * 60 * 60 * 1000,
+    tradeLane: input.tradeLane,
+    partyKind: input.partyKind,
   };
   store.set(id, listing);
   persist();
   return listing;
+}
+
+export function findListingBySeedKey(seedKey: string): Listing | null {
+  return [...store.values()].find((listing) => listing.seedKey === seedKey) ?? null;
 }
 
 /// Open = not cancelled, not past expiry. A listing stays live until it expires

@@ -12,6 +12,9 @@ export interface Brief {
   jobId: string;
   briefText: string;
   postedBy: string;
+  /// Stable operator seed identity. Never included in public marketplace
+  /// projections; it only makes a real seed run safe to repeat.
+  seedKey?: string;
   negotiationMaxIncreasePct?: number;
   keywords?: string[];
   /// Per-brief milestone split (percentages summing to 100). When the buyer
@@ -110,6 +113,11 @@ export function createBrief(input: Omit<Brief, 'createdAt'>): Brief {
   store.set(brief.jobId, brief);
   persist();
   return brief;
+}
+
+export function findBriefBySeedKey(seedKey: string): Brief | null {
+  load();
+  return Array.from(store.values()).find((brief) => brief.seedKey === seedKey) ?? null;
 }
 
 export function patchBrief(jobId: string, patch: Partial<Brief>): Brief | null {

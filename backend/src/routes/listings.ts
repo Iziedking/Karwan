@@ -114,8 +114,13 @@ export function configureListingMatchingEngineShadow(
 /// gets matchedJobId via /listings/mine and the owner /:id view.
 function stripPrivateFields(
   l: Listing,
-): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId'> {
-  const { negotiationMaxDecreasePct: _drop, matchedJobId: _drop2, ...rest } = l;
+): Omit<Listing, 'negotiationMaxDecreasePct' | 'matchedJobId' | 'seedKey'> {
+  const {
+    negotiationMaxDecreasePct: _drop,
+    matchedJobId: _drop2,
+    seedKey: _drop3,
+    ...rest
+  } = l;
   return rest;
 }
 
@@ -163,7 +168,7 @@ listingsRoutes.get('/:id', (c) => {
       status,
     });
   }
-  const { negotiationMaxDecreasePct: _drop, ...publicListing } = listing;
+  const { negotiationMaxDecreasePct: _drop, seedKey: _drop2, ...publicListing } = listing;
   return c.json({ listing: publicListing, viewerIsOwner: false, status });
 });
 
