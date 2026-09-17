@@ -13,6 +13,7 @@ import type { Locale } from '@/shared/i18n/locales';
 import { adoptPreferenceIfUnset } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemePicker } from './ThemePicker';
+import { Hint } from '@/shared/components/Hint';
 
 type Saver = (patch: UserSettings) => Promise<void>;
 
@@ -376,10 +377,10 @@ function Row({
       className="py-4 border-t first:border-t-0 first:pt-0"
       style={{ borderColor: 'var(--color-line)' }}
     >
-      <p className="text-[13px] font-semibold text-[var(--color-ink)] mb-1">{label}</p>
-      {hint && (
-        <p className="text-[12px] text-[var(--color-ink-dim)] mb-3 max-w-[52ch]">{hint}</p>
-      )}
+      <p className="mb-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-ink)]">
+        {label}
+        {hint && <Hint>{hint}</Hint>}
+      </p>
       {children}
     </div>
   );

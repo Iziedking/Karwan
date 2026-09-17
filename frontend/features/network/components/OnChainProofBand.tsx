@@ -9,6 +9,7 @@ import {
 } from '@/shared/components/Bands';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { RotatingDataPanel } from '@/shared/components/RotatingDataPanel';
+import { LpHint } from '@/shared/components/LpHint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Home-page band that surfaces stats read directly from current-contract
@@ -612,8 +613,9 @@ function ProofMetric({
 }) {
   return (
     <div className="min-w-0 bg-[var(--lp-workspace-raised)] p-3 sm:p-4">
-      <p className="mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-[var(--lp-workspace-muted)] sm:text-[9px]">
+      <p className="inline-flex items-center gap-1.5 mono text-[8px] uppercase leading-relaxed tracking-[0.12em] text-[var(--lp-workspace-muted)] sm:text-[9px]">
         {label}
+        {hint ? <LpHint>{hint}</LpHint> : null}
       </p>
       {loading ? (
         <div className="mt-3 h-8 w-16 bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse" aria-hidden />
@@ -625,7 +627,6 @@ function ProofMetric({
           {unit && <span className="mono text-[8px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">{unit}</span>}
         </p>
       )}
-      {hint && <p className="mt-2 hidden text-[10px] leading-relaxed text-[var(--lp-workspace-faint)] sm:block">{hint}</p>}
     </div>
   );
 }

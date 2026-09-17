@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { Reveal } from './Reveal';
 import { withoutTrailingArrow } from './CtaArrow';
+import { LpHint } from './LpHint';
 import { stripMechanicalTags } from '@/shared/i18n/uiCopy';
 
 /// Phantom-grade landing primitives for the in-app routes. Full-bleed band
@@ -288,14 +289,15 @@ export function BigStatTile({
         borderBottomRightRadius: 4,
       }}
     >
-      <p
+      <div
         className={cn(
-          'mono text-[10px] uppercase tracking-[0.16em]',
+          'inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.16em]',
           isDark ? 'text-[var(--lp-workspace-muted)]' : 'text-[var(--lp-text-muted)]',
         )}
       >
-        {label}
-      </p>
+        <span>{label}</span>
+        {hint ? <LpHint>{hint}</LpHint> : null}
+      </div>
       {loading ? (
         <div
           className={cn(
@@ -330,16 +332,6 @@ export function BigStatTile({
             </span>
           )}
         </div>
-      )}
-      {hint && (
-        <p
-          className={cn(
-            'mt-1.5 mono text-[10px] uppercase tracking-[0.1em]',
-            isDark ? 'text-[var(--lp-workspace-faint)]' : 'text-[var(--lp-text-muted)]',
-          )}
-        >
-          {hint}
-        </p>
       )}
     </div>
   );

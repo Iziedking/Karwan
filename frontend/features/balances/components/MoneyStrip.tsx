@@ -9,6 +9,7 @@ import { qk } from '@/core/queryKeys';
 import { stageOf, type DealStage } from '@/features/deals/components/DirectDealList';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { Band, SectionTag } from '@/shared/components/Bands';
+import { LpHint } from '@/shared/components/LpHint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// The newcomer's first question is "where is my money, and is it safe." This
@@ -41,8 +42,10 @@ function MoneyTile({ cell }: { cell: Cell }) {
   return (
     <MoneyCard>
       <MoneyValue value={money(cell.value)} showUnit={cell.value != null} />
-      <MoneyLabel>{cell.label}</MoneyLabel>
-      <p className="mt-1 text-[11px] leading-snug text-[var(--lp-text-sub)]">{cell.hint}</p>
+      <div className="inline-flex items-center gap-1.5">
+        <MoneyLabel>{cell.label}</MoneyLabel>
+        <LpHint>{cell.hint}</LpHint>
+      </div>
     </MoneyCard>
   );
 }

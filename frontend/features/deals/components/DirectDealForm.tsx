@@ -601,7 +601,6 @@ export function DirectDealForm() {
       </FieldSection>
 
       <FieldSection eyebrow={dd.terms.eyebrow} title={c.payment}>
-        <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">{c.splitHelp}</p>
         <div className="max-w-sm">
           <FormLabel
             label={dd.terms.deliveryPctLabel}

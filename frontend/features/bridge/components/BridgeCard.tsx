@@ -934,9 +934,11 @@ export function BridgeCard({
             </button>
           )}
 
-          <p className="text-[11px] leading-snug text-[var(--lp-text-muted)]">
-            {needsConnect ? bc.connect.hint : bc.reassurance}
-          </p>
+          <div className="flex justify-center">
+            <LpHint side="top" align="center">
+              {needsConnect ? bc.connect.hint : bc.reassurance}
+            </LpHint>
+          </div>
 
           {/* Circle accounts can add money without a browser wallet through a
               deposit address; the connected-wallet path is the default. Hidden
@@ -1372,24 +1374,9 @@ function BridgeSteps({
                 }`}
               >
                 {s.label}
+                {active && s.hint ? <LpHint side="bottom" align="start">{s.hint}</LpHint> : null}
               </span>
               <div className="flex items-center gap-2">
-                {active && s.hint && (
-                  <span
-                    className="mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
-                    style={{
-                      background: 'rgba(175, 201, 91,0.18)',
-                      color: 'var(--lp-dark)',
-                      border: '1px solid rgba(175, 201, 91,0.35)',
-                      borderTopLeftRadius: 4,
-                      borderTopRightRadius: 4,
-                      borderBottomLeftRadius: 4,
-                      borderBottomRightRadius: 2,
-                    }}
-                  >
-                    {s.hint}
-                  </span>
-                )}
                 <span
                   aria-hidden
                   data-instrument-blink={active || undefined}

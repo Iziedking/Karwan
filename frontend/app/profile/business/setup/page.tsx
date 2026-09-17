@@ -10,6 +10,7 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { LpHint } from '@/shared/components/LpHint';
 
 export default function BusinessSetupPage() {
   const t = useTranslations().businessProfilePage;
@@ -64,9 +65,11 @@ function BusinessSetupForm({ profile }: { profile: UserProfile }) {
   return (
     <form onSubmit={save} className="mt-7 space-y-6 rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7" aria-busy={saving}>
       <div>
-        <label htmlFor="business-name" className="block text-[15px] font-semibold text-[var(--lp-dark)]">{t.name}</label>
-        <input id="business-name" name="organization" autoComplete="organization" required maxLength={40} value={name} onChange={(e) => setName(e.target.value)} disabled={saving} aria-describedby="business-name-hint" className="mt-3 min-h-[52px] w-full rounded-xl border border-[var(--lp-outline)] bg-[var(--lp-light)] px-4 text-base text-[var(--lp-dark)] outline-none focus:border-[var(--lp-accent)] focus:ring-2 focus:ring-[var(--lp-accent)]" />
-        <p id="business-name-hint" className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{t.nameHint}</p>
+        <label htmlFor="business-name" className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-[var(--lp-dark)]">
+          {t.name}
+          <LpHint>{t.nameHint}</LpHint>
+        </label>
+        <input id="business-name" name="organization" autoComplete="organization" required maxLength={40} value={name} onChange={(e) => setName(e.target.value)} disabled={saving} className="mt-3 min-h-[52px] w-full rounded-xl border border-[var(--lp-outline)] bg-[var(--lp-light)] px-4 text-base text-[var(--lp-dark)] outline-none focus:border-[var(--lp-accent)] focus:ring-2 focus:ring-[var(--lp-accent)]" />
       </div>
       {error && <p role="alert" className="text-sm leading-relaxed text-[var(--lp-text-sub)]">{error}</p>}
       <div>

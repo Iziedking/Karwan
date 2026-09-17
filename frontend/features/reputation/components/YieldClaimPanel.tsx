@@ -5,6 +5,7 @@ import { useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wa
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { LpHint } from '@/shared/components/LpHint';
 import { chainErrorMessage } from '@/shared/utils/chainError';
 import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 import {
@@ -136,17 +137,15 @@ export function YieldClaimPanel() {
             key={t.label}
             className="min-w-0 bg-[var(--lp-card)] px-5 py-4 sm:px-6 sm:py-5"
           >
-            <p className="flex min-h-[30px] items-start mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="flex min-h-[30px] items-start gap-1.5 mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
+              <LpHint>{t.hint}</LpHint>
             </p>
             <p className="mt-1.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-sans text-[24px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-[var(--lp-dark)] sm:text-[28px]">
               <span className="whitespace-nowrap">{t.value}</span>
               <span className="shrink-0 text-[13px] font-semibold tracking-normal text-[var(--lp-text-muted)]">
                 USDC
               </span>
-            </p>
-            <p className="mt-1.5 min-h-[32px] text-[11px] leading-snug text-[var(--lp-text-sub)]">
-              {t.hint}
             </p>
           </div>
         ))}

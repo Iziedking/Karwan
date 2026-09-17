@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, type TeamAccessKeyView } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
+import { Hint } from '@/shared/components/Hint';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 
 /// Issue and revoke access to the team canon.
@@ -192,7 +193,6 @@ export default function AdminTeamKeysPage() {
               key={r.value}
               type="button"
               onClick={() => setRole(r.value)}
-              title={r.hint}
               className={`mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border transition ${
                 role === r.value
                   ? 'bg-white text-[#0e0e0e] border-white font-bold'
@@ -202,9 +202,7 @@ export default function AdminTeamKeysPage() {
               {r.label}
             </button>
           ))}
-          <span className="self-center text-[11px] text-white/35">
-            {ROLES.find((r) => r.value === role)?.hint}
-          </span>
+          <Hint>{ROLES.find((r) => r.value === role)?.hint}</Hint>
         </div>
 
         <button

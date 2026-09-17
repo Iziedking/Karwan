@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
+import { LpHint } from './LpHint';
 
 export interface RotatingDataSlide {
   id: string;
@@ -189,16 +190,13 @@ export function DataMetric({
           {value}
         </span>
         {unit && (
-          <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
+          <span className="inline-flex items-center gap-1.5 mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)]">
             {unit}
+            {hint ? <LpHint>{hint}</LpHint> : null}
           </span>
         )}
+        {!unit && hint ? <LpHint>{hint}</LpHint> : null}
       </div>
-      {hint && (
-        <p className="mt-4 max-w-[42ch] text-[13px] leading-relaxed text-[var(--lp-workspace-muted)]">
-          {hint}
-        </p>
-      )}
     </div>
   );
 }

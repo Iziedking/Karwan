@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, type TeamMemberView, type TeamInviteView } from '@/core/api';
 import { useDialog } from '@/shared/components/Dialog';
+import { Hint } from '@/shared/components/Hint';
 
 /// Who is on the team, and what they can reach.
 ///
@@ -265,9 +266,7 @@ export default function AdminTeamPage() {
               {r.label}
             </button>
           ))}
-          <span className="text-[11px] text-white/35">
-            {ROLES.find((r) => r.value === role)?.hint}
-          </span>
+          <Hint>{ROLES.find((r) => r.value === role)?.hint}</Hint>
         </div>
 
         <button
@@ -306,14 +305,16 @@ export default function AdminTeamPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => resend(inv)}
-                    className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white"
-                    title="Emails a fresh link. The old one stops working."
-                  >
-                    {inv.pending ? 'Resend' : 'Issue new link'}
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => resend(inv)}
+                      className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white"
+                    >
+                      {inv.pending ? 'Resend' : 'Issue new link'}
+                    </button>
+                    <Hint>Emails a fresh link. The old one stops working.</Hint>
+                  </div>
                   <button
                     type="button"
                     onClick={() => cancel(inv)}
@@ -372,28 +373,32 @@ export default function AdminTeamPage() {
               {m.active ? 'End access' : 'Restore'}
             </button>
             {m.active && (
-              <button
-                type="button"
-                onClick={() => resetPassword(m)}
-                className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white shrink-0"
-                title="Emails them a one-hour link to set a new password."
-              >
-                Reset password
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => resetPassword(m)}
+                  className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-white/15 text-white/55 hover:text-white shrink-0"
+                >
+                  Reset password
+                </button>
+                <Hint>Emails them a one-hour link to set a new password.</Hint>
+              </div>
             )}
             {/* Removal sits next to the softer control rather than replacing it.
                 Ending access is reversible and is the right answer most of the
                 time; this one is for the address that should never have been
                 invited, and it is the only thing that frees the email to be
                 invited again. */}
-            <button
-              type="button"
-              onClick={() => remove(m)}
-              className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-[#e0794f]/40 text-[#e0794f] shrink-0"
-              title="Deletes the account so the email can be invited again."
-            >
-              Remove
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => remove(m)}
+                className="mono text-[10px] uppercase tracking-[0.12em] px-3 py-2 rounded-lg border border-[#e0794f]/40 text-[#e0794f] shrink-0"
+              >
+                Remove
+              </button>
+              <Hint>Deletes the account so the email can be invited again.</Hint>
+            </div>
           </div>
         ))}
       </div>

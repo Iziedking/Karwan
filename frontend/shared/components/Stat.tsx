@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { CopyButton } from './CopyButton';
+import { Hint } from './Hint';
 
 export function Stat({
   label,
@@ -14,9 +15,11 @@ export function Stat({
 }) {
   return (
     <div className="space-y-1">
-      <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">{label}</p>
+      <p className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-[var(--color-ink-faint)]">
+        {label}
+        {hint && <Hint>{hint}</Hint>}
+      </p>
       <p className={`text-[15px] text-[var(--color-ink)] ${mono ? 'mono' : ''}`}>{value}</p>
-      {hint && <p className="text-[11px] text-[var(--color-ink-faint)]">{hint}</p>}
     </div>
   );
 }

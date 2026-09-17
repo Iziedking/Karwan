@@ -1,6 +1,7 @@
 'use client';
 import { MoneyCard, MoneyValue } from '@/shared/components/Money';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { LpHint } from '@/shared/components/LpHint';
 import { pickAxisLabelIndices } from '../axisLabels';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useYieldProtocol, useYieldHistory } from '../hooks/useYield';
@@ -70,8 +71,9 @@ export function ReservesWidget() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {tiles.map((t) => (
           <MoneyCard key={t.label}>
-            <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+            <p className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {t.label}
+              <LpHint>{t.hint}</LpHint>
             </p>
             {tilesLoading ? (
               <div className="mt-1.5 h-[28px] w-3/4 rounded-md bg-[var(--lp-border-light)] animate-pulse" />
@@ -80,9 +82,6 @@ export function ReservesWidget() {
                 <MoneyValue value={t.value} />
               </div>
             )}
-            <p className="mt-1.5 text-[11px] leading-snug text-[var(--lp-text-sub)]">
-              {t.hint}
-            </p>
           </MoneyCard>
         ))}
       </div>

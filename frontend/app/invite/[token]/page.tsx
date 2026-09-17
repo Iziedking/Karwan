@@ -18,6 +18,7 @@ import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { buildInviteUrl } from '@/features/deals/inviteLink';
 import { InviteLinkTools } from '@/features/deals/components/InviteLinkTools';
+import { LpHint } from '@/shared/components/LpHint';
 import {
   InviteRecipientMismatchError,
   verifyInviteRecipient,
@@ -285,12 +286,10 @@ export default function InvitePage() {
         <div className="mt-8 max-w-[58ch]">
           {stage === 'review' && !canClaim && (
             <div className="space-y-4">
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
-                {ip.recipient.hint}
-              </p>
               <label className="block space-y-2">
-                <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+                <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                   {ip.recipient.label}
+                  <LpHint>{ip.recipient.hint}</LpHint>
                 </span>
                 <input
                   type="email"
