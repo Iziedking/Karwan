@@ -591,7 +591,7 @@ function LaunchAppCTA() {
   return (
     <Link
       href="/app"
-      className="group inline-flex min-h-11 items-center gap-1.5 px-4 sm:px-5 py-2.5 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 shadow-[0_3px_0_rgba(0,0,0,0.22)] whitespace-nowrap"
+      className="group hidden min-h-11 items-center gap-1.5 px-4 py-2.5 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 shadow-[0_3px_0_rgba(0,0,0,0.22)] whitespace-nowrap sm:inline-flex sm:px-5"
       style={{
         borderTopLeftRadius: 12,
         borderTopRightRadius: 12,
