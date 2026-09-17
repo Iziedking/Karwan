@@ -147,22 +147,22 @@ export function ListingsBrowse() {
         <div className="market-hero border-b border-[var(--lp-border-light)] pb-6 pt-2 sm:pt-3">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.48fr)] lg:items-end">
             <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">Open market</p>
+              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.heroTag}</p>
               <h1 className="mt-2 max-w-[17ch] text-[clamp(2.8rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">
-                Find the next trade worth doing.
+                {copy.heroTitle}
               </h1>
               <p className="mt-5 max-w-[58ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">
-                Compare work requests, service offers, businesses, budgets, and trade history before you open a conversation.
+                {copy.heroDescription}
               </p>
             </div>
             <div className="market-pulse" aria-live="polite">
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--lp-text-sub)]"><span data-live="true" className={`size-2 rounded-full bg-[var(--lp-accent)] ${refreshing ? 'motion-safe:animate-pulse' : ''}`} />{refreshing && !loading ? copy.refreshing : 'Market current'}</span>
+                <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--lp-text-sub)]"><span data-live="true" className={`size-2 rounded-full bg-[var(--lp-accent)] ${refreshing ? 'motion-safe:animate-pulse' : ''}`} />{refreshing && !loading ? copy.refreshing : copy.marketCurrent}</span>
                 <span className="text-[12px] font-semibold text-[var(--lp-text-muted)]">{!loading ? resultCopy : ''}</span>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[12px] bg-[var(--lp-border-light)]">
-                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">Work requests</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'request').length}</p></div>
-                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">Service offers</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'offer').length}</p></div>
+                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">{copy.workRequests}</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'request').length}</p></div>
+                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">{copy.serviceOffers}</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'offer').length}</p></div>
               </div>
             </div>
           </div>

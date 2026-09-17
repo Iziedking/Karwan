@@ -827,7 +827,7 @@ function Band({
       data-panel={active ? 'active' : undefined}
       style={dark ? LANDING_DARK_VARS : undefined}
       className={cn(
-        'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden scroll-mt-24',
+    'landing-band relative w-bleed overflow-hidden scroll-mt-24',
         panel && 'lp-panel',
         panel === 'grow' && 'lp-panel-grow',
         dark

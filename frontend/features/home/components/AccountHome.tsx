@@ -16,14 +16,13 @@ import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 
 type AccountKind = 'person' | 'business';
 
-const FLOW_STEPS = ['Agreement', 'USDC secured', 'Delivery', 'Settlement'] as const;
-
 export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   profile: UserProfile;
   displayName?: string | null;
   accountKind?: AccountKind;
 }) {
   const translations = useTranslations();
+  const home = translations.accountHome;
   const { address } = useAuth();
   const { deals, fetchState } = useDirectDeals();
   const overview = useQuery({
@@ -43,16 +42,16 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
     return stage !== 'settled' && stage !== 'cancelled';
   });
   const currentDeal = activeDeals[0] ?? deals[0] ?? null;
-  const name = displayName?.trim() || profile.displayName?.trim() || 'your account';
+  const name = displayName?.trim() || profile.displayName?.trim() || translations.profile.hero.fallbackName;
   const firstName = name.split(/\s+/)[0] || name;
   const role = accountKind === 'business'
-    ? 'Business account'
+    ? home.roleBusiness
     : profile.role === 'both'
-      ? 'Buyer and seller'
+      ? home.roleBoth
       : profile.role === 'seller'
-        ? 'Seller account'
-        : 'Buyer account';
-  const featuredTradeLabel = activeDeals.length > 0 ? 'Current trade' : 'Latest trade';
+        ? home.roleSeller
+        : home.roleBuyer;
+  const featuredTradeLabel = activeDeals.length > 0 ? home.currentTrade : home.latestTrade;
 
   return (
     <div className="product-surface home-workbench mx-auto w-full max-w-[1180px] pb-12 sm:pb-16">
@@ -78,16 +77,16 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.54, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
           className="home-position"
-          aria-label="USDC balance"
+          aria-label={home.balanceLabel}
         >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">USDC balance</p>
+              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{home.balanceLabel}</p>
               <p className="mt-0.5 text-[12px] text-[var(--lp-text-muted)]">{role}</p>
             </div>
             <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--lp-text-sub)]">
               <span aria-hidden data-live="true" className={`size-2 rounded-full bg-[var(--lp-accent)] ${overview.isFetching ? 'motion-safe:animate-pulse' : ''}`} />
-              {overview.isFetching ? 'Updating' : 'Current'}
+              {overview.isFetching ? home.updating : home.current}
             </span>
           </div>
 
@@ -95,26 +94,26 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             <p className="text-[clamp(2.8rem,6vw,4.8rem)] font-semibold leading-none tabular-nums tracking-[-0.065em] text-[var(--lp-dark)]">
               {totalBalance == null ? '—' : totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <p className="mt-2 text-[14px] font-medium text-[var(--lp-text-sub)]">USDC available</p>
+            <p className="mt-2 text-[14px] font-medium text-[var(--lp-text-sub)]">{home.available}</p>
           </div>
 
           <div className="mt-9 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] bg-[var(--lp-border-light)]">
-            <PositionMetric label="Active trades" value={activeDeals.length} />
-            <PositionMetric label="Wallets" value={overview.data?.agents ? 3 : 1} />
+            <PositionMetric label={home.activeTrades} value={activeDeals.length} />
+            <PositionMetric label={home.wallets} value={overview.data?.agents ? 3 : 1} />
           </div>
 
           <div className="mt-auto flex items-center justify-between gap-3 pt-8">
             <div className="flex gap-1.5">
-              <QuickAction href="/bridge?direction=in">Add</QuickAction>
-              <QuickAction href="/bridge?direction=out&intent=move">Move</QuickAction>
-              <QuickAction href="/bridge?direction=out&intent=send">Send</QuickAction>
+              <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
+              <QuickAction href="/bridge?direction=out&intent=move">{home.move}</QuickAction>
+              <QuickAction href="/bridge?direction=out&intent=send">{home.send}</QuickAction>
             </div>
-            <Link href="/account" className="inline-flex min-h-11 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">Details →</Link>
+            <Link href="/account" className="inline-flex min-h-11 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{home.details} →</Link>
           </div>
         </motion.aside>
       </section>
 
-      <section data-guide="home-deals" className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]" aria-label="Trades">
+      <section data-guide="home-deals" className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]" aria-label={home.trades}>
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -123,12 +122,12 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{currentDeal ? featuredTradeLabel : 'Trades'}</p>
+              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{currentDeal ? featuredTradeLabel : home.trades}</p>
               <h2 className="mt-1 line-clamp-2 text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">
-                {currentDeal ? currentDeal.terms || 'Trade details' : 'No trades yet'}
+                {currentDeal ? currentDeal.terms || home.tradeDetails : home.noTrades}
               </h2>
             </div>
-            {currentDeal ? <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)]">Open →</Link> : null}
+            {currentDeal ? <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)]">{translations.profile.hub.open} →</Link> : null}
           </div>
 
           {currentDeal ? (
@@ -136,12 +135,16 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
               <p className="mt-5 truncate text-[14px] font-semibold text-[var(--lp-dark)]">
                 {formatUsdc(currentDeal.dealAmountUsdc, { withSuffix: true })} · {translations.dealStage.labels[stageOf(currentDeal)]}
               </p>
-              <DealFlow stage={stageOf(currentDeal)} />
+              <DealFlow
+                stage={stageOf(currentDeal)}
+                labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]}
+                progressLabel={home.dealProgress}
+              />
             </>
           ) : (
             <>
-              <DealFlow />
-              <p className="mt-5 max-w-[48ch] text-[13px] leading-6 text-[var(--lp-text-sub)]">Start in Discover or bring an existing agreement.</p>
+              <DealFlow labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]} progressLabel={home.dealProgress} />
+              <p className="mt-5 max-w-[48ch] text-[13px] leading-6 text-[var(--lp-text-sub)]">{home.noTradesHint}</p>
             </>
           )}
         </motion.div>
@@ -154,9 +157,9 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
         >
           <div className="flex items-end justify-between gap-4 px-1">
             <div>
-              <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">Recent trades</h2>
+              <h2 className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{home.recentTrades}</h2>
             </div>
-            <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">All activity →</Link>
+            <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{home.allActivity} →</Link>
           </div>
           <div className="mt-3"><TradeBook deals={deals} fetchState={fetchState} /></div>
         </motion.div>
@@ -176,17 +179,21 @@ function progressFor(stage?: DealStage): number {
   return 0;
 }
 
-function DealFlow({ stage }: { stage?: DealStage }) {
+function DealFlow({ stage, labels, progressLabel }: {
+  stage?: DealStage;
+  labels: readonly string[];
+  progressLabel: string;
+}) {
   const progress = progressFor(stage);
-  const flowScale = progress > 0 ? Math.min(progress, FLOW_STEPS.length - 1) / (FLOW_STEPS.length - 1) : 0;
+  const flowScale = progress > 0 ? Math.min(progress, labels.length - 1) / (labels.length - 1) : 0;
   return (
     <ol
       key={stage ?? 'not-started'}
       className="deal-flow mt-7"
-      aria-label="Deal progress"
+      aria-label={progressLabel}
       style={{ '--flow-scale': flowScale } as CSSProperties}
     >
-      {FLOW_STEPS.map((label, index) => {
+      {labels.map((label, index) => {
         const complete = progress > index;
         const active = progress === index;
         return (
@@ -218,9 +225,9 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
   const t = useTranslations();
   const { address } = useAuth();
   const me = address?.toLowerCase();
-  if (fetchState === 'loading' || fetchState === 'idle') return <div className="space-y-px overflow-hidden rounded-[16px] bg-[var(--lp-border-light)]" aria-label="Loading recent trades"><div className="h-20 animate-pulse bg-[var(--lp-card)] motion-reduce:animate-none" /><div className="h-20 animate-pulse bg-[var(--lp-card)] motion-reduce:animate-none" /></div>;
+  if (fetchState === 'loading' || fetchState === 'idle') return <div className="space-y-px overflow-hidden rounded-[16px] bg-[var(--lp-border-light)]" aria-label={t.accountHome.loadingRecent}><div className="h-20 animate-pulse bg-[var(--lp-card)] motion-reduce:animate-none" /><div className="h-20 animate-pulse bg-[var(--lp-card)] motion-reduce:animate-none" /></div>;
   if (fetchState === 'error') return <p className="rounded-[16px] bg-[var(--lp-card)] p-5 text-[14px] text-[var(--lp-text-sub)]">{t.dealsFeed.errorBody}</p>;
-  if (deals.length === 0) return <p className="border-s-2 border-[var(--lp-accent)] py-4 ps-4 text-[14px] leading-6 text-[var(--lp-text-sub)]">No trades yet. Start with an opportunity or bring an existing agreement.</p>;
+  if (deals.length === 0) return <p className="border-s-2 border-[var(--lp-accent)] py-4 ps-4 text-[14px] leading-6 text-[var(--lp-text-sub)]"><span className="block font-semibold text-[var(--lp-dark)]">{t.accountHome.noTrades}</span><span className="mt-1 block">{t.accountHome.noTradesHint}</span></p>;
   return (
     <ul className="trade-book overflow-hidden rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
       {deals.slice(0, 5).map((deal, index) => {
@@ -234,7 +241,7 @@ function TradeBook({ deals, fetchState }: { deals: ReturnType<typeof useDirectDe
             <Link href={`/deals/${deal.jobId}`} className="group grid min-h-[80px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors duration-200 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5">
               <span aria-hidden className="grid size-8 place-items-center rounded-full bg-[var(--lp-light)] text-[12px] font-bold tabular-nums text-[var(--lp-text-sub)]">{String(index + 1).padStart(2, '0')}</span>
               <span className="min-w-0"><span className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">{counterparty}</span><span className="mt-1 block truncate text-[12px] text-[var(--lp-text-sub)]">{t.dealStage.labels[stage]} · {date}{reference ? ` · ${reference}` : ''}</span></span>
-              <span className="text-end"><span className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: true })}</span><span className="mt-1 block text-[12px] text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5">Open →</span></span>
+              <span className="text-end"><span className="block whitespace-nowrap text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(deal.dealAmountUsdc, { withSuffix: true })}</span><span className="mt-1 block text-[12px] text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5">{t.profile.hub.open} →</span></span>
             </Link>
           </li>
         );

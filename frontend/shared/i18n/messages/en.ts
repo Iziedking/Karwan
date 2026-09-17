@@ -72,6 +72,7 @@ interface MessagesShape {
     help: string;
     back: string;
     backAria: string;
+    openApp: string;
   };
   settings: {
     eyebrow: string;
@@ -775,6 +776,30 @@ interface MessagesShape {
       stake: string;
       preferences: string;
     };
+    hub: {
+      personalAccount: string;
+      businessAccount: string;
+      actionNeeded: string;
+      workspaces: string;
+      switchContext: string;
+      account: string;
+      personalDetails: string;
+      accountSetup: string;
+      contactDetails: string;
+      moneyAndTrade: string;
+      usdcBalance: string;
+      wallets: string;
+      openDeals: string;
+      reviewNow: string;
+      open: string;
+      agentFunds: string;
+      activityReceipts: string;
+      reputation: string;
+      accountLabel: string;
+      email: string;
+      telegram: string;
+      x: string;
+    };
     hero: {
       sectionTag: string;
       fallbackName: string;
@@ -967,6 +992,36 @@ interface MessagesShape {
       live: string;
       now: string;
     };
+  };
+  accountHome: {
+    roleBusiness: string;
+    roleBoth: string;
+    roleSeller: string;
+    roleBuyer: string;
+    balanceLabel: string;
+    updating: string;
+    current: string;
+    available: string;
+    activeTrades: string;
+    wallets: string;
+    add: string;
+    move: string;
+    send: string;
+    details: string;
+    trades: string;
+    currentTrade: string;
+    latestTrade: string;
+    tradeDetails: string;
+    noTrades: string;
+    noTradesHint: string;
+    recentTrades: string;
+    allActivity: string;
+    loadingRecent: string;
+    dealProgress: string;
+    flowAgreement: string;
+    flowSecured: string;
+    flowDelivery: string;
+    flowSettlement: string;
   };
   businessHome: {
     deskEyebrow: string;
@@ -2309,6 +2364,11 @@ interface MessagesShape {
     heroHeadlinePart2Prefix: string;
     heroAccent: string;
     heroBody: string;
+    heroTitle: string;
+    heroDescription: string;
+    marketCurrent: string;
+    workRequests: string;
+    serviceOffers: string;
     filters: {
       all: string;
       offers: string;
@@ -5173,6 +5233,7 @@ export const en: MessagesShape = {
     help: 'Help and how it works',
     back: 'Back',
     backAria: 'Go back',
+    openApp: 'Open Karwan',
   },
   settings: {
     eyebrow: 'SETTINGS',
@@ -5908,6 +5969,30 @@ export const en: MessagesShape = {
       stake: 'STAKE',
       preferences: 'CONTACT',
     },
+    hub: {
+      personalAccount: 'Personal account',
+      businessAccount: 'Business account',
+      actionNeeded: 'Action needed',
+      workspaces: 'Workspaces',
+      switchContext: 'Switch context before creating or funding a trade.',
+      account: 'Account',
+      personalDetails: 'Personal details',
+      accountSetup: 'Account setup',
+      contactDetails: 'Contact details',
+      moneyAndTrade: 'Money and trade',
+      usdcBalance: 'USDC balance',
+      wallets: 'Wallets',
+      openDeals: 'Open deals',
+      reviewNow: 'Review now',
+      open: 'Open',
+      agentFunds: 'Agent funds',
+      activityReceipts: 'Activity and receipts',
+      reputation: 'Reputation',
+      accountLabel: 'Karwan account',
+      email: 'Email',
+      telegram: 'Telegram',
+      x: 'X',
+    },
     hero: {
       sectionTag: 'ACCOUNT',
       fallbackName: 'Your account',
@@ -6123,6 +6208,36 @@ export const en: MessagesShape = {
       live: 'live',
       now: 'now',
     },
+  },
+  accountHome: {
+    roleBusiness: 'Business account',
+    roleBoth: 'Buyer and seller',
+    roleSeller: 'Seller account',
+    roleBuyer: 'Buyer account',
+    balanceLabel: 'USDC balance',
+    updating: 'Updating',
+    current: 'Current',
+    available: 'USDC available',
+    activeTrades: 'Active trades',
+    wallets: 'Wallets',
+    add: 'Add',
+    move: 'Move',
+    send: 'Send',
+    details: 'Details',
+    trades: 'Trades',
+    currentTrade: 'Current trade',
+    latestTrade: 'Latest trade',
+    tradeDetails: 'Trade details',
+    noTrades: 'No trades yet',
+    noTradesHint: 'Start with an opportunity or bring an existing agreement.',
+    recentTrades: 'Recent trades',
+    allActivity: 'All activity',
+    loadingRecent: 'Loading recent trades',
+    dealProgress: 'Deal progress',
+    flowAgreement: 'Agreement',
+    flowSecured: 'USDC secured',
+    flowDelivery: 'Delivery',
+    flowSettlement: 'Settlement',
   },
   businessHome: {
     deskEyebrow: 'TRADE DESK',
@@ -7689,6 +7804,11 @@ export const en: MessagesShape = {
     heroHeadlinePart2Prefix: 'buyers, sellers, and ',
     heroAccent: 'trade',
     heroBody: 'Browse live requests, offers, and business profiles for goods and services. Search by what you want to buy, sell, source, or deliver.',
+    heroTitle: 'Find the next trade worth doing.',
+    heroDescription: 'Compare work requests, service offers, businesses, budgets, and trade history before you open a conversation.',
+    marketCurrent: 'Market current',
+    workRequests: 'Work requests',
+    serviceOffers: 'Service offers',
     filters: {
       all: 'All',
       offers: 'Offers',

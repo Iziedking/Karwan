@@ -33,15 +33,17 @@ export function ProfileAccountHub({
   hasAction,
 }: ProfileAccountHubProps) {
   const [imageFailed, setImageFailed] = useState(false);
-  const nav = useTranslations().nav;
-  const businessCopy = useTranslations().businessProfilePage;
+  const messages = useTranslations();
+  const nav = messages.nav;
+  const businessCopy = messages.businessProfilePage;
+  const hub = messages.profile.hub;
   const { isBusinessWorkspace, workspaces } = useWorkspaceContext();
   const business = isBusinessWorkspace;
   const hasBusinessWorkspace = workspaces.some((workspace) => workspace.kind === 'business');
   const displayName =
     (business ? profile.smeProfile?.companyName : profile.displayName)?.trim() ||
     profile.displayName?.trim() ||
-    'Your account';
+    messages.profile.hero.fallbackName;
   const contact = profile.xHandle
     ? `@${profile.xHandle.replace(/^@/, '')}`
     : profile.email || shortAddress(address);
@@ -67,10 +69,10 @@ export function ProfileAccountHub({
           </span>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--lp-text-sub)]">
-              <span>{business ? 'Business account' : 'Personal account'}</span>
+              <span>{business ? hub.businessAccount : hub.personalAccount}</span>
               {hasAction ? (
                 <span className="rounded-full bg-[var(--lp-workspace-soft)] px-2.5 py-1 text-[var(--lp-workspace-ink)]">
-                  Action needed
+                  {hub.actionNeeded}
                 </span>
               ) : null}
             </div>
@@ -83,16 +85,16 @@ export function ProfileAccountHub({
 
         <div className="mt-5 flex items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 sm:px-5">
           <div className="min-w-0">
-            <p className="text-[13px] font-bold text-[var(--lp-dark)]">Workspaces</p>
-            <p className="mt-0.5 text-[12px] text-[var(--lp-text-sub)]">Switch context before creating or funding a trade.</p>
+            <p className="text-[13px] font-bold text-[var(--lp-dark)]">{hub.workspaces}</p>
+            <p className="mt-0.5 text-[12px] text-[var(--lp-text-sub)]">{hub.switchContext}</p>
           </div>
           <WorkspaceSwitcher />
         </div>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
-          <HubSection title="Account" variant="open">
+          <HubSection title={hub.account} variant="open">
             <HubRow
-              label="Personal details"
+              label={hub.personalDetails}
               href="/profile/edit"
             />
             <HubRow
@@ -101,11 +103,11 @@ export function ProfileAccountHub({
               href="/profile/business"
             />
             <HubRow
-              label="Account setup"
+              label={hub.accountSetup}
               href="/profile/setup"
             />
             <HubRow
-              label="Contact details"
+              label={hub.contactDetails}
               href="/profile/contact"
             />
             <HubRow
@@ -118,32 +120,32 @@ export function ProfileAccountHub({
             />
           </HubSection>
 
-          <HubSection title="Money and trade">
+          <HubSection title={hub.moneyAndTrade}>
             <HubRow
-              label="USDC balance"
+              label={hub.usdcBalance}
               href="/account"
             />
             <HubRow
-              label="Wallets"
+              label={hub.wallets}
               href="/profile/wallets"
             />
             <HubRow
-              label="Open deals"
-              note={hasAction ? 'Review now' : hasOpenDeals ? 'Open' : undefined}
+              label={hub.openDeals}
+              note={hasAction ? hub.reviewNow : hasOpenDeals ? hub.open : undefined}
               href="/profile/open-deals"
             />
             <HubRow
-              label="Agent funds"
+              label={hub.agentFunds}
               href="/profile/agent-funds"
             />
-            <HubRow label="Activity and receipts" href="/activity" />
-            <HubRow label="Reputation" href="/stake" />
+            <HubRow label={hub.activityReceipts} href="/activity" />
+            <HubRow label={hub.reputation} href="/stake" />
           </HubSection>
         </div>
 
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
           <p className="text-[12px] text-[var(--lp-text-muted)]">
-            Karwan account {shortAddress(address)}
+            {hub.accountLabel} {shortAddress(address)}
           </p>
           <div className="ms-auto"><ProfileSignOut /></div>
         </footer>

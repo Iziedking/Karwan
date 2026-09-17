@@ -18,6 +18,7 @@ import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { ArcLaunchCountdown } from './ArcLaunchCountdown';
+import { LanguagePicker } from './LanguagePicker';
 
 const LANDING_NAV_VARS = {
   '--color-surface': '#0e0e0e',
@@ -172,7 +173,10 @@ export function TopNav() {
               )}
             </>
           ) : (
-            <LaunchAppCTA />
+            <>
+              <LanguagePicker />
+              <LaunchAppCTA />
+            </>
           )}
         </div>
       </div>
@@ -583,6 +587,7 @@ function SettingsIconLink({ active }: { active: boolean }) {
 }
 
 function LaunchAppCTA() {
+  const label = useTranslations().nav.openApp;
   return (
     <Link
       href="/app"
@@ -594,7 +599,7 @@ function LaunchAppCTA() {
         borderBottomRightRadius: 3,
       }}
     >
-      Open Karwan
+      {label}
       <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
         →
       </span>

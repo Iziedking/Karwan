@@ -310,7 +310,7 @@ function ProfilePageInner() {
                       const next = Math.round(event.currentTarget.scrollLeft / slideWidth);
                       setActiveAgentSlide(Math.max(0, Math.min(1, next)));
                     }}
-                    aria-label="Agent profiles"
+                    aria-label={t.agentProfiles.tag}
                   >
                     {profile.buyer && (
                       <div className="min-w-full snap-start">
@@ -366,13 +366,13 @@ function ProfilePageInner() {
                     )}
                   </div>
                   {profile.buyer && profile.seller && (
-                    <div className="mt-3 flex items-center justify-center gap-1" aria-label="Agent profile position">
+                    <div className="mt-3 flex items-center justify-center gap-1" aria-label={t.agentProfiles.tag}>
                       {[t.agentProfiles.buyerFallback, t.agentProfiles.sellerFallback].map((label, index) => (
                         <button
                           key={label}
                           type="button"
                           className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-                          aria-label={`Show ${label.toLowerCase()} profile`}
+                          aria-label={label}
                           aria-current={activeAgentSlide === index ? 'true' : undefined}
                           onClick={() => {
                             const carousel = agentCarouselRef.current;
@@ -546,13 +546,13 @@ function ProfilePageInner() {
             className="overflow-hidden border-y border-[var(--lp-border-light)]"
             data-guide="profile-preferences"
           >
-            <ContactRow label="Email">
+            <ContactRow label={messages.profile.hub.email}>
               {address && <ProfileEmailButton address={address} tone="light" />}
             </ContactRow>
-            <ContactRow label="Telegram">
+            <ContactRow label={messages.profile.hub.telegram}>
               <TelegramConnectButton address={address ?? undefined} tone="light" />
             </ContactRow>
-            <ContactRow label="X">
+            <ContactRow label={messages.profile.hub.x}>
               <ConnectXButton tone="light" />
             </ContactRow>
           </div>

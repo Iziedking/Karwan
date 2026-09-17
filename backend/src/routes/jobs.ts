@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import {
   encodeAbiParameters,
   formatUnits,
@@ -7,7 +8,6 @@ import {
   toBytes,
   type Address,
 } from 'viem';
-import { z } from 'zod';
 import {
   jobBoard,
   readPostedJobId,

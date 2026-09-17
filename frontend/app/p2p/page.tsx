@@ -12,7 +12,7 @@ export default function P2PHubPage() {
   return (
     <AuthGuard gateTag={copy.title} gateBody={copy.body}>
       <AccountGate kind="person">
-        <section className="product-surface w-full py-6 sm:py-10" aria-labelledby="trade-desk-heading">
+        <section className="product-surface w-full px-5 py-6 sm:px-8 sm:py-10 lg:px-12" aria-labelledby="trade-desk-heading">
           <TradeDesk />
         </section>
       </AccountGate>
