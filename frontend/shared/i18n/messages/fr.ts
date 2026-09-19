@@ -3573,6 +3573,7 @@ export const fr: Messages = {
       approvalFailed: 'Karwan n’a pas pu enregistrer l’accord du vendeur. Réessayez.',
       fundingFailed: 'Karwan n’a pas pu confirmer l’activation du séquestre. Le deal n’est pas marqué actif. Réessayer est sûr car Karwan vérifie le séquestre existant avant tout nouveau transfert.',
       quoteChanged: 'Les frais ont changé avant la confirmation. Vérifiez le nouveau total avant de réessayer.',
+      agreementChanged: 'Le vendeur a modifié les conditions. Relisez l’accord mis à jour avant de financer.',
     },
   },
   walletsPanel: {

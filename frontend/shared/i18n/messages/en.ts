@@ -3343,6 +3343,7 @@ interface MessagesShape {
       approvalFailed: string;
       fundingFailed: string;
       quoteChanged: string;
+      agreementChanged: string;
     };
   };
   walletsPanel: {
@@ -8815,6 +8816,7 @@ export const en: MessagesShape = {
       approvalFailed: 'Karwan could not record the seller agreement. Try again.',
       fundingFailed: 'Karwan could not confirm escrow activation. The deal was not marked active. Retry is safe because Karwan checks the existing escrow before any new transfer.',
       quoteChanged: 'The fee changed before confirmation. Review the refreshed total before trying again.',
+      agreementChanged: 'The seller changed the terms. Review the updated agreement before funding.',
     },
   },
   walletsPanel: {

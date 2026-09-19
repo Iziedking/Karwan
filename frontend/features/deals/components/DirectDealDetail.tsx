@@ -620,11 +620,16 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     setBusy(true);
     setErrorInfo(null);
     try {
+      if (deal?.agreementVersion == null || !deal.agreementDigest) {
+        throw new Error('The current agreement could not be verified. Refresh the deal and try again.');
+      }
       await api.fundDirectDeal(jobId, {
         caller: address,
         expectedFeeBps: fundingQuote.feeBps,
         maxFundedAmountUsdc: fundingQuote.fundedAmountUsdc,
         quoteFingerprint: fundingQuote.quoteFingerprint,
+        expectedAgreementVersion: deal.agreementVersion,
+        expectedAgreementDigest: deal.agreementDigest,
       });
       sfx.send();
       setShowFundingConsent(false);
@@ -635,6 +640,9 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       if (code === 'QUOTE_CHANGED') {
         setErrorInfo({ code, message: dd.errors.quoteChanged });
         await reloadFundingQuote();
+      } else if (code === 'AGREEMENT_CHANGED') {
+        setErrorInfo({ code, message: dd.errors.agreementChanged });
+        await refresh();
       } else {
         // Keep what the server said. It knows things this page cannot: which of
         // acceptEscrow's three revert paths was taken, and how much stake the

@@ -3573,6 +3573,7 @@ export const sw: Messages = {
       approvalFailed: 'Karwan haikuweza kurekodi makubaliano ya muuzaji. Jaribu tena.',
       fundingFailed: 'Karwan haikuweza kuthibitisha kuanzishwa kwa escrow. Biashara haijawekwa hai. Kujaribu tena ni salama kwa sababu Karwan hukagua escrow iliyopo kabla ya uhamisho mpya.',
       quoteChanged: 'Ada ilibadilika kabla ya uthibitisho. Kagua jumla mpya kabla ya kujaribu tena.',
+      agreementChanged: 'Muuzaji amebadilisha masharti. Kagua makubaliano mapya kabla ya kufadhili.',
     },
   },
   walletsPanel: {

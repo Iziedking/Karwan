@@ -380,6 +380,8 @@ const fundSchema = z.object({
     .string()
     .regex(/^\d+(?:\.\d{1,6})?$/, 'expected a positive USDC amount with at most 6 decimals'),
   quoteFingerprint: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  expectedAgreementVersion: z.number().int().positive(),
+  expectedAgreementDigest: z.string().regex(/^[a-fA-F0-9]{64}$/),
 });
 const deliveredSchema = z.object({
   caller: addrSchema,
@@ -1156,7 +1158,8 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
   }
   const deal = await getDeal(invite.jobId);
   if (!deal) return c.json({ error: 'underlying deal vanished' }, 404);
-  if (session.address.toLowerCase() === deal.buyer) {
+  const inviter = invite.role === 'seller' ? deal.buyer : deal.seller;
+  if (session.address.toLowerCase() === inviter.toLowerCase()) {
     return c.json({ error: 'inviter cannot also be the counterparty' }, 409);
   }
   const pendingAddress = invite.role === 'seller' ? deal.seller : deal.buyer;
@@ -1643,10 +1646,13 @@ dealsRoutes.get('/direct/:jobId/high-signal', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  const caller = c.req.query('caller');
-  const parsedCaller = caller ? addrSchema.safeParse(caller) : null;
-  const callerRole = parsedCaller?.success ? dealPartyRole(deal, parsedCaller.data) : null;
-  if (caller && !callerRole) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  // Party-private like the deal itself: identity is the signed session, never
+  // the `caller` hint, which anyone can set to either party's address.
+  const viewer = viewerAddress(c);
+  const callerRole = viewer ? dealPartyRole(deal, viewer) : null;
+  if (!callerRole) {
+    return c.json({ error: 'This deal is private to its buyer and seller.', code: 'private' }, 403);
+  }
   return c.json({
     ...highSignalPublicState(deal, callerRole),
     world: {
@@ -1962,8 +1968,26 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
         409,
       );
     }
-    const milestonePcts = dealMilestonePcts(deal);
-    const dealAmountWei = parseUnits(deal.dealAmountUsdc, USDC_DECIMALS);
+    // The seller's approval is bound to a digest, and so is the buyer's. A
+    // counter that keeps the amount but moves the split, the evidence check or
+    // the deadlines leaves the quote untouched, so the quote alone cannot prove
+    // the buyer saw these terms.
+    if (
+      body.expectedAgreementVersion !== latestAgreementVersion
+      || body.expectedAgreementDigest !== latestAgreementDigest
+    ) {
+      return c.json(
+        {
+          error: 'the terms changed since you reviewed them; review again before funding',
+          code: 'AGREEMENT_CHANGED',
+          agreementVersion: latestAgreementVersion,
+          agreementDigest: latestAgreementDigest,
+        },
+        409,
+      );
+    }
+    const milestonePcts = dealMilestonePcts(latestDeal);
+    const dealAmountWei = parseUnits(latestDeal.dealAmountUsdc, USDC_DECIMALS);
     const operationKey = fundingMovementKey(jobId);
     const existingMovement = await getMoneyMovementByOperationKey(operationKey);
     movementReference = existingMovement?.reference;
@@ -2135,7 +2159,7 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     const { fundedAmount } = computeFunding(dealAmountWei, feeBps);
     const currentQuote = buildDirectDealFundingQuote({
       jobId,
-      dealAmountUsdc: deal.dealAmountUsdc,
+      dealAmountUsdc: latestDeal.dealAmountUsdc,
       feeBps,
     });
     if (!fundingAuthorizationMatches(currentQuote, body)) {
@@ -3029,6 +3053,9 @@ dealsRoutes.post('/direct/:jobId/arrived', async (c) => {
     body = callerSchema.parse(await c.req.json());
   } catch (e) {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'unknown deal' }, 404);

@@ -3491,6 +3491,8 @@ export const api = {
       expectedFeeBps: number;
       maxFundedAmountUsdc: string;
       quoteFingerprint: string;
+      expectedAgreementVersion: number;
+      expectedAgreementDigest: string;
     },
   ) =>
     json<{
