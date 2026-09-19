@@ -17,7 +17,6 @@ import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
-import { ArcLaunchCountdown } from './ArcLaunchCountdown';
 import { LanguagePicker } from './LanguagePicker';
 
 const LANDING_NAV_VARS = {
@@ -123,8 +122,6 @@ export function TopNav() {
             </span>
           </Link>
         </div>
-
-        <ArcLaunchCountdown />
 
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
