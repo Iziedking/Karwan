@@ -1,4 +1,5 @@
-import { keccak256, recoverTypedDataAddress, toBytes, type Address, type Hex } from 'viem';
+import { randomBytes } from 'node:crypto';
+import { recoverTypedDataAddress, type Address, type Hex } from 'viem';
 import { executeContractCall } from './txs.js';
 import { config } from '../config.js';
 import { dcwEvmSigner } from '../x402/dcwSigner.js';
@@ -180,7 +181,9 @@ export async function signTransferAuthorizationWithCircle(
   // block.timestamp > validAfter, so `now` would fail in the same second.
   const validAfter = String(now - 1);
   const validBefore = String(now + validForSeconds);
-  const nonce = keccak256(toBytes(`${from}:${to}:${valueAtomic}:${now}:${Math.random()}`));
+  // A reused nonce makes the second authorization revert, so it comes from the
+  // CSPRNG rather than Math.random.
+  const nonce = `0x${randomBytes(32).toString('hex')}` as Hex;
 
   const signature = await dcwEvmSigner(walletId, from as Address).signTypedData({
     domain: usdcDomain(),

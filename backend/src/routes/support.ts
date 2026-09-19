@@ -167,7 +167,11 @@ supportRoutes.post('/inbound/:secret', async (c) => {
   if (!email || !text) return c.json({ error: 'missing from/text' }, 400);
 
   const tagged = subject.match(/(KSUP-[0-9a-f]+)/i);
-  if (tagged) {
+  // A ticket id in the subject is not proof of who is writing. Thread only mail
+  // from the ticket's own address; anyone else who quotes the id gets a fresh
+  // ticket instead of speaking as the customer in the operator's thread.
+  const taggedOwner = tagged ? getConversation(tagged[1]!)?.email?.toLowerCase() : undefined;
+  if (tagged && taggedOwner === email) {
     const existing = appendUserMessage(tagged[1]!, text);
     if (existing) {
       try {
