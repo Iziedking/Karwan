@@ -38,21 +38,17 @@ if (testFiles.length === 0) {
   process.exit(1);
 }
 
-const tsxBin = path.resolve(
-  cwd,
-  "..",
-  "node_modules",
-  ".bin",
-  process.platform === "win32" ? "tsx.cmd" : "tsx",
-);
-const args = ["--test"];
+// Run tsx's CLI through node directly. Going through tsx.cmd needs a shell on
+// Windows, and cmd.exe caps a command line near 8K characters, which the full
+// test file list passed long ago.
+const tsxCli = path.resolve(cwd, "..", "node_modules", "tsx", "dist", "cli.mjs");
+const args = [tsxCli, "--test"];
 if (concurrencyArg) args.push("--test-concurrency", concurrencyArg.slice("--concurrency=".length));
 args.push(...testFiles);
 
-const result = spawnSync(tsxBin, args, {
+const result = spawnSync(process.execPath, args, {
   cwd,
   stdio: "inherit",
-  shell: process.platform === "win32",
 });
 if (result.error) {
   console.error(result.error.message);
