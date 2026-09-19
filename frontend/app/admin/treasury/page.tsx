@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { formatUnits, isAddress, parseUnits } from 'viem';
+import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
 import {
   ARC_CHAIN_ID,
   ARC_EXPLORER_TX,
@@ -81,6 +82,17 @@ type ActionLog = {
   message: string;
   error?: string;
 };
+
+const REVERTED = 'The transaction reverted on chain. Nothing moved.';
+
+/// A wait that ran out of time is not a failed transaction. Saying "failed" here
+/// invites a second send of money that may already have moved.
+function failureNote(err: unknown): string {
+  if (isConfirmationPending(err)) {
+    return 'Submitted but not confirmed yet. Check the transaction on the explorer before sending again.';
+  }
+  return (err as Error).message;
+}
 
 function short(addr: string | null | undefined): string {
   if (!addr) return '-';
@@ -414,12 +426,12 @@ function PayoutForm({
         account: address,
       });
       setLog((prev) => (prev ? { ...prev, status: 'pending', txHash: hash } : prev));
-      await arcClient.waitForTransactionReceipt({ hash });
+      await requireConfirmedTx(arcClient, hash, REVERTED);
       setLog((prev) => (prev ? { ...prev, status: 'done' } : prev));
       setAmount('');
       onTx();
     } catch (err) {
-      setLog((prev) => (prev ? { ...prev, status: 'failed', error: (err as Error).message } : prev));
+      setLog((prev) => (prev ? { ...prev, status: isConfirmationPending(err) ? 'pending' : 'failed', error: failureNote(err) } : prev));
     } finally {
       setBusy(false);
     }
@@ -531,7 +543,7 @@ function DrainControl({
         account: address,
       });
       patchStep(step1.id, { txHash: payoutHash });
-      await arcClient.waitForTransactionReceipt({ hash: payoutHash });
+      await requireConfirmedTx(arcClient, payoutHash, REVERTED);
       patchStep(step1.id, { status: 'done' });
 
       const v3Addr = entitled.address as `0x${string}`;
@@ -553,7 +565,7 @@ function DrainControl({
           account: address,
         });
         patchStep(step2.id, { txHash: approveHash });
-        await arcClient.waitForTransactionReceipt({ hash: approveHash });
+        await requireConfirmedTx(arcClient, approveHash, REVERTED);
         patchStep(step2.id, { status: 'done' });
       }
 
@@ -568,7 +580,7 @@ function DrainControl({
         account: address,
       });
       patchStep(step3.id, { txHash: depositHash });
-      await arcClient.waitForTransactionReceipt({ hash: depositHash });
+      await requireConfirmedTx(arcClient, depositHash, REVERTED);
       patchStep(step3.id, { status: 'done' });
 
       setAmount('');
@@ -578,7 +590,7 @@ function DrainControl({
         const last = prev[prev.length - 1];
         if (!last || last.status !== 'pending') return prev;
         return prev.map((s) =>
-          s.id === last.id ? { ...s, status: 'failed', error: (err as Error).message } : s,
+          s.id === last.id ? { ...s, status: isConfirmationPending(err) ? 'pending' : 'failed', error: failureNote(err) } : s,
         );
       });
     } finally {

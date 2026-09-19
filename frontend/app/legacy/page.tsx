@@ -25,6 +25,7 @@ import { formatUsdc } from '@/shared/utils/format';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { chainErrorMessage } from '@/shared/utils/chainError';
+import { requireConfirmedTx } from '@/shared/chain/confirmTx';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
@@ -354,8 +355,8 @@ function LegacyStakeCard({
             chain: walletClient.chain,
             account: address as `0x${string}`,
           });
-          await arcClient.waitForTransactionReceipt({ hash });
           setLastTx(hash);
+          await requireConfirmedTx(arcClient, hash, errCopy.reverted);
           // The wallet has confirmed it. Refresh now rather than waiting for
           // the backend to observe an event this browser already saw.
           refreshMoney();
@@ -396,8 +397,8 @@ function LegacyStakeCard({
           chain: walletClient.chain,
           account: address as `0x${string}`,
         });
-        await arcClient.waitForTransactionReceipt({ hash });
         setLastTx(hash);
+        await requireConfirmedTx(arcClient, hash, errCopy.reverted);
         refreshMoney();
       }
       await refetch();
