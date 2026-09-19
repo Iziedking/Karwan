@@ -6,16 +6,10 @@ import type {
 } from '@simplewebauthn/browser';
 import { credentialsForApiRequest } from './adminTransport';
 
-// A deployed frontend must never try to read the API from the user's own
-// computer. Keep localhost as the development default, but use the public
-// API when a production build was created without an explicit env value.
+// next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
+// so localhost here only ever serves development and tests.
 const configuredBase = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
-const BASE = (
-  configuredBase ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://api.karwan.site'
-    : 'http://localhost:8787')
-).replace(/\/+$/, '');
+const BASE = (configuredBase || 'http://localhost:8787').replace(/\/+$/, '');
 
 // The signed-in user's address, mirrored here by the auth layer. Web3 users have
 // no backend session cookie, so private reads pass this as a `caller` hint and
