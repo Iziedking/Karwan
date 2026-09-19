@@ -72,6 +72,12 @@ export const sw: Messages = {
     back: 'Rudi',
     backAria: 'Rudi nyuma',
     openApp: 'Fungua Karwan',
+
+    networkLabel: 'Mtandao wa Karwan',
+
+    networkName: 'ARC TESTNET',
+
+    networkAria: 'Karwan inaendeshwa kwenye Arc Testnet. Fungua kichunguzi cha mtandao.',
   },
   settings: {
     eyebrow: 'MAPENDELEO',
@@ -3193,6 +3199,10 @@ export const sw: Messages = {
     evidenceReceipt: {
       resultLabel: "Matokeo",
       execution: {
+        "manual": {
+          "label": "Imekaguliwa na mnunuzi",
+          "body": "Ukaguzi wa kiotomatiki haukujibu, kwa hiyo mnunuzi alikagua uwasilishaji huu mwenyewe."
+        },
   "awaitingDelivery": {
     "label": "Inasubiri uwasilishaji",
     "body": "Muuzaji lazima aweke kazi kuwa imewasilishwa kabla ya kuomba ukaguzi."

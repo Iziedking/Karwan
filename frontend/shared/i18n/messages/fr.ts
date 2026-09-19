@@ -72,6 +72,12 @@ export const fr: Messages = {
     back: 'Retour',
     backAria: 'Revenir en arrière',
     openApp: 'Ouvrir Karwan',
+
+    networkLabel: 'Réseau Karwan',
+
+    networkName: 'ARC TESTNET',
+
+    networkAria: 'Karwan fonctionne sur Arc Testnet. Ouvrir l’explorateur du réseau.',
   },
   settings: {
     eyebrow: 'PARAMÈTRES',
@@ -3193,6 +3199,10 @@ export const fr: Messages = {
     evidenceReceipt: {
       resultLabel: "Résultat",
       execution: {
+        "manual": {
+          "label": "Examiné par l’acheteur",
+          "body": "La vérification automatique n’a pas répondu, l’acheteur a donc examiné cette livraison lui-même."
+        },
   "awaitingDelivery": {
     "label": "En attente de livraison",
     "body": "Le vendeur doit marquer le travail comme livré avant de demander une vérification."

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   ARC_MAINNET_LAUNCH_AT,
   formatArcCountdownUnit,
@@ -11,6 +12,10 @@ import {
 
 const ARC_MAINNET_EVENT_URL =
   'https://community.arc.io/home/events/arc-mainnet-launch-livestream';
+const ARC_TESTNET_EXPLORER_URL = 'https://testnet.arcscan.app';
+
+const PILL_CLASS =
+  'group relative inline-flex min-h-12 min-w-[142px] max-w-[152px] items-center gap-2 overflow-hidden rounded-[15px] border border-[var(--color-line)] bg-[color-mix(in_oklab,var(--color-surface-2)_42%,transparent)] px-2.5 py-1.5 text-[var(--color-ink)] transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)] sm:min-w-[252px] sm:max-w-[min(320px,36vw)] sm:gap-2.5 sm:rounded-full sm:px-3';
 
 type CountdownUnitProps = {
   label: string;
@@ -19,6 +24,7 @@ type CountdownUnitProps = {
 };
 
 export function ArcLaunchCountdown() {
+  const nav = useTranslations().nav;
   const reduceMotion = useReducedMotion();
   const [countdown, setCountdown] = useState<ArcCountdownParts | null>(null);
 
@@ -31,13 +37,43 @@ export function ArcLaunchCountdown() {
 
   const live = countdown?.totalMs === 0;
 
+  // Once Arc's launch has happened, "Arc Mainnet · LIVE NOW" beside the Karwan
+  // logo reads as a claim about Karwan. Karwan still settles on Arc Testnet, so
+  // the pill says that instead of a network the product does not run on.
+  if (live) {
+    return (
+      <a
+        href={ARC_TESTNET_EXPLORER_URL}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={nav.networkAria}
+        className={PILL_CLASS}
+      >
+        <span className="relative grid size-7 shrink-0 place-items-center" aria-hidden>
+          <span className="relative size-1.5 rounded-full bg-[var(--color-ink-dim)]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[9px] font-semibold tracking-[0.04em] text-[var(--color-ink-dim)] sm:text-[10px]">
+            {nav.networkLabel}
+          </span>
+          <span className="mono mt-0.5 block text-[10px] font-bold tracking-[0.08em] sm:text-[11px]">
+            {nav.networkName}
+          </span>
+        </span>
+        <span className="shrink-0 text-[15px] text-[var(--color-ink-dim)] transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden>
+          ↗
+        </span>
+      </a>
+    );
+  }
+
   return (
     <a
       href={ARC_MAINNET_EVENT_URL}
       target="_blank"
       rel="noreferrer"
       aria-label="Open the Arc Mainnet launch livestream event"
-      className="group relative inline-flex min-h-12 min-w-[142px] max-w-[152px] items-center gap-2 overflow-hidden rounded-[15px] border border-[var(--color-line)] bg-[color-mix(in_oklab,var(--color-surface-2)_42%,transparent)] px-2.5 py-1.5 text-[var(--color-ink)] transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-workspace-band)] sm:min-w-[252px] sm:max-w-[min(320px,36vw)] sm:gap-2.5 sm:rounded-full sm:px-3"
+      className={PILL_CLASS}
     >
       <span className="relative grid size-7 shrink-0 place-items-center" aria-hidden>
         <span className="absolute inset-0 rounded-full border border-[color-mix(in_oklab,var(--lp-accent)_34%,transparent)] motion-safe:animate-[arc-countdown-pulse_2.4s_ease-out_infinite] motion-reduce:animate-none" />

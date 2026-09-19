@@ -15,6 +15,15 @@ test('execution progress never invents a chain verdict', () => {
   assert.equal(creVerificationState({ ...deal, creVerification: { state: 'checking' }, evidenceReceipt: { state: 'stale-delivery', agreementVersion: 1 } }), 'unavailable');
 });
 
+test('a buyer who took over the review reads as reviewed, unless the check actually answered', () => {
+  const reviewed = { ...deal, evidenceManualReviewActive: true };
+  assert.equal(creVerificationState(reviewed), 'manual');
+  assert.equal(creVerificationState({ ...reviewed, creVerification: { state: 'checking' } }), 'manual');
+  assert.equal(creVerificationState({ ...reviewed, evidenceReceipt: { state: 'pass', agreementVersion: 1 } }), 'pass');
+  assert.equal(creVerificationState({ ...reviewed, evidenceReceipt: { state: 'mismatch', agreementVersion: 1 } }), 'mismatch');
+  assert.equal(creVerificationPollInterval(reviewed), false);
+});
+
 test('polls open CRE deliveries, stopping for ordinary, closed and verified outcomes', () => {
   assert.equal(creVerificationPollInterval(deal), 5000);
   assert.equal(creVerificationPollInterval({ ...deal, creVerification: { state: 'checking' } }), 5000);

@@ -72,6 +72,12 @@ export const ar: Messages = {
     back: 'رجوع',
     backAria: 'العودة للخلف',
     openApp: 'افتح Karwan',
+
+    networkLabel: 'شبكة Karwan',
+
+    networkName: 'ARC TESTNET',
+
+    networkAria: 'يعمل Karwan على شبكة Arc التجريبية. افتح مستكشف الشبكة.',
   },
   settings: {
     eyebrow: 'الإعدادات',
@@ -3193,6 +3199,10 @@ export const ar: Messages = {
     evidenceReceipt: {
       resultLabel: "النتيجة",
       execution: {
+        "manual": {
+          "label": "راجعه المشتري",
+          "body": "لم يستجب الفحص التلقائي، فراجع المشتري هذا التسليم بنفسه."
+        },
   "awaitingDelivery": {
     "label": "بانتظار التسليم",
     "body": "يجب أن يحدد البائع العمل على أنه تم تسليمه قبل طلب التحقق."

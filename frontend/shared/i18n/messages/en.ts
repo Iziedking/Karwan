@@ -73,6 +73,12 @@ interface MessagesShape {
     back: string;
     backAria: string;
     openApp: string;
+
+    networkLabel: string;
+
+    networkName: string;
+
+    networkAria: string;
   };
   settings: {
     eyebrow: string;
@@ -2963,7 +2969,7 @@ interface MessagesShape {
     };
     evidenceReceipt: {
       resultLabel: string;
-      execution: { awaitingDelivery: { label: string; body: string }; awaitingRequest: { label: string; body: string }; queued: { label: string; body: string }; checking: { label: string; body: string }; confirming: { label: string; body: string }; pass: { label: string; body: string }; mismatch: { label: string; body: string }; unavailable: { label: string; body: string }; };
+      execution: { awaitingDelivery: { label: string; body: string }; awaitingRequest: { label: string; body: string }; queued: { label: string; body: string }; checking: { label: string; body: string }; confirming: { label: string; body: string }; pass: { label: string; body: string }; mismatch: { label: string; body: string }; unavailable: { label: string; body: string }; manual: { label: string; body: string }; };
       label: string;
       states: {
         pass: string;
@@ -5246,6 +5252,12 @@ export const en: MessagesShape = {
     back: 'Back',
     backAria: 'Go back',
     openApp: 'Open Karwan',
+
+    networkLabel: 'Karwan network',
+
+    networkName: 'ARC TESTNET',
+
+    networkAria: 'Karwan runs on Arc Testnet. Open the network explorer.',
   },
   settings: {
     eyebrow: 'SETTINGS',
@@ -8416,6 +8428,10 @@ export const en: MessagesShape = {
     evidenceReceipt: {
       resultLabel: "Result",
       execution: {
+        "manual": {
+          "label": "Reviewed by buyer",
+          "body": "The automatic check did not answer, so the buyer reviewed this delivery themselves."
+        },
   "awaitingDelivery": {
     "label": "Awaiting delivery",
     "body": "The seller must mark the work delivered before a check can be requested."

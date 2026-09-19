@@ -72,6 +72,12 @@ export const hi: Messages = {
     back: 'वापस',
     backAria: 'वापस जाएं',
     openApp: 'Karwan खोलें',
+
+    networkLabel: 'Karwan नेटवर्क',
+
+    networkName: 'ARC TESTNET',
+
+    networkAria: 'Karwan, Arc Testnet पर चलता है। नेटवर्क एक्सप्लोरर खोलें।',
   },
   settings: {
     eyebrow: 'सेटिंग्स',
@@ -3193,6 +3199,10 @@ export const hi: Messages = {
     evidenceReceipt: {
       resultLabel: "परिणाम",
       execution: {
+        "manual": {
+          "label": "खरीदार ने जाँचा",
+          "body": "स्वचालित जाँच ने जवाब नहीं दिया, इसलिए खरीदार ने यह डिलीवरी खुद जाँची।"
+        },
   "awaitingDelivery": {
     "label": "डिलीवरी की प्रतीक्षा",
     "body": "जाँच का अनुरोध करने से पहले विक्रेता को काम डिलीवर किया हुआ चिह्नित करना होगा।"

@@ -4132,7 +4132,7 @@ function EvidenceReceiptCard({
   const body = progress === 'unavailable' && receipt.state !== 'not-recorded'
     ? copy[evidenceReceiptBodyKey(receipt.state)]
     : copy.execution[progress].body;
-  const finalResult = progress === 'pass' || progress === 'mismatch' || progress === 'unavailable';
+  const finalResult = progress === 'pass' || progress === 'mismatch' || progress === 'unavailable' || progress === 'manual';
   const steps = ['queued', 'checking', finalResult ? progress : 'result'] as const;
   const border = tone === 'positive'
     ? 'rgba(79, 138, 63, 0.35)'
