@@ -1,7 +1,7 @@
 ﻿'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { api, type DirectDeal } from '@/core/api';
+import { api, type PublicFeedDeal } from '@/core/api';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
 import { BracketTag, type BracketTagVariant } from '@/shared/components/skill';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -23,7 +23,7 @@ interface TickerCard {
 /// style sliding track. The aim is "trades are happening", not action. cards
 /// don't link anywhere. Pauses on hover so a passing eye can read a card.
 export function NetworkTicker() {
-  const [deals, setDeals] = useState<DirectDeal[] | null>(null);
+  const [deals, setDeals] = useState<PublicFeedDeal[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;

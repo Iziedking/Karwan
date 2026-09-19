@@ -85,6 +85,7 @@ import { verificationRoutes } from './routes/verification.js';
 import { partnersRoutes } from './routes/partners.js';
 import { x402Routes } from './routes/x402.js';
 import { feedbackRoutes } from './routes/feedback.js';
+import { clientErrorRoutes } from './routes/clientErrors.js';
 import { circleWebhookRoutes } from './routes/circle-webhook.js';
 import { moneyRoutes } from './routes/money.js';
 import {
@@ -428,6 +429,7 @@ app.route('/api/partners', partnersRoutes);
 app.route('/api/admin/business', businessAdminRoutes);
 app.route('/api/x402', x402Routes);
 app.route('/api/feedback', feedbackRoutes);
+app.route('/api/client-errors', clientErrorRoutes);
 app.route('/api/circle', circleWebhookRoutes);
 
 // Source-of-truth operator inventory. Hono expands mounted routers into the

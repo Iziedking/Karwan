@@ -11,6 +11,28 @@ import { credentialsForApiRequest } from './adminTransport';
 const configuredBase = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
 const BASE = (configuredBase || 'http://localhost:8787').replace(/\/+$/, '');
 
+/// Sends a route crash to the backend error tracker. Fire and forget: it never
+/// throws, carries no cookies, and `keepalive` lets it finish even when the
+/// error boundary reloads the page straight after.
+export function sendClientErrorReport(report: {
+  message: string;
+  digest?: string;
+  path: string;
+  boundary: 'app' | 'deal' | 'root';
+}): void {
+  try {
+    void fetch(`${BASE}/api/client-errors`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(report),
+      credentials: 'omit',
+      keepalive: true,
+    }).catch(() => undefined);
+  } catch {
+    // Reporting must never be the thing that breaks the error screen.
+  }
+}
+
 // The signed-in user's address, mirrored here by the auth layer. Web3 users have
 // no backend session cookie, so private reads pass this as a `caller` hint and
 // the backend uses it when no session is present. Circle users' session always
@@ -460,6 +482,21 @@ export interface DirectDealOnChain {
   /// contract's ReviewWindowOpen from off-chain clock drift.
   deliveredAtMs?: number | null;
   claimDeadlineMs?: number | null;
+}
+
+/// A settled deal as the public feed publishes it. The backend sends these
+/// fields and nothing else; addresses arrive already masked.
+export interface PublicFeedDeal {
+  jobId: string;
+  buyer: string;
+  seller: string;
+  dealAmountUsdc: string;
+  createdAt: number;
+  acceptedAt?: number;
+  settledAt?: number;
+  cancelledAt?: number;
+  updatedAt: number;
+  onChain: { state: number } | null;
 }
 
 export interface DirectDealFundingQuote {
@@ -2095,7 +2132,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  dealsFeed: () => json<{ deals: DirectDeal[] }>('/api/deals/feed'),
+  dealsFeed: () => json<{ deals: PublicFeedDeal[] }>('/api/deals/feed'),
   /// Aggregate network numbers only (no per-deal data). Use this for stat
   /// counters; the feed itself is settled-only and private-safe.
   dealsStats: () =>

@@ -145,6 +145,7 @@ import {
 import { termsDigest } from '../deals/termsDigest.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
+import { publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
 import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import { ownerAgentKitResearchAccess } from './research.js';
@@ -1282,8 +1283,7 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
 /// without exposing in-flight deals.
 dealsRoutes.get('/feed', async (c) => {
   const deals = (await listAllDeals()).filter((d) => d.settledAt != null);
-  const enriched = await Promise.all(deals.slice(0, 60).map((d) => enrich(d)));
-  return c.json({ deals: enriched.map(redactDeal) });
+  return c.json({ deals: deals.slice(0, 60).map((d) => publicFeedDeal(d)) });
 });
 
 /// Aggregate network stats. Counts and total volume only. no per-deal rows, no
@@ -4943,38 +4943,6 @@ dealsRoutes.post('/direct/:jobId/cancel/decline', async (c) => {
   });
   return c.json({ accepted: true, jobId }, 200);
 });
-
-function maskAddress(addr: string | undefined): string | undefined {
-  if (!addr) return addr;
-  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return addr;
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
-
-type EnrichedDeal = Awaited<ReturnType<typeof enrich>>;
-
-/// Strips the public-feed payload of full addresses + party-authored text.
-/// Buyer/seller drop to a short form; cancel reasons + delivery proofs go away
-/// entirely. The feed is still useful as "what's flowing on Karwan" without
-/// telling the world who exactly is doing what.
-function redactDeal(d: EnrichedDeal): EnrichedDeal {
-  const next = { ...d };
-  next.buyer = maskAddress(d.buyer) ?? d.buyer;
-  next.seller = maskAddress(d.seller) ?? d.seller;
-  next.buyerAgentAddress = maskAddress(d.buyerAgentAddress);
-  next.sellerAgentAddress = maskAddress(d.sellerAgentAddress);
-  delete next.cancelReason;
-  delete next.deliveryProof;
-  if ('deadlineRecovery' in next) delete next.deadlineRecovery;
-  if (next.cancellationProposal) {
-    next.cancellationProposal = {
-      proposedBy: next.cancellationProposal.proposedBy,
-      kind: next.cancellationProposal.kind,
-      proposedAt: next.cancellationProposal.proposedAt,
-      reason: '',
-    };
-  }
-  return next;
-}
 
 async function enrich(deal: DirectDeal) {
   const evidenceReceipt = deal.delivered

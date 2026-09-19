@@ -153,6 +153,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/chat/:jobId" },
   { method: "POST", path: "/api/chat/:jobId" },
   { method: "POST", path: "/api/circle/webhook" },
+  { method: "POST", path: "/api/client-errors" },
   { method: "GET", path: "/api/cre/delivery-request/:jobId" },
   { method: "POST", path: "/api/cre/delivery-request/:jobId" },
   { method: "POST", path: "/api/cre/delivery-request/:jobId/receipt" },

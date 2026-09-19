@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { Band, FullBleed, GridOverlay, HeroHeadline, Punc, SectionTag } from '@/shared/components/Bands';
+import { reportRouteError } from '@/shared/observability/reportRouteError';
 
 /// Route-level error boundary for /app. A client-side throw here used to
 /// blank the route to the generic "Application error: a client-side
@@ -23,6 +24,7 @@ export default function AppError({
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('[/app] route error', error);
+    reportRouteError(error, 'app');
   }, [error]);
 
   return (

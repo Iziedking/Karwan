@@ -15,6 +15,7 @@ import {
   shouldAutomaticallyReloadDeal,
 } from '@/features/deals/dealRouteRecovery';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { reportRouteError } from '@/shared/observability/reportRouteError';
 
 export default function DealError({
   error,
@@ -28,6 +29,7 @@ export default function DealError({
     // Keep the original trace available in the browser console without
     // exposing provider, wallet, or deal payload details to the user.
     console.error('[/deals/[id]] route error', error);
+    reportRouteError(error, 'deal');
     const recoveryKey = dealRouteRecoveryKey(window.location.pathname);
     let previousAttempt: string | null = null;
     try {
