@@ -410,6 +410,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [proposeOpen, setProposeOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const viewTouchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -971,7 +972,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     const nextSection = sectionItems[nextIndex];
     if (nextSection) openSection(nextSection.id);
   };
-  const viewTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleViewTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
     if (target.closest('button,a,input,textarea,select,[role="tab"]')) {
