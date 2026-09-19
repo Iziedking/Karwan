@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   getProfile,
+  updateProfile,
   upsertProfile,
   type TradeAvailability,
   type UserProfile,
@@ -167,23 +168,29 @@ export async function createBusinessWorkspace(address: string, input: { name: st
 export async function updateBusinessWorkspace(address: string, workspaceId: string, input: { name?: string; company?: Partial<NonNullable<Workspace['business']>> }): Promise<WorkspaceView | null> {
   const owned = await getOwnedWorkspace(address, workspaceId);
   if (!owned || owned.workspace.kind !== 'business') return null;
-  const updated: Workspace = {
-    ...owned.workspace,
-    ...(input.name?.trim() ? { name: input.name.trim() } : {}),
-    ...(input.company && owned.workspace.business
-      ? {
-          business: {
-            ...owned.workspace.business,
-            ...input.company,
-            legalName: input.company.legalName ?? owned.workspace.business.legalName,
-            verificationStatus: input.company.verificationStatus ?? owned.workspace.business.verificationStatus,
-          },
-        }
-      : {}),
-    updatedAt: Date.now(),
-  };
-  const workspaces = (owned.profile.workspaces ?? []).map((workspace) => workspace.id === workspaceId ? updated : workspace);
-  const saved = await upsertProfile({ ...owned.profile, workspaces });
+  let updated: Workspace | undefined;
+  const saved = await updateProfile(address, (profile) => {
+    const current = profile.workspaces?.find((workspace) => workspace.id === workspaceId);
+    if (!current || current.kind !== 'business') return null;
+    updated = {
+      ...current,
+      ...(input.name?.trim() ? { name: input.name.trim() } : {}),
+      ...(input.company && current.business
+        ? {
+            business: {
+              ...current.business,
+              ...input.company,
+              legalName: input.company.legalName ?? current.business.legalName,
+              verificationStatus: input.company.verificationStatus ?? current.business.verificationStatus,
+            },
+          }
+        : {}),
+      updatedAt: Date.now(),
+    };
+    const next = updated;
+    return { ...profile, workspaces: (profile.workspaces ?? []).map((workspace) => workspace.id === workspaceId ? next : workspace) };
+  });
+  if (!saved || !updated) return null;
   return { ...updated, membership: saved.workspaceMemberships?.find((candidate) => candidate.workspaceId === workspaceId) ?? owned.membership };
 }
 
@@ -196,30 +203,43 @@ export async function listTradeAvailability(address: string, workspaceId: string
 export async function saveTradeAvailability(address: string, workspaceId: string, input: Omit<TradeAvailability, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<TradeAvailability | null> {
   const owned = await getOwnedWorkspace(address, workspaceId);
   if (!owned || owned.workspace.kind !== 'business') return null;
-  const now = Date.now();
-  const current = owned.workspace.availability ?? [];
-  const existing = input.id ? current.find((record) => record.id === input.id) : undefined;
-  const record: TradeAvailability = {
-    ...input,
-    id: existing?.id ?? randomUUID(),
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-  };
-  const availability = existing ? current.map((candidate) => candidate.id === record.id ? record : candidate) : [...current, record];
-  const profile = await getProfile(address);
-  if (!profile) return null;
-  const workspaces = (profile.workspaces ?? []).map((workspace) => workspace.id === workspaceId ? { ...workspace, availability, updatedAt: now } : workspace);
-  await upsertProfile({ ...profile, workspaces });
-  return record;
+  let record: TradeAvailability | undefined;
+  const saved = await updateProfile(address, (profile) => {
+    const workspace = profile.workspaces?.find((candidate) => candidate.id === workspaceId);
+    if (!workspace || workspace.kind !== 'business') return null;
+    const now = Date.now();
+    const current = workspace.availability ?? [];
+    const existing = input.id ? current.find((candidate) => candidate.id === input.id) : undefined;
+    const next: TradeAvailability = {
+      ...input,
+      id: existing?.id ?? randomUUID(),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+    };
+    record = next;
+    const availability = existing ? current.map((candidate) => candidate.id === next.id ? next : candidate) : [...current, next];
+    return {
+      ...profile,
+      workspaces: (profile.workspaces ?? []).map((candidate) => candidate.id === workspaceId ? { ...candidate, availability, updatedAt: now } : candidate),
+    };
+  });
+  return saved ? record ?? null : null;
 }
 
 export async function removeTradeAvailability(address: string, workspaceId: string, id: string): Promise<boolean> {
   const owned = await getOwnedWorkspace(address, workspaceId);
   if (!owned || owned.workspace.kind !== 'business') return false;
-  const availability = (owned.workspace.availability ?? []).filter((record) => record.id !== id);
-  if (availability.length === (owned.workspace.availability ?? []).length) return false;
-  await upsertProfile({ ...owned.profile, workspaces: (owned.profile.workspaces ?? []).map((workspace) => workspace.id === workspaceId ? { ...workspace, availability, updatedAt: Date.now() } : workspace) });
-  return true;
+  const saved = await updateProfile(address, (profile) => {
+    const workspace = profile.workspaces?.find((candidate) => candidate.id === workspaceId);
+    if (!workspace || workspace.kind !== 'business') return null;
+    const availability = (workspace.availability ?? []).filter((record) => record.id !== id);
+    if (availability.length === (workspace.availability ?? []).length) return null;
+    return {
+      ...profile,
+      workspaces: (profile.workspaces ?? []).map((candidate) => candidate.id === workspaceId ? { ...candidate, availability, updatedAt: Date.now() } : candidate),
+    };
+  });
+  return saved !== null;
 }
 
 export function workspaceKindOf(workspace: Workspace | null | undefined): WorkspaceKind | null {

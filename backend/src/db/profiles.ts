@@ -1,7 +1,7 @@
 ﻿import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
-import { db, pgEnabled } from './client.js';
+import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { profiles } from './schema.js';
 import { logger } from '../logger.js';
 
@@ -307,6 +307,12 @@ const PRESERVE_WHEN_OMITTED = [
 export async function upsertProfile(
   input: Omit<UserProfile, 'createdAt' | 'updatedAt'>,
 ): Promise<UserProfile> {
+  return withProfileLock(input.address.toLowerCase(), () => writeProfileSnapshot(input));
+}
+
+async function writeProfileSnapshot(
+  input: Omit<UserProfile, 'createdAt' | 'updatedAt'>,
+): Promise<UserProfile> {
   const key = input.address.toLowerCase();
   const existing = await getProfile(key);
   const now = Date.now();
@@ -353,6 +359,60 @@ export async function upsertProfile(
   store[key] = next;
   saveFile(store);
   return next;
+}
+
+const profileLocks = new Map<string, Promise<unknown>>();
+
+/// Serialize work per address inside this process. Postgres adds a row lock on
+/// top; the flat-file store has nothing else.
+async function withProfileLock<T>(key: string, work: () => Promise<T>): Promise<T> {
+  const previous = profileLocks.get(key) ?? Promise.resolve();
+  const run = previous.catch(() => undefined).then(work);
+  const settled = run.catch(() => undefined);
+  profileLocks.set(key, settled);
+  try {
+    return await run;
+  } finally {
+    if (profileLocks.get(key) === settled) profileLocks.delete(key);
+  }
+}
+
+/// Read, change and write one profile as a single step. upsertProfile writes a
+/// snapshot the caller read earlier, so two saves that overlap (a workspace
+/// edit and an email verification, say) silently drop one of them. Here the
+/// read happens under the lock, so each mutation sees the one before it.
+/// `mutate` returns the next profile, or null to leave the row untouched.
+export async function updateProfile(
+  address: string,
+  mutate: (current: UserProfile) => UserProfile | null,
+): Promise<UserProfile | null> {
+  const key = address.toLowerCase();
+  return withProfileLock(key, async () => {
+    if (pgEnabled) {
+      return withPostgresTransaction(async (tx) => {
+        const rows = await tx.query<{ data: UserProfile }>(
+          'SELECT data FROM profiles WHERE address = $1 FOR UPDATE',
+          [key],
+        );
+        const current = rows.rows[0]?.data;
+        if (!current) return null;
+        const changed = mutate(current);
+        if (!changed) return null;
+        const next: UserProfile = { ...changed, address: key, createdAt: current.createdAt, updatedAt: Date.now() };
+        await tx.query('UPDATE profiles SET data = $2 WHERE address = $1', [key, next]);
+        return next;
+      });
+    }
+    const store = loadFile();
+    const current = store[key];
+    if (!current) return null;
+    const changed = mutate(current);
+    if (!changed) return null;
+    const next: UserProfile = { ...changed, address: key, createdAt: current.createdAt, updatedAt: Date.now() };
+    store[key] = next;
+    saveFile(store);
+    return next;
+  });
 }
 
 /// Spread every field of an existing profile EXCEPT the ones a caller is
