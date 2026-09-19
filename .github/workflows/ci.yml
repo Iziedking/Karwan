@@ -44,6 +44,9 @@ jobs:
       - name: Application shell contract
         run: npm --prefix frontend run check:shell
 
+      - name: React hook order
+        run: npm --prefix frontend run check:hooks
+
       - name: Admin route inventory
         run: npm --prefix frontend run check:admin-routes
 

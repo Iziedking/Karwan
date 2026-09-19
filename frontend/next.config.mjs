@@ -34,6 +34,10 @@ const BACKEND = (
 
 const nextConfig = {
   reactStrictMode: true,
+  // Lint is a CI gate (`npm run check:hooks`), not a build step. Letting the
+  // build lint would read eslint-disable comments for rules this config does
+  // not load and fail the deploy on them.
+  eslint: { ignoreDuringBuilds: true },
   async rewrites() {
     return [
       {

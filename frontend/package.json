@@ -11,6 +11,7 @@
     "check:i18n": "tsx scripts/check-i18n.ts",
     "check:tours": "tsx scripts/check-tours.ts",
     "check:shell": "tsx scripts/check-shell.ts",
+    "check:hooks": "eslint --no-inline-config --max-warnings=0 app features shared core",
     "generate:admin-routes": "tsx scripts/generate-admin-route-catalog.ts",
     "check:admin-routes": "tsx scripts/generate-admin-route-catalog.ts --check",
     "test:onboarding": "tsx --test features/onboarding/journey.test.ts features/onboarding/sellerSetup.test.ts",
@@ -58,8 +59,11 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.70.0"
   }
 }
