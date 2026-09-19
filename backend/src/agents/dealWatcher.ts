@@ -30,8 +30,10 @@ import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import {
   autoReleaseWindowMs,
   buildPairHistory,
+  milestoneWindowAnchor,
   pairKey,
 } from '../deals/releaseWindow.js';
+import { manualReviewActive } from '../deals/evidenceManualReview.js';
 import { sellerAgreementExpired } from '../deals/lifecycle.js';
 import {
   ensureEscrowRefundMovement,
@@ -393,6 +395,7 @@ async function tick() {
         ...deal,
         evidenceRequired: deal.evidenceRequired,
         evidenceReceipt,
+        manualReview: manualReviewActive(deal),
       });
       if (blockReason) {
         await markBlocked(deal.jobId, blockReason, deal.releaseBlockedReason, parties);
@@ -592,10 +595,7 @@ async function tick() {
       // once their window elapses; each window is double the one before it. The
       // FINAL milestone is never on this ladder — see the delay-appeal branch.
       if (deal.delivered && deal.deliveredAt && !nextIsFinal) {
-        const anchor =
-          nextIndex === 0
-            ? deal.deliveredAt
-            : (deal.lastReleaseAt ?? deal.reviewWindowStartedAt ?? deal.deliveredAt);
+        const anchor = milestoneWindowAnchor(deal, nextIndex) ?? deal.deliveredAt;
         const windowMs = autoReleaseWindowMs(
           deal,
           nextIndex,

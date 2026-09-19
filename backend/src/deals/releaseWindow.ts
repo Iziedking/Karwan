@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import type { DirectDeal } from '../db/deals.js';
+import { manualReviewActive } from './evidenceManualReview.js';
 
 /// Release timing, shared by the unattended path and the seller's claim.
 ///
@@ -81,12 +82,20 @@ export function releaseEligibleAt(
   index: number,
   priorSettledTogether: number,
 ): number | null {
-  const anchor =
-    index === 0
-      ? deal.deliveredAt
-      : (deal.lastReleaseAt ?? deal.reviewWindowStartedAt ?? deal.deliveredAt);
+  const anchor = milestoneWindowAnchor(deal, index);
   if (!anchor) return null;
   return anchor + autoReleaseWindowMs(deal, index, priorSettledTogether);
+}
+
+/// Where the window for milestone `index` starts. The first runs from delivery,
+/// or from the moment the buyer took over a stalled delivery check: the buyer
+/// only then starts reviewing, and a week-old delivery must not pay out the
+/// instant they press skip.
+export function milestoneWindowAnchor(deal: DirectDeal, index: number): number | undefined {
+  if (index !== 0) return deal.lastReleaseAt ?? deal.reviewWindowStartedAt ?? deal.deliveredAt;
+  const review = manualReviewActive(deal) ? deal.evidenceManualReview?.at : undefined;
+  if (deal.deliveredAt == null) return undefined;
+  return Math.max(deal.deliveredAt, review ?? 0);
 }
 
 /// Order-independent pair key, so a pair reads the same whichever side is buying.

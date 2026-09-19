@@ -14,6 +14,7 @@ import {
   dealRouteRecoveryKey,
   shouldAutomaticallyReloadDeal,
 } from '@/features/deals/dealRouteRecovery';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export default function DealError({
   error,
@@ -21,6 +22,7 @@ export default function DealError({
   error: Error & { digest?: string };
 }) {
   const [showFallback, setShowFallback] = useState(false);
+  const es = useTranslations().directDealDetail.errorStates;
 
   useEffect(() => {
     // Keep the original trace available in the browser console without
@@ -69,7 +71,7 @@ export default function DealError({
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div role="status" aria-live="polite" className="max-w-[44ch] min-h-[44vh] space-y-4">
-            <span className="sr-only">Opening deal</span>
+            <span className="sr-only">{es.transientRetrying}</span>
             <div className="h-3 w-28 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
             <div className="h-12 w-64 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
             <div className="h-3 w-44 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
@@ -83,12 +85,12 @@ export default function DealError({
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
         <div className="max-w-[48ch]">
-          <SectionTag tone="dark">DEAL RECOVERY</SectionTag>
+          <SectionTag tone="dark">{es.transientEyebrow}</SectionTag>
           <HeroHeadline size="md">
-            We could not open this deal<Punc>.</Punc>
+            {es.transientTitle}<Punc>.</Punc>
           </HeroHeadline>
           <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-            Your agreement is unchanged. Try once more or return to your trades.
+            {es.crashBody}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button
@@ -102,7 +104,7 @@ export default function DealError({
                 borderBottomRightRadius: 3,
               }}
             >
-              Try again
+              {es.transientCta}
             </button>
             <Link
               href="/buyer"
@@ -114,7 +116,7 @@ export default function DealError({
                 borderBottomRightRadius: 3,
               }}
             >
-              Your trades
+              {es.notFoundCta}
             </Link>
           </div>
         </div>

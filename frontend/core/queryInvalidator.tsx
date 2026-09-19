@@ -26,6 +26,7 @@ const DEAL_EVENTS = new Set<string>([
   'deal.delivered',
   'deal.delivery.flagged',
   'deal.delivery.cleared',
+  'deal.evidence.manual_review',
   'deal.matched',
   'deal.match.approved',
   'deal.match.declined',

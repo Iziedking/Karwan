@@ -232,6 +232,15 @@ export interface DirectDeal {
     published?: boolean;
     error?: 'invalid-proof' | 'github-unavailable' | 'not-merged' | 'publish-unavailable';
   };
+  /// The buyer skipped a delivery check that never answered and took over the
+  /// review of this exact delivery. Bound to the revision and agreement it was
+  /// given for, so a re-delivery or a new agreement needs a fresh check.
+  evidenceManualReview?: {
+    by: string;
+    at: number;
+    deliveryRevision: number;
+    agreementVersion: number;
+  };
   /// Optional high-signal counterparty policy. This gates the selected party's
   /// acceptance/funding action; it never authorizes a payment or release.
   verificationPolicy?: 'standard' | 'high_signal';

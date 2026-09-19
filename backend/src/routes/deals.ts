@@ -145,6 +145,7 @@ import {
 import { termsDigest } from '../deals/termsDigest.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
+import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
 import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import { ownerAgentKitResearchAccess } from './research.js';
 import {
@@ -2970,6 +2971,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     creDeliveryRequest: undefined,
     creEvidenceReceipt: undefined,
     creAutoPublication: undefined,
+    evidenceManualReview: undefined,
   });
   if (!recordedDelivery) return c.json({ error: 'The delivery changed while this submission was being saved. Refresh the deal before submitting again.', code: 'STALE_DELIVERY' }, 409);
   // Cancel only the previous request. A recovery worker may already have
@@ -3089,6 +3091,60 @@ dealsRoutes.post('/direct/:jobId/arrived', async (c) => {
   return c.json({ ok: true, arrivedAt });
 });
 
+/// The delivery check never answered. Rather than leave the escrow blocked on
+/// a verifier that is down, the buyer can take the review over for this exact
+/// delivery. It lifts only the "no answer" block and restarts the review window
+/// from now; it never overrides a security hold or a check that said no.
+dealsRoutes.post('/direct/:jobId/evidence/manual-review', async (c) => {
+  const jobId = c.req.param('jobId');
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  if (body.caller.toLowerCase() !== deal.buyer.toLowerCase()) {
+    return c.json({ error: 'only the buyer can review the delivery themselves' }, 403);
+  }
+  const receipt = await readEvidenceReceipt(jobId, deal.agreementVersion ?? 1, {
+    evidenceRevision: deal.deliveryRevision,
+    evidenceCommitment: deal.evidenceExpectedCommitment,
+    reportId: deal.creEvidenceReceipt?.reportId,
+    requireBinding: deal.evidenceRequired === true,
+  });
+  const eligibility = manualReviewEligibility(deal, receipt?.state, Date.now(), config.CRE_MANUAL_REVIEW_AFTER_MS);
+  if (!eligibility.eligible) {
+    return c.json({ error: 'the delivery check cannot be skipped right now', code: eligibility.reason }, 409);
+  }
+  const at = Date.now();
+  const updated = await patchDeal(jobId, {
+    evidenceManualReview: {
+      by: body.caller.toLowerCase(),
+      at,
+      deliveryRevision: deal.deliveryRevision ?? 0,
+      agreementVersion: deal.agreementVersion ?? 1,
+    },
+    ...(deal.releaseBlockedReason === 'evidence-unavailable'
+      ? { releaseBlockedReason: undefined, releaseBlockedAt: undefined }
+      : {}),
+  });
+  if (!updated) return c.json({ error: 'deal disappeared while saving the review' }, 409);
+  invalidateDealsCache();
+  bus.emitEvent({
+    type: 'deal.evidence.manual_review',
+    jobId,
+    actor: 'buyer',
+    payload: { buyer: deal.buyer, seller: deal.seller, deliveryRevision: deal.deliveryRevision ?? 0 },
+  });
+  logger.info({ jobId, deliveryRevision: deal.deliveryRevision }, 'buyer took over a stalled delivery check');
+  return c.json({ ok: true, reviewedAt: at });
+});
+
 /// Buyer releases the next milestone. After the seller marks delivered, the
 /// buyer calls this twice: first to release the on-delivery slice, then again
 /// to verify and release the remainder, which settles the deal.
@@ -3130,6 +3186,7 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
     ...deal,
     evidenceRequired: deal.evidenceRequired,
     evidenceReceipt: claimEvidenceReceipt,
+    manualReview: manualReviewActive(deal),
   });
   if (claimBlockReason) {
     return c.json(
@@ -3411,6 +3468,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     ...deal,
     evidenceRequired: deal.evidenceRequired,
     evidenceReceipt: releaseEvidenceReceipt,
+    manualReview: manualReviewActive(deal),
   });
   if (releaseBlockReason) {
     return c.json(
@@ -4933,6 +4991,15 @@ async function enrich(deal: DirectDeal) {
     agreementDigest: agreementDigest(deal),
     evidenceReceipt,
     creVerification: await readCreVerificationProgress(deal, evidenceReceipt),
+    /// Both parties see whether the check stalled far enough for the buyer to
+    /// take it over, and whether they already did, so neither waits blind.
+    evidenceManualReviewAvailable: manualReviewEligibility(
+      deal,
+      evidenceReceipt?.state,
+      Date.now(),
+      config.CRE_MANUAL_REVIEW_AFTER_MS,
+    ).eligible,
+    evidenceManualReviewActive: manualReviewActive(deal),
     reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
     deadlineReclaimGraceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
     /// How long the payment terms or a shipment in transit hold the money,

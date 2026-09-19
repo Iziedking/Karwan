@@ -802,6 +802,9 @@ const envSchema = z.object({
   CRE_GITHUB_READ_TOKEN: optionalString,
   CRE_GITHUB_SHA_MODE: z.enum(['head', 'merge']).default('merge'),
   CRE_REQUEST_LEASE_MS: z.coerce.number().int().min(60_000).max(3_600_000).default(600_000),
+  /// How long a required delivery check may go unanswered before the buyer is
+  /// offered to review the delivery themselves. Matches the request lifetime.
+  CRE_MANUAL_REVIEW_AFTER_MS: z.coerce.number().int().min(60_000).max(7 * 86_400_000).default(3_600_000),
   /// Reconciles accepted CRE evidence receipts from the Arc registry back into
   /// the leased delivery queue. Keep off until the production registry address
   /// and CRE workflow are configured together.

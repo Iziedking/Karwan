@@ -11,7 +11,16 @@ export function releaseBlockReasonForDelivery(input: {
   verificationStatus?: 'clean' | 'suspicious' | 'malicious' | 'unverifiable';
   deliveryMatch?: { verdict: 'aligned' | 'partial' | 'mismatch' | 'unknown' };
   evidenceReceipt?: { state: 'not-configured' | 'not-recorded' | 'pass' | 'mismatch' | 'unavailable' | 'expired' | 'stale-terms' | 'stale-delivery' | 'read-unavailable' };
+  /// The buyer took over the review of the current delivery because the check
+  /// never answered. It lifts only "no answer"; a security hold or a verifier
+  /// that answered "does not match" still blocks.
+  manualReview?: boolean;
 }): ReleaseBlockReason | null {
+  const reason = evidenceBlockReason(input);
+  return reason === 'evidence-unavailable' && input.manualReview ? null : reason;
+}
+
+function evidenceBlockReason(input: Parameters<typeof releaseBlockReasonForDelivery>[0]): ReleaseBlockReason | null {
   if (input.verificationStatus === 'suspicious' || input.verificationStatus === 'malicious') {
     return 'security-hold';
   }

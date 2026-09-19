@@ -605,6 +605,10 @@ export interface DirectDeal {
     | 'security-hold'
     | 'no-agent-wallet';
   releaseBlockedAt?: number;
+  /// The required delivery check stalled long enough for the buyer to review
+  /// the delivery themselves, and whether they already chose to.
+  evidenceManualReviewAvailable?: boolean;
+  evidenceManualReviewActive?: boolean;
   /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
   /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for
   /// review. Deterministic, non-blocking — the money is escrowed and the human
@@ -3536,6 +3540,11 @@ export const api = {
   /// transit floor on auto-release, it does not move money.
   confirmGoodsArrived: (jobId: string, caller: string) =>
     json<{ ok: true; arrivedAt: number }>(`/api/deals/direct/${jobId}/arrived`, {
+      method: 'POST',
+      body: JSON.stringify({ caller }),
+    }),
+  reviewDeliveryManually: (jobId: string, caller: string) =>
+    json<{ ok: true; reviewedAt: number }>(`/api/deals/direct/${jobId}/evidence/manual-review`, {
       method: 'POST',
       body: JSON.stringify({ caller }),
     }),

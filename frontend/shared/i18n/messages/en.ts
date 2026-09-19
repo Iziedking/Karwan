@@ -2892,6 +2892,7 @@ interface MessagesShape {
       transientBody: string;
       transientCta: string;
       transientRetrying: string;
+      crashBody: string;
     };
     connectGate: {
       eyebrow: string;
@@ -3158,6 +3159,16 @@ interface MessagesShape {
         sellerMismatch: string;
         noAgent: string;
         evidenceUnavailable: string;
+        skipCta: string;
+        skipTitle: string;
+        skipBody: string;
+        skipConfirm: string;
+        skipCancel: string;
+        skipBusy: string;
+        skipFailed: string;
+        sellerSkipAvailable: string;
+        manualBuyer: string;
+        manualSeller: string;
       };
       awaitingFirstRelease: {
         buyerIntroTemplate: string;
@@ -8333,6 +8344,7 @@ export const en: MessagesShape = {
       transientBody: 'Your deal is safe and still on chain. This is a network hiccup, not a lost deal. Give it a moment and try again.',
       transientCta: 'Try again',
       transientRetrying: 'Reaching deal',
+      crashBody: 'Your agreement and funds are unchanged. Try once more or go back to your trades.',
     },
     connectGate: {
       eyebrow: 'PRIVATE DEAL',
@@ -8631,6 +8643,16 @@ export const en: MessagesShape = {
         sellerMismatch: 'Auto-release is paused. The buyer has to review this delivery before any funds move. If they stall, appeal the deal.',
       noAgent: 'Auto-release is unavailable on this deal. Release manually, or appeal.',
       evidenceUnavailable: 'Auto-release is paused because the delivery check is unavailable. Review the work yourself, then release or appeal.',
+        skipCta: 'Review it myself',
+        skipTitle: 'Skip the delivery check?',
+        skipBody: 'The automatic check is not responding. You review the delivery yourself instead. Your review time starts now, and you can still appeal.',
+        skipConfirm: 'I will review it myself',
+        skipCancel: 'Keep waiting',
+        skipBusy: 'Saving',
+        skipFailed: 'The check could not be skipped. Refresh the deal and try again.',
+        sellerSkipAvailable: 'The delivery check is not responding. The buyer can review your delivery themselves.',
+        manualBuyer: 'You are reviewing this delivery yourself. Release when you are satisfied, or appeal.',
+        manualSeller: 'The buyer is reviewing your delivery themselves.',
       },
       awaitingFirstRelease: {
         buyerIntroTemplate: 'Seller marked delivered. Release the first {firstPct}% now. The remaining {remainPct}% releases once you verify.',

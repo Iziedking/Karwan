@@ -69,6 +69,9 @@ export type KarwanEventType =
   /// Buyer confirmed physical goods arrived. Distinct from a release: it lifts
   /// the transit floor on auto-release, it does not move money.
   | 'deal.goods.arrived'
+  /// The delivery check stalled and the buyer took the review over. Lifts the
+  /// "no answer" release block for the current delivery; moves no money.
+  | 'deal.evidence.manual_review'
   | 'deal.dispute.auto_resolved'
   | 'deal.dispute.needs_arbiter'
   | 'deal.cancelled'

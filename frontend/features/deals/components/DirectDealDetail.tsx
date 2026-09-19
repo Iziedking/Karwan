@@ -729,6 +729,21 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     }
   }
 
+  async function onManualReview() {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.reviewDeliveryManually(jobId, address);
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      setErrorInfo({ code, message: dd.actionPanel.releaseBlocked.skipFailed });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onReconcilePayout(reference: string) {
     if (!address) return;
     setBusy(true);
@@ -1781,6 +1796,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 busy: dd.settlementRecord.reconcileBusy,
               }}
               onReconcilePayout={onReconcilePayout}
+              onManualReview={onManualReview}
               now={now}
               deliveryProof={deliveryProof}
               onDeliveryProofChange={setDeliveryProof}
@@ -2485,6 +2501,7 @@ function ActionPanel({
   payoutRecoveryReference,
   payoutRecoveryCopy,
   onReconcilePayout,
+  onManualReview,
   copy,
 }: {
   stage: DealStage;
@@ -2529,6 +2546,7 @@ function ActionPanel({
     busy: string;
   };
   onReconcilePayout: (reference: string) => void;
+  onManualReview: () => void;
   copy: Messages['directDealDetail']['actionPanel'];
 }) {
   if (
@@ -2554,7 +2572,16 @@ function ActionPanel({
   // Ordinary deals keep the existing release path unchanged.
   const creCheckRequired = deal.evidenceRequired === true && deal.delivered === true;
   const creCheckPassed = deal.evidenceReceipt?.state === 'pass';
-  const creReleaseBlocked = creCheckRequired && !creCheckPassed;
+  const creReleaseBlocked = creCheckRequired && !creCheckPassed && !deal.evidenceManualReviewActive;
+  const manualReview = (
+    <ManualReviewControl
+      deal={deal}
+      viewerIsBuyer={viewerIsBuyer}
+      busy={busy}
+      onConfirm={onManualReview}
+      copy={copy.releaseBlocked}
+    />
+  );
   const releaseBlocked =
     creReleaseBlocked ||
     deal.releaseBlockedReason != null ||
@@ -3050,6 +3077,7 @@ function ActionPanel({
             </WindowNote>
           )}
           {blockedNote && <WindowNote tone="warning">{blockedNote}</WindowNote>}
+          {manualReview}
           {open && (
             <WindowNote tone="warning">
               {copy.awaitingFirstRelease.buyerAutoReleasePrefixTemplate.replace('{firstPct}', String(firstPct))}{' '}
@@ -3117,6 +3145,7 @@ function ActionPanel({
             </CTAPill>
           </div>
         )}
+        {manualReview}
         {open && (
           <WindowNote tone="muted">
             {copy.awaitingFirstRelease.sellerOpenPrefix}{' '}
@@ -3193,6 +3222,7 @@ function ActionPanel({
         {creReleaseBlocked && (
           <WindowNote tone="warning">{copy.releaseBlocked.evidenceUnavailable}</WindowNote>
         )}
+        {manualReview}
         {appealOpen && !responseExpired && (
           <DelayAppealResponder
             msLeft={responseMsLeft}
@@ -3235,6 +3265,7 @@ function ActionPanel({
       {creReleaseBlocked && (
         <WindowNote tone="warning">{copy.releaseBlocked.evidenceUnavailable}</WindowNote>
       )}
+      {manualReview}
       {appealOpen && !responseExpired && (
         <WindowNote tone="warning">
           {copy.awaitingFinalRelease.sellerAppealOpenPrefix}{' '}
@@ -3436,6 +3467,57 @@ function WindowNote({
     >
       {children}
     </p>
+  );
+}
+
+/// The way out of a delivery check that never answers. The buyer confirms in
+/// place, because skipping hands the review to them and restarts their window;
+/// a single stray tap must not do that. The seller only ever sees the state.
+function ManualReviewControl({
+  deal,
+  viewerIsBuyer,
+  busy,
+  onConfirm,
+  copy,
+}: {
+  deal: DirectDeal;
+  viewerIsBuyer: boolean;
+  busy: boolean;
+  onConfirm: () => void;
+  copy: Messages['directDealDetail']['actionPanel']['releaseBlocked'];
+}) {
+  const [confirming, setConfirming] = useState(false);
+  if (deal.evidenceManualReviewActive) {
+    return <WindowNote tone="muted">{viewerIsBuyer ? copy.manualBuyer : copy.manualSeller}</WindowNote>;
+  }
+  if (!deal.evidenceManualReviewAvailable) return null;
+  if (!viewerIsBuyer) return <WindowNote tone="muted">{copy.sellerSkipAvailable}</WindowNote>;
+  if (!confirming) {
+    return (
+      <CTAPill variant="secondary" tone="dark" onClick={() => setConfirming(true)} disabled={busy}>
+        {copy.skipCta}
+      </CTAPill>
+    );
+  }
+  return (
+    <div
+      role="group"
+      aria-labelledby="manual-review-title"
+      className="space-y-3 border-s-2 border-[var(--lp-accent)] ps-4"
+    >
+      <p id="manual-review-title" className="text-[14px] font-semibold text-[var(--lp-dark)]">
+        {copy.skipTitle}
+      </p>
+      <p className="max-w-[62ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{copy.skipBody}</p>
+      <div className="flex flex-wrap gap-2">
+        <CTAPill onClick={onConfirm} disabled={busy} busy={busy}>
+          {busy ? copy.skipBusy : copy.skipConfirm}
+        </CTAPill>
+        <CTAPill variant="secondary" tone="dark" onClick={() => setConfirming(false)} disabled={busy}>
+          {copy.skipCancel}
+        </CTAPill>
+      </div>
+    </div>
   );
 }
 
