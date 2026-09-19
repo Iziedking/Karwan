@@ -74,11 +74,6 @@ interface MessagesShape {
     backAria: string;
     openApp: string;
 
-    networkLabel: string;
-
-    networkName: string;
-
-    networkAria: string;
   };
   settings: {
     eyebrow: string;
@@ -5253,11 +5248,6 @@ export const en: MessagesShape = {
     backAria: 'Go back',
     openApp: 'Open Karwan',
 
-    networkLabel: 'Karwan network',
-
-    networkName: 'ARC TESTNET',
-
-    networkAria: 'Karwan runs on Arc Testnet. Open the network explorer.',
   },
   settings: {
     eyebrow: 'SETTINGS',
@@ -6245,7 +6235,7 @@ export const en: MessagesShape = {
     activeTrades: 'Active trades',
     wallets: 'Wallets',
     add: 'Add',
-    move: 'Move',
+    move: 'Move from Gateway',
     send: 'Send',
     details: 'Details',
     trades: 'Trades',
@@ -8225,7 +8215,7 @@ export const en: MessagesShape = {
     viewTx: 'View transaction',
     pulledTemplate: 'Pulled {chains}.',
     stepAdd: 'Pool',
-    sendTag: '[:SEND FROM BALANCE:]',
+    sendTag: 'Withdraw from Gateway',
     arcPinned: 'Lands on Arc, ready to spend.',
     outEmpty: 'Nothing to move yet. Pool USDC into this balance first.',
   },

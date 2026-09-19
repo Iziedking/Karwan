@@ -49,6 +49,24 @@ test('withdrawing leads with the rail that works for everyone', () => {
   assert.equal(defaultRail(railsFor({ method: 'circle', direction: 'out' })), 'cctp');
 });
 
+test('Move is Gateway withdrawal only', () => {
+  assert.deepEqual(railsFor({ method: 'web3', direction: 'out', intent: 'move' }), [
+    { id: 'gateway', state: 'ready' },
+  ]);
+  assert.deepEqual(railsFor({ method: 'circle', direction: 'out', intent: 'move' }), [
+    { id: 'gateway', state: 'soon' },
+  ]);
+});
+
+test('Send is direct withdrawal only and never exposes Gateway', () => {
+  assert.deepEqual(railsFor({ method: 'circle', direction: 'out', intent: 'send' }), [
+    { id: 'cctp', state: 'ready' },
+  ]);
+  assert.deepEqual(railsFor({ method: 'web3', direction: 'out', intent: 'send' }), [
+    { id: 'cctp', state: 'ready' },
+  ]);
+});
+
 test('a direct deposit address is not a way out', () => {
   assert.ok(!ids('circle', 'out').includes('direct'));
   assert.ok(!ids('web3', 'out').includes('direct'));

@@ -543,8 +543,8 @@ export function GatewayBalanceCard({
   if (isCircleUser) {
     return (
       <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
-        <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-          {t.tag}
+        <div className="mono text-[10px] font-bold tracking-[0.12em] text-[var(--lp-text-sub)]">
+          {inbound ? t.tag : t.sendTag}
         </div>
         <h3 className="mt-2 text-[19px] font-bold tracking-tight">{t.title}</h3>
         <div
@@ -618,8 +618,8 @@ export function GatewayBalanceCard({
   // this card to match the CCTP one beside it.
   return (
     <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
-      <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-        {t.tag}
+      <div className="mono text-[10px] font-bold tracking-[0.12em] text-[var(--lp-text-sub)]">
+        {inbound ? t.tag : t.sendTag}
       </div>
       <h3 className="mt-2 text-[19px] font-bold tracking-tight">{t.title}</h3>
 
@@ -800,9 +800,6 @@ export function GatewayBalanceCard({
               </p>
             ) : (
               <>
-                <div className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
-                  {t.sendTag}
-                </div>
                 <div className="mt-3">
                   <ChainDropdown
                     value={dest}

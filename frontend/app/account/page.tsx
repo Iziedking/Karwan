@@ -38,8 +38,8 @@ function AccountPageInner() {
           <h2 className="text-[22px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">Manage USDC</h2>
           <nav className="mt-5 divide-y divide-[var(--lp-border-light)]">
             <AccountAction href="/bridge?direction=in" label="Add USDC" description="Deposit from a supported wallet." icon="add" primary />
-            <AccountAction href="/bridge?direction=out&intent=move" label="Move between chains" description="Move USDC to another supported chain." icon="move" />
-            <AccountAction href="/bridge?direction=out&intent=send" label="Send USDC" description="Send to a supported wallet address." icon="send" />
+            <AccountAction href="/bridge?direction=out&intent=move" label="Withdraw from Gateway" description="Take pooled USDC out to a supported chain." icon="move" />
+            <AccountAction href="/bridge?direction=out&intent=send" label="Send USDC" description="Withdraw to a wallet address you choose." icon="send" />
           </nav>
         </aside>
       </section>

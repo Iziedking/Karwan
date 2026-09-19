@@ -73,11 +73,6 @@ export const sw: Messages = {
     backAria: 'Rudi nyuma',
     openApp: 'Fungua Karwan',
 
-    networkLabel: 'Mtandao wa Karwan',
-
-    networkName: 'ARC TESTNET',
-
-    networkAria: 'Karwan inaendeshwa kwenye Arc Testnet. Fungua kichunguzi cha mtandao.',
   },
   settings: {
     eyebrow: 'MAPENDELEO',
@@ -2996,7 +2991,7 @@ export const sw: Messages = {
     viewTx: 'Tazama muamala',
     pulledTemplate: 'Imetolewa {chains}.',
     stepAdd: 'Kusanya',
-    sendTag: '[:TUMA KUTOKA SALIO:]',
+    sendTag: 'Toa kutoka Gateway',
     arcPinned: 'Inafika Arc, tayari kutumika.',
     outEmpty: 'Hakuna cha kuhamisha bado. Kusanya USDC kwenye salio hili kwanza.',
   },

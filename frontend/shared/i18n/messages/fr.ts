@@ -73,11 +73,6 @@ export const fr: Messages = {
     backAria: 'Revenir en arrière',
     openApp: 'Ouvrir Karwan',
 
-    networkLabel: 'Réseau Karwan',
-
-    networkName: 'ARC TESTNET',
-
-    networkAria: 'Karwan fonctionne sur Arc Testnet. Ouvrir l’explorateur du réseau.',
   },
   settings: {
     eyebrow: 'PARAMÈTRES',
@@ -2996,7 +2991,7 @@ export const fr: Messages = {
     viewTx: 'Voir la transaction',
     pulledTemplate: 'Tiré {chains}.',
     stepAdd: 'Grouper',
-    sendTag: '[:ENVOYER DU SOLDE:]',
+    sendTag: 'Retirer de Gateway',
     arcPinned: 'Arrive sur Arc, prêt à dépenser.',
     outEmpty: "Rien à déplacer pour l'instant. Groupez d'abord des USDC sur ce solde.",
   },

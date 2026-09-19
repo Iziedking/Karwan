@@ -16,6 +16,7 @@ import {
   defaultRail,
   railsFor,
   reconcileRail,
+  type MoneyIntent,
   type DepositRail,
 } from '@/features/deposit/railModel';
 
@@ -54,12 +55,9 @@ import {
 
 type Direction = 'in' | 'out';
 
-/// One rail at a time, Gateway first.
-///
-/// Gateway is the more capable of the two: it pools USDC across chains and
-/// spends to any of them on a single signature, with no gas anywhere. CCTP moves
-/// one source chain to one destination and is the right tool for a one-off fast
-/// transfer, so it sits behind a switch rather than competing for the same space.
+/// Add, Gateway withdrawal and direct withdrawal are separate tasks. The
+/// account action chooses the task before this page renders a rail, so a user
+/// never has to understand Gateway and direct withdrawal as competing methods.
 export default function BridgePage() {
   return (
     <Suspense fallback={<BridgePageFallback />}>
@@ -109,7 +107,7 @@ function BridgePageInner() {
   const params = useSearchParams();
   const requestedDirection = params.get('direction');
   const requestedIntent = params.get('intent');
-  const outIntent = requestedIntent === 'send' ? 'send' : 'move';
+  const outIntent = requestedIntent === 'send' ? 'send' : requestedIntent === 'move' ? 'move' : null;
   const requestedRecipient = params.get('recipient') ?? undefined;
   const publicPayment = !!requestedRecipient && /^0x[a-fA-F0-9]{40}$/.test(requestedRecipient);
   const requestedAmountRaw = params.get('amount');
@@ -118,6 +116,7 @@ function BridgePageInner() {
     : undefined;
   const [direction, setDirection] = useState<Direction>(requestedDirection === 'out' ? 'out' : 'in');
   const [historyOpen, setHistoryOpen] = useState(false);
+  const moneyIntent: MoneyIntent | undefined = direction === 'out' && outIntent ? outIntent : undefined;
 
   useEffect(() => {
     if (requestedDirection === 'in' || requestedDirection === 'out') {
@@ -130,8 +129,8 @@ function BridgePageInner() {
   // to see no choice at all, which meant the pooled balance and the card route
   // were invisible to the people most likely to want them.
   const rails = useMemo(
-    () => railsFor({ method: publicPayment ? 'web3' : method === 'circle' ? 'circle' : method ? 'web3' : null, direction }),
-    [method, direction, publicPayment],
+    () => railsFor({ method: publicPayment ? 'web3' : method === 'circle' ? 'circle' : method ? 'web3' : null, direction, intent: moneyIntent }),
+    [method, direction, moneyIntent, publicPayment],
   );
 
   const [rail, setRail] = useState<DepositRail>(() => defaultRail(rails));
@@ -150,12 +149,14 @@ function BridgePageInner() {
     setRail((current) => reconcileRail(current, rails));
   }, [rails]);
 
-  const pageTitle = direction === 'in' ? 'Add USDC' : outIntent === 'send' ? 'Send USDC' : 'Move USDC';
+  const pageTitle = direction === 'in' ? 'Add USDC' : outIntent === 'move' ? 'Withdraw from Gateway' : 'Withdraw USDC';
   const pageBody = direction === 'in'
     ? 'Choose how you want to add USDC to your Karwan account.'
-    : outIntent === 'send'
-      ? 'Choose an available balance and a supported destination.'
-      : 'Move available USDC between supported chains.';
+    : outIntent === 'move'
+      ? 'Take pooled USDC out of Gateway and send it to a supported destination.'
+      : outIntent === 'send'
+      ? 'Send USDC to a wallet on a supported chain. Choose the destination yourself.'
+      : 'Send USDC to a wallet on a supported chain. Choose the destination yourself.';
 
   return (
     <div className="product-surface">
@@ -192,7 +193,7 @@ function BridgePageInner() {
                 Add
               </DirToggle>
               <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-                {outIntent === 'send' ? 'Send' : 'Move'}
+                {outIntent === 'move' ? 'Move' : 'Withdraw'}
               </DirToggle>
             </div>
             <div data-guide="bridge-history" className="w-full sm:w-auto">

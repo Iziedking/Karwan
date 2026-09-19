@@ -73,11 +73,6 @@ export const hi: Messages = {
     backAria: 'वापस जाएं',
     openApp: 'Karwan खोलें',
 
-    networkLabel: 'Karwan नेटवर्क',
-
-    networkName: 'ARC TESTNET',
-
-    networkAria: 'Karwan, Arc Testnet पर चलता है। नेटवर्क एक्सप्लोरर खोलें।',
   },
   settings: {
     eyebrow: 'सेटिंग्स',
@@ -2996,7 +2991,7 @@ export const hi: Messages = {
     viewTx: 'ट्रांज़ैक्शन देखें',
     pulledTemplate: '{chains} से लिया गया।',
     stepAdd: 'पूल',
-    sendTag: '[:बैलेंस से भेजें:]',
+    sendTag: 'Gateway से निकालें',
     arcPinned: 'Arc पर पहुँचकर खर्च के लिए तैयार.',
     outEmpty: 'अभी भेजने के लिए कुछ नहीं. पहले इस बैलेंस में USDC पूल करें.',
   },

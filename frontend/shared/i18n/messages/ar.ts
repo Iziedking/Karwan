@@ -73,11 +73,6 @@ export const ar: Messages = {
     backAria: 'العودة للخلف',
     openApp: 'افتح Karwan',
 
-    networkLabel: 'شبكة Karwan',
-
-    networkName: 'ARC TESTNET',
-
-    networkAria: 'يعمل Karwan على شبكة Arc التجريبية. افتح مستكشف الشبكة.',
   },
   settings: {
     eyebrow: 'الإعدادات',
@@ -2996,7 +2991,7 @@ export const ar: Messages = {
     viewTx: 'عرض المعاملة',
     pulledTemplate: 'تم السحب {chains}.',
     stepAdd: 'تجميع',
-    sendTag: '[:إرسال من الرصيد:]',
+    sendTag: 'السحب من Gateway',
     arcPinned: 'يصل إلى Arc وجاهز للصرف.',
     outEmpty: 'لا شيء لنقله بعد. جمّع USDC في هذا الرصيد أولًا.',
   },

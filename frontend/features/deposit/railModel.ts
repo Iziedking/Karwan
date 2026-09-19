@@ -24,6 +24,7 @@ export interface RailOption {
 
 export type AccountMethod = 'circle' | 'web3' | null;
 export type MoneyDirection = 'in' | 'out';
+export type MoneyIntent = 'move' | 'send';
 
 /// The rails on offer, in the order they are shown.
 ///
@@ -33,8 +34,9 @@ export type MoneyDirection = 'in' | 'out';
 export function railsFor(input: {
   method: AccountMethod;
   direction: MoneyDirection;
+  intent?: MoneyIntent;
 }): RailOption[] {
-  const { method, direction } = input;
+  const { method, direction, intent } = input;
   // Anything that is not a CONFIRMED wallet gets the restricted set. `method` is
   // null while auth resolves, and offering a rail that needs a wallet to sign
   // before we know there is one is how a page flashes a panel nobody can use.
@@ -69,6 +71,16 @@ export function railsFor(input: {
       { id: 'gateway', state: circle ? 'soon' : 'ready' },
       { id: 'onramp', state: 'soon' },
     ];
+  }
+
+  // The account actions have different user intent even when both routes
+  // eventually leave Arc. Keep the decision at the rail boundary so a direct
+  // withdrawal can never expose the pooled Gateway balance as a competing tab.
+  if (intent === 'move') {
+    return [{ id: 'gateway', state: circle ? 'soon' : 'ready' }];
+  }
+  if (intent === 'send') {
+    return [{ id: 'cctp', state: 'ready' }];
   }
 
   return [

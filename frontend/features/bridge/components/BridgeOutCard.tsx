@@ -65,7 +65,10 @@ export function BridgeOutCard() {
   const [destKey, setDestKey] = useState<DestKey>(WITHDRAW_DEST_KEYS[0]);
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | ''>('');
-  const [recipient, setRecipient] = useState<string>(auth.address ?? '');
+  // A withdrawal must name its destination. Keep the owner wallet as an
+  // explicit shortcut, never as the default, so Send cannot look like an
+  // internal move back to the same account.
+  const [recipient, setRecipient] = useState<string>('');
   const [faucetBusy, setFaucetBusy] = useState(false);
   const [faucetNote, setFaucetNote] = useState<string | null>(null);
   /// The user's spendable Arc USDC (the identity wallet cash out draws from).
