@@ -67,7 +67,10 @@ const nextConfig = {
 };
 
 export default function config(phase) {
-  if (phase === PHASE_PRODUCTION_BUILD && !configuredBackend) {
+  // `next typegen` loads this file in the build phase too, but only generates
+  // types, so the guard keys on the build command itself.
+  const building = phase === PHASE_PRODUCTION_BUILD && process.argv.includes('build');
+  if (building && !configuredBackend) {
     throw new Error(
       'NEXT_PUBLIC_BACKEND_URL is not set. A production build must name its API explicitly, ' +
         'for example NEXT_PUBLIC_BACKEND_URL=https://api.karwan.site on Vercel, or a local API for a test build.',
