@@ -14,3 +14,10 @@ test('arrival cannot be confirmed by naming the buyer without the buyer session'
   assert.equal(response.status, 403);
   assert.equal((await response.json()).code, 'forbidden');
 });
+
+test('the invite preview is an allowlist and carries no hardcoded copy', async () => {
+  const source = await (await import('node:fs/promises')).readFile(new URL('./deals.ts', import.meta.url), 'utf8');
+  const preview = source.slice(source.indexOf("dealsRoutes.get('/invite/:token'"), source.indexOf("dealsRoutes.post('/invite/:token/claim'"));
+  assert.equal(preview.includes('termsPreview'), false);
+  assert.equal(preview.includes('inviterTrust'), true);
+});

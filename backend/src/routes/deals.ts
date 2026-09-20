@@ -147,6 +147,8 @@ import { agreementDigest } from '../deals/agreementDigest.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
 import { publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
+import { dealView, type DealViewInput } from '../deals/dealView.js';
+import { loadTrustCard } from '../trust/loadTrustCard.js';
 import { readEvidenceReceipt } from '../chain/evidenceReceipt.js';
 import { ownerAgentKitResearchAccess } from './research.js';
 import {
@@ -1050,6 +1052,19 @@ dealsRoutes.get('/invite/:token', async (c) => {
   const maskedInviter = `${deal.buyer.slice(0, 6)}…${deal.buyer.slice(-4)}`;
   const session = readSession(c);
   const viewerCanClaim = !!session && await sessionOwnsInviteEmail(session, invite.email);
+  const highSignal = highSignalStateFor(deal);
+  const inviterTrust = await loadTrustCard(deal.buyer, 'buyer', {
+    dealAmountUsdc: deal.dealAmountUsdc,
+    acceptedAt: deal.acceptedAt,
+    requireStake: deal.requireStake,
+    requireStakePct: deal.requireStakePct,
+    subjectPersonVerified: highSignal?.buyer?.status === 'verified',
+  }).catch((err) => {
+    // The inviter trust card is a supplement to the invite preview, never a
+    // gate. A profile lookup failure must not block the preview from loading.
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'inviter trust card unavailable');
+    return null;
+  });
   return c.json({
     invite: {
       token: invite.token,
@@ -1059,11 +1074,11 @@ dealsRoutes.get('/invite/:token', async (c) => {
       expiresAt: invite.expiresAt,
     },
     viewer: { authenticated: !!session, canClaim: viewerCanClaim },
+    inviterTrust,
     deal: {
       jobId: deal.jobId,
       dealAmountUsdc: deal.dealAmountUsdc,
       firstReleasePct: deal.firstReleasePct,
-      termsPreview: 'Private terms are shown after the invited email is verified.',
       ...(viewerCanClaim ? { terms: deal.terms } : {}),
       termsDigest: invite.termsDigest ?? termsDigest(deal.terms),
       deadlineUnix: deal.deadlineUnix,
@@ -1374,7 +1389,8 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   // The delivery requirement review (deliveryMatch) is the BUYER's private
   // judgment of the seller's work — it must never reach the seller. The client
   // also gates it; this strip is the authoritative defense.
-  const shaped = viewerIsBuyer ? enriched : { ...enriched, deliveryMatch: undefined };
+  const extras = await partyView(enriched, viewerIsBuyer ? 'buyer' : 'seller', caller!);
+  const shaped = viewerIsBuyer ? { ...enriched, ...extras } : { ...enriched, ...extras, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -4943,6 +4959,45 @@ dealsRoutes.post('/direct/:jobId/cancel/decline', async (c) => {
   });
   return c.json({ accepted: true, jobId }, 200);
 });
+
+/// The stage/progress/next-action summary and the counterparty's trust card,
+/// both computed once here so the deal page, emails and the assistant read
+/// the same answer instead of re-deriving it per surface.
+async function partyView(enriched: Awaited<ReturnType<typeof enrich>>, viewer: 'buyer' | 'seller', caller: string) {
+  const movements = await listMoneyMovementsForJobParty(enriched.jobId, caller).catch(() => []);
+  const pendingMovement = movements.some((movement) => movement.state === 'submitted' || movement.state === 'verifying');
+  const input: DealViewInput = {
+    ...enriched,
+    evidenceReceiptState: enriched.evidenceReceipt?.state,
+    checkedAt: enriched.evidenceManualReviewActive
+      ? enriched.evidenceManualReview?.at
+      : enriched.evidenceReceipt?.state === 'pass' && enriched.evidenceReceipt.recordedAt != null
+        ? enriched.evidenceReceipt.recordedAt * 1000
+        : undefined,
+    onChain: enriched.onChain
+      ? { state: enriched.onChain.state, milestonesReleased: enriched.onChain.milestonesReleased, milestonePcts: enriched.onChain.milestonePcts }
+      : null,
+  };
+  const counterpartyRole = viewer === 'buyer' ? 'seller' : 'buyer';
+  const highSignal = highSignalStateFor(enriched);
+  const counterpartyTrust = await loadTrustCard(
+    counterpartyRole === 'seller' ? enriched.seller : enriched.buyer,
+    counterpartyRole,
+    {
+      dealAmountUsdc: enriched.dealAmountUsdc,
+      acceptedAt: enriched.acceptedAt,
+      requireStake: enriched.requireStake,
+      requireStakePct: enriched.requireStakePct,
+      subjectPersonVerified: highSignal?.[counterpartyRole]?.status === 'verified',
+    },
+  ).catch((err) => {
+    // The counterparty trust card is a supplement, never a gate. A profile
+    // or deal-history lookup failure must not take the whole deal page down.
+    logger.warn({ jobId: enriched.jobId, err: (err as Error).message }, 'counterparty trust card unavailable');
+    return null;
+  });
+  return { view: dealView(input, viewer, pendingMovement, Date.now()), counterpartyTrust };
+}
 
 async function enrich(deal: DirectDeal) {
   const evidenceReceipt = deal.delivered
