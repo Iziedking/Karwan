@@ -150,3 +150,26 @@ jobs:
           NEXT_PUBLIC_BASE_SEPOLIA_RPC: ''
           NEXT_PUBLIC_SEPOLIA_RPC: ''
         run: npm --prefix frontend run build
+
+  e2e:
+    name: Browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Deal workspace browser tests
+        run: npm --prefix frontend run test:e2e
