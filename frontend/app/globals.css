@@ -238,7 +238,9 @@ html[data-theme="dark"] {
   --ink-2:     #9A9A95;   /* secondary on dark */
   --ink-3:     #5A5A57;   /* tertiary / mono labels */
   --ink-inv-0: #0A0A0B;   /* primary on light */
-  --ink-inv-2: #6E6E6A;
+  /* 4.97:1 on the page canvas. #6E6E6A measured 4.21:1 and failed WCAG AA for
+     the 13-14px secondary text it carries everywhere. */
+  --ink-inv-2: #63635F;
 
   /* Accent — USE SPARINGLY (one focal indicator per screen max). Toned down
      from the original electric `#D8FF3D` because users flagged eye fatigue;
