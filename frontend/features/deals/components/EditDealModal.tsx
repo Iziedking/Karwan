@@ -9,6 +9,7 @@ import { sfx } from '@/shared/utils/sfx';
 import { CTAPill } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { splitDeadline } from '../deadlineSplit';
 
 type DeadlineUnit = 'min' | 'hr' | 'd';
 
@@ -111,8 +112,7 @@ export function EditDealModal({
               ? deadlineValue * 3600
               : deadlineValue * 86400
           : 0;
-      const deadlineDays = Math.floor(totalSeconds / 86400);
-      const deadlineHours = Math.ceil((totalSeconds % 86400) / 3600);
+      const { days: deadlineDays, hours: deadlineHours } = splitDeadline(totalSeconds);
 
       const termsBody = {
         caller,
@@ -358,7 +358,7 @@ export function EditDealModal({
               }}
             >
               {em.feeBreakdownTemplate
-                .replace('{funded}', formatUsdc(fee.fundedAmount))
+                .replace('{funded}', formatUsdc(fee.fundedAmount, { withSuffix: false }))
                 .replace('{seller}', formatUsdc(fee.sellerNet))
                 .replace('{fee}', formatUsdc(fee.feeTotal))}
             </div>

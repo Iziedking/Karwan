@@ -13,6 +13,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { CreationReview } from './CreationReview';
 import { validAmount, validWhole } from '../creationValidation';
 import { primeCreatedDirectDeal } from '../creationHandoff';
+import { splitDeadline } from '../deadlineSplit';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -319,8 +320,7 @@ export function DirectDealForm() {
           ? deadlineValue * 3600
           : deadlineValue * 86400
       : 0;
-  const submitDays = Math.floor(totalSeconds / 86400);
-  const submitHours = Math.ceil((totalSeconds % 86400) / 3600);
+  const { days: submitDays, hours: submitHours } = splitDeadline(totalSeconds);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
