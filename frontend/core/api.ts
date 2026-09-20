@@ -484,6 +484,34 @@ export interface DirectDealOnChain {
   claimDeadlineMs?: number | null;
 }
 
+/// Mirrors backend/src/deals/dealView.ts. The server computes it once so every
+/// surface agrees on what the deal needs next.
+export interface DealView {
+  stage: 'awaiting-acceptance' | 'awaiting-funding' | 'awaiting-delivery' | 'awaiting-first-release'
+    | 'awaiting-final-release' | 'settled' | 'cancelled' | 'disputed';
+  money: { line: 'not-funded' | 'held' | 'sending' | 'paused' | 'released' | 'refunding' | 'refunded' };
+  progress: Array<{ step: 'agreed' | 'funded' | 'delivered' | 'checked' | 'released'; state: 'done' | 'current' | 'upcoming'; at?: number }>;
+  next: {
+    action: 'accept' | 'fund' | 'deliver' | 'release' | 'claim' | 'review-manually' | 'respond-extension' | 'respond-cancel' | 'dispute' | null;
+    actor: 'you' | 'counterparty' | 'nobody';
+    amountUsdc: string | null;
+  };
+  automatic: { kind: 'auto-release' | 'deadline-reclaim' | 'acceptance-expiry'; at: number } | null;
+}
+
+/// Mirrors backend/src/trust/trustCard.ts.
+export interface TrustCardView {
+  role: 'seller' | 'buyer';
+  name: string | null;
+  verifiedBusiness: boolean;
+  verifiedPerson: boolean;
+  facts: { settled: number; distinctCounterparties: number; onTime: number; withDeadline: number; disputes: number };
+  memberSince: number | null;
+  stakeUsdc: string | null;
+  provenAccounts: Array<'x'>;
+  isNew: boolean;
+}
+
 /// A settled deal as the public feed publishes it. The backend sends these
 /// fields and nothing else; addresses arrive already masked.
 export interface PublicFeedDeal {
@@ -640,6 +668,8 @@ export interface DirectDeal {
   /// the delivery themselves, and whether they already chose to.
   evidenceManualReviewAvailable?: boolean;
   evidenceManualReviewActive?: boolean;
+  view?: DealView;
+  counterpartyTrust?: TrustCardView | null;
   /// Security agent's verdict on the MATCH (distinct from delivery-proof safety
   /// above). 'flag' surfaces a risk banner; 'hold' also marks the deal for
   /// review. Deterministic, non-blocking — the money is escrowed and the human
@@ -3434,13 +3464,13 @@ export const api = {
         jobId: string;
         dealAmountUsdc: string;
         firstReleasePct: number;
-        termsPreview: string;
         terms?: string;
         termsDigest: string;
         deadlineUnix?: number;
         acceptanceDeadlineUnix?: number;
         inviterMasked: string;
       };
+      inviterTrust: TrustCardView | null;
     }>(`/api/deals/invite/${token}`),
   claimDealInvite: (token: string) =>
     json<{ ok: true; jobId: string; redirectTo: string }>(

@@ -33,7 +33,9 @@ export default function InvitePage() {
   const params = useParams<{ token: string }>();
   const token = typeof params?.token === 'string' ? params.token : '';
   const auth = useAuth();
-  const ip = useTranslations().invitePage;
+  const messages = useTranslations();
+  const ip = messages.invitePage;
+  const dw = messages.dealWorkspace;
 
   const [data, setData] = useState<InviteResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -242,7 +244,7 @@ export default function InvitePage() {
                   {ip.deal.termsLabel}
                 </p>
                 <p className="text-[14px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap">
-                  {deal.terms ?? deal.termsPreview}
+                  {deal.terms ?? dw.privateTermsPreview}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[var(--lp-border-light)]">

@@ -2869,6 +2869,34 @@ interface MessagesShape {
       walletNotReady: string;
     };
   };
+  dealWorkspace: {
+    protectedDeal: string;
+    privateDeal: string;
+    privateTermsPreview: string;
+    money: { notFunded: string; held: string; sending: string; paused: string; released: string; refunding: string; refunded: string };
+    actor: { you: string; waitingTemplate: string; nobody: string };
+    counterparty: { seller: string; buyer: string };
+    actions: {
+      accept: string; fundTemplate: string; deliver: string; releaseTemplate: string; claimTemplate: string;
+      reviewManually: string; respondExtension: string; respondCancel: string; dispute: string;
+    };
+    consequence: { accept: string; fundTemplate: string; releaseTemplate: string; claimTemplate: string; reviewManually: string };
+    progress: { title: string; agreed: string; funded: string; delivered: string; checked: string; released: string };
+    automatic: { autoReleaseTemplate: string; deadlineReclaimTemplate: string; acceptanceExpiryTemplate: string };
+    trust: {
+      title: string; asSeller: string; asBuyer: string; verifiedBusiness: string; verifiedPerson: string;
+      verifiedPersonDetail: string; settledTemplate: string; onTimeTemplate: string; disputesTemplate: string;
+      sinceTemplate: string; stakeTemplate: string; proven: string; newAccount: string; notChecked: string;
+    };
+    agreement: { title: string; paymentsTemplate: string; deliverByTemplate: string; feeTemplate: string; wrongLink: string };
+    wrong: {
+      title: string; dispute: string; deadline: string; silence: string; check: string;
+      notCoveredTitle: string; notCoveredReleased: string; notCoveredOutside: string;
+    };
+    confirm: { cannotUndo: string; confirm: string; cancel: string; working: string; failed: string };
+    conversation: { title: string; evidence: string };
+    record: { title: string };
+  };
   directDealDetail: {
     hero: {
       eyebrow: string;
@@ -8319,6 +8347,88 @@ export const en: MessagesShape = {
       insufficientStakeTemplate: 'Insufficient stake. You have {free} USDC active.',
       walletNotReady: 'Wallet not ready. Reconnect and retry.',
     },
+  },
+  dealWorkspace: {
+    protectedDeal: 'Protected deal',
+    privateDeal: 'This deal is private.',
+    privateTermsPreview: 'Confirm it is you to see the terms.',
+    money: {
+      notFunded: 'Not funded yet.',
+      held: 'Held in escrow. Released only when the buyer approves.',
+      sending: 'Sent. Waiting for the network to confirm. Nothing is lost.',
+      paused: 'Paused. No money moves until this is resolved.',
+      released: 'Released to the seller.',
+      refunding: 'Returning to the buyer.',
+      refunded: 'Returned to the buyer.',
+    },
+    actor: { you: 'Your move', waitingTemplate: 'Waiting on {name}', nobody: 'No action needed' },
+    counterparty: { seller: 'the seller', buyer: 'the buyer' },
+    actions: {
+      accept: 'Accept the agreement',
+      fundTemplate: 'Fund {amount} USDC',
+      deliver: 'Submit delivery',
+      releaseTemplate: 'Release {amount} USDC',
+      claimTemplate: 'Claim {amount} USDC',
+      reviewManually: 'Review it myself',
+      respondExtension: 'Answer the extension request',
+      respondCancel: 'Answer the cancellation request',
+      dispute: 'Open a dispute',
+    },
+    consequence: {
+      accept: 'You agree to these terms. The buyer can then fund the deal.',
+      fundTemplate: '{amount} USDC moves into escrow. It is released only when you approve or the review window ends.',
+      releaseTemplate: '{amount} USDC goes to {name}.',
+      claimTemplate: '{amount} USDC comes to you. The review window has ended.',
+      reviewManually: 'You review the delivery yourself. Your review time starts now, and you can still dispute.',
+    },
+    progress: { title: 'Progress', agreed: 'Agreed', funded: 'Funded', delivered: 'Delivered', checked: 'Checked', released: 'Released' },
+    automatic: {
+      autoReleaseTemplate: 'Releases automatically on {date} unless the buyer disputes.',
+      deadlineReclaimTemplate: 'If nothing is delivered, the buyer can take the money back from {date}.',
+      acceptanceExpiryTemplate: 'This offer expires on {date}.',
+    },
+    trust: {
+      title: 'Who you are dealing with',
+      asSeller: 'as seller',
+      asBuyer: 'as buyer',
+      verifiedBusiness: 'Verified business',
+      verifiedPerson: 'Verified person',
+      verifiedPersonDetail: 'World ID confirms a unique person, not a named identity.',
+      settledTemplate: '{n} settled',
+      onTimeTemplate: '{on} of {total} on time',
+      disputesTemplate: '{n} disputes',
+      sinceTemplate: 'since {date}',
+      stakeTemplate: '{amount} USDC stake backs this deal',
+      proven: 'Proven accounts',
+      newAccount: 'New to Karwan. No record yet. Escrow still protects this deal.',
+      notChecked: 'Not checked yet',
+    },
+    agreement: {
+      title: 'The agreement',
+      paymentsTemplate: '{n} payments',
+      deliverByTemplate: 'Deliver by {date}',
+      feeTemplate: 'Fee {amount} USDC, split evenly',
+      wrongLink: 'If something goes wrong',
+    },
+    wrong: {
+      title: 'If something goes wrong',
+      dispute: 'Either side can open a dispute. An arbiter can only split the money held in escrow between you, never take it.',
+      deadline: 'If the seller misses the delivery deadline, the buyer can take the unreleased money back.',
+      silence: 'If one side stops responding, the deal moves forward on the dates shown above.',
+      check: 'If the delivery check does not answer, the buyer can review the delivery themselves.',
+      notCoveredTitle: 'Not covered',
+      notCoveredReleased: 'Money that has already been released.',
+      notCoveredOutside: 'Anything agreed outside this deal page.',
+    },
+    confirm: {
+      cannotUndo: 'This cannot be undone.',
+      confirm: 'Confirm',
+      cancel: 'Cancel',
+      working: 'Working',
+      failed: 'That did not go through. Check the progress above before trying again.',
+    },
+    conversation: { title: 'Conversation', evidence: 'Keep terms here so they count as evidence.' },
+    record: { title: 'Record' },
   },
   directDealDetail: {
     hero: {
