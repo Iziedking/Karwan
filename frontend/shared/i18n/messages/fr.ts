@@ -5536,10 +5536,14 @@ export const fr: Messages = {
     },
     signInGate: {
       defaultTag: 'CONNEXION',
-      heroTag: 'Le marché Karwan',
-      heroTitle: 'Trouvez des missions et des clients. Bâtissez votre réputation',
+      heroTag: 'CONNEXION',
+      heroTitle: 'Continuer sur Karwan',
       pageTitle: 'Connectez-vous pour continuer',
-      heroBody: 'Rencontrez des particuliers et des entreprises qui recherchent ce que vous proposez. Invitez vos clients ou laissez les agents vous aider à trouver un partenaire. Chaque contrat terminé enrichit votre historique avec des preuves de votre travail.',
+      heroBody: 'Utilisez votre e-mail ou votre portefeuille pour retrouver vos accords, soldes et transactions, ou créer un compte Karwan.',
+      heroButton: 'Continuer par e-mail ou portefeuille',
+      heroNote: 'La connexion par portefeuille peut demander une signature. Se connecter ne déplace pas de fonds.',
+      browseIntro: 'Vous souhaitez d’abord découvrir ?',
+      browseLink: 'Parcourir le marché',
       pageBody: 'Connectez-vous par e-mail ou portefeuille pour continuer en toute sécurité dans Karwan.',
       button: 'Se connecter',
       pillars: {
@@ -5561,7 +5565,7 @@ export const fr: Messages = {
         createAccount: 'CRÉER UN COMPTE',
       },
       title: {
-        choosePath: 'Comment utilisez-vous Karwan aujourd’hui ?',
+        choosePath: 'Continuer sur Karwan',
         signIn: 'Se connecter à Karwan',
         askEmail: 'Quel est votre e-mail ?',
         welcomeBack: 'Heureux de vous revoir',
@@ -5569,7 +5573,7 @@ export const fr: Messages = {
         checkInbox: 'Vérifiez votre boîte mail',
       },
       subtitle: {
-        choosePath: 'Créez un nouveau profil commercial ou continuez avec votre compte actuel.',
+        choosePath: 'Saisissez votre e-mail ou connectez un portefeuille. Nous vérifierons si vous avez un compte Karwan.',
         pickMethod: 'Continuez par email, ou utilisez un wallet compatible si vous en avez déjà un.',
         lookup: 'Nous vérifions si cet email possède déjà un compte Karwan.',
         signingInAs: 'Connexion en tant que',
@@ -5577,10 +5581,10 @@ export const fr: Messages = {
         codeSentTo: 'Code envoyé. Saisissez les 6 chiffres.',
       },
       entry: {
-        newUser: 'Je découvre Karwan',
-        newUserBody: 'Créez votre profil commercial et définissez les limites que vos agents doivent respecter.',
-        returningUser: 'J’ai déjà un compte',
-        returningUserBody: 'Connectez-vous pour reprendre vos deals, correspondances et paiements.',
+        newUser: 'Créer un compte',
+        newUserBody: 'Créez votre profil, puis trouvez un partenaire ou apportez un accord.',
+        returningUser: 'Se connecter',
+        returningUserBody: 'Retrouvez vos accords, soldes et historique commercial.',
       },
       mismatch: {
         needsCreateTitle: 'Aucun compte Karwan trouvé',

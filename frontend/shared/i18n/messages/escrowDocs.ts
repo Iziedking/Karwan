@@ -67,7 +67,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
         items: [
           { label: 'Automatic ruling.', body: 'Either side can open a dispute and the clocks stop. The dispute engine reads the terms, the dates and the delivery evidence, and proposes a split with its reason to both sides.' },
           { label: 'Time to appeal.', body: 'The proposal only takes effect after an appeal window. Either side can escalate it before then.' },
-          { label: 'Admin review.', body: 'An escalated dispute goes to a person. One of four named reviewers signs the final ruling, and the reason is shared with both sides.' },
+          { label: 'Admin review.', body: 'An escalated dispute goes to a person. One of four named reviewers signs the final ruling, or two of them for large deals, and the reason is shared with both sides.' },
           { label: 'If nobody rules.', body: 'After the dispute timeout either side can close the dispute, and the deal continues from where it stopped. A delivery made on time is kept.' },
         ],
       },
@@ -144,7 +144,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
         items: [
           { label: 'Décision automatique.', body: 'Chaque partie peut ouvrir un litige, et les délais s’arrêtent. Le moteur de litiges lit les conditions, les dates et les preuves de livraison, puis propose une répartition motivée aux deux parties.' },
           { label: 'Délai d’appel.', body: 'La proposition ne s’applique qu’après un délai d’appel. Chaque partie peut la faire remonter avant ce terme.' },
-          { label: 'Examen par un administrateur.', body: 'Un litige remonté est confié à une personne. L’un des quatre examinateurs désignés signe la décision finale, et le motif est communiqué aux deux parties.' },
+          { label: 'Examen par un administrateur.', body: 'Un litige remonté est confié à une personne. L’un des quatre examinateurs désignés signe la décision finale, ou deux d’entre eux pour les gros accords, et le motif est communiqué aux deux parties.' },
           { label: 'Si personne ne décide.', body: 'Après le délai du litige, chaque partie peut clore le litige, et l’accord reprend là où il s’était arrêté. Une livraison faite à temps est conservée.' },
         ],
       },
@@ -221,7 +221,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
         items: [
           { label: 'حكم تلقائي.', body: 'يمكن لأي طرف فتح نزاع فتتوقف المدد. يقرأ محرك النزاعات الشروط والتواريخ وأدلة التسليم، ويقترح تقسيماً مع سببه على الطرفين.' },
           { label: 'مهلة الاستئناف.', body: 'لا يسري الاقتراح إلا بعد مهلة استئناف. يمكن لأي طرف رفعه للمراجعة قبل ذلك.' },
-          { label: 'مراجعة المسؤول.', body: 'يذهب النزاع المرفوع إلى شخص. يوقّع أحد أربعة مراجعين معيّنين الحكم النهائي، ويُبلَّغ الطرفان بالسبب.' },
+          { label: 'مراجعة المسؤول.', body: 'يذهب النزاع المرفوع إلى شخص. يوقّع أحد أربعة مراجعين معيّنين الحكم النهائي، أو اثنان منهم في الصفقات الكبيرة، ويُبلَّغ الطرفان بالسبب.' },
           { label: 'إذا لم يحكم أحد.', body: 'بعد انتهاء مهلة النزاع، يمكن لأي طرف إغلاقه، وتستأنف الصفقة من حيث توقفت. يُحتفظ بالتسليم الذي تم في موعده.' },
         ],
       },
@@ -298,7 +298,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
         items: [
           { label: 'स्वचालित निर्णय।', body: 'कोई भी पक्ष विवाद खोल सकता है और समय रुक जाता है। विवाद इंजन शर्तें, तारीखें और डिलीवरी के सबूत पढ़ता है, और दोनों पक्षों को कारण सहित बँटवारे का प्रस्ताव देता है।' },
           { label: 'अपील का समय।', body: 'प्रस्ताव अपील की अवधि के बाद ही लागू होता है। उससे पहले कोई भी पक्ष इसे आगे बढ़ा सकता है।' },
-          { label: 'एडमिन समीक्षा।', body: 'आगे बढ़ाया गया विवाद एक व्यक्ति के पास जाता है। चार नामित समीक्षकों में से एक अंतिम निर्णय पर हस्ताक्षर करता है, और कारण दोनों पक्षों को बताया जाता है।' },
+          { label: 'एडमिन समीक्षा।', body: 'आगे बढ़ाया गया विवाद एक व्यक्ति के पास जाता है। चार नामित समीक्षकों में से एक अंतिम निर्णय पर हस्ताक्षर करता है, बड़े सौदों में उनमें से दो, और कारण दोनों पक्षों को बताया जाता है।' },
           { label: 'अगर कोई निर्णय न दे।', body: 'विवाद की समय सीमा के बाद कोई भी पक्ष विवाद बंद कर सकता है, और सौदा वहीं से आगे बढ़ता है जहाँ रुका था। समय पर की गई डिलीवरी बनी रहती है।' },
         ],
       },
@@ -375,7 +375,7 @@ export const escrowDocsCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', EscrowDocs
         items: [
           { label: 'Uamuzi wa moja kwa moja.', body: 'Upande wowote unaweza kufungua mgogoro na muda unasimama. Injini ya migogoro inasoma masharti, tarehe na ushahidi wa uwasilishaji, na inapendekeza mgawanyo pamoja na sababu kwa pande zote mbili.' },
           { label: 'Muda wa kukata rufaa.', body: 'Pendekezo linaanza kutumika tu baada ya muda wa rufaa. Upande wowote unaweza kulipandisha kabla ya hapo.' },
-          { label: 'Ukaguzi wa msimamizi.', body: 'Mgogoro uliopandishwa unaenda kwa mtu. Mmoja wa wakaguzi wanne waliotajwa anatia sahihi uamuzi wa mwisho, na sababu inaelezwa kwa pande zote mbili.' },
+          { label: 'Ukaguzi wa msimamizi.', body: 'Mgogoro uliopandishwa unaenda kwa mtu. Mmoja wa wakaguzi wanne waliotajwa anatia sahihi uamuzi wa mwisho, au wawili kati yao kwa mipango mikubwa, na sababu inaelezwa kwa pande zote mbili.' },
           { label: 'Kama hakuna anayeamua.', body: 'Baada ya muda wa mgogoro kuisha, upande wowote unaweza kufunga mgogoro, na mpango unaendelea pale ulipoishia. Uwasilishaji uliofanywa kwa wakati unabaki.' },
         ],
       },

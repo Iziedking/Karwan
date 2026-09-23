@@ -5533,10 +5533,14 @@ export const sw: Messages = {
     },
     signInGate: {
       defaultTag: 'INGIA',
-      heroTag: 'Soko wazi la Karwan',
-      heroTitle: 'Pata kazi na wateja. Jenga sifa yako',
+      heroTag: 'INGIA',
+      heroTitle: 'Endelea kwenye Karwan',
       pageTitle: 'Ingia ili kuendelea',
-      heroBody: 'Kutana na watu na biashara zinazotafuta unachotoa. Leta wateja wako au ruhusu mawakala wakusaidie kupata mshirika. Mikataba iliyokamilika huongeza ushahidi wa kazi yako kwenye rekodi ya biashara unayoweza kushiriki.',
+      heroBody: 'Tumia barua pepe au pochi kurudi kwenye makubaliano, salio na rekodi zako za biashara, au kufungua akaunti ya Karwan.',
+      heroButton: 'Endelea kwa barua pepe au pochi',
+      heroNote: 'Kuingia kwa pochi kunaweza kuhitaji utie sahihi ujumbe. Kuingia hakuhamishi fedha.',
+      browseIntro: 'Unataka kuangalia kwanza?',
+      browseLink: 'Vinjari soko',
       pageBody: 'Ingia kwa barua pepe au mkoba ili kuendelea kwa usalama ndani ya Karwan.',
       button: 'Ingia',
       pillars: {
@@ -5558,7 +5562,7 @@ export const sw: Messages = {
         createAccount: 'FUNGUA AKAUNTI',
       },
       title: {
-        choosePath: 'Unatumia Karwan vipi leo?',
+        choosePath: 'Endelea kwenye Karwan',
         signIn: 'Ingia katika Karwan',
         askEmail: 'Barua pepe yako ni ipi?',
         welcomeBack: 'Karibu tena',
@@ -5566,7 +5570,7 @@ export const sw: Messages = {
         checkInbox: 'Angalia kikasha chako',
       },
       subtitle: {
-        choosePath: 'Unda wasifu mpya wa biashara au endelea na akaunti unayotumia tayari.',
+        choosePath: 'Weka barua pepe au unganisha pochi. Tutaangalia kama una akaunti ya Karwan.',
         pickMethod: 'Endelea kwa barua pepe, au tumia pochi inayooana ikiwa tayari unayo.',
         lookup: 'Tutaangalia kama barua pepe hii tayari ina akaunti ya Karwan.',
         signingInAs: 'Unaingia kama',
@@ -5574,10 +5578,10 @@ export const sw: Messages = {
         codeSentTo: 'Msimbo umetumwa. Ingiza tarakimu 6.',
       },
       entry: {
-        newUser: 'Mimi ni mpya Karwan',
-        newUserBody: 'Unda wasifu wako wa biashara na uweke mipaka ambayo mawakala wako lazima wafuate.',
-        returningUser: 'Tayari nina akaunti',
-        returningUserBody: 'Ingia uendelee na deal, mechi na malipo yako.',
+        newUser: 'Fungua akaunti',
+        newUserBody: 'Weka wasifu wako, kisha tafuta mshirika au leta makubaliano.',
+        returningUser: 'Ingia',
+        returningUserBody: 'Rudi kwenye makubaliano, salio na rekodi yako ya biashara.',
       },
       mismatch: {
         needsCreateTitle: 'Hakuna akaunti ya Karwan iliyopatikana',

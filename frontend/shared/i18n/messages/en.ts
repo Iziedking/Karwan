@@ -5114,6 +5114,10 @@ interface MessagesShape {
       heroTitle: string;
       pageTitle: string;
       heroBody: string;
+      heroButton: string;
+      heroNote: string;
+      browseIntro: string;
+      browseLink: string;
       pageBody: string;
       button: string;
       pillars: {
@@ -10911,10 +10915,14 @@ export const en: MessagesShape = {
     },
     signInGate: {
       defaultTag: 'SIGN IN',
-      heroTag: 'Karwan open market',
-      heroTitle: 'Buy, sell, and trade across borders',
+      heroTag: 'SIGN IN',
+      heroTitle: 'Continue to Karwan',
       pageTitle: 'Sign in to continue',
-      heroBody: 'Meet buyers, sellers, and businesses. Bring an existing deal or let agents help you find a match. Completed delivery and payment add evidence to a trade record you can share.',
+      heroBody: 'Use your email or wallet to return to your agreements, balances and trade record—or start a Karwan account.',
+      heroButton: 'Continue with email or wallet',
+      heroNote: 'Wallet sign-in may ask you to sign a message. Signing in does not move funds.',
+      browseIntro: 'Just looking around?',
+      browseLink: 'Browse the market first',
       pageBody: 'Sign in with email or wallet to continue securely across Karwan.',
       button: 'Sign in',
       pillars: {
@@ -10945,7 +10953,7 @@ export const en: MessagesShape = {
         createAccount: 'CREATE ACCOUNT',
       },
       title: {
-        choosePath: 'How are you using Karwan today?',
+        choosePath: 'Continue to Karwan',
         signIn: 'Sign in to Karwan',
         askEmail: "What's your email?",
         welcomeBack: 'Welcome back',
@@ -10953,7 +10961,7 @@ export const en: MessagesShape = {
         checkInbox: 'Check your inbox',
       },
       subtitle: {
-        choosePath: 'Start a new trade profile or continue with the account you already use.',
+        choosePath: 'Enter your email or connect a wallet. We’ll check whether you have a Karwan account.',
         pickMethod: 'Continue with email, or use a compatible wallet if you already have one.',
         lookup: "We'll check whether this email already has a Karwan account.",
         signingInAs: 'Signing in as',
@@ -10961,10 +10969,10 @@ export const en: MessagesShape = {
         codeSentTo: 'Code sent. Enter the 6 digits.',
       },
       entry: {
-        newUser: 'Create a Karwan account',
-        newUserBody: 'Start a trade profile and set the boundaries your agents must follow.',
-        returningUser: 'Sign in to my account',
-        returningUserBody: 'Continue your existing deals, matches, settlements, and account history.',
+        newUser: 'Create an account',
+        newUserBody: 'Set up your profile, then find someone or bring a deal.',
+        returningUser: 'Sign in',
+        returningUserBody: 'Return to your agreements, balances and trade record.',
       },
       mismatch: {
         needsCreateTitle: 'No Karwan account found',
