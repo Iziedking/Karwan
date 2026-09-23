@@ -65,6 +65,12 @@ contract KarwanReputation {
     ///         (D1) so an escrow redeploy repoints instead of cascading.
     address public escrow;
 
+    /// @notice Further contracts allowed to record outcomes: additional escrow
+    ///         versions, so old deals settle on an old escrow while new deals
+    ///         open on a new one without repointing. Owner-managed (a timelock
+    ///         on mainnet).
+    mapping(address => bool) public isRecorder;
+
     /// @notice Council that can annul a penalty (audit L-3). Owner-set.
     address public securityCouncil;
 
@@ -121,6 +127,7 @@ contract KarwanReputation {
         bytes32 indexed jobId, address indexed buyer, address indexed seller, uint16 sellerBps, uint256 dealAmount
     );
     event EscrowSet(address indexed escrow);
+    event RecorderSet(address indexed recorder, bool allowed);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event SecurityCouncilSet(address indexed council);
@@ -201,6 +208,12 @@ contract KarwanReputation {
         emit EscrowSet(_escrow);
     }
 
+    function setRecorder(address recorder, bool allowed) external onlyOwner {
+        if (recorder == address(0)) revert ZeroAddress();
+        isRecorder[recorder] = allowed;
+        emit RecorderSet(recorder, allowed);
+    }
+
     function setSecurityCouncil(address council) external onlyOwner {
         if (council == address(0)) revert ZeroAddress();
         securityCouncil = council;
@@ -225,7 +238,7 @@ contract KarwanReputation {
         Outcome outcome,
         uint256 dealAmount
     ) external {
-        if (msg.sender != escrow) revert NotEscrow();
+        if (msg.sender != escrow && !isRecorder[msg.sender]) revert NotEscrow();
         if (recorded[jobId]) revert AlreadyRecorded();
         if (outcome == Outcome.None) revert InvalidOutcome();
         recorded[jobId] = true;
@@ -243,7 +256,7 @@ contract KarwanReputation {
         uint16 sellerBps,
         uint256 dealAmount
     ) external {
-        if (msg.sender != escrow) revert NotEscrow();
+        if (msg.sender != escrow && !isRecorder[msg.sender]) revert NotEscrow();
         if (recorded[jobId]) revert AlreadyRecorded();
         if (sellerBps > 10000) revert InvalidBps();
         recorded[jobId] = true;
