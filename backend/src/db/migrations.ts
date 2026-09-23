@@ -926,6 +926,17 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
         ON world_id_deal_checks_v1 (job_id, role, agreement_digest, expires_at DESC);
     `,
   },
+  {
+    version: 29,
+    name: 'modular_accounts',
+    sql: `
+      CREATE TABLE modular_accounts_v1 (
+        address TEXT PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE,
+        created_at BIGINT NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

@@ -14,6 +14,9 @@ import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
 import { useSiwe } from '@/shared/hooks/useSiwe';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { postAuthDestination } from '@/shared/auth/postAuthRoute';
+import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
+import { PasskeySignIn } from '@/features/modularWallet/components/PasskeySignIn';
+import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
 
 interface Props {
   open: boolean;
@@ -41,7 +44,8 @@ interface AuthPlan {
 
 export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
   const { refresh, isAuthenticated } = useAuth();
-  const { address: walletAddress, isConnected: walletConnected } = useAccount();
+  const { address: walletAddress, isConnected: walletConnected, connector: walletConnector } = useAccount();
+  const passkeyConnected = walletConnector?.id === PASSKEY_CONNECTOR_ID;
   const siwe = useSiwe();
   const router = useRouter();
   const tAll = useTranslations();
@@ -474,6 +478,10 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
         <div className="space-y-3.5 px-5 pb-5 sm:space-y-4 sm:px-6 sm:pb-6">
           {stage === 'enter-email' && (
             <div className="space-y-4">
+            {MODULAR_WALLETS_ENABLED ? (
+              <PasskeySignIn onStart={() => setEntryStarted(true)} />
+            ) : (
+            <>
             <form onSubmit={handleLookup} className="space-y-4">
               <label className="block space-y-1.5">
                 <span className="text-[14px] font-semibold text-[var(--lp-dark)]">
@@ -507,6 +515,8 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 {t.pickMethod.emailNotConfigured}
               </p>
             )}
+            </>
+            )}
             <div className="flex items-center gap-3 py-1" aria-hidden>
               <span className="h-px flex-1 bg-[var(--lp-outline-strong)]" />
               <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.pickMethod.or}</span>
@@ -536,7 +546,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                 </button>
               )}
             </ConnectButton.Custom>
-            {walletConnected && siwe.state === 'error' && (
+            {walletConnected && !passkeyConnected && siwe.state === 'error' && (
               <p className="border-s border-[var(--neg)] ps-3 text-[14px] leading-snug text-[var(--lp-critical)]">
                 {siwe.error === 'wrong-network' ? t.pickMethod.walletWrongNetwork : t.pickMethod.walletRetry}
               </p>

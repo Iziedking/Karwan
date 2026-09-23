@@ -36,6 +36,7 @@
     "@circle-fin/adapter-solana-kit": "1.6.3",
     "@circle-fin/adapter-viem-v2": "1.18.0",
     "@circle-fin/app-kit": "1.15.2",
+    "@circle-fin/modular-wallets-core": "1.0.16",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@simplewebauthn/browser": "^13.3.0",
     "@solana/kit": "^5.5.1",
@@ -51,6 +52,7 @@
     "qrcode": "^1.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "viem": "2.55.11",
     "wagmi": "^2.19.5"
   },
   "devDependencies": {

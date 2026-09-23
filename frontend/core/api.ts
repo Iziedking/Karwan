@@ -2881,8 +2881,13 @@ export const api = {
         body: JSON.stringify({ email }),
       },
     ),
+  /// Testnet signs the user in. Mainnet only proves the email and returns
+  /// `emailProof`, which the passkey account's sign-in then links.
   authOtpVerify: (email: string, code: string) =>
-    json<{ user: { address: string; email: string; method: 'circle' } }>(
+    json<
+      | { user: { address: string; email: string; method: 'circle' } }
+      | { emailProof: string; email: string }
+    >(
       '/api/auth/otp/verify',
       { method: 'POST', body: JSON.stringify({ email, code }) },
     ),
@@ -2893,10 +2898,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ address, chainId }),
     }),
-  siweVerify: (address: string, signature: string) =>
-    json<{ user: { address: string; method: 'web3' } }>('/api/siwe/verify', {
+  siweVerify: (address: string, signature: string, emailProof?: string | null) =>
+    json<{ user: { address: string; method: 'web3'; email?: string } }>('/api/siwe/verify', {
       method: 'POST',
-      body: JSON.stringify({ address, signature }),
+      body: JSON.stringify({ address, signature, ...(emailProof ? { emailProof } : {}) }),
     }),
   activity: (limit = 100, jobId?: string, caller?: string) => {
     const q = new URLSearchParams();

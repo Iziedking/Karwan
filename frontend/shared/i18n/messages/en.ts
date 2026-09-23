@@ -5180,6 +5180,21 @@ interface MessagesShape {
         walletRetry: string;
         switchingWallet: string;
         walletWrongNetwork: string;
+        passkeySignIn: string;
+        passkeyNewHere: string;
+        passkeySendCode: string;
+        passkeySending: string;
+        passkeyCodeLabel: string;
+        passkeyConfirm: string;
+        passkeyConfirming: string;
+        passkeyCreate: string;
+        passkeyWaiting: string;
+        passkeyCreateHint: string;
+        passkeyCancelled: string;
+        passkeyFailed: string;
+        passkeyCodeFailed: string;
+        passkeyEmailInUse: string;
+        passkeyEmailExpired: string;
         or: string;
         emailNotConfigured: string;
       };
@@ -10996,6 +11011,21 @@ export const en: MessagesShape = {
         walletRetry: "We couldn't finish sign in. Try again.",
         switchingWallet: 'Switch to Arc in your wallet',
         walletWrongNetwork: 'Your wallet is on another network. Switch to Arc and try again.',
+        passkeySignIn: 'Sign in with passkey',
+        passkeyNewHere: 'New to Karwan',
+        passkeySendCode: 'Send code',
+        passkeySending: 'Sending…',
+        passkeyCodeLabel: 'Code from your email',
+        passkeyConfirm: 'Confirm',
+        passkeyConfirming: 'Confirming…',
+        passkeyCreate: 'Create passkey',
+        passkeyWaiting: 'Check your device…',
+        passkeyCreateHint: 'Your passkey stays on this device and unlocks your wallet.',
+        passkeyCancelled: 'Passkey cancelled. Try again when ready.',
+        passkeyFailed: "We couldn't reach your passkey. Try again.",
+        passkeyCodeFailed: "That code didn't work. Check it and try again.",
+        passkeyEmailInUse: 'This email already has an account. Sign in with its passkey.',
+        passkeyEmailExpired: 'Your email confirmation expired. Send a new code.',
         or: 'OR',
         emailNotConfigured: 'Email login is not configured on this backend.',
       },

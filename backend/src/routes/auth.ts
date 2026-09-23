@@ -28,6 +28,7 @@ import {
 } from '../db/users.js';
 import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
+import { signEmailProof } from '../auth/emailProof.js';
 import { getProfile } from '../db/profiles.js';
 import {
   clearSessionCookie,
@@ -846,6 +847,13 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
     return c.json({ error: 'wrong code' }, 400);
   }
   otps.delete(body.email);
+
+  // Where users hold their own keys (mainnet), the code only proves the email.
+  // The passkey account the user creates next is linked to it at wallet
+  // sign-in, so no backend wallet is ever made for them.
+  if (!USER_DCW_WALLETS) {
+    return c.json({ emailProof: signEmailProof(body.email), email: body.email.trim().toLowerCase() });
+  }
 
   // Resolve user. existing email logs in straight away; first-time email
   // provisions a Circle identity wallet so OTP and passkey share the same

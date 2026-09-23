@@ -26,6 +26,8 @@ import type { Chain, Transport } from 'viem';
 import { http, createConfig } from 'wagmi';
 import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from './arcNetwork';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
+import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
+import { passkeyConnector } from '@/features/modularWallet/connector';
 import {
   metaMaskWallet,
   rabbyWallet,
@@ -115,7 +117,7 @@ const walletFactories = WC_PROJECT_ID
   ? [metaMaskWallet, rabbyWallet, coinbaseWallet, walletConnectWallet, injectedWallet]
   : [rabbyWallet, coinbaseWallet, injectedWallet];
 
-const connectors = connectorsForWallets(
+const rainbowConnectors = connectorsForWallets(
   [
     {
       groupName: 'Recommended',
@@ -124,6 +126,12 @@ const connectors = connectorsForWallets(
   ],
   { appName: 'Karwan', projectId: WC_PROJECT_ID ?? 'walletconnect-disabled' },
 );
+
+// Email users on mainnet sign in with a Circle passkey account; it joins the
+// wallet list so every wallet flow treats it like any other wallet.
+const connectors = MODULAR_WALLETS_ENABLED
+  ? [...rainbowConnectors, passkeyConnector()]
+  : rainbowConnectors;
 
 /// Source chains per network. Testnet keeps the hardened RPC stacks above;
 /// mainnet uses viem's public endpoints until real traffic shows which need a

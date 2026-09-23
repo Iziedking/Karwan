@@ -10,7 +10,7 @@ export type SiwePhase =
   | 'verifying'
   | 'error';
 
-export type SiweError = 'cancelled' | 'wrong-network' | 'unavailable' | null;
+export type SiweError = 'cancelled' | 'wrong-network' | 'email-in-use' | 'email-expired' | 'unavailable' | null;
 
 export interface SiweSnapshot {
   phase: SiwePhase;

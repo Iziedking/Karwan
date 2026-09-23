@@ -3,6 +3,7 @@ import { useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAccount, useChainId, useSignMessage, useSwitchChain } from 'wagmi';
 import { arcChain } from '@/core/wagmi';
+import { clearEmailProof, peekEmailProof } from '@/features/modularWallet/pendingEmail';
 import { api } from '@/core/api';
 import { isLandingRoute } from '@/shared/utils/routes';
 import { emitAuthChanged } from './useAuth';
@@ -18,7 +19,9 @@ import {
 let inFlight: { address: string; promise: Promise<void> } | null = null;
 
 function classifySiweError(error: unknown): SiweError {
-  const candidate = error as { name?: string; code?: number; message?: string };
+  const candidate = error as { name?: string; code?: number | string; message?: string };
+  if (candidate?.code === 'email_in_use' || candidate?.code === 'address_has_email') return 'email-in-use';
+  if (candidate?.code === 'email_proof_invalid') return 'email-expired';
   if (
     candidate?.name === 'UserRejectedRequestError' ||
     candidate?.name === 'AbortError' ||
@@ -51,6 +54,8 @@ export function useSiwe(): {
   state: SiwePhase;
   error: SiweError;
   promptSign: () => Promise<void>;
+  /// Sign in as an account that just connected, before wagmi's hooks re-render.
+  signInAs: (address: string) => Promise<void>;
 } {
   const { address, isConnected, status: accountStatus } = useAccount();
   const chainId = useChainId();
@@ -110,7 +115,8 @@ export function useSiwe(): {
           });
           const signature = await signMessageAsync({ message });
           publishSiweSnapshot({ phase: 'verifying', address: normalized, error: null });
-          await api.siweVerify(target, signature);
+          await api.siweVerify(target, signature, peekEmailProof());
+          clearEmailProof();
           publishSiweSnapshot({ phase: 'idle', address: normalized, error: null });
           emitAuthChanged();
         } catch (error) {
@@ -159,5 +165,6 @@ export function useSiwe(): {
     promptSign: async () => {
       if (address) await runSiwe(address);
     },
+    signInAs: runSiwe,
   };
 }

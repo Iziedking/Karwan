@@ -8,6 +8,8 @@ import { setSessionCookie } from '../auth/session.js';
 import { ARC, publicClient } from '../chain/client.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { verifyEmailProof } from '../auth/emailProof.js';
+import { getModularAccountByAddress, linkModularAccount } from '../db/modularAccounts.js';
 
 const NONCE_TTL_MS = 10 * 60 * 1000;
 
@@ -122,6 +124,9 @@ siweRoutes.post(
 const verifySchema = z.object({
   address: addressSchema,
   signature: z.string().min(2),
+  /// From the email code step, when a passkey account is signing in for the
+  /// first time. Links the proven email to this address.
+  emailProof: z.string().min(10).max(1000).optional(),
 });
 
 siweRoutes.post(
@@ -166,14 +171,31 @@ siweRoutes.post(
       return c.json({ error: 'signature does not match address' }, 401);
     }
 
+    let email: string | undefined;
+    if (body.emailProof) {
+      const proven = verifyEmailProof(body.emailProof);
+      if (!proven) return c.json({ error: 'email confirmation expired, request a fresh code', code: 'email_proof_invalid' }, 400);
+      const link = await linkModularAccount(key, proven);
+      if (link.kind === 'conflict') {
+        const error = link.reason === 'email_in_use'
+          ? 'This email is already linked to another account. Sign in with that passkey.'
+          : 'This account is already linked to a different email.';
+        return c.json({ error, code: link.reason }, 409);
+      }
+      email = proven;
+    } else {
+      email = (await getModularAccountByAddress(key))?.email;
+    }
+
     pending.delete(key);
     setSessionCookie(c, {
       address: key,
       method: 'web3',
+      ...(email ? { email } : {}),
     });
-    logger.info({ address: key }, 'web3 user signed in via SIWE');
+    logger.info({ address: key, emailLinked: !!email }, 'web3 user signed in via SIWE');
     return c.json({
-      user: { address: key, method: 'web3' as const },
+      user: { address: key, method: 'web3' as const, ...(email ? { email } : {}) },
     });
   },
 );
