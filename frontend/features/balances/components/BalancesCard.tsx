@@ -4,7 +4,7 @@ import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { shortAddress } from '@/shared/utils/format';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
-import { arcTestnet } from '@/core/wagmi';
+import { arcChain } from '@/core/wagmi';
 import { cn } from '@/shared/utils/cn';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
@@ -100,7 +100,7 @@ function useChainBalances(address: `0x${string}` | undefined, enabled: boolean) 
   const arc = { enabled: !!address && enabled, refetchInterval: ARC_POLL_MS };
   const source = { enabled: !!address && enabled, refetchInterval: SOURCE_POLL_MS };
   return {
-    arc: useBalance({ address, chainId: arcTestnet.id, query: arc }),
+    arc: useBalance({ address, chainId: arcChain.id, query: arc }),
     baseSepolia: useBalance({
       address,
       chainId: SOURCE_CHAINS.baseSepolia.chainId,

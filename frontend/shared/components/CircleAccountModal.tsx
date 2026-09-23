@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SIGNED_OUT_ROUTE } from '@/shared/auth/signedOutRoute';
 import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
-import { arcTestnet } from '@/core/wagmi';
+import { arcChain } from '@/core/wagmi';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useClipboard } from '@/shared/hooks/useClipboard';
 import { shortAddress, formatUsdc } from '@/shared/utils/format';
@@ -26,7 +26,7 @@ export function CircleAccountModal({ open, onClose }: Props) {
   const { copied, copy } = useClipboard();
   const { data } = useBalance({
     address: auth.address as `0x${string}` | undefined,
-    chainId: arcTestnet.id,
+    chainId: arcChain.id,
   });
   const [busy, setBusy] = useState(false);
 

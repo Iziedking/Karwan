@@ -1,6 +1,5 @@
 ﻿import { fallback, defineChain } from 'viem';
 import {
-  arcTestnet,
   baseSepolia,
   sepolia,
   optimismSepolia,
@@ -13,6 +12,7 @@ import {
   hyperliquidEvmTestnet,
 } from 'viem/chains';
 import { http, createConfig } from 'wagmi';
+import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from './arcNetwork';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
 import {
   metaMaskWallet,
@@ -22,13 +22,11 @@ import {
   injectedWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 
-// Arc Testnet ships with viem (v2.48+): chain id 5042002, native USDC at 18
-// decimals, three RPC fallbacks (arc + quicknode + blockdaemon), multicall3,
-// arcscan explorer + apiUrl. Re-exported here so the existing callers around
-// the app keep their `@/core/wagmi` import path; no functional change.
-export { arcTestnet };
+// The Arc chain for the active network (core/arcNetwork.ts), from viem's own
+// definitions. Re-exported so callers keep their `@/core/wagmi` import path.
+export { arcChain };
 
-/// Arc Testnet RPC pool, primary first. A dedicated endpoint (QuickNode) leads
+/// Arc RPC pool for the active network, primary first. A dedicated endpoint (QuickNode) leads
 /// when NEXT_PUBLIC_ARC_RPC_URL is set, with the public RPC as the fallback so a
 /// dedicated-endpoint hiccup never takes the app off-chain. NEXT_PUBLIC_ is
 /// inlined into the client bundle, so the dedicated URL is PUBLIC — restrict it
@@ -36,7 +34,7 @@ export { arcTestnet };
 /// allowlist), or it can be lifted and its quota drained.
 export const ARC_RPC_URLS: string[] = [
   process.env.NEXT_PUBLIC_ARC_RPC_URL,
-  'https://rpc.testnet.arc.network',
+  publicRpcFor(ARC_NETWORK),
 ].filter((u): u is string => !!u && u.length > 0);
 
 const WC_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim() || null;
@@ -117,7 +115,7 @@ const connectors = connectorsForWallets(
 
 export const wagmiConfig = createConfig({
   chains: [
-    arcTestnet,
+    arcChain,
     baseSepolia,
     sepolia,
     optimismSepolia,
@@ -146,7 +144,7 @@ export const wagmiConfig = createConfig({
     //
     // `fallback` already provides the redundancy: rotating to the next endpoint
     // is a better answer to a busy one than asking it again.
-    [arcTestnet.id]: fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 }))),
+    [arcChain.id]: fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 }))),
     [baseSepolia.id]: fallback(BASE_SEPOLIA_RPCS.map((url) => http(url))),
     [sepolia.id]: fallback(SEPOLIA_RPCS.map((url) => http(url))),
     [optimismSepolia.id]: fallback(OP_SEPOLIA_RPCS.map((url) => http(url))),

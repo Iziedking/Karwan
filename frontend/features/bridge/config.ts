@@ -5,7 +5,7 @@ import {
   arbitrumSepolia,
   polygonAmoy,
 } from 'viem/chains';
-import { arcTestnet } from '@/core/wagmi';
+import { arcChain } from '@/core/wagmi';
 import type { ChainKey } from '@/shared/components/ChainLogo';
 
 // CCTP V2 deploys the same canonical TokenMessenger + MessageTransmitter across
@@ -369,11 +369,11 @@ export const GATEWAY_CHAINS: GatewayChainConfig[] = [
   { key: 'sonicTestnet', chainId: 14601, usdc: '0x0BA304580ee7c9a980CF72e55f5Ed2E9fd30Bc51', name: 'Sonic', appKit: 'Sonic_Testnet' },
   { key: 'worldchainSepolia', chainId: 4801, usdc: '0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88', name: 'World Chain', appKit: 'World_Chain_Sepolia' },
   { key: 'hyperevmTestnet', chainId: 998, usdc: '0x2B3370eE501B4a559b57D449569354196457D8Ab', name: 'HyperEVM', appKit: 'HyperEVM_Testnet' },
-  { key: 'arc', chainId: arcTestnet.id, usdc: '0x3600000000000000000000000000000000000000', name: 'Arc', appKit: 'Arc_Testnet' },
+  { key: 'arc', chainId: arcChain.id, usdc: '0x3600000000000000000000000000000000000000', name: 'Arc', appKit: 'Arc_Testnet' },
 ];
 
 export const ARC_TESTNET = {
-  chainId: arcTestnet.id,
+  chainId: arcChain.id,
   domain: 26,
   usdc: '0x3600000000000000000000000000000000000000' as const,
   messageTransmitter: '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275' as const,

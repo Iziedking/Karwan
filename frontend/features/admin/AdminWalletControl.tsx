@@ -1,7 +1,7 @@
 'use client';
 
 import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
-import { arcTestnet } from '@/core/wagmi';
+import { arcChain } from '@/core/wagmi';
 
 function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -13,7 +13,7 @@ export function AdminWalletControl() {
   const { connectors, connect, isPending, error } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: switching } = useSwitchChain();
-  const wrongChain = isConnected && chainId !== arcTestnet.id;
+  const wrongChain = isConnected && chainId !== arcChain.id;
 
   if (!isConnected || !address) {
     return (
@@ -51,7 +51,7 @@ export function AdminWalletControl() {
       {wrongChain ? (
         <button
           type="button"
-          onClick={() => switchChain({ chainId: arcTestnet.id })}
+          onClick={() => switchChain({ chainId: arcChain.id })}
           disabled={switching}
           className="min-h-11 rounded-lg border border-[#e0a24f]/50 bg-[#e0a24f]/10 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] text-[#efbd78] disabled:opacity-50"
         >

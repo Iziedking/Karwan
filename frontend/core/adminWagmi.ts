@@ -1,6 +1,6 @@
 import { createConfig, fallback, http } from 'wagmi';
 import { injected, walletConnect } from 'wagmi/connectors';
-import { arcTestnet, ARC_RPC_URLS } from './wagmi';
+import { arcChain, ARC_RPC_URLS } from './wagmi';
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
 
@@ -26,10 +26,10 @@ const adminConnectors = walletConnectProjectId
  * the account or connection state from the ordinary Karwan application.
  */
 export const adminWagmiConfig = createConfig({
-  chains: [arcTestnet],
+  chains: [arcChain],
   connectors: adminConnectors,
   transports: {
-    [arcTestnet.id]: fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 }))),
+    [arcChain.id]: fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 }))),
   },
   multiInjectedProviderDiscovery: false,
   storage: null,

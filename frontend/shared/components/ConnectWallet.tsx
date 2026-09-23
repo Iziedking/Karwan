@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useBalance, useSwitchChain } from 'wagmi';
 import { formatUnits } from 'viem';
-import { arcTestnet } from '@/core/wagmi';
+import { arcChain } from '@/core/wagmi';
 import { formatUsdc } from '@/shared/utils/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -23,7 +23,7 @@ function NavBalance({ alwaysVisible = false }: { alwaysVisible?: boolean }) {
   const [hidden, setHidden] = useState(false);
   const { data, isLoading } = useBalance({
     address: auth.address as `0x${string}` | undefined,
-    chainId: arcTestnet.id,
+    chainId: arcChain.id,
     query: { refetchInterval: 20_000 },
   });
   if (!auth.isAuthenticated || !auth.address) return null;
@@ -98,10 +98,11 @@ function IdentityPill({
 
 /// Maps a wallet's current chain id to our branded ChainLogo key. Returns null
 /// for chains we don't have a mark for (the pill then just omits the logo).
-/// Arc testnet is 5042002.
+/// Arc testnet is 5042002, Arc mainnet 5042.
 function chainKeyFromId(id: number): ChainKey | null {
   switch (id) {
     case 5042002:
+    case 5042:
       return 'arc';
     case 84532:
       return 'baseSepolia';
@@ -298,11 +299,11 @@ export function ConnectWalletButton({
                     </button>
                   );
                 }
-                if (chain.id !== arcTestnet.id) {
+                if (chain.id !== arcChain.id) {
                   const key = chainKeyFromId(chain.id);
                   return (
                     <button
-                      onClick={() => switchChain({ chainId: arcTestnet.id })}
+                      onClick={() => switchChain({ chainId: arcChain.id })}
                       disabled={switching}
                       type="button"
                       suppressHydrationWarning

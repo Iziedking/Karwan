@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createPublicClient, fallback, getAddress, http, isAddress } from 'viem';
-import { arcTestnet, ARC_RPC_URLS } from '@/core/wagmi';
+import { arcChain, ARC_RPC_URLS } from '@/core/wagmi';
 
 export type AddressKind = 'idle' | 'invalid' | 'checking' | 'eoa' | 'contract';
 
@@ -72,7 +72,7 @@ export function useAddressKind(
         // Use the same Arc RPC pool the rest of the app uses (dedicated primary,
         // public fallback) instead of the chain's default endpoint, which hangs.
         const client = createPublicClient({
-          chain: arcTestnet,
+          chain: arcChain,
           transport: fallback(ARC_RPC_URLS.map((url) => http(url))),
         });
         // Race the read against a timeout so a slow/rate-limited Arc RPC can't

@@ -1,6 +1,6 @@
-import { arcTestnet } from '@/core/wagmi';
+import { arcChain } from '@/core/wagmi';
 
-export const ARC_CHAIN_ID = arcTestnet.id;
+export const ARC_CHAIN_ID = arcChain.id;
 
 export const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
