@@ -44,6 +44,11 @@ contract MockUSDC is IERC20 {
 ///      assignee would hide the fact that the financier is paid OUT OF THE
 ///      SELLER'S PROCEEDS, which is the whole defect.
 contract MockEscrow {
+    /// The scenarios here model deals that have ended.
+    function isFinal(bytes32) external pure returns (bool) {
+        return true;
+    }
+
     MockUSDC public usdc;
     mapping(bytes32 => address) public sellers;
     mapping(bytes32 => uint256) public deposits;

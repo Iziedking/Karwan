@@ -47,6 +47,11 @@ contract MockUSDC {
 ///         simulateSettlePaying(), which credits the assignee for real rather
 ///         than only moving the bookkeeping.
 contract MockEscrow {
+    /// The scenarios here model deals that have ended.
+    function isFinal(bytes32) external pure returns (bool) {
+        return true;
+    }
+
     MockUSDC public usdc;
     mapping(bytes32 => address) private _seller;
 

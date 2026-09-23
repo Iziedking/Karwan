@@ -43,6 +43,11 @@ contract MockUSDC is IERC20 {
 
 /// Escrow stand-in carrying the assignment surface the real one now exposes.
 contract MockEscrow {
+    /// The scenarios here model deals that have ended.
+    function isFinal(bytes32) external pure returns (bool) {
+        return true;
+    }
+
     mapping(bytes32 => address) public sellers;
     mapping(address => bool) public authorizedAssigners;
 

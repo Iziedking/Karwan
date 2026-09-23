@@ -11,6 +11,7 @@ import {Guardable} from "./Guardable.sol";
 ///         breaks the ABI decode. The canonical seller is the only valid
 ///         recipient of the advance.
 interface IKarwanEscrow {
+    function isFinal(bytes32 jobId) external view returns (bool);
     function sellerOf(bytes32 jobId) external view returns (address);
 
     /// Sell this deal's receivable to `assignee` for up to `amount`. The escrow
@@ -235,6 +236,7 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     error MissingEscrowRecord();
     error InsufficientStake();
     error NoMatchingOffer();
+    error DealStillLive();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -466,6 +468,9 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         if (l.state != POState.Outstanding) revert InvalidState();
         if (msg.sender != l.financier) revert NotFinancier();
         if (block.timestamp < l.repaymentTimeoutAt) revert StillWithinWindow();
+        // A live deal may still pay the assignment in full. Defaulting early let
+        // the financier take the stake and later the whole assignment (F4).
+        if (!escrow.isFinal(invoiceId)) revert DealStillLive();
 
         (, , uint128 paidByEscrow) = escrow.assignmentOf(invoiceId);
         if (paidByEscrow >= l.repayUsdc) revert NothingOutstanding();
