@@ -1,6 +1,6 @@
 import { getContract, parseEventLogs, type Address } from 'viem';
 import { config } from '../config.js';
-import { publicClient } from './client.js';
+import { ARC, publicClient } from './client.js';
 import { jobBoardAbi } from './abis/jobBoard.js';
 import { escrowAbi } from './abis/escrow.js';
 import { reputationAbi } from './abis/reputation.js';
@@ -32,37 +32,66 @@ function required(name: string, value: string | undefined): Address {
   return value as Address;
 }
 
+const CORE_ADDRS = {
+  KARWAN_JOBBOARD_ADDR: config.KARWAN_JOBBOARD_ADDR,
+  KARWAN_ESCROW_ADDR: config.KARWAN_ESCROW_ADDR,
+  KARWAN_REPUTATION_ADDR: config.KARWAN_REPUTATION_ADDR,
+  KARWAN_VAULT_ADDR: config.KARWAN_VAULT_ADDR,
+};
+const coreSet = Object.values(CORE_ADDRS).filter(Boolean).length;
+
+/// Whether Karwan's own contracts exist on the active network. Mainnet runs
+/// wallet-only (balances, deposits, bridging) until the suite is deployed there,
+/// so it may leave all four unset. Testnet, or a half-set list anywhere, is a
+/// misconfiguration and stops the process as it always has.
+export const KARWAN_CONTRACTS_DEPLOYED = coreSet === Object.keys(CORE_ADDRS).length;
+if (!KARWAN_CONTRACTS_DEPLOYED && (ARC.testnet || coreSet > 0)) {
+  const missing = Object.entries(CORE_ADDRS).find(([, v]) => !v)?.[0];
+  throw new Error(`${missing} is not set in .env`);
+}
+
+/// Stand-in for a contract that is not deployed on this network. Importing it
+/// is harmless; using it throws, so a deal path that slips past the route and
+/// worker gates fails closed instead of calling address zero.
+function notDeployed<T>(name: string): T {
+  return new Proxy(
+    {},
+    {
+      get(_target, prop) {
+        if (prop === 'then' || typeof prop === 'symbol') return undefined;
+        throw new Error(`${name} is not deployed on Arc ${ARC.name}`);
+      },
+    },
+  ) as T;
+}
+
+function core<T>(name: keyof typeof CORE_ADDRS, bind: (address: Address) => T): T {
+  return KARWAN_CONTRACTS_DEPLOYED ? bind(CORE_ADDRS[name] as Address) : notDeployed<T>(name);
+}
+
 function optional(value: string | undefined): Address | null {
   if (!value) return null;
   return value as Address;
 }
 
-export const jobBoard = getContract({
-  address: required('KARWAN_JOBBOARD_ADDR', config.KARWAN_JOBBOARD_ADDR),
-  abi: activeJobBoardAbi,
-  client: publicClient,
-});
+export const jobBoard = core('KARWAN_JOBBOARD_ADDR', (address) =>
+  getContract({ address, abi: activeJobBoardAbi, client: publicClient }),
+);
 
-export const escrow = getContract({
-  address: required('KARWAN_ESCROW_ADDR', config.KARWAN_ESCROW_ADDR),
-  abi: activeEscrowAbi,
-  client: publicClient,
-});
+export const escrow = core('KARWAN_ESCROW_ADDR', (address) =>
+  getContract({ address, abi: activeEscrowAbi, client: publicClient }),
+);
 
-export const reputation = getContract({
-  address: required('KARWAN_REPUTATION_ADDR', config.KARWAN_REPUTATION_ADDR),
-  abi: activeReputationAbi,
-  client: publicClient,
-});
+export const reputation = core('KARWAN_REPUTATION_ADDR', (address) =>
+  getContract({ address, abi: activeReputationAbi, client: publicClient }),
+);
 
 /// Active KarwanVault (v2.D bundle). Holds stake positions, runs the
 /// insurance reservation system, and is the source of truth for the
 /// stake factor in the reputation engine.
-export const vault = getContract({
-  address: required('KARWAN_VAULT_ADDR', config.KARWAN_VAULT_ADDR),
-  abi: activeVaultAbi,
-  client: publicClient,
-});
+export const vault = core('KARWAN_VAULT_ADDR', (address) =>
+  getContract({ address, abi: activeVaultAbi, client: publicClient }),
+);
 
 /// Legacy KarwanVault (pre-v2.D). Read-only during the migration window so
 /// users don't lose tenure on positions they staked before the redeploy.

@@ -29,6 +29,7 @@ test('mainnet never falls back to a testnet endpoint', () => {
   assert.equal(n.chainId, 5042);
   assert.deepEqual(n.rpcUrls, ['https://rpc.mainnet.arc.io']);
   assert.equal(n.explorer, 'https://explorer.arc.io');
+  assert.deepEqual(n.wssUrls, [], 'Circle offers no mainnet WebSocket, so none is invented');
 });
 
 test('mainnet uses our own node when configured', () => {
@@ -41,8 +42,11 @@ test('mainnet uses our own node when configured', () => {
   assert.deepEqual(n.rpcUrls, ['https://rpc.karwan.example', 'https://rpc.mainnet.arc.io']);
 });
 
-test('mainnet refuses to start without a Circle blockchain id', () => {
-  assert.throws(() => resolveArcNetwork({ ARC_NETWORK: 'mainnet' }), /ARC_CIRCLE_BLOCKCHAIN/);
+test('mainnet uses the Circle and App Kit ids the installed SDKs define', () => {
+  const m = resolveArcNetwork({ ARC_NETWORK: 'mainnet' });
+  assert.equal(m.circleBlockchain, 'ARC');
+  assert.equal(m.appKitChain, 'Arc');
+  assert.equal(resolveArcNetwork({ ARC_NETWORK: 'testnet' }).appKitChain, 'Arc_Testnet');
 });
 
 test('both networks share USDC and CCTP domain but not other addresses', () => {

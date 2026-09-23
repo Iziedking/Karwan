@@ -3,10 +3,13 @@ import { logger } from '../logger.js';
 import { bus } from '../events.js';
 import { patchBridge } from '../db/bridges.js';
 import { appKit, circleWalletsAdapter } from './sdkCompat.js';
+import { ARC } from '../chain/client.js';
+import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
 
 const { AppKit, BridgeChain } = appKit;
 const { createCircleWalletsAdapter } = circleWalletsAdapter;
 type AppKitBridgeChain = import('@circle-fin/app-kit').BridgeChain;
+const ARC_APP_KIT_CHAIN = ARC.appKitChain as AppKitBridgeChain;
 /// Source-chain keys supported by the App Kit bridge path.
 ///
 /// Listed explicitly rather than derived from CctpChainKey. This path signs with
@@ -294,7 +297,7 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
       },
       to: {
         recipientAddress: input.mintRecipient,
-        chain: BridgeChain.Arc_Testnet,
+        chain: ARC_APP_KIT_CHAIN,
         // Circle's forwarder fetches the attestation and broadcasts the mint
         // on Arc, so we don't need a destination DCW. The flat $0.20 USDC
         // forwarding fee is deducted via the maxFee Circle computes.
@@ -363,23 +366,16 @@ export async function bridgeInToArcViaAppKit(input: AppKitBridgeInput): Promise<
 /// non-Arc chains become valid. Verified: every one reports
 /// cctp.forwarderSupported.destination = true.
 export const APP_KIT_DEST_CHAINS: Record<string, AppKitBridgeChain> = {
-  sepolia: BridgeChain.Ethereum_Sepolia,
-  optimismSepolia: BridgeChain.Optimism_Sepolia,
-  arbitrumSepolia: BridgeChain.Arbitrum_Sepolia,
-  baseSepolia: BridgeChain.Base_Sepolia,
-  polygonAmoy: BridgeChain.Polygon_Amoy_Testnet,
-  avalancheFuji: BridgeChain.Avalanche_Fuji,
-  unichainSepolia: BridgeChain.Unichain_Sepolia,
-  seiTestnet: BridgeChain.Sei_Testnet,
-  sonicTestnet: BridgeChain.Sonic_Testnet,
-  worldchainSepolia: BridgeChain.World_Chain_Sepolia,
-  hyperevmTestnet: BridgeChain.HyperEVM_Testnet,
+  ...Object.fromEntries(
+    CCTP_CHAIN_KEYS.map((k) => [k, CCTP_CHAINS[k].appKit as AppKitBridgeChain]),
+  ),
   // Solana Devnet: verified end-to-end (Arc DCW burn -> forwarder mint on Solana).
   // App Kit auto-derives the recipient's USDC ATA from the base58 owner address,
   // so `recipient` here is the base58 OWNER, not the ATA. The recipient must
   // already hold a USDC ATA (defensive: fund/verify before relying on brand-new
-  // recipients — App Kit creating a missing ATA is unverified).
-  solanaDevnet: BridgeChain.Solana_Devnet,
+  // recipients — App Kit creating a missing ATA is unverified). The key stays
+  // 'solanaDevnet' on mainnet for the same reason the CCTP keys do.
+  solanaDevnet: ARC.testnet ? BridgeChain.Solana_Devnet : BridgeChain.Solana,
 };
 
 /// True for destination keys whose recipient is a base58 Solana address rather
@@ -508,7 +504,7 @@ export async function bridgeOutFromArcViaAppKit(input: AppKitBridgeOutInput): Pr
     const result = await kit.bridge({
       from: {
         adapter,
-        chain: BridgeChain.Arc_Testnet,
+        chain: ARC_APP_KIT_CHAIN,
         address: input.sourceWalletAddress,
       },
       to: {

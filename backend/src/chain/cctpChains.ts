@@ -10,6 +10,17 @@ import {
   seiTestnet,
   worldchainSepolia,
   hyperliquidEvmTestnet,
+  mainnet as ethereum,
+  optimism,
+  arbitrum,
+  base,
+  polygon,
+  avalanche,
+  unichain,
+  sei,
+  sonic,
+  worldchain,
+  hyperEvm,
 } from 'viem/chains';
 import {
   BASE_SEPOLIA_BLOCKCHAIN,
@@ -22,8 +33,7 @@ import {
   type BridgeBlockchain,
 } from '../circle/wallets.js';
 import { ARC } from './client.js';
-
-
+import type { ArcNetworkName } from './networks.js';
 
 /// CCTP V2 uses one address on every testnet and another on every mainnet,
 /// so the active Arc network's values hold for the source chains too.
@@ -38,7 +48,13 @@ export const FINALITY_THRESHOLD_FAST = 1000;
 export const FINALITY_THRESHOLD_STANDARD = 2000;
 
 /// Stable keys for the non-Arc CCTP chains, as a tuple so zod enums and the
-/// union type stay in lockstep. The values match the viem chain export names.
+/// union type stay in lockstep.
+///
+/// A key names a chain SLOT, not a network: 'baseSepolia' is Base Sepolia on
+/// testnet and Base on mainnet. The names come from the testnet build and are
+/// stored on bridge rows, so renaming them would orphan history. Each network
+/// has its own database, so a key never refers to two chains in one place.
+/// Anything a user sees comes from the record (name, shortName), never the key.
 /// Sonic Testnet is not in viem: its `sonicTestnet` (64165) and
 /// `sonicBlazeTestnet` (57054) are different chains from Circle's Sonic_Testnet
 /// (14601). Defined from Circle's own chain record rather than assuming the
@@ -90,8 +106,10 @@ export interface CctpChain {
   /// burn. Circle/email accounts cannot bridge from it. Guard every Circle-path
   /// call site on this being present.
   circleBlockchain?: BridgeBlockchain;
-  /// Native USDC token on that chain's testnet.
+  /// Native USDC token on that chain.
   usdc: `0x${string}`;
+  /// App Kit / Bridge Kit chain name, fed to kit.bridge and unifiedBalance.
+  appKit: string;
   /// Native gas token symbol, for user-facing gas messages.
   nativeSymbol: string;
   /// viem chain for RPC reads on the source/destination side.
@@ -99,7 +117,7 @@ export interface CctpChain {
   explorerTx: (hash: string) => string;
 }
 
-export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
+const TESTNET_CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
   sepolia: {
     key: 'sepolia',
     name: 'Ethereum Sepolia',
@@ -107,6 +125,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     domain: 0,
     circleBlockchain: ETH_SEPOLIA_BLOCKCHAIN,
     usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+    appKit: 'Ethereum_Sepolia',
     nativeSymbol: 'ETH',
     viemChain: sepolia,
     explorerTx: (h) => `https://sepolia.etherscan.io/tx/${h}`,
@@ -118,6 +137,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     domain: 2,
     circleBlockchain: OP_SEPOLIA_BLOCKCHAIN,
     usdc: '0x5fd84259d66Cd46123540766Be93DFE6D43130D7',
+    appKit: 'Optimism_Sepolia',
     nativeSymbol: 'ETH',
     viemChain: optimismSepolia,
     explorerTx: (h) => `https://sepolia-optimism.etherscan.io/tx/${h}`,
@@ -129,6 +149,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     domain: 3,
     circleBlockchain: ARB_SEPOLIA_BLOCKCHAIN,
     usdc: '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d',
+    appKit: 'Arbitrum_Sepolia',
     nativeSymbol: 'ETH',
     viemChain: arbitrumSepolia,
     explorerTx: (h) => `https://sepolia.arbiscan.io/tx/${h}`,
@@ -140,6 +161,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     domain: 6,
     circleBlockchain: BASE_SEPOLIA_BLOCKCHAIN,
     usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    appKit: 'Base_Sepolia',
     nativeSymbol: 'ETH',
     viemChain: baseSepolia,
     explorerTx: (h) => `https://sepolia.basescan.org/tx/${h}`,
@@ -151,6 +173,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     domain: 7,
     circleBlockchain: POLYGON_AMOY_BLOCKCHAIN,
     usdc: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582',
+    appKit: 'Polygon_Amoy_Testnet',
     nativeSymbol: 'POL',
     viemChain: polygonAmoy,
     explorerTx: (h) => `https://amoy.polygonscan.com/tx/${h}`,
@@ -170,6 +193,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     shortName: 'Avalanche',
     domain: 1,
     usdc: '0x5425890298aed601595a70ab815c96711a31bc65',
+    appKit: 'Avalanche_Fuji',
     nativeSymbol: 'AVAX',
     viemChain: avalancheFuji,
     circleBlockchain: AVAX_FUJI_BLOCKCHAIN,
@@ -181,6 +205,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     shortName: 'Unichain',
     domain: 10,
     usdc: '0x31d0220469e10c4E71834a79b1f276d740d3768F',
+    appKit: 'Unichain_Sepolia',
     nativeSymbol: 'ETH',
     viemChain: unichainSepolia,
     circleBlockchain: UNI_SEPOLIA_BLOCKCHAIN,
@@ -192,6 +217,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     shortName: 'Sei',
     domain: 16,
     usdc: '0x4fCF1784B31630811181f670Aea7A7bEF803eaED',
+    appKit: 'Sei_Testnet',
     nativeSymbol: 'SEI',
     viemChain: seiTestnet,
     explorerTx: (h) => `https://testnet.seiscan.io/tx/${h}`,
@@ -202,6 +228,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     shortName: 'Sonic',
     domain: 13,
     usdc: '0x0BA304580ee7c9a980CF72e55f5Ed2E9fd30Bc51',
+    appKit: 'Sonic_Testnet',
     nativeSymbol: 'S',
     viemChain: sonicTestnet14601,
     explorerTx: (h) => `https://testnet.sonicscan.org/tx/${h}`,
@@ -212,6 +239,7 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     shortName: 'World Chain',
     domain: 14,
     usdc: '0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88',
+    appKit: 'World_Chain_Sepolia',
     nativeSymbol: 'ETH',
     viemChain: worldchainSepolia,
     explorerTx: (h) => `https://sepolia.worldscan.org/tx/${h}`,
@@ -222,11 +250,148 @@ export const CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
     shortName: 'HyperEVM',
     domain: 19,
     usdc: '0x2B3370eE501B4a559b57D449569354196457D8Ab',
+    appKit: 'HyperEVM_Testnet',
     nativeSymbol: 'HYPE',
     viemChain: hyperliquidEvmTestnet,
     explorerTx: (h) => `https://app.hyperliquid-testnet.xyz/explorer/tx/${h}`,
   },
 };
+
+/// Arc mainnet's counterparts, read from @circle-fin/bridge-kit 1.15.1's chain
+/// records (chain id, CCTP domain, USDC, explorer) on 2026-09-23. The canonical
+/// mainnet TokenMessenger is the same on all eleven. None carries a
+/// circleBlockchain: on mainnet a backend Circle wallet signs only for agents,
+/// so every deposit burn is signed by the user's own wallet.
+const MAINNET_CCTP_CHAINS: Record<CctpChainKey, CctpChain> = {
+  sepolia: {
+    key: 'sepolia',
+    name: 'Ethereum',
+    shortName: 'Ethereum',
+    domain: 0,
+    usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    appKit: 'Ethereum',
+    nativeSymbol: 'ETH',
+    viemChain: ethereum,
+    explorerTx: (h) => `https://etherscan.io/tx/${h}`,
+  },
+  optimismSepolia: {
+    key: 'optimismSepolia',
+    name: 'OP Mainnet',
+    shortName: 'Optimism',
+    domain: 2,
+    usdc: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+    appKit: 'Optimism',
+    nativeSymbol: 'ETH',
+    viemChain: optimism,
+    explorerTx: (h) => `https://optimistic.etherscan.io/tx/${h}`,
+  },
+  arbitrumSepolia: {
+    key: 'arbitrumSepolia',
+    name: 'Arbitrum One',
+    shortName: 'Arbitrum',
+    domain: 3,
+    usdc: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    appKit: 'Arbitrum',
+    nativeSymbol: 'ETH',
+    viemChain: arbitrum,
+    explorerTx: (h) => `https://arbiscan.io/tx/${h}`,
+  },
+  baseSepolia: {
+    key: 'baseSepolia',
+    name: 'Base',
+    shortName: 'Base',
+    domain: 6,
+    usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    appKit: 'Base',
+    nativeSymbol: 'ETH',
+    viemChain: base,
+    explorerTx: (h) => `https://basescan.org/tx/${h}`,
+  },
+  polygonAmoy: {
+    key: 'polygonAmoy',
+    name: 'Polygon',
+    shortName: 'Polygon',
+    domain: 7,
+    usdc: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+    appKit: 'Polygon',
+    nativeSymbol: 'POL',
+    viemChain: polygon,
+    explorerTx: (h) => `https://polygonscan.com/tx/${h}`,
+  },
+  avalancheFuji: {
+    key: 'avalancheFuji',
+    name: 'Avalanche',
+    shortName: 'Avalanche',
+    domain: 1,
+    usdc: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+    appKit: 'Avalanche',
+    nativeSymbol: 'AVAX',
+    viemChain: avalanche,
+    explorerTx: (h) => `https://subnets.avax.network/c-chain/tx/${h}`,
+  },
+  unichainSepolia: {
+    key: 'unichainSepolia',
+    name: 'Unichain',
+    shortName: 'Unichain',
+    domain: 10,
+    usdc: '0x078D782b760474a361dDA0AF3839290b0EF57AD6',
+    appKit: 'Unichain',
+    nativeSymbol: 'ETH',
+    viemChain: unichain,
+    explorerTx: (h) => `https://unichain.blockscout.com/tx/${h}`,
+  },
+  seiTestnet: {
+    key: 'seiTestnet',
+    name: 'Sei',
+    shortName: 'Sei',
+    domain: 16,
+    usdc: '0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392',
+    appKit: 'Sei',
+    nativeSymbol: 'SEI',
+    viemChain: sei,
+    explorerTx: (h) => `https://seiscan.io/tx/${h}`,
+  },
+  sonicTestnet: {
+    key: 'sonicTestnet',
+    name: 'Sonic',
+    shortName: 'Sonic',
+    domain: 13,
+    usdc: '0x29219dd400f2Bf60E5a23d13Be72B486D4038894',
+    appKit: 'Sonic',
+    nativeSymbol: 'S',
+    viemChain: sonic,
+    explorerTx: (h) => `https://sonicscan.org/tx/${h}`,
+  },
+  worldchainSepolia: {
+    key: 'worldchainSepolia',
+    name: 'World Chain',
+    shortName: 'World Chain',
+    domain: 14,
+    usdc: '0x79A02482A880bCE3F13e09Da970dC34db4CD24d1',
+    appKit: 'World_Chain',
+    nativeSymbol: 'ETH',
+    viemChain: worldchain,
+    explorerTx: (h) => `https://worldscan.org/tx/${h}`,
+  },
+  hyperevmTestnet: {
+    key: 'hyperevmTestnet',
+    name: 'HyperEVM',
+    shortName: 'HyperEVM',
+    domain: 19,
+    usdc: '0xb88339CB7199b77E23DB6E890353E22632Ba630f',
+    appKit: 'HyperEVM',
+    nativeSymbol: 'HYPE',
+    viemChain: hyperEvm,
+    explorerTx: (h) => `https://hyperevmscan.io/tx/${h}`,
+  },
+};
+
+export const CCTP_CHAINS_BY_NETWORK: Record<ArcNetworkName, Record<CctpChainKey, CctpChain>> = {
+  testnet: TESTNET_CCTP_CHAINS,
+  mainnet: MAINNET_CCTP_CHAINS,
+};
+
+export const CCTP_CHAINS = CCTP_CHAINS_BY_NETWORK[ARC.name];
 
 export function isCctpChainKey(v: string): v is CctpChainKey {
   return (CCTP_CHAIN_KEYS as readonly string[]).includes(v);
@@ -247,7 +412,7 @@ export const ARC_CHAIN_KEYS = new Set(['arc', 'arctestnet', 'arc-testnet', 'arcT
 
 export function chainLabel(key: string): string {
   if (isCctpChainKey(key)) return CCTP_CHAINS[key].name;
-  if (key === 'solanaDevnet') return 'Solana Devnet';
+  if (key === 'solanaDevnet') return ARC.testnet ? 'Solana Devnet' : 'Solana';
   const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -260,6 +425,13 @@ export function supportsCircleWallet(key: CctpChainKey): boolean {
 }
 
 export const CIRCLE_WALLET_CHAIN_KEYS = CCTP_CHAIN_KEYS.filter(supportsCircleWallet);
+
+/// Whether a backend Circle wallet may move a USER's money across chains. On
+/// mainnet users sign with their own wallet (a modular wallet for email users)
+/// and backend Circle wallets sign only for agents, decided 2026-09-23. Every
+/// route that provisions a source-chain wallet for a user, or burns from a
+/// user's Circle wallet, checks this.
+export const USER_DCW_BRIDGING = ARC.testnet;
 
 /// Reverse lookup by CCTP domain (used when relaying a mint to resolve the
 /// destination chain from a burn message's domain).

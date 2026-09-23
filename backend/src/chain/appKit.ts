@@ -17,8 +17,8 @@ const { createCircleWalletsAdapter } = circleWalletsAdapter;
 ///
 /// New cross-chain feature recipe:
 ///   1) `import { kit, circleAdapter } from '../chain/appKit.js';`
-///   2) `await kit.bridge({ from: { adapter: circleAdapter, chain: 'Ethereum_Sepolia' },
-///                          to:   { adapter: circleAdapter, chain: 'Arc_Testnet' },
+///   2) `await kit.bridge({ from: { adapter: circleAdapter, chain: CCTP_CHAINS.sepolia.appKit },
+///                          to:   { adapter: circleAdapter, chain: ARC.appKitChain },
 ///                          amount: '1.00' });`
 ///   3) Wrap with the resumable pipeline pattern from bridge.ts if you need
 ///      retries + user-facing status surfacing.

@@ -1,4 +1,4 @@
-import { circleWalletsClient, ARC_TESTNET_BLOCKCHAIN } from '../circle/wallets.js';
+import { circleWalletsClient, ARC_BLOCKCHAIN } from '../circle/wallets.js';
 import { logger } from '../logger.js';
 
 async function main() {
@@ -11,7 +11,7 @@ async function main() {
   if (!walletSetId) throw new Error('createWalletSet returned no id');
 
   const walletsRes = await client.createWallets({
-    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    blockchains: [ARC_BLOCKCHAIN],
     count: 2,
     walletSetId,
     accountType: 'SCA',

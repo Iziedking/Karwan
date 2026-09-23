@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:ci": "node ../scripts/run-tests.mjs features shared",
+    "test:ci": "node ../scripts/run-tests.mjs core features shared",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "check:tours": "tsx scripts/check-tours.ts",
     "check:shell": "tsx scripts/check-shell.ts",
@@ -33,9 +33,9 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@circle-fin/adapter-solana-kit": "^1.4.10",
-    "@circle-fin/adapter-viem-v2": "^1.11.1",
-    "@circle-fin/app-kit": "^1.12.1",
+    "@circle-fin/adapter-solana-kit": "1.6.3",
+    "@circle-fin/adapter-viem-v2": "1.18.0",
+    "@circle-fin/app-kit": "1.15.2",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@simplewebauthn/browser": "^13.3.0",
     "@solana/kit": "^5.5.1",

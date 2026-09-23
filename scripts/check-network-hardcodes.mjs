@@ -20,6 +20,9 @@ const needles = [
   '0x0022222ABE238Cc2C7Bb1f21003F0a260052475B',
   '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA',
   '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275',
+  // App Kit's name for Arc; ARC.appKitChain carries it.
+  "'Arc_Testnet'",
+  'BridgeChain.Arc_Testnet',
 ];
 
 function walk(dir) {

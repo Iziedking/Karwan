@@ -10,7 +10,19 @@ import {
   seiTestnet,
   worldchainSepolia,
   hyperliquidEvmTestnet,
+  mainnet as ethereum,
+  base,
+  optimism,
+  arbitrum,
+  polygon,
+  avalanche,
+  unichain,
+  sei,
+  sonic,
+  worldchain,
+  hyperEvm,
 } from 'viem/chains';
+import type { Chain, Transport } from 'viem';
 import { http, createConfig } from 'wagmi';
 import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from './arcNetwork';
 import { connectorsForWallets } from '@rainbow-me/rainbowkit';
@@ -113,23 +125,71 @@ const connectors = connectorsForWallets(
   { appName: 'Karwan', projectId: WC_PROJECT_ID ?? 'walletconnect-disabled' },
 );
 
+/// Source chains per network. Testnet keeps the hardened RPC stacks above;
+/// mainnet uses viem's public endpoints until real traffic shows which need a
+/// fallback stack.
+const TESTNET_SOURCE_CHAINS: readonly Chain[] = [
+  baseSepolia,
+  sepolia,
+  optimismSepolia,
+  arbitrumSepolia,
+  polygonAmoy,
+  // Gateway-only sources. Not CCTP source chains: the bridge still burns from
+  // the five above. These exist so a wallet can switch to them to pool USDC.
+  avalancheFuji,
+  unichainSepolia,
+  seiTestnet,
+  sonicTestnet14601,
+  worldchainSepolia,
+  hyperliquidEvmTestnet,
+];
+
+const ARC_TRANSPORT = fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 })));
+
+const TESTNET_TRANSPORTS: Record<number, Transport> = {
+  [baseSepolia.id]: fallback(BASE_SEPOLIA_RPCS.map((url) => http(url))),
+  [sepolia.id]: fallback(SEPOLIA_RPCS.map((url) => http(url))),
+  [optimismSepolia.id]: fallback(OP_SEPOLIA_RPCS.map((url) => http(url))),
+  [arbitrumSepolia.id]: fallback(ARB_SEPOLIA_RPCS.map((url) => http(url))),
+  [polygonAmoy.id]: fallback(POLYGON_AMOY_RPCS.map((url) => http(url))),
+  // Single public RPC each, taken from Circle's own chain records. These only
+  // serve a balance read and a deposit, not the bridge's hot path, so they do
+  // not get the fallback stack the CCTP chains needed.
+  [avalancheFuji.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
+  [unichainSepolia.id]: http('https://sepolia.unichain.org'),
+  [seiTestnet.id]: http('https://evm-rpc-testnet.sei-apis.com'),
+  [sonicTestnet14601.id]: http('https://rpc.testnet.soniclabs.com'),
+  [worldchainSepolia.id]: fallback([
+    http('https://worldchain-sepolia.drpc.org'),
+    http('https://worldchain-sepolia.g.alchemy.com/public'),
+  ]),
+  [hyperliquidEvmTestnet.id]: http('https://rpc.hyperliquid-testnet.xyz/evm'),
+};
+
+const MAINNET_SOURCE_CHAINS: readonly Chain[] = [
+  ethereum,
+  base,
+  optimism,
+  arbitrum,
+  polygon,
+  avalanche,
+  unichain,
+  sei,
+  sonic,
+  worldchain,
+  hyperEvm,
+];
+
+const SOURCE_CHAINS_FOR_NETWORK =
+  ARC_NETWORK === 'mainnet' ? MAINNET_SOURCE_CHAINS : TESTNET_SOURCE_CHAINS;
+
+const SOURCE_TRANSPORTS: Record<number, Transport> =
+  ARC_NETWORK === 'mainnet'
+    ? Object.fromEntries(MAINNET_SOURCE_CHAINS.map((c) => [c.id, http()]))
+    : TESTNET_TRANSPORTS;
+
 export const wagmiConfig = createConfig({
-  chains: [
-    arcChain,
-    baseSepolia,
-    sepolia,
-    optimismSepolia,
-    arbitrumSepolia,
-    polygonAmoy,
-    // Gateway-only sources. Not CCTP source chains: the bridge still burns from
-    // the five above. These exist so a wallet can switch to them to pool USDC.
-    avalancheFuji,
-    unichainSepolia,
-    seiTestnet,
-    sonicTestnet14601,
-    worldchainSepolia,
-    hyperliquidEvmTestnet,
-  ],
+  chains: [arcChain, ...SOURCE_CHAINS_FOR_NETWORK],
   connectors,
   transports: {
     // retryCount 1, not viem's default of 3.
@@ -144,24 +204,8 @@ export const wagmiConfig = createConfig({
     //
     // `fallback` already provides the redundancy: rotating to the next endpoint
     // is a better answer to a busy one than asking it again.
-    [arcChain.id]: fallback(ARC_RPC_URLS.map((url) => http(url, { retryCount: 1 }))),
-    [baseSepolia.id]: fallback(BASE_SEPOLIA_RPCS.map((url) => http(url))),
-    [sepolia.id]: fallback(SEPOLIA_RPCS.map((url) => http(url))),
-    [optimismSepolia.id]: fallback(OP_SEPOLIA_RPCS.map((url) => http(url))),
-    [arbitrumSepolia.id]: fallback(ARB_SEPOLIA_RPCS.map((url) => http(url))),
-    [polygonAmoy.id]: fallback(POLYGON_AMOY_RPCS.map((url) => http(url))),
-    // Single public RPC each, taken from Circle's own chain records. These only
-    // serve a balance read and a deposit, not the bridge's hot path, so they do
-    // not get the fallback stack the CCTP chains needed.
-    [avalancheFuji.id]: http('https://api.avax-test.network/ext/bc/C/rpc'),
-    [unichainSepolia.id]: http('https://sepolia.unichain.org'),
-    [seiTestnet.id]: http('https://evm-rpc-testnet.sei-apis.com'),
-    [sonicTestnet14601.id]: http('https://rpc.testnet.soniclabs.com'),
-    [worldchainSepolia.id]: fallback([
-      http('https://worldchain-sepolia.drpc.org'),
-      http('https://worldchain-sepolia.g.alchemy.com/public'),
-    ]),
-    [hyperliquidEvmTestnet.id]: http('https://rpc.hyperliquid-testnet.xyz/evm'),
+    [arcChain.id]: ARC_TRANSPORT,
+    ...SOURCE_TRANSPORTS,
   },
   ssr: true,
 });

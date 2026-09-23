@@ -8,7 +8,7 @@ import { startProactiveSupervisor } from './llm/supervisor.js';
 import { config } from './config.js';
 import { ARC, arcChain, publicClient } from './chain/client.js';
 import { checkChain, mustStop } from './chain/networkGuard.js';
-import { invalidateEscrowCache } from './chain/contracts.js';
+import { invalidateEscrowCache, KARWAN_CONTRACTS_DEPLOYED } from './chain/contracts.js';
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
 import { configureJobsReengagementShadow } from './routes/jobsReengagement.js';
@@ -363,6 +363,38 @@ app.get('/health', async (c) => {
   }
 });
 
+/// Route groups that need Karwan's own contracts. Where they are not deployed
+/// (Arc mainnet before the suite ships) these answer 409 instead of reaching a
+/// handler; the wallet routes (balances, deposits, bridging) stay open.
+const DEAL_ROUTE_PREFIXES = [
+  '/api/jobs',
+  '/api/agents',
+  '/api/milestones',
+  '/api/reputation',
+  '/api/deals',
+  '/api/cre',
+  '/api/vault',
+  '/api/legacy',
+  '/api/yield',
+  '/api/treasury',
+  '/api/listings',
+  '/api/trade',
+  '/api/factoring',
+  '/api/po-financing',
+  '/api/financier',
+  '/api/sme',
+  '/api/partners',
+  '/api/business',
+  '/api/x402',
+];
+if (!KARWAN_CONTRACTS_DEPLOYED) {
+  for (const prefix of DEAL_ROUTE_PREFIXES) {
+    app.use(`${prefix}/*`, async (c) =>
+      c.json({ error: 'Not available on this network yet.', code: 'not_on_this_network' }, 409),
+    );
+  }
+}
+
 app.route('/api/jobs', jobsRoutes);
 app.route('/api/agents', agentsRoutes);
 app.route('/api/events', eventsRoutes);
@@ -492,6 +524,18 @@ stopFns.push(startProactiveSupervisor());
 function bootAgents() {
   if (process.env.SKIP_AGENTS === '1') {
     appLogger.warn('SKIP_AGENTS=1, not starting buyer/seller agents');
+    return;
+  }
+  if (!KARWAN_CONTRACTS_DEPLOYED) {
+    appLogger.warn(
+      { network: ARC.name },
+      'Karwan contracts are not deployed on this network: wallet-only, deal agents and watchers not started',
+    );
+    try {
+      stopFns.push(startBalanceWatcher());
+    } catch (err) {
+      appLogger.warn({ err: (err as Error).message }, 'balance watcher not started');
+    }
     return;
   }
   if (!config.OPENROUTER_API_KEY) {

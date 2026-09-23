@@ -13,6 +13,8 @@ import {
 } from '../gateway/balance.js';
 import { GatewaySpendError, fundAgentFromGateway, cashOutFromGateway } from '../gateway/spend.js';
 import { logger } from '../logger.js';
+import { CCTP_CHAINS, CCTP_CHAIN_KEYS } from '../chain/cctpChains.js';
+import { ARC } from '../chain/client.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
 /// Circle Gateway unified balance (read side).
@@ -30,45 +32,22 @@ import { invalidBodyMessage } from './invalidBody.js';
 
 export const gatewayRoutes = new Hono();
 
-/// Every EVM chain Gateway supports on testnet. Chain count is NOT a cost here:
-/// measured warm, six chains and twelve both land around 330-370ms, and the
-/// ~4.9s seen on a first call is connection cold-start, not fan-out. So the list
-/// is pinned for determinism (we render a fixed set of chain marks), not for
-/// latency.
+/// Every EVM chain Gateway supports on the active network: the CCTP set plus
+/// Arc. Chain count is NOT a cost here: measured warm, six chains and twelve
+/// both land around 330-370ms, and the ~4.9s seen on a first call is connection
+/// cold-start, not fan-out. So the list is pinned for determinism (we render a
+/// fixed set of chain marks), not for latency.
 ///
-/// Solana Devnet is Gateway-supported but deliberately absent: Gateway keys
-/// accounts by address, so a Solana address is a SEPARATE depositor from the
-/// user's EOA rather than part of the same pool.
-const CHAINS = [
-  'Ethereum_Sepolia',
-  'Optimism_Sepolia',
-  'Arbitrum_Sepolia',
-  'Base_Sepolia',
-  'Polygon_Amoy_Testnet',
-  'Avalanche_Fuji',
-  'Unichain_Sepolia',
-  'Sei_Testnet',
-  'Sonic_Testnet',
-  'World_Chain_Sepolia',
-  'HyperEVM_Testnet',
-  'Arc_Testnet',
-] as const;
+/// Solana is Gateway-supported but deliberately absent: Gateway keys accounts
+/// by address, so a Solana address is a SEPARATE depositor from the user's EOA
+/// rather than part of the same pool.
+const CHAINS = [...CCTP_CHAIN_KEYS.map((k) => CCTP_CHAINS[k].appKit), ARC.appKitChain];
 
 /// App Kit's chain names -> the keys ChainLogo and the bridge config already
 /// speak, so the panel reuses the existing chain marks.
 const CHAIN_KEY: Record<string, string> = {
-  Ethereum_Sepolia: 'sepolia',
-  Optimism_Sepolia: 'optimismSepolia',
-  Arbitrum_Sepolia: 'arbitrumSepolia',
-  Base_Sepolia: 'baseSepolia',
-  Polygon_Amoy_Testnet: 'polygonAmoy',
-  Avalanche_Fuji: 'avalancheFuji',
-  Unichain_Sepolia: 'unichainSepolia',
-  Sei_Testnet: 'seiTestnet',
-  Sonic_Testnet: 'sonicTestnet',
-  World_Chain_Sepolia: 'worldchainSepolia',
-  HyperEVM_Testnet: 'hyperevmTestnet',
-  Arc_Testnet: 'arc',
+  ...Object.fromEntries(CCTP_CHAIN_KEYS.map((k) => [CCTP_CHAINS[k].appKit, k])),
+  [ARC.appKitChain]: 'arc',
 };
 
 interface GatewayChainBalance {

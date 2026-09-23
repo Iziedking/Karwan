@@ -140,22 +140,24 @@ export function SolanaConnectCard({
           {/* Faucets: copy the connected address and open the faucet page, so
               the user pastes it there to claim devnet USDC (Circle) or SOL gas. */}
           <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => void copyAndOpen(USDC_FAUCET, 'usdc')}
-              className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
-              style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--lp-band-dark)',
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
-              }}
-            >
-              {copied === 'usdc' ? copy.copied : copy.getUsdc}
-              <ExternalIcon />
-            </button>
+            {USDC_FAUCET && (
+              <button
+                type="button"
+                onClick={() => void copyAndOpen(USDC_FAUCET!, 'usdc')}
+                className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1"
+                style={{
+                  background: 'var(--lp-accent)',
+                  color: 'var(--lp-band-dark)',
+                  borderTopLeftRadius: 6,
+                  borderTopRightRadius: 6,
+                  borderBottomLeftRadius: 6,
+                  borderBottomRightRadius: 2,
+                }}
+              >
+                {copied === 'usdc' ? copy.copied : copy.getUsdc}
+                <ExternalIcon />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void copyAndOpen(SOLANA_GAS_FAUCET, 'gas')}

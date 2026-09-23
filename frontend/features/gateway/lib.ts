@@ -1,4 +1,4 @@
-import { GATEWAY_CHAINS } from '@/features/bridge/config';
+import { APPKIT_ARC_CHAIN, GATEWAY_CHAINS } from '@/features/bridge/config';
 import { SPEND_STEPS, type GatewayStep } from './GatewayProgress';
 
 const SPEND_STEP_NAMES: readonly string[] = SPEND_STEPS;
@@ -12,7 +12,7 @@ const SPEND_STEP_NAMES: readonly string[] = SPEND_STEPS;
 /// That is what makes "top up my agent from Gateway" work: the user's own EOA
 /// signs, the agent SCA receives.
 
-export const ARC_APPKIT_CHAIN = 'Arc_Testnet';
+export const ARC_APPKIT_CHAIN = APPKIT_ARC_CHAIN;
 
 /// Build App Kit against the user's connected browser wallet. Dynamic-imported
 /// so the SDK is not in the initial bundle of every page that merely shows a

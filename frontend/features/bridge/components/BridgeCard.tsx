@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
+import { arcChain } from '@/core/wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { formatUnits, isAddress } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -824,7 +825,7 @@ export function BridgeCard({
               resolved={mintRecipient}
               copy={bc.recipient}
               mintsToEyebrow={bc.eyebrow.mintsTo}
-              arcLabel={bc.arcTestnet}
+              arcLabel={arcChain.name}
             />
           ) : (
             <div
@@ -1908,23 +1909,25 @@ function Web3FundHint({
         </LpHint>
       </div>
       <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-        <button
-          type="button"
-          onClick={() => void copyAndOpen(USDC_FAUCET, 'usdc')}
-          disabled={!fundAddress}
-          className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
-          style={{
-            background: 'var(--lp-accent)',
-            color: 'var(--lp-band-dark)',
-            borderTopLeftRadius: 6,
-            borderTopRightRadius: 6,
-            borderBottomLeftRadius: 6,
-            borderBottomRightRadius: 2,
-          }}
-        >
-          {copied === 'usdc' ? copy.copied : copy.getTestUsdc}
-          <ExternalIcon />
-        </button>
+        {USDC_FAUCET && (
+          <button
+            type="button"
+            onClick={() => void copyAndOpen(USDC_FAUCET!, 'usdc')}
+            disabled={!fundAddress}
+            className="mono min-h-11 text-[10px] uppercase tracking-[0.14em] font-bold inline-flex items-center gap-1 px-2.5 py-1 disabled:opacity-50"
+            style={{
+              background: 'var(--lp-accent)',
+              color: 'var(--lp-band-dark)',
+              borderTopLeftRadius: 6,
+              borderTopRightRadius: 6,
+              borderBottomLeftRadius: 6,
+              borderBottomRightRadius: 2,
+            }}
+          >
+            {copied === 'usdc' ? copy.copied : copy.getTestUsdc}
+            <ExternalIcon />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {

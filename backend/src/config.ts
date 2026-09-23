@@ -59,9 +59,8 @@ const envSchema = z.object({
   ARC_WSS_URL: z.preprocess(blankToUndefined, z.string().optional()),
   ARC_WSS_URLS: z.preprocess(blankToUndefined, z.string().optional()),
   ARC_EXPLORER_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
-  /// Circle Wallets blockchain id. Defaults to ARC-TESTNET on testnet. Circle
-  /// does not list an Arc mainnet id yet (checked 2026-09-23), so mainnet has no
-  /// default and refuses to start without it.
+  /// Circle Wallets blockchain id override. Defaults to ARC-TESTNET on testnet
+  /// and ARC on mainnet (chain/networks.ts).
   ARC_CIRCLE_BLOCKCHAIN: z.preprocess(blankToUndefined, z.string().optional()),
 
   ARC_TESTNET_RPC_URL: z.preprocess(

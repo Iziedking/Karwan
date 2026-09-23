@@ -23,7 +23,7 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { ARC_TESTNET, SOLANA_RPC_URL, SOLANA_USDC_MINT } from './config';
+import { ARC_CCTP, SOLANA_RPC_URL, SOLANA_USDC_MINT } from './config';
 
 // Same program IDs on mainnet and devnet (Circle docs: cctp/references/solana-programs).
 const MESSAGE_TRANSMITTER_V2 = new PublicKey('CCTPV2Sm4AdWt5296sk4P66VBZ7bEhcARwFaaS9YPbeC');
@@ -117,7 +117,7 @@ export async function buildDepositForBurnTx(input: {
   const tokenMessenger = pda([utf8('token_messenger')], tmm);
   // Seed is the destination domain as a DECIMAL STRING (per Circle's examples).
   const remoteTokenMessenger = pda(
-    [utf8('remote_token_messenger'), utf8(String(ARC_TESTNET.domain))],
+    [utf8('remote_token_messenger'), utf8(String(ARC_CCTP.domain))],
     tmm,
   );
   const tokenMinter = pda([utf8('token_minter')], tmm);
@@ -126,7 +126,7 @@ export async function buildDepositForBurnTx(input: {
 
   const data = encodeDepositForBurnData({
     amount,
-    destinationDomain: ARC_TESTNET.domain,
+    destinationDomain: ARC_CCTP.domain,
     mintRecipient: evmAddressToPubkey(input.mintRecipient),
     // Zero = any caller may submit receiveMessage on Arc (our backend relay).
     destinationCaller: PublicKey.default,

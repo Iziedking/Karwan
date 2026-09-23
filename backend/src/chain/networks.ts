@@ -15,10 +15,13 @@ export interface ArcNetworkSpec {
   label: string;
   testnet: boolean;
   defaultRpc: string;
-  defaultWss: string;
+  /// WebSocket endpoint, or null where the primary RPC offers none.
+  defaultWss: string | null;
   defaultExplorer: string;
-  /// Circle Wallets blockchain id, or null where Circle has not published one.
-  circleBlockchain: string | null;
+  /// Circle Wallets blockchain id.
+  circleBlockchain: string;
+  /// App Kit / Bridge Kit chain name. Arc mainnet exists from bridge-kit 1.15.0.
+  appKitChain: 'Arc_Testnet' | 'Arc';
   cctpDomain: number;
   /// Circle's CCTP attestation API for this network.
   irisApiBase: string;
@@ -46,6 +49,7 @@ export const ARC_NETWORKS: Record<ArcNetworkName, ArcNetworkSpec> = {
     defaultWss: 'wss://rpc.testnet.arc.network',
     defaultExplorer: 'https://testnet.arcscan.app',
     circleBlockchain: 'ARC-TESTNET',
+    appKitChain: 'Arc_Testnet',
     cctpDomain: 26,
     irisApiBase: 'https://iris-api-sandbox.circle.com',
     contracts: {
@@ -67,9 +71,13 @@ export const ARC_NETWORKS: Record<ArcNetworkName, ArcNetworkSpec> = {
     label: 'Arc',
     testnet: false,
     defaultRpc: 'https://rpc.mainnet.arc.io',
-    defaultWss: 'wss://rpc.mainnet.arc.io',
+    // Circle's primary mainnet RPC has no WebSocket (docs.arc.io rpc-endpoints).
+    defaultWss: null,
     defaultExplorer: 'https://explorer.arc.io',
-    circleBlockchain: null,
+    // Read from @circle-fin/adapter-circle-wallets 1.8.0, whose map is typed
+    // against Circle's own ContractExecutionBlockchain enum.
+    circleBlockchain: 'ARC',
+    appKitChain: 'Arc',
     cctpDomain: 26,
     irisApiBase: 'https://iris-api.circle.com',
     contracts: {
@@ -108,7 +116,6 @@ export interface ResolvedArcNetwork extends ArcNetworkSpec {
   rpcUrls: string[];
   wssUrls: string[];
   explorer: string;
-  circleBlockchain: string;
   /// CAIP-2 id, e.g. eip155:5042002.
   caip2: string;
   cctpMessageTransmitter: Address;
@@ -124,25 +131,20 @@ function list(primary: string, extra: string | undefined): string[] {
 
 /// Resolve the active network from config. Testnet keeps honouring the
 /// ARC_TESTNET_* variables; mainnet ignores them, so a testnet endpoint can
-/// never be used for mainnet by accident. Throws on an unsafe mainnet setup.
+/// never be used for mainnet by accident.
 export function resolveArcNetwork(c: NetworkConfigInput): ResolvedArcNetwork {
   const spec = ARC_NETWORKS[c.ARC_NETWORK];
   const legacy = spec.testnet;
   const rpc = c.ARC_RPC_URL ?? (legacy ? c.ARC_TESTNET_RPC_URL : undefined) ?? spec.defaultRpc;
   const rpcExtra = c.ARC_RPC_URLS ?? (legacy ? c.ARC_TESTNET_RPC_URLS : undefined);
-  const wss = c.ARC_WSS_URL ?? (legacy ? c.ARC_TESTNET_WSS_URL : undefined) ?? spec.defaultWss;
+  const wss = c.ARC_WSS_URL ?? (legacy ? c.ARC_TESTNET_WSS_URL : undefined) ?? spec.defaultWss ?? undefined;
   const wssExtra = c.ARC_WSS_URLS ?? (legacy ? c.ARC_TESTNET_WSS_URLS : undefined);
   const explorer = c.ARC_EXPLORER_URL ?? (legacy ? c.ARC_TESTNET_EXPLORER_URL : undefined) ?? spec.defaultExplorer;
   const circleBlockchain = c.ARC_CIRCLE_BLOCKCHAIN ?? spec.circleBlockchain;
-  if (!circleBlockchain) {
-    throw new Error(
-      `ARC_CIRCLE_BLOCKCHAIN must be set for Arc ${spec.name}: Circle has not published a Wallets id for it`,
-    );
-  }
   return {
     ...spec,
     rpcUrls: list(rpc, rpcExtra),
-    wssUrls: list(wss, wssExtra),
+    wssUrls: wss ? list(wss, wssExtra) : [],
     explorer,
     circleBlockchain,
     caip2: `eip155:${spec.chainId}`,

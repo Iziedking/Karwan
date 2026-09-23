@@ -60,8 +60,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
     "@aws-sdk/client-s3": "^3.654.0",
-    "@circle-fin/adapter-circle-wallets": "^1.7.0",
-    "@circle-fin/app-kit": "^1.12.1",
+    "@circle-fin/adapter-circle-wallets": "1.8.0",
+    "@circle-fin/app-kit": "1.15.2",
     "@circle-fin/developer-controlled-wallets": "^10.8.0",
     "@circle-fin/x402-batching": "^3.0.4",
     "@hono/node-server": "^1.13.0",

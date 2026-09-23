@@ -13,10 +13,17 @@ export function parseArcNetwork(raw: string | undefined): ArcNetworkName {
   throw new Error(`NEXT_PUBLIC_ARC_NETWORK must be "testnet" or "mainnet", got "${raw}"`);
 }
 
-/// viem's Arc mainnet chain leaves `testnet` unset; set it so the app never
-/// presents mainnet as an unknown network.
+/// viem's Arc mainnet chain leaves `testnet` and `blockExplorers` unset; set
+/// both so the app never presents mainnet as an unknown network or links to
+/// nowhere.
 export function chainFor(name: ArcNetworkName): Chain {
-  return name === 'mainnet' ? { ...arc, testnet: false as const } : arcTestnet;
+  return name === 'mainnet'
+    ? {
+        ...arc,
+        testnet: false as const,
+        blockExplorers: { default: { name: 'Arc Explorer', url: 'https://explorer.arc.io' } },
+      }
+    : arcTestnet;
 }
 
 export function publicRpcFor(name: ArcNetworkName): string {

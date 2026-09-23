@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { formatUnits } from 'viem';
 import { executeContractCall } from '../chain/txs.js';
-import { circleWalletsClient, ARC_TESTNET_BLOCKCHAIN } from '../circle/wallets.js';
+import { circleWalletsClient, ARC_BLOCKCHAIN } from '../circle/wallets.js';
 import { gatewayAvailableUsd } from '../x402/buyerClient.js';
 import { getAgentWallets, updateGatewayWallet, type AgentWallets } from '../db/agentWallets.js';
 import { getUserByAddress } from '../db/users.js';
@@ -57,7 +57,7 @@ async function provisionGatewayWallet(userAddress: string): Promise<GatewayWalle
   }
   const client = circleWalletsClient();
   const res = await client.createWallets({
-    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    blockchains: [ARC_BLOCKCHAIN],
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     // Web3-only accounts have no Circle SCA, so retain the legacy EOA owner

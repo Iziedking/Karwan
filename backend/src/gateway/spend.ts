@@ -3,7 +3,8 @@ import { requireAppKit } from '../chain/appKit.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { gatewayAvailableUsd } from '../x402/buyerClient.js';
 import { createBridge } from '../db/bridges.js';
-import { ARC_DOMAIN, type CctpChainKey } from '../chain/cctpChains.js';
+import { ARC_DOMAIN, CCTP_CHAINS, type CctpChainKey } from '../chain/cctpChains.js';
+import { ARC } from '../chain/client.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import {
@@ -30,17 +31,20 @@ import { parseUsdcMicros, type MoneyMovement } from '../money/model.js';
 /// account type. App Kit builds the burn intent, signs it, submits it, and the
 /// forwarder broadcasts the mint — no manual mint call.
 
-const ARC_APP_KIT_CHAIN = 'Arc_Testnet';
+const ARC_APP_KIT_CHAIN = ARC.appKitChain;
 
 /// CCTP chain keys (what the rest of the app speaks) -> App Kit chain names for a
 /// Gateway spend destination. Only chains proven on the CCTP cash-out path.
-export const GATEWAY_DEST_CHAINS: Record<string, string> = {
-  baseSepolia: 'Base_Sepolia',
-  arbitrumSepolia: 'Arbitrum_Sepolia',
-  optimismSepolia: 'Optimism_Sepolia',
-  sepolia: 'Ethereum_Sepolia',
-  polygonAmoy: 'Polygon_Amoy_Testnet',
-};
+const GATEWAY_DEST_KEYS: CctpChainKey[] = [
+  'baseSepolia',
+  'arbitrumSepolia',
+  'optimismSepolia',
+  'sepolia',
+  'polygonAmoy',
+];
+export const GATEWAY_DEST_CHAINS: Record<string, string> = Object.fromEntries(
+  GATEWAY_DEST_KEYS.map((k) => [k, CCTP_CHAINS[k].appKit]),
+);
 
 /// Build the App Kit `unifiedBalance.spend` params for a spend from the user's
 /// Gateway EOA (funded on Arc) to a recipient on `destChain` (defaults to Arc).

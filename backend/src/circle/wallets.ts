@@ -29,8 +29,8 @@ export function circleWalletsClient() {
   return _client;
 }
 
-/// The Circle Wallets id of the active Arc network (ARC-TESTNET on testnet).
-export const ARC_TESTNET_BLOCKCHAIN = ARC.circleBlockchain as 'ARC-TESTNET';
+/// The Circle Wallets id of the active Arc network: ARC-TESTNET or ARC.
+export const ARC_BLOCKCHAIN = ARC.circleBlockchain as 'ARC-TESTNET' | 'ARC';
 /// Source chains Circle users can bridge USDC INTO Arc from. Provisioned per
 /// user so the backend can sign the CCTP burn on the source side without the
 /// user needing to bring a web3 wallet. The exact strings here must match
@@ -93,7 +93,7 @@ export async function provisionUserIdentityWallet(
   }
   const client = circleWalletsClient();
   const res = await client.createWallets({
-    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    blockchains: [ARC_BLOCKCHAIN],
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     accountType: 'SCA',
@@ -123,7 +123,7 @@ export async function provisionUserAgentWallets(
   const refId = userAddress.toLowerCase();
   const client = circleWalletsClient();
   const res = await client.createWallets({
-    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    blockchains: [ARC_BLOCKCHAIN],
     count: 2,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     accountType: 'SCA',
@@ -353,10 +353,10 @@ export interface DripResult {
 /// activation callers ignore it (fire-and-forget) so the faucet never blocks them.
 export async function dripTestnetUsdc(address: string, opts: DripOptions = {}): Promise<DripResult> {
   const key = config.CIRCLE_API_KEY;
-  if (!key || !key.startsWith('TEST_API_KEY')) {
+  if (!ARC.testnet || !key || !key.startsWith('TEST_API_KEY')) {
     return { ok: false, detail: 'faucet is only available on testnet' };
   }
-  const blockchain = opts.blockchain ?? ARC_TESTNET_BLOCKCHAIN;
+  const blockchain = opts.blockchain ?? ARC_BLOCKCHAIN;
   const wantUsdc = opts.usdc ?? true;
   const wantNative = opts.native ?? false;
   if (!wantUsdc && !wantNative) return { ok: false, detail: 'nothing requested' };

@@ -17,6 +17,7 @@ import {
   CCTP_CHAINS,
   CCTP_CHAIN_KEYS,
   chainKeyForCircleBlockchain,
+  USER_DCW_BRIDGING,
   type CctpChainKey,
 } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
@@ -90,6 +91,10 @@ depositRoutes.get('/address', async (c) => {
   // there is nothing to show them here. Provisioning a backend deposit wallet
   // for them is also refused at the source: it advances the shared per-chain
   // index counter, which is what collides addresses between users.
+  if (!USER_DCW_BRIDGING) {
+    return c.json({ supported: false, reason: 'not_on_this_network', chains: [], solana: null });
+  }
+
   const user = getUserByAddress(userAddress);
   if (!user?.circleIdentityWalletId) {
     return c.json({ supported: false, reason: 'web3_account', chains: [], solana: null });

@@ -14,6 +14,7 @@ test('mainnet is chain 5042 and is presented as mainnet, not unknown', () => {
   assert.equal(chain.id, 5042);
   assert.equal(networkPresentation(chain).environment, 'mainnet');
   assert.equal(networkPresentation(chain).faucetUrl, undefined, 'no faucet on mainnet');
+  assert.equal(networkPresentation(chain).explorerUrl, 'https://explorer.arc.io');
 });
 
 test('a typo fails loudly instead of quietly running testnet', () => {

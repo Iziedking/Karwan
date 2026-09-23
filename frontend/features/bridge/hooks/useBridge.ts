@@ -15,7 +15,7 @@ import {
   requireConfirmedTx,
 } from '@/shared/chain/confirmTx';
 import {
-  ARC_TESTNET,
+  ARC_CCTP,
   SOURCE_CHAINS,
   APP_KIT_SOURCES,
   APPKIT_CHAIN,
@@ -219,7 +219,7 @@ export function bridgeChainMeta(key: AnySourceChainKey): {
       name: 'Arc',
       shortName: 'Arc',
       nativeSymbol: 'USDC',
-      explorerTx: (h: string) => ARC_TESTNET.explorerTx(h),
+      explorerTx: (h: string) => ARC_CCTP.explorerTx(h),
     };
   }
   if (isAppKitOnlyChainKey(key)) {
@@ -473,7 +473,7 @@ export function useBridges() {
   });
   const hyperevmTestnetClient = usePublicClient({ chainId: SOURCE_CHAINS.hyperevmTestnet.chainId });
   // Arc reads for the web3 bridge-out path (balance, allowance, burn receipt).
-  const arcClient = usePublicClient({ chainId: ARC_TESTNET.chainId });
+  const arcClient = usePublicClient({ chainId: ARC_CCTP.chainId });
   const sourceClients = useMemo<Record<CctpChainKey, ReturnType<typeof usePublicClient>>>(
     () => ({
       sepolia: sepoliaClient,
@@ -817,7 +817,7 @@ export function useBridges() {
           functionName: 'depositForBurn',
           args: [
             amountWei,
-            ARC_TESTNET.domain,
+            ARC_CCTP.domain,
             mintRecipientBytes32,
             source.usdc,
             '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -1681,8 +1681,8 @@ export function useBridges() {
 
       try {
         // The burn happens on Arc, so the wallet must be there to sign it.
-        if (chainId !== ARC_TESTNET.chainId) {
-          await switchChainAsync({ chainId: ARC_TESTNET.chainId });
+        if (chainId !== ARC_CCTP.chainId) {
+          await switchChainAsync({ chainId: ARC_CCTP.chainId });
         }
         patch(id, (b) => ({ ...b, phase: 'burning' }));
 
@@ -1814,19 +1814,19 @@ export function useBridges() {
       };
       setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
       try {
-        if (chainId !== ARC_TESTNET.chainId) {
-          await switchChainAsync({ chainId: ARC_TESTNET.chainId });
+        if (chainId !== ARC_CCTP.chainId) {
+          await switchChainAsync({ chainId: ARC_CCTP.chainId });
         }
         const amountWei = parseUnits(input.amountUsdc.toString(), USDC_DECIMALS);
         const balance = (await arcClient.readContract({
-          address: ARC_TESTNET.usdc,
+          address: ARC_CCTP.usdc,
           abi: usdcAbi,
           functionName: 'balanceOf',
           args: [address],
         })) as bigint;
         if (balance < amountWei) throw new Error('Not enough USDC on Arc');
         const hash = await walletClient.writeContract({
-          address: ARC_TESTNET.usdc,
+          address: ARC_CCTP.usdc,
           abi: usdcAbi,
           functionName: 'transfer',
           args: [input.recipient, amountWei],

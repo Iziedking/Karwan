@@ -4,7 +4,7 @@ import { ChainLogo } from '@/shared/components/ChainLogo';
 import { shortHash, formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
-import { ARC_TESTNET } from '../config';
+import { ARC_CCTP } from '../config';
 import { bridgeChainMeta, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 
 /// Completed / failed rows linger this long in the temporary strip, then clear
@@ -78,13 +78,13 @@ function explorerLink(bridge: BridgeRecord): { href: string; hash: string } | nu
   const isOut = bridge.direction === 'out';
   if (bridge.mintTxHash) {
     return {
-      href: isOut ? other.explorerTx(bridge.mintTxHash) : ARC_TESTNET.explorerTx(bridge.mintTxHash),
+      href: isOut ? other.explorerTx(bridge.mintTxHash) : ARC_CCTP.explorerTx(bridge.mintTxHash),
       hash: bridge.mintTxHash,
     };
   }
   if (bridge.burnTxHash) {
     return {
-      href: isOut ? ARC_TESTNET.explorerTx(bridge.burnTxHash) : other.explorerTx(bridge.burnTxHash),
+      href: isOut ? ARC_CCTP.explorerTx(bridge.burnTxHash) : other.explorerTx(bridge.burnTxHash),
       hash: bridge.burnTxHash,
     };
   }

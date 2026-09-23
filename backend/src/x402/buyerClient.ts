@@ -2,7 +2,7 @@ import { BatchEvmScheme } from '@circle-fin/x402-batching/client';
 import type { Address } from 'viem';
 import { dcwEvmSigner } from './dcwSigner.js';
 import { executeContractCall } from '../chain/txs.js';
-import { circleWalletsClient, ARC_TESTNET_BLOCKCHAIN } from '../circle/wallets.js';
+import { circleWalletsClient, ARC_BLOCKCHAIN } from '../circle/wallets.js';
 import {
   updateX402Wallet,
   updateX402LastDeposit,
@@ -61,7 +61,7 @@ async function provisionX402Wallet(userAddress: string): Promise<X402WalletRef> 
   }
   const client = circleWalletsClient();
   const res = await client.createWallets({
-    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    blockchains: [ARC_BLOCKCHAIN],
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     // EOA on purpose: Gateway rejects EIP-1271 signatures, so the signer

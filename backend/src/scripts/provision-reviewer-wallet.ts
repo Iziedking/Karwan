@@ -1,4 +1,4 @@
-import { circleWalletsClient, ARC_TESTNET_BLOCKCHAIN } from '../circle/wallets.js';
+import { circleWalletsClient, ARC_BLOCKCHAIN } from '../circle/wallets.js';
 import { config } from '../config.js';
 
 /// One-shot: provision a dedicated Circle DCW (SCA on Arc Testnet) to act as the
@@ -17,7 +17,7 @@ async function main() {
   }
   const client = circleWalletsClient();
   const res = await client.createWallets({
-    blockchains: [ARC_TESTNET_BLOCKCHAIN],
+    blockchains: [ARC_BLOCKCHAIN],
     count: 1,
     walletSetId: config.CIRCLE_WALLET_SET_ID,
     accountType: 'SCA',
