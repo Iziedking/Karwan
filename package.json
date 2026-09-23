@@ -37,5 +37,8 @@
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
+  },
+  "overrides": {
+    "axios@1.13.6": "1.19.0"
   }
 }
