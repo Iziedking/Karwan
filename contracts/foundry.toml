@@ -15,6 +15,7 @@ optimizer_runs = 1
 via_ir = true
 verbosity = 2
 gas_reports = ["*"]
+fs_permissions = [{ access = "read-write", path = "./deployments" }]
 
 remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",

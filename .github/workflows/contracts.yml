@@ -45,3 +45,48 @@ jobs:
       - name: forge test
         working-directory: contracts
         run: forge test -vv
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Report-only until the triaged baseline lands (audit/TESTNET_AUDIT_2026-09-23.md
+    # section 8): Slither still flags the retired contracts and by-design
+    # patterns such as the PO shortfall pull. Reports are uploaded on every run.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Slither
+        run: pip install slither-analyzer==0.11.6
+
+      - name: Slither
+        working-directory: contracts
+        continue-on-error: true
+        run: slither . --filter-paths "lib/|test/|script/" --exclude-dependencies > ../slither-report.txt 2>&1
+
+      - name: Install Aderyn
+        run: npm install --global @cyfrin/aderyn@0.6.8
+
+      - name: Aderyn
+        working-directory: contracts
+        continue-on-error: true
+        run: aderyn . --path-excludes "test/,script/,lib/" --output ../aderyn-report.md
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis
+          path: |
+            slither-report.txt
+            aderyn-report.md
