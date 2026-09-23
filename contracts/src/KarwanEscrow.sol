@@ -1241,8 +1241,9 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
     /// @notice After the dispute timeout with no arbiter ruling, either party
     ///         lapses the dispute back to Accepted. Clock-pause rule: the
     ///         delivery deadline extends by the frozen time, so a freeze
-    ///         delays settlement but never changes who wins. Review clocks
-    ///         reset; a pending delivery must be re-marked. A dispute can
+    ///         delays settlement but never changes who wins. A pending on-time
+    ///         delivery survives and its review window restarts; a late one
+    ///         must be re-marked, which the F-3 guard refuses. A dispute can
     ///         therefore delay but never trap: a dead arbiter degrades to the
     ///         normal timed paths, not a freeze.
     function lapseDispute(bytes32 jobId) external {
@@ -1266,8 +1267,17 @@ contract KarwanEscrow is ReentrancyGuard, Guardable {
             e.deliveryDeadline += frozen;
         }
         e.disputedAt = 0;
-        e.deliveredAt = 0;
-        e.claimDeadline = 0;
+        // Audit ESC-01: an ON-TIME delivery that was pending when the dispute
+        // opened stands, with a fresh review window. Wiping it let a buyer
+        // dispute late in the review, wait out the timeout, lapse, and reclaim
+        // a delivery the seller could no longer re-mark. A late mark is still
+        // wiped (F-3), so a late seller gains no stall lever.
+        if (e.deliveredAt != 0 && !deliveredLate) {
+            e.claimDeadline = uint64(block.timestamp) + e.reviewWindow;
+        } else {
+            e.deliveredAt = 0;
+            e.claimDeadline = 0;
+        }
         e.state = EscrowState.Accepted;
         emit DisputeLapsed(jobId, frozen);
     }
