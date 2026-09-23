@@ -1,6 +1,23 @@
 import type { Messages } from './en';
+import { networkCopy } from './network';
+import { escrowDocsCopy } from './escrowDocs';
+import { socialTradeCopy } from './socialTrade';
+import { protectionCopy } from './protection';
 
 export const sw: Messages = {
+  protection: protectionCopy.sw,
+  socialTrade: socialTradeCopy.sw,
+  networkUi: networkCopy.sw,
+  docsEscrowPage: escrowDocsCopy.sw,
+  activityReview: { filterLabel: 'Chuja shughuli za karibuni kwa aina' },
+  onboardingReview: { purpose: 'Weka kiasi cha biashara na muda wa kuwasilisha unaokufaa. Unaweza kubadilisha mapendeleo haya baadaye.', review: 'Kagua mapendeleo yako ya biashara', days: 'siku' },
+  landingEditorial: {
+    kicker: 'Soko huria la bidhaa na huduma', titleFirst: 'Toa makubaliano', titleLast: 'kwenye mazungumzo.', lead: 'Mwalike mtu uliyepata mtandaoni, au pata mshirika Karwan. Kubalianeni masharti, weka USDC kwenye escrow, na lipa kwa hatua.',
+    open: 'Fungua Karwan', trade: 'Biashara za ndani na kuvuka mipaka', startLink: 'Jinsi biashara inavyoanza',
+    introLabel: 'Kuanza biashara', introTitle: 'Mwalike mwenzako, au mpate hapa.', introBody: 'Karwan husaidia biashara za bidhaa na huduma kutoka masharti ya kwanza hadi malipo. Anza na mshirika unayemjua au angalia maombi na ofa sokoni.', marketLink: 'Angalia maombi na ofa', bringLabel: 'Leta makubaliano', bringTitle: 'Tayari unamjua mwenzako', bringBody: 'Weka bidhaa au huduma, kiasi, tarehe ya mwisho na hatua. Mwalike mnunuzi au muuzaji akague masharti hayo.', findLabel: 'Pata mshirika', findTitle: 'Unahitaji mshirika wa biashara', findBody: 'Angalia maombi na ofa. Historia ya biashara iliyopo na ulinganisho uliotayarishwa na mawakala vinaweza kukusaidia kuchagua wa kuwasiliana naye. Wewe unaidhinisha masharti.',
+    recordLabel: 'Escrow na malipo', recordTitle: 'Malipo yana ratiba.', recordBody: 'Mnunuzi huweka USDC kwenye escrow baada ya pande zote kukubaliana. Karwan huonyesha uwasilishaji, hatua ya sasa na kitakachotokea kwa fedha baadaye.', terms: 'Masharti yamekubaliwa', funded: 'Escrow imefadhiliwa', delivery: 'Uwasilishaji umewasilishwa', reviewed: 'Hatua imekaguliwa', released: 'Malipo yamerekodiwa', both: 'Mnunuzi na muuzaji', buyer: 'Mnunuzi', seller: 'Muuzaji', receipt: 'Risiti ya biashara',
+    exampleNote: 'Huu ni mfuatano wa kawaida, si biashara inayoendelea. Kila makubaliano yana sheria zake za kutoa fedha.', limitTitle: 'Soma tarehe ya mwisho kabla ya kufadhili', limitBody: 'Muda wa ukaguzi ukiisha, muuzaji anaweza kudai malipo ya hatua ya sasa, hata ya mwisho. Mgogoro huzuia fedha ambazo hazijatolewa; haurudishi fedha moja kwa moja.', rulesLink: 'Soma sheria za biashara na escrow', closeTitle: 'Una biashara akilini?', closeBody: 'Mwalike mnunuzi au muuzaji kwenye makubaliano ya moja kwa moja, au anza na ombi sokoni.',
+  },
   common: {
     save: 'Hifadhi',
     cancel: 'Ghairi',
@@ -2423,7 +2440,7 @@ export const sw: Messages = {
     hero: {
       tag: 'MAONI',
       headline: 'Tueleze ulichokutana nacho',
-      body: 'Unajaribu kwenye Arc Testnet, kwa hivyo vitu vitavunjika. Hitilafu, ukingo mkali, wazo, chochote. Bandika picha moja kwa moja hapa. Inakwenda kwa timu pindi unapotuma.',
+      body: "Ripoti tatizo, pendekeza maboresho au uliza swali. Eleza ulichokuwa ukifanya na ongeza picha ya skrini ikiwa itasaidia. Ripoti yako inafika moja kwa moja kwa timu ya Karwan.",
     },
     categories: {
       bug: { label: 'Hitilafu', blurb: 'Kitu kimevunjika au kimefanya kazi vibaya' },
@@ -4574,7 +4591,7 @@ export const sw: Messages = {
     getStarted: {
       title: 'Anza kwa hatua tatu',
       signIn: { label: 'Ingia.', body: 'Tumia barua pepe na passkey, msimbo wa barua pepe, au wallet yako ya web3 kupitia Sign-In with Ethereum. Hakuna seed phrase inayohitajika kwa njia za barua pepe.' },
-      fund: { label: 'Jaza salio lako.', body: 'Leta USDC kwenye Arc kutoka chain yoyote inayoungwa mkono kupitia Weka / Toa, au tumia faucet ya Arc kupata USDC ya testnet.' },
+      fund: { label: 'Jaza salio lako.', body: "Fungua Ongeza USDC na ufuate njia inayoonyeshwa kwa akaunti yako. Hakiki mtandao, tokeni na anwani ya kupokea kabla ya kutuma." },
       open: { label: 'Fungua mkataba.', body: 'Tuma ombi, taja mwenzio kwa wallet au barua pepe, au angalia matoleo sokoni. Escrow itashughulikia mengine.' },
     },
     next: {
@@ -4755,9 +4772,9 @@ export const sw: Messages = {
     headline: 'Majibu ya haraka',
     intro: 'Maswali ambayo watumiaji wapya huuliza kwanza. Kama lako halipo hapa, fikia timu kupitia viungo vya chini.',
     items: [
-      { q: 'Nawekaje pesa kwenye salio langu la Karwan?', a: 'Ukiingia kwa barua pepe au passkey, fungua Weka na nakili anwani inayoonyeshwa. Anwani hiyo hiyo inafanya kazi kutoka Ethereum, Base, Arbitrum na Polygon, na Solana ina anwani yake kwenye ukurasa huo huo. Hakuna mnyororo wa kuchagua na hakuna kitu cha kusaini, na salio lako linajisasisha pesa zinapofika. Ukiunganisha pochi yako mwenyewe, Weka inakuomba uchague mnyororo ambao USDC yako iko na usaini uhamisho, kwa kuwa wewe unaishikilia. Kwenye testnet njia ya haraka ni kitufe cha faucet kwenye kila pochi kwenye wasifu wako.' },
+      { q: "Ninaongezaje USDC?", a: "Fungua Ongeza USDC na utumie anwani au njia ya chanzo inayoonyeshwa kwa akaunti yako. Hakiki mtandao, tokeni na mpokeaji kabla ya kutuma. Akaunti zilizounganishwa na pochi husaini uhamisho wao wenyewe. Fedha za majaribio zinapatikana kupitia Maelezo ya mtandao wakati toleo linatumia mtandao wa majaribio." },
       { q: 'Je, nahitaji pochi ya kripto kutumia Karwan?', a: 'Hapana. Unaweza kuingia kwa barua pepe na passkey, na pochi inaandaliwa kwa ajili yako nyuma ya pazia. Kama tayari una pochi ya web3, unaweza kuitumia hiyo kupitia Sign-In with Ethereum.' },
-      { q: 'Je, hii ni pesa halisi?', a: 'Bado hapana. Karwan inafanya kazi kwenye Arc Testnet leo. USDC ya testnet haina thamani halisi. Pata kiasi kutoka kwa Arc faucet iliyoungwa chini ili kujaribu mtiririko mzima. Pia tunadondosha kiasi kidogo cha USDC ya testnet kiotomatiki unapoingia mara ya kwanza.' },
+      { q: 'Je, hii ni pesa halisi?', a: "Angalia Maelezo ya mtandao kabla ya kuongeza USDC. Mtandao wa majaribio hutumia fedha zisizo na thamani halisi ya fedha. Mtandao mkuu hutumia fedha halisi. Salio na rekodi za miamala ni za mtandao wake; kubadilisha mazingira hakuhamishi fedha kati ya mitandao." },
       { q: 'Je, mwenzangu wa biashara anahitaji akaunti?', a: 'Si mapema. Kwa deal ya moja kwa moja, unaweza kutaja pochi au anwani ya barua pepe. Ukitaja barua pepe, mpokeaji anapata mwaliko wenye chapa pamoja na msimbo wa mara moja. Wanafungua kiungo, wanaandika msimbo, pochi ya Circle inaandaliwa katika kivinjari chao, na wanakubali deal. Kutoka barua pepe hadi deal iliyokubaliwa ni chini ya dakika mbili.' },
       { q: 'Nini hutokea kama mazungumzo hayaafikiani?', a: 'Wakala wako hupitia wagombea wengine waliolingana kabla ya kuacha. Kama hakuna anayeingia katika kiwango chako, ombi linaisha bila makubaliano na hakuna pesa zinazohama. Tuma tena kwa bajeti kubwa au uvumilivu mpana kujaribu tena.' },
       { q: 'Je, naweza kufuta deal?', a: 'Ndiyo. Pendekeza ufutaji, na kama mwenzako anakubali, escrow inarudisha pesa bila athari yoyote ya sifa upande wowote. Kabla muuzaji hajakubali deal kabisa, mnunuzi anaweza kufuta kwa uhuru kwa sababu hakuna escrow iliyofadhiliwa.' },
@@ -4828,9 +4845,9 @@ export const sw: Messages = {
   docsRoadmapPage: {
     eyebrow: 'RAMANI YA NJIA',
     heading: 'Kilicho hai, na kinachofuata',
-    intro: 'Karwan inafanya kazi kwenye Arc Testnet leo. Escrow, mawakala, pasipoti ya sifa, na daraja zote ziko hai. Orodha hapa chini inaonyesha kilichosafirishwa na kile tunachojenga kifuatacho.',
+    intro: "Karwan imejengwa kwenye Arc. Mwongozo huu unatofautisha huduma zilizopo na kazi zinazoendelea. Kipengele cha ramani ya maendeleo si huduma inayopatikana, uamuzi wa ustahiki au ahadi ya tarehe ya kukamilika.",
     live: {
-      title: 'Hai leo',
+      title: "Inapatikana katika toleo la sasa",
       items: {
         match: { title: 'Ulinganishaji na mazungumzo ya wakala.', body: 'Mawakala wa mnunuzi na muuzaji wamepangwa kwanza kwa ufaafu wa ujuzi, wakijadiliana katika raundi nyingi ndani ya safu zilizowekwa na kila upande. Upande wowote unaweza kusoma kila pinga kwenye ratiba ya mkataba.' },
         negotiation: { title: 'Akili ya mazungumzo.', body: 'Mawakala huvuta usomaji wa soko wa x402 chini ya senti kwenye mkataba na kuushiriki kwa pande zote mbili. Bei bora inapoangukia nje kidogo ya safu yako, unapata endelea-au-pitisha pamoja na sababu ya soko, si hapana ya kimya. Wakati hakuna kinachofaa bajeti yako, mkataba unakuambia wazi na kukuruhusu kuiongeza au kurudisha ofa uliyopitisha.' },
@@ -4976,19 +4993,19 @@ export const sw: Messages = {
       q5: { q: 'Escrow inatoa vipi?', a: "Kagua uwasilishaji na toa malipo ya hatua zilizokubaliwa. Muda wa ukaguzi ukiisha, mkataba unaweza kuruhusu muuzaji kudai hatua ya sasa, pamoja na ya mwisho. Angalia muda na hatua kwenye mkataba; kutofanya kitu hakuhakikishi fedha kubaki zimezuiwa." },
       q6: { q: 'Itakuwaje deal ikienda kwenye mzozo?', a: "Mgogoro huzuia salio ambalo halijatolewa. Pendekeza suluhisho ili upande mwingine ukubali. Bila makubaliano, urejeshaji hutegemea mkataba na mwamuzi aliyesanidiwa. Kufungua mgogoro si marejesho ya moja kwa moja." },
       q7: { q: 'Itakuwaje wakala wa muuzaji akiruka ombi langu lililolinganishwa na wakala?', a: 'Wasifu wa muuzaji una upeo wa bajeti na tarehe ya mwisho. Ikiwa ombi lako liko nje yake, wakala anaruka na ratiba inakuonyesha kwa nini. Ikiwa wakala hana uhakika kwa sababu nyingine yoyote, hilo pia linakaguliwa, hivyo hatua inayofuata haiwi kimya kamwe.' },
-      q8: { q: 'Inahudumia korido zipi?', a: 'Karwan inafanya kazi kwa deal yoyote ya huduma ya kuvuka mipaka mahali popote duniani. Orodha ya lugha za awali inafunika korido kadhaa ambapo reli za benki ni za polepole zaidi leo, ikiwemo Ghuba, Kaskazini na Magharibi mwa Afrika, bara dogo la Hindi, na Afrika Mashariki, lakini safu ya escrow, sifa, na wakala haijihusishi na korido. Lugha na korido mpya zinakuja huku msingi wa watumiaji ukikua.' },
+      q8: { q: 'Inahudumia korido zipi?', a: "Karwan ni ya biashara ya bidhaa na huduma ndani ya nchi na kuvuka mipaka. Alika upande unaoujua au chapisha ombi au ofa ili kupata mshirika. Njia zote mbili hutumia escrow ya USDC kwenye Arc." },
       q9: { q: 'Mawazo ya wakala yanafanyika wapi?', a: 'Kila uamuzi unaogusa fedha unashughulikiwa na seti ya kanuni za uhakika nyuma: mipaka ya bajeti na tarehe ya mwisho, ulinganisho wa mada, mahitaji ya dhamana, hesabu ya kuhifadhi. Mfano wa lugha hushughulikia tu sehemu zinazohitaji hukumu, kama vile kama maelezo mawili ya ujuzi yasiyofanana yanaelezea kazi ile ile, au jinsi ya kuandika kaunta. Ikiwa mfano wa lugha unazimika, wakala unaendelea kufanya kazi kupitia njia zake za uhakika za salama.' },
       q10: { q: 'Karwan inawezaje kuweka uwasilishaji salama?', a: 'Kazi mara nyingi hukabidhiwa kama kiungo, kwa hivyo SecurityAgent huchanganua kila uthibitisho wa uwasilishaji kabla hujaufungua, na hulinda gumzo la ndani ili kiungo cha udanganyifu au programu hasidi kisitumwe kwako. Kiungo kilichoonywa husitisha utoaji wa kiotomatiki wa biashara, huarifu pande zote mbili, na huwaelekeza kukitatua pamoja kwenye gumzo. Kiungo kibaya kilichothibitishwa huathiri sana sifa ya mtumaji. Uwasilishaji unapokuwa faili, hushirikiwa kupitia kiungo ambacho wakala anaweza kukagua badala ya kiambatisho kisichothibitishwa.' },
     },
     videoGuides: { eyebrow: 'Miongozo ya video', title: 'Itazame ikifanya kazi', body: 'Video fupi za kila mtiririko zinakuja. Wakati zinaandaliwa, ziara ya ndani ya programu inakuongoza hatua kwa hatua kwenye kila ukurasa. Ifungue kutoka kitufe cha Ziara chini ya skrini.', badge: 'Inakuja hivi karibuni' },
-    cta: { title: 'Ijaribu kwenye Arc Testnet', body: 'Dashibodi inaendesha mitiririko yote miwili dhidi ya mikataba halisi ya testnet.', button: 'Zindua programu', chainPrefix: 'chenya' },
+    cta: { title: "Fanya biashara yako ijayo kwenye Karwan", body: "Kubalianeni masharti, weka USDC kwenye escrow na fuatilia kila hatua hadi malipo yakamilike.", button: 'Zindua programu', chainPrefix: 'chenya' },
   },
   brandPage: {
-    hero: { tag: 'CHAPA', headlineLead: 'Alama ya', headlineAccent: 'Karwan', body: 'Nembo, paleti, sauti. Chukua unachohitaji kuandika kuhusu Karwan, kuiweka kwenye onyesho la mshirika, au kupaka co-mark. Kwa mwongozo wa kina, wasiliana kupitia mawasiliano hapa chini.' },
+    hero: { tag: 'CHAPA', headlineLead: 'Alama ya', headlineAccent: 'Karwan', body: 'Pakua alama na jina la chapa, tumia rangi sahihi, na eleza Karwan kama inavyofanya kazi leo: masharti yaliyokubaliwa, USDC iliyoshikiliwa kwa hatua, na malipo baada ya ukaguzi.' },
     logo: { tag: 'NEMBO', headline: 'Aina tatu', body: 'Chagua kwa uso. Alama kwa nafasi ndogo. Neno-nembo wakati kuna nafasi. Hifadhi nafasi tupu sawa na upana wa mstari kila upande.', wordmarkOnDark: 'Neno-nembo kwenye giza', wordmarkOnLight: 'Neno-nembo kwenye mwanga', markOnDark: 'Alama kwenye giza' },
-    palette: { tag: 'PALETI', headline: 'Misingi minne ya chapa', body: 'Kijani huonyesha kitendo. Mandharinyuma ya joto hubeba hali angavu. Nyeupe ni ya kadi zilizoinuliwa tu.', brandLime: 'Kijani cha Karwan', brandInk: 'Wino wa Karwan', creamSurface: 'Mandharinyuma angavu', cardWhite: 'Nyeupe ya kadi', brandLabel: 'CHAPA', copy: 'Nakili', copied: 'Imenakiliwa' },
-    voice: { tag: 'SAUTI', headline: 'Memo ya bidhaa ya mhandisi', body: 'Toni ya Karwan inasomeka kama miundombinu, si ya mlaji. Nishati ya terminal ya Bloomberg. Kuwa na maoni. Kubali mipaka. Badilisha mdundo. Kamwe si ya kuigiza.', wordsWeUseLabel: 'MANENO TUNAYOTUMIA', wordsWeUseBody: 'utatuzi, escrow, reli, mkataba, ombi, toleo, hatua muhimu, kutoa, slash, dau, sifa, paspoti, nanga, thibitisha, mfadhili, muagizaji, msafirishaji, mtaji wa kazi, mipakani, on-chain.', wordsWeAvoidLabel: 'MANENO TUNAYOEPUKA', wordsWeAvoidBody: 'mapinduzi, mageuzi, kuwezesha, laini, imara, kiwango cha kimataifa, ya kisasa, gig, freelance, jukwaa, watumiaji, AI (tunasema "wakala" na kazi maalum wanayofanya).' },
-    partner: { tag: 'CO-MARK YA MSHIRIKA', headline: 'Oanisha, usifunge', body: 'Unapofanya co-marking na Arc, Circle, USYC, au mshirika mwingine: msingi sawa na neno-nembo ya Karwan, kigawanyiko cha wima nyembamba, uzito sawa wa kuona. Kamwe usifunge nembo mbili katika kontena moja.', partnerLabel: 'Mshirika' },
+    palette: { tag: 'RANGI', headline: 'Rangi za Karwan', body: 'Rangi nne za msingi huweka alama, maandishi na mandhari angavu. Rangi za ziada huweka maandishi wazi katika hali zote mbili.', brandLime: 'Kijani cha Karwan', brandInk: 'Wino wa Karwan', creamSurface: 'Mandharinyuma ya kijivu cha samawati', cardWhite: 'Karatasi nyeupe yenye joto', darkRaised: 'Uso mweusi ulioinuka', darkInset: 'Uso mweusi wa ndani', lightInset: 'Uso angavu wa ndani', lightSecondary: 'Maandishi ya ziada kwenye angavu', darkSecondary: 'Maandishi ya ziada kwenye giza', greenOnLight: 'Maandishi ya kijani kwenye angavu', interfaceHeadline: 'Rangi za ziada za kiolesura', interfaceBody: 'Zitumie kutofautisha nyuso na kuweka maandishi wazi. Rangi za hali ni tofauti na lazima ziandamane na maneno.', interfaceLabel: 'KIOLESURA', brandLabel: 'CHAPA', copy: 'Nakili', copied: 'Imenakiliwa' },
+    voice: { tag: 'LUGHA', headline: 'Andika kuhusu mkataba', body: 'Taja nani anakubali, USDC iko wapi, uwasilishaji unapaswa kuthibitisha nini na malipo yanaweza kusogea lini. Weka mipaka karibu na dai husika.', wordsWeUseLabel: 'TUMIA MANENO WAZI', wordsWeUseBody: 'Mnunuzi, muuzaji, makubaliano, hatua, uwasilishaji, ukaguzi, malipo yaliyoshikiliwa, kutoa, mgogoro, kurejesha, rekodi ya mkataba.', wordsWeAvoidLabel: 'EPUKA MADAI YASIYOTHIBITISHWA', wordsWeAvoidBody: 'Usiseme mtiririko ambao haujakaguliwa umehakikishwa, umewekewa bima, ni wa papo hapo au hauna hatari. Usionyeshe mifano kama biashara hai au mapendekezo ya wakala kama maamuzi.' },
+    partner: { tag: 'CO-MARK YA MSHIRIKA', headline: 'Oanisha, usifunge', body: 'Tumia alama ya shirika lingine kwa idhini yake tu. Weka majina ya chapa kwenye mstari mmoja wa msingi na kigawanyiko chembamba, huku ukihifadhi uwiano wake wa asili.', partnerLabel: 'Mshirika' },
     contact: { tag: 'WAANDISHI WA HABARI NA WASHIRIKA', headlineLead: 'Wasiliana', headlineAccent: 'nasi', body: 'Unataka asset ya azimio la juu, mpangilio wa co-mark ambao hatujachapisha, au nukuu? Tuma ujumbe.', backHome: 'Rudi nyumbani' },
   },
   termsPage: {

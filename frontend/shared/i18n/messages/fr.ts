@@ -1,6 +1,26 @@
 import type { Messages } from './en';
+import { networkCopy } from './network';
+import { escrowDocsCopy } from './escrowDocs';
+import { socialTradeCopy } from './socialTrade';
+import { protectionCopy } from './protection';
 
 export const fr: Messages = {
+  protection: protectionCopy.fr,
+  socialTrade: socialTradeCopy.fr,
+  networkUi: networkCopy.fr,
+  docsEscrowPage: escrowDocsCopy.fr,
+  activityReview: { filterLabel: 'Filtrer l’activité récente par type' },
+  onboardingReview: { purpose: 'Définissez les montants et délais de livraison qui vous conviennent. Vous pourrez modifier ces préférences plus tard.', review: 'Vérifiez vos préférences commerciales', days: 'jours' },
+  landingEditorial: {
+    kicker: 'Le marché ouvert des biens et services', titleFirst: 'Sortez l’accord', titleLast: 'de la conversation.', lead: 'Invitez une personne rencontrée en ligne ou trouvez un partenaire sur Karwan. Convenez des conditions, approvisionnez le séquestre en USDC et réglez par étape.',
+    open: 'Ouvrir Karwan', trade: 'Commerce local et transfrontalier', startLink: 'Comment démarrer un accord',
+    introLabel: 'Démarrer un accord', introTitle: 'Invitez votre partenaire ou trouvez-le ici.', introBody: 'Karwan accompagne les échanges de biens et services, des premières conditions au règlement. Commencez avec un partenaire connu ou consultez les demandes et offres du marché.', marketLink: 'Explorer les demandes et offres',
+    bringLabel: 'Proposer un accord', bringTitle: 'Vous connaissez déjà votre partenaire', bringBody: 'Précisez le bien ou service, le montant, l’échéance et les étapes. Invitez l’acheteur ou le vendeur à examiner les mêmes conditions.',
+    findLabel: 'Trouver un partenaire', findTitle: 'Vous cherchez un partenaire', findBody: 'Consultez les demandes et offres. L’historique disponible et les comparaisons préparées par les agents peuvent guider votre choix. Vous approuvez les conditions.',
+    recordLabel: 'Séquestre et règlement', recordTitle: 'Le paiement suit un calendrier.', recordBody: 'L’acheteur approvisionne le séquestre en USDC après accord des deux parties. Karwan affiche la livraison, l’étape en cours et la prochaine opération sur les fonds.',
+    terms: 'Conditions acceptées', funded: 'Séquestre approvisionné', delivery: 'Livraison soumise', reviewed: 'Étape examinée', released: 'Versement enregistré', both: 'Acheteur et vendeur', buyer: 'Acheteur', seller: 'Vendeur', receipt: 'Reçu de l’accord',
+    exampleNote: 'Séquence type, pas un accord en cours. Chaque accord définit ses règles de versement.', limitTitle: 'Vérifiez l’échéance avant de verser les fonds', limitBody: 'Si le délai d’examen expire, le vendeur peut être autorisé à réclamer l’étape en cours, y compris la dernière. Un litige gèle les fonds non versés ; il ne déclenche pas de remboursement automatique.', rulesLink: 'Lire les règles des accords et du séquestre', closeTitle: 'Un échange en vue ?', closeBody: 'Invitez un acheteur ou vendeur à un accord direct, ou publiez une demande sur le marché.',
+  },
   common: {
     save: 'Enregistrer',
     cancel: 'Annuler',
@@ -2423,7 +2443,7 @@ export const fr: Messages = {
     hero: {
       tag: 'RETOURS',
       headline: 'Dites-nous ce que vous avez rencontré',
-      body: "Vous testez sur Arc Testnet, des choses vont casser. Un bug, un détail rugueux, une idée, n'importe quoi. Collez une capture d'écran directement. Cela arrive à l'équipe dès que vous envoyez.",
+      body: "Signalez un problème, proposez une amélioration ou posez une question. Précisez ce que vous faisiez et joignez une capture d’écran si elle est utile. Votre message est envoyé directement à l’équipe Karwan.",
     },
     categories: {
       bug: { label: 'Bug', blurb: "Quelque chose s'est cassé ou a mal réagi" },
@@ -4574,7 +4594,7 @@ export const fr: Messages = {
     getStarted: {
       title: 'Démarrez en trois étapes',
       signIn: { label: 'Connectez-vous.', body: 'Utilisez votre email avec une passkey, un code par email, ou votre propre wallet web3 via Sign-In with Ethereum. Aucune seed phrase requise pour les parcours email.' },
-      fund: { label: 'Approvisionnez votre solde.', body: 'Amenez des USDC sur Arc depuis n\'importe quelle chaîne source supportée avec Dépôt / Retrait, ou utilisez le faucet Arc pour des USDC de testnet.' },
+      fund: { label: 'Approvisionnez votre solde.', body: "Ouvrez Ajouter des USDC et suivez le parcours indiqué pour votre compte. Vérifiez le réseau, le jeton et l’adresse de destination avant l’envoi." },
       open: { label: 'Ouvrez un deal.', body: 'Postez une demande, désignez une contrepartie par wallet ou email, ou parcourez les offres du marché. L\'escrow s\'occupe du reste.' },
     },
     next: {
@@ -4755,9 +4775,9 @@ export const fr: Messages = {
     headline: 'Réponses rapides',
     intro: 'Les questions que posent les nouveaux utilisateurs en premier. Si la vôtre n\'y est pas, contactez l\'équipe via les liens du pied de page.',
     items: [
-      { q: "Comment ajouter de l'argent à mon solde Karwan ?", a: "Si vous vous connectez par e-mail ou avec une clé d'accès, ouvrez Dépôt et copiez l'adresse affichée. La même adresse fonctionne depuis Ethereum, Base, Arbitrum et Polygon, et Solana a sa propre adresse sur la même page. Aucune chaîne à choisir, rien à signer, et votre solde se met à jour tout seul à l'arrivée des fonds. Si vous avez connecté votre portefeuille, Dépôt vous demande de choisir la chaîne et de signer le transfert, puisque c'est vous qui détenez les fonds. Sur testnet, le plus rapide est le bouton faucet sur chaque portefeuille de votre profil." },
+      { q: "Comment ajouter des USDC ?", a: "Ouvrez Ajouter des USDC et utilisez l’adresse ou le parcours source indiqué pour votre compte. Vérifiez le réseau, le jeton et la destination avant l’envoi. Les comptes avec portefeuille connecté signent leurs propres transferts. Les fonds de test sont accessibles via Détails du réseau lorsque le déploiement utilise le réseau de test." },
       { q: 'Ai-je besoin d\'un portefeuille crypto pour utiliser Karwan ?', a: 'Non. Vous pouvez vous connecter avec un e-mail et une passkey, et un portefeuille est provisionné en arrière-plan. Si vous avez déjà un portefeuille web3, vous pouvez l\'utiliser via Sign-In with Ethereum.' },
-      { q: 'Est-ce de l\'argent réel ?', a: 'Pas encore. Karwan fonctionne aujourd\'hui sur Arc Testnet. L\'USDC de testnet n\'a aucune valeur réelle. Obtenez-en depuis le robinet Arc lié dans le pied de page pour tester le flux complet. Nous distribuons aussi automatiquement une petite quantité d\'USDC testnet à la première connexion.' },
+      { q: 'Est-ce de l\'argent réel ?', a: "Consultez Détails du réseau avant d’ajouter des USDC. Le réseau de test utilise des fonds sans valeur monétaire réelle. Le réseau principal utilise des fonds réels. Les soldes et les transactions appartiennent à leur réseau ; changer d’environnement ne transfère pas les fonds entre eux." },
       { q: 'Ma contrepartie a-t-elle besoin d\'un compte ?', a: 'Pas à l\'avance. Pour un deal direct, vous pouvez nommer un portefeuille ou une adresse e-mail. Si vous indiquez un e-mail, le destinataire reçoit une invitation avec un code à usage unique. Il ouvre le lien, saisit le code, un portefeuille Circle est provisionné dans son navigateur, et il accepte le deal. De l\'e-mail au deal accepté en moins de deux minutes.' },
       { q: 'Que se passe-t-il si une négociation n\'aboutit pas ?', a: 'Votre agent passe par les autres candidats correspondants avant d\'abandonner. Si personne n\'entre dans votre fourchette, la demande se termine sans accord et aucun fonds ne bouge. Repostez avec un budget plus élevé ou une tolérance plus large pour réessayer.' },
       { q: 'Puis-je annuler un deal ?', a: 'Oui. Proposez une annulation, et si votre contrepartie accepte, l\'escrow est remboursé sans aucun impact sur la réputation. Avant que le vendeur n\'accepte le deal, l\'acheteur peut annuler librement puisqu\'aucun escrow n\'a été financé.' },
@@ -4828,9 +4848,9 @@ export const fr: Messages = {
   docsRoadmapPage: {
     eyebrow: 'FEUILLE DE ROUTE',
     heading: 'Ce qui est en ligne, et ce qui arrive',
-    intro: "Karwan tourne aujourd'hui sur Arc Testnet. L'entiercement, les agents, le passeport de réputation et le pont sont tous en ligne. La liste ci-dessous montre ce qui a été livré et ce que nous construisons ensuite.",
+    intro: "Karwan est construit sur Arc. Ce guide distingue les parcours disponibles des travaux en cours. Un élément de la feuille de route n’est ni une fonctionnalité active, ni une décision d’éligibilité, ni une promesse de livraison.",
     live: {
-      title: "En ligne aujourd'hui",
+      title: "Disponible dans la version actuelle",
       items: {
         match: { title: 'Appariement et négociation agentique.', body: "Les agents acheteur et vendeur sont classés d'abord par adéquation de compétence, négociant en plusieurs tours dans les plages fixées par chaque partie. Chaque partie peut lire chaque contre-proposition sur la chronologie de la transaction." },
         negotiation: { title: 'Intelligence de négociation.', body: "Les agents tirent une lecture de marché x402 à moins d'un centime sur la transaction et la partagent entre les deux parties. Quand le meilleur prix tombe juste hors de votre plage, vous obtenez un continuer-ou-passer avec la raison du marché, pas un non silencieux. Quand rien ne tient dans votre budget, la transaction le dit clairement et vous laisse l'augmenter ou reprendre une offre refusée." },
@@ -4976,19 +4996,19 @@ export const fr: Messages = {
       q5: { q: 'Comment l\'escrow se libère-t-il?', a: "Examinez la livraison et libérez les étapes convenues. Après le délai de revue, le contrat peut permettre au vendeur de réclamer l’étape courante, y compris la dernière. Consultez les délais et actions de la transaction : l’inaction ne bloque pas forcément les fonds." },
       q6: { q: 'Que se passe-t-il si une transaction part en litige?', a: "Un litige bloque le solde non libéré. Proposez une résolution que l’autre partie doit accepter. Sans accord, le recours dépend du contrat et de l’arbitre configuré. Un litige ne rembourse pas automatiquement." },
       q7: { q: 'Que se passe-t-il si un agent vendeur saute ma demande matchée par agent?', a: 'Le profil du vendeur a une fourchette de budget et d\'échéance. Si votre demande sort de la plage, l\'agent saute et la timeline explique pourquoi. Si l\'agent est incertain pour toute autre raison, cela est aussi journalisé, pour que la prochaine étape ne soit jamais silencieuse.' },
-      q8: { q: 'Quels corridors cela sert-il?', a: 'Karwan fonctionne pour toute transaction de service transfrontalière partout dans le monde. La liste de langues initiale couvre plusieurs corridors où les rails bancaires sont les plus lents aujourd\'hui, dont le Golfe, l\'Afrique du Nord et de l\'Ouest, le sous-continent indien, et l\'Afrique de l\'Est, mais la couche escrow, réputation et agent est neutre côté corridors. De nouvelles langues et corridors arrivent à mesure que la base d\'utilisateurs grandit.' },
+      q8: { q: 'Quels corridors cela sert-il?', a: "Karwan accompagne le commerce local et transfrontalier de biens et services. Invitez un partenaire connu ou publiez une demande ou une offre pour en trouver un. Les deux parcours utilisent le séquestre en USDC sur Arc." },
       q9: { q: 'Où tourne le raisonnement de l\'agent?', a: 'Chaque décision qui touche à l\'argent est gérée par un jeu de règles déterministe côté backend: bornes de budget et d\'échéance, correspondance thématique, exigences de mise, calcul de réservation. Un modèle de langue ne traite que les parties qui demandent un jugement, comme savoir si deux descriptions de compétences sans recouvrement décrivent le même travail, ou comment formuler une contre-offre. Si le modèle de langue tombe, l\'agent continue de fonctionner via ses replis déterministes.' },
       q10: { q: 'Comment Karwan sécurise-t-il la livraison ?', a: 'Le travail se transmet le plus souvent par un lien, donc un SecurityAgent analyse chaque preuve de livraison avant que vous ne l\'ouvriez, et il protège la messagerie intégrée pour qu\'un lien de phishing ou un logiciel malveillant ne puisse pas vous être envoyé. Un lien signalé met en pause la libération automatique de la transaction, prévient les deux parties et vous invite à le résoudre ensemble dans la messagerie. Un lien malveillant confirmé pèse lourdement sur la réputation de l\'expéditeur. Quand une livraison est un fichier, elle est partagée via un lien que l\'agent peut vérifier plutôt qu\'une pièce jointe non vérifiée.' },
     },
     videoGuides: { eyebrow: 'Guides vidéo', title: 'Voyez-le en action', body: 'De courtes vidéos de chaque flux arrivent bientôt. En attendant, la visite intégrée vous guide pas à pas sur chaque page. Ouvrez-la depuis le bouton Visite en bas de l\'écran.', badge: 'Bientôt' },
-    cta: { title: 'Essayez sur Arc Testnet', body: 'Le tableau de bord exécute les deux flux contre de vrais contrats testnet.', button: 'Lancer l\'app', chainPrefix: 'chaîne' },
+    cta: { title: "Concluez votre prochain accord sur Karwan", body: "Convenez des conditions, approvisionnez le séquestre en USDC et suivez chaque étape jusqu’au règlement.", button: 'Lancer l\'app', chainPrefix: 'chaîne' },
   },
   brandPage: {
-    hero: { tag: 'MARQUE', headlineLead: 'La marque', headlineAccent: 'Karwan', body: 'Le logo, la palette, la voix. Prenez ce qu\'il vous faut pour écrire sur Karwan, l\'intégrer à un deck partenaire ou créer un co-marquage. Pour des conseils plus approfondis, contactez-nous ci-dessous.' },
+    hero: { tag: 'MARQUE', headlineLead: 'La marque', headlineAccent: 'Karwan', body: 'Le logo, les couleurs et les mots employés pour expliquer Karwan : des accords commerciaux clairs, un paiement en USDC retenu et un règlement par étapes. Utilisez les fichiers ci-dessous pour présenter le produit fidèlement.' },
     logo: { tag: 'LOGO', headline: 'Trois formes', body: 'Choisissez selon la surface. La marque pour les petits espaces. Le mot-symbole quand il y a de la place. Réservez un espace libre égal à la largeur du trait sur chaque côté.', wordmarkOnDark: 'Mot-symbole sur fond sombre', wordmarkOnLight: 'Mot-symbole sur fond clair', markOnDark: 'Marque sur fond sombre' },
-    palette: { tag: 'PALETTE', headline: 'Quatre constantes de marque', body: 'Le vert marque l\'action. La toile chaude porte le mode clair. Le blanc est réservé aux cartes en relief.', brandLime: 'Vert Karwan', brandInk: 'Encre Karwan', creamSurface: 'Toile claire', cardWhite: 'Blanc des cartes', brandLabel: 'MARQUE', copy: 'Copier', copied: 'Copié' },
-    voice: { tag: 'VOIX', headline: 'Note produit d\'ingénieur', body: 'Le ton de Karwan se lit comme infrastructurel, pas comme grand public. Énergie de terminal Bloomberg. Ayez une opinion. Reconnaissez les limites. Variez le rythme. Jamais théâtral.', wordsWeUseLabel: 'MOTS QUE NOUS UTILISONS', wordsWeUseBody: 'règlement, séquestre, rail, transaction, demande, offre, jalon, libération, slashing, mise, réputation, passeport, ancrage, attester, financier, importateur, exportateur, fonds de roulement, transfrontalier, en chaîne.', wordsWeAvoidLabel: 'MOTS QUE NOUS ÉVITONS', wordsWeAvoidBody: 'révolutionnaire, transformateur, autonomisant, fluide, robuste, de classe mondiale, de pointe, mission, freelance, plateforme, utilisateurs, IA (nous disons "agents" avec le travail spécifique qu\'ils font).' },
-    partner: { tag: 'CO-MARQUAGE PARTENAIRE', headline: 'Associer, ne pas enfermer', body: 'En co-marquage avec Arc, Circle, USYC ou un autre partenaire: même ligne de base que le mot-symbole Karwan, séparateur vertical fin, poids optique égal. N\'enfermez jamais deux logos dans le même conteneur.', partnerLabel: 'Partenaire' },
+    palette: { tag: 'PALETTE', headline: 'La palette Karwan', body: 'Quatre couleurs fondatrices définissent le signe, le texte et les surfaces claires. Les couleurs d’interface gardent les textes lisibles dans les deux thèmes.', brandLime: 'Vert Karwan', brandInk: 'Encre Karwan', creamSurface: 'Fond bleu-gris', cardWhite: 'Papier blanc chaud', darkRaised: 'Surface sombre surélevée', darkInset: 'Surface sombre en retrait', lightInset: 'Surface claire en retrait', lightSecondary: 'Texte secondaire sur clair', darkSecondary: 'Texte secondaire sur sombre', greenOnLight: 'Texte vert sur clair', interfaceHeadline: 'Couleurs de l’interface', interfaceBody: 'Elles distinguent les surfaces et préservent la lisibilité. Les couleurs de statut sont séparées et toujours accompagnées de mots.', interfaceLabel: 'INTERFACE', brandLabel: 'MARQUE', copy: 'Copier', copied: 'Copié' },
+    voice: { tag: 'TON', headline: 'Parler de l’accord', body: 'Dites qui accepte, où se trouvent les USDC, ce qu’une livraison doit prouver et quand le paiement peut bouger. Placez chaque limite près de la promesse concernée.', wordsWeUseLabel: 'DES MOTS CLAIRS', wordsWeUseBody: 'Acheteur, vendeur, accord, étape, livraison, examen, paiement retenu, versement, litige, remboursement, historique de l’accord.', wordsWeAvoidLabel: 'PAS DE PROMESSES NON PROUVÉES', wordsWeAvoidBody: 'Ne dites pas qu’un parcours non audité est garanti, assuré, instantané ou sans risque. Ne présentez pas les exemples comme une activité réelle ni les suggestions d’agents comme des décisions.' },
+    partner: { tag: 'CO-MARQUAGE PARTENAIRE', headline: 'Associer, ne pas enfermer', body: 'N’utilisez la marque d’une autre organisation qu’avec son accord. Alignez les deux logos sur une même ligne de base, avec un séparateur discret, sans modifier leurs proportions.', partnerLabel: 'Partenaire' },
     contact: { tag: 'PRESSE ET PARTENAIRES', headlineLead: 'Nous', headlineAccent: 'contacter', body: 'Vous voulez un asset en haute résolution, une configuration de co-marquage que nous n\'avons pas publiée, ou une citation? Envoyez un mot.', backHome: 'Retour à l\'accueil' },
   },
   termsPage: {

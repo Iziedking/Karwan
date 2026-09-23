@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { DOCS_SECTIONS } from './DocsSidebar';
+import { DOCS_SECTIONS, useDocsSectionLabel } from './DocsSidebar';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Prev/next pager at the foot of every docs page. Lets a reader (especially on
@@ -10,6 +10,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 export function DocsPager() {
   const pathname = usePathname();
   const t = useTranslations().docsShell;
+  const labelFor = useDocsSectionLabel();
   const idx = DOCS_SECTIONS.findIndex((s) =>
     s.href === '/docs' ? pathname === '/docs' : pathname?.startsWith(s.href) === true,
   );
@@ -32,7 +33,7 @@ export function DocsPager() {
             {t.pager.previous}
           </span>
           <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            {t.sidebar.sections[prev.key].label}
+            {labelFor(prev.key)}
           </span>
         </Link>
       ) : (
@@ -49,7 +50,7 @@ export function DocsPager() {
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
           </span>
           <span className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-            {t.sidebar.sections[next.key].label}
+            {labelFor(next.key)}
           </span>
         </Link>
       )}

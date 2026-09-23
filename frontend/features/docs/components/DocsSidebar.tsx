@@ -5,7 +5,7 @@ import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 export interface DocsSection {
-  key: 'overview' | 'agents' | 'deals' | 'disputes' | 'reputation' | 'bridge' | 'roadmap' | 'faq';
+  key: 'overview' | 'agents' | 'deals' | 'disputes' | 'escrow' | 'reputation' | 'bridge' | 'roadmap' | 'faq';
   href: string;
 }
 
@@ -17,15 +17,25 @@ export const DOCS_SECTIONS: DocsSection[] = [
   { key: 'agents', href: '/docs/agents' },
   { key: 'deals', href: '/docs/deals' },
   { key: 'disputes', href: '/docs/disputes' },
+  { key: 'escrow', href: '/docs/escrow' },
   { key: 'reputation', href: '/docs/reputation' },
   { key: 'bridge', href: '/docs/bridge' },
   { key: 'roadmap', href: '/docs/roadmap' },
   { key: 'faq', href: '/docs/faq' },
 ];
 
+/// The escrow page keeps its copy in its own message module, so its label
+/// comes from there rather than the shared docsShell section list.
+export function useDocsSectionLabel() {
+  const m = useTranslations();
+  return (key: DocsSection['key']) =>
+    key === 'escrow' ? m.docsEscrowPage.nav.label : m.docsShell.sidebar.sections[key].label;
+}
+
 export function DocsSidebar() {
   const pathname = usePathname();
   const t = useTranslations().docsShell;
+  const labelFor = useDocsSectionLabel();
   return (
     <aside className="lg:sticky lg:top-[88px] lg:self-start">
       <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-4">
@@ -61,7 +71,7 @@ export function DocsSidebar() {
                   active ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-border-light)] group-hover:bg-[var(--lp-accent)]',
                 )}
               />
-              {t.sidebar.sections[section.key].label}
+              {labelFor(section.key)}
             </Link>
           );
         })}

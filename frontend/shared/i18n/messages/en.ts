@@ -1,7 +1,19 @@
 // Source-of-truth schema. Other locales import the `Messages` type and supply
 // the same shape with translated strings. Do NOT add `as const` here; that
 // would lock each value to its English literal type and reject translations.
+import type { LandingEditorialCopy } from './editorial';
+import { networkCopy, type NetworkCopy } from './network';
+import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
+import { socialTradeCopy, type SocialTradeCopy } from './socialTrade';
+import { protectionCopy, type ProtectionCopy } from './protection';
 interface MessagesShape {
+  protection: ProtectionCopy;
+  socialTrade: SocialTradeCopy;
+  networkUi: NetworkCopy;
+  docsEscrowPage: EscrowDocsCopy;
+  landingEditorial: LandingEditorialCopy;
+  activityReview: { filterLabel: string };
+  onboardingReview: { purpose: string; review: string; days: string };
   common: {
     save: string;
     cancel: string;
@@ -4594,6 +4606,8 @@ interface MessagesShape {
     palette: {
       tag: string; headline: string; body: string;
       brandLime: string; brandInk: string; creamSurface: string; cardWhite: string;
+      darkRaised: string; darkInset: string; lightInset: string; lightSecondary: string; darkSecondary: string; greenOnLight: string;
+      interfaceHeadline: string; interfaceBody: string; interfaceLabel: string;
       brandLabel: string; copy: string; copied: string;
     };
     voice: {
@@ -5204,6 +5218,23 @@ interface MessagesShape {
 }
 
 export const en: MessagesShape = {
+  protection: protectionCopy.en,
+  socialTrade: socialTradeCopy.en,
+  networkUi: networkCopy.en,
+  docsEscrowPage: escrowDocsCopy.en,
+  activityReview: { filterLabel: 'Filter recent activity by type' },
+  onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
+  landingEditorial: {
+    kicker: 'The open market for goods and services', titleFirst: 'Take the deal', titleLast: 'out of the chat.',
+    lead: 'Bring someone you found online, or find a counterparty on Karwan. Agree the terms, fund USDC escrow, and settle by milestone.',
+    open: 'Open Karwan', trade: 'Local and cross-border trade', startLink: 'How a deal starts',
+    introLabel: 'Starting a deal', introTitle: 'Bring the other side, or find them here.', introBody: 'Karwan takes goods and service trades from first terms to settlement. You can start with a counterparty you already know or look through requests and offers in the market.', marketLink: 'Explore requests and offers',
+    bringLabel: 'Bring a deal', bringTitle: 'You already know the other side', bringBody: 'Set the goods or service, amount, deadline, and milestones. Invite the buyer or seller to review the same terms.',
+    findLabel: 'Find a match', findTitle: 'You need a counterparty', findBody: 'Browse requests and offers. Available trade history and agent-prepared comparisons can help you decide who to approach. You approve the terms.',
+    recordLabel: 'Escrow and settlement', recordTitle: 'The payment has a schedule.', recordBody: 'The buyer funds USDC escrow after both sides agree. Karwan shows the delivery, the current milestone, and what happens to the money next.',
+    terms: 'Terms accepted', funded: 'Escrow funded', delivery: 'Delivery submitted', reviewed: 'Milestone reviewed', released: 'Release recorded', both: 'Buyer and seller', buyer: 'Buyer', seller: 'Seller', receipt: 'Deal receipt',
+    exampleNote: 'Typical sequence, not a live deal. Exact release rules are set in each agreement.', limitTitle: 'Read the deadline before you fund', limitBody: 'If the review deadline passes, the seller may be able to claim the current milestone, including the final one. A dispute freezes unreleased funds; it does not issue an automatic refund.', rulesLink: 'Read the deal and escrow rules', closeTitle: 'Have a trade in mind?', closeBody: 'Bring a buyer or seller to a direct deal, or start with a request in the market.',
+  },
   common: {
     save: 'Save',
     cancel: 'Cancel',
@@ -7663,7 +7694,7 @@ export const en: MessagesShape = {
     hero: {
       tag: 'FEEDBACK',
       headline: 'Tell us what you hit',
-      body: 'You are testing on Arc Testnet, so things will break. A bug, a rough edge, an idea, anything. Paste a screenshot straight in. It goes to the team the moment you send it.',
+      body: "Report a problem, suggest an improvement, or ask a question. Include what you were doing and a screenshot if it helps. Your report goes directly to the Karwan team.",
     },
     categories: {
       bug: { label: 'Bug', blurb: 'Something broke or behaved wrong' },
@@ -9899,7 +9930,7 @@ export const en: MessagesShape = {
       },
       fund: {
         label: 'Use one balance.',
-        body: 'Bring testnet USDC to Arc through Deposit / Withdraw, or use the Arc faucet while testing. Personal and business workspaces share the customer balance in v1.',
+        body: "Open Add USDC and follow the route shown for your account. Check the network, token and destination address before sending.",
       },
       open: {
         label: 'Bring or find the trade.',
@@ -10111,9 +10142,9 @@ export const en: MessagesShape = {
     headline: 'Quick answers',
     intro: 'The questions new users ask first. If yours is not here, reach the team through the links in the footer.',
     items: [
-      { q: 'How do I add testnet USDC?', a: 'Open Deposit / Withdraw and use the address or source route shown for your account. Copy the exact address, chain, and token shown before sending. Connected-wallet accounts sign their own transfers. The Arc faucet is available for supported test flows.' },
+      { q: "How do I add USDC?", a: "Open Add USDC and use the address or source route shown for your account. Check the exact network, token and destination before sending. Connected-wallet accounts sign their own transfers. Test funds are available through Network details when the deployment is on Testnet." },
       { q: 'Do I need a crypto wallet?', a: 'No. You can sign in through the available email or passkey path. If you prefer self-custody, you can connect your own wallet.' },
-      { q: 'Is this real money?', a: 'Karwan currently runs on Arc Testnet. Testnet USDC has no real-world cash value. Do not send real funds to a testnet address.' },
+      { q: 'Is this real money?', a: "Check Network details before adding USDC. Testnet uses test funds with no real monetary value. Mainnet uses real funds. Balances and transaction records belong to their network; switching environments does not move money between them." },
       { q: 'Does my counterparty need an account?', a: 'Not before you create a direct deal. You can address an invite to a supported wallet or email. The recipient must claim the invite, review the terms, and accept before the deal can continue.' },
       { q: 'What happens when negotiation fails?', a: 'No escrow funds. The request can end without an agreement, and the product shows the reason available from the matching flow. You can change your limits or post a new request.' },
       { q: 'Can I cancel a deal?', a: 'The deal page shows whether cancellation is available in its current state. A mutual cancellation follows the contract path shown to both parties. Read the proposed outcome before accepting it.' },
@@ -10186,9 +10217,9 @@ export const en: MessagesShape = {
   docsRoadmapPage: {
     eyebrow: 'ROADMAP',
     heading: 'Current build and planned work',
-    intro: 'Karwan runs on Arc Testnet today. This guide separates current product paths from work still in development. A roadmap item is not a live capability, eligibility decision, or delivery promise.',
+    intro: "Karwan is built on Arc. This guide separates current product paths from work still in development. A roadmap item is not a live capability, eligibility decision, or delivery promise.",
     live: {
-      title: 'Available in the current testnet build',
+      title: "Available in the current build",
       items: {
         match: { title: 'Agent-assisted matching.', body: 'Buyer and seller flows can compare matches and negotiate inside account limits. Users review the resulting terms before funding.' },
         negotiation: { title: 'Market context for negotiation.', body: 'Where the paid research capability is enabled, the negotiation can use an external market read. The product should show when that data was used and what it cost.' },
@@ -10345,19 +10376,19 @@ export const en: MessagesShape = {
       q5: { q: 'How does the escrow release?', a: "Review delivery and release the agreed milestones. If a review deadline expires, the contract may allow the seller to claim the current milestone, including the final one. Check the deadline and available actions on the deal; do not assume inaction keeps funds frozen." },
       q6: { q: 'What if a deal goes to dispute?', a: "A dispute freezes the unreleased balance. You can propose a resolution for the other party to accept. If you cannot agree, recovery depends on the configured contract and arbiter. Opening a dispute is not an automatic refund." },
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
-      q8: { q: 'What kinds of trade can I use?', a: 'Karwan is for local and cross-border goods or services. Start from a known counterparty with Bring a deal, or use Find supply to publish a request or offer. The current settlement path runs on Arc Testnet, so testnet balances and receipts have no real value.' },
+      q8: { q: 'What kinds of trade can I use?', a: "Karwan is for local and cross-border goods or services. Bring a counterparty you already know, or publish a request or offer to find one. Both paths use USDC escrow on Arc." },
       q9: { q: 'Where does the agent reasoning run?', a: 'Agents search, compare, research, and prepare recommendations within your limits. Deterministic backend rules enforce budget, deadline, eligibility, evidence, and approval boundaries. Agents do not silently accept a match, fund escrow, release money, or change workspace authority.' },
       q10: { q: 'How does Karwan keep delivery safe?', a: 'Work is usually handed over as a link, so a SecurityAgent scans every delivery proof before you open it, and it guards the in-app chat so a phishing or malware link cannot be sent to you in the first place. A flagged link pauses the deal\'s automatic release, notifies both sides, and routes you to resolve it together in chat. A confirmed bad link is a heavy hit to the sender\'s reputation. When a delivery is a file, it is shared through a link the agent can check rather than an unverified attachment.' },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
-    cta: { title: 'Try it on Arc Testnet', body: 'The dashboard runs both flows against real testnet contracts.', button: 'Launch app', chainPrefix: 'chain' },
+    cta: { title: "Put your next trade on Karwan", body: "Agree the terms, fund USDC escrow, and follow each milestone through settlement.", button: 'Launch app', chainPrefix: 'chain' },
   },
   brandPage: {
-    hero: { tag: 'BRAND', headlineLead: 'The Karwan', headlineAccent: 'mark', body: 'The logo, the palette, the voice. Pull what you need to write about Karwan, embed it in a partner deck, or paint a co-mark. For deeper guidance, reach out at the contact below.' },
+    hero: { tag: 'BRAND', headlineLead: 'The Karwan', headlineAccent: 'mark', body: 'Download the mark and wordmark, use the exact palette, and describe Karwan as it works today: agreed terms, USDC held for milestones, and payment after review.' },
     logo: { tag: 'LOGO', headline: 'Three forms', body: 'Pick by surface. Mark for small spaces. Wordmark when there is room. Reserve clearspace equal to the stroke width on every side.', wordmarkOnDark: 'Wordmark on dark', wordmarkOnLight: 'Wordmark on light', markOnDark: 'Mark on dark' },
-    palette: { tag: 'PALETTE', headline: 'Four brand constants', body: 'Green marks action. Warm canvas carries light mode. White is reserved for raised cards.', brandLime: 'Karwan green', brandInk: 'Karwan ink', creamSurface: 'Light canvas', cardWhite: 'Card white', brandLabel: 'BRAND', copy: 'Copy', copied: 'Copied' },
-    voice: { tag: 'VOICE', headline: "Engineer's product memo", body: "Karwan's tone reads as infrastructural, not consumer. Bloomberg terminal energy. Have an opinion. Acknowledge limits. Vary rhythm. Never theatrical.", wordsWeUseLabel: 'WORDS WE USE', wordsWeUseBody: 'settlement, escrow, rail, deal, request, offer, milestone, release, slash, stake, reputation, passport, anchor, attest, financier, importer, exporter, working capital, cross-border, on-chain.', wordsWeAvoidLabel: 'WORDS WE AVOID', wordsWeAvoidBody: 'revolutionary, transformative, empowering, seamless, robust, world-class, cutting-edge, gig, freelance, platform, users, AI (we say "agents" with the specific job they do).' },
-    partner: { tag: 'PARTNER CO-MARK', headline: 'Pair, do not enclose', body: "When co-marking with Arc, Circle, USYC, or another partner: same baseline as Karwan's wordmark, vertical hairline divider, equal optical weight. Never enclose two logos in the same container.", partnerLabel: 'Partner' },
+    palette: { tag: 'PALETTE', headline: 'The Karwan palette', body: 'Four foundation colors set the mark, ink and light surfaces. Supporting interface colors keep text readable in both themes.', brandLime: 'Karwan green', brandInk: 'Karwan ink', creamSurface: 'Blue-grey canvas', cardWhite: 'Warm paper', darkRaised: 'Dark raised surface', darkInset: 'Dark inset surface', lightInset: 'Light inset surface', lightSecondary: 'Secondary ink on light', darkSecondary: 'Secondary ink on dark', greenOnLight: 'Green text on light', interfaceHeadline: 'Supporting interface colors', interfaceBody: 'Use these for surface depth and readable supporting text. Status colors are separate and must always be paired with words.', interfaceLabel: 'INTERFACE', brandLabel: 'BRAND', copy: 'Copy', copied: 'Copied' },
+    voice: { tag: 'VOICE', headline: 'Write about the trade', body: 'Name who agrees, where the USDC sits, what a delivery must prove, and when payment can move. Keep limitations beside the claim they qualify.', wordsWeUseLabel: 'USE PLAIN TERMS', wordsWeUseBody: 'Buyer, seller, agreement, milestone, delivery, review, payment held, release, dispute, refund, trade record.', wordsWeAvoidLabel: 'AVOID UNPROVEN CLAIMS', wordsWeAvoidBody: 'Never call an unaudited flow guaranteed, insured, instant or risk-free. Do not describe example trades as live activity or agent suggestions as decisions.' },
+    partner: { tag: 'PARTNER CO-MARK', headline: 'Pair, do not enclose', body: 'Use an organisation’s mark only with its approval. Align both wordmarks on one baseline with a fine divider, and keep their original proportions.', partnerLabel: 'Partner' },
     contact: { tag: 'PRESS AND PARTNERS', headlineLead: 'Reach', headlineAccent: 'out', body: 'Want a higher-resolution asset, a co-mark configuration we have not published, or a quote? Send a note.', backHome: 'Back home' },
   },
   termsPage: {
