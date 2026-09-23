@@ -60,7 +60,9 @@ emitted in `DealTermsSet`.
 | `deliveryDeadline` | When the next undelivered milestone is late | 0 (open) only below `highValue`; otherwise now < d <= now + horizon |
 | `reclaimGrace` | Seller's last chance after the deadline | <= 30 days |
 | `reviewWindow` | Buyer's time to check each delivery | `minReview` to `maxReview` |
-| `reviewStarts` | `ON_DELIVERY`, or `ON_ARRIVAL` for physical goods | |
+| `reviewStarts` | `ON_DELIVERY`, `ON_ARRIVAL` for physical goods, or `ON_CHECK_PASS` when a delivery check is agreed (section 13) | |
+| `checkPolicy` | The delivery check plan's policy ID and version, built from the terms | required when `ON_CHECK_PASS` |
+| `checkLongstop` | Review starts anyway this long after delivery if the check never answers | required when `ON_CHECK_PASS`, <= 14 days |
 | `arrivalLongstop` | For `ON_ARRIVAL`: review starts anyway this long after delivery if the buyer never confirms arrival | required when `ON_ARRIVAL`, <= 120 days |
 | `maxExtensions` | How many times the buyer may ask for more review time | 0 to 3 |
 | `extensionSecs` | Length of each extension | <= `reviewWindow` |
@@ -138,7 +140,7 @@ Final states: `Settled`, `Refunded`, `Reclaimed`, `Split`. They are absorbing: n
 | `proposeRuling(jobId, sellerBps, rulingHash)` | automatic arbiter | `Disputed` | records a proposed split; it takes effect after `appealWindow` unless a side escalates |
 | `executeRuling(jobId)` | anyone | appeal window passed, no escalation | applies the proposed split |
 | `escalate(jobId)` | either side | proposed ruling pending, inside `appealWindow`; or dispute older than `autoRulingSla` with no proposal | moves the dispute to admin review |
-| `rule(jobId, sellerBps, rulingHash)` | admin review Safe (1 of 4) | escalated | final split of the unreleased amount between the parties only |
+| `rule(jobId, sellerBps, rulingHash)` | admin review Safe (1 of 4, or 2 of 4 at or above `highValue`) | escalated | final split of the unreleased amount between the parties only |
 | `hold(jobId, reason)` / `releaseHold` | guardian | delivered | pauses seller claims, bounded by `holdBudget` |
 | `attest(jobId, i, pass, evidenceHash)` | guardian | delivered | pass can shorten review toward `attestedWindow`, fail places a hold |
 
@@ -175,7 +177,7 @@ present where judgement is needed, absent everywhere else, and bounded in the co
 | Role | Held by | Can | Cannot |
 | --- | --- | --- | --- |
 | Automatic arbiter | Dispute engine key operated by the backend | propose a ruling on a disputed deal from the terms and the evidence | make a ruling take effect before the appeal window ends, rule on an escalated dispute, pay anyone but the parties |
-| Admin review | Safe, 1 of 4 named reviewers | rule an escalated dispute: split the unreleased amount between the two parties, with a ruling hash | touch disputes that were not escalated, pay anyone else, change terms |
+| Admin review | Two Safes with the same 4 named reviewers: 1 of 4 below `highValue`, 2 of 4 at or above it | rule an escalated dispute: split the unreleased amount between the two parties, with a ruling hash | touch disputes that were not escalated, pay anyone else, change terms |
 | Guardian | Security agent key, separate from every Safe signer | hold a delivered milestone (bounded, 30-day ceiling), attest a delivery check, pause new deals | move money, extend a hold past its budget, block buyer exits |
 | Owner | Safe, 2 of N, behind a 48-hour timelock | set arbiter, guardian, fee (under the immutable 10% cap), caps, `highValue`, financier assigners, unpause | move deal money, change a funded deal |
 | Operator | Backend relayer | submit transactions for users who delegated to an agent | anything a party did not authorise |
@@ -190,8 +192,9 @@ Critical transactions and the humans on them:
      mainnet, 10 minutes on testnet) unless one side escalates. Most disputes end here with no
      human.
    - *Admin review.* A side escalates, or the engine cannot decide and escalates itself. One of
-     the four admin reviewers signs the final ruling. The reason is published to both sides and
-     the ruling hash goes on-chain. An escalated dispute cannot go back to the automatic tier.
+     the four admin reviewers signs the final ruling; at or above `highValue`, two of the four
+     must sign. The reason is published to both sides and the ruling hash goes on-chain. An
+     escalated dispute cannot go back to the automatic tier.
 2. **High-value deals** (at or above `highValue`). The contract forces `BY_BUYER` final release
    and a delivery check, so a large final payment never releases on a bare timer. If the buyer
    goes quiet, the seller is paid at the longstop, and the arbiter gets an alert before then.
@@ -205,12 +208,13 @@ Critical transactions and the humans on them:
 The backend alerts the admin reviewers on every escalation at once, at half of
 `disputeTimeout`, and one day before a lapse becomes possible.
 
-**Why 1 of 4 is acceptable here, and what bounds it.** Admin review only ever sees escalated
-disputes, it can only split money between the two parties of that deal, and every ruling is
-public with its reason. The risk left is one compromised or careless reviewer favouring one side
-of one escalated deal. Two limits keep that small: the per-deal cap during the guarded beta, and
-a proposed rule that escalated deals at or above `highValue` need a second reviewer's
-co-signature. Decision 5 in section 13 asks whether to keep that second rule.
+**Why 1 of 4 is acceptable below `highValue`, and why large deals need 2.** Admin review only
+ever sees escalated disputes, it can only split money between the two parties of that deal, and
+every ruling is public with its reason. The risk left is one compromised or careless reviewer
+favouring one side of one escalated deal. Below `highValue` that risk is bounded by the per-deal
+cap. At or above it, two of the four reviewers must sign (decided 2026-09-23). The contract
+stores both Safe addresses and picks the one the deal's amount requires; the same four people
+own both Safes.
 
 ## 9. Money handling
 
@@ -282,7 +286,118 @@ shows the contract's clocks.
    the frozen commit.
 9. **Internal audit round 2** on the frozen commit, then an external audit before caps rise.
 
-## 13. Decisions needed before the contract is frozen
+## 13. Delivery verification: the deterministic check
+
+This is what sets Karwan apart. Before a delivery reaches the buyer, a check reads the deal's
+own terms and tests the delivery against them. Most of the check is fixed rules that give the
+same answer every time. A small language model helps only where a rule cannot decide, and it
+never has the final word on a failure. If the delivery passes, the buyer's own review starts. If
+it fails, the seller is told exactly which term failed and why, and can deliver again.
+
+### How the terms become the check
+
+When both sides agree the terms, each clause that can be tested becomes a check in a
+**check plan**, stored with the terms and bound into the terms hash (`checkPolicy` and its
+version). A clause like "a merged pull request into `main` with a passing CI run" becomes
+repository, branch, merge, required-check and submitter tests. A clause like "three PNG files,
+at least 2000 px wide" becomes file-count, format and size tests. Clauses that cannot be tested
+stay with the buyer's own review and are labelled that way on the terms card, so nobody mistakes
+an unchecked clause for a checked one.
+
+### The model
+
+For a delivery `d` against terms `T`, the plan holds required checks `r_1 … r_n` and advisory
+checks `a_1 … a_m`.
+
+- Each required check is a deterministic predicate `r_i(d, T) ∈ {PASS, FAIL, UNAVAILABLE}`
+  with a reason code. It reads only a pinned snapshot of the evidence (a commit SHA, a file
+  hash, a fetched response with its timestamp), never a live moving source.
+- **Verdict:** `PASS` if every `r_i` passes. `MISMATCH` if any `r_i` fails. `UNAVAILABLE` if
+  none fails but at least one could not run.
+- Advisory checks give scores `s_j ∈ [0, 1]` with weights `w_j`. The buyer sees
+  `S = Σ w_j s_j / Σ w_j` and the individual results. `S` never gates payment on its own.
+- **Reproducible:** the same terms, the same evidence snapshot and the same policy version give
+  the same verdict. The evidence, criteria and verdict commitments and the policy version are
+  recorded, so anyone holding the evidence can re-run the check and get the same answer.
+
+### Where the small model sits
+
+The model handles questions no rule can answer, such as "does this write-up cover the three
+topics in the brief". Its output is held to a schema: a verdict, the clause it relates to, and a
+short quoted reason. It can:
+
+- add an advisory result;
+- flag "needs the buyer's eyes", which passes the delivery to the buyer's review with the flag
+  shown.
+
+It cannot turn a passed required check into a failure, cannot fail a delivery on its own, and
+cannot release or hold money. Prompts and outputs are logged with the policy version.
+
+### Sandboxed checks (Chainlink CRE)
+
+Some checks need secrets or must run code, so they run in a private sandbox rather than on our
+servers. **GitHub delivery is built as a sandbox pilot on testnet.** A Chainlink CRE confidential
+workflow pins the pull request's commit, checks the repository, base branch, merge state,
+submitter and the required check run from a trusted app, and writes a receipt to
+`KarwanEvidenceRegistry` holding only commitments, a decision code and a report ID. The GitHub
+token and the criteria stay inside the sandbox.
+
+- It is opt-in per deal. When the terms mention a repository, a pull request or GitHub, the app
+  suggests it on the terms card and both sides confirm.
+- It is a separate review step with its own status on the deal: Queued, Checking, Passed,
+  Mismatch or Unavailable.
+- Planned sandboxes, same pattern: a live website or API answering the agreed endpoints, data
+  files matching an agreed schema, and build artefacts that compile and pass agreed tests. Each
+  gets its own policy version and registry domain before it is offered.
+
+### Outcomes
+
+| Verdict | Buyer | Seller | Review clock |
+| --- | --- | --- | --- |
+| Pass | Sees the delivery, the checks that passed, and any advisory flags | Told it passed | Starts now |
+| Mismatch | Told a delivery was tried and did not meet the terms, with the failed clauses; not shown the content | Told which clause failed and the reason code; can deliver again as a new revision | Does not start |
+| Unavailable, or no answer by `checkLongstop` | Can choose "review it myself" and see the delivery | Told the check could not run | Starts when the buyer chooses, or at `checkLongstop` |
+| Security flag (unsafe link or file) | Not shown the content | Told it was withheld and why | Held under the guardian hold budget |
+
+A seller can re-deliver after a mismatch until the delivery deadline plus grace. The check never
+shortens the buyer's rights: a pass starts the normal review, it does not skip it.
+
+### How it binds to the escrow
+
+- New term values: `reviewStarts = ON_CHECK_PASS`, `checkPolicy` (policy ID and version),
+  `checkLongstop`.
+- The escrow reads a pass from a trusted verifier: an `EvidenceRegistry` receipt for sandboxed
+  checks, or a guardian attestation for server-side checks. The receipt must match the deal, the
+  terms version and the delivery revision.
+- A pass starts the review clock. A mismatch only records the result, so the seller can
+  re-deliver. At `checkLongstop`, or when the buyer chooses to review it themselves, the review
+  starts without a pass.
+- The verifier can start or withhold a clock. It cannot pay, refund or change a split.
+- The automatic dispute tier reads the same check results, so a dispute ruling and a delivery
+  check never disagree about the facts.
+
+### Added invariants
+
+| ID | Invariant |
+| --- | --- |
+| I14 | No verifier, sandbox or model output moves money or changes a split |
+| I15 | A mismatch never starts a review clock and never shortens any buyer right |
+| I16 | A stalled check cannot trap a deal: the review starts by `checkLongstop` at the latest |
+| I17 | The same terms, evidence snapshot and policy version always produce the same verdict (checked in CI by replaying recorded snapshots) |
+
+### Built today and still to build
+
+| Piece | State |
+| --- | --- |
+| GitHub rule set (`githubDeliveryPredicate`, policy `github-delivery-v2`) | Built, tested |
+| CRE confidential workflow and `KarwanEvidenceRegistry` receipts | Built. The hosted workflow currently fails on the provider side, so testnet deals fall back to the buyer's own review |
+| Buyer "review it myself" fallback | Live on testnet |
+| Unsafe-link hold | Live on testnet |
+| Terms-to-check-plan compiler for other deal kinds | Not built |
+| Advisory score and model-assisted checks with a fixed schema | Not built |
+| `ON_CHECK_PASS` review start in the escrow | Designed here, not built |
+
+## 14. Decisions needed before the contract is frozen
 
 1. `highValue` threshold (proposed 5,000 USDC) and the guarded-beta caps (proposed 1,000 per deal,
    25,000 total).
@@ -290,5 +405,5 @@ shows the contract's clocks.
 3. Who the four admin reviewers are, kept separate from the owner Safe signers.
 4. Whether pre-accept deals get a seller-acceptance deadline on-chain (proposed yes: buyer can
    reclaim if the seller never accepts by a term-set time).
-5. Whether escalated deals at or above `highValue` need a second admin reviewer (proposed yes).
+5. Decided 2026-09-23: escalated deals at or above `highValue` need 2 of the 4 admin reviewers.
 6. `appealWindow` and `autoRulingSla` on mainnet (proposed 72 hours and 5 days).
