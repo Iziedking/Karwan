@@ -80,6 +80,14 @@ const EVENT_VAULT_SLASHED = parseAbiItem(
 const EVENT_REP_COMPLETION = parseAbiItem(
   'event CompletionRecorded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint8 outcome)',
 ) as AbiEvent;
+// Reputation v2 added dealAmount, which changes the topic hash. Scanning only
+// the v1 shape counted zero records against the live contract.
+const EVENT_REP_COMPLETION_V2 = parseAbiItem(
+  'event CompletionRecorded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint8 outcome, uint256 dealAmount)',
+) as AbiEvent;
+const EVENT_REP_RESOLUTION = parseAbiItem(
+  'event ResolutionRecorded(bytes32 indexed jobId, address indexed buyer, address indexed seller, uint16 sellerBps, uint256 dealAmount)',
+) as AbiEvent;
 const EVENT_JOB_POSTED = parseAbiItem(
   'event JobPosted(bytes32 indexed jobId, address indexed buyer, uint256 budgetUsdc, uint256 deadline, string brief)',
 ) as AbiEvent;
@@ -531,6 +539,8 @@ async function build(): Promise<NetworkStats> {
       claims,
       slashes,
       completions,
+      completionsV2,
+      resolutions,
       posted,
       yieldClaimsLogs,
     ] = await Promise.all([
@@ -544,6 +554,8 @@ async function build(): Promise<NetworkStats> {
       safeScan({ address: vaultAddr, event: EVENT_VAULT_CLAIMED }, from, head),
       safeScan({ address: vaultAddr, event: EVENT_VAULT_SLASHED }, from, head),
       safeScan({ address: repAddr, event: EVENT_REP_COMPLETION }, from, head),
+      safeScan({ address: repAddr, event: EVENT_REP_COMPLETION_V2 }, from, head),
+      safeScan({ address: repAddr, event: EVENT_REP_RESOLUTION }, from, head),
       safeScan({ address: jobBoardAddr, event: EVENT_JOB_POSTED }, from, head),
       safeScan({ address: distributorAddr, event: EVENT_YIELD_CLAIMED }, from, head),
     ]);
@@ -580,7 +592,7 @@ async function build(): Promise<NetworkStats> {
     a.counts.vaultDeposits += deposits.length;
     a.counts.vaultClaims += claims.length;
     a.counts.vaultSlashes += slashes.length;
-    a.counts.reputationRecords += completions.length;
+    a.counts.reputationRecords += completions.length + completionsV2.length + resolutions.length;
     a.counts.yieldClaims += yieldClaimsLogs.length;
 
     for (const e of funded) a.vol.fundedUsdc += asBigint(e.args.dealAmount);
