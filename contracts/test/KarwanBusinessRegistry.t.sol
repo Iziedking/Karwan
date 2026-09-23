@@ -80,7 +80,7 @@ contract KarwanBusinessRegistryTest is Test {
         vm.expectEmit(true, true, false, true);
         emit BusinessVerified(applicant, reviewer, uint64(block.timestamp));
         vm.prank(reviewer);
-        reg.approve(applicant);
+        reg.approve(applicant, DOC);
 
         (uint8 status,, uint64 verifiedAt) = reg.statusOf(applicant);
         assertEq(status, 2);
@@ -93,14 +93,14 @@ contract KarwanBusinessRegistryTest is Test {
         reg.submitRegistration(DOC);
         vm.prank(rando);
         vm.expectRevert(KarwanBusinessRegistry.NotReviewer.selector);
-        reg.approve(applicant);
+        reg.approve(applicant, DOC);
     }
 
     function test_Approve_RevertsWhenNotSubmitted() public {
         // applicant never submitted: status None.
         vm.prank(reviewer);
         vm.expectRevert(KarwanBusinessRegistry.NotSubmitted.selector);
-        reg.approve(applicant);
+        reg.approve(applicant, DOC);
     }
 
     /* ============================ REJECT =============================== */
@@ -112,7 +112,7 @@ contract KarwanBusinessRegistryTest is Test {
         vm.expectEmit(true, true, false, true);
         emit BusinessRejected(applicant, reviewer, REASON, uint64(block.timestamp));
         vm.prank(reviewer);
-        reg.reject(applicant, REASON);
+        reg.reject(applicant, DOC, REASON);
 
         KarwanBusinessRegistry.Registration memory r = reg.registrationOf(applicant);
         assertEq(r.status, 3);
@@ -125,14 +125,14 @@ contract KarwanBusinessRegistryTest is Test {
         reg.submitRegistration(DOC);
         vm.prank(rando);
         vm.expectRevert(KarwanBusinessRegistry.NotReviewer.selector);
-        reg.reject(applicant, REASON);
+        reg.reject(applicant, DOC, REASON);
     }
 
     function test_Reject_ThenResubmitThenApprove() public {
         vm.prank(applicant);
         reg.submitRegistration(DOC);
         vm.prank(reviewer);
-        reg.reject(applicant, REASON);
+        reg.reject(applicant, DOC, REASON);
 
         // A rejected applicant can resubmit with a fresh document.
         vm.prank(applicant);
@@ -142,7 +142,7 @@ contract KarwanBusinessRegistryTest is Test {
         assertEq(docHash, DOC2);
 
         vm.prank(reviewer);
-        reg.approve(applicant);
+        reg.approve(applicant, DOC2);
         assertTrue(reg.isVerified(applicant));
     }
 
@@ -159,10 +159,10 @@ contract KarwanBusinessRegistryTest is Test {
         reg.submitRegistration(DOC);
         vm.prank(reviewer);
         vm.expectRevert(KarwanBusinessRegistry.NotReviewer.selector);
-        reg.approve(applicant);
+        reg.approve(applicant, DOC);
 
         vm.prank(newReviewer);
-        reg.approve(applicant);
+        reg.approve(applicant, DOC);
         assertTrue(reg.isVerified(applicant));
     }
 
@@ -207,6 +207,6 @@ contract KarwanBusinessRegistryTest is Test {
         vm.prank(who);
         reg.submitRegistration(doc);
         vm.prank(reviewer);
-        reg.approve(who);
+        reg.approve(who, doc);
     }
 }

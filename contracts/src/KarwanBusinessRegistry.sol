@@ -69,6 +69,7 @@ contract KarwanBusinessRegistry {
     error NotSubmitted();
     error AlreadyVerified();
     error NotVerified();
+    error DocHashMismatch();
 
     // Constructor
 
@@ -127,11 +128,15 @@ contract KarwanBusinessRegistry {
     }
 
     /// @notice Approve a submitted registration. Reviewer-only; the applicant
-    ///         must be in Submitted state.
-    function approve(address applicant) external {
+    ///         must be in Submitted state. `reviewedDocHash` is the document the
+    ///         reviewer actually checked: an applicant who resubmits between the
+    ///         review and this call would otherwise get a document nobody
+    ///         reviewed verified (audit BR-01).
+    function approve(address applicant, bytes32 reviewedDocHash) external {
         if (msg.sender != reviewer) revert NotReviewer();
         Registration storage reg = _registrations[applicant];
         if (reg.status != STATUS_SUBMITTED) revert NotSubmitted();
+        if (reg.docHash != reviewedDocHash) revert DocHashMismatch();
         reg.status = STATUS_VERIFIED;
         reg.reviewedAt = uint64(block.timestamp);
         reg.reviewedBy = msg.sender;
@@ -140,10 +145,11 @@ contract KarwanBusinessRegistry {
 
     /// @notice Reject a submitted registration. Reviewer-only. reasonHash is
     ///         the sha256 of the human-readable reason, kept off chain.
-    function reject(address applicant, bytes32 reasonHash) external {
+    function reject(address applicant, bytes32 reviewedDocHash, bytes32 reasonHash) external {
         if (msg.sender != reviewer) revert NotReviewer();
         Registration storage reg = _registrations[applicant];
         if (reg.status != STATUS_SUBMITTED) revert NotSubmitted();
+        if (reg.docHash != reviewedDocHash) revert DocHashMismatch();
         reg.status = STATUS_REJECTED;
         reg.reviewedAt = uint64(block.timestamp);
         reg.reviewedBy = msg.sender;

@@ -51,7 +51,7 @@ contract KarwanRegistriesAuditFixesTest is Test {
         vm.prank(biz);
         reg.submitRegistration(keccak256("doc"));
         vm.prank(reviewer);
-        reg.approve(biz);
+        reg.approve(biz, keccak256("doc"));
         assertTrue(reg.isVerified(biz));
 
         // Non-reviewer can't revoke.
