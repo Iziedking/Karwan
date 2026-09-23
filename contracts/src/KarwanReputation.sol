@@ -91,6 +91,10 @@ contract KarwanReputation {
     ///         composite's geometric per-pair diminishing returns (the k-th
     ///         same-pair deal is worth ~half the (k-1)-th).
     mapping(bytes32 => uint256) public pairDeals;
+    /// @notice Whether an unordered pair has already added breadth. Kept apart
+    ///         from pairDeals because a pair's first deal may not be creditable
+    ///         (audit REP-01) and a later real deal must still count once.
+    mapping(bytes32 => bool) public pairCounted;
     mapping(address => Financier) public financiers;
     mapping(bytes32 => bool) public recorded;
     mapping(bytes32 => bool) public financingRecorded;
@@ -257,20 +261,21 @@ contract KarwanReputation {
     }
 
     function _applyOutcome(address buyer, address seller, Outcome outcome, uint256 dealAmount) internal {
-        // Diversity accounting runs on EVERY outcome (success, disputed, failed):
-        // a distinct real counterparty relationship exists regardless of how the
-        // deal ended, and a failed deal can't be farmed for standing because it
-        // still lands as failedCount on the seller. First time a pair settles,
-        // both sides gain a distinct counterparty; repeats only deepen the pair.
+        // Every outcome deepens the pair. Breadth (distinctCounterparties) only
+        // comes from a creditable deal that did not fail (audit REP-01): a buyer
+        // could otherwise fund throwaway sellers, reclaim after the deadline with
+        // the fee refunded, and buy one "new counterparty" per deal for gas, and
+        // a dust deal paid no fee at all. Each pair adds breadth once.
+        bool creditable = dealAmount >= minCreditAmount;
         bytes32 pk = _pairKey(buyer, seller);
-        if (pairDeals[pk] == 0) {
+        if (creditable && outcome != Outcome.Failed && !pairCounted[pk]) {
+            pairCounted[pk] = true;
             distinctCounterparties[buyer] += 1;
             distinctCounterparties[seller] += 1;
         }
         pairDeals[pk] += 1;
         emit PairSettled(buyer, seller, pairDeals[pk], distinctCounterparties[buyer], distinctCounterparties[seller]);
 
-        bool creditable = dealAmount >= minCreditAmount;
         if (outcome == Outcome.Success) {
             scores[buyer].successCount += 1;
             scores[seller].successCount += 1;
@@ -399,7 +404,8 @@ contract KarwanReputation {
             uint256 cnt = counts[i];
             if (cnt == 0) continue;
             bytes32 pk = _pairKey(subject, party);
-            if (pairDeals[pk] == 0) {
+            if (!pairCounted[pk]) {
+                pairCounted[pk] = true;
                 distinctCounterparties[subject] += 1;
                 distinctCounterparties[party] += 1;
             }

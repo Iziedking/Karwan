@@ -68,18 +68,22 @@ contract KarwanReputationDiversityTest is Test {
         assertEq(rep.distinctCounterparties(b), 1, "still one distinct partner");
     }
 
-    /// Diversity is credited on failed/disputed outcomes too (a real distinct
-    /// interaction happened), and a failed deal can't be farmed for standing
-    /// because it still lands as failedCount on the seller.
-    function test_Diversity_CountsOnAllOutcomes() public {
+    /// Every outcome deepens the pair, but a failed deal adds no breadth: with
+    /// throwaway sellers a buyer could otherwise buy breadth for gas (REP-01).
+    /// A later creditable deal between the same pair still counts once.
+    function test_Diversity_FailedDeepensPairButAddsNoBreadth() public {
         address b = makeAddr("b");
         address s = makeAddr("s");
         vm.prank(escrow);
         rep.recordCompletion(keccak256("f1"), b, s, KarwanReputation.Outcome.Failed, 100 * U);
-        assertEq(rep.distinctCounterparties(s), 1, "failed deal still a distinct pair");
+        assertEq(rep.distinctCounterparties(s), 0, "failed deal adds no breadth");
+        assertEq(rep.pairDealCount(b, s), 1, "but the pair is recorded");
         vm.prank(escrow);
         rep.recordCompletion(keccak256("d1"), b, s, KarwanReputation.Outcome.DisputeResolved, 100 * U);
         assertEq(rep.pairDealCount(b, s), 2, "disputed deepens the same pair");
+        assertEq(rep.distinctCounterparties(s), 1, "the first creditable outcome counts the pair once");
+        vm.prank(escrow);
+        rep.recordCompletion(keccak256("s1"), b, s, KarwanReputation.Outcome.Success, 100 * U);
         assertEq(rep.distinctCounterparties(s), 1, "no new distinct on the repeat");
     }
 
