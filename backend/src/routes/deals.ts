@@ -2345,6 +2345,7 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
           milestonePcts,
           reservationBps,
           deal.deadlineUnix,
+          termsFloorMs(deal),
         ),
         idempotencyKey: funding.idempotencyKey,
         lifecycle: funding.lifecycle,
@@ -3257,6 +3258,16 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   const account = await readEscrow(jobId);
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not claimable (state ${account.state})` }, 409);
+  }
+  // The terms window is also on-chain now. Once goods arrive the off-chain
+  // floor lifts, but the contract still holds its own clock, so say when
+  // instead of sending a claim that reverts.
+  const onChainClaimAt = Number(account.claimDeadline ?? 0n) * 1000;
+  if (onChainClaimAt > Date.now()) {
+    return c.json(
+      { error: 'The review window has not passed yet.', code: 'window-open', eligibleAt: onChainClaimAt },
+      409,
+    );
   }
 
   inFlight.add(jobId);

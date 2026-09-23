@@ -213,14 +213,20 @@ export async function refundEscrow(
   return result.txHash;
 }
 
+/// The deployed escrow's maxReviewWindow (180 days). A longer window reverts
+/// fundEscrow with InvalidTiming, so the terms floor is capped here.
+export const MAX_ONCHAIN_REVIEW_WINDOW_MS = 180 * 86_400_000;
+
 /// Build the fundEscrow contract call, threading the per-deal clock on v2b.
 ///
 /// v2.E (flag off): the 5-arg fundEscrow, no on-chain timing.
 /// v2b (flag on): the 6-arg overload carrying Timing{deliveryDeadline,
 ///   reviewWindow, reclaimGrace}. deliveryDeadline is the deal's delivery
 ///   deadline (absolute unix seconds; 0 = open-ended, no timeout reclaim).
-///   reviewWindow and reclaimGrace come from the same config the off-chain
-///   watcher uses, so the on-chain reclaim clock matches the off-chain one.
+///   reviewWindow is the base window raised to the deal's terms floor (Net
+///   30/60/90, goods in transit): the contract is what a seller claims
+///   against, so the terms have to live there and not only in our claim
+///   route. reclaimGrace comes from the same config the watcher uses.
 ///   Circle encodes the struct param as a nested array [deadline, window, grace].
 export function buildFundEscrowCall(
   walletId: string,
@@ -231,6 +237,7 @@ export function buildFundEscrowCall(
   milestonePcts: number[],
   reservationBps: number,
   deadlineUnix: number | null | undefined,
+  reviewFloorMs = 0,
 ): ContractCallInput {
   const base = {
     walletId,
@@ -246,7 +253,11 @@ export function buildFundEscrowCall(
   if (!config.ESCROW_V2B_ENABLED) {
     return { ...base, abiFunctionSignature: 'fundEscrow(bytes32,address,uint256,uint8[],uint16)' };
   }
-  const reviewWindowSecs = Math.floor(config.DEAL_REVIEW_WINDOW_MS / 1000);
+  const reviewWindowMs = Math.max(
+    config.DEAL_REVIEW_WINDOW_MS,
+    Math.min(reviewFloorMs, MAX_ONCHAIN_REVIEW_WINDOW_MS),
+  );
+  const reviewWindowSecs = Math.floor(reviewWindowMs / 1000);
   const reclaimGraceSecs = Math.floor(config.DEAL_DEADLINE_RECLAIM_GRACE_MS / 1000);
   const deadline = deadlineUnix && deadlineUnix > 0 ? Math.floor(deadlineUnix) : 0;
   return {
