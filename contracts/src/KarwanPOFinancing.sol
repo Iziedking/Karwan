@@ -185,6 +185,12 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
 
     mapping(bytes32 => POLine) public lines;
 
+    /// @notice The seller's standing offer per deal: the hash of the exact line
+    ///         they accept (see offerHash). fund() must match it. Without this,
+    ///         anyone could open a line on any funded deal with a 1-unit advance
+    ///         and have the escrow pay them ahead of the seller (audit PO-01).
+    mapping(bytes32 => bytes32) public offerOf;
+
     // Events
 
     event POFunded(
@@ -204,6 +210,8 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     event CollateralSlashed(bytes32 indexed invoiceId, address indexed financier, uint128 amount);
     event CollateralSlashFailed(bytes32 indexed invoiceId, address indexed financier);
     event MinStakeBpsSet(uint16 bps);
+    event FinancingOffered(bytes32 indexed invoiceId, address indexed seller, bytes32 offerHash);
+    event FinancingOfferWithdrawn(bytes32 indexed invoiceId, address indexed seller);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     // Errors
@@ -226,6 +234,7 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
     error ZeroAddress();
     error MissingEscrowRecord();
     error InsufficientStake();
+    error NoMatchingOffer();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -313,9 +322,24 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         // no legitimate use and it corrupts the financing reputation signal.
         if (seller == msg.sender) revert SelfFunding();
 
+
         if (uint256(requiredStakeUsdc) * 10_000 < uint256(principalUsdc) * minStakeBps) {
             revert StakeBelowFloor();
         }
+
+        // The seller must have offered exactly this line, either to this
+        // financier or to anyone. The offer is spent here.
+        bytes32 offered = offerOf[invoiceId];
+        if (
+            offered == bytes32(0)
+                || (
+                    offered
+                        != offerHash(invoiceId, principalUsdc, repayUsdc, repaymentWindowSeconds, requiredStakeUsdc, msg.sender)
+                        && offered
+                            != offerHash(invoiceId, principalUsdc, repayUsdc, repaymentWindowSeconds, requiredStakeUsdc, address(0))
+                )
+        ) revert NoMatchingOffer();
+        delete offerOf[invoiceId];
 
         uint64 nowTs = uint64(block.timestamp);
         lines[invoiceId] = POLine({
@@ -350,6 +374,39 @@ contract KarwanPOFinancing is ReentrancyGuard, Guardable {
         emit POFunded(
             invoiceId, msg.sender, seller, principalUsdc, repayUsdc, nowTs + repaymentWindowSeconds
         );
+    }
+
+    // Seller offer
+
+    /// @notice Hash of one exact financing line. `financier` zero means the
+    ///         seller accepts this line from any financier.
+    function offerHash(
+        bytes32 invoiceId,
+        uint128 principalUsdc,
+        uint128 repayUsdc,
+        uint64 repaymentWindowSeconds,
+        uint128 requiredStakeUsdc,
+        address financier
+    ) public pure returns (bytes32) {
+        return keccak256(
+            abi.encode(invoiceId, principalUsdc, repayUsdc, repaymentWindowSeconds, requiredStakeUsdc, financier)
+        );
+    }
+
+    /// @notice The deal's seller offers one exact line. Replaces any earlier
+    ///         offer. Only before the deal has a line.
+    function offerFinancing(bytes32 invoiceId, bytes32 hash) external {
+        if (escrow.sellerOf(invoiceId) != msg.sender) revert NotParty();
+        if (lines[invoiceId].state != POState.None) revert AlreadyFunded();
+        if (hash == bytes32(0)) revert InvalidAmount();
+        offerOf[invoiceId] = hash;
+        emit FinancingOffered(invoiceId, msg.sender, hash);
+    }
+
+    function withdrawOffer(bytes32 invoiceId) external {
+        if (escrow.sellerOf(invoiceId) != msg.sender) revert NotParty();
+        delete offerOf[invoiceId];
+        emit FinancingOfferWithdrawn(invoiceId, msg.sender);
     }
 
     // Claim repayment

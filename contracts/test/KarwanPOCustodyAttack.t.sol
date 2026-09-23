@@ -214,6 +214,7 @@ contract KarwanPOCustodyAttackTest is Test {
     }
 
     function _openLine() internal {
+        _offer(JOB, PRINCIPAL, REPAY, WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, WINDOW, 0);
     }
@@ -314,6 +315,7 @@ contract KarwanPOCustodyAttackTest is Test {
         escrow.fundDeal(job2, seller, settledShort);
 
         vault.setFree(seller, stake);
+        _offer(job2, PRINCIPAL, REPAY, WINDOW, stake);
         vm.prank(financier);
         po.fund(job2, PRINCIPAL, REPAY, WINDOW, stake);
 
@@ -342,5 +344,15 @@ contract KarwanPOCustodyAttackTest is Test {
         vm.expectRevert(KarwanPOFinancing.SelfFunding.selector);
         po.fund(JOB, PRINCIPAL, REPAY, WINDOW, 0);
         vm.stopPrank();
+    }
+
+    /// Seller posts an open offer for exactly this line. Skips quietly when the
+    /// seller cannot offer (unknown deal, line already open) so the tests that
+    /// exercise those paths still reach the error they assert.
+    function _offer(bytes32 job, uint256 principal, uint256 repay, uint256 window, uint256 stake) internal {
+        bytes32 h = po.offerHash(job, uint128(principal), uint128(repay), uint64(window), uint128(stake), address(0));
+        vm.prank(seller);
+        (bool ok,) = address(po).call(abi.encodeCall(po.offerFinancing, (job, h)));
+        ok;
     }
 }

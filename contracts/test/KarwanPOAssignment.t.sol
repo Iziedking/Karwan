@@ -158,6 +158,7 @@ contract KarwanPOAssignmentTest is Test {
     /// which is exactly how the custody defect stayed hidden behind a green
     /// suite. See KarwanPOCustodyAttack.t.sol.
     function _openLine() internal {
+        _offer(JOB, PRINCIPAL, REPAY, WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, WINDOW, 0);
     }
@@ -166,6 +167,7 @@ contract KarwanPOAssignmentTest is Test {
     /// the cash, so there is never a window where the advance is out and the
     /// redirect is not yet in place.
     function test_FundRegistersTheAssignment() public {
+        _offer(JOB, PRINCIPAL, REPAY, WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, WINDOW, 0);
 
@@ -180,6 +182,7 @@ contract KarwanPOAssignmentTest is Test {
     /// opening an unprotected line.
     function test_FundRevertsWhenEscrowHasNotAuthorisedThisContract() public {
         escrow.setAssigner(address(po), false);
+        _offer(JOB, PRINCIPAL, REPAY, WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert();
         po.fund(JOB, PRINCIPAL, REPAY, WINDOW, 0);
@@ -234,5 +237,15 @@ contract KarwanPOAssignmentTest is Test {
         vm.prank(financier);
         vm.expectRevert();
         po.claimRepayment(JOB);
+    }
+
+    /// Seller posts an open offer for exactly this line. Skips quietly when the
+    /// seller cannot offer (unknown deal, line already open) so the tests that
+    /// exercise those paths still reach the error they assert.
+    function _offer(bytes32 job, uint256 principal, uint256 repay, uint256 window, uint256 stake) internal {
+        bytes32 h = po.offerHash(job, uint128(principal), uint128(repay), uint64(window), uint128(stake), address(0));
+        vm.prank(seller);
+        (bool ok,) = address(po).call(abi.encodeCall(po.offerFinancing, (job, h)));
+        ok;
     }
 }

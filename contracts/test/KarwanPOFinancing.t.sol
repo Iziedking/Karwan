@@ -236,6 +236,7 @@ contract KarwanPOFinancingTest is Test {
     /// contract's own balance stays zero throughout, which is the structural
     /// reason nothing can be stranded.
     function test_Fund_PaysTheSellerDirectly() public {
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
 
@@ -254,6 +255,7 @@ contract KarwanPOFinancingTest is Test {
     }
 
     function test_Fund_RegistersTheAssignment() public {
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
 
@@ -264,24 +266,28 @@ contract KarwanPOFinancingTest is Test {
     }
 
     function test_Fund_RevertsOnZeroInvoiceId() public {
+        _offer(bytes32(0), PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidInvoiceId.selector);
         po.fund(bytes32(0), PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
     }
 
     function test_Fund_RevertsOnZeroPrincipal() public {
+        _offer(JOB, 0, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidAmount.selector);
         po.fund(JOB, 0, REPAY, REPAYMENT_WINDOW, 0);
     }
 
     function test_Fund_RevertsWhenRepayNotAbovePrincipal() public {
+        _offer(JOB, PRINCIPAL, PRINCIPAL, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidRepay.selector);
         po.fund(JOB, PRINCIPAL, PRINCIPAL, REPAYMENT_WINDOW, 0);
     }
 
     function test_Fund_RevertsOnZeroTimeout() public {
+        _offer(JOB, PRINCIPAL, REPAY, 0, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidTimeout.selector);
         po.fund(JOB, PRINCIPAL, REPAY, 0, 0);
@@ -290,12 +296,14 @@ contract KarwanPOFinancingTest is Test {
     /// The window has to outlast the buyer's own release timing, since
     /// repayment comes out of the settlement rather than the seller's wallet.
     function test_Fund_RevertsOnWindowBelowMinimum() public {
+        _offer(JOB, PRINCIPAL, REPAY, 7 days - 1, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidTimeout.selector);
         po.fund(JOB, PRINCIPAL, REPAY, 7 days - 1, 0);
     }
 
     function test_Fund_RevertsOnOversizedTimeout() public {
+        _offer(JOB, PRINCIPAL, REPAY, 5 * 365 days + 1, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InvalidTimeout.selector);
         po.fund(JOB, PRINCIPAL, REPAY, 5 * 365 days + 1, 0);
@@ -304,6 +312,7 @@ contract KarwanPOFinancingTest is Test {
     /// Goods already delivered and accepted is factoring, not PO financing.
     function test_Fund_RevertsWhenPoDAlreadyAccepted() public {
         registry.setPoD(JOB, true);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.PoDAlreadyAccepted.selector);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
@@ -311,6 +320,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_Fund_RevertsWhenEscrowDealUnknown() public {
         bytes32 unknown = keccak256("nope");
+        _offer(unknown, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.MissingEscrowRecord.selector);
         po.fund(unknown, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
@@ -318,6 +328,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_Fund_RevertsOnDoubleFund() public {
         _openLine();
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.AlreadyFunded.selector);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
@@ -508,6 +519,7 @@ contract KarwanPOFinancingTest is Test {
         uint64 expectedTimeout = uint64(block.timestamp) + REPAYMENT_WINDOW;
         vm.expectEmit(true, true, true, true, address(po));
         emit KarwanPOFinancing.POFunded(JOB, financier, seller, PRINCIPAL, REPAY, expectedTimeout);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
     }
@@ -527,6 +539,7 @@ contract KarwanPOFinancingTest is Test {
     /// End to end on the path production actually takes: advance out, escrow
     /// settles and pays the assignee, line closes with nothing pulled.
     function test_FullFlow_EscrowRepaysTheFinancier() public {
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         assertEq(usdc.balanceOf(seller), PRINCIPAL, "seller funded up front");
@@ -596,6 +609,7 @@ contract KarwanPOFinancingTest is Test {
         po.setMinStakeBps(1000); // 10% of 4,000 = 400
         vault.setFreeStake(seller, 10_000_000_000);
 
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 399_000_000);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.StakeBelowFloor.selector);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 399_000_000);
@@ -608,6 +622,7 @@ contract KarwanPOFinancingTest is Test {
         vault.setFreeStake(seller, 10_000_000_000);
 
         uint256 quoted = po.stakeFloorFor(PRINCIPAL);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, uint128(quoted));
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, uint128(quoted));
 
@@ -620,6 +635,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_Stake_FundReservesSellerStake() public {
         vault.setFreeStake(seller, 2_000_000_000);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
 
@@ -629,6 +645,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_Stake_FundRevertsWhenSellerLacksStake() public {
         vault.setFreeStake(seller, 500_000_000);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
         vm.prank(financier);
         vm.expectRevert(KarwanPOFinancing.InsufficientStake.selector);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
@@ -636,6 +653,7 @@ contract KarwanPOFinancingTest is Test {
 
     function test_Stake_SettleReleasesStake() public {
         vault.setFreeStake(seller, 2_000_000_000);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
 
@@ -650,6 +668,7 @@ contract KarwanPOFinancingTest is Test {
     function test_Stake_DefaultSlashesToFinancier() public {
         vault.setFreeStake(seller, 2_000_000_000);
         usdc.mint(address(vault), STAKE);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
 
@@ -667,6 +686,7 @@ contract KarwanPOFinancingTest is Test {
     function test_Stake_DefaultSlashesOnlyTheShortfall() public {
         vault.setFreeStake(seller, 2_000_000_000);
         usdc.mint(address(vault), STAKE);
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, STAKE);
 
@@ -690,7 +710,18 @@ contract KarwanPOFinancingTest is Test {
     /* ============================ INTERNALS =============================== */
 
     function _openLine() internal {
+        _offer(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
         vm.prank(financier);
         po.fund(JOB, PRINCIPAL, REPAY, REPAYMENT_WINDOW, 0);
+    }
+
+    /// Seller posts an open offer for exactly this line. Skips quietly when the
+    /// seller cannot offer (unknown deal, line already open) so the tests that
+    /// exercise those paths still reach the error they assert.
+    function _offer(bytes32 job, uint256 principal, uint256 repay, uint256 window, uint256 stake) internal {
+        bytes32 h = po.offerHash(job, uint128(principal), uint128(repay), uint64(window), uint128(stake), address(0));
+        vm.prank(seller);
+        (bool ok,) = address(po).call(abi.encodeCall(po.offerFinancing, (job, h)));
+        ok;
     }
 }
