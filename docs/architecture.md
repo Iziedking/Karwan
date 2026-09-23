@@ -88,6 +88,24 @@ The same trade record can represent goods or services. Personal and business
 workspaces share the customer identity and balance while keeping the active
 workspace visible in the interface.
 
+## Escrow
+
+Deal money is held by the escrow contract on Arc from funding to payout, never
+in a Karwan account. Today's testnet escrow follows the flow above with short
+demo clocks (5-minute review times).
+
+The mainnet escrow is designed around the deal's terms. The terms both sides
+agree (milestones, delivery date, review time, extra review time, final-payment
+rule, and what happens if someone goes quiet) are stored in the contract at
+funding, and the seller confirms the same terms on chain. Disputes are ruled
+automatically with an appeal window, and escalate to admin review, where one of
+four named reviewers signs the final ruling. Admins can only split a disputed
+amount between that deal's own parties, and a pause never blocks an exit.
+
+This design is in review and not live. The full design, including roles,
+clocks, invariants and how it is verified, is in
+[escrow-design.md](./escrow-design.md).
+
 ## Agent boundary
 
 Agents can search, compare, research, score, and prepare a structured offer
