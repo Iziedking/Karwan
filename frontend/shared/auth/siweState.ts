@@ -5,11 +5,12 @@ import { useSyncExternalStore } from 'react';
 export type SiwePhase =
   | 'idle'
   | 'checking-session'
+  | 'switching-network'
   | 'awaiting-signature'
   | 'verifying'
   | 'error';
 
-export type SiweError = 'cancelled' | 'unavailable' | null;
+export type SiweError = 'cancelled' | 'wrong-network' | 'unavailable' | null;
 
 export interface SiweSnapshot {
   phase: SiwePhase;

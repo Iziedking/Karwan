@@ -426,12 +426,11 @@ export function supportsCircleWallet(key: CctpChainKey): boolean {
 
 export const CIRCLE_WALLET_CHAIN_KEYS = CCTP_CHAIN_KEYS.filter(supportsCircleWallet);
 
-/// Whether a backend Circle wallet may move a USER's money across chains. On
-/// mainnet users sign with their own wallet (a modular wallet for email users)
-/// and backend Circle wallets sign only for agents, decided 2026-09-23. Every
-/// route that provisions a source-chain wallet for a user, or burns from a
-/// user's Circle wallet, checks this.
-export const USER_DCW_BRIDGING = ARC.testnet;
+/// Whether a backend Circle wallet may hold or move a USER's money. On mainnet
+/// users sign with their own wallet (a modular wallet for email users) and
+/// backend Circle wallets sign only for agents, decided 2026-09-23. Every route
+/// that provisions a user wallet, or signs from one, checks this.
+export const USER_DCW_WALLETS = ARC.testnet;
 
 /// Reverse lookup by CCTP domain (used when relaying a mint to resolve the
 /// destination chain from a burn message's domain).

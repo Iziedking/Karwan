@@ -52,7 +52,7 @@ import {
 import { ensureBridgeMovement } from '../money/bridge.js';
 
 import { sourceClients } from '../chain/cctpClients.js';
-import { USER_DCW_BRIDGING } from '../chain/cctpChains.js';
+import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
 const erc20BalanceOfAbi = [
@@ -186,9 +186,9 @@ async function computeFastMaxFee(
 export const bridgeRoutes = new Hono();
 
 /// The circle-* routes sign with a backend Circle wallet on the user's behalf,
-/// which only testnet allows (see USER_DCW_BRIDGING).
+/// which only testnet allows (see USER_DCW_WALLETS).
 bridgeRoutes.use('*', async (c, next) => {
-  if (!USER_DCW_BRIDGING && c.req.path.split('/').some((seg) => seg.startsWith('circle-'))) {
+  if (!USER_DCW_WALLETS && c.req.path.split('/').some((seg) => seg.startsWith('circle-'))) {
     return c.json({ error: 'Not available on this network.', code: 'not_on_this_network' }, 409);
   }
   await next();

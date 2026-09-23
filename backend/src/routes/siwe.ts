@@ -90,14 +90,15 @@ siweRoutes.post(
     const nonce = randomBytes(16).toString('hex');
     const issuedAt = new Date().toISOString();
     const expirationTime = new Date(Date.now() + NONCE_TTL_MS).toISOString();
-    let chainId = body.chainId;
-    if (!chainId) {
-      try {
-        chainId = await publicClient.getChainId();
-      } catch {
-        chainId = ARC.chainId;
-      }
+    // The session is for this deployment's Arc network. A wallet on any other
+    // chain is asked to switch first rather than signing a message for it.
+    if (body.chainId !== undefined && body.chainId !== ARC.chainId) {
+      return c.json(
+        { error: 'Switch your wallet to Arc.', code: 'wrong_chain', expectedChainId: ARC.chainId },
+        400,
+      );
     }
+    const chainId = ARC.chainId;
     const message = buildMessage({
       domain,
       uri,

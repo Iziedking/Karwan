@@ -44,6 +44,8 @@ export function getProductBackHref(
   isAuthenticated = true,
 ): string | null {
   if (!pathname || pathname === '/app') return null;
+  if (pathname === '/docs' || pathname === '/how-it-works') return isAuthenticated ? '/app' : '/';
+  if (matchesRoute(pathname, '/docs')) return '/docs';
   if (matchesRoute(pathname, '/settings')) return '/profile';
   if (pathname === '/profile') return '/app';
   if (matchesRoute(pathname, '/profile/business/setup')) return '/profile/business';
@@ -125,4 +127,41 @@ export function getShellSurface(
  */
 export function isLandingRoute(pathname: string | null | undefined): boolean {
   return isPublicAccessRoute(pathname);
+}
+
+/// Surfaces that need Karwan's own contracts. Where they are not deployed (Arc
+/// mainnet until the contract suite ships) these redirect to the wallet page,
+/// which is all a wallet-only deployment offers: balances, deposits, bridging.
+const DEAL_ROUTES = [
+  '/app',
+  '/b2b',
+  '/p2p',
+  '/buyer',
+  '/seller',
+  '/supply',
+  '/deals',
+  '/jobs',
+  '/cashout',
+  '/invite',
+  '/market',
+  '/listings',
+  '/partners',
+  '/financier',
+  '/stake',
+  '/legacy',
+  '/business',
+  '/credit-passport',
+  '/x402',
+];
+
+export const WALLET_HOME = '/account';
+
+export function isDealRoute(pathname: string | null | undefined): boolean {
+  return !!pathname && DEAL_ROUTES.some((route) => matchesRoute(pathname, route));
+}
+
+/// Deals exist only where the contracts do. Read from the raw env value so the
+/// middleware can use it without loading the chain definitions.
+export function dealsAvailableOn(network: string | undefined): boolean {
+  return (network ?? '').trim().toLowerCase() !== 'mainnet';
 }

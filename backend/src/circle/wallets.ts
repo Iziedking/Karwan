@@ -88,6 +88,11 @@ export interface ProvisionedBridgeWallet {
 export async function provisionUserIdentityWallet(
   emailHash: string,
 ): Promise<ProvisionedIdentityWallet> {
+  // Mainnet users hold their own keys; a backend wallet here would custody
+  // their money. Routes refuse first with a clear answer; this is the backstop.
+  if (!ARC.testnet) {
+    throw new Error(`user identity wallets are not provisioned on Arc ${ARC.name}`);
+  }
   if (!config.CIRCLE_WALLET_SET_ID) {
     throw new Error('CIRCLE_WALLET_SET_ID is not set');
   }

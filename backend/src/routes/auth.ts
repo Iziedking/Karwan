@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -27,6 +27,7 @@ import {
   OTP_PLACEHOLDER_CREDENTIAL_ID,
 } from '../db/users.js';
 import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.js';
+import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
 import { getProfile } from '../db/profiles.js';
 import {
   clearSessionCookie,
@@ -236,6 +237,16 @@ function userIdBytes(email: string): Uint8Array<ArrayBuffer> {
     out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   }
   return out;
+}
+
+/// New email accounts get a wallet only where a backend may hold one for them
+/// (testnet). Mainnet email sign-up waits for modular wallets, where the user's
+/// passkey holds the key.
+function emailSignupUnavailable(c: Context) {
+  return c.json(
+    { error: 'Email sign-up is not available on this network yet. Connect a wallet instead.', code: 'not_on_this_network' },
+    409,
+  );
 }
 
 export const authRoutes = new Hono();
@@ -478,6 +489,7 @@ authRoutes.post('/register/options', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  if (!USER_DCW_WALLETS) return emailSignupUnavailable(c);
   purgeStale();
   const existing = getUserByEmail(body.email);
   if (existing) {
@@ -595,6 +607,8 @@ authRoutes.post('/register/verify', async (c) => {
   const credentialId = toB64Url(info.credential?.id ?? info.credentialID!);
   const publicKeyBytes = info.credential?.publicKey ?? info.credentialPublicKey!;
   const counter = info.credential?.counter ?? info.counter ?? 0;
+
+  if (!USER_DCW_WALLETS) return emailSignupUnavailable(c);
 
   // Provision the user's Circle identity wallet. This is the address the
   // rest of the app will read for them.
@@ -839,6 +853,7 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
   // passkey later because the WebAuthn registration path requires the row.
   let user = getUserByEmail(body.email);
   if (!user) {
+    if (!USER_DCW_WALLETS) return emailSignupUnavailable(c);
     let identity;
     try {
       identity = await provisionUserIdentityWallet(emailHash(body.email));

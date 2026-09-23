@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { config } from '../config.js';
+import { ARC } from '../chain/client.js';
 
 // Stateless session cookies, HMAC-signed with SESSION_SECRET so the backend
 // doesn't have to remember anything between requests. Payload is small on
@@ -20,6 +21,9 @@ export interface SessionPayload {
   /// Email is present only for circle users; web3 users authenticate by
   /// wallet signature without ever giving up an email.
   email?: string;
+  /// The Arc chain the session was issued for. Absent on sessions issued before
+  /// mainnet existed.
+  chainId?: number;
   /// Expiry in seconds since epoch. Checked server-side on every read.
   exp: number;
 }
@@ -59,6 +63,17 @@ function b64urlDecode(s: string): Buffer {
   );
 }
 
+/// A session only counts on the chain it was issued for, so a testnet session
+/// can never act on mainnet even if both deployments shared a secret. Sessions
+/// from before the chain was recorded stay valid on testnet only.
+export function sessionChainOk(
+  sessionChainId: number | undefined,
+  active: { chainId: number; testnet: boolean },
+): boolean {
+  if (sessionChainId === undefined) return active.testnet;
+  return sessionChainId === active.chainId;
+}
+
 function sign(body: string): string {
   return b64url(createHmac('sha256', secret()).update(body).digest());
 }
@@ -70,6 +85,7 @@ export function signSession(payload: Omit<SessionPayload, 'exp'> & { ttlDays?: n
     address: payload.address.toLowerCase(),
     method: payload.method,
     email: payload.email,
+    chainId: ARC.chainId,
     exp,
   };
   const body = b64url(JSON.stringify(full));
@@ -93,6 +109,7 @@ export function verifySession(token: string): SessionPayload | null {
     return null;
   }
   if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+  if (!sessionChainOk(payload.chainId, ARC)) return null;
   return payload;
 }
 

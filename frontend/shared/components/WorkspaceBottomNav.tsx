@@ -10,7 +10,8 @@ import { useNotifications } from '@/features/notifications/hooks/useNotification
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import { cn } from '@/shared/utils/cn';
-import { getShellSurface } from '@/shared/utils/routes';
+import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 
 type IconName = 'home' | 'trade' | 'discover' | 'activity' | 'account';
 
@@ -54,20 +55,26 @@ export function WorkspaceBottomNav() {
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 
+  const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
+  const dealItems: BottomNavItem[] = DEALS_AVAILABLE
+    ? [
+        {
+          href: tradeHref,
+          label: business ? t.smeTrades : t.trades,
+          icon: 'trade',
+          active: tradeActive,
+        },
+        {
+          href: discoverHref,
+          label: t.market,
+          icon: 'discover',
+          active: discoverActive,
+        },
+      ]
+    : [];
   const items: BottomNavItem[] = [
-    { href: '/app', label: t.home, icon: 'home', active: pathname === '/app' },
-    {
-      href: tradeHref,
-      label: business ? t.smeTrades : t.trades,
-      icon: 'trade',
-      active: tradeActive,
-    },
-    {
-      href: discoverHref,
-      label: t.market,
-      icon: 'discover',
-      active: discoverActive,
-    },
+    { href: homeHref, label: t.home, icon: 'home', active: pathname === homeHref },
+    ...dealItems,
     {
       href: '/activity',
       label: t.activity,
@@ -87,10 +94,13 @@ export function WorkspaceBottomNav() {
   return (
     <nav
       data-workspace-bottom-nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--lp-workspace-band)] px-2 pt-1.5 text-[var(--color-ink)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-line)] bg-[var(--lp-workspace-band)] px-2 pt-1.5 text-[var(--color-ink)] lg:hidden"
       style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-5">
+      <div
+        className="mx-auto grid max-w-lg"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
         {items.map((item) => (
           <Link
             key={item.href}
@@ -113,7 +123,7 @@ export function WorkspaceBottomNav() {
               />
             ) : null}
             <NavIcon name={item.icon} active={item.active} />
-            <span className="inline-flex max-w-full items-center gap-1 truncate mono text-[9px] font-semibold uppercase tracking-[0.05em]">
+            <span className="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium">
               <span className="truncate">{item.label}</span>
               {item.signal ? (
                 <ActionBeacon />
@@ -134,7 +144,7 @@ function NavIcon({ name, active }: { name: IconName; active: boolean }) {
     fill: 'none',
     'aria-hidden': true,
   } as const;
-  const stroke = active ? 'var(--lp-accent)' : 'currentColor';
+  const stroke = 'currentColor';
   const props = {
     stroke,
     strokeWidth: 1.5,

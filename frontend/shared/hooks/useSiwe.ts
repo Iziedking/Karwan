@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { useAccount, useChainId, useSignMessage } from 'wagmi';
+import { useAccount, useChainId, useSignMessage, useSwitchChain } from 'wagmi';
+import { arcChain } from '@/core/wagmi';
 import { api } from '@/core/api';
 import { isLandingRoute } from '@/shared/utils/routes';
 import { emitAuthChanged } from './useAuth';
@@ -54,6 +55,7 @@ export function useSiwe(): {
   const { address, isConnected, status: accountStatus } = useAccount();
   const chainId = useChainId();
   const { signMessageAsync } = useSignMessage();
+  const { switchChainAsync } = useSwitchChain();
   const pathname = usePathname();
   const status = useSiweStatus();
 
@@ -84,7 +86,23 @@ export function useSiwe(): {
             return;
           }
 
-          const { message } = await api.siweNonce(target, chainId);
+          // The session is for the app's Arc network, so the wallet signs from
+          // it. Wallets that do not know Arc yet are offered it by wagmi.
+          if (chainId !== arcChain.id) {
+            publishSiweSnapshot({ phase: 'switching-network', address: normalized, error: null });
+            try {
+              await switchChainAsync({ chainId: arcChain.id });
+            } catch (error) {
+              publishSiweSnapshot({
+                phase: 'error',
+                address: normalized,
+                error: classifySiweError(error) === 'cancelled' ? 'wrong-network' : 'unavailable',
+              });
+              return;
+            }
+          }
+
+          const { message } = await api.siweNonce(target, arcChain.id);
           publishSiweSnapshot({
             phase: 'awaiting-signature',
             address: normalized,
@@ -111,7 +129,7 @@ export function useSiwe(): {
         if (inFlight?.promise === task) inFlight = null;
       }
     },
-    [chainId, signMessageAsync],
+    [chainId, signMessageAsync, switchChainAsync],
   );
 
   useEffect(() => {

@@ -5178,6 +5178,8 @@ interface MessagesShape {
         checkWallet: string;
         verifyingWallet: string;
         walletRetry: string;
+        switchingWallet: string;
+        walletWrongNetwork: string;
         or: string;
         emailNotConfigured: string;
       };
@@ -5313,20 +5315,20 @@ export const en: MessagesShape = {
 
   },
   settings: {
-    eyebrow: 'SETTINGS',
+    eyebrow: 'Settings',
     title: 'Preferences',
-    description: 'What Karwan has settled since the first deal.',
+    description: 'Manage language, appearance, notifications and account access.',
     language: 'Language',
     languageHint: 'Used for the app, notifications, and emails.',
     theme: 'Theme',
-    themeLight: 'White',
+    themeLight: 'Light',
     themeDark: 'Dark',
     themeSystem: 'Daylight',
     sound: 'Sound',
     soundOn: 'On',
     soundOff: 'Off',
     notifications: 'Notifications',
-    notificationsHint: 'Mute all reach pipes (Telegram, X, email). Per-channel controls coming with the next update.',
+    notificationsHint: 'Stops Karwan notifications across email and connected channels.',
     notificationsMute: 'Mute all notifications',
     privacy: 'Privacy',
     privacyPublicPassport: 'List me on the public Credit Passport board',
@@ -6298,7 +6300,7 @@ export const en: MessagesShape = {
     activeTrades: 'Active trades',
     wallets: 'Wallets',
     add: 'Add',
-    move: 'Move from Gateway',
+    move: 'Move',
     send: 'Send',
     details: 'Details',
     trades: 'Trades',
@@ -10918,7 +10920,7 @@ export const en: MessagesShape = {
       heroTag: 'SIGN IN',
       heroTitle: 'Continue to Karwan',
       pageTitle: 'Sign in to continue',
-      heroBody: 'Use your email or wallet to return to your agreements, balances and trade record—or start a Karwan account.',
+      heroBody: 'Use your email or wallet to return to your agreements, balances and trade record. You can also start a Karwan account.',
       heroButton: 'Continue with email or wallet',
       heroNote: 'Wallet sign-in may ask you to sign a message. Signing in does not move funds.',
       browseIntro: 'Just looking around?',
@@ -10992,6 +10994,8 @@ export const en: MessagesShape = {
         checkWallet: 'Confirm in your wallet',
         verifyingWallet: 'Verifying…',
         walletRetry: "We couldn't finish sign in. Try again.",
+        switchingWallet: 'Switch to Arc in your wallet',
+        walletWrongNetwork: 'Your wallet is on another network. Switch to Arc and try again.',
         or: 'OR',
         emailNotConfigured: 'Email login is not configured on this backend.',
       },

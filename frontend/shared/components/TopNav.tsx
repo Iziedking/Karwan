@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -11,25 +11,16 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { getShellSurface } from '@/shared/utils/routes';
+import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
 import type { UserProfile } from '@/core/api';
 import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LanguagePicker } from './LanguagePicker';
-
-const LANDING_NAV_VARS = {
-  '--color-surface': '#0e0e0e',
-  '--color-surface-2': 'rgba(255,255,255,0.07)',
-  '--color-line': 'rgba(255,255,255,0.10)',
-  '--color-line-strong': 'rgba(255,255,255,0.22)',
-  '--color-ink': '#f4f0ff',
-  '--color-ink-dim': '#9a9a9a',
-  '--color-ink-faint': '#6b6b6b',
-  '--lp-workspace-band': '#0e0e0e',
-  '--lp-dark': '#f4f0ff',
-} as CSSProperties;
+import { ThemeControl } from './ThemeControl';
+import { Brand } from './Brand';
 
 export function TopNav() {
   const a11y = useTranslations().a11y;
@@ -97,31 +88,25 @@ export function TopNav() {
     <>
     <header
       ref={barRef}
-      style={pathname === '/' ? LANDING_NAV_VARS : undefined}
       data-chrome="nav"
       className={cn(
         'sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--lp-workspace-band)]',
-        pathname !== '/' && 'product-surface',
+        'product-surface',
       )}
     >
-      <div className="mx-auto flex h-[64px] max-w-[1600px] items-center gap-2.5 px-4 sm:h-[72px] sm:gap-5 sm:px-6 lg:gap-8">
-        <div className="flex min-w-0 shrink-0 items-center">
-          <Link href="/" aria-label="Karwan" className="group inline-flex min-h-11 min-w-11 items-center justify-center gap-2.5 sm:justify-start sm:gap-3">
-            <span
-              aria-hidden
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:-translate-y-0.5 sm:h-11 sm:w-11"
-            >
-              {/* Use the canonical Karwan mark; do not wrap it in the old
-                  white placeholder tile. The asset owns its dark tile and
-                  lime mark treatment. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/karwan-app-icon.svg" alt="" width="44" height="44" className="size-full" />
-            </span>
-            <span className="hidden font-sans text-[18px] font-extrabold tracking-[-0.04em] text-[var(--lp-dark)] sm:inline">
-              karwan
-            </span>
-          </Link>
+      <div className={cn(
+        'mx-auto flex h-[64px] w-full items-center gap-2.5 px-4 sm:h-[72px] sm:gap-5 sm:px-6 lg:gap-8',
+        publicSurface ? 'max-w-none' : 'max-w-[1600px]',
+      )}>
+        <div className={cn('flex min-w-0 shrink-0 items-center', publicSurface && 'max-[379px]:[&_span]:hidden max-[379px]:[&_a]:min-w-11')}>
+          <Brand />
         </div>
+
+        {publicSurface && <nav aria-label={t.footer.columns.product} className="hidden items-center gap-8 text-[14px] font-medium text-[var(--lp-dark)] lg:flex">
+          <Link className="inline-flex min-h-11 items-center" href="/how-it-works">{t.footer.productLinks.howItWorks}</Link>
+          {DEALS_AVAILABLE && <Link className="inline-flex min-h-11 items-center" href="/market">{t.nav.market}</Link>}
+          <Link className="inline-flex min-h-11 items-center" href="/docs">{t.footer.productLinks.docs}</Link>
+        </nav>}
 
         {/* INLINE-END. control cluster */}
         <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
@@ -151,13 +136,9 @@ export function TopNav() {
                 />
               </>
           ) : !publicSurface ? (
-            // Signed-out app chrome: the sign-in button, nothing else. Don't
-            // tease the app surface (nav rail, balance,
-            // bell, settings) before the user has signed in. While auth is
-            // still resolving, reserve the same approximate width so the bar
-            // doesn't shift content once the button paints. This was one of the
-            // dominant CLS contributors across every app route (RES dashboard,
-            // last 7 days).
+            // The account entry at /app owns its sole sign-in action. Its
+            // header keeps reading preferences available without repeating it.
+            // Other private-route gates retain the header entry action.
             <>
               {authLoading ? (
                 <span
@@ -165,6 +146,10 @@ export function TopNav() {
                   className="inline-block rounded-full bg-[var(--color-surface-2)] motion-safe:animate-pulse motion-reduce:animate-none"
                   style={{ width: 132, height: 36 }}
                 />
+              ) : pathname === '/app' ? (
+                <>
+                  <LanguagePicker />
+                </>
               ) : (
                 <ConnectWalletButton />
               )}
@@ -175,6 +160,7 @@ export function TopNav() {
               <LaunchAppCTA />
             </>
           )}
+          <ThemeControl />
         </div>
       </div>
     </header>
@@ -218,6 +204,7 @@ function WorkspaceRail({
 }) {
   const t = useTranslations().nav;
   const financeActive = pathname.startsWith('/financier');
+  const homeHref = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -260,7 +247,7 @@ function WorkspaceRail({
           'pointer-events-auto absolute flex flex-col gap-1 transition-[width] duration-300 ease-out',
           collapsed ? 'w-[72px]' : 'w-[220px]',
         )}
-        style={{ left: 'max(20px, calc(50% - 800px))' }}
+        style={{ insetInlineStart: 'max(20px, calc(50% - 800px))' }}
       >
         <button
           type="button"
@@ -285,9 +272,11 @@ function WorkspaceRail({
             </svg>
           </span>
         </button>
-        <RailLink href="/app" active={pathname === '/app'} icon="home" collapsed={collapsed} ariaLabel={t.home}>
+        <RailLink href={homeHref} active={pathname === homeHref} icon="home" collapsed={collapsed} ariaLabel={t.home}>
           {t.home}
         </RailLink>
+        {DEALS_AVAILABLE && (
+        <>
         <RailLink href={tradeHref} active={tradesActive} icon="trade" collapsed={collapsed} ariaLabel={t.trades}>
           {t.trades}
         </RailLink>
@@ -304,6 +293,8 @@ function WorkspaceRail({
         >
           {t.finance}
         </RailLink>
+        </>
+        )}
         <RailLink href="/activity" active={pathname.startsWith('/activity')} icon="activity" collapsed={collapsed} signal={unread} ariaLabel={t.activity}>
           {t.activity}
         </RailLink>
@@ -587,14 +578,8 @@ function LaunchAppCTA() {
   const label = useTranslations().nav.openApp;
   return (
     <Link
-      href="/app"
-      className="group hidden min-h-11 items-center gap-1.5 px-4 py-2.5 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,background-color] duration-200 hover:-translate-y-0.5 shadow-[0_3px_0_rgba(0,0,0,0.22)] whitespace-nowrap sm:inline-flex sm:px-5"
-      style={{
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
-      }}
+      href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
+      className="hidden min-h-11 items-center gap-2 rounded-[10px] border border-[var(--color-line-strong)] px-5 py-2 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--color-surface-2)] md:inline-flex"
     >
       {label}
       <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">

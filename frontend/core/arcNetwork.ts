@@ -35,3 +35,7 @@ export const ARC_NETWORK: ArcNetworkName = parseArcNetwork(process.env.NEXT_PUBL
 // Branding is independent of this choice; changing a label must never switch
 // payment infrastructure. Only NEXT_PUBLIC_ARC_NETWORK does.
 export const settlementChain = chainFor(ARC_NETWORK);
+
+/// Karwan's deal contracts are live on testnet only. Mainnet is wallet-only
+/// (balances, deposits, bridging) until the contract suite deploys there.
+export const DEALS_AVAILABLE = ARC_NETWORK === 'testnet';
