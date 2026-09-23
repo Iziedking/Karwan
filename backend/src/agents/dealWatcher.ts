@@ -53,6 +53,8 @@ import {
 } from '../deals/deadlineRecovery.js';
 import type { FinancialCommandShadowObserver } from './financialCommandShadow.js';
 import { buildLegacySettlementObservation } from './financialCommandProjection.js';
+import { onChainDeliveryAlert } from '../deals/onChainDelivery.js';
+import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -196,7 +198,7 @@ async function syncResolvedElsewhere(deal: DirectDeal, chainState: number) {
 /// delivered (the reported case — real work, buyer vanished), otherwise the
 /// buyer is refunded. No-ops unless a security-council wallet is configured.
 async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
-  if (!config.ESCROW_V2B_ENABLED || !config.SECURITY_COUNCIL_WALLET_ID) return;
+  if (!config.ESCROW_V2B_ENABLED) return;
   // A pending proposal means someone is actively negotiating an exit — that is
   // not a silent counterparty. Let the handshake play out; the clock resumes
   // when the proposal is accepted (deal closes) or declined (field cleared).
@@ -226,10 +228,13 @@ async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
     return;
   }
   if (now < deal.disputedAt + config.DEAL_DISPUTE_TIMEOUT_MS) return;
-  // A buyer who disputed delivered work was engaged, not silent — paying the
-  // seller 100% on a timer would expropriate them for merely not capitulating.
-  // Surface it to the human arbiter (once) instead of resolving.
-  if (deal.disputedBy === 'buyer' && deal.delivered) {
+  // Two cases go to the human arbiter (once) instead of a timer:
+  //  - a buyer who disputed delivered work was engaged, not silent, and paying
+  //    the seller 100% on a timer would expropriate them for not capitulating;
+  //  - no council wallet can sign. The arbiter is a Safe, so only its owners
+  //    can rule, and the contract lets either party lapse the dispute once
+  //    disputeTimeoutSecs passes. Silence here is how a dispute gets lost.
+  if ((deal.disputedBy === 'buyer' && deal.delivered) || !config.SECURITY_COUNCIL_WALLET_ID) {
     if (!deal.disputeTimeoutAlertedAt) {
       await patchDeal(deal.jobId, { disputeTimeoutAlertedAt: now });
       bus.emitEvent({
@@ -238,10 +243,16 @@ async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
         actor: 'platform',
         payload: { buyer: deal.buyer, seller: deal.seller, disputedAt: deal.disputedAt },
       });
-      logger.info(
-        { jobId: deal.jobId },
-        'buyer-disputed delivery passed the dispute window; flagged for the arbiter',
-      );
+      logger.warn({ jobId: deal.jobId }, 'dispute passed the dispute window; flagged for the arbiter');
+      const chat = supportOperatorChatId();
+      if (chat) {
+        const days = Math.floor((now - deal.disputedAt) / 86_400_000);
+        await sendTelegramMessage(
+          chat,
+          `*Dispute needs the arbiter.* Deal ${deal.jobId.slice(0, 10)}… has been disputed for ${days} days. ` +
+            `Two Safe owners must rule at /admin/disputes before either party can lapse it on chain.`,
+        ).catch((err) => logger.warn({ err: (err as Error).message }, 'arbiter alert send failed'));
+      }
     }
     return;
   }
@@ -367,6 +378,29 @@ async function tick() {
       // and stays there until milestones are released.
       if (account.state !== ESCROW_ACCEPTED) continue;
       const buyerWalletId = deal.buyerAgentWalletId;
+
+      // A seller who marks delivery on the contract directly starts the
+      // buyer's review clock without us. Tell the buyer; never treat it as a
+      // delivery we checked, so the release ladder below stays untouched.
+      const outOfBand = onChainDeliveryAlert(deal, account);
+      if (outOfBand) {
+        await patchDeal(deal.jobId, { onChainDeliveryAlertedAt: outOfBand.deliveredAtMs });
+        bus.emitEvent({
+          type: 'deal.delivered.onchain',
+          jobId: deal.jobId,
+          actor: 'platform',
+          payload: {
+            buyer: deal.buyer,
+            seller: deal.seller,
+            deliveredAt: outOfBand.deliveredAtMs,
+            claimableAt: outOfBand.claimableAtMs,
+          },
+        });
+        logger.warn(
+          { jobId: deal.jobId, deliveredAt: outOfBand.deliveredAtMs, claimableAt: outOfBand.claimableAtMs },
+          'delivery marked on the escrow outside Karwan; buyer alerted',
+        );
+      }
 
       // Two reasons the agent refuses to run the release clock:
       //

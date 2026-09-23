@@ -387,6 +387,9 @@ export interface DirectDeal {
   // without delivery (so the alert fires once). The buyer can reclaim from then;
   // the watcher auto-reclaims after DEAL_DEADLINE_RECLAIM_GRACE_MS if they don't.
   deadlineAlertedAt?: number;
+  /// The on-chain deliveredAt (ms) we last alerted the buyer about, for a
+  /// delivery marked on the escrow outside Karwan. See deals/onChainDelivery.
+  onChainDeliveryAlertedAt?: number;
   /// Delay-appeal flow. After the first milestone is released, the seller can
   /// raise this if the buyer is sitting on the final release without
   /// responding. Sets a buyer response window; if the buyer doesn't reply with

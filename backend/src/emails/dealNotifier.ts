@@ -57,6 +57,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.cancel.proposed',
   'deal.fund.insufficient',
   'deal.deadline.passed',
+  'deal.delivered.onchain',
   'deal.match.raised',
   'factoring.requested',
   'factoring.offered',
@@ -119,8 +120,9 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     }
     return out;
   }
-  if (e.type === 'deal.deadline.passed') {
-    // Only the buyer needs this: their funds are reclaimable now.
+  if (e.type === 'deal.deadline.passed' || e.type === 'deal.delivered.onchain') {
+    // Only the buyer needs these: their funds are reclaimable now, or their
+    // review clock started without a delivery through Karwan.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
@@ -303,6 +305,17 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null; // the seller missed their own deadline; no email to them
+    case 'deal.delivered.onchain':
+      return role === 'buyer'
+        ? {
+            eyebrow: 'DELIVERY MARKED',
+            subject: 'Your seller marked delivery on the contract. Your review time has started',
+            heading: 'Delivery marked on the contract',
+            body: 'The seller marked this deal delivered directly on the escrow contract, not through Karwan, so no delivery check ran. Your review time has started. Check what you received. If something is wrong, open a dispute before the review time ends, or the seller can claim the payment.',
+            ctaLabel: 'Review the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : null;
     case 'deal.cancel.proposed': {
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       if (proposedBy && proposedBy === role) return null; // don't email the proposer

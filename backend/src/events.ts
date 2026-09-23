@@ -56,6 +56,7 @@ export type KarwanEventType =
   | 'deal.release.unblocked'
   | 'deal.acceptance.expired'
   | 'deal.deadline.passed'
+  | 'deal.delivered.onchain'
   | 'deal.invite.created'
   | 'deal.invite.claimed'
   | 'deal.delay.appealed'
