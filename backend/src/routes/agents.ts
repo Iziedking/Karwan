@@ -10,6 +10,7 @@ import { rateLimit } from '../middleware/rateLimit.js';
 import { llmModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
+import { ARC } from '../chain/client.js';
 
 export const agentsRoutes = new Hono();
 
@@ -75,7 +76,7 @@ agentsRoutes.post('/seller/bids/abandon', async (c) => {
 
 agentsRoutes.get('/status', (c) =>
   c.json({
-    chain: { id: 5042002, rpc: config.ARC_TESTNET_RPC_URL, explorer: config.ARC_TESTNET_EXPLORER_URL },
+    chain: { id: ARC.chainId, rpc: ARC.rpcUrls[0], explorer: ARC.explorer },
     contracts: {
       jobBoard: config.KARWAN_JOBBOARD_ADDR,
       escrow: config.KARWAN_ESCROW_ADDR,

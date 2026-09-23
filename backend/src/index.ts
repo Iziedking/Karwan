@@ -6,7 +6,8 @@ import { logger as appLogger } from './logger.js';
 import { installProcessErrorHandlers } from './errorTracker.js';
 import { startProactiveSupervisor } from './llm/supervisor.js';
 import { config } from './config.js';
-import { arcTestnet, publicClient } from './chain/client.js';
+import { ARC, arcChain, publicClient } from './chain/client.js';
+import { checkChain, mustStop } from './chain/networkGuard.js';
 import { invalidateEscrowCache } from './chain/contracts.js';
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
@@ -339,7 +340,14 @@ app.get('/health', async (c) => {
     ]);
     return c.json({
       status: 'ok',
-      chain: { id: chainId, latestBlock: blockNumber.toString(), reachable: true },
+      chain: {
+        id: chainId,
+        network: ARC.name,
+        expectedId: ARC.chainId,
+        matches: chainId === ARC.chainId,
+        latestBlock: blockNumber.toString(),
+        reachable: true,
+      },
     });
   } catch (err) {
     /// Chain unreachable, usually RPC rate-limit, occasionally a transient
@@ -680,7 +688,7 @@ async function boot() {
             provider: createWorldAgentBookProvider({
               worldRpcUrl: config.AGENTKIT_WORLD_RPC_URL,
               signatureRpcUrls: {
-                [`eip155:${arcTestnet.id}`]: config.ARC_TESTNET_RPC_URL,
+                [ARC.caip2]: ARC.rpcUrls[0],
                 ...(config.AGENTKIT_WORLD_RPC_URL
                   ? { 'eip155:480': config.AGENTKIT_WORLD_RPC_URL }
                   : {}),
@@ -694,7 +702,7 @@ async function boot() {
   });
   if (agentKitConfigured) {
     appLogger.info(
-      { agentBook: 'world-chain', verificationNetwork: `eip155:${arcTestnet.id}` },
+      { agentBook: 'world-chain', verificationNetwork: `eip155:${arcChain.id}` },
       'World AgentBook verification configured',
     );
   }
@@ -1237,6 +1245,23 @@ async function boot() {
 }
 
 void boot();
+
+/// A wrong chain id is fatal in production (see chain/networkGuard.ts).
+void checkChain(() => publicClient.getChainId(), ARC.chainId).then((result) => {
+  if (result.status === 'match') {
+    appLogger.info({ network: ARC.name, chainId: result.chainId }, 'arc network verified');
+    return;
+  }
+  if (result.status === 'unreachable') {
+    appLogger.warn({ network: ARC.name, err: result.error }, 'arc rpc unreachable at boot; health will report it');
+    return;
+  }
+  appLogger.fatal(
+    { network: ARC.name, expected: result.expected, got: result.chainId },
+    'arc rpc serves the wrong chain for this network',
+  );
+  if (mustStop(result, config.NODE_ENV === 'production')) process.exit(1);
+});
 
 const port = config.PORT;
 const server = serve({ fetch: app.fetch, port }, (info) => {

@@ -5,7 +5,7 @@ import { getAddress, isAddress } from 'viem';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
 import { setSessionCookie } from '../auth/session.js';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 
@@ -95,7 +95,7 @@ siweRoutes.post(
       try {
         chainId = await publicClient.getChainId();
       } catch {
-        chainId = 5042002;
+        chainId = ARC.chainId;
       }
     }
     const message = buildMessage({

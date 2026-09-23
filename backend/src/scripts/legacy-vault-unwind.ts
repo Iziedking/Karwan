@@ -31,7 +31,7 @@
 
 import { formatUnits, getAddress, createWalletClient, erc20Abi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet, arcTransport, publicClient } from '../chain/client.js';
+import { arcChain, arcTransport, publicClient } from '../chain/client.js';
 import { VAULT_DEPLOYMENTS } from '../chain/deployLedger.js';
 import { config } from '../config.js';
 
@@ -57,7 +57,7 @@ if (!key) {
   process.exit(1);
 }
 const account = privateKeyToAccount(key as `0x${string}`);
-const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
+const wallet = createWalletClient({ account, chain: arcChain, transport: arcTransport });
 
 const current = config.KARWAN_VAULT_ADDR ? getAddress(config.KARWAN_VAULT_ADDR) : null;
 
@@ -107,9 +107,9 @@ for (const v of retired) {
       // a guess.
       const before = await publicClient.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [account.address] });
       const shares = shortfall > opUsyc ? opUsyc : shortfall;
-      let hash = await wallet.writeContract({ address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
+      let hash = await wallet.writeContract({ address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcChain });
       await publicClient.waitForTransactionReceipt({ hash });
-      hash = await wallet.writeContract({ address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcTestnet });
+      hash = await wallet.writeContract({ address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcChain });
       await publicClient.waitForTransactionReceipt({ hash });
       const after = await publicClient.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [account.address] });
       console.log(`    redeemed ${fmt(shares)} USYC -> ${fmt(after - before)} USDC  ${hash}`);
@@ -127,9 +127,9 @@ for (const v of retired) {
     console.log(`    NOTE partial. ${fmt(owed - amount)} USDC still owed after this run.`);
   }
   if (send) {
-    let hash = await wallet.writeContract({ address: USDC, abi: erc20Abi, functionName: 'approve', args: [address, amount], account, chain: arcTestnet });
+    let hash = await wallet.writeContract({ address: USDC, abi: erc20Abi, functionName: 'approve', args: [address, amount], account, chain: arcChain });
     await publicClient.waitForTransactionReceipt({ hash });
-    hash = await wallet.writeContract({ address, abi: vaultAbi, functionName: 'depositFromYield', args: [amount], account, chain: arcTestnet });
+    hash = await wallet.writeContract({ address, abi: vaultAbi, functionName: 'depositFromYield', args: [amount], account, chain: arcChain });
     await publicClient.waitForTransactionReceipt({ hash });
     const nowLiquid = await publicClient.readContract({ address: USDC, abi: erc20Abi, functionName: 'balanceOf', args: [address] });
     console.log(`    done ${hash}\n    vault now holds ${fmt(nowLiquid)} USDC\n`);

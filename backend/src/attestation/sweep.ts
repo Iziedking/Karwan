@@ -13,7 +13,7 @@
 
 import { listAllDeals, type DirectDeal } from '../db/deals.js';
 import { saveAttestation } from '../db/attestations.js';
-import { arcTestnet } from '../chain/client.js';
+import { arcChain } from '../chain/client.js';
 import { logger } from '../logger.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
 import { issueDealSettled, issuanceEnabled } from './issuer.js';
@@ -117,7 +117,7 @@ export async function issueSettledOnce(opts: SweepOptions = {}): Promise<SweepRe
   }
   result.candidates = candidates.length;
 
-  const chainId = arcTestnet.id;
+  const chainId = arcChain.id;
 
   for (const deal of candidates) {
     if (limit !== undefined && result.issued.length >= limit) break;

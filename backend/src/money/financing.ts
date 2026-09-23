@@ -1,5 +1,5 @@
 import { erc20Abi, formatUnits, parseEventLogs } from 'viem';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
 import { assertValidTransactionHash } from '../chain/txs.js';
 import { config } from '../config.js';
 import { listMoneyMovementsForJob, ensureMoneyMovement, findMoneyMovementByTransfer } from '../db/moneyMovements.js';
@@ -208,7 +208,7 @@ export async function recordVerifiedFinancingMovement(input: {
     amountMicros,
   });
   await prepared.lifecycle.onSubmitted?.({ txId: input.txHash, estimatedFee: null });
-  await prepared.lifecycle.onConfirmed?.({ txId: input.txHash, txHash: input.txHash, explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.txHash}` });
+  await prepared.lifecycle.onConfirmed?.({ txId: input.txHash, txHash: input.txHash, explorerUrl: `${ARC.explorer}/tx/${input.txHash}` });
   await verifyMoneyMovementLeg(ensured.movement.reference, prepared.leg.id, { amountMicros });
   return completeMoneyMovement(ensured.movement.reference, { amountMicros });
 }

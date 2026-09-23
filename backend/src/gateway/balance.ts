@@ -16,6 +16,7 @@ import {
 } from '../money/gateway.js';
 import { currentMoneyMovement, verifyMoneyMovementLeg } from '../money/service.js';
 import type { MoneyMovementState } from '../money/model.js';
+import { ARC } from '../chain/client.js';
 
 /// Karwan's unified Gateway balance (autonomy backbone, Stage 2 = deposit + read).
 ///
@@ -30,7 +31,7 @@ import type { MoneyMovementState } from '../money/model.js';
 /// balance they can't yet spend (only the 7-day trustless Gateway withdrawal
 /// would get it back).
 
-const GATEWAY_WALLET_ADDR = '0x0077777d7EBA4688BDeF3E311b846F25870A19B9';
+const GATEWAY_WALLET_ADDR = ARC.contracts.gatewayWallet;
 const USDC_DECIMALS = 6;
 
 export { gatewayAvailableUsd };

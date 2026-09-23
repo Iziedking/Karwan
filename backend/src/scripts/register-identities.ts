@@ -1,6 +1,7 @@
 import { circleWalletsClient } from '../circle/wallets.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { ARC } from '../chain/client.js';
 
 const METADATA_URI_BUYER =
   process.env.BUYER_METADATA_URI ??
@@ -50,7 +51,7 @@ async function registerAgent(label: string, walletId: string, metadataURI: strin
 
   const hash = await pollForCompletion(client, txId, label);
   logger.info(
-    { label, txHash: hash, explorer: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${hash}` },
+    { label, txHash: hash, explorer: `${ARC.explorer}/tx/${hash}` },
     'identity registered',
   );
   return hash;

@@ -14,6 +14,7 @@ import { logger } from '../logger.js';
 import type { FinancialCommandShadowObserver } from '../agents/financialCommandShadow.js';
 import { buildLegacyX402FundingObservation } from '../agents/financialCommandProjection.js';
 import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
+import { ARC } from '../chain/client.js';
 
 /// Buyer-side x402 client (Path A: same-chain self-pay on Arc Testnet).
 /// The buyer agent pays Karwan's own paid endpoints during bid scoring,
@@ -26,9 +27,9 @@ import { gatewayFundingCoordinator } from './gatewayFundingCoordinator.js';
 /// and the EOA signs the EIP-3009 authorizations.
 
 const GATEWAY_API = 'https://gateway-api-testnet.circle.com/v1';
-const ARC_NETWORK = 'eip155:5042002';
+const ARC_NETWORK = ARC.caip2;
 const ARC_GATEWAY_DOMAIN = 26;
-const GATEWAY_WALLET_ADDR = '0x0077777d7EBA4688BDeF3E311b846F25870A19B9';
+const GATEWAY_WALLET_ADDR = ARC.contracts.gatewayWallet;
 const USDC_DECIMALS = 6;
 
 let x402GatewayFundingShadowObserver: FinancialCommandShadowObserver | null = null;

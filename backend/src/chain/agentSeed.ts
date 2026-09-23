@@ -1,6 +1,6 @@
 import { createWalletClient, parseUnits, formatUnits, erc20Abi } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet, arcTransport, publicClient } from './client.js';
+import { ARC, arcChain, arcTransport, publicClient } from './client.js';
 import { usdc, readUsdcBalance } from './contracts.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -78,7 +78,7 @@ export async function seedAgentFromOperator(
       return { ok: false, reason: 'operator balance too low' };
     }
 
-    const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
+    const wallet = createWalletClient({ account, chain: arcChain, transport: arcTransport });
     const movement = meta
       ? await ensureAgentFundingMovement({
           // The observed balance is part of the logical seed cycle. A later
@@ -105,7 +105,7 @@ export async function seedAgentFromOperator(
     const txHash = await runOnOperator(() =>
       wallet.writeContract({
         account,
-        chain: arcTestnet,
+        chain: arcChain,
         address: usdc,
         abi: erc20Abi,
         functionName: 'transfer',
@@ -126,7 +126,7 @@ export async function seedAgentFromOperator(
       await plannedLeg.lifecycle.onConfirmed?.({
         txId: txHash,
         txHash,
-        explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`,
+        explorerUrl: `${ARC.explorer}/tx/${txHash}`,
       });
       await verifyMoneyMovementLeg(movement!.movement.reference, plannedLeg.leg.id, {
         amountMicros: value,

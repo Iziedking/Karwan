@@ -24,8 +24,8 @@ import { ensureCashoutMovement } from '../money/cashout.js';
 import { readSession } from '../auth/session.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
-import { config } from '../config.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { ARC } from '../chain/client.js';
 
 const USDC_DECIMALS = 6;
 const addrSchema = z
@@ -234,7 +234,7 @@ cashoutRoutes.post('/arc-withdraw', async (c) => {
       return c.json({
         ok: true,
         txHash: existingLeg.txHash,
-        explorerUrl: existingLeg.explorerUrl ?? `${config.ARC_TESTNET_EXPLORER_URL}/tx/${existingLeg.txHash}`,
+        explorerUrl: existingLeg.explorerUrl ?? `${ARC.explorer}/tx/${existingLeg.txHash}`,
         reference: movement.reference,
         movementState: movement.state,
       });
@@ -408,7 +408,7 @@ cashoutRoutes.post('/arc-send', async (c) => {
     return c.json({
       ok: true,
       txHash: existingLeg.txHash,
-      explorerUrl: existingLeg.explorerUrl ?? `${config.ARC_TESTNET_EXPLORER_URL}/tx/${existingLeg.txHash}`,
+      explorerUrl: existingLeg.explorerUrl ?? `${ARC.explorer}/tx/${existingLeg.txHash}`,
       reference: movement.reference,
       movementState: movement.state,
     });

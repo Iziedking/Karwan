@@ -9,7 +9,7 @@ import { assistantAgentModel } from '../llm/client.js';
 import { withLlmTimeout } from '../agents/llm-utils.js';
 import { KARWAN_ASSISTANT_SYSTEM } from './knowledge.js';
 import { readUsdcBalance, readEscrow } from '../chain/contracts.js';
-import { arcTestnet, publicClient } from '../chain/client.js';
+import { arcChain, publicClient } from '../chain/client.js';
 import { vaultAbi } from '../chain/abis/vault.js';
 import { config } from '../config.js';
 import { listDealsForAddress, getDeal, type DirectDeal } from '../db/deals.js';
@@ -104,7 +104,7 @@ const TOP_UP_CHAIN_NAMES = Object.keys(TOP_UP_CHAINS) as [
 ];
 
 const USDC_DECIMALS = 6;
-const NATIVE_DECIMALS = arcTestnet.nativeCurrency.decimals;
+const NATIVE_DECIMALS = arcChain.nativeCurrency.decimals;
 
 /// Whether the authenticated tool-calling assistant can run. False when no
 /// Anthropic key is set (privacy boundary: this path is direct-Anthropic-only).

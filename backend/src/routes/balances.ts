@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { formatUnits, type Address } from 'viem';
-import { arcTestnet, publicClient } from '../chain/client.js';
+import { arcChain, publicClient } from '../chain/client.js';
 import { config } from '../config.js';
 
-const NATIVE_DECIMALS = arcTestnet.nativeCurrency.decimals;
+const NATIVE_DECIMALS = arcChain.nativeCurrency.decimals;
 
 export const balancesRoutes = new Hono();
 

@@ -2,7 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createPublicClient, decodeEventLog, fallback, formatUnits, http } from 'viem';
 import { eq } from 'drizzle-orm';
-import { arcTestnet, publicClient, RPC_URLS, type PublicClient } from './client.js';
+import { arcChain, publicClient, RPC_URLS, type PublicClient } from './client.js';
 import { escrowAbi } from './abis/escrow.js';
 import { escrowV2Abi } from './abis/escrowV2.js';
 import { vaultAbi } from './abis/vault.js';
@@ -534,7 +534,7 @@ async function resolveScanClient(
 
   for (const url of RPC_URLS) {
     const probe = createPublicClient({
-      chain: arcTestnet,
+      chain: arcChain,
       transport: http(url, { retryCount: 0, timeout: 20_000 }),
     });
     try {
@@ -567,7 +567,7 @@ async function resolveScanClient(
 
   const transports = capable.map((url) => http(url, { retryCount: 1, timeout: 30_000 }));
   scanClient = createPublicClient({
-    chain: arcTestnet,
+    chain: arcChain,
     transport:
       transports.length === 1
         ? transports[0]!

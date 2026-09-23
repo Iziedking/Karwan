@@ -6,7 +6,7 @@ import {
 } from './service.js';
 import { ensureMoneyMovement } from '../db/moneyMovements.js';
 import { formatUsdcMicros } from './model.js';
-import { config } from '../config.js';
+import { ARC } from '../chain/client.js';
 
 export type ObservedWalletRole = 'identity' | 'buyerAgent' | 'sellerAgent';
 export type ObservedArcTransferKind = 'deposit' | 'cash_out' | 'agent_funding';
@@ -117,7 +117,7 @@ export async function recordObservedArcTransfer(
   await prepared.lifecycle.onConfirmed?.({
     txId: input.txHash,
     txHash: input.txHash,
-    explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.txHash}`,
+    explorerUrl: `${ARC.explorer}/tx/${input.txHash}`,
   });
   await verifyMoneyMovementLeg(ensured.movement.reference, prepared.leg.id, { amountMicros });
   return completeMoneyMovement(ensured.movement.reference, { amountMicros });

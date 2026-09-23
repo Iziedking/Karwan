@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { arcTestnet } from '../chain/client.js';
+import { arcChain } from '../chain/client.js';
 import {
   dealSettledSchema,
   issuerManifest,
@@ -36,7 +36,7 @@ const CACHE = 'public, max-age=300, stale-while-revalidate=86400';
 
 attestationRoutes.get('/.well-known/attestation-issuer.json', (c) => {
   c.header('cache-control', CACHE);
-  return c.json(issuerManifest(arcTestnet.id, issuerAddress()));
+  return c.json(issuerManifest(arcChain.id, issuerAddress()));
 });
 
 attestationRoutes.get('/schemas/deal-settled/v1.json', (c) => {
@@ -59,7 +59,7 @@ attestationRoutes.get('/attestations/revocations.json', async (c) => {
   c.header('cache-control', CACHE);
   return c.json({
     schemaVersion: 1,
-    issuer: issuerManifest(arcTestnet.id, issuerAddress()).issuer.domain,
+    issuer: issuerManifest(arcChain.id, issuerAddress()).issuer.domain,
     type: DEAL_SETTLED_TYPE,
     revoked: rows.map((r) => ({
       id: r.id,

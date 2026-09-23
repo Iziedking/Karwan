@@ -25,7 +25,7 @@
 
 import { encodeFunctionData, getAddress, createWalletClient, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet, arcTransport, publicClient } from '../chain/client.js';
+import { arcChain, arcTransport, publicClient } from '../chain/client.js';
 import {
   SAFE_ABI,
   buildSafeTx,
@@ -155,7 +155,7 @@ const signatures = encodeSafeSignatures(approvals);
 
 // 3. Execute. Simulated first so a bad blob surfaces as a clear revert here
 //    rather than as a burnt nonce.
-const wallet = createWalletClient({ account: signer, chain: arcTestnet, transport: arcTransport });
+const wallet = createWalletClient({ account: signer, chain: arcChain, transport: arcTransport });
 const args = [
   tx.to, tx.value, tx.data, tx.operation, tx.safeTxGas, tx.baseGas,
   tx.gasPrice, tx.gasToken, tx.refundReceiver, signatures,
@@ -177,7 +177,7 @@ const hash = await wallet.writeContract({
   functionName: 'execTransaction',
   args,
   account: signer,
-  chain: arcTestnet,
+  chain: arcChain,
 });
 console.log(`  tx ${hash}`);
 await publicClient.waitForTransactionReceipt({ hash });

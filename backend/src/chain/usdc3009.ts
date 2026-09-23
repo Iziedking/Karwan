@@ -3,6 +3,7 @@ import { recoverTypedDataAddress, type Address, type Hex } from 'viem';
 import { executeContractCall } from './txs.js';
 import { config } from '../config.js';
 import { dcwEvmSigner } from '../x402/dcwSigner.js';
+import { ARC } from './client.js';
 
 /// Native USDC EIP-3009 helpers for the factoring settlement rail.
 ///
@@ -16,7 +17,7 @@ import { dcwEvmSigner } from '../x402/dcwSigner.js';
 /// signatures, which makes it unusable for a seller who has no liquidity
 /// at signing time. Native EIP-3009 has neither constraint.
 
-const ARC_CHAIN_ID = 5042002;
+const ARC_CHAIN_ID = ARC.chainId;
 
 export const USDC_AUTHORIZATION_TYPES = {
   TransferWithAuthorization: [

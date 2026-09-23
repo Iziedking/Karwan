@@ -1,6 +1,5 @@
 import { erc20Abi, parseEventLogs } from 'viem';
-import { config } from '../config.js';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
 import { ensureMoneyMovement } from '../db/moneyMovements.js';
 import { formatUsdcMicros } from './model.js';
 import {
@@ -180,5 +179,5 @@ export async function executeVaultActionMovement(input: {
 }
 
 export function vaultActionExplorerUrl(txHash: string): string {
-  return `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`;
+  return `${ARC.explorer}/tx/${txHash}`;
 }

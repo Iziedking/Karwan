@@ -29,7 +29,7 @@ import { isSessionSelf } from '../auth/session.js';
 import { bindingStateFor } from '../chain/agentBinding.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { usdc as usdcAddress, readUsdcBalance, vault } from '../chain/contracts.js';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
 import { executeContractCall, getTxState } from '../chain/txs.js';
 import {
   canRestartFunding,
@@ -41,7 +41,6 @@ import { seedAgentFromOperator } from '../chain/agentSeed.js';
 import { bus } from '../events.js';
 import { invalidateDepositIndex } from '../circle/depositWatcher.js';
 import { logger } from '../logger.js';
-import { config } from '../config.js';
 import {
   completeMoneyMovement,
   currentMoneyMovement,
@@ -1288,7 +1287,7 @@ activationRoutes.post('/fund-agent-web3/complete', async (c) => {
     await prepared.lifecycle.onConfirmed?.({
       txId: body.txHash,
       txHash: body.txHash,
-      explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${body.txHash}`,
+      explorerUrl: `${ARC.explorer}/tx/${body.txHash}`,
     });
     await verifyMoneyMovementLeg(movement.reference, prepared.leg.id, { amountMicros });
     movement = await completeMoneyMovement(movement.reference);

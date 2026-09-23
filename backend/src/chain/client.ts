@@ -9,49 +9,23 @@ import {
   type Transport,
 } from 'viem';
 import { config } from '../config.js';
+import { resolveArcNetwork } from './networks.js';
 
-/// Build the ordered list of RPC URLs to try. Primary first, then any
-/// comma-separated fallbacks from ARC_TESTNET_RPC_URLS. Deduped while
-/// preserving order so a fallback that matches the primary doesn't waste
-/// a retry slot.
-function resolveRpcUrls(): string[] {
-  const urls: string[] = [config.ARC_TESTNET_RPC_URL];
-  const extra = (config.ARC_TESTNET_RPC_URLS ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const u of extra) {
-    if (!urls.includes(u)) urls.push(u);
-  }
-  return urls;
-}
-
-/// Same shape as resolveRpcUrls, for the websocket endpoints: primary first,
-/// then the comma-separated fallbacks from ARC_TESTNET_WSS_URLS, deduped in
-/// order so a fallback matching the primary doesn't waste a rotation slot.
-function resolveWssUrls(): string[] {
-  const urls: string[] = [config.ARC_TESTNET_WSS_URL];
-  const extra = (config.ARC_TESTNET_WSS_URLS ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const u of extra) {
-    if (!urls.includes(u)) urls.push(u);
-  }
-  return urls;
-}
+/// The Arc network this deployment runs on, resolved once from config. See
+/// chain/networks.ts; nothing else should name a chain id or endpoint.
+export const ARC = resolveArcNetwork(config);
 
 /// Exported so the historical scan can pick which endpoints it is able to use.
 /// Providers differ enormously in the getLogs block range they allow (a free
 /// tier can be capped at ten blocks), and a wide sweep has to route around the
 /// narrow ones rather than fail on them. Read-only: nothing should mutate this.
-export const RPC_URLS = resolveRpcUrls();
-const WSS_URLS = resolveWssUrls();
+export const RPC_URLS = ARC.rpcUrls;
+const WSS_URLS = ARC.wssUrls;
 
-export const arcTestnet = defineChain({
-  id: 5042002,
-  name: 'Arc Testnet',
-  network: 'arc-testnet',
+export const arcChain = defineChain({
+  id: ARC.chainId,
+  name: ARC.label,
+  network: ARC.testnet ? 'arc-testnet' : 'arc',
   nativeCurrency: {
     name: 'USD Coin',
     symbol: 'USDC',
@@ -70,10 +44,10 @@ export const arcTestnet = defineChain({
   blockExplorers: {
     default: {
       name: 'ArcScan',
-      url: config.ARC_TESTNET_EXPLORER_URL,
+      url: ARC.explorer,
     },
   },
-  testnet: true,
+  testnet: ARC.testnet,
 });
 
 /// Wrap each RPC URL in its own http() transport so viem's fallback()
@@ -159,7 +133,7 @@ export const arcTransport =
       );
 
 export const publicClient = createPublicClient({
-  chain: arcTestnet,
+  chain: arcChain,
   transport: arcTransport,
 });
 
@@ -252,7 +226,7 @@ export function watchEventsViaGetLogs(input: {
 const wsTransports = WSS_URLS.map((url) => webSocket(url, { retryCount: 3 }));
 
 export const wsClient = createPublicClient({
-  chain: arcTestnet,
+  chain: arcChain,
   transport:
     wsTransports.length === 1
       ? wsTransports[0]!

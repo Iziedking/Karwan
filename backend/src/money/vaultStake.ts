@@ -7,8 +7,7 @@ import {
 } from './service.js';
 import { ensureMoneyMovement } from '../db/moneyMovements.js';
 import { formatUsdcMicros, parseUsdcMicros } from './model.js';
-import { config } from '../config.js';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
 import { erc20Abi, parseEventLogs } from 'viem';
 import { executeContractCall } from '../chain/txs.js';
 
@@ -238,7 +237,7 @@ export async function completeWeb3VaultStake(input: {
       amountMicros: input.amountMicros,
     });
     await approvalPlan.lifecycle.onSubmitted?.({ txId: input.approvalTxHash, estimatedFee: null });
-    await approvalPlan.lifecycle.onConfirmed?.({ txId: input.approvalTxHash, txHash: input.approvalTxHash, explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.approvalTxHash}` });
+    await approvalPlan.lifecycle.onConfirmed?.({ txId: input.approvalTxHash, txHash: input.approvalTxHash, explorerUrl: `${ARC.explorer}/tx/${input.approvalTxHash}` });
     await verifyMoneyMovementLeg(input.reference, approval.id, { amountMicros: input.amountMicros });
 
     const depositReceipt = await publicClient.getTransactionReceipt({ hash: input.depositTxHash as `0x${string}` });
@@ -255,7 +254,7 @@ export async function completeWeb3VaultStake(input: {
       amountMicros: input.amountMicros,
     });
     await depositPlan.lifecycle.onSubmitted?.({ txId: input.depositTxHash, estimatedFee: null });
-    await depositPlan.lifecycle.onConfirmed?.({ txId: input.depositTxHash, txHash: input.depositTxHash, explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.depositTxHash}` });
+    await depositPlan.lifecycle.onConfirmed?.({ txId: input.depositTxHash, txHash: input.depositTxHash, explorerUrl: `${ARC.explorer}/tx/${input.depositTxHash}` });
     await verifyMoneyMovementLeg(input.reference, deposit.id, { amountMicros: proof.amountMicros });
     return { movement: await completeMoneyMovement(input.reference, { amountMicros: input.amountMicros }), positionId: proof.positionId ?? null };
   } catch (error) {
@@ -303,7 +302,7 @@ export async function recordVaultStakeMovement(input: {
   await prepared.lifecycle.onConfirmed?.({
     txId: input.txHash,
     txHash: input.txHash,
-    explorerUrl: `${config.ARC_TESTNET_EXPLORER_URL}/tx/${input.txHash}`,
+    explorerUrl: `${ARC.explorer}/tx/${input.txHash}`,
   });
   await verifyMoneyMovementLeg(ensured.movement.reference, prepared.leg.id, {
     amountMicros: input.amountMicros,

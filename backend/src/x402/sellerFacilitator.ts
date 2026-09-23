@@ -5,6 +5,7 @@ import {
 import type { Context } from 'hono';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { ARC } from '../chain/client.js';
 
 /// Karwan-as-seller x402 payment helper for Hono routes, backed by Circle
 /// Gateway's batched-settlement facilitator. A request without a
@@ -16,7 +17,7 @@ import { logger } from '../logger.js';
 const FACILITATOR_URL = 'https://gateway-api-testnet.circle.com';
 /// Arc Testnet only. Buyers pay from an Arc Gateway deposit; Gateway
 /// requires deposit and payment on the same chain.
-const ACCEPTED_NETWORKS = ['eip155:5042002'];
+const ACCEPTED_NETWORKS = [ARC.caip2];
 
 /// Shared client. The factoring settlement watcher reuses this same
 /// instance for Gateway batch submission.

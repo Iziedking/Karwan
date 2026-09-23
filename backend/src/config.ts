@@ -48,6 +48,22 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
 
+  /// Which Arc network this deployment runs on. Everything chain-specific (chain
+  /// id, contract addresses, Circle blockchain id) comes from chain/networks.ts
+  /// for this value. Unset means testnet, so existing deployments are unchanged.
+  ARC_NETWORK: z.preprocess(blankToUndefined, z.enum(['testnet', 'mainnet']).default('testnet')),
+  /// Network-neutral endpoint overrides. On testnet the ARC_TESTNET_* variables
+  /// below still apply when these are unset.
+  ARC_RPC_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+  ARC_RPC_URLS: z.preprocess(blankToUndefined, z.string().optional()),
+  ARC_WSS_URL: z.preprocess(blankToUndefined, z.string().optional()),
+  ARC_WSS_URLS: z.preprocess(blankToUndefined, z.string().optional()),
+  ARC_EXPLORER_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+  /// Circle Wallets blockchain id. Defaults to ARC-TESTNET on testnet. Circle
+  /// does not list an Arc mainnet id yet (checked 2026-09-23), so mainnet has no
+  /// default and refuses to start without it.
+  ARC_CIRCLE_BLOCKCHAIN: z.preprocess(blankToUndefined, z.string().optional()),
+
   ARC_TESTNET_RPC_URL: z.preprocess(
     blankToUndefined,
     z.string().url().default('https://rpc.testnet.arc.network'),
@@ -504,16 +520,12 @@ const envSchema = z.object({
   // runs on the DIRECT Anthropic key ONLY. Null (feature off) when no key.
   // The anonymous, knowledge-only /chat path keeps its provider chain.
   ASSISTANT_AGENT_LLM_MODEL: z.string().default('claude-haiku-4-5-20251001'),
-  // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to mint).
-  CCTP_MESSAGE_TRANSMITTER_ADDR: z
-    .string()
-    .startsWith('0x')
-    .default('0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275'),
-  // Circle's CCTP V2 attestation API. Sandbox covers all V2 testnets.
-  IRIS_API_BASE: z.preprocess(
-    blankToUndefined,
-    z.string().url().default('https://iris-api-sandbox.circle.com'),
-  ),
+  // CCTP V2: Arc's MessageTransmitterV2 (where receiveMessage is called to
+  // mint). Optional override; the active network's address is used otherwise.
+  CCTP_MESSAGE_TRANSMITTER_ADDR: z.preprocess(blankToUndefined, z.string().startsWith('0x').optional()),
+  // Circle's CCTP V2 attestation API. Optional override; the sandbox on testnet
+  // and the production API on mainnet otherwise.
+  IRIS_API_BASE: z.preprocess(blankToUndefined, z.string().url().optional()),
 
   DATABASE_URL: optionalString,
 

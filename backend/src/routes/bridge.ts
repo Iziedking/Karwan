@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { formatUnits, maxUint256, parseUnits, type PublicClient } from 'viem';
 import { config } from '../config.js';
 import { executeContractCall, submitContractCall, getTxState } from '../chain/txs.js';
-import { publicClient } from '../chain/client.js';
+import { ARC, publicClient } from '../chain/client.js';
 import {
   createBridge,
   getBridge,
@@ -108,7 +108,7 @@ const messageTransmitterAbi = [
 async function isMessageAlreadyReceived(eventNonce: string): Promise<boolean> {
   try {
     const used = (await publicClient.readContract({
-      address: config.CCTP_MESSAGE_TRANSMITTER_ADDR as `0x${string}`,
+      address: ARC.cctpMessageTransmitter as `0x${string}`,
       abi: messageTransmitterAbi,
       functionName: 'usedNonces',
       args: [eventNonce as `0x${string}`],
@@ -161,7 +161,7 @@ async function computeFastMaxFee(
 ): Promise<string> {
   let bps = FAST_FEE_FALLBACK_BPS;
   try {
-    const res = await fetch(`${config.IRIS_API_BASE}/v2/burn/USDC/fees/${sourceDomain}/${destDomain}`);
+    const res = await fetch(`${ARC.irisApiBase}/v2/burn/USDC/fees/${sourceDomain}/${destDomain}`);
     if (res.ok) {
       const rows = (await res.json()) as Array<{ finalityThreshold?: number; minimumFee?: number }>;
       const fast = rows.find((r) => r.finalityThreshold === FINALITY_THRESHOLD_FAST);
@@ -766,7 +766,7 @@ async function markBridgeMinted(input: RelayInput, txHash?: string): Promise<boo
 
 async function relayLoop(input: RelayInput) {
   const startedAt = Date.now();
-  const url = `${config.IRIS_API_BASE}/v2/messages/${input.sourceDomain}?transactionHash=${input.sourceTxHash}`;
+  const url = `${ARC.irisApiBase}/v2/messages/${input.sourceDomain}?transactionHash=${input.sourceTxHash}`;
 
   let attestation: { message: string; attestation: string; eventNonce?: string } | null = null;
 
@@ -833,7 +833,7 @@ async function relayLoop(input: RelayInput) {
     const result = await executeContractCall(
       {
         walletId: config.cctpRelayWalletId!,
-        contractAddress: config.CCTP_MESSAGE_TRANSMITTER_ADDR,
+        contractAddress: ARC.cctpMessageTransmitter,
         abiFunctionSignature: 'receiveMessage(bytes,bytes)',
         abiParameters: [attestation.message, attestation.attestation],
       },
@@ -1228,7 +1228,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
     return c.json({ status: 'relaying', detail: 'a relay is already in progress' }, 409);
   }
 
-  const url = `${config.IRIS_API_BASE}/v2/messages/${record.sourceDomain}?transactionHash=${record.sourceTxHash}`;
+  const url = `${ARC.irisApiBase}/v2/messages/${record.sourceDomain}?transactionHash=${record.sourceTxHash}`;
   let attestation: { message: string; attestation: string; eventNonce?: string } | null = null;
   try {
     const res = await fetch(url);
@@ -1290,7 +1290,7 @@ bridgeRoutes.post('/:bridgeId/recheck', async (c) => {
     const result = await executeContractCall(
       {
         walletId: config.cctpRelayWalletId!,
-        contractAddress: config.CCTP_MESSAGE_TRANSMITTER_ADDR,
+        contractAddress: ARC.cctpMessageTransmitter,
         abiFunctionSignature: 'receiveMessage(bytes,bytes)',
         abiParameters: [attestation.message, attestation.attestation],
       },
@@ -2913,7 +2913,7 @@ async function markOutMinted(
 async function outRelayLoop(input: OutRelayInput) {
   const destClient = sourceClients[input.destChainKey];
   const startedAt = Date.now();
-  const url = `${config.IRIS_API_BASE}/v2/messages/${ARC_DOMAIN}?transactionHash=${input.sourceTxHash}`;
+  const url = `${ARC.irisApiBase}/v2/messages/${ARC_DOMAIN}?transactionHash=${input.sourceTxHash}`;
   let attestation: { message: string; attestation: string; eventNonce?: string } | null = null;
 
   while (Date.now() - startedAt < POLL_TIMEOUT_MS) {

@@ -27,7 +27,7 @@ import {
   type AgentKitVerifier,
 } from '../agentkit/agentKitVerification.js';
 import { canonicalAgentKitResourceUri, createAgentKitChallenge } from '../agentkit/agentKitChallenge.js';
-import { arcTestnet } from '../chain/client.js';
+import { arcChain } from '../chain/client.js';
 import {
   ResearchAllowanceExpiredError,
   ResearchAllowanceReplayError,
@@ -236,7 +236,7 @@ researchRoutes.post('/agentkit/verify', async (c) => {
   if (!header) {
     return c.json(createAgentKitChallenge({
       resourceUri,
-      network: `eip155:${arcTestnet.id}`,
+      network: `eip155:${arcChain.id}`,
     }), 402);
   }
   const result = await agentKitVerifier.verify({ header, resourceUri });

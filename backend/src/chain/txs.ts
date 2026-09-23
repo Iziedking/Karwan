@@ -1,9 +1,8 @@
 import { createHash } from 'node:crypto';
 import { circleWalletsClient } from '../circle/wallets.js';
-import { config } from '../config.js';
 import { logger } from '../logger.js';
 import type { Hex } from 'viem';
-import { publicClient } from './client.js';
+import { ARC, publicClient } from './client.js';
 
 /// Deterministic UUID (v4 wire format) from a seed string. Circle's
 /// idempotencyKey must be a UUID, but the natural keys for our logical
@@ -220,7 +219,7 @@ export async function executeContractCall(
       if (state === 'COMPLETE') {
         if (!txHash) throw new Error(`${label}: completed without txHash`);
         assertValidTransactionHash(label, txHash);
-        const explorerUrl = `${config.ARC_TESTNET_EXPLORER_URL}/tx/${txHash}`;
+        const explorerUrl = `${ARC.explorer}/tx/${txHash}`;
         const receipt = await publicClient.getTransactionReceipt({
           hash: txHash as Hex,
         });

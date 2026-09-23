@@ -21,11 +21,14 @@ import {
   UNI_SEPOLIA_BLOCKCHAIN,
   type BridgeBlockchain,
 } from '../circle/wallets.js';
+import { ARC } from './client.js';
 
 
 
-export const TOKEN_MESSENGER_V2 = '0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA' as const;
-export const MESSAGE_TRANSMITTER_V2 = '0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275' as const;
+/// CCTP V2 uses one address on every testnet and another on every mainnet,
+/// so the active Arc network's values hold for the source chains too.
+export const TOKEN_MESSENGER_V2 = ARC.contracts.tokenMessengerV2;
+export const MESSAGE_TRANSMITTER_V2 = ARC.contracts.messageTransmitterV2;
 export const ARC_DOMAIN = 26;
 // CCTP V2 finality thresholds: 1000 = Fast Transfer (soft/"confirmed" finality,
 // ~seconds), 2000 = Standard Transfer (hard finality, ~13-19 min). Fast also

@@ -1,6 +1,6 @@
 import { formatUnits, isAddress } from 'viem';
 import { config } from '../config.js';
-import { arcTestnet, publicClient } from '../chain/client.js';
+import { arcChain, publicClient } from '../chain/client.js';
 import { jobBoard, escrow, reputation, usdc } from '../chain/contracts.js';
 import { logger } from '../logger.js';
 
@@ -10,8 +10,8 @@ async function main() {
     publicClient.getBlockNumber(),
   ]);
 
-  if (chainId !== arcTestnet.id) {
-    logger.error({ expected: arcTestnet.id, got: chainId }, 'chain id mismatch');
+  if (chainId !== arcChain.id) {
+    logger.error({ expected: arcChain.id, got: chainId }, 'chain id mismatch');
     process.exit(1);
   }
 
@@ -39,7 +39,7 @@ async function main() {
       {
         wallet: w.label,
         address: w.address,
-        balanceUSDC: formatUnits(balance, arcTestnet.nativeCurrency.decimals),
+        balanceUSDC: formatUnits(balance, arcChain.nativeCurrency.decimals),
       },
       'wallet balance',
     );

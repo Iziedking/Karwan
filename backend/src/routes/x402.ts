@@ -10,6 +10,7 @@ import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { computeRepaymentBehavior } from './sme.js';
 import { skillDemand } from '../agents/marketDemand.js';
 import { logger } from '../logger.js';
+import { ARC } from '../chain/client.js';
 
 /// Karwan's paid data endpoints. Financiers and external agents pay
 /// per-call in USDC over x402 (Circle Gateway batched settlement on Arc
@@ -60,7 +61,7 @@ x402Routes.get('/', (c) => {
   return c.json({
     name: 'Karwan paid data endpoints',
     protocol: 'x402 (Circle Gateway batched settlement)',
-    network: 'eip155:5042002 (Arc Testnet)',
+    network: `${ARC.caip2} (${ARC.label})`,
     currency: 'USDC',
     howToPay:
       'Call any paid endpoint without a Payment-Signature header to receive a 402 with a PAYMENT-REQUIRED offer header. Sign the EIP-3009 authorization against your Arc Gateway deposit and retry with the Payment-Signature header. The @circle-fin/x402-batching GatewayClient handles the full round-trip.',

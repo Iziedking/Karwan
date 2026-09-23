@@ -1,6 +1,6 @@
 import { createWalletClient, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { arcTestnet, arcTransport, publicClient } from './client.js';
+import { ARC, arcChain, arcTransport, publicClient } from './client.js';
 import { VAULT_DEPLOYMENTS } from './deployLedger.js';
 import { readVaultLiquidity, toBaseUnits } from './vaultLiquidity.js';
 import { config } from '../config.js';
@@ -18,8 +18,8 @@ import { logger } from '../logger.js';
 /// which holds the USYC whitelist and is the vault operator + treasury keeper.
 /// `dryRun` reads balances and reports intended actions without signing.
 
-const TELLER = getAddress('0x9fdF14c5B14173D74C08Af27AebFf39240dC105A');
-const USYC = getAddress('0xe9185F0c5F296Ed1797AaE4238D26CCaBEadb86C');
+const TELLER = getAddress(ARC.contracts.usycTeller);
+const USYC = getAddress(ARC.contracts.usyc);
 const SIX = 6;
 
 const erc20Abi = [
@@ -144,9 +144,9 @@ async function rebalance(
     steps.push(step);
     if (dryRun) return;
     try {
-      await send(wallet, { address: vault, abi: vaultAbi, functionName: 'withdrawForYield', args: [amount], account, chain: arcTestnet });
-      await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [TELLER, amount], account, chain: arcTestnet });
-      step.txHash = await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'deposit', args: [amount, account.address], account, chain: arcTestnet });
+      await send(wallet, { address: vault, abi: vaultAbi, functionName: 'withdrawForYield', args: [amount], account, chain: arcChain });
+      await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [TELLER, amount], account, chain: arcChain });
+      step.txHash = await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'deposit', args: [amount, account.address], account, chain: arcChain });
     } catch (err) {
       step.failed = true;
       step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
@@ -177,11 +177,11 @@ async function rebalance(
     steps.push(step);
     if (dryRun) return;
     try {
-      await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
-      await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcTestnet });
+      await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcChain });
+      await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcChain });
       const usdcOut = await balanceOf(usdc, account.address);
-      await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, usdcOut], account, chain: arcTestnet });
-      step.txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [usdcOut], account, chain: arcTestnet });
+      await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, usdcOut], account, chain: arcChain });
+      step.txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [usdcOut], account, chain: arcChain });
     } catch (err) {
       step.failed = true;
       step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
@@ -212,8 +212,8 @@ async function sweep(
       steps.push(step);
       if (!dryRun) {
         try {
-          await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [treasury, feeBal], account, chain: arcTestnet });
-          step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'deposit', args: [feeBal], account, chain: arcTestnet });
+          await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [treasury, feeBal], account, chain: arcChain });
+          step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'deposit', args: [feeBal], account, chain: arcChain });
         } catch (err) {
           step.failed = true;
           step.detail += ` — failed: ${(err as Error).message.slice(0, 100)}`;
@@ -227,7 +227,7 @@ async function sweep(
   steps.push(step);
   if (dryRun) return;
   try {
-    step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'sweepToUSYC', args: [], account, chain: arcTestnet });
+    step.txHash = await send(wallet, { address: treasury, abi: treasuryAbi, functionName: 'sweepToUSYC', args: [], account, chain: arcChain });
   } catch (err) {
     // A rate-limit is a real failure to surface; a plain revert here is the
     // benign "below idleThreshold / not keeper" no-op.
@@ -275,7 +275,7 @@ export async function runUsycWrap(opts: { dryRun?: boolean } = {}): Promise<Usyc
   const account = privateKeyToAccount(config.USYC_OPERATOR_PRIVATE_KEY as `0x${string}`);
   // Share the public client's fallback transport so a rate-limited primary
   // rotates to a backup RPC instead of failing the wrap.
-  const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
+  const wallet = createWalletClient({ account, chain: arcChain, transport: arcTransport });
   logger.info({ operator: account.address, dryRun }, `usyc-orchestrator: start${dryRun ? ' (dry-run)' : ''}`);
 
   const steps: UsycStep[] = [];
@@ -345,7 +345,7 @@ export async function coverVaultShortfall(
   }
   if (dryRun) return { ...base, coveredUsdc: liq.shortfallUsdc, note: 'dry run, nothing signed' };
 
-  const wallet = createWalletClient({ account, chain: arcTestnet, transport: arcTransport });
+  const wallet = createWalletClient({ account, chain: arcChain, transport: arcTransport });
   const heldUsdc = await balanceOf(usdc, account.address);
 
   // Redeem only what the operator's own USDC cannot already cover. Reading the
@@ -360,8 +360,8 @@ export async function coverVaultShortfall(
       return { ...base, note: `short ${fmt(shortfall)} USDC and the operator holds no USYC to redeem` };
     }
     const before = await balanceOf(usdc, account.address);
-    await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcTestnet });
-    await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcTestnet });
+    await send(wallet, { address: USYC, abi: erc20Abi, functionName: 'approve', args: [TELLER, shares], account, chain: arcChain });
+    await send(wallet, { address: TELLER, abi: tellerAbi, functionName: 'redeem', args: [shares, account.address, account.address], account, chain: arcChain });
     redeemed = shares;
     const after = await balanceOf(usdc, account.address);
     logger.info({ shares: fmt(shares), usdcOut: fmt(after - before) }, 'usyc: redeemed to cover vault shortfall');
@@ -369,8 +369,8 @@ export async function coverVaultShortfall(
 
   const available = await balanceOf(usdc, account.address);
   const amount = available > shortfall ? shortfall : available;
-  await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, amount], account, chain: arcTestnet });
-  const txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [amount], account, chain: arcTestnet });
+  await send(wallet, { address: usdc, abi: erc20Abi, functionName: 'approve', args: [vault, amount], account, chain: arcChain });
+  const txHash = await send(wallet, { address: vault, abi: vaultAbi, functionName: 'depositFromYield', args: [amount], account, chain: arcChain });
 
   return {
     ...base,

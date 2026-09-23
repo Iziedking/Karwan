@@ -2,6 +2,7 @@ import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getUserByAddress } from '../db/users.js';
 import { developerWallets } from './sdkCompat.js';
+import { ARC } from '../chain/client.js';
 
 const { initiateDeveloperControlledWalletsClient } = developerWallets;
 
@@ -28,7 +29,8 @@ export function circleWalletsClient() {
   return _client;
 }
 
-export const ARC_TESTNET_BLOCKCHAIN = 'ARC-TESTNET' as const;
+/// The Circle Wallets id of the active Arc network (ARC-TESTNET on testnet).
+export const ARC_TESTNET_BLOCKCHAIN = ARC.circleBlockchain as 'ARC-TESTNET';
 /// Source chains Circle users can bridge USDC INTO Arc from. Provisioned per
 /// user so the backend can sign the CCTP burn on the source side without the
 /// user needing to bring a web3 wallet. The exact strings here must match

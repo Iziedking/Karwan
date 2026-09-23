@@ -29,6 +29,9 @@ jobs:
       - name: Backend typecheck
         run: npm --prefix backend run typecheck
 
+      - name: Network values only in chain/networks.ts
+        run: node scripts/check-network-hardcodes.mjs
+
       - name: Frontend typecheck
         run: npm --prefix frontend run typecheck
 
