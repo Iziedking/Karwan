@@ -93,7 +93,7 @@ export function ProfileAccountHub({
       <div className="mx-auto min-w-0 max-w-[1180px]">
         <header className="grid min-w-0 gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:py-8">
           <div className="flex shrink-0 flex-col items-start gap-1">
-            <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} onChange={(event) => void choosePhoto(event)} />
+            <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onChange={(event) => void choosePhoto(event)} />
             <button type="button" disabled={photoBusy} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onClick={() => photoInput.current?.click()} className="group relative size-[72px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:opacity-60">
             {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
               // eslint-disable-next-line @next/next/no-img-element

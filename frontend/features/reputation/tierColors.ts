@@ -25,6 +25,14 @@ export const TIER_LABEL: Record<CompositeTier, string> = {
   ELITE: 'Elite',
 };
 
+/// The tier hue as text. The raw hues are for bars, dots and borders: as text
+/// on paper several fail contrast (the New grey, the lime of Established).
+/// Mixing toward the page ink darkens them on paper and, because --lp-dark
+/// flips with the theme, lightens them on dark surfaces.
+export function tierInk(tier: CompositeTier): string {
+  return `color-mix(in oklab, ${TIER_HUE[tier]} 55%, var(--lp-dark))`;
+}
+
 /// A soft, translucent fill of the tier hue for chip backgrounds.
 export function tierBg(tier: CompositeTier): string {
   return `color-mix(in oklab, ${TIER_HUE[tier]} 9%, transparent)`;

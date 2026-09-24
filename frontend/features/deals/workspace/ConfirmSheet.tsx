@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
 
@@ -19,7 +20,7 @@ export function ConfirmSheet({ open, title, consequence, irreversible, busy, err
   children?: ReactNode;
 }) {
   const copy = useTranslations().dealWorkspace.confirm;
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const panelRef = useRef<HTMLDivElement | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);

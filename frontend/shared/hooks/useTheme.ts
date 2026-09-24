@@ -9,9 +9,10 @@ export type Theme = 'light' | 'dark';
 /// a stored 'light' or 'dark' value.
 export type ThemePreference = Theme | 'system';
 
-/// Must stay in lockstep with the pre-paint script in app/layout.tsx, which runs
-/// the same read before first paint. If the two ever disagree the page paints one
-/// theme and then swaps, which is the flash that script exists to prevent.
+/// Must stay in lockstep with THEME_PREPAINT_SCRIPT (themePrepaintScript.ts),
+/// which runs the same read before first paint. If the two ever disagree the page
+/// paints one theme and then swaps, which is the flash that script exists to
+/// prevent.
 const STORAGE_KEY = 'karwan-theme';
 
 /// Fires when any mounted control changes the theme, so a second switcher on the
@@ -34,6 +35,27 @@ function isNightLocally(now = new Date()): boolean {
 /// configured on the device, including its daylight-saving transitions.
 export function resolveDaylightTheme(now = new Date()): Theme {
   return isNightLocally(now) ? 'dark' : 'light';
+}
+
+/// The landing page is always dark. It has no theme control and ignores a
+/// preference set anywhere else; the stored preference applies again on every
+/// other route.
+export function isAlwaysDarkRoute(pathname: string | null | undefined): boolean {
+  return pathname === '/';
+}
+
+/// What a route paints for a stored preference. Every paint goes through here.
+export function themeForRoute(
+  pathname: string | null | undefined,
+  pref: ThemePreference,
+  now = new Date(),
+): Theme {
+  if (isAlwaysDarkRoute(pathname)) return 'dark';
+  return pref === 'system' ? resolveDaylightTheme(now) : pref;
+}
+
+function currentPathname(): string | null {
+  return typeof window === 'undefined' ? null : window.location.pathname;
 }
 
 /// Milliseconds until the automatic theme could next change, i.e. the next
@@ -100,7 +122,7 @@ export function applyTheme(theme: Theme): void {
 /// other mounted switcher — are updated together rather than by whoever
 /// remembers to.
 export function setThemePreference(pref: ThemePreference): Theme {
-  const resolved = resolveTheme(pref);
+  const resolved = themeForRoute(currentPathname(), pref);
   applyTheme(resolved);
   try {
     localStorage.setItem(STORAGE_KEY, pref);
@@ -143,7 +165,7 @@ export function useTheme() {
 
   useEffect(() => {
     const currentPreference = readPreference();
-    const currentTheme = resolveTheme(currentPreference);
+    const currentTheme = themeForRoute(currentPathname(), currentPreference);
     setPreferenceState(currentPreference);
     setThemeState(currentTheme);
     applyTheme(currentTheme);
@@ -161,7 +183,7 @@ export function useTheme() {
     // the daytime surface until the next reload.
     const onDaylight = () => {
       if (readPreference() !== 'system') return;
-      const next = resolveDaylightTheme();
+      const next = themeForRoute(currentPathname(), 'system');
       applyTheme(next);
       setThemeState(next);
     };

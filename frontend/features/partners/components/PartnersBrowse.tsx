@@ -31,10 +31,19 @@ const SECTORS = [
   'other',
 ] as const;
 
+type SectorLabels = Messages['smeCompany']['sectors'];
+
+function sectorLabel(labels: SectorLabels, value: string | null | undefined): string | null {
+  if (!value) return null;
+  return value in labels ? labels[value as keyof SectorLabels] : value;
+}
+
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export function PartnersBrowse() {
-  const copy = useTranslations().partnersBrowse;
+  const messages = useTranslations();
+  const copy = messages.partnersBrowse;
+  const sectorLabels = messages.smeCompany.sectors;
   const auth = useAuth();
   const { isBusinessWorkspace } = useWorkspaceContext();
   const businessAccount = auth.isAuthenticated && isBusinessWorkspace;
@@ -161,7 +170,7 @@ export function PartnersBrowse() {
                 </FilterButton>
                 {SECTORS.map((value) => (
                   <FilterButton key={value} pressed={sector === value} onClick={() => setSector(value)}>
-                    {value}
+                    {sectorLabels[value]}
                   </FilterButton>
                 ))}
               </FilterGroup>
@@ -219,8 +228,7 @@ export function PartnersBrowse() {
         {partners !== null && filtered.length === 0 && state !== 'error' ? (
           <PageCard>
             <div className="px-6 py-10 sm:px-8 sm:py-12">
-              <SectionTag>{copy.sectionTag}</SectionTag>
-              <h2 className="mt-4 max-w-[28ch] font-sans text-[24px] font-extrabold uppercase leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">
+              <h2 className="max-w-[28ch] font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
                 {copy.emptyTitle}
               </h2>
               <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
@@ -243,6 +251,7 @@ export function PartnersBrowse() {
                 partner={partner}
                 position={index + 1}
                 copy={copy}
+                sectorLabels={sectorLabels}
                 canOpenBusinessDeal={canOpenBusinessDeal}
                 isAuthenticated={auth.isAuthenticated}
                 businessAccount={businessAccount}
@@ -282,9 +291,9 @@ function FilterButton({
       onClick={onClick}
       className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[8px] border px-3 text-[12px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
-        borderColor: pressed ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
-        background: pressed ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
-        color: pressed ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+        borderColor: pressed ? 'var(--lp-selected-border)' : 'var(--lp-border-light)',
+        background: pressed ? 'var(--lp-selected-bg)' : 'var(--lp-card)',
+        color: pressed ? 'var(--lp-selected-ink)' : 'var(--lp-text-sub)',
       }}
     >
       {children}
@@ -296,6 +305,7 @@ function PartnerCard({
   partner,
   position,
   copy,
+  sectorLabels,
   canOpenBusinessDeal,
   isAuthenticated,
   businessAccount,
@@ -303,6 +313,7 @@ function PartnerCard({
   partner: Partner;
   position: number;
   copy: Messages['partnersBrowse'];
+  sectorLabels: SectorLabels;
   canOpenBusinessDeal: boolean;
   isAuthenticated: boolean;
   businessAccount: boolean;
@@ -319,7 +330,7 @@ function PartnerCard({
       : !businessAccount
         ? copy.registerBusiness
         : copy.pilotOnly;
-  const tradeMeta = [partner.sector, partner.region, partner.canSupply ? copy.supplies : null].filter(
+  const tradeMeta = [sectorLabel(sectorLabels, partner.sector), partner.region, partner.canSupply ? copy.supplies : null].filter(
     (value): value is string => Boolean(value),
   );
 

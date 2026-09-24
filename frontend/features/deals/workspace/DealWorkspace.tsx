@@ -78,7 +78,7 @@ function DealFetchError({ kind, isRefetching, onRetry }: {
   return (
     <div className="mx-auto max-w-[720px] space-y-4 px-4 py-10">
       <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">{copy.privateDeal}</p>
-      <ConnectWalletButton />
+      <ConnectWalletButton variant="primary" />
     </div>
   );
 }

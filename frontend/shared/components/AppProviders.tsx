@@ -1,6 +1,7 @@
 'use client';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { MotionConfig } from 'motion/react';
 import { WagmiProvider } from 'wagmi';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -84,6 +85,7 @@ export function AppProviders({
   const inner = adminSurface ? children : customerRuntime;
 
   return (
+    <MotionConfig reducedMotion="user">
     <LocaleProvider initialLocale={initialLocale}>
       <WagmiProvider config={wagmiConfig}>
         {persister ? (
@@ -98,5 +100,6 @@ export function AppProviders({
         )}
       </WagmiProvider>
     </LocaleProvider>
+    </MotionConfig>
   );
 }

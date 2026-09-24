@@ -19,9 +19,8 @@ export default function DocsEscrowPage() {
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-[var(--lp-dark)]">
+      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
         {t.title}
-        <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h1>
       <p
         className="mt-6 inline-block border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]"

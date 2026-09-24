@@ -1,8 +1,9 @@
 'use client';
 
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
 import { dur, ease } from '@/shared/motion/tokens';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 
 /**
  * Keeps routine navigation visible while giving the route change a clear
@@ -10,7 +11,7 @@ import { dur, ease } from '@/shared/motion/tokens';
  * the new page spatially connected to the previous one.
  */
 export function RouteStage({ pathname, children }: { pathname: string; children: ReactNode }) {
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
 
   return (
     <motion.div
@@ -23,7 +24,7 @@ export function RouteStage({ pathname, children }: { pathname: string; children:
       {!reduce ? (
         <motion.span
           aria-hidden
-          className="pointer-events-none fixed inset-x-0 top-0 z-[75] h-0.5 origin-left bg-[var(--accent)]"
+          className="pointer-events-none fixed inset-x-0 top-0 z-[75] h-0.5 origin-left bg-[var(--accent)] motion-reduce:hidden"
           initial={{ opacity: 1, scaleX: 0 }}
           animate={{ opacity: [1, 1, 0], scaleX: [0, 0.76, 1] }}
           transition={{ duration: dur.base, ease: ease.out, times: [0, 0.72, 1] }}

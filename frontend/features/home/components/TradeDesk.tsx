@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY, tradeEntryRoutes } from '../tradeEntry';
 
@@ -14,7 +15,7 @@ type TradeDeskProps = { business?: boolean };
  */
 export function TradeDesk({ business = false }: TradeDeskProps) {
   const { locale } = useLocale();
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const entryCopy = TRADE_ENTRY_COPY[locale];
   const copy = entryCopy.desk;
   const routes = tradeEntryRoutes(business);

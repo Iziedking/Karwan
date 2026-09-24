@@ -10,12 +10,15 @@ import {
   TIER_LABEL,
   tierBg,
   tierBorder,
+  tierInk,
   type CompositeTier,
 } from '../tierColors';
 
 type Tier = {
   label: string;
   color: string;
+  /** The hue mixed toward the ink, for text. `color` stays for bars and dots. */
+  ink?: string;
   bg: string;
   border: string;
 };
@@ -24,7 +27,7 @@ type Tier = {
 // MatchBanner, profile, deal detail, peek modal) AND the /stake ladder via the
 // tierColors module. NEW < COLD < ESTABLISHED < STRONG < ELITE.
 function tierStyle(t: CompositeTier): Tier {
-  return { label: TIER_LABEL[t], color: TIER_HUE[t], bg: tierBg(t), border: tierBorder(t) };
+  return { label: TIER_LABEL[t], color: TIER_HUE[t], ink: tierInk(t), bg: tierBg(t), border: tierBorder(t) };
 }
 const TIER_STYLES: Record<CompositeTier, Tier> = {
   NEW: tierStyle('NEW'),
@@ -57,6 +60,7 @@ function tierFor(
     return {
       label: legacy.topTier,
       color: 'var(--lp-accent)',
+      ink: 'color-mix(in oklab, var(--lp-accent) 55%, var(--lp-dark))',
       bg: 'color-mix(in oklab, var(--lp-accent) 8%, transparent)',
       border: 'color-mix(in oklab, var(--lp-accent) 30%, transparent)',
     };
@@ -65,6 +69,7 @@ function tierFor(
     return {
       label: legacy.veteran,
       color: 'var(--lp-accent)',
+      ink: 'color-mix(in oklab, var(--lp-accent) 55%, var(--lp-dark))',
       bg: 'color-mix(in oklab, var(--lp-accent) 12%, transparent)',
       border: 'color-mix(in oklab, var(--lp-accent) 28%, transparent)',
     };
@@ -73,6 +78,7 @@ function tierFor(
     return {
       label: legacy.trusted,
       color: 'var(--color-accent)',
+      ink: 'color-mix(in oklab, var(--color-accent) 55%, var(--lp-dark))',
       bg: 'var(--color-accent-soft)',
       border: 'color-mix(in oklab, var(--color-accent) 28%, transparent)',
     };
@@ -227,7 +233,7 @@ export function ReputationBadge({
       <span aria-hidden className="w-[3px]" style={{ background: tier.color }} />
       <span
         className={`flex items-center ${cellPad} mono uppercase tracking-[0.18em] font-semibold ${labelSize}`}
-        style={{ color: tier.color }}
+        style={{ color: tier.ink ?? tier.color }}
       >
         {tier.label}
       </span>
@@ -302,7 +308,7 @@ export function ReputationBadge({
             <div className="pt-3 pb-2 flex items-baseline gap-3">
               <span
                 className="text-[36px] tracking-tight tabular-nums leading-none"
-                style={{ fontFamily: 'var(--font-serif)', color: tier.color }}
+                style={{ fontFamily: 'var(--font-serif)', color: tier.ink ?? tier.color }}
               >
                 {showScore ? score : '-'}
               </span>

@@ -1,5 +1,6 @@
 'use client';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { ReactNode, MouseEventHandler } from 'react';
 import Link from 'next/link';
 import { cn } from '@/shared/utils/cn';
@@ -30,7 +31,7 @@ export function PrimaryCTA({
   type?: 'button' | 'submit';
   disabled?: boolean;
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const baseClass = cn(
     'group relative inline-flex items-center gap-2 px-[22px] py-[14px] font-mono text-[12px] font-semibold uppercase tracking-[0.06em]',
     'transition-colors duration-[var(--dur-micro)] hover:bg-[var(--accent-deep)]',

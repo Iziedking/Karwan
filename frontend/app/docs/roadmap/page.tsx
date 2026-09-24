@@ -16,9 +16,8 @@ export default function DocsRoadmapPage() {
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-[var(--lp-dark)]">
+      <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
         {t.heading}
-        <span style={{ color: 'var(--lp-accent)' }}>.</span>
       </h1>
       <DocsP>{t.intro}</DocsP>
 

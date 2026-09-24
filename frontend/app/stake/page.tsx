@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import {
   FullBleed,
   Band,
@@ -21,7 +22,7 @@ import { YieldClaimPanel } from '@/features/reputation/components/YieldClaimPane
 import { LegacyStakeNudge } from '@/features/reputation/components/LegacyStakeNudge';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useReputation } from '@/features/reputation/hooks/useReputation';
-import { TIER_HUE } from '@/features/reputation/tierColors';
+import { TIER_HUE, tierInk } from '@/features/reputation/tierColors';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { tierProgress, tierProgressLabel } from '@/features/reputation/tierProgressLabel';
 
@@ -41,7 +42,7 @@ function prefersReducedMotion(): boolean {
 /// Count-up readout. Eases 0 -> value on mount (SKILL motion: numbers tween,
 /// never snap). Collapses to the final value under reduced motion.
 function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) {
-  const [n, setN] = useState(() => (prefersReducedMotion() ? value : 0));
+  const [n, setN] = useState(0);
   useEffect(() => {
     if (prefersReducedMotion()) {
       setN(value);
@@ -69,10 +70,11 @@ function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) 
 }
 
 /// Section reveal on scroll: translateY -> 0 + fade, once, 20% in view.
-function Reveal({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
-  const reduce = useReducedMotion();
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const reduce = useHydratedReducedMotion();
   return (
     <motion.div
+      className={className}
       initial={reduce ? false : { opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
@@ -108,7 +110,7 @@ function StakePageInner() {
   const { data } = useReputation(address);
   const sp = useTranslations().stakePage;
   const tp = useTranslations().tierProgress;
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const [reserveOpen, setReserveOpen] = useState(false);
 
   const rawTier = data?.tier;
@@ -150,7 +152,7 @@ function StakePageInner() {
             <span className="text-[15px] text-[var(--lp-workspace-faint)]"> / 1000</span>
           </Stat>
           <Stat label={sp.position.tier} fit>
-            <span style={{ color: TIER_HUE[tier] }}>{tier}</span>
+            <span style={{ color: tierInk(tier) }}>{tier}</span>
             {capped ? (
               <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
                 {data?.tierCappedBy === 'concentration'
@@ -179,7 +181,7 @@ function StakePageInner() {
             ) : progress.kind === 'concentration' ? (
               <span className="text-[15px] text-[var(--lp-workspace-muted)]">{progressLabel}</span>
             ) : progress.kind === 'top' ? (
-              <span style={{ color: TIER_HUE[tier] }}>{sp.position.topTier}</span>
+              <span style={{ color: tierInk(tier) }}>{sp.position.topTier}</span>
             ) : null}
           </Stat>
         </div>
@@ -219,6 +221,13 @@ function StakePageInner() {
       </Band>
 
       <Band tone="light" compact dataGuide="stake-network-yield">
+        {/* The hint is its own control, so it sits outside the disclosure button. */}
+        <div className="flex items-center gap-2 pb-3">
+          <SectionTag>{pb.stake.networkYield}</SectionTag>
+          <Hint glow side="bottom" align="start">
+            Idle stake earns real yield through Hashnote USYC, tokenized US Treasuries. Settled on Arc, provable on chain.
+          </Hint>
+        </div>
         <button
           type="button"
           aria-expanded={reserveOpen}
@@ -227,13 +236,7 @@ function StakePageInner() {
           className="group grid min-h-11 w-full grid-cols-[minmax(0,1fr)_44px] items-center gap-4 border-y border-[var(--lp-border-light)] py-5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
         >
           <span className="min-w-0">
-            <span className="flex items-center gap-2">
-              <SectionTag>{pb.stake.networkYield}</SectionTag>
-              <Hint glow side="bottom" align="start">
-                Idle stake earns real yield through Hashnote USYC, tokenized US Treasuries. Settled on Arc, provable on chain.
-              </Hint>
-            </span>
-            <span className="mt-3 block font-sans text-[clamp(1.45rem,3vw,2.4rem)] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] text-[var(--lp-dark)]">
+            <span className="block font-sans text-[clamp(1.45rem,3vw,2.4rem)] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] text-[var(--lp-dark)]">
               {pb.stake.tokenizedTbills}<Punc>.</Punc> {pb.stake.verifiedYield}<Punc>.</Punc>
             </span>
           </span>
@@ -278,8 +281,9 @@ function StakePageInner() {
           {ORDER.map((t, i) => {
             const here = t === tier;
             return (
-              <Reveal key={t} delay={i * 0.04}>
-                <li
+              <li key={t} className="h-full">
+              <Reveal delay={i * 0.04} className="h-full">
+                <div
                   className="relative h-full min-h-[150px] overflow-hidden rounded-[14px_14px_4px_14px] border p-5"
                   style={{
                     background: here ? 'rgba(175,201,91,0.08)' : 'var(--lp-card)',
@@ -301,8 +305,9 @@ function StakePageInner() {
                     </span>
                   ) : null}
                   <p className="mt-4 text-[13px] leading-snug text-[var(--lp-text-sub)]">{sp.ladder.unlock[t]}</p>
-                </li>
+                </div>
               </Reveal>
+              </li>
             );
           })}
         </ul>

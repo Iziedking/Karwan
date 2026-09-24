@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useInView, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { AnimatePresence, motion, useInView, useScroll, useTransform } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { dur, ease } from '@/shared/motion/tokens';
@@ -61,7 +62,7 @@ const tradeIntents = [
  * not a claim about a particular live trade. */
 export function RealityHero() {
   const lp = useTranslations().landingPage;
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [intentIndex, setIntentIndex] = useState(0);

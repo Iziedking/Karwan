@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
-import { motion, useInView, useReducedMotion } from 'motion/react';
+import { motion, useInView } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { CAPABILITIES, CAPABILITY_COPY, canRotateStory, STORY_INTERVAL_MS } from '../capabilityStory';
 
@@ -13,7 +14,7 @@ export function CapabilityIntro({ landing = false }: { landing?: boolean }) {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.25 });
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);

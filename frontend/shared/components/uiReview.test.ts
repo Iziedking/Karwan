@@ -142,7 +142,7 @@ test('the shared navbar cycles through three persisted appearance choices withou
   const nav = source('./TopNav.tsx');
   const control = source('./ThemeControl.tsx');
   const picker = source('../../features/settings/components/ThemePicker.tsx');
-  assert.match(nav, /\)\}\s*<ThemeControl \/>/);
+  assert.match(nav, /isAlwaysDarkRoute\(pathname\) \? null : <ThemeControl \/>/);
   assert.match(control, /system: 'light'/);
   assert.match(control, /light: 'dark'/);
   assert.match(control, /dark: 'system'/);
@@ -152,6 +152,23 @@ test('the shared navbar cycles through three persisted appearance choices withou
   assert.match(picker, /value: 'light'/);
   assert.match(picker, /value: 'dark'/);
   assert.equal(en.settings.themeLight, 'Light');
+});
+
+test('the wallet home renders translated copy, not hardcoded English', () => {
+  const page = source('../../app/account/page.tsx');
+  assert.doesNotMatch(page, />(USDC balance|By chain|Manage USDC|Live balances|Add USDC|Send USDC)</);
+  assert.doesNotMatch(page, /(label|description|aria-label)="[A-Z][a-z]+ /);
+  for (const locale of [ar, fr, hi, sw]) {
+    assert.notEqual(locale.account.page.manage, en.account.page.manage);
+    assert.notEqual(locale.account.page.intro, en.account.page.intro);
+  }
+});
+
+test('the landing page paints dark on a full load and on client-side navigation', () => {
+  const layout = source('../../app/layout.tsx');
+  assert.match(layout, /dangerouslySetInnerHTML=\{\{ __html: THEME_PREPAINT_SCRIPT \}\}/);
+  assert.match(layout, /<ThemeRouteSync \/>/);
+  assert.doesNotMatch(layout, /localStorage\.getItem\('karwan-theme'\)/);
 });
 
 function contrast(a: string, b: string) {
@@ -181,9 +198,19 @@ test('account action is Move and keeps its existing route', () => {
   const account = source('../../app/account/page.tsx');
   const transfer = source('../../app/bridge/page.tsx');
   assert.equal(en.accountHome.move, 'Move');
-  assert.match(account, /href="\/bridge\?direction=out&intent=move" label="Move"/);
+  assert.match(account, /href="\/bridge\?direction=out&intent=move" label=\{messages\.accountHome\.move\}/);
   assert.doesNotMatch(account, /Withdraw from Gateway/);
-  assert.match(transfer, /outIntent === 'move' \? 'Move USDC'/);
+  assert.match(transfer, /outIntent === 'move' \? header\.titleMove/);
+  assert.equal(en.bridge.header.titleMove, 'Move USDC');
+});
+
+test('the transfer header speaks of one balance, never the Gateway pool', () => {
+  const transfer = source('../../app/bridge/page.tsx');
+  assert.doesNotMatch(transfer, /Gateway balance/);
+  for (const locale of [en, ar, fr, hi, sw]) {
+    assert.doesNotMatch(Object.values(locale.bridge.header).join(' '), /Gateway/);
+    assert.doesNotMatch(locale.account.page.moveHelp, /Gateway/);
+  }
 });
 
 test('public and workspace backgrounds follow the same selected theme', () => {

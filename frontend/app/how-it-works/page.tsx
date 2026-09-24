@@ -1,8 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Card } from '@/shared/components/Card';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { WALLET_HOME } from '@/shared/utils/routes';
+
+const SECTION_LABEL = 'text-[13px] font-medium text-[var(--color-ink-dim)]';
 
 export default function HowItWorksPage() {
   const messages = useTranslations();
@@ -11,7 +14,7 @@ export default function HowItWorksPage() {
     <div className="space-y-12 sm:space-y-20">
       {/* HEADER */}
       <header className="max-w-3xl space-y-4">
-        <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-ink-faint)]">
+        <span className={SECTION_LABEL}>
           {t.header.eyebrow}
         </span>
         <h1 className="text-[34px] sm:text-[40px] md:text-[48px] leading-[1.05] tracking-[-0.02em] font-semibold">
@@ -25,7 +28,7 @@ export default function HowItWorksPage() {
       {/* DIRECT DEAL FLOW */}
       <section className="space-y-6">
         <div className="max-w-2xl">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+          <span className={SECTION_LABEL}>
             {t.directDeal.eyebrow}
           </span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">
@@ -36,15 +39,7 @@ export default function HowItWorksPage() {
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
-          <DemoStep
-            n="1"
-            title={t.directDeal.step1.title}
-            cta={(
-              <Link href="/buyer" className="-mx-2 inline-flex min-h-11 items-center px-2 underline">
-                {t.directDeal.step1.cta}
-              </Link>
-            )}
-          >
+          <DemoStep n="1" title={t.directDeal.step1.title}>
             {t.directDeal.step1.bodyA}<Link href="/buyer" className="underline">{t.directDeal.step1.cta}</Link>{t.directDeal.step1.bodyB}
           </DemoStep>
           <DemoStep n="2" title={t.directDeal.step2.title}>
@@ -65,7 +60,7 @@ export default function HowItWorksPage() {
       {/* TRUST AND PROOF */}
       <section className="space-y-6">
         <div className="max-w-2xl">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+          <span className={SECTION_LABEL}>
             {t.trust.eyebrow}
           </span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">
@@ -75,42 +70,37 @@ export default function HowItWorksPage() {
             {t.trust.body}
           </p>
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card>
+        <div className="grid md:grid-cols-2 gap-x-8">
+          <div className="border-t border-[var(--color-line)] py-5">
             <p className="text-[14px] font-semibold">{t.trust.evidenceTitle}</p>
             <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
               {t.trust.evidence}
             </p>
-          </Card>
-          <Card>
+          </div>
+          <div className="border-t border-[var(--color-line)] py-5">
             <p className="text-[14px] font-semibold">{t.trust.identityTitle}</p>
             <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">
               {t.trust.identity}
             </p>
-          </Card>
+          </div>
         </div>
         <p className="text-[12px] text-[var(--color-ink-faint)] leading-relaxed max-w-2xl">
           {t.trust.boundary}
         </p>
+        <Link href="/docs" className="inline-flex min-h-11 items-center gap-2 text-[14px] font-semibold underline">
+          {t.header.eyebrow}<span aria-hidden className="rtl-flip">→</span>
+        </Link>
       </section>
-
-      <details className="group border-y border-[var(--color-line)]">
-        <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 py-4 font-semibold">
-          {t.contract.eyebrow}<span aria-hidden className="group-open:rotate-45">+</span>
-        </summary>
-        <p className="max-w-2xl text-[14px] leading-relaxed text-[var(--color-ink-dim)]">{t.trust.boundary}</p>
-        <Link href="/docs" className="inline-flex min-h-11 items-center py-3 underline">{t.header.eyebrow}<span aria-hidden> ↗</span></Link>
-      </details>
 
       {/* FAQ */}
       <section id="faq" className="space-y-6">
         <div className="max-w-2xl">
-          <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-accent)]">
+          <span className={SECTION_LABEL}>
             {t.faq.eyebrow}
           </span>
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">{t.faq.title}</h2>
         </div>
-        <div className="divide-y divide-[var(--color-line)] border border-[var(--color-line)] rounded-xl bg-[var(--color-surface)]">
+        <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
           <Faq q={t.faq.q2.q}>
             {t.faq.q2.a}
           </Faq>
@@ -134,12 +124,11 @@ export default function HowItWorksPage() {
         </p>
         <div className="pt-2">
           <Link
-            href="/buyer"
-            style={{ backgroundColor: '#0c0e10', color: '#ffffff' }}
-            className="min-h-11 px-5 py-2.5 rounded-md text-[14px] font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2"
+            href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
+            className="min-h-11 px-5 py-2.5 rounded-[10px] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] text-[14px] font-semibold hover:bg-[var(--lp-accent-hover)] transition-colors inline-flex items-center gap-2"
           >
-            {t.cta.button}
-            <span aria-hidden>→</span>
+            {messages.nav.openApp}
+            <span aria-hidden className="rtl-flip">→</span>
           </Link>
         </div>
         <p className="text-[13px] text-[var(--color-ink-faint)] pt-2">
@@ -154,12 +143,10 @@ function DemoStep({
   n,
   title,
   children,
-  cta,
 }: {
   n: string;
   title: string;
   children: React.ReactNode;
-  cta?: React.ReactNode;
 }) {
   return (
     <div className="border-t border-[var(--color-line)] py-5 space-y-3">
@@ -168,14 +155,13 @@ function DemoStep({
         <span className="text-[15px] font-medium">{title}</span>
       </div>
       <p className="text-[13px] text-[var(--color-ink-dim)] leading-relaxed">{children}</p>
-      {cta && <div className="text-[12px]">{cta}</div>}
     </div>
   );
 }
 
 function Faq({ q, children }: { q: string; children: React.ReactNode }) {
   return (
-    <details className="group px-5 py-4">
+    <details className="group py-4">
       <summary className="min-h-11 cursor-pointer flex items-center justify-between gap-3 list-none">
         <span className="text-[14px] font-medium">{q}</span>
         <span className="text-[var(--color-ink-faint)] group-open:rotate-45 transition-transform">+</span>

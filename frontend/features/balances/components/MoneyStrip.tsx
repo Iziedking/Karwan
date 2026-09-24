@@ -1,7 +1,8 @@
 'use client';
 import { MoneyCard, MoneyValue, MoneyLabel } from '@/shared/components/Money';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -55,7 +56,7 @@ function MoneyTile({ cell }: { cell: Cell }) {
 /// to a tile. Auto-advance pauses off screen and is disabled under reduced
 /// motion (which instead stacks all three so nothing is hidden behind motion).
 function MoneyRotator({ cells }: { cells: Cell[] }) {
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const [i, setI] = useState(0);
   const [visible, setVisible] = useState(true);
   const ref = useRef<HTMLDivElement>(null);

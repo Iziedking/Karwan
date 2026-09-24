@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -26,7 +27,7 @@ export function QuickStartBand() {
   const t = useTranslations().appHome.quickStart;
   const { activated, loading: activationLoading } = useActivation();
   const { deals, fetchState } = useDirectDeals();
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {

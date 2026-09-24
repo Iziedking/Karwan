@@ -20,6 +20,8 @@ import { WalletAvatar } from './WalletAvatar';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemeControl } from './ThemeControl';
+import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
+import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
 
 export function TopNav() {
@@ -160,7 +162,8 @@ export function TopNav() {
               <LaunchAppCTA />
             </>
           )}
-          <ThemeControl />
+          {isAlwaysDarkRoute(pathname) ? null : <ThemeControl />}
+          {publicSurface ? <PublicMenu /> : null}
         </div>
       </div>
     </header>
@@ -242,7 +245,7 @@ function WorkspaceRail({
     >
       <nav
         id="workspace-navigation"
-        aria-label="workspace navigation"
+        aria-label={t.railLabel}
         className={cn(
           'pointer-events-auto absolute flex flex-col gap-1 transition-[width] duration-300 ease-out',
           collapsed ? 'w-[72px]' : 'w-[220px]',
@@ -253,7 +256,7 @@ function WorkspaceRail({
           type="button"
           data-chrome="workspace-rail-toggle"
           aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          aria-label={collapsed ? t.railExpandAria : t.railCollapseAria}
           onClick={toggleRail}
           className={cn(
             'group mb-1 inline-flex size-11 shrink-0 items-center justify-center self-start rounded-full border border-[var(--color-line)] text-[var(--color-ink-dim)] transition-[background-color,border-color,color,transform] duration-200 hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] hover:-translate-y-0.5',

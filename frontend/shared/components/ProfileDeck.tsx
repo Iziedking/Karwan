@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 
 /// A deck of panels stacked in Z, one visible at a time.
 ///
@@ -83,9 +84,7 @@ export function ProfileDeck({
   /// there is no next/prev intent and comparing indices is the right inference.
   const intent = useRef<'next' | 'prev' | null>(null);
 
-  const reduced =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = useHydratedReducedMotion();
 
   const go = useCallback(
     (next: number) => {

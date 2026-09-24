@@ -12,6 +12,8 @@ import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { TermsModal } from '@/shared/components/TermsModal';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
+import { ThemeRouteSync } from '@/shared/components/ThemeRouteSync';
+import { THEME_PREPAINT_SCRIPT } from '@/shared/hooks/themePrepaintScript';
 import { DialogProvider } from '@/shared/components/Dialog';
 import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
 import { PageFeedbackPrompt } from '@/shared/components/PageFeedbackPrompt';
@@ -115,17 +117,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        {/* Pre-paint theme. Mirrors shared/hooks/useTheme.ts; the two must agree
-            or the page paints one theme and swaps to the other.
-
-            The stored value is a PREFERENCE. Older 'system' entries still
-            resolve automatically, but a new visitor defaults to dark until
-            they choose light. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('karwan-theme');if(t!=='light'&&t!=='dark'&&t!=='system'){t='dark';}if(t==='system'){var h=new Date().getHours();t=(h>=19||h<7)?'dark':'light';}if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`,
-          }}
-        />
+        {/* Pre-paint theme. The landing page is always dark; elsewhere the
+            stored preference applies and a new visitor starts dark. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_PREPAINT_SCRIPT }} />
         {/* Pre-hydration locale flip. Reads the karwan-locale cookie and
             applies <html lang/dir> before the React tree paints, so RTL
             users (Arabic) don't see an LTR → RTL jolt mid-frame. The
@@ -141,6 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           <ScrollReset />
+          <ThemeRouteSync />
           {/* No overflow clip here on purpose: full-bleed sections use the
               scrollbar-aware `.w-bleed` width so they don't over-shoot at normal
               zoom, and leaving overflow visible lets the page show a real

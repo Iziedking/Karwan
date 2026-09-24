@@ -173,7 +173,7 @@ export function YieldClaimPanel() {
         />
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-5 py-5 sm:px-7 sm:py-6">
           <div className="min-w-0">
-            <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+            <p className="mono text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--lp-accent-on-light)]">
               Claim
             </p>
             <p className="mt-2 font-sans text-[28px] sm:text-[32px] font-extrabold leading-none tracking-[-0.02em] tabular-nums">

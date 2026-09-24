@@ -16,9 +16,9 @@ import {
   type DiscoverySort,
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
-import { Button } from '@/shared/components/Button';
+import { Button, buttonClasses } from '@/shared/components/Button';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
-import { Band, FullBleed, SectionTag } from '@/shared/components/Bands';
+import { Band, FullBleed } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
 import { MARKET_BIZ_TOUR_ID, MARKET_TOUR_ID, buildMarketSteps } from '@/shared/guide/tours';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -252,18 +252,27 @@ export function ListingsBrowse() {
         {loading ? <MarketSkeleton /> : null}
 
         {emptyMarket ? (
-          <div className="border-s-2 border-[var(--lp-accent)] px-5 py-8 sm:px-7 sm:py-10">
-            <SectionTag>{copy.emptyAllTag}</SectionTag>
-            <h2 className="mt-4 max-w-[20ch] font-sans text-[24px] font-extrabold uppercase leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">
-              {copy.emptyAllBody}
+          <div className="border-t border-[var(--lp-border-light)] py-8 sm:py-10">
+            <h2 className="font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
+              {copy.emptyAllTag}
             </h2>
+            <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              {copy.emptyAllBody}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href="/buyer" className={buttonClasses({ variant: 'primary' })}>
+                {copy.emptyPostRequest}
+              </Link>
+              <Link href="/seller#post-listing" className={buttonClasses({ variant: 'outline' })}>
+                {copy.emptyPublishOffer}
+              </Link>
+            </div>
           </div>
         ) : null}
 
         {emptyFilter ? (
-          <div className="border-s-2 border-[var(--lp-accent)] px-5 py-8 sm:px-7 sm:py-10">
-            <SectionTag>{copy.emptyFilteredTag}</SectionTag>
-            <h2 className="mt-4 font-sans text-[24px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
+          <div className="border-t border-[var(--lp-border-light)] py-8 sm:py-10">
+            <h2 className="font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
               {copy.emptyFilteredTitle}
             </h2>
             <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
@@ -392,9 +401,9 @@ function FilterButton({
       onClick={onClick}
       className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[8px] border px-3 text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
       style={{
-        borderColor: pressed ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
-        background: pressed ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
-        color: pressed ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+        borderColor: pressed ? 'var(--lp-selected-border)' : 'var(--lp-border-light)',
+        background: pressed ? 'var(--lp-selected-bg)' : 'var(--lp-card)',
+        color: pressed ? 'var(--lp-selected-ink)' : 'var(--lp-text-sub)',
       }}
     >
       {children}

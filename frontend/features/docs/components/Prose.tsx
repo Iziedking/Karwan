@@ -11,13 +11,11 @@ export function Prose({ children, className }: { children: ReactNode; className?
   return <div className={cn('docs-prose', className)}>{children}</div>;
 }
 
-/// One step below HeroHeadline, used inside light bands as the per-section
-/// heading. Big, extrabold, lime period.
+/// Per-section heading inside a docs page. Sentence case, no decoration.
 export function DocsH2({ children }: { children: ReactNode }) {
   return (
     <h2 className="mt-12 first:mt-0 font-sans text-[clamp(1.5rem,2.4vw,2rem)] font-extrabold tracking-[-0.015em] leading-tight text-[var(--lp-dark)]">
       {children}
-      <span style={{ color: 'var(--lp-accent)' }}>.</span>
     </h2>
   );
 }
@@ -141,7 +139,8 @@ export function DocsFigure({
   );
 }
 
-/// Inline callout for an important warning or note. Lime left border.
+/// Inline callout for an important warning or note. The border carries the
+/// tone; the title stays in body ink so it reads at every size and theme.
 export function DocsCallout({
   tone = 'info',
   title,
@@ -151,16 +150,13 @@ export function DocsCallout({
   title: string;
   children: ReactNode;
 }) {
-  const accent = tone === 'warn' ? '#c96030' : 'var(--lp-accent)';
+  const border = tone === 'warn' ? 'var(--color-warning)' : 'var(--lp-accent)';
   return (
     <aside
       className="mt-6 max-w-[64ch] ps-5 py-1"
-      style={{ borderInlineStart: `3px solid ${accent}` }}
+      style={{ borderInlineStart: `3px solid ${border}` }}
     >
-      <p
-        className="mono text-[10px] uppercase tracking-[0.16em]"
-        style={{ color: accent }}
-      >
+      <p className="text-[14px] font-semibold text-[var(--lp-dark)]">
         {title}
       </p>
       <div className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">

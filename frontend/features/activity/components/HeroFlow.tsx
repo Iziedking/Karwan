@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Dark-native palette. This visual sits on the landing hero which is always
@@ -27,7 +28,7 @@ const TRAVEL_DURATION = 1.05; // seconds in transit between stations
 
 export function HeroFlow() {
   const t = useTranslations().heroFlow;
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   // Cycle: 0 → 1 → 2 → 0 → 1 → 2 → ...
   const [stage, setStage] = useState<0 | 1 | 2>(0);
   useEffect(() => {

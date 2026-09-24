@@ -125,12 +125,21 @@ function chainKeyFromId(id: number): ChainKey | null {
 ///      the wallet menu + chain switcher stay intact.
 ///   4. Not authenticated. a single "Log in" pill that opens LoginModal
 ///      with both paths visible.
+/// In the header the sign-in entry is secondary: the page under it owns the
+/// one primary action. A page whose own action IS signing in passes 'primary'.
+const SIGN_IN_STYLE = {
+  nav: 'inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--color-line-strong)] px-4 py-2 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--color-surface-2)]',
+  primary: 'inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--lp-accent)] px-5 py-2 text-[14px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)]',
+} as const;
+
 export function ConnectWalletButton({
   respondToAccountRequest = false,
   alwaysShowBalance = false,
+  variant = 'nav',
 }: {
   respondToAccountRequest?: boolean;
   alwaysShowBalance?: boolean;
+  variant?: keyof typeof SIGN_IN_STYLE;
 } = {}) {
   const auth = useAuth();
   const t = useTranslations().auth.walletPill;
@@ -238,7 +247,7 @@ export function ConnectWalletButton({
                       onClick={() => setOpen(true)}
                       type="button"
                       suppressHydrationWarning
-                      className="inline-flex min-h-11 items-center gap-1.5 px-4 py-1.5 rounded-full mono text-[11px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                      className={SIGN_IN_STYLE[variant]}
                     >
                       <svg
                         width="11"
@@ -276,7 +285,7 @@ export function ConnectWalletButton({
                       onClick={() => setOpen(true)}
                       type="button"
                       suppressHydrationWarning
-                      className="inline-flex min-h-11 items-center gap-1.5 px-4 py-1.5 rounded-full mono text-[11px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
+                      className={SIGN_IN_STYLE[variant]}
                     >
                       {t.finishSignIn}
                     </button>

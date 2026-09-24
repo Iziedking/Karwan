@@ -14,12 +14,14 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 /// the live catalogue is GET /api/x402. Endpoint paths, prices and code
 /// samples stay literal; the surrounding prose localises.
 
+/// Prices mirror PRICES in backend/src/routes/x402.ts, which charges in USDC.
 const ENDPOINTS = [
-  { key: 'intro', path: '/api/x402', priceUsd: 0 },
-  { key: 'creditPassport', path: '/api/x402/credit-passport/:address', priceUsd: 0.01 },
-  { key: 'repaymentBehavior', path: '/api/x402/repayment-behavior/:address', priceUsd: 0.005 },
-  { key: 'concentration', path: '/api/x402/concentration/:address', priceUsd: 0.005 },
-  { key: 'documentAnchors', path: '/api/x402/document-anchors/:invoiceId', priceUsd: 0.005 },
+  { key: 'intro', path: '/api/x402', priceUsdc: '0' },
+  { key: 'creditPassport', path: '/api/x402/credit-passport/:address', priceUsdc: '0.01' },
+  { key: 'repaymentBehavior', path: '/api/x402/repayment-behavior/:address', priceUsdc: '0.005' },
+  { key: 'concentration', path: '/api/x402/concentration/:address', priceUsdc: '0.005' },
+  { key: 'documentAnchors', path: '/api/x402/document-anchors/:invoiceId', priceUsdc: '0.005' },
+  { key: 'skillDemand', path: '/api/x402/skill-demand/:keywords', priceUsdc: '0.005' },
 ] as const;
 
 const EXAMPLE_SNIPPET = `import { GatewayClient } from '@circle-fin/x402-batching/client';
@@ -33,9 +35,11 @@ const { data, transaction } = await gateway.pay(
 // data.score, data.tier, data.concentrationRatio ...
 // transaction = on-chain settlement hash`;
 
-function CodeBlock({ children }: { children: string }) {
+function CodeBlock({ children, label }: { children: string; label: string }) {
   return (
     <pre
+      tabIndex={0}
+      aria-label={label}
       className="mt-5 max-w-[720px] overflow-x-auto bg-[var(--lp-card)] border border-[var(--lp-border-light)] p-5 mono text-[12px] leading-relaxed text-[var(--lp-dark)]"
       style={{
         borderTopLeftRadius: 12,
@@ -57,9 +61,8 @@ export default function X402Page() {
         <main className="min-w-0 max-w-[860px]">
           <article>
             <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
-            <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold uppercase tracking-[-0.025em] leading-[0.95] text-[var(--lp-dark)]">
+            <h1 className="mt-4 font-sans text-[clamp(2rem,4vw,3.25rem)] font-extrabold tracking-[-0.025em] leading-[1.02] text-[var(--lp-dark)]">
               {t.title}
-              <span style={{ color: 'var(--lp-accent)' }}>.</span>
             </h1>
             <DocsP>{t.intro}</DocsP>
 
@@ -72,7 +75,7 @@ export default function X402Page() {
                   <span className="mono text-[12px] text-[var(--lp-text-muted)]">
                     {' '}
                     {ep.path} ·{' '}
-                    {ep.priceUsd === 0 ? t.endpoints.freeLabel : `$${ep.priceUsd}`}
+                    {ep.priceUsdc === '0' ? t.endpoints.freeLabel : `${ep.priceUsdc} USDC`}
                   </span>
                   <br />
                   {t.endpoints.items[ep.key].returns}
@@ -104,7 +107,7 @@ export default function X402Page() {
 
             <DocsH2>{t.example.heading}</DocsH2>
             <DocsP>{t.example.body}</DocsP>
-            <CodeBlock>{EXAMPLE_SNIPPET}</CodeBlock>
+            <CodeBlock label={t.example.heading}>{EXAMPLE_SNIPPET}</CodeBlock>
           </article>
         </main>
       </div>

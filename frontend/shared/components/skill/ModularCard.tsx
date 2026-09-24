@@ -1,5 +1,6 @@
 'use client';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/shared/utils/cn';
@@ -36,7 +37,7 @@ export function ModularCard({
   topRight?: ReactNode;
   className?: string;
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const body = (
     <motion.div
       whileHover={reduced ? undefined : { y: -1.5 }}

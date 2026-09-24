@@ -72,6 +72,9 @@ interface MessagesShape {
     };
     menuOpenAria: string;
     menuCloseAria: string;
+    railLabel: string;
+    railExpandAria: string;
+    railCollapseAria: string;
     preferencesAria: string;
     settingsAriaTitle: string;
     controlLabels: {
@@ -353,6 +356,20 @@ interface MessagesShape {
       /// sees. It sits with the capability list because it is what those
       /// capabilities add up to.
       publicPassport: string;
+    };
+    /// The wallet home at /account, where mainnet sign-in lands.
+    page: {
+      intro: string;
+      byChain: string;
+      byChainHelp: string;
+      liveBalances: string;
+      actionsAria: string;
+      manage: string;
+      add: string;
+      addHelp: string;
+      moveHelp: string;
+      send: string;
+      sendHelp: string;
     };
   };
   banners: {
@@ -1161,6 +1178,7 @@ interface MessagesShape {
     };
   };
   bridge: {
+    header: { titleMove: string; titleOut: string; bodyIn: string; bodyOut: string };
     signInGate: { tag: string; body: string };
     sectionTag: string;
     headlinePrefix: string;
@@ -2437,6 +2455,8 @@ interface MessagesShape {
     error: string;
     emptyAllTag: string;
     emptyAllBody: string;
+    emptyPostRequest: string;
+    emptyPublishOffer: string;
     emptyFilteredTag: string;
     emptyFilteredTemplate: string;
     emptyFilteredTitle: string;
@@ -4370,6 +4390,7 @@ interface MessagesShape {
         repaymentBehavior: { name: string; returns: string };
         concentration: { name: string; returns: string };
         documentAnchors: { name: string; returns: string };
+        skillDemand: { name: string; returns: string };
       };
     };
     howToPay: {
@@ -5322,6 +5343,9 @@ export const en: MessagesShape = {
     },
     menuOpenAria: 'Open menu',
     menuCloseAria: 'Close menu',
+    railLabel: "Workspace",
+    railExpandAria: "Expand navigation",
+    railCollapseAria: "Collapse navigation",
     preferencesAria: 'Preferences',
     settingsAriaTitle: 'Settings',
     controlLabels: {
@@ -5646,6 +5670,19 @@ export const en: MessagesShape = {
       reviewBusiness: 'Review business verification →',
       publicPassport: 'View public passport',
     },
+    page: {
+      intro: 'See where your USDC is held. Add, move or send it from here.',
+      byChain: 'By chain',
+      byChainHelp: 'Your available USDC across supported chains.',
+      liveBalances: 'Live balances',
+      actionsAria: 'USDC actions',
+      manage: 'Manage USDC',
+      add: 'Add USDC',
+      addHelp: 'Deposit from a supported wallet.',
+      moveHelp: 'Move USDC from your balance to a supported chain.',
+      send: 'Send USDC',
+      sendHelp: 'Withdraw to a wallet address you choose.',
+    },
   },
   banners: {
     migration: {
@@ -5782,7 +5819,7 @@ export const en: MessagesShape = {
     "security": "Seller security reserve",
     "securityHelp": "Requires seller stake before acceptance. It can be reduced if a dispute is decided against the seller.",
     "evidence": "Check delivery evidence",
-    "evidenceHelp": "Chainlink CRE checks the agreed source. GitHub is currently supported. A check does not guarantee work quality.",
+    "evidenceHelp": "Compares a GitHub delivery with the agreed criteria. Automated checks are not running yet, so the buyer reviews the delivery directly. A check does not guarantee work quality.",
     "identity": "World ID presence check",
     "identityHelp": "Requires a fresh Selfie check before the chosen party accepts or funds. It does not prove honesty or guarantee delivery.",
     "both": "Both parties",
@@ -6478,6 +6515,12 @@ export const en: MessagesShape = {
     },
   },
   bridge: {
+    header: {
+      titleMove: 'Move USDC',
+      titleOut: 'Withdraw USDC',
+      bodyIn: 'Choose how you want to add USDC to your Karwan account.',
+      bodyOut: 'Send USDC to a wallet on a supported chain. Choose the destination yourself.',
+    },
     signInGate: {
       tag: 'ADD MONEY / CASH OUT',
       body: 'Adding money and cashing out is tied to your wallet. Sign in to continue.',
@@ -7914,7 +7957,7 @@ export const en: MessagesShape = {
     heroHeadlinePart2Prefix: 'buyers, sellers, and ',
     heroAccent: 'trade',
     heroBody: 'Browse live requests, offers, and business profiles for goods and services. Search by what you want to buy, sell, source, or deliver.',
-    heroTitle: 'Find the next trade worth doing.',
+    heroTitle: 'Find the next trade.',
     heroDescription: 'Compare work requests, service offers, businesses, budgets, and trade history before you open a conversation.',
     marketCurrent: 'Market current',
     workRequests: 'Work requests',
@@ -7964,8 +8007,10 @@ export const en: MessagesShape = {
     liveCaption: 'LIVE FROM KARWAN',
     businessFilterNote: 'BUSINESS TRADES ONLY',
     error: "Couldn't load the marketplace.",
-    emptyAllTag: 'No listings yet',
-    emptyAllBody: 'Nothing is available right now. Try again soon or broaden your search.',
+    emptyAllTag: "Nothing open yet",
+    emptyAllBody: "Post what you need or publish what you offer. Open requests and offers appear here for others to find.",
+    emptyPostRequest: "Post a request",
+    emptyPublishOffer: "Publish an offer",
     emptyFilteredTag: 'No matches',
     emptyFilteredTemplate: 'No {side} right now.',
     emptyFilteredTitle: 'No results match these filters.',
@@ -10010,7 +10055,7 @@ export const en: MessagesShape = {
       alternatives: { label: 'It keeps looking.', body: 'If one negotiation fails, the agent can continue with another candidate when one is available.' },
     },
     approval: {
-      title: 'YOU ALWAYS APPROVE',
+      title: "You always approve",
       body: 'The agent negotiates, but it never funds an escrow on its own. When it reaches agreement, it surfaces a proposal. You review it and approve before any USDC moves.',
     },
     guardrails: {
@@ -10044,7 +10089,7 @@ export const en: MessagesShape = {
       caption: 'The deposit card: one address, a QR code, and the chains it accepts.',
     },
     callout: {
-      title: '[:CONFIRMATION TAKES TIME ON TESTNET:]',
+      title: "Confirmation takes time on testnet",
       body: 'Cross-chain transfers wait for source-chain finality and external confirmation. If a transfer remains pending, use the status and recheck controls in the product before starting another transfer.',
     },
     cashout: {
@@ -10094,6 +10139,10 @@ export const en: MessagesShape = {
           name: 'Document anchors',
           returns: 'On-chain anchored document hashes for an invoice: kind, label, who anchored it, transaction hash.',
         },
+        skillDemand: {
+          name: 'Skill demand',
+          returns: 'How many recent open requests ask for a skill (comma-separated keywords), with a demand score from 0 to 1. A seller agent can use it to price for current demand.',
+        },
       },
     },
     howToPay: {
@@ -10119,7 +10168,7 @@ export const en: MessagesShape = {
       body: 'The Circle x402 batching client handles the whole round-trip in one call:',
     },
     sameChain: {
-      title: 'SAME CHAIN RULE',
+      title: 'Same chain rule',
       body: 'Gateway settles a payment on the chain where the deposit sits. To pay these endpoints, deposit on Arc Testnet; they accept eip155:5042002 only.',
     },
   },
@@ -10245,7 +10294,7 @@ export const en: MessagesShape = {
       heading: 'Stake, reputation, and deal insurance',
       body: 'A vault deposit can contribute to reputation. When a deal requires collateral, the contract can reserve part of the seller\'s free stake against that deal. Settlement or dispute resolution determines what happens to the reservation.',
       cooldown: 'You can request a withdrawal from the vault. The live position shows the cooldown and when the funds become claimable. Reserved stake cannot be withdrawn until the related deal releases it.',
-      calloutTitle: 'YIELD IS A SEPARATE READOUT',
+      calloutTitle: "Yield is a separate readout",
       calloutBody: 'The Stake page separates protocol yield, your claimable yield, and the vault position. Yield depends on the enabled route, contract state, permissions, and current instrument value. It is not guaranteed by a reputation tier or verification badge.',
       figureAlt: 'The staking card showing deposit amount and cooldown state',
       figureCaption: 'Deposit, cooldown, and claim in one card.',
@@ -10389,10 +10438,10 @@ export const en: MessagesShape = {
     trust: {
       eyebrow: 'Trust and proof', title: 'Know what each check means',
       evidenceTitle: 'What happened?', identityTitle: 'Who is behind the action?',
-      body: 'Karwan keeps delivery evidence separate from participant identity. Arc records the money, Chainlink CRE checks what was delivered, and World ID plus AgentKit can check who is behind an automated action.',
-      evidence: "For deals that require it, Chainlink CRE checks the configured GitHub criteria and records a result on Arc. The deal distinguishes a match, a mismatch, an unavailable source and an outdated result. A passed check is not a guarantee of work quality.",
-      identity: "World ID Selfie Check adds an optional liveness check before accepting or funding a deal. Separately, AgentKit checks AgentBook registration for a human-backed agent’s shared research allowance. Neither signal guarantees a trustworthy trader.",
-      boundary: "These checks do not authorize payments. Review the delivery, fees and deadlines yourself. Arc escrow rules still govern releases, refunds and disputes.",
+      body: "Karwan keeps two questions apart: what was delivered, and who is behind an action. Neither answer moves money on its own.",
+      evidence: "A deal can name an automated delivery check against the agreed criteria. Automated checks are not running yet, so the buyer reviews each delivery directly. When they run, a passed check will still not guarantee quality.",
+      identity: "A trader can add an optional check that a real, unique person is behind the account before accepting or funding a deal. It shows a person is there, not that they will trade fairly.",
+      boundary: "These checks never move money. Review the delivery, fees and deadlines yourself. The escrow rules in your agreement govern releases, refunds and disputes.",
     },
     roadmap: {
       eyebrow: 'Roadmap',

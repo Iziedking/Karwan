@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type DepositRequestPublic } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { requestViewState } from '@/features/deposit/requestViewState';
 
 export function DepositRequestView({ token }: { token: string }) {
   const copy = useTranslations().deposit.request;
   const [copied, setCopied] = useState(false);
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ['deposit-request', token],
     queryFn: () => api.getDepositRequest(token),
     enabled: !!token,
@@ -16,6 +17,7 @@ export function DepositRequestView({ token }: { token: string }) {
   });
 
   const request = data?.request ?? null;
+  const view = requestViewState({ isPending, isError, hasRequest: request !== null });
   const copyAddress = useCallback(async () => {
     if (!request) return;
     try {
@@ -30,9 +32,9 @@ export function DepositRequestView({ token }: { token: string }) {
   return (
     <main className="product-surface min-h-[calc(100vh-7rem)]">
       <div className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
-        {isLoading ? <RequestSkeleton /> : null}
-        {isError || !request ? <RequestUnavailable copy={copy} /> : null}
-        {request ? (
+        {view === 'loading' ? <RequestSkeleton /> : null}
+        {view === 'unavailable' ? <RequestUnavailable copy={copy} /> : null}
+        {view === 'ready' && request ? (
           <RequestCard request={request} copy={copy} copied={copied} onCopyAddress={copyAddress} />
         ) : null}
       </div>

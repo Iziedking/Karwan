@@ -1,6 +1,7 @@
 'use client';
 
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
@@ -30,7 +31,7 @@ export function RotatingDataPanel({
   intervalMs = 5600,
 }: RotatingDataPanelProps) {
   const common = useTranslations().common;
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useHydratedReducedMotion();
   const [activeIndex, setActiveIndex] = useState(0);
   const [interactionPaused, setInteractionPaused] = useState(false);
   const [userPaused, setUserPaused] = useState(false);

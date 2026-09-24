@@ -1,5 +1,6 @@
 'use client';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { ease, dur, wordReveal } from '@/shared/motion/tokens';
@@ -41,7 +42,7 @@ export function DisplayHeadline({
   animate?: boolean;
   as?: 'h1' | 'h2' | 'h3';
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const base = cn(
     'font-sans font-bold uppercase text-balance',
     SIZE_CLASSES[size],
@@ -73,7 +74,7 @@ export function LimePunc({ children = '.' }: { children?: ReactNode }) {
 /// each word animates in with 80ms stagger and the dur.hero curve. Treat
 /// it as a drop-in replacement for the children of <DisplayHeadline animate>.
 export function SplitText({ text }: { text: string }) {
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const words = text.split(' ');
   if (reduced) return <span>{text}</span>;
   return (

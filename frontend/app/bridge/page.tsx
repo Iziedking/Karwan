@@ -102,7 +102,8 @@ function BridgePageFallback() {
 }
 
 function BridgePageInner() {
-  const c = useTranslations().bridgeChooser;
+  const messages = useTranslations();
+  const c = messages.bridgeChooser;
   const { agents } = useActivation();
   const { method } = useAuth();
   const params = useSearchParams();
@@ -150,14 +151,13 @@ function BridgePageInner() {
     setRail((current) => reconcileRail(current, rails));
   }, [rails]);
 
-  const pageTitle = direction === 'in' ? 'Add USDC' : outIntent === 'move' ? 'Move USDC' : 'Withdraw USDC';
+  const header = messages.bridge.header;
+  const pageTitle = direction === 'in'
+    ? messages.account.page.add
+    : outIntent === 'move' ? header.titleMove : header.titleOut;
   const pageBody = direction === 'in'
-    ? 'Choose how you want to add USDC to your Karwan account.'
-    : outIntent === 'move'
-      ? 'Move USDC from your Gateway balance to a supported chain.'
-      : outIntent === 'send'
-      ? 'Send USDC to a wallet on a supported chain. Choose the destination yourself.'
-      : 'Send USDC to a wallet on a supported chain. Choose the destination yourself.';
+    ? header.bodyIn
+    : outIntent === 'move' ? messages.account.page.moveHelp : header.bodyOut;
 
   return (
     <div className="product-surface">
@@ -169,7 +169,7 @@ function BridgePageInner() {
       <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
       <Band tone="light" compact>
         <header className="max-w-[620px] border-b border-[var(--lp-border-light)] pb-5">
-          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">USDC balance</p>
+          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{messages.accountHome.balanceLabel}</p>
           <h1 className="mt-1 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-none tracking-[-0.045em] text-[var(--lp-dark)]">{pageTitle}</h1>
           <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{pageBody}</p>
           <NetworkContext />

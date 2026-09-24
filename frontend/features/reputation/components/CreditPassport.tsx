@@ -6,6 +6,7 @@ import {
   TIER_LABEL,
   tierBg,
   tierBorder,
+  tierInk,
   type CompositeTier,
 } from '@/features/reputation/tierColors';
 import { shortAddress } from '@/shared/utils/format';
@@ -232,7 +233,6 @@ export function CreditPassport({ address }: { address: string }) {
             <button
               type="button"
               onClick={copyAddress}
-              title={cp.copyAddressTitle}
               className="inline-flex min-h-11 items-center gap-1.5 mono text-[12px] text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] transition-colors"
             >
               {shortAddress(address)}
@@ -266,7 +266,7 @@ export function CreditPassport({ address }: { address: string }) {
           <div className="flex items-end gap-4 flex-wrap">
             <span
               className="text-[72px] md:text-[88px] leading-[0.85] tabular-nums tracking-[-0.02em]"
-              style={{ fontFamily: 'var(--font-serif)', color: hue }}
+              style={{ fontFamily: 'var(--font-serif)', color: tierInk(tier) }}
             >
               {score}
             </span>
@@ -412,7 +412,6 @@ export function CreditPassport({ address }: { address: string }) {
                   borderBottomLeftRadius: 10,
                   borderBottomRightRadius: 3,
                 }}
-                title={skillDateLabel(credential, cp.skills)}
               >
                 <span aria-hidden style={{ color: 'var(--lp-accent)' }}>
                   <CheckGlyph />
@@ -469,7 +468,7 @@ function TierPill({ tier }: { tier: CompositeTier }) {
   return (
     <span
       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border mono text-[12px] font-semibold uppercase tracking-[0.14em]"
-      style={{ color: TIER_HUE[tier], background: tierBg(tier), borderColor: tierBorder(tier) }}
+      style={{ color: tierInk(tier), background: tierBg(tier), borderColor: tierBorder(tier) }}
     >
       <span aria-hidden className="w-2 h-2 rounded-full" style={{ background: TIER_HUE[tier] }} />
       {TIER_LABEL[tier]}
@@ -553,9 +552,9 @@ function Stat({
               color: 'var(--color-ink-faint)',
               background: 'var(--color-surface-2)',
             }}
-            title={syncingTitle}
           >
             {syncingCopy}
+            <span className="sr-only"> {syncingTitle}</span>
           </span>
         )}
       </div>

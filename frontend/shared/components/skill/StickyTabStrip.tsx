@@ -1,5 +1,6 @@
 'use client';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
@@ -80,7 +81,7 @@ export function StickyTabStrip({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const slide = { duration: reduced ? 0 : dur.base, ease: ease.out };
 
   const navRef = useRef<HTMLElement>(null);

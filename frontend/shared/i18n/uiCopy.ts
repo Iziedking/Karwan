@@ -4,12 +4,16 @@
  * labels. This deliberately does not remove ordinary square-bracket text.
  */
 export function stripMechanicalTags(value: string): string {
-  return value
+  const stripped = value
     .replace(/\[:([^\]]*?):\]/g, '$1')
     .replace(/\[:([^\]]+)\]/g, '$1')
-    .replace(/^\s*•\s+/, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+    .replace(/^\s*•\s+/, '');
+  // Most messages carry no tag. They pass through untouched: a sentence split
+  // around a link depends on its outer spaces, and bodies keep their breaks.
+  if (stripped === value) return value;
+  const lead = /^[ \t]/.test(value) && !/^\s*•/.test(value) ? ' ' : '';
+  const trail = /[ \t]$/.test(value) ? ' ' : '';
+  return lead + stripped.replace(/[ \t]{2,}/g, ' ').trim() + trail;
 }
 
 /**

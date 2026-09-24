@@ -10,7 +10,8 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import { motion, useScroll, useTransform } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease } from '@/shared/motion/tokens';
 
@@ -156,7 +157,7 @@ export function PanelContent({
   hoverLift?: boolean;
 }) {
   const active = usePanelActive();
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const isPanel = useIsPanelViewport();
   const [entered, setEntered] = useState(false);
   useEffect(() => {
@@ -229,7 +230,7 @@ export function PanelMedia({
   dim?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const isPanel = useIsPanelViewport();
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -261,7 +262,7 @@ export function PanelAdvance({
   onAdvance: () => void;
 }) {
   const active = usePanelActive();
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   return (
     <motion.button
       type="button"

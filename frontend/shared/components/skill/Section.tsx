@@ -1,5 +1,6 @@
 'use client';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { dur, ease, sectionReveal } from '@/shared/motion/tokens';
@@ -22,7 +23,7 @@ export function Section({
   id?: string;
   compact?: boolean;
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useHydratedReducedMotion();
   const toneTokens: CSSProperties = tone === 'dark'
     ? {
         '--lp-dark': 'var(--ink-1)',
@@ -38,6 +39,7 @@ export function Section({
         '--lp-outline': 'rgba(255, 255, 255, 0.28)',
         '--lp-outline-strong': 'rgba(255, 255, 255, 0.38)',
         '--lp-outline-hover': 'rgba(255, 255, 255, 0.55)',
+        '--lp-accent-on-light': 'var(--accent)',
       } as CSSProperties
     : {
         '--lp-dark': 'var(--ink-inv-0)',
@@ -53,6 +55,7 @@ export function Section({
         '--lp-outline': 'rgba(0, 0, 0, 0.15)',
         '--lp-outline-strong': 'rgba(0, 0, 0, 0.22)',
         '--lp-outline-hover': 'rgba(0, 0, 0, 0.40)',
+        '--lp-accent-on-light': 'var(--accent-on-paper)',
       } as CSSProperties;
   return (
     <motion.section

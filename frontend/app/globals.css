@@ -179,6 +179,12 @@ html[data-theme="dark"] {
   --lp-control-active-bg: var(--karwan-green);
   --lp-control-active-ink: var(--ink-inv-0);
   --lp-control-active-border: var(--karwan-green);
+  /* A chosen filter or segment is a state, not an action. It inverts ink and
+     paper, so the accent stays with the one primary action on the screen.
+     Both sides flip with the theme through --lp-dark and --lp-light. */
+  --lp-selected-bg: var(--lp-dark);
+  --lp-selected-ink: var(--lp-light);
+  --lp-selected-border: var(--lp-dark);
   --lp-accent: var(--accent);      /* compatibility alias */
   --lp-accent-hover: var(--accent-deep);
   /* Text roles need to follow the surface they sit on, not the page theme.
@@ -187,6 +193,10 @@ html[data-theme="dark"] {
      combinations fail WCAG contrast in the production Lighthouse audit. */
   --lp-text-on-dark-muted: #a6aaa2;
   --lp-accent-on-light: #42560F;
+  /* The same olive ink, fixed. A band that forces its own tone re-points
+     --lp-accent-on-light at this, so the page theme cannot leak lime onto
+     paper or olive onto a dark band. */
+  --accent-on-paper: #42560F;
   --lp-text-muted: var(--ink-inv-2);
   --lp-text-sub: #3F4851;
   --lp-border-subtle: var(--rule-dark);

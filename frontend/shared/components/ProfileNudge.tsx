@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -35,7 +36,7 @@ export function ProfileNudge() {
   const address = auth.address;
   const { profile, fetchState } = useUserProfile();
   const activation = useActivation();
-  const reduce = useReducedMotion();
+  const reduce = useHydratedReducedMotion();
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -120,7 +121,7 @@ export function ProfileNudge() {
         >
           <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-3 sm:flex-row sm:items-center">
             <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-              <span className="mono shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent)] sm:pt-0">
+              <span className="mono shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-accent-on-light)] sm:pt-0">
                 {copy.step}
               </span>
               <p className="min-w-0 text-[12.5px] leading-snug text-[var(--color-ink-dim)]">
