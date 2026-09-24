@@ -3,7 +3,6 @@ import {
   defineChain,
   fallback,
   http,
-  webSocket,
   type Abi,
   type Log,
   type Transport,
@@ -34,11 +33,11 @@ export const arcChain = defineChain({
   rpcUrls: {
     default: {
       http: RPC_URLS,
-      webSocket: WSS_URLS,
+      ...(WSS_URLS.length ? { webSocket: WSS_URLS } : {}),
     },
     public: {
       http: RPC_URLS,
-      webSocket: WSS_URLS,
+      ...(WSS_URLS.length ? { webSocket: WSS_URLS } : {}),
     },
   },
   blockExplorers: {
@@ -217,24 +216,5 @@ export function watchEventsViaGetLogs(input: {
     clearInterval(timer);
   };
 }
-
-/// One webSocket() transport per configured WSS endpoint, primary first. A
-/// dropped or erroring socket rotates to the next endpoint (shouldThrow: false
-/// forces rotation on any error, matching the http pool), so a QuickNode ws blip
-/// doesn't strand the watchers on a dead socket. Single endpoint stays a plain
-/// webSocket() with no fallback wrapper.
-const wsTransports = WSS_URLS.map((url) => webSocket(url, { retryCount: 3 }));
-
-export const wsClient = createPublicClient({
-  chain: arcChain,
-  transport:
-    wsTransports.length === 1
-      ? wsTransports[0]!
-      : fallback(wsTransports, {
-          rank: false,
-          retryCount: 0,
-          shouldThrow: () => false,
-        }),
-});
 
 export type PublicClient = typeof publicClient;
