@@ -103,6 +103,42 @@ services:
         max-size: "20m"
         max-file: "5"
 
+  # Arc mainnet API. Same image as karwan-api, but its own env file, database,
+  # data directory and session secret, so testnet and mainnet share nothing
+  # except the Postgres server process. Behind the 'mainnet' profile: it starts
+  # only when asked for, and the deploy workflow asks only when .env.mainnet
+  # exists on the server. Until Karwan's contracts are deployed on mainnet it
+  # runs wallet-only (balances, deposits, bridging).
+  karwan-api-mainnet:
+    image: ghcr.io/iziedking/karwan/karwan-api:latest
+    container_name: karwan-api-mainnet
+    profiles: ["mainnet"]
+    restart: unless-stopped
+    env_file:
+      - .env.mainnet
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      ARC_NETWORK: mainnet
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data-mainnet:/app/backend/data
+    expose:
+      - "8787"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
   # The team canon over MCP, for the team and whoever we give a key to.
   #
   # Built from the SEPARATE karwan-content-os repo and pulled here, because the

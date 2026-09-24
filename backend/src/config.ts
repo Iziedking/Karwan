@@ -62,6 +62,11 @@ const envSchema = z.object({
   /// Circle Wallets blockchain id override. Defaults to ARC-TESTNET on testnet
   /// and ARC on mainnet (chain/networks.ts).
   ARC_CIRCLE_BLOCKCHAIN: z.preprocess(blankToUndefined, z.string().optional()),
+  /// Who holds a signed-in email user's keys. Mainnet is always 'modular' (a
+  /// passkey on the user's device). Testnet defaults to 'dcw', the backend
+  /// Circle wallets it has always used; 'modular' there runs the mainnet flow
+  /// against Circle's sandbox, which is how it is tested locally.
+  USER_WALLETS: z.preprocess(blankToUndefined, z.enum(['dcw', 'modular']).optional()),
 
   ARC_TESTNET_RPC_URL: z.preprocess(
     blankToUndefined,

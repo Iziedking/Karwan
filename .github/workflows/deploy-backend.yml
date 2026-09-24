@@ -81,19 +81,34 @@ jobs:
             cd ~/karwan
             echo ":: ensure bind-mount file targets exist"
             touch host-crontab.txt
+            # The Arc mainnet API is rolled alongside testnet once the server
+            # has its own .env.mainnet. Until then it is left out entirely.
+            SERVICES="karwan-api"
+            PROFILE=""
+            if [ -f .env.mainnet ]; then
+              SERVICES="karwan-api karwan-api-mainnet"
+              PROFILE="--profile mainnet"
+              mkdir -p data-mainnet
+            fi
+            echo ":: services: $SERVICES"
             echo ":: bind-mount ownership for the non-root container"
             # The image runs as node (uid 1000); files the old root container
             # wrote under data/ would otherwise be unwritable. .env stays
             # owned by the shell user; group read is all the container needs.
             sudo chown -R 1000:1000 data || chown -R 1000:1000 data || true
+            if [ -d data-mainnet ]; then sudo chown -R 1000:1000 data-mainnet || chown -R 1000:1000 data-mainnet || true; fi
             chmod 644 host-crontab.txt
             sudo chgrp 1000 .env 2>/dev/null || chgrp 1000 .env 2>/dev/null || true
             chmod 640 .env || true
+            if [ -f .env.mainnet ]; then
+              sudo chgrp 1000 .env.mainnet 2>/dev/null || chgrp 1000 .env.mainnet 2>/dev/null || true
+              chmod 640 .env.mainnet || true
+            fi
             echo ":: ghcr login"
             echo "${{ secrets.VPS_GHCR_TOKEN }}" | docker login ghcr.io \
               -u ${{ secrets.VPS_GHCR_USER }} --password-stdin
             echo ":: docker compose pull"
-            docker compose pull karwan-api
+            docker compose $PROFILE pull $SERVICES
             echo ":: docker compose up"
             # Named explicitly, not a bare `up`. The compose file also carries
             # karwan-team-mcp, which is built and released from a different
@@ -101,7 +116,7 @@ jobs:
             # too, so a backend deploy would fail on an image the backend does
             # not own and did not change. Postgres comes up as a dependency of
             # karwan-api; caddy is left running rather than bounced.
-            docker compose up -d --remove-orphans karwan-api
+            docker compose $PROFILE up -d --remove-orphans $SERVICES
             echo ":: prune dangling images"
             docker image prune -f
             # Wait for the karwan-api container's built-in HEALTHCHECK to
@@ -109,16 +124,22 @@ jobs:
             # the container, so we don't need the port published on the
             # host. Times out after ~60s; failure leaves the new container
             # running but flags the workflow red so we know to investigate.
-            echo ":: waiting for healthy"
-            for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-              STATUS=$(docker inspect --format='{{.State.Health.Status}}' karwan-api 2>/dev/null || echo "missing")
-              if [ "$STATUS" = "healthy" ]; then
-                echo "  ok"
-                exit 0
+            for SVC in $SERVICES; do
+              echo ":: waiting for $SVC healthy"
+              HEALTHY=0
+              for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+                STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$SVC" 2>/dev/null || echo "missing")
+                if [ "$STATUS" = "healthy" ]; then
+                  echo "  ok"
+                  HEALTHY=1
+                  break
+                fi
+                echo "  attempt $i: $STATUS, sleeping 5s..."
+                sleep 5
+              done
+              if [ "$HEALTHY" != "1" ]; then
+                echo "  HEALTH CHECK FAILED: $SVC did not become healthy in 60s"
+                docker compose $PROFILE logs --tail=80 "$SVC"
+                exit 1
               fi
-              echo "  attempt $i: $STATUS, sleeping 5s..."
-              sleep 5
             done
-            echo "  HEALTH CHECK FAILED — container did not become healthy in 60s"
-            docker compose logs --tail=80 karwan-api
-            exit 1

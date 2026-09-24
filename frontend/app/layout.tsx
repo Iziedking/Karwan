@@ -47,7 +47,9 @@ const generalSans = localFont({
   adjustFontFallback: 'Arial',
 });
 
-const SITE_URL = 'https://karwan.site';
+// Each deployment names its own host (testnet.karwan.site, karwan.site) so
+// canonical and share links point back to the network the visitor is on.
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
 const TITLE = 'Karwan · secure local and cross-border trade';
 const DESCRIPTION =
   'Find a counterparty, bring any deal, and protect payment in USDC while Karwan keeps the trade record.';

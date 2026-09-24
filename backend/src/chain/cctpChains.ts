@@ -33,6 +33,7 @@ import {
   type BridgeBlockchain,
 } from '../circle/wallets.js';
 import { ARC } from './client.js';
+import { config } from '../config.js';
 import type { ArcNetworkName } from './networks.js';
 
 /// CCTP V2 uses one address on every testnet and another on every mainnet,
@@ -430,7 +431,7 @@ export const CIRCLE_WALLET_CHAIN_KEYS = CCTP_CHAIN_KEYS.filter(supportsCircleWal
 /// users sign with their own wallet (a modular wallet for email users) and
 /// backend Circle wallets sign only for agents, decided 2026-09-23. Every route
 /// that provisions a user wallet, or signs from one, checks this.
-export const USER_DCW_WALLETS = ARC.testnet;
+export const USER_DCW_WALLETS = ARC.testnet && config.USER_WALLETS !== 'modular';
 
 /// Reverse lookup by CCTP domain (used when relaying a mint to resolve the
 /// destination chain from a burn message's domain).

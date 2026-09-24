@@ -86,3 +86,31 @@ api.karwan.site {
         header_up X-Forwarded-Proto {http.request.scheme}
     }
 }
+
+# Arc mainnet API (karwan-api-mainnet). DNS-only in Cloudflare, grey cloud,
+# like api: proxied, Caddy cannot complete the HTTP-01 challenge. Until the
+# mainnet container runs, this answers 502 here and nowhere else.
+mainnet-api.karwan.site {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    @bad-method method TRACE CONNECT
+    respond @bad-method 405
+
+    reverse_proxy karwan-api-mainnet:8787 {
+        flush_interval -1
+        transport http {
+            response_header_timeout 15m
+            dial_timeout 5s
+            read_timeout 15m
+        }
+        header_up X-Real-IP {http.request.remote.host}
+        header_up X-Forwarded-Proto {http.request.scheme}
+    }
+}

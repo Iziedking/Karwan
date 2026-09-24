@@ -2,6 +2,8 @@ node_modules/
 .env
 .env.*
 !.env.example
+!.env.mainnet.example
+/data-mainnet/
 .env.vps
 
 # Agent / review working files. Screenshots and scratch notes never get
