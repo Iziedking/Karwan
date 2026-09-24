@@ -144,6 +144,7 @@ import {
 } from '../deals/fundingQuote.js';
 import { termsDigest } from '../deals/termsDigest.js';
 import { agreementDigest } from '../deals/agreementDigest.js';
+import { fundingAgreementBlock } from '../deals/fundingAgreement.js';
 import { releaseBlockReasonForDelivery } from '../deals/releaseBlock.js';
 import { publicFeedDeal } from '../deals/publicFeed.js';
 import { manualReviewActive, manualReviewEligibility } from '../deals/evidenceManualReview.js';
@@ -1967,16 +1968,11 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     if (!latestDeal) return c.json({ error: 'deal not found' }, 404);
     const latestBuyerHighSignalGate = highSignalGate(latestDeal, 'buyer');
     if (latestBuyerHighSignalGate) return c.json(latestBuyerHighSignalGate, 409);
-    const latestAgreementVersion = latestDeal.agreementVersion ?? 1;
-    const latestAgreementDigest = agreementDigest(latestDeal);
-    const latestApprovalMatches =
-      latestDeal.sellerApprovedAgreementVersion === latestAgreementVersion
-      && latestDeal.sellerApprovedAgreementDigest === latestAgreementDigest;
-    const latestLegacyApprovalMatches =
-      !latestDeal.sellerApprovedAgreementVersion
-      && !!latestDeal.sellerApprovedTermsDigest
-      && latestDeal.sellerApprovedTermsDigest === termsDigest(latestDeal.terms);
-    if (!latestDeal.sellerApprovedAt || (!latestApprovalMatches && !latestLegacyApprovalMatches)) {
+    const agreementBlock = fundingAgreementBlock(latestDeal, {
+      version: body.expectedAgreementVersion,
+      digest: body.expectedAgreementDigest,
+    });
+    if (agreementBlock?.code === 'STALE_AGREEMENT') {
       return c.json(
         {
           error: 'the seller approval is for an older agreement; review again before funding',
@@ -1985,20 +1981,13 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
         409,
       );
     }
-    // The seller's approval is bound to a digest, and so is the buyer's. A
-    // counter that keeps the amount but moves the split, the evidence check or
-    // the deadlines leaves the quote untouched, so the quote alone cannot prove
-    // the buyer saw these terms.
-    if (
-      body.expectedAgreementVersion !== latestAgreementVersion
-      || body.expectedAgreementDigest !== latestAgreementDigest
-    ) {
+    if (agreementBlock?.code === 'AGREEMENT_CHANGED') {
       return c.json(
         {
           error: 'the terms changed since you reviewed them; review again before funding',
           code: 'AGREEMENT_CHANGED',
-          agreementVersion: latestAgreementVersion,
-          agreementDigest: latestAgreementDigest,
+          agreementVersion: agreementBlock.agreementVersion,
+          agreementDigest: agreementBlock.agreementDigest,
         },
         409,
       );
