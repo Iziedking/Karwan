@@ -127,27 +127,8 @@ export function SettingsBand() {
 
   return (
     <section
-      className="border bg-[var(--color-surface)] p-4 sm:p-6 md:p-7 fade-up"
-      style={{
-        borderColor: 'var(--color-line)',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
-      }}
+      className="border-t border-[var(--color-line)]"
     >
-      <header className="mb-5">
-        <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-faint)]">
-          {t.settings.eyebrow}
-        </span>
-        <h2 className="mt-2 font-sans text-[22px] font-extrabold tracking-[-0.02em] text-[var(--color-ink)]">
-          {t.settings.title}
-        </h2>
-        <p className="mt-1.5 text-[13.5px] text-[var(--color-ink-dim)] max-w-[52ch]">
-          {t.settings.description}
-        </p>
-      </header>
-
       <Row label={t.settings.language} hint={t.settings.languageHint}>
         <LanguagePicker onChange={onLocaleChange} />
       </Row>
@@ -195,10 +176,10 @@ export function SettingsBand() {
         className="mt-6 pt-5 border-t"
         style={{ borderColor: 'var(--color-line)' }}
       >
-        <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--color-critical)] mb-2">
+        <p className="mb-2 text-[13px] font-semibold text-[var(--color-critical)]">
           {t.settings.dangerZone}
         </p>
-        <p className="text-[13px] text-[var(--color-ink-dim)] max-w-[52ch]">
+        <p className="max-w-[52ch] text-[14px] leading-6 text-[var(--color-ink-dim)]">
           {t.settings.accountDeleteHint}
         </p>
         <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap sm:items-center">
@@ -207,19 +188,18 @@ export function SettingsBand() {
             value={deleteConfirm}
             onChange={(e) => setDeleteConfirm(e.target.value)}
             placeholder={t.settings.accountDeleteConfirm}
-            className="min-h-11 w-full px-3 py-2 text-[12px] mono border bg-[var(--color-surface)] sm:w-auto"
-            style={{ borderColor: 'var(--color-line)', borderRadius: 3 }}
+            className="min-h-11 w-full rounded-[10px] border bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink)] sm:w-auto"
+            style={{ borderColor: 'var(--color-line)' }}
           />
           <button
             type="button"
             disabled={deleteConfirm !== 'DELETE' || deleting || forceConfirm !== null}
             onClick={() => runDelete(false)}
-            className="min-h-11 w-full px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40 disabled:cursor-not-allowed sm:w-auto"
+            className="min-h-11 w-full rounded-[10px] px-4 py-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             style={{
               background: 'var(--color-critical)',
               color: 'var(--color-surface)',
               border: '1px solid var(--color-critical)',
-              borderRadius: 3,
             }}
           >
             {t.settings.accountDelete}
@@ -227,21 +207,20 @@ export function SettingsBand() {
         </div>
         {forceConfirm && (
           <div
-            className="mt-3 p-3 border max-w-[52ch]"
-            style={{ borderColor: 'var(--color-critical)', borderRadius: 3 }}
+            className="mt-3 max-w-[52ch] rounded-[10px] border p-4"
+            style={{ borderColor: 'var(--color-critical)' }}
           >
-            <p className="text-[12px] leading-snug text-[var(--color-ink-dim)]">{forceConfirm}</p>
+            <p className="text-[14px] leading-6 text-[var(--color-ink-dim)]">{forceConfirm}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => runDelete(true)}
-                className="min-h-11 px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
+                className="min-h-11 rounded-[10px] px-4 py-2 text-[13px] font-semibold disabled:opacity-40"
                 style={{
                   background: 'var(--color-critical)',
                   color: 'var(--color-surface)',
                   border: '1px solid var(--color-critical)',
-                  borderRadius: 3,
                 }}
               >
                 {deleting ? t.settings.deletingButton : t.settings.confirmDeleteYes}
@@ -253,11 +232,10 @@ export function SettingsBand() {
                   setForceConfirm(null);
                   setDeleteConfirm('');
                 }}
-                className="min-h-11 px-4 py-2 text-[12px] mono uppercase tracking-[0.12em] font-semibold disabled:opacity-40"
+                className="min-h-11 rounded-[10px] px-4 py-2 text-[13px] font-semibold disabled:opacity-40"
                 style={{
                   border: '1px solid var(--color-line)',
                   color: 'var(--color-ink-dim)',
-                  borderRadius: 3,
                 }}
               >
                 {t.settings.confirmDeleteNo}
@@ -266,19 +244,19 @@ export function SettingsBand() {
           </div>
         )}
         {deleteError && (
-          <p className="mt-2 mono text-[11px] leading-snug max-w-[52ch] text-[var(--color-critical)]">
+          <p className="mt-2 max-w-[52ch] text-[13px] leading-5 text-[var(--color-critical)]">
             {deleteError}
           </p>
         )}
       </div>
 
       {saving && (
-        <p className="mt-4 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
+        <p className="mt-4 text-[13px] text-[var(--color-ink-dim)]">
           {t.common.loading}
         </p>
       )}
       {error && (
-        <p className="mt-4 mono text-[11px] text-[var(--color-critical)]">
+        <p className="mt-4 text-[13px] text-[var(--color-critical)]">
           {t.common.error}: {error}
         </p>
       )}
@@ -333,7 +311,7 @@ function PasskeyRow({
             className="inline-block w-1.5 h-1.5 rounded-full"
             style={{ background: 'var(--color-accent, #b25425)' }}
           />
-          <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-ink-dim)]">
+          <span className="text-[14px] text-[var(--color-ink-dim)]">
             {t.activeChip}
           </span>
         </div>
@@ -343,19 +321,18 @@ function PasskeyRow({
             type="button"
             onClick={addPasskey}
             disabled={busy || !supports}
-            className="inline-flex min-h-11 items-center gap-2 px-4 py-2 mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--color-ink)] text-[var(--color-surface)] disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
-            style={{ borderRadius: 3 }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 py-2 text-[13px] font-semibold text-[var(--color-surface)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? t.addingButton : t.addButton}
             <span aria-hidden>→</span>
           </button>
           {!supports && (
-            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--color-ink-faint)]">
+            <p className="text-[13px] text-[var(--color-ink-dim)]">
               {t.noBrowserSupport}
             </p>
           )}
           {error && (
-            <p className="mono text-[11px] text-[var(--color-critical)]">{error}</p>
+            <p className="text-[13px] text-[var(--color-critical)]">{error}</p>
           )}
         </div>
       )}
@@ -374,14 +351,14 @@ function Row({
 }) {
   return (
     <div
-      className="py-4 border-t first:border-t-0 first:pt-0"
+      className="grid items-center gap-3 border-t py-5 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(150px,0.7fr)_minmax(0,1fr)] sm:gap-6"
       style={{ borderColor: 'var(--color-line)' }}
     >
-      <p className="mb-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-ink)]">
+      <p className="inline-flex items-center gap-2 text-[15px] font-semibold text-[var(--color-ink)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </p>
-      {children}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
@@ -401,15 +378,16 @@ function ToggleGroup({
   onChange: (next: string) => void;
 }) {
   return (
-    <div className="flex w-full border sm:inline-flex sm:w-auto" style={{ borderColor: 'var(--color-line)', borderRadius: 3 }}>
+    <div className="flex w-full overflow-hidden rounded-[10px] border sm:inline-flex sm:w-auto" style={{ borderColor: 'var(--color-line)' }}>
       {options.map((opt, i) => {
         const active = opt.value === value;
         return (
           <button
             key={opt.value}
             type="button"
+            aria-pressed={active}
             onClick={() => onChange(opt.value)}
-            className="min-h-11 flex-1 px-3 py-2 text-[11px] mono uppercase tracking-[0.1em] font-semibold sm:flex-none sm:px-3.5 sm:text-[12px]"
+            className="min-h-11 flex-1 px-3 py-2 text-[14px] font-medium sm:flex-none sm:px-3.5"
             style={{
               background: active ? 'var(--color-ink)' : 'transparent',
               color: active ? 'var(--color-surface)' : 'var(--color-ink-dim)',
@@ -437,6 +415,7 @@ function Switch({
     <label className="inline-flex min-h-11 items-center gap-3 cursor-pointer">
       <span
         role="switch"
+        aria-label={label}
         aria-checked={checked}
         tabIndex={0}
         onClick={() => onChange(!checked)}
@@ -462,7 +441,7 @@ function Switch({
           />
         </span>
       </span>
-      <span className="text-[13px] text-[var(--color-ink-dim)]">{label}</span>
+      <span className="text-[14px] text-[var(--color-ink-dim)]">{label}</span>
     </label>
   );
 }

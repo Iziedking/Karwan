@@ -274,6 +274,7 @@ interface MessagesShape {
         dealSizePresets: string;
         deliveryPresets: string;
         milestonePresets: string;
+        milestonePresetsHint: string;
       };
       saving: string;
       submit: string;
@@ -809,6 +810,13 @@ interface MessagesShape {
       activityReceipts: string;
       reputation: string;
       accountLabel: string;
+      addPhoto: string;
+      changePhoto: string;
+      removePhoto: string;
+      savingPhoto: string;
+      photoPublic: string;
+      photoError: string;
+      photoTypeError: string;
       email: string;
       telegram: string;
       x: string;
@@ -5546,6 +5554,7 @@ export const en: MessagesShape = {
         dealSizePresets: 'Common deal sizes',
         deliveryPresets: 'Common delivery windows',
         milestonePresets: 'Payment stages',
+        milestonePresetsHint: 'Choose your preferred split for future deals. 50% · 50% means two releases of the total. The buyer funds the agreed amount first; each deal sets its release rules.',
       },
       saving: 'Saving…',
       submit: 'Save profile →',
@@ -6083,6 +6092,13 @@ export const en: MessagesShape = {
       activityReceipts: 'Activity and receipts',
       reputation: 'Reputation',
       accountLabel: 'Karwan account',
+      addPhoto: 'Add profile photo',
+      changePhoto: 'Change profile photo',
+      removePhoto: 'Remove photo',
+      savingPhoto: 'Saving photo',
+      photoPublic: 'Your photo is visible on your public profile.',
+      photoError: 'Could not save the photo. Try again.',
+      photoTypeError: 'Choose a JPG, PNG, or WebP image under 5 MB.',
       email: 'Email',
       telegram: 'Telegram',
       x: 'X',
@@ -8253,7 +8269,7 @@ export const en: MessagesShape = {
     title: 'Let your agents use your stake',
     body: 'Your agents hold no funds. Sign once so they can draw on the stake held by this wallet when a deal needs backing. Until you do, a deal that reserves stake cannot start.',
     foreignBody: 'One of your agents is already linked to a different wallet. That link cannot be moved. Contact support so it can be looked at.',
-    cta: 'Sign to link',
+    cta: 'Link agent',
     busyCta: 'Linking',
     doneCta: 'Linked',
     incomplete: 'The link did not finish. Try again in a moment.',

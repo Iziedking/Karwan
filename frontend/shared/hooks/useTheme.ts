@@ -138,16 +138,21 @@ export function adoptPreferenceIfUnset(pref: ThemePreference): void {
 /// markup for the wrong theme and hydrate into a mismatch.
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>('dark');
+  const [preference, setPreferenceState] = useState<ThemePreference>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setThemeState(readTheme());
-    applyTheme(readTheme());
+    const currentPreference = readPreference();
+    const currentTheme = resolveTheme(currentPreference);
+    setPreferenceState(currentPreference);
+    setThemeState(currentTheme);
+    applyTheme(currentTheme);
     setMounted(true);
 
     const onChange = (e: Event) => {
       const next = (e as CustomEvent<Theme>).detail;
       if (next === 'light' || next === 'dark') setThemeState(next);
+      setPreferenceState(readPreference());
     };
     window.addEventListener(CHANGE_EVENT, onChange);
 
@@ -186,5 +191,5 @@ export function useTheme() {
     };
   }, []);
 
-  return { theme, mounted };
+  return { theme, preference, mounted };
 }

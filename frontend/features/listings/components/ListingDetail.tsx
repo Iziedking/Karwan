@@ -305,10 +305,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             style={{
               background: 'var(--surface-1)',
               border: '1px solid rgba(255,255,255,0.08)',
-              borderTopLeftRadius: 22,
-              borderTopRightRadius: 22,
-              borderBottomLeftRadius: 22,
-              borderBottomRightRadius: 5,
+              borderRadius: 16,
             }}
           >
             {isCancelled ? (
@@ -366,7 +363,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                       borderTopLeftRadius: 10,
                       borderTopRightRadius: 10,
                       borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
+                      borderBottomRightRadius: 10,
                     }}
                   >
                     <p className="text-[13px] text-[var(--lp-workspace-ink)] leading-snug">
@@ -383,7 +380,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
                           borderTopLeftRadius: 8,
                           borderTopRightRadius: 8,
                           borderBottomLeftRadius: 8,
-                          borderBottomRightRadius: 2,
+                          borderBottomRightRadius: 8,
                         }}
                       >
                         {cancelling ? ld.state.confirmYesBusy : ld.state.confirmYes}

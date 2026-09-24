@@ -1,15 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
-  readPreference,
   setThemePreference,
   useTheme,
   type ThemePreference,
 } from '@/shared/hooks/useTheme';
 
-/// The theme control for All settings. Daylight follows the device's local
-/// clock, while White and Dark are explicit choices.
+/// The theme control for All settings and the shared navbar. Daylight follows
+/// the device's local clock, while Light and Dark are explicit choices.
 ///
 /// Shows all three states rather than cycling through them. A toggle asks the
 /// user to work out which state the icon represents; a picker shows them where
@@ -22,18 +20,10 @@ export function ThemePicker({
   showLabel?: boolean;
 }) {
   const t = useTranslations();
-  const { theme, mounted } = useTheme();
-  const [preference, setPreference] = useState<ThemePreference>('system');
-
-  // The stored preference is unreadable during SSR, so it is adopted on mount
-  // for the same reason `mounted` exists.
-  useEffect(() => {
-    setPreference(readPreference());
-  }, []);
+  const { theme, preference, mounted } = useTheme();
 
   function choose(next: ThemePreference) {
     setThemePreference(next);
-    setPreference(next);
     onChange?.(next);
   }
 
@@ -61,7 +51,7 @@ export function ThemePicker({
               type="button"
               onClick={() => choose(o.value)}
               aria-pressed={active}
-              className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 mono text-[10px] uppercase tracking-[0.12em] font-bold transition-[background-color,border-color,color]"
+              className="inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-sm font-medium transition-[background-color,border-color,color]"
               style={{
                 background: active ? 'rgba(175, 201, 91, 0.10)' : 'var(--lp-card)',
                 color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
@@ -71,7 +61,7 @@ export function ThemePicker({
                 borderTopLeftRadius: 10,
                 borderTopRightRadius: 10,
                 borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
+                borderBottomRightRadius: 10,
               }}
             >
               {o.icon}

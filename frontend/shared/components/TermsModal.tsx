@@ -14,6 +14,7 @@ import {
 } from '@/shared/utils/splashSignal';
 import { TermsContent } from './TermsContent';
 import { cn } from '@/shared/utils/cn';
+import styles from './TermsModal.module.css';
 
 /// First-signin Terms gate. Mounts once at the root; visible only when the
 /// user is signed in and hasn't accepted the current version. Scroll-to-accept
@@ -82,7 +83,7 @@ export function TermsModal() {
       style={{ background: 'rgba(10, 10, 11, 0.78)' }}
     >
       <div
-        className="karwan-sheet-enter relative flex max-h-[calc(100dvh-5rem)] min-h-0 w-full flex-col overflow-hidden rounded-t-[22px] bg-[var(--lp-card)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(560px,calc(100vw-2rem))] sm:rounded-[18px]"
+        className={cn(styles.panel, 'karwan-sheet-enter relative flex max-h-[calc(100dvh-5rem)] min-h-0 flex-col overflow-hidden rounded-t-[22px] bg-[var(--lp-card)] sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:rounded-[16px]')}
         style={{
           border: '1px solid var(--lp-border-light)',
           boxShadow: '0 24px 60px -20px rgba(0,0,0,0.5)',

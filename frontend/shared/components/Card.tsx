@@ -22,7 +22,7 @@ export function Card({
   interactive?: boolean;
 }) {
   const baseStyle =
-    'overflow-hidden rounded-t-[16px] rounded-bl-[16px] rounded-br-[4px] bg-[var(--color-surface)] border border-[var(--color-line)] shadow-[var(--shadow-card)] transition-[transform,border-color,box-shadow] duration-[var(--dur-fast)]';
+    'overflow-hidden rounded-[16px] bg-[var(--color-surface)] border border-[var(--color-line)] transition-[transform,border-color,box-shadow] duration-[var(--dur-fast)]';
   const interactiveStyle = interactive
     ? 'hover:-translate-y-0.5 hover:border-[var(--color-line-strong)] hover:shadow-[var(--shadow-card-hover)]'
     : '';

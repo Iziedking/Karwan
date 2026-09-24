@@ -357,10 +357,7 @@ function BookSummaryCard({
         background: 'var(--lp-workspace-raised)',
         color: 'var(--lp-workspace-ink)',
         border: '1px solid var(--lp-workspace-border)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 4,
+        borderRadius: 16,
       }}
     >
       <div className="px-6 pt-6 pb-5 border-b border-[var(--lp-workspace-border)] flex items-center justify-between">
@@ -427,7 +424,7 @@ function BookTile({
         borderTopLeftRadius: 14,
         borderTopRightRadius: 14,
         borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 3,
+        borderBottomRightRadius: 14,
       }}
     >
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">{label}</p>

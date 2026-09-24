@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { NetworkContext } from '@/shared/components/NetworkContext';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -21,6 +22,7 @@ function AccountPageInner() {
         </div>
         <p className="max-w-[46ch] text-[15px] leading-6 text-[var(--lp-text-sub)] lg:pb-1">See where your USDC is held. Add, move or send it from here.</p>
       </header>
+      <NetworkContext />
 
       <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]" aria-labelledby="account-holdings-heading">
         <div className="min-w-0">
@@ -38,7 +40,7 @@ function AccountPageInner() {
           <h2 className="text-[22px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">Manage USDC</h2>
           <nav className="mt-5 divide-y divide-[var(--lp-border-light)]">
             <AccountAction href="/bridge?direction=in" label="Add USDC" description="Deposit from a supported wallet." icon="add" primary />
-            <AccountAction href="/bridge?direction=out&intent=move" label="Withdraw from Gateway" description="Take pooled USDC out to a supported chain." icon="move" />
+            <AccountAction href="/bridge?direction=out&intent=move" label="Move" description="Move USDC from your balance to a supported chain." icon="move" />
             <AccountAction href="/bridge?direction=out&intent=send" label="Send USDC" description="Withdraw to a wallet address you choose." icon="send" />
           </nav>
         </aside>

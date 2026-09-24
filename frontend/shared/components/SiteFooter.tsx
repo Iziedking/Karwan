@@ -1,86 +1,77 @@
 ﻿'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
+import { Brand } from './Brand';
+import { NetworkContext } from './NetworkContext';
+import { settlementChain } from '@/core/arcNetwork';
+import { networkPresentation } from '@/shared/chain/networkPresentation';
+import styles from './SiteFooter.module.css';
 
 const SUPPORT_EMAIL = 'support@karwan.site';
 
-const LANDING_FOOTER_VARS = {
-  '--lp-light': 'var(--karwan-canvas)',
-  '--lp-card': 'var(--karwan-card)',
-  '--lp-dark': 'var(--ink-inv-0)',
-  '--lp-text-sub': 'rgba(10,10,11,0.66)',
-  '--lp-text-muted': 'rgba(10,10,11,0.52)',
-  '--lp-border-light': 'rgba(10,10,11,0.10)',
-  '--lp-control-active-bg': 'var(--lp-accent)',
-  '--lp-control-active-ink': 'var(--lp-band-dark)',
-} as CSSProperties;
-
-/// Phantom-grade footer: cream backdrop, big white inner card with asymmetric
-/// rounded corners, logo+tagline block left of a three-column link grid,
-/// operational status pill bottom-left, and a heroic editorial wordmark
-/// below the card so the page closes on a brand moment. Always rendered on
-/// the landing-page palette so the bottom of every route resolves to the
-/// same visual chord.
+// Shared brand and navigation follow the selected theme on every public route.
 export function SiteFooter() {
   const pathname = usePathname();
   const messages = useTranslations();
   const t = messages.footer;
+  const network = networkPresentation(settlementChain);
+  const landing = pathname === '/';
+  const footerRef = useRef<HTMLElement>(null);
+  const [reduced, setReduced] = useState(true);
+  const [inView, setInView] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const running = landing && !reduced && inView && visible;
+
+  useEffect(() => {
+    if (!landing) return;
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncMotion = () => setReduced(preference.matches);
+    const syncVisibility = () => setVisible(!document.hidden);
+    syncMotion();
+    syncVisibility();
+    preference.addEventListener('change', syncMotion);
+    document.addEventListener('visibilitychange', syncVisibility);
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    if (footerRef.current) observer.observe(footerRef.current);
+    return () => {
+      preference.removeEventListener('change', syncMotion);
+      document.removeEventListener('visibilitychange', syncVisibility);
+      observer.disconnect();
+    };
+  }, [landing]);
+
   if (pathname === '/market' || pathname === '/listings' || pathname.startsWith('/listings/')) {
     return null;
   }
   return (
     <footer
-      className="bg-[var(--lp-light)] text-[var(--lp-dark)]"
-      style={pathname === '/' ? LANDING_FOOTER_VARS : undefined}
+      ref={footerRef}
+      id="site-footer"
+      className={cn(styles.footer, landing && styles.landing)}
+      data-running={running}
     >
-      <div className="mx-auto max-w-[1360px] px-[clamp(20px,4vw,56px)] pt-[clamp(32px,4.5vw,60px)] pb-[clamp(24px,3vw,40px)]">
-        {/* Inner card. asymmetric corners like the landing CTA pills, chunky shadow. */}
+      {landing && <FooterWaves />}
+      <div className={styles.shell}>
         <div
-          className="bg-[var(--lp-card)] p-6 md:p-8 lg:p-10"
-          style={{
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 6,
-            boxShadow:
-              '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
-          }}
+          className={styles.panel}
         >
           <div className="grid gap-8 lg:grid-cols-[0.95fr_2fr] lg:gap-10">
             {/* LEFT. logo block, editorial */}
             <div className="space-y-5">
-              <Link href="/" className="group inline-flex min-h-11 items-center gap-3">
-                <span
-                  aria-hidden
-                  className="inline-flex items-center justify-center w-12 h-12 border border-white/10 text-[var(--lp-accent)] transition-transform duration-200 group-hover:-translate-y-0.5"
-                  style={{
-                    background: 'var(--lp-band-dark)',
-                    borderTopLeftRadius: 12,
-                    borderTopRightRadius: 12,
-                    borderBottomLeftRadius: 12,
-                    borderBottomRightRadius: 3,
-                  }}
-                >
-                  <KarwanMark />
-                </span>
-                <span className="font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em]">
-                  Karwan
-                </span>
-              </Link>
-              <p className="text-pretty text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
-                {t.tagline}
+              <Brand />
+              <p className="text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
+                {messages.landingEditorial.kicker}.
               </p>
+              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{messages.networkUi.poweredByArc}</p>
               <NewsletterSignup />
             </div>
 
-            {/* RIGHT. three columns of links. Kept on ONE row from mobile up so
-                the footer stays compact; the type steps down a touch on small
-                screens so three columns don't feel cramped. */}
-            <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 sm:gap-x-7 md:gap-y-8">
+            {/* Two columns on phones, three when the labels have room. */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-7 md:gap-y-8">
               <FooterCol title={t.columns.product}>
                 {/* Keep this menu useful and stable across the landing page and
                     the app. Contact stays last so the list reads like the
@@ -103,12 +94,8 @@ export function SiteFooter() {
                 <FooterLink href="https://developers.circle.com" external>
                   {t.networkLinks.circleDocs}
                 </FooterLink>
-                <FooterLink href="https://testnet.arcscan.app" external>
-                  {t.networkLinks.explorer}
-                </FooterLink>
-                <FooterLink href="https://faucet.circle.com" external>
-                  {t.networkLinks.faucet}
-                </FooterLink>
+                {network.explorerUrl && <FooterLink href={network.explorerUrl} external>{messages.networkUi.explorer}</FooterLink>}
+                <NetworkContext disclosure />
               </FooterCol>
               <FooterCol
                 title={t.columns.socials}
@@ -130,8 +117,8 @@ export function SiteFooter() {
             </div>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-[var(--lp-border-light)] flex flex-wrap items-center justify-end gap-4">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-[var(--lp-text-muted)]">
+          <div className={styles.bottom}>
+            <div className="ms-auto flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
               <span>{t.copyright.entity}</span>
               <span aria-hidden className="hidden sm:inline-block w-px h-3 bg-[var(--lp-border-light)]" />
               <span>{t.copyright.tagline}</span>
@@ -139,18 +126,38 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Heroic wordmark closes the page. */}
-        <div className="mt-9 lg:mt-11">
-          <p
-            aria-hidden
-            className="mt-4 select-none text-center font-sans font-extrabold uppercase tracking-[-0.035em] leading-[0.86] text-[clamp(3.25rem,11vw,9.5rem)]"
-            style={{ color: 'var(--lp-dark)' }}
-          >
-            KARWAN<span style={{ color: 'var(--lp-accent)' }}>.</span>
-          </p>
-        </div>
       </div>
     </footer>
+  );
+}
+
+/** The supplied film's edge waves, redrawn in brand colors; never product data. */
+function FooterWaves() {
+  return (
+    <div id="footer-waves" className={styles.waves} aria-hidden="true">
+      <svg className={styles.upperWaves} viewBox="0 0 1600 260" preserveAspectRatio="none" focusable="false">
+        <g className={styles.waveFar}>
+          <path fill="#cbd5da" d="M-140-80H1740V115C1500 240 1310 55 1130 78S770 174 590 42 165 160-140 110Z" />
+        </g>
+        <g className={styles.waveNear}>
+          <path fill="var(--karwan-green)" d="M850-80H1740V100C1500 190 1460 8 1280 32S1040 95 850-80Z" />
+          <path d="M870-30C1120 134 1130-45 1400 48S1680 120 1770 15" fill="none" stroke="#52621e" strokeWidth="1" />
+        </g>
+      </svg>
+      <svg className={styles.lowerWaves} viewBox="0 0 1600 310" preserveAspectRatio="none" focusable="false">
+        <g className={styles.waveFar}>
+          <path fill="#cbd5da" d="M-140 60C190-50 350 247 700 167S1250 33 1740 130V430H-140Z" />
+        </g>
+        <g className={styles.waveMiddle}>
+          <path fill="var(--karwan-green)" d="M-140 162C65-10 280 50 455 160S800 300 1110 175 1510 170 1740 190V430H-140Z" />
+          <path d="M-140 95C180 3 304 139 496 195S891 283 1190 152 1530 198 1770 143" fill="none" stroke="#647827" strokeWidth="1" />
+        </g>
+        <g className={styles.waveNear}>
+          <path fill="#151c17" d="M-140 254C140 136 235 199 452 263S846 271 1070 224 1462 173 1740 277V430H-140Z" />
+          <path d="M-140 294C170 182 277 224 482 283S850 290 1095 243 1500 235 1770 302" fill="none" stroke="#798671" strokeWidth="1" />
+        </g>
+      </svg>
+    </div>
   );
 }
 
@@ -189,7 +196,7 @@ function NewsletterSignup() {
 
   return (
     <form onSubmit={submit} className="space-y-2.5 pt-1">
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <p className="text-sm font-semibold text-[var(--lp-text-sub)]">
         {t.title}
       </p>
       <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[34ch]">
@@ -207,22 +214,23 @@ function NewsletterSignup() {
           placeholder={t.placeholder}
           maxLength={200}
           aria-label={t.title}
-          className="min-h-11 min-w-0 flex-1 px-3 py-2 text-[13.5px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-border-light)] placeholder:text-[var(--lp-text-muted)] focus:outline-none focus:border-[var(--lp-dark)] transition-colors"
-          style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
+          className="min-h-11 min-w-0 flex-1 px-3 py-2 text-[13.5px] bg-[var(--lp-light)] text-[var(--lp-dark)] border border-[var(--lp-field-border)] placeholder:text-[var(--lp-text-muted)] focus:border-[var(--lp-dark)] transition-colors"
+          style={{ borderRadius: 10 }}
         />
         <button
           type="submit"
           disabled={state === 'sending'}
-          className="min-h-11 w-full shrink-0 px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] hover:-translate-y-0.5 disabled:opacity-60 disabled:translate-y-0 transition-transform min-[380px]:w-auto"
-          style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8, borderTopRightRadius: 8, borderBottomRightRadius: 2 }}
+          className="min-h-11 w-full shrink-0 px-4 py-2 text-sm font-semibold bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)] disabled:opacity-60 min-[380px]:w-auto"
+          style={{ borderRadius: 10 }}
         >
           {state === 'sending' ? t.sending : t.cta}
         </button>
       </div>
       {message ? (
         <p
-          className="mono text-[10px] uppercase tracking-[0.12em]"
-          style={{ color: state === 'error' ? 'var(--lp-critical)' : 'var(--lp-accent)' }}
+          role="status"
+          className="text-sm"
+          style={{ color: state === 'error' ? 'var(--lp-critical)' : 'var(--lp-dark)' }}
         >
           {message}
         </p>
@@ -230,43 +238,6 @@ function NewsletterSignup() {
     </form>
   );
 }
-
-function BrandSwatches() {
-  const t = useTranslations().footer;
-  /// Four chips with the four brand constants. The caption mirrors the
-  /// internal brand-kit doc (docs/assets/brand-kit.md) without exposing it.
-  const swatches: ReadonlyArray<{ label: string; hex: string; border?: boolean }> = [
-    { label: 'lime', hex: '#AFC95B' },
-    { label: 'ink', hex: '#0A0A0B' },
-    { label: 'canvas', hex: '#F4F4F1', border: true },
-    { label: 'card', hex: '#FFFFFF', border: true },
-  ];
-  return (
-    <div className="mt-8 lg:mt-10 flex flex-wrap items-center gap-x-5 gap-y-3">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        {t.brand.label}
-      </span>
-      <div className="flex items-center gap-2">
-        {swatches.map((s) => (
-          <span
-            key={s.label}
-            aria-hidden
-            className="inline-block w-4 h-4"
-            style={{
-              background: s.hex,
-              border: s.border ? '1px solid rgba(0,0,0,0.08)' : 'none',
-              borderTopLeftRadius: 4,
-              borderTopRightRadius: 4,
-              borderBottomLeftRadius: 4,
-              borderBottomRightRadius: 1,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 
 function FooterCol({
   title,
@@ -281,7 +252,7 @@ function FooterCol({
 }) {
   return (
     <div className={className}>
-      <p className="mono text-[9px] sm:text-[10px] uppercase tracking-[0.16em] sm:tracking-[0.18em] text-[var(--lp-text-muted)] mb-3 sm:mb-4">
+      <p className="text-[14px] font-semibold text-[var(--lp-text-sub)] mb-3 sm:mb-4">
         {title}
       </p>
       <div className={cn('flex flex-col gap-2 sm:gap-2.5', linksClassName)}>{children}</div>
@@ -299,16 +270,12 @@ function FooterLink({
   external?: boolean;
 }) {
   const className = cn(
-    'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
+    'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[14px] sm:text-[15px] font-medium tracking-[-0.005em]',
     'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
   );
   const inner = (
     <>
-      <span
-        aria-hidden
-        className="inline-block w-0 h-px bg-[var(--lp-accent)] opacity-0 group-hover:opacity-100 group-hover:w-3 transition-[width,opacity] duration-200"
-      />
-      <span className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+      <span className="group-hover:underline underline-offset-4">
         {children}
       </span>
       {external && (
@@ -351,27 +318,19 @@ function FooterLink({
 function FooterContact({ label }: { label: string }) {
   const [revealed, setRevealed] = useState(false);
   const className = cn(
-    'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em]',
+    'group inline-flex min-h-11 min-w-11 items-center gap-1.5 w-fit py-2 text-[14px] sm:text-[15px] font-medium tracking-[-0.005em]',
     'text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors',
   );
   if (revealed) {
     return (
       <a href={`mailto:${SUPPORT_EMAIL}`} className={className}>
-        <span
-          aria-hidden
-          className="inline-block w-3 h-px bg-[var(--lp-accent)]"
-        />
         <span className="inline-block">{SUPPORT_EMAIL}</span>
       </a>
     );
   }
   return (
     <button type="button" onClick={() => setRevealed(true)} className={className}>
-      <span
-        aria-hidden
-        className="inline-block w-0 h-px bg-[var(--lp-accent)] opacity-0 group-hover:opacity-100 group-hover:w-3 transition-[width,opacity] duration-200"
-      />
-      <span className="inline-block transition-transform duration-200 group-hover:translate-x-0.5">
+      <span className="group-hover:underline underline-offset-4">
         {label}
       </span>
     </button>
@@ -393,7 +352,7 @@ function FooterSocialLink({
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      className="group inline-flex min-h-11 min-w-11 items-center gap-2 py-2 sm:gap-2.5 w-fit text-[12px] sm:text-[13.5px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
+      className="group inline-flex min-h-11 min-w-11 items-center gap-2 py-2 sm:gap-2.5 w-fit text-[14px] sm:text-[15px] font-medium tracking-[-0.005em] text-[var(--lp-dark)]/85 hover:text-[var(--lp-dark)] transition-colors"
     >
       <span
         aria-hidden
@@ -409,20 +368,6 @@ function FooterSocialLink({
 }
 
 /* ---- glyphs ---- */
-
-function KarwanMark() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 17 L10 7 L12 13 L14 7 L17 17"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function XGlyph() {
   return (

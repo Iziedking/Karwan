@@ -1,0 +1,10 @@
+.panel {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .panel {
+    width: min(440px, calc(100vw - 48px));
+    max-width: 440px;
+  }
+}

@@ -11,15 +11,16 @@ interface TickerItem {
 /// The live stats ticker. Numbers come from the real on-chain deal feed, so the
 /// marquee only ever shows true data.
 export function StatsTicker() {
-  const t = useTranslations().statsTicker;
+  const messages = useTranslations();
+  const t = messages.statsTicker;
   // Static brand facts, shown until the live numbers load (and never fabricated).
   const baseItems = useMemo<TickerItem[]>(
     () => [
-      { value: 'ARC TESTNET', label: t.staticItems.arcTestnetLabel },
+      { value: 'ARC', label: messages.networkUi.poweredByArc },
       { value: 'CIRCLE', label: t.staticItems.circleLabel },
       { value: 'ERC-8004', label: t.staticItems.erc8004Label },
     ],
-    [t],
+    [t, messages.networkUi.poweredByArc],
   );
   const [items, setItems] = useState<TickerItem[]>(baseItems);
 

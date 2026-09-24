@@ -1,0 +1,42 @@
+.footer {
+  position: relative;
+  isolation: isolate;
+  background: var(--lp-light);
+  background-image: url('/brand/karwan-matte-grain.svg');
+  color: var(--lp-dark);
+  border-top: 1px solid var(--lp-border-light);
+}
+
+.landing { min-height: 100svh; display: grid; align-items: center; }
+.shell { position: relative; width: min(100% - 64px, 1360px); margin-inline: auto; padding-block: 64px; }
+.landing .shell { padding-block: clamp(64px, 8vw, 112px) clamp(130px, 13vw, 208px); }
+.panel { background: var(--lp-card); border: 1px solid var(--lp-border-light); border-radius: 24px; padding: clamp(24px, 3.5vw, 56px); }
+.panel :is(a, button, input, summary):focus-visible { outline: 2px solid var(--lp-accent-on-light); outline-offset: 4px; }
+.panel :is(a, button) { overflow-wrap: anywhere; }
+.bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--lp-border-light); }
+
+/* Keep the animated frame outside the opaque content surface. No video decode,
+   filters or layout animation; the unhydrated/reduced-motion state is complete. */
+.waves { position: absolute; z-index: -1; inset: 0; overflow: clip; pointer-events: none; }
+.upperWaves, .lowerWaves { position: absolute; width: 112%; max-width: none; inset-inline-start: -6%; }
+.upperWaves { top: 0; height: clamp(100px, 13vw, 208px); }
+.lowerWaves { bottom: 0; height: clamp(150px, 19vw, 304px); }
+.waveFar, .waveMiddle, .waveNear { transform-origin: center; animation: tide 24s ease-in-out infinite alternate; animation-play-state: paused; }
+.waveMiddle { animation-duration: 19s; animation-delay: -7s; }
+.waveNear { animation-duration: 28s; animation-delay: -14s; }
+.footer[data-running='true'] :is(.waveFar, .waveMiddle, .waveNear) { animation-play-state: running; }
+@keyframes tide { from { transform: translate(-2%, 8px) scaleY(.94); } to { transform: translate(2%, -12px) scaleY(1.06); } }
+
+@media (max-width: 639px) {
+  .shell { width: calc(100% - 32px); padding-block: 40px; }
+  .landing .shell { padding-block: 64px 132px; }
+  .panel { padding: 24px 20px; border-radius: 18px; }
+  .bottom { gap: 20px; margin-top: 28px; }
+  .upperWaves, .lowerWaves { width: 220%; inset-inline-start: -60%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .waveFar, .waveMiddle, .waveNear { animation: none; }
+}
+@media (max-width: 379px) {
+  .panel { padding-inline: 16px; }
+}

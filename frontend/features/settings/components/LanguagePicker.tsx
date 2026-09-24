@@ -44,7 +44,7 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
               borderTopLeftRadius: 10,
               borderTopRightRadius: 10,
               borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 3,
+              borderBottomRightRadius: 10,
             }}
           >
             {active && (
@@ -54,12 +54,12 @@ export function LanguagePicker({ onChange, layout = 'grid' }: Props) {
                 style={{ background: 'var(--lp-accent)' }}
               />
             )}
-            <p className="font-sans text-[14px] font-semibold tracking-tight leading-tight">
+            <p className="font-sans text-[15px] font-semibold tracking-tight leading-tight">
               {LOCALE_NAMES[l]}
             </p>
             <p
-              className="text-[10px] mono mt-0.5 uppercase tracking-[0.12em]"
-              style={{ color: 'var(--lp-text-muted)' }}
+              className="mt-0.5 text-[12px]"
+              style={{ color: 'var(--lp-text-sub)' }}
             >
               {lp.languageLabels[l]}
             </p>

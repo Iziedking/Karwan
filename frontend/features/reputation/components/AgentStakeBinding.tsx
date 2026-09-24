@@ -113,47 +113,25 @@ export function AgentStakeBinding() {
   if (unbound.length === 0 && foreign.length === 0) return null;
 
   return (
-    <div
-      className="mt-5 p-5"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        {t.tag}
-      </span>
-      <h3 className="mt-2 font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
-        {t.title}
-      </h3>
-      <p className="mt-2 max-w-[52ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-        {foreign.length > 0 ? t.foreignBody : t.body}
-      </p>
-
+    <div className="flex flex-wrap items-center gap-3">
       {foreign.length === 0 && (
         <button
           type="button"
           onClick={() => void bind()}
           disabled={busy || done}
           aria-busy={busy}
-          className="mt-4 inline-flex min-h-11 items-center px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-50"
-          style={{
-            background: 'var(--lp-accent)',
-            color: 'var(--accent-ink)',
-            border: 'none',
-            borderRadius: 12,
-          }}
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-border-light)] px-4 py-2.5 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:opacity-50"
         >
           {done ? t.doneCta : busy ? t.busyCta : t.cta}
         </button>
       )}
-
+      {foreign.length > 0 && (
+        <p role="status" className="text-[13px] leading-snug text-[var(--color-critical)]">
+          {t.foreignBody}
+        </p>
+      )}
       {error && (
-        <p className="mt-3 text-[12px] leading-snug text-[#b03d3a]">{error}</p>
+        <p role="alert" className="text-[13px] leading-snug text-[var(--color-critical)]">{error}</p>
       )}
     </div>
   );

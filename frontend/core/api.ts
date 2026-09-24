@@ -277,6 +277,7 @@ export interface UserProfile {
   xHandle?: string;
   xUserId?: string;
   xProfileImageUrl?: string;
+  profileImageDataUrl?: string;
   /// Verified contact email. Email-login users get it auto-filled at sign-in;
   /// wallet (web3) users add and verify it from the profile email band. Drives
   /// deal alerts + Karwan product updates. Business accounts label it as the
@@ -2758,6 +2759,11 @@ export const api = {
     json<{ profile: UserProfile }>('/api/profile', {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+  setProfileAvatar: (address: string, imageDataUrl: string | null) =>
+    json<{ profile: UserProfile }>('/api/profile/avatar', {
+      method: 'POST',
+      body: JSON.stringify({ address, imageDataUrl }),
     }),
   setXHandle: (address: string, handle: string | null) =>
     json<{ profile: UserProfile }>('/api/profile/x-handle', {

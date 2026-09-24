@@ -294,6 +294,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "DELETE", path: "/api/profile" },
   { method: "GET", path: "/api/profile" },
   { method: "POST", path: "/api/profile" },
+  { method: "POST", path: "/api/profile/avatar" },
   { method: "POST", path: "/api/profile/email/remove" },
   { method: "POST", path: "/api/profile/email/request" },
   { method: "POST", path: "/api/profile/email/verify" },

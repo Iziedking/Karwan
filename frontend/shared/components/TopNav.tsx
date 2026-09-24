@@ -496,12 +496,12 @@ function ProfileLink({
   const messages = useTranslations();
   const t = messages.nav;
   const [imageFailed, setImageFailed] = useState(false);
-  const xImage = !imageFailed ? profile?.xProfileImageUrl?.trim() : undefined;
+  const xImage = !imageFailed ? (profile?.profileImageDataUrl || profile?.xProfileImageUrl)?.trim() : undefined;
   const initials = getProfileInitials(identityName ?? '', identityAddress ?? null);
 
   useEffect(() => {
     setImageFailed(false);
-  }, [profile?.xProfileImageUrl]);
+  }, [profile?.profileImageDataUrl, profile?.xProfileImageUrl]);
 
   return (
     <Link

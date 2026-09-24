@@ -13,7 +13,6 @@ import {
 import { Hint } from '@/shared/components/Hint';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
-import { AgentStakeBinding } from '@/features/reputation/components/AgentStakeBinding';
 import { PageTour } from '@/shared/guide/PageTour';
 import { STAKE_TOUR_ID, STAKE_STEPS } from '@/shared/guide/tours';
 import { ReservesWidget } from '@/features/reputation/components/ReservesWidget';
@@ -187,16 +186,14 @@ function StakePageInner() {
       </Band>
 
       <Band tone="light" compact id="vault" className="scroll-mt-24" dataGuide="stake-vault">
-        <div className="grid items-start gap-8 [grid-template-areas:'stake-heading'_'stake-body'_'yield-heading'_'yield-body'] lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,0.92fr)] lg:gap-x-10 lg:gap-y-8 lg:[grid-template-areas:'stake-heading_yield-heading'_'stake-body_yield-body']">
+        <div className="grid items-stretch gap-8 [grid-template-areas:'stake-heading'_'stake-body'_'yield-heading'_'yield-body'] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-x-8 lg:gap-y-8 lg:[grid-template-areas:'stake-heading_yield-heading'_'stake-body_yield-body']">
           <header className="min-w-0 [grid-area:stake-heading]">
             <SectionTag>{sp.vault.tag}</SectionTag>
             <HeroHeadline size="md">{sp.vault.heading}<Punc>.</Punc></HeroHeadline>
           </header>
 
-          <div className="min-w-0 [grid-area:stake-body]">
-            <AgentStakeBinding />
+          <div className="min-w-0 h-full [grid-area:stake-body]">
             <StakeCard />
-            <LegacyStakeNudge />
           </div>
 
           <header className="min-w-0 [grid-area:yield-heading]">
@@ -212,12 +209,13 @@ function StakePageInner() {
           </header>
 
           <aside
-            className="min-w-0 rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 [grid-area:yield-body] sm:p-6"
+            className="min-w-0 h-full rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 [grid-area:yield-body] sm:p-6"
             data-guide="stake-your-yield"
           >
             <YieldClaimPanel />
           </aside>
         </div>
+        <LegacyStakeNudge />
       </Band>
 
       <Band tone="light" compact dataGuide="stake-network-yield">

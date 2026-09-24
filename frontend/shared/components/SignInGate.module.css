@@ -1,0 +1,121 @@
+.hero {
+  width: 100vw;
+  margin-inline-start: calc(50% - 50vw);
+  min-height: calc(100svh - var(--lp-nav-h, 72px));
+  display: grid;
+  align-items: center;
+  background-color: var(--karwan-canvas);
+  background-image: url('/brand/karwan-matte-grain.svg');
+  background-repeat: repeat;
+  color: var(--lp-dark);
+}
+
+.inner {
+  width: min(100%, 650px);
+  margin-inline: auto;
+  padding: clamp(52px, 8vw, 104px) 24px;
+}
+
+.eyebrow {
+  margin: 0 0 20px;
+  color: var(--lp-accent-on-light);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.headline {
+  margin: 0;
+  font-size: clamp(44px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -.05em;
+  text-wrap: balance;
+}
+
+.lede {
+  margin: 22px 0 0;
+  color: var(--lp-text-sub);
+  font-size: clamp(18px, 1.45vw, 20px);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.entryAction {
+  width: 100%;
+  min-height: 56px;
+  margin-block-start: 36px;
+  padding: 14px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid var(--karwan-green);
+  border-radius: 10px;
+  background: var(--karwan-green);
+  color: var(--accent-ink);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: start;
+  transition: filter var(--dur-fast) ease;
+}
+
+.entryAction:hover {
+  filter: brightness(.95);
+}
+
+.entryAction:focus-visible,
+.browse a:focus-visible {
+  outline: 3px solid var(--lp-dark);
+  outline-offset: 3px;
+}
+
+.notice {
+  margin: 14px 0 0;
+  color: var(--lp-text-sub);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.browse {
+  margin-block-start: 38px;
+  padding-block-start: 18px;
+  border-block-start: 1px solid var(--lp-outline-strong);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  color: var(--lp-text-sub);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.browse a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--lp-dark);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+:global(html[data-theme='dark']) .hero {
+  background-color: var(--lp-light);
+  background-image: url('/brand/karwan-matte-grain.svg');
+}
+
+@media (max-width: 520px) {
+  .inner {
+    padding: 48px 20px 64px;
+  }
+
+  .headline {
+    font-size: clamp(42px, 11vw, 54px);
+  }
+
+  .lede {
+    font-size: 17px;
+  }
+}

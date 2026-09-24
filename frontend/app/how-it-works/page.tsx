@@ -4,11 +4,9 @@ import Link from 'next/link';
 import { Card } from '@/shared/components/Card';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-const CHAIN_ID = 5042002;
-const EXPLORER_HOST = 'testnet.arcscan.app';
-
 export default function HowItWorksPage() {
-  const t = useTranslations().howItWorksPage;
+  const messages = useTranslations();
+  const t = messages.howItWorksPage;
   return (
     <div className="space-y-12 sm:space-y-20">
       {/* HEADER */}
@@ -144,8 +142,8 @@ export default function HowItWorksPage() {
             <span aria-hidden>→</span>
           </Link>
         </div>
-        <p className="text-[11px] text-[var(--color-ink-faint)] mono pt-2">
-          {t.cta.chainPrefix} {CHAIN_ID} · {EXPLORER_HOST}
+        <p className="text-[13px] text-[var(--color-ink-faint)] pt-2">
+          {messages.networkUi.builtOnArc}
         </p>
       </section>
     </div>

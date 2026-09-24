@@ -4,14 +4,11 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useLiveEventsState } from '@/shared/hooks/useLiveEvents';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { EventList } from '@/features/jobs/components/EventList';
-import { ActivityStats } from './ActivityStats';
 import { ActivityFilters } from './ActivityFilters';
 import {
   applyFilters,
-  countByGroup,
   type ActorFilter,
   type ActivityFilters as Filters,
-  type EventGroup,
 } from '../types';
 import { isOwnEvent } from '../types';
 import { publicizeEvents } from '../publicFeed';
@@ -58,7 +55,6 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // All hooks must run unconditionally on every render. they're hoisted above
   // the not-signed-in early return so the hook order stays stable when the
   // user signs in.
-  const [groups, setGroups] = useState<Set<EventGroup>>(new Set());
   const [actors, setActors] = useState<Set<ActorFilter>>(new Set());
   const [jobIdSearch, setJobIdSearch] = useState('');
   const [onlyMine, setOnlyMine] = useState(false);
@@ -71,11 +67,10 @@ export function ActivityView({ explorer }: { explorer: string }) {
   const source = onlyMine ? myEvents : events;
   const sourceStatus = onlyMine ? myFeed.status : publicFeed.status;
   const filters: Filters = useMemo(
-    () => ({ groups, actors, jobIdSearch }),
-    [groups, actors, jobIdSearch],
+    () => ({ groups: new Set(), actors, jobIdSearch }),
+    [actors, jobIdSearch],
   );
   const filtered = useMemo(() => applyFilters(source, filters), [source, filters]);
-  const counts = useMemo(() => countByGroup(events), [events]);
 
   // Paginate so the stream doesn't grow into an endless scroll as new events
   // land. Newest first, so page 1 is always the latest activity.
@@ -84,7 +79,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
   // Filtering changes the result set, so jump back to the first page.
   useEffect(() => {
     setPage(1);
-  }, [groups, actors, jobIdSearch, onlyMine]);
+  }, [actors, jobIdSearch, onlyMine]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -115,16 +110,8 @@ export function ActivityView({ explorer }: { explorer: string }) {
     );
   }
 
-  const hasAnyFilter = groups.size > 0 || actors.size > 0 || jobIdSearch.trim().length > 0;
+  const hasAnyFilter = actors.size > 0 || jobIdSearch.trim().length > 0;
 
-  function toggleGroup(g: EventGroup) {
-    setGroups((cur) => {
-      const next = new Set(cur);
-      if (next.has(g)) next.delete(g);
-      else next.add(g);
-      return next;
-    });
-  }
   function toggleActor(a: ActorFilter) {
     setActors((cur) => {
       const next = new Set(cur);
@@ -134,7 +121,6 @@ export function ActivityView({ explorer }: { explorer: string }) {
     });
   }
   function clearAll() {
-    setGroups(new Set());
     setActors(new Set());
     setJobIdSearch('');
   }
@@ -249,12 +235,6 @@ export function ActivityView({ explorer }: { explorer: string }) {
         )}
       </section>
 
-      <ActivityStats
-        counts={counts}
-        activeGroups={groups}
-        onToggleGroup={toggleGroup}
-        windowSize={events.length}
-      />
     </div>
   );
 }
@@ -329,7 +309,7 @@ function ActivityPanelTab({
       aria-selected={active}
       aria-controls={controls}
       role="tab"
-      className={`min-h-11 flex-1 px-3 py-2 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:flex-none sm:min-w-[190px] ${
+      className={`min-h-11 flex-1 rounded-[10px] px-3 py-2 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:flex-none sm:min-w-[190px] ${
         active
           ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
           : 'text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-ink)]'
@@ -375,7 +355,7 @@ function Pager({
     borderTopLeftRadius: 7,
     borderTopRightRadius: 7,
     borderBottomLeftRadius: 7,
-    borderBottomRightRadius: 2,
+    borderBottomRightRadius: 7,
   } as const;
 
   return (

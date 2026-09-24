@@ -41,7 +41,9 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
     const stage = stageOf(deal);
     return stage !== 'settled' && stage !== 'cancelled';
   });
-  const currentDeal = activeDeals[0] ?? deals[0] ?? null;
+  const currentDeal = activeDeals[0] ?? null;
+  const recentDeals = currentDeal ? deals.filter((deal) => deal.jobId !== currentDeal.jobId) : deals;
+  const showRecentDeals = recentDeals.length > 0 || !currentDeal || fetchState !== 'success';
   const name = displayName?.trim() || profile.displayName?.trim() || translations.profile.hero.fallbackName;
   const firstName = name.split(/\s+/)[0] || name;
   const role = accountKind === 'business'
@@ -51,7 +53,6 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
       : profile.role === 'seller'
         ? home.roleSeller
         : home.roleBuyer;
-  const featuredTradeLabel = activeDeals.length > 0 ? home.currentTrade : home.latestTrade;
 
   return (
     <div className="product-surface home-workbench mx-auto w-full max-w-[1180px] pb-12 sm:pb-16">
@@ -102,8 +103,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             <PositionMetric label={home.wallets} value={overview.data?.agents ? 3 : 1} />
           </div>
 
-          <div className="mt-auto flex items-center justify-between gap-3 pt-8">
-            <div className="flex gap-1.5">
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-8">
+            <div className="flex flex-wrap gap-1.5">
               <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
               <QuickAction href="/bridge?direction=out&intent=move">{home.move}</QuickAction>
               <QuickAction href="/bridge?direction=out&intent=send">{home.send}</QuickAction>
@@ -113,8 +114,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
         </motion.aside>
       </section>
 
-      <section data-guide="home-deals" className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]" aria-label={home.trades}>
-        <motion.div
+      <section data-guide="home-deals" className={`${currentDeal && showRecentDeals ? 'home-deals-grid grid gap-5' : ''} mt-7 border-t border-[var(--lp-border-light)] pt-7`} aria-label={home.trades}>
+        {currentDeal ? <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
@@ -122,34 +123,25 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{currentDeal ? featuredTradeLabel : home.trades}</p>
+              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{home.currentTrade}</p>
               <h2 className="mt-1 line-clamp-2 text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">
-                {currentDeal ? currentDeal.terms || home.tradeDetails : home.noTrades}
+                {currentDeal.terms || home.tradeDetails}
               </h2>
             </div>
-            {currentDeal ? <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)]">{translations.profile.hub.open} →</Link> : null}
+            <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open} →</Link>
           </div>
 
-          {currentDeal ? (
-            <>
-              <p className="mt-5 truncate text-[14px] font-semibold text-[var(--lp-dark)]">
-                {formatUsdc(currentDeal.dealAmountUsdc, { withSuffix: true })} · {translations.dealStage.labels[stageOf(currentDeal)]}
-              </p>
-              <DealFlow
-                stage={stageOf(currentDeal)}
-                labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]}
-                progressLabel={home.dealProgress}
-              />
-            </>
-          ) : (
-            <>
-              <DealFlow labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]} progressLabel={home.dealProgress} />
-              <p className="mt-5 max-w-[48ch] text-[13px] leading-6 text-[var(--lp-text-sub)]">{home.noTradesHint}</p>
-            </>
-          )}
-        </motion.div>
+          <p className="mt-5 truncate text-[14px] font-semibold text-[var(--lp-dark)]">
+            {formatUsdc(currentDeal.dealAmountUsdc, { withSuffix: true })} · {translations.dealStage.labels[stageOf(currentDeal)]}
+          </p>
+          <DealFlow
+            stage={stageOf(currentDeal)}
+            labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]}
+            progressLabel={home.dealProgress}
+          />
+        </motion.div> : null}
 
-        <motion.div
+        {showRecentDeals ? <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -161,8 +153,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             </div>
             <Link href="/activity" className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{home.allActivity} →</Link>
           </div>
-          <div className="mt-3"><TradeBook deals={deals} fetchState={fetchState} /></div>
-        </motion.div>
+          <div className="mt-3"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
+        </motion.div> : null}
       </section>
     </div>
   );

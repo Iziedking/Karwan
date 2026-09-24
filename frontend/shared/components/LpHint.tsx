@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
@@ -44,6 +44,19 @@ export function LpHint({
     if (side === 'bottom' && top + h > window.innerHeight - PADDING) top = rect.top - h - PADDING;
     setPos({ top: top + window.scrollY, left: left + window.scrollX });
   }, [open, align, side, children]);
+
+  // Once the portal has mounted, use its actual height. Longer translated
+  // explanations must not cover the trigger or run off the top of the screen.
+  useLayoutEffect(() => {
+    if (!open || !pos || !triggerRef.current || !tooltipRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const height = tooltipRef.current.getBoundingClientRect().height;
+    let top = side === 'top' ? rect.top - height - PADDING : rect.bottom + PADDING;
+    if (side === 'top' && top < PADDING) top = rect.bottom + PADDING;
+    if (side === 'bottom' && top + height > window.innerHeight - PADDING) top = rect.top - height - PADDING;
+    const nextTop = top + window.scrollY;
+    if (Math.abs(nextTop - pos.top) > 1) setPos((current) => current && { ...current, top: nextTop });
+  }, [open, pos, side]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,7 +118,7 @@ export function LpHint({
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="fixed z-[200] px-3 py-2 text-[11px] leading-snug pointer-events-none normal-case tracking-normal font-normal"
+            className="fixed z-[200] px-3 py-2 text-[13px] leading-[1.45] pointer-events-none normal-case tracking-normal font-normal"
             style={{
               top: pos.top - window.scrollY,
               left: pos.left - window.scrollX,
@@ -113,10 +126,7 @@ export function LpHint({
               background: 'var(--lp-dark)',
               color: 'var(--lp-light)',
               border: '1px solid rgba(255,255,255,0.12)',
-              borderTopLeftRadius: 8,
-              borderTopRightRadius: 8,
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 2,
+              borderRadius: 10,
               boxShadow: '0 12px 32px -16px rgba(0,0,0,0.5)',
             }}
           >

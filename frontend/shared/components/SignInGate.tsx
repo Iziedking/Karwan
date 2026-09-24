@@ -1,23 +1,19 @@
 ﻿'use client';
-import { useEffect, useState, type ReactNode } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { LoginModal } from '@/shared/components/LoginModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import {
   FullBleed,
   Band,
-  GridOverlay,
   SectionTag,
   HeroHeadline,
   Punc,
 } from '@/shared/components/Bands';
+import styles from './SignInGate.module.css';
 
-/// Shared sign-in prompt rendered by every gated page. The home page uses
-/// `variant="hero"` for the full landing-grade headline; every other page
-/// passes `variant="page"` which dials the typography down a notch but keeps
-/// the same dark band, lime accent dot, and login modal trigger. Page variant
-/// accepts a custom eyebrow tag and body copy so each surface can frame the
-/// gate in its own words.
+/// The account entry has its own composition. Other private routes keep a
+/// compact gate so a link to a specific task does not become a second landing.
 export function SignInGate({
   variant = 'page',
   tag,
@@ -33,112 +29,65 @@ export function SignInGate({
 }) {
   const t = useTranslations();
   const [open, setOpen] = useState(false);
-  const reduce = useReducedMotion();
-  const [activePillar, setActivePillar] = useState(0);
   const isHero = variant === 'hero';
-  useEffect(() => {
-    if (!isHero || reduce) return;
-    const timer = window.setInterval(() => setActivePillar((index) => (index + 1) % 3), 2400);
-    return () => window.clearInterval(timer);
-  }, [isHero, reduce]);
-  // The hero gate is the signed-out /app landing. Lead with what Karwan does,
-  // not "sign in", so a first-time visitor understands the product before the
-  // wallet step (the sign-in button sits below the story).
-  const resolvedTag = tag ?? (isHero ? t.auth.signInGate.heroTag : t.auth.signInGate.defaultTag);
-  const resolvedButton = buttonLabel ?? t.auth.signInGate.button;
-  const heroPillars = [
-    { index: '01', ...t.auth.signInGate.pillars.protection },
-    { index: '02', ...t.auth.signInGate.pillars.milestones },
-    { index: '03', ...t.auth.signInGate.pillars.receipt },
-  ];
+  const copy = t.auth.signInGate;
+  const resolvedTag = tag ?? (isHero ? copy.heroTag : copy.defaultTag);
+  const resolvedButton = buttonLabel ?? (isHero ? copy.heroButton : copy.button);
 
-  const titleNode: ReactNode =
-    title ??
-    (isHero ? (
-      <>
-        {t.auth.signInGate.heroTitle}
-        .
-      </>
-    ) : (
-      <>
-        {t.auth.signInGate.pageTitle}
-        <Punc>.</Punc>
-      </>
-    ));
+  if (isHero) {
+    return (
+      <FullBleed>
+        <section data-auth-gate="hero" className={styles.hero}>
+          <div className={styles.inner}>
+            <p className={styles.eyebrow}>{resolvedTag}</p>
+            <h1 className={styles.headline}>{title ?? copy.heroTitle}</h1>
+            <p className={styles.lede}>{body ?? copy.heroBody}</p>
+            <button type="button" className={styles.entryAction} onClick={() => setOpen(true)}>
+              {resolvedButton}
+              <span aria-hidden className="rtl-flip">→</span>
+            </button>
+            <p className={styles.notice}>{copy.heroNote}</p>
+            <div className={styles.browse}>
+              <span>{copy.browseIntro}</span>
+              <Link href="/market">{copy.browseLink}</Link>
+            </div>
+          </div>
+        </section>
+        <LoginModal open={open} onClose={() => setOpen(false)} />
+      </FullBleed>
+    );
+  }
 
-  const bodyText: ReactNode =
-    body ?? (isHero ? t.auth.signInGate.heroBody : t.auth.signInGate.pageBody);
+  const titleNode: ReactNode = title ?? <>{copy.pageTitle}<Punc>.</Punc></>;
+  const bodyText: ReactNode = body ?? copy.pageBody;
 
   return (
     <FullBleed>
       <Band
         tone="dark"
-        overlay={<GridOverlay />}
-        className={isHero ? 'min-h-[calc(100vh-68px)]' : undefined}
       >
-        <div className={isHero ? '' : 'max-w-[52ch]'}>
+        <div className="max-w-[52ch]">
           <div className="fade-up">
             <SectionTag tone="dark">
               {resolvedTag}
             </SectionTag>
           </div>
           <div className="fade-up fade-up-1">
-            <HeroHeadline size={isHero ? 'lg' : 'md'}>{titleNode}</HeroHeadline>
+            <HeroHeadline size="md">{titleNode}</HeroHeadline>
           </div>
           <p
-            className={
-              isHero
-                ? 'fade-up fade-up-2 mt-6 text-pretty text-[15px] leading-relaxed text-[var(--lp-workspace-muted)] max-w-[62ch]'
-                : 'fade-up fade-up-2 mt-5 text-pretty text-[14px] leading-relaxed text-[var(--lp-text-muted)] max-w-[44ch]'
-            }
+            className="fade-up fade-up-2 mt-5 max-w-[44ch] text-pretty text-[15px] leading-relaxed text-[var(--lp-text-sub)]"
           >
             {bodyText}
           </p>
-          {isHero && (
-            <div className="fade-up fade-up-3 mt-10 grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-3xl">
-              {heroPillars.map((p, index) => (
-                <motion.div
-                  key={p.index}
-                  animate={
-                    reduce
-                      ? undefined
-                      : {
-                          y: activePillar === index ? 0 : 2,
-                        }
-                  }
-                  transition={{ duration: reduce ? 0 : 0.35, ease: [0.16, 1, 0.3, 1] }}
-                  className="border-t pt-3.5"
-                  style={{ borderTopColor: activePillar === index ? 'var(--lp-accent)' : 'var(--lp-workspace-border)' }}
-                >
-                  <span className="font-sans text-[11px] font-medium text-[var(--lp-workspace-muted)]">
-                    {p.index}
-                  </span>
-                  <p className="mt-2 font-sans text-[15px] font-bold tracking-[-0.01em] text-[var(--lp-workspace-ink)]">
-                    {p.title}
-                  </p>
-                  <p className="mt-1.5 text-[12.5px] leading-snug text-[var(--lp-workspace-muted)]">{p.body}</p>
-                </motion.div>
-              ))}
-            </div>
-          )}
-          <div className={isHero ? 'fade-up fade-up-4 mt-10' : 'fade-up fade-up-3 mt-7'}>
+          <div className="fade-up fade-up-3 mt-7">
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className={
-                isHero
-                  ? 'group inline-flex min-h-11 items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]'
-                  : 'group inline-flex min-h-11 items-center gap-2 px-[18px] py-[11px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.45)] hover:shadow-[0_4px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]'
-              }
-              style={{
-                borderTopLeftRadius: isHero ? 14 : 12,
-                borderTopRightRadius: isHero ? 14 : 12,
-                borderBottomLeftRadius: isHero ? 14 : 12,
-                borderBottomRightRadius: isHero ? 4 : 3,
-              }}
+              className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--lp-accent)] px-[18px] py-[11px] text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)]"
             >
               {resolvedButton}
-              <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+              <span aria-hidden className="rtl-flip">→</span>
             </button>
           </div>
         </div>

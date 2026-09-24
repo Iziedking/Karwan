@@ -8,16 +8,16 @@ import { DocsPager } from '@/features/docs/components/DocsPager';
 
 export default function DocsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-[var(--lp-light)] text-[var(--lp-dark)] -mt-10">
+    <div className="bg-[var(--lp-light)] text-[var(--lp-dark)]">
       <div className="mx-auto max-w-[1440px] px-[clamp(20px,5vw,72px)] py-[clamp(36px,5vw,64px)]">
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10 lg:gap-16">
           <DocsSidebar />
-          <main className="min-w-0">
+          <div className="min-w-0">
             {children}
             {/* Prev/next pager so readers (esp. mobile) move on without scrolling
                 back up to the sidebar. */}
             <DocsPager />
-          </main>
+          </div>
         </div>
       </div>
     </div>

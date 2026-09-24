@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = Number(process.env.KARWAN_E2E_PORT || 3100);
+const baseURL = `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -8,10 +11,10 @@ export default defineConfig({
   // Reduced motion so entrance fades finish immediately: a contrast scan run
   // mid-fade measures a blended colour and reports failures that do not exist
   // once the page has settled.
-  use: { baseURL: 'http://127.0.0.1:3100', reducedMotion: 'reduce' },
+  use: { baseURL, reducedMotion: 'reduce' },
   webServer: {
-    command: 'npx next build && npx next start -p 3100',
-    url: 'http://127.0.0.1:3100',
+    command: `npx next build && npx next start -p ${port}`,
+    url: baseURL,
     timeout: 600_000,
     reuseExistingServer: !process.env.CI,
     env: {

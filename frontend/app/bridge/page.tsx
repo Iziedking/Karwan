@@ -9,6 +9,7 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
+import { NetworkContext } from '@/shared/components/NetworkContext';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
@@ -149,11 +150,11 @@ function BridgePageInner() {
     setRail((current) => reconcileRail(current, rails));
   }, [rails]);
 
-  const pageTitle = direction === 'in' ? 'Add USDC' : outIntent === 'move' ? 'Withdraw from Gateway' : 'Withdraw USDC';
+  const pageTitle = direction === 'in' ? 'Add USDC' : outIntent === 'move' ? 'Move USDC' : 'Withdraw USDC';
   const pageBody = direction === 'in'
     ? 'Choose how you want to add USDC to your Karwan account.'
     : outIntent === 'move'
-      ? 'Take pooled USDC out of Gateway and send it to a supported destination.'
+      ? 'Move USDC from your Gateway balance to a supported chain.'
       : outIntent === 'send'
       ? 'Send USDC to a wallet on a supported chain. Choose the destination yourself.'
       : 'Send USDC to a wallet on a supported chain. Choose the destination yourself.';
@@ -171,6 +172,7 @@ function BridgePageInner() {
           <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">USDC balance</p>
           <h1 className="mt-1 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-none tracking-[-0.045em] text-[var(--lp-dark)]">{pageTitle}</h1>
           <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{pageBody}</p>
+          <NetworkContext />
         </header>
       </Band>
 

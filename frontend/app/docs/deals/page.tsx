@@ -7,9 +7,9 @@ import {
   DocsList,
   DocsListItem,
   DocsFigure,
-  DocsCallout,
 } from '@/features/docs/components/Prose';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { NetworkContext } from '@/shared/components/NetworkContext';
 
 export default function DocsDealsPage() {
   const t = useTranslations().docsDealsPage;
@@ -97,7 +97,7 @@ export default function DocsDealsPage() {
         </DocsListItem>
       </DocsList>
 
-      <DocsCallout title={t.callout.title}>{t.callout.body}</DocsCallout>
+      <NetworkContext disclosure />
     </article>
   );
 }

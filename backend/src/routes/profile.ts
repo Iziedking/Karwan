@@ -4,6 +4,7 @@ import { formatUnits } from 'viem';
 import {
   getProfile,
   upsertProfile,
+  updateProfile,
   carryProfile,
   findProfileByName,
   findProfileByXHandle,
@@ -27,6 +28,7 @@ import { publicSkillCredentials, type PublicSkillCredential } from '../verificat
 import { durableEphemeralMap } from '../db/ephemeral.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
+import { isValidProfileImage } from './profileImage.js';
 
 const USDC_DECIMALS = 6;
 
@@ -134,6 +136,7 @@ function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?:
     xHandle: p.xHandle,
     xUserId: p.xUserId,
     xProfileImageUrl: p.xProfileImageUrl,
+    profileImageDataUrl: p.profileImageDataUrl,
     accountKind: p.accountKind,
     accountType: p.accountType,
     seller: p.seller,
@@ -254,6 +257,30 @@ profileRoutes.post('/', async (c) => {
   }
   return c.json({ profile }, 200);
 });
+
+const avatarSchema = z.object({
+  address: addrSchema,
+  imageDataUrl: z.string().max(110_000).nullable(),
+});
+
+/// The browser crops and compresses the photo, then the server enforces a
+/// bounded JPEG payload. This is a public profile image, never identity proof.
+profileRoutes.post('/avatar', rateLimit({ windowMs: 60 * 60 * 1000, max: 12, name: 'profile-avatar' }), async (c) => {
+  const parsed = avatarSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'Choose a smaller JPG, PNG, or WebP image.' }, 400);
+  const { address, imageDataUrl } = parsed.data;
+  if (!isSessionSelf(c, address)) return c.json({ error: 'Sign in to change your profile photo.' }, 403);
+  if (imageDataUrl !== null && !isValidProfileImage(imageDataUrl)) {
+    return c.json({ error: 'The profile photo could not be read or is too large.' }, 400);
+  }
+  const profile = await updateProfile(address, (current) => ({
+    ...current,
+    profileImageDataUrl: imageDataUrl ?? undefined,
+  }));
+  if (!profile) return c.json({ error: 'Set up your profile first.' }, 404);
+  return c.json({ profile });
+});
+
 
 // ---------- CONTACT EMAIL (add + verify for wallet users) ----------
 // A wallet user adds a contact email and confirms it with a 6-digit code. Same

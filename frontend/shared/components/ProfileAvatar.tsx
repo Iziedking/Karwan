@@ -7,6 +7,7 @@ import { api, type UserProfile } from '@/core/api';
 import { cn } from '@/shared/utils/cn';
 import { WalletAvatar } from './WalletAvatar';
 import { ActionBeacon } from './ActionBeacon';
+import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 
 /// The user's profile entry in the top nav. Identity comes from the SESSION
 /// (useAuth), not wagmi, so it works for BOTH wallet users and email/Circle
@@ -27,23 +28,25 @@ export function ProfileAvatar({ actionCount = 0 }: { actionCount?: number }) {
       return;
     }
     let cancelled = false;
-    api
-      .getProfile(address)
-      .then((r) => {
+    const refresh = () => {
+      api.getProfile(address).then((r) => {
         if (!cancelled) {
           setProfile(r.profile);
           setImageOk(true);
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
+    };
+    refresh();
+    window.addEventListener(PROFILE_SAVED_EVENT, refresh);
     return () => {
       cancelled = true;
+      window.removeEventListener(PROFILE_SAVED_EVENT, refresh);
     };
   }, [address, isAuthenticated, pathname]);
 
   if (!isAuthenticated || !address) return null;
 
-  const xImage = imageOk ? profile?.xProfileImageUrl : undefined;
+  const xImage = imageOk ? profile?.profileImageDataUrl || profile?.xProfileImageUrl : undefined;
   const identityName =
     profile?.displayName?.trim() ||
     email?.split('@')[0]?.trim() ||

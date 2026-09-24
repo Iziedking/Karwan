@@ -12,6 +12,7 @@ import { useGuide } from '@/shared/guide/GuideProvider';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
+import { AgentStakeBinding } from './AgentStakeBinding';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   ARC_CHAIN_ID,
@@ -98,11 +99,7 @@ const CARD_STYLE = {
   background: 'var(--lp-card)',
   color: 'var(--lp-dark)',
   border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
-  borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+  borderRadius: 16,
 } as const;
 
 const TIER_TONE: Record<
@@ -641,7 +638,7 @@ export function StakeCard() {
   }
 
   return (
-    <div style={CARD_STYLE} className="px-6 py-7 space-y-7">
+    <div data-testid="stake-account-card" style={CARD_STYLE} className="h-full px-6 py-7 space-y-7">
       {/* HEADER: v2.D three-way split: Active total prominent, then a
           smaller meta line breaking it into Free / Reserved (open deal
           insurance) / Cooling. Reserved only renders when > 0 so users
@@ -716,6 +713,8 @@ export function StakeCard() {
           </div>
         )}
       </div>
+
+      <AgentStakeBinding />
 
       {/* WRONG NETWORK. Web3 users only: prompt to switch before any signing
           so a stake never broadcasts on the wallet's current (wrong) chain. */}

@@ -12,10 +12,11 @@ const cssSource = readFileSync(
   'utf8',
 );
 
-test('every customer route shell mounts the shared ambient trade drawing', () => {
+test('only the standalone invitation shell retains the ambient drawing', () => {
   const mounts = chromeSource.match(/<AmbientTradeSketch \/>/g) ?? [];
 
-  assert.equal(mounts.length, 2, 'bare and customer shells should each mount the shared art');
+  assert.equal(mounts.length, 1, 'application pages use a quiet canvas for readable financial content');
+  assert.doesNotMatch(chromeSource.slice(chromeSource.indexOf('function CustomerChromeFrame')), /<AmbientTradeSketch \/>/);
   assert.match(chromeSource, /aria-hidden="true" className="global-trade-sketch"/);
   assert.doesNotMatch(chromeSource, /const productArt =/);
 });

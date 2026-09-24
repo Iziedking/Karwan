@@ -96,6 +96,9 @@ export interface UserProfile {
   /// The user's X display picture URL. Profile avatars prefer this over the
   /// generated mark when present. Refreshed each time the user re-OAuths.
   xProfileImageUrl?: string;
+  /// Owner-chosen, browser-cropped JPEG. Public wherever this profile appears.
+  /// Kept small so public profile reads and flat-file backups remain bounded.
+  profileImageDataUrl?: string;
   /// Verified contact email. Wallet users (web3) add and verify it from the
   /// profile email band; email-login users get it auto-filled and verified at
   /// sign-in. Used to alert the user on their deals and to send Karwan product
@@ -301,6 +304,7 @@ const PRESERVE_WHEN_OMITTED = [
   'xHandle',
   'xUserId',
   'xProfileImageUrl',
+  'profileImageDataUrl',
   'settings',
 ] as const;
 

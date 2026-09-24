@@ -1,115 +1,58 @@
 'use client';
 import Link from 'next/link';
-import { cn } from '@/shared/utils/cn';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { AccountGate } from '@/shared/components/AccountGate';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-} from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// Business trade entry point. Keep the business action model distinct from
-/// the personal P2P buyer and seller desks.
+/** Three distinct ways to start a business trade, within the workspace rail. */
 export default function B2BHubPage() {
-  const t = useTranslations();
-  const bt = t.businessTradeDesk;
+  const bt = useTranslations().businessTradeDesk;
+  const actions = [
+    { href: '/partners', title: bt.findSupply, description: bt.findSupplySub, primary: false },
+    { href: '/supply', title: bt.postOffer, description: bt.postOfferSub, primary: true },
+    { href: '/buyer?mode=direct', title: bt.bringDeal, description: bt.bringDealSub, primary: false },
+  ];
+
   return (
     <AuthGuard gateTag={bt.eyebrow} gateBody={bt.description}>
       <AccountGate kind="business">
-      <FullBleed>
-        <Band tone="dark" compact overlay={<GridOverlay />}>
-          <div className="fade-up">
-              <SectionTag tone="dark">{bt.eyebrow}</SectionTag>
-          </div>
-          <div className="fade-up fade-up-1">
-            <HeroHeadline size="sm">
+        <div className="product-surface mx-auto w-full max-w-[1100px] pb-12 sm:pb-16">
+          <header className="border-b border-[var(--lp-border-light)] py-8 sm:py-12">
+            <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{bt.eyebrow}</p>
+            <h1 className="mt-4 max-w-[17ch] text-[clamp(2.6rem,5vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--lp-dark)]">
               {bt.title}
-            </HeroHeadline>
-          </div>
-          <p className="fade-up fade-up-2 mt-4 max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-workspace-muted)]">
-            {bt.description}
-          </p>
-        </Band>
+            </h1>
+            <p className="mt-6 max-w-[58ch] text-[16px] leading-[1.6] text-[var(--lp-text-sub)] sm:text-[18px]">
+              {bt.description}
+            </p>
+          </header>
 
-        <Band tone="light" compact>
-          <div className="grid gap-4 sm:grid-cols-3 sm:gap-5 fade-up">
-            <DeskCard
-              href="/partners"
-              tone="cream"
-              title={bt.findSupply}
-              sub={bt.findSupplySub}
-            />
-            <DeskCard
-              href="/supply"
-              tone="accent"
-              title={bt.postOffer}
-              sub={bt.postOfferSub}
-            />
-            <DeskCard
-              href="/buyer?mode=direct"
-              tone="cream"
-              title={bt.bringDeal}
-              sub={bt.bringDealSub}
-            />
-          </div>
-        </Band>
-      </FullBleed>
+          <nav aria-label={bt.eyebrow} className="mt-4 divide-y divide-[var(--lp-border-light)] border-b border-[var(--lp-border-light)]">
+            {actions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="group flex min-h-[112px] items-center justify-between gap-5 py-6 text-start transition-colors hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:px-5"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[clamp(1.4rem,2.4vw,2rem)] font-semibold leading-tight tracking-[-0.035em] text-[var(--lp-dark)]">
+                    {action.title}
+                  </span>
+                  <span className="mt-1.5 block max-w-[55ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">
+                    {action.description}
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`grid size-11 shrink-0 place-items-center rounded-full border text-[20px] transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 ${action.primary ? 'border-[var(--lp-accent)] bg-[var(--lp-accent)] text-[var(--accent-ink)]' : 'border-[var(--lp-border-light)] text-[var(--lp-dark)]'}`}
+                >
+                  <span className="rtl-flip">→</span>
+                </span>
+              </Link>
+            ))}
+          </nav>
+        </div>
       </AccountGate>
     </AuthGuard>
-  );
-}
-
-function DeskCard({
-  href,
-  tone,
-  title,
-  sub,
-}: {
-  href: string;
-  tone: 'cream' | 'accent';
-  title: string;
-  sub: string;
-}) {
-  const surface =
-    tone === 'accent'
-      ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
-      : 'bg-[var(--lp-card)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]';
-  const subColor = tone === 'accent' ? 'text-[var(--lp-band-dark)]/85' : 'text-[var(--lp-text-sub)]';
-  return (
-    <Link
-      href={href}
-      className={cn(
-        'group text-start p-6 sm:p-7 min-h-[180px] flex flex-col justify-between',
-        'transition-[transform,box-shadow] duration-200 ease-out',
-        'hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-16px_rgba(0,0,0,0.30)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
-        surface,
-      )}
-      style={{
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
-      }}
-    >
-      <div>
-        <span className="block font-sans text-[24px] font-extrabold uppercase tracking-[-0.02em] leading-none">
-          {title}
-        </span>
-        <span className={cn('mt-3 block text-[14px] leading-snug max-w-[34ch]', subColor)}>
-          {sub}
-        </span>
-      </div>
-      <span
-        aria-hidden
-        className="mt-6 inline-flex items-center justify-center w-10 h-10 rounded-full border border-current text-[16px] opacity-50 transition-[transform,opacity] duration-200 group-hover:translate-x-1 group-hover:opacity-90"
-      >
-        →
-      </span>
-    </Link>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
-import { type UserProfile } from '@/core/api';
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { api, type UserProfile } from '@/core/api';
+import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { shortAddress } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -33,10 +34,49 @@ export function ProfileAccountHub({
   hasAction,
 }: ProfileAccountHubProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [savedPhoto, setSavedPhoto] = useState(profile.profileImageDataUrl);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoInput = useRef<HTMLInputElement>(null);
   const messages = useTranslations();
   const nav = messages.nav;
   const businessCopy = messages.businessProfilePage;
   const hub = messages.profile.hub;
+  useEffect(() => {
+    setSavedPhoto(profile.profileImageDataUrl);
+    setImageFailed(false);
+  }, [profile.profileImageDataUrl]);
+
+  async function savePhoto(imageDataUrl: string | null) {
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      const result = await api.setProfileAvatar(address, imageDataUrl);
+      setSavedPhoto(result.profile.profileImageDataUrl);
+      setImageFailed(false);
+      window.dispatchEvent(new Event(PROFILE_SAVED_EVENT));
+    } catch {
+      setPhotoError(hub.photoError);
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5_000_000) {
+      setPhotoError(hub.photoTypeError);
+      return;
+    }
+    try {
+      const imageDataUrl = await cropProfilePhoto(file);
+      await savePhoto(imageDataUrl);
+    } catch {
+      setPhotoError(hub.photoTypeError);
+    }
+  }
   const { isBusinessWorkspace, workspaces } = useWorkspaceContext();
   const business = isBusinessWorkspace;
   const hasBusinessWorkspace = workspaces.some((workspace) => workspace.kind === 'business');
@@ -52,11 +92,13 @@ export function ProfileAccountHub({
     <main className="product-surface min-w-0 overflow-x-clip min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
       <div className="mx-auto min-w-0 max-w-[1180px]">
         <header className="grid min-w-0 gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:py-8">
-          <span className="relative block size-[72px] shrink-0">
-            {profile.xProfileImageUrl && !imageFailed ? (
+          <div className="flex shrink-0 flex-col items-start gap-1">
+            <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} onChange={(event) => void choosePhoto(event)} />
+            <button type="button" disabled={photoBusy} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onClick={() => photoInput.current?.click()} className="group relative size-[72px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:opacity-60">
+            {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={profile.xProfileImageUrl}
+                src={savedPhoto || profile.xProfileImageUrl}
                 alt=""
                 width={72}
                 height={72}
@@ -66,7 +108,10 @@ export function ProfileAccountHub({
             ) : (
               <WalletAvatar address={address} size={72} />
             )}
-          </span>
+              <span aria-hidden className="absolute -bottom-1 -end-1 grid size-7 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[16px] text-[var(--lp-dark)] group-hover:border-[var(--lp-accent)]">+</span>
+            </button>
+            {savedPhoto && <button type="button" disabled={photoBusy} onClick={() => void savePhoto(null)} className="min-h-11 text-[12px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{hub.removePhoto}</button>}
+          </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--lp-text-sub)]">
               <span>{business ? hub.businessAccount : hub.personalAccount}</span>
@@ -80,6 +125,9 @@ export function ProfileAccountHub({
               {displayName}
             </h1>
             <p className="mt-1 break-words [overflow-wrap:anywhere] text-[14px] text-[var(--lp-text-sub)]">{contact}</p>
+            <p className="mt-2 text-[12px] text-[var(--lp-text-sub)]">{hub.photoPublic}</p>
+            <p role="status" aria-live="polite" className="mt-1 text-[12px] text-[var(--lp-text-sub)]">{photoBusy ? hub.savingPhoto : ''}</p>
+            {photoError && <p role="alert" className="mt-1 text-[12px] text-[var(--color-critical)]">{photoError}</p>}
           </div>
         </header>
 
@@ -91,8 +139,8 @@ export function ProfileAccountHub({
           <WorkspaceSwitcher />
         </div>
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
-          <HubSection title={hub.account} variant="open">
+        <div className="mt-10 grid gap-10">
+          <HubSection title={hub.account}>
             <HubRow
               label={hub.personalDetails}
               href="/profile/edit"
@@ -154,27 +202,37 @@ export function ProfileAccountHub({
   );
 }
 
+async function cropProfilePhoto(file: File): Promise<string> {
+  const image = await createImageBitmap(file);
+  try {
+    const side = Math.min(image.width, image.height);
+    if (side < 1) throw new Error('empty image');
+    const canvas = document.createElement('canvas');
+    canvas.width = 160;
+    canvas.height = 160;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('image canvas unavailable');
+    context.drawImage(image, (image.width - side) / 2, (image.height - side) / 2, side, side, 0, 0, 160, 160);
+    let result = canvas.toDataURL('image/jpeg', 0.78);
+    if (result.length > 100_000) result = canvas.toDataURL('image/jpeg', 0.55);
+    if (result.length > 100_000) throw new Error('image too large');
+    return result;
+  } finally {
+    image.close();
+  }
+}
+
 function HubSection({
   title,
   children,
-  variant = 'card',
 }: {
   title: string;
   children: ReactNode;
-  variant?: 'card' | 'open';
 }) {
   return (
-    <section
-      className={`profile-hub-section overflow-hidden ${
-        variant === 'open'
-          ? 'border-y border-[var(--lp-border-light)] bg-transparent'
-          : 'rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]'
-      }`}
-    >
-      <div className={`border-b border-[var(--lp-border-light)] py-4 ${variant === 'open' ? 'px-0' : 'px-5'}`}>
-        <h2 className="text-[19px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">{title}</h2>
-      </div>
-      <div>{children}</div>
+    <section className="profile-hub-section">
+      <h2 className="mb-4 text-[24px] font-semibold tracking-[-0.025em] text-[var(--lp-dark)]">{title}</h2>
+      <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">{children}</div>
     </section>
   );
 }

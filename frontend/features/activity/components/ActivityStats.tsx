@@ -18,13 +18,14 @@ export function ActivityStats({
   onToggleGroup: (g: EventGroup) => void;
   windowSize: number;
 }) {
-  const t = useTranslations().activity.stats;
+  const messages = useTranslations();
+  const t = messages.activity.stats;
   const groups: EventGroup[] = ['jobs', 'negotiation', 'settlement', 'bridge'];
   return (
     <section className="space-y-3" data-guide="activity-stats">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
-          Recent Karwan activity
+          {messages.activityReview.filterLabel}
         </span>
         <span className="text-[12px] tabular-nums text-[var(--lp-text-muted)]">
           {t.window.replace('{n}', String(windowSize))}
@@ -46,7 +47,12 @@ export function ActivityStats({
               borderColor: active ? 'var(--lp-control-active-border)' : 'var(--lp-border-light)',
             }}
           >
-            <p className="text-[12px] font-semibold text-[var(--lp-text-sub)]">{t.groups[g]}</p>
+            <p className="flex items-center justify-between gap-2 text-[13px] font-semibold">
+              {t.groups[g]}
+              <span aria-hidden className="inline-flex size-5 shrink-0 items-center justify-center rounded border border-current">
+                {active ? '✓' : '+'}
+              </span>
+            </p>
             <p className="mt-2 text-[26px] font-extrabold tabular-nums leading-none tracking-[-0.03em]">
               {counts[g]}
             </p>

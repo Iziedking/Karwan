@@ -1,0 +1,47 @@
+.section {
+  --protection-ground: #191d14;
+  --protection-ink: var(--karwan-card);
+  --protection-secondary: #bcc1b3;
+  --protection-line: #d9ddcf;
+  --protection-depth: #747e68;
+  min-height: 100svh;
+  display: grid;
+  align-items: center;
+  background: var(--protection-ground);
+  color: var(--protection-ink);
+  padding-block: clamp(72px, 7vw, 112px);
+  scroll-margin-top: var(--lp-nav-h, 73px);
+}
+
+:global(html:not([data-theme='dark'])) .section {
+  --protection-ground: var(--karwan-canvas);
+  --protection-ink: var(--lp-dark);
+  --protection-secondary: var(--lp-text-sub);
+  --protection-line: #46525D;
+  --protection-depth: #637181;
+  background-image: url('/brand/karwan-matte-grain.svg');
+}
+
+.wrap { width: min(100% - 64px, 1060px); margin-inline: auto; }
+.header { text-align: center; max-width: 780px; margin-inline: auto; }
+.header h2 { margin: 0; }
+.introduction { color: var(--protection-secondary); font-size: 17px; line-height: 1.5; margin: 20px 0 0; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(48px, 8vw, 128px); row-gap: 64px; margin-top: clamp(52px, 6vw, 88px); }
+.topic { text-align: center; min-width: 0; }
+.artwork { display: block; width: clamp(180px, 19vw, 256px); height: auto; max-width: 100%; margin: 0 auto 20px; color: var(--protection-line); }
+.receding { color: var(--protection-depth); }
+.accent { color: var(--karwan-green); }
+.ribbon { fill: var(--protection-ground); }
+.topic h3 { font-size: clamp(23px, 2vw, 28px); line-height: 1.22; letter-spacing: -.035em; font-weight: 500; margin: 0 0 14px; text-wrap: balance; }
+.topic p { max-width: 31ch; margin: 0 auto; color: var(--protection-secondary); font-size: 16px; line-height: 1.5; text-wrap: pretty; }
+.disclaimer { max-width: 650px; margin: 64px auto 0; padding-top: 24px; border-top: 1px solid var(--protection-depth); text-align: center; color: var(--protection-secondary); font-size: 14px; line-height: 1.65; }
+.section:dir(rtl) .topic h3 { letter-spacing: 0; line-height: 1.4; }
+
+@media (max-width: 639px) {
+  .section { padding-block: 64px; }
+  .wrap { width: calc(100% - 40px); }
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 56px; margin-top: 44px; }
+  .artwork { width: 210px; margin-bottom: 12px; }
+  .topic p { max-width: 29ch; }
+  .disclaimer { margin-top: 48px; text-align: start; }
+}

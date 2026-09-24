@@ -7,9 +7,9 @@ import {
   DocsP,
   DocsList,
   DocsListItem,
-  DocsCallout,
 } from '@/features/docs/components/Prose';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { NetworkContext } from '@/shared/components/NetworkContext';
 
 export default function DocsRoadmapPage() {
   const t = useTranslations().docsRoadmapPage;
@@ -114,7 +114,7 @@ export default function DocsRoadmapPage() {
         </DocsListItem>
       </DocsList>
 
-      <DocsCallout title={t.callout.title}>{t.callout.body}</DocsCallout>
+      <NetworkContext disclosure />
     </article>
   );
 }

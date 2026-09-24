@@ -7,7 +7,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
 // Tokens, not hex. `primary` inverts ink/surface so it reads correctly in both
 // the light and dark themes, which the old hardcoded #0c0e10 buttons did not.
 const BASE =
-  'inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] font-mono font-semibold uppercase tracking-[0.06em] ' +
+  'inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] font-sans font-semibold ' +
   'transition-[opacity,background-color,border-color,color,transform] duration-[var(--dur-fast)] active:scale-[0.98] motion-reduce:active:scale-100 ' +
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ' +
   'disabled:opacity-40 disabled:cursor-not-allowed';
@@ -24,9 +24,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  sm: 'min-h-9 px-3 py-1.5 text-[10px]',
-  md: 'px-4 py-2.5 text-[11px]',
-  lg: 'px-5 py-3 text-[12px]',
+  sm: 'px-3 py-2 text-[13px]',
+  md: 'px-4 py-2.5 text-[14px]',
+  lg: 'min-h-12 px-5 py-3 text-[15px]',
 };
 
 /// The shared class string. Use this to style a Link or anchor as a button

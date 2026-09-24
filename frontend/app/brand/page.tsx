@@ -2,18 +2,16 @@
 import { useState, type ReactNode } from 'react';
 import {
   FullBleed,
-  PageCard,
 } from '@/shared/components/Bands';
 import {
   BracketTag,
-  DisplayHeadline,
-  LimePunc,
   PrimaryCTA,
   SecondaryCTA,
   Section,
   SectionGrid,
 } from '@/shared/components/skill';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { brandPalette } from '@/shared/brand/palette';
 
 /// Public brand page. Press, partners, and anyone embedding Karwan in their
 /// own materials can download the logo set, copy the brand colors, and read
@@ -29,12 +27,11 @@ export default function BrandPage() {
         <div className="fade-up">
           <BracketTag>{t.hero.tag}</BracketTag>
         </div>
-        <DisplayHeadline size="lg" className="fade-up fade-up-1 mt-6">
+        <h1 className="fade-up fade-up-1 mt-6 max-w-[18ch] text-[clamp(48px,6vw,78px)] font-medium leading-[1.05] tracking-[-0.055em] text-[#F4F4F1]">
           {t.hero.headlineLead}{' '}
-          <span className="text-[var(--accent)]">{t.hero.headlineAccent}</span>
-          <LimePunc />
-        </DisplayHeadline>
-        <p className="fade-up fade-up-2 mt-7 max-w-[52ch] text-[15px] leading-relaxed text-white/65">
+          <span className="text-[var(--accent)]">{t.hero.headlineAccent}</span>.
+        </h1>
+        <p className="fade-up fade-up-2 mt-7 max-w-[52ch] text-[17px] leading-[1.55] text-[var(--lp-text-on-dark-muted)]">
           {t.hero.body}
         </p>
       </Section>
@@ -42,10 +39,8 @@ export default function BrandPage() {
       {/* LOGO DOWNLOADS */}
       <Section tone="light" compact>
         <BracketTag onDark={false}>{t.logo.tag}</BracketTag>
-        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
-          {t.logo.headline}.
-        </DisplayHeadline>
-        <p className="mt-6 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+        <h2 className="mt-4 text-[clamp(34px,4vw,56px)] font-medium leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{t.logo.headline}.</h2>
+        <p className="mt-6 max-w-[56ch] text-[17px] leading-[1.55] text-[var(--lp-text-sub)]">
           {t.logo.body}
         </p>
 
@@ -53,59 +48,18 @@ export default function BrandPage() {
           <LogoCard
             label={t.logo.wordmarkOnDark}
             href="/brand/karwan-wordmark-light.svg"
-            pngHref="/brand/karwan-wordmark-light.png"
-            preview={
-              <div
-                className="w-full h-32 flex items-center justify-center"
-                style={{ background: '#0E0E0E' }}
-              >
-                <span
-                  className="font-sans font-extrabold tracking-[-0.025em] text-white"
-                  style={{ fontSize: 'clamp(28px, 4vw, 44px)' }}
-                >
-                  KARWAN<span style={{ color: '#AFC95B' }}>.</span>
-                </span>
-              </div>
-            }
+            preview={<img src="/brand/karwan-wordmark-light.svg" alt="" className="h-32 w-full bg-[var(--lp-band-dark)] object-contain" />}
           />
           <LogoCard
             label={t.logo.wordmarkOnLight}
             href="/brand/karwan-wordmark-dark.svg"
-            pngHref="/brand/karwan-wordmark-dark.png"
-            preview={
-              <div
-                className="w-full h-32 flex items-center justify-center"
-                style={{ background: '#F4F4F1' }}
-              >
-                <span
-                  className="font-sans font-extrabold tracking-[-0.025em]"
-                  style={{ fontSize: 'clamp(28px, 4vw, 44px)', color: '#0E0E0E' }}
-                >
-                  KARWAN<span style={{ color: '#AFC95B' }}>.</span>
-                </span>
-              </div>
-            }
+            preview={<img src="/brand/karwan-wordmark-dark.svg" alt="" className="h-32 w-full bg-[var(--karwan-card)] object-contain" />}
           />
           <LogoCard
             label={t.logo.markOnDark}
             href="/brand/karwan-mark-lime.svg"
             pngHref="/brand/karwan-mark-lime.png"
-            preview={
-              <div
-                className="w-full h-32 flex items-center justify-center"
-                style={{ background: '#0E0E0E' }}
-              >
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="M7 17 L10 7 L12 13 L14 7 L17 17"
-                    stroke="#AFC95B"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            }
+            preview={<img src="/brand/karwan-mark-lime.svg" alt="" className="h-32 w-full bg-[var(--lp-band-dark)] p-4 object-contain" />}
           />
         </div>
       </Section>
@@ -113,73 +67,71 @@ export default function BrandPage() {
       {/* COLOR PALETTE */}
       <Section tone="light" compact>
         <BracketTag onDark={false}>{t.palette.tag}</BracketTag>
-        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
-          {t.palette.headline}.
-        </DisplayHeadline>
-        <p className="mt-6 max-w-[56ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+        <h2 className="mt-4 text-[clamp(34px,4vw,56px)] font-medium leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{t.palette.headline}.</h2>
+        <p className="mt-6 max-w-[56ch] text-[17px] leading-[1.55] text-[var(--lp-text-sub)]">
           {t.palette.body}
         </p>
 
         <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <ColorChip name={t.palette.brandLime} hex="#AFC95B" labelTone="dark" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
-          <ColorChip name={t.palette.brandInk} hex="#0A0A0B" labelTone="light" brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
-          <ColorChip name={t.palette.creamSurface} hex="#F4F4F1" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
-          <ColorChip name={t.palette.cardWhite} hex="#FFFFFF" labelTone="dark" border brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          {brandPalette.slice(0, 4).map(color => (
+            <ColorChip key={color.key} name={t.palette[color.key]} hex={color.hex} labelTone={color.tone} border={color.key === 'creamSurface' || color.key === 'cardWhite'} brandLabel={t.palette.brandLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          ))}
+        </div>
+        <h3 className="mt-14 text-[24px] font-semibold tracking-tight text-[var(--lp-dark)]">{t.palette.interfaceHeadline}</h3>
+        <p className="mt-2 max-w-[60ch] text-[16px] leading-[1.55] text-[var(--lp-text-sub)]">{t.palette.interfaceBody}</p>
+        <div className="mt-7 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {brandPalette.slice(4).map(color => (
+            <ColorChip key={color.key} name={t.palette[color.key]} hex={color.hex} labelTone={color.tone} brandLabel={t.palette.interfaceLabel} copyLabel={t.palette.copy} copiedLabel={t.palette.copied} />
+          ))}
         </div>
       </Section>
 
       {/* VOICE RULES */}
       <Section tone="light" compact>
         <BracketTag onDark={false}>{t.voice.tag}</BracketTag>
-        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
-          {t.voice.headline}.
-        </DisplayHeadline>
-        <p className="mt-6 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+        <h2 className="mt-4 text-[clamp(34px,4vw,56px)] font-medium leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{t.voice.headline}.</h2>
+        <p className="mt-6 max-w-[60ch] text-[17px] leading-[1.55] text-[var(--lp-text-sub)]">
           {t.voice.body}
         </p>
 
         <div className="mt-10 grid md:grid-cols-2 gap-5">
-          <PageCard>
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
             <div className="p-6 md:p-7 space-y-3">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent)]">
+              <p className="mono text-[12px] font-semibold text-[var(--lp-accent-on-light)]">
                 {t.voice.wordsWeUseLabel}
               </p>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[16px] leading-[1.55] text-[var(--lp-text-sub)]">
                 {t.voice.wordsWeUseBody}
               </p>
             </div>
-          </PageCard>
-          <PageCard>
+          </div>
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
             <div className="p-6 md:p-7 space-y-3">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[#b03d3a]">
+              <p className="mono text-[12px] font-semibold text-[var(--color-critical)]">
                 {t.voice.wordsWeAvoidLabel}
               </p>
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[16px] leading-[1.55] text-[var(--lp-text-sub)]">
                 {t.voice.wordsWeAvoidBody}
               </p>
             </div>
-          </PageCard>
+          </div>
         </div>
       </Section>
 
       {/* PARTNER CO-MARK */}
       <Section tone="light" compact>
         <BracketTag onDark={false}>{t.partner.tag}</BracketTag>
-        <DisplayHeadline as="h2" size="md" onDark={false} className="mt-4">
-          {t.partner.headline}.
-        </DisplayHeadline>
-        <p className="mt-6 max-w-[60ch] text-[15px] leading-relaxed text-[var(--lp-text-sub)]">
+        <h2 className="mt-4 text-[clamp(34px,4vw,56px)] font-medium leading-[1.08] tracking-[-0.045em] text-[var(--lp-dark)]">{t.partner.headline}.</h2>
+        <p className="mt-6 max-w-[60ch] text-[17px] leading-[1.55] text-[var(--lp-text-sub)]">
           {t.partner.body}
         </p>
 
         <div className="mt-10">
-          <PageCard>
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 p-5 sm:gap-6 sm:p-7 md:gap-10">
-              <span
-                className="min-w-0 truncate text-end font-sans font-extrabold tracking-[-0.025em]"
-                style={{ fontSize: 'clamp(18px, 5vw, 36px)', color: 'var(--lp-dark)' }}
-              >
-                KARWAN<span style={{ color: 'var(--lp-accent)' }}>.</span>
+              <span className="flex min-w-0 items-center justify-end gap-2.5 text-[clamp(18px,5vw,36px)] font-semibold tracking-[-0.045em] text-[var(--lp-dark)]">
+                <img src="/karwan-app-icon.svg" alt="" width="36" height="36" className="size-8 shrink-0 sm:size-9" />
+                <span className="truncate">Karwan</span>
               </span>
               <span
                 aria-hidden
@@ -193,7 +145,7 @@ export default function BrandPage() {
                 {t.partner.partnerLabel}
               </span>
             </div>
-          </PageCard>
+          </div>
         </div>
       </Section>
 
@@ -201,12 +153,11 @@ export default function BrandPage() {
       <Section tone="dark" compact>
         <SectionGrid />
         <BracketTag>{t.contact.tag}</BracketTag>
-        <DisplayHeadline as="h2" size="md" className="mt-4">
+        <h2 className="mt-4 text-[clamp(34px,4vw,56px)] font-medium leading-[1.08] tracking-[-0.045em] text-[#F4F4F1]">
           {t.contact.headlineLead}{' '}
-          <span className="text-[var(--accent)]">{t.contact.headlineAccent}</span>
-          .
-        </DisplayHeadline>
-        <p className="mt-6 max-w-[52ch] text-[15px] leading-relaxed text-white/65">
+          <span className="text-[var(--accent)]">{t.contact.headlineAccent}</span>.
+        </h2>
+        <p className="mt-6 max-w-[52ch] text-[17px] leading-[1.55] text-[var(--lp-text-on-dark-muted)]">
           {t.contact.body}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -236,23 +187,23 @@ function LogoCard({
 }: {
   label: string;
   href: string;
-  pngHref: string;
+  pngHref?: string;
   preview: ReactNode;
 }) {
   return (
-    <PageCard>
+    <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
       <div
         className="overflow-hidden"
         style={{
           borderTopLeftRadius: 14,
           borderTopRightRadius: 14,
           borderBottomLeftRadius: 14,
-          borderBottomRightRadius: 4,
+          borderBottomRightRadius: 14,
         }}
       >
         {preview}
         <div className="px-5 py-4 space-y-2 border-t border-[var(--lp-border-light)]">
-          <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+          <p className="mono text-[12px] font-medium text-[var(--lp-text-sub)]">
             {label.toUpperCase()}
           </p>
           <div className="flex flex-wrap items-center gap-1">
@@ -263,17 +214,17 @@ function LogoCard({
             >
               SVG
             </a>
-            <a
+            {pngHref && <a
               href={pngHref}
               download
               className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[12px] uppercase tracking-[0.1em] text-[var(--lp-dark)] underline underline-offset-2 transition-colors hover:text-[var(--lp-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               PNG
-            </a>
+            </a>}
           </div>
         </div>
       </div>
-    </PageCard>
+    </div>
   );
 }
 
@@ -305,14 +256,14 @@ function ColorChip({
     }
   }
   return (
-    <PageCard>
+    <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
       <div
         className="overflow-hidden"
         style={{
           borderTopLeftRadius: 14,
           borderTopRightRadius: 14,
           borderBottomLeftRadius: 14,
-          borderBottomRightRadius: 4,
+          borderBottomRightRadius: 14,
         }}
       >
         <div
@@ -323,7 +274,7 @@ function ColorChip({
           }}
         >
           <span
-            className="mono text-[10px] uppercase tracking-[0.14em]"
+            className="mono text-[12px] font-semibold"
             style={{ color: labelTone === 'dark' ? '#0E0E0E' : '#FFFFFF' }}
           >
             {brandLabel}
@@ -331,22 +282,22 @@ function ColorChip({
         </div>
         <div className="px-5 py-4 flex items-center justify-between gap-3">
           <div>
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+            <p className="mono text-[12px] font-medium text-[var(--lp-text-sub)]">
               {name.toUpperCase()}
             </p>
-            <p className="mt-1 mono text-[14px] tabular-nums text-[var(--lp-dark)]">
+            <p className="mt-1 mono text-[15px] tabular-nums text-[var(--lp-dark)]">
               {hex}
             </p>
           </div>
           <button
             type="button"
             onClick={copy}
-            className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)] underline underline-offset-2 transition-colors hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="mono inline-flex min-h-11 min-w-11 items-center justify-center px-2 text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-2 transition-colors hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {copied ? copiedLabel : copyLabel}
           </button>
         </div>
       </div>
-    </PageCard>
+    </div>
   );
 }

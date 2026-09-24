@@ -24,7 +24,8 @@ export function ProductBackLink({
     <button
       type="button"
       onClick={() => {
-        if (window.history.length > 1) {
+        const documentation = pathname === '/how-it-works' || pathname?.startsWith('/docs');
+        if (!documentation && window.history.length > 1) {
           router.back();
           return;
         }
@@ -36,7 +37,7 @@ export function ProductBackLink({
         className,
       )}
     >
-      <span aria-hidden className="rtl-flip text-[18px] leading-none transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
+      <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
       <span>{t.nav.back}</span>
     </button>
   );

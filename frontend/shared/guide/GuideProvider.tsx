@@ -506,9 +506,12 @@ function GuideOverlay() {
           position: 'fixed',
           left: 12,
           right: 12,
-          bottom: 'max(16px, env(safe-area-inset-bottom))',
+          top: rect ? undefined : 16,
+          bottom: rect ? 'max(16px, env(safe-area-inset-bottom))' : 16,
+          height: rect ? undefined : 'fit-content',
+          marginBlock: rect ? undefined : 'auto',
           marginInline: 'auto',
-          maxWidth: 420,
+          maxWidth: rect ? 420 : 520,
           zIndex: 1002,
         }}
         className={`max-h-[calc(100dvh-32px)] overflow-y-auto outline-none ${reduced ? '' : 'fade-up'}`}
@@ -517,10 +520,7 @@ function GuideOverlay() {
           style={{
             background: 'var(--lp-card)',
             border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            borderBottomLeftRadius: 16,
-            borderBottomRightRadius: 4,
+            borderRadius: 16,
             boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 20px 56px -18px rgba(0,0,0,0.34)',
           }}
           className="p-5"
@@ -577,10 +577,7 @@ function GuideOverlay() {
                 onClick={next}
                 className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[#10170b] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
                 style={{
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 3,
+                  borderRadius: 10,
                 }}
               >
                 {isLast ? copy.done : copy.next}

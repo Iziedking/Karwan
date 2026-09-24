@@ -197,19 +197,16 @@ export function CTAPill({
   busy?: boolean;
 }) {
   const base =
-    'group karwan-cta inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em] ' +
+    'group karwan-cta inline-flex min-h-11 items-center gap-2 px-[22px] py-[13px] text-[14px] font-semibold ' +
     'transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 ' +
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 ' +
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0';
   const corners = {
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 4,
+    borderRadius: 14,
   };
   const fill =
     variant === 'primary'
-      ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_4px_0_rgba(0,0,0,0.22)] hover:shadow-[0_5px_0_rgba(0,0,0,0.22)] active:shadow-[0_1px_0_rgba(0,0,0,0.22)]'
+      ? 'bg-[var(--lp-accent)] text-[var(--accent-ink)]'
       : tone === 'dark'
         ? 'border border-[var(--lp-workspace-border)] text-[var(--lp-workspace-ink)] hover:border-[var(--lp-workspace-ink)]'
         : 'border border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-hover)]';
@@ -283,10 +280,7 @@ export function BigStatTile({
         border: isDark
           ? '1px solid var(--lp-workspace-border)'
           : '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 4,
+        borderRadius: 16,
       }}
     >
       <div
@@ -340,7 +334,7 @@ export function BigStatTile({
 export function PageCard({
   children,
   className,
-  asymmetric = true,
+  asymmetric = false,
   tone = 'card',
 }: {
   children: ReactNode;

@@ -1,4 +1,5 @@
 'use client';
+import { LpHint } from '@/shared/components/LpHint';
 import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -399,28 +400,28 @@ function OnboardingInner() {
               )}
               {step === 'accountType' && (
                 <>
-                  {t.onboarding.accountTypeStep.headlinePrefix}
+                  {t.onboarding.accountTypeStep.headlinePrefix}{' '}
                   <Accent>{t.onboarding.accountTypeStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
               {step === 'connect' && (
                 <>
-                  {t.onboarding.connectStep.headlinePrefix}
+                  {t.onboarding.connectStep.headlinePrefix}{' '}
                   <Accent>{t.onboarding.connectStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
               )}
               {step === 'role' && (
                 <>
-                  {t.onboarding.roleStep.headlinePrefix}
+                  {t.onboarding.roleStep.headlinePrefix}{' '}
                   <Accent>{t.onboarding.roleStep.headlineAccent}</Accent>
                   <Punc>?</Punc>
                 </>
               )}
               {step === 'profile' && (
                 <>
-                  {t.onboarding.profileStep.headlinePrefix}
+                  {t.onboarding.profileStep.headlinePrefix}{' '}
                   <Accent>
                     {accountType === 'business'
                       ? t.onboarding.businessProfileStep.headlineAccent
@@ -431,7 +432,7 @@ function OnboardingInner() {
               )}
               {step === 'getReady' && (
                 <>
-                  {t.onboarding.getReadyStep.headlinePrefix}
+                  {t.onboarding.getReadyStep.headlinePrefix}{' '}
                   <Accent>{t.onboarding.getReadyStep.headlineAccent}</Accent>
                   <Punc>.</Punc>
                 </>
@@ -627,10 +628,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
         style={{
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
+          borderRadius: 16,
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
         }}
       >
@@ -643,10 +641,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
             onClick={onLogin}
             className="inline-flex min-h-11 items-center gap-2 px-[20px] py-[12px] mono text-[12px] font-semibold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_3px_0_rgba(0,0,0,0.18)] hover:shadow-[0_4px_0_rgba(0,0,0,0.18)] active:shadow-[0_1px_0_rgba(0,0,0,0.18)]"
             style={{
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
+              borderRadius: 12,
             }}
           >
             {t.loginButton}
@@ -663,9 +658,7 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
           onClick={onBack}
           className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            ←
-          </span>
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {back}
         </button>
       </div>
@@ -787,20 +780,14 @@ function AccountTypeStep({
         </div>
       </div>
 
-      <p className="text-start mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-muted)] max-w-[52ch] mx-auto">
-        {ats.note}
-      </p>
-
       <div className="flex justify-between items-center pt-2">
         <button
           type="button"
           onClick={onBack}
           className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            ←
-          </span>
-          {t.roleStep.backArrow}
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
+          {t.roleStep.backArrow.replace(/[←→]/g, "").trim()}
         </button>
         <CTAPill onClick={onContinue} disabled={!selected} tone="light">
           {t.roleStep.continueArrow}
@@ -850,7 +837,7 @@ function AccountCard({
       onClick={() => onSelect(kind)}
       aria-pressed={isSel}
       className={cn(
-        'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out ',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
@@ -858,10 +845,7 @@ function AccountCard({
         surface,
       )}
       style={{
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
+        borderRadius: 16,
       }}
     >
       <div className="flex h-full flex-col p-5 sm:p-6">
@@ -988,9 +972,7 @@ function RoleStep({
           onClick={onBack}
           className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            ←
-          </span>
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
           {t.backArrow}
         </button>
         <CTAPill onClick={onContinue} disabled={!role} tone="light">
@@ -1067,7 +1049,7 @@ function RoleCard({
       onClick={() => onSelect(role)}
       aria-pressed={isSel}
       className={cn(
-        'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out card-shimmer',
+        'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out ',
         'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
@@ -1075,10 +1057,7 @@ function RoleCard({
         surface,
       )}
       style={{
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
+        borderRadius: 16,
       }}
     >
       <div className="flex h-full flex-col p-5 sm:p-6">
@@ -1294,12 +1273,14 @@ function RangePresets({
 
 function ValuePresets<T extends string | number>({
   label,
+  hint,
   values,
   current,
   onSelect,
   format,
 }: {
   label: string;
+  hint?: string;
   values: readonly T[];
   current: T;
   onSelect: (value: T) => void;
@@ -1307,7 +1288,10 @@ function ValuePresets<T extends string | number>({
 }) {
   return (
     <div className="space-y-2.5">
-      <p className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">{label}</p>
+      <p className="flex items-center gap-2 font-sans text-[13px] font-bold text-[var(--lp-dark)]">
+        {label}
+        {hint && <LpHint>{hint}</LpHint>}
+      </p>
       <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
         {values.map((value) => {
           const selected = current === value;
@@ -1379,11 +1363,12 @@ function BusinessProfileStep(props: {
 }) {
   const t = useTranslations().onboarding;
   const common = useTranslations().common;
+  const reviewCopy = useTranslations().onboardingReview;
   const bs = t.businessProfileStep;
   const ps = t.profileStep;
   const skillSuggestions = Object.values(ps.seller.skillSuggestions);
   const [panel, setPanel] = useState(0);
-  const totalPanels = 3;
+  const totalPanels = 4;
   const panelValid =
     panel === 0
       ? props.displayName.trim().length > 0
@@ -1447,12 +1432,7 @@ function BusinessProfileStep(props: {
 
       {panel === 2 && (
       <ProfileSection number="03" title={bs.dealEyebrow}>
-        <MatchingPreview
-          eyebrow={ps.matching.eyebrow}
-          title={ps.matching.sellerTitle}
-          body={ps.matching.sellerBody}
-          budget={`${props.dealMin.toLocaleString()}–${props.dealMax.toLocaleString()} USDC`}
-        />
+        <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{reviewCopy.purpose}</p>
         <RangePresets
           label={ps.matching.dealSizePresets}
           ranges={SELLER_BUDGET_PRESETS}
@@ -1471,6 +1451,12 @@ function BusinessProfileStep(props: {
       </ProfileSection>
       )}
 
+      {panel === 3 && <ProfileSection number="04" title={reviewCopy.review}>
+        <p className="text-[20px] font-semibold">{props.displayName}</p>
+        <p className="text-[15px] text-[var(--lp-text-sub)]">{props.skills}</p>
+        <MatchingPreview eyebrow={ps.matching.eyebrow} title={ps.matching.sellerTitle} body={ps.matching.sellerBody} budget={`${props.dealMin.toLocaleString()}–${props.dealMax.toLocaleString()} USDC`} />
+      </ProfileSection>}
+
       <div className="flex justify-between items-center pt-4">
         <button
           type="button"
@@ -1480,10 +1466,8 @@ function BusinessProfileStep(props: {
           }}
           className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            ←
-          </span>
-          {t.roleStep.backArrow}
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
+          {t.roleStep.backArrow.replace(/[←→]/g, "").trim()}
         </button>
         <CTAPill
           onClick={() => {
@@ -1539,21 +1523,23 @@ function ProfileStep(props: {
 }) {
   const t = useTranslations().onboarding;
   const common = useTranslations().common;
+  const reviewCopy = useTranslations().onboardingReview;
   const ps = t.profileStep;
   const skillSuggestions = Object.values(ps.seller.skillSuggestions);
   const wantsSeller = props.role === 'seller' || props.role === 'both';
   const wantsBuyer = props.role === 'buyer' || props.role === 'both';
-  type ProfilePanel = 'identity' | 'sellerDetails' | 'sellerLimits' | 'buyer';
+  type ProfilePanel = 'identity' | 'sellerDetails' | 'sellerLimits' | 'buyer' | 'review';
   const panels: ProfilePanel[] = [
     'identity',
     ...(wantsSeller ? (['sellerDetails', 'sellerLimits'] as ProfilePanel[]) : []),
     ...(wantsBuyer ? (['buyer'] as ProfilePanel[]) : []),
+    'review',
   ];
   const [panel, setPanel] = useState(0);
   const currentPanel = panels[Math.min(panel, panels.length - 1)] ?? 'identity';
   const splitValues = parseMilestoneSplit(props.milestoneSplit);
   const panelValid =
-    currentPanel === 'identity'
+    currentPanel === 'review' ? props.canSubmit : currentPanel === 'identity'
       ? props.displayName.trim().length > 0
       : currentPanel === 'sellerDetails'
         ? props.skills.split(',').some((skill) => skill.trim()) && props.bio.trim().length > 0
@@ -1616,13 +1602,7 @@ function ProfileStep(props: {
 
       {currentPanel === 'sellerLimits' && (
         <ProfileSection number={String(panel + 1).padStart(2, '0')} eyebrow={ps.seller.eyebrow} title={ps.seller.title}>
-          <MatchingPreview
-            eyebrow={ps.matching.eyebrow}
-            title={ps.matching.sellerTitle}
-            body={ps.matching.sellerBody}
-            budget={`${props.sellerMin.toLocaleString()}–${props.sellerMax.toLocaleString()} USDC`}
-            delivery={`${props.sellerMinDays}–${props.sellerMaxDays} DAYS`}
-          />
+          <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{reviewCopy.purpose}</p>
           <RangePresets
             label={ps.matching.dealSizePresets}
             ranges={SELLER_BUDGET_PRESETS}
@@ -1643,7 +1623,7 @@ function ProfileStep(props: {
               props.setSellerMinDays(range.min);
               props.setSellerMaxDays(range.max);
             }}
-            suffix="DAYS"
+            suffix={reviewCopy.days}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <NumField
@@ -1680,13 +1660,7 @@ function ProfileStep(props: {
           eyebrow={ps.buyer.eyebrow}
           title={ps.buyer.title}
         >
-          <MatchingPreview
-            eyebrow={ps.matching.eyebrow}
-            title={ps.matching.buyerTitle}
-            body={ps.matching.buyerBody}
-            budget={`≤ ${props.buyerMax.toLocaleString()} USDC`}
-            delivery={`${props.buyerMinDays}–${props.buyerMaxDays} DAYS`}
-          />
+          <p className="text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{reviewCopy.purpose}</p>
           <ValuePresets
             label={ps.matching.dealSizePresets}
             values={BUYER_BUDGET_PRESETS}
@@ -1703,7 +1677,7 @@ function ProfileStep(props: {
               props.setBuyerMinDays(range.min);
               props.setBuyerMaxDays(range.max);
             }}
-            suffix="DAYS"
+            suffix={reviewCopy.days}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <NumField
@@ -1737,6 +1711,7 @@ function ProfileStep(props: {
           </Field>
           <ValuePresets
             label={ps.matching.milestonePresets}
+            hint={ps.matching.milestonePresetsHint}
             values={MILESTONE_PRESETS}
             current={props.milestoneSplit}
             onSelect={props.setMilestoneSplit}
@@ -1744,6 +1719,12 @@ function ProfileStep(props: {
           />
         </ProfileSection>
       )}
+
+      {currentPanel === 'review' && <ProfileSection number={String(panel + 1).padStart(2, '0')} title={reviewCopy.review}>
+        <p className="text-[20px] font-semibold">{props.displayName}</p>
+        {wantsSeller && <MatchingPreview eyebrow={ps.seller.eyebrow} title={ps.matching.sellerTitle} body={ps.matching.sellerBody} budget={`${props.sellerMin.toLocaleString()}–${props.sellerMax.toLocaleString()} USDC`} delivery={`${props.sellerMinDays}–${props.sellerMaxDays} ${reviewCopy.days}`} />}
+        {wantsBuyer && <MatchingPreview eyebrow={ps.buyer.eyebrow} title={ps.matching.buyerTitle} body={ps.matching.buyerBody} budget={`≤ ${props.buyerMax.toLocaleString()} USDC`} delivery={`${props.buyerMinDays}–${props.buyerMaxDays} ${reviewCopy.days}`} />}
+      </ProfileSection>}
 
       <div className="flex justify-between items-center pt-4">
         <button
@@ -1754,10 +1735,8 @@ function ProfileStep(props: {
           }}
           className="group inline-flex min-h-11 items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
         >
-          <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">
-            ←
-          </span>
-          {t.roleStep.backArrow}
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" className="rtl-flip shrink-0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m6-6-6 6 6 6" /></svg>
+          {t.roleStep.backArrow.replace(/[←→]/g, "").trim()}
         </button>
         <CTAPill
           onClick={() => {
@@ -1798,10 +1777,7 @@ function ProfileSection({
       style={{
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 26,
-        borderTopRightRadius: 26,
-        borderBottomLeftRadius: 26,
-        borderBottomRightRadius: 7,
+        borderRadius: 16,
         boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 22px 54px -30px rgba(0,0,0,0.22)',
       }}
     >
@@ -1816,7 +1792,7 @@ function ProfileSection({
             </span>
           )}
         </div>
-        <h2 className="mt-4 font-sans text-[21px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">
+        <h2 className="mt-4 font-sans text-[28px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)] sm:text-[32px]">
           {title}
         </h2>
       </header>
@@ -1836,7 +1812,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-2.5">
-      <span className="flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-text-sub)]">
+      <span className="flex items-center gap-2 text-[14px] font-semibold text-[var(--lp-text-sub)]">
         {label}
         {hint && <Hint>{hint}</Hint>}
       </span>

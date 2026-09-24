@@ -30,10 +30,7 @@ export function ActivityFilters({
         style={{
           background: 'var(--lp-light)',
           border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 9,
-          borderTopRightRadius: 9,
-          borderBottomLeftRadius: 9,
-          borderBottomRightRadius: 2,
+          borderRadius: 10,
         }}
       >
         {actors.map((a) => {
@@ -44,15 +41,12 @@ export function ActivityFilters({
               type="button"
               onClick={() => onToggleActor(a)}
               aria-pressed={active}
-              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              className="relative inline-flex min-h-11 items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
               style={{
                 background: active ? 'var(--lp-card)' : 'transparent',
                 color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)',
                 border: active ? '1px solid var(--lp-border-light)' : '1px solid transparent',
-                borderTopLeftRadius: 7,
-                borderTopRightRadius: 7,
-                borderBottomLeftRadius: 7,
-                borderBottomRightRadius: 2,
+                borderRadius: 8,
                 boxShadow: active ? '0 1px 0 rgba(0,0,0,0.04)' : 'none',
               }}
             >
@@ -90,10 +84,7 @@ export function ActivityFilters({
           className="activity-search w-full min-h-11 bg-[var(--lp-card)] ps-8 pe-8 py-2 text-[12px] mono tabular-nums focus:outline-none transition-shadow placeholder:text-[var(--lp-text-sub)] placeholder:normal-case text-[var(--lp-dark)]"
           style={{
             border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 9,
-            borderTopRightRadius: 9,
-            borderBottomLeftRadius: 9,
-            borderBottomRightRadius: 2,
+            borderRadius: 10,
           }}
         />
         {jobIdSearch && (

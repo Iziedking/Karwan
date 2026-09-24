@@ -32,7 +32,8 @@ test('home explains both sides of trade with one heading and no prerequisite jar
   assert.match(html, /Find something to buy/);
   assert.match(html, /I already have an agreement/);
   assert.doesNotMatch(html, /other websites is planned/);
-  assert.doesNotMatch(html, /stake|pooled|workspace|research credit|<button/);
+  assert.doesNotMatch(html.replace(/<[^>]+>/g, ' '), /stake|pooled|workspace|research credit/i);
+  assert.doesNotMatch(html, /<button/);
 });
 
 test('every supported language includes all entry labels', () => {

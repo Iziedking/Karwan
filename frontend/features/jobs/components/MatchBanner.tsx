@@ -618,7 +618,7 @@ function CounterpartySignal({
     };
   }, [address]);
 
-  const avatarUrl = profile?.xProfileImageUrl?.trim() || null;
+  const avatarUrl = (profile?.profileImageDataUrl || profile?.xProfileImageUrl)?.trim() || null;
   const xHandle = profile?.xHandle?.replace(/^@/, '') || null;
   const passportHref = `/credit-passport/${address}`;
   const xHref = xHandle ? `https://x.com/${xHandle}` : null;

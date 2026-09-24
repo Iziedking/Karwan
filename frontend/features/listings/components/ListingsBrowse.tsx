@@ -474,10 +474,7 @@ function MarketCard({
   const cardStyle = {
     background: 'var(--lp-card)',
     border: '1px solid var(--lp-border-light)',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 5,
+    borderRadius: 16,
   } as const;
 
   const content = (

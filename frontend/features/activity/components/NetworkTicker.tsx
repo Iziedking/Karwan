@@ -174,7 +174,7 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         borderTopLeftRadius: 14,
         borderTopRightRadius: 14,
         borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
+        borderBottomRightRadius: 14,
         opacity: muted ? 0.5 : 1,
         transition: 'border-color 240ms cubic-bezier(0.16,1,0.3,1)',
       }}

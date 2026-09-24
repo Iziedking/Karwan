@@ -171,8 +171,8 @@ html[data-theme="dark"] {
   --lp-workspace-band: var(--karwan-canvas);
   --lp-workspace-raised: var(--karwan-card);
   --lp-workspace-ink: var(--ink-inv-0);
-  --lp-workspace-muted: #62625D;
-  --lp-workspace-faint: #7A7A74;
+  --lp-workspace-muted: #414952;
+  --lp-workspace-faint: #46505A;
   --lp-workspace-border: rgba(10, 10, 11, 0.12);
   --lp-workspace-soft: rgba(10, 10, 11, 0.045);
   --lp-workspace-grid: rgba(10, 10, 11, 0.045);
@@ -185,10 +185,10 @@ html[data-theme="dark"] {
      Landing bands stay dark in both themes, while accent display copy can sit
      on a light page. Reusing the theme-aware muted/accent tokens made those
      combinations fail WCAG contrast in the production Lighthouse audit. */
-  --lp-text-on-dark-muted: #80807C;
-  --lp-accent-on-light: #687B1F;
+  --lp-text-on-dark-muted: #a6aaa2;
+  --lp-accent-on-light: #42560F;
   --lp-text-muted: var(--ink-inv-2);
-  --lp-text-sub: var(--ink-inv-2);
+  --lp-text-sub: #3F4851;
   --lp-border-subtle: var(--rule-dark);
   --lp-border-light: var(--rule-light);
   /* Form fields, split out from --lp-card because an input and the panel it sits
@@ -198,7 +198,7 @@ html[data-theme="dark"] {
      (1.08:1 measured). These aliases keep light mode byte-identical and give the
      dark override somewhere to land. */
   --lp-field: var(--paper-1);
-  --lp-field-border: var(--lp-border-light);
+  --lp-field-border: #596672;
   /* Outlines on unselected chips, toggles and option rows. Previously written as
      literal black/15 and black/40 at the call sites, which is invisible on a dark
      surface: 1.03:1, i.e. the affordance is gone, not merely quiet. */
@@ -216,18 +216,16 @@ html[data-theme="dark"] {
    reserved for settlement state (never decorative). Hairlines via --rule-*.
    Co-exists with the legacy --lp-* tokens during the migration to the new system. */
 :root {
-  /* Karwan brand constants. The light workspace uses the approved neutral
-     canvas from the color review, with a softly lifted card surface for clear
-     separation without a pure-white glare. The landing page keeps its fixed
-     dark treatment through LANDING_NAV_VARS and dark bands. */
+  /* A cool, matte field carries both the public and account surfaces. Raised
+     reading areas remain warm paper so text never sits on visual noise. */
   --karwan-green: #AFC95B;
-  --karwan-canvas: #E4EAEE;
+  --karwan-canvas: #C7D3E2;
   --karwan-card: #F4F4F1;
 
   /* Surface */
-  --surface-0: #0A0A0B;   /* app shell, hero, dark sections */
-  --surface-1: #111114;   /* raised cards on dark */
-  --surface-2: #1A1A1F;   /* deeper inset, inputs on dark */
+  --surface-0: #10171D;   /* charcoal page field */
+  --surface-1: #1C2730;   /* raised cards on dark */
+  --surface-2: #26343F;   /* deeper inset, inputs on dark */
   --paper-0:   var(--karwan-canvas); /* light workspace canvas */
   --paper-1:   var(--karwan-card);   /* raised cards on light */
   --paper-2:   #ECECE7;   /* inset on light */
@@ -235,12 +233,12 @@ html[data-theme="dark"] {
   /* Ink */
   --ink-0:     #FFFFFF;
   --ink-1:     #E6E6E3;   /* primary on dark */
-  --ink-2:     #9A9A95;   /* secondary on dark */
+  --ink-2:     #AEBBC6;   /* secondary on dark */
   --ink-3:     #5A5A57;   /* tertiary / mono labels */
   --ink-inv-0: #0A0A0B;   /* primary on light */
   /* 4.97:1 on the page canvas. #6E6E6A measured 4.21:1 and failed WCAG AA for
      the 13-14px secondary text it carries everywhere. */
-  --ink-inv-2: #63635F;
+  --ink-inv-2: #46505A;
 
   /* Accent — USE SPARINGLY (one focal indicator per screen max). Toned down
      from the original electric `#D8FF3D` because users flagged eye fatigue;
@@ -296,23 +294,23 @@ html[data-theme="dark"] {
      --lp-light on a --lp-band-dark surface is invisible in dark mode, which
      is how a selected chip lost its label. Use #ffffff for text on a fixed
      dark band, never --lp-light. */
-  --lp-light: #0a0d0b;
+  --lp-light: #10171D;
   /* Cards rise one notch above the surface for the same "panel on paper" feel
      the light theme has with white-on-cream. */
-  --lp-card: #131814;
+  --lp-card: #1C2730;
   /* Borders invert from ink-on-cream to light-on-black. */
   --lp-border-light: rgba(238, 244, 235, 0.105);
   --lp-border-subtle: rgba(238, 244, 235, 0.075);
   /* Muted/sub text bumps brighter so 11–12px mono labels stay legible. */
-  --lp-text-muted: #879087;
-  --lp-text-sub: #bcc4bc;
+  --lp-text-muted: #AEBBC6;
+  --lp-text-sub: #D0D8DF;
   --lp-accent-on-light: var(--accent);
   /* Fields RISE above both panel surfaces rather than receding. Recessing them
      was tried on paper and measures worse: every colour darker than --lp-light
      lands within 1.07:1 of it, because there is very little room left below
      #14141a. Raising to #26262e reads 1.22:1 against the page and 1.13:1 against
      a card, so a field is identifiable on either. */
-  --lp-field: #1a211c;
+  --lp-field: #26343F;
   /* The border is what actually carries the field, so it meets the 3:1 that WCAG
      asks of a UI component boundary (3.05:1 measured against --lp-field). The
      inherited 9% white hairline managed 1.29:1. */
@@ -322,11 +320,11 @@ html[data-theme="dark"] {
   --lp-outline-hover: rgba(255, 255, 255, 0.55);
   /* Preserve the approved dark workspace byte-for-byte while light mode uses
      the paper-led composition above. */
-  --lp-workspace-band: #0a0d0b;
-  --lp-workspace-raised: #151b17;
-  --lp-workspace-ink: #f4f6f2;
-  --lp-workspace-muted: #b2bbb2;
-  --lp-workspace-faint: #7d877e;
+  --lp-workspace-band: #10171D;
+  --lp-workspace-raised: #1C2730;
+  --lp-workspace-ink: #F4F6F8;
+  --lp-workspace-muted: #B9C5CE;
+  --lp-workspace-faint: #AEBBC6;
   --lp-workspace-border: rgba(238, 244, 235, 0.11);
   --lp-workspace-soft: rgba(238, 244, 235, 0.065);
   --lp-workspace-grid: rgba(238, 244, 235, 0.04);
@@ -344,6 +342,7 @@ html[data-theme="dark"] {
   html,
   body {
     background: var(--color-bg);
+    background-image: url('/brand/karwan-matte-grain.svg');
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11", "tnum";
@@ -377,7 +376,7 @@ html[data-theme="dark"] {
      elements. The `.no-scrollbar` utility still opts individual tracks out. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--accent) transparent;
+    scrollbar-color: var(--lp-text-muted) var(--lp-light);
   }
   ::-webkit-scrollbar {
     width: 7px;
@@ -387,11 +386,11 @@ html[data-theme="dark"] {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--accent);
+    background: var(--lp-text-muted);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-deep);
+    background: var(--lp-text-sub);
   }
   ::-webkit-scrollbar-corner {
     background: transparent;
@@ -416,7 +415,7 @@ html[data-theme="dark"] {
   /* Visible keyboard focus everywhere. Components that render their own ring
      (Button) opt out with focus-visible:outline-none. */
   :focus-visible {
-    outline: 2px solid var(--accent);
+  outline: 2px solid var(--lp-accent-on-light);
     outline-offset: 2px;
   }
   :focus:not(:focus-visible) {
@@ -469,6 +468,17 @@ html[data-theme="dark"] {
    The landing page does not opt into these classes. */
 .product-surface {
   --product-panel-shadow: 0 18px 60px -42px rgba(10, 13, 11, 0.28);
+}
+
+/* Repeat the same restrained material on broad themed surfaces, never on
+   cards, inputs or text. The locally generated grain stays static. */
+.product-chrome {
+  background-color: var(--lp-light);
+  background-image: url('/brand/karwan-matte-grain.svg');
+}
+.product-chrome [data-surface="workspace"],
+.product-chrome [data-surface="paper"] {
+  background-image: url('/brand/karwan-matte-grain.svg');
 }
 
 /* A single trade-lane drawing gives the workspace a sense of place without
@@ -586,6 +596,12 @@ html[data-theme="dark"] .product-surface {
   .capability-scene[data-active="true"] .capability-handoff-line { animation: none; }
 }
 
+.home-workbench {
+  /* The persistent rail consumes viewport width; home composition must follow
+     the width that remains, not a viewport breakpoint. */
+  container-type: inline-size;
+}
+
 .home-command-grid {
   display: grid;
   gap: clamp(20px, 4vw, 56px);
@@ -608,7 +624,7 @@ html[data-theme="dark"] .product-surface {
   flex-direction: column;
   overflow: hidden;
   padding: clamp(20px, 3vw, 30px);
-  border-radius: 28px 28px 8px 28px;
+  border-radius: 28px;
 }
 
 .home-position::before {
@@ -629,7 +645,7 @@ html[data-theme="dark"] .product-surface {
 .trade-route {
   min-width: 0;
   padding: clamp(20px, 3vw, 28px);
-  border-radius: 22px 22px 6px 22px;
+  border-radius: 22px;
 }
 
 /* Trade is a working desk, not a second home-page prompt. */
@@ -763,7 +779,7 @@ html[data-theme="dark"] .product-surface {
   gap: 2rem;
   padding: 1.35rem;
   border: 1px solid var(--lp-border-light);
-  border-radius: 1.15rem 1.15rem 1.15rem 0.25rem;
+  border-radius: 1.15rem;
   background: color-mix(in srgb, var(--lp-card) 88%, var(--lp-light));
   color: var(--lp-dark);
   text-decoration: none;
@@ -946,7 +962,7 @@ html[data-theme="dark"] .product-surface {
   min-height: 7.5rem;
   padding: 1.3rem 1.4rem;
   border: 1px solid var(--lp-border-light);
-  border-radius: 0.9rem 0.9rem 0.9rem 0.2rem;
+  border-radius: 0.9rem;
   background: color-mix(in srgb, var(--lp-card) 82%, var(--lp-light));
 }
 
@@ -1217,7 +1233,7 @@ html[data-theme="dark"] .product-surface {
   gap: 32px;
   overflow: hidden;
   border: 1px solid var(--lp-border-light);
-  border-radius: 24px 24px 7px 24px;
+  border-radius: 24px;
   padding: 22px;
   background: var(--lp-card);
   box-shadow: var(--product-panel-shadow);
@@ -1341,7 +1357,7 @@ html[data-theme="dark"] .product-surface {
 .trade-desk-agreement-list {
   overflow: hidden;
   border: 1px solid var(--lp-border-light);
-  border-radius: 22px 22px 7px 22px;
+  border-radius: 22px;
   background: var(--lp-card);
   box-shadow: var(--product-panel-shadow);
 }
@@ -1417,7 +1433,7 @@ html[data-theme="dark"] .product-surface {
   gap: 18px;
   min-height: 114px;
   border: 1px solid var(--lp-border-light);
-  border-radius: 22px 22px 7px 22px;
+  border-radius: 22px;
   padding: 20px;
   background: var(--lp-card);
   box-shadow: var(--product-panel-shadow);
@@ -1811,7 +1827,7 @@ html[data-theme="dark"] .product-surface {
   border-top: 1px solid var(--lp-border-light);
 }
 
-@media (min-width: 960px) {
+@container (min-width: 1080px) {
   .home-command-grid {
     grid-template-columns: minmax(0, 1.18fr) minmax(360px, 0.82fr);
     align-items: stretch;
@@ -1819,12 +1835,15 @@ html[data-theme="dark"] .product-surface {
   .home-position {
     min-height: 420px;
   }
+  .home-deals-grid {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  }
 }
 
 @media (max-width: 639px) {
   .home-position {
     min-height: 330px;
-    border-radius: 22px 22px 7px 22px;
+    border-radius: 22px;
   }
   .deal-flow-label {
     font-size: 10px;
@@ -1851,12 +1870,12 @@ html[data-theme="dark"] .product-surface {
 .account-launcher {
   height: fit-content;
   padding: 22px;
-  border-radius: 22px 22px 7px 22px;
+  border-radius: 22px;
 }
 
 .market-pulse {
   padding: 18px;
-  border-radius: 18px 18px 6px 18px;
+  border-radius: 18px;
 }
 
 .market-searchbar {
@@ -1938,7 +1957,7 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
 @media (max-width: 639px) {
   .account-launcher,
   .market-pulse {
-    border-radius: 18px 18px 6px 18px;
+    border-radius: 18px;
   }
   .market-searchbar {
     margin-inline: -4px;
@@ -2077,16 +2096,29 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
 .deal-view-deck {
   touch-action: pan-y;
 }
-/* Preserve the established dark auth treatment while allowing light mode to
-   inherit the platform-wide paper and ink tokens above. */
+/* The sign-in dialog sits over the slate entry backdrop. Keep its dark
+   surfaces local so the signed-in workspace retains its own theme tokens. */
 html[data-theme="dark"] .auth-capsule {
   color-scheme: dark;
-  --lp-card: #151b17;
-  --lp-dark: #f4f6f2;
-  --lp-light: #1d261f;
-  --lp-text-sub: #b2bbb2;
-  --lp-text-muted: #a5afa6;
-  --lp-border-light: rgba(238, 244, 235, 0.14);
+  --lp-card: #1b242e;
+  --lp-light: #26313d;
+  --lp-field: #26313d;
+  --lp-field-border: #91a0b0;
+  --lp-dark: #f4f6f8;
+  --lp-text-sub: #c5cdd5;
+  --lp-text-muted: #abb8c4;
+  --lp-border-light: rgba(206, 220, 232, 0.18);
+  --lp-outline-strong: rgba(206, 220, 232, 0.48);
+  --lp-workspace-soft: rgba(206, 220, 232, 0.08);
+  border-color: var(--lp-border-light);
+}
+/* An empty email is not the green action yet. Show the disabled control as a
+   readable inset, then reserve Karwan green for an available Continue. */
+html[data-theme="dark"] .auth-capsule .auth-email-continue:disabled {
+  background: var(--lp-light);
+  color: var(--lp-text-muted);
+  border: 1px solid var(--lp-outline-strong);
+  opacity: 1;
 }
 /* Authentication follows the selected app theme. Keep the wallet method
    visibly card-like on light surfaces while preserving the approved dark
@@ -2117,10 +2149,7 @@ html[data-theme="dark"] .auth-wallet-method { background: transparent; }
 }
 .page-feedback-nudge {
   animation: feedback-nudge-in 320ms var(--ease-out) both;
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 5px;
+  border-radius: 16px;
 }
 html[data-auth-dialog='open'] .page-feedback-slot {
   opacity: 0;
@@ -2167,24 +2196,37 @@ html[data-auth-dialog='open'] .page-feedback-slot {
    you can pan left/right to reach it. */
 .w-bleed { width: calc(100vw - var(--scrollbar-width, 0px)); }
 
+/* Workspace bands belong to the available page column, never to the viewport.
+   Reflow with the rail rather than clipping the right edge of the content. */
+[data-workspace-main='true'] .w-bleed {
+  width: 100%;
+  left: auto;
+  right: auto;
+  /* Tailwind's -translate-x-1/2 uses the individual `translate` property.
+     `transform: none` cannot cancel it, and the production CSS optimizer
+     removes `translate: none`. Neutralize the utility at its own variable. */
+  --tw-translate-x: 0px;
+  transform: none;
+}
+
 /* ---- Workspace rail and content reflow -----------------------------------
    The navigation rail and the page canvas share one width contract. The old
    rail only changed its own width, so collapsing it left the content parked
    behind the expanded rail. The canvas now follows the same state and gains
    the space the user just freed. */
 :root {
-  --workspace-content-start: 280px;
+  --workspace-content-start: 268px;
 }
 
 @media (min-width: 1280px) {
   html:not([data-workspace-rail='collapsed']) {
-    --workspace-content-start: 320px;
+    --workspace-content-start: 268px;
   }
 }
 
 @media (min-width: 1536px) {
   html:not([data-workspace-rail='collapsed']) {
-    --workspace-content-start: 360px;
+    --workspace-content-start: 268px;
   }
 }
 
@@ -2370,7 +2412,7 @@ html.theme-shifting *::after {
   min-height: 44px;
   align-items: center;
   gap: 12px;
-  border-radius: 14px 14px 4px 14px;
+  border-radius: 14px;
   padding: 12px 18px;
   font-family: var(--font-sans);
   font-size: 14px;
@@ -2395,7 +2437,7 @@ html.theme-shifting *::after {
 .landing-deal-card {
   position: relative;
   border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 22px 22px 8px 22px;
+  border-radius: 22px;
   padding: clamp(22px, 3vw, 32px);
   background: rgba(13, 19, 15, 0.74);
   box-shadow: 0 24px 70px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08);
@@ -2917,10 +2959,7 @@ html.float-clear [data-float-launcher] {
   padding: 12px 14px;
   font-size: 14px;
   transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 3px;
+  border-radius: 12px;
 }
 .form-input:focus {
   outline: none;
@@ -2961,10 +3000,7 @@ html[data-theme="dark"] .form-input::placeholder {
   padding: 12px 14px;
   font-size: 14px;
   transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 3px;
+  border-radius: 12px;
 }
 .form-input-dark:focus {
   outline: none;
