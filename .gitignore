@@ -5,6 +5,7 @@ node_modules/
 !.env.mainnet.example
 /data-mainnet/
 .env.vps
+.env.mainnet
 
 # Agent / review working files. Screenshots and scratch notes never get
 # committed. (Memory + browser screenshots already live outside the repo under
@@ -162,6 +163,7 @@ artifacts/
 # hackathon submission documents: internal
 submission/
 banners/
+design/
 # ETHOnline 2026 internal planning, execution, and submission evidence.
 /docs/hackathons/ethonline2026/
 # deck generator, local tooling only
@@ -182,6 +184,7 @@ docs/space-paytag-2026-08-16.md
 # Internal documentation is private by default. Explicitly allow public docs.
 # Add future public documents here deliberately; do not force-add private plans.
 /docs/*
+!/docs/agent-lanes.md
 !/docs/agent-workflows.md
 !/docs/architecture.md
 !/docs/circle-agent-marketplace-services.md
