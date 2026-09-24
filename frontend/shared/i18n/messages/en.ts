@@ -1855,6 +1855,7 @@ interface MessagesShape {
   pageBits: {
     stake: {
       networkYield: string;
+      networkYieldHint: string;
       tokenizedTbills: string;
       verifiedYield: string;
       yourYield: string;
@@ -7337,6 +7338,7 @@ export const en: MessagesShape = {
   pageBits: {
     stake: {
       networkYield: 'NETWORK YIELD',
+      networkYieldHint: 'Stakers are paid at the USYC rate, the return on tokenized US Treasuries. On testnet Karwan funds these payouts.',
       tokenizedTbills: 'Tokenized T-bills',
       verifiedYield: 'Verified yield',
       yourYield: 'YOUR YIELD',
@@ -10318,7 +10320,7 @@ export const en: MessagesShape = {
         disputes: { title: 'Dispute resolution paths.', body: 'A dispute that survives the two sides talking goes to an arbiter, who splits the unreleased funds by basis points rather than picking a winner. The same ruling settles the seller\'s reserved stake in proportion to fault. A dead arbiter key can delay a deal but never trap it: after the timeout either party can push it to its default outcome.' },
         symmetric: { title: 'Both sides earn a record.', body: 'A settled deal credits the buyer and the seller on chain, not only the seller, and each side gains a distinct counterparty the first time a pair settles. Standing is value-weighted and counts distinct counterparties, so volume with one repeat partner cannot inflate a score.' },
         verified: { title: 'Verified deliverables.', body: 'A security agent scans every delivered link before the buyer sees it, and guards the in-app chat so a phishing or malware link cannot be sent in the first place. A flagged link pauses the deal\'s automatic release and routes both sides to resolve it. A confirmed bad link is a heavy hit to the sender\'s reputation.' },
-        escrowYield: { title: 'Escrow yield path deployed.', body: 'The live escrow can sweep idle float through the treasury into USYC, capped at 80 percent, and pulls it back before every payout. The escrow\'s books stay pure USDC and always recover exactly what was swept, so principal is guaranteed whatever the token price does. No escrow balance has been swept yet.' },
+        escrowYield: { title: 'Escrow yield path built, switched off.', body: 'The live escrow can park idle float with its treasury and recall it before every payout, with its books in USDC so principal always returns in full. It stays switched off: that treasury is not cleared to hold USYC. The mainnet suite routes long-lived principal through a yield pool instead.' },
         terms: { title: 'Terms and Conditions with versioned consent.', body: 'A public terms page and a first-signup consent gate that re-prompts when the version changes.' },
         signin: { title: 'Three sign-in paths.', body: 'Email and passkey, email one-time code, or a web3 wallet through Sign-In with Ethereum.' },
         languages: { title: 'Multi-language framework.', body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },

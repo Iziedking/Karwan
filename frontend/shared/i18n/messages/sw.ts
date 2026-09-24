@@ -2045,6 +2045,7 @@ export const sw: Messages = {
   pageBits: {
     stake: {
       networkYield: 'MAVUNO YA MTANDAO',
+      networkYieldHint: 'Wanaoweka dhamana hulipwa kwa kiwango cha USYC, mapato ya hati za hazina za Marekani zilizowekwa kwenye tokeni. Kwenye testnet, Karwan hufadhili malipo haya.',
       tokenizedTbills: 'Hati fungani zilizotokenishwa',
       verifiedYield: 'Mavuno yaliyothibitishwa',
       yourYield: 'MAVUNO YAKO',
@@ -4896,7 +4897,7 @@ export const sw: Messages = {
         disputes: { title: 'Migogoro ya usuluhishi yenye mgawanyo wa uwiano.', body: 'Mgogoro unaosalia baada ya pande zote mbili kuzungumza huenda kwa msuluhishi, ambaye hugawa fedha ambazo hazijatolewa kwa pointi za msingi badala ya kuchagua mshindi. Uamuzi huohuo hutatua hisa iliyotengwa ya muuzaji kwa uwiano wa kosa. Ufunguo wa msuluhishi uliokufa waweza kuchelewesha deal lakini hauwezi kuinasa: baada ya muda kuisha upande wowote waweza kuisukuma hadi matokeo yake ya kawaida.' },
         symmetric: { title: 'Pande zote mbili zinajenga rekodi.', body: 'Deal iliyokamilika inampa sifa mnunuzi na muuzaji kwenye mnyororo, si muuzaji peke yake, na kila upande hupata mshirika tofauti mara ya kwanza jozi inapokamilisha. Sifa hupimwa kwa thamani na huhesabu washirika tofauti, hivyo wingi wa deal na mshirika mmoja anayerudiwa hauwezi kuvimbisha alama.' },
         verified: { title: 'Vitu vilivyowasilishwa vilivyothibitishwa.', body: 'Wakala wa usalama huchanganua kila kiungo kilichowasilishwa kabla mnunuzi hajakiona, na hulinda mazungumzo ndani ya programu ili kiungo cha ulaghai au programu hasidi kisiweze kutumwa hata kidogo. Kiungo kilichoripotiwa husitisha utoaji wa kiotomatiki na huelekeza pande zote mbili kukitatua. Kiungo kibaya kilichothibitishwa ni pigo kubwa kwa sifa ya mtumaji.' },
-        escrowYield: { title: 'Njia ya mavuno ya escrow imewekwa.', body: 'Escrow hai inaweza kupitisha salio lake lisilo na shughuli kupitia hazina hadi USYC, kwa kikomo cha asilimia 80, na kuirudisha kabla ya kila malipo. Vitabu vyake vinabaki USDC safi na daima hurudisha kile hasa kilichopitishwa, hivyo mtaji unahakikishwa bei ya tokeni ifanye lolote. Hakuna salio la escrow lililopitishwa bado.' },
+        escrowYield: { title: 'Njia ya mavuno ya escrow imejengwa, imezimwa.', body: 'Escrow hai inaweza kuweka salio lake lisilo na shughuli kwenye hazina yake na kulirudisha kabla ya kila malipo, huku vitabu vyake vikibaki kwa USDC ili mtaji urudi kamili kila wakati. Imezimwa: hazina hiyo haijaruhusiwa kushikilia USYC. Mikataba ya mainnet inapitisha mtaji wa muda mrefu kupitia bwawa la mavuno badala yake.' },
         terms: { title: 'Sheria na Masharti na idhini iliyowekewa toleo.', body: 'Ukurasa wa umma wa sheria na lango la idhini ya usajili wa kwanza ambalo huomba tena toleo linapobadilika.' },
         signin: { title: 'Njia tatu za kuingia.', body: 'Barua pepe na passkey, msimbo wa barua pepe wa mara moja, au pochi ya web3 kupitia Sign-In with Ethereum.' },
         languages: { title: 'Mfumo wa lugha nyingi.', body: 'Kiingereza, Kiarabu, Kifaransa, Kihindi, na Kiswahili kwenye nyuso nyingi zinazoangaliwa na mtumiaji leo.' },

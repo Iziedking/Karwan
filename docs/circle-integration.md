@@ -156,7 +156,7 @@ be hand-rolled as a user-signed transaction. Adopting it deleted that path.
 
 `KarwanTreasury` holds platform fee USDC and subscribes idle balance into Hashnote USYC via the standard ERC-4626 Teller interface. Subscribe and redeem run against Hashnote's RolesAuthority entitlements contract (`0xcc205224862c7641930c87679e98999d23c26113`) under role 0 (the subscriber capability). On-chain accounting reads through to Hashnote yield.
 
-`KarwanVault` is wired through the same Teller interface for idle user stake principal. The adapter is mutable behind an operator-only setter, so the same vault contract serves both the testnet adapter and the production Hashnote path without a redeploy.
+`KarwanVault` was wired to the same Teller for idle stake principal. The Teller does not entitle the vault itself, so on testnet that route ran through an entitled operator key, and it has since been unwound: stake principal sits in USDC today.
 
 Contract addresses on Arc Testnet, verified against Circle's published list:
 
@@ -167,11 +167,13 @@ Contract addresses on Arc Testnet, verified against Circle's published list:
 | Hashnote USYC/USD Oracle | `0x52b56c7642E71dc54714d879127d97cd0B3D4581` |
 | Hashnote Entitlements (RolesAuthority) | `0xcc205224862c7641930c87679e98999d23c26113` |
 
-USYC routing runs from three balances. The treasury subscribes platform-fee
-reserves, the vault subscribes idle staking principal through the same
-operator-mediated Teller path, and, with the next contract release, escrow funds
-that sit idle during long-dated trades subscribe too. The treasury holds real
-allowlisted USYC today.
+Today one balance holds USYC: the entitled treasury `0x9d95E4810E7C8B815F1Fb1Ec02C19085f8C76573`
+holds real allowlisted USYC, marked to the live on-chain oracle. Stakers are paid at the USYC
+rate from a Karwan-funded distributor. The mainnet contract suite (built and tested, not yet
+deployed) replaces the operator route with a single yield pool that subscribes and redeems USYC
+itself, for escrow and stake principal, and always returns principal in full (see
+[contract-suite-design.md](contract-suite-design.md), section 3). The pool's address is the one
+address to entitle.
 
 ### x402 and Gateway Nanopayments
 

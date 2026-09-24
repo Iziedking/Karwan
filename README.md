@@ -91,7 +91,7 @@ public landing page, documentation index, and How Karwan Works page.
 - Milestone escrow with delivery review, cancellation, mutual extension, and dispute outcomes enforced by the contracts.
 - Business availability records for goods and services, business verification status, reputation, and trade history.
 - Reputation, staking, tier progression, and yield surfaces.
-- Idle balances routed into Hashnote USYC, tokenized Treasury bills, through an ERC-4626 Teller. Real allowlisted USYC rather than a mock: the token is permissioned, so holding any at all is the proof.
+- Treasury reserves held in Hashnote USYC, tokenized Treasury bills, through an ERC-4626 Teller. Real allowlisted USYC rather than a mock: the token is permissioned, so holding any at all is the proof. Stakers are paid at the USYC rate. For mainnet, a yield pool contract (built and tested, not yet deployed) will hold USYC for escrow and stake principal.
 - Five paid data endpoints served over x402 and settled through Circle Gateway Nanopayments, so a lender can read a settled-deal record without asking Karwan for access.
 - USDC into and out of Arc over CCTP across eleven EVM testnets and Solana devnet, plus a Circle Gateway unified balance spendable from one signature.
 - Activity, wallet, bridge, profile, settings, and unified personal and business workspaces.

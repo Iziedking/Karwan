@@ -225,7 +225,7 @@ function StakePageInner() {
         <div className="flex items-center gap-2 pb-3">
           <SectionTag>{pb.stake.networkYield}</SectionTag>
           <Hint glow side="bottom" align="start">
-            Idle stake earns real yield through Hashnote USYC, tokenized US Treasuries. Settled on Arc, provable on chain.
+            {pb.stake.networkYieldHint}
           </Hint>
         </div>
         <button

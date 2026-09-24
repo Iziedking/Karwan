@@ -2048,6 +2048,7 @@ export const fr: Messages = {
   pageBits: {
     stake: {
       networkYield: 'RENDEMENT RÉSEAU',
+      networkYieldHint: 'Les stakers sont payés au taux USYC, le rendement des bons du Trésor américain tokenisés. Sur le testnet, Karwan finance ces paiements.',
       tokenizedTbills: 'Bons du Trésor tokenisés',
       verifiedYield: 'Rendement vérifié',
       yourYield: 'VOTRE RENDEMENT',
@@ -4899,7 +4900,7 @@ export const fr: Messages = {
         disputes: { title: 'Litiges arbitrés avec répartition proportionnelle.', body: 'Un litige qui survit à la discussion entre les deux parties passe à un arbitre, qui répartit les fonds non libérés en points de base plutôt que de désigner un gagnant. La même décision règle la mise réservée du vendeur au prorata de la faute. Une clé d\'arbitre morte peut retarder une transaction mais jamais la piéger: après le délai, chaque partie peut la pousser vers son issue par défaut.' },
         symmetric: { title: 'Les deux parties se construisent un historique.', body: 'Une transaction réglée crédite l\'acheteur et le vendeur on-chain, pas seulement le vendeur, et chaque partie gagne une contrepartie distincte la première fois qu\'une paire règle. La réputation est pondérée par la valeur et compte les contreparties distinctes, donc le volume avec un même partenaire récurrent ne peut pas gonfler un score.' },
         verified: { title: 'Livrables vérifiés.', body: 'Un agent de sécurité analyse chaque lien livré avant que l\'acheteur ne le voie, et surveille la messagerie interne pour qu\'un lien de hameçonnage ou de logiciel malveillant ne puisse pas être envoyé. Un lien signalé suspend la libération automatique et oriente les deux parties vers une résolution. Un lien confirmé malveillant est une lourde pénalité de réputation pour l\'expéditeur.' },
-        escrowYield: { title: 'Chemin de rendement de l\'entiercement déployé.', body: 'L\'entiercement en ligne peut balayer sa trésorerie inactive vers USYC en passant par la trésorerie, plafonné à 80 pour cent, et la récupère avant chaque paiement. Ses livres restent en USDC pur et récupèrent toujours exactement ce qui a été balayé, donc le principal est garanti quel que soit le prix du jeton. Aucun solde d\'entiercement n\'a encore été balayé.' },
+        escrowYield: { title: 'Chemin de rendement de l’entiercement construit, désactivé.', body: 'L’entiercement en ligne peut placer ses fonds inactifs auprès de sa trésorerie et les récupérer avant chaque paiement, avec des livres en USDC pour que le principal revienne toujours en entier. Il reste désactivé : cette trésorerie n’est pas autorisée à détenir de l’USYC. La suite mainnet fait passer le principal de longue durée par un pool de rendement.' },
         terms: { title: 'Conditions générales avec consentement versionné.', body: 'Une page publique de conditions et une porte de consentement à la première inscription qui redemande lorsque la version change.' },
         signin: { title: 'Trois voies de connexion.', body: 'E-mail et passkey, code e-mail à usage unique, ou portefeuille web3 via Sign-In with Ethereum.' },
         languages: { title: 'Cadre multilingue.', body: "Anglais, arabe, français, hindi et swahili sur la plupart des surfaces face à l'utilisateur aujourd'hui." },
