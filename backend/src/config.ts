@@ -135,6 +135,10 @@ const envSchema = z.object({
   /// Karwan reviewer wallet, never the deployer. Unset = admin review can't
   /// reach chain (the route returns 503).
   BUSINESS_REVIEWER_WALLET_ID: optionalString,
+  /// The Arc testnet registry predates the BR-01 fix and takes approve(address).
+  /// Set this once a newer registry is deployed there. Mainnet registries always
+  /// bind a review to the document hash the reviewer checked.
+  BUSINESS_REGISTRY_BINDS_DOC_HASH: envBool('BUSINESS_REGISTRY_BINDS_DOC_HASH'),
   /// USYC yield cron: the operator EOA private key that signs vault
   /// withdrawForYield + Teller subscribe (the vault is NotPermissioned, only
   /// this entitled EOA can subscribe) and the treasury keeper sweep. Same raw-

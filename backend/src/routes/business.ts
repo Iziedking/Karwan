@@ -7,6 +7,10 @@ import { getOwnedWorkspace, updateBusinessWorkspace } from '../db/workspaces.js'
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { getUserByAddress } from '../db/users.js';
 import { executeContractCall } from '../chain/txs.js';
+import { ARC, publicClient } from '../chain/client.js';
+import { businessRegistryV2Abi } from '../chain/abis/businessRegistryV2.js';
+import { reportError } from '../errorTracker.js';
+import { registryReviewCall, reviewBlocker, statusAfter } from '../profile/businessReview.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
 import { config } from '../config.js';
 import { bus } from '../events.js';
@@ -21,7 +25,8 @@ import { logger } from '../logger.js';
 ///
 /// On-chain writes follow the trade.ts pattern: the wallet that owns the action
 /// signs, the backend mirrors after a confirmed tx. The reviewer's approve /
-/// reject is signed by a dedicated Karwan reviewer DCW.
+/// reject is signed by a dedicated Karwan reviewer DCW, and is mirrored only
+/// once the registry itself shows the decision.
 
 const addrSchema = z
   .string()
@@ -524,27 +529,65 @@ businessAdminRoutes.post('/review', async (c) => {
   if (!awaitingReview) {
     return c.json({ error: 'applicant is not awaiting review' }, 409);
   }
+  const docHashOnRecord = targetWorkspace ? targetWorkspace.business?.docHash : profile.business?.docHash;
+  if (!docHashOnRecord) {
+    return c.json({ error: 'no submitted document on record for this applicant' }, 409);
+  }
+
+  const registry = config.KARWAN_BUSINESS_REGISTRY_ADDR as `0x${string}`;
+  const readStatus = async () => {
+    const [status, docHash] = (await publicClient.readContract({
+      address: registry,
+      abi: businessRegistryV2Abi,
+      functionName: 'statusOf',
+      args: [applicant as `0x${string}`],
+    })) as readonly [number, `0x${string}`, bigint];
+    return { status: Number(status), docHash };
+  };
 
   try {
-    const call =
-      body.decision === 'approve'
-        ? {
-            abiFunctionSignature: 'approve(address)',
-            abiParameters: [applicant],
-          }
-        : {
-            abiFunctionSignature: 'reject(address,bytes32)',
-            abiParameters: [applicant, body.reasonHash as string],
-          };
+    // Decide from the chain before spending gas: the registry is the record,
+    // and an applicant can resubmit between the review and this call.
+    const blocker = reviewBlocker(await readStatus(), docHashOnRecord);
+    if (blocker === 'document_changed') {
+      return c.json(
+        { error: 'The applicant replaced their document after it was reviewed. Review the new document first.', code: blocker },
+        409,
+      );
+    }
+    if (blocker) {
+      return c.json({ error: 'The registry does not show this application waiting for review.', code: blocker }, 409);
+    }
+
+    const call = registryReviewCall({
+      decision: body.decision,
+      applicant,
+      docHash: docHashOnRecord,
+      reasonHash: body.reasonHash,
+      bindsDocHash: !ARC.testnet || config.BUSINESS_REGISTRY_BINDS_DOC_HASH,
+    });
 
     const result = await executeContractCall(
       {
         walletId: config.BUSINESS_REVIEWER_WALLET_ID,
-        contractAddress: config.KARWAN_BUSINESS_REGISTRY_ADDR,
+        contractAddress: registry,
         ...call,
       },
       `businessRegistry.${body.decision}(${applicant})`,
     );
+
+    // The reviewer wallet is a smart account: Circle can report the operation
+    // complete while the inner call reverted. Only a status the registry shows
+    // is mirrored.
+    const after = await readStatus();
+    if (after.status !== statusAfter(body.decision)) {
+      const message = `registry ${body.decision} for ${applicant} did not land (status ${after.status}, tx ${result.txHash})`;
+      reportError('business.review.notRecorded', new Error(message), { applicant, txHash: result.txHash });
+      return c.json(
+        { error: 'The registry did not record this decision. Nothing was changed.', code: 'review_not_recorded', txHash: result.txHash },
+        502,
+      );
+    }
 
     const now = Date.now();
     if (body.decision === 'approve') {
