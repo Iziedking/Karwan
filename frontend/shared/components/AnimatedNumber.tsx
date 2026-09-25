@@ -11,12 +11,14 @@ interface Props {
   /// entirely under prefers-reduced-motion, and paused while the number is off
   /// screen so it never burns frames in a scrolled-away section.
   replayEveryMs?: number;
+  /// Renders the number. Defaults to the browser's locale with `decimals` places.
+  format?: (value: number) => string;
 }
 
 /// Counts up to `value` with an ease-out, and re-animates smoothly from wherever
 /// it currently is when `value` changes. Snaps instantly under
 /// prefers-reduced-motion. Pair with `tabular-nums` so digits do not jitter.
-export function AnimatedNumber({ value, decimals = 2, duration = 750, className, replayEveryMs }: Props) {
+export function AnimatedNumber({ value, decimals = 2, duration = 750, className, replayEveryMs, format }: Props) {
   const [display, setDisplay] = useState(value);
   const currentRef = useRef(value);
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -90,10 +92,12 @@ export function AnimatedNumber({ value, decimals = 2, duration = 750, className,
 
   return (
     <span ref={spanRef} className={className}>
-      {display.toLocaleString(undefined, {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      })}
+      {format
+        ? format(display)
+        : display.toLocaleString(undefined, {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+          })}
     </span>
   );
 }

@@ -13,6 +13,7 @@ export const ease = {
 export const dur = {
   micro: 0.18,   // hover, focus, color
   fast: 0.24,    // button press, chip select
+  sheet: 0.28,   // confirm sheet and money sheet entrance
   base: 0.36,    // accordion, drawer
   slow: 0.56,    // page section reveal
   hero: 0.9,     // hero entrance, staggered

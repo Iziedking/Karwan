@@ -4,8 +4,10 @@ import {
   ledgerAmountLabel,
   ledgerDirection,
   ledgerReferenceLabel,
+  ledgerLine,
   ledgerStatusTone,
 } from './ledgerPresentation';
+import { readableMovementText } from './receiptPresentation';
 
 test('keeps the complete durable reference for support and receipts', () => {
   assert.equal(ledgerReferenceLabel(' KWN-2345-ABCD-EFGH '), 'KWN-2345-ABCD-EFGH');
@@ -48,4 +50,26 @@ test('a Karwan seed is money arriving, not leaving', () => {
 test('a financier repayment is money arriving', () => {
   assert.equal(ledgerDirection('financing_repaid'), 'in');
   assert.equal(ledgerAmountLabel('200', 'financing_repaid'), '+200 USDC');
+});
+
+test('a ledger row reads in the reader\'s language when the backend named a template', () => {
+  const texts = { agentTopUp: 'Added {amount} USDC to the {agent} trade account from the main account' };
+  assert.equal(
+    ledgerLine({ summary: 'Topped up the buyer agent wallet with 5 USDC', params: { t: 'agentTopUp', amount: '5', agent: 'buyer' } }, texts),
+    'Added 5 USDC to the buyer trade account from the main account',
+  );
+});
+
+test('a ledger row without a known template falls back to its recorded sentence', () => {
+  const summary = 'Withdrew 5 USDC from the buyer agent wallet to 0x1234567890abcdef1234567890abcdef12345678';
+  assert.equal(ledgerLine({ summary, params: null }, {}), readableMovementText(summary));
+  assert.equal(ledgerLine({ summary, params: { t: 'missing' } }, {}), readableMovementText(summary));
+});
+
+test('a long recipient in a template is not printed raw', () => {
+  const texts = { agentWithdraw: 'Moved {amount} USDC from the {agent} trade account to {to}' };
+  assert.equal(
+    ledgerLine({ summary: 'x', params: { t: 'agentWithdraw', amount: '5', agent: 'seller', to: '0x1234567890abcdef1234567890abcdef12345678' } }, texts),
+    'Moved 5 USDC from the seller trade account to counterparty',
+  );
 });

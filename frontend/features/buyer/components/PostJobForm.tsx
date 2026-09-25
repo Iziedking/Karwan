@@ -10,6 +10,8 @@ import { chainErrorMessage } from '@/shared/utils/chainError';
 import { api, ApiError } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
+import { FundAgentButton } from '@/features/money/components/FundAgentButton';
+import { useMoneyV2 } from '@/features/money/useMoneyV2';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
 import { CreationReview } from '@/features/deals/components/CreationReview';
@@ -168,6 +170,7 @@ export function PostJobForm() {
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
   const { activate, activating, agents } = useActivation();
+  const moneyV2 = useMoneyV2();
   const buyerAgent = agents?.buyer;
   const { profile, loading: profileLoading } = useUserProfile();
   const { isBusinessWorkspace: isBusiness } = useWorkspaceContext();
@@ -937,14 +940,18 @@ export function PostJobForm() {
               explanation in a tooltip; the action for the chosen route appears
               under the row and owns its own balance check and error. */}
           {typeof budget === 'number' ? (
-            <FundAgentOptions
-              agent="buyer"
-              recipient={buyerAgent ?? null}
-              otherAgentAddress={agents?.seller ?? null}
-              amountUsdc={budget}
-              circleAccount={circleAccount}
-              onFunded={() => setInsufficientBalance(false)}
-            />
+            moneyV2 ? (
+              <FundAgentButton amountUsdc={budget} onFunded={() => setInsufficientBalance(false)} />
+            ) : (
+              <FundAgentOptions
+                agent="buyer"
+                recipient={buyerAgent ?? null}
+                otherAgentAddress={agents?.seller ?? null}
+                amountUsdc={budget}
+                circleAccount={circleAccount}
+                onFunded={() => setInsufficientBalance(false)}
+              />
+            )
           ) : (
             <button
               type="button"

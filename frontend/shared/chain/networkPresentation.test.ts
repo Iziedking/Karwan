@@ -53,7 +53,12 @@ test('network details are optional in public chrome and always visible beside ba
   assert.match(footer, /<NetworkContext disclosure \/>/);
   assert.doesNotMatch(footer, /https:\/\/testnet.arcscan.app|landingEditorial.testnet/);
   assert.match(source('../../app/page.tsx'), /networkUi.builtOnArc/);
-  for (const page of ['account', 'bridge']) assert.match(source(`../../app/${page}/page.tsx`), /<NetworkContext \/>/);
+  for (const file of [
+    '../../features/account/AccountPageV1.tsx',
+    '../../app/bridge/page.tsx',
+    '../../features/money/components/MoneyHome.tsx',
+    '../../features/bridge/components/CrossChainFlow.tsx',
+  ]) assert.match(source(file), /<NetworkContext \/>/, file);
   const component = source('../components/NetworkContext.tsx');
   assert.match(component, /networkPresentation\(settlementChain\)/);
   assert.match(component, /t\[network.noticeKey\]/);

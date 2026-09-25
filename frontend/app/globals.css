@@ -276,6 +276,7 @@ html[data-theme="dark"] {
   --ease-inout: cubic-bezier(0.83, 0, 0.17, 1);
   --dur-micro:  180ms;
   --dur-fast:   240ms;
+  --dur-sheet:  280ms;
   --dur-base:   360ms;
   --dur-slow:   560ms;
   --dur-hero:   900ms;
@@ -288,6 +289,7 @@ html[data-theme="dark"] {
   :root {
     --dur-micro: 90ms;
     --dur-fast:  120ms;
+    --dur-sheet: 140ms;
     --dur-base:  180ms;
     --dur-slow:  280ms;
     --dur-hero:  280ms;

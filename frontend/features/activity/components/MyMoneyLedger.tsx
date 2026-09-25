@@ -10,8 +10,8 @@ import {
   ledgerDirection,
   ledgerReferenceLabel,
   ledgerStatusTone,
+  ledgerLine,
 } from '../ledgerPresentation';
-import { readableMovementText } from '../receiptPresentation';
 import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 
 /// The user's own money, in one list.
@@ -43,20 +43,6 @@ const PAGE_SIZE = 6;
 
 type Row = { item: Item; repeat: number };
 
-/// The row's sentence in the reader's language. The backend sends structured
-/// `params` with a `t` naming the template; anything it cannot name falls back
-/// to the English `summary` written at record time, which is what every row
-/// logged before `params` existed still carries.
-function lineFor(item: Item, texts: Record<string, string>): string {
-  const p = (item as { params?: Record<string, string> | null }).params;
-  const tpl = p?.t ? texts[p.t] : undefined;
-  if (!tpl || !p) return readableMovementText(item.summary);
-  return readableMovementText(tpl.replace(/\{(\w+)\}/g, (whole, key: string) => {
-    const value = p[key] ?? whole;
-    return key === 'to' && value.length > 12 ? 'counterparty' : value;
-  }));
-}
-
 /// A bridge that failed and retried twenty-four times is one thing that went
 /// wrong, not twenty-four. Collapse neighbouring rows that say the same thing
 /// with the same status into one row carrying a repeat count. Only consecutive
@@ -71,7 +57,7 @@ function collapse(items: Item[], texts: Record<string, string>): Row[] {
     // same to the user should collapse in every locale, not just English.
     if (
       last &&
-      lineFor(last.item, texts) === lineFor(item, texts) &&
+      ledgerLine(last.item, texts) === ledgerLine(item, texts) &&
       last.item.status === item.status
     ) {
       last.repeat += 1;
@@ -212,7 +198,7 @@ export function MyMoneyLedger({
                 <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-x-4">
                   <div className="min-w-0">
                     <p className="mobile-readable max-w-[34ch] text-[14px] leading-snug text-[var(--lp-dark)] sm:max-w-none">
-                      {lineFor(item, t.text)}
+                      {ledgerLine(item, t.text)}
                     </p>
                     <p className="mobile-meta mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
                       {when(item.ts, t.justNow)}

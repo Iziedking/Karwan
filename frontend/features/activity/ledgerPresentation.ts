@@ -1,3 +1,5 @@
+import { readableMovementText } from './receiptPresentation';
+
 /// Durable movement references are support-safe identifiers. Keep the complete
 /// value visible and copyable instead of reducing it to an ambiguous prefix.
 export function ledgerReferenceLabel(refId: string | null | undefined): string | null {
@@ -70,4 +72,25 @@ export function ledgerAmountLabel(
   const direction = ledgerDirection(kind);
   const sign = direction === 'in' ? '+' : direction === 'out' ? '-' : '';
   return `${sign}${value} USDC`;
+}
+
+export interface LedgerLineItem {
+  summary: string;
+  params?: Record<string, string> | null;
+}
+
+/// A ledger row's sentence in the reader's language. The backend sends
+/// structured `params` with a `t` naming the template; anything it cannot name
+/// falls back to the English `summary` written at record time, which is what
+/// every row logged before `params` existed still carries.
+export function ledgerLine(item: LedgerLineItem, texts: Record<string, string>): string {
+  const params = item.params;
+  const template = params?.t ? texts[params.t] : undefined;
+  if (!template || !params) return readableMovementText(item.summary);
+  return readableMovementText(
+    template.replace(/\{(\w+)\}/g, (whole, key: string) => {
+      const value = params[key] ?? whole;
+      return key === 'to' && value.length > 12 ? 'counterparty' : value;
+    }),
+  );
 }

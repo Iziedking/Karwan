@@ -15,6 +15,8 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { DEAL_TOUR_ID, DEAL_STEPS } from '@/shared/guide/tours';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
+import { FundAgentButton } from '@/features/money/components/FundAgentButton';
+import { useMoneyV2 } from '@/features/money/useMoneyV2';
 import { sfx } from '@/shared/utils/sfx';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { SellerOfferBanner } from '@/features/factoring/components/SellerOfferBanner';
@@ -4227,6 +4229,7 @@ function DealErrorNote({
   circleAccount: boolean;
   onFunded: () => void;
 }) {
+  const moneyV2 = useMoneyV2();
   // The buyer agent is the wallet that funds escrow, so it is the one a shortfall
   // is about, and it is topped up in place rather than sending the buyer off to
   // /profile and back.
@@ -4262,14 +4265,18 @@ function DealErrorNote({
                the deal sat in their wallet or their other agent. Same chooser
                the request form uses when the agent is short. */
             <div className="mt-2">
-              <FundAgentOptions
-                agent="buyer"
-                recipient={buyerAgent}
-                otherAgentAddress={agents?.seller ?? null}
-                amountUsdc={amountUsdc}
-                circleAccount={circleAccount}
-                onFunded={onFunded}
-              />
+              {moneyV2 ? (
+                <FundAgentButton amountUsdc={amountUsdc} onFunded={onFunded} />
+              ) : (
+                <FundAgentOptions
+                  agent="buyer"
+                  recipient={buyerAgent}
+                  otherAgentAddress={agents?.seller ?? null}
+                  amountUsdc={amountUsdc}
+                  circleAccount={circleAccount}
+                  onFunded={onFunded}
+                />
+              )}
             </div>
           ) : (
             <p className="text-[11px] opacity-90">

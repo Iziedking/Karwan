@@ -195,7 +195,7 @@ test('reviewed light theme text, selected controls, and field edges meet contras
 });
 
 test('account action is Move and keeps its existing route', () => {
-  const account = source('../../app/account/page.tsx');
+  const account = source('../../features/account/AccountPageV1.tsx');
   const transfer = source('../../app/bridge/page.tsx');
   assert.equal(en.accountHome.move, 'Move');
   assert.match(account, /href="\/bridge\?direction=out&intent=move" label=\{messages\.accountHome\.move\}/);

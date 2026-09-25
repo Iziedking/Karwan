@@ -37,6 +37,7 @@ import {
 import { Hint } from '@/shared/components/Hint';
 import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountHub';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { useMoneyV2 } from '@/features/money/useMoneyV2';
 
 type ProfileSection = 'wallets' | 'open-deals' | 'agents' | 'identity' | 'preferences';
 
@@ -103,6 +104,7 @@ function ProfilePageInner() {
   const openDeals = useOpenDeals();
   const [activationOpen, setActivationOpen] = useState(false);
   const [moneyMode, setMoneyMode] = useState<'add' | 'out'>('add');
+  const moneyV2 = useMoneyV2();
   const [activeAgentSlide, setActiveAgentSlide] = useState(0);
   const agentCarouselRef = useRef<HTMLDivElement>(null);
 
@@ -455,6 +457,23 @@ function ProfilePageInner() {
       content: (
         <>
         {/* FUND + WITHDRAW */}
+        {moneyV2 ? (
+          <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8" data-guide="profile-agents">
+            <p className="max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-dark)]">{messages.money.profile.agentMoneyMoved}</p>
+            <Link
+              href="/account#agents"
+              className="mt-3 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              {messages.money.profile.openMoneyHome}
+            </Link>
+            {activation.activated ? (
+              <div className="mt-6 grid min-w-0 gap-4 xl:grid-cols-2">
+                <AgentResearchCard />
+                <AgentTrustEvidenceCard />
+              </div>
+            ) : null}
+          </div>
+        ) : (
         <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           {activation.activated ? (
             <>
@@ -532,6 +551,7 @@ function ProfilePageInner() {
             </div>
           )}
         </div>
+        )}
         </>
       ),
     },

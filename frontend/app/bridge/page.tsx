@@ -49,6 +49,8 @@ const BridgeOutCard = dynamic(
   },
 );
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { CrossChainPage } from '@/features/bridge/components/CrossChainFlow';
+import { moneyV2Enabled } from '@/features/money/moneySwitch';
 import {
   FullBleed,
   Band,
@@ -70,6 +72,7 @@ export default function BridgePage() {
 function BridgePageContent() {
   const t = useTranslations().bridge;
   const params = useSearchParams();
+  if (moneyV2Enabled(process.env.NEXT_PUBLIC_MONEY_V2, `?${params.toString()}`)) return <CrossChainPage />;
   const publicRecipient = params.get('recipient');
   const isPublicPayment = !!publicRecipient && /^0x[a-fA-F0-9]{40}$/.test(publicRecipient);
   if (isPublicPayment) return <BridgePageInner />;

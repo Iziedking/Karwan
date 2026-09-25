@@ -207,6 +207,28 @@ export interface SellerActiveBid {
   lastBidPrice: string;
   counterRounds: number;
   finalized: boolean;
+  /// First line of the request's brief. Never names the buyer. Null when the
+  /// brief record was lost.
+  title: string | null;
+}
+
+/// How one of the seller agent's bids ended, recorded when it left the live map.
+export interface SellerBidOutcome {
+  jobId: string;
+  sellerAgent: string;
+  title: string | null;
+  outcome: 'won' | 'lost' | 'withdrawn' | 'expired';
+  lastPrice: string;
+  at: number;
+}
+
+/// What the buyer agent must hold before a request goes up, and how much of it
+/// is missing. `activated` is false when the account has no agents yet.
+export interface FundingQuote {
+  requiredUsdc: string;
+  balanceUsdc: string;
+  topUpNeededUsdc: string;
+  activated: boolean;
 }
 
 export type UserRole = 'buyer' | 'seller' | 'both';
@@ -1448,6 +1470,9 @@ export class ApiError extends Error {
     message: string,
     public detail?: unknown,
     public code?: string,
+    /// The parsed response body, for a caller that needs a field the message
+    /// does not carry (the movement reference on a failed withdrawal).
+    public body?: unknown,
   ) {
     super(message);
   }
@@ -1563,7 +1588,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
       typeof parsed === 'object' && parsed && 'code' in parsed
         ? String((parsed as { code: unknown }).code)
         : undefined;
-    throw new ApiError(res.status, message, detail, code);
+    throw new ApiError(res.status, message, detail, code, parsed);
   }
   return res.json() as Promise<T>;
 }
@@ -2007,7 +2032,7 @@ export const api = {
       `/api/agents/buyer${address ? `?address=${address}` : ''}`,
     ),
   seller: (address?: string) =>
-    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[] }>(
+    json<{ profile: SellerAgentProfile | null; activeBids: SellerActiveBid[]; recentBids?: SellerBidOutcome[] }>(
       `/api/agents/seller${address ? `?address=${address}` : ''}`,
     ),
   /// Abandon one of the signed-in seller's own in-flight bids. Identity is the
@@ -2707,6 +2732,10 @@ export const api = {
       headers: adminHeaders(),
       body: JSON.stringify({ index }),
     }),
+  /// What the buyer agent must hold before a request goes up. Same arithmetic
+  /// as the post check.
+  fundingQuote: (budgetUsdc: number) =>
+    json<FundingQuote>(`/api/jobs/funding-quote?budgetUsdc=${encodeURIComponent(String(budgetUsdc))}`),
   postJob: (
     body: {
       posterAddress: string;

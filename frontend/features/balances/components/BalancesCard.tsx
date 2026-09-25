@@ -1,58 +1,14 @@
 'use client';
 import { useState } from 'react';
-import { useBalance } from 'wagmi';
 import { formatUnits } from 'viem';
 import { shortAddress } from '@/shared/utils/format';
-import { SOURCE_CHAINS } from '@/features/bridge/config';
-import { arcChain } from '@/core/wagmi';
 import { cn } from '@/shared/utils/cn';
-import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
+import { ChainLogo } from '@/shared/components/ChainLogo';
+import { CHAIN_META, ROW_KEYS, useChainBalances } from '../hooks/useChainBalances';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
-
-// Arc (settlement) first, then the CCTP source chains we show a wallet balance
-// for. Each key doubles as the ChainLogo key, so the row map stays simple.
-//
-// Listed explicitly rather than derived from SOURCE_CHAINS: these are the seven
-// chains a backend wallet can actually sign a CCTP burn on, which is exactly the
-// set an email account gets a deposit wallet for. Avalanche and Unichain earned
-// their rows the hard way — deposits landed there, swept nowhere, and the panel
-// that was meant to show a user where their money is did not list the chain it
-// was sitting on. Sei, Sonic, World Chain and HyperEVM stay off: Circle exposes
-// them as EOA-only, so no backend wallet holds USDC there to show.
-type RowKey =
-  | 'arc'
-  | 'baseSepolia'
-  | 'sepolia'
-  | 'arbitrumSepolia'
-  | 'optimismSepolia'
-  | 'polygonAmoy'
-  | 'avalancheFuji'
-  | 'unichainSepolia';
-
-const ROW_KEYS: RowKey[] = [
-  'arc',
-  'baseSepolia',
-  'sepolia',
-  'arbitrumSepolia',
-  'optimismSepolia',
-  'polygonAmoy',
-  'avalancheFuji',
-  'unichainSepolia',
-];
-
-const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> = {
-  arc: { name: 'Arc', sub: 'Testnet', key: 'arc' },
-  baseSepolia: { name: 'Base', sub: 'Sepolia', key: 'baseSepolia' },
-  sepolia: { name: 'Ethereum', sub: 'Sepolia', key: 'sepolia' },
-  arbitrumSepolia: { name: 'Arbitrum', sub: 'Sepolia', key: 'arbitrumSepolia' },
-  optimismSepolia: { name: 'Optimism', sub: 'Sepolia', key: 'optimismSepolia' },
-  polygonAmoy: { name: 'Polygon', sub: 'Amoy', key: 'polygonAmoy' },
-  avalancheFuji: { name: 'Avalanche', sub: 'Fuji', key: 'avalancheFuji' },
-  unichainSepolia: { name: 'Unichain', sub: 'Sepolia', key: 'unichainSepolia' },
-};
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -64,87 +20,6 @@ const CARD_STYLE = {
   borderBottomRightRadius: 7,
   boxShadow: 'var(--product-panel-shadow, 0 18px 56px -28px rgba(0,0,0,0.18))',
 } as const;
-
-/// USDC balance for one address across Arc + every CCTP source chain. Native on
-/// Arc (USDC is the gas token), ERC-20 USDC elsewhere. A fixed-arity custom hook
-/// so the rules-of-hooks order never shifts across renders, and the per-view
-/// boilerplate collapses to three calls. Reads are disabled when address is
-/// undefined (wagmi skips the fetch), so buyer/seller tabs cost nothing until set.
-/// No explicit return type: let inference carry the real useBalance data shape
-/// (ReturnType<typeof useBalance> widens .data to {} on an unresolved generic).
-/// Arc is the money in play, but the clock is no longer how it stays current.
-///
-/// SSE invalidation now covers wagmi's balance keys, and a wallet-signed
-/// transaction refreshes on its own receipt, so the balance moves when the
-/// money moves rather than on the next tick. That makes this a SAFETY NET for
-/// the cases neither path covers: a dropped SSE connection, a phone that
-/// backgrounded the tab, an event the backend has not observed yet.
-///
-/// 30s rather than 5s because a net that only catches rare misses does not need
-/// to be checked twelve times a minute. Dropping this before the invalidation
-/// landed would have made the page slower, not cheaper.
-const ARC_POLL_MS = 30_000;
-/// The CCTP source chains are not. They only change when the user moves money
-/// on ANOTHER chain, which this app cannot observe and cannot cause, so polling
-/// them fast buys nothing. A minute is well inside the time it takes to decide
-/// to bridge.
-const SOURCE_POLL_MS = 60_000;
-
-function useChainBalances(address: `0x${string}` | undefined, enabled: boolean) {
-  // `enabled` is what actually fixes the load. This card is collapsed by
-  // default and renders only a chain COUNT until it is opened, yet the hooks
-  // ran regardless: three addresses times six chains, eighteen reads for a
-  // panel showing nothing. Three of those hit Arc, each with viem retries
-  // behind it, which is how a rate limit turned into a screen of console
-  // errors. You cannot read data you are not rendering.
-  const arc = { enabled: !!address && enabled, refetchInterval: ARC_POLL_MS };
-  const source = { enabled: !!address && enabled, refetchInterval: SOURCE_POLL_MS };
-  return {
-    arc: useBalance({ address, chainId: arcChain.id, query: arc }),
-    baseSepolia: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.baseSepolia.chainId,
-      token: SOURCE_CHAINS.baseSepolia.usdc,
-      query: source,
-    }),
-    sepolia: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.sepolia.chainId,
-      token: SOURCE_CHAINS.sepolia.usdc,
-      query: source,
-    }),
-    arbitrumSepolia: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.arbitrumSepolia.chainId,
-      token: SOURCE_CHAINS.arbitrumSepolia.usdc,
-      query: source,
-    }),
-    optimismSepolia: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.optimismSepolia.chainId,
-      token: SOURCE_CHAINS.optimismSepolia.usdc,
-      query: source,
-    }),
-    polygonAmoy: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.polygonAmoy.chainId,
-      token: SOURCE_CHAINS.polygonAmoy.usdc,
-      query: source,
-    }),
-    avalancheFuji: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.avalancheFuji.chainId,
-      token: SOURCE_CHAINS.avalancheFuji.usdc,
-      query: source,
-    }),
-    unichainSepolia: useBalance({
-      address,
-      chainId: SOURCE_CHAINS.unichainSepolia.chainId,
-      token: SOURCE_CHAINS.unichainSepolia.usdc,
-      query: source,
-    }),
-  };
-}
 
 type View = 'you' | 'buyer' | 'seller';
 
