@@ -226,3 +226,6 @@ docs/space-paytag-2026-08-16.md
 # Playwright browser tests: reports and failure artifacts are local output.
 /frontend/test-results/
 /frontend/playwright-report/
+
+# Grant submission drafts (internal)
+/grant_submission/
