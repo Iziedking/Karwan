@@ -725,12 +725,13 @@ function SettleSection({
 /// keywords fire-and-forget so the agent's next match round uses the new
 /// copy. Disabled when a match proposal is in flight or the request is
 /// already finalized, expired, or cancelled. Backend enforces the same.
-function EditBriefSection({
+export function EditBriefSection({
   job,
   declined,
   matchPending,
   viewerIsSeller,
   callerAddress,
+  isBuyer,
   onEdited,
 }: {
   job: BuyerJob;
@@ -738,6 +739,9 @@ function EditBriefSection({
   matchPending: boolean;
   viewerIsSeller: boolean;
   callerAddress: string | undefined;
+  /// The viewer is the buyer who posted this request. `job.buyer` is the
+  /// buyer AGENT address, so an address comparison never matches the user.
+  isBuyer?: boolean;
   onEdited: () => Promise<void> | void;
 }) {
   const es = useTranslations().liveJob.editSection;
@@ -746,7 +750,7 @@ function EditBriefSection({
   const [error, setError] = useState<string | null>(null);
 
   const viewerIsBuyer =
-    !!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase();
+    isBuyer ?? (!!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase());
   const editable =
     viewerIsBuyer &&
     !viewerIsSeller &&
@@ -800,7 +804,7 @@ function EditBriefSection({
               setError(null);
               setOpen(true);
             }}
-            className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)] underline underline-offset-2"
+            className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent-on-light)] underline underline-offset-2 hover:underline-offset-4"
           >
             {es.cta}
           </button>
@@ -999,18 +1003,22 @@ function EditBriefModal({
   );
 }
 
-function CancelBriefSection({
+export function CancelBriefSection({
   job,
   declined,
   matchPending,
   viewerIsSeller,
   callerAddress,
+  isBuyer,
 }: {
   job: BuyerJob;
   declined: boolean;
   matchPending: boolean;
   viewerIsSeller: boolean;
   callerAddress: string | undefined;
+  /// The viewer is the buyer who posted this request. `job.buyer` is the
+  /// buyer AGENT address, so an address comparison never matches the user.
+  isBuyer?: boolean;
 }) {
   const cs = useTranslations().liveJob.cancelSection;
   const router = useRouter();
@@ -1019,7 +1027,7 @@ function CancelBriefSection({
   const [error, setError] = useState<string | null>(null);
 
   const viewerIsBuyer =
-    !!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase();
+    isBuyer ?? (!!callerAddress && callerAddress.toLowerCase() === job.buyer.toLowerCase());
   const cancellable =
     viewerIsBuyer &&
     !viewerIsSeller &&

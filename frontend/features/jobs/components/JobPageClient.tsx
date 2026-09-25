@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { api, ApiError, type BuyerJob } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LiveJobPage } from './LiveJobPage';
+import { useSearchV2 } from '@/features/search/useSearchV2';
+import { RequestPage } from '@/features/search/components/RequestPage';
 import {
   FullBleed,
   Band,
@@ -35,6 +37,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
   const t = useTranslations();
   const jp = t.jobPage;
   const auth = useAuth();
+  const v2 = useSearchV2();
   const [state, setState] = useState<
     | { kind: 'loading' }
     | { kind: 'ready'; job: BuyerJob; explorer: string }
@@ -193,5 +196,9 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     );
   }
 
-  return <LiveJobPage initial={state.job} explorer={state.explorer} />;
+  return v2 ? (
+    <RequestPage initial={state.job} explorer={state.explorer} />
+  ) : (
+    <LiveJobPage initial={state.job} explorer={state.explorer} />
+  );
 }

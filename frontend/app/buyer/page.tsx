@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { api, type BuyerJob } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
@@ -23,6 +24,8 @@ import {
 import { Hint } from '@/shared/components/Hint';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
+import { useSearchV2 } from '@/features/search/useSearchV2';
+import { DirectDealOnly, FindSellerPage } from '@/features/search/components/FindSellerPage';
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -37,7 +40,12 @@ export default function BuyerPage() {
 
 function BuyerPageInner() {
   const { isBusinessWorkspace } = useWorkspaceContext();
-  return isBusinessWorkspace ? <BusinessTradeDesk /> : <PersonalBuyerDesk />;
+  const v2 = useSearchV2();
+  const search = useSearchParams();
+  if (isBusinessWorkspace) return <BusinessTradeDesk />;
+  if (!v2) return <PersonalBuyerDesk />;
+  const direct = search.get('mode') === 'direct' || !!search.get('seller') || !!search.get('sellerEmail');
+  return direct ? <DirectDealOnly /> : <FindSellerPage />;
 }
 
 function PersonalBuyerDesk() {

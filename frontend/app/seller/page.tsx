@@ -24,6 +24,8 @@ import { Hint } from '@/shared/components/Hint';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
+import { useSearchV2 } from '@/features/search/useSearchV2';
+import { SellerDesk } from '@/features/search/components/SellerDesk';
 
 type FetchState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -46,6 +48,7 @@ function SellerPageInner() {
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const sh = useTranslations().sellerHub;
+  const v2 = useSearchV2();
 
   useEffect(() => {
     if (!address) {
@@ -97,6 +100,8 @@ function SellerPageInner() {
       </FullBleed>
     );
   }
+
+  if (v2) return <SellerDesk />;
 
   return (
     <FullBleed>
