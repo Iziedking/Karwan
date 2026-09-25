@@ -341,12 +341,8 @@ function OnboardingInner() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('karwan:profile-saved'));
       }
-      // Profile saved. Where deals run, hand off to agent activation; where
-      // they do not yet, there are no agents to activate, so go to the app.
-      if (!AGENTS_AVAILABLE) {
-        router.push(WALLET_HOME);
-        return;
-      }
+      // Profile saved. Hand off to the last step: agent activation where deals
+      // run, a pointer to the wallet where they do not yet.
       setStep('getReady');
       setSubmitting(false);
     } catch {
@@ -357,7 +353,7 @@ function OnboardingInner() {
     }
   }
 
-  const { current: stepN, total: totalSteps } = onboardingProgress(step, accountType, AGENTS_AVAILABLE);
+  const { current: stepN, total: totalSteps } = onboardingProgress(step, accountType);
 
   // Hold the body until the profile check resolves. Returning users with a
   // cached wallet would otherwise see the language step flash before the
@@ -572,10 +568,12 @@ function OnboardingInner() {
             />
           )}
 
-          {step === 'getReady' && AGENTS_AVAILABLE && address && (
-            <GetReadyStep
-              onDone={() => router.push('/app')}
-            />
+          {step === 'getReady' && address && (
+            AGENTS_AVAILABLE ? (
+              <GetReadyStep onDone={() => router.push('/app')} />
+            ) : (
+              <WalletReadyStep onDone={() => router.push(WALLET_HOME)} />
+            )
           )}
         </div>
       </Band>
@@ -671,6 +669,30 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
           {back}
         </button>
       </div>
+    </div>
+  );
+}
+
+// Arc mainnet before the escrow ships: there are no trade agents to activate,
+// so the last step says so and sends the person to their wallet.
+function WalletReadyStep({ onDone }: { onDone: () => void }) {
+  const t = useTranslations().onboarding.getReadyStep;
+  return (
+    <div className="mx-auto max-w-2xl rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-8 md:p-10">
+      <p className="text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{t.body}</p>
+      <p className="mt-7 flex items-center gap-3 font-semibold">
+        <span aria-hidden className="grid size-8 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-band-dark)]">✓</span>
+        {t.checklist}
+      </p>
+      <div className="my-8 border-s border-[var(--lp-accent)] ps-4">
+        <h2 className="font-sans text-[21px] font-extrabold tracking-[-0.025em] text-[var(--lp-dark)]">
+          {t.walletOnlyTitle}
+        </h2>
+        <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{t.walletOnlyBody}</p>
+      </div>
+      <CTAPill onClick={onDone} tone="light">
+        {t.toAccount}
+      </CTAPill>
     </div>
   );
 }

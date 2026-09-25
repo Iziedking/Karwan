@@ -297,6 +297,9 @@ interface MessagesShape {
       checklist: string;
       doneBody: string;
       agentTitle: string;
+      walletOnlyTitle: string;
+      walletOnlyBody: string;
+      toAccount: string;
       activate: string;
       checking: string;
       activating: string;
@@ -5606,6 +5609,9 @@ export const en: MessagesShape = {
       checklist: "Profile saved",
       doneBody: "Karwan creates one buyer agent and one seller agent for managed trades. Test funds may arrive later.",
       agentTitle: "Activate your trade agents",
+      walletOnlyTitle: "Trade agents open with deals",
+      walletOnlyBody: "Your profile is saved and your wallet is ready. Buyer and seller agents switch on when protected deals open on Arc mainnet.",
+      toAccount: "Go to your account",
       activate: "Activate and continue",
       checking: "Checking agents…",
       activating: "Creating agents…",
