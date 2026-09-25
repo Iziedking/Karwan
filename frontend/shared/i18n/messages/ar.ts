@@ -6,12 +6,14 @@ import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
+import { analyticsCopy } from './analytics';
 
 export const ar: Messages = {
   protection: protectionCopy.ar,
   money: moneyCopy.ar,
   search: searchCopy.ar,
   escrowV3: escrowV3Copy.ar,
+  analytics: analyticsCopy.ar,
   socialTrade: socialTradeCopy.ar,
   networkUi: networkCopy.ar,
   docsEscrowPage: escrowDocsCopy.ar,
@@ -1104,9 +1106,13 @@ export const ar: Messages = {
     loadingRecent: 'جارٍ تحميل الصفقات الأخيرة',
     dealProgress: 'تقدم الصفقة',
     flowAgreement: 'الاتفاق',
-    flowSecured: 'تم تأمين USDC',
+    flowSecured: 'التمويل',
     flowDelivery: 'التسليم',
-    flowSettlement: 'التسوية',
+    flowSettlement: 'الدفع',
+    flowDone: 'مكتمل',
+    flowNow: 'الآن',
+    flowDisputed: 'في نزاع',
+    flowUpcoming: 'لم يبدأ',
   },
   businessHome: {
     deskEyebrow: 'مكتب التجارة',

@@ -6,12 +6,14 @@ import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
+import { analyticsCopy } from './analytics';
 
 export const fr: Messages = {
   protection: protectionCopy.fr,
   money: moneyCopy.fr,
   search: searchCopy.fr,
   escrowV3: escrowV3Copy.fr,
+  analytics: analyticsCopy.fr,
   socialTrade: socialTradeCopy.fr,
   networkUi: networkCopy.fr,
   docsEscrowPage: escrowDocsCopy.fr,
@@ -1104,9 +1106,13 @@ export const fr: Messages = {
     loadingRecent: 'Chargement des deals récents',
     dealProgress: 'Avancement du deal',
     flowAgreement: 'Accord',
-    flowSecured: 'USDC sécurisé',
+    flowSecured: 'Financement',
     flowDelivery: 'Livraison',
-    flowSettlement: 'Règlement',
+    flowSettlement: 'Paiement',
+    flowDone: 'terminé',
+    flowNow: 'en cours',
+    flowDisputed: 'en litige',
+    flowUpcoming: 'à venir',
   },
   businessHome: {
     deskEyebrow: 'BUREAU COMMERCIAL',

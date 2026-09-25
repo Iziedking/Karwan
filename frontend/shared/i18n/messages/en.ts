@@ -9,11 +9,13 @@ import { protectionCopy, type ProtectionCopy } from './protection';
 import { moneyCopy, type MoneyCopy } from './money';
 import { searchCopy, type SearchCopy } from './search';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
+import { analyticsCopy, type AnalyticsCopy } from './analytics';
 interface MessagesShape {
   protection: ProtectionCopy;
   money: MoneyCopy;
   search: SearchCopy;
   escrowV3: EscrowV3Copy;
+  analytics: AnalyticsCopy;
   socialTrade: SocialTradeCopy;
   networkUi: NetworkCopy;
   docsEscrowPage: EscrowDocsCopy;
@@ -1064,6 +1066,10 @@ interface MessagesShape {
     flowSecured: string;
     flowDelivery: string;
     flowSettlement: string;
+    flowDone: string;
+    flowNow: string;
+    flowDisputed: string;
+    flowUpcoming: string;
   };
   businessHome: {
     deskEyebrow: string;
@@ -5277,6 +5283,7 @@ export const en: MessagesShape = {
   money: moneyCopy.en,
   search: searchCopy.en,
   escrowV3: escrowV3Copy.en,
+  analytics: analyticsCopy.en,
   socialTrade: socialTradeCopy.en,
   networkUi: networkCopy.en,
   docsEscrowPage: escrowDocsCopy.en,
@@ -6388,9 +6395,13 @@ export const en: MessagesShape = {
     loadingRecent: 'Loading recent trades',
     dealProgress: 'Deal progress',
     flowAgreement: 'Agreement',
-    flowSecured: 'USDC secured',
+    flowSecured: 'Funding',
     flowDelivery: 'Delivery',
-    flowSettlement: 'Settlement',
+    flowSettlement: 'Payment',
+    flowDone: 'done',
+    flowNow: 'now',
+    flowDisputed: 'in dispute',
+    flowUpcoming: 'not yet',
   },
   businessHome: {
     deskEyebrow: 'TRADE DESK',

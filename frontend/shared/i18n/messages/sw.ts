@@ -6,12 +6,14 @@ import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
+import { analyticsCopy } from './analytics';
 
 export const sw: Messages = {
   protection: protectionCopy.sw,
   money: moneyCopy.sw,
   search: searchCopy.sw,
   escrowV3: escrowV3Copy.sw,
+  analytics: analyticsCopy.sw,
   socialTrade: socialTradeCopy.sw,
   networkUi: networkCopy.sw,
   docsEscrowPage: escrowDocsCopy.sw,
@@ -1101,9 +1103,13 @@ export const sw: Messages = {
     loadingRecent: 'Inapakia biashara za hivi karibuni',
     dealProgress: 'Maendeleo ya biashara',
     flowAgreement: 'Makubaliano',
-    flowSecured: 'USDC imehifadhiwa',
+    flowSecured: 'Ufadhili',
     flowDelivery: 'Uwasilishaji',
-    flowSettlement: 'Usuluhishaji',
+    flowSettlement: 'Malipo',
+    flowDone: 'imekamilika',
+    flowNow: 'sasa',
+    flowDisputed: 'kwenye mgogoro',
+    flowUpcoming: 'bado',
   },
   businessHome: {
     deskEyebrow: 'DAWATI LA BIASHARA',

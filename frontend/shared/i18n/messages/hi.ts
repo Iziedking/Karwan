@@ -6,12 +6,14 @@ import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
+import { analyticsCopy } from './analytics';
 
 export const hi: Messages = {
   protection: protectionCopy.hi,
   money: moneyCopy.hi,
   search: searchCopy.hi,
   escrowV3: escrowV3Copy.hi,
+  analytics: analyticsCopy.hi,
   socialTrade: socialTradeCopy.hi,
   networkUi: networkCopy.hi,
   docsEscrowPage: escrowDocsCopy.hi,
@@ -1101,10 +1103,14 @@ export const hi: Messages = {
     allActivity: 'सभी गतिविधि',
     loadingRecent: 'हाल के ट्रेड लोड हो रहे हैं',
     dealProgress: 'ट्रेड की प्रगति',
-    flowAgreement: 'समझौता',
-    flowSecured: 'USDC सुरक्षित',
+    flowAgreement: 'सहमति',
+    flowSecured: 'फ़ंडिंग',
     flowDelivery: 'डिलीवरी',
-    flowSettlement: 'सेटलमेंट',
+    flowSettlement: 'भुगतान',
+    flowDone: 'पूरा',
+    flowNow: 'अभी',
+    flowDisputed: 'विवाद में',
+    flowUpcoming: 'अभी नहीं',
   },
   businessHome: {
     deskEyebrow: 'ट्रेड डेस्क',

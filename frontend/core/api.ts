@@ -11,6 +11,12 @@ import { credentialsForApiRequest } from './adminTransport';
 const configuredBase = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
 const BASE = (configuredBase || 'http://localhost:8787').replace(/\/+$/, '');
 
+/// A public, read-only API address, for pages that link readers to the raw
+/// figures behind them.
+export function publicApiUrl(path: string): string {
+  return `${BASE}${path}`;
+}
+
 /// Sends a route crash to the backend error tracker. Fire and forget: it never
 /// throws, carries no cookies, and `keepalive` lets it finish even when the
 /// error boundary reloads the page straight after.
@@ -1260,6 +1266,11 @@ export interface LifetimeKindRollup {
 /// One contract generation's share of the all-time totals. USDC fields are
 /// decimal strings, matching the top-level `volumes`.
 export interface LifetimeContract extends LifetimeVolumes {
+  /// Whether the running deployment still uses it, and which version of its
+  /// contract name it is by deploy order. Absent on older snapshots.
+  status?: 'live' | 'retired';
+  version?: number;
+  of?: number;
   name: string;
   kind: ContractKind;
   address: string;
@@ -1306,7 +1317,21 @@ export interface CurrentContractsSnapshot {
 /// All-time totals across every contract generation, including retired ones.
 /// Distinct from NetworkOnchainStats, which covers only the currently
 /// configured contracts and resets to zero on each redeploy.
+export interface LifetimeDay extends LifetimeVolumes {
+  /// UTC date, YYYY-MM-DD.
+  day: string;
+  deals: number;
+  jobsPosted: number;
+  transactions: number;
+  financings: number;
+}
+
 export interface LifetimeStats {
+  /// The network these figures come from. Absent on older snapshots.
+  network?: { chainId: number; name: string; testnet: boolean };
+  /// Activity per UTC day. `complete` is false while older history is still
+  /// being indexed; `indexedShare` says how far that has got.
+  series?: { days: LifetimeDay[]; complete: boolean; indexedShare: number };
   fromBlock: string;
   toBlock: string;
   totals: {

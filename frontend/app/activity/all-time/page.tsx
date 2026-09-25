@@ -1,67 +1,48 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import {
   api,
   ApiError,
+  publicApiUrl,
   type ContractKind,
-  type CurrentContract,
   type CurrentContractsSnapshot,
-  type LifetimeStats,
   type LifetimeContract,
+  type LifetimeStats,
 } from '@/core/api';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-  PageCard,
-} from '@/shared/components/Bands';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { compactUsdc, glanceUsdc, weekly } from '@/features/analytics/series';
+import { WeeklyBars } from '@/features/analytics/WeeklyBars';
 
-/// All-time settlement totals, across every contract generation, beside what the
-/// contracts in service are holding right now.
+/// Karwan in numbers: a public page anyone can read, including someone who has
+/// never used Karwan. Every figure comes from the contracts on Arc, summed by
+/// the backend's all-time scan, and every contract links to the explorer so the
+/// reader can check it.
 ///
-/// Deliberately public and deliberately not sign-in gated, unlike /activity:
-/// there is nothing here about any individual. Only sums, and the addresses they
-/// were summed from. The addresses are the point rather than an implementation
-/// leak: a total nobody can check is a claim, and every row links to the
-/// explorer so a reader can add it up themselves.
-///
-/// Two feeds on two clocks. The all-time sweep is history, so it only ever
-/// grows at the tail and a 30-second poll keeps it within a block or two of
-/// chain. Contract balances are a fact about now, read at head, and change only
-/// when somebody funds or releases, which the activity feed already reports as
-/// it happens. They refresh on a slower loop.
+/// Two feeds on two clocks. The all-time scan is history and only grows at the
+/// tail, so a 30-second poll keeps it within a block or two of the chain.
+/// Contract balances are a fact about now and refresh on a slower loop.
 
 const LIFETIME_POLL_MS = 30_000;
 const CONTRACTS_POLL_MS = 5 * 60_000;
+const OTHER_NETWORK_URL = process.env.NEXT_PUBLIC_OTHER_NETWORK_STATS_URL?.trim() || null;
+
+type Copy = ReturnType<typeof useTranslations>['analytics'];
+
+const fill = (template: string, values: Record<string, string>) =>
+  template.replace(/\{(\w+)\}/g, (_, k: string) => values[k] ?? '');
 
 export default function AllTimePage() {
-  const t = useTranslations().activity.allTime;
+  const t = useTranslations().analytics;
   const [stats, setStats] = useState<LifetimeStats | null>(null);
   const [current, setCurrent] = useState<CurrentContractsSnapshot | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'unscanned' | 'error'>('loading');
   const [explorer, setExplorer] = useState('https://testnet.arcscan.app');
   const [updatedAt, setUpdatedAt] = useState(0);
-
-  useEffect(() => {
-    api
-      .status()
-      .then((s) => setExplorer(s.chain.explorer ?? 'https://testnet.arcscan.app'))
-      .catch(() => {
-        /* keep default */
-      });
-  }, []);
-
-  // `live` guards against a response landing after the component unmounted, and
-  // against a slow first request overwriting a newer poll.
   const alive = useRef(true);
+
   useEffect(() => {
     alive.current = true;
+    api.status().then((s) => setExplorer(s.chain.explorer ?? 'https://testnet.arcscan.app')).catch(() => undefined);
     return () => {
       alive.current = false;
     };
@@ -78,13 +59,8 @@ export default function AllTimePage() {
       })
       .catch((err: unknown) => {
         if (!alive.current) return;
-        // 503 means the seed scan has not run on this deployment. That is an
-        // operational state rather than a fault, and it should read that way.
-        // Keyed on the status, not on the message text, so rewording the
-        // backend's copy cannot silently turn it into a generic error.
-        //
-        // A failed POLL is not a failed page: keep serving the numbers already
-        // on screen rather than blanking them because one refresh missed.
+        // A failed poll keeps the figures already on screen. 503 means this
+        // network has not been counted yet, an operational state, not a fault.
         setState((prev) =>
           prev === 'ready' ? prev : err instanceof ApiError && err.status === 503 ? 'unscanned' : 'error',
         );
@@ -92,15 +68,7 @@ export default function AllTimePage() {
   }, []);
 
   const loadContracts = useCallback(() => {
-    api
-      .networkContracts()
-      .then((c) => {
-        if (alive.current) setCurrent(c);
-      })
-      .catch(() => {
-        // The section simply does not render. The all-time totals above it do
-        // not depend on this read, and half a page beats an error banner.
-      });
+    api.networkContracts().then((c) => alive.current && setCurrent(c)).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -115,198 +83,271 @@ export default function AllTimePage() {
     return () => clearInterval(id);
   }, [loadContracts]);
 
+  const testnet = stats?.network?.testnet ?? true;
+
   return (
-    <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="max-w-[58ch]">
-          <div className="fade-up">
-            <SectionTag tone="dark">{t.sectionTag}</SectionTag>
-          </div>
-          <div className="fade-up fade-up-1">
-            <HeroHeadline size="md">
-              {t.headlineTop}<Punc>.</Punc>
-              <br />
-              <Accent>{t.headlineAccent}</Accent>
-            </HeroHeadline>
-          </div>
-          <p className="body-copy fade-up fade-up-2 mt-6 text-pretty text-[15px] text-[var(--lp-text-muted)] max-w-[44ch]">
-            {t.description}
-          </p>
-          {state === 'ready' && stats && (
-            <div className="fade-up fade-up-3 mt-7">
-              <LiveStrip block={stats.toBlock} updatedAt={updatedAt} t={t} />
-            </div>
-          )}
+    <main className="product-surface mx-auto w-full max-w-[960px] px-4 pb-24 pt-8 sm:px-6">
+      <header className="space-y-4 border-b border-[var(--lp-border-light)] pb-8">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--lp-border-light)] px-3 py-1 font-medium text-[var(--lp-dark)]">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--chart-bar)]" />
+            {testnet ? t.networkTestnet : t.networkMainnet}
+          </span>
+          {OTHER_NETWORK_URL ? (
+            <a href={OTHER_NETWORK_URL} className="inline-flex min-h-11 items-center text-[var(--lp-text-sub)] underline-offset-4 hover:underline">
+              {testnet ? t.otherMainnet : t.otherTestnet} ↗
+            </a>
+          ) : null}
         </div>
-      </Band>
+        <h1 className="text-[32px] font-semibold leading-tight text-[var(--lp-dark)] sm:text-[36px]">{t.title}</h1>
+        <p className="max-w-[60ch] text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{t.lead}</p>
+        {state === 'ready' && stats ? <Freshness block={stats.toBlock} updatedAt={updatedAt} t={t} /> : null}
+      </header>
 
-      <Band tone="light" compact>
-        <div className="fade-up fade-up-1">
-          <PageCard>
-            <div className="p-6 md:p-8 space-y-10">
-              {state === 'loading' && <SweepingSkeleton />}
-              {state === 'unscanned' && (
-                <BracketMessage tag={t.unscannedTag} body={t.unscannedBody} />
-              )}
-              {state === 'error' && <BracketMessage tag={t.errorTag} body={t.errorBody} />}
-              {state === 'ready' && stats && (
-                <Totals stats={stats} current={current} explorer={explorer} t={t} />
-              )}
-
-              <div className="pt-6 border-t border-[var(--lp-border-light)]">
-                <Link
-                  href="/activity"
-                  className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)] transition-colors"
-                >
-                  {t.backToActivity}
-                </Link>
-              </div>
-            </div>
-          </PageCard>
+      {state === 'loading' ? <Skeleton /> : null}
+      {state === 'unscanned' ? <Message text={t.states.unscanned} /> : null}
+      {state === 'error' ? <Message text={t.states.error} action={t.states.retry} onAction={loadLifetime} /> : null}
+      {state === 'ready' && stats ? (
+        <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-10">
+          <Hero stats={stats} t={t} />
+          <OverTime stats={stats} t={t} />
+          <WhereItWent stats={stats} t={t} />
+          <Rails stats={stats} t={t} />
+          <Contracts stats={stats} current={current} explorer={explorer} t={t} />
+          <CheckIt testnet={testnet} t={t} />
         </div>
-      </Band>
-    </FullBleed>
+      ) : null}
+    </main>
   );
 }
 
-type Copy = ReturnType<typeof useTranslations>['activity']['allTime'];
-
-/// Head block and how stale the reading is, with the breathing dot the charter
-/// asks for wherever data is live. The seconds counter ticks on its own so the
-/// page reads as watching rather than as a snapshot somebody left open.
-function LiveStrip({ block, updatedAt, t }: { block: string; updatedAt: number; t: Copy }) {
+function Freshness({ block, updatedAt, t }: { block: string; updatedAt: number; t: Copy }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-
   const age = Math.max(0, Math.round((now - updatedAt) / 1000));
-  const stamp = age < 5 ? t.updatedNow : t.updatedAgo.replace('{n}', String(age));
-
   return (
-    <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-2">
-      <span className="inline-flex items-center gap-2 mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-accent-on-light)]">
-        <span aria-hidden className="live-dot w-1.5 h-1.5 rounded-full bg-[var(--lp-accent)]" />
-        {t.liveTag}
-      </span>
-      <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
-      <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]">
-        {t.blockLabel.replace('{block}', Number(block).toLocaleString('en-US'))}
-      </span>
-      <span aria-hidden className="w-px h-3 bg-[var(--lp-workspace-border)]" />
-      <span className="mono text-[10px] uppercase tracking-[0.14em] tabular-nums text-[var(--lp-text-muted)]">
-        {stamp}
-      </span>
-      <style jsx>{`
-        .live-dot {
-          animation: breathe 2.4s ease-in-out infinite;
-        }
-        @keyframes breathe {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.35;
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .live-dot {
-            animation: none;
-          }
-        }
-      `}</style>
+    <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+      {age < 5 ? t.updatedNow : fill(t.updatedAgo, { n: String(age) })}
+      <span aria-hidden className="mx-2">·</span>
+      {fill(t.block, { block: Number(block).toLocaleString('en-US') })}
+    </p>
+  );
+}
+
+function Skeleton() {
+  const soft = 'rounded-[12px] bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse';
+  return (
+    <div aria-busy="true" className="space-y-6 py-10">
+      <div className={`h-16 w-72 ${soft}`} />
+      <div className={`h-24 w-full ${soft}`} />
+      <div className={`h-52 w-full ${soft}`} />
     </div>
   );
 }
 
-function BracketMessage({ tag, body }: { tag: string; body?: string }) {
+function Message({ text, action, onAction }: { text: string; action?: string; onAction?: () => void }) {
   return (
-    <div className="py-10 text-center space-y-2.5 max-w-[46ch] mx-auto">
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        {tag}
+    <div className="space-y-4 py-12">
+      <p className="text-[16px] text-[var(--lp-dark)]">{text}</p>
+      {action && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-outline-strong)] px-4 text-[15px] font-medium text-[var(--lp-dark)]"
+        >
+          {action}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+const num = (v: string | number | undefined) => Number(v ?? 0) || 0;
+
+/// Labelled rows with a bar each, all on one scale: magnitude compared at a
+/// glance, the exact figure beside every bar.
+function RowBars({ rows }: { rows: Array<{ label: string; value: number; note?: string }> }) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  return (
+    <ul className="space-y-4">
+      {rows.map((r) => (
+        <li key={r.label} className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-[15px] text-[var(--lp-dark)]">{r.label}</span>
+            <span dir="ltr" className="text-[15px] font-semibold tabular-nums text-[var(--lp-dark)]">
+              {glanceUsdc(r.value)} <span className="text-[13px] font-normal text-[var(--lp-text-sub)]">USDC</span>
+            </span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-[var(--lp-border-light)]">
+            <div
+              className="h-2 rounded-full bg-[var(--chart-bar)]"
+              style={{ width: `${r.value > 0 ? Math.max(1.5, (r.value / max) * 100) : 0}%` }}
+            />
+          </div>
+          {r.note ? <p className="text-[13px] text-[var(--lp-text-sub)]">{r.note}</p> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[13px] text-[var(--lp-text-sub)]">{label}</p>
+      <p className="text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">
+        <span dir="ltr">
+          {value}
+          {unit ? <span className="ms-1.5 text-[13px] font-normal text-[var(--lp-text-sub)]">{unit}</span> : null}
+        </span>
       </p>
-      {body && <p className="body-copy text-[14px] text-[var(--lp-text-sub)]">{body}</p>}
     </div>
   );
 }
 
-/// The charter forbids the word "Loading". A lime hairline sweeping under a
-/// skeleton says the same thing without saying it.
-function SweepingSkeleton() {
+function Hero({ stats, t }: { stats: LifetimeStats; t: Copy }) {
+  const financing = stats.byKind.find((k) => k.kind === 'financing');
+  const staking = stats.byKind.find((k) => k.kind === 'staking');
   return (
-    <div className="py-10 space-y-4" aria-busy="true">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SkeletonBlock height={116} />
-        <SkeletonBlock height={116} />
+    <section aria-labelledby="hero" className="space-y-8">
+      <div className="space-y-2">
+        <h2 id="hero" className="text-[15px] font-medium text-[var(--lp-text-sub)]">{t.hero.label}</h2>
+        <p className="text-[48px] font-semibold leading-none tabular-nums text-[var(--lp-dark)] sm:text-[64px]">
+          <span dir="ltr">
+            {glanceUsdc(num(stats.totalMovedUsdc))}
+            <span className="ms-2 text-[18px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+          </span>
+        </p>
+        <p className="text-[13px] text-[var(--lp-text-sub)]">{t.hero.note}</p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[0, 1, 2, 3].map((i) => (
-          <SkeletonBlock key={i} height={74} />
-        ))}
+      <RowBars
+        rows={[
+          { label: t.hero.inDeals, value: num(stats.volumes.fundedUsdc) },
+          { label: t.hero.inStake, value: num(staking?.volumes.stakedUsdc) },
+          { label: t.hero.inFinance, value: num(financing?.volumes.advancedUsdc) },
+        ]}
+      />
+      <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+        <Stat label={t.kpis.deals} value={stats.totals.deals.toLocaleString('en-US')} />
+        <Stat label={t.kpis.paidToSellers} value={glanceUsdc(num(stats.volumes.releasedUsdc))} unit="USDC" />
+        <Stat label={t.kpis.returnedToBuyers} value={glanceUsdc(num(stats.volumes.refundedUsdc))} unit="USDC" />
+        <Stat label={t.kpis.requests} value={stats.totals.jobsPosted.toLocaleString('en-US')} />
       </div>
-    </div>
+    </section>
   );
 }
 
-function SkeletonBlock({ height }: { height: number }) {
+function OverTime({ stats, t }: { stats: LifetimeStats; t: Copy }) {
+  const { locale } = useLocale();
+  const series = stats.series;
+  const weeks = weekly(series?.days ?? []);
+  const short = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const long = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const dealsLine = (n: number) => (n === 1 ? t.overTime.dealsOne : fill(t.overTime.dealsMany, { n: String(n) }));
+
+  let body: React.ReactNode;
+  if (!series || !series.complete) {
+    const pct = Math.floor((series?.indexedShare ?? 0) * 100);
+    body = <p className="text-[15px] text-[var(--lp-text-sub)]">{fill(t.overTime.indexing, { pct: String(pct) })}</p>;
+  } else if (weeks.length === 0) {
+    body = <p className="text-[15px] text-[var(--lp-text-sub)]">{t.overTime.empty}</p>;
+  } else {
+    const heading = (w: string) => fill(t.overTime.weekOf, { date: long.format(new Date(`${w}T00:00:00Z`)) });
+    body = (
+      <div className="grid gap-10 lg:grid-cols-2">
+        <div className="space-y-3">
+          <h3 className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.overTime.moneyTitle}</h3>
+          <WeeklyBars
+            title={t.overTime.moneyTitle}
+            data={weeks.map((w) => ({
+              key: w.weekStart,
+              label: short.format(new Date(`${w.weekStart}T00:00:00Z`)),
+              value: w.fundedUsdc,
+              tooltip: [heading(w.weekStart), `${glanceUsdc(w.fundedUsdc)} USDC`, dealsLine(w.deals)],
+            }))}
+            axisFormat={compactUsdc}
+            tableHeaders={[t.overTime.colWeek, t.overTime.colUsdc]}
+            tableValue={(d) => glanceUsdc(d.value)}
+            showTableLabel={t.overTime.showTable}
+            hideTableLabel={t.overTime.hideTable}
+          />
+        </div>
+        <div className="space-y-3">
+          <h3 className="text-[17px] font-semibold text-[var(--lp-dark)]">{t.overTime.dealsTitle}</h3>
+          <WeeklyBars
+            title={t.overTime.dealsTitle}
+            data={weeks.map((w) => ({
+              key: w.weekStart,
+              label: short.format(new Date(`${w.weekStart}T00:00:00Z`)),
+              value: w.deals,
+              tooltip: [heading(w.weekStart), dealsLine(w.deals)],
+            }))}
+            axisFormat={(v) => String(Math.round(v))}
+            tableHeaders={[t.overTime.colWeek, t.overTime.colDeals]}
+            tableValue={(d) => String(d.value)}
+            showTableLabel={t.overTime.showTable}
+            hideTableLabel={t.overTime.hideTable}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className="skel relative overflow-hidden rounded-xl border border-[var(--lp-border-light)]"
-      style={{ height }}
-    >
-      <style jsx>{`
-        .skel::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          height: 1px;
-          width: 40%;
-          background: var(--lp-accent);
-          animation: sweep 1.4s ease-in-out infinite;
-        }
-        @keyframes sweep {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(350%);
-          }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .skel::after {
-            animation: none;
-            width: 100%;
-            opacity: 0.4;
-          }
-        }
-      `}</style>
-    </div>
+    <section aria-labelledby="over-time" className="space-y-6">
+      <h2 id="over-time" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.overTime.title}</h2>
+      {body}
+    </section>
   );
 }
 
-/// Money, formatted the way a settlement desk reads it: grouped thousands, two
-/// decimals, USDC suffix carried by the label rather than repeated on every row.
-function usdc(value: string): string {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return value;
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function WhereItWent({ stats, t }: { stats: LifetimeStats; t: Copy }) {
+  const funded = num(stats.volumes.fundedUsdc);
+  const share = (v: number) => (funded > 0 ? fill(t.went.share, { pct: String(Math.round((v / funded) * 100)) }) : undefined);
+  const sellers = num(stats.volumes.releasedUsdc);
+  const buyers = num(stats.volumes.refundedUsdc);
+  const fees = num(stats.volumes.feesUsdc);
+  return (
+    <section aria-labelledby="went" className="space-y-6">
+      <h2 id="went" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.went.title}</h2>
+      <RowBars
+        rows={[
+          { label: t.went.sellers, value: sellers, note: share(sellers) },
+          { label: t.went.buyers, value: buyers, note: share(buyers) },
+          { label: t.went.fees, value: fees, note: share(fees) },
+        ]}
+      />
+      <p className="text-[13px] text-[var(--lp-text-sub)]">{t.went.note}</p>
+    </section>
+  );
 }
 
-function count(n: number): string {
-  return n.toLocaleString('en-US');
+function Rails({ stats, t }: { stats: LifetimeStats; t: Copy }) {
+  const financing = stats.byKind.find((k) => k.kind === 'financing');
+  const staking = stats.byKind.find((k) => k.kind === 'staking');
+  const treasury = stats.byKind.find((k) => k.kind === 'treasury');
+  return (
+    <section aria-labelledby="rails" className="space-y-6">
+      <h2 id="rails" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.rails.title}</h2>
+      <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
+        <Stat label={t.rails.stakeLocked} value={glanceUsdc(num(staking?.volumes.stakedUsdc))} unit="USDC" />
+        <Stat label={t.rails.stakeTaken} value={glanceUsdc(num(stats.volumes.slashedUsdc))} unit="USDC" />
+        <Stat label={t.rails.yieldPaid} value={glanceUsdc(num(treasury?.volumes.yieldUsdc ?? stats.volumes.yieldUsdc))} unit="USDC" />
+        <Stat label={t.rails.advanced} value={glanceUsdc(num(financing?.volumes.advancedUsdc))} unit="USDC" />
+        <Stat label={t.rails.repaid} value={glanceUsdc(num(financing?.volumes.repaidUsdc))} unit="USDC" />
+        <Stat label={t.rails.defaults} value={String(financing?.defaults ?? 0)} />
+      </div>
+    </section>
+  );
 }
 
-/// True when a decimal USDC string is worth showing. `Number` rather than a
-/// string compare, because '0', '0.0' and '0.000000' all mean the same thing and
-/// only one of them is what the API happens to send.
-function moved(value: string): boolean {
-  return Number(value) > 0;
-}
+const plainName = (name: string) =>
+  name.replace(/^Karwan/, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
 
-function Totals({
+function Contracts({
   stats,
   current,
   explorer,
@@ -317,477 +358,90 @@ function Totals({
   explorer: string;
   t: Copy;
 }) {
-  const { totals, volumes } = stats;
-  const financing = stats.byKind.find((k) => k.kind === 'financing');
-  const staking = stats.byKind.find((k) => k.kind === 'staking');
-  const treasury = stats.byKind.find((k) => k.kind === 'treasury');
-
-  // Every rail is rendered, including one sitting at zero. Hiding an empty
-  // section would be tidier and would answer a different question: a reader
-  // checking whether trade finance has moved anything cannot tell "nothing yet"
-  // apart from "not on this page" if the section is simply absent. Zero is the
-  // answer, so the page gives it.
-
-  return (
-    <div className="space-y-10">
-      {/* The headline pair. Volume is the one lime figure on the page.
-
-          It reads every USDC that ENTERED a Karwan contract: escrow funding,
-          financier advances, and stake locked. It used to be escrow funding
-          alone, which quietly told a reader that the financing and staking
-          rails below it were not money. The out-legs stay out, since counting
-          a dollar arriving and the same dollar leaving reports the trade
-          twice. */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Headline label={t.volumeLabel} value={usdc(stats.totalMovedUsdc)} suffix="USDC" accent />
-        <Headline label={t.txnsLabel} value={count(totals.transactions)} />
-      </div>
-
-      {/* Settlement. Money and deals only. Event counts, block spans and
-          undecodable-log tallies were on this page and none of them are a
-          user's question: they are how the number was produced, not what it
-          says. They stay in the scan script's output, where whoever runs it
-          needs them.
-
-          Ordered as the funnel runs: what was asked for, what got funded, then
-          where the money ended up. */}
-      <Section tag={t.settlementTag} body={t.settlementBody}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Stat label={t.jobsPostedLabel} value={count(totals.jobsPosted)} />
-          <Stat label={t.dealsLabel} value={count(totals.deals)} />
-          <Stat label={t.feesLabel} value={usdc(volumes.feesUsdc)} />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-          <Stat label={t.releasedLabel} value={usdc(volumes.releasedUsdc)} />
-          <Stat label={t.settledLabel} value={usdc(volumes.settledUsdc)} />
-          <Stat label={t.refundedLabel} value={usdc(volumes.refundedUsdc)} />
-        </div>
-      </Section>
-
-      {/* Invoice factoring and purchase-order advances, from two contracts and
-          one bucket. Deliberately not added to the headline volume above: an
-          advance is a financier's capital moving against a deal that already
-          counted its own value when the escrow was funded, so folding them
-          together would report one trade twice. */}
-      <Section tag={t.financingTag} body={t.financingBody}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat label={t.advancedLabel} value={usdc(financing?.volumes.advancedUsdc ?? '0')} />
-          <Stat label={t.repaidLabel} value={usdc(financing?.volumes.repaidUsdc ?? '0')} />
-          <Stat label={t.financingsLabel} value={count(financing?.financings ?? 0)} />
-          <Stat label={t.defaultsLabel} value={count(financing?.defaults ?? 0)} />
-        </div>
-      </Section>
-
-      {/* Slashing is read from the platform total rather than the staking
-          rollup: stake is forfeited both by losing a dispute in the escrow and
-          by defaulting on an advance, and it is the same money either way. */}
-      <Section tag={t.stakingTag} body={t.stakingBody}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Stat label={t.stakedLabel} value={usdc(staking?.volumes.stakedUsdc ?? '0')} />
-          <Stat label={t.slashedLabel} value={usdc(volumes.slashedUsdc)} />
-          <Stat label={t.yieldLabel} value={usdc(treasury?.volumes.yieldUsdc ?? volumes.yieldUsdc)} />
-        </div>
-      </Section>
-
-      {current && current.contracts.length > 0 && (
-        <CurrentContracts snapshot={current} explorer={explorer} t={t} />
-      )}
-
-      <Ledger stats={stats} explorer={explorer} t={t} />
-    </div>
+  const byAddress = new Map(stats.contracts.map((c) => [c.address.toLowerCase(), c]));
+  const live = current?.contracts ?? [];
+  const retired = stats.contracts.filter((c) => c.status === 'retired' && c.events > 0);
+  const role = (kind: ContractKind) => t.contracts.roles[kind];
+  const link = (address: string) => (
+    <a
+      href={`${explorer}/address/${address}`}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex min-h-11 items-center mono text-[12px] text-[var(--lp-text-sub)] underline-offset-4 hover:underline"
+    >
+      {address.slice(0, 6)}…{address.slice(-4)} ↗
+    </a>
   );
-}
+  const version = (c: LifetimeContract | undefined) =>
+    c?.version && c.of && c.of > 1 ? fill(t.contracts.version, { v: String(c.version), of: String(c.of) }) : null;
 
-function Section({
-  tag,
-  body,
-  children,
-}: {
-  tag: string;
-  body?: string;
-  children: React.ReactNode;
-}) {
   return (
-    <section className="space-y-3">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        {tag}
-      </span>
-      {body && (
-        <p className="body-copy text-[13px] text-[var(--lp-text-sub)] max-w-[62ch]">{body}</p>
-      )}
-      <div className="pt-1">{children}</div>
+    <section aria-labelledby="contracts" className="space-y-6">
+      <div className="space-y-2">
+        <h2 id="contracts" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.contracts.title}</h2>
+        <p className="text-[15px] text-[var(--lp-text-sub)]">{t.contracts.lead}</p>
+      </div>
+      <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+        {live.map((c) => {
+          const history = byAddress.get(c.address.toLowerCase());
+          return (
+            <li key={c.address} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3">
+              <div className="min-w-0">
+                <p className="text-[15px] font-medium text-[var(--lp-dark)]">
+                  {plainName(c.name)}
+                  {version(history) ? <span className="ms-2 text-[13px] font-normal text-[var(--lp-text-sub)]">{version(history)}</span> : null}
+                </p>
+                <p className="text-[13px] text-[var(--lp-text-sub)]">{role(c.kind)}</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-[14px] tabular-nums text-[var(--lp-dark)]">
+                  {c.usdcBalance === null || num(c.usdcBalance) === 0
+                    ? t.contracts.noFunds
+                    : fill(t.contracts.holds, { amount: glanceUsdc(num(c.usdcBalance)) })}
+                </span>
+                {link(c.address)}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      {retired.length > 0 ? (
+        <details className="group">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-[15px] font-medium text-[var(--lp-dark)]">
+            {t.contracts.retiredTitle} ({retired.length})
+          </summary>
+          <p className="mb-3 text-[13px] text-[var(--lp-text-sub)]">{t.contracts.retiredLead}</p>
+          <ul className="divide-y divide-[var(--lp-border-light)]">
+            {retired.map((c) => (
+              <li key={c.address} className="flex flex-wrap items-center justify-between gap-x-6 py-2">
+                <span className="text-[14px] text-[var(--lp-dark)]">
+                  {plainName(c.name)}
+                  {version(c) ? <span className="ms-2 text-[13px] text-[var(--lp-text-sub)]">{version(c)}</span> : null}
+                </span>
+                {link(c.address)}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </section>
   );
 }
 
-/// What the running deployment is wired to, and what each contract holds now.
-///
-/// Separate from the ledger below on purpose. That one is history and every row
-/// in it is retired but one; this is the short list a reader actually wants when
-/// they ask "so where is the money right now".
-function CurrentContracts({
-  snapshot,
-  explorer,
-  t,
-}: {
-  snapshot: CurrentContractsSnapshot;
-  explorer: string;
-  t: Copy;
-}) {
+function CheckIt({ testnet, t }: { testnet: boolean; t: Copy }) {
   return (
-    <Section tag={t.currentTag} body={t.currentBody}>
-      <div className="grid grid-cols-2 gap-4 mb-5">
-        <Stat label={t.custodiedLabel} value={usdc(snapshot.totals.custodiedUsdc)} />
-        <Stat
-          label={t.liveCountLabel}
-          value={`${count(snapshot.totals.live)} / ${count(snapshot.totals.configured)}`}
-        />
-      </div>
-
-      <div className="space-y-3 sm:hidden">
-        {snapshot.contracts.map((c, index) => (
-          <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[13px] font-bold text-[var(--lp-ink)]">
-                  <span className="me-2 mono text-[9px] text-[var(--lp-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
-                  {c.name.replace('Karwan', '')}
-                </p>
-                <a href={`${explorer}/address/${c.address}`} target="_blank" rel="noreferrer" className="-mx-2 mt-1 inline-flex min-h-11 max-w-full items-center break-all px-2 mono text-[10px] text-[var(--lp-text-muted)]">
-                  {c.address.slice(0, 10)}â€¦{c.address.slice(-6)} â†—
-                </a>
-              </div>
-              <StatusPill live={c.live} t={t} />
-            </div>
-            <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-[var(--lp-border-light)] pt-3">
-              <div>
-                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colReplaced}</dt>
-                <dd className="mt-1 mono text-[11px] tabular-nums text-[var(--lp-ink)]">{c.supersededGenerations > 0 ? count(c.supersededGenerations) : 'â€”'}</dd>
-              </div>
-              <div className="text-end">
-                <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colBalance}</dt>
-                <dd className="mt-1 text-[13px] font-bold tabular-nums text-[var(--lp-ink)]">{c.usdcBalance === null ? t.notApplicable : usdc(c.usdcBalance)}</dd>
-              </div>
-            </dl>
-          </article>
-        ))}
-      </div>
-      <div className="-mx-2 hidden overflow-x-auto px-2 sm:block">
-        <table className="w-full min-w-[520px] table-fixed border-collapse">
-          <thead>
-            <tr className="border-b border-[var(--lp-border-light)]">
-              <Th>{t.colContract}</Th>
-              <Th width="7.5rem">{t.colStatus}</Th>
-              <Th right width="6rem">{t.colReplaced}</Th>
-              <Th right width="9rem">{t.colBalance}</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {snapshot.contracts.map((c, i) => (
-              <CurrentRow key={c.address} c={c} index={i} explorer={explorer} t={t} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Section>
-  );
-}
-
-function CurrentRow({
-  c,
-  index,
-  explorer,
-  t,
-}: {
-  c: CurrentContract;
-  index: number;
-  explorer: string;
-  t: Copy;
-}) {
-  return (
-    <tr className="border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[var(--lp-workspace-soft)] transition-colors">
-      <td className="py-3 pe-4">
-        <div className="flex items-baseline gap-2">
-          <span className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)]">
-            {String(index + 1).padStart(2, '0')}
-          </span>
-          <div className="min-w-0">
-            <p className="text-[13px] font-bold text-[var(--lp-ink)] truncate">
-              {c.name.replace('Karwan', '')}
-            </p>
-            <a
-              href={`${explorer}/address/${c.address}`}
-              target="_blank"
-              rel="noreferrer"
-              className="mono text-[10px] text-[var(--lp-text-muted)] hover:text-[var(--lp-ink)] hover:underline transition-colors"
-            >
-              {c.address.slice(0, 10)}…{c.address.slice(-6)} ↗
-            </a>
-          </div>
-        </div>
-      </td>
-      <td className="py-3 pe-4">
-        <StatusPill live={c.live} t={t} />
-      </td>
-      <td className="py-3 pe-4 text-end mono text-[11px] tabular-nums text-[var(--lp-text-muted)]">
-        {c.supersededGenerations > 0 ? count(c.supersededGenerations) : '—'}
-      </td>
-      <td className="py-3 text-end tabular-nums text-[13px] font-bold text-[var(--lp-ink)]">
-        {c.usdcBalance === null ? (
-          <span className="mono text-[10px] uppercase tracking-[0.12em] font-normal text-[var(--lp-text-muted)]">
-            {t.notApplicable}
-          </span>
-        ) : (
-          usdc(c.usdcBalance)
-        )}
-      </td>
-    </tr>
-  );
-}
-
-function StatusPill({ live, t }: { live: boolean; t: Copy }) {
-  const color = live ? 'var(--lp-accent)' : 'var(--lp-text-muted)';
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.12em] px-2 py-1 rounded-full"
-      style={{
-        color,
-        background: live ? 'color-mix(in srgb, var(--lp-accent) 8%, transparent)' : 'transparent',
-        border: `1px solid color-mix(in srgb, ${color} 16%, transparent)`,
-      }}
-    >
-      <span aria-hidden className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-      {live ? t.statusLive : t.statusMissing}
-    </span>
-  );
-}
-
-/// Every contract ever, grouped by what it does.
-///
-/// Only the ones that carried something are listed. The rest were deployed and
-/// superseded before anyone touched them, so a row of zeros is noise, and each
-/// group header still says how many exist against how many were used, which
-/// means nothing is being quietly dropped.
-function Ledger({
-  stats,
-  explorer,
-  t,
-}: {
-  stats: LifetimeStats;
-  explorer: string;
-  t: Copy;
-}) {
-  const label: Record<ContractKind, string> = {
-    settlement: t.settlementTag,
-    financing: t.financingTag,
-    staking: t.stakingTag,
-    treasury: t.treasuryTag,
-    registry: t.registryTag,
-  };
-
-  const groups = stats.byKind
-    .map((k) => ({
-      kind: k.kind,
-      rollup: k,
-      rows: stats.contracts.filter((c) => c.kind === k.kind && c.events > 0),
-    }))
-    .filter((g) => g.rows.length > 0);
-
-  if (groups.length === 0) return null;
-
-  return (
-    <Section tag={t.ledgerTag} body={t.ledgerBody}>
-      <div className="space-y-7">
-        {groups.map((g) => (
-          <div key={g.kind} className="space-y-2.5">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-ink)]">
-                {label[g.kind]}
-              </span>
-              <span className="mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-[var(--lp-text-muted)]">
-                {g.rollup.contracts === 1
-                  ? t.generationsOne
-                  : t.generationsMany.replace('{n}', String(g.rollup.contracts))}
-              </span>
-            </div>
-            <div className="space-y-2 sm:hidden">
-              {g.rows.map((c, index) => {
-                const amount = movedBy(c);
-                return (
-                  <article key={c.address} className="rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
-                    <a href={`${explorer}/address/${c.address}`} target="_blank" rel="noreferrer" className="-mx-2 inline-flex min-h-11 max-w-full items-center break-all px-2 mono text-[10px] text-[var(--lp-ink)]">
-                      <span className="me-2 text-[var(--lp-text-muted)]">{String(index + 1).padStart(2, '0')}</span>
-                      {c.address.slice(0, 10)}â€¦{c.address.slice(-6)} â†—
-                    </a>
-                    <dl className="mt-2 grid grid-cols-2 gap-3 border-t border-[var(--lp-border-light)] pt-3">
-                      <div>
-                        <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colEvents}</dt>
-                        <dd className="mt-1 mono text-[11px] tabular-nums text-[var(--lp-ink)]">{count(c.events)}</dd>
-                      </div>
-                      <div className="text-end">
-                        <dt className="mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">{t.colMoved}</dt>
-                        <dd className="mt-1 text-[13px] font-bold tabular-nums text-[var(--lp-ink)]">{moved(amount) ? usdc(amount) : 'â€”'}</dd>
-                      </div>
-                    </dl>
-                  </article>
-                );
-              })}
-            </div>
-            <div className="-mx-2 hidden overflow-x-auto px-2 sm:block">
-              <table className="w-full min-w-[460px] table-fixed border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--lp-border-light)]">
-                    <Th>{t.colContract}</Th>
-                    <Th right width="6rem">{t.colEvents}</Th>
-                    <Th right width="9rem">{t.colMoved}</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {g.rows.map((c, i) => (
-                    <LedgerRow key={c.address} c={c} index={i} explorer={explorer} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-/// The measure a contract of this kind actually moves. Printing `funded` for a
-/// financing contract prints zero, and a zero in a money column reads as an
-/// unused rail rather than as the wrong column.
-function movedBy(c: LifetimeContract): string {
-  switch (c.kind) {
-    case 'financing':
-      return c.advancedUsdc;
-    case 'staking':
-      return c.stakedUsdc;
-    case 'treasury':
-      return c.yieldUsdc;
-    default:
-      return c.fundedUsdc;
-  }
-}
-
-function LedgerRow({
-  c,
-  index,
-  explorer,
-}: {
-  c: LifetimeContract;
-  index: number;
-  explorer: string;
-}) {
-  const amount = movedBy(c);
-  return (
-    <tr className="border-b border-[var(--lp-border-light)] last:border-0 hover:bg-[var(--lp-workspace-soft)] transition-colors">
-      <td className="py-2.5 pe-4">
-        <span className="mono text-[10px] tabular-nums text-[var(--lp-text-muted)] me-2">
-          {String(index + 1).padStart(2, '0')}
-        </span>
-        <a
-          href={`${explorer}/address/${c.address}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mono text-[11px] text-[var(--lp-ink)] hover:underline"
-        >
-          {c.address.slice(0, 10)}…{c.address.slice(-6)} ↗
-        </a>
-      </td>
-      <td className="py-2.5 pe-4 text-end mono text-[11px] tabular-nums text-[var(--lp-text-muted)]">
-        {count(c.events)}
-      </td>
-      <td className="py-2.5 text-end tabular-nums text-[13px] font-bold text-[var(--lp-ink)]">
-        {moved(amount) ? usdc(amount) : '—'}
-      </td>
-    </tr>
-  );
-}
-
-function Headline({
-  label,
-  value,
-  suffix,
-  accent,
-}: {
-  label: string;
-  value: string;
-  suffix?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className="p-6 md:p-7"
-      style={{
-        background: 'var(--lp-light)',
-        color: 'var(--lp-dark)',
-        border: accent ? '1px solid var(--lp-accent)' : '1px solid var(--lp-workspace-border)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 4,
-      }}
-    >
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">{label}</p>
-      <p className="mt-3 flex items-baseline gap-2">
-        <span
-          className="tabular-nums font-bold leading-none"
-          style={{
-            fontSize: 'clamp(28px, 4vw, 44px)',
-            letterSpacing: '-0.02em',
-            color: accent ? 'var(--lp-accent-on-light)' : 'var(--lp-dark)',
-          }}
-        >
-          {value}
-        </span>
-        {suffix && (
-          <span className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {suffix}
-          </span>
-        )}
-      </p>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="p-4 rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)]">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-        {label}
-      </p>
-      <p className="mt-2 tabular-nums text-[19px] font-bold text-[var(--lp-ink)]">{value}</p>
-    </div>
-  );
-}
-
-function Th({
-  children,
-  right,
-  width,
-}: {
-  children: React.ReactNode;
-  right?: boolean;
-  /// Explicit width on the measured columns.
-  ///
-  /// Without it the table shares the leftover space out between every column,
-  /// so a status pill and a four-digit number drift apart on a wide screen and
-  /// the header stops sitting over its own values. Pinning the narrow columns
-  /// lets the contract name take the slack instead, which is the only column
-  /// that wants it.
-  width?: string;
-}) {
-  return (
-    <th
-      style={width ? { width } : undefined}
-      className={`mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-text-muted)] pb-2.5 ${
-        right ? 'text-end' : 'text-start'
-      }`}
-    >
-      {children}
-    </th>
+    <section aria-labelledby="check" className="space-y-3">
+      <h2 id="check" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.check.title}</h2>
+      <p className="text-[15px] text-[var(--lp-text-sub)]">{t.check.explorer}</p>
+      <a
+        href={publicApiUrl('/api/network/lifetime')}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex min-h-11 items-center text-[15px] font-medium text-[var(--lp-dark)] underline underline-offset-4"
+      >
+        {t.check.raw} ↗
+      </a>
+      {testnet ? <p className="text-[13px] text-[var(--lp-text-sub)]">{t.check.testnetNote}</p> : null}
+    </section>
   );
 }

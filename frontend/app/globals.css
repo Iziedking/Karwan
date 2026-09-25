@@ -197,6 +197,10 @@ html[data-theme="dark"] {
      --lp-accent-on-light at this, so the page theme cannot leak lime onto
      paper or olive onto a dark band. */
   --accent-on-paper: #42560F;
+  /* Chart marks for one positive-money series. A lighter olive than the text
+     ink so a large bar still reads as lime: 3:1 or better on --lp-card and
+     --lp-light, checked with the dataviz validator (2026-09-25). */
+  --chart-bar: #627E15;
   --lp-text-muted: var(--ink-inv-2);
   --lp-text-sub: #3F4851;
   --lp-border-subtle: var(--rule-dark);
@@ -317,6 +321,7 @@ html[data-theme="dark"] {
   --lp-text-muted: #AEBBC6;
   --lp-text-sub: #D0D8DF;
   --lp-accent-on-light: var(--accent);
+  --chart-bar: var(--accent);
   /* Fields RISE above both panel surfaces rather than receding. Recessing them
      was tried on paper and measures worse: every colour darker than --lp-light
      lands within 1.07:1 of it, because there is very little room left below
@@ -1705,136 +1710,6 @@ html[data-theme="dark"] .product-surface {
   }
 }
 
-.deal-flow {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-}
-
-.deal-flow::before {
-  position: absolute;
-  inset-inline: 14px;
-  top: 14px;
-  height: 1px;
-  background: var(--lp-border-light);
-  content: '';
-}
-
-.deal-flow::after {
-  position: absolute;
-  inset-inline: 14px;
-  top: 13px;
-  inline-size: auto;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--lp-accent);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--lp-accent) 24%, transparent);
-  content: '';
-  transform: scaleX(0);
-  transform-origin: left;
-  animation: deal-flow-line 900ms var(--ease-out) 100ms both;
-}
-
-[dir="rtl"] .deal-flow::after {
-  transform-origin: right;
-}
-
-.deal-flow li {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 9px;
-  opacity: 0;
-  transform: translateY(7px);
-  animation: deal-flow-step-in 420ms var(--ease-out) var(--flow-delay, 120ms) both;
-}
-
-.deal-flow-node {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  width: 29px;
-  height: 29px;
-  place-items: center;
-  border: 1px solid var(--lp-border-light);
-  border-radius: 50%;
-  background: var(--lp-card);
-  color: var(--lp-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  transition: border-color 200ms var(--ease-out), background-color 200ms var(--ease-out), color 200ms var(--ease-out), transform 200ms var(--ease-out);
-}
-
-.deal-flow-node::after {
-  position: absolute;
-  inset: -5px;
-  z-index: -1;
-  border: 1px solid color-mix(in srgb, var(--lp-accent) 54%, transparent);
-  border-radius: 50%;
-  content: '';
-  opacity: 0;
-  transform: scale(0.72);
-  animation: deal-flow-ring 520ms var(--ease-out) calc(var(--flow-delay, 120ms) + 110ms) both;
-}
-
-.deal-flow-node-mark {
-  display: block;
-  animation: deal-flow-mark 360ms var(--ease-out) calc(var(--flow-delay, 120ms) + 90ms) both;
-}
-
-.deal-flow-label {
-  max-width: 10ch;
-  padding-inline-end: 8px;
-  color: var(--lp-text-muted);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.25;
-}
-
-.deal-flow .is-complete .deal-flow-node,
-.deal-flow .is-active .deal-flow-node {
-  border-color: var(--lp-accent);
-  background: var(--lp-accent);
-  color: var(--accent-ink);
-}
-
-.deal-flow .is-active .deal-flow-node {
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--lp-accent) 14%, transparent);
-  transform: scale(1.05);
-}
-
-@keyframes deal-flow-line {
-  from { transform: scaleX(0); opacity: 0; }
-  20% { opacity: 1; }
-  to { transform: scaleX(var(--flow-scale, 0)); opacity: 1; }
-}
-
-@keyframes deal-flow-step-in {
-  from { opacity: 0; transform: translateY(7px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes deal-flow-ring {
-  0% { opacity: 0; transform: scale(0.72); }
-  38% { opacity: 0.74; }
-  100% { opacity: 0; transform: scale(1.24); }
-}
-
-@keyframes deal-flow-mark {
-  from { opacity: 0; transform: scale(0.55); }
-  70% { opacity: 1; transform: scale(1.12); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.deal-flow .is-complete .deal-flow-label,
-.deal-flow .is-active .deal-flow-label {
-  color: var(--lp-dark);
-}
-
 .trade-book > li + li {
   border-top: 1px solid var(--lp-border-light);
 }
@@ -1857,19 +1732,10 @@ html[data-theme="dark"] .product-surface {
     min-height: 330px;
     border-radius: 22px;
   }
-  .deal-flow-label {
-    font-size: 10px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home-position::before { animation: none; }
-  .deal-flow::after,
-  .deal-flow li,
-  .deal-flow-node::after,
-  .deal-flow-node-mark { animation: none; }
-  .deal-flow li { opacity: 1; transform: none; }
-  .deal-flow .is-active .deal-flow-node { transform: none; }
 }
 
 .account-launcher,

@@ -136,8 +136,10 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           </p>
           <DealFlow
             stage={stageOf(currentDeal)}
+            delivered={currentDeal.delivered === true}
             labels={[home.flowAgreement, home.flowSecured, home.flowDelivery, home.flowSettlement]}
             progressLabel={home.dealProgress}
+            states={{ done: home.flowDone, now: home.flowNow, disputed: home.flowDisputed, upcoming: home.flowUpcoming }}
           />
         </motion.div> : null}
 
@@ -161,43 +163,55 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
 }
 
 
-function progressFor(stage?: DealStage): number {
+/// Which step the deal is on: 0 agreed, 1 funded, 2 delivered, 3 paid, 4 all
+/// done. A dispute stays on the step it interrupted, shown as paused.
+function progressFor(stage: DealStage | undefined, delivered: boolean): number {
   if (!stage) return -1;
   if (stage === 'awaiting-acceptance') return 0;
   if (stage === 'awaiting-funding') return 1;
   if (stage === 'awaiting-delivery') return 2;
-  if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release' || stage === 'disputed') return 3;
+  if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release') return 3;
+  if (stage === 'disputed') return delivered ? 3 : 2;
   if (stage === 'settled') return 4;
   return 0;
 }
 
-function DealFlow({ stage, labels, progressLabel }: {
+/// Four flat segments with a word under each: filled when done, ink for the
+/// current step, the warning colour when a dispute has paused it. The state of
+/// every step is also spoken, so colour never carries it alone.
+function DealFlow({ stage, delivered, labels, progressLabel, states }: {
   stage?: DealStage;
+  delivered: boolean;
   labels: readonly string[];
   progressLabel: string;
+  states: { done: string; now: string; disputed: string; upcoming: string };
 }) {
-  const progress = progressFor(stage);
-  const flowScale = progress > 0 ? Math.min(progress, labels.length - 1) / (labels.length - 1) : 0;
+  const progress = progressFor(stage, delivered);
+  const disputed = stage === 'disputed';
   return (
-    <ol
-      key={stage ?? 'not-started'}
-      className="deal-flow mt-7"
-      aria-label={progressLabel}
-      style={{ '--flow-scale': flowScale } as CSSProperties}
-    >
+    <ol className="mt-6 grid grid-cols-4 gap-1.5" aria-label={progressLabel}>
       {labels.map((label, index) => {
-        const complete = progress > index;
-        const active = progress === index;
+        const done = progress > index;
+        const current = progress === index;
+        const fill = done
+          ? 'bg-[var(--chart-bar)]'
+          : current
+            ? disputed
+              ? 'bg-[var(--color-warning)]'
+              : 'bg-[var(--lp-dark)]'
+            : 'bg-[var(--lp-border-light)]';
+        const state = done ? states.done : current ? (disputed ? states.disputed : states.now) : states.upcoming;
         return (
-          <li
-            key={label}
-            className={complete ? 'is-complete' : active ? 'is-active' : ''}
-            style={{ '--flow-delay': `${120 + index * 105}ms` } as CSSProperties}
-          >
-            <span aria-hidden className="deal-flow-node">
-              <span className="deal-flow-node-mark">{complete ? '✓' : index + 1}</span>
+          <li key={label} aria-current={current ? 'step' : undefined} className="min-w-0">
+            <span aria-hidden className={`block h-1.5 rounded-full transition-colors duration-200 ${fill}`} />
+            <span
+              className={`mt-2 block truncate text-[12px] ${
+                current ? 'font-semibold text-[var(--lp-dark)]' : done ? 'text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'
+              }`}
+            >
+              {label}
+              <span className="sr-only">, {state}</span>
             </span>
-            <span className="deal-flow-label">{label}</span>
           </li>
         );
       })}
