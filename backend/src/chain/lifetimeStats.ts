@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createPublicClient, decodeEventLog, fallback, formatUnits, http } from 'viem';
 import { eq } from 'drizzle-orm';
 import { ARC, arcChain, publicClient, RPC_URLS, type PublicClient } from './client.js';
+import { ARC_NETWORKS } from './networks.js';
 import { currentLedger, discoverConfigured, retirement, type LedgerEntry } from './ledgerRegistry.js';
 import { configuredContracts } from './currentContracts.js';
 import { escrowAbi } from './abis/escrow.js';
@@ -278,7 +279,7 @@ export interface LifetimeStats {
 /// The generated testnet history. It describes Arc testnet only, so any other
 /// network starts from an empty ledger and fills it by discovery.
 const STATIC_LEDGER: LedgerEntry[] =
-  ARC.chainId === 5042002
+  ARC.chainId === ARC_NETWORKS.testnet.chainId
     ? DEPLOY_LEDGER.map((c) => ({ ...c, address: c.address as `0x${string}`, source: 'static' as const }))
     : [];
 

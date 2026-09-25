@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import type { Address } from 'viem';
 import { ARC, publicClient } from './client.js';
+import { ARC_NETWORKS } from './networks.js';
 import { DEPLOY_LEDGER, type ContractKind } from './deployLedger.js';
 import { db, pgEnabled } from '../db/client.js';
 import { appSnapshots } from '../db/schema.js';
@@ -22,7 +23,7 @@ import { logger } from '../logger.js';
 ///    as a retired contract instead of vanishing from the history.
 
 type Hex = `0x${string}`;
-const TESTNET_CHAIN_ID = 5042002;
+const TESTNET_CHAIN_ID = ARC_NETWORKS.testnet.chainId;
 
 export interface LedgerEntry {
   name: string;
