@@ -173,6 +173,13 @@ factoringRoutes.post('/request', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
 
   const caller = session.address.toLowerCase();
   if (caller !== deal.seller.toLowerCase()) {
@@ -255,6 +262,13 @@ factoringRoutes.post('/withdraw-request', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
   if (session.address.toLowerCase() !== deal.seller.toLowerCase()) {
     return c.json({ error: 'only the seller can withdraw the request' }, 403);
   }
@@ -419,6 +433,13 @@ factoringRoutes.post('/offer', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
   // Finance-lane only. A P2P service deal between two persons is private and
   // never factorable; the lane separation must hold at the write path too.
   if (deal.tradeLane !== 'finance') {
@@ -813,6 +834,13 @@ factoringRoutes.post('/accept', async (c) => {
   // Check no other accepted offer raced in.
   const deal = await getDeal(offer.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
   // The registry pays the seller party stored in escrow. For managed SME
   // deals that is the seller agent wallet, not the seller's identity wallet.
   // Keep this recipient identical to the offer-time authorization target so

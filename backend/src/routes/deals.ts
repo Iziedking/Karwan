@@ -18,19 +18,16 @@ import {
   computeFunding,
 } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
+import { readDisputeClocksV3, requireDealEscrowV3, v3FundingEnabled } from '../chain/dealEscrowV3Live.js';
+import { DEAL_STATE } from '../chain/dealEscrowV3.js';
+import { chooseFundingEscrow, fundDirectDealV3, type EscrowVersion } from '../deals/fundDirectV3.js';
+import { fundDirectV3Deps } from '../deals/fundDirectV3Live.js';
+import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
+import { splitMicros } from '../deals/arbiterV3.js';
 import {
-  releaseMilestone,
-  finalizeIfSettled,
   acceptEscrow as acceptEscrowOnChain,
-  claimMilestone as claimMilestoneOnChain,
-  markDeliveredOnChain,
-  guardianHold,
-  guardianReleaseHold,
-  guardianAttestDelivery,
   disputeEscrow,
   refundEscrow,
-  reclaimAfterDeadline,
-  extendDeadlineOnChain,
   buildFundEscrowCall,
   releaseFromDispute as releaseFromDisputeOnChain,
   recordReputation,
@@ -185,6 +182,58 @@ import {
 const USDC_DECIMALS = 6;
 
 const fundingMovementKey = (jobId: string) => `escrow_funding:${jobId.toLowerCase()}`;
+
+/// What the deal page shows for a v3 dispute: the proposed ruling in USDC for
+/// each side and when it applies, and when either side may escalate or lapse.
+async function v3DisputeTimes(
+  deal: DirectDeal,
+  v3: NonNullable<Awaited<ReturnType<typeof dealEscrowOps.read>>['v3']>,
+) {
+  if (v3.state !== DEAL_STATE.Disputed || !deal.escrowAddress) return { ruling: null };
+  const clocks = await readDisputeClocksV3(deal.escrowAddress as `0x${string}`).catch(() => null);
+  const disputedAtMs = Number(v3.disputedAt) * 1000;
+  const split = splitMicros(v3, v3.proposedBps);
+  return {
+    ruling: v3.proposal
+      ? {
+          sellerBps: v3.proposedBps,
+          toSellerUsdc: formatUnits(split.toSeller, USDC_DECIMALS),
+          toBuyerUsdc: formatUnits(split.toBuyer, USDC_DECIMALS),
+          proposedAtMs: Number(v3.proposedAt) * 1000,
+          appealEndsAtMs: clocks ? (Number(v3.proposedAt) + clocks.appealWindowSecs) * 1000 : null,
+          ruleId: deal.v3Ruling?.ruleId ?? null,
+        }
+      : null,
+    escalateOpensAtMs: !v3.proposal && clocks ? disputedAtMs + clocks.autoRulingSlaSecs * 1000 : null,
+    lapseAtMs: clocks ? disputedAtMs + clocks.disputeTimeoutSecs * 1000 : null,
+  };
+}
+
+/// The seller's free stake behind this deal's escrow: the v2 vault by the
+/// seller's identity, or the v3 stake vault behind the seller agent.
+async function sellerFreeStake(deal: DirectDeal): Promise<bigint> {
+  if (dealEscrowOps.isV3(deal)) {
+    return fundDirectV3Deps().readFreeStake(deal.sellerAgentAddress as `0x${string}`);
+  }
+  return (await vault.read.freeStakeOf([deal.seller as `0x${string}`])) as bigint;
+}
+
+/// The escrow this deal funds (or funded) on. The quote and the fund route both
+/// ask here, so the fee the buyer confirms is the fee of the escrow that takes
+/// the money. A failed read of the v2 escrow counts as "exists": when in doubt
+/// the deal stays where earlier attempts may have put money.
+async function fundingEscrowFor(deal: DirectDeal, jobId: string): Promise<EscrowVersion> {
+  if (deal.escrowVersion) return deal.escrowVersion;
+  const priorAttempt = Boolean(await getMoneyMovementByOperationKey(fundingMovementKey(jobId)));
+  let v2EscrowExists = true;
+  try {
+    invalidateEscrowCache(jobId);
+    v2EscrowExists = (await readEscrow(jobId)).state !== ESCROW_STATE.None;
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'v2 escrow read failed; keeping the deal on v2');
+  }
+  return chooseFundingEscrow(deal, { v3Enabled: v3FundingEnabled(), v2EscrowExists, priorAttempt });
+}
 const payoutMovementKey = (jobId: string, milestoneIndex: number) =>
   `escrow_release:${jobId.toLowerCase()}:${milestoneIndex}`;
 const refundMovementKey = (jobId: string) => `escrow_refund:${jobId.toLowerCase()}`;
@@ -1635,7 +1684,10 @@ dealsRoutes.get('/direct/:jobId/funding-quote', async (c) => {
     );
   }
 
-  const feeBps = await getEscrowFeeBps({ fresh: true });
+  const feeBps =
+    (await fundingEscrowFor(deal, jobId)) === 'v3'
+      ? await fundDirectV3Deps().readFeeBps()
+      : await getEscrowFeeBps({ fresh: true });
   return c.json({
     quote: buildDirectDealFundingQuote({ jobId, dealAmountUsdc: deal.dealAmountUsdc, feeBps }),
   });
@@ -1997,6 +2049,38 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
     const operationKey = fundingMovementKey(jobId);
     const existingMovement = await getMoneyMovementByOperationKey(operationKey);
     movementReference = existingMovement?.reference;
+
+    if ((await fundingEscrowFor(latestDeal, jobId)) === 'v3') {
+      const deps = fundDirectV3Deps();
+      const v3Quote = buildDirectDealFundingQuote({
+        jobId,
+        dealAmountUsdc: latestDeal.dealAmountUsdc,
+        feeBps: await deps.readFeeBps(),
+      });
+      if (!latestDeal.escrowDealId && !fundingAuthorizationMatches(v3Quote, body)) {
+        return c.json(
+          { error: 'the funding total changed before confirmation', code: 'QUOTE_CHANGED', quote: v3Quote },
+          409,
+        );
+      }
+      const result = await fundDirectDealV3(deps, {
+        jobId,
+        deal: { ...latestDeal, agreementDigest: agreementDigest(latestDeal) },
+        buyerAgent: {
+          walletId: latestDeal.buyerAgentWalletId!,
+          address: latestDeal.buyerAgentAddress! as `0x${string}`,
+        },
+        sellerAgent: {
+          walletId: sellerAgents.sellerWalletId,
+          address: sellerAgents.sellerAddress as `0x${string}`,
+        },
+        milestonePcts,
+        authorizedTotalMicros: parseUnits(body.maxFundedAmountUsdc, USDC_DECIMALS),
+        operationKey,
+      });
+      movementReference = typeof result.body.reference === 'string' ? result.body.reference : movementReference;
+      return c.json(result.body, result.status);
+    }
 
     // Recovery / idempotency: if a prior attempt already funded the escrow on
     // chain but failed to record acceptedAt (a crash or transient read between
@@ -2573,6 +2657,7 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
   } catch (err) {
     const info = classifyAgentError(err);
     logger.error({ jobId, code: info.code, err: info.raw }, 'direct deal funding failed');
+    movementReference ??= (err as { movementReference?: string }).movementReference;
     if (movementReference) {
       const nextActor =
         info.code === 'INSUFFICIENT_AGENT_BALANCE' || info.code === 'INSUFFICIENT_AGENT_GAS'
@@ -2764,7 +2849,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     }
   }
 
-  let account = await readEscrow(jobId);
+  let account = await dealEscrowOps.read(deal);
 
   // v2.D self-heal: if the seller's acceptEscrow never landed (stuck in
   // Funded), fire it now using the seller's own wallet id. Their off-chain
@@ -2785,9 +2870,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
       if (reservationBps > 0) {
         const requiredWei =
           (account.dealAmount * BigInt(reservationBps)) / 10000n;
-        const sellerFreeWei = (await vault.read.freeStakeOf([
-          deal.seller as `0x${string}`,
-        ])) as bigint;
+        const sellerFreeWei = await sellerFreeStake(deal);
         if (sellerFreeWei < requiredWei) {
           const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
           const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
@@ -2815,9 +2898,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
     }
 
     try {
-      await acceptEscrowOnChain(jobId, deal.sellerAgentWalletId);
-      invalidateEscrowCache(jobId);
-      account = await readEscrow(jobId);
+      await dealEscrowOps.accept(deal, deal.sellerAgentWalletId);
+      account = await dealEscrowOps.read(deal);
       logger.info({ jobId }, 'deliver self-healed Funded -> Accepted via acceptEscrow');
     } catch (err) {
       const message = (err as Error).message;
@@ -2873,8 +2955,8 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
         // claimed by calling the escrow directly. Fire-and-forget; inert until
         // the guardian wallet + v2 escrow are live. reasonHash anchors the
         // verdict without leaking the URL.
-        void guardianHold(
-          jobId,
+        void dealEscrowOps.hold(
+          deal,
           keccak256(toBytes(`${scan.verdict}|${scan.reasons.join(',')}|${Date.now()}`)),
         );
       }
@@ -2936,22 +3018,34 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   // to retry). If the delivery is flagged, guardianHold (fired in the scan
   // above / below) freezes the seller-paying paths regardless. Skips goods
   // deals with no proof and pre-flag holds handled by the guardian.
-  if (config.ESCROW_V2B_ENABLED && deal.sellerAgentWalletId) {
+  if (dealEscrowOps.usesOnChainClock(deal) && deal.sellerAgentWalletId) {
     const proofHash = keccak256(toBytes(body.deliveryProof ?? `delivered:${jobId}`));
     try {
-      await markDeliveredOnChain(jobId, proofHash, deal.sellerAgentWalletId);
-      // R3: a clean scan is an agent-verified good delivery. Attest pass=true
-      // so the review window collapses toward attestedWindowSecs and the seller
-      // settles sooner — the on-chain half of the agent-verified-delivery story.
-      // Best-effort; the guardian wrapper is inert without the guardian wallet.
-      if (verificationStatus === 'clean' || verificationStatus === undefined) {
-        void guardianAttestDelivery(jobId, account.milestonesReleased, true, proofHash);
+      await dealEscrowOps.markDelivered(deal, proofHash, deal.sellerAgentWalletId);
+      // v2 R3: a clean link scan attests the delivery so review settles
+      // sooner. v3 attestations feed the automatic arbiter, which moves money,
+      // so they come only from the deterministic evidence checks, never from a
+      // link scan or the model's plausibility read.
+      if (!dealEscrowOps.isV3(deal) && (verificationStatus === 'clean' || verificationStatus === undefined)) {
+        void dealEscrowOps.attestDelivery(deal, account.milestonesReleased, true, proofHash);
       }
     } catch (err) {
       logger.error(
         { jobId, err: (err as Error).message },
-        'on-chain markDelivered failed (non-fatal; buyer can still release, seller can re-mark)',
+        'on-chain markDelivered failed',
       );
+      // On v3 the review clock, the seller's claim and the arbiter all read the
+      // on-chain delivery, so a delivery the chain does not show is not a
+      // delivery. The seller retries; nothing was recorded.
+      if (dealEscrowOps.isV3(deal)) {
+        return c.json(
+          {
+            error: 'Your delivery did not reach the escrow. Nothing was recorded; submit it again.',
+            code: 'DELIVERY_NOT_RECORDED',
+          },
+          502,
+        );
+      }
     }
   }
 
@@ -3027,7 +3121,7 @@ dealsRoutes.post('/direct/:jobId/delivered', async (c) => {
   } else if (wasHeld) {
     // The corrected delivery cleared the scan: lift the on-chain hold too so the
     // seller-paying paths unfreeze (inert until the guardian + v2 escrow live).
-    void guardianReleaseHold(jobId);
+    void dealEscrowOps.releaseHold(deal);
     bus.emitEvent({
       type: 'deal.delivery.cleared',
       jobId,
@@ -3080,6 +3174,20 @@ dealsRoutes.post('/direct/:jobId/arrived', async (c) => {
     return c.json({ error: 'deal is closed' }, 409);
   }
 
+  // v3 goods deals start the buyer's review at arrival, on-chain. Record the
+  // arrival only once the escrow shows it, so the page and the clock agree.
+  if (dealEscrowOps.isV3(deal)) {
+    if (!deal.buyerAgentWalletId) return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+    try {
+      await dealEscrowOps.confirmArrival(deal, deal.buyerAgentWalletId);
+    } catch (err) {
+      logger.error({ jobId, err: (err as Error).message }, 'v3 arrival did not reach the escrow');
+      return c.json(
+        { error: 'Arrival did not reach the escrow. Nothing was recorded; confirm again.', code: 'ARRIVAL_NOT_RECORDED' },
+        502,
+      );
+    }
+  }
   const arrivedAt = Date.now();
   await patchDeal(jobId, { shipment: { ...deal.shipment, arrivedAt }, buyerVerifiedAt: deal.buyerVerifiedAt ?? arrivedAt });
   bus.emitEvent({
@@ -3127,6 +3235,20 @@ dealsRoutes.post('/direct/:jobId/evidence/manual-review', async (c) => {
   if (!eligibility.eligible) {
     return c.json({ error: 'the delivery check cannot be skipped right now', code: eligibility.reason }, 409);
   }
+  // On a v3 checked deal the buyer reviewing it themselves is an on-chain
+  // step: it starts the review now and waives the check for this delivery.
+  if (dealEscrowOps.isV3(deal)) {
+    if (!deal.buyerAgentWalletId) return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+    try {
+      await dealEscrowOps.confirmArrival(deal, deal.buyerAgentWalletId);
+    } catch (err) {
+      logger.error({ jobId, err: (err as Error).message }, 'v3 manual review did not reach the escrow');
+      return c.json(
+        { error: 'Your review did not reach the escrow. Nothing was recorded; try again.', code: 'REVIEW_NOT_RECORDED' },
+        502,
+      );
+    }
+  }
   const at = Date.now();
   const updated = await patchDeal(jobId, {
     evidenceManualReview: {
@@ -3163,8 +3285,8 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   const jobId = c.req.param('jobId');
   const deal = await getDeal(jobId);
   if (!deal) return c.json({ error: 'deal not found' }, 404);
-  if (!config.ESCROW_V2B_ENABLED) {
-    return c.json({ error: 'seller claim is available on the v2 escrow only', code: 'not-available' }, 409);
+  if (!dealEscrowOps.usesOnChainClock(deal)) {
+    return c.json({ error: 'seller claim needs an escrow that runs the review clock', code: 'not-available' }, 409);
   }
 
   let body;
@@ -3218,7 +3340,7 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   // seller could force the payout on day one by pressing Claim. The buyer's
   // protection was one button wide. The floor is the buyer's, not the timer's.
   {
-    const account0 = await readEscrow(jobId);
+    const account0 = await dealEscrowOps.read(deal);
     const index = account0.milestonesReleased;
     const pairHistory = buildPairHistory(await listAllDeals());
     const eligibleAt = releaseEligibleAt(
@@ -3244,7 +3366,7 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
     }
   }
 
-  const account = await readEscrow(jobId);
+  const account = await dealEscrowOps.read(deal);
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not claimable (state ${account.state})` }, 409);
   }
@@ -3262,8 +3384,8 @@ dealsRoutes.post('/direct/:jobId/claim', async (c) => {
   inFlight.add(jobId);
   try {
     const index = account.milestonesReleased;
-    const txHash = await claimMilestoneOnChain(jobId, index, deal.sellerAgentWalletId);
-    await finalizeIfSettled(jobId);
+    const txHash = await dealEscrowOps.claim(deal, index, deal.sellerAgentWalletId);
+    await dealEscrowOps.finalizeIfSettled(deal);
     return c.json({ accepted: true, jobId, milestoneIndex: index, txHash }, 200);
   } catch (err) {
     const info = classifyAgentError(err);
@@ -3285,7 +3407,7 @@ async function projectMilestonePayout(input: {
 }): Promise<boolean> {
   const { deal, milestoneIndex, reference, txHash } = input;
   const paidAt = input.confirmedAt ?? Date.now();
-  const settled = await finalizeIfSettled(deal.jobId);
+  const settled = await dealEscrowOps.finalizeIfSettled(deal);
   const buyerVerifiedAt = milestoneIndex === 0 ? (deal.buyerVerifiedAt ?? paidAt) : deal.buyerVerifiedAt;
   if (settled) {
     await patchDeal(deal.jobId, {
@@ -3381,7 +3503,7 @@ dealsRoutes.post('/direct/:jobId/payouts/:reference/reconcile', async (c) => {
   }
   const movement = await getMoneyMovement(reference);
   if (!movement) return c.json({ error: 'payment reference not found', code: 'PAYOUT_NOT_FOUND' }, 404);
-  const account = await readEscrow(jobId);
+  const account = await dealEscrowOps.read(deal);
   const validation = validatePayoutRecoveryTarget(movement, {
     reference,
     jobId,
@@ -3502,7 +3624,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     return c.json({ error: 'a release is already in progress for this deal' }, 409);
   }
 
-  let account = await readEscrow(jobId);
+  let account = await dealEscrowOps.read(deal);
 
   // v2.D self-heal: deals funded under pre-v2.D code paths can sit in Funded
   // state forever because acceptEscrow never fired. The off-chain deal row
@@ -3537,10 +3659,7 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
         if (reservationBps > 0) {
           const requiredWei =
             (account.dealAmount * BigInt(reservationBps)) / 10000n;
-          // Stake lives on the identity wallet (deal.seller), not the agent.
-          const sellerFreeWei = (await vault.read.freeStakeOf([
-            deal.seller as `0x${string}`,
-          ])) as bigint;
+          const sellerFreeWei = await sellerFreeStake(deal);
           if (sellerFreeWei < requiredWei) {
             const requiredUsdc = formatUnits(requiredWei, USDC_DECIMALS);
             const freeUsdc = formatUnits(sellerFreeWei, USDC_DECIMALS);
@@ -3570,9 +3689,8 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     }
 
     try {
-      await acceptEscrowOnChain(jobId, deal.sellerAgentWalletId);
-      invalidateEscrowCache(jobId);
-      account = await readEscrow(jobId);
+      await dealEscrowOps.accept(deal, deal.sellerAgentWalletId);
+      account = await dealEscrowOps.read(deal);
       logger.info({ jobId }, 'release self-healed Funded -> Accepted via acceptEscrow');
     } catch (err) {
       const message = (err as Error).message;
@@ -3714,8 +3832,8 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
       label: `Pay milestone ${releasedIndex + 1}`,
       rail: 'circle_wallets',
       walletId: deal.buyerAgentWalletId,
-      sourceAddress: escrow.address,
-      contractAddress: escrow.address,
+      sourceAddress: escrowAddressOf(deal),
+      contractAddress: escrowAddressOf(deal),
       amountMicros: expectedAmount,
     });
     // Approval-to-verified duration. releaseMilestone re-reads escrow state
@@ -3723,15 +3841,14 @@ dealsRoutes.post('/direct/:jobId/release', async (c) => {
     // not "request submitted". Persisted per deal and returned to the client:
     // seconds, where marketplaces hold cleared funds for days.
     const releaseStartedAt = Date.now();
-    const txHash = await releaseMilestone(
-      jobId,
+    const txHash = await dealEscrowOps.release(
+      deal,
       releasedIndex,
       deal.buyerAgentWalletId,
       { idempotencyKey: payout.idempotencyKey, lifecycle: payout.lifecycle },
     );
     const settledInMs = Date.now() - releaseStartedAt;
-    invalidateEscrowCache(jobId);
-    const afterRelease = await readEscrow(jobId);
+    const afterRelease = await dealEscrowOps.read(deal);
     const actualAmount = afterRelease.released - account.released;
     if (
       afterRelease.milestonesReleased <= releasedIndex ||
@@ -3836,14 +3953,31 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
     return c.json({ error: 'review window has not started' }, 409);
   }
   const extensionCount = deal.reviewExtensionCount ?? 0;
-  if (extensionCount >= config.DEAL_MAX_REVIEW_EXTENSIONS) {
+  // On v3 the extension is part of the signed terms and runs on-chain: the
+  // count and length come from the terms, not the platform settings.
+  const v3Terms = dealEscrowOps.isV3(deal) ? deal.escrowTerms : undefined;
+  const maxExtensions = v3Terms ? v3Terms.maxExtensions : config.DEAL_MAX_REVIEW_EXTENSIONS;
+  const extensionStepMs = v3Terms ? v3Terms.extensionSecs * 1000 : config.DEAL_REVIEW_EXTENSION_MS;
+  if (extensionCount >= maxExtensions) {
     return c.json(
-      { error: `the review window can be extended at most ${config.DEAL_MAX_REVIEW_EXTENSIONS} times` },
+      { error: `the review window can be extended at most ${maxExtensions} times` },
       409,
     );
   }
+  if (v3Terms) {
+    if (!deal.buyerAgentWalletId) return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+    try {
+      await dealEscrowOps.requestMoreTime(deal, deal.buyerAgentWalletId);
+    } catch (err) {
+      logger.error({ jobId, err: (err as Error).message }, 'v3 requestMoreTime did not reach the escrow');
+      return c.json(
+        { error: 'The extra review time did not reach the escrow. Nothing changed; try again.', code: 'EXTENSION_NOT_RECORDED' },
+        502,
+      );
+    }
+  }
 
-  const reviewExtensionMs = (deal.reviewExtensionMs ?? 0) + config.DEAL_REVIEW_EXTENSION_MS;
+  const reviewExtensionMs = (deal.reviewExtensionMs ?? 0) + extensionStepMs;
   await patchDeal(jobId, { reviewExtensionMs, reviewExtensionCount: extensionCount + 1 });
   bus.emitEvent({
     type: 'deal.review.heartbeat',
@@ -3852,7 +3986,7 @@ dealsRoutes.post('/direct/:jobId/still-reviewing', async (c) => {
     payload: {
       buyer: deal.buyer,
       seller: deal.seller,
-      extendedByMs: config.DEAL_REVIEW_EXTENSION_MS,
+      extendedByMs: extensionStepMs,
       totalExtensionMs: reviewExtensionMs,
     },
   });
@@ -3982,9 +4116,9 @@ dealsRoutes.post('/direct/:jobId/extension/respond', async (c) => {
     // tracks the agreed extension. Buyer-only on chain, signed by the buyer
     // agent. Do this BEFORE the off-chain patch so a chain revert (e.g. the
     // deal was funded open-ended) doesn't leave the two clocks disagreeing.
-    if (config.ESCROW_V2B_ENABLED && deal.buyerAgentWalletId) {
+    if (dealEscrowOps.usesOnChainClock(deal) && deal.buyerAgentWalletId) {
       try {
-        await extendDeadlineOnChain(jobId, deal.buyerAgentWalletId, newDeadline);
+        await dealEscrowOps.extendDeadline(deal, deal.buyerAgentWalletId, newDeadline);
       } catch (err) {
         logger.error({ jobId, err: (err as Error).message }, 'on-chain extendDeadline failed');
         return c.json(
@@ -4225,7 +4359,18 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
-  const account = await readEscrow(jobId);
+  const account = await dealEscrowOps.read(deal);
+  // On v3 a dispute needs an accepted deal; before the seller accepts, the
+  // buyer simply takes the money back with a cancel.
+  if (dealEscrowOps.isV3(deal) && account.state === ESCROW_FUNDED) {
+    return c.json(
+      {
+        error: 'the seller has not accepted this deal on the escrow yet, so there is nothing to dispute. The buyer can cancel and take the money back.',
+        code: 'NOT_ACCEPTED',
+      },
+      409,
+    );
+  }
   if (account.state !== ESCROW_FUNDED && account.state !== ESCROW_ACCEPTED) {
     return c.json({ error: `escrow is not in a disputable state (${account.state})` }, 409);
   }
@@ -4245,7 +4390,7 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     /// disputeEscrow re-reads escrow state after the COMPLETE and throws if the
     /// inner userOp reverted, so the off-chain `disputed=true` patch below only
     /// runs when the chain actually moved to Disputed.
-    const disputeTxHash = await disputeEscrow(jobId, signerWalletId, reasonHash);
+    const disputeTxHash = await dealEscrowOps.dispute(deal, signerWalletId, reasonHash);
     await patchDeal(jobId, { disputed: true, disputedAt: Date.now(), disputedBy: callerRole });
     bus.emitEvent({
       type: 'deal.disputed',
@@ -4253,8 +4398,11 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
       actor: callerRole,
       payload: { seller: deal.seller, buyer: deal.buyer, reason: reasonHash, txHash: disputeTxHash },
     });
-    // A dispute is a neutral marker on the record until it is resolved.
-    await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_DISPUTE_RESOLVED);
+    // A dispute is a neutral marker on the record until it is resolved. v3
+    // records the outcome on-chain when the dispute is ruled.
+    if (!dealEscrowOps.isV3(deal)) {
+      await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_DISPUTE_RESOLVED);
+    }
     // A disputed escrow needs two of three Safe owners to sign before anything
     // moves, so nobody's money is going anywhere until a human acts. Push it
     // rather than waiting for someone to notice the admin tile. Best-effort: a
@@ -4269,6 +4417,148 @@ dealsRoutes.post('/direct/:jobId/appeal', async (c) => {
     inFlight.delete(jobId);
   }
 });
+
+/// v3: a party sends the dispute to admin review. Either to appeal the
+/// automatic ruling inside its appeal window, or because no ruling came within
+/// the escrow's SLA. The escrow enforces both timings; this route signs with the
+/// caller's own agent wallet.
+dealsRoutes.post('/direct/:jobId/dispute/escalate', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  let body;
+  try {
+    body = callerSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  const caller = body.caller.toLowerCase();
+  const role = caller === deal.buyer ? 'buyer' : caller === deal.seller ? 'seller' : null;
+  if (!role) return c.json({ error: 'only the buyer or seller of this deal can escalate' }, 403);
+  if (!dealEscrowOps.isV3(deal) || !deal.escrowDealId) {
+    return c.json({ error: 'escalation is part of the v3 dispute flow', code: 'not-available' }, 409);
+  }
+  const walletId = role === 'buyer' ? deal.buyerAgentWalletId : deal.sellerAgentWalletId;
+  if (!walletId) return c.json({ error: 'this deal has no agent wallet on record for you' }, 409);
+  const account = await dealEscrowOps.read(deal);
+  const v3 = account.v3;
+  if (!v3 || v3.state !== DEAL_STATE.Disputed) return c.json({ error: 'this deal is not in dispute' }, 409);
+  if (v3.escalated) return c.json({ error: 'this dispute is already with admin review', code: 'already-escalated' }, 409);
+  if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this deal' }, 409);
+  inFlight.add(jobId);
+  try {
+    const { txHash } = await requireDealEscrowV3().escalate({
+      walletId,
+      jobId: deal.escrowDealId as `0x${string}`,
+      dealKey: jobId,
+    });
+    bus.emitEvent({
+      type: 'deal.dispute.needs_arbiter',
+      jobId,
+      actor: role,
+      payload: { buyer: deal.buyer, seller: deal.seller, escalatedBy: role, txHash },
+    });
+    notifyOperatorOfDispute(jobId, deal, role);
+    return c.json({ accepted: true, jobId, txHash }, 200);
+  } catch (err) {
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'v3 escalate failed');
+    // The escrow refuses an appeal after its window and an escalation before
+    // the SLA; both surface here as a revert, so say what the rule is.
+    return c.json(
+      {
+        error:
+          'The escrow did not accept the escalation. A ruling can be appealed only inside its appeal window, and a dispute with no ruling can be escalated only after the ruling deadline.',
+        code: info.code,
+      },
+      409,
+    );
+  } finally {
+    inFlight.delete(jobId);
+  }
+});
+
+/// v3: the buyer takes back a deal the seller never accepted on the escrow.
+/// Recorded as a refund movement like every other money return, and no one's
+/// reputation changes: nothing was agreed on-chain.
+async function cancelUnacceptedV3(
+  c: Context,
+  deal: DirectDeal,
+  account: Awaited<ReturnType<typeof dealEscrowOps.read>>,
+  extra: Partial<DirectDeal> = {},
+) {
+  const jobId = deal.jobId;
+  if (!deal.buyerAgentWalletId) return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
+  const buyerAgentAddress = deal.buyerAgentAddress ?? (await getAgentWallets(deal.buyer))?.buyerAddress;
+  if (!buyerAgentAddress) return c.json({ error: 'this deal has no buyer agent address on record' }, 409);
+  if (inFlight.has(jobId)) return c.json({ error: 'an action is already in progress for this deal' }, 409);
+  const refundMicros = dealEscrowOps.refundableMicros(account) ?? 0n;
+  if (refundMicros <= 0n) return c.json({ error: 'there is no remaining escrow to refund', code: 'ESCROW_EMPTY' }, 409);
+  const refundAmountUsdc = formatUsdcMicros(refundMicros);
+  const reason = 'buyer took back a deal the seller never accepted';
+  const refundInput = {
+    operationKey: refundMovementKey(jobId),
+    amountUsdc: refundAmountUsdc,
+    initiatedBy: deal.buyer,
+    buyerAgentAddress,
+    sellerAddress: deal.seller,
+    jobId,
+    summary: `Took back ${refundAmountUsdc} USDC from a deal the seller never accepted`,
+    escrowAddress: escrowAddressOf(deal),
+    buyerAgentWalletId: deal.buyerAgentWalletId,
+  };
+  inFlight.add(jobId);
+  try {
+    await ensureEscrowRefundMovement(refundInput);
+    const refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+      dealEscrowOps.cancelUnaccepted(deal, deal.buyerAgentWalletId!, options),
+    );
+    await patchDeal(jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: 'pre-accept',
+      cancelReason: reason,
+      refundTxHash: refundResult.txHash,
+      ...extra,
+    });
+    void appendActivity({
+      address: deal.buyer,
+      kind: 'refund',
+      id: `escrow-refund:${jobId}`,
+      refId: refundResult.movement.reference,
+      summary: refundInput.summary,
+      amountUsdc: refundAmountUsdc,
+      txHash: refundResult.txHash,
+      jobId,
+      counterparty: deal.seller?.toLowerCase(),
+    });
+    bus.emitEvent({
+      type: 'deal.cancelled',
+      jobId,
+      actor: 'buyer',
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        kind: 'pre-accept',
+        reason,
+        txHash: refundResult.txHash,
+        reference: refundResult.movement.reference,
+      },
+    });
+    return c.json(
+      { accepted: true, jobId, txHash: refundResult.txHash, reference: refundResult.movement.reference },
+      200,
+    );
+  } catch (err) {
+    const info = classifyAgentError(err);
+    logger.error({ jobId, code: info.code, err: info.raw }, 'v3 cancel of an unaccepted deal failed');
+    return c.json({ error: 'cancel failed', code: info.code, detail: info.message }, 502);
+  } finally {
+    inFlight.delete(jobId);
+  }
+}
 
 /// Buyer cancels the deal. Before escrow is funded, this is a plain state
 /// change with no escrow to unwind. After acceptance, once the deadline passes
@@ -4298,6 +4588,15 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     return c.json({ error: 'this deal is no longer cancellable' }, 409);
   }
 
+  // v3: a deal the seller never accepted on the escrow comes back to the buyer
+  // at any time, whatever the deadline, and carries no penalty for anyone.
+  if (dealEscrowOps.isV3(deal) && deal.escrowDealId) {
+    const v3Account = await dealEscrowOps.read(deal);
+    if (v3Account.state === ESCROW_FUNDED) {
+      return cancelUnacceptedV3(c, deal, v3Account);
+    }
+  }
+
   // Before the buyer funds escrow, no on-chain deal exists yet, so cancel is a
   // plain state change even if the seller already agreed to the terms.
   // change with nothing to refund on chain.
@@ -4307,8 +4606,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     // ignore those locked funds. If money is in escrow, refuse the no-op cancel
     // and route the user to re-accept (idempotent recovery) then the standard or
     // mutual cancel, which actually refunds on chain.
-    invalidateEscrowCache(jobId);
-    const acct = await readEscrow(jobId);
+    const acct = await dealEscrowOps.read(deal);
     if (acct.state === ESCROW_FUNDED || acct.state === ESCROW_ACCEPTED) {
       return c.json(
         {
@@ -4383,19 +4681,20 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     return c.json({ error: 'an action is already in progress for this deal' }, 409);
   }
 
-  const account = await readEscrow(jobId);
+  const account = await dealEscrowOps.read(deal);
   const existingRefund = await getMoneyMovementByOperationKey(refundMovementKey(jobId));
   const refundRecovery = existingRefund && existingRefund.state !== 'cancelled';
   if (
     account.state !== ESCROW_FUNDED &&
     account.state !== ESCROW_ACCEPTED &&
-    !(account.state === ESCROW_DISPUTED && refundRecovery)
+    !(account.state === ESCROW_DISPUTED && refundRecovery && !dealEscrowOps.isV3(deal))
   ) {
     return c.json({ error: `escrow is not in a cancellable state (${account.state})` }, 409);
   }
   let refundMicros: bigint;
   try {
-    refundMicros = remainingEscrowMicros(account.dealAmount, account.released);
+    refundMicros =
+      dealEscrowOps.refundableMicros(account) ?? remainingEscrowMicros(account.dealAmount, account.released);
   } catch (err) {
     logger.error({ jobId, err: (err as Error).message }, 'escrow refund amount is invalid');
     return c.json({ error: 'escrow accounting is inconsistent', code: 'ESCROW_ACCOUNTING_INVALID' }, 502);
@@ -4433,7 +4732,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     sellerAddress: deal.seller,
     jobId,
     summary: refundSummary,
-    escrowAddress: escrow.address,
+    escrowAddress: escrowAddressOf(deal),
     buyerAgentWalletId: deal.buyerAgentWalletId,
   };
 
@@ -4458,13 +4757,13 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     refundReference = ensuredRefund.movement.reference;
     await recordDeadlineRecoveryMovement(recoveryLease, refundReference);
     let refundResult;
-    if (config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED) {
+    if (dealEscrowOps.usesOnChainClock(deal) && account.state === ESCROW_ACCEPTED) {
       // v2b post-accept: the same trustless reclaim the watcher uses. It
       // enforces deadline + grace and the "nothing pending review" rule on
       // chain, and records Failed atomically. The shared recovery ledger
       // gates both this route and the watcher before this call.
       refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
-        reclaimAfterDeadline(jobId, deal.buyerAgentWalletId!, options),
+        dealEscrowOps.reclaim(deal, deal.buyerAgentWalletId!, options),
       );
     } else {
       /// Pre-accept (Funded) on any version, or the v2.E accepted path: two SCA
@@ -4514,7 +4813,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
     // The seller never delivered by the deadline: record a failure against
     // them. v2b's reclaimAfterDeadline already recorded Failed on chain, so
     // only the pre-accept / v2.E path needs the explicit off-chain write.
-    if (!(config.ESCROW_V2B_ENABLED && account.state === ESCROW_ACCEPTED)) {
+    if (!(dealEscrowOps.usesOnChainClock(deal) && account.state === ESCROW_ACCEPTED)) {
       await recordReputation(jobId, deal.buyerAgentWalletId, OUTCOME_FAILED);
     }
     try {
@@ -4708,7 +5007,17 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
   if (!deal.buyerAgentWalletId) {
     return c.json({ error: 'this deal has no buyer agent wallet on record' }, 409);
   }
-  const account = await readEscrow(jobId);
+  const account = await dealEscrowOps.read(deal);
+  const onV3 = dealEscrowOps.isV3(deal);
+  // v3: a deal the seller never accepted on the escrow needs no split. The
+  // buyer takes it back directly, which both sides just agreed to.
+  if (onV3 && account.state === ESCROW_FUNDED) {
+    return cancelUnacceptedV3(c, deal, account, {
+      cancelKind: proposal.kind,
+      cancelReason: proposal.reason,
+      cancellationProposal: undefined,
+    });
+  }
   if (
     account.state !== ESCROW_FUNDED &&
     account.state !== ESCROW_ACCEPTED &&
@@ -4759,9 +5068,9 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
     let finalTxHash: string;
     let finalMovement: Awaited<ReturnType<typeof executeEscrowMutualCancelMovement>> | undefined;
     let settlementAmountUsdc = deal.dealAmountUsdc;
-    if (isReleaseFromDispute) {
+    if (isReleaseFromDispute && !onV3) {
       finalTxHash = await releaseFromDisputeOnChain(jobId, deal.buyerAgentWalletId);
-    } else if (config.ESCROW_V2B_ENABLED && account.state !== ESCROW_FUNDED) {
+    } else if (onV3 || (config.ESCROW_V2B_ENABLED && account.state !== ESCROW_FUNDED)) {
       // v2b Accepted/Disputed: consented mutual cancel (sellerBps=0). The
       // handshake requires wasAccepted, so a FUNDED (never-accepted) deal must
       // NOT come here — it falls through to the refund path below (R6). refund
@@ -4777,9 +5086,17 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
       if (!buyerAgentAddress || !sellerAgentAddress) {
         return c.json({ error: 'this deal has no agent addresses on record' }, 409);
       }
+      // v3 settles a consented exit as a split: 0 bps returns the unpaid
+      // amount and the unreleased fee to the buyer, 10000 pays the seller's
+      // unpaid share (a release from dispute).
+      const sellerBps = onV3 && isReleaseFromDispute ? 10_000 : 0;
       let remainingMicros: bigint;
       try {
-        remainingMicros = remainingEscrowMicros(account.dealAmount, account.released);
+        remainingMicros = onV3
+          ? sellerBps === 10_000
+            ? account.sellerNet - account.released
+            : dealEscrowOps.refundableMicros(account) ?? 0n
+          : remainingEscrowMicros(account.dealAmount, account.released);
       } catch (err) {
         logger.error({ jobId, err: (err as Error).message }, 'mutual cancel amount is invalid');
         return c.json({ error: 'escrow accounting is inconsistent', code: 'ESCROW_ACCOUNTING_INVALID' }, 502);
@@ -4798,10 +5115,22 @@ dealsRoutes.post('/direct/:jobId/cancel/accept', async (c) => {
         sellerAgentAddress,
         buyerAgentWalletId: deal.buyerAgentWalletId,
         sellerAgentWalletId: deal.sellerAgentWalletId,
-        sellerBps: 0,
+        sellerBps,
         jobId,
-        summary: `Mutual cancellation returned ${settlementAmountUsdc} USDC to the buyer`,
-        escrowAddress: escrow.address,
+        summary:
+          sellerBps === 10_000
+            ? `Dispute resolved by agreement: ${settlementAmountUsdc} USDC paid to the seller`
+            : `Mutual cancellation returned ${settlementAmountUsdc} USDC to the buyer`,
+        escrowAddress: escrowAddressOf(deal),
+        ...(onV3
+          ? {
+              kind: sellerBps === 10_000 ? ('milestone_payout' as const) : ('escrow_refund' as const),
+              legs: {
+                propose: (options) => dealEscrowOps.proposeSplit(deal, deal.buyerAgentWalletId!, sellerBps, options),
+                accept: (options) => dealEscrowOps.acceptSplit(deal, deal.sellerAgentWalletId!, sellerBps, options),
+              },
+            }
+          : {}),
       });
       finalTxHash = finalMovement.acceptTxHash ?? '';
       if (!finalTxHash) throw new Error('MUTUAL_CANCEL_ACCEPT_PROOF_MISSING');
@@ -5023,8 +5352,14 @@ async function enrich(deal: DirectDeal) {
       config.CRE_MANUAL_REVIEW_AFTER_MS,
     ).eligible,
     evidenceManualReviewActive: manualReviewActive(deal),
-    reviewWindowMs: config.DEAL_REVIEW_WINDOW_MS,
-    deadlineReclaimGraceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
+    reviewWindowMs:
+      dealEscrowOps.isV3(deal) && deal.escrowTerms
+        ? deal.escrowTerms.reviewWindow * 1000
+        : config.DEAL_REVIEW_WINDOW_MS,
+    deadlineReclaimGraceMs:
+      dealEscrowOps.isV3(deal) && deal.escrowTerms
+        ? deal.escrowTerms.reclaimGrace * 1000
+        : config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
     /// How long the payment terms or a shipment in transit hold the money,
     /// independent of the review ladder. Zero on an ordinary service deal.
     termsFloorMs: termsFloorMs(deal),
@@ -5037,12 +5372,12 @@ async function enrich(deal: DirectDeal) {
     const deadlineRecovery = deal.deadlineUnix
       ? await getDeadlineRecovery(deal.jobId).catch(() => null)
       : null;
-    const account = await readEscrow(deal.jobId);
+    const account = await dealEscrowOps.read(deal);
     // Legacy detection: state==None on the new escrow + a configured legacy
     // address = the funds are still on the pre-v2.D contract. Tag the deal
     // lazily so subsequent /direct calls can filter it out without re-
     // querying. Stays a deal record; the /legacy surface picks it up.
-    if (account.state === ESCROW_STATE.None && legacyEscrow) {
+    if (account.version === 'v2' && account.state === ESCROW_STATE.None && legacyEscrow) {
       const legacy = await readLegacyEscrow(deal.jobId);
       if (legacy && legacy.state !== LEGACY_ESCROW_STATE.None) {
         if (!deal.legacyEscrow || deal.legacyState !== legacy.state) {
@@ -5105,6 +5440,24 @@ async function enrich(deal: DirectDeal) {
         // off-chain expiry can't revert on ReviewWindowOpen.
         deliveredAtMs: account.deliveredAt ? Number(account.deliveredAt) * 1000 : null,
         claimDeadlineMs: account.claimDeadline ? Number(account.claimDeadline) * 1000 : null,
+        escrowVersion: account.version,
+        ...(account.v3
+          ? {
+              v3: {
+                escrowDealId: deal.escrowDealId,
+                escrowAddress: deal.escrowAddress,
+                accepted: account.v3.state >= DEAL_STATE.Accepted,
+                reviewStartedAtMs: account.v3.reviewStartAt ? Number(account.v3.reviewStartAt) * 1000 : null,
+                extensionsUsed: account.v3.extUsed,
+                checkPassed: account.v3.checkPassed,
+                disputedAtMs: account.v3.disputedAt ? Number(account.v3.disputedAt) * 1000 : null,
+                escalated: account.v3.escalated,
+                ...(await v3DisputeTimes(deal, account.v3)),
+                reclaimed: account.v3.state === DEAL_STATE.Reclaimed,
+                split: account.v3.state === DEAL_STATE.Split,
+              },
+            }
+          : {}),
       },
     };
   } catch {

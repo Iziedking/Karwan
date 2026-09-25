@@ -11,8 +11,12 @@ import {
   readEscrow,
   invalidateEscrowCache,
   readUsdcBalance,
+  ESCROW_STATE,
 } from '../chain/contracts.js';
 import { ESCROW_FUNDED, buildFundEscrowCall } from '../chain/settlement.js';
+import { v3FundingEnabled } from '../chain/dealEscrowV3Live.js';
+import { fundAgentMatchV3, type V3DealRecord } from './fundAgentMatchV3.js';
+import { fundAgentMatchV3Deps } from '../deals/fundDirectV3Live.js';
 import { jobBoardAbi } from '../chain/abis/jobBoard.js';
 import { executeContractCall } from '../chain/txs.js';
 import { negotiationModel } from '../llm/client.js';
@@ -315,6 +319,9 @@ interface JobState {
   negotiationEndedAt?: number;
   negotiationEndReason?: string;
   escrowFunded: boolean;
+  /// Set when this job's escrow was funded on KarwanDealEscrow (v3), so the
+  /// deal row records the same escrow deal and deadline the chain holds.
+  escrowV3?: V3DealRecord & { deadlineUnix: number | null };
   /// Set by the jobExpiryWatcher when deadline passes with no accepted bid
   /// and no approved match proposal. Treated as a terminal state by the
   /// listings cross-match scanner and bid handlers.
@@ -3838,7 +3845,7 @@ export async function approveAgentMatch(
   });
 
   const priceWei = parseUnits(proposal.agreedPriceUsdc, USDC_DECIMALS);
-  const fundRes = await fundEscrow(state, seller, priceWei);
+  const fundRes = await fundEscrow(state, seller, priceWei, proposal.deadlineUnix);
   if (!fundRes.ok) {
     // Funding did not confirm on chain. Do NOT persist the deal or mark the
     // proposal approved, otherwise we'd create an "accepted" deal sitting on an
@@ -4004,6 +4011,17 @@ export async function raiseMatchOffer(
   return { ok: true, raiseOverCap };
 }
 
+/// The deal's delivery deadline, re-anchored to acceptance: the auction may
+/// have run for days, and the seller should not inherit a clock that started
+/// when the brief went live. The window is the negotiated deadline measured
+/// from the brief's creation.
+function reanchoredDealDeadline(jobId: string, negotiatedDeadlineUnix: number, nowMs: number): number {
+  const brief = getBrief(jobId);
+  if (!brief) return negotiatedDeadlineUnix;
+  const window = negotiatedDeadlineUnix - Math.floor(brief.createdAt / 1000);
+  return window > 0 ? Math.floor(nowMs / 1000) + window : negotiatedDeadlineUnix;
+}
+
 async function persistApprovedMatch(
   proposal: MatchProposal,
   state: JobState,
@@ -4029,14 +4047,9 @@ async function persistApprovedMatch(
     // went live. Use the same "window from brief.createdAt" derivation as
     // the direct-deal re-anchors so behaviour stays consistent across flows.
     const brief = getBrief(proposal.jobId);
-    let dealDeadlineUnix = proposal.deadlineUnix;
-    if (brief) {
-      const briefCreatedSeconds = Math.floor(brief.createdAt / 1000);
-      const negotiatedWindowSeconds = proposal.deadlineUnix - briefCreatedSeconds;
-      if (negotiatedWindowSeconds > 0) {
-        dealDeadlineUnix = Math.floor(now / 1000) + negotiatedWindowSeconds;
-      }
-    }
+    // A v3 deal keeps the deadline that went into its on-chain terms.
+    const dealDeadlineUnix =
+      state.escrowV3?.deadlineUnix ?? reanchoredDealDeadline(proposal.jobId, proposal.deadlineUnix, now);
     // Carry the paid credit-passport pulls onto the deal so the counterparty
     // report gates each side's granular record on the SAME payment whose receipt
     // it shows: the buyer paid to read the seller (proposal.paidSignal), the
@@ -4102,6 +4115,16 @@ async function persistApprovedMatch(
       acceptedAt: now,
       fundTxHash,
       origin: 'agent',
+      ...(state.escrowV3
+        ? {
+            escrowVersion: 'v3' as const,
+            escrowAddress: state.escrowV3.escrowAddress,
+            escrowDealId: state.escrowV3.escrowDealId,
+            escrowSalt: state.escrowV3.escrowSalt,
+            escrowTerms: state.escrowV3.escrowTerms,
+            escrowTermsHash: state.escrowV3.escrowTermsHash,
+          }
+        : {}),
       ...(proposal.marketRead ? { marketRead: proposal.marketRead } : {}),
       ...(passportPulls ? { passportPulls } : {}),
     });
@@ -4224,14 +4247,57 @@ function effectiveMilestonePcts(state: JobState): number[] {
   return state.buyer.milestonePcts;
 }
 
+/// A job funds on v3 only with the flag on and nothing on the v2 escrow for
+/// its id. A failed read keeps it on v2, where earlier attempts would be.
+async function fundsOnV3(state: JobState): Promise<boolean> {
+  if (state.escrowV3) return true;
+  if (!v3FundingEnabled()) return false;
+  try {
+    invalidateEscrowCache(state.jobId);
+    return (await readEscrow(state.jobId)).state === ESCROW_STATE.None;
+  } catch {
+    return false;
+  }
+}
+
 async function fundEscrow(
   state: JobState,
   seller: `0x${string}`,
   priceWei: bigint,
+  negotiatedDeadlineUnix: number,
 ): Promise<{ ok: boolean; reason?: string }> {
   if (state.escrowFunded) return { ok: true };
   const buyer = state.buyer;
   const milestonePcts = effectiveMilestonePcts(state);
+
+  if (await fundsOnV3(state)) {
+    const sellerWallets = await findAgentWalletByAgentAddress(seller);
+    if (!sellerWallets) return { ok: false, reason: 'NO_SELLER_WALLET' };
+    const deadlineUnix = reanchoredDealDeadline(state.jobId, negotiatedDeadlineUnix, Date.now());
+    const result = await fundAgentMatchV3(fundAgentMatchV3Deps(), {
+      jobId: state.jobId,
+      buyerAgent: { walletId: buyer.walletId, address: buyer.address as `0x${string}` },
+      sellerAgent: { walletId: sellerWallets.sellerWalletId, address: seller },
+      priceUnits: priceWei,
+      milestonePcts,
+      trustedMatch: state.context.trustedMatch === true,
+      deadlineUnix,
+      tradeType: getBrief(state.jobId)?.tradeType ?? null,
+      agreementHash: state.context.termsHash as `0x${string}`,
+    });
+    if (!result.ok) {
+      logger.error({ jobId: state.jobId, reason: result.reason, detail: result.message }, 'v3 escrow funding not confirmed');
+      emitAgentChainError(state, seller, 'fund.v3', new Error(result.message ?? result.reason));
+      return { ok: false, reason: result.reason };
+    }
+    state.escrowV3 = { ...result.record, deadlineUnix };
+    state.escrowFunded = true;
+    logger.info(
+      { jobId: state.jobId, escrowDealId: result.record.escrowDealId, accepted: result.accepted, fundTxHash: result.fundTxHash },
+      'escrow funded on v3',
+    );
+    return { ok: true };
+  }
 
   // The escrow pulls dealAmount + the buyer's half of the platform fee, so the
   // approval must cover the full funded amount, not just the deal price.

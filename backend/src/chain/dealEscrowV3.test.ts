@@ -76,6 +76,7 @@ function harness() {
   const deals = new Map<string, DealV3View>();
   const owed = new Map<string, bigint>();
   const splits = new Map<string, { active: boolean; sellerBps: number }>();
+  const held = new Set<string>();
   const events: Array<{ type: string; jobId?: string }> = [];
   const calls: Array<{ walletId: string; sig: string; params: unknown[] }> = [];
   const receiptEvents = new Map<string, Array<{ name: string; jobId: Hex; args: Record<string, unknown> }>>();
@@ -103,6 +104,9 @@ function harness() {
     async readSplit(id) {
       return splits.get(id) ?? { active: false, sellerBps: 0 };
     },
+    async readHeld(id) {
+      return held.has(id);
+    },
     async receiptEvents(txHash) {
       return receiptEvents.get(txHash) ?? [];
     },
@@ -116,6 +120,7 @@ function harness() {
     deals,
     owed,
     splits,
+    held,
     events,
     calls,
     receiptEvents,
@@ -349,4 +354,18 @@ test('events are keyed to the deal id in Karwan, so share links and timelines ke
   h.nextEffect(() => funded(h, { state: DEAL_STATE.Accepted }));
   await escrow.accept({ walletId: 's', jobId: ID, termsHash: dealTermsHash(TERMS), dealKey: 'deal-123' });
   assert.deepEqual(h.events.map((e) => e.jobId), ['deal-123', 'deal-123']);
+});
+
+test('hold and releaseHold are proven by isHeld', async () => {
+  const h = harness();
+  const escrow = createDealEscrowV3(h.ports);
+  funded(h, { state: DEAL_STATE.Accepted });
+  h.nextInnerRevert();
+  await assert.rejects(escrow.hold({ walletId: 'g', jobId: ID, reasonHash: SALT }), EscrowProofError);
+  h.nextEffect(() => h.held.add(ID));
+  await escrow.hold({ walletId: 'g', jobId: ID, reasonHash: SALT });
+  h.nextInnerRevert();
+  await assert.rejects(escrow.releaseHold({ walletId: 'g', jobId: ID }), EscrowProofError);
+  h.nextEffect(() => h.held.delete(ID));
+  await escrow.releaseHold({ walletId: 'g', jobId: ID });
 });

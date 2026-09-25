@@ -100,6 +100,28 @@ export async function readDealTermsLimits(address: Address, nowSecs: number): Pr
   };
 }
 
+export interface DisputeClocksV3 {
+  appealWindowSecs: number;
+  disputeTimeoutSecs: number;
+  autoRulingSlaSecs: number;
+}
+
+let disputeClocksCache: DisputeClocksV3 | null = null;
+
+/// The escrow's dispute clocks. Immutable, so read once.
+export async function readDisputeClocksV3(address: Address): Promise<DisputeClocksV3> {
+  if (disputeClocksCache) return disputeClocksCache;
+  const read = (functionName: 'appealWindow' | 'disputeTimeout' | 'autoRulingSla') =>
+    publicClient.readContract({ address, abi: dealEscrowV3Abi, functionName }) as Promise<bigint>;
+  const [appeal, timeout, sla] = await Promise.all([read('appealWindow'), read('disputeTimeout'), read('autoRulingSla')]);
+  disputeClocksCache = {
+    appealWindowSecs: Number(appeal),
+    disputeTimeoutSecs: Number(timeout),
+    autoRulingSlaSecs: Number(sla),
+  };
+  return disputeClocksCache;
+}
+
 async function receiptEvents(txHash: string): Promise<ReceiptEvent[]> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -139,6 +161,13 @@ function bind(address: Address): DealEscrowV3 {
       })) as readonly [Address, number, boolean, boolean];
       return { active: s[3], sellerBps: Number(s[1]) };
     },
+    readHeld: async (jobId) =>
+      (await publicClient.readContract({
+        address,
+        abi: dealEscrowV3Abi,
+        functionName: 'isHeld',
+        args: [jobId],
+      })) as boolean,
     receiptEvents,
     emit: (e) =>
       bus.emitEvent({

@@ -27,6 +27,15 @@ export interface EscrowMutualCancelInput {
   jobId: string;
   summary: string;
   escrowAddress: string;
+  /// What the ledger calls this movement. A consented exit that pays the
+  /// seller is a payout, not a refund.
+  kind?: 'escrow_refund' | 'milestone_payout';
+  /// The two on-chain calls. Defaults to the v2 propose and accept cancel; a
+  /// v3 deal passes its proposeSplit and acceptSplit.
+  legs?: {
+    propose(options: { idempotencyKey: string; lifecycle: ContractCallLifecycle }): Promise<string>;
+    accept(options: { idempotencyKey: string; lifecycle: ContractCallLifecycle }): Promise<string>;
+  };
 }
 
 export interface EscrowMutualCancelExecution {
@@ -41,7 +50,7 @@ export async function ensureEscrowMutualCancelMovement(
 ): Promise<{ movement: MoneyMovement; created: boolean }> {
   return ensureMoneyMovement({
     operationKey: input.operationKey,
-    kind: 'escrow_refund',
+    kind: input.kind ?? 'escrow_refund',
     amountMicros: parseUsdcMicros(input.amountUsdc),
     initiatedBy: input.initiatedBy,
     participants: [
@@ -84,12 +93,9 @@ export async function executeEscrowMutualCancelMovement(
       amountMicros,
     },
     (options) =>
-      proposeMutualCancelOnChain(
-        input.jobId,
-        input.buyerAgentWalletId,
-        input.sellerBps,
-        options,
-      ),
+      input.legs
+        ? input.legs.propose(options)
+        : proposeMutualCancelOnChain(input.jobId, input.buyerAgentWalletId, input.sellerBps, options),
   );
 
   const acceptTxHash = await runLeg(
@@ -106,12 +112,9 @@ export async function executeEscrowMutualCancelMovement(
       amountMicros,
     },
     (options) =>
-      acceptMutualCancelOnChain(
-        input.jobId,
-        input.sellerAgentWalletId,
-        input.sellerBps,
-        options,
-      ),
+      input.legs
+        ? input.legs.accept(options)
+        : acceptMutualCancelOnChain(input.jobId, input.sellerAgentWalletId, input.sellerBps, options),
   );
 
   const movement = await completeMoneyMovement(ensured.movement.reference, {

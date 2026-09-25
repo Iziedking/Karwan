@@ -46,6 +46,9 @@ const TRACKED = new Map([
   ['KarwanJobBoard', 'registry'],
   ['KarwanReputation', 'registry'],
   ['KarwanBusinessRegistry', 'registry'],
+  ['KarwanDealEscrow', 'settlement'],
+  ['KarwanStakeVault', 'staking'],
+  ['KarwanYieldPool', 'treasury'],
 ]);
 
 function walk(dir) {

@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { arcChain, publicClient, RPC_URLS, type PublicClient } from './client.js';
 import { escrowAbi } from './abis/escrow.js';
 import { escrowV2Abi } from './abis/escrowV2.js';
+import { dealEscrowV3Abi } from './abis/dealEscrowV3.js';
 import { vaultAbi } from './abis/vault.js';
 import { vaultV2Abi } from './abis/vaultV2.js';
 import { invoiceRegistryV2Abi } from './abis/invoiceRegistryV2.js';
@@ -125,6 +126,7 @@ const PERSIST_EVERY_MS = Number(process.env.LIFETIME_SCAN_PERSIST_MS ?? 30_000);
 /// so listing several versions of one event name is unambiguous rather than a
 /// conflict.
 const DECODE_ABI = [
+  ...dealEscrowV3Abi,
   ...escrowV2Abi,
   ...escrowAbi,
   ...vaultV2Abi,
@@ -404,6 +406,28 @@ export function fold(
       break;
     case 'FeeCollected':
       add('feesUsdc', first('amount'));
+      break;
+
+    // --- KarwanDealEscrow (v3) -----------------------------------------------
+    //
+    // v3 pays the fee inside each milestone payment, and DealSettled carries no
+    // amount: v3's settled figure comes only from splits, and its seller
+    // payouts are counted as released, milestone by milestone.
+    case 'DealFunded':
+      row.deals += 1;
+      add('fundedUsdc', first('amount'));
+      break;
+    case 'MilestonePaid':
+      add('releasedUsdc', first('sellerAmount'));
+      add('feesUsdc', first('fee'));
+      break;
+    case 'DealReclaimed':
+    case 'DealCancelled':
+      add('refundedUsdc', first('refunded'));
+      break;
+    case 'SplitSettled':
+      add('settledUsdc', first('toSeller'));
+      add('refundedUsdc', first('toBuyer'));
       break;
 
     // --- Trade finance -----------------------------------------------------

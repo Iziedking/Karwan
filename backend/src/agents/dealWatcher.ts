@@ -6,11 +6,8 @@ import { getAgentWallets } from '../db/agentWallets.js';
 import { appendActivity } from '../db/activityLog.js';
 import { escrow, readEscrow } from '../chain/contracts.js';
 import {
-  releaseMilestone,
-  finalizeIfSettled,
   disputeEscrow,
   refundEscrow,
-  reclaimAfterDeadline,
   resolveDispute,
   recordReputation,
   ESCROW_ACCEPTED,
@@ -21,6 +18,9 @@ import {
 import { bus } from '../events.js';
 import { settleFactoringForDeal } from './factoringWatcher.js';
 import { settlePOFinancingForDeal } from './poWatcher.js';
+import { dealEscrowOps, escrowAddressOf } from '../deals/dealEscrowOpsLive.js';
+import { runV3Attestation, runV3Dispute } from './v3DisputeWatcher.js';
+import { v3WatcherDeps } from './v3DisputeWatcherLive.js';
 import { logger } from '../logger.js';
 import {
   releaseBlockReasonForDelivery,
@@ -197,7 +197,26 @@ async function syncResolvedElsewhere(deal: DirectDeal, chainState: number) {
 /// the admin console uses: the seller keeps the unreleased funds if they
 /// delivered (the reported case — real work, buyer vanished), otherwise the
 /// buyer is refunded. No-ops unless a security-council wallet is configured.
+/// v3 disputes: automatic proposal or escalation, execution after the appeal
+/// window, lapse after the timeout. One step per tick; a failure retries next
+/// tick and never blocks other deals.
+async function runV3DisputeSafely(deal: DirectDeal, now: number) {
+  const deps = v3WatcherDeps();
+  if (!deps || processing.has(deal.jobId)) return;
+  processing.add(deal.jobId);
+  try {
+    await runV3Dispute(deps, deal, now);
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 dispute step failed (retried next tick)');
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
 async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
+  // v3 disputes run through the v3 arbiter (proposeRuling, executeRuling,
+  // lapse), never the v2 resolver.
+  if (dealEscrowOps.isV3(deal)) return;
   if (!config.ESCROW_V2B_ENABLED) return;
   // A pending proposal means someone is actively negotiating an exit — that is
   // not a silent counterparty. Let the handshake play out; the clock resumes
@@ -326,7 +345,11 @@ async function tick() {
     // action). Hand it to the dispute-timeout resolver so money is never stuck,
     // then skip the release ladder, which does not apply to a disputed escrow.
     if (deal.disputed) {
-      await maybeAutoResolveDispute(deal, now);
+      if (dealEscrowOps.isV3(deal)) {
+        await runV3DisputeSafely(deal, now);
+      } else {
+        await maybeAutoResolveDispute(deal, now);
+      }
       continue;
     }
     // Acceptance window expiry. Seller never agreed in time. Once the seller
@@ -371,13 +394,24 @@ async function tick() {
 
     processing.add(deal.jobId);
     try {
-      const account = await readEscrow(deal.jobId);
+      const account = await dealEscrowOps.read(deal);
       // v2.D: the watcher acts on accepted-but-not-yet-released escrows.
       // Pre-v2.D this was Funded; after the seller's acceptEscrow lands
       // (which the deal-accept route invokes), the state moves to Accepted
       // and stays there until milestones are released.
       if (account.state !== ESCROW_ACCEPTED) continue;
       const buyerWalletId = deal.buyerAgentWalletId;
+
+      // v3: put a final delivery-check result on-chain for the delivery the
+      // escrow shows, so the review clock and the arbiter can use it.
+      if (account.version === 'v3') {
+        const v3Deps = v3WatcherDeps();
+        if (v3Deps) {
+          await runV3Attestation(v3Deps, deal).catch((err) =>
+            logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 attestation failed (retried next tick)'),
+          );
+        }
+      }
 
       // A seller who marks delivery on the contract directly starts the
       // buyer's review clock without us. Tell the buyer; never treat it as a
@@ -485,12 +519,17 @@ async function tick() {
             const buyerAgentAddress =
               deal.buyerAgentAddress ?? (await getAgentWallets(deal.buyer))?.buyerAddress;
             if (!buyerAgentAddress) throw new Error('buyer agent address missing');
-            const refundMicros = remainingEscrowMicros(account.dealAmount, account.released);
+            // v3 returns the unpaid seller share and the unreleased fee, the
+            // buyer's half of it included: record exactly that.
+            const refundMicros =
+              account.version === 'v3'
+                ? account.sellerNet - account.released + (account.feeTotal - account.feeReleased)
+                : remainingEscrowMicros(account.dealAmount, account.released);
             if (refundMicros <= 0n) throw new Error('escrow has no remaining balance');
             const refundAmountUsdc = formatUsdcMicros(refundMicros);
             publishSettlementShadow({
               dealRoomId: deal.jobId,
-              escrowAddress: escrow.address,
+              escrowAddress: escrowAddressOf(deal),
               destinationAddress: buyerAgentAddress,
               amountUsdc: refundAmountUsdc,
               operation: 'REFUND',
@@ -505,7 +544,7 @@ async function tick() {
               sellerAddress: deal.seller,
               jobId: deal.jobId,
               summary: `Reclaimed ${refundAmountUsdc} USDC from the deal the seller did not deliver`,
-              escrowAddress: escrow.address,
+              escrowAddress: escrowAddressOf(deal),
               buyerAgentWalletId: buyerWalletId,
             };
             const ensuredRefund = await ensureEscrowRefundMovement(refundInput);
@@ -514,14 +553,14 @@ async function tick() {
               ensuredRefund.movement.reference,
             );
             let refundResult;
-            if (config.ESCROW_V2B_ENABLED) {
-              // v2b: a single reclaimAfterDeadline settles it. It only lands if
+            if (dealEscrowOps.usesOnChainClock(deal)) {
+              // v2b and v3: a single reclaim settles it. It only lands if
               // the on-chain deadline + grace has passed and records Failed on
               // chain atomically, so no separate dispute, refund, or reputation
               // write is needed. The wrapper throws before the off-chain write
               // if the transaction did not land.
               refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
-                reclaimAfterDeadline(deal.jobId, buyerWalletId, options),
+                dealEscrowOps.reclaim(deal, buyerWalletId, options),
               );
             } else {
               // v2.E: dispute then refund through the inner-revert guard so a
@@ -568,9 +607,9 @@ async function tick() {
               jobId: deal.jobId,
               counterparty: deal.seller.toLowerCase(),
             });
-            // v2b records Failed on chain inside reclaimAfterDeadline. Only
-            // the v2.E path needs the explicit off-chain reputation write.
-            if (!config.ESCROW_V2B_ENABLED) {
+            // v2b and v3 record Failed on chain inside the reclaim. Only the
+            // v2.E path needs the explicit off-chain reputation write.
+            if (!dealEscrowOps.usesOnChainClock(deal)) {
               await recordReputation(deal.jobId, buyerWalletId, OUTCOME_FAILED);
             }
             try {
@@ -637,7 +676,7 @@ async function tick() {
         );
         if (now <= anchor + windowMs) continue;
         publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
-        await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
+        await dealEscrowOps.release(deal, nextIndex, buyerWalletId);
         const releasedAt = Date.now();
         await patchDeal(deal.jobId, {
           lastReleaseAt: releasedAt,
@@ -698,8 +737,8 @@ async function tick() {
         now > responseDeadline
       ) {
         publishMilestonePayoutShadow(deal, account, nextIndex, Math.floor(now / 1_000));
-        await releaseMilestone(deal.jobId, nextIndex, buyerWalletId);
-        const settled = await finalizeIfSettled(deal.jobId);
+        await dealEscrowOps.release(deal, nextIndex, buyerWalletId);
+        const settled = await dealEscrowOps.finalizeIfSettled(deal);
         await patchDeal(deal.jobId, {
           autoReleasedAt: now,
           lastReleaseAt: Date.now(),

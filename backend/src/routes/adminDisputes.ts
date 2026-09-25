@@ -8,7 +8,11 @@ import { executeContractCall } from '../chain/txs.js';
 import { listAllDeals, getDeal, patchDeal } from '../db/deals.js';
 import { listSignatures, putSignature, clearSignatures } from '../db/arbiterSignatures.js';
 import { config } from '../config.js';
-import { legacyGenerations, readLegacyEscrowWithGen } from '../chain/contracts.js';
+import { ESCROW_STATE, invalidateEscrowCache, legacyGenerations, readEscrow, readLegacyEscrowWithGen } from '../chain/contracts.js';
+import { dealEscrowV3Abi } from '../chain/abis/dealEscrowV3.js';
+import { DEAL_STATE } from '../chain/dealEscrowV3.js';
+import { readDealV3 } from '../chain/dealEscrowV3Live.js';
+import type { DirectDeal } from '../db/deals.js';
 import { bus } from '../events.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
@@ -58,6 +62,70 @@ function escrowAddress(): Address | null {
   return a && /^0x[a-fA-F0-9]{40}$/.test(a) ? (a as Address) : null;
 }
 
+/// Where a ruling on this deal goes, who must sign it, and how to tell it
+/// landed. v2: the arbiter Safe calls resolve on KARWAN_ESCROW_ADDR. v3: the
+/// review Safe the escrow names (the senior 2-of-4 Safe for a high-value deal)
+/// calls rule on the deal's own escrow, and only once the dispute is escalated.
+/// The Safe is read from the escrow itself, never from config.
+type RulingTarget =
+  | {
+      ok: true;
+      safe: Address;
+      to: Address;
+      data: `0x${string}`;
+      /// True once the escrow shows the ruling applied.
+      landed: () => Promise<boolean>;
+    }
+  | { ok: false; status: 404 | 409 | 503; error: string; code?: string };
+
+async function rulingTarget(deal: DirectDeal, sellerBps: number, rulingHash: `0x${string}`): Promise<RulingTarget> {
+  if (deal.escrowVersion === 'v3') {
+    const escrow = deal.escrowAddress as Address | undefined;
+    const id = deal.escrowDealId as `0x${string}` | undefined;
+    if (!escrow || !id) return { ok: false, status: 409, error: 'v3 deal has no escrow deal id on record' };
+    const view = await readDealV3(escrow, id);
+    if (view.state !== DEAL_STATE.Disputed) {
+      return { ok: false, status: 409, error: 'the escrow is not in dispute', code: 'not-disputed' };
+    }
+    if (!view.escalated) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'this dispute has not been escalated to admin review; the automatic ruling and appeal window come first',
+        code: 'not-escalated',
+      };
+    }
+    const safe = (await publicClient.readContract({
+      address: escrow,
+      abi: dealEscrowV3Abi,
+      functionName: view.senior ? 'seniorSafe' : 'reviewSafe',
+    })) as Address;
+    return {
+      ok: true,
+      safe,
+      to: escrow,
+      data: encodeFunctionData({ abi: dealEscrowV3Abi, functionName: 'rule', args: [id, sellerBps, rulingHash] }),
+      landed: async () => (await readDealV3(escrow, id)).state === DEAL_STATE.Split,
+    };
+  }
+  const safe = safeAddress();
+  const escrow = escrowAddress();
+  if (!safe || !escrow) {
+    return { ok: false, status: 503, error: 'KARWAN_ARBITER_SAFE or KARWAN_ESCROW_ADDR not configured' };
+  }
+  const jobId = deal.jobId as `0x${string}`;
+  return {
+    ok: true,
+    safe,
+    to: escrow,
+    data: encodeFunctionData({ abi: escrowV2Abi, functionName: 'resolve', args: [jobId, sellerBps, rulingHash] }),
+    landed: async () => {
+      invalidateEscrowCache(jobId);
+      return (await readEscrow(jobId)).state === ESCROW_STATE.Settled;
+    },
+  };
+}
+
 /// GET /api/admin/disputes: every deal sitting in dispute, newest first.
 adminDisputeRoutes.get('/', async (c) => {
   const deals = await listAllDeals();
@@ -66,6 +134,7 @@ adminDisputeRoutes.get('/', async (c) => {
     .sort((a, b) => (b.disputedAt ?? 0) - (a.disputedAt ?? 0))
     .map((d) => ({
       jobId: d.jobId,
+      escrowVersion: d.escrowVersion ?? 'v2',
       buyer: d.buyer,
       seller: d.seller,
       dealAmountUsdc: d.dealAmountUsdc,
@@ -88,6 +157,14 @@ adminDisputeRoutes.get('/', async (c) => {
   const withVenue = await Promise.all(
     disputed.map(async (d) => {
       try {
+        if (d.escrowVersion === 'v3') {
+          const full = await getDeal(d.jobId);
+          const view = full?.escrowAddress && full.escrowDealId
+            ? await readDealV3(full.escrowAddress as Address, full.escrowDealId as `0x${string}`)
+            : null;
+          const escalated = view?.escalated === true;
+          return { ...d, rulable: escalated, escalated, venue: null };
+        }
         const legacy = await readLegacyEscrowWithGen(d.jobId);
         if (!legacy) return { ...d, rulable: true as const, venue: null };
         return {
@@ -132,11 +209,6 @@ const prepareSchema = z.object({
 /// which is the single most common way to produce a signature the Safe silently
 /// rejects.
 adminDisputeRoutes.post('/:jobId/prepare', async (c) => {
-  const safe = safeAddress();
-  const escrow = escrowAddress();
-  if (!safe || !escrow) {
-    return c.json({ error: 'KARWAN_ARBITER_SAFE or KARWAN_ESCROW_ADDR not configured' }, 503);
-  }
   const jobId = jobIdSchema.safeParse(c.req.param('jobId'));
   if (!jobId.success) return c.json({ error: 'invalid job id' }, 400);
 
@@ -152,11 +224,9 @@ adminDisputeRoutes.post('/:jobId/prepare', async (c) => {
   if (!deal.disputed) return c.json({ error: 'deal is not disputed', code: 'not-disputed' }, 409);
 
   const rulingHash = keccak256(toBytes(body.rulingReason));
-  const data = encodeFunctionData({
-    abi: escrowV2Abi,
-    functionName: 'resolve',
-    args: [jobId.data as `0x${string}`, body.sellerBps, rulingHash],
-  });
+  const target = await rulingTarget(deal, body.sellerBps, rulingHash);
+  if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
+  const { safe, to: escrow, data } = target;
 
   try {
     const [nonce, owners, threshold, chainId] = await Promise.all([
@@ -230,9 +300,6 @@ const signSchema = prepareSchema.extend({
 /// gets you to this endpoint, but only a real owner signature counts toward the
 /// threshold.
 adminDisputeRoutes.post('/:jobId/sign', async (c) => {
-  const safe = safeAddress();
-  const escrow = escrowAddress();
-  if (!safe || !escrow) return c.json({ error: 'arbiter Safe not configured' }, 503);
   const jobId = jobIdSchema.safeParse(c.req.param('jobId'));
   if (!jobId.success) return c.json({ error: 'invalid job id' }, 400);
 
@@ -243,12 +310,12 @@ adminDisputeRoutes.post('/:jobId/sign', async (c) => {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
 
+  const signDeal = await getDeal(jobId.data);
+  if (!signDeal) return c.json({ error: 'unknown deal' }, 404);
   const rulingHash = keccak256(toBytes(body.rulingReason));
-  const data = encodeFunctionData({
-    abi: escrowV2Abi,
-    functionName: 'resolve',
-    args: [jobId.data as `0x${string}`, body.sellerBps, rulingHash],
-  });
+  const target = await rulingTarget(signDeal, body.sellerBps, rulingHash);
+  if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
+  const { safe, to: escrow, data } = target;
 
   try {
     const [nonce, chainId] = await Promise.all([
@@ -333,9 +400,6 @@ adminDisputeRoutes.post('/:jobId/sign', async (c) => {
 /// Execution is permissionless once the signatures exist, so the platform relay
 /// pays the gas and no owner needs Arc balance to rule on a dispute.
 adminDisputeRoutes.post('/:jobId/execute', async (c) => {
-  const safe = safeAddress();
-  const escrow = escrowAddress();
-  if (!safe || !escrow) return c.json({ error: 'arbiter Safe not configured' }, 503);
   const relayWalletId = config.cctpRelayWalletId;
   if (!relayWalletId) return c.json({ error: 'relay wallet not configured' }, 503);
 
@@ -349,12 +413,12 @@ adminDisputeRoutes.post('/:jobId/execute', async (c) => {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
 
+  const execDeal = await getDeal(jobId.data);
+  if (!execDeal) return c.json({ error: 'unknown deal' }, 404);
   const rulingHash = keccak256(toBytes(body.rulingReason));
-  const data = encodeFunctionData({
-    abi: escrowV2Abi,
-    functionName: 'resolve',
-    args: [jobId.data as `0x${string}`, body.sellerBps, rulingHash],
-  });
+  const target = await rulingTarget(execDeal, body.sellerBps, rulingHash);
+  if (!target.ok) return c.json({ error: target.error, code: target.code }, target.status);
+  const { safe, to: escrow, data } = target;
 
   try {
     const [nonce, threshold] = await Promise.all([
@@ -410,8 +474,23 @@ adminDisputeRoutes.post('/:jobId/execute', async (c) => {
           packed,
         ],
       },
-      `arbiterSafe.execTransaction(resolve ${jobId.data})`,
+      `arbiterSafe.execTransaction(ruling ${jobId.data})`,
     );
+
+    // Circle reports COMPLETE when the outer transaction lands, even if the
+    // Safe call inside it reverted. Record nothing until the escrow itself
+    // shows the ruling, or a deal reads settled while its money is locked.
+    if (!(await target.landed())) {
+      logger.error({ jobId: jobId.data, txHash: r.txHash }, 'Safe ruling COMPLETE but the escrow did not change');
+      return c.json(
+        {
+          error: 'the ruling transaction completed but the escrow did not change. Nothing was recorded; check the Safe and retry.',
+          code: 'RULING_NOT_CONFIRMED',
+          txHash: r.txHash,
+        },
+        502,
+      );
+    }
 
     await patchDeal(jobId.data, {
       settledAt: Date.now(),

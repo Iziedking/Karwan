@@ -436,3 +436,25 @@ test('total moved is every inflow, and counts no dollar twice', () => {
   // platform that took 1,250.
   assert.equal(stats.totalMovedUsdc, '1250');
 });
+
+test('a v3 deal: funded at its price, paid out milestone by milestone, fees counted once', () => {
+  const row = emptyContract(ESCROW);
+  // DealFunded carries the price and the funded total (price + the buyer's
+  // half of the fee); the price is the trade.
+  fold(row, 'DealFunded', { amount: 1_000n * ONE, funded: 1_007_500_000n });
+  fold(row, 'MilestonePaid', { sellerAmount: 496_250_000n, fee: 7_500_000n });
+  fold(row, 'MilestonePaid', { sellerAmount: 496_250_000n, fee: 7_500_000n });
+  assert.equal(row.deals, 1);
+  assert.equal(row.fundedUsdc, (1_000n * ONE).toString());
+  assert.equal(row.releasedUsdc, (992_500_000n).toString());
+  assert.equal(row.feesUsdc, (15n * ONE).toString());
+});
+
+test('v3 exits: a reclaim or cancel is refunded, a split goes to both sides', () => {
+  const row = emptyContract(ESCROW);
+  fold(row, 'DealReclaimed', { refunded: 300n * ONE, deposit: false });
+  fold(row, 'DealCancelled', { refunded: 100n * ONE });
+  fold(row, 'SplitSettled', { sellerBps: 2500, toSeller: 25n * ONE, toBuyer: 75n * ONE });
+  assert.equal(row.refundedUsdc, (475n * ONE).toString());
+  assert.equal(row.settledUsdc, (25n * ONE).toString());
+});

@@ -8,7 +8,8 @@ import { listAllDeals } from '../db/deals.js';
 import { reputation, readUsdcBalance, escrow } from '../chain/contracts.js';
 import { getProfile, listProfiles, upsertProfile } from '../db/profiles.js';
 import type { DirectDeal } from '../db/deals.js';
-import { releaseMilestone, finalizeIfSettled, resolveDispute } from '../chain/settlement.js';
+import { resolveDispute } from '../chain/settlement.js';
+import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
 import { readEscrow, ESCROW_STATE } from '../chain/contracts.js';
 import { bus } from '../events.js';
 import {
@@ -464,6 +465,15 @@ adminRoutes.post('/deals/:jobId/extend', async (c) => {
   } catch (e) {
     return c.json({ error: 'invalid body', detail: (e as Error).message }, 400);
   }
+  // A v3 deadline is part of the signed terms and only the buyer can move it,
+  // on-chain. Changing the record alone would make the page and the escrow
+  // disagree about when the buyer may reclaim.
+  if (dealEscrowOps.isV3(deal)) {
+    return c.json(
+      { error: 'this deal is on the v3 escrow: only the buyer can extend its deadline, from the deal page', code: 'V3_BUYER_ONLY' },
+      409,
+    );
+  }
   const base = deal.deadlineUnix ?? Math.floor(Date.now() / 1000);
   const newDeadlineUnix = base + body.additionalSeconds;
   await patchDeal(jobId, { deadlineUnix: newDeadlineUnix });
@@ -486,10 +496,10 @@ adminRoutes.post('/deals/:jobId/release', async (c) => {
   if (!deal.buyerAgentWalletId) return c.json({ error: 'deal has no buyer agent wallet' }, 400);
   if (deal.settledAt) return c.json({ error: 'deal already settled' }, 409);
   try {
-    const account = await readEscrow(jobId);
+    const account = await dealEscrowOps.read(deal);
     const idx = account.milestonesReleased;
-    const txHash = await releaseMilestone(jobId, idx, deal.buyerAgentWalletId);
-    const settled = await finalizeIfSettled(jobId);
+    const txHash = await dealEscrowOps.release(deal, idx, deal.buyerAgentWalletId);
+    const settled = await dealEscrowOps.finalizeIfSettled(deal);
     const patch: Partial<DirectDeal> = {};
     if (idx === 0 && !deal.reviewWindowStartedAt) patch.reviewWindowStartedAt = Date.now();
     if (settled) patch.settledAt = Date.now();
@@ -526,6 +536,15 @@ adminRoutes.post('/deals/:jobId/resolve', async (c) => {
   }
   if (!config.ESCROW_V2B_ENABLED) {
     return c.json({ error: 'arbiter resolve is a v2 escrow feature', code: 'not-available' }, 409);
+  }
+  // A v3 dispute is ruled by the review Safe the escrow names, after the
+  // automatic ruling and appeal window, never by the council wallet.
+  const resolveDeal = await getDeal(jobId);
+  if (resolveDeal && dealEscrowOps.isV3(resolveDeal)) {
+    return c.json(
+      { error: 'this deal is on the v3 escrow: rule it from the dispute desk once it is escalated', code: 'V3_REVIEW_SAFE' },
+      409,
+    );
   }
   if (!config.SECURITY_COUNCIL_WALLET_ID) {
     return c.json({ error: 'SECURITY_COUNCIL_WALLET_ID not configured' }, 500);

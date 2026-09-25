@@ -114,6 +114,13 @@ poFinancingRoutes.post('/request', async (c) => {
   }
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown purchase order' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
   if (session.address.toLowerCase() !== deal.seller.toLowerCase()) return c.json({ error: 'only the seller can request fulfilment capital' }, 403);
   if (deal.tradeLane !== 'finance' || !deal.acceptedAt || deal.delivered || deal.settledAt || deal.cancelledAt || deal.disputed) return c.json({ error: 'deal not eligible for PO financing' }, 409);
   if (deal.factoringRequestedAt || deal.factoringOfferId || deal.poFinancingRequestedAt || deal.poFinancingId) return c.json({ error: 'deal already selected a financing rail' }, 409);
@@ -312,6 +319,13 @@ poFinancingRoutes.post('/fund', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
   if (deal.tradeLane !== 'finance') {
     return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
   }
@@ -499,6 +513,13 @@ poFinancingRoutes.post('/fund-circle', async (c) => {
 
   const deal = await getDeal(body.invoiceId);
   if (!deal) return c.json({ error: 'unknown invoice' }, 404);
+  // Financing is not wired to the v3 escrow yet: its payouts can only be
+  // assigned by assigners that escrow authorises, and the financing contracts
+  // point at the v2 escrow. Refuse rather than take an advance that could not
+  // be repaid from settlement.
+  if (deal.escrowVersion === 'v3') {
+    return c.json({ error: 'financing is not available on this deal yet', code: 'FINANCING_NOT_ON_V3' }, 409);
+  }
   if (deal.tradeLane !== 'finance') {
     return c.json({ error: 'PO financing is for SME finance-lane deals only' }, 409);
   }

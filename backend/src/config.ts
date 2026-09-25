@@ -592,6 +592,9 @@ const envSchema = z.object({
   // Circle wallet id of the automatic arbiter: the only key that may call
   // proposeRuling. Separate from the guardian and from the admin review Safe.
   AUTO_ARBITER_WALLET_ID: optionalString,
+  // How long the parties of a disputed v3 deal get to settle it themselves
+  // before the automatic arbiter proposes a ruling or escalates it.
+  V3_ARBITER_COOL_OFF_MS: z.coerce.number().int().positive().default(3_600_000),
 
   // --- Paytag (@handle counterparties) ---
   // Lets a P2P buyer name their counterparty by Paytag handle instead of an

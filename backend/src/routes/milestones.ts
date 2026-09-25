@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { invalidateEscrowCache, readEscrow } from '../chain/contracts.js';
-import { releaseMilestone, finalizeIfSettled, ESCROW_ACCEPTED } from '../chain/settlement.js';
+import { ESCROW_ACCEPTED } from '../chain/settlement.js';
+import { getDeal } from '../db/deals.js';
+import { dealEscrowOps } from '../deals/dealEscrowOpsLive.js';
+import type { DealEscrowRef } from '../deals/dealEscrowOps.js';
 import { findWalletIdForAgent } from '../agents/agent-registry.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { sessionAddress } from '../auth/session.js';
@@ -32,7 +34,10 @@ milestonesRoutes.post('/release', async (c) => {
     return c.json({ accepted: false, reason: 'release already in progress for this job' }, 409);
   }
 
-  const account = await readEscrow(body.jobId);
+  // The deal row says which escrow holds the money; a job with no row yet is
+  // on the v2 escrow, where it was funded.
+  const ref: DealEscrowRef = (await getDeal(body.jobId)) ?? { jobId: body.jobId };
+  const account = await dealEscrowOps.read(ref);
   if (account.state !== ESCROW_ACCEPTED) {
     return c.json(
       { error: `escrow state must be Accepted(2), got ${account.state}. Releases run after the seller accepts the escrow.` },
@@ -69,7 +74,7 @@ milestonesRoutes.post('/release', async (c) => {
 
   inFlight.add(body.jobId);
   releaseLoop(
-    body.jobId,
+    ref,
     body.totalMilestones,
     account.milestonesReleased,
     walletId,
@@ -85,13 +90,14 @@ milestonesRoutes.post('/release', async (c) => {
 });
 
 async function releaseLoop(
-  jobId: string,
+  ref: DealEscrowRef,
   total: number,
   startIndex: number,
   walletId: string,
   buyerOwner: string,
   sellerOwner: string | null,
 ) {
+  const jobId = ref.jobId;
   for (let i = startIndex; i < total; i++) {
     try {
       // What the seller was actually paid, read off the contract either side of
@@ -101,10 +107,9 @@ async function releaseLoop(
       // with a dash where the money should be, and the receipt they can share
       // had nothing to show. `released` is the escrow's cumulative seller
       // payout in USDC micros, so the difference is this milestone's payment.
-      const before = await readEscrow(jobId);
-      const txHash = await releaseMilestone(jobId, i, walletId);
-      invalidateEscrowCache(jobId);
-      const after = await readEscrow(jobId);
+      const before = await dealEscrowOps.read(ref);
+      const txHash = await dealEscrowOps.release(ref, i, walletId);
+      const after = await dealEscrowOps.read(ref);
       const paidMicros = after.released - before.released;
       // A zero or negative difference means the read raced the chain. Recording
       // nothing is better than recording a wrong number on a receipt, and
@@ -146,5 +151,5 @@ async function releaseLoop(
   }
   // v2.D: finalizeIfSettled doesn't need a wallet anymore; the escrow's
   // own release call recorded reputation atomically on chain.
-  await finalizeIfSettled(jobId);
+  await dealEscrowOps.finalizeIfSettled(ref);
 }

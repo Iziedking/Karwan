@@ -96,6 +96,12 @@ function configuredContracts(): Array<{
     { name: 'KarwanJobBoard', kind: 'registry', address: config.KARWAN_JOBBOARD_ADDR, holdsUsdc: false },
     { name: 'KarwanReputation', kind: 'registry', address: config.KARWAN_REPUTATION_ADDR, holdsUsdc: false },
     { name: 'KarwanBusinessRegistry', kind: 'registry', address: config.KARWAN_BUSINESS_REGISTRY_ADDR, holdsUsdc: false },
+    // The v3 suite, running beside the live escrow on testnet. Unset entries
+    // are left out like any other unconfigured contract.
+    { name: 'KarwanDealEscrow', kind: 'settlement', address: config.KARWAN_DEAL_ESCROW_ADDR, holdsUsdc: true },
+    { name: 'KarwanStakeVault', kind: 'staking', address: config.KARWAN_STAKE_VAULT_ADDR, holdsUsdc: true },
+    { name: 'KarwanYieldPool', kind: 'treasury', address: config.KARWAN_YIELD_POOL_ADDR, holdsUsdc: true },
+    { name: 'KarwanReputation v3', kind: 'registry', address: config.KARWAN_REPUTATION_V3_ADDR, holdsUsdc: false },
   ];
 }
 

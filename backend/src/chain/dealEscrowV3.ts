@@ -89,6 +89,7 @@ export interface DealEscrowV3Ports {
   readDeal(jobId: Hex): Promise<DealV3View>;
   readOwed(owner: Hex): Promise<bigint>;
   readSplit(jobId: Hex): Promise<{ active: boolean; sellerBps: number }>;
+  readHeld(jobId: Hex): Promise<boolean>;
   /// Decoded escrow events from a transaction receipt.
   receiptEvents(txHash: string): Promise<ReceiptEvent[]>;
   emit(event: EscrowBusEvent): void;
@@ -202,9 +203,37 @@ export function createDealEscrowV3(ports: DealEscrowV3Ports) {
     return dealIdV3({ chainId: ports.chainId, escrow: ports.address, buyer, salt });
   }
 
+  /// One side proposes a split of the unpaid amount (0 bps is a full refund
+  /// to the buyer, 10000 pays the seller in full).
+  async function proposeSplit(args: Op & { jobId: Hex; sellerBps: number }) {
+    const bps = String(Math.round(args.sellerBps));
+    const txHash = await send(args, 'proposeSplit(bytes32,uint16)', [args.jobId, bps], `proposeSplit(${args.jobId})`);
+    const split = await ports.readSplit(args.jobId);
+    if (!split.active || split.sellerBps !== Number(bps)) unproven('proposeSplit', txHash, { jobId: args.jobId });
+    return { txHash };
+  }
+
+  /// The other side accepts the same number, which settles the deal.
+  async function acceptSplit(args: Op & { jobId: Hex; sellerBps: number }) {
+    const bps = String(Math.round(args.sellerBps));
+    const { txHash } = await write(
+      args, args.jobId, 'acceptSplit(bytes32,uint16)', [args.jobId, bps], `acceptSplit(${args.jobId})`,
+      (d) => d.state === DEAL_STATE.Split,
+    );
+    ports.emit({
+      type: 'escrow.split',
+      jobId: args.dealKey ?? args.jobId,
+      actor: 'platform',
+      payload: { sellerBps: Number(bps), txHash },
+    });
+    return { txHash };
+  }
+
   return {
     address: ports.address,
     dealIdFor,
+    proposeSplit,
+    acceptSplit,
 
     /// The buyer funds the deal with its full terms. The id is read from the
     /// DealFunded event in the receipt, never assumed: if the signing wallet is
@@ -393,8 +422,8 @@ export function createDealEscrowV3(ports: DealEscrowV3Ports) {
       return { txHash };
     },
 
-    /// Settle by consent: one side proposes a split of the unpaid amount, the
-    /// other accepts the same number. 0 bps is a full refund to the buyer.
+    /// Settle by consent in one operation: propose from one side, accept from
+    /// the other.
     async settleBySplit(args: {
       dealKey?: string;
       proposerWalletId: string;
@@ -403,27 +432,37 @@ export function createDealEscrowV3(ports: DealEscrowV3Ports) {
       sellerBps: number;
       idempotencyKeys?: { propose?: string; accept?: string };
     }) {
-      const bps = String(Math.round(args.sellerBps));
-      const proposeTx = await send(
-        { walletId: args.proposerWalletId, idempotencyKey: args.idempotencyKeys?.propose },
-        'proposeSplit(bytes32,uint16)', [args.jobId, bps], `proposeSplit(${args.jobId})`,
-      );
-      const split = await ports.readSplit(args.jobId);
-      if (!split.active || split.sellerBps !== Number(bps)) {
-        unproven('proposeSplit', proposeTx, { jobId: args.jobId });
-      }
-      const { txHash: acceptTx } = await write(
-        { walletId: args.acceptorWalletId, idempotencyKey: args.idempotencyKeys?.accept },
-        args.jobId, 'acceptSplit(bytes32,uint16)', [args.jobId, bps], `acceptSplit(${args.jobId})`,
-        (d) => d.state === DEAL_STATE.Split,
-      );
-      ports.emit({
-        type: 'escrow.split',
-        jobId: args.dealKey ?? args.jobId,
-        actor: 'platform',
-        payload: { sellerBps: Number(bps), proposeTxHash: proposeTx, acceptTxHash: acceptTx },
+      const { txHash: proposeTxHash } = await proposeSplit({
+        walletId: args.proposerWalletId,
+        idempotencyKey: args.idempotencyKeys?.propose,
+        jobId: args.jobId,
+        sellerBps: args.sellerBps,
+        dealKey: args.dealKey,
       });
-      return { proposeTxHash: proposeTx, acceptTxHash: acceptTx };
+      const { txHash: acceptTxHash } = await acceptSplit({
+        walletId: args.acceptorWalletId,
+        idempotencyKey: args.idempotencyKeys?.accept,
+        jobId: args.jobId,
+        sellerBps: args.sellerBps,
+        dealKey: args.dealKey,
+      });
+      return { proposeTxHash, acceptTxHash };
+    },
+
+    /// Guardian: pause the seller's claim on a delivery under review. Bounded
+    /// by the contract's hold budget; never blocks a buyer exit.
+    async hold(args: Op & { jobId: Hex; reasonHash: Hex }) {
+      const txHash = await send(args, 'hold(bytes32,bytes32)', [args.jobId, args.reasonHash], `hold(${args.jobId})`);
+      if (!(await ports.readHeld(args.jobId))) unproven('hold', txHash, { jobId: args.jobId });
+      ports.emit({ type: 'security.hold', jobId: args.dealKey ?? args.jobId, actor: 'platform', payload: { txHash } });
+      return { txHash };
+    },
+
+    async releaseHold(args: Op & { jobId: Hex }) {
+      const txHash = await send(args, 'releaseHold(bytes32)', [args.jobId], `releaseHold(${args.jobId})`);
+      if (await ports.readHeld(args.jobId)) unproven('releaseHold', txHash, { jobId: args.jobId });
+      ports.emit({ type: 'security.hold.cleared', jobId: args.dealKey ?? args.jobId, actor: 'platform', payload: { txHash } });
+      return { txHash };
     },
 
     /// Collect a payout the escrow could not deliver earlier.

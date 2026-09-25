@@ -6,6 +6,8 @@ import { reputation } from '../chain/contracts.js';
 import { listAllDeals } from '../db/deals.js';
 import { getProfile } from '../db/profiles.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { publicClient } from '../chain/client.js';
+import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { activeStakeSummary } from './stake.js';
 import { computeSpamSignals, type SpamBreakdown } from './spam.js';
@@ -307,19 +309,51 @@ async function readChainScores(
   );
 }
 
+const scoresAbi = [
+  {
+    type: 'function',
+    name: 'scores',
+    stateMutability: 'view',
+    inputs: [{ name: '', type: 'address' }],
+    outputs: [
+      { name: 'successCount', type: 'uint256' },
+      { name: 'disputedCount', type: 'uint256' },
+      { name: 'failedCount', type: 'uint256' },
+    ],
+  },
+] as const;
+
+/// Deals settle on two escrows while v3 runs beside the live escrow, and each
+/// records into its own Reputation contract. A score is the sum of both.
+async function readV3Scores(target: string): Promise<readonly [bigint, bigint, bigint]> {
+  const address = config.KARWAN_REPUTATION_V3_ADDR as `0x${string}` | undefined;
+  if (!address) return [0n, 0n, 0n];
+  try {
+    return (await publicClient.readContract({
+      address,
+      abi: scoresAbi,
+      functionName: 'scores',
+      args: [target as `0x${string}`],
+    })) as readonly [bigint, bigint, bigint];
+  } catch (err) {
+    // A v3 read failure must not erase the v2 record: count v3 as zero.
+    logger.warn({ err: (err as Error).message, address: target }, 'v3 reputation read failed, contributing zeros');
+    return [0n, 0n, 0n];
+  }
+}
+
 async function readSingleScores(
   target: string,
 ): Promise<{ successCount: number; disputedCount: number; failedCount: number }> {
   try {
-    const scores = (await reputation.read.scores([target as `0x${string}`])) as readonly [
-      bigint,
-      bigint,
-      bigint,
-    ];
+    const [scores, v3] = await Promise.all([
+      reputation.read.scores([target as `0x${string}`]) as Promise<readonly [bigint, bigint, bigint]>,
+      readV3Scores(target),
+    ]);
     return {
-      successCount: Number(scores[0]),
-      disputedCount: Number(scores[1]),
-      failedCount: Number(scores[2]),
+      successCount: Number(scores[0] + v3[0]),
+      disputedCount: Number(scores[1] + v3[1]),
+      failedCount: Number(scores[2] + v3[2]),
     };
   } catch (err) {
     logger.warn(
