@@ -1826,7 +1826,7 @@ export const hi: Messages = {
     notConnected: 'लिस्टिंग पोस्ट करने के लिए साइन इन करें। नैव के लॉग इन पिल का उपयोग करें।',
     preview: {
       eyebrow: 'ऑफ़र पूर्वावलोकन',
-      acceptCaption: 'स्वीकार',
+      acceptCaption: 'मोल-भाव की गुंजाइश',
       agentListening: 'एजेंट सुन रहा है',
       floorTemplate: 'फ्लोर {amount} USDC',
       matchedCaption: 'क्रेता अनुरोधों से मिलान',

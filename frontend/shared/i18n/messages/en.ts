@@ -7122,9 +7122,9 @@ export const en: MessagesShape = {
   postListing: {
     notConnected: 'Sign in to post a listing. Use the Log in pill in the nav.',
     preview: {
-      eyebrow: 'OFFER PREVIEW',
-      acceptCaption: 'accept',
-      agentListening: 'agent listening',
+      eyebrow: 'Offer preview',
+      acceptCaption: 'room to negotiate',
+      agentListening: 'Agent listening',
       floorTemplate: 'floor {amount} USDC',
       matchedCaption: 'matched to buyer requests',
     },

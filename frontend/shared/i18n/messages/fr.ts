@@ -1827,9 +1827,9 @@ export const fr: Messages = {
   postListing: {
     notConnected: 'Connectez-vous pour publier une offre. Utilisez le bouton de connexion dans la nav.',
     preview: {
-      eyebrow: "APERÇU DE L'OFFRE",
-      acceptCaption: 'accepter',
-      agentListening: "l'agent écoute",
+      eyebrow: "Aperçu de l'offre",
+      acceptCaption: 'de marge de négociation',
+      agentListening: "L'agent écoute",
       floorTemplate: 'plancher {amount} USDC',
       matchedCaption: 'mise en relation avec des requêtes acheteur',
     },

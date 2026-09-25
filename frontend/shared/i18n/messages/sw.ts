@@ -1824,9 +1824,9 @@ export const sw: Messages = {
   postListing: {
     notConnected: 'Ingia kuchapisha tangazo. Tumia kibonye cha kuingia kwenye nav.',
     preview: {
-      eyebrow: 'MUHTASARI WA TANGAZO',
-      acceptCaption: 'kubali',
-      agentListening: 'wakala anasikiliza',
+      eyebrow: 'Muhtasari wa tangazo',
+      acceptCaption: 'nafasi ya majadiliano',
+      agentListening: 'Wakala anasikiliza',
       floorTemplate: 'kima cha chini {amount} USDC',
       matchedCaption: 'kulinganishwa na maombi ya wanunuzi',
     },

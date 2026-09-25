@@ -144,73 +144,36 @@ export function PostListingForm() {
     <div className="space-y-7">
       <PageTour id={SELLER_TOUR_ID} steps={SELLER_STEPS} />
       <form onSubmit={submit} className="space-y-7">
-        {/* LISTING PREVIEW. big editorial display */}
         <div
           aria-live="polite"
-          className="relative overflow-hidden lg:sticky lg:top-24 lg:z-10"
-          style={{
-            background: 'var(--lp-accent)',
-            color: 'var(--lp-band-dark)',
-            borderTopLeftRadius: 18,
-            borderTopRightRadius: 18,
-            borderBottomLeftRadius: 18,
-            borderBottomRightRadius: 4,
-          }}
+          className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-5 sm:px-6"
         >
-          <div
-            aria-hidden
-            className="absolute inset-0 pointer-events-none opacity-30 grid-drift"
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)',
-              backgroundSize: '48px 48px',
-              maskImage: 'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
-              WebkitMaskImage:
-                'radial-gradient(ellipse 70% 80% at 100% 0%, black, transparent 70%)',
-            }}
-          />
-          <div className="relative px-6 py-6">
-            <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-band-dark)]/65">
-              {pl.preview.eyebrow}
-            </p>
-            <div className="mt-3 flex items-baseline gap-2 flex-wrap">
-              <span className="font-sans text-[clamp(2.5rem,6vw,3.75rem)] font-extrabold tabular-nums tracking-[-0.03em] leading-none">
-                {previewPrice}
+          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{pl.preview.eyebrow}</p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="text-[40px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
+              {previewPrice}
+            </span>
+            <span className="text-[15px] font-medium text-[var(--lp-text-sub)]">USDC</span>
+            {previewTol > 0 && (
+              <span className="text-[15px] text-[var(--lp-text-sub)]">
+                <span className="font-semibold tabular-nums text-[var(--lp-dark)]">−{previewTol}%</span> {pl.preview.acceptCaption}
               </span>
-              <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-band-dark)]/65">
-                USDC
-              </span>
-              <span aria-hidden className="ms-2 mb-1 w-px h-7 bg-[var(--lp-band-dark)]/20" />
-              <span className="font-sans text-[clamp(1.5rem,3.4vw,2rem)] font-extrabold tabular-nums tracking-[-0.02em] leading-none">
-                −{previewTol}%
-              </span>
-              <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-band-dark)]/65">
-                {pl.preview.acceptCaption}
-              </span>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-3 text-[11px] mono text-[var(--lp-band-dark)]/65">
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  aria-hidden
-                  data-instrument-blink
-                  className="w-[6px] h-[6px]"
-                  style={{
-                    background: 'var(--lp-band-dark)',
-                    animation: 'instrumentBlink 1.6s ease-in-out infinite',
-                  }}
-                />
-                {pl.preview.agentListening}
-              </span>
-              {floor && (
-                <>
-                  <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
-                  <span>{pl.preview.floorTemplate.replace('{amount}', floor)}</span>
-                </>
-              )}
-              <span aria-hidden className="w-px h-3 bg-[var(--lp-band-dark)]/20" />
-              <span>{pl.preview.matchedCaption}</span>
-            </div>
+            )}
           </div>
+          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[var(--lp-text-sub)]">
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent-on-light)]" />
+              {pl.preview.agentListening}
+            </span>
+            {floor && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="tabular-nums">{pl.preview.floorTemplate.replace('{amount}', floor)}</span>
+              </>
+            )}
+            <span aria-hidden>·</span>
+            <span>{pl.preview.matchedCaption}</span>
+          </p>
         </div>
 
         {/* WHAT YOU OFFER */}

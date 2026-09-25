@@ -1828,7 +1828,7 @@ export const ar: Messages = {
     notConnected: 'سجّل الدخول لنشر عرض. استخدم زر تسجيل الدخول في شريط التنقل.',
     preview: {
       eyebrow: 'معاينة العرض',
-      acceptCaption: 'قبول',
+      acceptCaption: 'هامش للتفاوض',
       agentListening: 'الوكيل يستمع',
       floorTemplate: 'الحد الأدنى {amount} USDC',
       matchedCaption: 'مُطابَق مع طلبات المشترين',
