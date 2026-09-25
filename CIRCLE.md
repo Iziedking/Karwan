@@ -1,147 +1,55 @@
 # Circle integration
 
-How each Circle tool is wired into Karwan: the package, the file, the call, and
-the gotcha worth knowing. This distinguishes active paths from default-off
-rollout paths. Setup and run instructions are in [SETUP.md](./SETUP.md); the deeper per-product notes and
-the build-time friction are in [docs/circle-integration.md](./docs/circle-integration.md)
-and [docs/circle-product-feedback.md](./docs/circle-product-feedback.md).
+Reviewed against the repository and demo evidence on 25 September 2026. Mainnet currently has the wallet application and two registries. The demonstrated trade flow uses Arc testnet. See the [availability table](./README.md#availability) before interpreting an integration as a production service.
 
-Karwan uses the complete Circle Agent Stack: **Circle CLI, Agent Wallets, Agent
-Nanopayments, Agent Marketplace, and Circle Skills.** The application runtime
-also uses **USDC, Developer-Controlled Wallets, Gateway, CCTP with Bridge Kit,
-and USYC.**
+## USDC
 
-The customer model stays unified across these rails: one person identity and
-login, one personal workspace, and an optional owner-only business workspace.
-The customer keeps one identity wallet and one USDC balance in v1. Operational
-agent wallets are separate from that customer identity and balance.
+Karwan uses USDC for escrow principal, milestone payments, fees and staking. On Arc, USDC is also the native gas asset. The ERC-20 interface uses six decimals; the native interface uses eighteen. These are views of the same balance, not separate assets.
 
-## Circle Agent Stack
+Network definitions are in `backend/src/chain/networks.ts`. Escrow funding and release are implemented in `contracts/src/KarwanEscrow.sol`. Amount conversion must respect the interface used; a provider acknowledgement is not proof that the expected transfer occurred.
 
-The five Agent Stack surfaces have different trust boundaries in Karwan.
+## Developer-Controlled Wallets
 
-| Surface | Where it is used | Boundary |
-| --- | --- | --- |
-| [Circle CLI](https://developers.circle.com/agent-stack/circle-cli) | Operator login, Agent Wallet policy checks, CCTP and Gateway smoke tests, service discovery, paid-service tests, and Skill management. | Operator tool only. The public API never invokes the CLI as a subprocess. |
-| [Agent Wallets](https://developers.circle.com/agent-stack/agent-wallets) | Isolated user-custody wallets for operator-controlled research and Marketplace payments. | Separate from customer identity, buyer-agent, seller-agent, escrow, and treasury wallets. |
-| [Agent Nanopayments](https://developers.circle.com/agent-stack/agent-nanopayments) | Gateway-batched on-platform counterparty reads and compatible paid services. The standard exact-EVM rail remains explicit for providers that do not support Gateway. | Mandate, price, recipient, research-credit, idempotency, and reconciliation policy applies before and after every payment. |
-| [Agent Marketplace](https://developers.circle.com/agent-stack/agent-marketplace) | The public Discovery API supplies current paid API listings and payment metadata. | It is authoritative for purchasable API services only, never for people or SME counterparties. |
-| [Circle Skills](https://developers.circle.com/ai/skills) | Development and operations guidance for wallets, wallet policy, funding, CCTP, Gateway, and nanopayments. | Skills inform implementation and operator runs. Versioned Karwan code and tests remain the runtime authority. |
+`backend/src/circle/wallets.ts` provisions Circle wallets with `@circle-fin/developer-controlled-wallets`. Testnet email accounts use a customer identity wallet and separate operational agent wallets. Karwan has backend signing authority for these wallets. They must not be described as user-only signing wallets.
 
-Customer deal automation deliberately remains on Developer-Controlled Wallet
-SCAs. The separate Agent Wallet rail cannot move customer funds. The reliable
-matching, evidence, negotiation, approval, financial execution, and
-reconciliation flow is documented in
-[docs/agent-workflows.md](./docs/agent-workflows.md).
+`backend/src/chain/txs.ts` submits contract execution requests and tracks provider status. A Circle `COMPLETE` result can still contain an inner smart-account failure. Callers must verify receipts, transfers and resulting contract state before reporting success.
 
-## USDC on Arc
+Customer Developer-Controlled Wallet provisioning is refused on mainnet. Connected-wallet users sign with their own wallet. A passkey used for application sign-in does not change the authority of an existing Developer-Controlled Wallet.
 
-The settlement asset for escrow, milestone release, staking, and fees. On Arc,
-USDC is also the native gas token. Financing and repayment are planned product
-extensions, not part of the unified workspace MVP.
+## Modular Wallets
 
-- ERC-20 interface at `0x3600000000000000000000000000000000000000`, 6 decimals.
-- Native gas view is 18 decimals. **They are one balance, not two tokens.**
-  Application code reads and sends only through the 6-decimal ERC-20 view; mixing
-  the two is the sharpest edge on Arc (a value correct at 6 decimals is off by a
-  factor of a trillion at 18). Chain config in `backend/src/chain/client.ts`.
+`frontend/features/modularWallet/passkey.ts` implements the separate Circle passkey smart-wallet path using `@circle-fin/modular-wallets-core`. Its signing model is distinct from the testnet email wallet model. The current demo shows code; it does not establish that every mainnet passkey workflow is operational.
 
-## Circle Wallets (Developer-Controlled)
+## CCTP, App Kit and Bridge Kit adapters
 
-Package: `@circle-fin/developer-controlled-wallets`. Email and passkey customers
-get one identity wallet and two operational agent wallets, provisioned on
-sign-in, so no one handles a key. A business workspace does not create another
-customer wallet or balance. Web3 customers sign in with their own wallet.
+The server transfer adapter is `backend/src/circle/bridge-kit.ts`. Connected-wallet transfers are coordinated by `frontend/features/bridge/hooks/useBridge.ts`. The implementation uses App Kit with Circle Wallets or viem adapters, depending on the signer.
 
-- Setup: `backend/src/circle/wallets.ts`, using `initiateDeveloperControlledWalletsClient`
-  then `createWalletSet` → `createWallets({ blockchains: ['ARC-TESTNET'], accountType: 'SCA' })`.
-  Run once with `npm run wallets:create` (see SETUP.md step 4).
-- Every on-chain write the agents make goes through `executeContractCall` in
-  `backend/src/chain/txs.ts`, which calls `createContractExecutionTransaction`
-  with an ABI signature string and a params array, so we never hand-encode
-  calldata. Nonce and gas handling come from the SDK.
-- The entity-secret model keeps signing authority on the backend without us
-  holding raw private keys.
+A cross-chain transfer has separate source submission, confirmation, attestation and destination mint stages. Forwarding can submit the destination mint on supported routes. It does not make every transfer free or guarantee gas sponsorship. Fees, account support and route availability must come from the active configuration and quote.
 
-## CCTP V2 with Bridge Kit / App Kit
+Supported routes are defined in `backend/src/chain/cctpChains.ts` and `frontend/features/bridge/config.ts`. Testnet and mainnet routes are separate. A wallet may support receiving on a chain without supporting a contract execution from that chain.
 
-Packages: `@circle-fin/app-kit` with `@circle-fin/adapter-circle-wallets`
-(backend) and `@circle-fin/adapter-viem-v2` (frontend). USDC moves into and out
-of Arc across **twelve chains**, both directions.
+## Gateway
 
-- Backend bridge: `backend/src/circle/bridge-kit.ts`, using `bridgeInToArcViaAppKit`
-  and `bridgeOutFromArcViaAppKit`, both with `useForwarder: true`. The Circle
-  Wallets adapter signs straight from the Developer-Controlled Wallets, so an
-  email or passkey user bridges without a wallet popup.
-- Withdrawal uses Circle's **Forwarding Service** to submit the destination mint,
-  so we hold no wallet on the destination chain and a supplier cashes out to any
-  supported chain without ever holding that chain's gas token.
-- Chain registry: `backend/src/chain/cctpChains.ts` (11 non-Arc chains + Arc,
-  domain 26). Frontend config: `frontend/features/bridge/config.ts`.
-- Capability boundary encoded in code: a CCTP burn is a contract execution, so a
-  Circle wallet cannot burn from a chain Circle Wallets does not name. Those
-  chains are marked web3-only in config and the UI reflects it.
+The unified-balance implementation is in `frontend/features/gateway/lib.ts`, with server routing in `backend/src/gateway/router.ts` and balance reads in `backend/src/routes/gateway.ts`.
 
-## Circle Gateway
+Gateway is shown as code only in the current demo. Source code for deposits, spending, delegate controls and fee reservation is not evidence of a completed transfer. Verify the supported account type, signing authority, fees and destination credit before treating a route as available.
 
-Package: `@circle-fin/app-kit` (`unifiedBalance`). Two roles.
+## USYC
 
-- **Unified balance.** One pooled USDC balance across twelve chains. Read:
-  `backend/src/routes/gateway.ts` → `kit.unifiedBalance.getBalances`. Deposit and
-  spend: `frontend/features/gateway/lib.ts` → `deposit()` and `spend({ useForwarder: true })`.
-  Deposit once, spend to any chain from a single signature.
-- Design facts that shaped the code: the burn-intent signing domain carries no
-  chain id, so one signature covers burns across several source chains at once;
-  and Gateway needs an ECDSA signature, so an SCA cannot sign a burn intent
-  directly. Circle's `addDelegate` on the Gateway Wallet is the answer: our
-  pooled balance lives on the user's own EOA, and the agent SCAs receive from it.
-- **x402 settlement rail.** Gateway also nets the agents' per-call payments into
-  batched on-chain settlement (see Nanopayments).
+`contracts/src/KarwanTreasury.sol` implements treasury subscription and redemption through the Teller interface. `backend/src/chain/usycOrchestrator.ts` coordinates those operations and supports inspection before execution.
 
-## Hashnote USYC
+USYC access is permissioned. Deployment of the integration does not establish that a particular address is entitled, currently holds USYC or has paid yield. A current position needs a chain read. Escrow and staking yield must not be presented as guaranteed or as a general mainnet capability.
 
-The gated tool. Idle capital earns instead of waiting, through tokenized Treasury
-bills on Arc.
+## x402 and Agent Nanopayments
 
-- `contracts/src/KarwanTreasury.sol` is an ERC-4626 vault that subscribes to real
-  allowlisted USYC through the Hashnote Teller and redeems on demand, marking its
-  holdings to the on-chain oracle in `totalReserves()`.
-- Three balances route in: platform-fee reserves (treasury, live), idle staking
-  principal (vault, via an operator-mediated Teller path because the Teller checks
-  the direct caller and the vault contract is not itself entitled), and idle escrow
-  float, whose sweep path is deployed on the live escrow but has not yet carried a
-  balance.
-- USYC is permissioned, so holding it at all is the integration proof: an address
-  without an entitlement cannot. Reproduce the live position:
-  `cd backend && npm run usyc:prove` (read-only, no keys).
+The x402 integration is implemented but not live. `backend/src/x402/buyerClient.ts` contains the Gateway payment path; `backend/src/x402/externalClient.ts` contains the external-provider path. Seller implementation is in `backend/src/x402/sellerFacilitator.ts` and `backend/src/routes/x402.ts`.
 
-## Nanopayments (x402)
+These paths require provider, asset, recipient, price and spending-policy checks. A signed request that times out has an unknown outcome until reconciled. The presence of a service catalogue or payment client is not evidence of a paid request or settled revenue.
 
-Packages: `@circle-fin/x402-batching` (Karwan as seller and on-platform buyer) and
-`@x402/evm` exact-EVM scheme (off-platform buyer). Two rails, different questions.
+Circle CLI and Skills are development and operator tools. Agent Wallet and Marketplace adapters are separate from customer deal wallets. They should not be counted as active customer services without an enabled path and transaction evidence.
 
-- **On Arc, through Gateway.** Before scoring a bid, an agent pays 0.01 USDC to
-  read a counterparty's full settled-deal record. Buyer client:
-  `backend/src/x402/buyerClient.ts` (a lazily-provisioned Circle DCW EOA signs,
-  because Gateway rejects SCA signatures). These net into one batched settlement.
-- **On Base mainnet, to an independent provider.** A neutral platform agent pays
-  a genuinely third-party provider in real USDC over the standard exact-EVM
-  scheme for live market research: `backend/src/x402/externalClient.ts`. The
-  receipt resolves on the Base explorer like any other transaction.
-- **Karwan as seller.** Five paid endpoints (credit passport, repayment
-  behaviour, concentration, document anchors, skill demand) in
-  `backend/src/x402/sellerFacilitator.ts` + `backend/src/routes/x402.ts`, so an
-  outside underwriter can price Karwan credit without asking Karwan.
+## Webhooks and verification
 
-## Circle webhooks
+`backend/src/circle/webhooks.ts` verifies signed notifications at `POST /api/circle/webhook`. Polling and reconciliation remain necessary when notifications are absent or delayed. A notification reports provider state; the application still needs the financial result expected by the operation.
 
-`backend/src/circle/webhooks.ts` verifies Circle's event push notifications
-(ECDSA-SHA256, `X-Circle-Signature` / `X-Circle-Key-Id`), mounted at
-`POST /api/circle/webhook`. Set `CIRCLE_WEBHOOK_SUBSCRIPTION_ID` to enable; when
-unset the route reports not-configured and the polling path in `chain/txs.ts` is
-the completion signal.
-
-## Contract addresses
-
-The live Arc Testnet (chain 5042002) addresses, including the Hashnote USYC token,
-Teller, and oracle, are in the [README](./README.md#contracts-on-arc-testnet-chain-5042002).
+See [integration verification](./docs/circle-integration.md) for the evidence required for each path and [SETUP.md](./SETUP.md) for local configuration.

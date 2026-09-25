@@ -7,6 +7,10 @@ uses one person identity, one login, and optional workspaces under that
 identity. A personal workspace is the default. An owner can add one business
 workspace without creating another account.
 
+Mainnet currently provides the wallet application and the Reputation and
+BusinessRegistry contracts. Trading and escrow remain on Arc testnet. The
+[README](../README.md#availability) lists the environments and deployment scope.
+
 ## System shape
 
 - **Frontend.** Next.js 15 app with app routes, shared navigation, localized
@@ -21,10 +25,10 @@ workspace without creating another account.
   reputation, vault, treasury, yield distribution, and business registry
   surfaces. Contract availability and deployment state must be checked before
   a release claim. Testnet data is not production settlement.
-- **Circle stack.** Circle Developer-Controlled Wallets, Agent Wallets,
-  Gateway, CCTP, and related services support the current wallet and bridge
-  paths. Operational agent wallets are separate from the customer's identity
-  wallet and balance.
+- **Circle integrations.** Developer-Controlled Wallets support testnet account
+  and agent operations. CCTP handles supported transfer routes. Gateway and
+  Modular Wallets are code walkthroughs in the current demo; x402 is not live.
+  Operational agent wallets are separate from the customer's identity wallet.
 - **Storage.** Postgres is the durable store for profile, workspace, deal,
   activity, and agent-operation metadata. A flat-file fallback supports local
   cold starts. The chain remains the source of truth for financial state.
@@ -95,9 +99,11 @@ workspace visible in the interface.
 
 ## Escrow
 
-Deal money is held by the escrow contract on Arc from funding to payout, never
-in a Karwan account. Today's testnet escrow follows the flow above with short
-demo clocks (5-minute review times).
+Funded deal principal is held by the escrow contract on Arc. Wallet authority
+before funding and after payout depends on the account type. The testnet demo
+uses short review windows; read the deadline on the actual deal before acting.
+The current testnet contract permits eligible seller claims after the review
+deadline, including a final-milestone claim.
 
 The mainnet escrow is designed around the deal's terms. The terms both sides
 agree (milestones, delivery date, review time, extra review time, final-payment
@@ -112,21 +118,17 @@ This design is in review and not live. The full design, including roles,
 clocks, invariants and how it is verified, is in
 [escrow-design.md](./escrow-design.md).
 
-![Deal lifecycle](./diagrams/deal-lifecycle.svg)
-
-The top row is the normal path. Each exit below it needs only the two parties
-and time, so no deal can leave money waiting forever. The dispute row is the
-tiered path: an automatic ruling, an appeal window, then admin review, or a
-lapse back to where the deal stood if nobody acts.
+The proposed dispute path includes an automatic ruling, an appeal window and
+admin review. Timeout and recovery behavior must be checked against the
+contract version; it is not a guarantee against all causes of unavailable funds.
 
 ## Who holds what
 
-![Who holds what](./diagrams/trust-boundaries.svg)
-
-Users sign for their own wallets. Agent wallets act only inside the budget the
-user set. Deal money sits in the escrow contract, and the admin and guardian
-roles are bounded by the contract: they can split an escalated dispute between
-its two parties or hold a delivery for a limited time, never pay anyone else.
+Connected-wallet users sign with their own wallets. Karwan has backend signing
+authority over its testnet Developer-Controlled Wallets. User-approved terms
+and application policy limit their intended use; they are not user-only signing
+wallets. Once funded, a deal follows its escrow contract. Administrator and
+guardian powers differ by contract version and must be reviewed with that version.
 
 ## Agent boundary
 
@@ -143,8 +145,6 @@ The backend keeps agent work on a deterministic path:
 5. Ask for human approval for a consequential action.
 6. Execute an idempotent command and reconcile the provider result.
 7. Persist the result and publish the ordered activity event.
-
-![Agents: find, negotiate, check](./diagrams/agent-matching.svg)
 
 Offers are ranked by skill match first; reputation only breaks ties. A seller
 accepts the match and the buyer approves any raise above the agreed price.
@@ -172,7 +172,7 @@ Karwan uses separate seams for separate claims:
 
 The same shape works for a GitHub commit, a signed file, a carrier event, a
 buyer acceptance, or another source with a clear scope and freshness rule. See
-[trust-and-proof.md](./trust-and-proof.md) for the public product flow.
+[work-verification.md](./work-verification.md) for evidence handling.
 
 ## Settlement and transfer rails
 
@@ -188,8 +188,6 @@ environment, so testnet balances and receipts must be labeled accordingly.
 Operational agent wallets may act in bounded background jobs where the user
 has authorized that role. They are not an additional customer account and do
 not replace the approval boundary for funding or settlement.
-
-![Money movement](./diagrams/money-movement.svg)
 
 Every money move follows the same five steps: record the intent, submit once,
 confirm that the receipt and contract state agree, reconcile an unclear outcome
@@ -215,10 +213,3 @@ Completed trade outcomes feed the current reputation model. Evidence coverage,
 trade history, and stake are shown separately so a score is not presented as
 an all-purpose safety guarantee. See [reputation-model.md](./reputation-model.md)
 and [work-verification.md](./work-verification.md).
-
-## Documentation boundary
-
-This file describes the current public product shape. Internal plans,
-research, submission records, audits, and internal planning materials are intentionally
-excluded from the public documentation set. Public pages must say when a
-capability is planned, testnet-only, owner-only, or not yet verified.

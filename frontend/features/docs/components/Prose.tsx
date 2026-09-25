@@ -112,9 +112,6 @@ export function DocsFigure({
             <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
               {kind === 'video' ? t.figure.videoComingSoon : t.figure.screenshotComingSoon}
             </span>
-            <span className="mono text-[10px] text-[var(--lp-text-muted)]/60 break-all px-6">
-              {src}
-            </span>
           </div>
         ) : kind === 'image' ? (
           // eslint-disable-next-line @next/next/no-img-element

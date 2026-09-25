@@ -6266,8 +6266,8 @@ export const en: MessagesShape = {
   appHome: {
     settlementDeskEyebrow: 'SETTLEMENT DESK',
     backendOffline: {
-      eyebrow: 'BACKEND',
-      title: 'Backend offline',
+      eyebrow: "Connection",
+      title: "Cannot load your account",
       bodyPrefix: "Couldn't reach the API at ",
       bodySuffix: ". This page picks up the moment it's back.",
     },
@@ -6312,9 +6312,9 @@ export const en: MessagesShape = {
     },
     threeDoors: {
       sectionTag: 'WHERE TO START',
-      headlineTop: 'One spine',
-      headlineBottom: 'Three doors.',
-      description: 'Same escrow. Same reputation. Three entry points.',
+      headlineTop: "Start with",
+      headlineBottom: "what you need",
+      description: "Find a seller, publish an offer or follow an existing deal.",
       buyerCard: {
         eyebrow: 'BUYER',
         title: 'Post a request',
@@ -8408,7 +8408,7 @@ export const en: MessagesShape = {
       switchButton: 'Switch to Arc',
     },
     vaultNotDeployed: {
-      prefix: 'KarwanVault is not deployed on this environment. Set',
+      prefix: "Staking is unavailable on this network. Do not send funds to a staking address until the service is available.",
       middle: 'in',
       suffix: 'and restart the backend.',
     },
@@ -8929,7 +8929,7 @@ export const en: MessagesShape = {
       awaitingFinalRelease: {
         buyerIntroTemplate: 'First {firstPct}% released. Verify and release the next {rest}% when the work checks out.',
         buyerResponseExpiredTemplate: 'Response window passed. The agent will auto-release the next {rest}% to the seller shortly.',
-        buyerNoAppealTemplate: "Take your time. The next {rest}% never releases automatically. Click below to verify and release once you've checked the work. If you stall too long the seller can raise a delay appeal.",
+        buyerNoAppealTemplate: "Review the work before releasing the next {rest}%. Check the deadline: the seller may be able to claim payment after the review period. Use an available extension or dispute action if you need to respond.",
         releaseCtaTemplate: 'Verify & release next {rest}%',
         releaseBusy: 'Confirming on Arc…',
         appealCta: 'Appeal this deal',
@@ -9179,7 +9179,7 @@ export const en: MessagesShape = {
       connectLabel: 'Connect Telegram',
       connectTitle: 'Connect Telegram for alerts',
       manageTitleTemplate: 'Manage Telegram link ({label})',
-      disabledTitle: 'Telegram alerts are not configured on this server',
+      disabledTitle: "Telegram alerts are unavailable",
     },
     modal: {
       eyebrow: '[:TELEGRAM ALERTS:]',
@@ -9929,7 +9929,7 @@ export const en: MessagesShape = {
     title: 'Push to your chat',
     subtitle: 'Deals · chat · bridge state',
     linkedBadge: 'LINKED',
-    notConfiguredPrefix: 'Telegram alerts are not configured on this server. Ask the operator to set',
+    notConfiguredPrefix: "Telegram alerts are unavailable. You can still follow updates in Karwan.",
     notConfiguredAnd: 'and',
     idleDescription: 'One tap to open the bot, one more to confirm. Wallet stays in your browser.',
     connectCta: 'Connect Telegram',
@@ -9996,9 +9996,9 @@ export const en: MessagesShape = {
     },
     buyerSilent: {
       heading: 'If the buyer goes quiet',
-      s1: { label: 'Auto-release starts.', body: 'After delivery, the first milestone releases on its own once the review window of {reviewWindow} passes with no action. The final milestone never auto-releases on a silent timer.' },
+      s1: { label: 'Auto-release starts.', body: "After delivery, the first review window is {reviewWindow}. Check the deadline on your deal: the seller may claim an eligible milestone after review expires, including the final one." },
       s2: { label: 'Raise a delay appeal.', body: 'Opens {appealGrace} after the last release. The buyer gets {buyerResponse} to respond.' },
-      s3: { label: 'Auto-reclaim runs.', body: 'If the seller still has not delivered after the grace window, the platform submits the reclaim and the unreleased escrow returns to the buyer. The contract records the failed deadline and any reserved stake is handled there. We are still reviewing this process for the full mainnet mechanism. Send us feedback as you test the testnet.' },
+      s3: { label: "Check recovery options.", body: "Check the deal for available claim, extension or dispute actions and their deadlines. Contact support if an expected action is unavailable. Silence does not guarantee payment or a refund." },
     },
     sellerLate: {
       heading: 'If the seller misses the deadline',
@@ -10012,12 +10012,12 @@ export const en: MessagesShape = {
       s2: { label: 'Arbiter ruling.', body: 'The security council splits the escrow by percentage, on chain. The ruling text and the split are public on the deal record.' },
       s3: { label: 'The backstop.', body: 'If the configured dispute backstop expires, the contract applies its published outcome. The live disputes page is the source for the current timeout and recovery rule.' },
     },
-    callout: { title: 'Nothing freezes forever', body: 'Funds sit in the escrow contract, not with Karwan. Every hold has a clock, every clock has an exit, and every exit is visible on Arc.' },
+    callout: { title: "Check the recovery rules", body: "Funded money is held in escrow. Release, refund and dispute actions depend on the contract and deal state. Read the deadlines and contact support if the expected action is unavailable." },
   },
   docsIndexPage: {
     eyebrow: 'OVERVIEW',
     headline: 'How Karwan works',
-    intro: 'Karwan is an open market for local and cross-border trade. Use one identity, switch between a personal workspace and an owner-only business workspace, bring a deal or find supply, protect payment in USDC on Arc, and keep the trade record. Agents can prepare a recommendation within your limits, then bring it back for your approval. This guide explains the parts you can use today.',
+    intro: "Karwan helps buyers and sellers agree terms, fund USDC escrow and review delivery. Trading is available on testnet with test funds. The mainnet application currently supports wallets and registries; mainnet escrow is not yet available.",
     twoWays: {
       title: 'One identity. Two workspaces.',
       lede: 'Keep one login, one customer wallet, and one USDC balance as you move between personal and business trade.',
@@ -10050,19 +10050,19 @@ export const en: MessagesShape = {
       lede: 'Each section below covers one part of the platform in depth.',
       cards: {
         agents: { title: 'Agents', blurb: 'How agents search, compare, and prepare offers within your limits.' },
-        deals: { title: 'Deals and Escrow', blurb: 'The deal lifecycle from acceptance to settlement, plus cashout.' },
-        reputation: { title: 'Reputation and Stake', blurb: 'How trade history, evidence, and stake appear without pretending to guarantee a counterparty.' },
+        deals: { title: "Deals and escrow", blurb: 'The deal lifecycle from acceptance to settlement, plus cashout.' },
+        reputation: { title: "Reputation and stake", blurb: "Read trade history, reputation and stake, and understand their limits." },
         bridge: { title: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { title: 'Roadmap', blurb: 'What is live today and what is shipping next.' },
         faq: { title: 'FAQs', blurb: 'Quick answers to the questions new users ask first.' },
-        x402: { title: 'Paid data endpoints', blurb: 'The x402 endpoints anyone can pay per call to read a credit passport or a repayment record.' },
+        x402: { title: 'Paid data endpoints', blurb: "Planned paid access to trade records. The x402 service is not live." },
       },
     },
   },
   docsAgentsPage: {
     eyebrow: 'AGENTS',
     title: 'Agents that work inside your limits',
-    intro: 'When you post a request or offer, an agent searches for a fit and handles the negotiation. It works inside the limits you set and brings the proposed terms back to you. It is a matchmaker, not a spender. Money does not move until you approve.',
+    intro: "An agent compares requests and offers and negotiates within your limits. It presents proposed terms for your review. You approve the deal before escrow funding.",
     howNegotiationRuns: {
       heading: 'How the negotiation moves',
       auction: 'Post a request and your buyer agent opens a short auction window. Seller agents bid. Your agent scores every bid on price, the seller\'s reputation, their completion rate, how long they have been on the platform, and how active they are. The best bids line up in a queue.',
@@ -10132,13 +10132,13 @@ export const en: MessagesShape = {
     },
     whyThisRail: {
       heading: 'What this transfer route does',
-      body: 'The product uses the configured USDC transfer route to move supported funds between chains. The route, token contract, and transfer state shown in the product are the source of truth. Cross-chain transfers still depend on external networks and services.',
+      body: "Transfers move USDC between the networks shown for your account. Check the route, fees and recipient before confirming. Completion depends on source confirmation and destination credit.",
     },
   },
   x402Page: {
     eyebrow: 'PAID DATA API',
     title: 'Underwriting data, paid per call',
-    intro: 'Karwan sells the same signals it uses to underwrite trade deals: the credit passport, repayment behaviour, counterparty concentration, and anchored trade documents. Financiers and agents pay per call in USDC over x402, settled in batches through Circle Gateway on Arc Testnet. A wallet with a Gateway deposit is the whole integration; there are no API keys and no subscriptions.',
+    intro: "Karwan’s paid-data API is implemented but not live. The reference below describes the intended testnet endpoints and payment flow. Do not deposit funds to use this service until availability is announced.",
     endpoints: {
       heading: 'Endpoints',
       body: 'Prices are in USDC per call. The directory endpoint is free and machine-readable, so an agent can discover the catalogue before paying.',
@@ -10173,11 +10173,11 @@ export const en: MessagesShape = {
     },
     howToPay: {
       heading: 'How payment works',
-      body: 'x402 is the HTTP 402 payment flow. Settlement runs through Circle Gateway, which batches many sub-cent payments into one on-chain transaction, so a half-cent call never pays a full transaction fee.',
+      body: "The implementation uses HTTP 402 to request payment and Gateway to batch eligible payments. This describes the code, not an available service or a promise of zero fees.",
       steps: {
         deposit: {
           label: 'Deposit once.',
-          body: 'Put a small USDC balance into your Circle Gateway deposit on Arc Testnet. A few dollars covers hundreds of calls.',
+          body: "The planned flow uses a Gateway deposit on Arc testnet. The service is not live; do not fund it from this example.",
         },
         call: {
           label: 'Call the endpoint.',
@@ -10190,7 +10190,7 @@ export const en: MessagesShape = {
       },
     },
     example: {
-      heading: 'Try it',
+      heading: "Implementation example",
       body: 'The Circle x402 batching client handles the whole round-trip in one call:',
     },
     sameChain: {
@@ -10220,7 +10220,7 @@ export const en: MessagesShape = {
     },
     shareable: {
       heading: 'Shareable deal links',
-      body: 'A buyer can point a direct deal at an email address instead of a wallet. Karwan sends a branded invite. The recipient opens the link, types the one-time code we just emailed, and a Circle wallet is provisioned in their browser. They accept the deal. The recipient claims the invite with the one-time code, reviews the terms, and accepts. Timing depends on email delivery and the recipient\'s actions.',
+      body: "Invite a seller by email. They sign in, claim the invitation and review the terms before accepting. Email accounts on testnet use a Circle wallet operated by Karwan. This is different from connecting a wallet whose signing keys they control.",
     },
     fee: {
       heading: 'The platform fee',
@@ -10228,7 +10228,7 @@ export const en: MessagesShape = {
     },
     review: {
       heading: 'Review windows and auto-release',
-      body: 'The deal shows live review and recovery timers so both sides can see what happens if one side stops responding. After the seller marks delivered, the buyer has a window to release the first milestone. Where the configured recovery path allows it, the first milestone can release after the buyer\'s review and appeal windows expire. The final milestone requires the buyer\'s explicit approval in the current flow. The buyer can extend the review window when they need more time. The live deal displays the review window that applies to that deal. On a goods deal it never expires while the shipment is still in transit, and agreed Net terms hold it open for the full term, because marking goods delivered means dispatched, not arrived.',
+      body: "Check the review deadline on each milestone. After delivery, the current testnet contract may let the seller claim an eligible milestone when that deadline expires, including the final milestone. Use the review, extension or dispute action shown on the deal before the deadline. Rules depend on the contract version and agreed terms.",
     },
     stake: {
       heading: 'Stake as deal insurance',
@@ -10246,7 +10246,7 @@ export const en: MessagesShape = {
     },
     callout: {
       title: 'ON ARC TESTNET TODAY',
-      body: 'All deals on Karwan today settle in testnet USDC on Arc Testnet, which has no real value. Treasury yield through real Hashnote USYC is already live on testnet.',
+      body: "Deal testing uses USDC with no monetary value on Arc testnet. Mainnet wallet access does not enable mainnet escrow. Yield is not guaranteed.",
     },
   },
   docsFaqPage: {
@@ -10261,11 +10261,11 @@ export const en: MessagesShape = {
       { q: 'What happens when negotiation fails?', a: 'No escrow funds. The request can end without an agreement, and the product shows the reason available from the matching flow. You can change your limits or post a new request.' },
       { q: 'Can I cancel a deal?', a: 'The deal page shows whether cancellation is available in its current state. A mutual cancellation follows the contract path shown to both parties. Read the proposed outcome before accepting it.' },
       { q: 'What if the seller does not deliver?', a: 'Use the recovery or dispute action shown on the deal. The available refund, release, timeout, and stake outcome depend on the contract state and current configuration.' },
-      { q: 'What if the buyer is slow to release?', a: 'The deal shows the active review and appeal timers. The current flow requires explicit buyer approval for the final milestone. Any earlier recovery action follows the contract configuration shown on that deal.' },
+      { q: 'What if the buyer is slow to release?', a: "Check the review deadline. The seller may be able to claim an eligible milestone after it expires, including the final one. Review the delivery or use an available extension or dispute action before the deadline." },
       { q: 'What happens after a missed deadline?', a: 'The deal page shows the actions and grace period that apply. A deadline miss can affect the seller record when the contract records a failed outcome.' },
       { q: 'Do agents spend money?', a: 'Agents do not fund deals. Where paid research is enabled, an agent may use the separate research balance within its configured cap. The product should show the charge and the resulting data.' },
       { q: 'What is the difference between Individual and Business accounts?', a: 'Individual accounts use the Buyer and Seller desks. Business accounts use B2B Trades with Buyer Desk and Supply Desk. Business finance capabilities can be feature-gated.' },
-      { q: 'Are individual skills verified?', a: 'Skills are self-declared unless the product shows a live verification state for that specific skill. The complete individual submission and reviewer workflow is not currently shipped.' },
+      { q: 'Are individual skills verified?', a: "Skills are self-declared unless a specific verification result is shown. Review the seller’s work samples and trade history before agreeing to a deal." },
       { q: 'What does business verification mean?', a: 'Where enabled, a business can submit registration or tax evidence through the business review path. A verified state does not prove licensing, solvency, performance, or safety. It can expire or be revoked.' },
       { q: 'How long does a deposit take?', a: 'Timing depends on the source chain and transfer service. Follow the status shown in Deposit / Withdraw. If a transfer is still pending, use the recheck control before sending another one.' },
       { q: 'How do I raise my reputation?', a: 'Reputation uses the inputs and tier requirements shown in your profile and the current reputation model. Settled outcomes matter. Reputation is not identity, skill, or business verification.' },
@@ -10280,7 +10280,7 @@ export const en: MessagesShape = {
     intro: 'An account can build a reputation score from settled deal history and the other inputs shown in the product. The score follows the account that settled the deal. It is a record of outcomes, not a guarantee about the person or business behind the wallet.',
     signals: {
       heading: 'What moves your score',
-      lead: 'The score uses the reputation inputs shown in the product and backend. No single number should be read as proof of identity, skill, licensing, or future performance.',
+      lead: "Your profile shows the inputs behind your score. The score does not verify identity, skill, licensing or future performance.",
       items: {
         stake: { label: 'Locked stake.', body: 'USDC deposited in the vault. It can contribute to reputation and may be reserved as deal insurance when the active deal requires it.' },
         deals: { label: 'Settled deals.', body: 'Completed outcomes against your wallet, weighted by your success rate.' },
@@ -10289,7 +10289,7 @@ export const en: MessagesShape = {
         activity: { label: 'Activity.', body: 'Distinct days the wallet was active. Showing up over time matters, not raw deal count.' },
       },
       penalty: 'Negative deal outcomes and policy signals can reduce the score according to the active reputation model. Read the current reputation model for the inputs and limits in force.',
-      referralPrefix: 'A sixth signal, referrals through real deals, joins the score on mainnet as a marketing rail. It is not live today, so it does not factor into your score yet.',
+      referralPrefix: "Referral rewards are planned and do not contribute to the current score.",
       referralLink: 'Read the roadmap entry',
       referralSuffix: '.',
     },
@@ -10309,10 +10309,10 @@ export const en: MessagesShape = {
     },
     resistance: {
       heading: 'Controls around the score',
-      lead: 'Reputation systems usually fail because a determined user can find a cheap path to the top. Karwan\'s formula closes the most common ones by design.',
+      lead: "The score limits the weight of repeated trades and considers completed outcomes. These controls reduce manipulation; they do not prove that counterparties are independent.",
       volumeFarming: { heading: 'Volume farming', body: 'Posting many small deals with yourself does not pay off. The volume curve is concave, so each extra unit of volume contributes less than the one before. Counterparty spread is then checked separately: when most of your settled deals are with a single wallet, your tier is capped no matter what the score says. Trading in a circle cannot buy standing.' },
       stakeAndRun: { heading: 'Stake and run', body: 'A withdrawal follows the cooldown returned by the live vault. The position view shows the current state of every amount. Do not rely on a fixed number copied into documentation.' },
-      selfDealing: { heading: 'Self-dealing', body: 'The on-chain reputation registry refuses to let an agent\'s owner rate their own agent. The constraint is enforced at the contract layer, not just in our application, so a determined user cannot bypass it by writing their own client. Running both sides through two wallets does not work either: concentration caps the tier, so a wallet whose record is one repeat partner cannot reach the tiers that reduce collateral.' },
+      selfDealing: { heading: 'Self-dealing', body: "The registry rejects self-rating where the required agent-owner binding is present. Concentrated trading can also limit a tier. These checks do not prove that two different wallets belong to different people." },
       matchAndCancel: { heading: 'Match and cancel', body: 'Bidding on many requests and pulling out before settlement counts toward the cancellation penalty. The penalty hits in days, not months, so cycling through this pattern drops the score fast.' },
       decay: { heading: 'Decay on idleness', body: 'A once-strong wallet that goes silent for months is no longer trusted as currently strong. The decay term reduces the displayed score so agents weigh inactive history less. A returning user re-earns trust by completing a deal or two.' },
     },
@@ -10329,26 +10329,26 @@ export const en: MessagesShape = {
   docsRoadmapPage: {
     eyebrow: 'ROADMAP',
     heading: 'Current build and planned work',
-    intro: "Karwan is built on Arc. This guide separates current product paths from work still in development. A roadmap item is not a live capability, eligibility decision, or delivery promise.",
+    intro: "The mainnet wallet application and two registries are available. Trading remains on testnet. The full mainnet contract release is targeted for 25 October 2026, followed by a mobile application. Release dates depend on testing and security review.",
     live: {
-      title: "Available in the current build",
+      title: "Trade features on testnet",
       items: {
         match: { title: 'Agent-assisted matching.', body: 'Buyer and seller flows can compare matches and negotiate inside account limits. Users review the resulting terms before funding.' },
-        negotiation: { title: 'Market context for negotiation.', body: 'Where the paid research capability is enabled, the negotiation can use an external market read. The product should show when that data was used and what it cost.' },
-        stake: { title: 'Stake as deal insurance.', body: "A portion of the seller\'s free stake reserves against every accepted deal. A failed dispute slashes that reservation to the buyer." },
-        passport: { title: 'Credit-passport surface.', body: 'The repository contains a public credit-passport route. Availability and the fields returned depend on the enabled backend and privacy settings.' },
-        shareable: { title: 'Shareable deal links.', body: 'Open a deal pointed at an email address. The recipient claims with a one-time code and a Circle wallet is provisioned in their browser.' },
+        negotiation: { title: 'Market context for negotiation.', body: "Agents compare offers within your limits. Paid research through x402 is not live." },
+        stake: { title: 'Stake as deal insurance.', body: "An eligible deal can reserve part of the seller’s stake as collateral. The agreement shows the amount and the conditions for release or loss." },
+        passport: { title: "Credit passport.", body: "Share the trade history visible on your credit passport. Your privacy settings control what other people can read." },
+        shareable: { title: 'Shareable deal links.', body: "Invite a counterparty by email. They sign in and review the agreement before accepting." },
         cashout: { title: 'Cashout after settlement.', body: 'Send settled USDC to any wallet on Arc, or withdraw to Ethereum, Base, Arbitrum, Optimism, Polygon, or Solana with an inline progress card.' },
-        vault: { title: 'USYC yield paths.', body: 'The build contains protocol and account yield surfaces connected to configured USYC paths. Balances, permissions, distribution, and claimability depend on live contracts and chain state.' },
-        factoring: { title: 'Business finance paths.', body: 'A financier advances against an invoice at a discount set by the seller\'s reputation tier, and the escrow records an irrevocable redirect so the repayment cannot be diverted. Purchase-order financing advances working capital against an accepted order and releases it when proof of delivery is anchored on chain. Both legs move native USDC.' },
-        disputes: { title: 'Dispute resolution paths.', body: 'A dispute that survives the two sides talking goes to an arbiter, who splits the unreleased funds by basis points rather than picking a winner. The same ruling settles the seller\'s reserved stake in proportion to fault. A dead arbiter key can delay a deal but never trap it: after the timeout either party can push it to its default outcome.' },
+        vault: { title: 'USYC yield paths.', body: "The position view separates staked principal from claimable yield. Availability depends on the account and contract. Yield is not guaranteed." },
+        factoring: { title: 'Business finance paths.', body: "Invoice and purchase-order financing are implemented for testing. Access depends on eligibility and available funding. Mainnet financing is not available." },
+        disputes: { title: 'Dispute resolution paths.', body: "The parties can propose a resolution. If they cannot agree, the contract determines the available ruling and timeout paths. A dispute is not an automatic refund." },
         symmetric: { title: 'Both sides earn a record.', body: 'A settled deal credits the buyer and the seller on chain, not only the seller, and each side gains a distinct counterparty the first time a pair settles. Standing is value-weighted and counts distinct counterparties, so volume with one repeat partner cannot inflate a score.' },
-        verified: { title: 'Verified deliverables.', body: 'A security agent scans every delivered link before the buyer sees it, and guards the in-app chat so a phishing or malware link cannot be sent in the first place. A flagged link pauses the deal\'s automatic release and routes both sides to resolve it. A confirmed bad link is a heavy hit to the sender\'s reputation.' },
-        escrowYield: { title: 'Escrow yield path built, switched off.', body: 'The live escrow can park idle float with its treasury and recall it before every payout, with its books in USDC so principal always returns in full. It stays switched off: that treasury is not cleared to hold USYC. The mainnet suite routes long-lived principal through a yield pool instead.' },
+        verified: { title: 'Verified deliverables.', body: "Delivery checks can flag a link for review. They cannot guarantee that a file or website is safe. Review the evidence before releasing payment." },
+        escrowYield: { title: 'Escrow yield path built, switched off.', body: "Escrow yield is disabled. It is not included in the return a buyer or seller should expect from a deal." },
         terms: { title: 'Terms and Conditions with versioned consent.', body: 'A public terms page and a first-signup consent gate that re-prompts when the version changes.' },
         signin: { title: 'Three sign-in paths.', body: 'Email and passkey, email one-time code, or a web3 wallet through Sign-In with Ethereum.' },
-        languages: { title: 'Multi-language framework.', body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },
-        tours: { title: 'Guided coachmark tours.', body: 'Role-aware walkthroughs run once per page so new users learn the product as they use it.' },
+        languages: { title: "Five languages.", body: 'English, Arabic, French, Hindi, and Swahili across the most user-facing surfaces today.' },
+        tours: { title: "Page guides.", body: "Open the page guide for help with the next action." },
       },
     },
     next: {
@@ -10366,19 +10366,19 @@ export const en: MessagesShape = {
         body: 'USDC remains the cross-border settlement layer. Local-currency bank payout will launch one corridor at a time through approved payout infrastructure, with supported countries, recipient checks, foreign exchange, fees, timing, reversals, and recovery shown before confirmation. This is not available in the current testnet build.',
       },
       skills: { title: 'Individual skill verification', body: 'Individual skill claims are currently self-declared unless the product shows a live, skill-specific verification state. A future verification path may use external evidence or structured review. It will be scoped to the named skill and may expire or be revoked. Business verification is a separate account workflow for registration and tax evidence. Neither label guarantees licensing, solvency, performance, or safety.' },
-      fileDelivery: { title: 'File delivery', body: 'Deliver work as a file rather than only a link, with the same scan pipeline. Built on Cloudflare R2 for speed and IPFS for tamper-evident, content-addressed delivery of confidential trade documents.' },
-      referral: { title: 'Referral marketing rail (mainnet)', body: 'A growth surface that rewards users for bringing real counterparties on board. When you refer someone who registers through a completed deal with you, both wallets get a reputation lift on the new referral signal. Designed for mainnet, where every honest signup is a real customer rather than a faucet click. Sits behind a small anti-fraud check so the same wallet does not refer itself, and so repeating with the same counterparty does not stack indefinitely.' },
+      fileDelivery: { title: 'File delivery', body: "Planned file uploads will let sellers attach deliverables to a deal. Access controls and file checks must be in place before confidential documents can be shared this way." },
+      referral: { title: "Referral rewards", body: "Referral rewards are planned. Eligibility and abuse controls will be published before launch. Referrals do not currently affect reputation." },
       mainnet: {
         title: 'Mainnet hardening',
         items: {
-          audit: { title: 'External smart-contract audit', body: 'before any mainnet deployment.' },
+          audit: { title: 'External smart-contract audit', body: "for the money-holding contracts before broader use." },
           safe: { title: 'Safe multisig treasury', body: 'to replace the deployer address before the mainnet contracts hold real funds.' },
           coverage: { title: 'Higher test coverage', body: 'on the escrow and vault branches before audit.' },
         },
       },
       reach: {
         title: 'Reach',
-        body: 'Karwan is built for cross-border service trade anywhere in the world. The early language roster covers several corridors where bank rails are slowest today, and new locales come on as the user base grows.',
+        body: "Karwan supports English, Arabic, French, Hindi and Swahili. Additional languages are planned.",
         items: {
           coverage: { title: 'Full string coverage and Arabic right-to-left pass', body: 'across every page, not only the sign-in and notification surfaces.' },
           handbook: { title: 'Public handbook.', body: 'A hosted guide for buyers, sellers, financiers, and agent operators.' },
@@ -10387,7 +10387,7 @@ export const en: MessagesShape = {
     },
     callout: {
       title: 'TESTNET TODAY',
-      body: 'Everything live on Karwan runs on Arc Testnet, so testnet USDC has no real value. Treasury yield through real Hashnote USYC is already live on testnet.',
+      body: "Trading uses test funds on Arc testnet. The mainnet wallet application uses real funds; mainnet escrow is not yet available.",
     },
   },
   worldCheck: {
@@ -10412,7 +10412,7 @@ export const en: MessagesShape = {
     header: {
       eyebrow: 'Documentation',
       title: 'How Karwan works',
-      body: 'Karwan gives local and cross-border trade one protected closing path. Use one identity, switch between personal and business workspaces, agree terms, fund in USDC, review delivery, and keep the record. This walkthrough explains what happens and where you approve.',
+      body: "Agree terms with a buyer or seller, fund USDC escrow, review delivery and keep the payment record. This guide covers the testnet trade flow. Mainnet currently provides wallet access and registries, without escrow.",
     },
     directDeal: {
       eyebrow: 'Bring a deal',
@@ -10427,8 +10427,8 @@ export const en: MessagesShape = {
       title: 'When you need a counterparty',
       body: 'Post what you need or publish what you offer. The market and bounded agents help compare candidates and prepare a proposal for your review.',
       step1: { title: 'Post a request', bodyA: 'On ', bodyB: ', pick "Find me a seller". Write what you need, set a budget and deadline. A ', bodyC: ' transaction lands on Arc in a few seconds.' },
-      step2: { title: 'Agents negotiate', bodyA: 'The seller agent scores the request and calls ', bodyB: '. Your buyer agent ranks it, pulls a paid market read so its counter tracks real prices, negotiates within your limits, and accepts the best terms. Each step shows on the live timeline.' },
-      step3: { title: 'Settle the deal', body: 'On acceptance, the buyer agent approves USDC and funds the escrow. When the work is done, release the milestones. Funds move to the seller in tranches.' },
+      step2: { title: 'Agents negotiate', bodyA: 'The seller agent scores the request and calls ', bodyB: ". The buyer agent compares the offer and negotiates within your limits. You review the proposed terms before funding. Paid research through x402 is not live." },
+      step3: { title: 'Settle the deal', body: "Review and approve the agreed terms before funding escrow. After delivery, review each milestone and the available release or dispute actions." },
     },
     contract: {
       eyebrow: 'Under the hood',
@@ -10455,11 +10455,11 @@ export const en: MessagesShape = {
       title: 'What we use, and where',
       usdc: 'The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee, and KarwanVault staking principal.',
       dcw: 'Operational agent wallets can handle bounded background work on Arc Testnet. They are separate from the one customer identity wallet and balance, and they do not remove the approval boundary for funding or settlement.',
-      cctp: 'Bidirectional USDC bridge across twelve chains: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, and HyperEVM, plus Solana Devnet. Withdrawals run through Circle\'s Forwarding Service, so you cash out anywhere without holding that chain\'s gas token. Inbound deposits for an email or passkey account need none of this: Circle derives one address that serves every EVM chain, and the credit is triggered by the transaction webhook.',
+      cctp: "CCTP moves USDC between supported networks. Choose a route shown for your account and review its fees. A transfer completes only after the destination credit is confirmed.",
       appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. The Circle Wallets adapter signs straight from our Developer-Controlled Wallets, so an email or passkey user bridges without ever seeing a wallet popup, and web3 users sign with their own wallet through the same SDK.',
-      gateway: 'One pooled USDC balance across twelve chains. Deposit once, then spend to any chain from a single signature, with no chain switching and no source-chain gas. It is also the rail that settles the agents\' per-call payments.',
+      gateway: "Gateway provides a unified-balance integration in the codebase. It is shown as code only in the current demo; do not treat it as a verified live transfer route.",
       arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
-      usyc: 'Trade capital is idle by nature, and money that sits should earn. The treasury holds real allowlisted Hashnote USYC on Arc Testnet through the standard ERC-4626 Teller interface, marked to the live on-chain oracle. Idle staking principal routes through the same operator-mediated path. The live escrow carries the same sweep path for funds left idle during long-dated trades, capped at 80 percent of float, though no escrow balance has been swept yet.',
+      usyc: "The treasury integration can subscribe to and redeem USYC for eligible addresses. Access requires permission. A code example does not prove a current balance or a yield payment, and yield is not guaranteed.",
     },
     trust: {
       eyebrow: 'Trust and proof', title: 'Know what each check means',
@@ -10472,10 +10472,10 @@ export const en: MessagesShape = {
     roadmap: {
       eyebrow: 'Roadmap',
       title: 'What comes after this build',
-      body: 'The next product work is specific and gated.',
+      body: "Planned releases include mainnet escrow, mobile access and additional trade tools.",
       fileDelivery: { title: 'Business workspaces', body: 'The current workspace is owner-only. Team members, roles, and delegated permissions come later with a separate review of authority and recovery.' },
       referral: { title: 'Trade availability', body: 'Expand the simple goods and services availability records into richer source-aware trade intent, while keeping the user in control of what is shared.' },
-      mainnet: { title: 'Mainnet and wider corridors', body: 'An external contract audit and a multisig treasury before any mainnet deployment, then wider trade corridors and more source chains as the network grows.' },
+      mainnet: { title: 'Mainnet and wider corridors', body: "The wallet application and registries are on mainnet. Escrow and the remaining contract suite are targeted for 25 October 2026 after testing and security review. The mobile application is planned for the following weeks." },
       i18n: { title: 'Evidence and corridors', body: 'Add stronger delivery evidence and support more local payout corridors only after the required policy, partner, reconciliation, and mainnet gates pass.' },
     },
     faq: {
@@ -10483,14 +10483,14 @@ export const en: MessagesShape = {
       title: 'Common questions',
       q1: { q: 'What is the difference between a direct deal and an agent-matched deal?', a: 'A direct deal is for two parties who already know each other. You open an escrow naming the seller\'s wallet, or even an email address, and skip the auction. An agent-matched deal is for when you need a counterparty: you post a request as a buyer or an offer as a seller, and the agents run the matching and negotiation. Both use the same escrow, reputation, and settlement underneath.' },
       q2: { q: 'What is the platform fee?', a: '1.5% of the deal amount, split evenly between buyer and seller. The buyer funds the deal amount and their half of the fee; the seller nets the deal amount minus their half. The fee collects on chain as each milestone releases.' },
-      q3: { q: 'Who controls my agent wallet, and how do I fund it?', a: 'Your agent wallet is a Circle Developer-Controlled Wallet whose owner is you. Karwan can sign on its behalf to negotiate while you sleep, but it never opens an escrow without your sign-off. You can sweep funds out of it at any time from the profile page. To fund a wallet while Karwan is on Arc Testnet, every wallet on the profile has a Get USDC button: it copies that wallet address and opens the Circle faucet so you claim test USDC in seconds, no bridging needed. Deposit is there for when you bring real USDC to Arc.' },
-      q4: { q: 'Are the smart contracts deployed?', a: 'Yes. The escrow, vault, reputation, treasury, and job-board contracts are live on Arc Testnet (chain 5042002). The current addresses are in the public repository. Every event in the activity feed links to its transaction on the Arc explorer.' },
+      q3: { q: 'Who controls my agent wallet, and how do I fund it?', a: "On testnet, Karwan operates the Circle agent wallets used for account actions. Deal funding requires your approval. Connected-wallet users sign with their own wallet. Use the wallet page to see available balances and transfer options; never send real funds to a testnet address." },
+      q4: { q: 'Are the smart contracts deployed?', a: "Reputation and BusinessRegistry are deployed on Arc mainnet. The escrow and remaining trading contracts are available on testnet, not mainnet. Contract addresses are listed in the public repository." },
       q5: { q: 'How does the escrow release?', a: "Review delivery and release the agreed milestones. If a review deadline expires, the contract may allow the seller to claim the current milestone, including the final one. Check the deadline and available actions on the deal; do not assume inaction keeps funds frozen." },
       q6: { q: 'What if a deal goes to dispute?', a: "A dispute freezes the unreleased balance. You can propose a resolution for the other party to accept. If you cannot agree, recovery depends on the configured contract and arbiter. Opening a dispute is not an automatic refund." },
       q7: { q: 'What if a seller agent skips my agent-matched request?', a: 'The seller\'s profile has a budget and deadline range. If your request falls outside it, the agent skips and the timeline shows you why. If the agent is uncertain for any other reason, that is logged too, so the next move is never silent.' },
       q8: { q: 'What kinds of trade can I use?', a: "Karwan is for local and cross-border goods or services. Bring a counterparty you already know, or publish a request or offer to find one. Both paths use USDC escrow on Arc." },
-      q9: { q: 'Where does the agent reasoning run?', a: 'Agents search, compare, research, and prepare recommendations within your limits. Deterministic backend rules enforce budget, deadline, eligibility, evidence, and approval boundaries. Agents do not silently accept a match, fund escrow, release money, or change workspace authority.' },
-      q10: { q: 'How does Karwan keep delivery safe?', a: 'Work is usually handed over as a link, so a SecurityAgent scans every delivery proof before you open it, and it guards the in-app chat so a phishing or malware link cannot be sent to you in the first place. A flagged link pauses the deal\'s automatic release, notifies both sides, and routes you to resolve it together in chat. A confirmed bad link is a heavy hit to the sender\'s reputation. When a delivery is a file, it is shared through a link the agent can check rather than an unverified attachment.' },
+      q9: { q: 'Where does the agent reasoning run?', a: "Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes." },
+      q10: { q: 'How does Karwan keep delivery safe?', a: "Delivery checks can flag suspicious links, but they cannot guarantee safety or quality. Inspect the deliverable before releasing payment. If a check blocks a delivery, use the review or support action shown on the deal." },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
     cta: { title: "Put your next trade on Karwan", body: "Agree the terms, fund USDC escrow, and follow each milestone through settlement.", button: 'Launch app', chainPrefix: 'chain' },
@@ -10507,7 +10507,7 @@ export const en: MessagesShape = {
     eyebrow: 'TERMS',
     headlineLead: 'What you sign up',
     headlineAccent: 'for',
-    intro: 'Karwan is currently in testnet. These terms set out how the service works, the risks of stablecoin settlement, and how your data is handled. Please read them in full before you accept.',
+    intro: "These terms describe Karwan’s services, wallet authority, settlement rules and risks. Mainnet uses real funds; testnet uses test funds with no monetary value. Features differ between the two environments. Read these terms before accepting.",
     preamble: 'These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.',
     s1: {
       title: '1. What Karwan offers',
@@ -10699,8 +10699,8 @@ export const en: MessagesShape = {
       errorTag: 'JOB ERROR',
       notFoundHeadline: 'We could not find this request',
       errorHeadline: 'Could not load this job',
-      notFoundBody: 'The backend has no record of this jobId. If you just posted it, give the buyer agent a few more seconds to pick up the on-chain event and try refreshing. If it stays missing, the id may be wrong.',
-      errorBody: 'The job id may be wrong, or the backend has not seen it.',
+      notFoundBody: "We could not find this request. If you just posted it, wait a moment and refresh. Otherwise, check the link.",
+      errorBody: "This request could not be loaded. Refresh the page or check the link.",
       backCta: 'Back to buyer desk',
       activityCta: 'See activity →',
     },
@@ -11118,7 +11118,7 @@ export const en: MessagesShape = {
         passkeyEmailInUse: 'This email already has an account. Sign in with its passkey.',
         passkeyEmailExpired: 'Your email confirmation expired. Send a new code.',
         or: 'OR',
-        emailNotConfigured: 'Email login is not configured on this backend.',
+        emailNotConfigured: "Email sign-in is unavailable. Use another sign-in option or try again later.",
       },
       enterEmail: {
         label: 'Email',

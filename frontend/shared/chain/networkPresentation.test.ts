@@ -44,7 +44,10 @@ test('all locales distinguish brand, environment, and fund value', () => {
     assert.notEqual(copy.testnet, copy.mainnet);
     assert.notEqual(copy.testnetNotice, copy.mainnetNotice);
   }
-  assert.doesNotMatch([en.howItWorksPage.cta.title, en.howItWorksPage.cta.body, en.howItWorksPage.faq.q8.a, en.feedback.hero.body, en.docsRoadmapPage.intro].join(' '), /testnet/i);
+  assert.doesNotMatch([en.howItWorksPage.cta.title, en.howItWorksPage.cta.body, en.howItWorksPage.faq.q8.a, en.feedback.hero.body].join(' '), /testnet/i);
+  // Release documentation must distinguish available mainnet and testnet features.
+  assert.match(en.docsRoadmapPage.intro, /mainnet wallet application/);
+  assert.match(en.docsRoadmapPage.intro, /Trading remains on testnet/);
 });
 
 test('network details are optional in public chrome and always visible beside balances and transfers', () => {

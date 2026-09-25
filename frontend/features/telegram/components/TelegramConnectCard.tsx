@@ -96,8 +96,7 @@ export function TelegramConnectCard({ address }: { address?: string }) {
 
         {status && !status.enabled && (
           <Note tone="info">
-            {tc.notConfiguredPrefix} <span className="mono">TELEGRAM_BOT_TOKEN</span>{' '}
-            {tc.notConfiguredAnd} <span className="mono">TELEGRAM_BOT_USERNAME</span>.
+            {tc.notConfiguredPrefix}
           </Note>
         )}
 

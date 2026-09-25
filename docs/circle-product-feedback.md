@@ -1,18 +1,18 @@
 # Circle product feedback
 
-Developer notes from building Karwan on Circle's stack. Karwan runs an agentic
-settlement layer on Arc: buyer and seller agents negotiate a deal, pay each other
-and the platform for market intelligence per call, and settle in USDC through
-milestone escrow. The integration touches Developer-Controlled Wallets, USDC on
-Arc, CCTP V2 through App Kit, Circle Gateway for unified balance and for x402
-settlement, USYC, and the ERC-8004 identity registry.
+Historical developer feedback from testnet and sandbox integration work. These
+observations are not current production measurements or feature availability
+claims. As of 25 September 2026, x402 is not live, Gateway is demonstrated as
+code only, and USYC examples below do not establish current holdings or returns.
+See [Circle integration](./circle-integration.md) for the current evidence and
+release boundaries.
 
 Each section lists what worked, where we hit friction, and what would help. All
 observations are from Arc Testnet and the Circle sandbox.
 
 ## Circle Agent Stack
 
-Karwan uses all five Agent Stack surfaces. Circle CLI and Circle Skills support
+The integration work covers all five Agent Stack surfaces. Circle CLI and Circle Skills support
 operator setup and repeatable product-specific checks. Agent Wallets isolate
 operator-controlled research and Marketplace payments from customer deal
 wallets. Agent Marketplace supplies the current x402 service catalogue, and

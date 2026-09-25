@@ -1,6 +1,6 @@
 # Agent workflows
 
-This document is the public map of Karwan's reliable agent runtime. The runtime
+This document describes Karwan's agent runtime. The runtime
 is implemented in the repository and deployed through independent, default-off
 rollout flags. Until a gate is enabled and its rollout report passes, the
 existing buyer, seller, and settlement paths remain authoritative.
@@ -10,7 +10,7 @@ owner-only business workspace. A workspace changes trade context and business
 verification eligibility. It does not create a second login, customer wallet,
 or customer USDC balance. Team permissions remain roadmap work.
 
-## What the runtime guarantees
+## Runtime controls
 
 - User intent is captured in versioned mandates. An agent cannot widen a price,
   deadline, evidence, staking, or spending boundary by itself.
@@ -85,20 +85,22 @@ recorded.
 
 ## Circle Agent Stack in the workflow
 
-Karwan uses all five Circle Agent Stack surfaces, split between the application
-runtime and operator tooling so one credential never owns every capability.
+The implementation includes the following Circle Agent Stack integrations and
+operator tools. This is a code inventory, not a statement that every service is
+available in the live application. As of 25 September 2026, x402 payments are not
+live and Gateway is demonstrated through code only.
 
 | Agent Stack surface | Karwan use |
 | --- | --- |
 | [Circle CLI](https://developers.circle.com/agent-stack/circle-cli) | Operator interface for Agent Wallet login, wallet policy inspection, CCTP and Gateway smoke checks, service discovery, paid-service tests, and Circle Skill management. It is an operator tool, not a subprocess called by the public API. |
 | [Agent Wallets](https://developers.circle.com/agent-stack/agent-wallets) | Isolated, user-custody wallets for operator-controlled agent research and Agent Marketplace payments. Spending limits and recipient or contract policies bound that wallet. Customer deal automation continues to use Karwan's existing Developer-Controlled Wallet SCAs, so operator research access cannot move customer deal funds. |
-| [Agent Nanopayments](https://developers.circle.com/agent-stack/agent-nanopayments) | Gas-free, batched USDC payments for Gateway-compatible reads, implemented with `@circle-fin/x402-batching`. The reviewed evidence record identifies when a provider instead requires the standard exact-EVM rail. |
+| [Agent Nanopayments](https://developers.circle.com/agent-stack/agent-nanopayments) | Batched USDC payment support for Gateway-compatible reads, implemented with `@circle-fin/x402-batching`. Not live. Fees and payment requirements must be checked for the selected provider and route; sponsored gas is not promised. |
 | [Agent Marketplace](https://developers.circle.com/agent-stack/agent-marketplace) | The public [Discovery API](https://developers.circle.com/agent-stack/agent-marketplace/discovery-api) is the source of truth for currently listed paid API services, payment rails, networks, prices, schemas, and provider metadata. It is not a people or SME directory. |
 | [Circle Skills](https://developers.circle.com/ai/skills) | Installed development and operations knowledge for wallet policy, funding, CCTP bridging, nanopayment buyer and seller flows, and Circle integration review. Runtime policy still lives in versioned Karwan code and tests. |
 
-The application also uses USDC on Arc, Developer-Controlled Wallets, App Kit,
-CCTP V2, Gateway unified balance, Gateway Nanopayments, and Hashnote USYC. See
-[Circle integration](./circle-integration.md) for the SDK and custody details.
+See [Circle integration](./circle-integration.md) for USDC, wallet, App Kit,
+CCTP, Gateway and USYC implementation evidence, custody boundaries and release
+status. Treasury adapters do not establish current USYC holdings or eligibility.
 
 ## Marketplace evidence policy
 

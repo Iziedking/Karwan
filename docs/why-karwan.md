@@ -1,6 +1,6 @@
 # Why Karwan
 
-Last reviewed: 2026-09-09
+Last reviewed: 2026-09-25
 
 Karwan is an open market for internet trade. It gives people and small
 businesses a clear way to move from finding a counterparty to a protected
@@ -21,7 +21,7 @@ carry into the next trade.
 
 ## The Karwan answer
 
-Karwan gives one identity and one login a shared trade layer:
+One Karwan account includes:
 
 - A personal workspace for individual trade.
 - An optional business workspace under the same identity.
@@ -106,12 +106,13 @@ trade is safe.
 
 ## Settlement
 
-USDC settlement on Arc Testnet is the current development path. The chain is
+Escrow settlement remains on Arc testnet. Mainnet currently provides the wallet
+application and two registries, without escrow trading. The chain is
 authoritative for escrow state, releases, and receipts. Circle transfer and
 bridge views report the status known to the app and do not promise a fixed
 arrival time. Testnet balances and receipts are not production money.
 
-## What is live in this build
+## What the testnet trade application includes
 
 - Personal and owner-only business workspaces under one identity.
 - Workspace-aware profile, setup, business home, marketplace, and trade entry
@@ -132,7 +133,6 @@ and deployment prove them.
 - [Agent workflows](./agent-workflows.md) for the approval and reconciliation
   boundary.
 - [Work verification](./work-verification.md) for evidence handling.
-- [Trust and proof](./trust-and-proof.md) for the Arc, Chainlink CRE, and World ID flow.
 - [Reputation model](./reputation-model.md) for score inputs and limits.
 - [Terms and conditions](./terms-and-conditions.md) for the legal product
   description.

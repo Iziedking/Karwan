@@ -4,7 +4,7 @@ Status: design for review, 2026-09-23. Not deployed. This is the mainnet escrow 
 current `KarwanEscrow` at Stage B of the mainnet rollout. Nothing in it is live until it passes
 internal audit rounds 1 and 2 and the go/no-go review.
 
-## 1. The idea in one paragraph
+## 1. Overview
 
 Two people agree terms. The terms are the deal: price, milestones, delivery date, how long the
 buyer has to check each delivery, how much extra time the buyer may ask for, what happens if
@@ -397,13 +397,13 @@ shortens the buyer's rights: a pass starts the normal review, it does not skip i
 | Advisory score and model-assisted checks with a fixed schema | Not built |
 | `ON_CHECK_PASS` review start in the escrow | Designed here, not built |
 
-## 14. Decisions needed before the contract is frozen
+## 14. Parameters requiring release review
 
 1. `highValue` threshold (proposed 5,000 USDC) and the guarded-beta caps (proposed 1,000 per deal,
    25,000 total).
 2. Preset default clocks in section 5.
-3. Who the four admin reviewers are, kept separate from the owner Safe signers.
+3. The admin reviewer set and its separation from the owner Safe signers.
 4. Whether pre-accept deals get a seller-acceptance deadline on-chain (proposed yes: buyer can
    reclaim if the seller never accepts by a term-set time).
-5. Decided 2026-09-23: escalated deals at or above `highValue` need 2 of the 4 admin reviewers.
+5. The design requires 2 of 4 admin reviewers for escalated deals at or above `highValue`.
 6. `appealWindow` and `autoRulingSla` on mainnet (proposed 72 hours and 5 days).

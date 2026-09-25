@@ -1,17 +1,17 @@
 # Karwan contract suite: mainnet architecture
 
-Status: design for review, 2026-09-23. Companion to [escrow-design.md](./escrow-design.md), which
-covers the deal state machine, terms, clocks, disputes and delivery checks. This document covers
-the whole suite: which contracts exist, how they connect, how money earns yield without anyone
-holding it, how stake is committed without extra user steps, which deal shapes the suite must
-survive, the exploit catalogue it is tested against, and how it avoids redeploys.
+Status: engineering design dated 23 September 2026. This is not a deployment or
+availability record. As of 25 September, the mainnet release includes the wallet
+and two registries, not the full escrow suite. See [README](../README.md) for
+the release boundaries and [escrow-design.md](./escrow-design.md) for deal terms,
+clocks, disputes and delivery checks. Yield and agent-binding sections describe
+design requirements, not available customer features or promised returns.
 
-## 1. What people are trusting
+## 1. Security requirements
 
-People will read these contracts instead of trusting Karwan. So the code has to make five things
-checkable by anyone:
+The implementation and audit must verify these requirements:
 
-1. **Nobody holds the money.** Deal money, stake and yield sit in contracts. No function sends
+1. **Contract-held funds.** Deal money, stake and yield sit in contracts. No function sends
    them to a Karwan wallet or to any address that is not a party to the deal, a financier the
    seller chose, or the fee treasury.
 2. **The terms decide.** Every payout follows terms both sides signed on-chain.
@@ -258,7 +258,7 @@ and pass against the design. Rows marked * were real findings in the 2026-09-23 
 4. Reputation recorder allowlist; registries unchanged apart from fixes already made.
 5. Suite invariants, scenario tests, fork tests, audit round 2.
 
-## 9. Decisions (made 2026-09-23)
+## 9. Design parameters recorded on 23 September 2026
 
 1. Yield route: on-chain `YieldPool`. The operator route is retired.
 2. Agent binding: one signature at signup, with a cap and an expiry, submitted by the backend.

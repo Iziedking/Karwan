@@ -1,6 +1,10 @@
 # Karwan terms and conditions
 
-Last updated: 2026-09-09. Version: 2.2.0.
+Terms version: 2.2.0. Product-description corrections: 2026-09-25.
+
+The mainnet wallet application uses real funds. Trading and escrow remain on
+testnet, where test USDC has no monetary value. Feature availability differs
+between these environments.
 
 These terms cover how Karwan works, what we do with your money, and what each side is responsible for. Signing in, posting a request, opening a deal, or staking means you accept them. Take a moment with them first.
 
@@ -62,7 +66,7 @@ You take care of:
 
 Once escrow is funded, these are the rules that move the money.
 
-- **Milestone release.** The buyer releases each milestone. The final milestone always needs an explicit click from the buyer and never releases on a timer.
+- **Milestone release.** The buyer can release each milestone after review. The current testnet contract also permits the seller to claim an eligible milestone after the review deadline, including the final milestone. Check the deadline and available extension or dispute actions before it expires.
 - **Automatic release.** Milestones before the final one release on their own once the review window has passed with no action from the buyer. The window is shown on the deal and lengthens for each later milestone.
 - **A missed deadline.** When a delivery deadline passes with nothing delivered, the buyer is alerted and can reclaim or grant an extension. If nobody acts and the seller still has not delivered after the grace window, the escrow returns to the buyer automatically and the miss is recorded against the seller.
 - **Cancelling.** A cancel both sides agree to refunds in full and carries no penalty. Staked funds reserved against the deal are released back to the seller.
@@ -119,7 +123,7 @@ Verification rules, evidence requirements, review states, and capability effects
 
 Stablecoin work has real risks. The ones that apply here:
 
-- **Karwan is on testnet right now.** You are not paid in real money. Deals on testnet have no legal weight. Testnet is a sandbox. Mainnet follows after the hardening pass.
+- **Network and funds.** Testnet uses test funds with no monetary value. The mainnet wallet application uses real funds. Mainnet escrow trading is not yet available. Always check the network before sending funds.
 - **Smart-contract risk.** The escrow, vault, and reputation contracts on Arc were audited internally and are testnet quality. A bug, an exploit, or a misuse could result in lost funds.
 - **USDC depeg or freeze.** USDC is issued by Circle. If Circle's banking partners come under stress, or a sanctioned address is involved, USDC can lose its peg or be frozen. Karwan cannot reverse this.
 - **Network outages.** Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.

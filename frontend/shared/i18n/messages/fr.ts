@@ -984,8 +984,8 @@ export const fr: Messages = {
   appHome: {
     settlementDeskEyebrow: 'BUREAU DE RÈGLEMENT',
     backendOffline: {
-      eyebrow: 'BACKEND',
-      title: 'Backend hors ligne',
+      eyebrow: "Connexion",
+      title: "Impossible de charger votre compte",
       bodyPrefix: 'Impossible de joindre l’API à ',
       bodySuffix: '. Cette page reprend dès qu’il revient.',
     },
@@ -1019,9 +1019,9 @@ export const fr: Messages = {
     },
     threeDoors: {
       sectionTag: 'PAR OÙ COMMENCER',
-      headlineTop: 'Une seule colonne',
-      headlineBottom: 'Trois portes.',
-      description: 'Même escrow. Même réputation. Trois points d’entrée.',
+      headlineTop: "Commencez par",
+      headlineBottom: "votre besoin",
+      description: "Trouvez un vendeur, publiez une offre ou suivez une transaction.",
       buyerCard: {
         eyebrow: 'ACHETEUR',
         title: 'Publier une demande',
@@ -3084,7 +3084,7 @@ export const fr: Messages = {
       switchButton: 'Basculer vers Arc',
     },
     vaultNotDeployed: {
-      prefix: 'KarwanVault n\'est pas déployé sur cet environnement. Définissez',
+      prefix: "Le staking est indisponible sur ce réseau. N’envoyez pas de fonds à une adresse de staking avant la disponibilité du service.",
       middle: 'dans',
       suffix: 'et redémarrez le backend.',
     },
@@ -3574,7 +3574,7 @@ export const fr: Messages = {
       awaitingFinalRelease: {
         buyerIntroTemplate: 'Premiers {firstPct} % libérés. Vérifiez et libérez les {rest} % restants pour régler.',
         buyerResponseExpiredTemplate: 'Fenêtre de réponse dépassée. L\'agent libérera automatiquement les derniers {rest} % au vendeur sous peu.',
-        buyerNoAppealTemplate: 'Prenez votre temps. Les derniers {rest} % ne sont jamais libérés automatiquement. Cliquez ci-dessous pour vérifier et libérer une fois le travail vérifié. Si vous tardez trop, le vendeur peut lancer un appel de retard.',
+        buyerNoAppealTemplate: "Examinez le travail avant de libérer les {rest}% suivants. Vérifiez l’échéance : le vendeur peut réclamer le paiement après la période de vérification. Utilisez une prolongation ou un litige si nécessaire.",
         releaseCtaTemplate: 'Vérifier et libérer les derniers {rest} %',
         releaseBusy: 'Confirmation sur Arc…',
         appealCta: 'Faire appel de cette transaction',
@@ -3824,7 +3824,7 @@ export const fr: Messages = {
       connectLabel: 'Connecter Telegram',
       connectTitle: 'Connecter Telegram pour les alertes',
       manageTitleTemplate: 'Gérer le lien Telegram ({label})',
-      disabledTitle: 'Les alertes Telegram ne sont pas configurées sur ce serveur',
+      disabledTitle: "Les alertes Telegram sont indisponibles",
     },
     modal: {
       eyebrow: '[:ALERTES TELEGRAM:]',
@@ -4543,7 +4543,7 @@ export const fr: Messages = {
     title: 'Envoyer à votre chat',
     subtitle: 'Affaires · chat · état du pont',
     linkedBadge: 'LIÉ',
-    notConfiguredPrefix: "Les alertes Telegram ne sont pas configurées sur ce serveur. Demandez à l'opérateur de définir",
+    notConfiguredPrefix: "Les alertes Telegram sont indisponibles. Vous pouvez suivre les mises à jour dans Karwan.",
     notConfiguredAnd: 'et',
     idleDescription: 'Un tap pour ouvrir le bot, un autre pour confirmer. Le portefeuille reste dans votre navigateur.',
     connectCta: 'Connecter Telegram',
@@ -4610,9 +4610,9 @@ export const fr: Messages = {
     },
     buyerSilent: {
       heading: 'Si l\'acheteur ne répond plus',
-      s1: { label: 'La libération auto démarre.', body: 'Après livraison, la première étape se libère seule quand la fenêtre de revue de {reviewWindow} passe sans action. La dernière étape ne se libère jamais sur simple minuterie.' },
+      s1: { label: 'La libération auto démarre.', body: "Après livraison, la première fenêtre de vérification est de {reviewWindow}. Consultez l’échéance de votre transaction : le vendeur peut réclamer une étape admissible après expiration, y compris la dernière." },
       s2: { label: 'Déposez un appel de retard.', body: 'Disponible {appealGrace} après la dernière libération. L\'acheteur a {buyerResponse} pour répondre.' },
-      s3: { label: 'La plateforme règle.', body: 'Aucune réponse dans la fenêtre et la dernière étape est versée au vendeur. Pas de ticket, pas d\'humain dans la boucle.' },
+      s3: { label: "Consultez les recours.", body: "Consultez les actions de paiement, de prolongation ou de litige et leurs échéances. Contactez l’assistance si une action attendue manque. Le silence ne garantit ni paiement ni remboursement." },
     },
     sellerLate: {
       heading: 'Si le vendeur manque le délai',
@@ -4626,12 +4626,12 @@ export const fr: Messages = {
       s2: { label: 'Décision de l\'arbitre.', body: 'Le conseil de sécurité répartit le séquestre en pourcentage, on-chain. Le texte de la décision et la répartition sont publics sur le dossier de l\'accord.' },
       s3: { label: 'Le garde-fou.', body: 'Un litige avec une contrepartie silencieuse se résout seul après {disputeTimeout}. Travail livré, le vendeur est payé ; pas de livraison, l\'acheteur est remboursé. Un acheteur qui a contesté un travail livré va vers l\'arbitre, jamais vers une minuterie.' },
     },
-    callout: { title: 'Rien ne gèle pour toujours', body: 'Les fonds sont dans le contrat de séquestre, pas chez Karwan. Chaque blocage a une horloge, chaque horloge a une sortie, et chaque sortie est visible sur Arc.' },
+    callout: { title: "Vérifiez les règles de récupération", body: "Les fonds versés sont détenus en séquestre. Les actions de libération, remboursement et litige dépendent du contrat et de l’état de la transaction. Lisez les délais et contactez l’assistance si une action attendue est indisponible." },
   },
   docsIndexPage: {
     eyebrow: 'APERÇU',
     headline: 'Comment Karwan fonctionne',
-    intro: 'Karwan est un rail de commerce on chain pour le trade p2p et b2b. Les USDC restent dans un escrow par jalons sur Arc pendant que le travail se fait, et sont libérés à mesure que l\'acheteur valide, jalon par jalon. Deux agents gèrent le matching et la négociation, achetant une lecture de marché payante sur chaque deal pour que leurs offres collent aux vrais prix, puis vous remontent les termes finaux pour validation avant tout mouvement d\'argent. Chaque deal réglé est inscrit dans un dossier de réputation on chain. Les réserves de trésorerie gagnent déjà un vrai rendement Hashnote USYC sur Arc aujourd\'hui. Ce guide couvre chaque partie que vous toucherez.',
+    intro: "Karwan aide les acheteurs et vendeurs à convenir des conditions, à financer un séquestre en USDC et à examiner la livraison. Les échanges sont disponibles sur le réseau de test avec des fonds de test. Le réseau principal propose actuellement les portefeuilles et les registres, sans séquestre.",
     twoWays: {
       title: 'Les deux façons de trader',
       lede: 'Choisissez le flux selon que vous avez déjà une contrepartie ou non.',
@@ -4654,7 +4654,7 @@ export const fr: Messages = {
         bridge: { title: 'Dépôt / Retrait', blurb: 'Déplacer des USDC vers Arc et depuis Arc avec Circle CCTP.' },
         roadmap: { title: 'Roadmap', blurb: 'Ce qui est live aujourd\'hui et ce qui arrive ensuite.' },
         faq: { title: 'FAQ', blurb: 'Réponses rapides aux questions que les nouveaux utilisateurs posent en premier.' },
-        x402: { title: 'Points de données payants', blurb: 'Les endpoints x402 que chacun peut payer à l\'appel pour lire un passeport de crédit ou un historique de remboursement.' },
+        x402: { title: 'Points de données payants', blurb: "Accès payant prévu aux historiques commerciaux. Le service x402 n’est pas actif." },
       },
     },
   },
@@ -4725,7 +4725,7 @@ export const fr: Messages = {
   x402Page: {
     eyebrow: 'API DE DONNÉES PAYANTES',
     title: 'Données de souscription, payées à l\'appel',
-    intro: 'Karwan vend les mêmes signaux qu\'il utilise pour souscrire les deals commerciaux : le passeport de crédit, le comportement de remboursement, la concentration de contreparties et les documents commerciaux ancrés. Les financiers et les agents paient chaque appel en USDC via x402, réglé par lots via Circle Gateway sur Arc Testnet. Un portefeuille avec un dépôt Gateway suffit pour toute l\'intégration ; il n\'y a ni clés API ni abonnements.',
+    intro: "L’API de données payantes est implémentée mais inactive. Cette référence décrit les points d’accès et le paiement prévus sur le réseau de test. Ne déposez pas de fonds pour ce service avant l’annonce de sa disponibilité.",
     endpoints: {
       heading: 'Points d\'accès',
       body: 'Les prix sont en USDC par appel. Le point d\'accès annuaire est gratuit et lisible par machine, un agent peut donc découvrir le catalogue avant de payer.',
@@ -4760,11 +4760,11 @@ export const fr: Messages = {
     },
     howToPay: {
       heading: 'Comment fonctionne le paiement',
-      body: 'x402 est le flux de paiement HTTP 402. Le règlement passe par Circle Gateway, qui regroupe de nombreux paiements inférieurs au centime en une seule transaction on-chain, si bien qu\'un appel à un demi-centime ne paie jamais des frais de transaction complets.',
+      body: "Le code utilise HTTP 402 pour demander un paiement et Gateway pour regrouper les paiements admissibles. Il ne s’agit ni d’un service disponible ni d’une promesse de frais nuls.",
       steps: {
         deposit: {
           label: 'Déposez une fois.',
-          body: 'Placez un petit solde USDC dans votre dépôt Circle Gateway sur Arc Testnet. Quelques dollars couvrent des centaines d\'appels.',
+          body: "Le parcours prévu utilise un dépôt Gateway sur Arc testnet. Le service est inactif ; ne le financez pas à partir de cet exemple.",
         },
         call: {
           label: 'Appelez le point d\'accès.',
@@ -4777,7 +4777,7 @@ export const fr: Messages = {
       },
     },
     example: {
-      heading: 'Essayez',
+      heading: "Exemple d’implémentation",
       body: 'Le client de regroupement x402 de Circle gère tout l\'aller-retour en un seul appel :',
     },
     sameChain: {
@@ -4805,9 +4805,9 @@ export const fr: Messages = {
       afterFirst: { alt: 'Page du deal après la première libération, le milestone final en attente de vérification', caption: 'Première moitié libérée. L\'acheteur vérifie et libère le reste.' },
       settled: { alt: 'Page du deal en état réglé, intégralement payé', caption: 'Réglé. Le vendeur est payé en totalité et la réputation est inscrite on-chain.' },
     },
-    shareable: { heading: 'Liens de deals partageables', body: 'Un acheteur peut adresser un deal direct à une adresse e-mail au lieu d\'un wallet. Karwan envoie une invitation soignée. Le destinataire ouvre le lien, saisit le code à usage unique que nous venons d\'envoyer, et un wallet Circle est provisionné dans son navigateur. Il accepte le deal. De l\'e-mail au deal accepté en moins de deux minutes, sans formulaire d\'inscription.' },
+    shareable: { heading: 'Liens de deals partageables', body: "Invitez un vendeur par e-mail. Il se connecte, récupère l’invitation et lit les conditions avant d’accepter. Sur le réseau de test, les comptes e-mail utilisent un portefeuille Circle exploité par Karwan. Cela diffère d’un portefeuille dont l’utilisateur contrôle les clés." },
     fee: { heading: 'Les frais de plateforme', body: 'Karwan prend 1,5% de frais de plateforme sur chaque deal, partagés à parts égales entre acheteur et vendeur. Les frais sont collectés on-chain à chaque libération de milestone. L\'acheteur finance sa moitié à l\'avance, la moitié du vendeur est prélevée sur son paiement.' },
-    review: { heading: 'Fenêtres de revue et libération automatique', body: 'Deux minuteurs protègent les deux parties d\'un contrepartie qui traîne. Après le marquage de livraison par le vendeur, l\'acheteur a une fenêtre pour libérer le premier milestone. Si l\'acheteur reste silencieux passé un court délai d\'appel, le veilleur du deal libère le premier milestone à sa place. La tranche finale ne se libère jamais automatiquement, elle nécessite toujours un clic de l\'acheteur. L\'acheteur peut prolonger la fenêtre de revue s\'il a besoin de plus de temps.' },
+    review: { heading: 'Fenêtres de revue et libération automatique', body: "Vérifiez le délai de vérification de chaque étape. Après livraison, le contrat actuel du réseau de test peut permettre au vendeur de réclamer une étape admissible à l’expiration du délai, y compris la dernière. Utilisez les actions de vérification, de prolongation ou de litige avant l’échéance. Les règles dépendent du contrat et des conditions acceptées." },
     stake: {
       heading: 'Le stake comme assurance du deal',
       body1: 'Quand le vendeur accepte un deal, une portion configurable de son stake libre est réservée contre le montant du deal. La valeur par défaut est de trente pour cent, l\'acheteur peut l\'ajuster sur le panneau d\'acceptation. En cas de règlement propre, la réserve retourne au stake libre du vendeur. En cas de litige perdu, la réserve est slashée vers l\'acheteur en guise d\'assurance.',
@@ -4819,7 +4819,7 @@ export const fr: Messages = {
       mutualCancel: { label: 'Annulation mutuelle.', body: 'Chaque partie peut proposer une annulation. Si l\'autre accepte, l\'escrow rembourse et personne ne prend de coup à la réputation.' },
       dispute: { label: 'Litige.', body: 'Un acheteur peut ouvrir un litige depuis l\'état financé ou livré. Chaque partie peut résoudre le litige via le contrat d\'escrow, ce n\'est donc pas une trappe à sens unique. Le résultat est inscrit dans la réputation on-chain.' },
     },
-    callout: { title: 'SUR ARC TESTNET AUJOURD\'HUI', body: 'Tous les deals sur Karwan aujourd\'hui se règlent en USDC testnet sur Arc Testnet, qui n\'a aucune valeur réelle. Le rendement de trésorerie via le vrai Hashnote USYC est déjà actif sur testnet.' },
+    callout: { title: 'SUR ARC TESTNET AUJOURD\'HUI', body: "Les essais de transactions utilisent des USDC sans valeur monétaire sur Arc testnet. L’accès au portefeuille sur le réseau principal n’active pas le séquestre. Le rendement n’est pas garanti." },
   },
   docsFaqPage: {
     eyebrow: 'FAQ',
@@ -4833,7 +4833,7 @@ export const fr: Messages = {
       { q: 'Que se passe-t-il si une négociation n\'aboutit pas ?', a: 'Votre agent passe par les autres candidats correspondants avant d\'abandonner. Si personne n\'entre dans votre fourchette, la demande se termine sans accord et aucun fonds ne bouge. Repostez avec un budget plus élevé ou une tolérance plus large pour réessayer.' },
       { q: 'Puis-je annuler un deal ?', a: 'Oui. Proposez une annulation, et si votre contrepartie accepte, l\'escrow est remboursé sans aucun impact sur la réputation. Avant que le vendeur n\'accepte le deal, l\'acheteur peut annuler librement puisqu\'aucun escrow n\'a été financé.' },
       { q: 'Que se passe-t-il si le vendeur ne livre pas ?', a: 'L\'acheteur peut contester. L\'escrow passe en état contesté et l\'un ou l\'autre peut résoudre via le contrat. Un remboursement renvoie les fonds à l\'acheteur et coupe la mise réservée du vendeur au profit de l\'acheteur comme assurance, une libération envoie les fonds au vendeur. Le résultat est inscrit sur la réputation onchain des deux parties.' },
-      { q: 'Que se passe-t-il si l\'acheteur tarde à libérer ?', a: 'Le vendeur peut prolonger le deal une fois la livraison marquée. Si l\'acheteur reste silencieux au-delà d\'une courte fenêtre d\'appel, Karwan libère automatiquement la première étape à sa place. La tranche finale exige toujours un clic explicite de l\'acheteur, donc un acheteur silencieux ne peut pas accidentellement régler un deal qu\'il n\'a jamais vérifié.' },
+      { q: 'Que se passe-t-il si l\'acheteur tarde à libérer ?', a: "Vérifiez le délai de vérification. Le vendeur peut pouvoir réclamer une étape admissible après son expiration, y compris la dernière. Examinez la livraison ou demandez une prolongation ou un litige avant l’échéance." },
       { q: 'Combien de temps prend un dépôt ?', a: "Si vous vous connectez par e-mail ou avec une clé d'accès, envoyez de l'USDC à votre adresse Karwan : il est crédité dès que le réseau le confirme, en général une à deux minutes. Si vous envoyez depuis votre propre portefeuille, un transfert cross-chain standard attend d'abord la finalisation de la chaîne source, soit dix à dix-neuf minutes sur les testnets Sepolia. Dans les deux cas la dernière étape est faite pour vous, vous n'avez donc jamais besoin de gas Arc pour recevoir votre argent." },
       { q: 'Comment augmenter ma réputation ?', a: 'Terminez des deals proprement, stakez de l\'USDC dans le vault, et restez actif. Le score combine six facteurs sur une courbe où les premières unités d\'effort comptent le plus, donc un comportement régulier dans le temps fait monter le score plus vite que n\'importe quel grand coup.' },
       { q: 'La trésorerie génère-t-elle vraiment du rendement, ou est-ce une feuille de route ?', a: 'Un rendement réel, aujourd\'hui sur testnet. Depuis le 2026-06-06, Karwan Treasury V3 a été ajoutée à la liste blanche par Circle sur le contrat d\'entitlements USYC de Hashnote sur Arc Testnet. Les frais USDC inactifs souscrivent à de la vraie Hashnote USYC via le Teller standard ERC-4626, pas une simulation. Le côté vault (la mise inactive des utilisateurs gagnant la même USYC) est en file pour la même liste blanche et passe en direct dès que la seconde confirmation arrive.' },
@@ -4899,22 +4899,22 @@ export const fr: Messages = {
   docsRoadmapPage: {
     eyebrow: 'FEUILLE DE ROUTE',
     heading: 'Ce qui est en ligne, et ce qui arrive',
-    intro: "Karwan est construit sur Arc. Ce guide distingue les parcours disponibles des travaux en cours. Un élément de la feuille de route n’est ni une fonctionnalité active, ni une décision d’éligibilité, ni une promesse de livraison.",
+    intro: "L’application de portefeuille et deux registres sont disponibles sur le réseau principal. Les échanges restent sur le réseau de test. Le lancement complet des contrats est visé pour le 25 octobre 2026, suivi d’une application mobile, sous réserve des tests et de la revue de sécurité.",
     live: {
-      title: "Disponible dans la version actuelle",
+      title: "Fonctions commerciales sur le réseau de test",
       items: {
         match: { title: 'Appariement et négociation agentique.', body: "Les agents acheteur et vendeur sont classés d'abord par adéquation de compétence, négociant en plusieurs tours dans les plages fixées par chaque partie. Chaque partie peut lire chaque contre-proposition sur la chronologie de la transaction." },
-        negotiation: { title: 'Intelligence de négociation.', body: "Les agents tirent une lecture de marché x402 à moins d'un centime sur la transaction et la partagent entre les deux parties. Quand le meilleur prix tombe juste hors de votre plage, vous obtenez un continuer-ou-passer avec la raison du marché, pas un non silencieux. Quand rien ne tient dans votre budget, la transaction le dit clairement et vous laisse l'augmenter ou reprendre une offre refusée." },
+        negotiation: { title: 'Intelligence de négociation.', body: "Les agents comparent les offres selon vos limites. La recherche payante via x402 n’est pas active." },
         stake: { title: 'Mise en garantie de la transaction.', body: "Une partie de la mise libre du vendeur est réservée pour chaque transaction acceptée. Un litige perdu transfère cette réserve à l'acheteur." },
-        passport: { title: 'Passeport de crédit public.', body: 'Chaque portefeuille a une page de réputation publique affichant le niveau, le score, le détail des périodes et l\'historique on-chain. N\'importe qui peut la consulter sans se connecter.' },
-        shareable: { title: 'Liens de transaction partageables.', body: 'Ouvrez une transaction adressée à une adresse e-mail. Le destinataire la réclame avec un code à usage unique et un portefeuille Circle est provisionné dans son navigateur.' },
+        passport: { title: 'Passeport de crédit public.', body: "Partagez l’historique visible sur votre passeport de crédit. Vos réglages de confidentialité déterminent ce que les autres peuvent lire." },
+        shareable: { title: 'Liens de transaction partageables.', body: "Invitez une contrepartie par e-mail. Elle se connecte et examine l’accord avant d’accepter." },
         cashout: { title: 'Retrait après règlement.', body: 'Envoyez les USDC réglés vers tout portefeuille sur Arc, ou faites un pont sortant vers Ethereum, Base, Arbitrum, Optimism, Polygon ou Solana avec une carte de progression intégrée.' },
         vault: { title: 'Les soldes inactifs gagnent du vrai Hashnote USYC.', body: 'Les réserves de frais de la plateforme et le capital mis en garantie passent tous deux en vrai Hashnote USYC sur Arc Testnet, via l\'interface standard ERC-4626 du Teller. USYC est permissionné, donc le détenir est en soi la preuve que l\'intégration est réelle: une adresse sans habilitation ne le peut pas. Une distribution quotidienne crédite à chaque staker sa part au prorata, réclamable à la demande.' },
-        factoring: { title: 'Affacturage de factures et financement de bons de commande.', body: 'Un financeur avance sur une facture avec une décote fixée par le niveau de réputation du vendeur, et l\'entiercement enregistre une redirection irrévocable pour que le remboursement ne puisse pas être détourné. Le financement de bons de commande avance le fonds de roulement contre une commande acceptée et le libère quand la preuve de livraison est ancrée on-chain. Les deux jambes bougent en USDC natif.' },
-        disputes: { title: 'Litiges arbitrés avec répartition proportionnelle.', body: 'Un litige qui survit à la discussion entre les deux parties passe à un arbitre, qui répartit les fonds non libérés en points de base plutôt que de désigner un gagnant. La même décision règle la mise réservée du vendeur au prorata de la faute. Une clé d\'arbitre morte peut retarder une transaction mais jamais la piéger: après le délai, chaque partie peut la pousser vers son issue par défaut.' },
+        factoring: { title: 'Affacturage de factures et financement de bons de commande.', body: "Le financement de factures et de commandes est implémenté pour les essais. L’accès dépend de l’éligibilité et des fonds disponibles. Il n’est pas disponible sur le réseau principal." },
+        disputes: { title: 'Litiges arbitrés avec répartition proportionnelle.', body: "Les parties peuvent proposer une résolution. Sans accord, le contrat détermine les recours et délais disponibles. Un litige ne déclenche pas un remboursement automatique." },
         symmetric: { title: 'Les deux parties se construisent un historique.', body: 'Une transaction réglée crédite l\'acheteur et le vendeur on-chain, pas seulement le vendeur, et chaque partie gagne une contrepartie distincte la première fois qu\'une paire règle. La réputation est pondérée par la valeur et compte les contreparties distinctes, donc le volume avec un même partenaire récurrent ne peut pas gonfler un score.' },
-        verified: { title: 'Livrables vérifiés.', body: 'Un agent de sécurité analyse chaque lien livré avant que l\'acheteur ne le voie, et surveille la messagerie interne pour qu\'un lien de hameçonnage ou de logiciel malveillant ne puisse pas être envoyé. Un lien signalé suspend la libération automatique et oriente les deux parties vers une résolution. Un lien confirmé malveillant est une lourde pénalité de réputation pour l\'expéditeur.' },
-        escrowYield: { title: 'Chemin de rendement de l’entiercement construit, désactivé.', body: 'L’entiercement en ligne peut placer ses fonds inactifs auprès de sa trésorerie et les récupérer avant chaque paiement, avec des livres en USDC pour que le principal revienne toujours en entier. Il reste désactivé : cette trésorerie n’est pas autorisée à détenir de l’USYC. La suite mainnet fait passer le principal de longue durée par un pool de rendement.' },
+        verified: { title: 'Livrables vérifiés.', body: "Les contrôles peuvent signaler un lien à vérifier. Ils ne garantissent pas la sécurité d’un fichier ou d’un site. Examinez les preuves avant de libérer le paiement." },
+        escrowYield: { title: 'Chemin de rendement de l’entiercement construit, désactivé.', body: "Le rendement du séquestre est désactivé. Il ne fait pas partie du montant qu’un acheteur ou vendeur doit attendre d’une transaction." },
         terms: { title: 'Conditions générales avec consentement versionné.', body: 'Une page publique de conditions et une porte de consentement à la première inscription qui redemande lorsque la version change.' },
         signin: { title: 'Trois voies de connexion.', body: 'E-mail et passkey, code e-mail à usage unique, ou portefeuille web3 via Sign-In with Ethereum.' },
         languages: { title: 'Cadre multilingue.', body: "Anglais, arabe, français, hindi et swahili sur la plupart des surfaces face à l'utilisateur aujourd'hui." },
@@ -4936,7 +4936,7 @@ export const fr: Messages = {
       },
       title: 'Livraison à venir',
       skills: { title: 'Vérification des compétences', body: "Les agents classent un vendeur sur ce qu'il revendique et son historique de transactions réglées. La couche suivante le prouve. Les vendeurs lient des identités externes (GitHub d'abord, puis X, Substack, Dribbble) avec une preuve signée par le portefeuille, sans OAuth ni mots de passe, et l'agent lit des signaux publics pour la compétence, commits et langages pour un développeur, classements d'audit pour un chercheur en sécurité, travaux publiés pour un rédacteur, et mêle cette preuve au score d'appariement. Un acheteur voit pourquoi un vendeur est classé là où il l'est. Preuve et réputation restent des étiquettes séparées, prouver une compétence ne cache jamais un historique mince et un historique mince ne cache jamais une compétence prouvée. Les sources gratuites couvrent les catégories courantes, les contrôles payants se déclenchent selon le palier et la valeur de la transaction." },
-      fileDelivery: { title: 'Livraison de fichiers', body: "Livrez le travail sous forme de fichier plutôt qu'un simple lien, avec le même pipeline d'analyse. Construit sur Cloudflare R2 pour la vitesse et IPFS pour une livraison adressée par contenu, à l'épreuve des falsifications, de documents commerciaux confidentiels." },
+      fileDelivery: { title: 'Livraison de fichiers', body: "Les envois de fichiers prévus permettront de joindre les livrables à une transaction. Des contrôles d’accès et de fichiers sont nécessaires avant d’y partager des documents confidentiels." },
       referral: { title: 'Rail de marketing par parrainage (mainnet)', body: "Une surface de croissance qui récompense les utilisateurs pour avoir amené de vraies contreparties. Quand vous parrainez quelqu'un qui s'inscrit via une transaction conclue avec vous, les deux portefeuilles reçoivent un coup de pouce de réputation sur le nouveau signal de parrainage. Conçu pour mainnet, où chaque inscription honnête est un vrai client plutôt qu'un clic de robinet. Repose sur un petit contrôle anti-fraude pour que le même portefeuille ne se parraine pas lui-même, et pour que la répétition avec la même contrepartie ne s'empile pas indéfiniment." },
       mainnet: {
         title: 'Durcissement mainnet',
@@ -4990,8 +4990,8 @@ export const fr: Messages = {
       title: 'Quand il vous faut un agent pour en trouver une',
       body: 'Publiez une demande et les agents mènent l\'enchère et la négociation pour vous.',
       step1: { title: 'Publier une demande', bodyA: 'Sur ', bodyB: ', choisissez "Trouvez-moi un vendeur". Écrivez ce dont vous avez besoin, fixez un budget et une échéance. Une transaction ', bodyC: ' arrive sur Arc en quelques secondes.' },
-      step2: { title: 'Les agents négocient', bodyA: 'L\'agent vendeur évalue la demande et appelle ', bodyB: '. Votre agent acheteur la classe, tire une lecture de marché payante pour que sa contre-offre colle aux vrais prix, négocie dans vos limites et accepte les meilleures conditions. Chaque étape s\'affiche sur la timeline en direct.' },
-      step3: { title: 'Régler la transaction', body: 'À l\'acceptation, l\'agent acheteur approuve l\'USDC et finance le séquestre. Une fois le travail fait, libérez les jalons. Les fonds vont au vendeur par tranches.' },
+      step2: { title: 'Les agents négocient', bodyA: 'L\'agent vendeur évalue la demande et appelle ', bodyB: ". L’agent acheteur compare l’offre et négocie selon vos limites. Vous examinez les conditions avant de financer. La recherche payante via x402 est inactive." },
+      step3: { title: 'Régler la transaction', body: "Examinez et approuvez les conditions avant de financer le séquestre. Après livraison, vérifiez chaque étape et les actions de paiement ou de litige disponibles." },
     },
     contract: {
       eyebrow: 'Sous le capot',
@@ -5017,11 +5017,11 @@ export const fr: Messages = {
       eyebrow: 'Pile Circle', title: 'Ce que nous utilisons, et où',
       usdc: 'La devise dans laquelle nous réglons. Détient les montants des transactions, les soldes de séquestre, les paiements de jalons, les frais de plateforme et le principal mis en jeu dans KarwanVault.',
       dcw: 'Chaque agent tourne sur un portefeuille SCA sur Arc Testnet. L\'agent acheteur finance les séquestres et libère les jalons; l\'agent vendeur enchérit et négocie. Les DCW d\'identité signent dépôts et retraits de KarwanVault pour les utilisateurs Circle-auth sans popup de portefeuille.',
-      cctp: 'Pont USDC bidirectionnel sur douze chaînes: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain et HyperEVM, plus Solana Devnet. Les retraits passent par le Forwarding Service de Circle, donc vous encaissez partout sans détenir le jeton de gaz de la chaîne d\'arrivée. Les dépôts d\'un compte e-mail ou clé d\'accès n\'ont besoin de rien de tout cela : Circle dérive une seule adresse qui sert toutes les chaînes EVM, et le crédit est déclenché par le webhook de transaction.',
+      cctp: "CCTP transfère des USDC entre les réseaux pris en charge. Choisissez un trajet proposé pour votre compte et vérifiez ses frais. Le transfert n’est terminé qu’après confirmation du crédit à destination.",
       appKit: 'Le SDK unifié de Circle pour pont, swap, envoi et solde unifié. L\'adaptateur Circle Wallets signe directement depuis nos Developer-Controlled Wallets, donc un utilisateur email ou passkey traverse les chaînes sans jamais voir de popup de portefeuille, et les utilisateurs web3 signent avec le leur via le même SDK.',
-      gateway: 'Un seul solde USDC mutualisé sur douze chaînes. Déposez une fois, puis dépensez vers n\'importe quelle chaîne avec une seule signature, sans changer de réseau et sans gaz sur la chaîne source. C\'est aussi le rail qui règle les paiements des agents, appel par appel.',
+      gateway: "L’intégration Gateway prévoit un solde unifié. La démonstration actuelle présente uniquement le code, pas un transfert actif vérifié.",
       arc: 'Chaîne 5042002. Les blocs finalisent en moins d\'une seconde. USDC est le jeton de gaz natif, et les registres d\'identité et de réputation ERC-8004 sont déjà déployés.',
-      usyc: 'Le capital commercial est inactif par nature, et l\'argent qui dort devrait rapporter. La trésorerie détient du vrai Hashnote USYC autorisé sur Arc Testnet via l\'interface standard ERC-4626 du Teller, marqué à l\'oracle on-chain en direct. Le principal de mise inactif passe par le même chemin médié par l\'opérateur. L\'entiercement en ligne porte le même chemin de balayage pour les fonds laissés inactifs pendant les transactions à long terme, plafonné à 80 pour cent du flottant, bien qu\'aucun solde d\'entiercement n\'ait encore été balayé.',
+      usyc: "L’intégration de trésorerie peut souscrire et racheter des USYC pour les adresses autorisées. Un exemple de code ne prouve ni un solde actuel ni un versement de rendement. Le rendement n’est pas garanti.",
     },
     trust: {
       eyebrow: 'Preuve et confiance', title: 'Deux questions, deux contrôles.',
@@ -5035,7 +5035,7 @@ export const fr: Messages = {
       eyebrow: 'Feuille de route', title: 'À venir', body: 'Ce qui suit la build testnet actuelle.',
       fileDelivery: { title: 'Livraison de fichiers', body: 'Livrez le travail sous forme de fichier plutôt qu\'un simple lien, avec le même pipeline d\'analyse derrière. Cloudflare R2 pour la vitesse, IPFS pour une livraison adressée par contenu et à l\'épreuve des falsifications de documents commerciaux confidentiels.' },
       referral: { title: 'Rail de parrainage', body: 'Une surface de croissance qui récompense le fait d\'amener de vraies contreparties. Parrainez quelqu\'un qui règle une transaction avec vous et les deux portefeuilles gagnent sur le signal de parrainage. Conçu pour le mainnet, derrière un contrôle anti-fraude pour qu\'un portefeuille ne puisse pas se parrainer lui-même.' },
-      mainnet: { title: 'Mainnet et corridors plus larges', body: 'Un audit externe des contrats et une trésorerie multisig avant tout déploiement mainnet, puis des corridors de trade plus larges et plus de chaînes sources à mesure que le réseau grandit.' },
+      mainnet: { title: 'Mainnet et corridors plus larges', body: "L’application de portefeuille et les registres sont sur le réseau principal. Le séquestre et les autres contrats sont visés pour le 25 octobre 2026 après tests et revue de sécurité. L’application mobile est prévue dans les semaines suivantes." },
       i18n: { title: 'Vérification des compétences', body: 'Une preuve de travail notée, pour qu\'un vendeur capable de montrer un vrai historique de livraison augmente son score d\'adéquation de compétence. La preuve reste séparée de la réputation, donc prouver une compétence ne cache jamais un historique mince.' },
     },
     faq: {
@@ -5049,7 +5049,7 @@ export const fr: Messages = {
       q7: { q: 'Que se passe-t-il si un agent vendeur saute ma demande matchée par agent?', a: 'Le profil du vendeur a une fourchette de budget et d\'échéance. Si votre demande sort de la plage, l\'agent saute et la timeline explique pourquoi. Si l\'agent est incertain pour toute autre raison, cela est aussi journalisé, pour que la prochaine étape ne soit jamais silencieuse.' },
       q8: { q: 'Quels corridors cela sert-il?', a: "Karwan accompagne le commerce local et transfrontalier de biens et services. Invitez un partenaire connu ou publiez une demande ou une offre pour en trouver un. Les deux parcours utilisent le séquestre en USDC sur Arc." },
       q9: { q: 'Où tourne le raisonnement de l\'agent?', a: 'Chaque décision qui touche à l\'argent est gérée par un jeu de règles déterministe côté backend: bornes de budget et d\'échéance, correspondance thématique, exigences de mise, calcul de réservation. Un modèle de langue ne traite que les parties qui demandent un jugement, comme savoir si deux descriptions de compétences sans recouvrement décrivent le même travail, ou comment formuler une contre-offre. Si le modèle de langue tombe, l\'agent continue de fonctionner via ses replis déterministes.' },
-      q10: { q: 'Comment Karwan sécurise-t-il la livraison ?', a: 'Le travail se transmet le plus souvent par un lien, donc un SecurityAgent analyse chaque preuve de livraison avant que vous ne l\'ouvriez, et il protège la messagerie intégrée pour qu\'un lien de phishing ou un logiciel malveillant ne puisse pas vous être envoyé. Un lien signalé met en pause la libération automatique de la transaction, prévient les deux parties et vous invite à le résoudre ensemble dans la messagerie. Un lien malveillant confirmé pèse lourdement sur la réputation de l\'expéditeur. Quand une livraison est un fichier, elle est partagée via un lien que l\'agent peut vérifier plutôt qu\'une pièce jointe non vérifiée.' },
+      q10: { q: 'Comment Karwan sécurise-t-il la livraison ?', a: "Les contrôles peuvent signaler des liens suspects, mais ne garantissent ni sécurité ni qualité. Examinez la livraison avant de payer. Si un contrôle la bloque, utilisez l’action de vérification ou d’assistance affichée." },
     },
     videoGuides: { eyebrow: 'Guides vidéo', title: 'Voyez-le en action', body: 'De courtes vidéos de chaque flux arrivent bientôt. En attendant, la visite intégrée vous guide pas à pas sur chaque page. Ouvrez-la depuis le bouton Visite en bas de l\'écran.', badge: 'Bientôt' },
     cta: { title: "Concluez votre prochain accord sur Karwan", body: "Convenez des conditions, approvisionnez le séquestre en USDC et suivez chaque étape jusqu’au règlement.", button: 'Lancer l\'app', chainPrefix: 'chaîne' },
@@ -5066,7 +5066,7 @@ export const fr: Messages = {
     eyebrow: 'CONDITIONS',
     headlineLead: 'Ce à quoi vous',
     headlineAccent: 'souscrivez',
-    intro: 'Le produit est en testnet aujourd\'hui. Les conditions couvrent la nature du travail, les risques du règlement en stablecoin, et ce que nous faisons de vos données. Lu une fois, signé une fois.',
+    intro: "Ces conditions décrivent les services de Karwan, le contrôle des portefeuilles, les règles de règlement et les risques. Le réseau principal utilise des fonds réels ; le réseau de test utilise des fonds sans valeur monétaire. Les fonctions diffèrent entre les deux. Lisez ces conditions avant d’accepter.",
     preamble: 'Ces conditions expliquent comment Karwan fonctionne, ce que nous faisons de votre argent, et ce dont chaque partie est responsable. Vous connecter, publier une demande, ouvrir une transaction ou staker vaut acceptation. Prenez un moment pour les lire.',
     s1: {
       title: '1. Ce que Karwan propose',
@@ -5257,8 +5257,8 @@ export const fr: Messages = {
       errorTag: 'ERREUR DU JOB',
       notFoundHeadline: "Impossible de trouver cette requête",
       errorHeadline: 'Impossible de charger ce job',
-      notFoundBody: "Le backend n'a aucun enregistrement de ce jobId. Si vous venez de le publier, accordez à l'agent acheteur quelques secondes pour capter l'événement on-chain et essayez de rafraîchir. S'il reste manquant, l'identifiant est peut-être faux.",
-      errorBody: "Le jobId est peut-être faux, ou le backend ne l'a pas encore vu.",
+      notFoundBody: "Cette demande est introuvable. Si vous venez de la publier, patientez puis actualisez. Sinon, vérifiez le lien.",
+      errorBody: "Impossible de charger cette demande. Actualisez la page ou vérifiez le lien.",
       backCta: "Retour au bureau de l'acheteur",
       activityCta: "Voir l'activité →",
     },
@@ -5673,7 +5673,7 @@ export const fr: Messages = {
         passkeyEmailInUse: "Cet e-mail a déjà un compte. Connectez-vous avec sa clé d'accès.",
         passkeyEmailExpired: 'La confirmation de votre e-mail a expiré. Envoyez un nouveau code.',
         or: 'OU',
-        emailNotConfigured: "La connexion par e-mail n'est pas configurée sur ce backend.",
+        emailNotConfigured: "La connexion par e-mail est indisponible. Utilisez une autre option ou réessayez plus tard.",
       },
       enterEmail: {
         label: 'E-mail',

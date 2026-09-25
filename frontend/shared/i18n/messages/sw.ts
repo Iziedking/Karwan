@@ -981,8 +981,8 @@ export const sw: Messages = {
   appHome: {
     settlementDeskEyebrow: 'DAWATI LA MALIPO',
     backendOffline: {
-      eyebrow: 'BACKEND',
-      title: 'Backend haipo mtandaoni',
+      eyebrow: "Muunganisho",
+      title: "Akaunti yako haijapakiwa",
       bodyPrefix: 'Imeshindikana kufikia API kwenye ',
       bodySuffix: '. Ukurasa huu utachukua mara tu inaporudi.',
     },
@@ -1016,9 +1016,9 @@ export const sw: Messages = {
     },
     threeDoors: {
       sectionTag: 'PA KUANZIA',
-      headlineTop: 'Uti mmoja',
-      headlineBottom: 'Milango mitatu.',
-      description: 'Escrow ile ile. Sifa ile ile. Milango mitatu ya kuingilia.',
+      headlineTop: "Anza na",
+      headlineBottom: "unachohitaji",
+      description: "Tafuta muuzaji, chapisha ofa au fuatilia mkataba uliopo.",
       buyerCard: {
         eyebrow: 'MNUNUZI',
         title: 'Tuma ombi',
@@ -3081,7 +3081,7 @@ export const sw: Messages = {
       switchButton: 'Badilisha hadi Arc',
     },
     vaultNotDeployed: {
-      prefix: 'KarwanVault haijaanzishwa katika mazingira haya. Weka',
+      prefix: "Kuweka dhamana hakupatikani kwenye mtandao huu. Usitume fedha kwenye anwani ya dhamana hadi huduma ipatikane.",
       middle: 'katika',
       suffix: 'kisha anzisha upya seva.',
     },
@@ -3571,7 +3571,7 @@ export const sw: Messages = {
       awaitingFinalRelease: {
         buyerIntroTemplate: 'Asilimia ya kwanza {firstPct}% imetolewa. Thibitisha na utoe iliyobaki {rest}% kukamilisha.',
         buyerResponseExpiredTemplate: 'Dirisha la majibu limepita. Wakala atatoa kiotomatiki asilimia ya mwisho {rest}% kwa muuzaji hivi karibuni.',
-        buyerNoAppealTemplate: 'Chukua muda wako. Asilimia ya mwisho {rest}% haitolewi kamwe kiotomatiki. Bofya hapa chini kuthibitisha na kutoa baada ya kukagua kazi. Ukichelewesha sana, muuzaji anaweza kuinua rufaa ya ucheleweshaji.',
+        buyerNoAppealTemplate: "Kagua kazi kabla ya kutoa {rest}% zinazofuata. Angalia muda: muuzaji anaweza kudai malipo baada ya kipindi cha ukaguzi. Tumia kuongeza muda au mgogoro inapohitajika.",
         releaseCtaTemplate: 'Thibitisha na utoe ya mwisho {rest}%',
         releaseBusy: 'Kuthibitisha kwenye Arc…',
         appealCta: 'Kata rufaa kwa mkataba huu',
@@ -3821,7 +3821,7 @@ export const sw: Messages = {
       connectLabel: 'Unganisha Telegram',
       connectTitle: 'Unganisha Telegram kupata arifa',
       manageTitleTemplate: 'Simamia kiungo cha Telegram ({label})',
-      disabledTitle: 'Arifa za Telegram hazijasanidiwa kwenye seva hii',
+      disabledTitle: "Arifa za Telegram hazipatikani",
     },
     modal: {
       eyebrow: '[:ARIFA ZA TELEGRAM:]',
@@ -4540,7 +4540,7 @@ export const sw: Messages = {
     title: 'Tuma kwenye gumzo lako',
     subtitle: 'Mikataba · gumzo · hali ya daraja',
     linkedBadge: 'IMEUNGANISHWA',
-    notConfiguredPrefix: 'Arifa za Telegram hazijasanidiwa kwenye seva hii. Mwombe mhusika aweke',
+    notConfiguredPrefix: "Arifa za Telegram hazipatikani. Unaweza kufuatilia taarifa ndani ya Karwan.",
     notConfiguredAnd: 'na',
     idleDescription: 'Gusa mara moja kufungua boti, mara nyingine kuthibitisha. Pochi inabaki kwenye kivinjari chako.',
     connectCta: 'Unganisha Telegram',
@@ -4607,9 +4607,9 @@ export const sw: Messages = {
     },
     buyerSilent: {
       heading: 'Mnunuzi akinyamaza',
-      s1: { label: 'Utoaji otomatiki unaanza.', body: 'Baada ya uwasilishaji, hatua ya kwanza inajitoa yenyewe dirisha la mapitio la {reviewWindow} likipita bila hatua. Hatua ya mwisho haijitoi kamwe kwa kipima-muda cha kimya.' },
+      s1: { label: 'Utoaji otomatiki unaanza.', body: "Baada ya uwasilishaji, muda wa kwanza wa ukaguzi ni {reviewWindow}. Angalia muda wa mkataba wako: muuzaji anaweza kudai hatua inayostahili ukaguzi ukiisha, pamoja na ya mwisho." },
       s2: { label: 'Wasilisha rufaa ya kuchelewa.', body: 'Inafunguka {appealGrace} baada ya utoaji wa mwisho. Mnunuzi ana {buyerResponse} kujibu.' },
-      s3: { label: 'Jukwaa linakamilisha.', body: 'Hakuna jibu ndani ya dirisha na hatua ya mwisho inatolewa kwa muuzaji. Hakuna tiketi, hakuna binadamu katikati.' },
+      s3: { label: "Angalia njia za kutatua.", body: "Angalia hatua za kudai malipo, kuongeza muda au mgogoro na muda wake. Wasiliana na usaidizi ikiwa hatua inayotarajiwa haipatikani. Kukosa jibu hakuhakikishi malipo wala kurejeshewa fedha." },
     },
     sellerLate: {
       heading: 'Muuzaji akikosa muda wa mwisho',
@@ -4623,12 +4623,12 @@ export const sw: Messages = {
       s2: { label: 'Uamuzi wa msuluhishi.', body: 'Baraza la usalama linagawanya eskro kwa asilimia, kwenye mnyororo. Maandishi ya uamuzi na mgawanyo ni ya wazi kwenye rekodi ya mkataba.' },
       s3: { label: 'Kinga.', body: 'Mgogoro wenye upande uliokaa kimya unajisuluhisha baada ya {disputeTimeout}. Kazi iliyowasilishwa inamlipa muuzaji, hakuna uwasilishaji kunamrejeshea mnunuzi. Mnunuzi aliyepinga kazi iliyowasilishwa anaenda kwa msuluhishi, kamwe si kwa kipima-muda.' },
     },
-    callout: { title: 'Hakuna kinachoganda milele', body: 'Fedha ziko kwenye mkataba wa eskro, si kwa Karwan. Kila kizuizi kina saa, kila saa ina njia ya kutoka, na kila njia inaonekana kwenye Arc.' },
+    callout: { title: "Angalia kanuni za kurejesha fedha", body: "Fedha zilizowekwa zinashikiliwa kwenye escrow. Utoaji, urejeshaji na mgogoro hutegemea mkataba na hali ya biashara. Soma muda uliowekwa na wasiliana na msaada ikiwa hatua inayotarajiwa haipatikani." },
   },
   docsIndexPage: {
     eyebrow: 'MUHTASARI',
     headline: 'Jinsi Karwan inavyofanya kazi',
-    intro: 'Karwan ni reli za biashara za on-chain kwa biashara ya p2p na b2b. USDC inakaa katika escrow ya hatua kwenye Arc wakati kazi inafanyika, na inatolewa pale mnunuzi anapothibitisha, hatua kwa hatua. Mawakala wawili wanashughulikia kulinganisha na mazungumzo, wakinunua usomaji wa soko unaolipwa kwa kila deal ili ofa zao zifuate bei halisi, kisha wanakuletea masharti ya mwisho ili uyaidhinishe kabla ya fedha yoyote kuhama. Kila deal iliyokamilika inaandika kwenye rekodi ya sifa ya on-chain. Akiba za hazina zinapata mavuno halisi ya Hashnote USYC kwenye Arc leo. Mwongozo huu unaeleza kila sehemu utakayoshughulika nayo.',
+    intro: "Karwan husaidia wanunuzi na wauzaji kukubaliana masharti, kuweka USDC kwenye escrow na kukagua uwasilishaji. Biashara zinapatikana kwenye mtandao wa majaribio kwa fedha za majaribio. Mtandao mkuu una pochi na rejista kwa sasa; escrow bado haipatikani.",
     twoWays: {
       title: 'Njia mbili za kufanya biashara',
       lede: 'Chagua mtiririko unaokufaa kulingana na kama tayari una mwenzio wa biashara au la.',
@@ -4651,7 +4651,7 @@ export const sw: Messages = {
         bridge: { title: 'Weka / Toa', blurb: 'Kuhamisha USDC kuingia na kutoka Arc kwa kutumia Circle CCTP.' },
         roadmap: { title: 'Ramani ya Njia', blurb: 'Kilicho hai leo na kinachofuata.' },
         faq: { title: 'Maswali Yanayoulizwa Mara kwa Mara', blurb: 'Majibu ya haraka kwa maswali ambayo watumiaji wapya wanauliza kwanza.' },
-        x402: { title: 'Sehemu za data zinazolipiwa', blurb: 'Sehemu za x402 ambazo yeyote anaweza kulipia kwa kila mwito ili kusoma pasipoti ya mkopo au rekodi ya ulipaji.' },
+        x402: { title: 'Sehemu za data zinazolipiwa', blurb: "Ufikiaji wa kulipia wa rekodi za biashara umepangwa. Huduma ya x402 haijaanza." },
       },
     },
   },
@@ -4722,7 +4722,7 @@ export const sw: Messages = {
   x402Page: {
     eyebrow: 'API YA DATA YA KULIPIA',
     title: 'Data ya tathmini ya mikopo, lipa kwa kila wito',
-    intro: 'Karwan inauza ishara zile zile inazotumia kutathmini makubaliano ya biashara: pasipoti ya mikopo, tabia ya ulipaji, mkusanyiko wa wenzake wa biashara, na hati za biashara zilizonakiliwa kwenye mnyororo. Wafadhili na mawakala hulipa kila wito kwa USDC kupitia x402, ikitatuliwa kwa makundi kupitia Circle Gateway kwenye Arc Testnet. Pochi yenye amana ya Gateway ndiyo muunganisho mzima; hakuna funguo za API wala usajili.',
+    intro: "API ya data ya kulipia imejengwa lakini haijaanza. Maelezo yafuatayo yanaeleza huduma na malipo yaliyopangwa kwa majaribio. Usiweke fedha kwa huduma hii kabla upatikanaji haujatangazwa.",
     endpoints: {
       heading: 'Vituo vya huduma',
       body: 'Bei ziko kwa USDC kwa kila wito. Kituo cha orodha ni bure na kinasomeka kwa mashine, hivyo wakala anaweza kuona katalogi kabla ya kulipa.',
@@ -4757,11 +4757,11 @@ export const sw: Messages = {
     },
     howToPay: {
       heading: 'Jinsi malipo yanavyofanya kazi',
-      body: 'x402 ni mtiririko wa malipo wa HTTP 402. Utatuzi unapitia Circle Gateway, inayokusanya malipo mengi ya chini ya senti kuwa muamala mmoja wa mnyororo, hivyo wito wa nusu senti haulipi kamwe ada kamili ya muamala.',
+      body: "Msimbo hutumia HTTP 402 kuomba malipo na Gateway kukusanya malipo yanayostahili. Hii inaeleza msimbo, si huduma inayopatikana au ahadi ya kutokuwa na ada.",
       steps: {
         deposit: {
           label: 'Weka amana mara moja.',
-          body: 'Weka salio dogo la USDC kwenye amana yako ya Circle Gateway kwenye Arc Testnet. Dola chache zinatosheleza mamia ya wito.',
+          body: "Mtiririko uliopangwa hutumia amana ya Gateway kwenye Arc testnet. Huduma haijaanza; usiweke fedha kutokana na mfano huu.",
         },
         call: {
           label: 'Piga kituo cha huduma.',
@@ -4774,7 +4774,7 @@ export const sw: Messages = {
       },
     },
     example: {
-      heading: 'Jaribu',
+      heading: "Mfano wa utekelezaji",
       body: 'Mteja wa makundi wa x402 wa Circle anashughulikia safari nzima kwa wito mmoja:',
     },
     sameChain: {
@@ -4802,9 +4802,9 @@ export const sw: Messages = {
       afterFirst: { alt: 'Ukurasa wa deal baada ya kuachiliwa kwa kwanza, milestone ya mwisho ikisubiri uthibitisho', caption: 'Nusu ya kwanza imeachiliwa. Mnunuzi anathibitisha na kuachilia iliyobaki.' },
       settled: { alt: 'Ukurasa wa deal katika hali iliyokamilika, imelipwa kikamilifu', caption: 'Imekamilika. Muuzaji amelipwa kikamilifu na sifa imerekodiwa kwenye chain.' },
     },
-    shareable: { heading: 'Viungo vya deal vinavyoweza kushirikishwa', body: 'Mnunuzi anaweza kuelekeza deal ya moja kwa moja kwa anwani ya barua pepe badala ya wallet. Karwan hutuma mwaliko uliopangwa. Mpokeaji anafungua kiungo, anaandika msimbo wa mara moja tuliotuma kwa barua pepe, na wallet ya Circle inatolewa kwenye kivinjari chake. Anakubali deal. Kutoka barua pepe hadi deal iliyokubaliwa ni chini ya dakika mbili, bila fomu ya kujisajili.' },
+    shareable: { heading: 'Viungo vya deal vinavyoweza kushirikishwa', body: "Mwalike muuzaji kwa barua pepe. Ataingia, kufungua mwaliko na kusoma masharti kabla ya kukubali. Akaunti za barua pepe za majaribio hutumia pochi ya Circle inayoendeshwa na Karwan. Hii ni tofauti na kuunganisha pochi ambayo mtumiaji anadhibiti funguo zake." },
     fee: { heading: 'Ada ya jukwaa', body: 'Karwan inachukua ada ya jukwaa ya 1.5% kwa kila deal, ikigawanywa sawa kati ya mnunuzi na muuzaji. Ada hukusanywa kwenye chain kila milestone inapoachiliwa. Mnunuzi hufadhili nusu yake mapema, nusu ya muuzaji hutoka kwenye malipo yake.' },
-    review: { heading: 'Madirisha ya ukaguzi na kuachilia kiotomatiki', body: 'Vipima muda viwili vinalinda pande zote mbili dhidi ya mshirika anayechelewesha. Baada ya muuzaji kuweka alama ya kuwasilishwa, mnunuzi ana dirisha la kuachilia milestone ya kwanza. Kama mnunuzi atanyamaza zaidi ya muda mfupi wa delay-appeal grace, mlinzi wa deal anaachilia milestone ya kwanza kwa niaba yake. Awamu ya mwisho haiachiliwi kiotomatiki kamwe, daima inahitaji bonyeza la mnunuzi. Mnunuzi anaweza kuongeza dirisha la ukaguzi anapohitaji muda zaidi.' },
+    review: { heading: 'Madirisha ya ukaguzi na kuachilia kiotomatiki', body: "Angalia muda wa ukaguzi wa kila hatua. Baada ya uwasilishaji, mkataba wa sasa wa majaribio unaweza kumruhusu muuzaji kudai malipo yanayostahili muda ukiisha, pamoja na hatua ya mwisho. Tumia hatua ya ukaguzi, kuongeza muda au mgogoro kabla muda haujaisha. Kanuni hutegemea toleo la mkataba na masharti yaliyokubaliwa." },
     stake: {
       heading: 'stake kama bima ya deal',
       body1: 'Muuzaji anapokubali deal, sehemu inayoweza kusanidiwa ya stake yake huru inahifadhiwa dhidi ya kiasi cha deal. Chaguo-msingi ni asilimia thelathini, mnunuzi anaweza kuirekebisha kwenye paneli ya kukubali. Kwenye malipo safi, hifadhi inarudi kwenye stake huru ya muuzaji. Kwenye mzozo uliopotea, hifadhi inakatwa kwa mnunuzi kama bima.',
@@ -4816,7 +4816,7 @@ export const sw: Messages = {
       mutualCancel: { label: 'Kufuta kwa pamoja.', body: 'Upande wowote unaweza kupendekeza kufuta. Kama mwingine atakubali, escrow inarudisha pesa na hakuna upande unaopata pigo la sifa.' },
       dispute: { label: 'Mzozo.', body: 'Mnunuzi anaweza kuanzisha mzozo kutoka hali ya kufadhiliwa au kuwasilishwa. Upande wowote unaweza kutatua mzozo kupitia mkataba wa escrow, kwa hivyo hali ya mzozo si mlango wa upande mmoja. Matokeo yanaingia kwenye rekodi ya sifa kwenye chain.' },
     },
-    callout: { title: 'KWENYE ARC TESTNET LEO', body: 'Deal zote kwenye Karwan leo zinakamilika katika USDC ya testnet kwenye Arc Testnet, ambayo haina thamani halisi. Mavuno ya hazina kupitia Hashnote USYC halisi yanaendesha tayari kwenye testnet.' },
+    callout: { title: 'KWENYE ARC TESTNET LEO', body: "Majaribio ya mikataba hutumia USDC isiyo na thamani ya fedha kwenye Arc testnet. Pochi ya mtandao mkuu haimaanishi escrow imewezeshwa huko. Mapato ya uwekezaji hayajahakikishwa." },
   },
   docsFaqPage: {
     eyebrow: 'MASWALI',
@@ -4830,7 +4830,7 @@ export const sw: Messages = {
       { q: 'Nini hutokea kama mazungumzo hayaafikiani?', a: 'Wakala wako hupitia wagombea wengine waliolingana kabla ya kuacha. Kama hakuna anayeingia katika kiwango chako, ombi linaisha bila makubaliano na hakuna pesa zinazohama. Tuma tena kwa bajeti kubwa au uvumilivu mpana kujaribu tena.' },
       { q: 'Je, naweza kufuta deal?', a: 'Ndiyo. Pendekeza ufutaji, na kama mwenzako anakubali, escrow inarudisha pesa bila athari yoyote ya sifa upande wowote. Kabla muuzaji hajakubali deal kabisa, mnunuzi anaweza kufuta kwa uhuru kwa sababu hakuna escrow iliyofadhiliwa.' },
       { q: 'Nini kama muuzaji hatoi bidhaa?', a: 'Mnunuzi anaweza kupinga. Escrow inaingia katika hali ya mzozo na upande wowote unaweza kutatua kupitia kontrakti. Kurudishiwa kunarudisha pesa kwa mnunuzi na kukata stake iliyowekwa ya muuzaji kwa mnunuzi kama bima, kutolewa kunatuma pesa kwa muuzaji. Matokeo yanaingia kwenye rekodi ya sifa onchain ya pande zote mbili.' },
-      { q: 'Nini kama mnunuzi yuko polepole kutoa pesa?', a: 'Muuzaji anaweza kuongeza muda wa deal mara baada ya kuweka alama ya kutoa bidhaa. Kama mnunuzi atanyamaza zaidi ya dirisha fupi la rufaa ya kuchelewa, Karwan inatoa kiotomatiki hatua ya kwanza kwa niaba yake. Sehemu ya mwisho daima inahitaji bofya wazi la mnunuzi, hivyo mnunuzi kimya hawezi kumaliza deal ambayo hakuthibitisha kamwe.' },
+      { q: 'Nini kama mnunuzi yuko polepole kutoa pesa?', a: "Angalia muda wa ukaguzi. Muuzaji anaweza kudai malipo ya hatua inayostahili baada ya muda kuisha, pamoja na ya mwisho. Kagua uwasilishaji au omba muda zaidi au fungua mgogoro kabla ya muda kuisha." },
       { q: 'Amana inachukua muda gani?', a: 'Ukiingia kwa barua pepe au passkey, tuma USDC kwa anwani yako ya Karwan na inaingia mara mtandao unathibitisha, kwa kawaida dakika moja au mbili. Ukituma kutoka pochi yako mwenyewe, uhamisho wa kawaida wa cross-chain husubiri mnyororo wa asili kukamilisha kwanza, dakika kumi hadi kumi na tisa kwenye testnet za Sepolia. Kwa vyovyote, hatua ya mwisho inafanywa kwa niaba yako, kwa hiyo hauhitaji gas ya Arc kupokea pesa zako.' },
       { q: 'Ninainuaje sifa yangu?', a: 'Maliza deals kwa unadhifu, weka USDC katika vault, na uwe hai. Alama inachanganya sababu sita kwenye curve ambapo vipimo vya kwanza vya juhudi vinahesabu zaidi, hivyo tabia thabiti baada ya muda inakuza alama haraka kuliko hatua kubwa moja.' },
       { q: 'Je, hazina inapata mapato kweli, au hilo ni la ramani ya safari?', a: 'Mapato halisi, leo kwenye testnet. Kufikia 2026-06-06, Karwan Treasury V3 iliidhinishwa na Circle kwenye kontrakti ya entitlements ya USYC ya Hashnote kwenye Arc Testnet. Ada za USDC zisizo na shughuli zinajiunga na Hashnote USYC halisi kupitia Teller ya kawaida ya ERC-4626, si bandia. Upande wa vault (hisa ya mtumiaji isiyo na shughuli inayopata USYC ileile) umepangwa kwa idhini hiyohiyo na unawaka mara tu uthibitisho wa pili unapotua.' },
@@ -4896,22 +4896,22 @@ export const sw: Messages = {
   docsRoadmapPage: {
     eyebrow: 'RAMANI YA NJIA',
     heading: 'Kilicho hai, na kinachofuata',
-    intro: "Karwan imejengwa kwenye Arc. Mwongozo huu unatofautisha huduma zilizopo na kazi zinazoendelea. Kipengele cha ramani ya maendeleo si huduma inayopatikana, uamuzi wa ustahiki au ahadi ya tarehe ya kukamilika.",
+    intro: "Programu ya pochi na rejista mbili zinapatikana kwenye mtandao mkuu. Biashara bado ziko kwenye mtandao wa majaribio. Lengo la mikataba yote ya mtandao mkuu ni 25 Oktoba 2026, ikifuatiwa na programu ya simu. Tarehe hutegemea majaribio na ukaguzi wa usalama.",
     live: {
-      title: "Inapatikana katika toleo la sasa",
+      title: "Vipengele vya biashara kwenye mtandao wa majaribio",
       items: {
         match: { title: 'Ulinganishaji na mazungumzo ya wakala.', body: 'Mawakala wa mnunuzi na muuzaji wamepangwa kwanza kwa ufaafu wa ujuzi, wakijadiliana katika raundi nyingi ndani ya safu zilizowekwa na kila upande. Upande wowote unaweza kusoma kila pinga kwenye ratiba ya mkataba.' },
-        negotiation: { title: 'Akili ya mazungumzo.', body: 'Mawakala huvuta usomaji wa soko wa x402 chini ya senti kwenye mkataba na kuushiriki kwa pande zote mbili. Bei bora inapoangukia nje kidogo ya safu yako, unapata endelea-au-pitisha pamoja na sababu ya soko, si hapana ya kimya. Wakati hakuna kinachofaa bajeti yako, mkataba unakuambia wazi na kukuruhusu kuiongeza au kurudisha ofa uliyopitisha.' },
+        negotiation: { title: 'Akili ya mazungumzo.', body: "Wakala hulinganisha ofa ndani ya mipaka yako. Utafiti wa kulipia kupitia x402 haujaanza." },
         stake: { title: 'Hisa kama bima ya mkataba.', body: 'Sehemu ya hisa huru ya muuzaji huhifadhiwa dhidi ya kila mkataba uliokubaliwa. Mgogoro ulioshindwa hukata akiba hiyo kwa mnunuzi.' },
-        passport: { title: 'Pasipoti ya Mkopo ya Umma.', body: 'Kila pochi ina ukurasa wa sifa wa umma unaoonyesha kiwango, alama, mchanganuo wa muda, na historia ya on-chain. Mtu yeyote anaweza kuisoma bila kuingia.' },
-        shareable: { title: 'Viungo vya mkataba vinavyoweza kushirikishwa.', body: 'Fungua mkataba ulioelekezwa kwa anwani ya barua pepe. Mpokeaji anadai kwa msimbo wa mara moja na pochi ya Circle inatolewa kwenye kivinjari chake.' },
+        passport: { title: 'Pasipoti ya Mkopo ya Umma.', body: "Shiriki historia ya biashara inayoonekana kwenye wasifu wako wa mikopo. Mipangilio yako ya faragha huamua wengine wanaweza kusoma nini." },
+        shareable: { title: 'Viungo vya mkataba vinavyoweza kushirikishwa.', body: "Mwalike mshirika kwa barua pepe. Ataingia na kukagua makubaliano kabla ya kuyakubali." },
         cashout: { title: 'Kutoa fedha baada ya malipo.', body: 'Tuma USDC iliyolipwa kwa pochi yoyote kwenye Arc, au vuka kwenda Ethereum, Base, Arbitrum, Optimism, Polygon, au Solana kwa kadi ya maendeleo iliyojumuishwa.' },
         vault: { title: 'Salio zisizo na shughuli zinapata Hashnote USYC halisi.', body: 'Akiba ya ada za jukwaa na mtaji uliowekwa rehani vyote vinaingia katika Hashnote USYC halisi kwenye Arc Testnet kupitia kiolesura cha kawaida cha Teller cha ERC-4626. USYC ina vibali, hivyo kuishika tu ndiyo uthibitisho kwamba muunganisho ni halisi: anwani isiyo na kibali haiwezi. Mgawanyo wa kila siku unampa kila mwekaji hisa sehemu yake kwa uwiano, inayodaiwa wakati wowote.' },
-        factoring: { title: 'Ufadhili wa ankara na ufadhili wa oda ya ununuzi.', body: 'Mfadhili anatoa malipo ya awali dhidi ya ankara kwa punguzo linalowekwa na daraja la sifa la muuzaji, na escrow inarekodi uelekezaji usiobatilika ili marejesho yasiweze kugeuzwa. Ufadhili wa oda ya ununuzi hutoa mtaji wa kufanyia kazi dhidi ya oda iliyokubaliwa na kuutoa pale uthibitisho wa uwasilishaji unapowekwa kwenye mnyororo. Miguu yote miwili inatembea kwa USDC halisi.' },
-        disputes: { title: 'Migogoro ya usuluhishi yenye mgawanyo wa uwiano.', body: 'Mgogoro unaosalia baada ya pande zote mbili kuzungumza huenda kwa msuluhishi, ambaye hugawa fedha ambazo hazijatolewa kwa pointi za msingi badala ya kuchagua mshindi. Uamuzi huohuo hutatua hisa iliyotengwa ya muuzaji kwa uwiano wa kosa. Ufunguo wa msuluhishi uliokufa waweza kuchelewesha deal lakini hauwezi kuinasa: baada ya muda kuisha upande wowote waweza kuisukuma hadi matokeo yake ya kawaida.' },
+        factoring: { title: 'Ufadhili wa ankara na ufadhili wa oda ya ununuzi.', body: "Ufadhili wa ankara na oda umejengwa kwa majaribio. Ufikiaji hutegemea ustahiki na fedha zinazopatikana. Ufadhili wa mtandao mkuu haupatikani." },
+        disputes: { title: 'Migogoro ya usuluhishi yenye mgawanyo wa uwiano.', body: "Pande zinaweza kupendekeza suluhisho. Zisipokubaliana, mkataba huamua njia za uamuzi na muda zinazopatikana. Mgogoro haurudishi fedha moja kwa moja." },
         symmetric: { title: 'Pande zote mbili zinajenga rekodi.', body: 'Deal iliyokamilika inampa sifa mnunuzi na muuzaji kwenye mnyororo, si muuzaji peke yake, na kila upande hupata mshirika tofauti mara ya kwanza jozi inapokamilisha. Sifa hupimwa kwa thamani na huhesabu washirika tofauti, hivyo wingi wa deal na mshirika mmoja anayerudiwa hauwezi kuvimbisha alama.' },
-        verified: { title: 'Vitu vilivyowasilishwa vilivyothibitishwa.', body: 'Wakala wa usalama huchanganua kila kiungo kilichowasilishwa kabla mnunuzi hajakiona, na hulinda mazungumzo ndani ya programu ili kiungo cha ulaghai au programu hasidi kisiweze kutumwa hata kidogo. Kiungo kilichoripotiwa husitisha utoaji wa kiotomatiki na huelekeza pande zote mbili kukitatua. Kiungo kibaya kilichothibitishwa ni pigo kubwa kwa sifa ya mtumaji.' },
-        escrowYield: { title: 'Njia ya mavuno ya escrow imejengwa, imezimwa.', body: 'Escrow hai inaweza kuweka salio lake lisilo na shughuli kwenye hazina yake na kulirudisha kabla ya kila malipo, huku vitabu vyake vikibaki kwa USDC ili mtaji urudi kamili kila wakati. Imezimwa: hazina hiyo haijaruhusiwa kushikilia USYC. Mikataba ya mainnet inapitisha mtaji wa muda mrefu kupitia bwawa la mavuno badala yake.' },
+        verified: { title: 'Vitu vilivyowasilishwa vilivyothibitishwa.', body: "Ukaguzi wa uwasilishaji unaweza kuashiria kiungo kinachohitaji kukaguliwa. Hauhakikishi usalama wa faili au tovuti. Kagua ushahidi kabla ya kutoa malipo." },
+        escrowYield: { title: 'Njia ya mavuno ya escrow imejengwa, imezimwa.', body: "Mapato ya escrow yamezimwa. Hayajumuishwi katika kiasi ambacho mnunuzi au muuzaji anapaswa kutarajia kwenye mkataba." },
         terms: { title: 'Sheria na Masharti na idhini iliyowekewa toleo.', body: 'Ukurasa wa umma wa sheria na lango la idhini ya usajili wa kwanza ambalo huomba tena toleo linapobadilika.' },
         signin: { title: 'Njia tatu za kuingia.', body: 'Barua pepe na passkey, msimbo wa barua pepe wa mara moja, au pochi ya web3 kupitia Sign-In with Ethereum.' },
         languages: { title: 'Mfumo wa lugha nyingi.', body: 'Kiingereza, Kiarabu, Kifaransa, Kihindi, na Kiswahili kwenye nyuso nyingi zinazoangaliwa na mtumiaji leo.' },
@@ -4933,7 +4933,7 @@ export const sw: Messages = {
       },
       title: 'Inakuja baadaye',
       skills: { title: 'Uthibitishaji wa ujuzi', body: 'Mawakala humpanga muuzaji kwa anachodai na rekodi yake ya mikataba iliyokamilika. Safu inayofuata inathibitisha. Wauzaji huunganisha vitambulisho vya nje (GitHub kwanza, kisha X, Substack, Dribbble) kwa uthibitisho uliotiwa saini na pochi, bila OAuth na bila nywila, na wakala husoma ishara za umma za ujuzi, commits na lugha kwa msanidi, nafasi za ukaguzi kwa mtafiti wa usalama, kazi zilizochapishwa kwa mwandishi, na kuchanganya ushahidi huo katika alama ya ulinganishaji. Mnunuzi anaona kwa nini muuzaji amepangwa hapo. Ushahidi na sifa hubaki lebo tofauti, kuthibitisha ujuzi hakufichi rekodi hafifu na rekodi hafifu haifichi ujuzi uliothibitishwa. Vyanzo vya bure hufunika kategoria za kawaida, ukaguzi wa malipo hudhibitiwa kwa tier na thamani ya mkataba.' },
-      fileDelivery: { title: 'Utoaji wa faili', body: 'Toa kazi kama faili badala ya kiungo tu, na bomba la uchunguzi sawa. Imejengwa kwenye Cloudflare R2 kwa kasi na IPFS kwa utoaji wa hati za biashara za siri zinazoshughulikiwa na maudhui na zisizoweza kuchezewa.' },
+      fileDelivery: { title: 'Utoaji wa faili', body: "Upakiaji wa faili uliopangwa utawawezesha wauzaji kuambatisha kazi kwenye mkataba. Udhibiti wa ufikiaji na ukaguzi wa faili unahitajika kabla ya kushiriki nyaraka za siri." },
       referral: { title: 'Reli ya uuzaji wa rufaa (mainnet)', body: 'Nyuso ya ukuaji inayowatuza watumiaji kwa kuleta wenzi halisi. Unapomweleza mtu anayejisajili kupitia mkataba uliokamilika nawe, pochi zote mbili zinapata kuongezeka kwa sifa kwenye ishara mpya ya rufaa. Iliyoundwa kwa mainnet, ambapo kila usajili wa kweli ni mteja halisi badala ya bonyeza la bomba. Iko nyuma ya ukaguzi mdogo wa kupambana na udanganyifu ili pochi hiyo hiyo isijirejelee yenyewe, na kurudia na mwenzi yule yule kusijirundike bila kikomo.' },
       mainnet: {
         title: 'Kuimarisha mainnet',
@@ -4987,8 +4987,8 @@ export const sw: Messages = {
       title: 'Pale unahitaji wakala akupatie mmoja',
       body: 'Tuma ombi na mawakala wanaendesha mnada na mazungumzo kwa niaba yako.',
       step1: { title: 'Tuma ombi', bodyA: 'Kwenye ', bodyB: ', chagua "Nipatie muuzaji". Andika unachohitaji, weka bajeti na tarehe ya mwisho. Muamala wa ', bodyC: ' unatua Arc ndani ya sekunde chache.' },
-      step2: { title: 'Mawakala wanazungumza', bodyA: 'Wakala wa muuzaji anapima ombi na anaita ', bodyB: '. Wakala wako wa mnunuzi anaiweka kwenye safu, anavuta usomaji wa soko unaolipwa ili kaunta yake ifuate bei halisi, anajadiliana ndani ya mipaka yako, na anakubali masharti bora zaidi. Kila hatua inaonekana kwenye ratiba ya moja kwa moja.' },
-      step3: { title: 'Kamilisha deal', body: 'Mara baada ya kukubalika, wakala wa mnunuzi anaidhinisha USDC na anafadhili escrow. Kazi ikikamilika, toa hatua. Fedha zinaenda kwa muuzaji kwa mafungu.' },
+      step2: { title: 'Mawakala wanazungumza', bodyA: 'Wakala wa muuzaji anapima ombi na anaita ', bodyB: ". Wakala wa mnunuzi hulinganisha ofa na kujadiliana ndani ya mipaka yako. Unakagua masharti kabla ya kuweka fedha. Utafiti wa kulipia kupitia x402 haujaanza." },
+      step3: { title: 'Kamilisha deal', body: "Kagua na ukubali masharti kabla ya kufadhili escrow. Baada ya uwasilishaji, kagua kila hatua na vitendo vya malipo au mgogoro vinavyopatikana." },
     },
     contract: {
       eyebrow: 'Nyuma ya pazia',
@@ -5014,11 +5014,11 @@ export const sw: Messages = {
       eyebrow: 'Mfumo wa Circle', title: 'Tunachokitumia, na wapi',
       usdc: 'Sarafu tunayolipia. Inashikilia viwango vya deal, mizani ya escrow, malipo ya hatua, ada ya jukwaa, na mtaji wa staking wa KarwanVault.',
       dcw: 'Kila wakala anaendesha mkoba wa SCA kwenye Arc Testnet. Wakala wa mnunuzi anafadhili escrow na anatoa hatua; wakala wa muuzaji anatoa bei na anazungumza. DCW za utambulisho zinasaini amana na utoaji wa vault kwa watumiaji wa Circle-auth bila popup ya mkoba.',
-      cctp: 'Daraja la USDC la pande mbili kwenye chenya kumi na mbili: Ethereum, Base, Arbitrum, Optimism, Polygon, Avalanche, Unichain, Sei, Sonic, World Chain, na HyperEVM, pamoja na Solana Devnet. Utoaji unapita kwenye Forwarding Service ya Circle, hivyo unatoa pesa kwenye chenya yoyote bila kushika token ya gesi ya chenya hiyo. Amana za akaunti ya barua pepe au passkey hazihitaji hili: Circle inatoa anwani moja inayotumika kwa kila mnyororo wa EVM, na malipo yanachochewa na webhook ya muamala.',
+      cctp: "CCTP huhamisha USDC kati ya mitandao inayotumika. Chagua njia inayoonyeshwa kwa akaunti yako na kagua ada. Uhamisho hukamilika baada ya kuthibitisha fedha zimefika.",
       appKit: 'SDK iliyounganishwa ya Circle kwa daraja, ubadilishaji, kutuma, na salio iliyounganishwa. Kiunganishi cha Circle Wallets kinasaini moja kwa moja kutoka Developer-Controlled Wallets zetu, hivyo mtumiaji wa barua pepe au passkey anavuka minyororo bila kuona dirisha la mkoba, na watumiaji wa web3 wanasaini kwa mkoba wao kupitia SDK ile ile.',
-      gateway: 'Salio moja la USDC lililokusanywa kwenye chenya kumi na mbili. Weka amana mara moja, kisha tumia kwenye chenya yoyote kwa saini moja, bila kubadilisha mtandao na bila gesi kwenye chenya ya chanzo. Pia ndiyo njia inayolipa malipo ya mawakala kila wanapoita huduma.',
+      gateway: "Uunganishaji wa Gateway una salio la pamoja kwenye msimbo. Onyesho la sasa linaonyesha msimbo pekee, si njia ya uhamisho hai iliyothibitishwa.",
       arc: 'Chenya 5042002. Vibao vinakamilika chini ya sekunde moja. USDC ni token asilia ya gesi, na rejista za utambulisho na sifa za ERC-8004 tayari zimewekwa.',
-      usyc: 'Mtaji wa biashara kwa asili hukaa bila shughuli, na fedha inayokaa inapaswa kupata mapato. Hazina inashikilia Hashnote USYC halisi iliyoidhinishwa kwenye Arc Testnet kupitia kiolesura cha kawaida cha Teller cha ERC-4626, ikipimwa kwa oracle hai ya mnyororo. Mtaji wa hisa usio na shughuli hupita njia ileile inayosimamiwa na opereta. Escrow hai inabeba njia ileile ya kupitisha kwa fedha zinazokaa wakati wa deal za muda mrefu, kwa kikomo cha asilimia 80 ya salio, ingawa hakuna salio la escrow lililopitishwa bado.',
+      usyc: "Uunganishaji wa hazina unaweza kununua na kukomboa USYC kwa anwani zinazostahili. Ruhusa inahitajika. Mfano wa msimbo hauthibitishi salio la sasa au malipo ya mapato. Mapato hayajahakikishwa.",
     },
     trust: {
       eyebrow: 'Uaminifu na ushahidi', title: 'Maswali mawili, ukaguzi miwili.',
@@ -5032,7 +5032,7 @@ export const sw: Messages = {
       eyebrow: 'Ramani ya safari', title: 'Kinachofuata', body: 'Kinachosafirishwa baada ya jenzi ya sasa ya testnet.',
       fileDelivery: { title: 'Uwasilishaji wa faili', body: 'Wasilisha kazi kama faili badala ya kiungo tu, ikiwa na mfumo uleule wa uchanganuzi nyuma yake. Cloudflare R2 kwa kasi, na IPFS kwa uwasilishaji unaoshikamana na maudhui na usioweza kuchezewa wa nyaraka za biashara za siri.' },
       referral: { title: 'Reli ya rufaa', body: 'Sehemu ya ukuaji inayolipa kwa kuleta washirika halisi. Mrejeshe mtu anayekamilisha deal na wewe na pochi zote mbili zinanufaika kwa ishara ya rufaa. Imejengwa kwa mainnet, nyuma ya ukaguzi wa kuzuia udanganyifu ili pochi isijirejeshe yenyewe.' },
-      mainnet: { title: 'Mainnet na korido pana zaidi', body: 'Ukaguzi wa nje wa kontrakti na hazina ya multisig kabla ya uwekaji wowote wa mainnet, kisha korido pana zaidi za biashara na chain za chanzo zaidi huku mtandao ukikua.' },
+      mainnet: { title: 'Mainnet na korido pana zaidi', body: "Pochi na rejista ziko kwenye mtandao mkuu. Escrow na mikataba iliyobaki inalengwa tarehe 25 Oktoba 2026 baada ya majaribio na ukaguzi wa usalama. Programu ya simu imepangwa kwa wiki zinazofuata." },
       i18n: { title: 'Uthibitishaji wa ujuzi', body: 'Uthibitisho uliopimwa wa kazi, ili muuzaji anayeweza kuonyesha rekodi halisi ya uwasilishaji ainue alama yake ya ulinganishaji wa ujuzi. Ushahidi unabaki tofauti na sifa, hivyo kuthibitisha ujuzi hakufichi kamwe rekodi hafifu.' },
     },
     faq: {
@@ -5046,7 +5046,7 @@ export const sw: Messages = {
       q7: { q: 'Itakuwaje wakala wa muuzaji akiruka ombi langu lililolinganishwa na wakala?', a: 'Wasifu wa muuzaji una upeo wa bajeti na tarehe ya mwisho. Ikiwa ombi lako liko nje yake, wakala anaruka na ratiba inakuonyesha kwa nini. Ikiwa wakala hana uhakika kwa sababu nyingine yoyote, hilo pia linakaguliwa, hivyo hatua inayofuata haiwi kimya kamwe.' },
       q8: { q: 'Inahudumia korido zipi?', a: "Karwan ni ya biashara ya bidhaa na huduma ndani ya nchi na kuvuka mipaka. Alika upande unaoujua au chapisha ombi au ofa ili kupata mshirika. Njia zote mbili hutumia escrow ya USDC kwenye Arc." },
       q9: { q: 'Mawazo ya wakala yanafanyika wapi?', a: 'Kila uamuzi unaogusa fedha unashughulikiwa na seti ya kanuni za uhakika nyuma: mipaka ya bajeti na tarehe ya mwisho, ulinganisho wa mada, mahitaji ya dhamana, hesabu ya kuhifadhi. Mfano wa lugha hushughulikia tu sehemu zinazohitaji hukumu, kama vile kama maelezo mawili ya ujuzi yasiyofanana yanaelezea kazi ile ile, au jinsi ya kuandika kaunta. Ikiwa mfano wa lugha unazimika, wakala unaendelea kufanya kazi kupitia njia zake za uhakika za salama.' },
-      q10: { q: 'Karwan inawezaje kuweka uwasilishaji salama?', a: 'Kazi mara nyingi hukabidhiwa kama kiungo, kwa hivyo SecurityAgent huchanganua kila uthibitisho wa uwasilishaji kabla hujaufungua, na hulinda gumzo la ndani ili kiungo cha udanganyifu au programu hasidi kisitumwe kwako. Kiungo kilichoonywa husitisha utoaji wa kiotomatiki wa biashara, huarifu pande zote mbili, na huwaelekeza kukitatua pamoja kwenye gumzo. Kiungo kibaya kilichothibitishwa huathiri sana sifa ya mtumaji. Uwasilishaji unapokuwa faili, hushirikiwa kupitia kiungo ambacho wakala anaweza kukagua badala ya kiambatisho kisichothibitishwa.' },
+      q10: { q: 'Karwan inawezaje kuweka uwasilishaji salama?', a: "Ukaguzi unaweza kuashiria viungo vinavyotia shaka, lakini hauhakikishi usalama au ubora. Kagua kazi kabla ya kutoa malipo. Ukaguzi ukizuia uwasilishaji, tumia hatua ya kukagua au msaada iliyo kwenye mkataba." },
     },
     videoGuides: { eyebrow: 'Miongozo ya video', title: 'Itazame ikifanya kazi', body: 'Video fupi za kila mtiririko zinakuja. Wakati zinaandaliwa, ziara ya ndani ya programu inakuongoza hatua kwa hatua kwenye kila ukurasa. Ifungue kutoka kitufe cha Ziara chini ya skrini.', badge: 'Inakuja hivi karibuni' },
     cta: { title: "Fanya biashara yako ijayo kwenye Karwan", body: "Kubalianeni masharti, weka USDC kwenye escrow na fuatilia kila hatua hadi malipo yakamilike.", button: 'Zindua programu', chainPrefix: 'chenya' },
@@ -5063,7 +5063,7 @@ export const sw: Messages = {
     eyebrow: 'MASHARTI',
     headlineLead: 'Kile unachojiandikisha',
     headlineAccent: 'kupata',
-    intro: 'Bidhaa iko kwenye testnet leo. Masharti yanafunika muundo wa kazi, hatari za malipo ya stablecoin, na tunachofanya na data yako. Soma mara moja, saini mara moja.',
+    intro: "Masharti haya yanaeleza huduma za Karwan, mamlaka ya pochi, kanuni za malipo na hatari. Mtandao mkuu hutumia fedha halisi; mtandao wa majaribio hutumia fedha zisizo na thamani ya fedha. Vipengele vinatofautiana. Soma masharti kabla ya kukubali.",
     preamble: 'Masharti haya yanaeleza jinsi Karwan inavyofanya kazi, tunachofanya na fedha zako, na kila upande unawajibika na nini. Kuingia, kuchapisha ombi, kufungua deal, au kuweka stake kunamaanisha unayakubali. Chukua muda kuyasoma.',
     s1: {
       title: '1. Karwan inatoa nini',
@@ -5254,8 +5254,8 @@ export const sw: Messages = {
       errorTag: 'KOSA LA KAZI',
       notFoundHeadline: 'Hatukuweza kupata ombi hili',
       errorHeadline: 'Imeshindwa kupakia kazi hii',
-      notFoundBody: 'Seva haina rekodi ya jobId hii. Ikiwa umetuma sasa hivi, mpe wakala wa mnunuzi sekunde chache zaidi kupokea tukio la mnyororo na jaribu kurefresha. Ikibaki imekosekana, kitambulisho kinaweza kuwa kibaya.',
-      errorBody: 'Kitambulisho cha kazi kinaweza kuwa kibaya, au seva haijakiona bado.',
+      notFoundBody: "Ombi hili halijapatikana. Ikiwa umelichapisha sasa, subiri kisha pakia upya. Vinginevyo, angalia kiungo.",
+      errorBody: "Ombi halijapakiwa. Pakia ukurasa upya au angalia kiungo.",
       backCta: 'Rudi kwa dawati la mnunuzi',
       activityCta: 'Tazama shughuli →',
     },
@@ -5670,7 +5670,7 @@ export const sw: Messages = {
         passkeyEmailInUse: 'Barua pepe hii tayari ina akaunti. Ingia kwa passkey yake.',
         passkeyEmailExpired: 'Uthibitisho wa barua pepe yako umeisha muda. Tuma msimbo mpya.',
         or: 'AU',
-        emailNotConfigured: 'Kuingia kwa barua pepe hakijasanidiwa kwenye seva hii.',
+        emailNotConfigured: "Kuingia kwa barua pepe hakupatikani. Tumia njia nyingine au ujaribu baadaye.",
       },
       enterEmail: {
         label: 'Barua pepe',

@@ -761,10 +761,6 @@ export function StakeCard() {
       {vaultDeployed === false && (
         <Note tone="info">
           {sc.vaultNotDeployed.prefix}
-          {' '}<code className="mono text-[11px]">KARWAN_VAULT_ADDR</code>{' '}
-          {sc.vaultNotDeployed.middle}
-          {' '}<code className="mono text-[11px]">.env</code>{' '}
-          {sc.vaultNotDeployed.suffix}
         </Note>
       )}
 
