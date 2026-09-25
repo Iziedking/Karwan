@@ -30,6 +30,8 @@ import {KarwanDealEscrow} from "../src/KarwanDealEscrow.sol";
 ///   FEE_BPS              platform fee, at most 1000
 ///   DEAL_CAP, TOTAL_CAP, HIGH_VALUE   USDC 6-decimal caps for the guarded beta
 ///   USYC_TELLER, USYC_TOKEN, USYC_ORACLE, USYC_PRICE_DECIMALS   (optional; all or none)
+///   BOUNDS_*             (optional, testnet only) override one escrow bound,
+///                        in seconds or bps; see boundsFromEnv
 contract DeploySuite is Script {
     struct Config {
         address usdc;
@@ -70,6 +72,37 @@ contract DeploySuite is Script {
         });
     }
 
+    string[7] internal BOUND_VARS = [
+        "BOUNDS_MAX_RESERVATION_BPS",
+        "BOUNDS_MIN_REVIEW",
+        "BOUNDS_MAX_REVIEW",
+        "BOUNDS_MAX_HORIZON",
+        "BOUNDS_DISPUTE_TIMEOUT",
+        "BOUNDS_APPEAL_WINDOW",
+        "BOUNDS_AUTO_RULING_SLA"
+    ];
+
+    /// @notice The escrow's immutable bounds: the mainnet defaults, or env
+    ///         overrides for testnet rehearsals (for example a 60-second
+    ///         minimum review). Overrides are refused on Arc mainnet so short
+    ///         test clocks can never reach a deployment that holds real money.
+    function boundsFromEnv() public view returns (KarwanDealEscrow.Bounds memory b) {
+        b = defaultBounds();
+        bool overridden;
+        for (uint256 i = 0; i < BOUND_VARS.length; i++) {
+            if (vm.envExists(BOUND_VARS[i])) overridden = true;
+        }
+        if (!overridden) return b;
+        require(block.chainid != 5042, "DeploySuite: bound overrides are testnet-only");
+        b.maxReservationBps = uint16(vm.envOr(BOUND_VARS[0], uint256(b.maxReservationBps)));
+        b.minReview = uint64(vm.envOr(BOUND_VARS[1], uint256(b.minReview)));
+        b.maxReview = uint64(vm.envOr(BOUND_VARS[2], uint256(b.maxReview)));
+        b.maxHorizon = uint64(vm.envOr(BOUND_VARS[3], uint256(b.maxHorizon)));
+        b.disputeTimeout = uint64(vm.envOr(BOUND_VARS[4], uint256(b.disputeTimeout)));
+        b.appealWindow = uint64(vm.envOr(BOUND_VARS[5], uint256(b.appealWindow)));
+        b.autoRulingSla = uint64(vm.envOr(BOUND_VARS[6], uint256(b.autoRulingSla)));
+    }
+
     function run() external returns (Suite memory s) {
         Config memory c = Config({
             usdc: vm.envAddress("USDC_ADDR"),
@@ -88,7 +121,7 @@ contract DeploySuite is Script {
             usyc: vm.envOr("USYC_TOKEN", address(0)),
             oracle: vm.envOr("USYC_ORACLE", address(0)),
             priceDecimals: uint8(vm.envOr("USYC_PRICE_DECIMALS", uint256(8))),
-            bounds: defaultBounds()
+            bounds: boundsFromEnv()
         });
         vm.startBroadcast();
         s = deploy(c, msg.sender);

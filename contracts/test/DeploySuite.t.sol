@@ -145,4 +145,22 @@ contract DeploySuiteTest is Test {
         s.escrow.fund(keccak256("big"), t);
         vm.stopPrank();
     }
+
+    function test_TestnetRehearsalsCanShortenTheBounds() public {
+        vm.chainId(5042002);
+        vm.setEnv("BOUNDS_MIN_REVIEW", "60");
+        vm.setEnv("BOUNDS_APPEAL_WINDOW", "600");
+        DeploySuite fresh = new DeploySuite();
+        assertEq(fresh.boundsFromEnv().minReview, 60);
+        assertEq(fresh.boundsFromEnv().appealWindow, 600);
+        assertEq(fresh.boundsFromEnv().maxReview, fresh.defaultBounds().maxReview, "unset bounds keep the default");
+    }
+
+    function test_BoundOverridesAreRefusedOnMainnet() public {
+        vm.chainId(5042);
+        vm.setEnv("BOUNDS_MIN_REVIEW", "60");
+        DeploySuite fresh = new DeploySuite();
+        vm.expectRevert(bytes("DeploySuite: bound overrides are testnet-only"));
+        fresh.boundsFromEnv();
+    }
 }
