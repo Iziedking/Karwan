@@ -1,0 +1,15 @@
+{
+  "block": 22658526,
+  "businessRegistry": "0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF",
+  "businessRegistryCodehash": "0x576379622df310692c6b8d646de9939b54ed0401fa75e88058219a5d92bf18bb",
+  "businessRegistryOwner": "0x489C6367E2e943A3cC017589f73cAA8A80d7D028",
+  "businessReviewer": "0x489C6367E2e943A3cC017589f73cAA8A80d7D028",
+  "chainId": 5042,
+  "financeSigner": "0x0000000000000000000000000000000000000000",
+  "reputation": "0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D",
+  "reputationBackfillLocked": true,
+  "reputationCodehash": "0x8ab219b37a54ea2baf44a3d8dd0d1a06628bfac29537349f8d01a028ff8c39e4",
+  "reputationPendingOwner": "0x489C6367E2e943A3cC017589f73cAA8A80d7D028",
+  "securityAgentSigner": "0x0000000000000000000000000000000000000000",
+  "securityCouncil": "0x489C6367E2e943A3cC017589f73cAA8A80d7D028"
+}

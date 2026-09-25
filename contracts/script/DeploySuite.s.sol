@@ -19,6 +19,7 @@ import {KarwanDealEscrow} from "../src/KarwanDealEscrow.sol";
 ///         are not part of this script.
 ///
 /// Env (all required unless marked):
+///   EXPECTED_CHAIN_ID    5042002 for a testnet rehearsal, 5042 for Arc mainnet
 ///   USDC_ADDR            Arc USDC ERC-20 interface (0x3600…0000 on mainnet and testnet)
 ///   SUITE_OWNER          timelock that will own every contract
 ///   FEE_SAFE             receives fees and swept yield; backstops the pool
@@ -104,6 +105,10 @@ contract DeploySuite is Script {
     }
 
     function run() external returns (Suite memory s) {
+        // Testnet rehearsals and the mainnet deploy use the same script; the
+        // chain must be named explicitly so one can never land on the other.
+        uint256 expected = vm.envUint("EXPECTED_CHAIN_ID");
+        require(block.chainid == expected, "DeploySuite: connected to the wrong chain");
         Config memory c = Config({
             usdc: vm.envAddress("USDC_ADDR"),
             owner: vm.envAddress("SUITE_OWNER"),

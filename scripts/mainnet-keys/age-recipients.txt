@@ -1,0 +1,6 @@
+# Public keys only. The matching private keys are held offline by the owner.
+# Same two keys that protect the nightly mainnet database backups.
+# karwan mainnet backup key 1
+age1v2apw3n7r33yxa2ca30zz0uehvsfwgw5kf2y3ukp399pd23yteaqqw9rjm
+# karwan mainnet backup key 2
+age17w6gf52epws9jpvtfnd739mkfkp72nyw6r980dmmtgjp6453uf2q36kxnr

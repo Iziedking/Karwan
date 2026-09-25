@@ -129,6 +129,18 @@ cd contracts && forge test
 | `contracts/` | Foundry project for the Arc contracts and their deploy scripts. |
 | `docs/` | Architecture, reputation model, Circle integration, and the platform terms. |
 
+## Contracts on Arc mainnet (chain 5042)
+
+Deployed 25 September 2026. Neither holds funds. Both are owned by a 2-of-3 Safe, and Reputation's backfill is locked, so no key can write scores directly.
+
+| Contract | Address |
+|---|---|
+| KarwanReputation | `0xa8E41F941b44CA091E3Ab7b600fe1484838aE27D` |
+| KarwanBusinessRegistry | `0x69eA60B6EFd13A126Eb00d25aB0f21A4AfC636eF` |
+| Owner Safe (2 of 3) | `0x489C6367E2e943A3cC017589f73cAA8A80d7D028` |
+
+The contracts that hold USDC (escrow, deal board, stake vault, yield pool) are rehearsed on testnet first and deploy to mainnet by 25 October 2026. The deployment record, with code hashes anyone can check against the source, is in `contracts/deployments/registries-5042.json`.
+
 ## Contracts on Arc Testnet (chain 5042002)
 
 | Contract | Address |
