@@ -1,6 +1,6 @@
 # Architecture
 
-Last reviewed: 2026-09-09
+Last reviewed: 2026-09-25
 
 Karwan is an open market for local and cross-border trade. The current build
 uses one person identity, one login, and optional workspaces under that
@@ -34,6 +34,11 @@ workspace without creating another account.
   inform policy; they do not become a second escrow ledger or payment authority.
 
 ![Karwan architecture](./diagrams/architecture.svg)
+
+Every diagram on this page uses the same key. A plain box is live on Arc
+Testnet. A box with an accent bar is written and tested for the mainnet stage
+named on it, and is not live yet. A dashed box is planned, or built but not yet
+exercised live, as its label says.
 
 ## Identity, workspaces, and money
 
@@ -99,12 +104,29 @@ agree (milestones, delivery date, review time, extra review time, final-payment
 rule, and what happens if someone goes quiet) are stored in the contract at
 funding, and the seller confirms the same terms on chain. Disputes are ruled
 automatically with an appeal window, and escalate to admin review, where one of
-four named reviewers signs the final ruling. Admins can only split a disputed
+four named reviewers signs the final ruling (two of the four at or above the
+high-value line). Admins can only split a disputed
 amount between that deal's own parties, and a pause never blocks an exit.
 
 This design is in review and not live. The full design, including roles,
 clocks, invariants and how it is verified, is in
 [escrow-design.md](./escrow-design.md).
+
+![Deal lifecycle](./diagrams/deal-lifecycle.svg)
+
+The top row is the normal path. Each exit below it needs only the two parties
+and time, so no deal can leave money waiting forever. The dispute row is the
+tiered path: an automatic ruling, an appeal window, then admin review, or a
+lapse back to where the deal stood if nobody acts.
+
+## Who holds what
+
+![Who holds what](./diagrams/trust-boundaries.svg)
+
+Users sign for their own wallets. Agent wallets act only inside the budget the
+user set. Deal money sits in the escrow contract, and the admin and guardian
+roles are bounded by the contract: they can split an escalated dispute between
+its two parties or hold a delivery for a limited time, never pay anyone else.
 
 ## Agent boundary
 
@@ -121,6 +143,12 @@ The backend keeps agent work on a deterministic path:
 5. Ask for human approval for a consequential action.
 6. Execute an idempotent command and reconcile the provider result.
 7. Persist the result and publish the ordered activity event.
+
+![Agents: find, negotiate, check](./diagrams/agent-matching.svg)
+
+Offers are ranked by skill match first; reputation only breaks ties. A seller
+accepts the match and the buyer approves any raise above the agreed price.
+Paid research through x402 is built but has not been exercised live.
 
 The full reliability boundary is documented in
 [agent-workflows.md](./agent-workflows.md). Rollout flags remain default-off
@@ -160,6 +188,13 @@ environment, so testnet balances and receipts must be labeled accordingly.
 Operational agent wallets may act in bounded background jobs where the user
 has authorized that role. They are not an additional customer account and do
 not replace the approval boundary for funding or settlement.
+
+![Money movement](./diagrams/money-movement.svg)
+
+Every money move follows the same five steps: record the intent, submit once,
+confirm that the receipt and contract state agree, reconcile an unclear outcome
+by looking it up rather than resending, and show a plain receipt. Local bank
+and mobile money payout is planned through regulated partners.
 
 ## Business workspace
 
