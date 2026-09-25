@@ -580,6 +580,19 @@ const envSchema = z.object({
   // the mutual-cancel handshake instead of the (now pre-accept-only) refund.
   ESCROW_V2B_ENABLED: envBool('ESCROW_V2B_ENABLED'),
 
+  // KarwanDealEscrow (v3) suite, testnet first (audit/DEAL_ESCROW_V3_INTEGRATION.md).
+  // The flag only decides where NEW deals are funded: a deal row records its own
+  // escrow version, so deals already open on either escrow finish where they
+  // started whatever this is set to.
+  DEAL_ESCROW_V3_ENABLED: envBool('DEAL_ESCROW_V3_ENABLED'),
+  KARWAN_DEAL_ESCROW_ADDR: optionalAddr,
+  KARWAN_STAKE_VAULT_ADDR: optionalAddr,
+  KARWAN_REPUTATION_V3_ADDR: optionalAddr,
+  KARWAN_YIELD_POOL_ADDR: optionalAddr,
+  // Circle wallet id of the automatic arbiter: the only key that may call
+  // proposeRuling. Separate from the guardian and from the admin review Safe.
+  AUTO_ARBITER_WALLET_ID: optionalString,
+
   // --- Paytag (@handle counterparties) ---
   // Lets a P2P buyer name their counterparty by Paytag handle instead of an
   // email or a raw address. P2P ONLY: the finance lane (SME) still requires a
