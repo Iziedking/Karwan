@@ -2,6 +2,7 @@
 import { useBalance } from 'wagmi';
 import { SOURCE_CHAINS } from '@/features/bridge/config';
 import { arcChain } from '@/core/wagmi';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 import type { ChainKey } from '@/shared/components/ChainLogo';
 
 // Arc (settlement) first, then the CCTP source chains a backend wallet can sign
@@ -29,7 +30,10 @@ export const ROW_KEYS: RowKey[] = [
   'unichainSepolia',
 ];
 
-export const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> = {
+/// The row keys keep their testnet names (stored bridge rows use them), but on
+/// Arc mainnet SOURCE_CHAINS maps each to the mainnet chain, so the label must
+/// follow the network, not the key.
+const TESTNET_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> = {
   arc: { name: 'Arc', sub: 'Testnet', key: 'arc' },
   baseSepolia: { name: 'Base', sub: 'Sepolia', key: 'baseSepolia' },
   sepolia: { name: 'Ethereum', sub: 'Sepolia', key: 'sepolia' },
@@ -39,6 +43,13 @@ export const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainK
   avalancheFuji: { name: 'Avalanche', sub: 'Fuji', key: 'avalancheFuji' },
   unichainSepolia: { name: 'Unichain', sub: 'Sepolia', key: 'unichainSepolia' },
 };
+
+export const CHAIN_META: Record<RowKey, { name: string; sub: string; key: ChainKey }> =
+  ARC_NETWORK === 'mainnet'
+    ? (Object.fromEntries(
+        Object.entries(TESTNET_META).map(([k, m]) => [k, { ...m, sub: 'Mainnet' }]),
+      ) as Record<RowKey, { name: string; sub: string; key: ChainKey }>)
+    : TESTNET_META;
 
 /// Arc is a safety net behind SSE invalidation, so 30s; the source chains only
 /// change when the person moves money on another chain, so a minute.

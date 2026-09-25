@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { ARC_NETWORK } from '@/core/arcNetwork';
+import { dealsAvailableOn } from '@/shared/utils/routes';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
@@ -82,6 +84,9 @@ type ProfilePanel = {
   content: React.ReactNode;
 };
 
+
+/// Trade agents exist only where deals run (not on Arc mainnet before the escrow ships).
+const AGENTS_AVAILABLE = dealsAvailableOn(ARC_NETWORK);
 export default function ProfilePage() {
   const t = useTranslations().profile;
   return (
@@ -174,32 +179,34 @@ function ProfilePageInner() {
 
         {/* Step 01 stays visible after activation so users can still read the
             desk state; only the corrective action decays. */}
-        <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <div className="min-w-0">
-              <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
-                {t.agentStatus.eyebrow}
-              </p>
-              <p className="mt-1.5 max-w-[58ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                {activation.loading
-                  ? t.agentStatus.checking
-                  : activation.activated
-                    ? `${t.agentStatus.buyerFallback} / ${t.agentStatus.sellerFallback} · ${t.agentStatus.walletsLive}`
-                    : t.activation.inactiveBody}
-              </p>
-            </div>
-            <div className="flex min-h-11 items-center sm:justify-end">
-              {!activation.loading && !activation.activated ? (
-                <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
-              ) : !activation.loading ? (
-                <span className="mono inline-flex min-h-11 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent-deep)]">
-                  <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
-                  {t.agentStatus.walletsLive}
-                </span>
-              ) : null}
+        {AGENTS_AVAILABLE && (
+          <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="min-w-0">
+                <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
+                  {t.agentStatus.eyebrow}
+                </p>
+                <p className="mt-1.5 max-w-[58ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+                  {activation.loading
+                    ? t.agentStatus.checking
+                    : activation.activated
+                      ? `${t.agentStatus.buyerFallback} / ${t.agentStatus.sellerFallback} · ${t.agentStatus.walletsLive}`
+                      : t.activation.inactiveBody}
+                </p>
+              </div>
+              <div className="flex min-h-11 items-center sm:justify-end">
+                {!activation.loading && !activation.activated ? (
+                  <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
+                ) : !activation.loading ? (
+                  <span className="mono inline-flex min-h-11 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent-deep)]">
+                    <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
+                    {t.agentStatus.walletsLive}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Business setup is the first required action for a business workspace.
             Keep it above agent preferences and company trade details so the

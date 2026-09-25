@@ -34,3 +34,9 @@ test('the unselected journey never skips the individual role decision', () => {
   assert.equal(stepAfterAuthentication(null), 'role');
   assert.deepEqual(onboardingProgress('accountType', null), { current: 1, total: 5 });
 });
+
+test('where deals are not live, the journey ends at the profile', () => {
+  assert.deepEqual(onboardingJourney('person', false), ['accountType', 'connect', 'role', 'profile']);
+  assert.deepEqual(onboardingJourney('business', false), ['accountType', 'connect', 'profile']);
+  assert.deepEqual(onboardingProgress('profile', 'person', false), { current: 4, total: 4 });
+});

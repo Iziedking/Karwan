@@ -23,6 +23,8 @@ import {
   CTAPill,
 } from '@/shared/components/Bands';
 import { cn } from '@/shared/utils/cn';
+import { ARC_NETWORK } from '@/core/arcNetwork';
+import { WALLET_HOME, dealsAvailableOn } from '@/shared/utils/routes';
 import { AccountKindIcon } from '@/features/account/AccountKindIcon';
 import {
   onboardingProgress,
@@ -51,6 +53,9 @@ const ONBOARDING_FIELD_CLASS =
 // when the page is statically prerendered. Wrapping the inner component
 // satisfies that. The fallback is the same dark band we'd render once the
 // search params resolve, so the transition is invisible.
+
+/// Trade agents exist only where deals run (not on Arc mainnet before the escrow ships).
+const AGENTS_AVAILABLE = dealsAvailableOn(ARC_NETWORK);
 export default function OnboardingPage() {
   return (
     <Suspense fallback={<OnboardingShell />}>
@@ -336,8 +341,12 @@ function OnboardingInner() {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('karwan:profile-saved'));
       }
-      // Profile saved. Hand off to workspace setup, then route onward to the
-      // app or the business verification page.
+      // Profile saved. Where deals run, hand off to agent activation; where
+      // they do not yet, there are no agents to activate, so go to the app.
+      if (!AGENTS_AVAILABLE) {
+        router.push(WALLET_HOME);
+        return;
+      }
       setStep('getReady');
       setSubmitting(false);
     } catch {
@@ -348,7 +357,7 @@ function OnboardingInner() {
     }
   }
 
-  const { current: stepN, total: totalSteps } = onboardingProgress(step, accountType);
+  const { current: stepN, total: totalSteps } = onboardingProgress(step, accountType, AGENTS_AVAILABLE);
 
   // Hold the body until the profile check resolves. Returning users with a
   // cached wallet would otherwise see the language step flash before the
@@ -563,7 +572,7 @@ function OnboardingInner() {
             />
           )}
 
-          {step === 'getReady' && address && (
+          {step === 'getReady' && AGENTS_AVAILABLE && address && (
             <GetReadyStep
               onDone={() => router.push('/app')}
             />

@@ -17,21 +17,27 @@ export type OnboardingAccountKind = 'person' | 'business' | null;
  * progress, browser Back handling, and automatic sign-in transitions from
  * drifting into three different versions of the journey.
  */
+///
+/// `withAgents` is false where deals are not live (Arc mainnet before the
+/// escrow ships): there are no trade agents to activate, so the journey ends at
+/// the profile.
 export function onboardingJourney(
   accountKind: OnboardingAccountKind,
+  withAgents = true,
 ): readonly OnboardingStep[] {
-  if (accountKind === 'business') {
-    return ['accountType', 'connect', 'profile', 'getReady'];
-  }
-
-  return ['accountType', 'connect', 'role', 'profile', 'getReady'];
+  const steps: OnboardingStep[] =
+    accountKind === 'business'
+      ? ['accountType', 'connect', 'profile', 'getReady']
+      : ['accountType', 'connect', 'role', 'profile', 'getReady'];
+  return withAgents ? steps : steps.filter((s) => s !== 'getReady');
 }
 
 export function onboardingProgress(
   step: OnboardingStep,
   accountKind: OnboardingAccountKind,
+  withAgents = true,
 ): { current: number; total: number } {
-  const journey = onboardingJourney(accountKind);
+  const journey = onboardingJourney(accountKind, withAgents);
   const index = journey.indexOf(step);
   return {
     current: index >= 0 ? index + 1 : 1,
