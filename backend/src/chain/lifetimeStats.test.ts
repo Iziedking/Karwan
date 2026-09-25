@@ -458,3 +458,72 @@ test('v3 exits: a reclaim or cancel is refunded, a split goes to both sides', ()
   assert.equal(row.refundedUsdc, (475n * ONE).toString());
   assert.equal(row.settledUsdc, (25n * ONE).toString());
 });
+
+// ------------------------------ daily series ------------------------------
+
+const { applyWindow, dayResolverFromTimes } = await import('./lifetimeStats.js');
+const { encodeAbiParameters, encodeEventTopics } = await import('viem');
+const { dealEscrowV3Abi } = await import('./abis/dealEscrowV3.js');
+
+function dealFunded(address: string, block: bigint, tx: string, amount: bigint) {
+  const topics = encodeEventTopics({
+    abi: dealEscrowV3Abi,
+    eventName: 'DealFunded',
+    args: { jobId: `0x${'11'.repeat(32)}`, buyer: `0x${'22'.repeat(20)}`, seller: `0x${'33'.repeat(20)}` },
+  });
+  const data = encodeAbiParameters(
+    [{ type: 'uint256' }, { type: 'uint256' }, { type: 'bytes32' }],
+    [amount, amount, `0x${'44'.repeat(32)}`],
+  );
+  return { address, blockNumber: block, transactionHash: tx, topics: topics as string[], data };
+}
+
+test('a day boundary inside a scan window is placed by interpolating the edge timestamps', () => {
+  // 1000 blocks from 23:00 to 01:00 UTC: the midpoint is midnight.
+  const t0 = Date.UTC(2026, 8, 24, 23) / 1000;
+  const dayOf = dayResolverFromTimes(0n, 1000n, t0, t0 + 7200);
+  assert.equal(dayOf(0n), '2026-09-24');
+  assert.equal(dayOf(499n), '2026-09-24');
+  assert.equal(dayOf(501n), '2026-09-25');
+});
+
+test('a sweep adds to totals and days; a backfill adds to days only', () => {
+  const row = emptyContract(ESCROW);
+  const acc = { cursor: '0', perContract: { [ESCROW.address.toLowerCase()]: row }, transactions: 0, scannedAt: 0, days: {} } as never as import('./lifetimeStats.js').Acc;
+  const dayOf = () => '2026-09-25';
+  const logs = [dealFunded(ESCROW.address, 10n, '0xaa', 5n * ONE), dealFunded(ESCROW.address, 11n, '0xaa', 3n * ONE)];
+  applyWindow(acc, logs as never, { totals: true, dayOf, dayFilter: () => true });
+  assert.equal(row.deals, 2);
+  assert.equal(acc.transactions, 1, 'two logs in one transaction count once');
+  assert.equal(acc.days!['2026-09-25']!.deals, 2);
+  assert.equal(acc.days!['2026-09-25']!.transactions, 1);
+
+  applyWindow(acc, [dealFunded(ESCROW.address, 5n, '0xbb', 2n * ONE)] as never, { totals: false, dayOf: () => '2026-09-20', dayFilter: () => true });
+  assert.equal(row.deals, 2, 'backfill never touches the totals');
+  assert.equal(acc.transactions, 1);
+  assert.equal(acc.days!['2026-09-20']!.fundedUsdc, (2n * ONE).toString());
+});
+
+test('days outside the pass filter are left for the pass that owns them', () => {
+  const row = emptyContract(ESCROW);
+  const acc = { cursor: '0', perContract: { [ESCROW.address.toLowerCase()]: row }, transactions: 0, scannedAt: 0, days: {} } as never as import('./lifetimeStats.js').Acc;
+  applyWindow(acc, [dealFunded(ESCROW.address, 5n, '0xcc', ONE)] as never, { totals: true, dayOf: () => '2026-09-01', dayFilter: (b) => b >= 100n });
+  assert.equal(row.deals, 1);
+  assert.deepEqual(acc.days, {});
+});
+
+test('the projection reports the series and how much history is indexed', () => {
+  const acc = {
+    cursor: '1000',
+    perContract: {},
+    transactions: 0,
+    scannedAt: 0,
+    days: {},
+    seriesFrom: (BigInt(ESCROW.deployBlock) + 1000n).toString(),
+    seriesCursor: (BigInt(ESCROW.deployBlock) - 1n).toString(),
+  } as never as import('./lifetimeStats.js').Acc;
+  const p = projectFromAcc(acc, 1000n);
+  assert.equal(p.series.complete, false);
+  assert.ok(p.series.indexedShare >= 0 && p.series.indexedShare < 1);
+  assert.equal(p.network.testnet, true);
+});

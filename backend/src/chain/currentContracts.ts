@@ -3,7 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { erc20Abi, formatUnits } from 'viem';
 import { eq } from 'drizzle-orm';
 import { publicClient } from './client.js';
-import { DEPLOY_LEDGER, type ContractKind } from './deployLedger.js';
+import { type ContractKind } from './deployLedger.js';
+import { currentLedger } from './ledgerRegistry.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { db, pgEnabled } from '../db/client.js';
@@ -79,7 +80,7 @@ export interface CurrentContractsSnapshot {
 /// `holdsUsdc` is declared rather than inferred. Calling balanceOf on a
 /// registry would return a real and truthful zero, and a zero rendered beside
 /// the vault's balance reads as "empty" rather than "not applicable".
-function configuredContracts(): Array<{
+export function configuredContracts(): Array<{
   name: string;
   kind: ContractKind;
   address: string | undefined;
@@ -101,7 +102,7 @@ function configuredContracts(): Array<{
     { name: 'KarwanDealEscrow', kind: 'settlement', address: config.KARWAN_DEAL_ESCROW_ADDR, holdsUsdc: true },
     { name: 'KarwanStakeVault', kind: 'staking', address: config.KARWAN_STAKE_VAULT_ADDR, holdsUsdc: true },
     { name: 'KarwanYieldPool', kind: 'treasury', address: config.KARWAN_YIELD_POOL_ADDR, holdsUsdc: true },
-    { name: 'KarwanReputation v3', kind: 'registry', address: config.KARWAN_REPUTATION_V3_ADDR, holdsUsdc: false },
+    { name: 'KarwanReputation', kind: 'registry', address: config.KARWAN_REPUTATION_V3_ADDR, holdsUsdc: false },
   ];
 }
 
@@ -119,7 +120,7 @@ async function readOne(
 ): Promise<CurrentContract> {
   const address = entry.address.toLowerCase() as `0x${string}`;
 
-  const ledgerRows = DEPLOY_LEDGER.filter((c) => c.name === entry.name);
+  const ledgerRows = (await currentLedger()).filter((c) => c.name === entry.name);
   const mine = ledgerRows.find((c) => c.address.toLowerCase() === address);
   // Every deployment of this contract that landed before the live one. Counted
   // from the ledger rather than from the array length, so an address the ledger

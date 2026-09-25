@@ -2,7 +2,9 @@ import { resolve, dirname } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createPublicClient, decodeEventLog, fallback, formatUnits, http } from 'viem';
 import { eq } from 'drizzle-orm';
-import { arcChain, publicClient, RPC_URLS, type PublicClient } from './client.js';
+import { ARC, arcChain, publicClient, RPC_URLS, type PublicClient } from './client.js';
+import { currentLedger, discoverConfigured, retirement, type LedgerEntry } from './ledgerRegistry.js';
+import { configuredContracts } from './currentContracts.js';
 import { escrowAbi } from './abis/escrow.js';
 import { escrowV2Abi } from './abis/escrowV2.js';
 import { dealEscrowV3Abi } from './abis/dealEscrowV3.js';
@@ -177,6 +179,11 @@ export interface ContractLifetime {
   yieldUsdc: string;
   firstActivityBlock: string | null;
   lastActivityBlock: string | null;
+  /// Whether the running deployment still uses this contract, and which
+  /// version of its contract name it is by deploy order. Set in the projection.
+  status?: 'live' | 'retired';
+  version?: number;
+  of?: number;
 }
 
 /// Money and counts, rolled up. Used for the whole-platform totals and again
@@ -207,7 +214,20 @@ export interface KindRollup {
   volumes: LifetimeVolumes;
 }
 
+export interface LifetimeDay extends LifetimeVolumes {
+  /// UTC date, YYYY-MM-DD.
+  day: string;
+  deals: number;
+  jobsPosted: number;
+  transactions: number;
+  financings: number;
+}
+
 export interface LifetimeStats {
+  network: { chainId: number; name: string; testnet: boolean };
+  /// Activity per UTC day since the first contract. `complete` is false while
+  /// the days before the series existed are still being indexed.
+  series: { days: LifetimeDay[]; complete: boolean; indexedShare: number };
   /// Earliest deploy block across the whole ledger: literally day one.
   fromBlock: string;
   toBlock: string;
@@ -255,13 +275,27 @@ export interface LifetimeStats {
 /// So the snapshot carries the list it was built from, and a snapshot built
 /// from a different list is refused rather than resumed. Refusing is a 503 and
 /// a re-seed, which is loud. The alternative is a wrong number nobody catches.
+/// The generated testnet history. It describes Arc testnet only, so any other
+/// network starts from an empty ledger and fills it by discovery.
+const STATIC_LEDGER: LedgerEntry[] =
+  ARC.chainId === 5042002
+    ? DEPLOY_LEDGER.map((c) => ({ ...c, address: c.address as `0x${string}`, source: 'static' as const }))
+    : [];
+
+/// Fingerprint of the GENERATED part only. Contracts discovered at runtime are
+/// caught up individually (see catchUpDiscovered), so adding one never throws
+/// the whole snapshot away.
 export const LEDGER_FINGERPRINT = (() => {
   let hash = 7;
-  for (const c of DEPLOY_LEDGER) {
+  for (const c of STATIC_LEDGER) {
     for (const ch of c.address) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   }
-  return `${DEPLOY_LEDGER.length}:${hash.toString(16)}`;
+  return `${STATIC_LEDGER.length}:${hash.toString(16)}`;
 })();
+
+/// Every contract the scan covers: generated history plus runtime discoveries.
+/// Replaced from ledgerRegistry at the start of each sweep.
+let ledger: LedgerEntry[] = STATIC_LEDGER;
 
 export interface Acc {
   /// The ledger this accumulator was built against. See LEDGER_FINGERPRINT.
@@ -278,6 +312,21 @@ export interface Acc {
   perContract: Record<string, ContractLifetime>;
   transactions: number;
   scannedAt: number;
+  /// Activity per UTC day, in base units. Recorded as windows are swept from
+  /// `seriesFrom` on; days before that are filled by the backfill, which walks
+  /// `seriesCursor` up to seriesFrom - 1 without touching the totals.
+  days?: Record<string, DayRow>;
+  seriesFrom?: string;
+  seriesCursor?: string;
+}
+
+export type DayRow = ContractLifetime & { transactions: number };
+
+function emptyDay(): DayRow {
+  return {
+    ...emptyContract({ name: 'KarwanEscrow', kind: 'settlement', address: '0x', deployBlock: 0n } as DeployedContract),
+    transactions: 0,
+  };
 }
 
 let cached: { value: LifetimeStats; builtAt: number } | null = null;
@@ -503,7 +552,6 @@ interface RawLog {
   data: string;
 }
 
-const ALL_ADDRESSES = DEPLOY_LEDGER.map((c) => c.address);
 
 /// The addresses worth asking about for a window ending at `toBlock`, split
 /// into groups the RPC will accept.
@@ -513,8 +561,10 @@ const ALL_ADDRESSES = DEPLOY_LEDGER.map((c) => c.address);
 /// contracts that existed then: the first few million blocks are one request
 /// per window rather than four. And the groups keep every call under the
 /// measured address cap.
-function addressGroupsFor(toBlock: bigint): string[][] {
-  const live = DEPLOY_LEDGER.filter((c) => c.deployBlock <= toBlock).map((c) => c.address);
+function addressGroupsFor(toBlock: bigint, only?: Set<string>): string[][] {
+  const live = ledger
+    .filter((c) => c.deployBlock <= toBlock && (!only || only.has(c.address.toLowerCase())))
+    .map((c) => c.address.toLowerCase());
   const groups: string[][] = [];
   for (let i = 0; i < live.length; i += ADDRESS_BATCH) {
     groups.push(live.slice(i, i + ADDRESS_BATCH));
@@ -566,7 +616,7 @@ async function resolveScanClient(
       // full width. Probing with the whole ledger would reject every endpoint,
       // since no provider accepts 55 addresses in one filter.
       await probe.getLogs({
-        address: ALL_ADDRESSES.slice(0, ADDRESS_BATCH),
+        address: ledger.slice(0, ADDRESS_BATCH).map((c) => c.address),
         fromBlock: from,
         toBlock: head,
       });
@@ -605,10 +655,9 @@ let capableCount = 0;
 
 /// Day one: the oldest deploy in the ledger. Where every sweep starts, and what
 /// the page means by "since day one".
-const EARLIEST_DEPLOY = DEPLOY_LEDGER.reduce(
-  (min, c) => (c.deployBlock < min ? c.deployBlock : min),
-  DEPLOY_LEDGER[0]?.deployBlock ?? 0n,
-);
+function earliestDeploy(): bigint {
+  return ledger.reduce((min, c) => (c.deployBlock < min ? c.deployBlock : min), ledger[0]?.deployBlock ?? 0n);
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -716,8 +765,9 @@ async function scanWindow(
   client: PublicClient,
   fromBlock: bigint,
   toBlock: bigint,
+  only?: Set<string>,
 ): Promise<RawLog[]> {
-  const groups = addressGroupsFor(toBlock);
+  const groups = addressGroupsFor(toBlock, only);
   const all: RawLog[] = [];
   for (const group of groups) {
     all.push(...(await getLogsWithRetry(client, group, fromBlock, toBlock)));
@@ -750,8 +800,14 @@ const KIND_ORDER: readonly ContractKind[] = [
 ];
 
 export function projectFromAcc(acc: Acc, head: bigint): LifetimeStats {
-  const rows = DEPLOY_LEDGER.map((c) => acc.perContract[c.address]).filter(
-    (c): c is ContractLifetime => !!c,
+  const rows = ledger
+    .map((c) => acc.perContract[c.address.toLowerCase()] ?? acc.perContract[c.address])
+    .filter((c): c is ContractLifetime => !!c);
+  const lineage = retirement(
+    ledger,
+    configuredContracts()
+      .map((c: { address: string | undefined }) => c.address)
+      .filter((a: string | undefined): a is string => !!a),
   );
 
   // The accumulator holds base units so the running sums stay exact. Everything
@@ -760,7 +816,8 @@ export function projectFromAcc(acc: Acc, head: bigint): LifetimeStats {
   // is an API whose breakdown gets rendered a million times too large.
   const contracts: ContractLifetime[] = rows.map((c) => {
     const money = volumesOf([c]);
-    return { ...c, ...money };
+    const l = lineage.get(c.address.toLowerCase());
+    return { ...c, ...money, ...(l ? { status: l.status, version: l.version, of: l.of } : {}) };
   });
 
   const byKind: KindRollup[] = KIND_ORDER.map((kind) => {
@@ -778,8 +835,31 @@ export function projectFromAcc(acc: Acc, head: bigint): LifetimeStats {
     };
   });
 
+  const days = Object.entries(acc.days ?? {})
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([day, d]) => ({
+      day,
+      deals: d.deals,
+      jobsPosted: d.jobsPosted,
+      transactions: d.transactions,
+      financings: d.financings,
+      ...volumesOf([d]),
+    }));
+  const seriesFrom = acc.seriesFrom ? BigInt(acc.seriesFrom) : null;
+  const seriesCursor = acc.seriesCursor ? BigInt(acc.seriesCursor) : null;
+  const earliest = earliestDeploy();
+  const backfillSpan = seriesFrom !== null ? seriesFrom - earliest : 0n;
+  const backfilled = seriesCursor !== null ? seriesCursor - earliest + 1n : 0n;
+
   return {
-    fromBlock: EARLIEST_DEPLOY.toString(),
+    network: { chainId: ARC.chainId, name: ARC.label, testnet: ARC.testnet },
+    series: {
+      days,
+      complete: seriesFrom === null || seriesCursor === null || seriesCursor >= seriesFrom - 1n,
+      indexedShare:
+        backfillSpan <= 0n ? 1 : Math.max(0, Math.min(1, Number(backfilled) / Number(backfillSpan))),
+    },
+    fromBlock: earliest.toString(),
     toBlock: head.toString(),
     totals: {
       contracts: contracts.length,
@@ -839,24 +919,50 @@ export async function rebuildLifetimeStats(
   const concurrency = endpoints > 1 ? CONCURRENCY : Math.max(2, Math.floor(CONCURRENCY / 2));
   const head = await client.getBlockNumber();
 
+  // New contracts first: anything the deployment is configured with that the
+  // ledger does not know yet is added, and its history caught up below.
+  const added = await discoverConfigured(configuredContracts()).catch((err) => {
+    logger.warn({ err: (err as Error).message }, 'lifetime stats: contract discovery failed, retried next run');
+    return [] as LedgerEntry[];
+  });
+  ledger = await currentLedger();
+  if (ledger.length === 0) {
+    throw new Error(`no Karwan contracts are configured on Arc ${ARC.name} yet`);
+  }
+  const earliest = earliestDeploy();
+
   const acc: Acc = accumulator ?? {
     ledgerFingerprint: LEDGER_FINGERPRINT,
-    cursor: (EARLIEST_DEPLOY - 1n).toString(),
+    cursor: (earliest - 1n).toString(),
     perContract: {},
     transactions: 0,
     scannedAt: 0,
   };
   acc.ledgerFingerprint = LEDGER_FINGERPRINT;
-  for (const c of DEPLOY_LEDGER) {
-    if (!acc.perContract[c.address]) acc.perContract[c.address] = emptyContract(c);
+  for (const c of ledger) {
+    const key = c.address.toLowerCase();
+    if (!acc.perContract[key] && !acc.perContract[c.address]) {
+      acc.perContract[key] = emptyContract(c as DeployedContract);
+    }
+  }
+  // The daily series starts where this code first sees the snapshot; the days
+  // before that are filled by backfillSeries without touching the totals.
+  if (!acc.days) {
+    acc.days = {};
+    acc.seriesFrom = (BigInt(acc.cursor) + 1n).toString();
+    acc.seriesCursor = (earliest - 1n).toString();
   }
   accumulator = acc;
 
+  await catchUpDiscovered(client, acc, added, onProgress);
+
   const start = BigInt(acc.cursor) + 1n;
   if (start > head) {
+    await backfillSeries(client, acc, onProgress);
     acc.scannedAt = Date.now();
     const upToDate = projectFromAcc(acc, head);
     cached = { value: upToDate, builtAt: Date.now() };
+    persist({ acc, snapshot: cached });
     return upToDate;
   }
 
@@ -873,35 +979,10 @@ export async function rebuildLifetimeStats(
   for (let i = 0; i < windows.length; i += concurrency) {
     const batch = windows.slice(i, i + concurrency);
     const results = await Promise.all(batch.map((w) => scanWindow(client, w.from, w.to)));
-
-    for (const logs of results) {
-      // Per window, not per contract: a transaction lives in exactly one block
-      // and therefore one window, so this dedupes it exactly once no matter how
-      // many Karwan contracts it touched.
-      const txHashes = new Set<string>();
-      for (const log of logs) {
-        const row = acc.perContract[log.address];
-        if (!row) continue; // an address outside the ledger; cannot happen, but not ours to count
-        row.events += 1;
-        if (log.transactionHash) txHashes.add(log.transactionHash.toLowerCase());
-        const blk = log.blockNumber.toString();
-        if (!row.firstActivityBlock) row.firstActivityBlock = blk;
-        row.lastActivityBlock = blk;
-        try {
-          const decoded = decodeEventLog({
-            abi: DECODE_ABI,
-            data: log.data as `0x${string}`,
-            topics: log.topics as [signature: `0x${string}`, ...args: `0x${string}`[]],
-          });
-          fold(row, decoded.eventName as string, (decoded.args ?? {}) as Record<string, unknown>);
-        } catch {
-          // A signature from a generation whose ABI is no longer in the repo.
-          // Counted, reported, and excluded from volume: a number we cannot
-          // decode is a number we must not add up.
-          row.undecodedEvents += 1;
-        }
-      }
-      acc.transactions += txHashes.size;
+    for (let k = 0; k < results.length; k += 1) {
+      const w = batch[k]!;
+      const dayOf = await dayResolver(client, w.from, w.to);
+      applyWindow(acc, results[k]!, { totals: true, dayOf, dayFilter: () => true });
     }
 
     // Advanced only after the whole batch resolved. A thrown window rejects the
@@ -909,9 +990,9 @@ export async function rebuildLifetimeStats(
     // that range rather than stepping over a hole in the history.
     const batchEnd = batch[batch.length - 1]!.to;
     acc.cursor = batchEnd.toString();
-    for (const c of DEPLOY_LEDGER) {
-      const row = acc.perContract[c.address]!;
-      if (batchEnd >= c.deployBlock) row.scannedTo = batchEnd.toString();
+    for (const c of ledger) {
+      const row = acc.perContract[c.address.toLowerCase()] ?? acc.perContract[c.address];
+      if (row && batchEnd >= c.deployBlock) row.scannedTo = batchEnd.toString();
     }
 
     // Checkpoint on a clock, not on a batch count.
@@ -935,11 +1016,174 @@ export async function rebuildLifetimeStats(
     }
   }
 
+  await backfillSeries(client, acc, onProgress);
   acc.scannedAt = Date.now();
   const value = projectFromAcc(acc, head);
   cached = { value, builtAt: Date.now() };
   persist({ acc, snapshot: cached });
   return value;
+}
+
+/// Fold one window's logs. `totals` adds to the all-time rows and the
+/// transaction count; `dayOf` places each log on its UTC day, and `dayFilter`
+/// says which blocks belong in the daily series for this pass.
+export function applyWindow(
+  acc: Acc,
+  logs: RawLog[],
+  opts: { totals: boolean; dayOf: (block: bigint) => string; dayFilter: (block: bigint) => boolean },
+): void {
+  // Per window, not per contract: a transaction lives in exactly one block and
+  // therefore one window, so this dedupes it exactly once no matter how many
+  // Karwan contracts it touched. The same holds per day.
+  const txHashes = new Set<string>();
+  const dayTx = new Map<string, Set<string>>();
+  for (const log of logs) {
+    const row = acc.perContract[log.address.toLowerCase()] ?? acc.perContract[log.address];
+    if (!row) continue; // an address outside the ledger; not ours to count
+    const inSeries = !!acc.days && opts.dayFilter(log.blockNumber);
+    const day = inSeries ? opts.dayOf(log.blockNumber) : null;
+    const dayRow = day ? (acc.days![day] ??= emptyDay()) : null;
+    if (opts.totals) {
+      row.events += 1;
+      if (log.transactionHash) txHashes.add(log.transactionHash.toLowerCase());
+      const blk = log.blockNumber.toString();
+      if (!row.firstActivityBlock) row.firstActivityBlock = blk;
+      row.lastActivityBlock = blk;
+    }
+    if (dayRow && day && log.transactionHash) {
+      const set = dayTx.get(day) ?? new Set<string>();
+      set.add(log.transactionHash.toLowerCase());
+      dayTx.set(day, set);
+    }
+    try {
+      const decoded = decodeEventLog({
+        abi: DECODE_ABI,
+        data: log.data as `0x${string}`,
+        topics: log.topics as [signature: `0x${string}`, ...args: `0x${string}`[]],
+      });
+      const args = (decoded.args ?? {}) as Record<string, unknown>;
+      if (opts.totals) fold(row, decoded.eventName as string, args);
+      if (dayRow) fold(dayRow, decoded.eventName as string, args);
+    } catch {
+      // A signature from a generation whose ABI is no longer in the repo.
+      // Counted, reported, and excluded from volume: a number we cannot
+      // decode is a number we must not add up.
+      if (opts.totals) row.undecodedEvents += 1;
+    }
+  }
+  if (opts.totals) acc.transactions += txHashes.size;
+  for (const [day, set] of dayTx) acc.days![day]!.transactions += set.size;
+}
+
+/// Block timestamps, read once per block and kept. Only window edges are read.
+const blockTimes = new Map<bigint, number>();
+
+async function blockTime(client: PublicClient, block: bigint): Promise<number> {
+  const hit = blockTimes.get(block);
+  if (hit !== undefined) return hit;
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < CHUNK_RETRIES; attempt += 1) {
+    await takeSlot();
+    try {
+      const b = await client.getBlock({ blockNumber: block });
+      const t = Number(b.timestamp);
+      if (blockTimes.size > 50_000) blockTimes.clear();
+      blockTimes.set(block, t);
+      return t;
+    } catch (err) {
+      lastErr = err as Error;
+      await sleep(CHUNK_BACKOFF_MS * 2 ** Math.min(attempt, 5));
+    }
+  }
+  throw lastErr ?? new Error(`could not read the timestamp of block ${block}`);
+}
+
+/// Maps a block inside [from, to] to its UTC day, interpolating between the two
+/// edge timestamps, so a day boundary inside the window is placed correctly.
+export async function dayResolver(
+  client: PublicClient,
+  from: bigint,
+  to: bigint,
+): Promise<(block: bigint) => string> {
+  const [t0, t1] = await Promise.all([blockTime(client, from), blockTime(client, to)]);
+  return dayResolverFromTimes(from, to, t0, t1);
+}
+
+export function dayResolverFromTimes(
+  from: bigint,
+  to: bigint,
+  t0: number,
+  t1: number,
+): (block: bigint) => string {
+  const span = Number(to - from) || 1;
+  return (block: bigint) => {
+    const t = t0 + ((t1 - t0) * Number(block - from)) / span;
+    return new Date(Math.round(t) * 1000).toISOString().slice(0, 10);
+  };
+}
+
+/// How many backfill windows one refresh may spend. The API refreshes about
+/// once a minute while the page is read, so the history fills in the
+/// background without ever holding a request up.
+const SERIES_BACKFILL_WINDOWS = Number(process.env.LIFETIME_SERIES_BACKFILL_WINDOWS ?? 24);
+
+/// Fill the daily series for blocks before `seriesFrom`. Never touches the
+/// totals, which already include these blocks.
+async function backfillSeries(
+  client: PublicClient,
+  acc: Acc,
+  onProgress?: (msg: string) => void,
+  budget = SERIES_BACKFILL_WINDOWS,
+): Promise<void> {
+  if (!acc.days || !acc.seriesFrom || !acc.seriesCursor) return;
+  const stop = BigInt(acc.seriesFrom) - 1n;
+  let cursor = BigInt(acc.seriesCursor);
+  for (let n = 0; n < budget && cursor < stop; n += 1) {
+    const from = cursor + 1n;
+    const end = from + CHUNK_BLOCKS - 1n;
+    const to = end > stop ? stop : end;
+    const [logs, dayOf] = await Promise.all([scanWindow(client, from, to), dayResolver(client, from, to)]);
+    applyWindow(acc, logs, { totals: false, dayOf, dayFilter: () => true });
+    cursor = to;
+    acc.seriesCursor = cursor.toString();
+  }
+  if (budget > 0) onProgress?.(`series backfilled to block ${cursor} of ${stop}`);
+}
+
+/// Contracts discovered after the sweep passed their deploy block: scan their
+/// history (their addresses only) up to the cursor. Their daily series is
+/// recorded where no other pass will cover it: at or after seriesFrom, or in the
+/// range the backfill has already walked.
+async function catchUpDiscovered(
+  client: PublicClient,
+  acc: Acc,
+  added: LedgerEntry[],
+  onProgress?: (msg: string) => void,
+): Promise<void> {
+  const cursorNow = BigInt(acc.cursor);
+  const behind = added.filter((e) => e.deployBlock <= cursorNow);
+  if (behind.length === 0) return;
+  const only = new Set(behind.map((e) => e.address.toLowerCase()));
+  const from0 = behind.reduce((m, e) => (e.deployBlock < m ? e.deployBlock : m), behind[0]!.deployBlock);
+  const seriesFrom = acc.seriesFrom ? BigInt(acc.seriesFrom) : 0n;
+  const seriesCursor = acc.seriesCursor ? BigInt(acc.seriesCursor) : -1n;
+  onProgress?.(`catching up ${behind.length} new contract(s) from block ${from0} to ${cursorNow}`);
+  for (let from = from0; from <= cursorNow; ) {
+    const end = from + CHUNK_BLOCKS - 1n;
+    const to = end > cursorNow ? cursorNow : end;
+    const [logs, dayOf] = await Promise.all([scanWindow(client, from, to, only), dayResolver(client, from, to)]);
+    applyWindow(acc, logs, {
+      totals: true,
+      dayOf,
+      dayFilter: (b) => b >= seriesFrom || b <= seriesCursor,
+    });
+    from = to + 1n;
+  }
+  for (const e of behind) {
+    const row = acc.perContract[e.address.toLowerCase()];
+    if (row) row.scannedTo = cursorNow.toString();
+  }
+  persist({ acc, snapshot: { value: projectFromAcc(acc, cursorNow), builtAt: Date.now() } });
 }
 
 interface Persisted {
