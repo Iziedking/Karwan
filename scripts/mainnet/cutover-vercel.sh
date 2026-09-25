@@ -16,14 +16,27 @@
 # Nothing here prints a secret. The Circle client key is read from
 # frontend/.env.local and piped straight into Vercel.
 set -euo pipefail
-export MSYS_NO_PATHCONV=1
 
 SCOPE=izie-hub
 MAINNET=karwan-mainnet
 TESTNET=karwan
 REPO=Iziedking/Karwan
 LINK_DIR="${KARWAN_MAINNET_LINK_DIR:-$HOME/.karwan-mainnet-vercel}"
-TMP="${TMPDIR:-${TEMP:-/tmp}}"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# `vercel api` needs its endpoint left alone by Git Bash, and a body file path
+# that Windows Node can open. Everything else keeps normal path conversion.
+winpath() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+vapi() { MSYS_NO_PATHCONV=1 vercel api "$@"; }
+
+# Stop before touching domains unless karwan-mainnet has a Ready production build.
+require_mainnet_ready() {
+  vapi "/v9/projects/$MAINNET" --scope "$SCOPE" --raw >/dev/null 2>&1     || { echo "Project $MAINNET does not exist. Run: $0 create" >&2; exit 1; }
+  local ready
+  ready=$(vapi "/v6/deployments?app=$MAINNET&target=production&state=READY&limit=1" --scope "$SCOPE" --raw 2>/dev/null     | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log((JSON.parse(s).deployments||[]).length)}catch{console.log(0)}})")
+  [ "$ready" -ge 1 ] || { echo "$MAINNET has no Ready production build yet. Run: $0 deploy, then wait." >&2; exit 1; }
+}
 
 say() { printf '\n== %s\n' "$*"; }
 
@@ -48,10 +61,9 @@ case "${1:-}" in
     cat >"$body" <<JSON
 {"name":"$MAINNET","framework":"nextjs","rootDirectory":"frontend","gitRepository":{"type":"github","repo":"$REPO"}}
 JSON
-    vercel api /v11/projects --scope "$SCOPE" -X POST --input "$body" --raw >/dev/null
+    vapi /v11/projects --scope "$SCOPE" -X POST --input "$(winpath "$body")" --raw >/dev/null
     printf '{"nodeVersion":"24.x"}' >"$body"
-    vercel api "/v9/projects/$MAINNET" --scope "$SCOPE" -X PATCH --input "$body" --raw >/dev/null
-    rm -f "$body"
+    vapi "/v9/projects/$MAINNET" --scope "$SCOPE" -X PATCH --input "$(winpath "$body")" --raw >/dev/null
     link_mainnet
     vercel project inspect "$MAINNET" --scope "$SCOPE"
     ;;
@@ -64,7 +76,6 @@ JSON
     pulled="$TMP/karwan-testnet-prod.env"
     vercel env pull "$pulled" --environment=production --yes --cwd . >/dev/null
     wc=$(grep '^NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=' "$pulled" | cut -d= -f2- | tr -d '"\r\n')
-    rm -f "$pulled"
     [ -n "$wc" ] || { echo "No WalletConnect project id on $TESTNET; stopping." >&2; exit 1; }
     put_env NEXT_PUBLIC_ARC_NETWORK "$LINK_DIR" mainnet
     put_env NEXT_PUBLIC_BACKEND_URL "$LINK_DIR" https://mainnet-api.karwan.site
@@ -83,25 +94,25 @@ JSON
     cat >"$body" <<JSON
 {"name":"$MAINNET","project":"$MAINNET","target":"production","gitSource":{"type":"github","org":"Iziedking","repo":"Karwan","ref":"main"}}
 JSON
-    vercel api /v13/deployments --scope "$SCOPE" -X POST --input "$body" --raw | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('deployment',j.id||'',j.url?('https://'+j.url):'',j.readyState||j.error?.message||'')})"
-    rm -f "$body"
+    vapi /v13/deployments --scope "$SCOPE" -X POST --input "$(winpath "$body")" --raw | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);console.log('deployment',j.id||'',j.url?('https://'+j.url):'',j.readyState||j.error?.message||'')})"
     echo "Watch it: vercel ls $MAINNET --scope $SCOPE"
     ;;
 
   domains)
     say "Move karwan.site and www.karwan.site from $TESTNET to $MAINNET"
+    require_mainnet_ready
     for d in karwan.site www.karwan.site; do
-      vercel api "/v9/projects/$TESTNET/domains/$d" --scope "$SCOPE" -X DELETE --dangerously-skip-permissions --raw >/dev/null
+      # Detach from the testnet project only if it is still there.
+      vapi "/v9/projects/$TESTNET/domains/$d" --scope "$SCOPE" --raw >/dev/null 2>&1         && vapi "/v9/projects/$TESTNET/domains/$d" --scope "$SCOPE" -X DELETE --dangerously-skip-permissions --raw >/dev/null
       # www redirects to the apex: the mainnet API allows the apex origin only.
       if [ "$d" = www.karwan.site ]; then
         printf '{"name":"%s","redirect":"karwan.site","redirectStatusCode":308}' "$d" >"$TMP/karwan-domain.json"
       else
         printf '{"name":"%s"}' "$d" >"$TMP/karwan-domain.json"
       fi
-      vercel api "/v10/projects/$MAINNET/domains" --scope "$SCOPE" -X POST --input "$TMP/karwan-domain.json" --raw >/dev/null
+      vapi "/v10/projects/$MAINNET/domains" --scope "$SCOPE" -X POST --input "$(winpath "$TMP/karwan-domain.json")" --raw >/dev/null
       echo "  $d -> $MAINNET"
     done
-    rm -f "$TMP/karwan-domain.json"
     vercel domains inspect karwan.site --scope "$SCOPE"
     ;;
 
