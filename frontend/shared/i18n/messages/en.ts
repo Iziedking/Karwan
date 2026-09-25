@@ -8,10 +8,12 @@ import { socialTradeCopy, type SocialTradeCopy } from './socialTrade';
 import { protectionCopy, type ProtectionCopy } from './protection';
 import { moneyCopy, type MoneyCopy } from './money';
 import { searchCopy, type SearchCopy } from './search';
+import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
 interface MessagesShape {
   protection: ProtectionCopy;
   money: MoneyCopy;
   search: SearchCopy;
+  escrowV3: EscrowV3Copy;
   socialTrade: SocialTradeCopy;
   networkUi: NetworkCopy;
   docsEscrowPage: EscrowDocsCopy;
@@ -5274,6 +5276,7 @@ export const en: MessagesShape = {
   protection: protectionCopy.en,
   money: moneyCopy.en,
   search: searchCopy.en,
+  escrowV3: escrowV3Copy.en,
   socialTrade: socialTradeCopy.en,
   networkUi: networkCopy.en,
   docsEscrowPage: escrowDocsCopy.en,

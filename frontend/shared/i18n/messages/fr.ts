@@ -5,11 +5,13 @@ import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
 import { moneyCopy } from './money';
 import { searchCopy } from './search';
+import { escrowV3Copy } from './escrowV3';
 
 export const fr: Messages = {
   protection: protectionCopy.fr,
   money: moneyCopy.fr,
   search: searchCopy.fr,
+  escrowV3: escrowV3Copy.fr,
   socialTrade: socialTradeCopy.fr,
   networkUi: networkCopy.fr,
   docsEscrowPage: escrowDocsCopy.fr,

@@ -505,6 +505,35 @@ export interface DirectDealOnChain {
   /// contract's ReviewWindowOpen from off-chain clock drift.
   deliveredAtMs?: number | null;
   claimDeadlineMs?: number | null;
+  /// Which escrow holds the money. Absent on older responses reads as 'v2'.
+  escrowVersion?: 'v2' | 'v3';
+  /// The terms-driven escrow's own state, present on v3 deals only.
+  v3?: DirectDealOnChainV3;
+}
+
+export interface DirectDealOnChainV3 {
+  accepted: boolean;
+  reviewStartedAtMs: number | null;
+  extensionsUsed: number;
+  checkPassed: boolean;
+  disputedAtMs: number | null;
+  escalated: boolean;
+  /// The automatic ruling while a dispute is open, and when it applies.
+  ruling: {
+    sellerBps: number;
+    toSellerUsdc: string;
+    toBuyerUsdc: string;
+    proposedAtMs: number;
+    appealEndsAtMs: number | null;
+    /// Which rule of the arbiter's table produced it; the page words it.
+    ruleId: string | null;
+  } | null;
+  /// With no ruling yet: when either side may send the dispute to review.
+  escalateOpensAtMs?: number | null;
+  /// When a dispute nobody ruled on returns to the deal.
+  lapseAtMs?: number | null;
+  reclaimed: boolean;
+  split: boolean;
 }
 
 /// Mirrors backend/src/deals/dealView.ts. The server computes it once so every
@@ -3811,6 +3840,13 @@ export const api = {
     json<{ accepted: boolean; jobId: string; txHash: string }>(
       `/api/deals/direct/${jobId}/appeal`,
       { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
+    ),
+  /// v3: send an open dispute to admin review (appeal a ruling, or escalate
+  /// when no ruling came in time).
+  escalateDealDispute: (jobId: string, caller: string) =>
+    json<{ accepted: boolean; jobId: string; txHash: string }>(
+      `/api/deals/direct/${jobId}/dispute/escalate`,
+      { method: 'POST', body: JSON.stringify({ caller }) },
     ),
   cancelDirectDeal: (jobId: string, caller: string) =>
     json<{ accepted: boolean; jobId: string; txHash: string }>(

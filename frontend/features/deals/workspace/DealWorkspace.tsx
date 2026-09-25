@@ -17,6 +17,7 @@ import { ProgressLine } from './ProgressLine';
 import { TrustCard } from './TrustCard';
 import { useWorkspaceActions } from './useWorkspaceActions';
 import { registerDealTools } from './webmcp';
+import { V3EscrowPanel } from '../v3/V3EscrowPanel';
 
 const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
 
@@ -131,6 +132,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
       </header>
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
         <MoneyBlock amountUsdc={deal.dealAmountUsdc} view={deal.view} counterpartyName={actions.displayName} onAction={actions.openPrimary} busy={actions.busy} />
+        <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />
         <ProgressLine view={deal.view} />
         {deal.counterpartyTrust ? (
           <TrustCard card={deal.counterpartyTrust} onOpenPassport={() => router.push(`/credit-passport/${actions.viewerIsBuyer ? deal.seller : deal.buyer}`)} />

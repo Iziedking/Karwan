@@ -1,6 +1,7 @@
 'use client';
 import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { V3EscrowPanel } from '@/features/deals/v3/V3EscrowPanel';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
@@ -1262,6 +1263,14 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
           </div>
             </Band>
           )}
+
+      {deal.onChain?.escrowVersion === 'v3' && (
+        <Band tone="light" compact>
+          <div className="px-4 py-3">
+            <V3EscrowPanel deal={deal} address={address ?? null} onChanged={() => { void refresh(); }} />
+          </div>
+        </Band>
+      )}
 
       {deal.legacyEscrow && (
         <Band tone="light" compact>
