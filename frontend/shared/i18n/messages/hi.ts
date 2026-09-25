@@ -685,6 +685,7 @@ export const hi: Messages = {
     },
     myMoney: {
       viewReceipt: 'रसीद देखें',
+      viewProof: 'भुगतान का प्रमाण देखें',
       receiptTitle: 'Karwan रसीद',
       receiptReference: 'Karwan संदर्भ',
       receiptAmount: 'राशि',

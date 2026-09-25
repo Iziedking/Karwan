@@ -24,7 +24,7 @@ import { PortableReceipt, type PortableReceiptItem } from './PortableReceipt';
 type Item = Awaited<ReturnType<typeof api.myActivity>>['items'][number];
 
 const TONE = {
-  pending: 'var(--lp-accent)',
+  pending: 'var(--lp-accent-on-light)',
   failed: '#b03d3a',
 } as const;
 
@@ -167,133 +167,88 @@ export function MyMoneyLedger({
           {t.empty}
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
           {visible.map(({ item, repeat }) => {
             const href = explorerFor(item);
+            const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
+            const reference = ledgerReferenceLabel(item.refId);
+            const statusColor = ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending;
             return (
               <li
                 key={item.id}
                 data-ledger-status={item.status}
-                className="group relative overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] px-3.5 py-4 ps-4 transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px hover:border-[var(--lp-accent)] focus-within:border-[var(--lp-accent)] sm:py-3.5"
-                style={{
-                  background: 'var(--lp-light)',
-                }}
+                className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto_9rem] sm:items-center"
               >
-                <span
-                  aria-hidden
-                  className={`absolute inset-y-3 start-0 w-[2px] transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 ${
-                    item.status === 'pending'
-                      ? 'opacity-100 motion-safe:animate-pulse motion-reduce:animate-none'
-                      : 'opacity-0'
-                  }`}
-                  style={{
-                    background:
-                      item.status === 'failed'
-                        ? TONE.failed
-                        : ledgerDirection(item.kind) === 'in'
-                          ? 'var(--lp-accent)'
-                          : 'var(--lp-text-muted)',
-                  }}
-                />
-                <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-x-4">
-                  <div className="min-w-0">
-                    <p className="mobile-readable max-w-[34ch] text-[14px] leading-snug text-[var(--lp-dark)] sm:max-w-none">
-                      {ledgerLine(item, t.text)}
-                    </p>
-                    <p className="mobile-meta mt-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                      {when(item.ts, t.justNow)}
-                      {item.status !== 'done' && (
-                        <>
-                          {' · '}
-                          <span
-                            className="inline-flex items-center gap-1.5"
-                            style={{ color: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending }}
-                          >
-                            <span
-                              aria-hidden
-                              className={`inline-block size-1.5 shrink-0 rounded-full ${
-                                item.status === 'pending' ? 'motion-safe:animate-pulse motion-reduce:animate-none' : ''
-                              }`}
-                              style={{
-                                background: ledgerStatusTone(item.status) === 'failed' ? TONE.failed : TONE.pending,
-                              }}
-                            />
-                            {item.status === 'failed' ? t.failed : t.pending}
-                          </span>
-                        </>
-                      )}
-                      {repeat > 1 && (
-                        <>
-                          {' · '}
-                          <span className="tabular-nums">
-                            {t.repeated.replace('{n}', String(repeat))}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  {/* On a phone the amount gets its own line instead of taking
-                      half the width from the movement sentence. Desktop keeps
-                      the familiar right-aligned register column. */}
-                  {(() => {
-                    const amount = ledgerAmountLabel(item.amountUsdc, item.kind);
-                    if (!amount) return null;
-                    return (
-                      <span
-                        className="justify-self-start whitespace-nowrap mono text-[12px] font-semibold tabular-nums tracking-[0.02em] sm:justify-self-end"
-                        style={{
-                          color:
-                            ledgerDirection(item.kind) === 'in'
-                              ? 'var(--lp-accent)'
-                              : 'var(--lp-dark)',
-                        }}
-                      >
-                        {amount}
-                      </span>
-                    );
-                  })()}
+                {item.status === 'pending' && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-3 -start-3 w-[2px] rounded-full motion-safe:animate-pulse motion-reduce:animate-none"
+                    style={{ background: TONE.pending }}
+                  />
+                )}
+                <div className="col-start-1 row-start-1 min-w-0">
+                  <p className="text-[15px] font-medium leading-snug text-[var(--lp-dark)]">
+                    {ledgerLine(item, t.text)}
+                  </p>
+                  <p className="mt-1 text-[13px] text-[var(--lp-text-sub)]">
+                    {when(item.ts, t.justNow)}
+                    {item.status !== 'done' && (
+                      <>
+                        {' · '}
+                        <span className="inline-flex items-center gap-1.5 font-medium" style={{ color: statusColor }}>
+                          <span aria-hidden className="inline-block size-1.5 shrink-0 rounded-full" style={{ background: statusColor }} />
+                          {item.status === 'failed' ? t.failed : t.pending}
+                        </span>
+                      </>
+                    )}
+                    {repeat > 1 && (
+                      <>
+                        {' · '}
+                        <span className="tabular-nums">{t.repeated.replace('{n}', String(repeat))}</span>
+                      </>
+                    )}
+                  </p>
                 </div>
-                <div className="mt-3 flex w-full flex-wrap items-center justify-start gap-x-3 gap-y-1 sm:justify-end sm:gap-x-2">
+                <div className="col-span-2 row-start-2 -ms-2 flex flex-wrap items-center gap-x-1 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ms-0 sm:justify-end">
                   {href && (
                     <a
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                      className="inline-flex min-h-11 items-center px-2 text-[13px] text-[var(--lp-text-sub)] underline-offset-4 transition-colors hover:text-[var(--lp-dark)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                     >
-                      View payment proof
+                      {t.viewProof}
                     </a>
                   )}
-                  {(() => {
-                    const reference = ledgerReferenceLabel(item.refId);
-                    if (!reference) return null;
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => copyReference(reference)}
-                        aria-label={`${t.receipt}: ${reference}`}
-                        // Never broken. `max-w-[48%]` with `break-all` split
-                        // KWN-U2GD-CE7Y-URC9 mid-group on a phone, and a
-                        // reference is a thing people read out to support and
-                        // compare by eye: a broken one invites a transcription
-                        // error, which is the whole reason it exists. It is 18
-                        // mono characters, so it fits on its own line in the
-                        // wrapping row rather than fitting inside half of one.
-                        className="mobile-meta inline-flex min-h-11 shrink-0 items-center gap-1 mono text-[10px] tracking-[0.08em] whitespace-nowrap text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-                      >
-                        <span className="text-start">Karwan ref {reference}</span>
-                        <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
-                      </button>
-                    );
-                  })()}
+                  {reference && (
+                    // Never broken: people read a reference out to support and
+                    // compare it by eye, so it stays on one line.
+                    <button
+                      type="button"
+                      onClick={() => copyReference(reference)}
+                      aria-label={`${t.receipt}: ${reference}`}
+                      className="hidden min-h-11 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[13px] tabular-nums sm:inline-flex text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    >
+                      <span>{reference}</span>
+                      <span aria-hidden>{copiedReference === reference ? '✓' : '⧉'}</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSelectedReceipt(item)}
-                    className="inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                    className="inline-flex min-h-11 items-center px-2 text-[13px] font-semibold text-[var(--lp-dark)] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
                   >
                     {t.viewReceipt}
                   </button>
                 </div>
+                <span
+                  className="col-start-2 row-start-1 whitespace-nowrap text-end text-[15px] font-semibold tabular-nums sm:col-start-3"
+                  style={{
+                    color: ledgerDirection(item.kind) === 'in' ? 'var(--lp-accent-on-light)' : 'var(--lp-dark)',
+                  }}
+                >
+                  {amount}
+                </span>
               </li>
             );
           })}

@@ -696,6 +696,7 @@ interface MessagesShape {
       failed: string;
       receipt: string;
       viewReceipt: string;
+      viewProof: string;
       receiptTitle: string;
       receiptReference: string;
       receiptAmount: string;
@@ -6004,6 +6005,7 @@ export const en: MessagesShape = {
       failed: 'Needs attention',
       receipt: 'Karwan reference',
       viewReceipt: 'Open receipt',
+      viewProof: 'View payment proof',
       receiptTitle: 'Karwan receipt',
       receiptReference: 'Karwan reference',
       receiptAmount: 'AMOUNT',

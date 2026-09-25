@@ -248,9 +248,13 @@ function OverTime({ stats, t }: { stats: LifetimeStats; t: Copy }) {
   const long = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   const dealsLine = (n: number) => (n === 1 ? t.overTime.dealsOne : fill(t.overTime.dealsMany, { n: String(n) }));
 
+  // A backend older than the daily series sends none at all: leave the section
+  // out rather than show a history that is not being built.
+  if (!series) return null;
+
   let body: React.ReactNode;
-  if (!series || !series.complete) {
-    const pct = Math.floor((series?.indexedShare ?? 0) * 100);
+  if (!series.complete) {
+    const pct = Math.floor(series.indexedShare * 100);
     body = <p className="text-[15px] text-[var(--lp-text-sub)]">{fill(t.overTime.indexing, { pct: String(pct) })}</p>;
   } else if (weeks.length === 0) {
     body = <p className="text-[15px] text-[var(--lp-text-sub)]">{t.overTime.empty}</p>;

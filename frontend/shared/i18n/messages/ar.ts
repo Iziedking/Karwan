@@ -687,6 +687,7 @@ export const ar: Messages = {
     },
     myMoney: {
       viewReceipt: 'عرض الإيصال',
+      viewProof: 'عرض إثبات الدفع',
       receiptTitle: 'إيصال Karwan',
       receiptReference: 'مرجع Karwan',
       receiptAmount: 'المبلغ',
