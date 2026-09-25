@@ -1,9 +1,13 @@
-﻿/// Tiny synthesized UI sound kit. No audio files. short, soft sine tones via
-/// the Web Audio API. The context is created lazily and resumed on the first
-/// user gesture (browsers block autoplay until then), so sounds that fire from
-/// a click work, and SSE-driven ones work once the user has interacted.
+/// Tiny synthesized UI sound kit. No audio files: short, soft tones through the
+/// Web Audio API. The context is created lazily and only after the first user
+/// gesture. Browsers refuse to start audio before one, and a context made too
+/// early only earns a console warning and queues sounds that would all play at
+/// once on the first click.
+
+import { createSynth, type MoneySoundKind, type Synth } from '@/shared/sound/synth';
 
 let ctx: AudioContext | null = null;
+let synth: Synth | null = null;
 let muted = false;
 const listeners = new Set<(muted: boolean) => void>();
 
@@ -15,8 +19,15 @@ if (typeof window !== 'undefined') {
   }
 }
 
+/// Has this page had a tap or a key press yet? A browser without the User
+/// Activation API is let through; its own autoplay policy still applies.
+function hasUserGesture(): boolean {
+  const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  return activation ? activation.hasBeenActive : true;
+}
+
 function getCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || !hasUserGesture()) return null;
   if (!ctx) {
     const AC =
       window.AudioContext ||
@@ -26,6 +37,10 @@ function getCtx(): AudioContext | null {
   }
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
   return ctx;
+}
+
+function isRunning(context: AudioContext): boolean {
+  return context.state === 'running';
 }
 
 /// One soft tone. `when` is an offset in seconds so notes can be sequenced.
@@ -92,5 +107,27 @@ export const sfx = {
     tone(523.25, 0.14, 0, 'sine', 0.055); // C5
     tone(659.25, 0.14, 0.08, 'sine', 0.055); // E5
     tone(783.99, 0.32, 0.16, 'sine', 0.055); // G5
+  },
+  /// One of the four money sounds. Only shared/sound/moneySounds calls this. A
+  /// sound that cannot start within a second of being asked for is dropped,
+  /// never played late.
+  playMoney(kind: MoneySoundKind) {
+    if (muted) return;
+    const c = getCtx();
+    if (!c) return;
+    const play = () => {
+      synth ??= createSynth(c);
+      synth.play(kind);
+    };
+    if (isRunning(c)) {
+      play();
+      return;
+    }
+    const askedAt = Date.now();
+    c.resume()
+      .then(() => {
+        if (isRunning(c) && Date.now() - askedAt < 1000) play();
+      })
+      .catch(() => {});
   },
 };

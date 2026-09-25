@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   startRegistration,
@@ -14,6 +14,7 @@ import { adoptPreferenceIfUnset } from '@/shared/hooks/useTheme';
 import { LanguagePicker } from './LanguagePicker';
 import { ThemePicker } from './ThemePicker';
 import { Hint } from '@/shared/components/Hint';
+import { sfx } from '@/shared/utils/sfx';
 
 type Saver = (patch: UserSettings) => Promise<void>;
 
@@ -38,6 +39,10 @@ export function SettingsBand() {
   // confirmable warning instead of deleting. We hold the message here and show
   // a Yes/No so the user can proceed with eyes open.
   const [forceConfirm, setForceConfirm] = useState<string | null>(null);
+  // Sounds are a per-device choice, kept where the sound kit reads it
+  // (localStorage 'karwan-sfx'). The account setting this row used to save was
+  // never read by anything, so switching it did nothing.
+  const soundsOn = useSyncExternalStore(sfx.subscribe, () => !sfx.muted, () => true);
 
   const runDelete = useCallback(
     async (force: boolean) => {
@@ -138,13 +143,13 @@ export function SettingsBand() {
       </Row>
 
       <Row label={t.settings.sound}>
-        <ToggleGroup
-          value={settings.soundEnabled === false ? 'off' : 'on'}
-          options={[
-            { value: 'on', label: t.settings.soundOn },
-            { value: 'off', label: t.settings.soundOff },
-          ]}
-          onChange={(v) => save({ soundEnabled: v === 'on' })}
+        <Switch
+          checked={soundsOn}
+          label={t.money.settings.soundsSwitch}
+          onChange={(on) => {
+            sfx.setMuted(!on);
+            if (on) sfx.tap();
+          }}
         />
       </Row>
 
@@ -359,45 +364,6 @@ function Row({
         {hint && <Hint>{hint}</Hint>}
       </p>
       <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
-
-interface ToggleOption {
-  value: string;
-  label: string;
-}
-
-function ToggleGroup({
-  value,
-  options,
-  onChange,
-}: {
-  value: string;
-  options: ToggleOption[];
-  onChange: (next: string) => void;
-}) {
-  return (
-    <div className="flex w-full overflow-hidden rounded-[10px] border sm:inline-flex sm:w-auto" style={{ borderColor: 'var(--color-line)' }}>
-      {options.map((opt, i) => {
-        const active = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onChange(opt.value)}
-            className="min-h-11 flex-1 px-3 py-2 text-[14px] font-medium sm:flex-none sm:px-3.5"
-            style={{
-              background: active ? 'var(--color-ink)' : 'transparent',
-              color: active ? 'var(--color-surface)' : 'var(--color-ink-dim)',
-              borderInlineStart: i === 0 ? 'none' : '1px solid var(--color-line)',
-            }}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

@@ -3,9 +3,13 @@ import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
+import { moneyCopy } from './money';
+import { searchCopy } from './search';
 
 export const ar: Messages = {
   protection: protectionCopy.ar,
+  money: moneyCopy.ar,
+  search: searchCopy.ar,
   socialTrade: socialTradeCopy.ar,
   networkUi: networkCopy.ar,
   docsEscrowPage: escrowDocsCopy.ar,
@@ -108,8 +112,6 @@ export const ar: Messages = {
     themeDark: 'داكن',
     themeSystem: 'ضوء النهار',
     sound: 'الصوت',
-    soundOn: 'مفعّل',
-    soundOff: 'متوقف',
     notifications: 'الإشعارات',
     notificationsHint: 'إيقاف إشعارات Karwan عبر البريد الإلكتروني والقنوات المتصلة.',
     notificationsMute: 'كتم جميع الإشعارات',

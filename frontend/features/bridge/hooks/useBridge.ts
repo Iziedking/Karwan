@@ -29,7 +29,8 @@ import {
 } from '../config';
 import { tokenMessengerV2Abi, usdcAbi } from '../abis';
 import { humanTransferError } from '../errors';
-import { sfx } from '@/shared/utils/sfx';
+import { moneySounds } from '@/shared/sound/moneySounds';
+import { isAmbiguousFailure } from '@/features/money/moneySheetModel';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getPhantomProvider, getConflictingWalletName } from '../solanaProvider';
@@ -675,7 +676,7 @@ export function useBridges() {
               updatedAt: Date.now(),
             };
             if (cur.phase !== 'done') {
-              sfx.success();
+              moneySounds.outcome('success', { ids: [cur.id, txHash, cur.burnTxHash] });
               recordAction('bridge');
             }
           } else {
@@ -837,7 +838,6 @@ export function useBridges() {
         if (burnOutcome.state === 'reverted') {
           throw new Error(`The burn was rejected on ${source.name}.`);
         }
-        sfx.send();
         activePhase = 'relaying';
         patch(record.id, (b) => ({ ...b, burnTxHash: burnHash, phase: 'relaying' }));
 
@@ -1298,6 +1298,12 @@ export function useBridges() {
           errorToString(err),
           err instanceof ApiError ? err.detail : undefined,
         );
+        if (isAmbiguousFailure(err instanceof ApiError ? err.status : null)) {
+          // The backend may have started the burn; recheck finds out, a fresh
+          // start could send twice.
+          patch(id, (b) => ({ ...b, phase: 'burning', error: undefined }));
+          return;
+        }
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },
@@ -1397,7 +1403,6 @@ export function useBridges() {
             };
             signature = await build.connection.sendRawTransaction(signed.serialize());
           }
-          sfx.send();
           patch(id, (b) => ({ ...b, phase: 'burning' }));
           // Do NOT record burnTxHash until the burn is CONFIRMED on chain. An
           // expired blockhash can never land, so a definitively-expired attempt
@@ -1564,7 +1569,7 @@ export function useBridges() {
             /* history/activity is best-effort; ignore */
           });
         if (completed) {
-          sfx.success();
+          moneySounds.outcome('success', { ids: [id, burnHash, mintHash] });
           recordAction('bridge');
         }
         return {
@@ -1632,8 +1637,14 @@ export function useBridges() {
           mintTxHash: (r.txHash ?? undefined) as `0x${string}` | undefined,
           error: undefined,
         }));
-        sfx.success();
+        moneySounds.outcome('success', { ids: [id, r.txHash] });
       } catch (err) {
+        // No answer, or a server error, cannot say whether the send went out.
+        // Keep it in flight rather than offer a second send.
+        if (isAmbiguousFailure(err instanceof ApiError ? err.status : null)) {
+          patch(id, (b) => ({ ...b, phase: 'relaying', error: undefined }));
+          return;
+        }
         const detail =
           err instanceof ApiError && typeof err.detail === 'string'
             ? err.detail
@@ -1773,7 +1784,7 @@ export function useBridges() {
             ...(mintHash ? { mintTxHash: mintHash } : {}),
           })
           .catch(() => {});
-        if (completed) sfx.success();
+        if (completed) moneySounds.outcome('success', { ids: [id, burnHash, mintHash] });
         return {
           state: completed ? 'completed' : 'pending',
           ...(burnHash ? { txHash: burnHash } : {}),
@@ -1813,6 +1824,7 @@ export function useBridges() {
         updatedAt: now,
       };
       setBridges((list) => [record, ...list].slice(0, MAX_HISTORY));
+      let sent: `0x${string}` | undefined;
       try {
         if (chainId !== ARC_CCTP.chainId) {
           await switchChainAsync({ chainId: ARC_CCTP.chainId });
@@ -1833,6 +1845,9 @@ export function useBridges() {
           chain: walletClient.chain,
           account: address,
         });
+        // Broadcast: from here on a failure is a wait, never "nothing moved".
+        sent = hash;
+        patch(id, (b) => ({ ...b, mintTxHash: hash }));
         const outcome = await confirmTransaction(arcClient, hash);
         if (outcome.state === 'reverted') {
           // Handled here rather than thrown, so the hash lands on the record and
@@ -1875,7 +1890,9 @@ export function useBridges() {
           .catch(() => {
             /* history/activity is best-effort */
           });
-        sfx.success();
+        // Only a confirmed send drops the coin. An unconfirmed one is recorded
+        // as relaying, and its sound waits for the confirmation.
+        moneySounds.outcome(outcome.state === 'success' ? 'success' : 'pending', { ids: [id, hash] });
       } catch (err) {
         const raw = errorToString(err).toLowerCase();
         const friendly =
@@ -1884,6 +1901,11 @@ export function useBridges() {
             : raw.includes('rejected') || raw.includes('denied')
               ? 'You declined the transaction in your wallet.'
               : 'Send could not complete. Try again in a moment.';
+        if (sent) {
+          // The send left the wallet; only its confirmation failed to arrive.
+          patch(id, (b) => ({ ...b, phase: 'relaying', mintTxHash: sent, error: undefined }));
+          return;
+        }
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
       }
     },

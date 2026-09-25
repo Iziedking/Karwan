@@ -3,9 +3,13 @@ import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
+import { moneyCopy } from './money';
+import { searchCopy } from './search';
 
 export const sw: Messages = {
   protection: protectionCopy.sw,
+  money: moneyCopy.sw,
+  search: searchCopy.sw,
   socialTrade: socialTradeCopy.sw,
   networkUi: networkCopy.sw,
   docsEscrowPage: escrowDocsCopy.sw,
@@ -105,8 +109,6 @@ export const sw: Messages = {
     themeDark: 'Mzito',
     themeSystem: 'Mchana',
     sound: 'Sauti',
-    soundOn: 'Wezesha',
-    soundOff: 'Zima',
     notifications: 'Arifa',
     notificationsHint: 'Huzima arifa za Karwan kupitia barua pepe na njia zilizounganishwa.',
     notificationsMute: 'Zima arifa zote',

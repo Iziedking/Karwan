@@ -3,9 +3,13 @@ import { networkCopy } from './network';
 import { escrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy } from './socialTrade';
 import { protectionCopy } from './protection';
+import { moneyCopy } from './money';
+import { searchCopy } from './search';
 
 export const hi: Messages = {
   protection: protectionCopy.hi,
+  money: moneyCopy.hi,
+  search: searchCopy.hi,
   socialTrade: socialTradeCopy.hi,
   networkUi: networkCopy.hi,
   docsEscrowPage: escrowDocsCopy.hi,
@@ -106,8 +110,6 @@ export const hi: Messages = {
     themeDark: 'गहरी',
     themeSystem: 'दिन का प्रकाश',
     sound: 'ध्वनि',
-    soundOn: 'चालू',
-    soundOff: 'बंद',
     notifications: 'नोटिफिकेशन',
     notificationsHint: 'ईमेल और जुड़े चैनलों पर Karwan की सूचनाएँ बंद करता है।',
     notificationsMute: 'सभी नोटिफिकेशन बंद करें',

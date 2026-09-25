@@ -2,10 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { api, type DirectDeal } from '@/core/api';
+import { api, type ChainEvent, type DirectDeal } from '@/core/api';
 import { deliverableNoun, startPhrase, tradeTypeOf } from '@/shared/deals/tradeVocabulary';
 import { qk } from '@/core/queryKeys';
-import { sfx } from '@/shared/utils/sfx';
+import { moneySounds } from '@/shared/sound/moneySounds';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { fill } from '@/features/deals/workspace/presentation';
+import { bridgeDirection, classifyMoneyEvent, soundKeysFor } from '../classifyMoneyEvent';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { safeNotificationHref } from '../notificationRouting';
 import {
@@ -17,6 +20,20 @@ import {
 } from '@/shared/utils/notificationStore';
 // Re-export so existing call sites can keep importing from the hook module.
 export { purgeStoredNotifications } from '@/shared/utils/notificationStore';
+import {
+  ACTION_TYPES,
+  BRIDGE_TYPES,
+  FINANCE_RECIPIENT_KEYS,
+  FINANCE_TYPES,
+  MANAGED_TYPES,
+  MONEY_DIRECT_OWNER_KEY,
+  MONEY_DIRECT_TYPES,
+  NOTIFY_TYPES,
+  RECIPIENT,
+  TOAST_TYPES,
+  WALLET_TYPES,
+  type Role,
+} from '../notificationTypes';
 
 export interface AppNotification {
   id: string;
@@ -35,186 +52,10 @@ export interface AppNotification {
   toast?: boolean;
 }
 
-type Role = 'buyer' | 'seller' | 'financier';
 
 const STORAGE_PREFIX = NOTIFICATION_STORAGE_PREFIX;
 const MAX_STORED = 30;
 
-// Events worth bubbling into the bell. Split into agent-deal (route to
-// /jobs/[id]) and direct-deal (route to /deals/[id]). same data model after
-// match approval, but the URL differs before that.
-const MANAGED_TYPES = new Set([
-  'deal.matched',
-  'deal.match.approved',
-  'deal.match.declined',
-  'deal.match.raised',
-  'negotiation.near-miss',
-  'job.expired',
-  'listing.matched',
-  'agent.declined',
-]);
-
-const DIRECT_TYPES = new Set([
-  'deal.direct.created',
-  'deal.invite.claimed',
-  'deal.seller-approved',
-  'deal.accepted',
-  'deal.delivered',
-  'deal.delivery.flagged',
-  'deal.delivery.cleared',
-  'deal.fund.insufficient',
-  'escrow.milestone.released',
-  'deal.review.started',
-  'deal.review.heartbeat',
-  'deal.deadline.passed',
-  'deal.auto_released',
-  'escrow.settled',
-  'deal.disputed',
-  // An arbiter splitting the escrow is the single most consequential thing that
-  // can happen to a deal without either party doing it. It notified nobody.
-  'escrow.resolved',
-  'deal.cancelled',
-  'deal.cancel.proposed',
-  'deal.cancel.declined',
-  // Seller cashes out after settlement; the banner lives on the deal page.
-  'cashout.arc.completed',
-]);
-
-// Wallet-level events carry no jobId. They route to the owner address in the
-// payload and surface on the profile (where balances live).
-const WALLET_TYPES = new Set(['wallet.credited', 'wallet.debited']);
-
-// Invoice-factoring and PO-financing events. These DO carry a jobId, but the
-// financier is not a party to the underlying deal, so the deal-role machinery
-// can never resolve a role for them. Route by the addresses the payload names,
-// exactly like the wallet events, and keep the jobId so the bell still links
-// to the deal. Mirrors FINANCE_RECIPIENTS in the email + Telegram notifiers.
-const FINANCE_RECIPIENT_KEYS: Record<string, ReadonlyArray<'seller' | 'financier'>> = {
-  'factoring.requested': ['financier'],
-  'factoring.offered': ['seller'],
-  'factoring.accepted': ['financier'],
-  'factoring.settled': ['seller', 'financier'],
-  'factoring.defaulted': ['seller', 'financier'],
-  'po.funded': ['seller'],
-  'po.released': ['seller', 'financier'],
-  'po.repaid': ['seller', 'financier'],
-  'po.defaulted': ['seller', 'financier'],
-};
-const FINANCE_TYPES = new Set(Object.keys(FINANCE_RECIPIENT_KEYS));
-
-// Money-movement events that carry no jobId. Each one names the owner under
-// a different payload key depending on the surface that emitted it. The map
-// keeps the routing local to one place.
-const MONEY_DIRECT_OWNER_KEY: Record<string, 'address' | 'user'> = {
-  'vault.deposit': 'address',
-  'vault.withdraw.requested': 'address',
-  'vault.withdraw.cancelled': 'address',
-  'vault.claimed': 'address',
-  'vault.cooldown.completed': 'address',
-  'agent.funded': 'user',
-  'agent.withdrawal': 'user',
-  'yield.claimed': 'address',
-  // Yield ARRIVING, from the daily distribution. It used to land silently: the
-  // number on /stake had grown and nothing said so.
-  'yield.credited': 'address',
-  // Unified-balance moves: deposits in, agent funding out, cash-outs off Arc.
-  'gateway.deposited': 'address',
-  'gateway.agent.funded': 'address',
-  'gateway.cashed.out': 'address',
-  // Reputation tier-up routes to the subject address, same shape as vault.
-  'reputation.tier-up': 'address',
-};
-const MONEY_DIRECT_TYPES = new Set(Object.keys(MONEY_DIRECT_OWNER_KEY));
-
-// Events whose target is the deal action card. Tapping them should land on
-// /deals/[id]#action so the user scrolls straight to Mark Delivered / Release /
-// Accept rather than the top of the page.
-const ACTION_TYPES = new Set([
-  'deal.match.approved',
-  'deal.direct.created',
-  'deal.seller-approved',
-  'deal.delivered',
-  'deal.delivery.flagged',
-  'deal.delivery.cleared',
-  'deal.review.started',
-  'deal.fund.insufficient',
-  'deal.deadline.passed',
-]);
-
-const NOTIFY_TYPES = new Set([
-  ...MANAGED_TYPES,
-  ...DIRECT_TYPES,
-  ...WALLET_TYPES,
-  ...MONEY_DIRECT_TYPES,
-  ...FINANCE_TYPES,
-  // Trend nudge: no jobId, routed to the seller-user like the wallet events.
-  'trend.match',
-]);
-
-// High-signal events that should also trigger a toast. Cooldown finishing is
-// the rare actionable money event, so it earns a toast; the rest of the vault
-// and agent events sit quietly in the bell.
-const TOAST_TYPES = new Set([
-  'deal.matched',
-  'deal.match.approved',
-  'deal.seller-approved',
-  'deal.cancel.proposed',
-  'deal.fund.insufficient',
-  'negotiation.near-miss',
-  'job.expired',
-  'deal.deadline.passed',
-  'deal.match.raised',
-  'wallet.credited',
-  'wallet.debited',
-  'vault.cooldown.completed',
-  'reputation.tier-up',
-  // Money offered, money moved early, or money that failed to move. All three
-  // want a decision or a look; the rest of the financing lifecycle can sit
-  // quietly in the bell.
-  'factoring.offered',
-  'factoring.defaulted',
-  'po.released',
-  'po.defaulted',
-]);
-
-// Which party should receive each event. This is the fix for notifications
-// landing at the wrong party: a deal event is no longer shown to whoever is a
-// party, it is shown only to the role the message is written for. 'both' shows
-// to either side with role-aware copy. cancel.proposed / cancel.declined route
-// by the proposer in the payload (handled in shouldNotify).
-const RECIPIENT: Record<string, Role | 'both'> = {
-  // Managed (agent) flow.
-  'deal.matched': 'both',
-  'deal.match.approved': 'both',
-  'deal.match.declined': 'both',
-  'deal.match.raised': 'buyer', // seller raised; the buyer now approves or declines
-  'job.expired': 'buyer',
-  'listing.matched': 'seller',
-  'trend.match': 'seller', // rising-demand nudge, addressed to the matching seller
-  'agent.declined': 'buyer',
-  // Direct flow.
-  'deal.direct.created': 'seller', // buyer just created it; the seller must act
-  'deal.invite.claimed': 'seller', // the claimer is the seller; surface "deal is yours" in their bell post-claim
-  'deal.seller-approved': 'buyer', // seller agreed; buyer now reviews and funds
-  'deal.accepted': 'both', // escrow is now funded and active
-  'deal.delivered': 'buyer', // the buyer verifies and releases
-  'deal.delivery.flagged': 'both', // seller fixes the link, buyer learns release is paused
-  'deal.delivery.cleared': 'both', // both learn the hold lifted
-  'deal.fund.insufficient': 'buyer',
-  'escrow.milestone.released': 'both',
-  'deal.review.started': 'buyer',
-  'deal.deadline.passed': 'buyer', // the seller missed it; the buyer can reclaim
-  'deal.review.heartbeat': 'seller', // the buyer extended; the seller cares
-  'deal.auto_released': 'both',
-  'escrow.settled': 'both',
-  'deal.disputed': 'both',
-  'escrow.resolved': 'both',
-  'deal.cancelled': 'both',
-  'deal.cancel.proposed': 'both', // special-cased to the counterparty below
-  'deal.cancel.declined': 'both', // special-cased to the proposer below
-  // The seller pulls funds out after settlement; banner lives on the deal page.
-  'cashout.arc.completed': 'seller',
-};
 
 function hrefForType(type: string, jobId: string): string {
   // listing.matched fires when a seller's offer matches a buyer's brief and the
@@ -226,6 +67,7 @@ function hrefForType(type: string, jobId: string): string {
   if (type === 'listing.matched') return '/seller';
   // Trend nudge points the seller at the live requests driving the rising demand.
   if (type === 'trend.match') return '/market';
+  if (BRIDGE_TYPES.has(type)) return '/account';
   if (WALLET_TYPES.has(type)) return '/profile';
   if (type.startsWith('vault.')) return '/stake';
   if (type.startsWith('agent.')) return '/profile';
@@ -237,6 +79,23 @@ function hrefForType(type: string, jobId: string): string {
   if (ACTION_TYPES.has(type) && jobId) return `/deals/${jobId}#action`;
   if (!jobId) return '/app';
   return MANAGED_TYPES.has(type) ? `/jobs/${jobId}` : `/deals/${jobId}`;
+}
+
+/// One sound per notification. Money arriving or leaving gets its own; the
+/// rest keep the kit's tone. Dedupe and the hold for a pressed button live in
+/// moneySounds.
+function playNotificationSound(e: ChainEvent, me: string, role: Role | null) {
+  moneySounds.notified(classifyMoneyEvent(e.type, e.payload, { address: me, role }), soundKeysFor(e));
+}
+
+function bridgeNotificationId(e: ChainEvent): string {
+  const ref = (e.payload?.bridgeId as string | undefined) ?? (e.payload?.txHash as string | undefined) ?? String(e.ts);
+  return `${e.type}-${ref}`;
+}
+
+function bridgeSummary(e: ChainEvent, copy: { arrivedArc: string; reachedDestination: string }): string {
+  const amount = trimUsdcLabel(String(e.payload?.amountUsdc ?? '0'));
+  return fill(bridgeDirection(e.payload) === 'in' ? copy.arrivedArc : copy.reachedDestination, { amount });
 }
 
 function walletLabelFromPayload(payload: Record<string, unknown> | undefined): string {
@@ -622,6 +481,10 @@ export function subscribeToToasts(fn: ToastListener) {
 export function useNotifications() {
   const auth = useAuth();
   const qc = useQueryClient();
+  const notifyCopy = useTranslations().money.notify;
+  // Read inside the live-event handler, which subscribes once per account.
+  const notifyCopyRef = useRef(notifyCopy);
+  notifyCopyRef.current = notifyCopy;
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -769,6 +632,22 @@ export function useNotifications() {
           });
           continue;
         }
+        if (BRIDGE_TYPES.has(e.type)) {
+          const owner = (e.payload?.owner as string | undefined)?.toLowerCase();
+          const recipient = (e.payload?.mintRecipient as string | undefined)?.toLowerCase();
+          if (owner !== me && recipient !== me) continue;
+          const id = bridgeNotificationId(e);
+          fresh.push({
+            id,
+            jobId: '',
+            type: e.type,
+            summary: bridgeSummary(e, notifyCopyRef.current),
+            ts: e.ts,
+            read: readIdsRef.current.has(id),
+            href: hrefForType(e.type, ''),
+          });
+          continue;
+        }
         if (!e.jobId) continue;
         const role = roleForEvent(e.payload, me, e.jobId, roleByJobRef.current);
         if (!shouldNotify(e.type, role, e.payload)) continue;
@@ -870,11 +749,7 @@ export function useNotifications() {
           return [next, ...list].slice(0, MAX_STORED);
         });
         if (initialHydrateRef.current) {
-          try {
-            sfx.send();
-          } catch {
-            /* ignore */
-          }
+          playNotificationSound(e, me, null);
           if (next.toast) {
             toastListeners.forEach((fn) => fn(next));
           }
@@ -909,11 +784,7 @@ export function useNotifications() {
           return [next, ...list].slice(0, MAX_STORED);
         });
         if (initialHydrateRef.current) {
-          try {
-            sfx.send();
-          } catch {
-            /* ignore */
-          }
+          playNotificationSound(e, me, financeRole);
           if (next.toast) {
             toastListeners.forEach((fn) => fn(next));
           }
@@ -947,11 +818,7 @@ export function useNotifications() {
           return [next, ...list].slice(0, MAX_STORED);
         });
         if (initialHydrateRef.current) {
-          try {
-            sfx.send();
-          } catch {
-            /* ignore */
-          }
+          playNotificationSound(e, me, null);
           if (next.toast) {
             toastListeners.forEach((fn) => fn(next));
           }
@@ -982,15 +849,35 @@ export function useNotifications() {
           return [next, ...list].slice(0, MAX_STORED);
         });
         if (initialHydrateRef.current) {
-          try {
-            sfx.send();
-          } catch {
-            /* ignore */
-          }
+          playNotificationSound(e, me, null);
           if (next.toast) {
             toastListeners.forEach((fn) => fn(next));
           }
         }
+        return;
+      }
+
+      // A cross-chain transfer finished. The stream sends a bridge event in full
+      // only to the account that owns it; the owner or recipient check is the
+      // second guard, as it is for wallet events.
+      if (BRIDGE_TYPES.has(e.type)) {
+        const owner = (e.payload?.owner as string | undefined)?.toLowerCase();
+        const recipient = (e.payload?.mintRecipient as string | undefined)?.toLowerCase();
+        if (owner !== me && recipient !== me) return;
+        const id = bridgeNotificationId(e);
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = {
+          id,
+          jobId: '',
+          type: e.type,
+          summary: bridgeSummary(e, notifyCopyRef.current),
+          ts: e.ts,
+          read: readIdsRef.current.has(id),
+          href: hrefForType(e.type, ''),
+        };
+        setNotifications((list) => (list.some((n) => n.id === id) ? list : [next, ...list].slice(0, MAX_STORED)));
+        if (initialHydrateRef.current) playNotificationSound(e, me, null);
         return;
       }
 
@@ -1050,11 +937,7 @@ export function useNotifications() {
       });
 
       if (initialHydrateRef.current) {
-        try {
-          sfx.send();
-        } catch {
-          /* ignore */
-        }
+        playNotificationSound(e, me, role);
         if (toast) {
           toastListeners.forEach((fn) => fn(next));
         }

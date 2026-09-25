@@ -6,8 +6,12 @@ import { networkCopy, type NetworkCopy } from './network';
 import { escrowDocsCopy, type EscrowDocsCopy } from './escrowDocs';
 import { socialTradeCopy, type SocialTradeCopy } from './socialTrade';
 import { protectionCopy, type ProtectionCopy } from './protection';
+import { moneyCopy, type MoneyCopy } from './money';
+import { searchCopy, type SearchCopy } from './search';
 interface MessagesShape {
   protection: ProtectionCopy;
+  money: MoneyCopy;
+  search: SearchCopy;
   socialTrade: SocialTradeCopy;
   networkUi: NetworkCopy;
   docsEscrowPage: EscrowDocsCopy;
@@ -101,8 +105,6 @@ interface MessagesShape {
     themeDark: string;
     themeSystem: string;
     sound: string;
-    soundOn: string;
-    soundOff: string;
     notifications: string;
     notificationsHint: string;
     notificationsMute: string;
@@ -5270,6 +5272,8 @@ interface MessagesShape {
 
 export const en: MessagesShape = {
   protection: protectionCopy.en,
+  money: moneyCopy.en,
+  search: searchCopy.en,
   socialTrade: socialTradeCopy.en,
   networkUi: networkCopy.en,
   docsEscrowPage: escrowDocsCopy.en,
@@ -5373,8 +5377,6 @@ export const en: MessagesShape = {
     themeDark: 'Dark',
     themeSystem: 'Daylight',
     sound: 'Sound',
-    soundOn: 'On',
-    soundOff: 'Off',
     notifications: 'Notifications',
     notificationsHint: 'Stops Karwan notifications across email and connected channels.',
     notificationsMute: 'Mute all notifications',
