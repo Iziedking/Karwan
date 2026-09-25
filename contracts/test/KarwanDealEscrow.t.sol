@@ -179,6 +179,31 @@ contract KarwanDealEscrowTest is DealEscrowBase {
         assertTrue(other != id, "same salt, different buyer, different deal");
     }
 
+    /// MN-03: ids from different escrow deployments, or the same address on another
+    /// chain, meet in shared records such as Reputation. They must never collide.
+    function test_MN03_DealIdsAreScopedToThisEscrowAndChain() public {
+        bytes32 salt = keccak256("s");
+        KarwanDealEscrow twin = new KarwanDealEscrow(
+            address(usdc),
+            address(vault),
+            address(this),
+            KarwanDealEscrow.Bounds({
+                maxReservationBps: 10_000,
+                minReview: 60,
+                maxReview: 180 days,
+                maxHorizon: 730 days,
+                disputeTimeout: TIMEOUT,
+                appealWindow: APPEAL,
+                autoRulingSla: SLA
+            })
+        );
+        bytes32 here = escrow.dealIdFor(buyer, salt);
+        assertTrue(here != twin.dealIdFor(buyer, salt), "another escrow, same buyer and salt");
+
+        vm.chainId(5042);
+        assertTrue(here != escrow.dealIdFor(buyer, salt), "same escrow address on another chain");
+    }
+
     function test_BuyerCancelsADealTheSellerNeverAccepted() public {
         DealTerms memory t = _terms();
         uint256 before = usdc.balanceOf(buyer);

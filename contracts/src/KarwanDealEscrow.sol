@@ -260,8 +260,8 @@ contract KarwanDealEscrow is Ownable2Step, ReentrancyGuard, Guardable {
 
     // ------------------------------- Views --------------------------------
 
-    function dealIdFor(address buyer, bytes32 salt) public pure returns (bytes32) {
-        return keccak256(abi.encode(buyer, salt));
+    function dealIdFor(address buyer, bytes32 salt) public view returns (bytes32) {
+        return keccak256(abi.encode(block.chainid, address(this), buyer, salt));
     }
 
     function termsHashOf(DealTerms memory t) public pure returns (bytes32) {
@@ -301,7 +301,8 @@ contract KarwanDealEscrow is Ownable2Step, ReentrancyGuard, Guardable {
     // ------------------------------ Funding -------------------------------
 
     /// @notice Fund a deal with its full terms. The deal id is derived from the
-    ///         buyer and a salt, so nobody can take it first.
+    ///         chain, this escrow, the buyer and a salt, so nobody can take it first
+    ///         and no other escrow can produce it.
     function fund(bytes32 salt, DealTerms calldata t) external nonReentrant returns (bytes32 jobId) {
         if (newDealsPaused) revert Paused();
         if (treasury == address(0)) revert Zero();
