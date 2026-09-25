@@ -131,8 +131,10 @@ JSON
     say "What each host serves"
     for h in karwan.site testnet.karwan.site; do
       code=$(curl -s -o /dev/null -w '%{http_code}' "https://$h/")
-      net=$(curl -s "https://$h/" | grep -o 'Arc [Mm]ainnet\|Arc testnet' | head -1)
-      echo "  $h  http $code  ${net:-network label not found in HTML}"
+      # Which API the site's code calls is the real test; no match must not stop the script.
+      net=$(curl -sL "https://$h/" | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u | while read -r c; do curl -s "https://$h$c"; done | grep -o 'https://mainnet-api\.karwan\.site\|https://api\.karwan\.site' | sort -u | tr '
+' ' ' || true)
+      echo "  $h  http $code  calls: ${net:-no API URL found}"
     done
     printf '  mainnet api: '; curl -s https://mainnet-api.karwan.site/health; echo
     printf '  testnet api: '; curl -s https://api.karwan.site/health; echo
