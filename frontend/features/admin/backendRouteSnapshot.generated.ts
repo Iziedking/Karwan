@@ -244,6 +244,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/jobs/:jobId/near-miss" },
   { method: "POST", path: "/api/jobs/:jobId/raise-offer" },
   { method: "POST", path: "/api/jobs/:jobId/reconsider" },
+  { method: "GET", path: "/api/jobs/funding-quote" },
   { method: "GET", path: "/api/jobs/marketplace" },
   { method: "GET", path: "/api/jobs/matches/for" },
   { method: "GET", path: "/api/legacy/deals" },

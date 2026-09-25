@@ -11,6 +11,7 @@ import { llmModel } from '../llm/client.js';
 import { withLlmRetry } from '../agents/llm-utils.js';
 import { logger } from '../logger.js';
 import { ARC } from '../chain/client.js';
+import { listBidOutcomes } from '../db/bidOutcomes.js';
 
 export const agentsRoutes = new Hono();
 
@@ -46,8 +47,12 @@ agentsRoutes.get('/buyer', async (c) => {
 agentsRoutes.get('/seller', async (c) => {
   const scope = await ownAgents(c);
   if ('error' in scope) return c.json({ error: scope.error }, scope.status);
-  if (!scope.agents) return c.json({ profile: null, activeBids: [] });
-  return c.json({ profile: null, ...getSellerSnapshot(scope.agents.sellerAddress) });
+  if (!scope.agents) return c.json({ profile: null, activeBids: [], recentBids: [] });
+  return c.json({
+    profile: null,
+    ...getSellerSnapshot(scope.agents.sellerAddress),
+    recentBids: listBidOutcomes(scope.agents.sellerAddress),
+  });
 });
 
 /// Manually abandon one of the caller's own in-flight seller bids. Identity is

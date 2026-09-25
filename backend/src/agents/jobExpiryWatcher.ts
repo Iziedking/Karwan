@@ -97,8 +97,10 @@ async function tick(): Promise<void> {
   // showing as "negotiating" and does not accumulate across restarts.
   try {
     const deals = await listAllDeals();
-    const resolved = new Set(deals.map((d) => d.jobId.toLowerCase()));
-    reconcileActiveBids(resolved, now);
+    const dealsByJob = new Map(
+      deals.map((d) => [d.jobId.toLowerCase(), { seller: d.seller, sellerAgentAddress: d.sellerAgentAddress }]),
+    );
+    reconcileActiveBids(dealsByJob, now);
   } catch (err) {
     logger.warn({ err: (err as Error).message }, 'active-bid reconcile failed');
   }

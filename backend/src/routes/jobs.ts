@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import {
   encodeAbiParameters,
-  formatUnits,
   keccak256,
   parseUnits,
   toBytes,
@@ -12,7 +11,6 @@ import {
   jobBoard,
   readPostedJobId,
   readUsdcBalance,
-  computeFunding,
   getEscrowFeeBps,
 } from '../chain/contracts.js';
 import { executeContractCall } from '../chain/txs.js';
@@ -44,6 +42,7 @@ import { getDeal } from '../db/deals.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
 import { getAgentWallets } from '../db/agentWallets.js';
+import { buyerFundingNeed } from '../agents/buyerFundingNeed.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
 import { enqueueLegacyReconsiderationShadow } from './jobsReengagement.js';
@@ -189,6 +188,23 @@ jobsRoutes.get('/marketplace', async (c) => {
     out.push({ ...b, buyer: mask(b.buyer) });
   }
   return c.json({ briefs: out });
+});
+
+/// What "Start the search" will move before posting. Same arithmetic as the
+/// post check, so the amount the sheet states is the amount the check enforces.
+/// Declared before /:jobId, which would otherwise take this path as a job id.
+jobsRoutes.get('/funding-quote', async (c) => {
+  const caller = sessionAddress(c);
+  if (!caller) return c.json({ error: 'sign in to get a funding quote' }, 401);
+  const budget = Number(c.req.query('budgetUsdc'));
+  if (!Number.isFinite(budget) || budget <= 0) {
+    return c.json({ error: 'budgetUsdc must be a positive number' }, 400);
+  }
+  const agents = await getAgentWallets(caller);
+  const feeBps = await getEscrowFeeBps();
+  const balanceWei = agents ? await readUsdcBalance(agents.buyerAddress) : 0n;
+  const need = buyerFundingNeed({ budgetUsdc: budget, feeBps, balanceWei });
+  return c.json({ ...need.view, activated: !!agents });
 });
 
 jobsRoutes.get('/:jobId', async (c) => {
@@ -342,18 +358,12 @@ jobsRoutes.post('/', async (c) => {
   // a budget plus a guessed half-dollar of headroom. It also reports the exact
   // shortfall, so the client can offer funding instead of an error.
   try {
-    const priceWei = parseUnits(String(body.budgetUsdc), USDC_DECIMALS);
     const [agentBalance, feeBps] = await Promise.all([
       readUsdcBalance(buyerProfile.address),
       getEscrowFeeBps(),
     ]);
-    const { fundedAmount } = computeFunding(priceWei, feeBps);
-    // Gas on Arc is USDC and a deal costs a handful of transactions, so leave
-    // room for them on top of what the escrow takes.
-    const required = fundedAmount + parseUnits('0.5', USDC_DECIMALS);
-
-    if (agentBalance < required) {
-      const shortfall = required - agentBalance;
+    const need = buyerFundingNeed({ budgetUsdc: body.budgetUsdc, feeBps, balanceWei: agentBalance });
+    if (need.shortfall > 0n) {
       return c.json(
         {
           error: 'insufficient buyer balance',
@@ -361,9 +371,9 @@ jobsRoutes.post('/', async (c) => {
           detail:
             'Your buyer agent needs the funds before a request goes up, because the escrow is funded from it the moment a seller accepts.',
           agentAddress: buyerProfile.address,
-          balanceUsdc: formatUnits(agentBalance, USDC_DECIMALS),
-          requiredUsdc: formatUnits(required, USDC_DECIMALS),
-          topUpNeededUsdc: formatUnits(shortfall, USDC_DECIMALS),
+          balanceUsdc: need.view.balanceUsdc,
+          requiredUsdc: need.view.requiredUsdc,
+          topUpNeededUsdc: need.view.topUpNeededUsdc,
           budgetUsdc: body.budgetUsdc,
         },
         409,

@@ -62,6 +62,8 @@ import type {
 import { buildStakeQualificationObservation } from './stakeQualificationProjection.js';
 import type { EvidenceAcquisitionShadowObserver } from './evidenceAcquisitionShadow.js';
 import { buildMarketEvidenceAcquisitionObservation } from './evidenceAcquisitionProjection.js';
+import { requestTitle, settleBid, type BidOutcomeRecord, type DealParties } from './bidOutcome.js';
+import { recordBidOutcomes } from '../db/bidOutcomes.js';
 
 // ERC-20 USDC on Arc uses 6 decimals (native gas interface uses 18). Bid amounts
 // ride the ERC-20 rail because escrow.transferFrom is ERC-20.
@@ -1662,6 +1664,8 @@ export interface SellerActiveBidSnapshot {
   lastBidPrice: string;
   counterRounds: number;
   finalized: boolean;
+  /// First line of the brief, never the buyer. Null when the brief was lost.
+  title: string | null;
 }
 
 /// Returns the seller-side flags attached to a bid (currently just the
@@ -1682,24 +1686,42 @@ export function getSellerBidFlags(
 /// Prune bids whose auction has concluded, so the seller's active-bids view is
 /// live-only and the in-memory map (plus its persisted snapshot) stop gathering
 /// dead negotiations. A bid is done when a deal exists for its job (the auction
-/// was awarded, to us or to another seller), its offer deadline has passed, or
-/// the negotiation itself already finalized (accepted / declined). Called from
-/// the job-expiry watcher tick. Returns how many were pruned.
-export function reconcileActiveBids(resolvedJobIds: Set<string>, now: number): number {
-  let removed = 0;
+/// was awarded, to us or to another seller) or its offer deadline has passed;
+/// each one leaves with its outcome recorded for the seller desk. Called from
+/// the job-expiry watcher tick. Returns how many were settled.
+export function reconcileActiveBids(dealsByJob: Map<string, DealParties>, now: number): number {
+  const settled: BidOutcomeRecord[] = [];
   for (const [key, bid] of activeBids) {
     const jobId = bid.jobContext.jobId.toLowerCase();
-    const expired = Number(bid.jobContext.deadlineUnix) * 1000 < now;
-    if (bid.finalized || resolvedJobIds.has(jobId) || expired) {
-      activeBids.delete(key);
-      removed += 1;
-    }
+    const outcome = settleBid(
+      {
+        jobId,
+        sellerAgent: bid.seller.address,
+        sellerUser: bid.seller.userAddress ?? '',
+        deadlineUnix: Number(bid.jobContext.deadlineUnix),
+      },
+      dealsByJob.get(jobId) ?? null,
+      now,
+    );
+    // A finalized bid is waiting on the buyer's side; it stays until a deal
+    // exists or the deadline passes, so its outcome is known when it leaves.
+    if (!outcome) continue;
+    activeBids.delete(key);
+    settled.push({
+      jobId,
+      sellerAgent: bid.seller.address,
+      title: requestTitle(bid.jobContext.briefText),
+      outcome,
+      lastPrice: bid.lastBidPrice,
+      at: now,
+    });
   }
-  if (removed > 0) {
+  if (settled.length > 0) {
+    recordBidOutcomes(settled);
     scheduleActiveBidsPersist();
-    logger.info({ removed }, 'pruned concluded/expired active bids');
+    logger.info({ removed: settled.length }, 'settled concluded/expired active bids');
   }
-  return removed;
+  return settled.length;
 }
 
 /// Manually abandon an in-flight bid: the seller walks away from the
@@ -1710,8 +1732,19 @@ export function reconcileActiveBids(resolvedJobIds: Set<string>, now: number): n
 /// Returns true if a matching bid was found and removed.
 export function abandonBid(jobId: string, sellerAgentAddress: string): boolean {
   const key = bidKey(jobId, sellerAgentAddress);
-  if (!activeBids.has(key)) return false;
+  const bid = activeBids.get(key);
+  if (!bid) return false;
   activeBids.delete(key);
+  recordBidOutcomes([
+    {
+      jobId: jobId.toLowerCase(),
+      sellerAgent: sellerAgentAddress,
+      title: requestTitle(bid.jobContext.briefText),
+      outcome: 'withdrawn',
+      lastPrice: bid.lastBidPrice,
+      at: Date.now(),
+    },
+  ]);
   scheduleActiveBidsPersist();
   bus.emitEvent({
     type: 'agent.declined',
@@ -1741,6 +1774,7 @@ export function getSellerSnapshot(
       lastBidPrice: b.lastBidPrice,
       counterRounds: b.counterRounds,
       finalized: b.finalized,
+      title: requestTitle(b.jobContext.briefText),
     })),
   };
 }
