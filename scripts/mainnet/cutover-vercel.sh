@@ -50,7 +50,11 @@ link_mainnet() {
 put_env() {
   local name=$1 dir=$2 value=$3
   vercel env rm "$name" production --yes --cwd "$dir" >/dev/null 2>&1 || true
-  printf '%s' "$value" | vercel env add "$name" production --cwd "$dir" >/dev/null
+  # Every NEXT_PUBLIC_ value is read by the browser, so it is stored as config.
+  # The Circle client key is publishable by design and locked to karwan.site in
+  # the Circle Console; the CLI asks for the type explicitly because it looks
+  # like a credential.
+  printf '%s' "$value" | vercel env add "$name" production --type config --cwd "$dir" >/dev/null
   echo "  set $name"
 }
 
