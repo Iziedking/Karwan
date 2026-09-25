@@ -1,3 +1,4 @@
+import { recordedBridgeMintedPayload } from '../money/bridgeEvents.js';
 import { randomUUID } from 'node:crypto';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -478,15 +479,16 @@ bridgeRoutes.post('/record', async (c) => {
     bus.emitEvent({
       type: 'bridge.minted',
       actor: 'buyer',
-      payload: {
+      payload: recordedBridgeMintedPayload({
         bridgeId: body.bridgeId,
         amountUsdc,
         mintRecipient: body.mintRecipient,
-        sourceTxHash: body.burnTxHash ?? '',
-        ...(body.mintTxHash ? { txHash: body.mintTxHash } : { alreadyMinted: true }),
+        burnTxHash: body.burnTxHash,
+        mintTxHash: body.mintTxHash,
         reference: latestMovement.reference,
         movementState: latestMovement.state,
-      },
+        direction,
+      }),
     });
   }
 
