@@ -17,6 +17,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
   const [code, setCode] = useState('');
   const [invited, setInvited] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
+  const [joinedBefore, setJoinedBefore] = useState<number | null>(null);
   const [busy, setBusy] = useState<null | 'send' | 'verify'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       const r = await api.waitlistVerify(email, code);
       setInvited(r.invited);
       setPosition(r.position);
+      setJoinedBefore(r.alreadyJoined ? r.joinedAt : null);
       setStep('done');
     } catch (err) {
       const reason = err instanceof ApiError ? err.code : undefined;
@@ -68,7 +70,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
         </div>
       )}
       <h1 className="text-[26px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)]">
-        {step === 'code' ? t.codeTitle : step === 'done' ? t.doneTitle : t.title}
+        {step === 'code' ? t.codeTitle : step === 'done' ? (joinedBefore && !invited ? t.alreadyTitle : t.doneTitle) : t.title}
       </h1>
 
       {step === 'email' && (
@@ -110,7 +112,13 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
             <p className="mono text-[17px] font-semibold text-[var(--lp-dark)]">{t.position.replace('{n}', position.toLocaleString('en-US'))}</p>
           )}
           <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">
-            {invited ? t.invitedBody : t.doneBody.replace('{email}', email)}
+            {invited
+              ? t.invitedBody
+              : joinedBefore
+                ? t.alreadyBody
+                    .replace('{date}', new Date(joinedBefore).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }))
+                    .replace('{email}', email)
+                : t.doneBody.replace('{email}', email)}
           </p>
           {invited && (
             <button type="button" className={primary} onClick={onCreate}>{t.createAccount}</button>

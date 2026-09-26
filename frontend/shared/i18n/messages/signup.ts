@@ -88,6 +88,8 @@ export interface SignupCopy {
     doneTitle: string;
     doneBody: string;
     position: string;
+    alreadyTitle: string;
+    alreadyBody: string;
     invitedBody: string;
     createAccount: string;
     invitedPrompt: string;
@@ -220,6 +222,8 @@ const en: SignupCopy = {
     doneTitle: "Congratulations, you're on the waitlist",
     doneBody: "We'll email {email} when Karwan opens for you.",
     position: "You're number {n} on the list.",
+    alreadyTitle: "You're already on the waitlist",
+    alreadyBody: "You joined on {date}. We'll email {email} when Karwan opens for you.",
     invitedBody: "Your email is already invited. You can create your account now.",
     createAccount: "Create your account",
     invitedPrompt: "Already invited?",
@@ -352,6 +356,8 @@ const ar: SignupCopy = {
     doneTitle: "تهانينا، أنت الآن في قائمة الانتظار",
     doneBody: "سنراسل {email} عندما يُفتح كاروان لك.",
     position: "ترتيبك {n} في القائمة.",
+    alreadyTitle: "أنت بالفعل في قائمة الانتظار",
+    alreadyBody: "انضممت في {date}. سنراسل {email} عندما يُفتح كاروان لك.",
     invitedBody: "بريدك مدعو بالفعل. يمكنك إنشاء حسابك الآن.",
     createAccount: "أنشئ حسابك",
     invitedPrompt: "لديك دعوة بالفعل؟",
@@ -484,6 +490,8 @@ const fr: SignupCopy = {
     doneTitle: "Félicitations, vous êtes sur la liste d’attente",
     doneBody: "Nous écrirons à {email} quand Karwan vous sera ouvert.",
     position: "Vous êtes numéro {n} sur la liste.",
+    alreadyTitle: "Vous êtes déjà sur la liste d’attente",
+    alreadyBody: "Vous l’avez rejointe le {date}. Nous écrirons à {email} quand Karwan vous sera ouvert.",
     invitedBody: "Votre e-mail est déjà invité. Vous pouvez créer votre compte maintenant.",
     createAccount: "Créer votre compte",
     invitedPrompt: "Déjà invité ?",
@@ -616,6 +624,8 @@ const hi: SignupCopy = {
     doneTitle: "बधाई हो, आप प्रतीक्षा सूची में हैं",
     doneBody: "कारवान आपके लिए खुलने पर हम {email} पर ईमेल करेंगे।",
     position: "सूची में आपका नंबर {n} है।",
+    alreadyTitle: "आप पहले से प्रतीक्षा सूची में हैं",
+    alreadyBody: "आप {date} को जुड़े थे। कारवान आपके लिए खुलने पर हम {email} पर ईमेल करेंगे।",
     invitedBody: "आपका ईमेल पहले से आमंत्रित है। आप अभी अपना खाता बना सकते हैं।",
     createAccount: "अपना खाता बनाएँ",
     invitedPrompt: "पहले से आमंत्रित हैं?",
@@ -748,6 +758,8 @@ const sw: SignupCopy = {
     doneTitle: "Hongera, uko kwenye orodha ya kusubiri",
     doneBody: "Tutaandikia {email} Karwan itakapofunguliwa kwako.",
     position: "Wewe ni nambari {n} kwenye orodha.",
+    alreadyTitle: "Tayari uko kwenye orodha ya kusubiri",
+    alreadyBody: "Ulijiunga tarehe {date}. Tutaandikia {email} Karwan itakapofunguliwa kwako.",
     invitedBody: "Barua pepe yako tayari imealikwa. Unaweza kufungua akaunti yako sasa.",
     createAccount: "Fungua akaunti yako",
     invitedPrompt: "Tayari umealikwa?",

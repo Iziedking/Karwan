@@ -2933,7 +2933,7 @@ export const api = {
   waitlistRequest: (email: string, locale: string) =>
     json<{ sent: true }>('/api/waitlist/request', { method: 'POST', body: JSON.stringify({ email, locale }) }),
   waitlistVerify: (email: string, code: string) =>
-    json<{ joined: true; invited: boolean; position: number | null }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+    json<{ joined: true; alreadyJoined: boolean; joinedAt: number; invited: boolean; position: number | null }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
   adminWaitlist: () =>
     json<{
       waitlist: Array<{ email: string; locale: string; joinedAt: number }>;
