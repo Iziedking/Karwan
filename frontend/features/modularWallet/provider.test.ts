@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parseErc6492Signature, type Address, type Hex } from 'viem';
+import { parseErc6492Signature, serializeErc6492Signature, type Address, type Hex } from 'viem';
 import { createPasskeyProvider, type BundlerLike, type ReaderLike } from './provider';
 
 const self: Address = '0x00000000000000000000000000000000000000a1';
 const factory: Address = '0x0000000DF7E6c9Dc387cAFc5eCBfa6c3a6179AdD';
 const innerSig: Hex = '0x1234';
 
-function setup(opts: { deployed: boolean; opSuccess?: boolean }) {
+function setup(opts: { deployed: boolean; opSuccess?: boolean; signature?: Hex }) {
   const sent: unknown[] = [];
   const account = {
     address: self,
-    signMessage: async () => innerSig,
-    signTypedData: async () => innerSig,
+    signMessage: async () => opts.signature ?? innerSig,
+    signTypedData: async () => opts.signature ?? innerSig,
     getFactoryArgs: async () => ({ factory, factoryData: '0xabcd' as Hex }),
   };
   const bundler: BundlerLike = {
@@ -67,6 +67,16 @@ test('a new account signs with ERC-6492 so it can sign in before its first trans
 
   const deployed = setup({ deployed: true }).provider;
   assert.equal(await deployed.request({ method: 'personal_sign', params: ['0x68', self] }), innerSig);
+});
+
+test('a signature the account already wrapped in ERC-6492 is not wrapped again', async () => {
+  // viem's toSmartAccount wraps undeployed accounts itself; a second wrapper
+  // leaves the server's validator holding a wrapper instead of a signature.
+  const already = serializeErc6492Signature({ address: factory, data: '0xabcd', signature: innerSig });
+  const { provider } = setup({ deployed: false, signature: already });
+  const out = (await provider.request({ method: 'personal_sign', params: ['0x68', self] })) as Hex;
+  assert.equal(out, already);
+  assert.equal(parseErc6492Signature(out).signature, innerSig);
 });
 
 test('it refuses to sign for any other address', async () => {

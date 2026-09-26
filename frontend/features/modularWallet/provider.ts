@@ -1,4 +1,5 @@
 import {
+  isErc6492Signature,
   numberToHex,
   serializeErc6492Signature,
   type Address,
@@ -43,8 +44,10 @@ export class ProviderRpcError extends Error {
 /// reasons, both found reading its source (1.0.16):
 /// - its eth_sendTransaction returns the bundle's transaction hash even when the
 ///   user operation inside reverted; a reverted call must fail, not look paid.
-/// - its signatures are not ERC-6492 wrapped, so a new account (no code on
-///   chain until its first transaction) could not prove itself at sign-in.
+/// - a new account (no code on chain until its first transaction) must sign in
+///   with an ERC-6492 signature. viem's smart account already wraps one while
+///   the account is undeployed, so this wraps only a bare signature; wrapping
+///   twice left the server's validator holding a wrapper, and sign-in failed.
 export function createPasskeyProvider(deps: {
   chainId: number;
   account: PasskeyAccountLike;
@@ -54,6 +57,7 @@ export function createPasskeyProvider(deps: {
   const { chainId, account, bundler, reader } = deps;
 
   async function wrapIfUndeployed(signature: Hex): Promise<Hex> {
+    if (isErc6492Signature(signature)) return signature;
     const code = await reader.getCode({ address: account.address });
     if (code && code !== '0x') return signature;
     const { factory, factoryData } = await account.getFactoryArgs();
