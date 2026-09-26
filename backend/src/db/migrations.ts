@@ -941,6 +941,10 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
     version: 30,
     name: 'profile_karwan_tag',
     sql: `
+      CREATE TABLE IF NOT EXISTS profiles (
+        address TEXT PRIMARY KEY,
+        data JSONB NOT NULL
+      );
       CREATE UNIQUE INDEX profiles_karwan_tag_unique
         ON profiles ((lower(data->>'handle')))
         WHERE data->>'handle' IS NOT NULL;

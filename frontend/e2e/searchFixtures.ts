@@ -58,6 +58,7 @@ const PROFILE = {
   address: ME,
   role: 'both',
   displayName: 'Me',
+  handle: 'me_test',
   createdAt: 1,
   updatedAt: 1,
   buyer: { maxBudgetUsdc: 1000, minDeadlineDays: 1, maxDeadlineDays: 30, milestonePcts: [100] },
