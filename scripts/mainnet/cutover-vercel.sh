@@ -84,7 +84,7 @@ JSON
     put_env NEXT_PUBLIC_ARC_NETWORK "$LINK_DIR" mainnet
     put_env NEXT_PUBLIC_BACKEND_URL "$LINK_DIR" https://mainnet-api.karwan.site
     put_env NEXT_PUBLIC_SITE_URL "$LINK_DIR" https://karwan.site
-    put_env NEXT_PUBLIC_CIRCLE_CLIENT_URL "$LINK_DIR" https://modular-sdk.circle.com
+    put_env NEXT_PUBLIC_CIRCLE_CLIENT_URL "$LINK_DIR" https://modular-sdk.circle.com/v1/rpc/w3s/buidl
     put_env NEXT_PUBLIC_CIRCLE_CLIENT_KEY "$LINK_DIR" "$key"
     put_env NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID "$LINK_DIR" "$wc"
     put_env NEXT_PUBLIC_OTHER_NETWORK_STATS_URL "$LINK_DIR" https://testnet.karwan.site/activity/all-time

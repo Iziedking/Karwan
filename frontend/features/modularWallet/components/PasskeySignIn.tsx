@@ -52,6 +52,7 @@ export function PasskeySignIn({ onStart }: { onStart: () => void }) {
       const { accounts } = await connectAsync({ connector });
       if (accounts[0]) await siwe.signInAs(accounts[0]);
     } catch (err) {
+      if (!isCancel(err)) console.warn('passkey sign-in failed', err);
       setError(isCancel(err) ? t.passkeyCancelled : t.passkeyFailed);
     } finally {
       setBusy(null);

@@ -5,8 +5,20 @@ import { ARC_NETWORK, type ArcNetworkName } from '@/core/arcNetwork';
 /// the Circle Console. Always on for Arc mainnet, where email users hold their
 /// own keys. NEXT_PUBLIC_USER_WALLETS=modular turns it on for testnet too, with
 /// a Circle sandbox (TEST_) key allowed on localhost: the local test setup.
+const CIRCLE_RPC_PATH = '/v1/rpc/w3s/buidl';
+
+/// Circle's modular endpoint lives under /v1/rpc/w3s/buidl. The bare host
+/// answers with a WAF lockout page, which surfaced on mainnet as a passkey
+/// sign-in that could never reach Circle, so a bare Circle host gets the path.
+export function normalizeClientUrl(raw: string | undefined): string | null {
+  const url = raw?.trim().replace(/\/+$/, '');
+  if (!url) return null;
+  if (/^https:\/\/modular-sdk\.circle\.com$/i.test(url)) return url + CIRCLE_RPC_PATH;
+  return url;
+}
+
 const CLIENT_KEY = process.env.NEXT_PUBLIC_CIRCLE_CLIENT_KEY?.trim() || null;
-const CLIENT_URL = process.env.NEXT_PUBLIC_CIRCLE_CLIENT_URL?.trim().replace(/\/+$/, '') || null;
+const CLIENT_URL = normalizeClientUrl(process.env.NEXT_PUBLIC_CIRCLE_CLIENT_URL);
 
 /// Circle refuses a LIVE key on testnets and a TEST key on mainnets, so a
 /// mismatched key turns the feature off rather than showing a sign-in that can
