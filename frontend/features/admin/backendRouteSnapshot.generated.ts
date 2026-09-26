@@ -110,6 +110,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "GET", path: "/api/admin/usyc/liquidity" },
   { method: "POST", path: "/api/admin/usyc/run" },
   { method: "GET", path: "/api/admin/waitlist" },
+  { method: "POST", path: "/api/admin/waitlist/approve" },
   { method: "POST", path: "/api/admin/waitlist/invites" },
   { method: "DELETE", path: "/api/admin/waitlist/invites/:email" },
   { method: "GET", path: "/api/admin/x402/research" },

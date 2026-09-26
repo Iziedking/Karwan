@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
 import { config } from '../config.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
-import { isInvited, joinWaitlist } from '../db/waitlist.js';
+import { isInvited, joinWaitlist, waitlistPosition } from '../db/waitlist.js';
 import { logger } from '../logger.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { sendOtpEmail } from './auth.js';
@@ -75,7 +75,8 @@ waitlistRoutes.post('/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
     return c.json({ error: 'wrong_code', code: 'wrong_code' }, 400);
   }
   codes.delete(body.email);
-  await joinWaitlist(body.email, entry.locale);
-  logger.info({ email: body.email }, 'joined mainnet waitlist');
-  return c.json({ joined: true, invited: await isInvited(body.email) });
+  const { entry: joined, created } = await joinWaitlist(body.email, entry.locale);
+  if (created) logger.info({ email: body.email }, 'joined mainnet waitlist');
+  const [invited, position] = await Promise.all([isInvited(body.email), waitlistPosition(body.email)]);
+  return c.json({ joined: true, alreadyJoined: !created, joinedAt: joined.joinedAt, invited, position });
 });

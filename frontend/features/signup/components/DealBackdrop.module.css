@@ -2,8 +2,9 @@
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(3, minmax(0, 360px));
+  justify-content: center;
+  gap: 28px;
   padding: 0 24px;
   overflow: hidden;
   pointer-events: none;
@@ -13,7 +14,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  animation: drift 42s linear infinite;
+  animation: drift 126s linear infinite;
 }
 
 .column:nth-child(2) {
@@ -107,6 +108,7 @@
 @media (max-width: 767px) {
   .backdrop {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
     gap: 14px;
     padding: 0 14px;
   }

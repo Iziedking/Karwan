@@ -967,6 +967,13 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    version: 32,
+    name: 'mainnet_invite_emailed_at',
+    sql: `
+      ALTER TABLE mainnet_invites_v1 ADD COLUMN IF NOT EXISTS emailed_at BIGINT;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

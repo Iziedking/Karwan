@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { WaitlistSeal } from './WaitlistSeal';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,6 +16,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [invited, setInvited] = useState(false);
+  const [position, setPosition] = useState<number | null>(null);
   const [busy, setBusy] = useState<null | 'send' | 'verify'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +46,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
     try {
       const r = await api.waitlistVerify(email, code);
       setInvited(r.invited);
+      setPosition(r.position);
       setStep('done');
     } catch (err) {
       const reason = err instanceof ApiError ? err.code : undefined;
@@ -59,6 +62,11 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
 
   return (
     <div className="w-full rounded-[16px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] p-6 shadow-[var(--shadow-pop)] sm:p-8">
+      {step === 'done' && (
+        <div className="mb-5">
+          <WaitlistSeal />
+        </div>
+      )}
       <h1 className="text-[26px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)]">
         {step === 'code' ? t.codeTitle : step === 'done' ? t.doneTitle : t.title}
       </h1>
@@ -98,6 +106,9 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
 
       {step === 'done' && (
         <div className="mt-3 space-y-4" role="status">
+          {position && !invited && (
+            <p className="mono text-[17px] font-semibold text-[var(--lp-dark)]">{t.position.replace('{n}', position.toLocaleString('en-US'))}</p>
+          )}
           <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">
             {invited ? t.invitedBody : t.doneBody.replace('{email}', email)}
           </p>

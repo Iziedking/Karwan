@@ -41,7 +41,8 @@ import {
 } from '../llm/supervisor.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { addInvites, ENV_INVITES, listInvites, listWaitlist, removeInvite } from '../db/waitlist.js';
+import { addInvites, ENV_INVITES, listInvites, listWaitlist, markInviteEmailed, removeInvite } from '../db/waitlist.js';
+import { sendMainnetAccessEmail } from '../emails/mainnetAccess.js';
 import { parseEmailList } from '../profile/waitlistRules.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
@@ -1204,6 +1205,21 @@ adminRoutes.post('/waitlist/invites', async (c) => {
   const { valid, invalid } = parseEmailList(body.emails);
   const added = await addInvites(valid, 'admin', body.note || null);
   return c.json({ added, alreadyInvited: valid.length - added, invalid });
+});
+
+/// Approve one person from the waitlist and tell them. Safe to repeat: a second
+/// call re-sends the email if the first one did not go out.
+adminRoutes.post('/waitlist/approve', async (c) => {
+  let body;
+  try {
+    body = z.object({ email: z.string().trim().toLowerCase().email() }).parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  await addInvites([body.email], 'admin', 'approved from waitlist');
+  const sent = await sendMainnetAccessEmail(body.email);
+  if (sent.delivered) await markInviteEmailed(body.email);
+  return c.json({ approved: true, emailed: sent.delivered, ...(sent.reason ? { reason: sent.reason } : {}) });
 });
 
 adminRoutes.delete('/waitlist/invites/:email', async (c) => {

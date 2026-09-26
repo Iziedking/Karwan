@@ -1,0 +1,47 @@
+.seal {
+  display: block;
+}
+
+.tile {
+  fill: #0e0e0e;
+  transform-origin: 50% 50%;
+  animation: tile-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.line {
+  fill: none;
+  stroke: var(--lp-accent);
+  stroke-width: 34;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1150ms cubic-bezier(0.45, 0, 0.2, 1) 220ms forwards;
+}
+
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    animation: none;
+  }
+  .line {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

@@ -9,9 +9,9 @@ export default async function StartPage({
   const query = await searchParams;
   const mode = query.mode === 'signup' ? 'signup' : 'signin';
   return (
-    <main className="relative min-h-[100dvh] overflow-hidden bg-[var(--lp-bg)]">
+    <main className="relative ms-[calc(50%-50vw)] w-screen overflow-hidden bg-[var(--lp-bg)] min-h-[calc(100svh-var(--lp-nav-h,72px))]">
       <DealBackdrop />
-      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[460px] flex-col justify-center px-4 py-12">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-var(--lp-nav-h,72px))] w-full max-w-[460px] flex-col justify-center px-4 py-10">
         <StartScreen mode={mode} />
       </div>
     </main>

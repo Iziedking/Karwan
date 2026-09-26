@@ -40,7 +40,7 @@ export function DealBackdrop() {
     <div className={styles.backdrop} aria-hidden data-still={still || undefined}>
       {columns.map((column, c) => (
         <div key={c} className={styles.column} style={{ animationDelay: `${c * -14}s` }}>
-          {[...column, ...column].map((card, k) => (
+          {[...column, ...column, ...column, ...column, ...column, ...column].map((card, k) => (
             <div key={k} className={styles.card}>
               <p className={styles.title}>{card.title}</p>
               <p className={styles.amount}>

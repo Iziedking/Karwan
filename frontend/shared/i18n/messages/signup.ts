@@ -87,6 +87,7 @@ export interface SignupCopy {
     resend: string;
     doneTitle: string;
     doneBody: string;
+    position: string;
     invitedBody: string;
     createAccount: string;
     invitedPrompt: string;
@@ -218,6 +219,7 @@ const en: SignupCopy = {
     resend: "Send a new code",
     doneTitle: "Congratulations, you're on the waitlist",
     doneBody: "We'll email {email} when Karwan opens for you.",
+    position: "You're number {n} on the list.",
     invitedBody: "Your email is already invited. You can create your account now.",
     createAccount: "Create your account",
     invitedPrompt: "Already invited?",
@@ -349,6 +351,7 @@ const ar: SignupCopy = {
     resend: "إرسال رمز جديد",
     doneTitle: "تهانينا، أنت الآن في قائمة الانتظار",
     doneBody: "سنراسل {email} عندما يُفتح كاروان لك.",
+    position: "ترتيبك {n} في القائمة.",
     invitedBody: "بريدك مدعو بالفعل. يمكنك إنشاء حسابك الآن.",
     createAccount: "أنشئ حسابك",
     invitedPrompt: "لديك دعوة بالفعل؟",
@@ -480,6 +483,7 @@ const fr: SignupCopy = {
     resend: "Envoyer un nouveau code",
     doneTitle: "Félicitations, vous êtes sur la liste d’attente",
     doneBody: "Nous écrirons à {email} quand Karwan vous sera ouvert.",
+    position: "Vous êtes numéro {n} sur la liste.",
     invitedBody: "Votre e-mail est déjà invité. Vous pouvez créer votre compte maintenant.",
     createAccount: "Créer votre compte",
     invitedPrompt: "Déjà invité ?",
@@ -611,6 +615,7 @@ const hi: SignupCopy = {
     resend: "नया कोड भेजें",
     doneTitle: "बधाई हो, आप प्रतीक्षा सूची में हैं",
     doneBody: "कारवान आपके लिए खुलने पर हम {email} पर ईमेल करेंगे।",
+    position: "सूची में आपका नंबर {n} है।",
     invitedBody: "आपका ईमेल पहले से आमंत्रित है। आप अभी अपना खाता बना सकते हैं।",
     createAccount: "अपना खाता बनाएँ",
     invitedPrompt: "पहले से आमंत्रित हैं?",
@@ -742,6 +747,7 @@ const sw: SignupCopy = {
     resend: "Tuma msimbo mpya",
     doneTitle: "Hongera, uko kwenye orodha ya kusubiri",
     doneBody: "Tutaandikia {email} Karwan itakapofunguliwa kwako.",
+    position: "Wewe ni nambari {n} kwenye orodha.",
     invitedBody: "Barua pepe yako tayari imealikwa. Unaweza kufungua akaunti yako sasa.",
     createAccount: "Fungua akaunti yako",
     invitedPrompt: "Tayari umealikwa?",

@@ -42,6 +42,10 @@ export default function AdminWaitlistPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const emailedAt = useMemo(
+    () => new Map((data?.invites ?? []).map((i) => [i.email, i.emailedAt])),
+    [data],
+  );
   const invited = useMemo(
     () => new Set([...(data?.invites.map((i) => i.email) ?? []), ...(data?.envInvites ?? [])]),
     [data],
@@ -65,7 +69,8 @@ export default function AdminWaitlistPage() {
   async function approve(email: string) {
     setApproving(email);
     try {
-      await api.adminAddInvites(email);
+      const r = await api.adminApproveWaitlist(email);
+      if (!r.emailed) setError(`${email} is approved, but the email did not send${r.reason ? `: ${r.reason}` : ''}. Use Resend.`);
       await load();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : `Could not approve ${email}`);
@@ -85,7 +90,7 @@ export default function AdminWaitlistPage() {
       <p className={labelClass}>Mainnet</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">Waitlist and invites</h1>
       <p className="mt-2 max-w-[72ch] text-[13px] text-white/55">
-        Approve someone on the waitlist and they can create a mainnet account straight away. You can also paste
+        Approve someone on the waitlist and they get an email to create their mainnet account. You can also paste
         emails below, or list them in MAINNET_INVITES on the server, read when the container starts.
       </p>
 
@@ -143,7 +148,15 @@ export default function AdminWaitlistPage() {
                 <td className="text-white/60">{when(r.joinedAt)}</td>
                 <td>
                   {invited.has(r.email) ? (
-                    <span className="text-[#AFC95B]">Approved</span>
+                    emailedAt.get(r.email) == null && !data?.envInvites.includes(r.email) ? (
+                      <span className="text-[#d9ad55]">
+                        Approved, email not sent{' '}
+                        <button type="button" onClick={() => void approve(r.email)} disabled={approving !== null}
+                          className="min-h-9 underline disabled:opacity-50">{approving === r.email ? 'Sending' : 'Resend'}</button>
+                      </span>
+                    ) : (
+                      <span className="text-[#AFC95B]">Approved{emailedAt.get(r.email) ? ', emailed' : ''}</span>
+                    )
                   ) : (
                     <button type="button" onClick={() => void approve(r.email)} disabled={approving !== null}
                       className="min-h-9 rounded-md bg-[#AFC95B] px-3 text-[12px] font-bold text-[#10171D] disabled:opacity-50">

@@ -2933,11 +2933,11 @@ export const api = {
   waitlistRequest: (email: string, locale: string) =>
     json<{ sent: true }>('/api/waitlist/request', { method: 'POST', body: JSON.stringify({ email, locale }) }),
   waitlistVerify: (email: string, code: string) =>
-    json<{ joined: true; invited: boolean }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+    json<{ joined: true; invited: boolean; position: number | null }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
   adminWaitlist: () =>
     json<{
       waitlist: Array<{ email: string; locale: string; joinedAt: number }>;
-      invites: Array<{ email: string; note: string | null; addedBy: string; addedAt: number }>;
+      invites: Array<{ email: string; note: string | null; addedBy: string; addedAt: number; emailedAt: number | null }>;
       envInvites: string[];
     }>('/api/admin/waitlist', { headers: adminHeaders() }),
   adminAddInvites: (emails: string, note?: string) =>
@@ -2945,6 +2945,12 @@ export const api = {
       method: 'POST',
       headers: adminHeaders(),
       body: JSON.stringify({ emails, ...(note ? { note } : {}) }),
+    }),
+  adminApproveWaitlist: (email: string) =>
+    json<{ approved: true; emailed: boolean; reason?: string }>('/api/admin/waitlist/approve', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ email }),
     }),
   adminRemoveInvite: (email: string) =>
     json<{ removed: boolean }>(`/api/admin/waitlist/invites/${encodeURIComponent(email)}`, {

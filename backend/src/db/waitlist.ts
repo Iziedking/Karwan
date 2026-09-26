@@ -17,6 +17,8 @@ export interface Invite {
   note: string | null;
   addedBy: string;
   addedAt: number;
+  /// When the "you're in" email went out; null if it never did.
+  emailedAt: number | null;
 }
 
 const waitMem = new Map<string, WaitlistEntry>();
@@ -25,25 +27,32 @@ const inviteMem = new Map<string, Invite>();
 const norm = (email: string) => email.trim().toLowerCase();
 
 /// Idempotent: joining twice keeps the first join time, so a person's place
-/// never moves back.
-export async function joinWaitlist(email: string, locale: string): Promise<WaitlistEntry> {
+/// never moves back. `created` says whether this call added them.
+export async function joinWaitlist(email: string, locale: string): Promise<{ entry: WaitlistEntry; created: boolean }> {
   const e = norm(email);
   const now = Date.now();
   if (!pgEnabled) {
     const existing = waitMem.get(e);
-    if (existing) return existing;
+    if (existing) return { entry: existing, created: false };
     const entry = { email: e, locale, joinedAt: now };
     waitMem.set(e, entry);
-    return entry;
+    return { entry, created: true };
   }
-  const { rows } = await postgresExecutor().query<{ email: string; locale: string; joined_at: string }>(
+  const db = postgresExecutor();
+  const inserted = await db.query<{ email: string; locale: string; joined_at: string }>(
     `INSERT INTO waitlist_v1 (email, locale, joined_at) VALUES ($1, $2, $3)
-     ON CONFLICT (email) DO UPDATE SET email = waitlist_v1.email
+     ON CONFLICT (email) DO NOTHING
      RETURNING email, locale, joined_at`,
     [e, locale, now],
   );
-  const r = rows[0]!;
-  return { email: r.email, locale: r.locale, joinedAt: Number(r.joined_at) };
+  const created = inserted.rows.length > 0;
+  const row = created
+    ? inserted.rows[0]!
+    : (await db.query<{ email: string; locale: string; joined_at: string }>(
+        'SELECT email, locale, joined_at FROM waitlist_v1 WHERE email = $1',
+        [e],
+      )).rows[0]!;
+  return { entry: { email: row.email, locale: row.locale, joinedAt: Number(row.joined_at) }, created };
 }
 
 export async function listWaitlist(): Promise<WaitlistEntry[]> {
@@ -67,10 +76,16 @@ export async function isInvited(email: string): Promise<boolean> {
 
 export async function listInvites(): Promise<Invite[]> {
   if (!pgEnabled) return [...inviteMem.values()].sort((a, b) => a.addedAt - b.addedAt);
-  const { rows } = await postgresExecutor().query<{ email: string; note: string | null; added_by: string; added_at: string }>(
-    'SELECT email, note, added_by, added_at FROM mainnet_invites_v1 ORDER BY added_at ASC',
+  const { rows } = await postgresExecutor().query<{ email: string; note: string | null; added_by: string; added_at: string; emailed_at: string | null }>(
+    'SELECT email, note, added_by, added_at, emailed_at FROM mainnet_invites_v1 ORDER BY added_at ASC',
   );
-  return rows.map((r) => ({ email: r.email, note: r.note, addedBy: r.added_by, addedAt: Number(r.added_at) }));
+  return rows.map((r) => ({
+    email: r.email,
+    note: r.note,
+    addedBy: r.added_by,
+    addedAt: Number(r.added_at),
+    emailedAt: r.emailed_at == null ? null : Number(r.emailed_at),
+  }));
 }
 
 /// Adds any email not already invited; returns how many were new.
@@ -81,7 +96,7 @@ export async function addInvites(emails: string[], addedBy: string, note: string
     const e = norm(raw);
     if (!pgEnabled) {
       if (!inviteMem.has(e)) {
-        inviteMem.set(e, { email: e, note, addedBy, addedAt: now });
+        inviteMem.set(e, { email: e, note, addedBy, addedAt: now, emailedAt: null });
         added += 1;
       }
       continue;
@@ -101,4 +116,32 @@ export async function removeInvite(email: string): Promise<boolean> {
   if (!pgEnabled) return inviteMem.delete(e);
   const { rows } = await postgresExecutor().query('DELETE FROM mainnet_invites_v1 WHERE email = $1 RETURNING email', [e]);
   return rows.length > 0;
+}
+
+export async function markInviteEmailed(email: string): Promise<void> {
+  const e = norm(email);
+  const now = Date.now();
+  if (!pgEnabled) {
+    const invite = inviteMem.get(e);
+    if (invite) invite.emailedAt = now;
+    return;
+  }
+  await postgresExecutor().query('UPDATE mainnet_invites_v1 SET emailed_at = $2 WHERE email = $1', [e, now]);
+}
+
+/// 1-based place in line: how many joined at or before this person.
+export async function waitlistPosition(email: string): Promise<number | null> {
+  const e = norm(email);
+  if (!pgEnabled) {
+    const me = waitMem.get(e);
+    if (!me) return null;
+    return [...waitMem.values()].filter((w) => w.joinedAt <= me.joinedAt).length;
+  }
+  const { rows } = await postgresExecutor().query<{ n: string }>(
+    `SELECT count(*) AS n FROM waitlist_v1
+     WHERE joined_at <= (SELECT joined_at FROM waitlist_v1 WHERE email = $1)`,
+    [e],
+  );
+  const n = Number(rows[0]?.n ?? 0);
+  return n > 0 ? n : null;
 }
