@@ -414,7 +414,7 @@ function ProfilePageInner() {
               {t.noProfile.body}
             </p>
             <div className="mt-7">
-              <CTAPill href="/onboarding">{t.noProfile.cta}</CTAPill>
+              <CTAPill href="/start?mode=signup">{t.noProfile.cta}</CTAPill>
             </div>
           </div>
         )}
@@ -602,7 +602,7 @@ function ProfilePageInner() {
           </h1>
           <p className="mt-3 text-[15px] text-[var(--lp-text-sub)]">Create your profile before you start trading.</p>
           <Link
-            href="/onboarding"
+            href="/start?mode=signup"
             className="mt-6 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-5 text-[14px] font-bold text-[var(--lp-band-dark)]"
           >
             Continue

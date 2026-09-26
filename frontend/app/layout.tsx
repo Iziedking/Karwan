@@ -10,6 +10,7 @@ import { ChromeFrame } from '@/shared/components/ChromeFrame';
 import { NotificationToasts } from '@/features/notifications/components/NotificationToasts';
 import { GuideWelcome } from '@/shared/guide/GuideWelcome';
 import { TermsModal } from '@/shared/components/TermsModal';
+import { TagPrompt } from '@/features/signup/components/TagPrompt';
 import { ScrollbarWidthProbe } from '@/shared/components/ScrollbarWidthProbe';
 import { ScrollReset } from '@/shared/components/ScrollReset';
 import { ThemeRouteSync } from '@/shared/components/ThemeRouteSync';
@@ -150,7 +151,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               bottomNav={<WorkspaceBottomNav />}
               notifications={<NotificationToasts />}
               guide={<GuideWelcome />}
-              terms={<TermsModal />}
+              terms={<><TermsModal /><TagPrompt /></>}
             >
               {children}
             </ChromeFrame>

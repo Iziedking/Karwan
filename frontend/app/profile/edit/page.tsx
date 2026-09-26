@@ -74,7 +74,7 @@ function ProfileEditInner() {
   useEffect(() => {
     if (hydrated) return;
     if (fetchState === 'success' && !profile) {
-      router.replace('/onboarding');
+      router.replace('/start?mode=signup');
       return;
     }
     if (!profile) return;

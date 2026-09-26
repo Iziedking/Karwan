@@ -293,6 +293,9 @@ export interface UserProfile {
   address: string;
   role: UserRole;
   displayName: string;
+  /// Karwan tag, lowercase, without the @. Unique; absent on accounts made
+  /// before tags until the owner picks one.
+  handle?: string;
   createdAt: number;
   updatedAt: number;
   workspaces?: Workspace[];
@@ -2927,8 +2930,22 @@ export const api = {
       profile: UserProfile | null;
     }>('/api/auth/bootstrap'),
   authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  signupTagCheck: (tag: string) =>
+    json<{ tag: string; available: boolean; reason?: 'too_short' | 'too_long' | 'invalid' | 'reserved' | 'taken' }>(
+      `/api/signup/tag?tag=${encodeURIComponent(tag)}`,
+    ),
+  signupCreate: (tag: string, accountKind: 'person' | 'business') =>
+    json<{ profile: UserProfile }>('/api/signup', {
+      method: 'POST',
+      body: JSON.stringify({ tag, accountKind }),
+    }),
+  signupClaimTag: (tag: string) =>
+    json<{ profile: UserProfile }>('/api/signup/tag', {
+      method: 'POST',
+      body: JSON.stringify({ tag }),
+    }),
   authLookup: (email: string) =>
-    json<{ exists: boolean; hasPasskey: boolean }>('/api/auth/lookup', {
+    json<{ exists: boolean; hasPasskey: boolean; modular?: boolean }>('/api/auth/lookup', {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),

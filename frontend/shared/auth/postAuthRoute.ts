@@ -27,6 +27,6 @@ export function postAuthDestination({
   if (intent === 'new' && accountExists) return { kind: 'needs-sign-in' };
   if (intent === 'returning' && !accountExists) return { kind: 'needs-create' };
   if (requestedHref === null) return { kind: 'continue', destination: null };
-  if (!profileExists) return { kind: 'continue', destination: '/onboarding' };
+  if (!profileExists) return { kind: 'continue', destination: '/start?mode=signup' };
   return { kind: 'continue', destination: requestedHref };
 }

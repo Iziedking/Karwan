@@ -10,7 +10,7 @@ test('a new identity choosing create account enters onboarding', () => {
       profileExists: false,
       requestedHref: '/app',
     }),
-    { kind: 'continue', destination: '/onboarding' },
+    { kind: 'continue', destination: '/start?mode=signup' },
   );
 });
 
@@ -58,7 +58,7 @@ test('an existing account with incomplete setup resumes onboarding', () => {
       profileExists: false,
       requestedHref: '/app',
     }),
-    { kind: 'continue', destination: '/onboarding' },
+    { kind: 'continue', destination: '/start?mode=signup' },
   );
 });
 

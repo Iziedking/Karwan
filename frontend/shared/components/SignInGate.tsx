@@ -1,8 +1,8 @@
 ﻿'use client';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import Link from 'next/link';
-import { LoginModal } from '@/shared/components/LoginModal';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { START_ROUTE } from '@/shared/utils/routes';
 import {
   FullBleed,
   Band,
@@ -28,7 +28,6 @@ export function SignInGate({
   buttonLabel?: string;
 }) {
   const t = useTranslations();
-  const [open, setOpen] = useState(false);
   const isHero = variant === 'hero';
   const copy = t.auth.signInGate;
   const resolvedTag = tag ?? (isHero ? copy.heroTag : copy.defaultTag);
@@ -42,7 +41,7 @@ export function SignInGate({
             <p className={styles.eyebrow}>{resolvedTag}</p>
             <h1 className={styles.headline}>{title ?? copy.heroTitle}</h1>
             <p className={styles.lede}>{body ?? copy.heroBody}</p>
-            <button type="button" className={styles.entryAction} onClick={() => setOpen(true)}>
+            <button type="button" className={styles.entryAction} onClick={() => window.location.assign(START_ROUTE)}>
               {resolvedButton}
               <span aria-hidden className="rtl-flip">→</span>
             </button>
@@ -53,7 +52,6 @@ export function SignInGate({
             </div>
           </div>
         </section>
-        <LoginModal open={open} onClose={() => setOpen(false)} />
       </FullBleed>
     );
   }
@@ -83,7 +81,7 @@ export function SignInGate({
           <div className="fade-up fade-up-3 mt-7">
             <button
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={() => window.location.assign(START_ROUTE)}
               className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--lp-accent)] px-[18px] py-[11px] text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)]"
             >
               {resolvedButton}
@@ -92,7 +90,6 @@ export function SignInGate({
           </div>
         </div>
       </Band>
-      <LoginModal open={open} onClose={() => setOpen(false)} />
     </FullBleed>
   );
 }

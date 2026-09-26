@@ -131,6 +131,7 @@ function publicView(p: UserProfile): Partial<UserProfile> & { skillCredentials?:
     address: p.address,
     role: p.role,
     displayName: p.displayName,
+    handle: p.handle,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     xHandle: p.xHandle,

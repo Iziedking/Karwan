@@ -7,6 +7,7 @@ import { moneyCopy } from './money';
 import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
+import { signupCopy } from './signup';
 
 export const ar: Messages = {
   protection: protectionCopy.ar,
@@ -14,6 +15,7 @@ export const ar: Messages = {
   search: searchCopy.ar,
   escrowV3: escrowV3Copy.ar,
   analytics: analyticsCopy.ar,
+  signup: signupCopy.ar,
   socialTrade: socialTradeCopy.ar,
   networkUi: networkCopy.ar,
   docsEscrowPage: escrowDocsCopy.ar,

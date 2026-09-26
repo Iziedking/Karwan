@@ -29,6 +29,7 @@ import {
 import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.js';
 import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
 import { signEmailProof } from '../auth/emailProof.js';
+import { getModularAccountByEmail } from '../db/modularAccounts.js';
 import { getProfile } from '../db/profiles.js';
 import {
   clearSessionCookie,
@@ -330,9 +331,13 @@ authRoutes.post('/lookup', async (c) => {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const user = getUserByEmail(body.email);
+  // On mainnet an email account is a passkey-owned smart account linked to the
+  // email, not a users row, so the lookup has to ask that store too.
+  const modular = user ? null : await getModularAccountByEmail(body.email);
   return c.json({
-    exists: !!user,
-    hasPasskey: !!user && hasRealPasskey(user),
+    exists: !!user || !!modular,
+    hasPasskey: !!modular || (!!user && hasRealPasskey(user)),
+    ...(modular ? { modular: true } : {}),
   });
 });
 

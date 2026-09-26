@@ -81,7 +81,7 @@ export function ProfileNudge() {
       title: profileCopy.titleFragment,
       body: profileCopy.bodyFragment,
       cta: profileCopy.cta,
-      href: '/onboarding',
+      href: '/start?mode=signup',
     };
   }
   if (kind === 'activation') {

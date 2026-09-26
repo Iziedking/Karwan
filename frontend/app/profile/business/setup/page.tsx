@@ -28,7 +28,7 @@ function BusinessSetup() {
       {fetchState === 'loading' || fetchState === 'idle' ? <p role="status" className="mt-8">{common.loading}</p> : fetchState === 'error' ? (
         <div role="alert" className="mt-8"><p>{t.loadError}</p><button onClick={refresh} className="min-h-11 underline">{t.retry}</button></div>
       ) : profile ? <BusinessSetupForm key={profile.address} profile={profile} /> : (
-        <div className="mt-8"><p>{t.noProfile}</p><Link href="/onboarding" className="mt-3 inline-flex min-h-11 items-center underline">{t.create}</Link></div>
+        <div className="mt-8"><p>{t.noProfile}</p><Link href="/start?mode=signup" className="mt-3 inline-flex min-h-11 items-center underline">{t.create}</Link></div>
       )}
     </section>
   );

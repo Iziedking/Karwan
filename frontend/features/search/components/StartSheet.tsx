@@ -116,7 +116,7 @@ export function StartSheet({
         ) : mode === 'needsProfile' ? (
           <>
             <p className="text-[15px] text-[var(--lp-dark)]">{t.needsProfile}</p>
-            <Link href="/onboarding" className={PRIMARY}>{t.finishProfile}</Link>
+            <Link href="/start?mode=signup" className={PRIMARY}>{t.finishProfile}</Link>
           </>
         ) : mode === 'needsMoney' && plan.kind === 'needsMoney' ? (
           <>

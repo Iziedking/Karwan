@@ -45,7 +45,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   const recentDeals = currentDeal ? deals.filter((deal) => deal.jobId !== currentDeal.jobId) : deals;
   const showRecentDeals = recentDeals.length > 0 || !currentDeal || fetchState !== 'success';
   const name = displayName?.trim() || profile.displayName?.trim() || translations.profile.hero.fallbackName;
-  const firstName = name.split(/\s+/)[0] || name;
+  // A personal account is greeted by its Karwan tag; a business keeps its name.
+  const firstName = profile.handle && accountKind !== 'business' ? `@${profile.handle}` : name.split(/\s+/)[0] || name;
   const role = accountKind === 'business'
     ? home.roleBusiness
     : profile.role === 'both'

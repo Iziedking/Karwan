@@ -1,6 +1,6 @@
 ﻿import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { db, pgEnabled, withPostgresTransaction } from './client.js';
 import { profiles } from './schema.js';
 import { logger } from '../logger.js';
@@ -73,6 +73,10 @@ export interface UserProfile {
   address: string;
   role: Role;
   displayName: string;
+  /// Karwan tag, lowercase and without the `@`. Unique across accounts (a
+  /// Postgres unique index on lower(data->>'handle')). Set once at sign-up or on
+  /// the first sign-in after tags shipped; not a verification of identity.
+  handle?: string;
   createdAt: number;
   updatedAt: number;
   /// One person identity can own a personal workspace and an optional business
@@ -290,6 +294,7 @@ export async function getProfile(address: string): Promise<UserProfile | null> {
 /// caller OMITTED it (checked with `in`, so an explicit `field: undefined` still
 /// clears it, e.g. disconnecting X or clearing an email).
 const PRESERVE_WHEN_OMITTED = [
+  'handle',
   'skillVerifications',
   'research',
   'business',
@@ -495,6 +500,54 @@ export async function findProfileByName(name: string): Promise<UserProfile | nul
         p.smeProfile?.companyName?.trim().toLowerCase() === n,
     ) ?? null
   );
+}
+
+export async function findProfileByHandle(tag: string): Promise<UserProfile | null> {
+  const t = tag.trim().replace(/^@/, '').toLowerCase();
+  if (!t) return null;
+  if (pgEnabled) {
+    const rows = await db()
+      .select()
+      .from(profiles)
+      .where(sql`lower(${profiles.data}->>'handle') = ${t}`);
+    return rows[0]?.data ?? null;
+  }
+  return Object.values(loadFile()).find((p) => p.handle?.toLowerCase() === t) ?? null;
+}
+
+export type TagClaim =
+  | { kind: 'claimed'; profile: UserProfile }
+  | { kind: 'taken' }
+  | { kind: 'already_set'; tag: string }
+  | { kind: 'no_profile' };
+
+/// Whether `tag` is free for `address`: no other account holds it as a tag,
+/// and no other account uses it as a display or company name (so a new tag
+/// cannot impersonate an account that predates tags).
+export async function tagAvailableFor(tag: string, address: string): Promise<boolean> {
+  const self = address.toLowerCase();
+  const [byTag, byName] = await Promise.all([findProfileByHandle(tag), findProfileByName(tag)]);
+  return (!byTag || byTag.address === self) && (!byName || byName.address === self);
+}
+
+/// Set an account's tag once. A tag, once set, does not change here; the unique
+/// index settles two accounts racing for the same tag.
+export async function claimTag(address: string, tag: string): Promise<TagClaim> {
+  const current = await getProfile(address);
+  if (!current) return { kind: 'no_profile' };
+  if (current.handle) return current.handle === tag ? { kind: 'claimed', profile: current } : { kind: 'already_set', tag: current.handle };
+  if (!(await tagAvailableFor(tag, address))) return { kind: 'taken' };
+  try {
+    const next = await updateProfile(address, (p) => (p.handle ? null : { ...p, handle: tag }));
+    if (!next) {
+      const now = await getProfile(address);
+      return now?.handle ? { kind: 'already_set', tag: now.handle } : { kind: 'no_profile' };
+    }
+    return { kind: 'claimed', profile: next };
+  } catch (err) {
+    if ((err as { code?: string }).code === '23505') return { kind: 'taken' };
+    throw err;
+  }
 }
 
 /// The profile that currently holds a verified contact email (case-insensitive),

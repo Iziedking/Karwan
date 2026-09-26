@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { WALLET_HOME } from '@/shared/utils/routes';
+import { START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
 
 /// Below the width where the public links fit in the bar, they move into a
 /// menu. The panel hangs under the sticky bar without changing its measured
@@ -70,7 +70,7 @@ export function PublicMenu() {
           {DEALS_AVAILABLE ? <Link className={linkClass} href="/market">{t.nav.market}</Link> : null}
           <Link className={linkClass} href="/docs">{t.footer.productLinks.docs}</Link>
           <Link
-            href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
+            href={START_ROUTE}
             className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--color-line-strong)] text-[15px] font-semibold text-[var(--lp-dark)] md:hidden"
           >
             {t.nav.openApp}

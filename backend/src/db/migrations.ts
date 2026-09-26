@@ -937,6 +937,15 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       );
     `,
   },
+  {
+    version: 30,
+    name: 'profile_karwan_tag',
+    sql: `
+      CREATE UNIQUE INDEX profiles_karwan_tag_unique
+        ON profiles ((lower(data->>'handle')))
+        WHERE data->>'handle' IS NOT NULL;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

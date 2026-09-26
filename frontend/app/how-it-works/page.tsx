@@ -124,7 +124,7 @@ export default function HowItWorksPage() {
         </p>
         <div className="pt-2">
           <Link
-            href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
+            href="/start"
             className="min-h-11 px-5 py-2.5 rounded-[10px] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] text-[14px] font-semibold hover:bg-[var(--lp-accent-hover)] transition-colors inline-flex items-center gap-2"
           >
             {messages.nav.openApp}

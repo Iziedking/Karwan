@@ -22,6 +22,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
     '/credit-passport',
     '/x402',
     '/activity/all-time',
+    '/start',
   ].some((route) => matchesRoute(pathname, route));
 }
 
@@ -156,6 +157,8 @@ const DEAL_ROUTES = [
 ];
 
 export const WALLET_HOME = '/account';
+/// The welcome page: sign in or create an account.
+export const START_ROUTE = '/start';
 
 export function isDealRoute(pathname: string | null | undefined): boolean {
   return !!pathname && DEAL_ROUTES.some((route) => matchesRoute(pathname, route));

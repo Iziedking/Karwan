@@ -7,7 +7,7 @@ import { arcChain } from '@/core/wagmi';
 import { formatUsdc } from '@/shared/utils/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { LoginModal } from './LoginModal';
+import { START_ROUTE } from '@/shared/utils/routes';
 import { CircleAccountModal } from './CircleAccountModal';
 import { ChainLogo, type ChainKey } from './ChainLogo';
 
@@ -143,17 +143,12 @@ export function ConnectWalletButton({
 } = {}) {
   const auth = useAuth();
   const t = useTranslations().auth.walletPill;
-  const [loginOpen, setLoginOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   // Karwan runs on Arc. The bridge source chains (Base, Sepolia, OP, Arb,
   // Polygon) are configured for CCTP, so RainbowKit does not consider them
   // unsupported and its wrong-network branch never fires on them. Every deal
   // action still targets Arc, so an off-Arc wallet gets an explicit way back.
   const { switchChain, isPending: switching } = useSwitchChain();
-  // Backward-compat: old code referenced a single `open` state. Keep one
-  // alias so the logged-out branch reads as before.
-  const open = loginOpen;
-  const setOpen = setLoginOpen;
 
   useEffect(() => {
     if (!respondToAccountRequest) return;
@@ -244,7 +239,7 @@ export function ConnectWalletButton({
                   }
                   return (
                     <button
-                      onClick={() => setOpen(true)}
+                      onClick={() => window.location.assign(START_ROUTE)}
                       type="button"
                       suppressHydrationWarning
                       className={SIGN_IN_STYLE[variant]}
@@ -282,7 +277,7 @@ export function ConnectWalletButton({
                 if (!auth.isAuthenticated) {
                   return (
                     <button
-                      onClick={() => setOpen(true)}
+                      onClick={() => window.location.assign(START_ROUTE)}
                       type="button"
                       suppressHydrationWarning
                       className={SIGN_IN_STYLE[variant]}
@@ -342,7 +337,6 @@ export function ConnectWalletButton({
           );
         }}
       </ConnectButton.Custom>
-      <LoginModal open={open} onClose={() => setOpen(false)} />
       {/* Account modal for the session-without-wallet case above (manage / sign
           out). The connected-wallet case uses RainbowKit's own account modal. */}
       <CircleAccountModal open={accountOpen} onClose={() => setAccountOpen(false)} />

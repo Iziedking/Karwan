@@ -24,7 +24,7 @@ export default function AppHome() {
   });
   useEffect(() => {
     if (isConnected && fetchState === 'success' && !profile) {
-      window.location.assign('/onboarding');
+      window.location.assign('/start?mode=signup');
     }
   }, [fetchState, isConnected, profile]);
 

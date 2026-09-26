@@ -11,7 +11,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
-import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
+import { getShellSurface, START_ROUTE, WALLET_HOME } from '@/shared/utils/routes';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
@@ -579,9 +579,11 @@ function SettingsIconLink({ active }: { active: boolean }) {
 
 function LaunchAppCTA() {
   const label = useTranslations().nav.openApp;
+  const pathname = usePathname();
+  if (pathname === START_ROUTE) return null;
   return (
     <Link
-      href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
+      href={START_ROUTE}
       className="hidden min-h-11 items-center gap-2 rounded-[10px] border border-[var(--color-line-strong)] px-5 py-2 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--color-surface-2)] md:inline-flex"
     >
       {label}

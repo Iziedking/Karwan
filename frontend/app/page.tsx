@@ -40,7 +40,7 @@ export default function HomePage() {
           <p className={styles.kicker}>{t.kicker}</p>
           <h1 id="landing-title"><span>{t.titleFirst}</span>{' '}<span>{t.titleLast}</span></h1>
           <p className={styles.lead}>{t.lead}</p>
-          <Link className={styles.button} href="/app">{t.open}<Arrow /></Link>
+          <Link className={styles.button} href="/start">{t.open}<Arrow /></Link>
           <p className={styles.note}>{messages.networkUi.builtOnArc}</p>
         </div>
         <div className={styles.media}>
@@ -71,7 +71,7 @@ export default function HomePage() {
         </div>
       </section>
       <ProtectionSection />
-      <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.wrap}><h2 id="closing-title">{t.closeTitle}</h2><p>{t.closeBody}</p><Link className={styles.button} href="/app">{t.open}<Arrow /></Link></div></section>
+      <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.wrap}><h2 id="closing-title">{t.closeTitle}</h2><p>{t.closeBody}</p><Link className={styles.button} href="/start">{t.open}<Arrow /></Link></div></section>
     </div>
   );
 }
