@@ -834,6 +834,7 @@ interface MessagesShape {
       accountSetup: string;
       contactDetails: string;
       moneyAndTrade: string;
+      money: string;
       usdcBalance: string;
       wallets: string;
       openDeals: string;
@@ -6156,6 +6157,7 @@ export const en: MessagesShape = {
       accountSetup: 'Account setup',
       contactDetails: 'Contact details',
       moneyAndTrade: 'Money and trade',
+      money: 'Money',
       usdcBalance: 'USDC balance',
       wallets: 'Wallets',
       openDeals: 'Open deals',
@@ -10127,7 +10129,7 @@ export const en: MessagesShape = {
       steps: {
         pickSource: { label: 'Pick the chain.', body: 'Choose where your USDC currently sits.' },
         approveBurn: { label: 'Sign the transfer.', body: 'You sign the transfer from your own wallet. The product shows the source route and confirmation state before you continue.' },
-        attestation: { label: 'Wait for confirmation.', body: 'Wait for source-chain finality and the transfer service to report completion. Testnet timing can vary.' },
+        attestation: { label: 'Wait for confirmation.', body: 'Wait for source-chain finality and the transfer service to report completion. Timing can vary.' },
         mintArc: { label: 'Arrive on Arc.', body: 'The transfer status shows when the destination credit is available. Follow the current route instructions in the product.' },
       },
     },
@@ -10136,7 +10138,7 @@ export const en: MessagesShape = {
       caption: 'The deposit card: one address, a QR code, and the chains it accepts.',
     },
     callout: {
-      title: "Confirmation takes time on testnet",
+      title: "Confirmation takes time",
       body: 'Cross-chain transfers wait for source-chain finality and external confirmation. If a transfer remains pending, use the status and recheck controls in the product before starting another transfer.',
     },
     cashout: {

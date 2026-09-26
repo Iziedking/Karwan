@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { WALLET_HOME } from '@/shared/utils/routes';
+import { WALLET_HOME, dealHref } from '@/shared/utils/routes';
 
 const SECTION_LABEL = 'text-[13px] font-medium text-[var(--color-ink-dim)]';
 
@@ -40,7 +40,7 @@ export default function HowItWorksPage() {
         </div>
         <div className="grid md:grid-cols-3 gap-4">
           <DemoStep n="1" title={t.directDeal.step1.title}>
-            {t.directDeal.step1.bodyA}<Link href="/buyer" className="underline">{t.directDeal.step1.cta}</Link>{t.directDeal.step1.bodyB}
+            {t.directDeal.step1.bodyA}<Link href={dealHref('/buyer', DEALS_AVAILABLE)} className="underline">{t.directDeal.step1.cta}</Link>{t.directDeal.step1.bodyB}
           </DemoStep>
           <DemoStep n="2" title={t.directDeal.step2.title}>
             {t.directDeal.step2.body}
@@ -54,7 +54,7 @@ export default function HowItWorksPage() {
       <section className="border-y border-[var(--color-line)] py-6">
         <h2 className="text-[22px] font-semibold">{t.managedDeal.title}</h2>
         <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-[var(--color-ink-dim)]">{t.managedDeal.body}</p>
-        <Link href="/market" className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold underline">{t.managedDeal.eyebrow}<span aria-hidden>→</span></Link>
+        <Link href={dealHref('/market', DEALS_AVAILABLE)} className="mt-3 inline-flex min-h-11 items-center gap-2 font-semibold underline">{t.managedDeal.eyebrow}<span aria-hidden>→</span></Link>
       </section>
 
       {/* TRUST AND PROOF */}

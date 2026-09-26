@@ -1,6 +1,8 @@
 'use client';
 import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
 import Link from 'next/link';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
+import { WALLET_HOME } from '@/shared/utils/routes';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import {
@@ -511,7 +513,7 @@ function SuccessCard({
               {copy.sendAnother}
             </button>
             <Link
-              href="/app"
+              href={DEALS_AVAILABLE ? '/app' : WALLET_HOME}
               className="mono text-[12px] uppercase tracking-[0.10em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]"
             >
               {copy.backToApp}

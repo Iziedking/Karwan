@@ -7,7 +7,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { api } from '@/core/api';
 import { Brand } from './Brand';
 import { NetworkContext } from './NetworkContext';
-import { settlementChain } from '@/core/arcNetwork';
+import { DEALS_AVAILABLE, settlementChain } from '@/core/arcNetwork';
 import { networkPresentation } from '@/shared/chain/networkPresentation';
 import styles from './SiteFooter.module.css';
 
@@ -77,7 +77,7 @@ export function SiteFooter() {
                     the app. Contact stays last so the list reads like the
                     reference Product menu. */}
                 <>
-                  <FooterLink href="/market">{messages.nav.market}</FooterLink>
+                  {DEALS_AVAILABLE && <FooterLink href="/market">{messages.nav.market}</FooterLink>}
                   <FooterLink href="/activity">{t.productLinks.activity}</FooterLink>
                   <FooterLink href="/how-it-works">{t.productLinks.howItWorks}</FooterLink>
                   <FooterLink href="/docs">{t.productLinks.docs}</FooterLink>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { useEffect, useRef } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { SocialTradeSection } from '@/features/home/components/SocialTradeSection';
@@ -52,7 +53,7 @@ export default function HomePage() {
       <SocialTradeSection />
       <section className={styles.intro} id="how-it-works" aria-labelledby="intro-title">
         <div className={`${styles.wrap} ${styles.introGrid}`}>
-          <div><p className={styles.eyebrow}>{t.introLabel}</p><h2 id="intro-title">{t.introTitle}</h2><p className={styles.introCopy}>{t.introBody}</p><Link className={styles.textLink} href="/market">{t.marketLink}<Arrow /></Link></div>
+          <div><p className={styles.eyebrow}>{t.introLabel}</p><h2 id="intro-title">{t.introTitle}</h2><p className={styles.introCopy}>{t.introBody}</p>{DEALS_AVAILABLE && <Link className={styles.textLink} href="/market">{t.marketLink}<Arrow /></Link>}</div>
           <div className={styles.flow}>
             <article><p className={styles.flowLabel}>{t.bringLabel}</p><h3>{t.bringTitle}</h3><p>{t.bringBody}</p></article>
             <article><p className={styles.flowLabel}>{t.findLabel}</p><h3>{t.findTitle}</h3><p>{t.findBody}</p></article>

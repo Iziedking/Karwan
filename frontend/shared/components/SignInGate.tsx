@@ -3,6 +3,7 @@ import { type ReactNode } from 'react';
 import Link from 'next/link';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { START_ROUTE } from '@/shared/utils/routes';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import {
   FullBleed,
   Band,
@@ -46,10 +47,12 @@ export function SignInGate({
               <span aria-hidden className="rtl-flip">→</span>
             </button>
             <p className={styles.notice}>{copy.heroNote}</p>
-            <div className={styles.browse}>
-              <span>{copy.browseIntro}</span>
-              <Link href="/market">{copy.browseLink}</Link>
-            </div>
+            {DEALS_AVAILABLE && (
+              <div className={styles.browse}>
+                <span>{copy.browseIntro}</span>
+                <Link href="/market">{copy.browseLink}</Link>
+              </div>
+            )}
           </div>
         </section>
       </FullBleed>

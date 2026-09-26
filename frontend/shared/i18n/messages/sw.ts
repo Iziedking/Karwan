@@ -860,6 +860,7 @@ export const sw: Messages = {
       accountSetup: 'Usanidi wa akaunti',
       contactDetails: 'Maelezo ya mawasiliano',
       moneyAndTrade: 'Fedha na biashara',
+      money: 'Fedha',
       usdcBalance: 'Salio la USDC',
       wallets: 'Pochi',
       openDeals: 'Biashara zilizo wazi',
@@ -4700,7 +4701,7 @@ export const sw: Messages = {
       steps: {
         pickSource: { label: 'Chagua mnyororo.', body: 'Onyesha mahali USDC yako ilipo.' },
         approveBurn: { label: 'Saini uhamisho.', body: 'USDC yako inachomwa kwenye mnyororo huo. Unasaini kutoka pochi yako, kwa kuwa wewe unaishikilia.' },
-        attestation: { label: 'Subiri uthibitisho.', body: 'Circle inathibitisha. Kwenye testnet hii inachukua kama dakika kumi hadi kumi na tisa kwa njia ya kawaida.' },
+        attestation: { label: 'Subiri uthibitisho.', body: 'Subiri mnyororo chanzo ukamilishe na huduma ya uhamisho ithibitishe. Muda unaweza kutofautiana.' },
         mintArc: { label: 'Kufika Arc.', body: 'Karwan inatuma hatua ya mwisho kwa niaba yako, kwa hiyo hauhitaji gas ya Arc kupokea fedha zako.' },
       },
     },
@@ -4709,7 +4710,7 @@ export const sw: Messages = {
       caption: 'Kadi ya amana: anwani moja, msimbo QR, na minyororo inayokubalika.',
     },
     callout: {
-      title: "Uthibitisho huchukua muda kwenye testnet",
+      title: "Uthibitisho huchukua muda",
       body: 'Uhamisho wa kawaida husubiri mnyororo wa asili kukamilisha, dakika kumi hadi kumi na tisa kwenye testnet za Sepolia. Kama uhamisho bado unathibitishwa, mpe muda kabla ya kujaribu tena. Kitufe cha Angalia tena kwenye kadi ya Weka / Toa kinauliza Circle upya.',
     },
     cashout: {

@@ -11,6 +11,12 @@ import {
   DocsCallout,
 } from '@/features/docs/components/Prose';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { APP_KIT_SOURCES, APP_KIT_SOURCE_KEYS, SOURCE_CHAINS, SOURCE_CHAIN_KEYS } from '@/features/bridge/config';
+
+const SUPPORTED_CHAINS = [
+  ...SOURCE_CHAIN_KEYS.map((key) => SOURCE_CHAINS[key].name),
+  ...APP_KIT_SOURCE_KEYS.map((key) => APP_KIT_SOURCES[key].name),
+];
 
 export default function DocsBridgePage() {
   const t = useTranslations().docsBridgePage;
@@ -25,18 +31,7 @@ export default function DocsBridgePage() {
       <DocsH2>{t.supportedChains.heading}</DocsH2>
       <DocsP>{t.supportedChains.body}</DocsP>
       <DocsList>
-        <DocsListItem>Base Sepolia</DocsListItem>
-        <DocsListItem>Ethereum Sepolia</DocsListItem>
-        <DocsListItem>Arbitrum Sepolia</DocsListItem>
-        <DocsListItem>Optimism Sepolia</DocsListItem>
-        <DocsListItem>Polygon Amoy</DocsListItem>
-        <DocsListItem>Avalanche Fuji</DocsListItem>
-        <DocsListItem>Unichain Sepolia</DocsListItem>
-        <DocsListItem>Sei Testnet</DocsListItem>
-        <DocsListItem>Sonic Testnet</DocsListItem>
-        <DocsListItem>World Chain Sepolia</DocsListItem>
-        <DocsListItem>HyperEVM Testnet</DocsListItem>
-        <DocsListItem>Solana Devnet</DocsListItem>
+        {SUPPORTED_CHAINS.map((name) => <DocsListItem key={name}>{name}</DocsListItem>)}
       </DocsList>
 
       <DocsH2>{t.bringingIn.heading}</DocsH2>

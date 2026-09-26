@@ -379,10 +379,12 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                 </button>
               </p>
             )}
-            <p>
-              {t.signIn.browsePrompt}{' '}
-              <Link href="/market" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">{t.signIn.browse}</Link>
-            </p>
+            {DEALS_AVAILABLE && (
+              <p>
+                {t.signIn.browsePrompt}{' '}
+                <Link href="/market" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">{t.signIn.browse}</Link>
+              </p>
+            )}
           </div>
         </>
       ) : (

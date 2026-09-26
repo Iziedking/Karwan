@@ -10,6 +10,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ProfileSignOut } from './ProfileSignOut';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -131,13 +132,15 @@ export function ProfileAccountHub({
           </div>
         </header>
 
-        <div className="mt-5 flex items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 sm:px-5">
-          <div className="min-w-0">
-            <p className="text-[13px] font-bold text-[var(--lp-dark)]">{hub.workspaces}</p>
-            <p className="mt-0.5 text-[12px] text-[var(--lp-text-sub)]">{hub.switchContext}</p>
+        {DEALS_AVAILABLE && (
+          <div className="mt-5 flex items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 sm:px-5">
+            <div className="min-w-0">
+              <p className="text-[13px] font-bold text-[var(--lp-dark)]">{hub.workspaces}</p>
+              <p className="mt-0.5 text-[12px] text-[var(--lp-text-sub)]">{hub.switchContext}</p>
+            </div>
+            <WorkspaceSwitcher />
           </div>
-          <WorkspaceSwitcher />
-        </div>
+        )}
 
         <div className="mt-10 grid gap-10">
           <HubSection title={hub.account}>
@@ -145,11 +148,13 @@ export function ProfileAccountHub({
               label={hub.personalDetails}
               href="/profile/edit"
             />
-            <HubRow
-              label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
-              description={!business && hasBusinessWorkspace ? businessCopy.manageBody : undefined}
-              href="/profile/business"
-            />
+            {DEALS_AVAILABLE && (
+              <HubRow
+                label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
+                description={!business && hasBusinessWorkspace ? businessCopy.manageBody : undefined}
+                href="/profile/business"
+              />
+            )}
             <HubRow
               label={hub.accountSetup}
               href="/profile/setup"
@@ -168,7 +173,7 @@ export function ProfileAccountHub({
             />
           </HubSection>
 
-          <HubSection title={hub.moneyAndTrade}>
+          <HubSection title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
             <HubRow
               label={hub.usdcBalance}
               href="/account"
@@ -177,17 +182,21 @@ export function ProfileAccountHub({
               label={hub.wallets}
               href="/profile/wallets"
             />
-            <HubRow
-              label={hub.openDeals}
-              note={hasAction ? hub.reviewNow : hasOpenDeals ? hub.open : undefined}
-              href="/profile/open-deals"
-            />
-            <HubRow
-              label={hub.agentFunds}
-              href="/profile/agent-funds"
-            />
+            {DEALS_AVAILABLE && (
+              <>
+                <HubRow
+                  label={hub.openDeals}
+                  note={hasAction ? hub.reviewNow : hasOpenDeals ? hub.open : undefined}
+                  href="/profile/open-deals"
+                />
+                <HubRow
+                  label={hub.agentFunds}
+                  href="/profile/agent-funds"
+                />
+              </>
+            )}
             <HubRow label={hub.activityReceipts} href="/activity" />
-            <HubRow label={hub.reputation} href="/stake" />
+            {DEALS_AVAILABLE && <HubRow label={hub.reputation} href="/stake" />}
           </HubSection>
         </div>
 

@@ -154,6 +154,9 @@ const DEAL_ROUTES = [
   '/business',
   '/credit-passport',
   '/x402',
+  '/profile/open-deals',
+  '/profile/agent-funds',
+  '/profile/business',
 ];
 
 export const WALLET_HOME = '/account';
@@ -168,4 +171,12 @@ export function isDealRoute(pathname: string | null | undefined): boolean {
 /// middleware can use it without loading the chain definitions.
 export function dealsAvailableOn(network: string | undefined): boolean {
   return (network ?? '').trim().toLowerCase() !== 'mainnet';
+}
+
+export const TESTNET_ORIGIN = 'https://testnet.karwan.site';
+
+/// Deal pages run on testnet until the mainnet contracts ship, so a wallet-only
+/// deployment links to them there instead of redirecting to the wallet.
+export function dealHref(path: string, dealsAvailable: boolean): string {
+  return dealsAvailable ? path : `${TESTNET_ORIGIN}${path}`;
 }

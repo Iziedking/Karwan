@@ -863,6 +863,7 @@ export const fr: Messages = {
       accountSetup: 'Configuration du compte',
       contactDetails: 'Coordonnées',
       moneyAndTrade: 'Argent et échanges',
+      money: 'Argent',
       usdcBalance: 'Solde USDC',
       wallets: 'Wallets',
       openDeals: 'Deals ouverts',
@@ -4703,7 +4704,7 @@ export const fr: Messages = {
       steps: {
         pickSource: { label: 'Choisissez la chaîne.', body: 'Indiquez où se trouve votre USDC.' },
         approveBurn: { label: 'Signez le transfert.', body: "Votre USDC est brûlé sur cette chaîne. Vous signez depuis votre portefeuille, puisque c'est vous qui le détenez." },
-        attestation: { label: 'Attendez la confirmation.', body: 'Circle confirme le retrait. Sur testnet, cela prend environ dix à dix-neuf minutes sur la voie standard.' },
+        attestation: { label: 'Attendez la confirmation.', body: "Attendez la finalité sur la chaîne source et la confirmation du service de transfert. Le délai peut varier." },
         mintArc: { label: 'Arrivée sur Arc.', body: "Karwan soumet la dernière étape pour vous, vous n'avez donc pas besoin de gas Arc pour recevoir vos fonds." },
       },
     },
@@ -4712,7 +4713,7 @@ export const fr: Messages = {
       caption: 'La carte de dépôt : une adresse, un code QR, et les chaînes acceptées.',
     },
     callout: {
-      title: "La confirmation prend du temps sur testnet",
+      title: "La confirmation prend du temps",
       body: 'Les transferts standard attendent la finalisation de la chaîne source, soit dix à dix-neuf minutes sur les testnets Sepolia. Si un transfert est encore en confirmation, laissez-lui le temps avant de réessayer. Le bouton Vérifier de la carte Dépôt / Retrait interroge Circle à nouveau.',
     },
     cashout: {

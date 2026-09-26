@@ -51,5 +51,8 @@ export const config = {
     '/business/:path*',
     '/credit-passport/:path*',
     '/x402/:path*',
+    '/profile/open-deals',
+    '/profile/agent-funds',
+    '/profile/business/:path*',
   ],
 };
