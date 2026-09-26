@@ -5,6 +5,7 @@ import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { LpHint } from '@/shared/components/LpHint';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 type Overview = Awaited<ReturnType<typeof api.walletOverview>>;
@@ -294,13 +295,15 @@ export function WalletsPanel({ address }: { address?: string }) {
           onCopied={markCopied}
           copiedLabel={wp.copyAddress.copied}
           action={
-            <span data-guide="profile-faucet">
-              <FaucetButton
-                onClick={() => runFaucet('identity')}
-                busy={faucetBusy === 'identity'}
-                copy={wp.faucetButton}
-              />
-            </span>
+            ARC_NETWORK === 'testnet' ? (
+              <span data-guide="profile-faucet">
+                <FaucetButton
+                  onClick={() => runFaucet('identity')}
+                  busy={faucetBusy === 'identity'}
+                  copy={wp.faucetButton}
+                />
+              </span>
+            ) : undefined
           }
         />
 
@@ -341,7 +344,7 @@ export function WalletsPanel({ address }: { address?: string }) {
               }
             />
           </>
-        ) : (
+        ) : ARC_NETWORK === 'testnet' ? (
           <li
             className="px-5 py-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]"
             style={{
@@ -355,7 +358,7 @@ export function WalletsPanel({ address }: { address?: string }) {
           >
             {wp.agentsNotCreated}
           </li>
-        )}
+        ) : null}
 
         {/* The old Bridge wallet card was removed: Circle users now add money by
             connecting a wallet (one signature), so a separate source-chain

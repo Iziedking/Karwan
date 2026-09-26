@@ -13,6 +13,7 @@ import { formatUsdc } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { isTrustedRecipient } from './recipientSafety';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 
 const CARD_STYLE = {
   background: 'var(--lp-card)',
@@ -325,7 +326,7 @@ export function BridgeOutCard() {
             {/* TOP UP ARC USDC: Circle accounts burn from their identity DCW, so
                 offer a one-tap top-up of that wallet. A web3 user burns from their
                 own wallet, which they fund themselves, so this does not apply. */}
-            {isCircle && (
+            {isCircle && ARC_NETWORK === 'testnet' && (
               <div className="flex items-center justify-end">
                 <button
                   type="button"

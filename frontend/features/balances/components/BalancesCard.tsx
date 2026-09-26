@@ -8,6 +8,7 @@ import { CHAIN_META, ROW_KEYS, useChainBalances } from '../hooks/useChainBalance
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const CARD_STYLE = {
@@ -134,6 +135,7 @@ export function BalancesCard({
 
       {open && (
         <>
+      {DEALS_AVAILABLE && (
       <div className="px-6 pb-3">
         <div
           className="inline-flex p-1 gap-1"
@@ -176,6 +178,7 @@ export function BalancesCard({
           })}
         </div>
       </div>
+      )}
 
       <ul className="px-6">
         {rows.map((r, i) => {
