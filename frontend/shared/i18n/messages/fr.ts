@@ -4909,7 +4909,7 @@ export const fr: Messages = {
   docsRoadmapPage: {
     eyebrow: 'FEUILLE DE ROUTE',
     heading: 'Ce qui est en ligne, et ce qui arrive',
-    intro: "L’application de portefeuille et deux registres sont disponibles sur le réseau principal. Les échanges restent sur le réseau de test. Le lancement complet des contrats est visé pour le 25 octobre 2026, suivi d’une application mobile, sous réserve des tests et de la revue de sécurité.",
+    intro: "L’application de portefeuille et deux registres sont disponibles sur le réseau principal. Les échanges restent sur le réseau de test. Le mainnet est ouvert sur invitation depuis la liste d’attente. Le lancement complet des contrats vient ensuite, suivi d’une application mobile. Chaque version sort quand ses tests et sa revue de sécurité sont terminés.",
     live: {
       title: "Fonctions commerciales sur le réseau de test",
       items: {
@@ -5045,7 +5045,7 @@ export const fr: Messages = {
       eyebrow: 'Feuille de route', title: 'À venir', body: 'Ce qui suit la build testnet actuelle.',
       fileDelivery: { title: 'Livraison de fichiers', body: 'Livrez le travail sous forme de fichier plutôt qu\'un simple lien, avec le même pipeline d\'analyse derrière. Cloudflare R2 pour la vitesse, IPFS pour une livraison adressée par contenu et à l\'épreuve des falsifications de documents commerciaux confidentiels.' },
       referral: { title: 'Rail de parrainage', body: 'Une surface de croissance qui récompense le fait d\'amener de vraies contreparties. Parrainez quelqu\'un qui règle une transaction avec vous et les deux portefeuilles gagnent sur le signal de parrainage. Conçu pour le mainnet, derrière un contrôle anti-fraude pour qu\'un portefeuille ne puisse pas se parrainer lui-même.' },
-      mainnet: { title: 'Mainnet et corridors plus larges', body: "L’application de portefeuille et les registres sont sur le réseau principal. Le séquestre et les autres contrats sont visés pour le 25 octobre 2026 après tests et revue de sécurité. L’application mobile est prévue dans les semaines suivantes." },
+      mainnet: { title: 'Mainnet et corridors plus larges', body: "L’application de portefeuille et les registres sont sur le réseau principal. Le séquestre et les autres contrats viennent ensuite, après tests et revue de sécurité. L’application mobile suivra." },
       i18n: { title: 'Vérification des compétences', body: 'Une preuve de travail notée, pour qu\'un vendeur capable de montrer un vrai historique de livraison augmente son score d\'adéquation de compétence. La preuve reste séparée de la réputation, donc prouver une compétence ne cache jamais un historique mince.' },
     },
     faq: {

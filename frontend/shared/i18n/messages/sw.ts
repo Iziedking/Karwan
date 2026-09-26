@@ -4906,7 +4906,7 @@ export const sw: Messages = {
   docsRoadmapPage: {
     eyebrow: 'RAMANI YA NJIA',
     heading: 'Kilicho hai, na kinachofuata',
-    intro: "Programu ya pochi na rejista mbili zinapatikana kwenye mtandao mkuu. Biashara bado ziko kwenye mtandao wa majaribio. Lengo la mikataba yote ya mtandao mkuu ni 25 Oktoba 2026, ikifuatiwa na programu ya simu. Tarehe hutegemea majaribio na ukaguzi wa usalama.",
+    intro: "Programu ya pochi na rejista mbili zinapatikana kwenye mtandao mkuu. Biashara bado ziko kwenye mtandao wa majaribio. Mtandao mkuu uko wazi kwa mwaliko kutoka orodha ya kusubiri. Uzinduzi kamili wa mikataba unafuata, kisha programu ya simu. Kila toleo huzinduliwa majaribio na ukaguzi wake wa usalama vikikamilika.",
     live: {
       title: "Vipengele vya biashara kwenye mtandao wa majaribio",
       items: {
@@ -5042,7 +5042,7 @@ export const sw: Messages = {
       eyebrow: 'Ramani ya safari', title: 'Kinachofuata', body: 'Kinachosafirishwa baada ya jenzi ya sasa ya testnet.',
       fileDelivery: { title: 'Uwasilishaji wa faili', body: 'Wasilisha kazi kama faili badala ya kiungo tu, ikiwa na mfumo uleule wa uchanganuzi nyuma yake. Cloudflare R2 kwa kasi, na IPFS kwa uwasilishaji unaoshikamana na maudhui na usioweza kuchezewa wa nyaraka za biashara za siri.' },
       referral: { title: 'Reli ya rufaa', body: 'Sehemu ya ukuaji inayolipa kwa kuleta washirika halisi. Mrejeshe mtu anayekamilisha deal na wewe na pochi zote mbili zinanufaika kwa ishara ya rufaa. Imejengwa kwa mainnet, nyuma ya ukaguzi wa kuzuia udanganyifu ili pochi isijirejeshe yenyewe.' },
-      mainnet: { title: 'Mainnet na korido pana zaidi', body: "Pochi na rejista ziko kwenye mtandao mkuu. Escrow na mikataba iliyobaki inalengwa tarehe 25 Oktoba 2026 baada ya majaribio na ukaguzi wa usalama. Programu ya simu imepangwa kwa wiki zinazofuata." },
+      mainnet: { title: 'Mainnet na korido pana zaidi', body: "Pochi na rejista ziko kwenye mtandao mkuu. Escrow na mikataba iliyobaki inafuata baada ya majaribio na ukaguzi wa usalama, kisha programu ya simu." },
       i18n: { title: 'Uthibitishaji wa ujuzi', body: 'Uthibitisho uliopimwa wa kazi, ili muuzaji anayeweza kuonyesha rekodi halisi ya uwasilishaji ainue alama yake ya ulinganishaji wa ujuzi. Ushahidi unabaki tofauti na sifa, hivyo kuthibitisha ujuzi hakufichi kamwe rekodi hafifu.' },
     },
     faq: {

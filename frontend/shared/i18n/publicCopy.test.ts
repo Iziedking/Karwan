@@ -11,7 +11,8 @@ const read = (file: string) => readFileSync(path.join(root, file), 'utf8');
 test('English public guides distinguish the mainnet wallet from testnet trading', () => {
   assert.match(MESSAGES.en.docsIndexPage.intro, /Trading is available on testnet/);
   assert.match(MESSAGES.en.docsIndexPage.intro, /mainnet escrow is not yet available/);
-  assert.match(MESSAGES.en.docsRoadmapPage.intro, /targeted for 25 October 2026/);
+  assert.match(MESSAGES.en.docsRoadmapPage.intro, /contract release comes next/);
+  assert.doesNotMatch(MESSAGES.en.docsRoadmapPage.intro, /20\d\d/);
   assert.match(MESSAGES.en.x402Page.intro, /not live/);
   assert.match(MESSAGES.en.howItWorksPage.stack.gateway, /code only/);
 });

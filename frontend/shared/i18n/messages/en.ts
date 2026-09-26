@@ -10350,7 +10350,7 @@ export const en: MessagesShape = {
   docsRoadmapPage: {
     eyebrow: 'ROADMAP',
     heading: 'Current build and planned work',
-    intro: "The mainnet wallet application and two registries are available. Trading remains on testnet. The full mainnet contract release is targeted for 25 October 2026, followed by a mobile application. Release dates depend on testing and security review.",
+    intro: "The mainnet wallet application and two registries are available. Trading remains on testnet. Mainnet is open by invitation from the waitlist. The full mainnet contract release comes next, followed by a mobile application. Each release ships when its testing and security review are done.",
     live: {
       title: "Trade features on testnet",
       items: {
@@ -10496,7 +10496,7 @@ export const en: MessagesShape = {
       body: "Planned releases include mainnet escrow, mobile access and additional trade tools.",
       fileDelivery: { title: 'Business workspaces', body: 'The current workspace is owner-only. Team members, roles, and delegated permissions come later with a separate review of authority and recovery.' },
       referral: { title: 'Trade availability', body: 'Expand the simple goods and services availability records into richer source-aware trade intent, while keeping the user in control of what is shared.' },
-      mainnet: { title: 'Mainnet and wider corridors', body: "The wallet application and registries are on mainnet. Escrow and the remaining contract suite are targeted for 25 October 2026 after testing and security review. The mobile application is planned for the following weeks." },
+      mainnet: { title: 'Mainnet and wider corridors', body: "The wallet application and registries are on mainnet. Escrow and the remaining contracts come next, after testing and security review. The mobile application follows." },
       i18n: { title: 'Evidence and corridors', body: 'Add stronger delivery evidence and support more local payout corridors only after the required policy, partner, reconciliation, and mainnet gates pass.' },
     },
     faq: {

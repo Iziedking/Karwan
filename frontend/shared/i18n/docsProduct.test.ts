@@ -19,12 +19,13 @@ test('the product overview never shows x402 or mainnet escrow as live', () => {
   }
 });
 
-test('the roadmap starts from what is true now and says dates are targets', () => {
-  const en = docsProductCopy.en.roadmap;
-  assert.equal(en.milestones[0]!.when, 'Now');
-  assert.match(en.lede, /targets/);
-  assert.match(en.note, /move/);
-  for (const loc of locales) assert.equal(docsProductCopy[loc].roadmap.milestones.length, 5, loc);
+test('the roadmap starts from what is true now and shows no dates', () => {
+  assert.equal(docsProductCopy.en.roadmap.milestones[0]!.when, 'Now');
+  for (const loc of locales) {
+    const roadmap = docsProductCopy[loc].roadmap;
+    assert.equal(roadmap.milestones.length, 5, loc);
+    assert.doesNotMatch(JSON.stringify(roadmap), /20\d\d/, loc);
+  }
 });
 
 test('no em dashes anywhere in the overview copy', () => {
