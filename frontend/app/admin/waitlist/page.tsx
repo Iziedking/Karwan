@@ -29,6 +29,7 @@ export default function AdminWaitlistPage() {
   const [note, setNote] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [approving, setApproving] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -61,8 +62,20 @@ export default function AdminWaitlistPage() {
     }
   }
 
+  async function approve(email: string) {
+    setApproving(email);
+    try {
+      await api.adminAddInvites(email);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : `Could not approve ${email}`);
+    } finally {
+      setApproving(null);
+    }
+  }
+
   async function remove(email: string) {
-    if (!window.confirm(`Remove the invite for ${email}? They keep any account they already made.`)) return;
+    if (!window.confirm(`Revoke access for ${email}? They go back to the waitlist. An account they already made keeps working.`)) return;
     await api.adminRemoveInvite(email).catch(() => undefined);
     await load();
   }
@@ -72,8 +85,8 @@ export default function AdminWaitlistPage() {
       <p className={labelClass}>Mainnet</p>
       <h1 className="mt-2 font-sans text-[24px] font-extrabold">Waitlist and invites</h1>
       <p className="mt-2 max-w-[72ch] text-[13px] text-white/55">
-        Invited emails can create a mainnet account. Everyone else joins the waitlist. Invites also come from the
-        MAINNET_INVITES setting on the server, read when the container starts.
+        Approve someone on the waitlist and they can create a mainnet account straight away. You can also paste
+        emails below, or list them in MAINNET_INVITES on the server, read when the container starts.
       </p>
 
       {error && (
@@ -85,7 +98,7 @@ export default function AdminWaitlistPage() {
       <section className="mt-6 grid gap-3 sm:grid-cols-3">
         {[
           ['On the waitlist', data?.waitlist.length ?? '·'],
-          ['Invited here', data?.invites.length ?? '·'],
+          ['Approved', data?.invites.length ?? '·'],
           ['Invited by setting', data?.envInvites.length ?? '·'],
         ].map(([label, value]) => (
           <div key={label} className="rounded-xl border border-white/10 bg-[#161616] p-4">
@@ -96,7 +109,7 @@ export default function AdminWaitlistPage() {
       </section>
 
       <section className="mt-8 rounded-xl border border-white/10 bg-[#161616] p-5">
-        <p className={labelClass}>Invite</p>
+        <p className={labelClass}>Invite by email</p>
         <textarea value={emails} onChange={(e) => setEmails(e.target.value)} rows={4}
           placeholder="Paste emails, separated by commas, spaces or new lines"
           className="mt-3 w-full rounded-lg border border-white/15 bg-black/30 p-3 text-[13px] text-white outline-none focus:border-[#AFC95B]" />
@@ -119,7 +132,7 @@ export default function AdminWaitlistPage() {
         </div>
         <table className="mt-3 w-full text-left text-[13px]">
           <thead className="text-white/40">
-            <tr><th className="py-2 font-normal">#</th><th className="font-normal">Email</th><th className="font-normal">Language</th><th className="font-normal">Joined</th><th className="font-normal">Invited</th></tr>
+            <tr><th className="py-2 font-normal">#</th><th className="font-normal">Email</th><th className="font-normal">Language</th><th className="font-normal">Joined</th><th className="font-normal">Access</th></tr>
           </thead>
           <tbody>
             {data?.waitlist.map((r, i) => (
@@ -128,7 +141,16 @@ export default function AdminWaitlistPage() {
                 <td className="text-white">{r.email}</td>
                 <td className="text-white/60">{r.locale}</td>
                 <td className="text-white/60">{when(r.joinedAt)}</td>
-                <td className={invited.has(r.email) ? 'text-[#AFC95B]' : 'text-white/40'}>{invited.has(r.email) ? 'Yes' : 'No'}</td>
+                <td>
+                  {invited.has(r.email) ? (
+                    <span className="text-[#AFC95B]">Approved</span>
+                  ) : (
+                    <button type="button" onClick={() => void approve(r.email)} disabled={approving !== null}
+                      className="min-h-9 rounded-md bg-[#AFC95B] px-3 text-[12px] font-bold text-[#10171D] disabled:opacity-50">
+                      {approving === r.email ? 'Approving' : 'Approve'}
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -137,7 +159,7 @@ export default function AdminWaitlistPage() {
       </section>
 
       <section className="mt-8">
-        <p className={labelClass}>Invites</p>
+        <p className={labelClass}>Approved and invited</p>
         <ul className="mt-3 divide-y divide-white/10 text-[13px]">
           {data?.envInvites.map((e) => (
             <li key={`env-${e}`} className="flex min-h-11 items-center justify-between gap-3">
@@ -147,7 +169,7 @@ export default function AdminWaitlistPage() {
           {data?.invites.map((i) => (
             <li key={i.email} className="flex min-h-11 items-center justify-between gap-3">
               <span className="text-white">{i.email}{i.note ? <span className="text-white/40"> · {i.note}</span> : null}</span>
-              <button type="button" onClick={() => void remove(i.email)} className="min-h-11 text-[12px] text-[#e0794f] underline">Remove</button>
+              <button type="button" onClick={() => void remove(i.email)} className="min-h-11 text-[12px] text-[#e0794f] underline">Revoke</button>
             </li>
           ))}
         </ul>
