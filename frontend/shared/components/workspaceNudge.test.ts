@@ -57,3 +57,16 @@ test('dismissal expires so unfinished setup can return', () => {
   assert.equal(workspaceNudgeDismissed(String(now - WORKSPACE_NUDGE_DISMISS_MS), now), false);
   assert.equal(workspaceNudgeDismissed('not-a-time', now), false);
 });
+
+test('no agent activation nudge where deals are not available', () => {
+  assert.equal(
+    chooseWorkspaceNudge({
+      profileResolved: true,
+      hasProfile: true,
+      activationResolved: true,
+      activated: false,
+      dealsAvailable: false,
+    }),
+    null,
+  );
+});

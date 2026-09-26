@@ -9,6 +9,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { DEALS_AVAILABLE } from '@/core/arcNetwork';
 import { dur, ease } from '@/shared/motion/tokens';
 import { chooseWorkspaceNudge, workspaceNudgeDismissed } from './workspaceNudge';
 
@@ -45,6 +46,7 @@ export function ProfileNudge() {
     hasProfile: profile != null,
     activationResolved: !activation.loading,
     activated: activation.activated,
+    dealsAvailable: DEALS_AVAILABLE,
   });
 
   useEffect(() => setMounted(true), []);

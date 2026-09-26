@@ -7,9 +7,11 @@ export function chooseWorkspaceNudge(input: {
   hasProfile: boolean;
   activationResolved: boolean;
   activated: boolean;
+  dealsAvailable?: boolean;
 }): WorkspaceNudgeKind | null {
   if (!input.profileResolved) return null;
   if (!input.hasProfile) return 'profile';
+  if (input.dealsAvailable === false) return null;
   if (!input.activationResolved) return null;
   if (!input.activated) return 'activation';
   return null;
