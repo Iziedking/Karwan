@@ -10,9 +10,11 @@ import {
 } from '@/features/docs/components/Prose';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { NetworkContext } from '@/shared/components/NetworkContext';
+import { RoadmapTimeline } from '@/features/docs/components/RoadmapTimeline';
 
 export default function DocsRoadmapPage() {
-  const t = useTranslations().docsRoadmapPage;
+  const m = useTranslations();
+  const t = m.docsRoadmapPage;
   return (
     <article>
       <DocsEyebrow>{t.eyebrow}</DocsEyebrow>
@@ -20,6 +22,9 @@ export default function DocsRoadmapPage() {
         {t.heading}
       </h1>
       <DocsP>{t.intro}</DocsP>
+
+      <DocsH2>{m.docsProduct.roadmap.title}</DocsH2>
+      <RoadmapTimeline showFullLink={false} />
 
       <DocsH2>{t.live.title}</DocsH2>
       <DocsList>

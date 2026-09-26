@@ -12,9 +12,13 @@ export function Prose({ children, className }: { children: ReactNode; className?
 }
 
 /// Per-section heading inside a docs page. Sentence case, no decoration.
-export function DocsH2({ children }: { children: ReactNode }) {
+export function DocsH2({ children, id }: { children: ReactNode; id?: string }) {
   return (
-    <h2 className="mt-12 first:mt-0 font-sans text-[clamp(1.5rem,2.4vw,2rem)] font-extrabold tracking-[-0.015em] leading-tight text-[var(--lp-dark)]">
+    <h2
+      id={id}
+      style={{ scrollMarginTop: 104 }}
+      className="mt-12 first:mt-0 font-sans text-[clamp(1.5rem,2.4vw,2rem)] font-extrabold tracking-[-0.015em] leading-tight text-[var(--lp-dark)]"
+    >
       {children}
     </h2>
   );

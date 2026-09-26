@@ -11,6 +11,7 @@ import { searchCopy, type SearchCopy } from './search';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
 import { analyticsCopy, type AnalyticsCopy } from './analytics';
 import { signupCopy, type SignupCopy } from './signup';
+import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
   protection: ProtectionCopy;
   money: MoneyCopy;
@@ -18,6 +19,7 @@ interface MessagesShape {
   escrowV3: EscrowV3Copy;
   analytics: AnalyticsCopy;
   signup: SignupCopy;
+  docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
   networkUi: NetworkCopy;
   docsEscrowPage: EscrowDocsCopy;
@@ -5298,6 +5300,7 @@ export const en: MessagesShape = {
   escrowV3: escrowV3Copy.en,
   analytics: analyticsCopy.en,
   signup: signupCopy.en,
+  docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,
   networkUi: networkCopy.en,
   docsEscrowPage: escrowDocsCopy.en,

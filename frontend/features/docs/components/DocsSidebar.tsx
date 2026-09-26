@@ -38,10 +38,13 @@ export function DocsSidebar() {
   const labelFor = useDocsSectionLabel();
   return (
     <aside className="lg:sticky lg:top-[88px] lg:self-start">
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] mb-4">
+      <p className="mono mb-4 hidden text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)] lg:block">
         {t.sidebar.eyebrow}
       </p>
-      <nav className="flex flex-col gap-1">
+      <nav
+        aria-label={t.sidebar.eyebrow}
+        className="-mx-[clamp(20px,5vw,72px)] flex gap-2 overflow-x-auto px-[clamp(20px,5vw,72px)] pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden"
+      >
         {DOCS_SECTIONS.map((section) => {
           const active =
             section.href === '/docs'
@@ -51,11 +54,22 @@ export function DocsSidebar() {
             <Link
               key={section.href}
               href={section.href}
-              className={cn(
-                'group flex min-h-11 items-center gap-2 px-3 py-2 text-[14px] font-medium tracking-[-0.005em] transition-colors',
+              aria-current={active ? 'page' : undefined}
+              ref={
                 active
-                  ? 'bg-[var(--lp-card)] text-[var(--lp-dark)]'
-                  : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)]/60',
+                  ? (el) => {
+                      const row = el?.parentElement;
+                      if (el && row && row.scrollWidth > row.clientWidth) {
+                        row.scrollLeft = el.offsetLeft - row.clientWidth / 2 + el.clientWidth / 2;
+                      }
+                    }
+                  : undefined
+              }
+              className={cn(
+                'group flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border px-3 py-2 text-[14px] font-medium tracking-[-0.005em] transition-colors lg:border-transparent',
+                active
+                  ? 'border-[var(--lp-outline-strong)] bg-[var(--lp-card)] text-[var(--lp-dark)]'
+                  : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)]/60',
               )}
               style={{
                 borderTopLeftRadius: 10,

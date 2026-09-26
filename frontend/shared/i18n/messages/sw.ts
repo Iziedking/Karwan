@@ -8,6 +8,7 @@ import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
+import { docsProductCopy } from './docsProduct';
 
 export const sw: Messages = {
   protection: protectionCopy.sw,
@@ -16,6 +17,7 @@ export const sw: Messages = {
   escrowV3: escrowV3Copy.sw,
   analytics: analyticsCopy.sw,
   signup: signupCopy.sw,
+  docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,
   networkUi: networkCopy.sw,
   docsEscrowPage: escrowDocsCopy.sw,

@@ -1,0 +1,42 @@
+/* Scroll cue: a short track with a dot sliding down it. */
+.track {
+  position: relative;
+  display: inline-block;
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background: var(--lp-border-light);
+  overflow: hidden;
+}
+
+.dot {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  width: 2px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--lp-dark);
+  animation: cue 1.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+}
+
+.cue:hover .dot {
+  background: var(--lp-accent);
+}
+
+@keyframes cue {
+  0% {
+    transform: translateY(-12px);
+  }
+  70%,
+  100% {
+    transform: translateY(36px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+    transform: translateY(12px);
+  }
+}
