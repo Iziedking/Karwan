@@ -15,7 +15,7 @@ export const socialTradeCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', SocialTra
     label: 'Trade from anywhere', title: 'Meet anywhere. Make it a deal.',
     body: 'The right buyer or seller might be in your next message. Bring the conversation to Karwan. Agree on delivery and payment before either side commits.',
     action: 'Bring a deal', controls: 'Explore example trades', select: 'Show {platform} example', pause: 'Pause examples', play: 'Play examples',
-    illustration: 'Example agreement', disclaimer: 'Illustrative trades, not live activity. You bring the terms to Karwan. No social account is connected.',
+    illustration: 'Example agreement', disclaimer: 'Illustrative trades',
     conversation: 'The conversation', draft: 'Draft agreement', value: 'Deal value', delivery: 'Delivery', days: '{days} days',
     milestones: 'Proposed milestones', review: 'For both sides to review', handoff: 'Bring the terms to Karwan',
     examples: {
@@ -30,7 +30,7 @@ export const socialTradeCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', SocialTra
     label: 'تجارة من أي مكان', title: 'تعارف أينما كنت. واتفق على الصفقة.',
     body: 'قد تجد المشتري أو البائع المناسب في رسالتك القادمة. أحضر المحادثة إلى Karwan واتفقا على التسليم والدفع قبل أن يلتزم أي طرف.',
     action: 'أحضر صفقة', controls: 'استكشف أمثلة الصفقات', select: 'اعرض مثال {platform}', pause: 'أوقف الأمثلة مؤقتاً', play: 'شغّل الأمثلة',
-    illustration: 'مثال على اتفاق', disclaimer: 'صفقات توضيحية وليست نشاطاً مباشراً. أنت تنقل الشروط إلى Karwan. لا يتم ربط أي حساب اجتماعي.',
+    illustration: 'مثال على اتفاق', disclaimer: 'صفقات توضيحية',
     conversation: 'المحادثة', draft: 'مسودة الاتفاق', value: 'قيمة الصفقة', delivery: 'التسليم', days: '{days} يوم',
     milestones: 'المراحل المقترحة', review: 'ليراجعه الطرفان', handoff: 'انقل الشروط إلى Karwan',
     examples: {
@@ -45,7 +45,7 @@ export const socialTradeCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', SocialTra
     label: 'Le commerce, partout', title: 'Rencontrez-vous ailleurs. Concluez ici.',
     body: 'Votre prochain message pourrait venir du bon acheteur ou vendeur. Poursuivez sur Karwan. Convenez de la livraison et du paiement avant de vous engager.',
     action: 'Proposer un accord', controls: 'Explorer des exemples d’accords', select: 'Voir l’exemple {platform}', pause: 'Mettre en pause', play: 'Lire les exemples',
-    illustration: 'Exemple d’accord', disclaimer: 'Accords illustratifs, pas une activité en direct. Vous apportez les conditions à Karwan. Aucun compte social n’est connecté.',
+    illustration: 'Exemple d’accord', disclaimer: 'Accords illustratifs',
     conversation: 'La conversation', draft: 'Projet d’accord', value: 'Valeur de l’accord', delivery: 'Livraison', days: '{days} jours',
     milestones: 'Étapes proposées', review: 'À examiner par les deux parties', handoff: 'Apportez les conditions à Karwan',
     examples: {
@@ -60,7 +60,7 @@ export const socialTradeCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', SocialTra
     label: 'कहीं से भी व्यापार', title: 'कहीं भी मिलें। सौदा यहाँ करें।',
     body: 'अगला संदेश सही खरीदार या विक्रेता से आ सकता है। बातचीत को Karwan पर लाएँ। किसी भी पक्ष की प्रतिबद्धता से पहले डिलीवरी और भुगतान पर सहमत हों।',
     action: 'सौदा लाएँ', controls: 'उदाहरण सौदे देखें', select: '{platform} का उदाहरण देखें', pause: 'उदाहरण रोकें', play: 'उदाहरण चलाएँ',
-    illustration: 'समझौते का उदाहरण', disclaimer: 'ये उदाहरण हैं, लाइव गतिविधि नहीं। आप शर्तें Karwan पर लाते हैं। कोई सोशल खाता जुड़ा नहीं है।',
+    illustration: 'समझौते का उदाहरण', disclaimer: 'उदाहरणात्मक व्यापार',
     conversation: 'बातचीत', draft: 'समझौते का मसौदा', value: 'सौदे का मूल्य', delivery: 'डिलीवरी', days: '{days} दिन',
     milestones: 'प्रस्तावित चरण', review: 'दोनों पक्षों की समीक्षा के लिए', handoff: 'शर्तें Karwan पर लाएँ',
     examples: {
@@ -75,7 +75,7 @@ export const socialTradeCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', SocialTra
     label: 'Biashara kutoka popote', title: 'Kutana popote. Kubalianeni hapa.',
     body: 'Ujumbe wako unaofuata unaweza kuwa kutoka kwa mnunuzi au muuzaji anayefaa. Leta mazungumzo Karwan. Kubalianeni uwasilishaji na malipo kabla ya yeyote kujifunga.',
     action: 'Leta biashara', controls: 'Chunguza mifano ya biashara', select: 'Onyesha mfano wa {platform}', pause: 'Sitisha mifano', play: 'Endeleza mifano',
-    illustration: 'Mfano wa makubaliano', disclaimer: 'Biashara za mfano, si shughuli za moja kwa moja. Unaleta masharti Karwan. Hakuna akaunti ya kijamii iliyounganishwa.',
+    illustration: 'Mfano wa makubaliano', disclaimer: 'Mifano ya biashara',
     conversation: 'Mazungumzo', draft: 'Rasimu ya makubaliano', value: 'Thamani ya biashara', delivery: 'Uwasilishaji', days: 'Siku {days}',
     milestones: 'Hatua zinazopendekezwa', review: 'Kwa pande zote kukagua', handoff: 'Leta masharti Karwan',
     examples: {

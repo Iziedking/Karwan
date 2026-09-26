@@ -27,7 +27,7 @@ export const fr: Messages = {
     findLabel: 'Trouver un partenaire', findTitle: 'Vous cherchez un partenaire', findBody: 'Consultez les demandes et offres. L’historique disponible et les comparaisons préparées par les agents peuvent guider votre choix. Vous approuvez les conditions.',
     recordLabel: 'Séquestre et règlement', recordTitle: 'Le paiement suit un calendrier.', recordBody: 'L’acheteur approvisionne le séquestre en USDC après accord des deux parties. Karwan affiche la livraison, l’étape en cours et la prochaine opération sur les fonds.',
     terms: 'Conditions acceptées', funded: 'Séquestre approvisionné', delivery: 'Livraison soumise', reviewed: 'Étape examinée', released: 'Versement enregistré', both: 'Acheteur et vendeur', buyer: 'Acheteur', seller: 'Vendeur', receipt: 'Reçu de l’accord',
-    exampleNote: 'Séquence type, pas un accord en cours. Chaque accord définit ses règles de versement.', limitTitle: 'Vérifiez l’échéance avant de verser les fonds', limitBody: 'Si le délai d’examen expire, le vendeur peut être autorisé à réclamer l’étape en cours, y compris la dernière. Un litige gèle les fonds non versés ; il ne déclenche pas de remboursement automatique.', rulesLink: 'Lire les règles des accords et du séquestre', closeTitle: 'Un échange en vue ?', closeBody: 'Invitez un acheteur ou vendeur à un accord direct, ou publiez une demande sur le marché.',
+    exampleNote: 'Séquence type, pas un accord en cours. Chaque accord définit ses règles de versement.', limitTitle: 'Vérifiez le délai d’examen avant de financer', limitBody: 'Si vous ne vérifiez pas la livraison avant l’échéance, le vendeur peut être autorisé à réclamer cette étape, y compris la dernière. Un litige suspend les fonds non versés. Il ne déclenche pas de remboursement automatique.', rulesLink: 'Lire les règles des accords et du séquestre', closeTitle: 'Un échange en vue ?', closeBody: 'Invitez un acheteur ou vendeur à un accord direct, ou publiez une demande sur le marché.',
   },
   common: {
     save: 'Enregistrer',
@@ -2967,6 +2967,12 @@ export const fr: Messages = {
   bridgeChooser: {
     poweredBy: 'PROPULSÉ PAR CIRCLE',
     transferHistory: 'Historique des transferts',
+    history: {
+      all: 'Tous', pending: 'En attente', successful: 'Réussis', failed: 'Échoués',
+      emptyTitle: 'Aucun transfert', emptyBody: 'Votre historique de transferts apparaîtra ici.',
+      noneInFilter: 'Aucun transfert dans ce filtre', pageTemplate: 'Page {page} sur {total}',
+      previous: 'Précédent', next: 'Suivant',
+    },
     cctp: {
       tag: '[:DÉPÔT:]',
       title: 'Alimenter | Retirer',
@@ -5473,6 +5479,8 @@ export const fr: Messages = {
     },
   },
   profileNudge: {
+    stepOne: 'Étape 01/02',
+    stepTwo: 'Étape 02/02',
     titleFragment: 'Configurer un profil',
     bodyFragment: 'pour obtenir un nom d’affichage et bâtir votre réputation plus vite. Reste optionnel. Vous pouvez sécuriser des deals sans.',
     cta: 'Configurer le profil',

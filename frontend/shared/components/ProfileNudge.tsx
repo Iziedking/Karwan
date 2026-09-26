@@ -77,7 +77,7 @@ export function ProfileNudge() {
   let copy: NudgeCopy | null = null;
   if (kind === 'profile') {
     copy = {
-      step: 'Step 01/02',
+      step: profileCopy.stepOne,
       title: profileCopy.titleFragment,
       body: profileCopy.bodyFragment,
       cta: profileCopy.cta,
@@ -86,7 +86,7 @@ export function ProfileNudge() {
   }
   if (kind === 'activation') {
     copy = {
-      step: 'Step 02/02',
+      step: profileCopy.stepTwo,
       title: activationCopy.title,
       body: activationCopy.body,
       cta: activationCopy.cta,
@@ -116,23 +116,21 @@ export function ProfileNudge() {
           animate={{ opacity: 1, y: 0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
           transition={{ duration: reduce ? dur.micro : dur.fast, ease: ease.out }}
-          className="border-b border-[var(--color-line)] bg-[var(--color-surface-2)]"
+          className="border-b border-[var(--lp-border-light)] bg-[var(--lp-card)]"
           aria-label={copy.title}
         >
-          <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-3 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-              <span className="mono shrink-0 pt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--lp-accent-on-light)] sm:pt-0">
+          <div className="mx-auto grid max-w-6xl grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2 px-4 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-6 sm:px-6">
+            <span className="mono row-span-2 shrink-0 text-[11px] font-semibold tracking-[0.04em] text-[var(--lp-accent-on-light)] sm:row-span-1">
                 {copy.step}
-              </span>
-              <p className="min-w-0 text-[12.5px] leading-snug text-[var(--color-ink-dim)]">
-                <span className="font-semibold text-[var(--color-ink)]">{copy.title}</span>{' '}
-                {copy.body}
-              </p>
+            </span>
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold leading-snug text-[var(--lp-dark)]">{copy.title}</p>
+              <p className="mt-1 max-w-[68ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{copy.body}</p>
             </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
               <Link
                 href={copy.href}
-                className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--color-ink)] px-4 mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-surface)] transition-[transform,background-color] duration-[var(--dur-fast)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
+                className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-[var(--lp-accent)] px-4 text-[14px] font-semibold text-[var(--accent-ink)] transition-colors hover:brightness-95"
               >
                 {copy.cta}
                 <span aria-hidden>→</span>
@@ -141,7 +139,7 @@ export function ProfileNudge() {
                 type="button"
                 onClick={dismiss}
                 aria-label={profileCopy.dismissAria}
-                className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--color-ink-faint)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex size-11 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
                   <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

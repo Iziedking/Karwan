@@ -45,13 +45,12 @@ export interface AnalyticsCopy {
     noFunds: string;
     roles: { settlement: string; financing: string; staking: string; treasury: string; registry: string };
   };
-  check: { title: string; explorer: string; raw: string; testnetNote: string };
   states: { unscanned: string; error: string; retry: string };
 }
 
 const en: AnalyticsCopy = {
   title: 'Karwan in numbers',
-  lead: "Every figure is read from Karwan's contracts on Arc. Nothing is typed in by hand, and each contract links to the public explorer.",
+  lead: "Every figure is read from Karwan's contracts on Arc.",
   networkTestnet: 'Arc testnet. Test money, no real value.',
   networkMainnet: 'Arc mainnet',
   otherTestnet: 'See the testnet figures',
@@ -120,12 +119,6 @@ const en: AnalyticsCopy = {
       registry: 'Keeps the public record',
     },
   },
-  check: {
-    title: 'Check it yourself',
-    explorer: 'Every contract above opens on the Arc explorer.',
-    raw: 'The raw figures behind this page',
-    testnetNote: 'Testnet figures come from real use of the product with test money. They are not real value.',
-  },
   states: {
     unscanned: 'These figures have not been counted on this network yet.',
     error: 'The figures could not be loaded.',
@@ -135,7 +128,7 @@ const en: AnalyticsCopy = {
 
 const fr: AnalyticsCopy = {
   title: 'Karwan en chiffres',
-  lead: "Chaque chiffre est lu dans les contrats de Karwan sur Arc. Rien n'est saisi à la main, et chaque contrat renvoie à l'explorateur public.",
+  lead: 'Chaque chiffre est lu dans les contrats de Karwan sur Arc.',
   networkTestnet: 'Arc testnet. Argent de test, sans valeur réelle.',
   networkMainnet: 'Arc mainnet',
   otherTestnet: 'Voir les chiffres du testnet',
@@ -204,12 +197,6 @@ const fr: AnalyticsCopy = {
       registry: 'Tient le registre public',
     },
   },
-  check: {
-    title: 'Vérifiez vous-même',
-    explorer: "Chaque contrat ci-dessus s'ouvre dans l'explorateur Arc.",
-    raw: 'Les chiffres bruts derrière cette page',
-    testnetNote: "Les chiffres du testnet viennent d'un usage réel du produit avec de l'argent de test. Ils n'ont pas de valeur réelle.",
-  },
   states: {
     unscanned: "Ces chiffres n'ont pas encore été comptés sur ce réseau.",
     error: "Les chiffres n'ont pas pu être chargés.",
@@ -219,7 +206,7 @@ const fr: AnalyticsCopy = {
 
 const ar: AnalyticsCopy = {
   title: 'Karwan بالأرقام',
-  lead: 'كل رقم هنا مقروء من عقود Karwan على Arc. لا شيء يُكتب يدويًا، وكل عقد مرتبط بالمستكشف العام.',
+  lead: 'تُقرأ كل الأرقام من عقود Karwan على Arc.',
   networkTestnet: 'شبكة Arc التجريبية. أموال اختبار بلا قيمة حقيقية.',
   networkMainnet: 'شبكة Arc الرئيسية',
   otherTestnet: 'عرض أرقام الشبكة التجريبية',
@@ -288,12 +275,6 @@ const ar: AnalyticsCopy = {
       registry: 'يحفظ السجل العام',
     },
   },
-  check: {
-    title: 'تحقق بنفسك',
-    explorer: 'كل عقد أعلاه يُفتح في مستكشف Arc.',
-    raw: 'الأرقام الخام خلف هذه الصفحة',
-    testnetNote: 'أرقام الشبكة التجريبية ناتجة عن استخدام حقيقي للمنتج بأموال اختبار. ليست ذات قيمة حقيقية.',
-  },
   states: {
     unscanned: 'لم تُحتسب هذه الأرقام على هذه الشبكة بعد.',
     error: 'تعذّر تحميل الأرقام.',
@@ -303,7 +284,7 @@ const ar: AnalyticsCopy = {
 
 const hi: AnalyticsCopy = {
   title: 'Karwan आंकड़ों में',
-  lead: 'हर आंकड़ा Arc पर Karwan के कॉन्ट्रैक्ट से पढ़ा गया है। कुछ भी हाथ से नहीं लिखा गया, और हर कॉन्ट्रैक्ट सार्वजनिक एक्सप्लोरर से जुड़ा है।',
+  lead: 'हर आँकड़ा Arc पर Karwan के कॉन्ट्रैक्ट से लिया गया है।',
   networkTestnet: 'Arc टेस्टनेट। टेस्ट पैसा, कोई असली मूल्य नहीं।',
   networkMainnet: 'Arc मेननेट',
   otherTestnet: 'टेस्टनेट के आंकड़े देखें',
@@ -372,12 +353,6 @@ const hi: AnalyticsCopy = {
       registry: 'सार्वजनिक रिकॉर्ड रखता है',
     },
   },
-  check: {
-    title: 'खुद जाँचें',
-    explorer: 'ऊपर का हर कॉन्ट्रैक्ट Arc एक्सप्लोरर में खुलता है।',
-    raw: 'इस पेज के पीछे के कच्चे आंकड़े',
-    testnetNote: 'टेस्टनेट के आंकड़े टेस्ट पैसे के साथ प्रोडक्ट के असली उपयोग से आते हैं। इनका कोई असली मूल्य नहीं है।',
-  },
   states: {
     unscanned: 'इस नेटवर्क पर ये आंकड़े अभी गिने नहीं गए हैं।',
     error: 'आंकड़े लोड नहीं हो सके।',
@@ -387,7 +362,7 @@ const hi: AnalyticsCopy = {
 
 const sw: AnalyticsCopy = {
   title: 'Karwan kwa takwimu',
-  lead: 'Kila takwimu inasomwa kutoka kwenye mikataba ya Karwan kwenye Arc. Hakuna kinachoandikwa kwa mkono, na kila mkataba unaunganishwa na kivinjari cha umma.',
+  lead: 'Kila takwimu inasomwa kutoka kwenye mikataba ya Karwan kwenye Arc.',
   networkTestnet: 'Arc testnet. Pesa za majaribio, hazina thamani halisi.',
   networkMainnet: 'Arc mainnet',
   otherTestnet: 'Tazama takwimu za testnet',
@@ -455,12 +430,6 @@ const sw: AnalyticsCopy = {
       treasury: 'Unakusanya ada na kulipa faida',
       registry: 'Unatunza rekodi ya umma',
     },
-  },
-  check: {
-    title: 'Hakiki mwenyewe',
-    explorer: 'Kila mkataba hapo juu unafunguka kwenye kivinjari cha Arc.',
-    raw: 'Takwimu ghafi nyuma ya ukurasa huu',
-    testnetNote: 'Takwimu za testnet zinatokana na matumizi halisi ya bidhaa kwa pesa za majaribio. Hazina thamani halisi.',
   },
   states: {
     unscanned: 'Takwimu hizi bado hazijahesabiwa kwenye mtandao huu.',

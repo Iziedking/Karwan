@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   api,
   ApiError,
-  publicApiUrl,
   type ContractKind,
   type CurrentContractsSnapshot,
   type LifetimeContract,
@@ -114,7 +113,6 @@ export default function AllTimePage() {
           <WhereItWent stats={stats} t={t} />
           <Rails stats={stats} t={t} />
           <Contracts stats={stats} current={current} explorer={explorer} t={t} />
-          <CheckIt testnet={testnet} t={t} />
         </div>
       ) : null}
     </main>
@@ -428,24 +426,6 @@ function Contracts({
           </ul>
         </details>
       ) : null}
-    </section>
-  );
-}
-
-function CheckIt({ testnet, t }: { testnet: boolean; t: Copy }) {
-  return (
-    <section aria-labelledby="check" className="space-y-3">
-      <h2 id="check" className="text-[22px] font-semibold text-[var(--lp-dark)]">{t.check.title}</h2>
-      <p className="text-[15px] text-[var(--lp-text-sub)]">{t.check.explorer}</p>
-      <a
-        href={publicApiUrl('/api/network/lifetime')}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex min-h-11 items-center text-[15px] font-medium text-[var(--lp-dark)] underline underline-offset-4"
-      >
-        {t.check.raw} ↗
-      </a>
-      {testnet ? <p className="text-[13px] text-[var(--lp-text-sub)]">{t.check.testnetNote}</p> : null}
     </section>
   );
 }

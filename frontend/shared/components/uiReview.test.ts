@@ -17,7 +17,27 @@ test('editorial copy leads with Arc while network disclosures retain environment
   assert.match(en.networkUi.testnetNotice, /no real monetary value/);
   assert.doesNotMatch(Object.values(en.landingEditorial).join(' '), /testnet/i);
   assert.match(en.landingEditorial.limitBody, /including the final one/);
-  assert.match(en.landingEditorial.limitBody, /does not issue an automatic refund/);
+  assert.match(en.landingEditorial.limitBody, /It does not refund them automatically/);
+});
+
+test('public analytics and workspace notices avoid API internals and repeat mainnet warnings', () => {
+  const analyticsPage = source('../../app/activity/all-time/page.tsx');
+  const analyticsCopy = source('../i18n/messages/analytics.ts');
+  const networkContext = source('./NetworkContext.tsx');
+  const nudge = source('./ProfileNudge.tsx');
+  const history = source('../../features/bridge/components/BridgeHistorySection.tsx');
+  const socialExamples = source('../i18n/messages/socialTrade.ts');
+
+  assert.doesNotMatch(analyticsPage, /publicApiUrl|CheckIt|raw figures/);
+  assert.match(analyticsCopy, /Every figure is read from Karwan's contracts on Arc\./);
+  assert.match(networkContext, /network\.environment !== 'mainnet'/);
+  assert.match(networkContext, /network\.environment !== 'mainnet' &&/);
+  assert.match(nudge, /grid-cols-\[auto_minmax\(0,1fr\)_auto\]/);
+  assert.match(nudge, /stepTwo/);
+  assert.match(history, /width: 'min\(640px, 100vw\)'/);
+  assert.match(history, /var\(--lp-text-sub\)/);
+  assert.doesNotMatch(history, /--lp-workspace-raised|--ink-3/);
+  assert.match(socialExamples, /disclaimer: 'Illustrative trades'/);
 });
 
 test('landing respects reduced motion and blends its full-screen film into content', () => {

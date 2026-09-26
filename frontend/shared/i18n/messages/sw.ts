@@ -24,7 +24,7 @@ export const sw: Messages = {
     open: 'Fungua Karwan', trade: 'Biashara za ndani na kuvuka mipaka', startLink: 'Jinsi biashara inavyoanza',
     introLabel: 'Kuanza biashara', introTitle: 'Mwalike mwenzako, au mpate hapa.', introBody: 'Karwan husaidia biashara za bidhaa na huduma kutoka masharti ya kwanza hadi malipo. Anza na mshirika unayemjua au angalia maombi na ofa sokoni.', marketLink: 'Angalia maombi na ofa', bringLabel: 'Leta makubaliano', bringTitle: 'Tayari unamjua mwenzako', bringBody: 'Weka bidhaa au huduma, kiasi, tarehe ya mwisho na hatua. Mwalike mnunuzi au muuzaji akague masharti hayo.', findLabel: 'Pata mshirika', findTitle: 'Unahitaji mshirika wa biashara', findBody: 'Angalia maombi na ofa. Historia ya biashara iliyopo na ulinganisho uliotayarishwa na mawakala vinaweza kukusaidia kuchagua wa kuwasiliana naye. Wewe unaidhinisha masharti.',
     recordLabel: 'Escrow na malipo', recordTitle: 'Malipo yana ratiba.', recordBody: 'Mnunuzi huweka USDC kwenye escrow baada ya pande zote kukubaliana. Karwan huonyesha uwasilishaji, hatua ya sasa na kitakachotokea kwa fedha baadaye.', terms: 'Masharti yamekubaliwa', funded: 'Escrow imefadhiliwa', delivery: 'Uwasilishaji umewasilishwa', reviewed: 'Hatua imekaguliwa', released: 'Malipo yamerekodiwa', both: 'Mnunuzi na muuzaji', buyer: 'Mnunuzi', seller: 'Muuzaji', receipt: 'Risiti ya biashara',
-    exampleNote: 'Huu ni mfuatano wa kawaida, si biashara inayoendelea. Kila makubaliano yana sheria zake za kutoa fedha.', limitTitle: 'Soma tarehe ya mwisho kabla ya kufadhili', limitBody: 'Muda wa ukaguzi ukiisha, muuzaji anaweza kudai malipo ya hatua ya sasa, hata ya mwisho. Mgogoro huzuia fedha ambazo hazijatolewa; haurudishi fedha moja kwa moja.', rulesLink: 'Soma sheria za biashara na escrow', closeTitle: 'Una biashara akilini?', closeBody: 'Mwalike mnunuzi au muuzaji kwenye makubaliano ya moja kwa moja, au anza na ombi sokoni.',
+    exampleNote: 'Huu ni mfuatano wa kawaida, si biashara inayoendelea. Kila makubaliano yana sheria zake za kutoa fedha.', limitTitle: 'Jua muda wa ukaguzi kabla ya kufadhili', limitBody: 'Usipokagua kilichowasilishwa kabla ya muda kuisha, muuzaji anaweza kudai malipo ya hatua hii, hata ya mwisho. Mgogoro husimamisha fedha ambazo hazijatolewa. Haurudishi fedha moja kwa moja.', rulesLink: 'Soma sheria za biashara na escrow', closeTitle: 'Una biashara akilini?', closeBody: 'Mwalike mnunuzi au muuzaji kwenye makubaliano ya moja kwa moja, au anza na ombi sokoni.',
   },
   common: {
     save: 'Hifadhi',
@@ -2964,6 +2964,12 @@ export const sw: Messages = {
   bridgeChooser: {
     poweredBy: 'INAENDESHWA NA CIRCLE',
     transferHistory: 'Historia ya uhamisho',
+    history: {
+      all: 'Yote', pending: 'Inasubiri', successful: 'Yamefaulu', failed: 'Yameshindwa',
+      emptyTitle: 'Bado hakuna uhamisho', emptyBody: 'Historia yako ya uhamisho itaonekana hapa.',
+      noneInFilter: 'Hakuna uhamisho kwenye kichujio hiki', pageTemplate: 'Ukurasa {page} kati ya {total}',
+      previous: 'Iliyotangulia', next: 'Inayofuata',
+    },
     cctp: {
       tag: '[:WEKA PESA:]',
       title: 'Weka | Toa',
@@ -5470,6 +5476,8 @@ export const sw: Messages = {
     },
   },
   profileNudge: {
+    stepOne: 'Hatua ya 01/02',
+    stepTwo: 'Hatua ya 02/02',
     titleFragment: 'Anzisha wasifu',
     bodyFragment: 'kupata jina la kuonyesha na kujenga sifa haraka. Bado ni hiari. Unaweza kufanya biashara bila kuwa nao.',
     cta: 'Anzisha wasifu',

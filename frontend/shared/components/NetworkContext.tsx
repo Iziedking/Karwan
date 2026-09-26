@@ -4,7 +4,7 @@ import { settlementChain } from '@/core/arcNetwork';
 import { networkPresentation } from '@/shared/chain/networkPresentation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/** A disclosure in public chrome; an always-visible notice beside funds. */
+/** Testnet warnings stay beside funds; mainnet transactions confirm details in their own review step. */
 export function NetworkContext({ disclosure = false }: { disclosure?: boolean }) {
   const t = useTranslations().networkUi;
   const network = networkPresentation(settlementChain);
@@ -13,7 +13,7 @@ export function NetworkContext({ disclosure = false }: { disclosure?: boolean })
       <p className="font-semibold text-[var(--lp-dark)]">
         {t.settlementNetwork}: <bdi>Arc</bdi> · {t[network.environment]}
       </p>
-      <p className="max-w-[72ch]">{t[network.noticeKey]}</p>
+      {network.environment !== 'mainnet' && <p className="max-w-[72ch]">{t[network.noticeKey]}</p>}
       {disclosure && (
         <>
           <p>{t.chainId}: <bdi>{network.chainId}</bdi></p>

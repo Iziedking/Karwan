@@ -555,6 +555,8 @@ interface MessagesShape {
     switchFailed: string;
   };
   profileNudge: {
+    stepOne: string;
+    stepTwo: string;
     titleFragment: string;
     bodyFragment: string;
     cta: string;
@@ -2726,6 +2728,11 @@ interface MessagesShape {
   bridgeChooser: {
     poweredBy: string;
     transferHistory: string;
+    history: {
+      all: string; pending: string; successful: string; failed: string;
+      emptyTitle: string; emptyBody: string; noneInFilter: string;
+      pageTemplate: string; previous: string; next: string;
+    };
     cctp: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
     gateway: { tag: string; title: string; protocol: string; blurb: string; nudge: string };
   };
@@ -5302,7 +5309,7 @@ export const en: MessagesShape = {
     findLabel: 'Find a match', findTitle: 'You need a counterparty', findBody: 'Browse requests and offers. Available trade history and agent-prepared comparisons can help you decide who to approach. You approve the terms.',
     recordLabel: 'Escrow and settlement', recordTitle: 'The payment has a schedule.', recordBody: 'The buyer funds USDC escrow after both sides agree. Karwan shows the delivery, the current milestone, and what happens to the money next.',
     terms: 'Terms accepted', funded: 'Escrow funded', delivery: 'Delivery submitted', reviewed: 'Milestone reviewed', released: 'Release recorded', both: 'Buyer and seller', buyer: 'Buyer', seller: 'Seller', receipt: 'Deal receipt',
-    exampleNote: 'Typical sequence, not a live deal. Exact release rules are set in each agreement.', limitTitle: 'Read the deadline before you fund', limitBody: 'If the review deadline passes, the seller may be able to claim the current milestone, including the final one. A dispute freezes unreleased funds; it does not issue an automatic refund.', rulesLink: 'Read the deal and escrow rules', closeTitle: 'Have a trade in mind?', closeBody: 'Bring a buyer or seller to a direct deal, or start with a request in the market.',
+    exampleNote: 'Typical sequence, not a live deal. Exact release rules are set in each agreement.', limitTitle: 'Know the review deadline before funding', limitBody: 'If you do not review by the deadline, the seller may be able to claim this milestone, including the final one. A dispute pauses unreleased funds. It does not refund them automatically.', rulesLink: 'Read the deal and escrow rules', closeTitle: 'Have a trade in mind?', closeBody: 'Bring a buyer or seller to a direct deal, or start with a request in the market.',
   },
   common: {
     save: 'Save',
@@ -5878,6 +5885,8 @@ export const en: MessagesShape = {
     switchFailed: 'Could not switch role',
   },
   profileNudge: {
+    stepOne: 'Step 01/02',
+    stepTwo: 'Step 02/02',
     titleFragment: 'Set up a profile',
     bodyFragment: 'to get a display name and build reputation faster. It stays optional. You can secure deals without one.',
     cta: 'Set up profile',
@@ -8291,6 +8300,12 @@ export const en: MessagesShape = {
   bridgeChooser: {
     poweredBy: 'POWERED BY CIRCLE',
     transferHistory: 'Transfer history',
+    history: {
+      all: 'All', pending: 'Pending', successful: 'Successful', failed: 'Failed',
+      emptyTitle: 'No transfers yet', emptyBody: 'Your transfer history will appear here.',
+      noneInFilter: 'No transfers in this filter', pageTemplate: 'Page {page} of {total}',
+      previous: 'Previous', next: 'Next',
+    },
     cctp: {
       tag: '[:ADD MONEY:]',
       title: 'Fund | Withdraw',

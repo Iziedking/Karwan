@@ -50,7 +50,7 @@ test('all locales distinguish brand, environment, and fund value', () => {
   assert.match(en.docsRoadmapPage.intro, /Trading remains on testnet/);
 });
 
-test('network details are optional in public chrome and always visible beside balances and transfers', () => {
+test('testnet warnings stay beside balances while mainnet shows network identity without warning copy', () => {
   const footer = source('../components/SiteFooter.tsx');
   assert.match(footer, /networkUi.poweredByArc/);
   assert.match(footer, /<NetworkContext disclosure \/>/);
@@ -65,5 +65,8 @@ test('network details are optional in public chrome and always visible beside ba
   const component = source('../components/NetworkContext.tsx');
   assert.match(component, /networkPresentation\(settlementChain\)/);
   assert.match(component, /t\[network.noticeKey\]/);
+  assert.match(component, /network.environment !== 'mainnet'/);
+  assert.match(component, /network.environment !== 'mainnet' &&/);
+  assert.doesNotMatch(component, /t\[network.noticeKey\].*network.environment === 'mainnet'/s);
   assert.doesNotMatch(component, /localStorage|switchChain|process.env/);
 });

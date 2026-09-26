@@ -9,12 +9,11 @@ import { tradeEntryRoutes } from './tradeEntry';
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('social examples preserve the supplied trade inspiration without claiming live activity', () => {
+test('social examples are identified only as illustrative trades', () => {
   assert.deepEqual(SOCIAL_TRADE_EXAMPLES.map(item => item.id), ['tiktok','instagram','facebook','x','linkedin']);
   assert.equal(SOCIAL_TRADE_EXAMPLES[0].amount, 1240);
   assert.match(socialTradeCopy.en.examples.tiktok.title, /200.*tote bags/);
-  assert.match(socialTradeCopy.en.disclaimer, /not live activity/);
-  assert.match(socialTradeCopy.en.disclaimer, /No social account is connected/);
+  assert.equal(socialTradeCopy.en.disclaimer, 'Illustrative trades');
   assert.match(socialTradeCopy.en.draft, /Draft/);
 });
 

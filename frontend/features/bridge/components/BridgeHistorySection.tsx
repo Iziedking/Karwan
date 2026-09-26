@@ -68,8 +68,11 @@ export function BridgeHistoryModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const a11y = useTranslations().a11y;
-  const t = useTranslations().bridgeCard;
+  const messages = useTranslations();
+  const a11y = messages.a11y;
+  const t = messages.bridgeCard;
+  const title = messages.bridgeChooser.transferHistory;
+  const historyCopy = messages.bridgeChooser.history;
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -125,63 +128,51 @@ export function BridgeHistoryModal({
         }}
       />
       <div
-        className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[18px] sm:h-full sm:max-h-none sm:w-[640px] sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[18px] sm:h-full sm:max-h-none sm:rounded-none sm:rounded-s-[16px]"
         style={{
-          background: 'var(--lp-workspace-raised)',
-          border: '1px solid var(--lp-workspace-border)',
-          boxShadow: '0 24px 64px -20px rgba(0,0,0,0.6)',
+          width: 'min(640px, 100vw)',
+          maxWidth: '640px',
+          background: 'var(--lp-card)',
+          border: '1px solid var(--lp-border-light)',
         }}
       >
-        <div aria-hidden style={{ height: 3, background: 'var(--lp-accent)' }} />
-        <header className="px-4 sm:px-5 py-4 border-b border-[var(--lp-workspace-border)] flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 flex-wrap min-w-0">
-            <span
+        <header className="space-y-4 border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex items-center justify-between gap-4">
+            <h2
               id="bridge-history-title"
-              className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-3)]"
+              className="text-[18px] font-semibold leading-tight text-[var(--lp-dark)]"
             >
-              History
-            </span>
-            <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} />
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={a11y.closeHistory}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)]"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                <path
+                  d="M3 3l10 10M13 3L3 13"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={a11y.closeHistory}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[var(--ink-2)] transition-colors hover:bg-[rgba(255,255,255,0.06)]"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path
-                d="M3 3l10 10M13 3L3 13"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} copy={historyCopy} />
         </header>
-        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4">
+        <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           {bridges.length === 0 ? (
-            <div
-              className="px-5 py-6 text-center"
-              style={{
-                background: 'var(--lp-card)',
-                border: '1px solid var(--lp-border-light)',
-                borderTopLeftRadius: 18,
-                borderTopRightRadius: 18,
-                borderBottomLeftRadius: 18,
-                borderBottomRightRadius: 4,
-              }}
-            >
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                No bridges yet
-              </p>
-              <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">
-                Your transfer history shows up here once you move USDC in or out of Arc.
+            <div className="px-2 py-5">
+              <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{historyCopy.emptyTitle}</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+                {historyCopy.emptyBody}
               </p>
             </div>
           ) : filtered.length === 0 ? (
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] py-6 text-center">
-              None in this filter
+            <p className="py-6 text-center text-[14px] text-[var(--lp-text-sub)]">
+              {historyCopy.noneInFilter}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -201,21 +192,21 @@ export function BridgeHistoryModal({
           )}
         </div>
         {totalPages > 1 && (
-          <footer className="px-4 sm:px-5 py-3 border-t border-[var(--lp-workspace-border)] flex items-center justify-between gap-3">
+          <footer className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
             <PagerButton
               disabled={safePage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              <span aria-hidden>←</span> Prev
+              <span aria-hidden>←</span> {historyCopy.previous}
             </PagerButton>
-            <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--ink-3)] tabular-nums">
-              Page {safePage} / {totalPages}
+            <span className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+              {historyCopy.pageTemplate.replace('{page}', String(safePage)).replace('{total}', String(totalPages))}
             </span>
             <PagerButton
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
-              Next <span aria-hidden>→</span>
+              {historyCopy.next} <span aria-hidden>→</span>
             </PagerButton>
           </footer>
         )}
@@ -231,24 +222,19 @@ export function BridgeHistoryFilters({
   filter,
   onFilterChange,
   counts,
+  copy,
 }: {
   filter: HistoryFilter;
   onFilterChange: (next: HistoryFilter) => void;
   counts: { all: number; pending: number; successful: number; failed: number };
+  copy: { all: string; pending: string; successful: string; failed: string };
 }) {
   return (
-    <div
-      className="inline-flex p-1 gap-1 flex-wrap"
-      style={{
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 999,
-      }}
-    >
-      <FilterChip label="All" count={counts.all} active={filter === 'all'} onClick={() => onFilterChange('all')} />
-      <FilterChip label="Pending" count={counts.pending} active={filter === 'pending'} onClick={() => onFilterChange('pending')} />
-      <FilterChip label="Successful" count={counts.successful} active={filter === 'successful'} onClick={() => onFilterChange('successful')} />
-      <FilterChip label="Failed" count={counts.failed} active={filter === 'failed'} onClick={() => onFilterChange('failed')} />
+    <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
+      <FilterChip label={copy.all} count={counts.all} active={filter === 'all'} onClick={() => onFilterChange('all')} />
+      <FilterChip label={copy.pending} count={counts.pending} active={filter === 'pending'} onClick={() => onFilterChange('pending')} />
+      <FilterChip label={copy.successful} count={counts.successful} active={filter === 'successful'} onClick={() => onFilterChange('successful')} />
+      <FilterChip label={copy.failed} count={counts.failed} active={filter === 'failed'} onClick={() => onFilterChange('failed')} />
     </div>
   );
 }
@@ -267,11 +253,9 @@ function PagerButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="mono inline-flex min-h-11 items-center gap-1.5 px-3 py-2 text-[10px] uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[rgba(255,255,255,0.06)]"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] font-medium text-[var(--lp-dark)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)]"
       style={{
-        color: 'var(--ink-2)',
-        border: '1px solid var(--lp-workspace-border)',
-        borderRadius: 6,
+        border: '1px solid var(--lp-border-light)',
       }}
     >
       {children}
@@ -295,18 +279,18 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="mono inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors"
+      className="inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-1.5 rounded-[10px] px-2.5 py-2 text-[12px] font-medium transition-colors sm:px-3 sm:text-[13px]"
       style={{
-        background: active ? 'var(--lp-control-active-bg)' : 'transparent',
-        color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+        background: active ? 'var(--lp-accent)' : 'var(--lp-card)',
+        color: active ? 'var(--accent-ink)' : 'var(--lp-text-sub)',
+        border: active ? '1px solid var(--lp-accent)' : '1px solid var(--lp-border-light)',
       }}
     >
       <span>{label}</span>
       <span
-        className="mono text-[9px] tabular-nums"
+        className="text-[12px] tabular-nums"
         style={{
-          color: active ? 'var(--lp-accent)' : 'var(--lp-text-muted)',
-          opacity: active ? 0.9 : 0.7,
+          color: active ? 'var(--accent-ink)' : 'var(--lp-text-sub)',
         }}
       >
         {count}
