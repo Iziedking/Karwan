@@ -26,6 +26,10 @@ export function chainFor(name: ArcNetworkName): Chain {
     : arcTestnet;
 }
 
+export function explorerTxUrl(chain: Chain, hash: string): string {
+  return `${chain.blockExplorers?.default.url ?? ''}/tx/${hash}`;
+}
+
 export function publicRpcFor(name: ArcNetworkName): string {
   return name === 'mainnet' ? 'https://rpc.mainnet.arc.io' : 'https://rpc.testnet.arc.network';
 }

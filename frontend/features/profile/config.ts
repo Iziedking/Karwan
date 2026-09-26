@@ -1,8 +1,9 @@
 import { arcChain } from '@/core/wagmi';
+import { explorerTxUrl, settlementChain } from '@/core/arcNetwork';
 
 export const ARC_CHAIN_ID = arcChain.id;
 
-export const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
+export const ARC_EXPLORER_TX = (h: string) => explorerTxUrl(settlementChain, h);
 
 // USDC ERC-20 interface on Arc. Native gas and ERC-20 USDC are one balance,
 // but all product amounts and transfers use this six-decimal interface.

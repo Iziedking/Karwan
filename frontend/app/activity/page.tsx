@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/core/api';
+import { settlementChain } from '@/core/arcNetwork';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivityView } from '@/features/activity/components/ActivityView';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -12,14 +13,16 @@ import {
   Band,
 } from '@/shared/components/Bands';
 
+const ARC_EXPLORER = settlementChain.blockExplorers?.default.url ?? '';
+
 export default function ActivityPage() {
   const t = useTranslations().activity;
-  const [explorer, setExplorer] = useState<string>('https://testnet.arcscan.app');
+  const [explorer, setExplorer] = useState<string>(ARC_EXPLORER);
 
   useEffect(() => {
     api
       .status()
-      .then((s) => setExplorer(s.chain.explorer ?? 'https://testnet.arcscan.app'))
+      .then((s) => setExplorer(s.chain.explorer ?? ARC_EXPLORER))
       .catch(() => {
         /* keep default */
       });

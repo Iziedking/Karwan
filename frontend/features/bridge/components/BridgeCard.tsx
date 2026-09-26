@@ -18,6 +18,7 @@ import {
   USDC_FAUCET,
   isAppKitOnlyChainKey,
   appKitBridgeSupportsSource,
+  ARC_CCTP,
   type SourceChainConfig,
   type AppKitSourceConfig,
   type AnySourceChainKey,
@@ -41,7 +42,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { completedBridgeLabel } from './bridgeHistoryPresentation';
 import type { Messages } from '@/shared/i18n/messages/en';
 
-const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
+const ARC_EXPLORER_TX = ARC_CCTP.explorerTx;
 const STUCK_AFTER_MS = 30 * 60 * 1000;
 const STEP_ORDER: BridgePhase[] = ['approving', 'burning', 'attesting', 'minting', 'done'];
 

@@ -9,8 +9,11 @@ import {
   type LifetimeStats,
 } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ARC_NETWORK, settlementChain } from '@/core/arcNetwork';
 import { compactUsdc, glanceUsdc, weekly } from '@/features/analytics/series';
 import { WeeklyBars } from '@/features/analytics/WeeklyBars';
+
+const ARC_EXPLORER = settlementChain.blockExplorers?.default.url ?? '';
 
 /// Karwan in numbers: a public page anyone can read, including someone who has
 /// never used Karwan. Every figure comes from the contracts on Arc, summed by
@@ -35,13 +38,13 @@ export default function AllTimePage() {
   const [stats, setStats] = useState<LifetimeStats | null>(null);
   const [current, setCurrent] = useState<CurrentContractsSnapshot | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'unscanned' | 'error'>('loading');
-  const [explorer, setExplorer] = useState('https://testnet.arcscan.app');
+  const [explorer, setExplorer] = useState(ARC_EXPLORER);
   const [updatedAt, setUpdatedAt] = useState(0);
   const alive = useRef(true);
 
   useEffect(() => {
     alive.current = true;
-    api.status().then((s) => setExplorer(s.chain.explorer ?? 'https://testnet.arcscan.app')).catch(() => undefined);
+    api.status().then((s) => setExplorer(s.chain.explorer ?? ARC_EXPLORER)).catch(() => undefined);
     return () => {
       alive.current = false;
     };
@@ -82,7 +85,7 @@ export default function AllTimePage() {
     return () => clearInterval(id);
   }, [loadContracts]);
 
-  const testnet = stats?.network?.testnet ?? true;
+  const testnet = stats?.network?.testnet ?? ARC_NETWORK === 'testnet';
 
   return (
     <main className="product-surface mx-auto w-full max-w-[960px] px-4 pb-24 pt-8 sm:px-6">

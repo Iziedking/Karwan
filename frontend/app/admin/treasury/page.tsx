@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useChainId, usePublicClient, useSwitchChain, useWalletClient } from 'wagmi';
 import { formatUnits, isAddress, parseUnits } from 'viem';
+import { settlementChain } from '@/core/arcNetwork';
 import { isConfirmationPending, requireConfirmedTx } from '@/shared/chain/confirmTx';
 import {
   ARC_CHAIN_ID,
@@ -307,7 +308,7 @@ function WalletStrip() {
         </button>
       ) : null}
       {isConnected && onArc ? (
-      <span className="text-xs text-[var(--lp-accent)] font-medium">Arc Testnet</span>
+      <span className="text-xs text-[var(--lp-accent)] font-medium">{settlementChain.name}</span>
       ) : null}
     </div>
   );

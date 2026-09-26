@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { chainFor, parseArcNetwork, publicRpcFor } from './arcNetwork';
+import { chainFor, explorerTxUrl, parseArcNetwork, publicRpcFor } from './arcNetwork';
 import { networkPresentation } from '../shared/chain/networkPresentation';
 
 test('unset means testnet, as the app has always run', () => {
@@ -25,4 +25,9 @@ test('a typo fails loudly instead of quietly running testnet', () => {
 test('each network has its own public RPC fallback', () => {
   assert.equal(publicRpcFor('testnet'), 'https://rpc.testnet.arc.network');
   assert.equal(publicRpcFor('mainnet'), 'https://rpc.mainnet.arc.io');
+});
+
+test('transaction links open the explorer of the network they happened on', () => {
+  assert.equal(explorerTxUrl(chainFor('mainnet'), '0xabc'), 'https://explorer.arc.io/tx/0xabc');
+  assert.equal(explorerTxUrl(chainFor('testnet'), '0xabc'), 'https://testnet.arcscan.app/tx/0xabc');
 });
