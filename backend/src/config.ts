@@ -349,6 +349,9 @@ const envSchema = z.object({
   // env that goes unset silently keeps serving the old version while the
   // frontend footer already shows the new one.
   TERMS_CURRENT_VERSION: z.string().regex(/^\d+\.\d+\.\d+$/).default('2.1.0'),
+  /// Mainnet invite list, comma or space separated emails. Read at start, so a
+  /// recreated container picks up changes. Adds to the admin-managed list.
+  MAINNET_INVITES: z.string().optional(),
   // Delay-appeal grace: how long after the first milestone is released before
   // the seller can raise a delay appeal. Gives the buyer a normal review
   // window before any pressure. 1 hour default; longer on mainnet.

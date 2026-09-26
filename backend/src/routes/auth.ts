@@ -30,6 +30,7 @@ import { provisionUserIdentityWallet, dripTestnetUsdc } from '../circle/wallets.
 import { USER_DCW_WALLETS } from '../chain/cctpChains.js';
 import { signEmailProof } from '../auth/emailProof.js';
 import { getModularAccountByEmail } from '../db/modularAccounts.js';
+import { isInvited } from '../db/waitlist.js';
 import { getProfile } from '../db/profiles.js';
 import {
   clearSessionCookie,
@@ -95,7 +96,7 @@ interface OtpSendResult {
 /// HTML body for the OTP email. Uses the shared brand shell. Digits sit in a
 /// monospace block with a calm letter-spacing, no manual &nbsp; padding,
 /// which was making the code read like "1   2   3" instead of "123456".
-function otpEmailHtml(code: string): string {
+function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {
   const inner = `
           <tr>
             <td style="padding:36px 28px 12px 28px;text-align:center;">
@@ -109,7 +110,7 @@ function otpEmailHtml(code: string): string {
           <tr>
             <td style="padding:18px 28px 8px 28px;text-align:center;">
               <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
-                Enter this code in the sign-in modal to access your Karwan account.
+                ${purpose === 'waitlist' ? 'Enter this code to join the Karwan waitlist.' : 'Enter this code in the sign-in modal to access your Karwan account.'}
               </p>
               <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
                 Expires in 10 minutes. Five wrong tries voids it.
@@ -118,8 +119,8 @@ function otpEmailHtml(code: string): string {
           </tr>
   `;
   return brandedEmailHtml({
-    eyebrow: 'SIGN-IN CODE',
-    title: 'Karwan sign-in code',
+    eyebrow: purpose === 'waitlist' ? 'WAITLIST CODE' : 'SIGN-IN CODE',
+    title: purpose === 'waitlist' ? 'Karwan waitlist code' : 'Karwan sign-in code',
     inner,
   });
 }
@@ -128,7 +129,9 @@ function otpEmailHtml(code: string): string {
 /// Resend; otherwise we log the code to the backend terminal so dev still
 /// works without any provider configured. Returns whether the code went out
 /// over real email. The dev autofill pill only renders when this is false.
-async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult> {
+export type OtpPurpose = 'sign-in' | 'waitlist';
+
+export async function sendOtpEmail(email: string, code: string, purpose: OtpPurpose = 'sign-in'): Promise<OtpSendResult> {
   const client = resendClient();
   if (!client) {
     // Dev convenience only. In production a login code in the log stream is a
@@ -147,10 +150,10 @@ async function sendOtpEmail(email: string, code: string): Promise<OtpSendResult>
       /// lands at support@ where it'll be picked up.
       replyTo: 'support@karwan.site',
       to: email,
-      subject: `Karwan sign-in code: ${code}`,
-      html: otpEmailHtml(code),
+      subject: purpose === 'waitlist' ? `Karwan waitlist code: ${code}` : `Karwan sign-in code: ${code}`,
+      html: otpEmailHtml(code, purpose),
       text:
-        `Your Karwan sign-in code is ${code}\n\n` +
+        `Your Karwan ${purpose === 'waitlist' ? 'waitlist' : 'sign-in'} code is ${code}\n\n` +
         `It expires in 10 minutes. Five wrong tries voids it.\n\n` +
         `If you didn't request this, ignore the email.`,
       // CID inline attachment for the brand mark. Falls back gracefully when
@@ -857,6 +860,12 @@ authRoutes.post('/otp/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
   // The passkey account the user creates next is linked to it at wallet
   // sign-in, so no backend wallet is ever made for them.
   if (!USER_DCW_WALLETS) {
+    // Mainnet is invite-only until launch: a new email that is not invited is
+    // sent to the waitlist before it can make a passkey it could not use.
+    const known = await getModularAccountByEmail(body.email);
+    if (!known && !(await isInvited(body.email))) {
+      return c.json({ error: 'not_invited', code: 'not_invited' }, 403);
+    }
     return c.json({ emailProof: signEmailProof(body.email), email: body.email.trim().toLowerCase() });
   }
 

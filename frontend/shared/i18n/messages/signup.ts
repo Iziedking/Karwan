@@ -73,8 +73,32 @@ export interface SignupCopy {
     back: string;
   };
   tagPrompt: { title: string; body: string; save: string; saving: string };
+  waitlist: {
+    title: string;
+    body: string;
+    emailLabel: string;
+    join: string;
+    sending: string;
+    codeTitle: string;
+    codeSent: string;
+    codeLabel: string;
+    verify: string;
+    verifying: string;
+    resend: string;
+    doneTitle: string;
+    doneBody: string;
+    invitedBody: string;
+    createAccount: string;
+    invitedPrompt: string;
+    signIn: string;
+    back: string;
+    wrongCode: string;
+    expired: string;
+    sendFailed: string;
+  };
   errors: {
     generic: string;
+    notInvited: string;
     lookupFailed: string;
     codeSendFailed: string;
     codeRejected: string;
@@ -180,8 +204,32 @@ const en: SignupCopy = {
     save: 'Save tag',
     saving: 'Saving',
   },
+  waitlist: {
+    title: "Join the Karwan waitlist",
+    body: "Karwan is live on Arc mainnet. We are letting people in a few at a time.",
+    emailLabel: "Email",
+    join: "Join the waitlist",
+    sending: "Sending code",
+    codeTitle: "Check your email",
+    codeSent: "Enter the 6-digit code we sent to {email}.",
+    codeLabel: "Code",
+    verify: "Confirm",
+    verifying: "Confirming",
+    resend: "Send a new code",
+    doneTitle: "Congratulations, you're on the waitlist",
+    doneBody: "We'll email {email} when Karwan opens for you.",
+    invitedBody: "Your email is already invited. You can create your account now.",
+    createAccount: "Create your account",
+    invitedPrompt: "Already invited?",
+    signIn: "Sign in",
+    back: "Back to the waitlist",
+    wrongCode: "That code did not work. Check it and try again.",
+    expired: "The code expired. Send a new one.",
+    sendFailed: "We could not send the code. Try again.",
+  },
   errors: {
     generic: 'Something went wrong. Try again.',
+    notInvited: "This email is not invited yet. Join the waitlist instead.",
     lookupFailed: 'We could not check that email. Try again.',
     codeSendFailed: 'We could not send the code. Try again.',
     codeRejected: 'That code did not work. Check it and try again.',
@@ -287,8 +335,32 @@ const ar: SignupCopy = {
     save: 'حفظ الوسم',
     saving: 'جارٍ الحفظ',
   },
+  waitlist: {
+    title: "انضم إلى قائمة انتظار كاروان",
+    body: "كاروان متاح الآن على الشبكة الرئيسية لـ Arc. نفتح الدخول لعدد قليل من الأشخاص في كل مرة.",
+    emailLabel: "البريد الإلكتروني",
+    join: "انضم إلى قائمة الانتظار",
+    sending: "جارٍ إرسال الرمز",
+    codeTitle: "تحقق من بريدك",
+    codeSent: "أدخل الرمز المكون من 6 أرقام الذي أرسلناه إلى {email}.",
+    codeLabel: "الرمز",
+    verify: "تأكيد",
+    verifying: "جارٍ التأكيد",
+    resend: "إرسال رمز جديد",
+    doneTitle: "تهانينا، أنت الآن في قائمة الانتظار",
+    doneBody: "سنراسل {email} عندما يُفتح كاروان لك.",
+    invitedBody: "بريدك مدعو بالفعل. يمكنك إنشاء حسابك الآن.",
+    createAccount: "أنشئ حسابك",
+    invitedPrompt: "لديك دعوة بالفعل؟",
+    signIn: "تسجيل الدخول",
+    back: "العودة إلى قائمة الانتظار",
+    wrongCode: "الرمز غير صحيح. تحقق منه وحاول مرة أخرى.",
+    expired: "انتهت صلاحية الرمز. أرسل رمزًا جديدًا.",
+    sendFailed: "تعذر إرسال الرمز. حاول مرة أخرى.",
+  },
   errors: {
     generic: 'حدث خطأ. حاول مرة أخرى.',
+    notInvited: "هذا البريد غير مدعو بعد. انضم إلى قائمة الانتظار بدلًا من ذلك.",
     lookupFailed: 'تعذر التحقق من هذا البريد. حاول مرة أخرى.',
     codeSendFailed: 'تعذر إرسال الرمز. حاول مرة أخرى.',
     codeRejected: 'الرمز غير صحيح. تحقق منه وحاول مرة أخرى.',
@@ -394,8 +466,32 @@ const fr: SignupCopy = {
     save: 'Enregistrer le tag',
     saving: 'Enregistrement',
   },
+  waitlist: {
+    title: "Rejoignez la liste d’attente Karwan",
+    body: "Karwan est en ligne sur le mainnet d’Arc. Nous ouvrons l’accès à quelques personnes à la fois.",
+    emailLabel: "E-mail",
+    join: "Rejoindre la liste d’attente",
+    sending: "Envoi du code",
+    codeTitle: "Consultez vos e-mails",
+    codeSent: "Saisissez le code à 6 chiffres envoyé à {email}.",
+    codeLabel: "Code",
+    verify: "Confirmer",
+    verifying: "Confirmation",
+    resend: "Envoyer un nouveau code",
+    doneTitle: "Félicitations, vous êtes sur la liste d’attente",
+    doneBody: "Nous écrirons à {email} quand Karwan vous sera ouvert.",
+    invitedBody: "Votre e-mail est déjà invité. Vous pouvez créer votre compte maintenant.",
+    createAccount: "Créer votre compte",
+    invitedPrompt: "Déjà invité ?",
+    signIn: "Se connecter",
+    back: "Retour à la liste d’attente",
+    wrongCode: "Ce code ne fonctionne pas. Vérifiez-le et réessayez.",
+    expired: "Le code a expiré. Demandez-en un nouveau.",
+    sendFailed: "Impossible d’envoyer le code. Réessayez.",
+  },
   errors: {
     generic: 'Une erreur est survenue. Réessayez.',
+    notInvited: "Cet e-mail n’est pas encore invité. Rejoignez plutôt la liste d’attente.",
     lookupFailed: 'Impossible de vérifier cet e-mail. Réessayez.',
     codeSendFailed: 'Impossible d’envoyer le code. Réessayez.',
     codeRejected: 'Ce code ne fonctionne pas. Vérifiez-le et réessayez.',
@@ -501,8 +597,32 @@ const hi: SignupCopy = {
     save: 'टैग सहेजें',
     saving: 'सहेजा जा रहा है',
   },
+  waitlist: {
+    title: "कारवान प्रतीक्षा सूची से जुड़ें",
+    body: "कारवान Arc मेननेट पर लाइव है। हम कुछ लोगों को एक बार में प्रवेश दे रहे हैं।",
+    emailLabel: "ईमेल",
+    join: "प्रतीक्षा सूची से जुड़ें",
+    sending: "कोड भेजा जा रहा है",
+    codeTitle: "अपना ईमेल देखें",
+    codeSent: "{email} पर भेजा गया 6 अंकों का कोड डालें।",
+    codeLabel: "कोड",
+    verify: "पुष्टि करें",
+    verifying: "पुष्टि हो रही है",
+    resend: "नया कोड भेजें",
+    doneTitle: "बधाई हो, आप प्रतीक्षा सूची में हैं",
+    doneBody: "कारवान आपके लिए खुलने पर हम {email} पर ईमेल करेंगे।",
+    invitedBody: "आपका ईमेल पहले से आमंत्रित है। आप अभी अपना खाता बना सकते हैं।",
+    createAccount: "अपना खाता बनाएँ",
+    invitedPrompt: "पहले से आमंत्रित हैं?",
+    signIn: "साइन इन करें",
+    back: "प्रतीक्षा सूची पर वापस",
+    wrongCode: "यह कोड काम नहीं किया। जाँचकर फिर कोशिश करें।",
+    expired: "कोड की समय सीमा खत्म हो गई। नया कोड भेजें।",
+    sendFailed: "कोड नहीं भेजा जा सका। फिर से कोशिश करें।",
+  },
   errors: {
     generic: 'कुछ गलत हुआ। फिर से कोशिश करें।',
+    notInvited: "यह ईमेल अभी आमंत्रित नहीं है। प्रतीक्षा सूची से जुड़ें।",
     lookupFailed: 'हम यह ईमेल जाँच नहीं सके। फिर से कोशिश करें।',
     codeSendFailed: 'कोड नहीं भेजा जा सका। फिर से कोशिश करें।',
     codeRejected: 'यह कोड काम नहीं किया। जाँचकर फिर कोशिश करें।',
@@ -608,8 +728,32 @@ const sw: SignupCopy = {
     save: 'Hifadhi tagi',
     saving: 'Inahifadhi',
   },
+  waitlist: {
+    title: "Jiunge na orodha ya kusubiri ya Karwan",
+    body: "Karwan iko hewani kwenye mainnet ya Arc. Tunawaruhusu watu wachache kwa wakati mmoja.",
+    emailLabel: "Barua pepe",
+    join: "Jiunge na orodha ya kusubiri",
+    sending: "Inatuma msimbo",
+    codeTitle: "Angalia barua pepe yako",
+    codeSent: "Weka msimbo wa tarakimu 6 tuliotuma kwa {email}.",
+    codeLabel: "Msimbo",
+    verify: "Thibitisha",
+    verifying: "Inathibitisha",
+    resend: "Tuma msimbo mpya",
+    doneTitle: "Hongera, uko kwenye orodha ya kusubiri",
+    doneBody: "Tutaandikia {email} Karwan itakapofunguliwa kwako.",
+    invitedBody: "Barua pepe yako tayari imealikwa. Unaweza kufungua akaunti yako sasa.",
+    createAccount: "Fungua akaunti yako",
+    invitedPrompt: "Tayari umealikwa?",
+    signIn: "Ingia",
+    back: "Rudi kwenye orodha ya kusubiri",
+    wrongCode: "Msimbo huo haukufanya kazi. Ukague ujaribu tena.",
+    expired: "Msimbo umeisha muda. Tuma mpya.",
+    sendFailed: "Hatukuweza kutuma msimbo. Jaribu tena.",
+  },
   errors: {
     generic: 'Kuna tatizo. Jaribu tena.',
+    notInvited: "Barua pepe hii bado haijaalikwa. Jiunge na orodha ya kusubiri badala yake.",
     lookupFailed: 'Hatukuweza kukagua barua pepe hiyo. Jaribu tena.',
     codeSendFailed: 'Hatukuweza kutuma msimbo. Jaribu tena.',
     codeRejected: 'Msimbo huo haukufanya kazi. Ukague ujaribu tena.',

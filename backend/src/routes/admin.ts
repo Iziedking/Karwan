@@ -41,6 +41,8 @@ import {
 } from '../llm/supervisor.js';
 import { logger } from '../logger.js';
 import { requireAdmin } from '../middleware/adminAuth.js';
+import { addInvites, ENV_INVITES, listInvites, listWaitlist, removeInvite } from '../db/waitlist.js';
+import { parseEmailList } from '../profile/waitlistRules.js';
 import { researchMarket, externalPayerAddress, x402PayerHealth } from '../x402/externalClient.js';
 import { recordExternalResearchFailure, recordExternalResearchPayment } from '../x402/researchAccounting.js';
 import { seedAgentFromOperator } from '../chain/agentSeed.js';
@@ -1179,4 +1181,32 @@ adminRoutes.get('/treasury', async (c) => {
     logger.warn({ err: (err as Error).message, treasury }, 'admin: treasury read failed');
     return c.json({ error: 'treasury read failed', detail: (err as Error).message }, 502);
   }
+});
+
+// --- Mainnet waitlist and invites ------------------------------------------
+
+adminRoutes.get('/waitlist', async (c) => {
+  const [waitlist, invites] = await Promise.all([listWaitlist(), listInvites()]);
+  return c.json({
+    waitlist,
+    invites,
+    envInvites: [...ENV_INVITES].sort(),
+  });
+});
+
+adminRoutes.post('/waitlist/invites', async (c) => {
+  let body;
+  try {
+    body = z.object({ emails: z.string().min(3).max(50_000), note: z.string().trim().max(200).optional() }).parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  const { valid, invalid } = parseEmailList(body.emails);
+  const added = await addInvites(valid, 'admin', body.note || null);
+  return c.json({ added, alreadyInvited: valid.length - added, invalid });
+});
+
+adminRoutes.delete('/waitlist/invites/:email', async (c) => {
+  const removed = await removeInvite(decodeURIComponent(c.req.param('email')));
+  return c.json({ removed });
 });

@@ -30,7 +30,7 @@ function isCancel(error: unknown): boolean {
   return e?.name === 'NotAllowedError' || e?.name === 'AbortError' || /cancel|not allowed|denied|rejected/i.test(e?.message ?? '');
 }
 
-export function AuthCard({ initialMode = 'signin' }: { initialMode?: Mode }) {
+export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?: Mode; onWaitlist?: () => void }) {
   const t = useTranslations().signup;
   const auth = useAuth();
   const siwe = useSiwe();
@@ -221,8 +221,8 @@ export function AuthCard({ initialMode = 'signin' }: { initialMode?: Mode }) {
       setAwaitingAuth(true);
       emitAuthChanged();
       await auth.refresh();
-    } catch {
-      setError(t.errors.codeRejected);
+    } catch (err) {
+      setError(err instanceof ApiError && err.code === 'not_invited' ? t.errors.notInvited : t.errors.codeRejected);
       setBusy(null);
     }
   }
@@ -284,7 +284,11 @@ export function AuthCard({ initialMode = 'signin' }: { initialMode?: Mode }) {
         setTagState('taken');
         setUpStep('tag');
         setError(t.errors.tagTaken);
-      } else setError(code === 'business_unavailable' ? t.errors.businessUnavailable : t.errors.generic);
+      } else setError(
+        code === 'business_unavailable' ? t.errors.businessUnavailable
+          : code === 'not_invited' ? t.errors.notInvited
+            : t.errors.generic,
+      );
     }
   }
 
@@ -344,7 +348,9 @@ export function AuthCard({ initialMode = 'signin' }: { initialMode?: Mode }) {
           {inStep === 'not-found' && (
             <div className="mt-6 space-y-3">
               <p className="text-[15px] text-[var(--lp-text-sub)]">{t.signIn.notFound}</p>
-              <Primary onClick={() => switchMode('signup')}>{t.signIn.createInstead}</Primary>
+              <Primary onClick={() => (onWaitlist ? onWaitlist() : switchMode('signup'))}>
+                {onWaitlist ? t.waitlist.join : t.signIn.createInstead}
+              </Primary>
             </div>
           )}
 
@@ -359,12 +365,20 @@ export function AuthCard({ initialMode = 'signin' }: { initialMode?: Mode }) {
           <ErrorLine error={error} />
 
           <div className="mt-7 space-y-2 border-t border-[var(--lp-outline-strong)] pt-5 text-[14px] text-[var(--lp-text-sub)]">
-            <p>
-              {t.signIn.noAccount}{' '}
-              <button type="button" onClick={() => switchMode('signup')} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
-                {t.signIn.signUp}
-              </button>
-            </p>
+            {onWaitlist ? (
+              <p>
+                <button type="button" onClick={onWaitlist} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+                  {t.waitlist.back}
+                </button>
+              </p>
+            ) : (
+              <p>
+                {t.signIn.noAccount}{' '}
+                <button type="button" onClick={() => switchMode('signup')} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+                  {t.signIn.signUp}
+                </button>
+              </p>
+            )}
             <p>
               {t.signIn.browsePrompt}{' '}
               <Link href="/market" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">{t.signIn.browse}</Link>
@@ -462,6 +476,13 @@ export function AuthCard({ initialMode = 'signin' }: { initialMode?: Mode }) {
 
           <ErrorLine error={error} />
 
+          {onWaitlist && !authedWithoutAccount && (
+            <p className="mt-4 text-[14px]">
+              <button type="button" onClick={onWaitlist} className="font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]">
+                {t.waitlist.back}
+              </button>
+            </p>
+          )}
           {!authedWithoutAccount && (
             <p className="mt-7 border-t border-[var(--lp-outline-strong)] pt-5 text-[14px] text-[var(--lp-text-sub)]">
               {s.haveAccount}{' '}

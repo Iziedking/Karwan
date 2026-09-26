@@ -84,6 +84,8 @@ const workspaceRules: Array<[RegExp, AdminWorkspace]> = [
   [/^\/api\/admin\/team-members/, { href: '/admin/team', label: 'Team access' }],
   [/^\/api\/admin\/signals/, { href: '/admin/signals', label: 'Signal queue' }],
   [/^\/api\/admin\/newsletter/, { href: '/admin/newsletter', label: 'Publishing' }],
+  [/^\/api\/admin\/waitlist/, { href: '/admin/waitlist', label: 'Waitlist' }],
+  [/^\/api\/waitlist/, { href: '/admin/waitlist', label: 'Waitlist' }],
   [/^\/api\/admin\/business/, { href: '/admin/business', label: 'Business review' }],
   [/^\/api\/admin\/deals/, { href: '/admin/deals', label: 'Deal operations' }],
   [/^\/api\/admin\/profiles/, { href: '/admin/profiles', label: 'Profiles' }],

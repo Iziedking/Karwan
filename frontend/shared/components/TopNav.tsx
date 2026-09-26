@@ -159,7 +159,7 @@ export function TopNav() {
           ) : (
             <>
               <LanguagePicker />
-              <LaunchAppCTA />
+              {pathname === START_ROUTE ? null : <LaunchAppCTA />}
             </>
           )}
           {isAlwaysDarkRoute(pathname) ? null : <ThemeControl />}
@@ -579,8 +579,6 @@ function SettingsIconLink({ active }: { active: boolean }) {
 
 function LaunchAppCTA() {
   const label = useTranslations().nav.openApp;
-  const pathname = usePathname();
-  if (pathname === START_ROUTE) return null;
   return (
     <Link
       href={START_ROUTE}

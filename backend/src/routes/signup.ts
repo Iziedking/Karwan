@@ -13,6 +13,7 @@ import { ARC } from '../chain/client.js';
 import { readSession } from '../auth/session.js';
 import { claimTag, getProfile, setProfileEmail, tagAvailableFor, upsertProfile } from '../db/profiles.js';
 import { getUserByAddress } from '../db/users.js';
+import { isInvited } from '../db/waitlist.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { checkKarwanTag } from '../profile/karwanTag.js';
 import { newAccountProfile, signupRefusal } from '../profile/signup.js';
@@ -55,7 +56,9 @@ signupRoutes.post('/', rateLimit({ windowMs: 10 * 60_000, max: 10, name: 'signup
   const check = checkKarwanTag(body.tag);
   const tag = check.ok ? check.tag : body.tag;
   const existing = await getProfile(address);
+  const email = session.email ?? getUserByAddress(address)?.email;
   const refusal = signupRefusal({
+    invited: !!email && (await isInvited(email)),
     tag: body.tag,
     accountKind: body.accountKind,
     network: ARC.testnet ? 'testnet' : 'mainnet',
@@ -73,7 +76,6 @@ signupRoutes.post('/', rateLimit({ windowMs: 10 * 60_000, max: 10, name: 'signup
   }
   // The email proven at sign-in (email code, or the passkey's linked email)
   // becomes the verified contact email, so alerts work from the first deal.
-  const email = session.email ?? getUserByAddress(address)?.email;
   if (email) profile = (await setProfileEmail(address, email, true)) ?? profile;
   logger.info({ address, tag, accountKind: body.accountKind }, 'account created');
   return c.json({ profile }, 201);

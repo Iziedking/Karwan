@@ -2930,6 +2930,27 @@ export const api = {
       profile: UserProfile | null;
     }>('/api/auth/bootstrap'),
   authLogout: () => json<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }),
+  waitlistRequest: (email: string, locale: string) =>
+    json<{ sent: true }>('/api/waitlist/request', { method: 'POST', body: JSON.stringify({ email, locale }) }),
+  waitlistVerify: (email: string, code: string) =>
+    json<{ joined: true; invited: boolean }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  adminWaitlist: () =>
+    json<{
+      waitlist: Array<{ email: string; locale: string; joinedAt: number }>;
+      invites: Array<{ email: string; note: string | null; addedBy: string; addedAt: number }>;
+      envInvites: string[];
+    }>('/api/admin/waitlist', { headers: adminHeaders() }),
+  adminAddInvites: (emails: string, note?: string) =>
+    json<{ added: number; alreadyInvited: number; invalid: string[] }>('/api/admin/waitlist/invites', {
+      method: 'POST',
+      headers: adminHeaders(),
+      body: JSON.stringify({ emails, ...(note ? { note } : {}) }),
+    }),
+  adminRemoveInvite: (email: string) =>
+    json<{ removed: boolean }>(`/api/admin/waitlist/invites/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+      headers: adminHeaders(),
+    }),
   signupTagCheck: (tag: string) =>
     json<{ tag: string; available: boolean; reason?: 'too_short' | 'too_long' | 'invalid' | 'reserved' | 'taken' }>(
       `/api/signup/tag?tag=${encodeURIComponent(tag)}`,

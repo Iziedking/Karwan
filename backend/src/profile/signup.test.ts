@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { newAccountProfile, signupRefusal } from './signup.js';
 
-const base = { network: 'testnet' as const, hasProfile: false, tagAvailable: true };
+const base = { network: 'testnet' as const, hasProfile: false, tagAvailable: true, invited: false };
 
 test('a free, valid tag on a fresh session may sign up', () => {
   assert.equal(signupRefusal({ ...base, tag: 'ada', accountKind: 'person' }), null);
@@ -24,7 +24,15 @@ test('business accounts wait on mainnet', () => {
     signupRefusal({ ...base, network: 'mainnet', tag: 'ada', accountKind: 'business' }),
     { status: 403, code: 'business_unavailable' },
   );
-  assert.equal(signupRefusal({ ...base, network: 'mainnet', tag: 'ada', accountKind: 'person' }), null);
+  assert.equal(signupRefusal({ ...base, network: 'mainnet', invited: true, tag: 'ada', accountKind: 'person' }), null);
+});
+
+test('mainnet creates accounts only for invited emails; testnet stays open', () => {
+  assert.deepEqual(
+    signupRefusal({ ...base, network: 'mainnet', invited: false, tag: 'ada', accountKind: 'person' }),
+    { status: 403, code: 'not_invited' },
+  );
+  assert.equal(signupRefusal({ ...base, network: 'testnet', invited: false, tag: 'ada', accountKind: 'person' }), null);
 });
 
 test('the new profile is named by its tag and carries a neutral buyer default', () => {

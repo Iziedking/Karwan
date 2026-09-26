@@ -950,6 +950,23 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
         WHERE data->>'handle' IS NOT NULL;
     `,
   },
+  {
+    version: 31,
+    name: 'mainnet_waitlist_and_invites',
+    sql: `
+      CREATE TABLE waitlist_v1 (
+        email TEXT PRIMARY KEY,
+        locale TEXT NOT NULL,
+        joined_at BIGINT NOT NULL
+      );
+      CREATE TABLE mainnet_invites_v1 (
+        email TEXT PRIMARY KEY,
+        note TEXT,
+        added_by TEXT NOT NULL,
+        added_at BIGINT NOT NULL
+      );
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;
