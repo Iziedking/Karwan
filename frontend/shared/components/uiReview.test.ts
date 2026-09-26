@@ -296,7 +296,8 @@ test('signed-out entry is a focused account-access page, not a second landing', 
   const gate = source('./SignInGate.tsx');
   const css = source('./SignInGate.module.css');
   assert.match(gate, /<h1 className=\{styles\.headline\}>/);
-  assert.match(gate, /<LoginModal open=\{open\}/);
+  assert.match(gate, /window\.location\.assign\(START_ROUTE\)/);
+  assert.doesNotMatch(gate, /LoginModal/);
   assert.match(gate, /<Link href="\/market">\{copy\.browseLink\}<\/Link>/);
   assert.doesNotMatch(gate, /<figure|example\.note|agreementSubject/);
   assert.doesNotMatch(gate, /setInterval|motion\.div/);
