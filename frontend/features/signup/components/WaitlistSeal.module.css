@@ -1,22 +1,49 @@
 .seal {
   display: block;
+  overflow: visible;
 }
 
 .tile {
   fill: #0e0e0e;
-  transform-origin: 50% 50%;
+  transform-origin: 256px 256px;
   animation: tile-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
-.line {
+.mark {
   fill: none;
-  stroke: var(--lp-accent);
-  stroke-width: 34;
+  stroke: #afc95b;
+  stroke-width: 40;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: draw 1150ms cubic-bezier(0.45, 0, 0.2, 1) 220ms forwards;
+  animation: draw 900ms cubic-bezier(0.45, 0, 0.2, 1) 200ms forwards;
+}
+
+.badge {
+  transform-origin: 478px 478px;
+  transform: scale(0);
+  animation: pop 320ms cubic-bezier(0.2, 1.4, 0.4, 1) 1100ms forwards;
+}
+
+/* The ring matches the card behind it, so the badge reads as sitting on top. */
+.badgeRing {
+  fill: var(--lp-card);
+}
+
+.badgeFill {
+  fill: #afc95b;
+}
+
+.check {
+  fill: none;
+  stroke: #0e0e0e;
+  stroke-width: 26;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 280ms cubic-bezier(0.45, 0, 0.2, 1) 1320ms forwards;
 }
 
 @keyframes tile-in {
@@ -36,12 +63,24 @@
   }
 }
 
+@keyframes pop {
+  to {
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tile {
+  .tile,
+  .mark,
+  .badge,
+  .check {
     animation: none;
   }
-  .line {
-    animation: none;
+  .mark,
+  .check {
     stroke-dashoffset: 0;
+  }
+  .badge {
+    transform: none;
   }
 }
