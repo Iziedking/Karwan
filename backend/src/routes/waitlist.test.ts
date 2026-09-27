@@ -26,7 +26,8 @@ test('a verified join returns an answer token that lets the person say what they
   await post('/request', { email: 'dana@example.com', locale: 'en' });
   const joined = (await (await post('/verify', { email: 'dana@example.com', code: codes.at(-1) })).json()) as { answerToken: string };
   assert.equal(typeof joined.answerToken, 'string');
-  assert.equal((await post('/use-case', { token: joined.answerToken, useCase: 'not_a_choice' })).status, 400);
-  assert.equal((await post('/use-case', { token: 'x'.repeat(32), useCase: 'buy_goods' })).status, 400);
-  assert.equal((await post('/use-case', { token: joined.answerToken, useCase: 'buy_goods' })).status, 200);
+  assert.equal((await post('/use-case', { token: joined.answerToken, useCases: ['not_a_choice'] })).status, 400);
+  assert.equal((await post('/use-case', { token: joined.answerToken, useCases: [] })).status, 400);
+  assert.equal((await post('/use-case', { token: 'x'.repeat(32), useCases: ['buy_goods'] })).status, 400);
+  assert.equal((await post('/use-case', { token: joined.answerToken, useCases: ['buy_goods', 'sell_services'] })).status, 200);
 });

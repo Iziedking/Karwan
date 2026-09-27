@@ -95,6 +95,7 @@ export interface SignupCopy {
     tryTestnet: string;
     tryTestnetNote: string;
     useCaseTitle: string;
+    useCaseHint: string;
     useCases: { sell_services: string; buy_services: string; sell_goods: string; buy_goods: string; business_trade: string };
     useCaseThanks: string;
     follow: string;
@@ -235,6 +236,7 @@ const en: SignupCopy = {
     tryTestnet: "Try Karwan now on testnet",
     tryTestnetNote: "The full product, with test money.",
     useCaseTitle: "What will you use Karwan for?",
+    useCaseHint: "Pick all that apply.",
     useCases: { sell_services: "Selling services", buy_services: "Buying services", sell_goods: "Selling goods", buy_goods: "Buying goods", business_trade: "Business trade" },
     useCaseThanks: "Thanks. That helps us open the right spots first.",
     follow: "Follow @karwanBuild for launch news",
@@ -375,6 +377,7 @@ const ar: SignupCopy = {
     tryTestnet: "جرّب كاروان الآن على شبكة الاختبار",
     tryTestnetNote: "المنتج كاملًا، بأموال تجريبية.",
     useCaseTitle: "لماذا ستستخدم كاروان؟",
+    useCaseHint: "اختر كل ما ينطبق.",
     useCases: { sell_services: "بيع خدمات", buy_services: "شراء خدمات", sell_goods: "بيع سلع", buy_goods: "شراء سلع", business_trade: "تجارة بين الشركات" },
     useCaseThanks: "شكرًا. هذا يساعدنا على فتح الأماكن المناسبة أولًا.",
     follow: "تابع @karwanBuild لأخبار الإطلاق",
@@ -515,6 +518,7 @@ const fr: SignupCopy = {
     tryTestnet: "Essayer Karwan dès maintenant sur le testnet",
     tryTestnetNote: "Le produit complet, avec de l’argent de test.",
     useCaseTitle: "Pour quoi utiliserez-vous Karwan ?",
+    useCaseHint: "Choisissez tout ce qui s’applique.",
     useCases: { sell_services: "Vendre des services", buy_services: "Acheter des services", sell_goods: "Vendre des biens", buy_goods: "Acheter des biens", business_trade: "Commerce entre entreprises" },
     useCaseThanks: "Merci. Cela nous aide à ouvrir les bonnes places en premier.",
     follow: "Suivez @karwanBuild pour les nouvelles du lancement",
@@ -655,6 +659,7 @@ const hi: SignupCopy = {
     tryTestnet: "अभी टेस्टनेट पर कारवान आज़माएँ",
     tryTestnetNote: "पूरा उत्पाद, टेस्ट पैसे के साथ।",
     useCaseTitle: "आप कारवान का उपयोग किसलिए करेंगे?",
+    useCaseHint: "जो भी लागू हों, सभी चुनें।",
     useCases: { sell_services: "सेवाएँ बेचना", buy_services: "सेवाएँ खरीदना", sell_goods: "सामान बेचना", buy_goods: "सामान खरीदना", business_trade: "व्यावसायिक व्यापार" },
     useCaseThanks: "धन्यवाद। इससे हमें सही जगहें पहले खोलने में मदद मिलती है।",
     follow: "लॉन्च की खबरों के लिए @karwanBuild को फ़ॉलो करें",
@@ -795,6 +800,7 @@ const sw: SignupCopy = {
     tryTestnet: "Jaribu Karwan sasa kwenye testnet",
     tryTestnetNote: "Bidhaa kamili, kwa pesa za majaribio.",
     useCaseTitle: "Utatumia Karwan kwa nini?",
+    useCaseHint: "Chagua zote zinazohusika.",
     useCases: { sell_services: "Kuuza huduma", buy_services: "Kununua huduma", sell_goods: "Kuuza bidhaa", buy_goods: "Kununua bidhaa", business_trade: "Biashara kati ya kampuni" },
     useCaseThanks: "Asante. Hii inatusaidia kufungua nafasi sahihi kwanza.",
     follow: "Fuata @karwanBuild kupata habari za uzinduzi",

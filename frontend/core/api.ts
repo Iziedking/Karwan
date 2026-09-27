@@ -2945,8 +2945,8 @@ export const api = {
     json<{ sent: true }>('/api/waitlist/request', { method: 'POST', body: JSON.stringify({ email, locale }) }),
   waitlistVerify: (email: string, code: string) =>
     json<{ joined: true; alreadyJoined: boolean; joinedAt: number; invited: boolean; position: number | null; answerToken: string }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
-  waitlistUseCase: (token: string, useCase: WaitlistUseCase) =>
-    json<{ saved: true }>('/api/waitlist/use-case', { method: 'POST', body: JSON.stringify({ token, useCase }) }),
+  waitlistUseCases: (token: string, useCases: WaitlistUseCase[]) =>
+    json<{ saved: true }>('/api/waitlist/use-case', { method: 'POST', body: JSON.stringify({ token, useCases }) }),
   recoverySetup: (body: { recoveryAddress: string; kdf: KdfParams; iv: string; blob: string; verifier: string }) =>
     json<{ saved: true }>('/api/recovery/setup', { method: 'POST', body: JSON.stringify(body) }),
   recoveryRegistered: (message: string, signature: string) =>
@@ -2971,7 +2971,7 @@ export const api = {
   recoveryCompleted: () => json<{ completed: true }>('/api/recovery/completed', { method: 'POST', body: '{}' }),
   adminWaitlist: () =>
     json<{
-      waitlist: Array<{ email: string; locale: string; joinedAt: number; useCase?: WaitlistUseCase | null }>;
+      waitlist: Array<{ email: string; locale: string; joinedAt: number; useCases?: WaitlistUseCase[] }>;
       invites: Array<{ email: string; note: string | null; addedBy: string; addedAt: number; emailedAt: number | null }>;
       envInvites: string[];
     }>('/api/admin/waitlist', { headers: adminHeaders() }),

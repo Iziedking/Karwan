@@ -13,8 +13,8 @@ export interface WaitlistEntry {
   email: string;
   locale: string;
   joinedAt: number;
-  /// What the person said they will use Karwan for, if they answered.
-  useCase?: WaitlistUseCase | null;
+  /// What the person said they will use Karwan for; empty if they did not answer.
+  useCases?: WaitlistUseCase[];
 }
 
 export interface Invite {
@@ -62,25 +62,32 @@ export async function joinWaitlist(email: string, locale: string): Promise<{ ent
 
 export async function listWaitlist(): Promise<WaitlistEntry[]> {
   if (!pgEnabled) return [...waitMem.values()].sort((a, b) => a.joinedAt - b.joinedAt);
-  const { rows } = await postgresExecutor().query<{ email: string; locale: string; joined_at: string; use_case: WaitlistUseCase | null }>(
+  const { rows } = await postgresExecutor().query<{ email: string; locale: string; joined_at: string; use_case: string | null }>(
     'SELECT email, locale, joined_at, use_case FROM waitlist_v1 ORDER BY joined_at ASC',
   );
-  return rows.map((r) => ({ email: r.email, locale: r.locale, joinedAt: Number(r.joined_at), useCase: r.use_case }));
+  return rows.map((r) => ({ email: r.email, locale: r.locale, joinedAt: Number(r.joined_at), useCases: parseUseCases(r.use_case) }));
+}
+
+/// The use_case column holds the answers comma-joined in canonical order.
+export function parseUseCases(stored: string | null): WaitlistUseCase[] {
+  const picked = new Set((stored ?? '').split(','));
+  return WAITLIST_USE_CASES.filter((u) => picked.has(u));
 }
 
 /// Records the answer to "what will you use Karwan for". A later answer
 /// replaces an earlier one. False when the email is not on the list.
-export async function setWaitlistUseCase(email: string, useCase: WaitlistUseCase): Promise<boolean> {
+export async function setWaitlistUseCases(email: string, useCases: readonly WaitlistUseCase[]): Promise<boolean> {
   const e = norm(email);
+  const ordered = parseUseCases(useCases.join(','));
   if (!pgEnabled) {
     const entry = waitMem.get(e);
     if (!entry) return false;
-    entry.useCase = useCase;
+    entry.useCases = ordered;
     return true;
   }
   const { rows } = await postgresExecutor().query(
     'UPDATE waitlist_v1 SET use_case = $2 WHERE email = $1 RETURNING email',
-    [e, useCase],
+    [e, ordered.length ? ordered.join(',') : null],
   );
   return rows.length > 0;
 }

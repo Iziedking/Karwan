@@ -2,7 +2,7 @@
 ///
 ///   POST /api/waitlist/request  { email, locale }  emails a 6-digit code
 ///   POST /api/waitlist/verify   { email, code }    joins once the code is right
-///   POST /api/waitlist/use-case { token, useCase } optional answer after joining
+///   POST /api/waitlist/use-case { token, useCases } optional answer after joining
 ///
 /// The code proves the email belongs to the person joining, so the list only
 /// holds addresses we can reach on launch day.
@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { checkOtpAttempt, generateOtpCode, hashOtpCode, OTP_TTL_MS } from '../auth/otp.js';
 import { config } from '../config.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
-import { isInvited, joinWaitlist, setWaitlistUseCase, WAITLIST_USE_CASES, waitlistPosition } from '../db/waitlist.js';
+import { isInvited, joinWaitlist, setWaitlistUseCases, WAITLIST_USE_CASES, waitlistPosition } from '../db/waitlist.js';
 import { sendWaitlistJoinedEmail } from '../emails/waitlistJoined.js';
 import { logger } from '../logger.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -102,12 +102,15 @@ waitlistRoutes.post('/verify', rateLimit({ windowMs: 10 * 60 * 1000, max: 15, na
 waitlistRoutes.post('/use-case', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, name: 'waitlist-use-case' }), async (c) => {
   let body;
   try {
-    body = z.object({ token: z.string().min(20).max(64), useCase: z.enum(WAITLIST_USE_CASES) }).parse(await c.req.json());
+    body = z.object({
+      token: z.string().min(20).max(64),
+      useCases: z.array(z.enum(WAITLIST_USE_CASES)).min(1).max(WAITLIST_USE_CASES.length),
+    }).parse(await c.req.json());
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
   const entry = answerTokens.get(body.token);
   if (!entry || entry.expiresAt < Date.now()) return c.json({ error: 'token_expired', code: 'token_expired' }, 400);
-  await setWaitlistUseCase(entry.email, body.useCase);
+  await setWaitlistUseCases(entry.email, body.useCases);
   return c.json({ saved: true });
 });

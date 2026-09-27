@@ -16,7 +16,7 @@ function when(ts: number): string {
 }
 
 function downloadCsv(rows: Data['waitlist'], invited: Set<string>) {
-  const lines = ['email,locale,joined_utc,use_case,invited', ...rows.map((r) => `${r.email},${r.locale},${new Date(r.joinedAt).toISOString()},${r.useCase ?? ''},${invited.has(r.email) ? 'yes' : 'no'}`)];
+  const lines = ['email,locale,joined_utc,use_case,invited', ...rows.map((r) => `${r.email},${r.locale},${new Date(r.joinedAt).toISOString()},${(r.useCases ?? []).join(' ')},${invited.has(r.email) ? 'yes' : 'no'}`)];
   const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
   const a = document.createElement('a');
   a.href = url;
@@ -148,7 +148,7 @@ export default function AdminWaitlistPage() {
                 <td className="mono py-2 text-white/50">{i + 1}</td>
                 <td className="text-white">{r.email}</td>
                 <td className="text-white/60">{r.locale}</td>
-                <td className="text-white/60">{r.useCase ? USE_LABEL[r.useCase] : ''}</td>
+                <td className="text-white/60">{(r.useCases ?? []).map((u) => USE_LABEL[u]).join(', ')}</td>
                 <td className="text-white/60">{when(r.joinedAt)}</td>
                 <td>
                   {invited.has(r.email) ? (

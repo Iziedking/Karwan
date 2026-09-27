@@ -21,7 +21,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
   const [position, setPosition] = useState<number | null>(null);
   const [joinedBefore, setJoinedBefore] = useState<number | null>(null);
   const [answerToken, setAnswerToken] = useState<string | null>(null);
-  const [useCase, setUseCase] = useState<WaitlistUseCase | null>(null);
+  const [useCases, setUseCases] = useState<WaitlistUseCase[]>([]);
   const [busy, setBusy] = useState<null | 'send' | 'verify'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,10 +63,11 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
     }
   }
 
-  function answer(choice: WaitlistUseCase) {
-    setUseCase(choice);
+  function toggle(choice: WaitlistUseCase) {
+    const next = useCases.includes(choice) ? useCases.filter((u) => u !== choice) : [...useCases, choice];
+    setUseCases(next);
     // The answer only shapes who we let in first, so a failed save is not worth an error on screen.
-    if (answerToken) void api.waitlistUseCase(answerToken, choice).catch(() => undefined);
+    if (answerToken && next.length) void api.waitlistUseCases(answerToken, next).catch(() => undefined);
   }
 
   const primary =
@@ -141,18 +142,19 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
               </div>
               <fieldset className="border-t border-[var(--lp-outline-strong)] pt-4 sm:pt-5">
                 <legend className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.useCaseTitle}</legend>
-                {useCase ? (
-                  <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{t.useCaseThanks}</p>
-                ) : (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {WAITLIST_USE_CASES.map((choice) => (
-                      <button key={choice} type="button" onClick={() => answer(choice)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-3.5 text-[13px] font-medium sm:px-4 sm:text-[14px] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+                <p className="mt-1 text-[13px] text-[var(--lp-text-sub)]">{t.useCaseHint}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {WAITLIST_USE_CASES.map((choice) => {
+                    const on = useCases.includes(choice);
+                    return (
+                      <button key={choice} type="button" aria-pressed={on} onClick={() => toggle(choice)}
+                        className={`inline-flex min-h-11 items-center rounded-full border px-3.5 text-[13px] font-medium sm:px-4 sm:text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] ${on ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-bg)]' : 'border-[var(--lp-outline-strong)] text-[var(--lp-dark)] hover:border-[var(--lp-dark)]'}`}>
                         {t.useCases[choice]}
                       </button>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
+                <p aria-live="polite" className="mt-2 min-h-5 text-[13px] text-[var(--lp-text-sub)]">{useCases.length ? t.useCaseThanks : null}</p>
               </fieldset>
               <a href="https://x.com/karwanBuild" target="_blank" rel="noreferrer"
                 className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]">

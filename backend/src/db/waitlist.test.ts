@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mainnetAccessEmail, MAINNET_SIGNUP_URL } from '../emails/mainnetAccess.js';
-import { joinWaitlist, listWaitlist, setWaitlistUseCase, waitlistPosition } from './waitlist.js';
+import { joinWaitlist, listWaitlist, parseUseCases, setWaitlistUseCases, waitlistPosition } from './waitlist.js';
 import { waitlistJoinedEmail } from '../emails/waitlistJoined.js';
 
 test('place in line counts everyone who joined first, and joining again keeps the place', async () => {
@@ -24,12 +24,21 @@ test('the access email links straight to sign-up and carries no em dash', () => 
   for (const part of [subject, html, text]) assert.doesNotMatch(part, /—/);
 });
 
-test('an answered use case is stored with the entry, and only known answers are kept', async () => {
+test('several use cases are stored with the entry in a fixed order, and a later answer replaces the first', async () => {
   await joinWaitlist('usecase@example.com', 'en');
-  assert.equal(await setWaitlistUseCase('UseCase@example.com', 'sell_services'), true);
-  assert.equal(await setWaitlistUseCase('nobody-here@example.com', 'sell_services'), false);
-  const row = (await listWaitlist()).find((w) => w.email === 'usecase@example.com');
-  assert.equal(row?.useCase, 'sell_services');
+  assert.equal(await setWaitlistUseCases('UseCase@example.com', ['buy_goods', 'sell_services']), true);
+  assert.equal(await setWaitlistUseCases('nobody-here@example.com', ['sell_services']), false);
+  const first = (await listWaitlist()).find((w) => w.email === 'usecase@example.com');
+  assert.deepEqual(first?.useCases, ['sell_services', 'buy_goods']);
+  await setWaitlistUseCases('usecase@example.com', ['business_trade']);
+  const second = (await listWaitlist()).find((w) => w.email === 'usecase@example.com');
+  assert.deepEqual(second?.useCases, ['business_trade']);
+});
+
+test('stored answers parse back to known use cases only', () => {
+  assert.deepEqual(parseUseCases('sell_goods,unknown,buy_services'), ['buy_services', 'sell_goods']);
+  assert.deepEqual(parseUseCases('sell_services'), ['sell_services']);
+  assert.deepEqual(parseUseCases(null), []);
 });
 
 test('the joined email names the place in line, links to testnet and carries no em dash', () => {
