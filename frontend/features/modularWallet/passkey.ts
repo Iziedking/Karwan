@@ -2,6 +2,7 @@ import { createClient, createPublicClient, fallback, http, type Hex } from 'viem
 import { createBundlerClient, toWebAuthnAccount } from 'viem/account-abstraction';
 import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from '@/core/arcNetwork';
 import { modularClient } from './config';
+import { circleFeeEstimator, type CircleGasPrice } from './fees';
 import { createPasskeyProvider, type PasskeyProvider } from './provider';
 
 /// The public half of a passkey: its id, public key and relying party. Nothing
@@ -54,7 +55,7 @@ export async function obtainPasskey(mode: 'register' | 'login', email?: string):
 
 /// The EIP-1193 provider for the Circle smart account this passkey owns.
 export async function passkeyProvider(passkey: StoredPasskey): Promise<PasskeyProvider> {
-  const { toCircleSmartAccount, toModularTransport } = await import('@circle-fin/modular-wallets-core');
+  const { toCircleSmartAccount, toModularTransport, modularWalletActions } = await import('@circle-fin/modular-wallets-core');
   const { key, chainUrl } = modularClient();
   const transport = toModularTransport(chainUrl, key);
   const client = createClient({ chain: arcChain, transport });
@@ -65,7 +66,13 @@ export async function passkeyProvider(passkey: StoredPasskey): Promise<PasskeyPr
       rpId: passkey.rpId,
     }),
   });
-  const bundler = createBundlerClient({ account, chain: arcChain, transport });
+  const circle = client.extend(modularWalletActions as never) as unknown as { getUserOperationGasPrice: () => Promise<CircleGasPrice> };
+  const bundler = createBundlerClient({
+    account,
+    chain: arcChain,
+    transport,
+    userOperation: { estimateFeesPerGas: circleFeeEstimator(() => circle.getUserOperationGasPrice()) },
+  });
   const reader = createPublicClient({
     chain: arcChain,
     transport: fallback(
