@@ -57,7 +57,10 @@ Thumbs.db
 *.pem
 *.key
 .circle-*
-recovery/
+# Circle entity-secret recovery files. Root and backend only, so code folders
+# named recovery (passkey recovery) are tracked.
+/recovery/
+backend/recovery/
 
 # local persisted user data
 backend/data/

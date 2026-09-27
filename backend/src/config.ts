@@ -348,10 +348,15 @@ const envSchema = z.object({
   // with it. Bump the default rather than setting the env per environment: an
   // env that goes unset silently keeps serving the old version while the
   // frontend footer already shows the new one.
-  TERMS_CURRENT_VERSION: z.string().regex(/^\d+\.\d+\.\d+$/).default('2.1.0'),
+  TERMS_CURRENT_VERSION: z.string().regex(/^\d+\.\d+\.\d+$/).default('2.2.0'),
   /// Mainnet invite list, comma or space separated emails. Read at start, so a
   /// recreated container picks up changes. Adds to the admin-managed list.
   MAINNET_INVITES: z.string().optional(),
+  // Passkey recovery (mainnet). Off unless set to 1; production mainnet also
+  // needs the KMS key that seals every stored backup.
+  RECOVERY_ENABLED: z.preprocess(blankToUndefined, z.enum(['0', '1']).default('0')).transform((v) => v === '1'),
+  RECOVERY_KMS_KEY_ID: z.preprocess(blankToUndefined, z.string().optional()),
+  AWS_REGION: z.preprocess(blankToUndefined, z.string().optional()),
   // Delay-appeal grace: how long after the first milestone is released before
   // the seller can raise a delay appeal. Gives the buyer a normal review
   // window before any pressure. 1 hour default; longer on mainnet.
@@ -912,6 +917,9 @@ const safetyErrors = runtimeSafetyErrors({
   nodeEnv: parsed.data.NODE_ENV,
   databaseUrl: parsed.data.DATABASE_URL,
   sessionSecret: parsed.data.SESSION_SECRET,
+  arcNetwork: parsed.data.ARC_NETWORK,
+  recoveryEnabled: parsed.data.RECOVERY_ENABLED,
+  recoveryKmsKeyId: parsed.data.RECOVERY_KMS_KEY_ID,
 });
 if (safetyErrors.length > 0) {
   console.error('Unsafe production configuration:', safetyErrors);

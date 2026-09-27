@@ -24,6 +24,8 @@ import { settingsRoutes } from './routes/settings.js';
 import { termsRoutes } from './routes/terms.js';
 import { signupRoutes } from './routes/signup.js';
 import { waitlistRoutes } from './routes/waitlist.js';
+import { recoveryRoutes } from './routes/recovery.js';
+import { startRecoveryWatcher } from './recovery/watcher.js';
 import { reputationRoutes } from './routes/reputation.js';
 import { dealsRoutes } from './routes/deals.js';
 import { creDeliveryRequestRoutes } from './routes/creDeliveryRequest.js';
@@ -453,6 +455,7 @@ app.route('/api/listings', listingsRoutes);
 app.route('/api/terms', termsRoutes);
 app.route('/api/signup', signupRoutes);
 app.route('/api/waitlist', waitlistRoutes);
+if (config.RECOVERY_ENABLED) app.route('/api/recovery', recoveryRoutes);
 app.route('/api/x', xRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/siwe', siweRoutes);
@@ -575,6 +578,13 @@ function bootAgents() {
     stopFns.push(startPOWatcher());
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'factoring watcher not started');
+  }
+  if (config.RECOVERY_ENABLED) {
+    try {
+      stopFns.push(startRecoveryWatcher());
+    } catch (err) {
+      appLogger.warn({ err: (err as Error).message }, 'recovery watcher not started');
+    }
   }
   try {
     stopFns.push(startJobExpiryWatcher());

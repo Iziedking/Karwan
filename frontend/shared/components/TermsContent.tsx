@@ -14,7 +14,7 @@ export const TERMS_LAST_UPDATED = '2026-08-08';
 /// visible text changes materially. The modal records whatever the backend
 /// says is current, so the source of truth for "is this user up to date" lives
 /// on the backend; this constant is just for the human-visible footer.
-export const TERMS_DISPLAY_VERSION = '2.1.0';
+export const TERMS_DISPLAY_VERSION = '2.2.0';
 
 export function TermsContent({ heading }: { heading?: ReactNode }) {
   const t = useTranslations().termsPage;
@@ -63,6 +63,9 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s2.lead}</p>
         <p>
           <strong>{t.s2.ownWallet.label}</strong> {t.s2.ownWallet.body}
+        </p>
+        <p>
+          <strong>{t.s2.passkey.label}</strong> {t.s2.passkey.body}
         </p>
         <p>
           <strong>{t.s2.operated.label}</strong> {t.s2.operated.body}
@@ -154,6 +157,9 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <Bullets>
           <li>
             <strong>{t.s6.bullets.testnet.label}</strong> {t.s6.bullets.testnet.body}
+          </li>
+          <li>
+            <strong>{t.s6.bullets.mainnetAccess.label}</strong> {t.s6.bullets.mainnetAccess.body}
           </li>
           <li>
             <strong>{t.s6.bullets.contract.label}</strong> {t.s6.bullets.contract.body}

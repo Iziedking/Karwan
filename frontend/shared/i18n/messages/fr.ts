@@ -8,6 +8,7 @@ import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
+import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
 export const fr: Messages = {
@@ -17,6 +18,7 @@ export const fr: Messages = {
   escrowV3: escrowV3Copy.fr,
   analytics: analyticsCopy.fr,
   signup: signupCopy.fr,
+  recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
   socialTrade: socialTradeCopy.fr,
   networkUi: networkCopy.fr,
@@ -5093,14 +5095,15 @@ export const fr: Messages = {
         assistant: { label: 'L\'assistant.', body: 'Un assistant IA intégré au produit répond aux questions et peut préparer des actions pour vous. Tout ce qui déplace de l\'argent vous est montré et demande votre confirmation avant de s\'exécuter. Vous pouvez demander une personne à tout moment, ce qui ouvre un ticket de support.' },
         staking: { label: 'Staking.', body: 'Vous pouvez verrouiller des USDC dans le coffre. Cela augmente votre tier et agit comme assurance de transaction dans laquelle le contrat de séquestre peut puiser si vous perdez un litige.' },
       },
-      tail: 'Une partie de cela est encore en cours de déploiement. L\'enregistrement d\'entreprise, l\'affacturage de factures, le financement de bons de commande et le côté financier sont derrière des drapeaux et ne sont pas disponibles pour tous les comptes. Tout ce qui est étiqueté "bientôt disponible" ou affiché derrière un drapeau bêta n\'est pas garanti à une date fixe.',
+      tail: "Une partie de cela est encore en cours de déploiement. Sur le mainnet aujourd’hui, vous pouvez détenir, ajouter, envoyer et retirer des USDC, et lire la réputation on-chain. Les transactions sous séquestre, les agents et le staking fonctionnent uniquement sur le testnet jusqu’à leur arrivée sur le mainnet. L’enregistrement d’entreprise, l’affacturage, le financement de bons de commande et le côté financeur sont derrière des options et ne sont pas disponibles pour tous les comptes. Tout ce qui est marqué « bientôt » n’est pas garanti à une date fixe.",
     },
     s2: {
       title: '2. Comment votre compte est détenu',
       lead: 'Karwan règle en USDC. La façon dont votre solde est détenu dépend de la façon dont vous vous êtes connecté.',
       ownWallet: { label: 'Si vous avez connecté votre propre wallet,', body: 'vous le détenez. Vous approuvez chaque mouvement vous-même, et Karwan ne peut rien déplacer sans vous.' },
-      operated: { label: 'Si vous vous êtes connecté par e-mail ou par passkey,', body: 'Karwan ouvre un compte pour vous sur l\'infrastructure de wallets de Circle et l\'opère pour votre compte. Vous ne gérez pas d\'identifiants et vous n\'avez pas besoin de le faire.' },
-      scope: 'Opérer ce compte veut dire quelque chose de précis. Karwan ne peut déplacer votre argent que pour mener à bien ce que vous avez lancé : financer une transaction que vous avez créée, libérer un jalon que vous avez approuvé, vous rendre les fonds quand une transaction est annulée ou qu\'un délai est manqué, et exécuter les résultats automatiques décrits en section 4. Karwan ne peut pas envoyer votre solde à quelqu\'un en dehors d\'une transaction que vous avez ouverte, ne peut pas modifier une transaction après acceptation des deux côtés, et ne peut pas déplacer vos fonds vers lui-même.',
+      passkey: { label: "Si vous utilisez une clé d’accès,", body: "votre compte est un portefeuille intelligent sur l’infrastructure de Circle que seule votre clé d’accès peut signer. Karwan ne peut pas en déplacer les fonds, ni le récupérer sans votre mot de passe de récupération. Si vous perdez votre clé d’accès, votre e-mail et votre mot de passe de récupération rétablissent l’accès après une attente de 48 heures, pendant laquelle vous pouvez annuler. Si vous perdez à la fois la clé d’accès et le mot de passe de récupération, le portefeuille ne peut pas être récupéré." },
+      operated: { label: "Si vous vous êtes connecté par e-mail sur le testnet,", body: "Karwan ouvre un portefeuille Circle pour vous et l’opère en votre nom. Vous ne gérez aucun identifiant." },
+      scope: "Pour les comptes que Karwan opère, cela veut dire quelque chose de précis. Karwan ne peut déplacer votre argent que pour mener à bien ce que vous avez lancé : financer une transaction que vous avez créée, libérer un jalon que vous avez approuvé, vous rendre les fonds quand une transaction est annulée ou qu'un délai est manqué, et exécuter les résultats automatiques décrits en section 4. Karwan ne peut pas envoyer votre solde à quelqu'un en dehors d'une transaction que vous avez ouverte, ne peut pas modifier une transaction après acceptation des deux côtés, et ne peut pas déplacer vos fonds vers lui-même.",
       contractLimit: 'Une fois une transaction financée, le contrat de séquestre sur Arc régit où cet argent peut aller. Cette limite est appliquée par le contrat, pas par notre politique.',
       why: 'Les parties automatiques de Karwan existent grâce à cela. Un jalon qui se libère tout seul après la fenêtre d\'examen, et un remboursement qui revient à l\'acheteur quand un vendeur manque un délai, ont tous deux besoin d\'un compte capable d\'agir quand aucune des deux parties n\'est en ligne.',
       research: 'Une exception mérite d\'être nommée. Si vous activez la recherche de marché payante, vous payez une fois pour un solde de crédit, et votre agent dépense depuis ce solde pour votre compte à mesure qu\'il lit des données de marché. C\'est le seul endroit où un agent dépense sans une nouvelle approbation à chaque fois, et vous pouvez voir le solde restant sur votre profil.',
@@ -5155,10 +5158,11 @@ export const fr: Messages = {
       title: '7. Risque que vous portez',
       lead: 'Le travail en stablecoin comporte de vrais risques. Ceux qui s\'appliquent ici :',
       bullets: {
-        testnet: { label: 'Karwan est en testnet en ce moment.', body: 'Vous n\'êtes pas payé en argent réel. Les transactions sur testnet n\'ont aucun poids juridique. Le testnet est un bac à sable. Le mainnet suit après le passage de durcissement.' },
-        contract: { label: 'Risque de smart-contract.', body: 'Les contrats de séquestre, de coffre, et de réputation sur Arc ont été audités en interne et sont de qualité testnet. Un bug, un exploit, ou un mauvais usage pourrait entraîner des pertes de fonds.' },
+        testnet: { label: "Deux réseaux.", body: "Le mainnet utilise de vrais USDC. Une erreur, comme un envoi à la mauvaise adresse ou sur le mauvais réseau, peut vous coûter de l’argent réel, et Karwan ne peut pas l’annuler. Le testnet utilise des USDC de test sans valeur monétaire, et les transactions qui y sont faites n’ont aucune valeur juridique. Les soldes et les historiques restent sur le réseau où ils ont été créés. Changer de réseau ne déplace rien de l’un à l’autre." },
+        mainnetAccess: { label: "L’accès au mainnet se fait sur invitation.", body: "Le mainnet s’ouvre aux comptes invités depuis la liste d’attente. Karwan peut suspendre les nouvelles inscriptions ou une fonctionnalité sur le mainnet pour protéger les utilisateurs." },
+        contract: { label: "Risque de smart-contract.", body: "Les contrats de Karwan sur Arc sont testés et revus en interne et n’ont pas fait l’objet d’un audit externe. Un bug, une exploitation ou un mauvais usage peut entraîner une perte de fonds. Sur le mainnet, il s’agit d’argent réel." },
         depeg: { label: 'Depeg ou gel de USDC.', body: 'USDC est émis par Circle. Si les partenaires bancaires de Circle ont des problèmes, ou si une adresse sanctionnée se mélange, USDC peut perdre son peg ou être gelé. Karwan ne peut pas inverser cela.' },
-        outage: { label: 'Pannes réseau.', body: 'Arc Testnet est un banc d\'essai en direct. Si les validateurs s\'arrêtent, si les fournisseurs RPC tombent en panne, ou si une réorganisation de la chaîne se produit, votre transaction peut s\'interrompre ou revenir en arrière.' },
+        outage: { label: "Pannes réseau.", body: "Si les validateurs d’Arc s’arrêtent, si des fournisseurs réseau tombent en panne ou si une réorganisation de chaîne survient, un transfert ou une transaction peut être suspendu ou annulé. Le testnet peut aussi être réinitialisé sans préavis." },
         crossChain: { label: 'Transferts inter-chaînes.', body: 'Déplacer des USDC entre chaînes dépend d\'une infrastructure hors de Karwan. Un transfert peut prendre plus de temps que le produit ne le suggère, et un transfert parti d\'une chaîne mais pas encore arrivé sur une autre n\'est pas quelque chose que Karwan peut inverser.' },
         fiat: { label: 'Aucune garantie de conversion fiat.', body: 'Si vous vendez des USDC contre la monnaie locale aujourd\'hui, c\'est uniquement entre vous et la personne à qui vous les vendez. Là où l\'accès à la monnaie locale arrive dans Karwan, il repose sur un partenaire agréé. La disponibilité, les limites, les taux et les vérifications d\'identité sont fixés par ce partenaire, peuvent changer, et peuvent être retirés dans une région sans préavis de notre part.' },
         compliance: { label: 'Ce qui est vérifié, et ce qui ne l’est pas.', body: 'Karwan n’effectue pas aujourd’hui de contrôle des sanctions ni de lutte contre le blanchiment pour une transaction. Les compétences individuelles sont déclaratives sauf si le produit affiche un statut activé pour la compétence nommée. La vérification d’entreprise, lorsqu’elle est activée, examine les justificatifs d’immatriculation ou fiscaux soumis. Elle ne prouve ni licence, ni solvabilité, ni exécution future, ni sécurité. Le statut peut être en attente, refusé, expiré ou révoqué. Il vous appartient de choisir votre contrepartie.' },

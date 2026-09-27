@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.85",
+    "@aws-sdk/client-kms": "3.1141.0",
     "@aws-sdk/client-s3": "^3.654.0",
     "@circle-fin/adapter-circle-wallets": "1.8.0",
     "@circle-fin/app-kit": "1.15.2",

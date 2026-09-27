@@ -5,13 +5,21 @@ import type {
   AuthenticationResponseJSON,
 } from '@simplewebauthn/browser';
 import { credentialsForApiRequest } from './adminTransport';
+import type { KdfParams } from '@/features/recovery/crypto';
 
 // next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
 // so localhost here only ever serves development and tests.
 const configuredBase = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
 const BASE = (configuredBase || 'http://localhost:8787').replace(/\/+$/, '');
 
-export const WAITLIST_USE_CASES = ['sell_services', 'buy_services', 'sell_goods', 'buy_goods', 'business_trade'] as const;
+
+export type RecoveryStatus = {
+  backup: boolean;
+  onchain: boolean;
+  request: null | { state: 'waiting' | 'released'; releasableAt: number };
+};
+
+export const WAITLIST_USE_CASES =['sell_services', 'buy_services', 'sell_goods', 'buy_goods', 'business_trade'] as const;
 export type WaitlistUseCase = (typeof WAITLIST_USE_CASES)[number];
 
 /// A public, read-only API address, for pages that link readers to the raw
@@ -2939,6 +2947,28 @@ export const api = {
     json<{ joined: true; alreadyJoined: boolean; joinedAt: number; invited: boolean; position: number | null; answerToken: string }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
   waitlistUseCase: (token: string, useCase: WaitlistUseCase) =>
     json<{ saved: true }>('/api/waitlist/use-case', { method: 'POST', body: JSON.stringify({ token, useCase }) }),
+  recoverySetup: (body: { recoveryAddress: string; kdf: KdfParams; iv: string; blob: string; verifier: string }) =>
+    json<{ saved: true }>('/api/recovery/setup', { method: 'POST', body: JSON.stringify(body) }),
+  recoveryRegistered: (message: string, signature: string) =>
+    json<{ registered: true }>('/api/recovery/registered', { method: 'POST', body: JSON.stringify({ message, signature }) }),
+  recoveryStatus: () => json<RecoveryStatus>('/api/recovery/status'),
+  recoveryOwnBackup: () =>
+    json<{ kdf: KdfParams; iv: string; blob: string; recoveryAddress: string }>('/api/recovery/own-backup'),
+  recoveryCodeRequest: (email: string) =>
+    json<{ sent: true }>('/api/recovery/code/request', { method: 'POST', body: JSON.stringify({ email }) }),
+  recoveryCodeVerify: (email: string, code: string) =>
+    json<{ ticket: string }>('/api/recovery/code/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  recoveryState: (ticket: string) =>
+    json<{ request: RecoveryStatus['request'] }>('/api/recovery/state', { method: 'POST', body: JSON.stringify({ ticket }) }),
+  recoveryKdf: (ticket: string) =>
+    json<{ kdf: KdfParams }>('/api/recovery/kdf', { method: 'POST', body: JSON.stringify({ ticket }) }),
+  recoveryStart: (ticket: string, verifier: string) =>
+    json<{ state: 'waiting'; releasableAt: number; created: boolean }>('/api/recovery/start', { method: 'POST', body: JSON.stringify({ ticket, verifier }) }),
+  recoveryCancel: (token?: string) =>
+    json<{ cancelled: true }>('/api/recovery/cancel', { method: 'POST', body: JSON.stringify(token ? { token } : {}) }),
+  recoveryRelease: (ticket: string) =>
+    json<{ kdf: KdfParams; iv: string; blob: string; recoveryAddress: string; walletAddress: string }>('/api/recovery/release', { method: 'POST', body: JSON.stringify({ ticket }) }),
+  recoveryCompleted: () => json<{ completed: true }>('/api/recovery/completed', { method: 'POST', body: '{}' }),
   adminWaitlist: () =>
     json<{
       waitlist: Array<{ email: string; locale: string; joinedAt: number; useCase?: WaitlistUseCase | null }>;

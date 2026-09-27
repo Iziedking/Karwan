@@ -16,13 +16,17 @@ import { termsAcceptanceMessage } from '@/shared/hooks/useTerms';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WALLET_HOME } from '@/shared/utils/routes';
 import { localTagIssue, normalizeTag, type TagIssue } from '../tag';
+import { RECOVERY_ON } from '@/features/recovery/flag';
+import { RecoverFlow } from '@/features/recovery/components/RecoverFlow';
+import { RecoveryPasswordStep } from '@/features/recovery/components/RecoveryPasswordStep';
+import { START_CARD } from '@/features/signup/components/cardStyles';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOME = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
 
 type Mode = 'signin' | 'signup';
 type SignInStep = 'email' | 'passkey' | 'code' | 'not-found';
-type SignUpStep = 'tag' | 'method' | 'code' | 'passkey' | 'kind';
+type SignUpStep = 'tag' | 'method' | 'code' | 'passkey' | 'kind' | 'recovery';
 type Busy = null | 'lookup' | 'send' | 'verify' | 'passkey' | 'wallet' | 'create';
 
 function isCancel(error: unknown): boolean {
@@ -31,7 +35,9 @@ function isCancel(error: unknown): boolean {
 }
 
 export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?: Mode; onWaitlist?: () => void }) {
-  const t = useTranslations().signup;
+  const messages = useTranslations();
+  const t = messages.signup;
+  const recoveryCopy = messages.recovery;
   const auth = useAuth();
   const siwe = useSiwe();
   const { address: walletAddress, isConnected, connector } = useAccount();
@@ -54,6 +60,9 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   const [authedWithoutAccount, setAuthedWithoutAccount] = useState(false);
   const resolvedFor = useRef<string | null>(null);
   const testnetPasskey = useRef(false);
+  const [recovering, setRecovering] = useState(false);
+  const recoveringRef = useRef(false);
+  recoveringRef.current = recovering;
 
   const goHome = useCallback(() => window.location.assign(HOME), []);
 
@@ -61,6 +70,8 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   // goes home, a session without one finishes sign-up at the tag or kind step.
   useEffect(() => {
     if (auth.isLoading || !auth.isAuthenticated || !auth.address) return;
+    // A recovery signs in partway through; it finishes on its own screen.
+    if (recoveringRef.current) return;
     const key = auth.address.toLowerCase();
     if (resolvedFor.current === key) return;
     resolvedFor.current = key;
@@ -133,6 +144,11 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   async function connectPasskey(kindOf: 'register' | 'login') {
     const { obtainPasskey } = await import('@/features/modularWallet/passkey');
     await obtainPasskey(kindOf, kindOf === 'register' ? email.trim().toLowerCase() : undefined);
+    await connectStoredPasskey();
+  }
+
+  /// Connects the passkey already saved on this device and signs in with it.
+  async function connectStoredPasskey() {
     const passkey = connectors.find((c) => c.id === PASSKEY_CONNECTOR_ID);
     if (!passkey) throw new Error('passkey connector missing');
     const { accounts } = await connectAsync({ connector: passkey });
@@ -275,6 +291,11 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     try {
       await api.signupCreate(normalizeTag(tag), kind);
       clearEmailProof();
+      if (RECOVERY_ON && connector?.id === PASSKEY_CONNECTOR_ID) {
+        setBusy(null);
+        setUpStep('recovery');
+        return;
+      }
       goHome();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
@@ -307,22 +328,40 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   const businessOpen = ARC_NETWORK !== 'mainnet';
   const waitingForSignIn = awaitingAuth && (siwe.state === 'awaiting-signature' || siwe.state === 'verifying' || siwe.state === 'switching-network');
 
+  const card = START_CARD;
+
+  if (recovering) {
+    return (
+      <div className={card}>
+        <RecoverFlow onBack={() => setRecovering(false)} signInWithStoredPasskey={connectStoredPasskey} />
+      </div>
+    );
+  }
+
+  if (mode === 'signup' && upStep === 'recovery' && auth.address) {
+    return (
+      <div className={card}>
+        <RecoveryPasswordStep walletAddress={auth.address} onDone={goHome} />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full rounded-[16px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] p-6 shadow-[var(--shadow-pop)] sm:p-8">
+    <div className={card}>
       {mode === 'signin' ? (
         <>
-          <h1 className="text-[26px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)]">
+          <h1 className="text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">
             {inStep === 'code' ? t.signIn.codeTitle : inStep === 'passkey' ? t.signIn.passkeyTitle : t.signIn.title}
           </h1>
           {inStep === 'email' && (
-            <p className="mt-2 text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">{t.welcome.tagline}</p>
+            <p className="mt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.welcome.tagline}</p>
           )}
 
           {inStep === 'email' && (
             <form onSubmit={signInLookup} className="mt-6 space-y-3">
               <Field label={t.signIn.emailLabel}>
                 <input type="email" inputMode="email" autoComplete="email webauthn" value={email}
-                  onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="form-input min-h-[52px]" autoFocus />
+                  onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="form-input min-h-12 sm:min-h-[52px]" autoFocus />
               </Field>
               <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
                 {busy === 'lookup' ? t.signIn.checking : t.signIn.continue}
@@ -336,6 +375,12 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               <Primary onClick={() => void signInWithPasskey()} disabled={!!busy || waitingForSignIn}>
                 {busy === 'passkey' || waitingForSignIn ? t.signIn.passkeyWaiting : t.signIn.passkeyButton}
               </Primary>
+              {RECOVERY_ON && !testnetPasskey.current && (
+                <button type="button" onClick={() => { setError(null); setRecovering(true); }} disabled={!!busy}
+                  className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-50">
+                  {recoveryCopy.flow.entry}
+                </button>
+              )}
             </div>
           )}
 
@@ -364,7 +409,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           <ErrorLine error={error} />
 
-          <div className="mt-7 space-y-2 border-t border-[var(--lp-outline-strong)] pt-5 text-[14px] text-[var(--lp-text-sub)]">
+          <div className="mt-5 space-y-2 border-t border-[var(--lp-outline-strong)] pt-4 sm:mt-7 sm:pt-5 text-[14px] text-[var(--lp-text-sub)]">
             {onWaitlist ? (
               <p>
                 <button type="button" onClick={onWaitlist} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
@@ -390,7 +435,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
       ) : (
         <>
           <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{s.step.replace('{n}', String(stepNumber))}</p>
-          <h1 className="mt-1 text-[26px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)]">
+          <h1 className="mt-1 text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">
             {upStep === 'tag' ? s.tagLabel
               : upStep === 'code' ? s.codeTitle
                 : upStep === 'passkey' ? s.passkeyTitle
@@ -404,11 +449,11 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               if (tagState !== 'available') return;
               setUpStep(authedWithoutAccount ? 'kind' : 'method');
             }}>
-              <div className="flex min-h-[52px] items-center rounded-[12px] border border-[var(--lp-outline-strong)] bg-transparent px-4 focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
+              <div className="flex min-h-12 sm:min-h-[52px] items-center rounded-[12px] border border-[var(--lp-outline-strong)] bg-transparent px-4 focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
                 <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]" aria-hidden>@</span>
                 <input aria-label={s.tagLabel} value={tag} onChange={(e) => setTag(e.target.value.replace(/\s/g, ''))}
                   autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={21} autoFocus
-                  className="ms-1 h-[50px] w-full bg-transparent text-[17px] text-[var(--lp-dark)] outline-none" />
+                  className="ms-1 h-[46px] w-full bg-transparent text-[17px] sm:h-[50px] text-[var(--lp-dark)] outline-none" />
               </div>
               <p aria-live="polite" className={`text-[14px] ${tagState === 'available' ? 'text-[var(--lp-dark)]' : tagState === 'idle' || tagState === 'checking' ? 'text-[var(--lp-text-sub)]' : 'text-[var(--lp-critical)]'}`}>
                 {tagLine}
@@ -423,7 +468,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               <form onSubmit={sendCode} className="space-y-3">
                 <Field label={s.emailLabel}>
                   <input type="email" inputMode="email" autoComplete="email" value={email}
-                    onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="form-input min-h-[52px]" autoFocus />
+                    onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="form-input min-h-12 sm:min-h-[52px]" autoFocus />
                 </Field>
                 <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
                   {busy === 'send' ? s.sending : s.sendCode}
@@ -447,7 +492,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {upStep === 'passkey' && (
             <div className="mt-6 space-y-3">
-              <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">{s.passkeyBody}</p>
+              <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{s.passkeyBody}</p>
               <Primary onClick={() => void createPasskey()} disabled={!!busy || waitingForSignIn}>
                 {busy === 'passkey' || waitingForSignIn ? s.passkeyWaiting : s.passkeyCreate}
               </Primary>
@@ -486,7 +531,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
             </p>
           )}
           {!authedWithoutAccount && (
-            <p className="mt-7 border-t border-[var(--lp-outline-strong)] pt-5 text-[14px] text-[var(--lp-text-sub)]">
+            <p className="mt-5 border-t border-[var(--lp-outline-strong)] pt-4 sm:mt-7 sm:pt-5 text-[14px] text-[var(--lp-text-sub)]">
               {s.haveAccount}{' '}
               <button type="button" onClick={() => switchMode('signin')} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
                 {s.signIn}
@@ -511,7 +556,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Primary(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button type="button" {...props}
-      className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50" />
+      className="inline-flex min-h-12 sm:min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50" />
   );
 }
 
@@ -530,7 +575,7 @@ function WalletButton({ label, disabled, onStart }: { label: string; disabled: b
     <ConnectButton.Custom>
       {({ openConnectModal, mounted }) => (
         <button type="button" disabled={!mounted || disabled} onClick={() => onStart(openConnectModal)}
-          className="inline-flex min-h-[52px] w-full items-center justify-between gap-3 rounded-[12px] border border-[var(--lp-outline-strong)] bg-transparent px-5 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-50">
+          className="inline-flex min-h-12 sm:min-h-[52px] w-full items-center justify-between gap-3 rounded-[12px] border border-[var(--lp-outline-strong)] bg-transparent px-5 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-50">
           {label}
           <span aria-hidden className="rtl:rotate-180">→</span>
         </button>
@@ -545,11 +590,11 @@ function CodeForm(props: {
 }) {
   return (
     <form onSubmit={props.onSubmit} className="mt-6 space-y-3">
-      <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">{props.hint}</p>
+      <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{props.hint}</p>
       <Field label={props.label}>
         <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} value={props.code}
           onChange={(e) => props.setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} disabled={!!props.busy}
-          className="form-input mono min-h-[52px] text-[18px] tracking-[0.3em]" autoFocus />
+          className="form-input mono min-h-12 sm:min-h-[52px] text-[18px] tracking-[0.3em]" autoFocus />
       </Field>
       <Primary type="submit" disabled={!!props.busy || props.code.length !== 6}>{props.submit}</Primary>
       <button type="button" onClick={props.onResend} disabled={!!props.busy}

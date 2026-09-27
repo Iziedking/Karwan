@@ -11,6 +11,7 @@ import { searchCopy, type SearchCopy } from './search';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
 import { analyticsCopy, type AnalyticsCopy } from './analytics';
 import { signupCopy, type SignupCopy } from './signup';
+import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
   protection: ProtectionCopy;
@@ -19,6 +20,7 @@ interface MessagesShape {
   escrowV3: EscrowV3Copy;
   analytics: AnalyticsCopy;
   signup: SignupCopy;
+  recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
   networkUi: NetworkCopy;
@@ -4698,6 +4700,7 @@ interface MessagesShape {
     s2: {
       title: string; lead: string;
       ownWallet: { label: string; body: string };
+      passkey: { label: string; body: string };
       operated: { label: string; body: string };
       scope: string;
       contractLimit: string;
@@ -4747,6 +4750,7 @@ interface MessagesShape {
       title: string; lead: string;
       bullets: {
         testnet: { label: string; body: string };
+        mainnetAccess: { label: string; body: string };
         contract: { label: string; body: string };
         depeg: { label: string; body: string };
         outage: { label: string; body: string };
@@ -5301,6 +5305,7 @@ export const en: MessagesShape = {
   escrowV3: escrowV3Copy.en,
   analytics: analyticsCopy.en,
   signup: signupCopy.en,
+  recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,
   networkUi: networkCopy.en,
@@ -10546,14 +10551,15 @@ export const en: MessagesShape = {
         assistant: { label: 'The assistant.', body: 'An in-product AI assistant answers questions and can prepare actions for you. Anything that moves money is shown to you and needs your confirmation before it runs. You can ask it for a person at any point, which opens a support ticket.' },
         staking: { label: 'Staking.', body: 'You can lock USDC in the vault. It raises your tier and acts as deal insurance the escrow contract can draw on if you lose a dispute.' },
       },
-      tail: 'Some of this is still rolling out. Business registration, invoice factoring, purchase-order financing, and the financier side are behind flags and are not available to every account. Anything labelled "coming soon" or shown behind a beta flag is not guaranteed to ship on a fixed date.',
+      tail: "Some of this is still rolling out. On mainnet today you can hold, add, send and withdraw USDC, and read on-chain reputation. Deals with escrow, agents and staking run on testnet only until they ship on mainnet. Business registration, invoice factoring, purchase-order financing and the financier side are behind flags and are not available to every account. Anything labelled \"coming soon\" is not guaranteed to ship on a fixed date.",
     },
     s2: {
       title: '2. How your account is held',
       lead: 'Karwan settles in USDC. How your balance is held depends on how you signed in.',
       ownWallet: { label: 'If you connected your own wallet,', body: 'you hold it. You approve every movement yourself, and Karwan cannot move anything without you.' },
-      operated: { label: 'If you signed in with email or a passkey,', body: 'Karwan opens an account for you on Circle\'s wallet infrastructure and operates it on your behalf. You do not manage credentials and you do not need to.' },
-      scope: 'Operating it means something specific. Karwan can move your money only to carry out things you started: fund a deal you created, release a milestone you approved, return funds to you when a deal is cancelled or a deadline is missed, and complete the automatic outcomes described in section 4. Karwan cannot send your balance to anyone outside a deal you opened, cannot change a deal after both sides accept, and cannot move your funds to itself.',
+      passkey: { label: "If you use a passkey,", body: "your account is a smart wallet on Circle's infrastructure that only your passkey can sign for. Karwan cannot move funds from it, or recover it without your recovery password. If you lose your passkey, your email and recovery password restore access after a 48-hour wait, during which you can cancel. If you lose both the passkey and the recovery password, the wallet cannot be recovered." },
+      operated: { label: "If you signed in with email on testnet,", body: "Karwan opens a Circle wallet for you and operates it on your behalf. You do not manage credentials." },
+      scope: "For accounts Karwan operates, that means something specific. Karwan can move your money only to carry out things you started: fund a deal you created, release a milestone you approved, return funds to you when a deal is cancelled or a deadline is missed, and complete the automatic outcomes described in section 4. Karwan cannot send your balance to anyone outside a deal you opened, cannot change a deal after both sides accept, and cannot move your funds to itself.",
       contractLimit: 'Once a deal is funded, the escrow contract on Arc governs where that money can go. That limit is enforced by the contract, not by our policy.',
       why: 'The automatic parts of Karwan exist because of this. A milestone that releases on its own after the review window, and a refund that returns to a buyer when a seller misses a deadline, both need an account that can act when neither side is online.',
       research: 'One exception is worth naming. If you activate paid market research, you pay once for a credit balance, and your agent spends from that balance on your behalf as it reads market data. That is the only place an agent spends without a fresh approval each time, and you can see the remaining balance on your profile.',
@@ -10608,10 +10614,11 @@ export const en: MessagesShape = {
       title: '7. Risk you carry',
       lead: 'Stablecoin work has real risks. The ones that apply here:',
       bullets: {
-        testnet: { label: 'Karwan is on testnet right now.', body: 'You are not paid in real money. Deals on testnet have no legal weight. Testnet is a sandbox. Mainnet follows after the hardening pass.' },
-        contract: { label: 'Smart-contract risk.', body: 'The escrow, vault, and reputation contracts on Arc were audited internally and are testnet quality. A bug, an exploit, or a misuse could result in lost funds.' },
+        testnet: { label: "Two networks.", body: "Mainnet uses real USDC. A mistake there, such as sending to the wrong address or the wrong network, can cost you real money, and Karwan cannot reverse it. Testnet uses test USDC with no monetary value, and deals made there carry no legal weight. Balances and records stay on the network where they were made. Switching networks moves nothing between them." },
+        mainnetAccess: { label: "Mainnet access is by invitation.", body: "Mainnet opens to accounts invited from the waitlist. Karwan may pause new sign-ups or a feature on mainnet to protect users." },
+        contract: { label: "Smart-contract risk.", body: "Karwan's contracts on Arc are tested and reviewed internally and have not had an external audit. A bug, an exploit or a misuse could result in lost funds. On mainnet that means real money." },
         depeg: { label: 'USDC depeg or freeze.', body: 'USDC is issued by Circle. If Circle\'s banking partners come under stress, or a sanctioned address is involved, USDC can lose its peg or be frozen. Karwan cannot reverse this.' },
-        outage: { label: 'Network outages.', body: 'Arc Testnet is a live testbed. If validators stall, RPC providers go down, or a chain reorg happens, your deal can pause or roll back.' },
+        outage: { label: "Network outages.", body: "If Arc validators stall, network providers go down or a chain reorganisation happens, a transfer or a deal can pause or roll back. Testnet can also be reset without notice." },
         crossChain: { label: 'Cross-chain transfers.', body: 'Moving USDC between chains depends on infrastructure outside Karwan. A transfer can take longer than the product suggests, and a transfer that has left one chain but not yet arrived on another is not something Karwan can reverse.' },
         fiat: { label: 'No fiat conversion guarantee.', body: 'If you sell USDC for local currency today, that transaction is solely between you and whoever you sell it to. Where local currency access arrives inside Karwan, it runs on a licensed partner. Availability, limits, rates, and identity checks are set by that partner, can change, and can be withdrawn in a region without notice to you from us.' },
         compliance: { label: 'What is checked, and what is not.', body: 'Your money is protected by the escrow contract and every step is written to a record both sides can verify. What Karwan does not do today is screen the person on the other side: there are no sanctions, anti-money-laundering, or deal-level business identity checks. Individual skill labels are self-declared unless the product shows an enabled, skill-specific verification state. Business verification, where enabled, checks submitted registration or tax evidence through the stated review path; it does not prove licensing, solvency, performance, or safety. Verification can be pending, rejected, expired, or revoked. Choose who you work with the way you would anywhere else. Privacy-preserving counterparty screening is on the roadmap for mainnet. Where a licensed partner provides local currency access, that partner runs its own identity checks as part of their service.' },

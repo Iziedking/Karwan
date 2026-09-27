@@ -6,6 +6,7 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import { NetworkContext } from '@/shared/components/NetworkContext';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
 
 export function AccountPageV1() {
   const t = useTranslations().profile.signInGate;
@@ -45,6 +46,7 @@ function AccountPageInner() {
             <AccountAction href="/bridge?direction=out&intent=move" label={messages.accountHome.move} description={t.moveHelp} icon="move" />
             <AccountAction href="/bridge?direction=out&intent=send" label={t.send} description={t.sendHelp} icon="send" />
           </nav>
+          <RecoveryRow />
         </aside>
       </section>
 

@@ -981,6 +981,44 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       ALTER TABLE waitlist_v1 ADD COLUMN IF NOT EXISTS use_case TEXT;
     `,
   },
+  {
+    version: 34,
+    name: 'passkey_recovery',
+    sql: `
+      CREATE TABLE recovery_backups_v1 (
+        wallet_address TEXT PRIMARY KEY,
+        email_hash TEXT NOT NULL,
+        recovery_address TEXT NOT NULL,
+        kdf JSONB NOT NULL,
+        iv TEXT NOT NULL,
+        sealed_blob BYTEA NOT NULL,
+        sealed_verifier BYTEA NOT NULL,
+        created_at BIGINT NOT NULL,
+        registered_at BIGINT
+      );
+      CREATE TABLE recovery_requests_v1 (
+        id TEXT PRIMARY KEY,
+        wallet_address TEXT NOT NULL,
+        state TEXT NOT NULL CHECK (state IN ('waiting', 'released', 'completed', 'cancelled', 'expired')),
+        created_at BIGINT NOT NULL,
+        releasable_at BIGINT NOT NULL,
+        released_at BIGINT,
+        completed_at BIGINT,
+        cancelled_at BIGINT,
+        reminder_sent_at BIGINT,
+        cancel_token_hash TEXT
+      );
+      CREATE UNIQUE INDEX recovery_requests_one_live ON recovery_requests_v1 (wallet_address)
+        WHERE state IN ('waiting', 'released');
+      CREATE INDEX recovery_requests_cancel_token ON recovery_requests_v1 (cancel_token_hash);
+      CREATE TABLE recovery_attempts_v1 (
+        wallet_address TEXT NOT NULL,
+        at BIGINT NOT NULL,
+        ok BOOLEAN NOT NULL
+      );
+      CREATE INDEX recovery_attempts_wallet_at ON recovery_attempts_v1 (wallet_address, at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

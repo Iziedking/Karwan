@@ -37,3 +37,12 @@ test('critical money invariant installation fails closed only in production', ()
   assert.equal(moneyInvariantInstallFailureIsFatal('development'), false);
   assert.equal(moneyInvariantInstallFailureIsFatal('test'), false);
 });
+
+test('mainnet production refuses passkey recovery without a KMS key', () => {
+  const base = { nodeEnv: 'production' as const, databaseUrl: 'postgresql://db/karwan', sessionSecret: 'a-unique-production-session-secret-with-32-characters' };
+  assert.deepEqual(runtimeSafetyErrors({ ...base, arcNetwork: 'mainnet', recoveryEnabled: true }), [
+    'RECOVERY_KMS_KEY_ID is required when RECOVERY_ENABLED is on mainnet in production',
+  ]);
+  assert.deepEqual(runtimeSafetyErrors({ ...base, arcNetwork: 'mainnet', recoveryEnabled: true, recoveryKmsKeyId: 'alias/karwan-recovery' }), []);
+  assert.deepEqual(runtimeSafetyErrors({ ...base, arcNetwork: 'testnet', recoveryEnabled: true }), []);
+});

@@ -96,6 +96,12 @@ interface OtpSendResult {
 /// HTML body for the OTP email. Uses the shared brand shell. Digits sit in a
 /// monospace block with a calm letter-spacing, no manual &nbsp; padding,
 /// which was making the code read like "1   2   3" instead of "123456".
+const OTP_COPY: Record<OtpPurpose, { word: string; line: string; eyebrow: string; title: string }> = {
+  'sign-in': { word: 'sign-in', line: 'Enter this code in the sign-in modal to access your Karwan account.', eyebrow: 'SIGN-IN CODE', title: 'Karwan sign-in code' },
+  waitlist: { word: 'waitlist', line: 'Enter this code to join the Karwan waitlist.', eyebrow: 'WAITLIST CODE', title: 'Karwan waitlist code' },
+  recovery: { word: 'recovery', line: "Use this code to recover your wallet. If you didn't ask for it, ignore this email.", eyebrow: 'RECOVERY CODE', title: 'Karwan recovery code' },
+};
+
 function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {
   const inner = `
           <tr>
@@ -110,7 +116,7 @@ function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {
           <tr>
             <td style="padding:18px 28px 8px 28px;text-align:center;">
               <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
-                ${purpose === 'waitlist' ? 'Enter this code to join the Karwan waitlist.' : 'Enter this code in the sign-in modal to access your Karwan account.'}
+                ${OTP_COPY[purpose].line}
               </p>
               <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
                 Expires in 10 minutes. Five wrong tries voids it.
@@ -119,8 +125,8 @@ function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {
           </tr>
   `;
   return brandedEmailHtml({
-    eyebrow: purpose === 'waitlist' ? 'WAITLIST CODE' : 'SIGN-IN CODE',
-    title: purpose === 'waitlist' ? 'Karwan waitlist code' : 'Karwan sign-in code',
+    eyebrow: OTP_COPY[purpose].eyebrow,
+    title: OTP_COPY[purpose].title,
     inner,
   });
 }
@@ -129,7 +135,7 @@ function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {
 /// Resend; otherwise we log the code to the backend terminal so dev still
 /// works without any provider configured. Returns whether the code went out
 /// over real email. The dev autofill pill only renders when this is false.
-export type OtpPurpose = 'sign-in' | 'waitlist';
+export type OtpPurpose = 'sign-in' | 'waitlist' | 'recovery';
 
 export async function sendOtpEmail(email: string, code: string, purpose: OtpPurpose = 'sign-in'): Promise<OtpSendResult> {
   const client = resendClient();
@@ -150,10 +156,10 @@ export async function sendOtpEmail(email: string, code: string, purpose: OtpPurp
       /// lands at support@ where it'll be picked up.
       replyTo: 'support@karwan.site',
       to: email,
-      subject: purpose === 'waitlist' ? `Karwan waitlist code: ${code}` : `Karwan sign-in code: ${code}`,
+      subject: `Karwan ${OTP_COPY[purpose].word} code: ${code}`,
       html: otpEmailHtml(code, purpose),
       text:
-        `Your Karwan ${purpose === 'waitlist' ? 'waitlist' : 'sign-in'} code is ${code}\n\n` +
+        `Your Karwan ${OTP_COPY[purpose].word} code is ${code}\n\n` +
         `It expires in 10 minutes. Five wrong tries voids it.\n\n` +
         `If you didn't request this, ignore the email.`,
       // CID inline attachment for the brand mark. Falls back gracefully when

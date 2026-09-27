@@ -8,6 +8,7 @@ import { searchCopy } from './search';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
+import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
 export const sw: Messages = {
@@ -17,6 +18,7 @@ export const sw: Messages = {
   escrowV3: escrowV3Copy.sw,
   analytics: analyticsCopy.sw,
   signup: signupCopy.sw,
+  recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,
   networkUi: networkCopy.sw,
@@ -5090,14 +5092,15 @@ export const sw: Messages = {
         assistant: { label: 'Msaidizi.', body: 'Msaidizi wa AI ndani ya bidhaa hujibu maswali na anaweza kuandaa hatua kwa ajili yako. Chochote kinachohamisha fedha huonyeshwa kwako na kinahitaji uthibitisho wako kabla ya kutekelezwa. Unaweza kuomba mtu halisi wakati wowote, na hilo hufungua tiketi ya msaada.' },
         staking: { label: 'Staking.', body: 'Unaweza kufunga USDC kwenye vault. Inainua kiwango chako na inafanya kazi kama bima ya deal ambayo contract ya escrow inaweza kuchota kutoka kwake kama utapoteza mgogoro.' },
       },
-      tail: 'Baadhi ya hii bado inazinduliwa. Usajili wa biashara, ufadhili wa ankara, ufadhili wa oda za manunuzi, na upande wa mfadhili viko nyuma ya bendera na havipatikani kwa kila akaunti. Chochote kilichowekwa "kinakuja hivi karibuni" au kilichoonyeshwa nyuma ya bendera ya beta hakihakikishwi kushikilia tarehe maalum.',
+      tail: "Baadhi ya hii bado inazinduliwa. Kwenye mainnet leo unaweza kushikilia, kuongeza, kutuma na kutoa USDC, na kusoma sifa iliyo kwenye mnyororo. Deals zenye escrow, mawakala na staking zinaendeshwa kwenye testnet pekee hadi zitakapozinduliwa kwenye mainnet. Usajili wa biashara, ufadhili wa ankara, ufadhili wa oda za ununuzi na upande wa wafadhili viko nyuma ya swichi na havipatikani kwa kila akaunti. Chochote kilichoandikwa \"inakuja hivi karibuni\" hakihakikishiwi kuzinduliwa tarehe maalum.",
     },
     s2: {
       title: '2. Jinsi akaunti yako inavyoshikiliwa',
       lead: 'Karwan hulipa kwa USDC. Jinsi salio lako linavyoshikiliwa inategemea jinsi ulivyoingia.',
       ownWallet: { label: 'Kama umeunganisha wallet yako mwenyewe,', body: 'wewe ndiye unayeishika. Unaidhinisha kila mwenendo mwenyewe, na Karwan haiwezi kuhamisha chochote bila wewe.' },
-      operated: { label: 'Kama umeingia kwa barua pepe au passkey,', body: 'Karwan hufungua akaunti kwa ajili yako kwenye miundombinu ya wallet ya Circle na kuiendesha kwa niaba yako. Hushughulikii sifa zozote za kuingia na huhitaji kufanya hivyo.' },
-      scope: 'Kuiendesha kunamaanisha kitu mahususi. Karwan inaweza kuhamisha fedha zako tu ili kutekeleza mambo uliyoanzisha: kufadhili deal uliyounda, kutoa hatua uliyoidhinisha, kurudisha fedha kwako wakati deal inaghairiwa au tarehe ya mwisho inakosewa, na kukamilisha matokeo ya kiotomatiki yaliyoelezwa katika sehemu ya 4. Karwan haiwezi kutuma salio lako kwa mtu yeyote nje ya deal uliyofungua, haiwezi kubadilisha deal baada ya pande zote mbili kukubali, na haiwezi kuhamisha fedha zako kwake yenyewe.',
+      passkey: { label: "Ukitumia passkey,", body: "akaunti yako ni pochi janja kwenye miundombinu ya Circle ambayo passkey yako pekee inaweza kuitia sahihi. Karwan haiwezi kuhamisha fedha kutoka humo, wala kuirejesha bila nenosiri lako la kurejesha. Ukipoteza passkey yako, barua pepe yako na nenosiri la kurejesha hurudisha ufikiaji baada ya kusubiri saa 48, ambapo unaweza kughairi. Ukipoteza passkey na nenosiri la kurejesha vyote, pochi haiwezi kurejeshwa." },
+      operated: { label: "Kama uliingia kwa barua pepe kwenye testnet,", body: "Karwan inakufungulia pochi ya Circle na kuiendesha kwa niaba yako. Husimamii vitambulisho vyovyote." },
+      scope: "Kwa akaunti ambazo Karwan inaziendesha, hii inamaanisha kitu mahususi. Karwan inaweza kuhamisha fedha zako tu ili kutekeleza mambo uliyoanzisha: kufadhili deal uliyounda, kutoa hatua uliyoidhinisha, kurudisha fedha kwako wakati deal inaghairiwa au tarehe ya mwisho inakosewa, na kukamilisha matokeo ya kiotomatiki yaliyoelezwa katika sehemu ya 4. Karwan haiwezi kutuma salio lako kwa mtu yeyote nje ya deal uliyofungua, haiwezi kubadilisha deal baada ya pande zote mbili kukubali, na haiwezi kuhamisha fedha zako kwake yenyewe.",
       contractLimit: 'Mara deal inapofadhiliwa, contract ya escrow kwenye Arc inaamua fedha hizo zinaweza kwenda wapi. Kikomo hicho kinatekelezwa na contract, si sera yetu.',
       why: 'Sehemu za kiotomatiki za Karwan zipo kwa sababu ya hili. Hatua inayojitoa yenyewe baada ya dirisha la ukaguzi, na fedha zinazorudi kwa mnunuzi wakati muuzaji anakosa tarehe ya mwisho, zote zinahitaji akaunti inayoweza kutenda wakati hakuna upande wowote uliopo mtandaoni.',
       research: 'Kuna ubaguzi mmoja unaostahili kutajwa. Kama utawasha utafiti wa soko unaolipiwa, unalipa mara moja kwa salio la mkopo, na wakala wako hutumia kutoka salio hilo kwa niaba yako anaposoma data ya soko. Hapo ndipo mahali pekee ambapo wakala hutumia bila idhini mpya kila mara, na unaweza kuona salio lililobaki kwenye profaili yako.',
@@ -5152,10 +5155,11 @@ export const sw: Messages = {
       title: '7. Hatari unayobeba',
       lead: 'Kazi ya stablecoin ina hatari halisi. Zile zinazohusika hapa:',
       bullets: {
-        testnet: { label: 'Karwan iko kwenye testnet sasa hivi.', body: 'Hulipwi kwa pesa halisi. Deal za kwenye testnet hazina uzito wowote wa kisheria. Testnet ni sandbox. Mainnet inafuata baada ya kipindi cha kuimarisha.' },
-        contract: { label: 'Hatari ya smart-contract.', body: 'Contracts za escrow, vault, na sifa kwenye Arc zilikaguliwa kwa ndani na ni za ubora wa testnet. Hitilafu, ushambulizi, au matumizi mabaya yanaweza kusababisha hasara ya fedha.' },
+        testnet: { label: "Mitandao miwili.", body: "Mainnet inatumia USDC halisi. Kosa huko, kama kutuma kwa anwani au mtandao usio sahihi, linaweza kukugharimu pesa halisi, na Karwan haiwezi kulirudisha. Testnet inatumia USDC ya majaribio isiyo na thamani ya fedha, na deals zilizofanywa huko hazina uzito wa kisheria. Salio na rekodi hubaki kwenye mtandao zilipofanyika. Kubadilisha mtandao hakuhamishi chochote kati yao." },
+        mainnetAccess: { label: "Ufikiaji wa mainnet ni kwa mwaliko.", body: "Mainnet inafunguliwa kwa akaunti zilizoalikwa kutoka orodha ya kusubiri. Karwan inaweza kusimamisha usajili mpya au kipengele kwenye mainnet ili kulinda watumiaji." },
+        contract: { label: "Hatari ya smart-contract.", body: "Mikataba ya Karwan kwenye Arc imejaribiwa na kukaguliwa ndani na haijafanyiwa ukaguzi wa nje. Hitilafu, udukuzi au matumizi mabaya yanaweza kusababisha upotevu wa fedha. Kwenye mainnet hii inamaanisha pesa halisi." },
         depeg: { label: 'Kupotea kwa peg au kufungiwa kwa USDC.', body: 'USDC inatolewa na Circle. Kama washirika wa kibenki wa Circle wanapatwa na tatizo, au kama anwani iliyoangukiwa na vikwazo inachangamana, USDC inaweza kupoteza peg yake au kufungiwa. Karwan haiwezi kubatilisha hili.' },
-        outage: { label: 'Kukatika kwa mtandao.', body: 'Arc Testnet ni jukwaa la majaribio la moja kwa moja. Kama validators zinasimama, watoa huduma wa RPC wanaanguka, au mpangilio mpya wa chain unatokea, deal yako inaweza kusimama au kurudi nyuma.' },
+        outage: { label: "Kukatika kwa mtandao.", body: "Ikiwa wathibitishaji wa Arc watasimama, watoa huduma za mtandao wakaanguka au mnyororo ukapangwa upya, uhamisho au deal inaweza kusimama au kurudi nyuma. Testnet pia inaweza kuwekwa upya bila taarifa." },
         crossChain: { label: 'Uhamisho kati ya chains.', body: 'Kuhamisha USDC kati ya chains kunategemea miundombinu iliyo nje ya Karwan. Uhamisho unaweza kuchukua muda mrefu kuliko bidhaa inavyodokeza, na uhamisho ulioondoka chain moja lakini bado haujafika nyingine si kitu ambacho Karwan inaweza kubatilisha.' },
         fiat: { label: 'Hakuna dhamana ya ubadilishaji wa fiat.', body: 'Kama unauza USDC kwa sarafu ya ndani leo, hilo ni kati yako na yule unayemuuzia tu. Pale ufikiaji wa sarafu ya ndani unapofika ndani ya Karwan, unaendeshwa na mshirika mwenye leseni. Upatikanaji, mipaka, viwango, na ukaguzi wa utambulisho vinapangwa na mshirika huyo, vinaweza kubadilika, na vinaweza kuondolewa katika eneo bila taarifa kutoka kwetu kwako.' },
         compliance: { label: 'Kinachokaguliwa, na kisichokaguliwa.', body: 'Karwan haifanyi ukaguzi wa vikwazo au wa kuzuia utakatishaji fedha kwa deal leo. Ujuzi wa mtu binafsi ni madai yake mwenyewe isipokuwa bidhaa ionyeshe hali ya uthibitishaji ya ujuzi huo. Uthibitishaji wa biashara, ukiwashwa, hukagua ushahidi wa usajili au kodi uliowasilishwa. Hauthibitishi leseni, uwezo wa kifedha, utendaji, au usalama. Hali inaweza kusubiri, kukataliwa, kuisha, au kufutwa. Chagua unayefanya naye kazi kwa uangalifu.' },

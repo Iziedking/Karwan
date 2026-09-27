@@ -2,6 +2,9 @@ export interface RuntimeSafetyInput {
   nodeEnv: 'development' | 'production' | 'test';
   databaseUrl?: string;
   sessionSecret?: string;
+  arcNetwork?: 'testnet' | 'mainnet';
+  recoveryEnabled?: boolean;
+  recoveryKmsKeyId?: string;
 }
 
 export const EXAMPLE_SESSION_SECRET = 'dev-secret-change-me-please-32-chars-min';
@@ -21,6 +24,9 @@ export function runtimeSafetyErrors(input: RuntimeSafetyInput): string[] {
       input.sessionSecret === EXAMPLE_SESSION_SECRET)
   ) {
     errors.push('SESSION_SECRET must be a unique production secret of at least 32 characters');
+  }
+  if (input.nodeEnv === 'production' && input.arcNetwork === 'mainnet' && input.recoveryEnabled && !input.recoveryKmsKeyId) {
+    errors.push('RECOVERY_KMS_KEY_ID is required when RECOVERY_ENABLED is on mainnet in production');
   }
   return errors;
 }
