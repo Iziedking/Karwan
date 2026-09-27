@@ -5,7 +5,7 @@ import styles from './WaitlistSeal.module.css';
 /// corner. Plays once when someone joins; with reduced motion it appears drawn.
 export function WaitlistSeal() {
   return (
-    <svg className={styles.seal} viewBox="0 0 600 600" width="84" height="84" aria-hidden>
+    <svg className={`${styles.seal} size-16 sm:size-[84px]`} viewBox="0 0 600 600" aria-hidden>
       <path className={styles.tile} d="M56,20 L456,20 Q492,20 492,56 L492,456 Q492,492 456,492 L92,492 Q20,492 20,420 L20,56 Q20,20 56,20 Z" />
       <path className={styles.mark} d="M148,362 L215,150 L256,278 L297,150 L364,362" pathLength={1} />
       <g className={styles.badge}>

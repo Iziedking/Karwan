@@ -5,6 +5,7 @@ import { api, ApiError, WAITLIST_USE_CASES, type WaitlistUseCase } from '@/core/
 import { TESTNET_ORIGIN } from '@/shared/utils/routes';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WaitlistSeal } from './WaitlistSeal';
+import { START_CARD } from '@/features/signup/components/cardStyles';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -69,27 +70,27 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
   }
 
   const primary =
-    'inline-flex min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50';
+    'inline-flex min-h-12 sm:min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50';
   const link = 'font-semibold text-[var(--lp-dark)] underline underline-offset-4';
 
   return (
-    <div className="w-full rounded-[16px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] p-6 shadow-[var(--shadow-pop)] sm:p-8">
+    <div className={START_CARD}>
       {step === 'done' && (
-        <div className="mb-5">
+        <div className="mb-4 sm:mb-5">
           <WaitlistSeal />
         </div>
       )}
-      <h1 className="text-[26px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)]">
+      <h1 className="text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">
         {step === 'code' ? t.codeTitle : step === 'done' ? (joinedBefore && !invited ? t.alreadyTitle : t.doneTitle) : t.title}
       </h1>
 
       {step === 'email' && (
         <form onSubmit={send} className="mt-2 space-y-3">
-          <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">{t.body}</p>
+          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.body}</p>
           <label className="block space-y-1.5 pt-3">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.emailLabel}</span>
             <input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              disabled={!!busy} className="form-input min-h-[52px]" autoFocus />
+              disabled={!!busy} className="form-input min-h-12 sm:min-h-[52px]" autoFocus />
           </label>
           <button type="submit" className={primary} disabled={!!busy || !EMAIL_RE.test(email.trim())}>
             {busy === 'send' ? t.sending : t.join}
@@ -99,12 +100,12 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
 
       {step === 'code' && (
         <form onSubmit={verify} className="mt-4 space-y-3">
-          <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">{t.codeSent.replace('{email}', email)}</p>
+          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.codeSent.replace('{email}', email)}</p>
           <label className="block space-y-1.5">
             <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.codeLabel}</span>
             <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} disabled={!!busy}
-              className="form-input mono min-h-[52px] text-[18px] tracking-[0.3em]" autoFocus />
+              className="form-input mono min-h-12 sm:min-h-[52px] text-[18px] tracking-[0.3em]" autoFocus />
           </label>
           <button type="submit" className={primary} disabled={!!busy || code.length !== 6}>
             {busy === 'verify' ? t.verifying : t.verify}
@@ -117,11 +118,11 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       )}
 
       {step === 'done' && (
-        <div className="mt-3 space-y-4" role="status">
+        <div className="mt-3 space-y-3 sm:space-y-4" role="status">
           {position && !invited && (
-            <p className="mono text-[17px] font-semibold text-[var(--lp-dark)]">{t.position.replace('{n}', position.toLocaleString('en-US'))}</p>
+            <p className="mono text-[15px] font-semibold text-[var(--lp-dark)] sm:text-[17px]">{t.position.replace('{n}', position.toLocaleString('en-US'))}</p>
           )}
-          <p className="text-[15px] leading-[1.5] text-[var(--lp-text-sub)]">
+          <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">
             {invited
               ? t.invitedBody
               : joinedBefore
@@ -138,7 +139,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
                 <a href={`${TESTNET_ORIGIN}/start?mode=signup`} className={primary}>{t.tryTestnet}</a>
                 <p className="text-center text-[13px] text-[var(--lp-text-sub)]">{t.tryTestnetNote}</p>
               </div>
-              <fieldset className="border-t border-[var(--lp-outline-strong)] pt-5">
+              <fieldset className="border-t border-[var(--lp-outline-strong)] pt-4 sm:pt-5">
                 <legend className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.useCaseTitle}</legend>
                 {useCase ? (
                   <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{t.useCaseThanks}</p>
@@ -146,7 +147,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
                   <div className="mt-3 flex flex-wrap gap-2">
                     {WAITLIST_USE_CASES.map((choice) => (
                       <button key={choice} type="button" onClick={() => answer(choice)}
-                        className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+                        className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-3.5 text-[13px] font-medium sm:px-4 sm:text-[14px] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
                         {t.useCases[choice]}
                       </button>
                     ))}
@@ -167,7 +168,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       )}
 
       {step !== 'done' && (
-        <p className="mt-7 border-t border-[var(--lp-outline-strong)] pt-5 text-[14px] text-[var(--lp-text-sub)]">
+        <p className="mt-5 border-t border-[var(--lp-outline-strong)] pt-4 sm:mt-7 sm:pt-5 text-[14px] text-[var(--lp-text-sub)]">
           {t.invitedPrompt}{' '}
           <button type="button" onClick={onSignIn} className={link}>{t.signIn}</button>
         </p>

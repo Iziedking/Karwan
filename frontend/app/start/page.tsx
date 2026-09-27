@@ -11,7 +11,7 @@ export default async function StartPage({
   return (
     <main className="relative ms-[calc(50%-50vw)] w-screen overflow-hidden bg-[var(--lp-bg)] min-h-[calc(100svh-var(--lp-nav-h,72px))]">
       <DealBackdrop />
-      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-var(--lp-nav-h,72px))] w-full max-w-[460px] flex-col justify-center px-4 py-10">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-var(--lp-nav-h,72px))] w-full max-w-[440px] flex-col justify-center px-5 py-8 sm:max-w-[460px] sm:px-4 sm:py-10">
         <StartScreen mode={mode} />
       </div>
     </main>
