@@ -393,9 +393,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
           {inStep === 'not-found' && (
             <div className="mt-6 space-y-3">
               <p className="text-[15px] text-[var(--lp-text-sub)]">{t.signIn.notFound}</p>
-              <Primary onClick={() => (onWaitlist ? onWaitlist() : switchMode('signup'))}>
-                {onWaitlist ? t.waitlist.join : t.signIn.createInstead}
-              </Primary>
+              <Primary onClick={() => switchMode('signup')}>{t.signIn.createInstead}</Primary>
             </div>
           )}
 
