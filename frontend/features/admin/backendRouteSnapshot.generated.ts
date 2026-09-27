@@ -351,6 +351,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/vault/request-withdraw" },
   { method: "GET", path: "/api/verification/eligibility/:address" },
   { method: "POST", path: "/api/waitlist/request" },
+  { method: "POST", path: "/api/waitlist/use-case" },
   { method: "POST", path: "/api/waitlist/verify" },
   { method: "GET", path: "/api/workspaces" },
   { method: "GET", path: "/api/workspaces/:id" },
