@@ -92,6 +92,12 @@ export interface SignupCopy {
     alreadyBody: string;
     invitedBody: string;
     createAccount: string;
+    tryTestnet: string;
+    tryTestnetNote: string;
+    useCaseTitle: string;
+    useCases: { sell_services: string; buy_services: string; sell_goods: string; buy_goods: string; business_trade: string };
+    useCaseThanks: string;
+    follow: string;
     invitedPrompt: string;
     signIn: string;
     back: string;
@@ -226,6 +232,12 @@ const en: SignupCopy = {
     alreadyBody: "You joined on {date}. We'll email {email} when Karwan opens for you.",
     invitedBody: "Your email is already invited. You can create your account now.",
     createAccount: "Create your account",
+    tryTestnet: "Try Karwan now on testnet",
+    tryTestnetNote: "The full product, with test money.",
+    useCaseTitle: "What will you use Karwan for?",
+    useCases: { sell_services: "Selling services", buy_services: "Buying services", sell_goods: "Selling goods", buy_goods: "Buying goods", business_trade: "Business trade" },
+    useCaseThanks: "Thanks. That helps us open the right spots first.",
+    follow: "Follow @karwanBuild for launch news",
     invitedPrompt: "Already invited?",
     signIn: "Sign in",
     back: "Back to the waitlist",
@@ -360,6 +372,12 @@ const ar: SignupCopy = {
     alreadyBody: "انضممت في {date}. سنراسل {email} عندما يُفتح كاروان لك.",
     invitedBody: "بريدك مدعو بالفعل. يمكنك إنشاء حسابك الآن.",
     createAccount: "أنشئ حسابك",
+    tryTestnet: "جرّب كاروان الآن على شبكة الاختبار",
+    tryTestnetNote: "المنتج كاملًا، بأموال تجريبية.",
+    useCaseTitle: "لماذا ستستخدم كاروان؟",
+    useCases: { sell_services: "بيع خدمات", buy_services: "شراء خدمات", sell_goods: "بيع سلع", buy_goods: "شراء سلع", business_trade: "تجارة بين الشركات" },
+    useCaseThanks: "شكرًا. هذا يساعدنا على فتح الأماكن المناسبة أولًا.",
+    follow: "تابع @karwanBuild لأخبار الإطلاق",
     invitedPrompt: "لديك دعوة بالفعل؟",
     signIn: "تسجيل الدخول",
     back: "العودة إلى قائمة الانتظار",
@@ -494,6 +512,12 @@ const fr: SignupCopy = {
     alreadyBody: "Vous l’avez rejointe le {date}. Nous écrirons à {email} quand Karwan vous sera ouvert.",
     invitedBody: "Votre e-mail est déjà invité. Vous pouvez créer votre compte maintenant.",
     createAccount: "Créer votre compte",
+    tryTestnet: "Essayer Karwan dès maintenant sur le testnet",
+    tryTestnetNote: "Le produit complet, avec de l’argent de test.",
+    useCaseTitle: "Pour quoi utiliserez-vous Karwan ?",
+    useCases: { sell_services: "Vendre des services", buy_services: "Acheter des services", sell_goods: "Vendre des biens", buy_goods: "Acheter des biens", business_trade: "Commerce entre entreprises" },
+    useCaseThanks: "Merci. Cela nous aide à ouvrir les bonnes places en premier.",
+    follow: "Suivez @karwanBuild pour les nouvelles du lancement",
     invitedPrompt: "Déjà invité ?",
     signIn: "Se connecter",
     back: "Retour à la liste d’attente",
@@ -628,6 +652,12 @@ const hi: SignupCopy = {
     alreadyBody: "आप {date} को जुड़े थे। कारवान आपके लिए खुलने पर हम {email} पर ईमेल करेंगे।",
     invitedBody: "आपका ईमेल पहले से आमंत्रित है। आप अभी अपना खाता बना सकते हैं।",
     createAccount: "अपना खाता बनाएँ",
+    tryTestnet: "अभी टेस्टनेट पर कारवान आज़माएँ",
+    tryTestnetNote: "पूरा उत्पाद, टेस्ट पैसे के साथ।",
+    useCaseTitle: "आप कारवान का उपयोग किसलिए करेंगे?",
+    useCases: { sell_services: "सेवाएँ बेचना", buy_services: "सेवाएँ खरीदना", sell_goods: "सामान बेचना", buy_goods: "सामान खरीदना", business_trade: "व्यावसायिक व्यापार" },
+    useCaseThanks: "धन्यवाद। इससे हमें सही जगहें पहले खोलने में मदद मिलती है।",
+    follow: "लॉन्च की खबरों के लिए @karwanBuild को फ़ॉलो करें",
     invitedPrompt: "पहले से आमंत्रित हैं?",
     signIn: "साइन इन करें",
     back: "प्रतीक्षा सूची पर वापस",
@@ -762,6 +792,12 @@ const sw: SignupCopy = {
     alreadyBody: "Ulijiunga tarehe {date}. Tutaandikia {email} Karwan itakapofunguliwa kwako.",
     invitedBody: "Barua pepe yako tayari imealikwa. Unaweza kufungua akaunti yako sasa.",
     createAccount: "Fungua akaunti yako",
+    tryTestnet: "Jaribu Karwan sasa kwenye testnet",
+    tryTestnetNote: "Bidhaa kamili, kwa pesa za majaribio.",
+    useCaseTitle: "Utatumia Karwan kwa nini?",
+    useCases: { sell_services: "Kuuza huduma", buy_services: "Kununua huduma", sell_goods: "Kuuza bidhaa", buy_goods: "Kununua bidhaa", business_trade: "Biashara kati ya kampuni" },
+    useCaseThanks: "Asante. Hii inatusaidia kufungua nafasi sahihi kwanza.",
+    follow: "Fuata @karwanBuild kupata habari za uzinduzi",
     invitedPrompt: "Tayari umealikwa?",
     signIn: "Ingia",
     back: "Rudi kwenye orodha ya kusubiri",

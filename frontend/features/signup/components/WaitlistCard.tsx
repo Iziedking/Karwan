@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, WAITLIST_USE_CASES, type WaitlistUseCase } from '@/core/api';
+import { TESTNET_ORIGIN } from '@/shared/utils/routes';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WaitlistSeal } from './WaitlistSeal';
 
@@ -18,6 +19,8 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
   const [invited, setInvited] = useState(false);
   const [position, setPosition] = useState<number | null>(null);
   const [joinedBefore, setJoinedBefore] = useState<number | null>(null);
+  const [answerToken, setAnswerToken] = useState<string | null>(null);
+  const [useCase, setUseCase] = useState<WaitlistUseCase | null>(null);
   const [busy, setBusy] = useState<null | 'send' | 'verify'>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +52,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
       setInvited(r.invited);
       setPosition(r.position);
       setJoinedBefore(r.alreadyJoined ? r.joinedAt : null);
+      setAnswerToken(r.answerToken);
       setStep('done');
     } catch (err) {
       const reason = err instanceof ApiError ? err.code : undefined;
@@ -56,6 +60,12 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
     } finally {
       setBusy(null);
     }
+  }
+
+  function answer(choice: WaitlistUseCase) {
+    setUseCase(choice);
+    // The answer only shapes who we let in first, so a failed save is not worth an error on screen.
+    if (answerToken) void api.waitlistUseCase(answerToken, choice).catch(() => undefined);
   }
 
   const primary =
@@ -120,8 +130,34 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
                     .replace('{email}', email)
                 : t.doneBody.replace('{email}', email)}
           </p>
-          {invited && (
+          {invited ? (
             <button type="button" className={primary} onClick={onCreate}>{t.createAccount}</button>
+          ) : (
+            <>
+              <div className="space-y-2 pt-1">
+                <a href={`${TESTNET_ORIGIN}/start?mode=signup`} className={primary}>{t.tryTestnet}</a>
+                <p className="text-center text-[13px] text-[var(--lp-text-sub)]">{t.tryTestnetNote}</p>
+              </div>
+              <fieldset className="border-t border-[var(--lp-outline-strong)] pt-5">
+                <legend className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.useCaseTitle}</legend>
+                {useCase ? (
+                  <p className="mt-2 text-[14px] text-[var(--lp-text-sub)]">{t.useCaseThanks}</p>
+                ) : (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {WAITLIST_USE_CASES.map((choice) => (
+                      <button key={choice} type="button" onClick={() => answer(choice)}
+                        className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]">
+                        {t.useCases[choice]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </fieldset>
+              <a href="https://x.com/karwanBuild" target="_blank" rel="noreferrer"
+                className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]">
+                {t.follow}
+              </a>
+            </>
           )}
         </div>
       )}

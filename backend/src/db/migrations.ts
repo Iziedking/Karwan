@@ -974,6 +974,13 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       ALTER TABLE mainnet_invites_v1 ADD COLUMN IF NOT EXISTS emailed_at BIGINT;
     `,
   },
+  {
+    version: 33,
+    name: 'waitlist_use_case',
+    sql: `
+      ALTER TABLE waitlist_v1 ADD COLUMN IF NOT EXISTS use_case TEXT;
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

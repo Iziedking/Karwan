@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, ApiError } from '@/core/api';
+import { api, ApiError, type WaitlistUseCase } from '@/core/api';
 
 const labelClass = 'mono text-[10px] uppercase tracking-[0.12em] text-white/40';
 type Data = Awaited<ReturnType<typeof api.adminWaitlist>>;
+const USE_LABEL: Record<WaitlistUseCase, string> = {
+  sell_services: 'Sell services', buy_services: 'Buy services', sell_goods: 'Sell goods', buy_goods: 'Buy goods', business_trade: 'Business trade',
+};
 
 function when(ts: number): string {
   return new Date(ts).toLocaleString('en-GB', {
@@ -13,7 +16,7 @@ function when(ts: number): string {
 }
 
 function downloadCsv(rows: Data['waitlist'], invited: Set<string>) {
-  const lines = ['email,locale,joined_utc,invited', ...rows.map((r) => `${r.email},${r.locale},${new Date(r.joinedAt).toISOString()},${invited.has(r.email) ? 'yes' : 'no'}`)];
+  const lines = ['email,locale,joined_utc,use_case,invited', ...rows.map((r) => `${r.email},${r.locale},${new Date(r.joinedAt).toISOString()},${r.useCase ?? ''},${invited.has(r.email) ? 'yes' : 'no'}`)];
   const url = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
   const a = document.createElement('a');
   a.href = url;
@@ -137,7 +140,7 @@ export default function AdminWaitlistPage() {
         </div>
         <table className="mt-3 w-full text-left text-[13px]">
           <thead className="text-white/40">
-            <tr><th className="py-2 font-normal">#</th><th className="font-normal">Email</th><th className="font-normal">Language</th><th className="font-normal">Joined</th><th className="font-normal">Access</th></tr>
+            <tr><th className="py-2 font-normal">#</th><th className="font-normal">Email</th><th className="font-normal">Language</th><th className="font-normal">Use</th><th className="font-normal">Joined</th><th className="font-normal">Access</th></tr>
           </thead>
           <tbody>
             {data?.waitlist.map((r, i) => (
@@ -145,6 +148,7 @@ export default function AdminWaitlistPage() {
                 <td className="mono py-2 text-white/50">{i + 1}</td>
                 <td className="text-white">{r.email}</td>
                 <td className="text-white/60">{r.locale}</td>
+                <td className="text-white/60">{r.useCase ? USE_LABEL[r.useCase] : ''}</td>
                 <td className="text-white/60">{when(r.joinedAt)}</td>
                 <td>
                   {invited.has(r.email) ? (

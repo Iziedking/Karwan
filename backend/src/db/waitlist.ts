@@ -6,10 +6,15 @@ import { pgEnabled, postgresExecutor } from './client.js';
 /// Postgres in production; an in-memory map when there is no database (local
 /// development only, so nothing here is lost that mattered).
 
+export const WAITLIST_USE_CASES = ['sell_services', 'buy_services', 'sell_goods', 'buy_goods', 'business_trade'] as const;
+export type WaitlistUseCase = (typeof WAITLIST_USE_CASES)[number];
+
 export interface WaitlistEntry {
   email: string;
   locale: string;
   joinedAt: number;
+  /// What the person said they will use Karwan for, if they answered.
+  useCase?: WaitlistUseCase | null;
 }
 
 export interface Invite {
@@ -57,10 +62,27 @@ export async function joinWaitlist(email: string, locale: string): Promise<{ ent
 
 export async function listWaitlist(): Promise<WaitlistEntry[]> {
   if (!pgEnabled) return [...waitMem.values()].sort((a, b) => a.joinedAt - b.joinedAt);
-  const { rows } = await postgresExecutor().query<{ email: string; locale: string; joined_at: string }>(
-    'SELECT email, locale, joined_at FROM waitlist_v1 ORDER BY joined_at ASC',
+  const { rows } = await postgresExecutor().query<{ email: string; locale: string; joined_at: string; use_case: WaitlistUseCase | null }>(
+    'SELECT email, locale, joined_at, use_case FROM waitlist_v1 ORDER BY joined_at ASC',
   );
-  return rows.map((r) => ({ email: r.email, locale: r.locale, joinedAt: Number(r.joined_at) }));
+  return rows.map((r) => ({ email: r.email, locale: r.locale, joinedAt: Number(r.joined_at), useCase: r.use_case }));
+}
+
+/// Records the answer to "what will you use Karwan for". A later answer
+/// replaces an earlier one. False when the email is not on the list.
+export async function setWaitlistUseCase(email: string, useCase: WaitlistUseCase): Promise<boolean> {
+  const e = norm(email);
+  if (!pgEnabled) {
+    const entry = waitMem.get(e);
+    if (!entry) return false;
+    entry.useCase = useCase;
+    return true;
+  }
+  const { rows } = await postgresExecutor().query(
+    'UPDATE waitlist_v1 SET use_case = $2 WHERE email = $1 RETURNING email',
+    [e, useCase],
+  );
+  return rows.length > 0;
 }
 
 /// Invites from the MAINNET_INVITES env variable.

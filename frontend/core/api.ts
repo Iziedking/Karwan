@@ -11,6 +11,9 @@ import { credentialsForApiRequest } from './adminTransport';
 const configuredBase = process.env.NEXT_PUBLIC_BACKEND_URL?.trim();
 const BASE = (configuredBase || 'http://localhost:8787').replace(/\/+$/, '');
 
+export const WAITLIST_USE_CASES = ['sell_services', 'buy_services', 'sell_goods', 'buy_goods', 'business_trade'] as const;
+export type WaitlistUseCase = (typeof WAITLIST_USE_CASES)[number];
+
 /// A public, read-only API address, for pages that link readers to the raw
 /// figures behind them.
 export function publicApiUrl(path: string): string {
@@ -2933,10 +2936,12 @@ export const api = {
   waitlistRequest: (email: string, locale: string) =>
     json<{ sent: true }>('/api/waitlist/request', { method: 'POST', body: JSON.stringify({ email, locale }) }),
   waitlistVerify: (email: string, code: string) =>
-    json<{ joined: true; alreadyJoined: boolean; joinedAt: number; invited: boolean; position: number | null }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+    json<{ joined: true; alreadyJoined: boolean; joinedAt: number; invited: boolean; position: number | null; answerToken: string }>('/api/waitlist/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  waitlistUseCase: (token: string, useCase: WaitlistUseCase) =>
+    json<{ saved: true }>('/api/waitlist/use-case', { method: 'POST', body: JSON.stringify({ token, useCase }) }),
   adminWaitlist: () =>
     json<{
-      waitlist: Array<{ email: string; locale: string; joinedAt: number }>;
+      waitlist: Array<{ email: string; locale: string; joinedAt: number; useCase?: WaitlistUseCase | null }>;
       invites: Array<{ email: string; note: string | null; addedBy: string; addedAt: number; emailedAt: number | null }>;
       envInvites: string[];
     }>('/api/admin/waitlist', { headers: adminHeaders() }),
