@@ -140,7 +140,7 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
         import('@/features/modularWallet/recovery'),
       ]);
       try {
-        const passkey = await obtainPasskey('register', `${email}-recovered-${Date.now()}`);
+        const passkey = await obtainPasskey('register', email);
         await executeRecoveryOnchain(key, passkey);
         await signInWithStoredPasskey();
         await api.recoveryCompleted().catch(() => undefined);

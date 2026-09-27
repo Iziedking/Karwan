@@ -3,6 +3,7 @@ import { createBundlerClient, toWebAuthnAccount } from 'viem/account-abstraction
 import { ARC_NETWORK, publicRpcFor, settlementChain as arcChain } from '@/core/arcNetwork';
 import { modularClient } from './config';
 import { circleFeeEstimator, type CircleGasPrice } from './fees';
+import { passkeyName } from './passkeyName';
 import { createPasskeyProvider, type PasskeyProvider } from './provider';
 
 /// The public half of a passkey: its id, public key and relying party. Nothing
@@ -42,7 +43,7 @@ export async function obtainPasskey(mode: 'register' | 'login', email?: string):
   const credential = await toWebAuthnCredential({
     transport: toPasskeyTransport(url, key),
     mode: mode === 'register' ? WebAuthnMode.Register : WebAuthnMode.Login,
-    ...(mode === 'register' ? { username: email } : {}),
+    ...(mode === 'register' && email ? { username: passkeyName(email) } : {}),
   });
   const stored: StoredPasskey = { id: credential.id, publicKey: credential.publicKey, rpId: credential.rpId };
   try {
