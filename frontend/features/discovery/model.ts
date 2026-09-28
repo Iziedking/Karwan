@@ -59,11 +59,9 @@ export function buildDiscoveryCards(
   const requests: DiscoveryCard[] = briefs
     .filter((brief) => brief.deadlineUnix * 1000 > now)
     .map((brief) => {
-      const raw = brief.briefText.trim();
-      const [firstLine = '', ...rest] = raw.split('\n');
-      const title = firstLine.slice(0, 80).trim() || `Request ${brief.jobId.slice(0, 10)}`;
-      const overflow = firstLine.length > 80 ? firstLine.slice(80).trim() : '';
-      const body = [overflow, ...rest].filter(Boolean).join(' ').trim();
+      const split = splitRequestText(brief.briefText);
+      const title = split.title || `Request ${brief.jobId.slice(0, 10)}`;
+      const body = split.body;
       return {
         side: 'request',
         id: brief.jobId,
@@ -83,6 +81,26 @@ export function buildDiscoveryCards(
     });
 
   return [...offers, ...requests].sort(compareNewest);
+}
+
+const TITLE_LIMIT = 100;
+
+/// A request has no separate title, so its first sentence (or first line) is
+/// the title and the rest is the detail. A first sentence too long for a title
+/// breaks at the last space before the limit, never inside a word.
+export function splitRequestText(raw: string): { title: string; body: string } {
+  const text = raw.trim();
+  const [firstLine = '', ...lines] = text.split('\n');
+  const sentenceEnd = firstLine.search(/[.!?](\s|$)/);
+  let title = sentenceEnd >= 0 ? firstLine.slice(0, sentenceEnd + 1) : firstLine;
+  let rest = [firstLine.slice(title.length), ...lines].join(' ').replace(/\s+/g, ' ').trim();
+  if (title.length > TITLE_LIMIT) {
+    const cut = title.lastIndexOf(' ', TITLE_LIMIT - 1);
+    const at = cut > 0 ? cut : TITLE_LIMIT - 1;
+    rest = `${title.slice(at).trim()} ${rest}`.trim();
+    title = `${title.slice(0, at).trim()}…`;
+  }
+  return { title: title.trim(), body: rest };
 }
 
 export function discoveryRail(card: DiscoveryCard): DiscoveryRail {

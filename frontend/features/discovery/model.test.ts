@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { Listing, MarketplaceBrief, Partner } from '@/core/api';
 import {
   buildDiscoveryCards,
+  splitRequestText,
   discoveryRail,
   filterDiscoveryCards,
   filterPartners,
@@ -142,4 +143,20 @@ test('partner filters search real profile fields and keep trust sorting explicit
     sort: 'trust',
   });
   assert.deepEqual(result.map((partner) => partner.name), ['Atlas Textiles']);
+});
+
+test('a request reads as its first sentence, with the rest as the detail, never cut mid-word', () => {
+  assert.deepEqual(
+    splitRequestText('Need an escrow contract for freelance milestones, with tests. It is for an online shop selling to customers in Mexico.'),
+    { title: 'Need an escrow contract for freelance milestones, with tests.', body: 'It is for an online shop selling to customers in Mexico.' },
+  );
+  assert.deepEqual(splitRequestText('Need a flyer for a pop-up market.'), { title: 'Need a flyer for a pop-up market.', body: '' });
+  assert.deepEqual(splitRequestText('First line' + String.fromCharCode(10) + 'Second line'), { title: 'First line', body: 'Second line' });
+
+  const text = `Need ${'very '.repeat(40)}long help`;
+  const long = splitRequestText(text);
+  assert.ok(long.title.endsWith('…') && long.title.length <= 101, long.title);
+  const kept = long.title.slice(0, -1);
+  assert.equal(text.charAt(kept.length), ' ', 'cut falls on a space, not inside a word');
+  assert.equal(`${kept} ${long.body}`, text);
 });
