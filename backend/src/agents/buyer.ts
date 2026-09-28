@@ -1306,7 +1306,8 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   // The SecurityAgent fronts the one paid market read for this order now, so the
   // shared cache is warm before any seller evaluates and the paid call never
   // sits on the bid critical path. Buyer/seller research then reads from cache.
-  safe('securityResearch', () => securityResearchOrder(args.jobId, state.context.keywords));
+  // Operator-seeded requests skip it: no seller agent evaluates them.
+  if (!brief?.seedKey) safe('securityResearch', () => securityResearchOrder(args.jobId, state.context.keywords));
 }
 
 async function handleBidSubmitted(log: Log) {

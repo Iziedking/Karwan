@@ -453,6 +453,10 @@ async function handleJobPosted(log: Log, opts?: { rescan?: boolean }) {
 
   const args = (log as unknown as { args: JobPostedArgs }).args;
   const jobId = args.jobId;
+  // Operator-seeded requests stay out of agent bidding and the offer scan; at
+  // market-seeding volume each one would pay the model once per seller and offer.
+  // People still find them in the market and respond by hand.
+  if (getBrief(jobId)?.seedKey) return;
 
   const sellers = await resolveAllSellerProfiles();
   if (sellers.length === 0) return;
