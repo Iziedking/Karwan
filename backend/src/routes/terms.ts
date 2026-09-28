@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { verifyMessage } from 'viem';
+import { publicClient } from '../chain/client.js';
 import { config } from '../config.js';
 import { highestAcceptedVersion, recordAcceptance } from '../db/termsAcceptances.js';
 import { readSession } from '../auth/session.js';
@@ -17,6 +17,19 @@ const addrSchema = z
 export function termsAcceptanceMessage(address: string, version: string): string {
   return `Karwan Terms of Use\n\nI accept version ${version}.\n\nWallet: ${address.toLowerCase()}`;
 }
+
+type SignatureVerifier = (input: { address: `0x${string}`; message: string; signature: `0x${string}` }) => Promise<boolean>;
+
+/// Chain-aware check, the same one sign-in uses: an EOA is ecrecovered, and a
+/// smart wallet (every passkey account, often not yet deployed at sign-up) is
+/// checked through ERC-1271 or ERC-6492. Plain ecrecover refused every passkey.
+let verifySignature: SignatureVerifier = (input) => publicClient.verifyMessage(input);
+
+export const __test = {
+  setVerifier(fn: SignatureVerifier): void {
+    verifySignature = fn;
+  },
+};
 
 export const termsRoutes = new Hono();
 
@@ -80,12 +93,13 @@ termsRoutes.post('/accept', async (c) => {
     const message = termsAcceptanceMessage(session.address, body.version);
     let valid = false;
     try {
-      valid = await verifyMessage({
+      valid = await verifySignature({
         address: session.address as `0x${string}`,
         message,
         signature: body.signature as `0x${string}`,
       });
-    } catch {
+    } catch (err) {
+      logger.warn({ address: session.address, err: (err as Error).message }, 'terms signature check threw');
       valid = false;
     }
     if (!valid) {
