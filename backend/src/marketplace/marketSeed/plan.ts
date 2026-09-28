@@ -1,5 +1,14 @@
 import { createHash } from 'node:crypto';
-import { ACCOUNT_GROUPS, GOODS_VARIANTS, SERVICE_VARIANTS, SPECIALTIES, type Specialty } from './catalog.js';
+import {
+  ACCOUNT_GROUPS,
+  LOCAL_DELIVERY,
+  ONSITE_CITIES,
+  SERVICE_MARKETS,
+  SHIPPING_DESTINATIONS,
+  SPECIALTIES,
+  type Market,
+  type Specialty,
+} from './catalog.js';
 
 export const SEED_PREFIX = 'mk1-';
 const REQUESTS_PER_ACCOUNT = 50;
@@ -47,19 +56,36 @@ function specialty(id: string): Specialty {
   return found;
 }
 
+/// Three versions of each offer: three client markets for remote work, three
+/// cities for on-site work, or Lagos plus two shipping destinations for goods.
+function variantsFor(s: Specialty, specialtyIndex: number, offerIndex: number, onsite: boolean): Array<{ market: Market; title: (t: string) => string }> {
+  if (s.lane === 'goods') {
+    const ship = [0, 1].map((j) => SHIPPING_DESTINATIONS[(specialtyIndex * 3 + offerIndex * 2 + j) % SHIPPING_DESTINATIONS.length]!);
+    return [
+      { market: LOCAL_DELIVERY, title: (t) => `${t}, Lagos delivery` },
+      ...ship.map((market) => ({ market, title: (t: string) => `${t}, shipped to ${market.name}` })),
+    ];
+  }
+  if (onsite) return ONSITE_CITIES.map((market) => ({ market, title: (t: string) => `${t} in ${market.name}` }));
+  return [0, 1, 2].map((k) => {
+    const market = SERVICE_MARKETS[(specialtyIndex * 5 + offerIndex * 3 + k) % SERVICE_MARKETS.length]!;
+    return { market, title: (t: string) => `${t} for clients in ${market.name}` };
+  });
+}
+
 function offersFor(account: number, key: string, ids: readonly string[]): SeedOffer[] {
   return ids.flatMap((id) => {
     const s = specialty(id);
-    const variants = s.lane === 'goods' ? GOODS_VARIANTS : SERVICE_VARIANTS;
-    return s.offers.flatMap(([title, description, base], o) =>
-      variants.map((v, n) => ({
+    const specialtyIndex = SPECIALTIES.indexOf(s);
+    return s.offers.flatMap(([title, description, base, onsite], o) =>
+      variantsFor(s, specialtyIndex, o, !!onsite).map((v, n) => ({
         kind: 'offer' as const,
         seedKey: `${SEED_PREFIX}${key}-o-${id}-${o}-${n}`,
         account,
         specialty: id,
-        title: s.lane === 'goods' ? `${title}, ${v.label.toLowerCase()}` : `${title} (${v.label})`,
-        description: `${description} ${v.detail}`,
-        askingPriceUsdc: price(base * v.multiplier),
+        title: v.title(title),
+        description: `${description} ${v.market.detail}`,
+        askingPriceUsdc: price(base * v.market.multiplier),
       })),
     );
   });
@@ -75,15 +101,16 @@ function requestsFor(account: number, key: string, own: readonly string[], conte
       if (out.length >= REQUESTS_PER_ACCOUNT) break;
       const entry = s.requests[round % s.requests.length];
       if (!entry || round >= s.requests.length) continue;
-      const [brief, budget] = entry;
+      const [brief, budget, onsite] = entry;
       const n = out.length;
+      const market = onsite ? 'Nigeria' : SERVICE_MARKETS[(account * 5 + n) % SERVICE_MARKETS.length]!.name;
       const drift = 1 + (((account * 7 + n) % 5) - 2) * 0.05;
       out.push({
         kind: 'request',
         seedKey: `${SEED_PREFIX}${key}-r-${s.id}-${round}`,
         account,
         specialty: s.id,
-        brief: `${brief} ${context}`,
+        brief: `${brief} ${context.replace('{market}', market)}`,
         budgetUsdc: price(budget * drift),
         deadlineDays: 21 + (n % 10),
       });

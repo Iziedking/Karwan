@@ -1,39 +1,67 @@
 /// The operator market catalog: real offers and requests the Karwan team posts
 /// from its own testnet accounts, fulfilled with test USDC. Each account takes
-/// one group of three specialties by its position in the operator's request,
+/// one group of five specialties by its position in the operator's request,
 /// so no email or name lives in code.
+///
+/// Remote services name the client market they serve, across twelve regions.
+/// Work that needs someone present stays in the Nigerian cities the team is in,
+/// and goods ship from Lagos with honest delivery times.
 
 export type Lane = 'service' | 'goods';
+
+/// [title, description, base price in USDC, true when it needs someone on site]
+export type OfferEntry = readonly [string, string, number, boolean?];
+/// [brief, budget in USDC, true when it needs someone on site]
+export type RequestEntry = readonly [string, number, boolean?];
 
 export interface Specialty {
   id: string;
   lane: Lane;
-  /// [title, description, base price in USDC]
-  offers: ReadonlyArray<readonly [string, string, number]>;
-  /// [brief, budget in USDC]
-  requests: ReadonlyArray<readonly [string, number]>;
+  offers: readonly OfferEntry[];
+  requests: readonly RequestEntry[];
 }
 
-export interface Variant {
-  label: string;
+export interface Market {
+  /// How a title or sentence names the place, e.g. "the US".
+  name: string;
   multiplier: number;
   detail: string;
 }
 
-export const SERVICE_VARIANTS: readonly Variant[] = [
-  { label: 'Basic', multiplier: 1, detail: 'One round of revisions, delivered in 5 days.' },
-  { label: 'Standard', multiplier: 1.8, detail: 'Two rounds of revisions, delivered in 4 days.' },
-  { label: 'Premium', multiplier: 3, detail: 'Revisions for 14 days after delivery, delivered in 3 days.' },
-  { label: '48-hour', multiplier: 2.2, detail: 'Delivered within 48 hours, with one round of revisions.' },
-  { label: 'Bundle of 3', multiplier: 2.6, detail: 'Three of these, delivered together in 7 days.' },
+/// Client markets for remote work.
+export const SERVICE_MARKETS: readonly Market[] = [
+  { name: 'Nigeria', multiplier: 1, detail: 'Delivered remotely, with calls in West Africa Time.' },
+  { name: 'Kenya', multiplier: 1, detail: 'Delivered remotely, with calls in East Africa Time.' },
+  { name: 'Ghana', multiplier: 1, detail: 'Delivered remotely, with calls in Ghana time.' },
+  { name: 'Egypt', multiplier: 1, detail: 'Delivered remotely, with calls in Cairo time.' },
+  { name: 'the UAE', multiplier: 1.2, detail: 'Delivered remotely, with calls in Gulf time.' },
+  { name: 'India', multiplier: 1, detail: 'Delivered remotely, with calls in India time.' },
+  { name: 'the Philippines', multiplier: 1, detail: 'Delivered remotely, with calls in Manila time.' },
+  { name: 'Indonesia', multiplier: 1, detail: 'Delivered remotely, with calls in Jakarta time.' },
+  { name: 'Brazil', multiplier: 1.05, detail: 'Delivered remotely, with calls in Sao Paulo time.' },
+  { name: 'Mexico', multiplier: 1.05, detail: 'Delivered remotely, with calls in Mexico City time.' },
+  { name: 'the UK', multiplier: 1.3, detail: 'Delivered remotely, with calls in UK hours.' },
+  { name: 'the US', multiplier: 1.3, detail: 'Delivered remotely, with calls in US Eastern hours.' },
 ];
 
-export const GOODS_VARIANTS: readonly Variant[] = [
-  { label: 'Lagos delivery', multiplier: 1, detail: 'Delivered within Lagos in 2 days.' },
-  { label: 'Abuja delivery', multiplier: 1.05, detail: 'Delivered to Abuja in 3 days.' },
-  { label: 'Accra delivery', multiplier: 1.1, detail: 'Shipped to Accra in 4 to 6 days.' },
-  { label: 'Nairobi delivery', multiplier: 1.12, detail: 'Shipped to Nairobi in 5 to 7 days.' },
-  { label: 'Pickup in Ikeja', multiplier: 0.97, detail: 'Collected in Ikeja, Lagos, at a time you choose.' },
+/// Where the team can turn up in person.
+export const ONSITE_CITIES: readonly Market[] = [
+  { name: 'Lagos', multiplier: 1, detail: 'On site anywhere in Lagos.' },
+  { name: 'Abuja', multiplier: 1.1, detail: 'On site in Abuja, travel included.' },
+  { name: 'Port Harcourt', multiplier: 1.15, detail: 'On site in Port Harcourt, travel included.' },
+];
+
+/// Goods ship from Lagos.
+export const LOCAL_DELIVERY: Market = { name: 'Lagos', multiplier: 1, detail: 'Delivered within Lagos in 2 days.' };
+export const SHIPPING_DESTINATIONS: readonly Market[] = [
+  { name: 'Abuja', multiplier: 1.05, detail: 'Shipped from Lagos to Abuja in 3 days.' },
+  { name: 'Accra', multiplier: 1.1, detail: 'Shipped from Lagos to Accra in 4 to 6 days.' },
+  { name: 'Nairobi', multiplier: 1.15, detail: 'Shipped from Lagos to Nairobi in 5 to 7 days.' },
+  { name: 'Johannesburg', multiplier: 1.15, detail: 'Shipped from Lagos to Johannesburg in 6 to 8 days.' },
+  { name: 'Dubai', multiplier: 1.2, detail: 'Shipped from Lagos to Dubai in 6 to 9 days.' },
+  { name: 'London', multiplier: 1.25, detail: 'Shipped from Lagos to London in 7 to 10 days.' },
+  { name: 'Toronto', multiplier: 1.3, detail: 'Shipped from Lagos to Toronto in 8 to 12 days.' },
+  { name: 'Houston', multiplier: 1.3, detail: 'Shipped from Lagos to Houston in 8 to 12 days.' },
 ];
 
 export const SPECIALTIES: readonly Specialty[] = [
@@ -104,6 +132,50 @@ export const SPECIALTIES: readonly Specialty[] = [
     ],
   },
   {
+    id: 'game-3d-art', lane: 'service',
+    offers: [
+      ['3D product render', 'Three photoreal renders of one product from your photos or CAD.', 150],
+      ['Game character concept art', 'One character with front, side and back views.', 120],
+      ['Low-poly game asset pack', 'Ten game-ready low-poly props with textures.', 180],
+      ['2D sprite sheet', 'An animated sprite sheet with up to four actions.', 90],
+      ['Isometric illustration', 'One detailed isometric scene for a site or pitch.', 110],
+      ['3D logo animation', 'A five-second animated 3D version of your logo.', 100],
+      ['Architectural visualisation', 'Two interior or exterior renders from your floor plans.', 250],
+      ['Game UI kit', 'Menus, buttons and HUD elements in one consistent style.', 160],
+      ['NFT or avatar collection base art', 'Base character art with twelve swappable traits.', 220],
+      ['Texture and material pack', 'Twenty tileable PBR textures for one theme.', 80],
+    ],
+    requests: [
+      ['Need three photoreal renders of a smart speaker for our store page.', 140],
+      ['Looking for concept art of two characters for a mobile game.', 200],
+      ['Need a game UI kit for a casual puzzle game.', 150],
+      ['Want an animated 3D version of our logo for video intros.', 90],
+      ['Need interior renders of a two-bedroom apartment from floor plans.', 220],
+    ],
+  },
+  {
+    id: 'event-planning', lane: 'service',
+    offers: [
+      ['Corporate event coordination', 'Planning and on-the-day coordination for an event up to 150 guests.', 400, true],
+      ['Product launch event', 'Venue, run of show and supplier booking for a launch night.', 450, true],
+      ['Birthday or private party planning', 'Theme, vendors and coordination for up to 80 guests.', 250, true],
+      ['Conference logistics', 'Registration desk, badges and speaker handling for one day.', 350, true],
+      ['Event supplier sourcing', 'Three quotes each for venue, catering and sound.', 90],
+      ['Run of show and timeline', 'A minute-by-minute run of show for your event.', 60],
+      ['Wedding day coordination', 'A coordinator on the day to keep the schedule and vendors on track.', 300, true],
+      ['Virtual event production', 'Streaming setup, rehearsal and host support for a two-hour online event.', 200],
+      ['Exhibition stand management', 'Setup, staffing plan and teardown for a trade fair stand.', 280, true],
+      ['Event budget plan', 'A line-by-line budget with savings options.', 50],
+    ],
+    requests: [
+      ['Need a coordinator for a 100-guest company dinner.', 350, true],
+      ['Looking for someone to produce a two-hour online product launch.', 180],
+      ['Need a run of show and supplier quotes for a community meetup.', 90],
+      ['Want help staffing and managing our stand at a trade fair.', 250, true],
+      ['Need a budget plan for a small conference.', 60],
+    ],
+  },
+  {
     id: 'web-development', lane: 'service',
     offers: [
       ['Landing page build', 'A responsive one-page site built from your design or a clean template.', 250],
@@ -170,6 +242,50 @@ export const SPECIALTIES: readonly Specialty[] = [
     ],
   },
   {
+    id: 'software-ai', lane: 'service',
+    offers: [
+      ['Customer support chatbot', 'A chatbot trained on your help docs, added to your site.', 350],
+      ['WhatsApp order bot', 'A WhatsApp bot that takes orders and answers common questions.', 300],
+      ['Workflow automation', 'One business workflow automated across your tools with Zapier, Make or code.', 150],
+      ['AI document extraction', 'A script that pulls fields from invoices or forms into a spreadsheet.', 220],
+      ['Internal AI assistant', 'A private assistant that answers questions from your company documents.', 400],
+      ['Data scraping script', 'A scheduled script that collects public data you need into a sheet.', 130],
+      ['Google Sheets automation', 'Formulas and Apps Script that remove a weekly manual task.', 80],
+      ['AI content pipeline', 'A pipeline that drafts first versions of posts or descriptions for review.', 200],
+      ['Telegram bot', 'A Telegram bot for alerts, sign-ups or simple payments.', 160],
+      ['AI feature prototype', 'A working prototype of one AI feature inside your app.', 450],
+    ],
+    requests: [
+      ['Need a WhatsApp bot that takes food orders and sends them to the kitchen.', 250],
+      ['Looking for someone to automate invoice data entry from PDFs.', 180],
+      ['Need a support chatbot trained on our help centre.', 300],
+      ['Want our weekly sales report built automatically in Google Sheets.', 90],
+      ['Need a Telegram bot that alerts our team about new orders.', 120],
+    ],
+  },
+  {
+    id: 'smart-contracts', lane: 'service',
+    offers: [
+      ['ERC-20 token contract', 'A standard token contract with tests and a deploy script.', 250],
+      ['Escrow contract', 'A two-party escrow contract with release and refund, fully tested.', 450],
+      ['Smart contract review', 'A line-by-line review of one contract up to 300 lines, with findings.', 400],
+      ['NFT collection contract', 'An ERC-721 contract with mint, allowlist and royalties.', 300],
+      ['Web3 wallet connection', 'Wallet connect and sign-in added to your web app.', 180],
+      ['USDC payment button', 'A button that takes USDC payments on one chain, with receipts.', 200],
+      ['Subgraph or indexer', 'An indexer for your contract events with a query API.', 280],
+      ['Gas optimisation pass', 'Gas savings on one contract with before and after numbers.', 220],
+      ['Contract deployment and verification', 'Deploy and verify your contracts on one network.', 90],
+      ['Web3 dashboard', 'A read-only dashboard of balances and events for your contracts.', 350],
+    ],
+    requests: [
+      ['Need a USDC checkout added to our online store.', 220],
+      ['Looking for a review of a staking contract before launch.', 400],
+      ['Need an escrow contract for freelance milestones, with tests.', 450],
+      ['Want wallet sign-in added to our Next.js app.', 150],
+      ['Need our contracts deployed and verified on a testnet.', 80],
+    ],
+  },
+  {
     id: 'bookkeeping', lane: 'service',
     offers: [
       ['Monthly bookkeeping', 'Up to 150 transactions categorised and reconciled each month.', 120],
@@ -229,31 +345,75 @@ export const SPECIALTIES: readonly Specialty[] = [
     ],
     requests: [
       ['Need a virtual assistant to manage my inbox for two weeks.', 120],
-      ['Looking for 50 B2B leads in Nigerian fintech with verified emails.', 80],
-      ['Need help booking travel and meetings for a trip to Nairobi.', 60],
+      ['Looking for 50 B2B leads in fintech with verified emails.', 80],
+      ['Need help booking travel and meetings for a three-city sales trip.', 60],
       ['Want someone to contact 15 packaging suppliers and compare quotes.', 70],
       ['Need our CRM cleaned up, about 800 contacts.', 70],
     ],
   },
   {
+    id: 'legal-docs', lane: 'service',
+    offers: [
+      ['Freelance contract template', 'A clear services contract you can reuse, drafted for your lawyer to review.', 80],
+      ['Website terms and privacy policy', 'Terms of use and a privacy policy drafted from your product, for legal review.', 120],
+      ['Non-disclosure agreement', 'A mutual NDA template in plain language.', 40],
+      ['Company policy handbook', 'Leave, conduct and remote work policies in one handbook.', 200],
+      ['Business plan document', 'A structured business plan from your notes and numbers.', 250],
+      ['Grant or tender application', 'A complete application drafted from your materials.', 220],
+      ['Supplier agreement draft', 'A supply agreement drafted around your terms, for legal review.', 150],
+      ['Investor update template', 'A monthly investor update template with metrics and narrative sections.', 70],
+      ['Contract summary', 'A plain-language summary of a contract up to 20 pages.', 60],
+      ['Employment offer letters', 'Offer letter and contract templates for new hires.', 90],
+    ],
+    requests: [
+      ['Need a reusable freelance services contract, to be checked by our lawyer.', 90],
+      ['Looking for someone to draft our website terms and privacy policy.', 110],
+      ['Need a business plan written for a bank loan application.', 220],
+      ['Want a plain-language summary of a 15-page supplier contract.', 60],
+      ['Need a grant application drafted for a small agritech project.', 200],
+    ],
+  },
+  {
+    id: 'hr-recruiting', lane: 'service',
+    offers: [
+      ['CV and cover letter rewrite', 'A rewritten CV and a tailored cover letter for one role.', 45],
+      ['LinkedIn profile makeover', 'Headline, about section and experience rewritten for search.', 50],
+      ['Job description writing', 'Three clear job descriptions with requirements and pay bands.', 60],
+      ['Candidate sourcing', 'Fifteen screened candidates for one role, with notes.', 200],
+      ['Interview scheduling and screening', 'Screening calls with up to ten candidates and a shortlist.', 180],
+      ['Onboarding checklist', 'A first-month onboarding plan for new hires.', 55],
+      ['Salary benchmark', 'Pay ranges for one role from public data, with sources.', 90],
+      ['Remote hiring process setup', 'A hiring pipeline set up in a free applicant tracker.', 140],
+      ['Staff handbook review', 'A review of your handbook with gaps listed.', 80],
+      ['Interview question bank', 'Forty structured interview questions with scoring notes.', 45],
+    ],
+    requests: [
+      ['Need 10 screened candidates for a junior developer role.', 180],
+      ['Looking for someone to rewrite three job descriptions.', 60],
+      ['Need salary benchmarks for a customer support role.', 80],
+      ['Want an onboarding plan for our first five hires.', 70],
+      ['Need a hiring pipeline set up for a growing sales team.', 130],
+    ],
+  },
+  {
     id: 'photo-video', lane: 'service',
     offers: [
-      ['Product photography', 'Ten edited product photos on a clean background.', 150],
-      ['Event photography', 'Four hours of event coverage with 100 edited photos.', 220],
-      ['Headshot session', 'A one-hour session with five retouched headshots.', 80],
+      ['Product photography', 'Ten edited product photos on a clean background, shot at our studio.', 150, true],
+      ['Event photography', 'Four hours of event coverage with 100 edited photos.', 220, true],
+      ['Headshot session', 'A one-hour session with five retouched headshots.', 80, true],
       ['Promo video edit', 'A 60-second promo edited from your footage with music and titles.', 180],
       ['YouTube video editing', 'One video up to 15 minutes edited with cuts, captions and a thumbnail.', 120],
       ['Photo retouching', 'Retouching of up to 20 photos.', 40],
-      ['Real estate photography', 'Interior and exterior photos of one property, 25 edited images.', 170],
+      ['Real estate photography', 'Interior and exterior photos of one property, 25 edited images.', 170, true],
       ['Wedding highlight film', 'A three-to-five-minute highlight film from your wedding footage.', 400],
       ['Drone footage edit', 'A short edit from your drone clips with colour grading.', 140],
-      ['Food photography', 'Twelve styled and edited dish photos for menus and delivery apps.', 130],
+      ['Food photography', 'Twelve styled and edited dish photos for menus and delivery apps.', 130, true],
     ],
     requests: [
-      ['Need product photos for 15 items on a white background.', 140],
-      ['Looking for a photographer for a four-hour launch event in Lagos.', 200],
+      ['Need product photos for 15 items on a white background.', 140, true],
+      ['Looking for a photographer for a four-hour launch event.', 200, true],
       ['Need a 60-second promo video cut from existing footage.', 150],
-      ['Want team headshots for six people.', 120],
+      ['Want team headshots for six people.', 120, true],
       ['Need a YouTube video edited with captions and a thumbnail.', 90],
     ],
   },
@@ -266,17 +426,17 @@ export const SPECIALTIES: readonly Specialty[] = [
       ['Website localisation', 'Your site translated into one language, with search terms adapted.', 250],
       ['Subtitle translation', 'Translated subtitles for a video up to 20 minutes.', 80],
       ['English to Swahili translation', 'Translation of up to 2,000 words for East African readers.', 90],
-      ['English to Hausa translation', 'Translation of up to 2,000 words.', 80],
+      ['English to Portuguese translation', 'Translation of up to 2,000 words for Brazilian readers.', 95],
       ['Audio transcription', 'Transcription of up to 60 minutes of audio with timestamps.', 50],
       ['Translation proofreading', 'A native-speaker check of an existing translation up to 3,000 words.', 45],
       ['App localisation', 'App strings translated into one language with context checks.', 170],
     ],
     requests: [
-      ['Need our website translated into French for West African customers.', 200],
+      ['Need our website translated into French for new customers.', 200],
       ['Looking for Swahili subtitles for a 10-minute product video.', 70],
       ['Need a contract translated from English to Arabic.', 120],
       ['Want 45 minutes of interview audio transcribed with timestamps.', 45],
-      ['Need our app strings localised into Hausa.', 130],
+      ['Need our app strings localised into Portuguese.', 130],
     ],
   },
   {
@@ -302,10 +462,54 @@ export const SPECIALTIES: readonly Specialty[] = [
     ],
   },
   {
+    id: 'music-production', lane: 'service',
+    offers: [
+      ['Afrobeats instrumental', 'An original instrumental with stems, licensed for one release.', 150],
+      ['Mixing and mastering', 'Mix and master of one song from your stems.', 120],
+      ['Podcast intro music', 'A 20-second intro and outro theme.', 70],
+      ['Brand sonic logo', 'A three-second audio signature in several versions.', 110],
+      ['Background music for video', 'A two-minute royalty-free track for your video.', 90],
+      ['Songwriting session', 'Lyrics and melody for one song, written with you.', 130],
+      ['Vocal tuning and editing', 'Timing and pitch editing of one lead vocal.', 60],
+      ['Beat for a short ad', 'A 30-second beat built around your ad script.', 80],
+      ['Stem separation', 'Vocals and instruments separated from a finished track.', 40],
+      ['Music for a mobile game', 'Three looping tracks and five sound effects.', 200],
+    ],
+    requests: [
+      ['Need an original Afrobeats instrumental for a single.', 150],
+      ['Looking for mixing and mastering on a four-song EP.', 300],
+      ['Need a short intro theme for a weekly podcast.', 60],
+      ['Want a sonic logo for our fintech app.', 110],
+      ['Need looping background music for a casual mobile game.', 180],
+    ],
+  },
+  {
+    id: 'tutoring', lane: 'service',
+    offers: [
+      ['Maths tutoring, secondary school', 'Eight one-hour online lessons with practice sets.', 120],
+      ['Coding lessons for beginners', 'Eight online lessons on Python or JavaScript with a small project.', 160],
+      ['IELTS preparation', 'Six online lessons with two marked practice tests.', 130],
+      ['Excel for business course', 'Four live online sessions from basics to pivot tables.', 90],
+      ['French conversation lessons', 'Eight 45-minute online conversation lessons.', 110],
+      ['Online course creation', 'A short course outline, slides and scripts for five lessons.', 250],
+      ['Exam revision plan', 'A personal revision plan with weekly check-ins for a month.', 70],
+      ['Public speaking coaching', 'Four online sessions with recorded practice and feedback.', 140],
+      ['Digital skills for small business', 'Three online sessions on email, spreadsheets and online payments.', 80],
+      ['University application support', 'Personal statement editing and a document checklist.', 100],
+    ],
+    requests: [
+      ['Need a maths tutor for a 15-year-old, twice a week for a month.', 120],
+      ['Looking for IELTS lessons with marked practice tests.', 110],
+      ['Need a beginner Python course for three staff members.', 200],
+      ['Want someone to turn our training notes into a short online course.', 220],
+      ['Need help editing a personal statement for a master\'s application.', 80],
+    ],
+  },
+  {
     id: 'phones-electronics', lane: 'goods',
     offers: [
       ['Used iPhone 13, 128 GB', 'Unlocked, battery health above 85 percent, tested and wiped, with a charger.', 420],
-      ['Samsung Galaxy A54 5G', 'New in box, 128 GB, with a one-year local warranty.', 290],
+      ['Samsung Galaxy A54 5G', 'New in box, 128 GB.', 290],
       ['Refurbished MacBook Air M1', '8 GB RAM, 256 GB SSD, clean battery report, with a charger.', 650],
       ['Tecno Camon 20', 'New in box, 256 GB, dual SIM.', 170],
       ['AirPods Pro, second generation', 'Sealed in box, with the MagSafe case.', 180],
@@ -335,7 +539,7 @@ export const SPECIALTIES: readonly Specialty[] = [
       ['Aso-oke set', 'Gele, ipele and iro woven to order for ceremonies.', 150],
       ["Children's native outfit", 'Made to measure for ages 2 to 12.', 30],
       ['Kente stole', 'Handwoven kente stole for graduations.', 45],
-      ['Alterations bundle', 'Up to three garments altered to fit.', 25],
+      ['Ankara tote bag', 'A lined tote bag in Ankara print with an inner pocket.', 25],
     ],
     requests: [
       ['Need matching Ankara outfits for a team of six for a trade fair.', 300],
@@ -349,32 +553,76 @@ export const SPECIALTIES: readonly Specialty[] = [
     id: 'home-crafts', lane: 'goods',
     offers: [
       ['Handwoven raffia basket set', 'Three nesting baskets for storage.', 40],
-      ['Shea butter, 1 kg', 'Unrefined grade A shea butter.', 18],
       ['Carved wooden serving tray', 'Carved from mahogany with a food-safe finish.', 35],
-      ['African black soap, 12 bars', 'Traditional black soap from Ghana.', 22],
       ['Beaded necklace', 'A handmade glass bead necklace.', 25],
       ['Scented soy candles, set of 4', 'Soy wax candles in local scents.', 30],
       ['Mudcloth pillow covers, set of 2', 'Covers in a mudcloth pattern, 45 by 45 cm.', 28],
       ['Clay cooking pot', 'A traditional clay pot for soups and stews.', 32],
       ['Woven wall hanging', 'Handwoven wall art, about 60 by 90 cm.', 50],
-      ['Natural hair care set', 'Oil, butter and leave-in conditioner in one set.', 26],
+      ['Brass figurine', 'A hand-cast brass figurine in the Benin tradition.', 90],
+      ['Leather notebook', 'A hand-stitched leather notebook with refillable pages.', 30],
+      ['Woven table mats, set of 6', 'Handwoven mats in natural fibre.', 24],
     ],
     requests: [
       ['Need 30 raffia baskets for a hotel room refresh.', 400],
-      ['Looking to buy 10 kg of unrefined shea butter for a skincare line.', 150],
-      ['Want handmade gift sets for 25 clients, candles or soap.', 350],
+      ['Looking for brass figurines as corporate gifts, ten pieces.', 450],
+      ['Want handmade gift sets for 25 clients, candles or notebooks.', 350],
       ['Need carved wooden trays for a restaurant, 12 pieces.', 300],
       ['Looking for woven wall art for a new office, three pieces.', 140],
     ],
   },
+  {
+    id: 'beauty-products', lane: 'goods',
+    offers: [
+      ['Shea butter, 1 kg', 'Unrefined grade A shea butter.', 18],
+      ['African black soap, 12 bars', 'Traditional black soap from Ghana.', 22],
+      ['Natural hair care set', 'Oil, butter and leave-in conditioner in one set.', 26],
+      ['Cold-pressed coconut oil, 1 litre', 'Virgin coconut oil for skin and hair.', 15],
+      ['Hibiscus face mask, 6 jars', 'A clay and hibiscus mask in 100 g jars.', 30],
+      ['Body butter gift box', 'Three whipped body butters in a gift box.', 28],
+      ['Chebe hair powder, 250 g', 'Traditional chebe powder for hair care.', 20],
+      ['Beard care kit', 'Beard oil, balm and a wooden comb.', 24],
+      ['Handmade lip balm, 12 pack', 'Shea and beeswax lip balms.', 18],
+      ['Private-label skincare samples', 'Twenty sample pots of our base creams for your brand trial.', 60],
+    ],
+    requests: [
+      ['Need 10 kg of unrefined shea butter for a skincare line.', 150],
+      ['Looking for black soap in bulk, 100 bars.', 160],
+      ['Want 40 body butter gift boxes for a corporate order.', 450],
+      ['Need private-label cream samples to test a new brand.', 80],
+      ['Looking for natural hair care sets to stock in a salon, 20 sets.', 400],
+    ],
+  },
+  {
+    id: 'packaging-printing', lane: 'goods',
+    offers: [
+      ['Branded paper bags, 200 pieces', 'Kraft paper bags printed with your logo in one colour.', 120],
+      ['Custom mailer boxes, 100 pieces', 'Corrugated mailer boxes printed on the outside.', 180],
+      ['Product labels, 1,000 pieces', 'Waterproof printed labels in your size.', 60],
+      ['Business cards, 500 pieces', 'Matte cards printed on 350 gsm stock.', 30],
+      ['Branded stickers, 500 pieces', 'Die-cut vinyl stickers of your logo.', 40],
+      ['Roll-up banner', 'An 85 by 200 cm banner with a carry case.', 70],
+      ['Printed tote bags, 50 pieces', 'Cotton tote bags printed with your artwork.', 150],
+      ['Food packaging containers, 300 pieces', 'Paper takeaway containers with your logo.', 140],
+      ['Thank-you cards, 250 pieces', 'Printed insert cards for your parcels.', 35],
+      ['Branded tape, 12 rolls', 'Packing tape printed with your logo.', 45],
+    ],
+    requests: [
+      ['Need 300 printed mailer boxes for an online store.', 400],
+      ['Looking for 2,000 waterproof labels for juice bottles.', 150],
+      ['Want 100 printed tote bags for a conference.', 280],
+      ['Need a roll-up banner and 500 flyers for an exhibition.', 120],
+      ['Looking for branded takeaway packaging for a restaurant, 500 pieces.', 220],
+    ],
+  },
 ];
 
-/// One group of three specialties per account, in the operator's order, and a
-/// line about that account's business that makes each of its requests its own.
+/// Five specialties per account, in the operator's order, and a line about that
+/// account's business that names the market each request comes from.
 export const ACCOUNT_GROUPS: ReadonlyArray<{ specialties: readonly string[]; context: string }> = [
-  { specialties: ['brand-design', 'social-content', 'copywriting'], context: 'It is for a small design studio in Lagos.' },
-  { specialties: ['web-development', 'qa-testing', 'technical-writing'], context: 'It is for a software team building a payments app.' },
-  { specialties: ['bookkeeping', 'data-analysis', 'virtual-assistance'], context: 'It is for a bookkeeping practice with retail clients.' },
-  { specialties: ['photo-video', 'translation', 'voice-audio'], context: 'It is for a media studio in Abuja.' },
-  { specialties: ['phones-electronics', 'fashion-tailoring', 'home-crafts'], context: 'It is for an online shop that sells across West Africa.' },
+  { specialties: ['brand-design', 'social-content', 'copywriting', 'game-3d-art', 'event-planning'], context: 'It is for a creative studio with clients in {market}.' },
+  { specialties: ['web-development', 'qa-testing', 'technical-writing', 'software-ai', 'smart-contracts'], context: 'It is for a software team serving users in {market}.' },
+  { specialties: ['bookkeeping', 'data-analysis', 'virtual-assistance', 'legal-docs', 'hr-recruiting'], context: 'It is for a business services firm with clients in {market}.' },
+  { specialties: ['photo-video', 'translation', 'voice-audio', 'music-production', 'tutoring'], context: 'It is for a media and learning studio with audiences in {market}.' },
+  { specialties: ['phones-electronics', 'fashion-tailoring', 'home-crafts', 'beauty-products', 'packaging-printing'], context: 'It is for an online shop selling to customers in {market}.' },
 ];

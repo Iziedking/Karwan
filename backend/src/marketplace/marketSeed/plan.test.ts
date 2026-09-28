@@ -49,3 +49,26 @@ test('the posting order mixes accounts instead of 200 in a row from one seller',
 test('more accounts than specialty groups is refused', () => {
   assert.throws(() => buildSeedPlan([...emails, 'f@example.com']));
 });
+
+test('the market spans every client region, on-site work stays where the team is, and goods ship from Lagos', async () => {
+  const { SERVICE_MARKETS, ONSITE_CITIES, SPECIALTIES } = await import('./catalog.js');
+  const plan = buildSeedPlan(emails);
+  const offers = plan.flatMap((a) => a.offers);
+  for (const m of SERVICE_MARKETS) assert.ok(offers.some((o) => o.title.endsWith(`for clients in ${m.name}`)), m.name);
+  const briefs = plan.flatMap((a) => a.requests.map((r) => r.brief));
+  for (const m of SERVICE_MARKETS) assert.ok(briefs.some((b) => b.endsWith(`in ${m.name}.`)), `requests from ${m.name}`);
+  const onsiteTitles = new Set(SPECIALTIES.flatMap((s) => s.offers.filter((o) => o[3]).map((o) => o[0])));
+  for (const o of offers) {
+    const base = [...onsiteTitles].find((t) => o.title.startsWith(`${t} `));
+    if (base) assert.ok(ONSITE_CITIES.some((c) => o.title === `${base} in ${c.name}`), o.title);
+  }
+  const goods = offers.filter((o) => SPECIALTIES.find((s) => s.id === o.specialty)?.lane === 'goods');
+  assert.equal(goods.length, 150);
+  for (const g of goods) assert.match(g.description, /Lagos/);
+});
+
+test('each account covers five specialties, 25 across the market', () => {
+  const plan = buildSeedPlan(emails);
+  for (const a of plan) assert.equal(new Set(a.offers.map((o) => o.specialty)).size, 5);
+  assert.equal(new Set(plan.flatMap((a) => a.offers.map((o) => o.specialty))).size, 25);
+});
