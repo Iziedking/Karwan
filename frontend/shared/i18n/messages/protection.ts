@@ -14,7 +14,7 @@ export const protectionCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', Protection
       escrow: { title: 'A funded agreement', detail: 'See the USDC held for a deal alongside the terms both sides accepted.' },
       milestones: { title: 'Delivery by milestone', detail: 'Each stage names the work, amount and review point before payment is released.' },
       disputes: { title: 'A way to raise a dispute', detail: 'If delivery is contested, raise it from the deal so the terms and evidence can be reviewed.' },
-      agents: { title: 'Your decision', detail: 'Agents can prepare checks and suggestions. You approve actions that move money.' },
+      agents: { title: 'Your decision', detail: "Agents suggest counterparties and terms. You approve funding. Later releases and claims follow the agreement’s rules." },
     },
   },
   ar: {
@@ -25,7 +25,7 @@ export const protectionCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', Protection
       escrow: { title: 'اتفاقية ممولة', detail: 'اطّلع على مبلغ USDC المحتفظ به للصفقة بجانب الشروط التي وافق عليها الطرفان.' },
       milestones: { title: 'تسليم على مراحل', detail: 'تحدد كل مرحلة العمل والمبلغ ووقت المراجعة قبل صرف الدفعة.' },
       disputes: { title: 'طريقة لرفع النزاع', detail: 'إذا كان التسليم موضع خلاف، ارفع النزاع من الصفقة لمراجعة الشروط والأدلة.' },
-      agents: { title: 'القرار لك', detail: 'يمكن للوكلاء إعداد الفحوص والاقتراحات. أنت توافق على الإجراءات التي تحرك الأموال.' },
+      agents: { title: 'القرار لك', detail: "يقترح الوكلاء الأطراف والشروط. أنت توافق على التمويل. تخضع الدفعات والمطالبات اللاحقة لقواعد الاتفاق." },
     },
   },
   fr: {
@@ -36,7 +36,7 @@ export const protectionCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', Protection
       escrow: { title: 'Un accord financé', detail: 'Voyez les USDC retenus pour l’accord avec les conditions acceptées par les deux parties.' },
       milestones: { title: 'Livraison par étape', detail: 'Chaque étape précise le travail, le montant et le moment de l’examen avant le versement.' },
       disputes: { title: 'Signaler un litige', detail: 'Si la livraison est contestée, signalez-le depuis l’accord pour faire examiner les conditions et les preuves.' },
-      agents: { title: 'Vous décidez', detail: 'Les agents peuvent préparer des vérifications et des suggestions. Vous approuvez les actions qui déplacent des fonds.' },
+      agents: { title: 'Vous décidez', detail: "Les agents suggèrent des partenaires et des conditions. Vous approuvez le financement. Les versements et réclamations suivent ensuite les règles de l’accord." },
     },
   },
   hi: {
@@ -47,7 +47,7 @@ export const protectionCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', Protection
       escrow: { title: 'धन जमा किया गया समझौता', detail: 'दोनों पक्षों की स्वीकृत शर्तों के साथ सौदे के लिए रोकी गई USDC राशि देखें।' },
       milestones: { title: 'चरणों में डिलीवरी', detail: 'हर चरण में काम, राशि और भुगतान जारी होने से पहले समीक्षा का समय बताया जाता है।' },
       disputes: { title: 'विवाद उठाने का रास्ता', detail: 'डिलीवरी पर असहमति हो तो शर्तों और सबूतों की समीक्षा के लिए सौदे से विवाद उठाएँ।' },
-      agents: { title: 'निर्णय आपका', detail: 'एजेंट जाँच और सुझाव तैयार कर सकते हैं। धन भेजने वाले कामों को आप मंज़ूरी देते हैं।' },
+      agents: { title: 'निर्णय आपका', detail: "एजेंट व्यापार भागीदार और शर्तें सुझाते हैं। फंडिंग की मंज़ूरी आप देते हैं। बाद में भुगतान और दावे समझौते के नियमों के अनुसार होते हैं।" },
     },
   },
   sw: {
@@ -58,7 +58,7 @@ export const protectionCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', Protection
       escrow: { title: 'Makubaliano yaliyofadhiliwa', detail: 'Ona kiasi cha USDC kilichowekwa kwa mkataba pamoja na masharti yaliyokubaliwa na pande zote.' },
       milestones: { title: 'Uwasilishaji kwa hatua', detail: 'Kila hatua hutaja kazi, kiasi na wakati wa ukaguzi kabla malipo hayajatolewa.' },
       disputes: { title: 'Njia ya kuibua mgogoro', detail: 'Ikiwa uwasilishaji unapingwa, ibua mgogoro kwenye mkataba ili masharti na ushahidi vikaguliwe.' },
-      agents: { title: 'Uamuzi ni wako', detail: 'Mawakala wanaweza kuandaa ukaguzi na mapendekezo. Unaidhinisha hatua zinazohamisha fedha.' },
+      agents: { title: 'Uamuzi ni wako', detail: "Mawakala hupendekeza washirika na masharti. Unaidhinisha kuweka fedha. Malipo na madai yanayofuata huzingatia kanuni za makubaliano." },
     },
   },
 };

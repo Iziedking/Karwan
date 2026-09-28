@@ -8,6 +8,11 @@ const AMOUNTS = [150, 420, 900, 80, 1800, 60];
 const STATES = ['agreed', 'locked', 'delivered', 'paid'] as const;
 const STEP_MS = 1800;
 
+export function DealExampleLabel() {
+  const t = useTranslations().signup;
+  return <p className="mt-4 text-center text-[12px] leading-relaxed text-[var(--lp-text-sub)]">{t.welcome.backdropLabel}</p>;
+}
+
 /// Behind the sign-in card: the kinds of deals people make on Karwan, each
 /// moving from agreed to paid. Decorative, so hidden from assistive tech; with
 /// reduced motion the cards hold still at their final state.

@@ -14,7 +14,54 @@ test('English public guides distinguish the mainnet wallet from testnet trading'
   assert.match(MESSAGES.en.docsRoadmapPage.intro, /contract release comes next/);
   assert.doesNotMatch(MESSAGES.en.docsRoadmapPage.intro, /20\d\d/);
   assert.match(MESSAGES.en.x402Page.intro, /not live/);
-  assert.match(MESSAGES.en.howItWorksPage.stack.gateway, /code only/);
+  assert.match(MESSAGES.en.howItWorksPage.stack.gateway, /Availability depends on the account and network/);
+  assert.doesNotMatch(MESSAGES.en.howItWorksPage.stack.gateway, /current demo|code only/);
+});
+
+test('product copy separates portable reputation plans from current access', () => {
+  const t = MESSAGES.en;
+  assert.match(t.landingEditorial.introBody, /across platforms.*planned/);
+  assert.match(t.landingEditorial.trade, /one user at a time/);
+  assert.match(t.landingEditorial.trade, /testnet/);
+  assert.match(t.docsProduct.today.lede, /not available yet/);
+  assert.match(t.docsProduct.problem.body, /planned, not available today/);
+  assert.match(t.docsProduct.how.card.label, /Example/);
+  assert.match(t.signup.welcome.backdropLabel, /not live activity/);
+  assert.doesNotMatch(t.docsProduct.facts.confirmValue, /second|instant/i);
+});
+
+test('payment copy does not promise buyer-only release or identical wallet authority', () => {
+  const t = MESSAGES.en;
+  assert.doesNotMatch(t.dealWorkspace.money.held, /only when.*buyer/i);
+  assert.match(t.dealWorkspace.money.held, /claim/);
+  assert.match(t.directDealDetail.fundingSafety.activeBuyer, /deadline/);
+  assert.match(t.howItWorksPage.stack.appKit, /Signing depends/);
+  assert.doesNotMatch(t.howItWorksPage.stack.appKit, /without ever|no.*popup/);
+});
+
+test('Terms has a document heading, linked contents and readable non-monospace text', () => {
+  const page = read('app/terms/page.tsx');
+  const content = read('shared/components/TermsContent.tsx');
+  assert.match(page, /<h1/);
+  assert.match(page, /<TermsContent contents/);
+  assert.match(page, /rtl:left-auto rtl:right-1\/2 rtl:translate-x-1\/2/);
+  assert.match(page, /<time dir="ltr"/);
+  assert.match(content, /<nav aria-label/);
+  assert.match(content, /scroll-mt-28/);
+  assert.match(content, /text-\[16px\]/);
+  assert.doesNotMatch(content, /className="mono/);
+});
+
+test('translated FAQ arrays carry the same subjects and retire stale live-payment claims', () => {
+  for (const [locale, messages] of Object.entries(MESSAGES)) {
+    const items = messages.docsFaqPage.items;
+    assert.equal(items.length, 18, locale);
+    assert.match(items[9]!.a, /x402/, locale);
+    assert.doesNotMatch(JSON.stringify(items), /2026-06-06|Hashnote|ERC-4626/, locale);
+    assert.match(items[17]!.a, /testnet|Testnet|شبكة الاختبار|टेस्टनेट/, locale);
+    assert.ok(items[11]!.q && items[12]!.q, locale);
+  }
+  assert.match(MESSAGES.en.docsFaqPage.items[9]!.a, /not live/);
 });
 
 test('final milestone copy does not imply that silence prevents a seller claim', () => {

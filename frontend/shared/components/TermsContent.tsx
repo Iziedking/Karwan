@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 /// Single source of the visible Terms text used by `/terms` (public page) and
@@ -16,16 +16,26 @@ export const TERMS_LAST_UPDATED = '2026-08-08';
 /// on the backend; this constant is just for the human-visible footer.
 export const TERMS_DISPLAY_VERSION = '2.2.0';
 
-export function TermsContent({ heading }: { heading?: ReactNode }) {
-  const t = useTranslations().termsPage;
+export function TermsContent({ heading, contents = false }: { heading?: ReactNode; contents?: boolean }) {
+  const messages = useTranslations();
+  const t = messages.termsPage;
+  const id = useId();
+  const sections = [t.s1, t.s2, t.s3, t.s4, t.s5, t.verification, t.s6, t.s7, t.s8, t.s9];
   return (
-    <div className="space-y-7">
+    <article className="space-y-9">
       {heading}
-      <p className="text-[13.5px] leading-relaxed text-[var(--lp-text-sub)]">
+      <p className="text-[16px] leading-[1.8] text-[var(--lp-text-sub)]">
         {t.preamble}
       </p>
 
-      <Section title={t.s1.title}>
+      {contents && <nav aria-label={messages.docsProduct.toc.title} className="border-y border-[var(--lp-border-light)] py-6">
+        <h2 className="text-[14px] font-semibold text-[var(--lp-dark)]">{messages.docsProduct.toc.title}</h2>
+        <ol className="mt-3 grid gap-x-8 sm:grid-cols-2">
+          {sections.map((section, index) => <li key={index}><a href={`#${id}-terms-${index + 1}`} className="flex min-h-11 items-center py-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)] underline decoration-[var(--lp-border-light)] underline-offset-4 hover:text-[var(--lp-dark)] focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{section.title}</a></li>)}
+        </ol>
+      </nav>}
+
+      <Section id={`${id}-terms-1`} title={t.s1.title}>
         <p>{t.s1.lead}</p>
         <Bullets>
           <li>
@@ -59,7 +69,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s1.tail}</p>
       </Section>
 
-      <Section title={t.s2.title}>
+      <Section id={`${id}-terms-2`} title={t.s2.title}>
         <p>{t.s2.lead}</p>
         <p>
           <strong>{t.s2.ownWallet.label}</strong> {t.s2.ownWallet.body}
@@ -76,7 +86,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s2.research}</p>
       </Section>
 
-      <Section title={t.s3.title}>
+      <Section id={`${id}-terms-3`} title={t.s3.title}>
         <p>{t.s3.lead}</p>
         <Bullets>
           <li>
@@ -100,7 +110,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         </Bullets>
       </Section>
 
-      <Section title={t.s4.title}>
+      <Section id={`${id}-terms-4`} title={t.s4.title}>
         <p>{t.s4.lead}</p>
         <Bullets>
           <li>
@@ -122,7 +132,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s4.tail}</p>
       </Section>
 
-      <Section title={t.s5.title}>
+      <Section id={`${id}-terms-5`} title={t.s5.title}>
         <p>{t.s5.lead}</p>
         <Bullets>
           <li>{t.s5.bullets.success}</li>
@@ -135,7 +145,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s5.agentWallet}</p>
       </Section>
 
-      <Section title={t.verification.title}>
+      <Section id={`${id}-terms-6`} title={t.verification.title}>
         <p>{t.verification.lead}</p>
         <Bullets>
           <li>
@@ -152,7 +162,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.verification.policy}</p>
       </Section>
 
-      <Section title={t.s6.title}>
+      <Section id={`${id}-terms-7`} title={t.s6.title}>
         <p>{t.s6.lead}</p>
         <Bullets>
           <li>
@@ -185,7 +195,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         </Bullets>
       </Section>
 
-      <Section title={t.s7.title}>
+      <Section id={`${id}-terms-8`} title={t.s7.title}>
         <p>{t.s7.storeLead}</p>
         <Bullets>
           <li>{t.s7.store.addresses}</li>
@@ -203,7 +213,7 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s7.tail}</p>
       </Section>
 
-      <Section title={t.s8.title}>
+      <Section id={`${id}-terms-9`} title={t.s8.title}>
         <p>{t.s8.lead}</p>
         <Bullets>
           <li>{t.s8.bullets.age}</li>
@@ -214,24 +224,24 @@ export function TermsContent({ heading }: { heading?: ReactNode }) {
         <p>{t.s8.organisation}</p>
       </Section>
 
-      <Section title={t.s9.title}>
+      <Section id={`${id}-terms-10`} title={t.s9.title}>
         <p>{t.s9.body}</p>
       </Section>
 
-      <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] pt-4 border-t border-[var(--lp-border-light)]">
+      <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] pt-6 border-t border-[var(--lp-border-light)]">
         {t.footer.version} {TERMS_DISPLAY_VERSION} . {t.footer.updated} {TERMS_LAST_UPDATED}
       </p>
-    </div>
+    </article>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section className="space-y-3">
-      <h2 className="font-sans text-[18px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+    <section id={id} aria-labelledby={`${id}-heading`} className="scroll-mt-28 space-y-4 border-t border-[var(--lp-border-light)] pt-8">
+      <h2 id={`${id}-heading`} className="font-sans text-[21px] font-semibold leading-snug tracking-[-0.01em] text-[var(--lp-dark)]">
         {title}
       </h2>
-      <div className="space-y-3 text-[13.5px] leading-relaxed text-[var(--lp-text-sub)]">
+      <div className="space-y-4 text-[16px] leading-[1.8] text-[var(--lp-text-sub)] [&_strong]:font-semibold [&_strong]:text-[var(--lp-dark)]">
         {children}
       </div>
     </section>
@@ -239,5 +249,5 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Bullets({ children }: { children: ReactNode }) {
-  return <ul className="space-y-2 list-disc ps-5 marker:text-[var(--lp-text-muted)]">{children}</ul>;
+  return <ul className="space-y-3 list-disc ps-6 marker:text-[var(--lp-text-muted)]">{children}</ul>;
 }

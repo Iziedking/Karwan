@@ -14,6 +14,7 @@ import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { usePathname } from 'next/navigation';
 import { isNoTourRoute } from './routes';
 import { GUIDE_COPY } from './routeGuidance';
+import { guidePlacement, guideSecondsLeft, GUIDE_WAIT_MS } from './placement';
 
 /// In-app guided tours for newcomers. Each page can declare a short tour that
 /// spotlights its tools one at a time with a plain-language line. Tours open
@@ -363,6 +364,11 @@ function prefersReducedMotion(): boolean {
 }
 
 function GuideOverlay() {
+  const { active } = useGuide();
+  return active ? <GuideStepOverlay key={`${active.id}:${active.index}`} /> : null;
+}
+
+function GuideStepOverlay() {
   const { locale } = useLocale();
   const copy = GUIDE_COPY[locale];
   const { active, next, prev, close, dismissAll } = useGuide();
@@ -370,7 +376,39 @@ function GuideOverlay() {
   const step = active ? active.steps[active.index] : undefined;
   const [rect, setRect] = useState<DOMRect | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  const [secondsLeft, setSecondsLeft] = useState(GUIDE_WAIT_MS / 1000);
+  const [waitSkipped, setWaitSkipped] = useState(false);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const [panelSize, setPanelSize] = useState({ width: 420, height: 320 });
   const open = !!active && active.pathname === pathname && !isNoTourRoute(pathname);
+  const advance = useCallback(() => { if (secondsLeft === 0) next(); }, [secondsLeft, next]);
+
+  // A reading cue, not auto-advance. Users can bypass it; closing is never delayed.
+  useEffect(() => {
+    if (!open || waitSkipped) return;
+    const readyAt = Date.now() + GUIDE_WAIT_MS;
+    const timer = window.setInterval(() => {
+      const remaining = guideSecondsLeft(readyAt, Date.now());
+      setSecondsLeft(remaining);
+      if (remaining === 0) window.clearInterval(timer);
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [open, waitSkipped]);
+
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+      const panel = panelRef.current?.getBoundingClientRect();
+      if (panel) setPanelSize({ width: panel.width, height: panel.height });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (panelRef.current) observer.observe(panelRef.current);
+    window.addEventListener('resize', measure);
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
+  }, [open]);
 
   // WAI-ARIA modal dialog pattern, read 2026-09-08. Keep keyboard users inside
   // the guidance and return to its launcher, never a financial form control.
@@ -411,12 +449,14 @@ function GuideOverlay() {
     }
     const reduced = prefersReducedMotion();
     const find = () =>
-      document.querySelector(`[data-guide="${step.target}"]`) as HTMLElement | null;
+      document.querySelector(`[data-guide="${CSS.escape(step.target!)}"]`) as HTMLElement | null;
     const update = () => {
       const el = find();
       setRect(el ? el.getBoundingClientRect() : null);
     };
     const el = find();
+    const observer = new ResizeObserver(update);
+    if (el) observer.observe(el);
     if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
     update();
     const settle = window.setTimeout(update, reduced ? 0 : 340);
@@ -424,6 +464,7 @@ function GuideOverlay() {
     window.addEventListener('resize', update);
     return () => {
       window.clearTimeout(settle);
+      observer.disconnect();
       window.removeEventListener('scroll', update, true);
       window.removeEventListener('resize', update);
     };
@@ -434,12 +475,12 @@ function GuideOverlay() {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); close(true); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); locale === 'ar' ? prev() : next(); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); locale === 'ar' ? next() : prev(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); locale === 'ar' ? prev() : advance(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); locale === 'ar' ? advance() : prev(); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, next, prev, close, locale]);
+  }, [open, advance, prev, close, locale]);
 
   // A tour belongs to the page that opened it. It never resumes over another
   // page or an initial onboarding/invitation flow.
@@ -449,6 +490,7 @@ function GuideOverlay() {
   const isLast = active.index === total - 1;
   const isFirst = active.index === 0;
   const reduced = prefersReducedMotion();
+  const placement = viewport.width ? guidePlacement(rect, viewport, panelSize, locale === 'ar') : null;
 
   return createPortal(
     <div>
@@ -490,11 +532,7 @@ function GuideOverlay() {
         />
       )}
 
-      {/* Step card, pinned bottom-center (bottom sheet feel on mobile). The
-          spotlight points; the card explains. */}
-      {/* Centered via left/right insets + auto margin, NOT transform: the
-          fade-up animation animates transform and would clobber a translateX,
-          which pushed the card off-screen on mobile. */}
+      {/* Anchor to the target when there is room; keep a safe sheet on phones. */}
       <div
         ref={panelRef}
         role="dialog"
@@ -504,14 +542,9 @@ function GuideOverlay() {
         tabIndex={-1}
         style={{
           position: 'fixed',
-          left: 12,
-          right: 12,
-          top: rect ? undefined : 16,
-          bottom: rect ? 'max(16px, env(safe-area-inset-bottom))' : 16,
-          height: rect ? undefined : 'fit-content',
-          marginBlock: rect ? undefined : 'auto',
-          marginInline: 'auto',
-          maxWidth: rect ? 420 : 520,
+          left: placement?.left ?? 16,
+          top: placement?.top ?? 16,
+          width: 'min(420px, calc(100vw - 32px))',
           zIndex: 1002,
         }}
         className={`max-h-[calc(100dvh-32px)] overflow-y-auto outline-none ${reduced ? '' : 'fade-up'}`}
@@ -545,7 +578,7 @@ function GuideOverlay() {
             {step.body}
           </p>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             {/* progress dots */}
             <div className="flex items-center gap-1.5" aria-hidden>
               {active.steps.map((_, i) => (
@@ -574,17 +607,20 @@ function GuideOverlay() {
               )}
               <button
                 type="button"
-                onClick={next}
-                className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[#10170b] hover:bg-[var(--lp-accent-hover)] focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
+                ref={nextRef}
+                onClick={advance}
+                disabled={secondsLeft > 0}
+                className="inline-flex min-h-11 items-center gap-2 font-sans text-[14px] font-bold px-5 py-2 bg-[var(--lp-accent)] text-[var(--accent-ink)] hover:bg-[var(--lp-accent-hover)] disabled:cursor-wait disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--lp-dark)]"
                 style={{
                   borderRadius: 10,
                 }}
               >
                 {isLast ? copy.done : copy.next}
-                {!isLast && <span aria-hidden className="rtl-flip">→</span>}
+                {secondsLeft > 0 ? <span>{copy.wait.replace('{seconds}', String(secondsLeft))}</span> : !isLast && <span aria-hidden className="rtl-flip">→</span>}
               </button>
             </div>
           </div>
+          {secondsLeft > 0 && <button type="button" onClick={() => { setWaitSkipped(true); setSecondsLeft(0); window.requestAnimationFrame(() => nextRef.current?.focus()); }} className="mt-2 min-h-11 px-2 text-start text-[12px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{copy.skipWait}</button>}
           <button type="button" onClick={dismissAll} className="mt-3 min-h-11 rounded-full px-2 text-start font-sans text-[12px] text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-[var(--lp-accent)]">{copy.stopTips}</button>
         </div>
       </div>

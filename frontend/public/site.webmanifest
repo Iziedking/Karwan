@@ -1,7 +1,7 @@
 {
   "name": "Karwan",
   "short_name": "Karwan",
-  "description": "Cross-border trade settlement and credit rails for SMEs. USDC escrow on Arc.",
+  "description": "An open market for people and businesses to find opportunities and build a trade record. Mainnet access is by invitation.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",

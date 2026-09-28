@@ -10,12 +10,14 @@ import { sw } from '../i18n/messages/sw';
 
 const source = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
 
-test('editorial copy leads with Arc while network disclosures retain environment/payment limits', () => {
+test('editorial copy names the network and distinguishes current access from planned work', () => {
   const keys = Object.keys(en.landingEditorial).sort();
   for (const locale of [ar, fr, hi, sw]) assert.deepEqual(Object.keys(locale.landingEditorial).sort(), keys);
   assert.equal(en.networkUi.builtOnArc, 'Built on Arc');
   assert.match(en.networkUi.testnetNotice, /no real monetary value/);
-  assert.doesNotMatch(Object.values(en.landingEditorial).join(' '), /testnet/i);
+  assert.match(en.landingEditorial.trade, /Mainnet access is by invitation/);
+  assert.match(en.landingEditorial.trade, /market and deal flow are available on testnet/);
+  assert.match(en.landingEditorial.introBody, /across platforms.*planned/);
   assert.match(en.landingEditorial.limitBody, /including the final one/);
   assert.match(en.landingEditorial.limitBody, /It does not refund them automatically/);
 });

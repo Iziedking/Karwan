@@ -2455,6 +2455,7 @@ interface MessagesShape {
     clearFilters: string;
     resultsOne: string;
     resultsMany: string;
+    pager: { label: string; previous: string; next: string; range: string; page: string };
     refreshing: string;
     retry: string;
     partial: {
@@ -5311,15 +5312,15 @@ export const en: MessagesShape = {
   activityReview: { filterLabel: 'Filter recent activity by type' },
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
   landingEditorial: {
-    kicker: 'The open market for goods and services', titleFirst: 'Take the deal', titleLast: 'out of the chat.',
-    lead: 'Bring someone you found online, or find a counterparty on Karwan. Agree the terms, fund USDC escrow, and settle by milestone.',
-    open: 'Open Karwan', trade: 'Local and cross-border trade', startLink: 'How a deal starts',
-    introLabel: 'Starting a deal', introTitle: 'Bring the other side, or find them here.', introBody: 'Karwan takes goods and service trades from first terms to settlement. You can start with a counterparty you already know or look through requests and offers in the market.', marketLink: 'Explore requests and offers',
+    kicker: "Work, goods and business opportunities", titleFirst: "Good work deserves", titleLast: "a lasting record.",
+    lead: "Karwan is an open market for people and businesses. Find work, source goods and build a record through completed trades.",
+    open: 'Open Karwan', trade: "Mainnet access is by invitation, one user at a time. The market and deal flow are available on testnet.", startLink: 'How a deal starts',
+    introLabel: "Opportunity and reputation", introTitle: "Build on the work you have already done.", introBody: "A freelancer’s completed work, a supplier’s deliveries and a buyer’s payment history should help them find their next opportunity. Karwan starts with a record of trades completed here. Sharing that reputation across platforms, with your permission, is planned.", marketLink: 'Explore requests and offers',
     bringLabel: 'Bring a deal', bringTitle: 'You already know the other side', bringBody: 'Set the goods or service, amount, deadline, and milestones. Invite the buyer or seller to review the same terms.',
-    findLabel: 'Find a match', findTitle: 'You need a counterparty', findBody: 'Browse requests and offers. Available trade history and agent-prepared comparisons can help you decide who to approach. You approve the terms.',
+    findLabel: 'Find a match', findTitle: 'You need a counterparty', findBody: "Browse requests and offers on testnet. Review the available trade history and proposed terms before choosing who to work with.",
     recordLabel: 'Escrow and settlement', recordTitle: 'The payment has a schedule.', recordBody: 'The buyer funds USDC escrow after both sides agree. Karwan shows the delivery, the current milestone, and what happens to the money next.',
     terms: 'Terms accepted', funded: 'Escrow funded', delivery: 'Delivery submitted', reviewed: 'Milestone reviewed', released: 'Release recorded', both: 'Buyer and seller', buyer: 'Buyer', seller: 'Seller', receipt: 'Deal receipt',
-    exampleNote: 'Typical sequence, not a live deal. Exact release rules are set in each agreement.', limitTitle: 'Know the review deadline before funding', limitBody: 'If you do not review by the deadline, the seller may be able to claim this milestone, including the final one. A dispute pauses unreleased funds. It does not refund them automatically.', rulesLink: 'Read the deal and escrow rules', closeTitle: 'Have a trade in mind?', closeBody: 'Bring a buyer or seller to a direct deal, or start with a request in the market.',
+    exampleNote: 'Typical sequence, not a live deal. Exact release rules are set in each agreement.', limitTitle: 'Know the review deadline before funding', limitBody: 'If you do not review by the deadline, the seller may be able to claim this milestone, including the final one. A dispute pauses unreleased funds. It does not refund them automatically.', rulesLink: 'Read the deal and escrow rules', closeTitle: "Help shape the market.", closeBody: "Join the mainnet waitlist. We invite one user at a time while we prepare wider access. You can try a complete trade with test funds today.",
   },
   common: {
     save: 'Save',
@@ -8031,6 +8032,7 @@ export const en: MessagesShape = {
     clearFilters: 'Clear filters',
     resultsOne: '1 result',
     resultsMany: '{n} results',
+    pager: { label: 'Pages', previous: 'Previous', next: 'Next', range: '{from} to {to} of {total}', page: 'Page {n}' },
     refreshing: 'Refreshing market',
     retry: 'Try again',
     partial: {
@@ -8060,8 +8062,8 @@ export const en: MessagesShape = {
     emptyFilteredBody: 'Clear a filter or try a broader search. Karwan will not invent a result when nothing matches.',
     card: {
       statusMatched: 'MATCHED',
-      statusOffer: 'OFFER',
-      statusRequest: 'REQUEST',
+      statusOffer: 'Offer',
+      statusRequest: 'Request',
       priceLabelAsking: 'asking',
       priceLabelBudget: 'budget',
       partyRoleSeller: 'SELLER',
@@ -8326,7 +8328,7 @@ export const en: MessagesShape = {
       title: 'Unified balance across chains',
       protocol: 'GATEWAY',
       blurb: 'Pool USDC from any chain. Spend it on any chain.',
-      nudge: 'Bring your USDC together from every chain into one balance, then send it anywhere. You never need another coin to pay the fee.',
+      nudge: "Combine USDC balances on supported networks. Review the available destinations and fees before moving funds.",
     },
   },
   gatewaySteps: {
@@ -8516,7 +8518,7 @@ export const en: MessagesShape = {
     privateTermsPreview: 'Confirm it is you to see the terms.',
     money: {
       notFunded: 'Not funded yet.',
-      held: 'Held in escrow. Released only when the buyer approves.',
+      held: "Held in escrow. Release, claim and refund rules follow the agreed terms.",
       sending: 'Sent. Waiting for the network to confirm. Nothing is lost.',
       paused: 'Paused. No money moves until this is resolved.',
       released: 'Released to the seller.',
@@ -8667,7 +8669,7 @@ export const en: MessagesShape = {
       awaitingAcceptanceSeller: 'Agreeing confirms the terms. The buyer reviews the exact total and secures the USDC afterward.',
       awaitingFundingBuyer: 'The seller agreed. No money has moved. Review the exact total before you secure the USDC.',
       awaitingFundingSeller: 'You agreed to the terms. No buyer money has moved. Work starts after the buyer secures the USDC.',
-      activeBuyer: 'Your USDC is protected. The seller is paid only as milestones clear and you approve each release.',
+      activeBuyer: "Your USDC is held in escrow. Check each milestone and review deadline. The agreed rules determine when the seller can claim payment.",
       activeSeller: "The buyer's USDC is protected. It becomes yours as milestones clear, with a record of every release.",
     },
     terms: {
@@ -10279,23 +10281,23 @@ export const en: MessagesShape = {
     intro: 'The questions new users ask first. If yours is not here, reach the team through the links in the footer.',
     items: [
       { q: "How do I add USDC?", a: "Open Add USDC and use the address or source route shown for your account. Check the exact network, token and destination before sending. Connected-wallet accounts sign their own transfers. Test funds are available through Network details when the deployment is on Testnet." },
-      { q: 'Do I need a crypto wallet?', a: 'No. You can sign in through the available email or passkey path. If you prefer self-custody, you can connect your own wallet.' },
-      { q: 'Is this real money?', a: "Check Network details before adding USDC. Testnet uses test funds with no real monetary value. Mainnet uses real funds. Balances and transaction records belong to their network; switching environments does not move money between them." },
-      { q: 'Does my counterparty need an account?', a: 'Not before you create a direct deal. You can address an invite to a supported wallet or email. The recipient must claim the invite, review the terms, and accept before the deal can continue.' },
-      { q: 'What happens when negotiation fails?', a: 'No escrow funds. The request can end without an agreement, and the product shows the reason available from the matching flow. You can change your limits or post a new request.' },
-      { q: 'Can I cancel a deal?', a: 'The deal page shows whether cancellation is available in its current state. A mutual cancellation follows the contract path shown to both parties. Read the proposed outcome before accepting it.' },
-      { q: 'What if the seller does not deliver?', a: 'Use the recovery or dispute action shown on the deal. The available refund, release, timeout, and stake outcome depend on the contract state and current configuration.' },
-      { q: 'What if the buyer is slow to release?', a: "Check the review deadline. The seller may be able to claim an eligible milestone after it expires, including the final one. Review the delivery or use an available extension or dispute action before the deadline." },
-      { q: 'What happens after a missed deadline?', a: 'The deal page shows the actions and grace period that apply. A deadline miss can affect the seller record when the contract records a failed outcome.' },
-      { q: 'Do agents spend money?', a: 'Agents do not fund deals. Where paid research is enabled, an agent may use the separate research balance within its configured cap. The product should show the charge and the resulting data.' },
-      { q: 'What is the difference between Individual and Business accounts?', a: 'Individual accounts use the Buyer and Seller desks. Business accounts use B2B Trades with Buyer Desk and Supply Desk. Business finance capabilities can be feature-gated.' },
-      { q: 'Are individual skills verified?', a: "Skills are self-declared unless a specific verification result is shown. Review the seller’s work samples and trade history before agreeing to a deal." },
-      { q: 'What does business verification mean?', a: 'Where enabled, a business can submit registration or tax evidence through the business review path. A verified state does not prove licensing, solvency, performance, or safety. It can expire or be revoked.' },
-      { q: 'How long does a deposit take?', a: 'Timing depends on the source chain and transfer service. Follow the status shown in Deposit / Withdraw. If a transfer is still pending, use the recheck control before sending another one.' },
-      { q: 'How do I raise my reputation?', a: 'Reputation uses the inputs and tier requirements shown in your profile and the current reputation model. Settled outcomes matter. Reputation is not identity, skill, or business verification.' },
-      { q: 'Does stake earn yield?', a: 'The Stake page separates the vault position from network and account yield. Yield depends on the enabled route, permissions, contract state, and instrument value. It is not guaranteed.' },
-      { q: 'Where does settled money go?', a: 'The deal and wallet views show the destination account. Use Deposit / Withdraw for a supported transfer after settlement. Available routes depend on the live configuration.' },
-      { q: 'Does Karwan custody funds?', a: 'Custody depends on the sign-in method and deal state. Connected-wallet users control their wallet. Email or passkey accounts use Circle-operated wallet infrastructure under the authority described in the Terms. Funded deal money is governed by the escrow contract.' },
+      { q: "Do I need a crypto wallet?", a: "No. You can sign in through the available email or passkey path. If you prefer self-custody, you can connect your own wallet." },
+      { q: "Is this real money?", a: "Check Network details before adding USDC. Testnet uses test funds with no real monetary value. Mainnet uses real funds. Balances and transaction records belong to their network; switching environments does not move money between them." },
+      { q: "Does my counterparty need an account?", a: "Not before you create a direct deal. You can address an invite to a supported wallet or email. The recipient must claim the invite, review the terms, and accept before the deal can continue." },
+      { q: "What happens when negotiation fails?", a: "No escrow funds. The request can end without an agreement, and the product shows the reason available from the matching flow. You can change your limits or post a new request." },
+      { q: "Can I cancel a deal?", a: "The deal page shows whether cancellation is available in its current state. A mutual cancellation follows the contract path shown to both parties. Read the proposed outcome before accepting it." },
+      { q: "What if the seller does not deliver?", a: "Use the recovery or dispute action shown on the deal. The available refund, release, timeout, and stake outcome depend on the contract state and current configuration." },
+      { q: "What if the buyer is slow to release?", a: "Check the review deadline. The seller may be able to claim an eligible milestone after it expires, including the final one. Review the delivery or use an available extension or dispute action before the deadline." },
+      { q: "What happens after a missed deadline?", a: "The deal page shows the actions and grace period that apply. A deadline miss can affect the seller record when the contract records a failed outcome." },
+      { q: "Do agents spend money?", a: "Agents do not fund deals on their own. Paid research through x402 is not live. A future service must show its budget, charges and resulting data." },
+      { q: "What is the difference between Individual and Business accounts?", a: "Individual accounts use the Buyer and Seller desks. Business accounts use B2B Trades with Buyer Desk and Supply Desk. Business finance capabilities can be feature-gated." },
+      { q: "Are individual skills verified?", a: "Skills are self-declared unless a specific verification result is shown. Review the seller’s work samples and trade history before agreeing to a deal." },
+      { q: "What does business verification mean?", a: "Where enabled, a business can submit registration or tax evidence through the business review path. A verified state does not prove licensing, solvency, performance, or safety. It can expire or be revoked." },
+      { q: "How long does a deposit take?", a: "Timing depends on the source chain and transfer service. Follow the status shown in Deposit / Withdraw. If a transfer is still pending, use the recheck control before sending another one." },
+      { q: "How do I raise my reputation?", a: "Reputation uses the inputs and tier requirements shown in your profile and the current reputation model. Settled outcomes matter. Reputation is not identity, skill, or business verification." },
+      { q: "Does stake earn yield?", a: "The Stake page separates the vault position from network and account yield. Yield depends on the enabled route, permissions, contract state, and instrument value. It is not guaranteed." },
+      { q: "Where does settled money go?", a: "The deal and wallet views show the destination account. Use Deposit / Withdraw for a supported transfer after settlement. Available routes depend on the live configuration." },
+      { q: "Does Karwan custody funds?", a: "Wallet control depends on how you sign in. A connected wallet or mainnet passkey wallet is signed by you. Karwan operates the managed email wallets available on testnet. Once a deal is funded, the escrow contract governs those deal funds. Read the Terms for authority and recovery details." },
     ],
   },
   docsReputationPage: {
@@ -10480,9 +10482,9 @@ export const en: MessagesShape = {
       usdc: 'The currency we settle in. Holds deal amounts, escrow balances, milestone payouts, the platform fee, and KarwanVault staking principal.',
       dcw: 'Operational agent wallets can handle bounded background work on Arc Testnet. They are separate from the one customer identity wallet and balance, and they do not remove the approval boundary for funding or settlement.',
       cctp: "CCTP moves USDC between supported networks. Choose a route shown for your account and review its fees. A transfer completes only after the destination credit is confirmed.",
-      appKit: 'Circle\'s unified SDK for bridge, swap, send, and unified balance. The Circle Wallets adapter signs straight from our Developer-Controlled Wallets, so an email or passkey user bridges without ever seeing a wallet popup, and web3 users sign with their own wallet through the same SDK.',
-      gateway: "Gateway provides a unified-balance integration in the codebase. It is shown as code only in the current demo; do not treat it as a verified live transfer route.",
-      arc: 'Chain 5042002. Blocks finalize in under a second. USDC is the native gas token, and the ERC-8004 identity and reputation registries are already deployed.',
+      appKit: "Arc App Kit connects supported transfer routes. Signing depends on the account and network: a connected wallet, a passkey wallet or a testnet managed wallet. Review the route, destination and fees before confirming.",
+      gateway: "Circle Gateway connects USDC balances across supported networks. Availability depends on the account and network. Use only the routes shown in your wallet and check the destination credit.",
+      arc: "Arc is the network Karwan uses for settlement. USDC pays network fees. The interface separates mainnet funds from test funds; check the network before sending.",
       usyc: "The treasury integration can subscribe to and redeem USYC for eligible addresses. Access requires permission. A code example does not prove a current balance or a yield payment, and yield is not guaranteed.",
     },
     trust: {
@@ -10528,7 +10530,7 @@ export const en: MessagesShape = {
     contact: { tag: 'PRESS AND PARTNERS', headlineLead: 'Reach', headlineAccent: 'out', body: 'Want a higher-resolution asset, a co-mark configuration we have not published, or a quote? Send a note.', backHome: 'Back home' },
   },
   termsPage: {
-    eyebrow: 'TERMS',
+    eyebrow: "Terms of service",
     headlineLead: 'What you sign up',
     headlineAccent: 'for',
     intro: "These terms describe Karwan’s services, wallet authority, settlement rules and risks. Mainnet uses real funds; testnet uses test funds with no monetary value. Features differ between the two environments. Read these terms before accepting.",

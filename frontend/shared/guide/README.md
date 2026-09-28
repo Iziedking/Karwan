@@ -34,6 +34,19 @@ tours stay consistent and never collide.
 
 8. **No actions in a tour.** A step may scroll to and explain a control. It never clicks, fills, submits, transfers or signs. Keyboard focus stays in the tour and returns to its launcher. Changing routes closes the tour rather than showing stale instructions over a different form. Signed-in cash-out and business setup offer manual guidance without an automatic welcome.
 
+## Reading cue and placement
+
+Each step shows a two-second countdown beside Next (or Done). The countdown
+enables the button; it never advances the tour. Skip the wait, Back and Close
+remain available. Keyboard arrows use the same forward gate, with direction
+reversed for Arabic. Closing or changing steps cancels the old timer.
+
+The shared placement helper chooses a free side of the spotlight on desktop,
+then space above or below it. Small screens and crowded targets use a
+viewport-safe sheet. The panel scrolls internally when text is taller than the
+viewport. Resize observers follow target and card size changes. Reduced motion
+removes transitions and smooth scrolling, not access to controls.
+
 ## Adding a tour to a new page
 
 ```tsx

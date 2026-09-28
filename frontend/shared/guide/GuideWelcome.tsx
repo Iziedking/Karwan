@@ -4,7 +4,9 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTerms } from '@/shared/hooks/useTerms';
 import { useGuide } from './GuideProvider';
-import { WELCOME_ID, WELCOME_STEPS } from './tours';
+import { WELCOME_ID } from './tours';
+import { GUIDE_COPY } from './routeGuidance';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { isNoTourRoute } from './routes';
 import { isFocusedRoute, isPublicAccessRoute } from '@/shared/utils/routes';
 
@@ -13,6 +15,7 @@ import { isFocusedRoute, isPublicAccessRoute } from '@/shared/utils/routes';
 /// and it never opens on the landing/marketing pages). Shows once. Mounted
 /// globally in the layout.
 export function GuideWelcome() {
+  const { locale, t: messages } = useLocale();
   const auth = useAuth();
   const authed = !!auth.address;
   const terms = useTerms();
@@ -26,14 +29,17 @@ export function GuideWelcome() {
     // Terms come first: never start the welcome tour while a signed-in user still
     // owes acceptance, or the tour paints under/over the Terms gate. It fires once
     // terms is accepted (needsAcceptance clears and this effect re-runs).
-    if (terms.needsAcceptance) return;
+    if (terms.loading || terms.needsAcceptance) return;
     // Wait until they leave the landing/marketing pages; re-checks on each
     // navigation because the layout (and this component) persist across routes.
     if (isNoTourRoute(pathname) || isFocusedRoute(pathname) || isPublicAccessRoute(pathname)) return;
-    fired.current = true;
-    const t = setTimeout(() => startTour(WELCOME_ID, WELCOME_STEPS), 900);
+    const steps = [
+      { title: messages.docsProduct.hero.title, body: messages.docsProduct.today.lede },
+      ...GUIDE_COPY[locale].guides.balance,
+    ];
+    const t = setTimeout(() => { fired.current = true; startTour(WELCOME_ID, steps); }, 900);
     return () => clearTimeout(t);
-  }, [authed, disabled, isSeen, startTour, pathname, terms.needsAcceptance]);
+  }, [authed, disabled, isSeen, startTour, pathname, terms.loading, terms.needsAcceptance, locale, messages]);
 
   return null;
 }

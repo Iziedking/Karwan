@@ -232,3 +232,8 @@ docs/space-paytag-2026-08-16.md
 
 # Grant submission drafts (internal)
 /grant_submission/
+
+# All film production files stay local, including editable sources, assets,
+# scripts, notes, raw footage, audio and exports. Never force-add these folders.
+/design/films/
+/grant_submission/video/

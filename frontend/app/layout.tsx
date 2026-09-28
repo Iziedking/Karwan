@@ -53,9 +53,9 @@ const generalSans = localFont({
 // Each deployment names its own host (testnet.karwan.site, karwan.site) so
 // canonical and share links point back to the network the visitor is on.
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
-const TITLE = 'Karwan · secure local and cross-border trade';
+const TITLE = 'Karwan · opportunities and trade reputation';
 const DESCRIPTION =
-  'Find a counterparty, bring any deal, and protect payment in USDC while Karwan keeps the trade record.';
+  'An open market for people and businesses to find opportunities and build a record of completed trades. Mainnet access is by invitation.';
 
 /// Viewport tag lives in its own export per the Next.js 15 metadata split.
 /// themeColor reads as #0e0e0e so Android Chrome paints the address bar in

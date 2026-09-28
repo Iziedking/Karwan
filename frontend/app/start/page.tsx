@@ -1,4 +1,4 @@
-import { DealBackdrop } from '@/features/signup/components/DealBackdrop';
+import { DealBackdrop, DealExampleLabel } from '@/features/signup/components/DealBackdrop';
 import { StartScreen } from '@/features/signup/components/StartScreen';
 
 export default async function StartPage({
@@ -13,6 +13,7 @@ export default async function StartPage({
       <DealBackdrop />
       <div className="relative z-10 mx-auto flex min-h-[calc(100svh-var(--lp-nav-h,72px))] w-full max-w-[440px] flex-col justify-center px-5 py-8 sm:max-w-[460px] sm:px-4 sm:py-10">
         <StartScreen mode={mode} />
+        <DealExampleLabel />
       </div>
     </main>
   );

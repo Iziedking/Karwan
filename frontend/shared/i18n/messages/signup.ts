@@ -126,8 +126,8 @@ export interface SignupCopy {
 
 const en: SignupCopy = {
   welcome: {
-    tagline: 'Trade with anyone online. The USDC waits in escrow until the work is done.',
-    backdropLabel: 'Examples of deals made on Karwan',
+    tagline: "Find opportunities and build a record of completed trades. Mainnet access is by invitation.",
+    backdropLabel: "Illustrative deal examples, not live activity",
   },
   backdrop: {
     states: { agreed: 'Agreed', locked: 'USDC locked', delivered: 'Delivered', paid: 'Paid' },
@@ -216,7 +216,7 @@ const en: SignupCopy = {
   },
   waitlist: {
     title: "Join the Karwan waitlist",
-    body: "Karwan is live on Arc mainnet. We are letting people in a few at a time.",
+    body: "Karwan is live on Arc mainnet with account and wallet access. We invite one user at a time from the waitlist.",
     emailLabel: "Email",
     join: "Join the waitlist",
     sending: "Sending code",
@@ -267,8 +267,8 @@ const en: SignupCopy = {
 
 const ar: SignupCopy = {
   welcome: {
-    tagline: 'تاجر مع أي شخص عبر الإنترنت. تبقى عملات USDC في الضمان حتى يكتمل العمل.',
-    backdropLabel: 'أمثلة على صفقات تمت على كاروان',
+    tagline: "ابحث عن فرص وابنِ سجلاً من الصفقات المكتملة. الدخول إلى الشبكة الرئيسية بالدعوة.",
+    backdropLabel: "أمثلة توضيحية لصفقات وليست نشاطاً فعلياً",
   },
   backdrop: {
     states: { agreed: 'تم الاتفاق', locked: 'تم حجز USDC', delivered: 'تم التسليم', paid: 'تم الدفع' },
@@ -357,7 +357,7 @@ const ar: SignupCopy = {
   },
   waitlist: {
     title: "انضم إلى قائمة انتظار كاروان",
-    body: "كاروان متاح الآن على الشبكة الرئيسية لـ Arc. نفتح الدخول لعدد قليل من الأشخاص في كل مرة.",
+    body: "كروان متاحة على Arc mainnet للحسابات والمحافظ. ندعو مستخدماً واحداً في كل مرة من قائمة الانتظار.",
     emailLabel: "البريد الإلكتروني",
     join: "انضم إلى قائمة الانتظار",
     sending: "جارٍ إرسال الرمز",
@@ -408,8 +408,8 @@ const ar: SignupCopy = {
 
 const fr: SignupCopy = {
   welcome: {
-    tagline: "Échangez avec n'importe qui en ligne. Les USDC restent en séquestre jusqu'à la fin du travail.",
-    backdropLabel: 'Exemples de transactions conclues sur Karwan',
+    tagline: "Trouvez des opportunités et construisez un historique d’échanges réalisés. L’accès au mainnet se fait sur invitation.",
+    backdropLabel: "Exemples d’accords illustratifs, pas une activité réelle",
   },
   backdrop: {
     states: { agreed: 'Accord conclu', locked: 'USDC bloqués', delivered: 'Livré', paid: 'Payé' },
@@ -498,7 +498,7 @@ const fr: SignupCopy = {
   },
   waitlist: {
     title: "Rejoignez la liste d’attente Karwan",
-    body: "Karwan est en ligne sur le mainnet d’Arc. Nous ouvrons l’accès à quelques personnes à la fois.",
+    body: "Karwan est disponible sur Arc mainnet pour les comptes et portefeuilles. Nous invitons une personne à la fois depuis la liste d’attente.",
     emailLabel: "E-mail",
     join: "Rejoindre la liste d’attente",
     sending: "Envoi du code",
@@ -549,8 +549,8 @@ const fr: SignupCopy = {
 
 const hi: SignupCopy = {
   welcome: {
-    tagline: 'ऑनलाइन किसी से भी व्यापार करें। काम पूरा होने तक USDC एस्क्रो में रहता है।',
-    backdropLabel: 'कारवान पर हुए सौदों के उदाहरण',
+    tagline: "अवसर खोजें और पूरे किए गए सौदों का रिकॉर्ड बनाएँ। मेननेट पर प्रवेश निमंत्रण से है।",
+    backdropLabel: "समझाने के लिए सौदों के उदाहरण, वास्तविक गतिविधि नहीं",
   },
   backdrop: {
     states: { agreed: 'सहमति हुई', locked: 'USDC लॉक', delivered: 'डिलीवर हुआ', paid: 'भुगतान हुआ' },
@@ -639,7 +639,7 @@ const hi: SignupCopy = {
   },
   waitlist: {
     title: "कारवान प्रतीक्षा सूची से जुड़ें",
-    body: "कारवान Arc मेननेट पर लाइव है। हम कुछ लोगों को एक बार में प्रवेश दे रहे हैं।",
+    body: "Karwan Arc मेननेट पर खाते और वॉलेट की पहुँच देता है। प्रतीक्षा सूची से एक समय में एक उपयोगकर्ता को आमंत्रित किया जाता है।",
     emailLabel: "ईमेल",
     join: "प्रतीक्षा सूची से जुड़ें",
     sending: "कोड भेजा जा रहा है",
@@ -690,8 +690,8 @@ const hi: SignupCopy = {
 
 const sw: SignupCopy = {
   welcome: {
-    tagline: 'Fanya biashara na mtu yeyote mtandaoni. USDC hukaa kwenye escrow hadi kazi ikamilike.',
-    backdropLabel: 'Mifano ya mikataba iliyofanywa Karwan',
+    tagline: "Pata fursa na jenga rekodi ya miamala iliyokamilika. Ufikiaji wa mainnet ni kwa mwaliko.",
+    backdropLabel: "Mifano ya makubaliano kwa maelezo, si miamala halisi",
   },
   backdrop: {
     states: { agreed: 'Imekubaliwa', locked: 'USDC imefungwa', delivered: 'Imewasilishwa', paid: 'Imelipwa' },
@@ -780,7 +780,7 @@ const sw: SignupCopy = {
   },
   waitlist: {
     title: "Jiunge na orodha ya kusubiri ya Karwan",
-    body: "Karwan iko hewani kwenye mainnet ya Arc. Tunawaruhusu watu wachache kwa wakati mmoja.",
+    body: "Karwan iko kwenye Arc mainnet yenye akaunti na pochi. Tunamwalika mtumiaji mmoja kwa wakati kutoka orodha ya kusubiri.",
     emailLabel: "Barua pepe",
     join: "Jiunge na orodha ya kusubiri",
     sending: "Inatuma msimbo",

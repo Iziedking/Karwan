@@ -16,12 +16,13 @@ export function guidanceKind(path: string): GuidanceKind | null {
 
 type Copy = {
   launch: string; close: string; next: string; back: string; done: string;
-  stopTips: string; step: string;
+  stopTips: string; step: string; wait: string; skipWait: string;
   guides: Record<GuidanceKind, [TourStep, TourStep]>;
 };
 
 export const GUIDE_COPY: Record<Locale, Copy> = {
   en: {
+    wait: '· {seconds}s', skipWait: 'Skip the wait',
     launch: 'Page tour', close: 'Close tour', next: 'Next', back: 'Back', done: 'Done', stopTips: 'Turn off automatic tips', step: 'Step',
     guides: {
       profile: [{ title: 'Your account', body: 'Open personal details, business details or settings from this hub. Contact details is where you manage ways to reach you.' }, { title: 'Money and trade', body: 'Balance, wallets and agent funds have their own pages. Open a deal to review its terms and delivery. Sign out is at the bottom of Profile.' }],
@@ -33,6 +34,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   fr: {
+    wait: '· {seconds}s', skipWait: 'Passer l’attente',
     launch: 'Guide de la page', close: 'Fermer le guide', next: 'Suivant', back: 'Retour', done: 'Terminer', stopTips: 'Désactiver les conseils automatiques', step: 'Étape',
     guides: {
       profile: [{ title: 'Votre compte', body: 'Accédez aux informations personnelles, à votre entreprise ou aux paramètres. Gérez vos moyens de contact dans Coordonnées.' }, { title: 'Argent et échanges', body: 'Le solde, les portefeuilles et les fonds des agents ont leurs propres pages. Ouvrez un accord pour vérifier les conditions et la livraison. Déconnexion se trouve en bas du profil.' }],
@@ -44,6 +46,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   ar: {
+    wait: '· {seconds} ث', skipWait: 'تخطي الانتظار',
     launch: 'دليل الصفحة', close: 'إغلاق الدليل', next: 'التالي', back: 'السابق', done: 'تم', stopTips: 'إيقاف النصائح التلقائية', step: 'الخطوة',
     guides: {
       profile: [{ title: 'حسابك', body: 'افتح التفاصيل الشخصية أو تفاصيل الشركة أو الإعدادات من هنا. يمكنك إدارة وسائل التواصل معك في بيانات الاتصال.' }, { title: 'الأموال والتجارة', body: 'للرصيد والمحافظ وأموال الوكلاء صفحات خاصة. افتح الصفقة لمراجعة الشروط والتسليم. تسجيل الخروج في أسفل الملف الشخصي.' }],
@@ -55,6 +58,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   hi: {
+    wait: '· {seconds} सेकंड', skipWait: 'इंतज़ार छोड़ें',
     launch: 'पेज गाइड', close: 'गाइड बंद करें', next: 'आगे', back: 'पीछे', done: 'पूरा हुआ', stopTips: 'अपने आप आने वाले सुझाव बंद करें', step: 'चरण',
     guides: {
       profile: [{ title: 'आपका खाता', body: 'यहाँ से व्यक्तिगत विवरण, व्यवसाय विवरण या सेटिंग खोलें। संपर्क विवरण में आपसे संपर्क करने के तरीके बदल सकते हैं।' }, { title: 'पैसा और व्यापार', body: 'बैलेंस, वॉलेट और एजेंट फंड के अलग पेज हैं। शर्तें और डिलीवरी देखने के लिए सौदा खोलें। प्रोफ़ाइल के नीचे साइन आउट है।' }],
@@ -66,6 +70,7 @@ export const GUIDE_COPY: Record<Locale, Copy> = {
     },
   },
   sw: {
+    wait: '· {seconds}s', skipWait: 'Ruka kusubiri',
     launch: 'Mwongozo wa ukurasa', close: 'Funga mwongozo', next: 'Endelea', back: 'Rudi', done: 'Maliza', stopTips: 'Zima vidokezo vya kiotomatiki', step: 'Hatua',
     guides: {
       profile: [{ title: 'Akaunti yako', body: 'Fungua taarifa binafsi, taarifa za biashara au mipangilio hapa. Simamia njia za kukufikia kwenye taarifa za mawasiliano.' }, { title: 'Fedha na biashara', body: 'Salio, pochi na fedha za mawakala zina kurasa zake. Fungua makubaliano kuona masharti na uwasilishaji. Kitufe cha kuondoka kiko chini ya wasifu.' }],
