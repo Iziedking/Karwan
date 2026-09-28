@@ -26,6 +26,7 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
+import { pageItems, pageWindow } from '../pagination';
 
 type CardVariant = 'default' | 'summary' | 'hiring';
 type SourceName = 'offers' | 'requests';
@@ -59,6 +60,18 @@ export function ListingsBrowse() {
   const [side, setSide] = useState<'all' | DiscoverySide>('all');
   const [scope, setScope] = useState<DiscoveryScope>('all');
   const [sort, setSort] = useState<DiscoverySort>('newest');
+  const [pages, setPages] = useState<Record<string, number>>({});
+
+  // A new search or filter is a new list, so it starts on its first page.
+  useEffect(() => {
+    setPages({});
+  }, [query, side, scope, sort, audience]);
+
+  function goToPage(sectionKey: string, page: number) {
+    setPages((current) => ({ ...current, [sectionKey]: page }));
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(`market-${sectionKey}`)?.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -288,31 +301,39 @@ export function ListingsBrowse() {
           <div className="space-y-10">
             {sections
               .filter((section) => section.cards.length > 0)
-              .map((section) => (
-                <section key={section.key} data-guide={`market-${section.key}`}>
-                  <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                    <h2 className="font-sans text-[19px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-                      {section.title}
-                      <span className="ms-2 mono text-[11px] font-bold tabular-nums text-[var(--lp-text-muted)]">
-                        {section.cards.length}
-                      </span>
-                    </h2>
-                    <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] sm:max-w-[48ch] sm:text-end">
-                      {section.note}
-                    </p>
-                  </div>
-                  <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {section.cards.map((card) => (
-                      <MarketCard
-                        key={`${card.side}-${card.id}`}
-                        card={card}
-                        copy={copy.card}
-                        variant={section.variant}
+              .map((section) => {
+                const paged = pageItems(section.cards, pages[section.key] ?? 1);
+                return (
+                  <section key={section.key} id={`market-${section.key}`} data-guide={`market-${section.key}`} className="scroll-mt-24">
+                    <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                      <h2 className="font-sans text-[19px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+                        {section.title}
+                        <span className="ms-2 text-[13px] font-semibold tabular-nums text-[var(--lp-text-muted)]">
+                          {section.cards.length}
+                        </span>
+                      </h2>
+                      <p className="text-[13px] text-[var(--lp-text-muted)] sm:max-w-[48ch] sm:text-end">{section.note}</p>
+                    </div>
+                    <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {paged.items.map((card) => (
+                        <MarketCard key={`${card.side}-${card.id}`} card={card} copy={copy.card} variant={section.variant} />
+                      ))}
+                    </div>
+                    {paged.pageCount > 1 ? (
+                      <Pager
+                        page={paged.page}
+                        pageCount={paged.pageCount}
+                        range={copy.pager.range
+                          .replace('{from}', String(paged.from))
+                          .replace('{to}', String(paged.to))
+                          .replace('{total}', String(paged.total))}
+                        copy={copy.pager}
+                        onPage={(page) => goToPage(section.key, page)}
                       />
-                    ))}
-                  </div>
-                </section>
-              ))}
+                    ) : null}
+                  </section>
+                );
+              })}
           </div>
         ) : null}
       </Band>
@@ -448,6 +469,68 @@ function MarketSkeleton() {
   );
 }
 
+function Pager({
+  page,
+  pageCount,
+  range,
+  copy,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  range: string;
+  copy: Messages['listingsBrowse']['pager'];
+  onPage: (page: number) => void;
+}) {
+  const step =
+    'inline-flex min-h-11 min-w-11 items-center justify-center rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-40';
+  return (
+    <nav aria-label={copy.label} className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+      <p className="text-[13px] tabular-nums text-[var(--lp-text-muted)]" aria-live="polite">
+        {range}
+      </p>
+      <div className="flex items-center gap-1.5">
+        <button type="button" className={step} onClick={() => onPage(page - 1)} disabled={page <= 1}>
+          <span aria-hidden className="rtl:rotate-180">←</span>
+          <span className="ms-1.5 hidden sm:inline">{copy.previous}</span>
+          <span className="sr-only sm:hidden">{copy.previous}</span>
+        </button>
+        <ol className="flex items-center gap-1.5">
+          {pageWindow(page, pageCount).map((n, i) =>
+            n === 'gap' ? (
+              <li key={`gap-${i}`} aria-hidden className="hidden px-1 text-[14px] text-[var(--lp-text-muted)] sm:block">
+                …
+              </li>
+            ) : (
+              <li key={n} className={n === page ? '' : 'hidden sm:block'}>
+                <button
+                  type="button"
+                  onClick={() => onPage(n)}
+                  aria-current={n === page ? 'page' : undefined}
+                  aria-label={copy.page.replace('{n}', String(n))}
+                  className={`${step} tabular-nums`}
+                  style={
+                    n === page
+                      ? { background: 'var(--lp-selected-bg)', color: 'var(--lp-selected-ink)', borderColor: 'var(--lp-selected-border)' }
+                      : undefined
+                  }
+                >
+                  {n}
+                </button>
+              </li>
+            ),
+          )}
+        </ol>
+        <button type="button" className={step} onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+          <span className="me-1.5 hidden sm:inline">{copy.next}</span>
+          <span className="sr-only sm:hidden">{copy.next}</span>
+          <span aria-hidden className="rtl:rotate-180">→</span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 function MarketCard({
   card,
   copy,
@@ -458,6 +541,8 @@ function MarketCard({
   variant: CardVariant;
 }) {
   const isSummary = variant === 'summary';
+  const side = card.side === 'offer' ? 'offer' : 'request';
+  const sideColor = `var(--color-${side})`;
   const statusLabel = card.side === 'offer' ? copy.statusOffer : copy.statusRequest;
   const partyLabel =
     card.side === 'offer'
@@ -467,10 +552,10 @@ function MarketCard({
       : card.partyKind === 'business'
         ? copy.businessBuyer
         : copy.individualBuyer;
-  const availability = (card.side === 'offer'
-    ? copy.availableUntilTemplate
-    : copy.dueTemplate
-  ).replace('{time}', relativeTime(card.availableUntil));
+  const availability = (card.side === 'offer' ? copy.availableUntilTemplate : copy.dueTemplate).replace(
+    '{time}',
+    relativeTime(card.availableUntil),
+  );
   const bidCopy =
     card.side === 'request'
       ? card.bidsCount === 0
@@ -479,53 +564,56 @@ function MarketCard({
           ? copy.metaBidOne
           : copy.metaBidsTemplate.replace('{n}', String(card.bidsCount))
       : null;
+  const facts = [availability, bidCopy, card.matchedBefore ? copy.matchedBefore : null].filter(
+    (fact): fact is string => !!fact,
+  );
 
-  const cardStyle = {
-    background: 'var(--lp-card)',
-    border: '1px solid var(--lp-border-light)',
-    borderRadius: 16,
-  } as const;
+  // The side colour runs down the leading edge and names the card; everything
+  // else is shared, so an offer and a request differ in one place only.
+  const shell =
+    'relative flex h-full flex-col overflow-hidden rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]';
+  const shellStyle = { borderInlineStartWidth: 3, borderInlineStartColor: sideColor } as const;
 
   const content = (
     <>
-      <div className="space-y-3 px-5 pb-4 pt-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 mono text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            <span aria-hidden className="h-[6px] w-[6px] bg-current" />
+      <div className="flex flex-1 flex-col gap-2.5 px-5 pb-4 pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
+            style={{ color: sideColor, background: `var(--color-${side}-soft)` }}
+          >
             {statusLabel}
           </span>
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
-            {relativeTime(card.postedAt)}
-          </span>
+          <span className="text-[12px] tabular-nums text-[var(--lp-text-muted)]">{relativeTime(card.postedAt)}</span>
         </div>
-        <h3 className="line-clamp-2 font-sans text-[19px] font-extrabold leading-tight tracking-[-0.015em] text-[var(--lp-dark)]">
+        <h3 className="line-clamp-2 text-[17px] font-bold leading-snug tracking-[-0.01em] text-[var(--lp-dark)]">
           {card.title}
         </h3>
-        {card.body ? (
-          <p className="line-clamp-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-            {card.body}
-          </p>
-        ) : null}
-        <div className="flex flex-wrap gap-x-3 gap-y-1 mono text-[9px] uppercase tracking-[0.11em] text-[var(--lp-text-muted)]">
-          <span>{availability}</span>
-          {bidCopy ? <span>{bidCopy}</span> : null}
-          {card.matchedBefore ? <span>{copy.matchedBefore}</span> : null}
-        </div>
+        {card.body ? <p className="line-clamp-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{card.body}</p> : null}
+        <p className="mt-auto pt-1 text-[12px] text-[var(--lp-text-muted)]">
+          {facts.map((fact, i) => (
+            <span key={fact}>
+              {i > 0 ? (
+                <span aria-hidden className="mx-1.5">
+                  ·
+                </span>
+              ) : null}
+              {fact}
+            </span>
+          ))}
+        </p>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-3">
-        <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="font-sans text-[22px] font-extrabold leading-none tracking-[-0.01em] text-[var(--lp-dark)] tabular-nums">
+      <div className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-3">
+        <p className="flex min-w-0 items-baseline gap-1.5">
+          <span className="text-[22px] font-extrabold leading-none tracking-[-0.01em] text-[var(--lp-dark)] tabular-nums">
             {formatUsdc(card.priceUsdc, { withSuffix: false })}
           </span>
-          <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            {copy.priceUnitTemplate.replace(
-              '{label}',
-              card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget,
-            )}
+          <span className="text-[12px] text-[var(--lp-text-muted)]">
+            {copy.priceUnitTemplate.replace('{label}', card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget)}
           </span>
-        </div>
-        <div className="flex min-h-7 items-center gap-2">
-          <span className="mono text-[9px] uppercase tracking-[0.11em] text-[var(--lp-text-muted)]">
+        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-[12px] text-[var(--lp-text-muted)]">
             {partyLabel}
             {card.partyIsYou ? copy.selfSuffix : ''}
           </span>
@@ -539,7 +627,7 @@ function MarketCard({
 
   if (isSummary) {
     return (
-      <article className="relative block overflow-hidden" style={{ ...cardStyle, opacity: 0.92 }}>
+      <article className={shell} style={{ ...shellStyle, opacity: 0.92 }}>
         {content}
       </article>
     );
@@ -548,8 +636,8 @@ function MarketCard({
   return (
     <Link
       href={card.href}
-      className="market-card group relative block overflow-hidden transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] motion-reduce:hover:translate-y-0"
-      style={cardStyle}
+      className={`market-card group ${shell} transition-[border-color,box-shadow] duration-200 ease-out hover:border-[var(--lp-outline-strong)] hover:shadow-[var(--shadow-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]`}
+      style={shellStyle}
     >
       {content}
     </Link>

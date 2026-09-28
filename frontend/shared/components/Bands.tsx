@@ -42,7 +42,7 @@ export function Band({
       data-guide={dataGuide}
       data-surface={dark ? 'workspace' : 'paper'}
       className={cn(
-        'relative left-1/2 w-bleed -translate-x-1/2 overflow-hidden',
+        'relative start-1/2 w-bleed -translate-x-1/2 rtl:translate-x-1/2 overflow-hidden',
         dark
           ? 'bg-[var(--lp-workspace-band)] text-[var(--lp-workspace-ink)]'
           : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',

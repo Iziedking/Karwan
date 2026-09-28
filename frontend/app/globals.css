@@ -115,6 +115,10 @@ html[data-theme="dark"] {
   --color-warning-soft: rgba(230, 177, 103, 0.14);
   --color-critical: #e58072;
   --color-critical-soft: rgba(229, 128, 114, 0.12);
+  --color-offer: #6cc5be;
+  --color-offer-soft: rgba(108, 197, 190, 0.14);
+  --color-request: #a3abf2;
+  --color-request-soft: rgba(163, 171, 242, 0.14);
 
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 30px -16px rgba(0, 0, 0, 0.6);
   --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 40px -18px rgba(0, 0, 0, 0.7);
@@ -125,6 +129,14 @@ html[data-theme="dark"] {
    owns its fixed-dark treatment locally, so changing the workspace never
    recolors the first impression. */
 :root {
+  /* Market sides: what is for sale and what is wanted. Neither is the lime
+     action colour or a status colour, so a side never reads as a state. Kept
+     in :root, not @theme: inline styles read them and Tailwind only emits
+     @theme values it sees used in classes. */
+  --color-offer: #0f6e6a;
+  --color-offer-soft: rgba(15, 110, 106, 0.1);
+  --color-request: #3f4aa8;
+  --color-request-soft: rgba(63, 74, 168, 0.1);
   --lp-dark: var(--ink-inv-0);     /* primary ink in light mode */
   --lp-light: var(--paper-0);      /* page/section background in light mode */
   /* Alias of --lp-light. Several surfaces and ink-button labels reference
@@ -1771,23 +1783,6 @@ html[data-theme="dark"] .product-surface {
   box-shadow: var(--product-panel-shadow);
 }
 
-.market-card::before {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 2px;
-  background: var(--lp-accent);
-  content: '';
-  opacity: 0;
-  transform: scaleY(0.35);
-  transition: opacity 200ms var(--ease-out), transform 240ms var(--ease-out);
-}
-
-.market-card:hover::before,
-.market-card:focus-visible::before {
-  opacity: 1;
-  transform: scaleY(1);
-}
-
 .activity-ledger {
   box-shadow: var(--product-panel-shadow);
 }
@@ -1815,17 +1810,6 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
   box-shadow: none;
 }
 
-@media (min-width: 1280px) {
-  .market-grid > .market-card:first-child {
-    grid-column: span 2;
-  }
-  .market-grid > .market-card:first-child h3 {
-    max-width: 28ch;
-    font-size: 24px;
-    line-height: 1.12;
-  }
-}
-
 @media (max-width: 959px) {
   .market-searchbar {
     top: 64px;
@@ -1845,10 +1829,6 @@ html[data-theme="dark"] .product-surface .bg-\[var\(--lp-card\)\] {
   .market-card {
     min-height: 0;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .market-card::before { transition: none; }
 }
 
 .platform-copy .mono,
