@@ -22,6 +22,7 @@ import { listOpenJobContexts } from '../agents/buyer.js';
 import { submitListingBid } from '../agents/seller.js';
 import { maybeRaiseNearMiss } from '../agents/nearMiss.js';
 import { topicalOverlap } from '../llm/keywords.js';
+import { rankListingCandidates, rankRequestCandidates } from '../marketplace/matchCandidates.js';
 import { emitAgentDecision } from '../agents/observability.js';
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -375,6 +376,11 @@ listingsRoutes.post('/', async (c) => {
 /// reset on restart.
 const confirmedMatchCache = new Map<string, Map<string, string>>();
 
+/// Pairs the LLM explicitly rejected, keyed the same way. Only a real answer is
+/// cached, never a failed call, so a flaky model cannot hide a match; without
+/// this every re-scan paid the model again for the same "no".
+const rejectedMatchCache = new Map<string, Map<string, string>>();
+
 function matchBasis(
   job: { briefText?: string; keywords?: string[] },
   listing: Listing,
@@ -387,13 +393,17 @@ function matchBasis(
   ].join('||');
 }
 
-function rememberConfirmedMatch(jobId: string, listingId: string, basis: string): void {
-  let m = confirmedMatchCache.get(jobId);
+function rememberVerdict(cache: Map<string, Map<string, string>>, jobId: string, listingId: string, basis: string): void {
+  let m = cache.get(jobId);
   if (!m) {
     m = new Map();
-    confirmedMatchCache.set(jobId, m);
+    cache.set(jobId, m);
   }
   m.set(listingId, basis);
+}
+
+function rememberConfirmedMatch(jobId: string, listingId: string, basis: string): void {
+  rememberVerdict(confirmedMatchCache, jobId, listingId, basis);
 }
 
 async function scanBriefsForListing(
@@ -401,7 +411,7 @@ async function scanBriefsForListing(
   seller: Awaited<ReturnType<typeof resolveSellerProfile>>,
 ) {
   if (!seller) return;
-  const briefs = listOpenJobContexts();
+  const briefs = rankRequestCandidates(listing, listOpenJobContexts());
   if (briefs.length === 0) {
     logger.info({ listingId: listing.id }, 'no open briefs to match against');
     // Surface the empty scan so the operator can spot the "brief is on chain
@@ -451,7 +461,7 @@ async function scanBriefsForListing(
 export async function scanListingsForBrief(
   job: ListingMatchJob,
 ) {
-  const listings = listOpenListings();
+  const listings = rankListingCandidates(job, listOpenListings());
   if (listings.length === 0) return;
   logger.info(
     { jobId: job.jobId, listingsCount: listings.length },
@@ -590,6 +600,7 @@ async function tryMatchListingToJobLegacy(
   // fresh, so a budget change re-evaluates crossability.
   const basis = matchBasis(job, listing);
   const cachedConfirmed = confirmedMatchCache.get(job.jobId)?.get(listing.id) === basis;
+  if (!cachedConfirmed && rejectedMatchCache.get(job.jobId)?.get(listing.id) === basis) return false;
 
   let decision: { match: boolean; confidence: number; reasoning?: string } | null = null;
   if (cachedConfirmed) {
@@ -633,6 +644,7 @@ async function tryMatchListingToJobLegacy(
       // when Gemini Flash Lite returned 0.5-0.6. The topical fallback then
       // missed because keywords hadn't been extracted yet.
       if (!decision.match || decision.confidence < 0.4) {
+        rememberVerdict(rejectedMatchCache, job.jobId, listing.id, basis);
         emitAgentDecision({
           jobId: job.jobId,
           actor: 'seller',
@@ -750,6 +762,7 @@ async function tryMatchListingToJobLegacy(
   // The brief is consumed by this listing; drop its match cache so it doesn't
   // linger after the job leaves the open pool.
   confirmedMatchCache.delete(job.jobId);
+  rejectedMatchCache.delete(job.jobId);
   bus.emitEvent({
     type: 'listing.matched',
     jobId: job.jobId,
