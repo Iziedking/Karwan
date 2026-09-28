@@ -218,7 +218,7 @@ function Why() {
           </li>
         ))}
       </ul>
-      <Link href="/activity/all-time" className="mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+      <Link href="/docs/numbers" className="mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-[var(--lp-dark)] underline underline-offset-4">
         {t.why.numbersLink}
       </Link>
     </section>

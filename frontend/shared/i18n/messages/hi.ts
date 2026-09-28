@@ -753,9 +753,6 @@ export const hi: Messages = {
       showLess: 'कम दिखाएँ',
     },
     allTime: {
-      sectionTag: 'अब तक',
-      entryTitle: 'पहले दिन से Karwan का पूरा मूल्य और लेनदेन',
-      entryCta: 'सब देखें',
       headlineTop: 'हर सौदा',
       headlineAccent: 'पहले दिन से',
       description: 'Karwan के हर तैनात कॉन्ट्रैक्ट का कुल जोड़, सेवानिवृत्त कॉन्ट्रैक्ट सहित।',
@@ -4600,6 +4597,7 @@ export const hi: Messages = {
         reputation: { label: 'प्रतिष्ठा और स्टेक', blurb: 'समग्र स्कोर और वॉल्ट.' },
         bridge: { label: 'जमा / निकासी', blurb: 'CCTP V2 के साथ क्रॉस-चेन USDC.' },
         roadmap: { label: 'रोडमैप', blurb: 'जल्द आने वाली मजबूत सुविधाएं.' },
+        numbers: { label: 'सार्वजनिक आँकड़े', blurb: 'पहले दिन से वॉल्यूम और लेनदेन, सीधे कॉन्ट्रैक्ट से पढ़े गए।' },
         faq: { label: 'सामान्य प्रश्न', blurb: 'पहली बार के उपयोगकर्ताओं के लिए त्वरित उत्तर.' },
       },
     },

@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { api } from '@/core/api';
 import { settlementChain } from '@/core/arcNetwork';
 import { AuthGuard } from '@/shared/components/AuthGuard';
@@ -54,27 +53,6 @@ function ActivityPageInner({
         <div className="fade-up fade-up-1">
           <ActivityView explorer={explorer} />
         </div>
-
-        {/* The stream above is a live window and only reaches back as far as
-            the current contracts. This is the way to the whole history, which
-            is a different question and so a different page. */}
-        <Link
-          href="/activity/all-time"
-          data-floating-avoid
-          className="fade-up fade-up-2 mt-4 group grid gap-3 border-t border-[var(--lp-border-light)] px-1 py-4 transition-colors hover:border-[var(--lp-ink)] sm:flex sm:items-center sm:justify-between sm:gap-4 md:py-5"
-        >
-          <span className="min-w-0">
-            <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {t.allTime.sectionTag}
-            </span>
-            <span className="mobile-readable mt-1.5 block text-[15px] font-bold text-[var(--lp-ink)]">
-              {t.allTime.entryTitle}
-            </span>
-          </span>
-          <span className="inline-flex min-h-11 w-fit shrink-0 items-center mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-ink)] sm:min-h-0">
-            {t.allTime.entryCta} →
-          </span>
-        </Link>
       </Band>
     </FullBleed>
     </div>

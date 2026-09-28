@@ -134,7 +134,7 @@ html[data-theme="dark"] {
      --lp-light fixes every call site and tracks the dark-mode flip. */
   --lp-bg: var(--lp-light);
   /* Alias of --lp-dark, and the same bug as --lp-bg above. Five surfaces write
-     text-[var(--lp-ink)] for primary ink: /activity, /activity/all-time,
+     text-[var(--lp-ink)] for primary ink: /activity, /docs/numbers,
      /profile, ActivityView and ProfileDeck. It was never defined, so the colour
      property was invalid and every one of them silently inherited instead. It
      looked right in light mode by luck, because what they inherited was close to

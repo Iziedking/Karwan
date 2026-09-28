@@ -733,9 +733,6 @@ interface MessagesShape {
       showLess: string;
     };
     allTime: {
-      sectionTag: string;
-      entryTitle: string;
-      entryCta: string;
       headlineTop: string;
       headlineAccent: string;
       description: string;
@@ -4286,6 +4283,7 @@ interface MessagesShape {
         reputation: { label: string; blurb: string };
         bridge: { label: string; blurb: string };
         roadmap: { label: string; blurb: string };
+        numbers: { label: string; blurb: string };
         faq: { label: string; blurb: string };
       };
     };
@@ -6052,9 +6050,6 @@ export const en: MessagesShape = {
       showLess: 'SHOW LESS',
     },
     allTime: {
-      sectionTag: 'ALL TIME',
-      entryTitle: 'All Karwan volume and transactions since day one',
-      entryCta: 'SEE ALL TIME',
       headlineTop: 'Every deal',
       headlineAccent: 'since day one',
       description: 'Totals across every contract Karwan has deployed, retired ones included.',
@@ -10003,6 +9998,7 @@ export const en: MessagesShape = {
         reputation: { label: 'Reputation & Stake', blurb: 'The composite score and the vault.' },
         bridge: { label: 'Deposit / Withdraw', blurb: 'Move USDC in and out of Arc.' },
         roadmap: { label: 'Roadmap', blurb: 'Strong functionality shipping next.' },
+        numbers: { label: 'Public numbers', blurb: 'Volume and transactions since day one, read from the contracts.' },
         faq: { label: 'FAQs', blurb: 'Quick answers for first-time users.' },
       },
     },

@@ -752,9 +752,6 @@ export const sw: Messages = {
       showLess: 'ONA PUNGUFU',
     },
     allTime: {
-      sectionTag: 'MUDA WOTE',
-      entryTitle: 'Thamani na miamala yote ya Karwan tangu siku ya kwanza',
-      entryCta: 'ONA MUDA WOTE',
       headlineTop: 'Kila mkataba',
       headlineAccent: 'tangu siku ya kwanza',
       description: 'Jumla kutoka kila mkataba Karwan imeweka, pamoja na zilizostaafu.',
@@ -4599,6 +4596,7 @@ export const sw: Messages = {
         reputation: { label: 'Sifa na Dhamana', blurb: 'Alama ya pamoja na chumba cha dhamana.' },
         bridge: { label: 'Weka / Toa', blurb: 'USDC kati ya minyororo kwa kutumia CCTP V2.' },
         roadmap: { label: 'Ramani ya Njia', blurb: 'Vipengele imara vinavyokuja hivi karibuni.' },
+        numbers: { label: 'Takwimu za umma', blurb: 'Kiasi na miamala tangu siku ya kwanza, kutoka kwenye mikataba.' },
         faq: { label: 'Maswali ya Mara kwa Mara', blurb: 'Majibu ya haraka kwa watumiaji wapya.' },
       },
     },

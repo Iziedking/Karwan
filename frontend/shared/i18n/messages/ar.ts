@@ -755,9 +755,6 @@ export const ar: Messages = {
       showLess: 'عرض أقل',
     },
     allTime: {
-      sectionTag: 'منذ البداية',
-      entryTitle: 'كل قيمة ومعاملات Karwan منذ اليوم الأول',
-      entryCta: 'عرض الكل',
       headlineTop: 'كل صفقة',
       headlineAccent: 'منذ اليوم الأول',
       description: 'إجماليات من كل عقد نشرته Karwan، بما في ذلك العقود المتقاعدة.',
@@ -4602,6 +4599,7 @@ export const ar: Messages = {
         reputation: { label: 'السمعة والرهان', blurb: 'الدرجة المركبة والخزينة.' },
         bridge: { label: 'إيداع / سحب', blurb: 'USDC عبر السلاسل باستخدام CCTP V2.' },
         roadmap: { label: 'خارطة الطريق', blurb: 'الميزات القوية القادمة قريبا.' },
+        numbers: { label: 'الأرقام العامة', blurb: 'الحجم والمعاملات منذ اليوم الأول، مقروءة من العقود.' },
         faq: { label: 'الأسئلة الشائعة', blurb: 'إجابات سريعة للمستخدمين الجدد.' },
       },
     },

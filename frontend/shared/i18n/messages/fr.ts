@@ -755,9 +755,6 @@ export const fr: Messages = {
       showLess: 'VOIR MOINS',
     },
     allTime: {
-      sectionTag: 'DEPUIS LE DÉBUT',
-      entryTitle: 'Tout le volume et les transactions Karwan depuis le premier jour',
-      entryCta: 'VOIR DEPUIS LE DÉBUT',
       headlineTop: 'Chaque transaction',
       headlineAccent: 'depuis le premier jour',
       description: 'Totaux de tous les contrats déployés par Karwan, y compris ceux retirés.',
@@ -4602,6 +4599,7 @@ export const fr: Messages = {
         reputation: { label: 'Réputation et mise', blurb: 'Le score composite et le coffre.' },
         bridge: { label: 'Dépôt / Retrait', blurb: 'USDC inter-chaînes avec CCTP V2.' },
         roadmap: { label: 'Feuille de route', blurb: 'Les fonctionnalités majeures à venir.' },
+        numbers: { label: 'Chiffres publics', blurb: 'Volume et transactions depuis le premier jour, lus dans les contrats.' },
         faq: { label: 'FAQ', blurb: 'Réponses rapides pour les nouveaux utilisateurs.' },
       },
     },
