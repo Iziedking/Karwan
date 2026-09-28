@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
@@ -603,16 +603,29 @@ function CodeForm(props: {
   );
 }
 
+/// A choice that is not open yet stays visible but inert. Its reason sits
+/// outside the card and appears on hover, keyboard focus or tap, so the card
+/// itself reads the same as the open one.
 function KindOption(props: { selected: boolean; title: string; body: string; badge?: string; disabled?: boolean; onSelect: () => void }) {
+  const noteId = useId();
+  const [noteOpen, setNoteOpen] = useState(false);
+  const inert = !!props.disabled;
   return (
-    <button type="button" role="radio" aria-checked={props.selected} disabled={props.disabled} onClick={props.onSelect}
-      className={`min-h-[96px] rounded-[12px] border p-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-60 ${props.selected ? 'border-[var(--lp-dark)] bg-[var(--lp-workspace-soft)]' : 'border-[var(--lp-outline-strong)] hover:bg-[var(--lp-workspace-soft)]'}`}>
-      <span className="flex items-center justify-between gap-2">
-        <span className="text-[16px] font-semibold text-[var(--lp-dark)]">{props.title}</span>
-        {props.badge && <span className="rounded-[6px] border border-[var(--lp-outline-strong)] px-2 py-0.5 text-[12px] font-semibold text-[var(--lp-text-sub)]">{props.badge}</span>}
-      </span>
-      <span className="mt-1 block text-[14px] leading-[1.45] text-[var(--lp-text-sub)]">{props.body}</span>
-    </button>
+    <div className="group relative" onMouseLeave={() => setNoteOpen(false)}>
+      <button type="button" role="radio" aria-checked={props.selected} aria-disabled={inert || undefined}
+        aria-describedby={inert && props.badge ? noteId : undefined}
+        onClick={() => (inert ? setNoteOpen(true) : props.onSelect())} onBlur={() => setNoteOpen(false)}
+        className={`min-h-[96px] w-full rounded-[12px] border p-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${inert ? 'cursor-not-allowed border-[var(--lp-outline-strong)] opacity-60' : props.selected ? 'border-[var(--lp-dark)] bg-[var(--lp-workspace-soft)]' : 'border-[var(--lp-outline-strong)] hover:bg-[var(--lp-workspace-soft)]'}`}>
+        <span className="block text-[16px] font-semibold text-[var(--lp-dark)]">{props.title}</span>
+        <span className="mt-1 block text-[14px] leading-[1.45] text-[var(--lp-text-sub)]">{props.body}</span>
+      </button>
+      {inert && props.badge && (
+        <span id={noteId} role="tooltip"
+          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[8px] bg-[var(--lp-dark)] px-2.5 py-1 text-[12px] font-semibold text-[var(--lp-light)] shadow-[var(--shadow-pop)] transition-opacity duration-150 motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
+          {props.badge}
+        </span>
+      )}
+    </div>
   );
 }
 
