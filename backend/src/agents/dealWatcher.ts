@@ -41,6 +41,8 @@ import {
   remainingEscrowMicros,
 } from '../money/escrowRefund.js';
 import { formatUsdcMicros } from '../money/model.js';
+import { getMoneyMovementByOperationKey } from '../db/moneyMovements.js';
+import { shouldResumePendingRefund } from '../deals/pendingRefund.js';
 import { expectedMilestonePayout } from '../money/escrowProjection.js';
 import {
   claimDeadlineRecovery,
@@ -210,6 +212,91 @@ async function runV3DisputeSafely(deal: DirectDeal, now: number) {
     logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'v3 dispute step failed (retried next tick)');
   } finally {
     processing.delete(deal.jobId);
+  }
+}
+
+/// Finishes a buyer's deadline cancel whose refund step never landed, on a deal
+/// the seller never accepted (see deals/pendingRefund.ts). Same movement key,
+/// same recovery ledger and the same off-chain writes as the cancel route, so a
+/// retry here and a retry from the buyer's button can never both pay out.
+async function maybeResumePendingRefund(
+  deal: DirectDeal,
+  account: Awaited<ReturnType<typeof dealEscrowOps.read>>,
+  now: number,
+) {
+  const refund = await getMoneyMovementByOperationKey(refundMovementKey(deal.jobId));
+  const resume = shouldResumePendingRefund({
+    deal,
+    escrow: { disputed: true, wasAccepted: account.wasAccepted, version: account.version },
+    refund: refund ? { state: refund.state, initiatedBy: refund.initiatedBy } : null,
+  });
+  if (!resume || !refund || !deal.deadlineUnix) return;
+  const amountUsdc = formatUsdcMicros(BigInt(refund.amountMicros));
+  const recipient = refund.participants.find((p) => p.role === 'recipient')?.address;
+  if (!recipient) return;
+  const buyerWalletId = deal.buyerAgentWalletId!;
+  const recovery = await ensureDeadlineRecovery({
+    jobId: deal.jobId,
+    deadlineUnix: deal.deadlineUnix,
+    availableAt: deadlineRecoveryReadyAt(deal.deadlineUnix, config.DEAL_DEADLINE_RECLAIM_GRACE_MS),
+    now,
+  });
+  if (now < recovery.availableAt) return;
+  const lease = await claimDeadlineRecovery({ jobId: deal.jobId, now });
+  if (!lease) return;
+  const reason = 'buyer cancel: seller did not deliver by deadline';
+  const refundInput = {
+    operationKey: refundMovementKey(deal.jobId),
+    amountUsdc,
+    initiatedBy: deal.buyer,
+    buyerAgentAddress: recipient,
+    sellerAddress: deal.seller,
+    jobId: deal.jobId,
+    summary: refund.summary,
+    escrowAddress: escrowAddressOf(deal),
+    buyerAgentWalletId: buyerWalletId,
+  };
+  try {
+    await recordDeadlineRecoveryMovement(lease, refund.reference);
+    const result = await executeEscrowRefundMovement(refundInput, (options) =>
+      refundEscrow(deal.jobId, buyerWalletId, options),
+    );
+    await patchDeal(deal.jobId, {
+      cancelledAt: Date.now(),
+      cancelKind: 'unilateral',
+      cancelReason: reason,
+      refundTxHash: result.txHash,
+    });
+    void appendActivity({
+      address: deal.buyer,
+      kind: 'refund',
+      id: `escrow-refund:${deal.jobId}`,
+      refId: result.movement.reference,
+      summary: refund.summary,
+      params: { t: 'deadlineReclaim', amount: amountUsdc, reference: result.movement.reference },
+      amountUsdc,
+      txHash: result.txHash,
+      jobId: deal.jobId,
+      counterparty: deal.seller?.toLowerCase(),
+    });
+    bus.emitEvent({
+      type: 'deal.cancelled',
+      jobId: deal.jobId,
+      actor: 'buyer',
+      payload: { buyer: deal.buyer, seller: deal.seller, kind: 'unilateral', reason, txHash: result.txHash, reference: result.movement.reference, auto: true },
+    });
+    await recordReputation(deal.jobId, buyerWalletId, OUTCOME_FAILED);
+    await completeDeadlineRecovery(lease, { movementReference: result.movement.reference, txHash: result.txHash });
+    logger.info({ jobId: deal.jobId, txHash: result.txHash }, 'resumed a buyer refund that never landed');
+  } catch (err) {
+    await failDeadlineRecovery(lease, {
+      error: (err as Error).message,
+      nextAvailableAt: Date.now() + deadlineRecoveryBackoffMs(recovery.attempt + 1),
+      now: Date.now(),
+    }).catch((recoveryError) =>
+      logger.error({ jobId: deal.jobId, err: (recoveryError as Error).message }, 'refund resume failed and the retry could not be recorded'),
+    );
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'resuming a pending buyer refund failed; will retry');
   }
 }
 
@@ -399,6 +486,10 @@ async function tick() {
       // Pre-v2.D this was Funded; after the seller's acceptEscrow lands
       // (which the deal-accept route invokes), the state moves to Accepted
       // and stays there until milestones are released.
+      if (account.state === ESCROW_DISPUTED) {
+        await maybeResumePendingRefund(deal, account, now);
+        continue;
+      }
       if (account.state !== ESCROW_ACCEPTED) continue;
       const buyerWalletId = deal.buyerAgentWalletId;
 
