@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { PROTECTION_TOPICS } from './protectionTopics';
 import { protectionCopy } from '../../shared/i18n/messages/protection';
+import { colourHex, cssDeclarations, themeTokens, tokenColour } from '../../shared/components/themeTestUtils';
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -39,19 +40,19 @@ test('protection artwork is static and accessible, with no payment action or fak
 
 test('protection captions and artwork remain legible on the authored dark field', () => {
   const css = source('./components/ProtectionSection.module.css');
-  const globalCss = source('../../app/globals.css');
-  const token = (name: string) => (css + globalCss).match(new RegExp(`${name}:\\s*(#[a-fA-F0-9]{6})`))![1];
+  const tokens = { ...themeTokens('dark'), ...cssDeclarations(css.match(/\.section\s*\{([\s\S]*?)\n\}/)![1]) };
+  const token = (name: string) => colourHex(tokenColour(tokens, name));
   const luminance = (hex: string) => {
     const [r, g, b] = hex.match(/[a-f\d]{2}/gi)!.map(part => parseInt(part, 16) / 255)
       .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
     return r * 0.2126 + g * 0.7152 + b * 0.0722;
   };
   const ground = luminance(token('--protection-ground'));
-  for (const name of ['--karwan-card', '--protection-secondary']) {
+  for (const name of ['--protection-ink', '--protection-secondary']) {
     assert.ok((luminance(token(name)) + 0.05) / (ground + 0.05) >= 4.5, name);
   }
   for (const name of ['--protection-line', '--protection-depth', '--karwan-green']) {
     assert.ok((luminance(token(name)) + 0.05) / (ground + 0.05) >= 3, name);
   }
-  assert.match(css, /--protection-ink: var\(--karwan-card\)/);
+  assert.match(css, /--protection-ink: var\(--palette-paper\)/);
 });

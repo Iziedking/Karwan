@@ -1,6 +1,6 @@
 .section {
   --protection-ground: #191d14;
-  --protection-ink: var(--karwan-card);
+  --protection-ink: var(--palette-paper);
   --protection-secondary: #bcc1b3;
   --protection-line: #d9ddcf;
   --protection-depth: #747e68;

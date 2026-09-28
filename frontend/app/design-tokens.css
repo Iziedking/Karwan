@@ -1,0 +1,198 @@
+@theme inline {
+  --color-white: #FFFFFF;
+  --color-black: #000000;
+  --color-bg: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--tint);
+  --color-line: var(--line);
+  --color-line-strong: var(--control-line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink);
+  --color-ink-dim: var(--ink-secondary);
+  --color-ink-faint: var(--ink-secondary);
+  --color-accent: var(--action);
+  --color-accent-soft: var(--tint);
+  --color-offer: var(--offer);
+  --color-request: var(--request);
+  --color-positive: var(--status-positive);
+  --color-positive-soft: var(--status-positive-soft);
+  --color-warning: var(--status-warning);
+  --color-warning-soft: var(--status-warning-soft);
+  --color-critical: var(--status-critical);
+  --color-critical-soft: var(--status-critical-soft);
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-pop: var(--sheet-shadow);
+  --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-body: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --font-serif: var(--font-sans);
+}
+
+:root {
+  /* Runtime readers must not depend on Tailwind emitting a matching utility. */
+  --font-sans: var(--font-general-sans), var(--font-geist), ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-body: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --font-serif: var(--font-sans);
+  --canvas: #EEF2F7;
+  --surface: #FFFFFF;
+  --ink: #16202A;
+  --ink-secondary: color-mix(in srgb, var(--ink) 64%, transparent);
+  --ink-muted: color-mix(in srgb, var(--ink) 44%, transparent);
+  --tint: color-mix(in srgb, var(--ink) 6%, transparent);
+  --line: color-mix(in srgb, var(--ink) 8%, transparent);
+  --control-line: color-mix(in srgb, var(--ink) 56%, transparent);
+  --action: #AFC95B;
+  --on-action: #16202A;
+  --offer: #0F6E6A;
+  --request: #3F4AA8;
+  --radius-card: 20px;
+  --radius-panel: 28px;
+  --radius-input: 14px;
+  --radius-pill: 9999px;
+  --measure-content: 1240px;
+  --measure-prose: 64ch;
+  --ease-ui: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-small: 200ms;
+  --dur-panel: 400ms;
+  --ease-out: var(--ease-ui);
+  --ease-in: var(--ease-ui);
+  --ease-inout: var(--ease-ui);
+  --dur-micro: var(--dur-small);
+  --dur-fast: var(--dur-small);
+  --dur-sheet: var(--dur-panel);
+  --dur-base: var(--dur-panel);
+  --dur-slow: var(--dur-panel);
+  --dur-hero: var(--dur-panel);
+
+  --palette-night-canvas: #0E141B;
+  --palette-night-surface: #16202A;
+  --palette-paper: #EEF2F7;
+  --palette-white: #FFFFFF;
+  --palette-navy: #16202A;
+  --palette-night-secondary: color-mix(in srgb, var(--palette-paper) 64%, transparent);
+
+  --color-bg: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--tint);
+  --color-line: var(--line);
+  --color-line-strong: var(--control-line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink);
+  --color-ink-dim: var(--ink-secondary);
+  --color-ink-faint: var(--ink-secondary);
+  --color-accent: var(--action);
+  --color-accent-soft: var(--tint);
+  --color-offer: var(--offer);
+  --color-request: var(--request);
+  --status-positive: #0f5132;
+  --status-positive-soft: rgba(15, 81, 50, 0.1);
+  --status-warning: #855300;
+  --status-warning-soft: rgba(133, 83, 0, 0.1);
+  --status-critical: #7a1f1a;
+  --status-critical-soft: rgba(122, 31, 26, 0.08);
+  --color-positive: var(--status-positive);
+  --color-positive-soft: var(--status-positive-soft);
+  --color-warning: var(--status-warning);
+  --color-warning-soft: var(--status-warning-soft);
+  --color-critical: var(--status-critical);
+  --color-critical-soft: var(--status-critical-soft);
+
+  --karwan-green: var(--action);
+  --karwan-canvas: var(--canvas);
+  --karwan-card: var(--surface);
+  --paper-0: var(--palette-paper);
+  --paper-1: var(--palette-white);
+  --paper-2: color-mix(in srgb, var(--palette-navy) 6%, var(--palette-white));
+  --surface-0: var(--palette-night-canvas);
+  --surface-1: var(--palette-night-surface);
+  --surface-2: color-mix(in srgb, var(--palette-paper) 8%, var(--palette-night-surface));
+  --ink-0: var(--palette-white);
+  --ink-1: var(--palette-paper);
+  --ink-2: var(--palette-night-secondary);
+  --ink-3: var(--ink-secondary);
+  --ink-inv-0: var(--palette-navy);
+  --ink-inv-2: color-mix(in srgb, var(--palette-navy) 64%, transparent);
+  --accent: var(--action);
+  --accent-deep: var(--action);
+  --accent-ink: var(--on-action);
+  --pos: var(--action);
+  --warn: #FFC857;
+  --neg: #FF6A6A;
+  --info: #7CC2FF;
+  --rule-dark: color-mix(in srgb, var(--palette-paper) 8%, transparent);
+  --rule-light: color-mix(in srgb, var(--palette-navy) 8%, transparent);
+
+  --lp-dark: var(--ink);
+  --lp-light: var(--canvas);
+  --lp-bg: var(--canvas);
+  --lp-ink: var(--ink);
+  --lp-paper: var(--canvas);
+  --lp-card: var(--surface);
+  --lp-cream: var(--canvas);
+  --lp-wash: var(--surface);
+  --lp-band-dark: var(--palette-night-canvas);
+  --lp-text-sub: var(--ink-secondary);
+  --lp-text-muted: var(--ink-secondary);
+  --lp-text-on-dark-muted: var(--palette-night-secondary);
+  --lp-border: var(--line);
+  --lp-line: var(--line);
+  --lp-border-light: var(--line);
+  --lp-border-subtle: var(--line);
+  --lp-field: var(--tint);
+  --lp-field-border: var(--control-line);
+  --lp-outline: var(--control-line);
+  --lp-outline-strong: var(--control-line);
+  --lp-outline-hover: var(--ink-secondary);
+  --lp-critical: var(--color-critical);
+  --lp-positive: var(--color-positive);
+  --lp-accent: var(--action);
+  --lp-accent-hover: var(--action);
+  --accent-on-paper: #42560F;
+  --lp-accent-on-light: var(--accent-on-paper);
+  --chart-bar: #627E15;
+  --lp-workspace-band: var(--canvas);
+  --lp-workspace-raised: var(--surface);
+  --lp-workspace-ink: var(--ink);
+  --lp-workspace-muted: var(--ink-secondary);
+  --lp-workspace-faint: var(--ink-secondary);
+  --lp-workspace-border: var(--line);
+  --lp-workspace-soft: var(--tint);
+  --lp-workspace-grid: var(--line);
+  --lp-control-active-bg: var(--action);
+  --lp-control-active-ink: var(--on-action);
+  --lp-control-active-border: var(--action);
+  --lp-selected-bg: var(--ink);
+  --lp-selected-ink: var(--canvas);
+  --lp-selected-border: var(--ink);
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --product-panel-shadow: none;
+  --sheet-shadow: 0 12px 40px -16px color-mix(in srgb, var(--palette-night-canvas) 24%, transparent);
+  --shadow-pop: var(--sheet-shadow);
+}
+
+html[data-theme="dark"] {
+  --canvas: #0E141B;
+  --surface: #16202A;
+  --ink: #EEF2F7;
+  --tint: color-mix(in srgb, var(--ink) 8%, transparent);
+  --offer: #6CC5BE;
+  --request: #A3ABF2;
+  --status-positive: #6fbf6f;
+  --status-positive-soft: rgba(111, 191, 111, 0.14);
+  --status-warning: #e6b167;
+  --status-warning-soft: rgba(230, 177, 103, 0.14);
+  --status-critical: #e58072;
+  --status-critical-soft: rgba(229, 128, 114, 0.12);
+  --lp-accent-on-light: var(--action);
+  --chart-bar: var(--action);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-small: 0ms;
+    --dur-panel: 0ms;
+  }
+}

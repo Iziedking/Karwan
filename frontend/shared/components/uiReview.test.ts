@@ -202,18 +202,49 @@ function contrast(a: string, b: string) {
   return (lighter+0.05)/(darker+0.05);
 }
 
-test('reviewed light theme text, selected controls, and field edges meet contrast thresholds', () => {
-  const css = source('../../app/globals.css');
-  const token = (name: string) => css.match(new RegExp(`${name}:\\s*(#[a-fA-F0-9]{6})`))![1];
-  const paper = token('--karwan-canvas');
-  const card = token('--karwan-card');
-  assert.equal(paper.toUpperCase(), '#C7D3E2');
-  assert.equal(card.toUpperCase(), '#F4F4F1');
-  for (const surface of [paper, card]) {
-    for (const name of ['--lp-text-sub','--ink-inv-2','--lp-workspace-faint','--lp-accent-on-light']) assert.ok(contrast(token(name),surface) >= 4.5, name);
-    assert.ok(contrast(token('--lp-field-border'),surface) >= 3);
+test('canonical theme text, selected controls and field edges meet contrast thresholds', () => {
+  const css = source('../../app/design-tokens.css');
+  const declarations = (body: string) => Object.fromEntries(
+    [...body.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map(match => [match[1], match[2].trim()]),
+  );
+  const light = declarations(css.match(/:root\s*\{([\s\S]*?)\n\}/)![1]);
+  const dark = { ...light, ...declarations(css.match(/html\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)![1]) };
+  type Colour = [number, number, number, number];
+  const channels = (hex: string): Colour => [...hex.slice(1).match(/../g)!.map(part => parseInt(part, 16)), 1] as Colour;
+  const composite = (paint: Colour, background: Colour): Colour => [
+    ...paint.slice(0, 3).map((value, i) => Math.round(value * paint[3] + background[i] * (1 - paint[3]))), 1,
+  ] as Colour;
+  const hex = (value: Colour) => `#${value.slice(0, 3).map(channel => channel.toString(16).padStart(2, '0')).join('')}`;
+  for (const [theme, tokens] of [['light', light], ['dark', dark]] as const) {
+    const resolve = (name: string): Colour => {
+      const value = tokens[name];
+      assert.ok(value, `${theme}: missing ${name}`);
+      if (/^#[\da-f]{6}$/i.test(value)) return channels(value);
+      const alias = value.match(/^var\((--[\w-]+)\)$/);
+      if (alias) return resolve(alias[1]);
+      const mix = value.match(/^color-mix\(in srgb, var\((--[\w-]+)\) (\d+)%, transparent\)$/);
+      assert.ok(mix, `${theme}: unsupported colour ${name}=${value}`);
+      return [...resolve(mix[1]).slice(0, 3), Number(mix[2]) / 100] as Colour;
+    };
+    for (const surfaceName of ['--canvas', '--surface']) {
+      const background = resolve(surfaceName);
+      const field = composite(resolve('--tint'), background);
+      for (const name of ['--ink', '--lp-text-sub', '--lp-workspace-faint', '--color-offer', '--color-request', '--color-positive', '--color-warning', '--color-critical']) {
+        assert.ok(contrast(hex(composite(resolve(name), background)), hex(background)) >= 4.5, `${theme} ${surfaceName} ${name}`);
+      }
+      assert.ok(contrast(hex(composite(resolve('--lp-field-border'), field)), hex(field)) >= 3, `${theme} field edge`);
+      assert.ok(contrast(hex(composite(resolve('--lp-text-muted'), field)), hex(field)) >= 4.5, `${theme} placeholder`);
+    }
+    assert.ok(contrast(hex(resolve('--accent-ink')), hex(resolve('--karwan-green'))) >= 4.5, `${theme} action label`);
+    assert.ok(contrast(hex(resolve('--lp-selected-bg')), hex(resolve('--lp-selected-ink'))) >= 4.5, `${theme} selected label`);
   }
-  assert.ok(contrast(token('--accent-ink'),token('--karwan-green')) >= 4.5);
+});
+
+test('market price and unit stay together while the account label can truncate', () => {
+  const market = source('../../features/listings/components/ListingsBrowse.tsx');
+  assert.match(market, /<p className="flex min-w-0 shrink-0 items-baseline gap-1\.5"/);
+  assert.match(market, /<span className="whitespace-nowrap text-\[12px\] text-\[var\(--lp-text-muted\)\]"/);
+  assert.match(market, /truncate text-\[12px\]/);
 });
 
 test('account action is Move and keeps its existing route', () => {

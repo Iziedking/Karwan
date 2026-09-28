@@ -568,20 +568,16 @@ function MarketCard({
     (fact): fact is string => !!fact,
   );
 
-  // The side colour runs down the leading edge and names the card; everything
-  // else is shared, so an offer and a request differ in one place only.
+  // One plain surface for both sides. The only difference is the coloured
+  // word that names the side.
   const shell =
-    'relative flex h-full flex-col overflow-hidden rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]';
-  const shellStyle = { borderInlineStartWidth: 3, borderInlineStartColor: sideColor } as const;
+    'relative flex h-full flex-col overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]';
 
   const content = (
     <>
       <div className="flex flex-1 flex-col gap-2.5 px-5 pb-4 pt-4">
         <div className="flex items-center justify-between gap-2">
-          <span
-            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
-            style={{ color: sideColor, background: `var(--color-${side}-soft)` }}
-          >
+          <span className="text-[13px] font-semibold" style={{ color: sideColor }}>
             {statusLabel}
           </span>
           <span className="text-[12px] tabular-nums text-[var(--lp-text-muted)]">{relativeTime(card.postedAt)}</span>
@@ -603,12 +599,12 @@ function MarketCard({
           ))}
         </p>
       </div>
-      <div className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-3">
-        <p className="flex min-w-0 items-baseline gap-1.5">
+      <div className="mx-5 flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] py-3.5">
+        <p className="flex min-w-0 shrink-0 items-baseline gap-1.5">
           <span className="text-[22px] font-extrabold leading-none tracking-[-0.01em] text-[var(--lp-dark)] tabular-nums">
             {formatUsdc(card.priceUsdc, { withSuffix: false })}
           </span>
-          <span className="text-[12px] text-[var(--lp-text-muted)]">
+          <span className="whitespace-nowrap text-[12px] text-[var(--lp-text-muted)]">
             {copy.priceUnitTemplate.replace('{label}', card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget)}
           </span>
         </p>
@@ -627,7 +623,7 @@ function MarketCard({
 
   if (isSummary) {
     return (
-      <article className={shell} style={{ ...shellStyle, opacity: 0.92 }}>
+      <article className={shell} style={{ opacity: 0.92 }}>
         {content}
       </article>
     );
@@ -636,8 +632,7 @@ function MarketCard({
   return (
     <Link
       href={card.href}
-      className={`market-card group ${shell} transition-[border-color,box-shadow] duration-200 ease-out hover:border-[var(--lp-outline-strong)] hover:shadow-[var(--shadow-card-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]`}
-      style={shellStyle}
+      className={`market-card group ${shell} transition-colors duration-200 ease-out hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]`}
     >
       {content}
     </Link>

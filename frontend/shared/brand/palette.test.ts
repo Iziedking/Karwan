@@ -3,11 +3,12 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { brandPalette } from './palette';
 import { en } from '../i18n/messages/en';
+import { colourHex, themeTokens, tokenColour } from '../components/themeTestUtils';
 
 const read = (relative: string) => readFileSync(new URL(relative, import.meta.url), 'utf8');
 
 test('published palette lists the interface colors actually defined in the product', () => {
-  const css = read('../../app/globals.css');
+  const tokens = themeTokens('light');
   const roles: Record<string, string> = {
     brandLime: '--karwan-green',
     brandInk: '--ink-inv-0',
@@ -23,7 +24,8 @@ test('published palette lists the interface colors actually defined in the produ
   assert.equal(brandPalette.length, Object.keys(roles).length);
   for (const color of brandPalette) {
     assert.ok(en.brandPage.palette[color.key]);
-    assert.match(css, new RegExp(`${roles[color.key]}:\\s*${color.hex}`, 'i'), color.key);
+    const ground = tokenColour(tokens, color.key === 'darkSecondary' ? '--palette-night-surface' : '--canvas');
+    assert.equal(colourHex(tokenColour(tokens, roles[color.key]), ground), color.hex, color.key);
   }
 });
 
