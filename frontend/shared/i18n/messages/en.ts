@@ -5312,7 +5312,7 @@ export const en: MessagesShape = {
   activityReview: { filterLabel: 'Filter recent activity by type' },
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
   landingEditorial: {
-    kicker: "Work, goods and business opportunities", titleFirst: "Good work deserves", titleLast: "a lasting record.",
+    kicker: "Work, goods and business opportunities", titleFirst: "Your reputation should", titleLast: "travel with you.",
     lead: "Karwan is an open market for people and businesses. Find work, source goods and build a record through completed trades.",
     open: 'Open Karwan', trade: "Mainnet access is by invitation, one user at a time. The market and deal flow are available on testnet.", startLink: 'How a deal starts',
     introLabel: "Opportunity and reputation", introTitle: "Build on the work you have already done.", introBody: "A freelancer’s completed work, a supplier’s deliveries and a buyer’s payment history should help them find their next opportunity. Karwan starts with a record of trades completed here. Sharing that reputation across platforms, with your permission, is planned.", marketLink: 'Explore requests and offers',
