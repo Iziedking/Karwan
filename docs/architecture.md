@@ -11,6 +11,9 @@ Mainnet currently provides the wallet application and the Reputation and
 BusinessRegistry contracts. Trading and escrow remain on Arc testnet. The
 [README](../README.md#availability) lists the environments and deployment scope.
 
+Flow by flow, each product idea has its own sequence and context diagrams, with
+every step marked live, built or planned, in [architecture/](architecture/README.md).
+
 ## System shape
 
 - **Frontend.** Next.js 15 app with app routes, shared navigation, localized
