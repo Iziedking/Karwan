@@ -13,13 +13,14 @@ import { clearEmailProof, holdEmailProof } from '@/features/modularWallet/pendin
 import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
 import { useSiwe } from '@/shared/hooks/useSiwe';
 import { termsAcceptanceMessage } from '@/shared/hooks/useTerms';
+import { Icon } from '@/shared/components/Icon';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WALLET_HOME } from '@/shared/utils/routes';
 import { localTagIssue, normalizeTag, type TagIssue } from '../tag';
 import { RECOVERY_ON } from '@/features/recovery/flag';
 import { RecoverFlow } from '@/features/recovery/components/RecoverFlow';
 import { RecoveryPasswordStep } from '@/features/recovery/components/RecoveryPasswordStep';
-import { START_CARD } from '@/features/signup/components/cardStyles';
+import { START_CARD, START_TITLE } from '@/features/signup/components/cardStyles';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOME = DEALS_AVAILABLE ? '/app' : WALLET_HOME;
@@ -350,18 +351,18 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     <div className={card}>
       {mode === 'signin' ? (
         <>
-          <h1 className="text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">
+          <h1 className={START_TITLE}>
             {inStep === 'code' ? t.signIn.codeTitle : inStep === 'passkey' ? t.signIn.passkeyTitle : t.signIn.title}
           </h1>
           {inStep === 'email' && (
-            <p className="mt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{t.welcome.tagline}</p>
+            <p className="mt-2 text-[15px] leading-[1.5] text-[var(--ink-secondary)]">{t.welcome.tagline}</p>
           )}
 
           {inStep === 'email' && (
             <form onSubmit={signInLookup} className="mt-6 space-y-3">
               <Field label={t.signIn.emailLabel}>
                 <input type="email" inputMode="email" autoComplete="email webauthn" value={email}
-                  onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="form-input min-h-12 sm:min-h-[52px]" autoFocus />
+                  onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
               </Field>
               <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
                 {busy === 'lookup' ? t.signIn.checking : t.signIn.continue}
@@ -371,13 +372,13 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {inStep === 'passkey' && (
             <div className="mt-6 space-y-3">
-              <p className="mono text-[14px] text-[var(--lp-text-sub)]">{email}</p>
+              <p className="break-all text-[14px] text-[var(--ink-secondary)]">{email}</p>
               <Primary onClick={() => void signInWithPasskey()} disabled={!!busy || waitingForSignIn}>
                 {busy === 'passkey' || waitingForSignIn ? t.signIn.passkeyWaiting : t.signIn.passkeyButton}
               </Primary>
               {RECOVERY_ON && !testnetPasskey.current && (
                 <button type="button" onClick={() => { setError(null); setRecovering(true); }} disabled={!!busy}
-                  className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-50">
+                  className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
                   {recoveryCopy.flow.entry}
                 </button>
               )}
@@ -392,7 +393,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {inStep === 'not-found' && (
             <div className="mt-6 space-y-3">
-              <p className="text-[15px] text-[var(--lp-text-sub)]">{t.signIn.notFound}</p>
+              <p className="text-[15px] text-[var(--ink-secondary)]">{t.signIn.notFound}</p>
               <Primary onClick={() => switchMode('signup')}>{t.signIn.createInstead}</Primary>
             </div>
           )}
@@ -407,17 +408,17 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           <ErrorLine error={error} />
 
-          <div className="mt-5 space-y-2 border-t border-[var(--lp-outline-strong)] pt-4 sm:mt-7 sm:pt-5 text-[14px] text-[var(--lp-text-sub)]">
+          <div className="mt-5 space-y-2 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5">
             {onWaitlist ? (
               <p>
-                <button type="button" onClick={onWaitlist} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+                <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                   {t.waitlist.back}
                 </button>
               </p>
             ) : (
               <p>
                 {t.signIn.noAccount}{' '}
-                <button type="button" onClick={() => switchMode('signup')} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+                <button type="button" onClick={() => switchMode('signup')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                   {t.signIn.signUp}
                 </button>
               </p>
@@ -425,15 +426,15 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
             {DEALS_AVAILABLE && (
               <p>
                 {t.signIn.browsePrompt}{' '}
-                <Link href="/market" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">{t.signIn.browse}</Link>
+                <Link href="/market" className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{t.signIn.browse}</Link>
               </p>
             )}
           </div>
         </>
       ) : (
         <>
-          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{s.step.replace('{n}', String(stepNumber))}</p>
-          <h1 className="mt-1 text-[22px] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[26px]">
+          <p className="text-[13px] font-medium tabular-nums text-[var(--ink-secondary)]">{s.step.replace('{n}', String(stepNumber))}</p>
+          <h1 className={`mt-1 ${START_TITLE}`}>
             {upStep === 'tag' ? s.tagLabel
               : upStep === 'code' ? s.codeTitle
                 : upStep === 'passkey' ? s.passkeyTitle
@@ -447,13 +448,13 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
               if (tagState !== 'available') return;
               setUpStep(authedWithoutAccount ? 'kind' : 'method');
             }}>
-              <div className="flex min-h-12 sm:min-h-[52px] items-center rounded-[12px] border border-[var(--lp-outline-strong)] bg-transparent px-4 focus-within:ring-2 focus-within:ring-[var(--lp-accent)]">
-                <span className="text-[17px] font-semibold text-[var(--lp-text-sub)]" aria-hidden>@</span>
+              <div className="flex min-h-[52px] items-center rounded-[14px] bg-[var(--tint)] px-4 focus-within:ring-2 focus-within:ring-[var(--action)]">
+                <span className="text-[17px] font-medium text-[var(--ink-secondary)]" aria-hidden>@</span>
                 <input aria-label={s.tagLabel} value={tag} onChange={(e) => setTag(e.target.value.replace(/\s/g, ''))}
                   autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={21} autoFocus
-                  className="ms-1 h-[46px] w-full bg-transparent text-[17px] sm:h-[50px] text-[var(--lp-dark)] outline-none" />
+                  className="ms-1 min-h-[52px] min-w-0 w-full border-0 bg-transparent text-[17px] text-[var(--ink)] outline-none" />
               </div>
-              <p aria-live="polite" className={`text-[14px] ${tagState === 'available' ? 'text-[var(--lp-dark)]' : tagState === 'idle' || tagState === 'checking' ? 'text-[var(--lp-text-sub)]' : 'text-[var(--lp-critical)]'}`}>
+              <p aria-live="polite" className={`text-[14px] ${tagState === 'available' ? 'text-[var(--ink)]' : tagState === 'idle' || tagState === 'checking' ? 'text-[var(--ink-secondary)]' : 'text-[var(--color-critical)]'}`}>
                 {tagLine}
               </p>
               <Primary type="submit" disabled={tagState !== 'available'}>{s.next}</Primary>
@@ -462,11 +463,11 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {upStep === 'method' && (
             <div className="mt-6 space-y-3">
-              <p className="text-[15px] font-semibold text-[var(--lp-dark)]">@{cleanTag}</p>
+              <p className="text-[15px] font-medium text-[var(--ink)]">@{cleanTag}</p>
               <form onSubmit={sendCode} className="space-y-3">
                 <Field label={s.emailLabel}>
                   <input type="email" inputMode="email" autoComplete="email" value={email}
-                    onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="form-input min-h-12 sm:min-h-[52px]" autoFocus />
+                    onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
                 </Field>
                 <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
                   {busy === 'send' ? s.sending : s.sendCode}
@@ -490,7 +491,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {upStep === 'passkey' && (
             <div className="mt-6 space-y-3">
-              <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{s.passkeyBody}</p>
+              <p className="text-[15px] leading-[1.5] text-[var(--ink-secondary)]">{s.passkeyBody}</p>
               <Primary onClick={() => void createPasskey()} disabled={!!busy || waitingForSignIn}>
                 {busy === 'passkey' || waitingForSignIn ? s.passkeyWaiting : s.passkeyCreate}
               </Primary>
@@ -499,18 +500,18 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {upStep === 'kind' && (
             <div className="mt-6 space-y-3">
-              <p className="text-[15px] font-semibold text-[var(--lp-dark)]">@{cleanTag}</p>
+              <p className="text-[15px] font-medium text-[var(--ink)]">@{cleanTag}</p>
               <div role="radiogroup" aria-label={s.kindTitle} className="grid gap-3 sm:grid-cols-2">
                 <KindOption selected={kind === 'person'} title={s.person} body={s.personBody} onSelect={() => setKind('person')} />
                 <KindOption selected={kind === 'business'} title={s.business} body={s.businessBody}
                   badge={businessOpen ? undefined : s.comingSoon} disabled={!businessOpen} onSelect={() => setKind('business')} />
               </div>
-              <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-2 text-[14px] leading-[1.5] text-[var(--lp-text-sub)]">
+              <label className="flex min-h-11 cursor-pointer items-start gap-3 pt-2 text-[14px] leading-[1.5] text-[var(--ink-secondary)]">
                 <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--lp-accent)]" />
+                  className="mt-[3px] h-4 w-4 shrink-0 accent-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]" />
                 <span>
                   {s.termsPrefix}{' '}
-                  <Link href="/terms" target="_blank" className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">{s.termsLink}</Link>
+                  <Link href="/terms" target="_blank" className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{s.termsLink}</Link>
                 </span>
               </label>
               <Primary onClick={() => void createAccount()} disabled={!agreed || !!busy || !auth.address}>
@@ -523,15 +524,15 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 
           {onWaitlist && !authedWithoutAccount && (
             <p className="mt-4 text-[14px]">
-              <button type="button" onClick={onWaitlist} className="font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]">
+              <button type="button" onClick={onWaitlist} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {t.waitlist.back}
               </button>
             </p>
           )}
           {!authedWithoutAccount && (
-            <p className="mt-5 border-t border-[var(--lp-outline-strong)] pt-4 sm:mt-7 sm:pt-5 text-[14px] text-[var(--lp-text-sub)]">
+            <p className="mt-5 border-t border-[var(--line)] pt-4 text-[14px] text-[var(--ink-secondary)] sm:mt-7 sm:pt-5">
               {s.haveAccount}{' '}
-              <button type="button" onClick={() => switchMode('signin')} className="font-semibold text-[var(--lp-dark)] underline underline-offset-4">
+              <button type="button" onClick={() => switchMode('signin')} className="inline-flex min-h-11 items-center rounded-full font-medium text-[var(--ink)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {s.signIn}
               </button>
             </p>
@@ -545,7 +546,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{label}</span>
+      <span className="text-[14px] font-medium text-[var(--ink)]">{label}</span>
       {children}
     </label>
   );
@@ -554,16 +555,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Primary(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button type="button" {...props}
-      className="inline-flex min-h-12 sm:min-h-[52px] w-full items-center justify-center rounded-[12px] bg-[var(--lp-accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)] disabled:cursor-not-allowed disabled:opacity-50" />
+      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-50" />
   );
 }
 
 function Divider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 py-4" aria-hidden>
-      <span className="h-px flex-1 bg-[var(--lp-outline-strong)]" />
-      <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{label}</span>
-      <span className="h-px flex-1 bg-[var(--lp-outline-strong)]" />
+      <span className="h-px flex-1 bg-[var(--line)]" />
+      <span className="text-[13px] text-[var(--ink-secondary)]">{label}</span>
+      <span className="h-px flex-1 bg-[var(--line)]" />
     </div>
   );
 }
@@ -573,9 +574,9 @@ function WalletButton({ label, disabled, onStart }: { label: string; disabled: b
     <ConnectButton.Custom>
       {({ openConnectModal, mounted }) => (
         <button type="button" disabled={!mounted || disabled} onClick={() => onStart(openConnectModal)}
-          className="inline-flex min-h-12 sm:min-h-[52px] w-full items-center justify-between gap-3 rounded-[12px] border border-[var(--lp-outline-strong)] bg-transparent px-5 text-[15px] font-semibold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-workspace-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-50">
+          className="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] enabled:hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
           {label}
-          <span aria-hidden className="rtl:rotate-180">→</span>
+          <Icon name="arrow-right" size={16} directional />
         </button>
       )}
     </ConnectButton.Custom>
@@ -588,15 +589,15 @@ function CodeForm(props: {
 }) {
   return (
     <form onSubmit={props.onSubmit} className="mt-6 space-y-3">
-      <p className="text-[14px] leading-[1.5] text-[var(--lp-text-sub)] sm:text-[15px]">{props.hint}</p>
+      <p className="break-words text-[15px] leading-[1.5] text-[var(--ink-secondary)]">{props.hint}</p>
       <Field label={props.label}>
         <input type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} value={props.code}
           onChange={(e) => props.setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} disabled={!!props.busy}
-          className="form-input mono min-h-12 sm:min-h-[52px] text-[18px] tracking-[0.3em]" autoFocus />
+          className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[18px] tabular-nums tracking-[0.3em] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
       </Field>
       <Primary type="submit" disabled={!!props.busy || props.code.length !== 6}>{props.submit}</Primary>
       <button type="button" onClick={props.onResend} disabled={!!props.busy}
-        className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-50">
+        className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50">
         {props.resend}
       </button>
     </form>
@@ -615,13 +616,13 @@ function KindOption(props: { selected: boolean; title: string; body: string; bad
       <button type="button" role="radio" aria-checked={props.selected} aria-disabled={inert || undefined}
         aria-describedby={inert && props.badge ? noteId : undefined}
         onClick={() => (inert ? setNoteOpen(true) : props.onSelect())} onBlur={() => setNoteOpen(false)}
-        className={`min-h-[96px] w-full rounded-[12px] border p-4 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${inert ? 'cursor-not-allowed border-[var(--lp-outline-strong)] opacity-60' : props.selected ? 'border-[var(--lp-dark)] bg-[var(--lp-workspace-soft)]' : 'border-[var(--lp-outline-strong)] hover:bg-[var(--lp-workspace-soft)]'}`}>
-        <span className="block text-[16px] font-semibold text-[var(--lp-dark)]">{props.title}</span>
-        <span className="mt-1 block text-[14px] leading-[1.45] text-[var(--lp-text-sub)]">{props.body}</span>
+        className={`min-h-[96px] w-full rounded-[20px] p-4 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] ${inert ? 'cursor-not-allowed bg-[var(--tint)] text-[var(--ink-secondary)]' : props.selected ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--ink)_12%,var(--surface))]'}`}>
+        <span className="block text-[16px] font-medium">{props.title}</span>
+        <span className={`mt-1 block text-[14px] leading-[1.45] ${props.selected ? 'text-[var(--canvas)]' : 'text-[var(--ink-secondary)]'}`}>{props.body}</span>
       </button>
       {inert && props.badge && (
         <span id={noteId} role="tooltip"
-          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[8px] bg-[var(--lp-dark)] px-2.5 py-1 text-[12px] font-semibold text-[var(--lp-light)] shadow-[var(--shadow-pop)] transition-opacity duration-150 motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
+          className={`pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 -translate-x-1/2 whitespace-nowrap rounded-[14px] bg-[var(--ink)] px-3 py-2 text-[13px] font-medium text-[var(--canvas)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100 ${noteOpen ? 'opacity-100' : 'opacity-0'}`}>
           {props.badge}
         </span>
       )}
@@ -632,7 +633,7 @@ function KindOption(props: { selected: boolean; title: string; body: string; bad
 function BackLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className="inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]">
+      className="inline-flex min-h-11 items-center rounded-full text-[14px] font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
       {label}
     </button>
   );
@@ -641,7 +642,7 @@ function BackLink({ label, onClick }: { label: string; onClick: () => void }) {
 function ErrorLine({ error }: { error: string | null }) {
   if (!error) return null;
   return (
-    <p role="alert" className="mt-4 border-s-2 border-[var(--neg)] ps-3 text-[14px] leading-snug text-[var(--lp-critical)]">
+    <p role="alert" className="mt-4 text-[14px] leading-snug text-[var(--color-critical)]">
       {error}
     </p>
   );

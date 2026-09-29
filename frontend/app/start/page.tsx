@@ -1,5 +1,5 @@
-import { DealBackdrop, DealExampleLabel } from '@/features/signup/components/DealBackdrop';
 import { StartScreen } from '@/features/signup/components/StartScreen';
+import { SignInMedia } from '@/features/signup/components/SignInMedia';
 
 export default async function StartPage({
   searchParams,
@@ -9,12 +9,15 @@ export default async function StartPage({
   const query = await searchParams;
   const mode = query.mode === 'signup' ? 'signup' : 'signin';
   return (
-    <main className="relative ms-[calc(50%-50vw)] w-screen overflow-hidden bg-[var(--lp-bg)] min-h-[calc(100svh-var(--lp-nav-h,72px))]">
-      <DealBackdrop />
-      <div className="relative z-10 mx-auto flex min-h-[calc(100svh-var(--lp-nav-h,72px))] w-full max-w-[440px] flex-col justify-center px-5 py-8 sm:max-w-[460px] sm:px-4 sm:py-10">
-        <StartScreen mode={mode} />
-        <DealExampleLabel />
+    <div className="w-full bg-[var(--canvas)]">
+      <div className="grid min-h-[calc(100svh-var(--lp-nav-h,72px))] w-full gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:px-6">
+        <div className="flex min-w-0 items-center justify-center">
+          <div className="w-full max-w-[440px]">
+            <StartScreen mode={mode} />
+          </div>
+        </div>
+        <SignInMedia />
       </div>
-    </main>
+    </div>
   );
 }
