@@ -160,3 +160,10 @@ test('a request reads as its first sentence, with the rest as the detail, never 
   assert.equal(text.charAt(kept.length), ' ', 'cut falls on a space, not inside a word');
   assert.equal(`${kept} ${long.body}`, text);
 });
+
+test('a request card counts agent bids and direct offers together', () => {
+  const cards = buildDiscoveryCards(listings, [{ ...briefs[0]!, bidsCount: 2, offerCount: 3 }], { now: NOW });
+  assert.equal(cards.find((card) => card.id === 'request-finance')?.bidsCount, 5);
+  const none = buildDiscoveryCards(listings, [{ ...briefs[0]!, bidsCount: 0 }], { now: NOW });
+  assert.equal(none.find((card) => card.id === 'request-finance')?.bidsCount, 0);
+});

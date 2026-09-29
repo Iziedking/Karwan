@@ -77,6 +77,7 @@ const MAX_CANDIDATES = BUYER_MAX_CANDIDATES;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal, patchDeal } from '../db/deals.js';
 import { getBrief, patchBrief } from '../db/briefs.js';
+import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { getProfile } from '../db/profiles.js';
 import {
   getMatchProposal as dbGetMatchProposal,
@@ -280,6 +281,9 @@ interface JobState {
   /// the rest of the deal so the agent doesn't re-decide and oscillate.
   marketVerdict?: MarketVerdict;
   bids: Map<`0x${string}`, Bid>;
+  /// Seller agents whose bid is a direct offer (lowercased). The buyer decides
+  /// on these; the agent never counters or opens a match for them.
+  directOffers?: Set<string>;
   collectionTimer: NodeJS.Timeout | null;
   /// When the first bid landed. The collection window's floor + hard cap are
   /// measured from here for the adaptive soft-close.
@@ -1310,6 +1314,27 @@ async function handleJobPosted(log: Log, opts?: { silent?: boolean }) {
   if (!brief?.seedKey) safe('securityResearch', () => securityResearchOrder(args.jobId, state.context.keywords));
 }
 
+type DirectOfferLookup = (jobId: string, sellerAgent: string) => Promise<{ id: string } | null>;
+let directOfferLookup: DirectOfferLookup = findPendingDirectOfferByAgent;
+
+/// A direct offer is a seller's own price. The buyer decides on it; the agent
+/// only ranks it, so it must never counter it or open a seller-gated match. A
+/// failed lookup falls back to a normal bid rather than stalling the auction.
+export async function isDirectOfferBid(jobId: string, sellerAgent: string): Promise<boolean> {
+  try {
+    return (await directOfferLookup(jobId, sellerAgent.toLowerCase())) !== null;
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'direct offer lookup failed, treating as a normal bid');
+    return false;
+  }
+}
+
+export const __directOfferTest = {
+  setLookup(fn: DirectOfferLookup) {
+    directOfferLookup = fn;
+  },
+};
+
 async function handleBidSubmitted(log: Log) {
   const dedupeKey = logDedupeKey('BidSubmitted', log);
   if (handledEvents.has(dedupeKey)) return;
@@ -1327,6 +1352,12 @@ async function handleBidSubmitted(log: Log) {
   if (state.finalized && !nmPending) return;
   if (state.escrowFunded) return;
   if (state.bids.has(args.seller)) return;
+  if (await isDirectOfferBid(args.jobId, args.seller)) {
+    state.directOffers ??= new Set();
+    state.directOffers.add(args.seller.toLowerCase());
+    bus.emitEvent({ type: 'offer.bid.seen', jobId: args.jobId, actor: 'buyer', payload: { seller: args.seller } });
+    return;
+  }
   const buyer = state.buyer;
 
   let sellerReputationBps = 5000;

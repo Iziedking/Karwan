@@ -6,6 +6,7 @@ import type {
 } from '@simplewebauthn/browser';
 import { credentialsForApiRequest } from './adminTransport';
 import type { KdfParams } from '@/features/recovery/crypto';
+import type { Offer } from '@/features/offers/model';
 
 // next.config.mjs refuses a production build without NEXT_PUBLIC_BACKEND_URL,
 // so localhost here only ever serves development and tests.
@@ -990,6 +991,9 @@ export interface MarketplaceBrief {
   deadlineUnix: number;
   briefText: string;
   bidsCount: number;
+  /// Sellers' own offers still open on this request. Agent bids are counted in
+  /// bidsCount; the card shows the two together.
+  offerCount?: number;
   postedAt: number;
   /// Match lane + poster account type. A business-account market view filters
   /// to finance-lane or business-posted cards. Absent reads as service/person.
@@ -2150,6 +2154,19 @@ export const api = {
       `/api/jobs/${jobId}/decline-match`,
       { method: 'POST', body: JSON.stringify({ caller, ...(reason ? { reason } : {}) }) },
     ),
+  offers: (jobId: string) =>
+    json<{
+      count: number;
+      offers: Offer[];
+      role: 'buyer' | 'seller' | 'visitor';
+      request: { briefText: string; budgetUsdc: string; deadlineUnix: number } | null;
+    }>(`/api/jobs/${jobId}/offers`),
+  createOffer: (jobId: string, body: { priceUsdc: string; deliverByUnix: number; note: string }) =>
+    json<{ offer: Offer }>(`/api/jobs/${jobId}/offers`, { method: 'POST', body: JSON.stringify(body) }),
+  withdrawOffer: (jobId: string, offerId: string) =>
+    json<{ ok: true }>(`/api/jobs/${jobId}/offers/${offerId}/withdraw`, { method: 'POST', body: '{}' }),
+  acceptOffer: (jobId: string, offerId: string) =>
+    json<{ ok: true; txHash: string }>(`/api/jobs/${jobId}/offers/${offerId}/accept`, { method: 'POST', body: '{}' }),
   raiseMatchOffer: (jobId: string, caller: string, priceUsdc: string) =>
     json<{ accepted: boolean; jobId: string; overCap: boolean }>(
       `/api/jobs/${jobId}/raise-offer`,

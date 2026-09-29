@@ -16,6 +16,8 @@ import {
   CTAPill,
 } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { OfferPanel } from '@/features/offers/components/OfferPanel';
+import { BuyerOffers } from '@/features/offers/components/BuyerOffers';
 
 /// Client-side wrapper for /jobs/[id]. Replaces the previous async server
 /// component so navigation into a job page is instant; the loading.tsx
@@ -136,7 +138,9 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     const negotiating = state.status === 'negotiating';
     const closed = state.status === 'ended' || state.status === 'cancelled' || state.status === 'expired';
     const variant = negotiating ? 'negotiating' : closed ? 'closed' : 'default';
-    return (
+    // A seller who is not a party yet sees the open request and can offer on
+    // it; a closed or unknown request keeps the status-only view.
+    const privateView = (
       <FullBleed>
         <Band tone="dark" overlay={<GridOverlay />}>
           <div className="max-w-[48ch] fade-up">
@@ -161,6 +165,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
         </Band>
       </FullBleed>
     );
+    return <OfferPanel jobId={jobId} fallback={privateView} />;
   }
 
   if (state.kind === 'error') {
@@ -196,9 +201,17 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     );
   }
 
-  return v2 ? (
+  const page = v2 ? (
     <RequestPage initial={state.job} explorer={state.explorer} />
   ) : (
     <LiveJobPage initial={state.job} explorer={state.explorer} />
+  );
+  return state.job.viewerIsBuyer !== false ? (
+    <>
+      <BuyerOffers jobId={jobId} budgetUsdc={state.job.budgetUsdc} />
+      {page}
+    </>
+  ) : (
+    page
   );
 }

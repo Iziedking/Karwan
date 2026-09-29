@@ -1019,6 +1019,29 @@ export const NUMBERED_MIGRATIONS: readonly NumberedMigration[] = [
       CREATE INDEX recovery_attempts_wallet_at ON recovery_attempts_v1 (wallet_address, at);
     `,
   },
+  {
+    version: 35,
+    name: 'direct_offers',
+    sql: `
+      CREATE TABLE direct_offers_v1 (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        seller_user TEXT NOT NULL,
+        seller_agent TEXT NOT NULL,
+        price_usdc TEXT NOT NULL,
+        deliver_by_unix BIGINT NOT NULL,
+        note TEXT NOT NULL,
+        state TEXT NOT NULL CHECK (state IN ('pending', 'accepted', 'withdrawn', 'lapsed', 'failed')),
+        created_at BIGINT NOT NULL,
+        lapses_at BIGINT NOT NULL,
+        tx_hash TEXT,
+        failure TEXT
+      );
+      CREATE UNIQUE INDEX direct_offers_one_pending ON direct_offers_v1 (job_id, seller_user)
+        WHERE state = 'pending';
+      CREATE INDEX direct_offers_job ON direct_offers_v1 (job_id, created_at);
+    `,
+  },
 ] as const;
 
 const MIGRATION_LOCK_KEY = 1_264_279_186;

@@ -76,7 +76,7 @@ export function buildDiscoveryCards(
         tradeLane: brief.tradeLane ?? 'service',
         partyIsYou: false,
         matchedBefore: false,
-        bidsCount: brief.bidsCount,
+        bidsCount: brief.bidsCount + (brief.offerCount ?? 0),
       } satisfies DiscoveryCard;
     });
 

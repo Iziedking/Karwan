@@ -316,7 +316,7 @@ export function ListingsBrowse() {
                     </div>
                     <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {paged.items.map((card) => (
-                        <MarketCard key={`${card.side}-${card.id}`} card={card} copy={copy.card} variant={section.variant} />
+                        <MarketCard key={`${card.side}-${card.id}`} card={card} copy={copy.card} offerCopy={translations.offers} variant={section.variant} />
                       ))}
                     </div>
                     {paged.pageCount > 1 ? (
@@ -534,10 +534,12 @@ function Pager({
 function MarketCard({
   card,
   copy,
+  offerCopy,
   variant,
 }: {
   card: DiscoveryCard;
   copy: Messages['listingsBrowse']['card'];
+  offerCopy: Messages['offers'];
   variant: CardVariant;
 }) {
   const isSummary = variant === 'summary';
@@ -558,11 +560,11 @@ function MarketCard({
   );
   const bidCopy =
     card.side === 'request'
-      ? card.bidsCount === 0
-        ? copy.metaAwaitingBids
+      ? !card.bidsCount
+        ? offerCopy.countNone
         : card.bidsCount === 1
-          ? copy.metaBidOne
-          : copy.metaBidsTemplate.replace('{n}', String(card.bidsCount))
+          ? offerCopy.countOne
+          : offerCopy.countMany.replace('{n}', String(card.bidsCount))
       : null;
   const facts = [availability, bidCopy, card.matchedBefore ? copy.matchedBefore : null].filter(
     (fact): fact is string => !!fact,

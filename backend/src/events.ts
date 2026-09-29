@@ -93,6 +93,11 @@ export type KarwanEventType =
   | 'listing.matched'
   | 'listing.cancelled'
   | 'listing.expired'
+  // A seller's own offer on a request (not agent negotiated).
+  | 'offer.created'
+  | 'offer.withdrawn'
+  | 'offer.accepted'
+  | 'offer.bid.seen'
   | 'brief.cancelled'
   | 'chat.message'
   | 'telegram.linked'

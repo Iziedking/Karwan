@@ -11,6 +11,7 @@ import { checkChain, mustStop } from './chain/networkGuard.js';
 import { invalidateEscrowCache, KARWAN_CONTRACTS_DEPLOYED } from './chain/contracts.js';
 import { bus } from './events.js';
 import { jobsRoutes } from './routes/jobs.js';
+import { offersRoutes } from './routes/offers.js';
 import { configureJobsReengagementShadow } from './routes/jobsReengagement.js';
 import { agentsRoutes } from './routes/agents.js';
 import { eventsRoutes } from './routes/events.js';
@@ -400,6 +401,7 @@ if (!KARWAN_CONTRACTS_DEPLOYED) {
   }
 }
 
+app.route('/api/jobs', offersRoutes);
 app.route('/api/jobs', jobsRoutes);
 app.route('/api/agents', agentsRoutes);
 app.route('/api/events', eventsRoutes);

@@ -39,6 +39,8 @@ import { resolveBuyerProfileForUser } from '../agents/agent-registry.js';
 import { createBrief, patchBrief, getBrief, deleteBrief, rekeyBrief } from '../db/briefs.js';
 import { accountTypeOf, deriveJobLane } from '../profile/accountType.js';
 import { getDeal } from '../db/deals.js';
+import { countLiveDirectOffers } from '../db/directOffers.js';
+import { jobActionsInFlight } from '../offers/jobLock.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { isSessionSelf, sessionAddress, viewerAddress } from '../auth/session.js';
 import { getAgentWallets } from '../db/agentWallets.js';
@@ -74,7 +76,7 @@ const editBriefSchema = z
       b.trustedMatch !== undefined,
     { message: 'provide at least one field to change' },
   );
-const inFlight = new Set<string>();
+const inFlight = jobActionsInFlight;
 
 const USDC_DECIMALS = 6;
 
@@ -179,13 +181,17 @@ jobsRoutes.get('/marketplace', async (c) => {
       : addr;
   }
   const candidates = getMarketplaceBriefs();
-  const out: Array<MarketplaceBrief & { buyer: string }> = [];
+  const out: Array<MarketplaceBrief & { buyer: string; offerCount: number }> = [];
+  const offerCounts = await countLiveDirectOffers(
+    candidates.map((b) => b.jobId),
+    Math.floor(Date.now() / 1000),
+  );
   for (const b of candidates) {
     const proposal = await getMatchProposal(b.jobId);
     if (proposal && !proposal.declinedAt) continue;
     const deal = await getDeal(b.jobId);
     if (deal) continue;
-    out.push({ ...b, buyer: mask(b.buyer) });
+    out.push({ ...b, buyer: mask(b.buyer), offerCount: offerCounts.get(b.jobId) ?? 0 });
   }
   return c.json({ briefs: out });
 });

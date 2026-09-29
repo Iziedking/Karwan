@@ -39,6 +39,7 @@ import {
 } from './strategy.js';
 import { sellerDaysToDeadline, sellerOpeningBid as pureSellerOpeningBid } from './sellerPricing.js';
 import { getBrief } from '../db/briefs.js';
+import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { actorSignalsFor, priceHistorySnapshot } from './signals.js';
 import { categoryPriceSnapshot } from '../db/priceObservations.js';
 import { saveActiveBids, saveActiveBidsSync, loadActiveBids } from '../db/activeBids.js';
@@ -233,6 +234,57 @@ export async function hydrateActiveBids(): Promise<void> {
   }
 }
 
+type DirectOfferLookup = (jobId: string, sellerAgent: string) => Promise<{ id: string } | null>;
+let directOfferLookup: DirectOfferLookup = findPendingDirectOfferByAgent;
+
+export const __listingBidTest = {
+  setDirectOfferLookup(fn: DirectOfferLookup) {
+    directOfferLookup = fn;
+  },
+};
+
+/// A seller's own offer on a request. Same on-chain bid as a listing, but it
+/// never enters activeBids: there is no counter loop, because the seller
+/// already named their price and the buyer decides. The job-open read turns a
+/// closed request into a clear message instead of a bare "tx FAILED".
+export async function submitDirectOfferBid(
+  jobId: `0x${string}`,
+  seller: { walletId: string; address: string },
+  priceUsdc: string,
+  validUntilUnix: number,
+): Promise<{ ok: true; txHash: string } | { ok: false; reason: string; message: string }> {
+  try {
+    const onChain = (await jobBoard.read.jobs([jobId])) as readonly unknown[];
+    if (Number(onChain[4]) !== JOB_STATE_POSTED) {
+      return { ok: false, reason: 'job-not-open', message: 'This request is closed and can no longer take offers.' };
+    }
+  } catch (err) {
+    logger.warn({ jobId, err: (err as Error).message }, 'could not read job state before a direct offer');
+  }
+  try {
+    const txResult = await executeContractCall(
+      {
+        walletId: seller.walletId,
+        contractAddress: jobBoard.address,
+        abiFunctionSignature: 'submitBid(bytes32,uint256,uint64)',
+        abiParameters: [jobId, parseUnits(priceUsdc, USDC_DECIMALS).toString(), validUntilUnix.toString()],
+      },
+      `submitBid(direct offer ${jobId})`,
+    );
+    bus.emitEvent({
+      type: 'bid.submitted',
+      jobId,
+      actor: 'seller',
+      payload: { seller: seller.address, priceUsdc, deadlineUnix: validUntilUnix, source: 'direct', txHash: txResult.txHash },
+    });
+    return { ok: true, txHash: txResult.txHash };
+  } catch (err) {
+    const info = classifyAgentError(err);
+    logger.error({ jobId, seller: seller.address, code: info.code, err: info.raw }, 'direct offer submitBid failed');
+    return { ok: false, reason: info.code, message: info.message };
+  }
+}
+
 /// Submit a bid on an open buyer brief on behalf of a seller listing. Bypasses
 /// the seller agent's LLM bid decision because the listing IS the decision.
 /// The seller has pre-committed to this price and tolerance. From here the bid
@@ -257,6 +309,15 @@ export async function submitListingBid(
   const key = bidKey(job.jobId, seller.address);
   if (activeBids.has(key)) {
     return { ok: false, reason: 'already-bid', message: 'This offer is already on the board.' };
+  }
+  // The seller already named their own price on this request; a listing bid
+  // from the same agent would overwrite it on chain.
+  try {
+    if (await directOfferLookup(job.jobId, seller.address.toLowerCase())) {
+      return { ok: false, reason: 'direct-offer-pending', message: 'Your own offer on this request is already on the board.' };
+    }
+  } catch (err) {
+    logger.warn({ jobId: job.jobId, err: (err as Error).message }, 'direct offer lookup failed before a listing bid');
   }
 
   // Is the job still open on chain?
