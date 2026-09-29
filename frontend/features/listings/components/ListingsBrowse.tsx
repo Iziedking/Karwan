@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import {
@@ -143,7 +143,7 @@ export function ListingsBrowse() {
   }
 
   return (
-    <div className="product-surface [&_.skeleton-sweep]:hidden" data-testid="market" aria-busy={refreshing}>
+    <div className="product-surface" data-testid="market" aria-busy={refreshing}>
     <FullBleed>
       {isAuthenticated ? (
         <PageTour
@@ -506,29 +506,6 @@ function MarketCard({
   offerCopy: Messages['offers'];
   variant: CardVariant;
 }) {
-  const textRef = useRef<HTMLDivElement>(null);
-  const [bodyHidden, setBodyHidden] = useState(false);
-
-  // Reserve the same reading space in every card. A two-line title keeps its
-  // body only when both fit; measuring hidden text avoids resize oscillation.
-  useLayoutEffect(() => {
-    const text = textRef.current;
-    if (!text || !card.body) return;
-    const title = text.querySelector('h3')!;
-    const body = text.querySelector('p')!;
-    function measure() {
-      const titleRect = title.getBoundingClientRect();
-      const twoLines = titleRect.height > parseFloat(getComputedStyle(title).lineHeight) * 1.5;
-      setBodyHidden(twoLines && body.getBoundingClientRect().bottom > text!.getBoundingClientRect().bottom + 1);
-    }
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(text);
-    observer.observe(title);
-    observer.observe(body);
-    return () => observer.disconnect();
-  }, [card.title, card.body]);
-
   const isSummary = variant === 'summary';
   const side = card.side === 'offer' ? 'offer' : 'request';
   const sideColor = `var(--color-${side})`;
@@ -571,11 +548,13 @@ function MarketCard({
           </span>
           <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">{relativeTime(card.postedAt)}</span>
         </div>
-        <div ref={textRef} className="h-20 shrink-0 overflow-hidden">
+        {/* Two title lines and one body line always fit the same space, so
+            every card in a row keeps its footer on the same line. */}
+        <div className="h-20 shrink-0 overflow-hidden">
           <h3 dir="auto" className="line-clamp-2 text-[16px] font-medium leading-snug tracking-[-0.015em] text-[var(--ink)]">
             {card.title}
           </h3>
-          {card.body ? <p dir="auto" aria-hidden={bodyHidden || undefined} className={`mt-2 line-clamp-2 text-[14px] leading-5 text-[var(--ink-secondary)] ${bodyHidden ? 'invisible' : ''}`}>{card.body}</p> : null}
+          {card.body ? <p dir="auto" className="mt-2 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)]">{card.body}</p> : null}
         </div>
         <p className="mt-auto text-[13px] text-[var(--ink-secondary)]">
           {facts.map((fact, i) => (

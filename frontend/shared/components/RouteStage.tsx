@@ -12,7 +12,6 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
  */
 export function RouteStage({ pathname, children }: { pathname: string; children: ReactNode }) {
   const reduce = useHydratedReducedMotion();
-  const market = pathname === '/market' || pathname === '/listings';
 
   return (
     <motion.div
@@ -25,7 +24,7 @@ export function RouteStage({ pathname, children }: { pathname: string; children:
       {!reduce ? (
         <motion.span
           aria-hidden
-          className={`pointer-events-none fixed inset-x-0 top-0 z-[75] h-0.5 origin-left motion-reduce:hidden ${market ? 'bg-[var(--ink-secondary)]' : 'bg-[var(--accent)]'}`}
+          className="pointer-events-none fixed inset-x-0 top-0 z-[75] h-0.5 origin-left bg-[var(--accent)] motion-reduce:hidden"
           initial={{ opacity: 1, scaleX: 0 }}
           animate={{ opacity: [1, 1, 0], scaleX: [0, 0.76, 1] }}
           transition={{ duration: dur.base, ease: ease.out, times: [0, 0.72, 1] }}

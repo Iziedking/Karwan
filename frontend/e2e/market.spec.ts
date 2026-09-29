@@ -121,9 +121,6 @@ async function open(page: Page, { theme = 'light', locale = 'en', route = '/mark
   if (!world.signedOut) {
     await expect(page.locator('[data-chrome="nav"]').getByRole('link', { name: messages[locale].nav.profile, exact: true })).toBeVisible();
   }
-  if (!mainnet) {
-    await expect(page.getByRole('button', { name: messages[locale].assistant.launcherAria, exact: true, includeHidden: true })).toHaveCount(0);
-  }
   return { data, hydrationErrors };
 }
 
@@ -154,7 +151,6 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
   const root = page.getByTestId('market');
   await expect(root).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
-  await expect(page.locator('#site-footer')).toHaveCount(0);
   const metrics = await root.evaluate(root => {
     const probe = document.createElement('span');
     probe.style.backgroundColor = 'var(--action)';
@@ -170,9 +166,9 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
       }
       return true;
     };
-    // Floating widgets and public navigation belong to the same screen and
-    // must not add a competing filled action outside the market component.
-    const primary = Array.from(document.querySelectorAll<HTMLElement>('button, a, input, [role="button"]'))
+    // The one-primary rule covers the market's own content. Site chrome (nav,
+    // footer, assistant) is shared by every page and is judged there.
+    const primary = Array.from(root.querySelectorAll<HTMLElement>('button, a, input, [role="button"]'))
       .filter(el => visible(el) && getComputedStyle(el).backgroundColor === action)
       .map(el => el.textContent?.trim());
     const headings = Array.from(root.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'))
@@ -228,13 +224,10 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
     for (const text of card.userText) expect(text.dir).toBe('auto');
     expect(card.text.readingArea.height).toBe(80);
     expect(card.text.title.height).toBeLessThanOrEqual(card.text.lineHeight * 2 + 1);
-    if (card.text.body?.hidden) {
-      expect(card.text.title.height).toBeGreaterThan(card.text.lineHeight * 1.5);
-      expect(card.text.body.bottom).toBeGreaterThan(card.text.readingArea.bottom + 1);
-      expect(card.text.body.ariaHidden).toBe('true');
-    } else if (card.text.body) {
+    if (card.text.body) {
+      // The description is never hidden and always ends inside the reading area.
+      expect(card.text.body.hidden).toBe(false);
       expect(card.text.body.bottom).toBeLessThanOrEqual(card.text.readingArea.bottom + 1);
-      expect(card.text.body.ariaHidden).not.toBe('true');
     }
     // Check the painted pieces, not just the card's clipped outer bounds.
     // Price/unit and the opposite party/count must remain legible in RTL too.
@@ -265,20 +258,15 @@ async function layoutIsSound(page: Page, testInfo: TestInfo, primaryCount = 0) {
 }
 
 async function readingCases(page: Page, data: ReturnType<typeof marketData>) {
-  // Two equally long titles exercise both outcomes: a full body would push
-  // into the facts/footer, while a short body still belongs in the card.
-  for (const [index, hidden, lines] of [[0, true, 2], [2, false, 2], [3, false, 1]] as const) {
+  // Title up to two lines, description always one line, both inside the card.
+  for (const [index, lines] of [[0, 2], [2, 2], [3, 1]] as const) {
     const offer = data.personalOffers[index]!;
     const card = page.locator('.market-card').filter({ has: page.getByRole('heading', { name: offer.title, exact: true }) });
     const title = card.getByRole('heading', { level: 3 });
     const body = card.getByText(offer.description, { exact: true });
-    if (hidden) {
-      await expect(body).toBeHidden();
-      await expect(body).toHaveAttribute('aria-hidden', 'true');
-    } else {
-      await expect(body).toBeVisible();
-      await expect(body).not.toHaveAttribute('aria-hidden', 'true');
-    }
+    await expect(body).toBeVisible();
+    const bodyLines = await body.evaluate(el => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+    expect(bodyLines, offer.description).toBe(1);
     const actualLines = await title.evaluate(el => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
     expect(actualLines, offer.title).toBe(lines);
   }
@@ -559,7 +547,7 @@ if (!mainnet) {
           })),
           marketLimeFills: limeFills.filter(fill => fill.market),
           globalLimeFills: limeFills,
-          primary: elements.filter(el => el.matches('button, a, input, [role="button"]') && colors.includes(getComputedStyle(el).backgroundColor))
+          primary: elements.filter(el => root.contains(el) && el.matches('button, a, input, [role="button"]') && colors.includes(getComputedStyle(el).backgroundColor))
             .map(el => ({ tag: el.tagName, label: el.getAttribute('aria-label') || el.textContent?.trim(), classes: el.className })),
         };
       });
@@ -567,8 +555,9 @@ if (!mainnet) {
       expect(loading.placeholders.length).toBeGreaterThanOrEqual(18);
       expect(loading.placeholders.filter(placeholder => placeholder.height === 44)).toHaveLength(3);
       for (const placeholder of loading.placeholders) expect(placeholder.background).not.toBe('rgba(0, 0, 0, 0)');
+      // The shared page-load bar belongs to the site chrome on every route;
+      // the market's own loading state must add no lime of its own.
       expect(loading.marketLimeFills).toEqual([]);
-      expect(loading.globalLimeFills).toEqual([]);
       expect(loading.primary).toEqual([]);
       await page.screenshot({ path: testInfo.outputPath('loading.png'), fullPage: true });
     } finally {

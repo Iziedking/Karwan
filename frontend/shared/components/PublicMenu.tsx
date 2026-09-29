@@ -13,7 +13,6 @@ import { Icon } from './Icon';
 export function PublicMenu() {
   const t = useTranslations();
   const pathname = usePathname();
-  const market = pathname === '/market' || pathname === '/listings';
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -73,12 +72,10 @@ export function PublicMenu() {
           <Link className={linkClass} href="/docs">{t.footer.productLinks.docs}</Link>
           <Link
             href={START_ROUTE}
-            className={market
-              ? 'mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--tint)] text-[15px] font-medium text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:hidden'
-              : 'mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--color-line-strong)] text-[15px] font-semibold text-[var(--lp-dark)] md:hidden'}
+            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--tint)] text-[15px] font-medium text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:hidden"
           >
             {t.nav.openApp}
-            {market ? <Icon name="arrow-right" size={16} directional /> : <span aria-hidden className="rtl-flip">→</span>}
+            <Icon name="arrow-right" size={16} directional />
           </Link>
         </nav>
       ) : null}

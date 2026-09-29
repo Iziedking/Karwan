@@ -280,6 +280,9 @@ export function AssistantWidget() {
 
   const isLive = convoId !== null;
   const showHandoffButton = handoffEnabled === true && !isLive && humanSuggested;
+  const quietLauncher = ['/bridge', '/profile', '/jobs', '/deals'].some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
   // The Ask launcher never shows on the landing/marketing pages, and never
   // before sign-in: the assistant answers from the caller's own balances and
@@ -288,7 +291,7 @@ export function AssistantWidget() {
   // isLoading avoids flashing the launcher during the web3 reconnect window
   // and then pulling it away. Hooks above all run either way so the poll state
   // stays intact once the user does sign in.
-  if (isPublicEditorialRoute(pathname) || pathname === '/market' || pathname === '/listings') return null;
+  if (isPublicEditorialRoute(pathname)) return null;
   if (auth.isLoading || !auth.isAuthenticated) return null;
 
   return (
@@ -303,13 +306,17 @@ export function AssistantWidget() {
           aria-label={t.launcherAria}
           data-float-launcher
           data-float-side="end"
-          className="fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 md:end-5 md:bottom-5"
+          className={quietLauncher
+            ? 'fixed z-[60] end-4 bottom-24 inline-flex min-h-12 min-w-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 py-3 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--line)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] md:end-5 md:bottom-5'
+            : 'fixed z-[60] end-4 bottom-24 inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-3 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] mono text-[11px] uppercase tracking-[0.12em] font-bold shadow-[0_8px_24px_-10px_rgba(0,0,0,0.45)] hover:brightness-105 md:end-5 md:bottom-5'}
           style={{
             ...floatingClearanceStyle(clearance),
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
+            ...(quietLauncher ? { borderRadius: 999 } : {
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              borderBottomLeftRadius: 12,
+              borderBottomRightRadius: 3,
+            }),
           }}
         >
           {unread && (
@@ -320,10 +327,14 @@ export function AssistantWidget() {
               1
             </span>
           )}
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-            <path d="M8 1.5c-3.6 0-6.5 2.4-6.5 5.4 0 1.7.9 3.2 2.4 4.2-.1.8-.5 1.7-1.2 2.5 1.3-.1 2.5-.5 3.4-1.1.6.1 1.2.2 1.9.2 3.6 0 6.5-2.4 6.5-5.4S11.6 1.5 8 1.5z" />
-          </svg>
-          <span className="hidden sm:inline">{unread ? 'New reply' : t.launcherLabel}</span>
+          {!quietLauncher && (
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+              <path d="M8 1.5c-3.6 0-6.5 2.4-6.5 5.4 0 1.7.9 3.2 2.4 4.2-.1.8-.5 1.7-1.2 2.5 1.3-.1 2.5-.5 3.4-1.1.6.1 1.2.2 1.9.2 3.6 0 6.5-2.4 6.5-5.4S11.6 1.5 8 1.5z" />
+            </svg>
+          )}
+          <span className={quietLauncher ? undefined : 'hidden sm:inline'}>
+            {unread ? (quietLauncher ? a11y.newReply : 'New reply') : t.launcherLabel}
+          </span>
         </button>
       )}
 

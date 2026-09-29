@@ -14,7 +14,7 @@ export function Skeleton({ className }: { className?: string }) {
       )}
     >
       <span
-        className="skeleton-sweep motion-reduce:hidden absolute inset-x-0 bottom-0 h-px w-1/3 bg-[var(--accent)]"
+        className="skeleton-sweep motion-reduce:hidden absolute inset-x-0 bottom-0 h-px w-1/3 bg-[var(--ink-secondary)]"
       />
     </div>
   );
