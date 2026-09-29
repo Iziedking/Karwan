@@ -103,10 +103,12 @@ export function ReputationBadge({
   address,
   size = 'sm',
   withDetail = false,
+  appearance = 'default',
 }: {
   address?: string;
   size?: 'sm' | 'md';
   withDetail?: boolean;
+  appearance?: 'default' | 'quiet';
 }) {
   const rb = useTranslations().reputationBadge;
   const { data, fetchState } = useReputation(address);
@@ -195,8 +197,12 @@ export function ReputationBadge({
   const cellPad = size === 'sm' ? 'px-1.5 py-[3px]' : 'px-2 py-1';
   const labelSize = size === 'sm' ? 'text-[9px]' : 'text-[10px]';
   const scoreSize = size === 'sm' ? 'text-[10px]' : 'text-[11px]';
+  const quiet = appearance === 'quiet';
 
   if (fetchState === 'loading' || !data) {
+    if (quiet) {
+      return <span aria-hidden className="text-[13px] text-[var(--ink-secondary)]">·</span>;
+    }
     return (
       <span
         className="inline-flex items-stretch border border-[var(--color-line)] bg-[var(--color-surface)]"
@@ -228,7 +234,12 @@ export function ReputationBadge({
   // whenever we have it; legacy bps only made sense with settled deals.
   const showScore = useComposite ? true : data.totalDeals > 0;
   const accessibleLabel = `${tier.label}. ${(data.totalDeals === 1 ? rb.dealCountOneTemplate : rb.dealCountManyTemplate).replace('{count}', String(data.totalDeals))}`;
-  const badgeCells = (
+  const badgeCells = quiet ? (
+    <>
+      <span>{tier.label}</span>
+      {showScore ? <span className="tabular-nums">{score}</span> : null}
+    </>
+  ) : (
     <>
       <span aria-hidden className="w-[3px]" style={{ background: tier.color }} />
       <span
@@ -256,6 +267,16 @@ export function ReputationBadge({
   );
 
   if (!withDetail) {
+    if (quiet) {
+      return (
+        <span
+          aria-label={accessibleLabel}
+          className="inline-flex items-center gap-2 whitespace-nowrap text-[13px] text-[var(--ink-secondary)]"
+        >
+          {badgeCells}
+        </span>
+      );
+    }
     return (
       <span
         aria-label={accessibleLabel}
@@ -280,8 +301,10 @@ export function ReputationBadge({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={accessibleLabel}
-        className="group inline-flex min-h-11 items-stretch border transition-colors hover:brightness-95"
-        style={{
+        className={quiet
+          ? 'group inline-flex min-h-10 items-center gap-2 rounded-full px-2 text-[13px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[var(--tint)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
+          : 'group inline-flex min-h-11 items-stretch border transition-colors hover:brightness-95'}
+        style={quiet ? undefined : {
           borderColor: tier.border,
           background: 'var(--color-surface)',
           borderRadius: 2,

@@ -2,7 +2,7 @@ import React, { type SVGProps } from 'react';
 import {
   Activity, ArrowLeftRight, ArrowRight, ArrowUpRight, BriefcaseBusiness,
   ChevronLeft, ChevronRight, Coins, FileText, Globe, Link, List,
-  LoaderCircle, UserRound, Wallet,
+  LoaderCircle, Search, UserRound, Wallet,
 } from 'lucide-react';
 
 const icons = {
@@ -19,6 +19,7 @@ const icons = {
   link: Link,
   list: List,
   'loader-circle': LoaderCircle,
+  search: Search,
   user: UserRound,
   wallet: Wallet,
 } as const;

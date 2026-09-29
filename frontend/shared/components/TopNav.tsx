@@ -23,6 +23,7 @@ import { ThemeControl } from './ThemeControl';
 import { isAlwaysDarkRoute } from '@/shared/hooks/useTheme';
 import { PublicMenu } from './PublicMenu';
 import { Brand } from './Brand';
+import { Icon } from './Icon';
 
 export function TopNav() {
   const a11y = useTranslations().a11y;
@@ -579,6 +580,18 @@ function SettingsIconLink({ active }: { active: boolean }) {
 
 function LaunchAppCTA() {
   const label = useTranslations().nav.openApp;
+  const pathname = usePathname();
+  if (pathname === '/market' || pathname === '/listings') {
+    return (
+      <Link
+        href={START_ROUTE}
+        className="hidden min-h-12 items-center gap-2 rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] md:inline-flex"
+      >
+        {label}
+        <Icon name="arrow-right" size={16} directional />
+      </Link>
+    );
+  }
   return (
     <Link
       href={START_ROUTE}

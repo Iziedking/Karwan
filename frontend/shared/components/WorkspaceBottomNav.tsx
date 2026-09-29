@@ -36,6 +36,7 @@ export function WorkspaceBottomNav() {
   const t = useTranslations().nav;
   const { isBusinessWorkspace: business } = useWorkspaceContext();
   const shell = getShellSurface(pathname, auth.isAuthenticated);
+  const market = pathname === '/market' || pathname === '/listings';
 
   if (!auth.isAuthenticated || shell !== 'workspace') return null;
 
@@ -118,7 +119,7 @@ export function WorkspaceBottomNav() {
               <motion.span
                 layoutId="workspace-mobile-active"
                 aria-hidden
-                className="absolute inset-x-3 -top-1.5 h-0.5 bg-[var(--lp-accent)]"
+                className={cn('absolute inset-x-3 -top-1.5 h-0.5', market ? 'bg-[var(--ink-secondary)]' : 'bg-[var(--lp-accent)]')}
                 transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
               />
             ) : null}

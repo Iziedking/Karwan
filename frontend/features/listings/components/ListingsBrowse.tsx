@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api, type Listing, type MarketplaceBrief } from '@/core/api';
 import { DiscoveryNav } from '@/features/discovery/components/DiscoveryNav';
 import {
@@ -16,7 +16,7 @@ import {
   type DiscoverySort,
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
-import { Button, buttonClasses } from '@/shared/components/Button';
+import { Icon } from '@/shared/components/Icon';
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 import { Band, FullBleed } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -30,6 +30,9 @@ import { pageItems, pageWindow } from '../pagination';
 
 type CardVariant = 'default' | 'summary' | 'hiring';
 type SourceName = 'offers' | 'requests';
+
+const quietAction = 'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--tint)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
+const clearAction = 'inline-flex min-h-10 items-center rounded-full px-2 text-[14px] font-medium text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]';
 
 interface MarketSection {
   key: string;
@@ -131,10 +134,6 @@ export function ListingsBrowse() {
   const filtersActive = query.trim() !== '' || side !== 'all' || scope !== 'all' || sort !== 'newest';
   const emptyMarket = !loading && !allUnavailable && visibleCards.length === 0;
   const emptyFilter = !loading && !allUnavailable && visibleCards.length > 0 && filteredCards.length === 0;
-  const resultCopy = (filteredCards.length === 1 ? copy.resultsOne : copy.resultsMany).replace(
-    '{n}',
-    String(filteredCards.length),
-  );
 
   function clearFilters() {
     setQuery('');
@@ -144,7 +143,7 @@ export function ListingsBrowse() {
   }
 
   return (
-    <div className="product-surface">
+    <div className="product-surface [&_.skeleton-sweep]:hidden" data-testid="market" aria-busy={refreshing}>
     <FullBleed>
       {isAuthenticated ? (
         <PageTour
@@ -157,70 +156,45 @@ export function ListingsBrowse() {
       ) : null}
 
       <Band tone="light" compact>
-        <div className="market-hero border-b border-[var(--lp-border-light)] pb-6 pt-2 sm:pt-3">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.48fr)] lg:items-end">
-            <div>
-              <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.heroTag}</p>
-              <h1 className="mt-2 max-w-[17ch] text-[clamp(2.8rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">
-                {copy.heroTitle}
-              </h1>
-              <p className="mt-5 max-w-[58ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">
-                {copy.heroDescription}
-              </p>
-            </div>
-            <div className="market-pulse" aria-live="polite">
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--lp-text-sub)]"><span data-live="true" className={`size-2 rounded-full bg-[var(--lp-accent)] ${refreshing ? 'motion-safe:animate-pulse' : ''}`} />{refreshing && !loading ? copy.refreshing : copy.marketCurrent}</span>
-                <span className="text-[12px] font-semibold text-[var(--lp-text-muted)]">{!loading ? resultCopy : ''}</span>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[12px] bg-[var(--lp-border-light)]">
-                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">{copy.workRequests}</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'request').length}</p></div>
-                <div className="bg-[var(--lp-card)] p-3"><p className="text-[11px] text-[var(--lp-text-muted)]">{copy.serviceOffers}</p><p className="mt-1 text-[24px] font-semibold tabular-nums text-[var(--lp-dark)]">{visibleCards.filter((card) => card.side === 'offer').length}</p></div>
-              </div>
-            </div>
-          </div>
-          <DiscoveryNav active="market" tone="light" />
+        <div className="pt-2 sm:pt-3">
+          <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
+            {copy.heroTitle}
+          </h1>
+          <p className="mt-3 max-w-[68ch] text-[15px] leading-6 text-[var(--ink-secondary)]">
+            {copy.heroDescription}
+          </p>
+          <DiscoveryNav active="market" tone="light" appearance="quiet" />
         </div>
 
-        <div className="market-searchbar py-5" role="search" aria-label={copy.searchLabel}>
-          <label className="block max-w-2xl">
-            <span className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-              {copy.searchLabel}
-            </span>
-            <span className="relative mt-2 block">
-              <svg
-                aria-hidden
-                viewBox="0 0 18 18"
-                fill="none"
-                className="pointer-events-none absolute start-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--lp-text-muted)]"
-              >
-                <circle cx="7.75" cy="7.75" r="4.75" stroke="currentColor" strokeWidth="1.5" />
-                <path d="m11.25 11.25 3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+        <div className="py-6" role="search" aria-label={copy.searchLabel}>
+          <label className="block">
+            <span className="sr-only">{copy.searchLabel}</span>
+            <span className="relative block">
+              <Icon name="search" size={20} className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-[var(--ink-secondary)]" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={copy.searchPlaceholder}
-                className="form-input min-h-12 w-full ps-11 pe-4"
-                style={{ paddingInlineStart: 44 }}
+                className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] ps-12 pe-4 text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                 maxLength={120}
               />
             </span>
           </label>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[auto_auto_1fr] xl:items-end">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
             <FilterGroup label={copy.typeFilterLabel}>
               <FilterButton pressed={side === 'all'} onClick={() => setSide('all')}>
-                {copy.filters.all}
+                {copy.filters.all} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.length}</span>
               </FilterButton>
               <FilterButton pressed={side === 'request'} onClick={() => setSide('request')}>
-                {copy.filters.briefs}
+                {copy.filters.briefs} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.filter((card) => card.side === 'request').length}</span>
               </FilterButton>
               <FilterButton pressed={side === 'offer'} onClick={() => setSide('offer')}>
-                {copy.filters.offers}
+                {copy.filters.offers} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.filter((card) => card.side === 'offer').length}</span>
               </FilterButton>
             </FilterGroup>
 
+            <span aria-hidden className="text-[13px] text-[var(--ink-secondary)]">·</span>
             <FilterGroup label={copy.scopeFilterLabel}>
               <FilterButton pressed={scope === 'all'} onClick={() => setScope('all')}>
                 {copy.scope.all}
@@ -233,8 +207,8 @@ export function ListingsBrowse() {
               </FilterButton>
             </FilterGroup>
 
-            <div className="flex flex-wrap items-end gap-3 xl:justify-end">
-              <FilterGroup label={copy.sortFilterLabel}>
+            <span aria-hidden className="text-[13px] text-[var(--ink-secondary)]">·</span>
+            <FilterGroup label={copy.sortFilterLabel}>
                 <FilterButton pressed={sort === 'newest'} onClick={() => setSort('newest')}>
                   {copy.sort.newest}
                 </FilterButton>
@@ -244,13 +218,12 @@ export function ListingsBrowse() {
                 <FilterButton pressed={sort === 'price-desc'} onClick={() => setSort('price-desc')}>
                   {copy.sort.highestPrice}
                 </FilterButton>
-              </FilterGroup>
-              {filtersActive ? (
-                <Button type="button" variant="ghost" onClick={clearFilters} className="shrink-0">
-                  {copy.clearFilters}
-                </Button>
-              ) : null}
-            </div>
+            </FilterGroup>
+            {filtersActive ? (
+              <button type="button" onClick={clearFilters} className={clearAction}>
+                {copy.clearFilters}
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -265,18 +238,18 @@ export function ListingsBrowse() {
         {loading ? <MarketSkeleton /> : null}
 
         {emptyMarket ? (
-          <div className="border-t border-[var(--lp-border-light)] py-8 sm:py-10">
-            <h2 className="font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
+          <div className="border-t border-[var(--line)] py-8 sm:py-10">
+            <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
               {copy.emptyAllTag}
             </h2>
-            <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="mt-3 max-w-[58ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">
               {copy.emptyAllBody}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/buyer" className={buttonClasses({ variant: 'primary' })}>
+              <Link href="/buyer" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[14px] font-medium text-[var(--on-action)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]">
                 {copy.emptyPostRequest}
               </Link>
-              <Link href="/seller#post-listing" className={buttonClasses({ variant: 'outline' })}>
+              <Link href="/seller#post-listing" className={quietAction}>
                 {copy.emptyPublishOffer}
               </Link>
             </div>
@@ -284,16 +257,16 @@ export function ListingsBrowse() {
         ) : null}
 
         {emptyFilter ? (
-          <div className="border-t border-[var(--lp-border-light)] py-8 sm:py-10">
-            <h2 className="font-sans text-[22px] font-bold leading-tight tracking-[-0.01em] text-[var(--lp-dark)]">
+          <div className="border-t border-[var(--line)] py-8 sm:py-10">
+            <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
               {copy.emptyFilteredTitle}
             </h2>
-            <p className="mt-3 max-w-[58ch] text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="mt-3 max-w-[58ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">
               {copy.emptyFilteredBody}
             </p>
-            <Button type="button" variant="outline" onClick={clearFilters} className="mt-6">
+            <button type="button" onClick={clearFilters} className={`${quietAction} mt-6`}>
               {copy.clearFilters}
-            </Button>
+            </button>
           </div>
         ) : null}
 
@@ -306,13 +279,13 @@ export function ListingsBrowse() {
                 return (
                   <section key={section.key} id={`market-${section.key}`} data-guide={`market-${section.key}`} className="scroll-mt-24">
                     <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                      <h2 className="font-sans text-[19px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+                      <h2 className="text-[20px] font-medium tracking-[-0.015em] text-[var(--ink)]">
                         {section.title}
-                        <span className="ms-2 text-[13px] font-semibold tabular-nums text-[var(--lp-text-muted)]">
+                        <span className="ms-2 text-[13px] font-normal tabular-nums text-[var(--ink-secondary)]">
                           {section.cards.length}
                         </span>
                       </h2>
-                      <p className="text-[13px] text-[var(--lp-text-muted)] sm:max-w-[48ch] sm:text-end">{section.note}</p>
+                      <p className="text-[13px] text-[var(--ink-secondary)] sm:max-w-[48ch] sm:text-end">{section.note}</p>
                     </div>
                     <div className="market-grid grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {paged.items.map((card) => (
@@ -398,10 +371,10 @@ function buildSections(
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <fieldset className="min-w-0">
-      <legend className="mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+      <legend className="sr-only">
         {label}
       </legend>
-      <div className="mt-2 flex max-w-full gap-1 overflow-x-auto pb-1">{children}</div>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
     </fieldset>
   );
 }
@@ -420,12 +393,7 @@ function FilterButton({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[8px] border px-3 text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-      style={{
-        borderColor: pressed ? 'var(--lp-selected-border)' : 'var(--lp-border-light)',
-        background: pressed ? 'var(--lp-selected-bg)' : 'var(--lp-card)',
-        color: pressed ? 'var(--lp-selected-ink)' : 'var(--lp-text-sub)',
-      }}
+      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] ${pressed ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)]'}`}
     >
       {children}
     </button>
@@ -444,12 +412,12 @@ function DegradedNotice({
   return (
     <div
       role="status"
-      className="mb-6 flex flex-col gap-3 border-s-[3px] border-[var(--color-warning)] bg-[var(--color-warning-soft)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      className="mb-6 flex flex-col gap-3 rounded-[20px] bg-[var(--surface)] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
     >
-      <p className="max-w-[70ch] text-[13px] leading-relaxed text-[var(--lp-dark)]">{message}</p>
-      <Button type="button" variant="outline" onClick={onRetry} className="shrink-0 self-start sm:self-auto">
+      <p className="max-w-[70ch] text-[15px] leading-relaxed text-[var(--ink-secondary)]">{message}</p>
+      <button type="button" onClick={onRetry} className={`${quietAction} shrink-0 self-start sm:self-auto`}>
         {retryLabel}
-      </Button>
+      </button>
     </div>
   );
 }
@@ -458,7 +426,7 @@ function MarketSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2].map((index) => (
-        <div key={index} className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+        <div key={index} className="rounded-[20px] bg-[var(--surface)] p-5 sm:p-6">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="mt-5 h-6 w-3/4" />
           <SkeletonText lines={2} className="mt-4" />
@@ -483,22 +451,23 @@ function Pager({
   onPage: (page: number) => void;
 }) {
   const step =
-    'inline-flex min-h-11 min-w-11 items-center justify-center rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[14px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] disabled:cursor-not-allowed disabled:opacity-40';
+    'inline-flex min-h-10 min-w-10 items-center justify-center rounded-full px-4 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)] disabled:cursor-not-allowed disabled:opacity-40';
+  const neutral = 'bg-[var(--tint)] text-[var(--ink)]';
   return (
     <nav aria-label={copy.label} className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-      <p className="text-[13px] tabular-nums text-[var(--lp-text-muted)]" aria-live="polite">
+      <p className="text-[13px] tabular-nums text-[var(--ink-secondary)]" aria-live="polite">
         {range}
       </p>
       <div className="flex items-center gap-1.5">
-        <button type="button" className={step} onClick={() => onPage(page - 1)} disabled={page <= 1}>
-          <span aria-hidden className="rtl:rotate-180">←</span>
+        <button type="button" className={`${step} ${neutral}`} onClick={() => onPage(page - 1)} disabled={page <= 1}>
+          <Icon name="chevron-left" size={16} directional />
           <span className="ms-1.5 hidden sm:inline">{copy.previous}</span>
           <span className="sr-only sm:hidden">{copy.previous}</span>
         </button>
         <ol className="flex items-center gap-1.5">
           {pageWindow(page, pageCount).map((n, i) =>
             n === 'gap' ? (
-              <li key={`gap-${i}`} aria-hidden className="hidden px-1 text-[14px] text-[var(--lp-text-muted)] sm:block">
+              <li key={`gap-${i}`} aria-hidden className="hidden px-1 text-[14px] text-[var(--ink-secondary)] sm:block">
                 …
               </li>
             ) : (
@@ -508,12 +477,7 @@ function Pager({
                   onClick={() => onPage(n)}
                   aria-current={n === page ? 'page' : undefined}
                   aria-label={copy.page.replace('{n}', String(n))}
-                  className={`${step} tabular-nums`}
-                  style={
-                    n === page
-                      ? { background: 'var(--lp-selected-bg)', color: 'var(--lp-selected-ink)', borderColor: 'var(--lp-selected-border)' }
-                      : undefined
-                  }
+                  className={`${step} tabular-nums ${n === page ? 'bg-[var(--ink)] text-[var(--canvas)]' : neutral}`}
                 >
                   {n}
                 </button>
@@ -521,10 +485,10 @@ function Pager({
             ),
           )}
         </ol>
-        <button type="button" className={step} onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+        <button type="button" className={`${step} ${neutral}`} onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
           <span className="me-1.5 hidden sm:inline">{copy.next}</span>
           <span className="sr-only sm:hidden">{copy.next}</span>
-          <span aria-hidden className="rtl:rotate-180">→</span>
+          <Icon name="chevron-right" size={16} directional />
         </button>
       </div>
     </nav>
@@ -542,6 +506,29 @@ function MarketCard({
   offerCopy: Messages['offers'];
   variant: CardVariant;
 }) {
+  const textRef = useRef<HTMLDivElement>(null);
+  const [bodyHidden, setBodyHidden] = useState(false);
+
+  // Reserve the same reading space in every card. A two-line title keeps its
+  // body only when both fit; measuring hidden text avoids resize oscillation.
+  useLayoutEffect(() => {
+    const text = textRef.current;
+    if (!text || !card.body) return;
+    const title = text.querySelector('h3')!;
+    const body = text.querySelector('p')!;
+    function measure() {
+      const titleRect = title.getBoundingClientRect();
+      const twoLines = titleRect.height > parseFloat(getComputedStyle(title).lineHeight) * 1.5;
+      setBodyHidden(twoLines && body.getBoundingClientRect().bottom > text!.getBoundingClientRect().bottom + 1);
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(text);
+    observer.observe(title);
+    observer.observe(body);
+    return () => observer.disconnect();
+  }, [card.title, card.body]);
+
   const isSummary = variant === 'summary';
   const side = card.side === 'offer' ? 'offer' : 'request';
   const sideColor = `var(--color-${side})`;
@@ -566,29 +553,31 @@ function MarketCard({
           ? offerCopy.countOne
           : offerCopy.countMany.replace('{n}', String(card.bidsCount))
       : null;
-  const facts = [availability, bidCopy, card.matchedBefore ? copy.matchedBefore : null].filter(
+  const facts = [availability, card.matchedBefore ? copy.matchedBefore : null].filter(
     (fact): fact is string => !!fact,
   );
 
   // One plain surface for both sides. The only difference is the coloured
   // word that names the side.
   const shell =
-    'relative flex h-full flex-col overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]';
+    'market-card relative flex h-full flex-col overflow-hidden rounded-[20px] bg-[var(--surface)]';
 
   const content = (
     <>
-      <div className="flex flex-1 flex-col gap-2.5 px-5 pb-4 pt-4">
+      <div className="flex flex-1 flex-col gap-2 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-semibold" style={{ color: sideColor }}>
+          <span className="text-[13px] font-medium" style={{ color: sideColor }}>
             {statusLabel}
           </span>
-          <span className="text-[12px] tabular-nums text-[var(--lp-text-muted)]">{relativeTime(card.postedAt)}</span>
+          <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">{relativeTime(card.postedAt)}</span>
         </div>
-        <h3 className="line-clamp-2 text-[17px] font-bold leading-snug tracking-[-0.01em] text-[var(--lp-dark)]">
-          {card.title}
-        </h3>
-        {card.body ? <p className="line-clamp-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{card.body}</p> : null}
-        <p className="mt-auto pt-1 text-[12px] text-[var(--lp-text-muted)]">
+        <div ref={textRef} className="h-20 shrink-0 overflow-hidden">
+          <h3 dir="auto" className="line-clamp-2 text-[16px] font-medium leading-snug tracking-[-0.015em] text-[var(--ink)]">
+            {card.title}
+          </h3>
+          {card.body ? <p dir="auto" aria-hidden={bodyHidden || undefined} className={`mt-2 line-clamp-2 text-[14px] leading-5 text-[var(--ink-secondary)] ${bodyHidden ? 'invisible' : ''}`}>{card.body}</p> : null}
+        </div>
+        <p className="mt-auto text-[13px] text-[var(--ink-secondary)]">
           {facts.map((fact, i) => (
             <span key={fact}>
               {i > 0 ? (
@@ -601,31 +590,31 @@ function MarketCard({
           ))}
         </p>
       </div>
-      <div className="mx-5 flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] py-3.5">
+      <div data-market-footer className="mx-5 flex h-[68px] shrink-0 items-center justify-between gap-3 border-t border-[var(--line)] py-3.5 sm:mx-6">
         <p className="flex min-w-0 shrink-0 items-baseline gap-1.5">
-          <span className="text-[22px] font-extrabold leading-none tracking-[-0.01em] text-[var(--lp-dark)] tabular-nums">
+          <span className="text-[18px] font-medium leading-none tracking-[-0.015em] text-[var(--ink)] tabular-nums">
             {formatUsdc(card.priceUsdc, { withSuffix: false })}
           </span>
-          <span className="whitespace-nowrap text-[12px] text-[var(--lp-text-muted)]">
+          <span className="whitespace-nowrap text-[13px] text-[var(--ink-secondary)]">
             {copy.priceUnitTemplate.replace('{label}', card.side === 'offer' ? copy.priceLabelAsking : copy.priceLabelBudget)}
           </span>
         </p>
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-[12px] text-[var(--lp-text-muted)]">
+        {card.side === 'request' ? <span className="text-[13px] text-[var(--ink-secondary)]">{bidCopy}</span> : <div className="flex min-w-0 flex-col items-end gap-1">
+          <span className="max-w-full truncate text-[13px] text-[var(--ink-secondary)]">
             {partyLabel}
             {card.partyIsYou ? copy.selfSuffix : ''}
           </span>
           {card.side === 'offer' && /^0x[a-fA-F0-9]{40}$/.test(card.partyAddress) ? (
-            <ReputationBadge address={card.partyAddress} size="sm" />
+            <ReputationBadge address={card.partyAddress} size="sm" appearance="quiet" />
           ) : null}
-        </div>
+        </div>}
       </div>
     </>
   );
 
   if (isSummary) {
     return (
-      <article className={shell} style={{ opacity: 0.92 }}>
+      <article className={shell} data-market-side={card.side}>
         {content}
       </article>
     );
@@ -634,7 +623,8 @@ function MarketCard({
   return (
     <Link
       href={card.href}
-      className={`market-card group ${shell} transition-colors duration-200 ease-out hover:border-[var(--lp-outline-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]`}
+      data-market-side={card.side}
+      className={`${shell} transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--surface)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
     >
       {content}
     </Link>

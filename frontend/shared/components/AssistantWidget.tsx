@@ -288,7 +288,7 @@ export function AssistantWidget() {
   // isLoading avoids flashing the launcher during the web3 reconnect window
   // and then pulling it away. Hooks above all run either way so the poll state
   // stays intact once the user does sign in.
-  if (isPublicEditorialRoute(pathname)) return null;
+  if (isPublicEditorialRoute(pathname) || pathname === '/market' || pathname === '/listings') return null;
   if (auth.isLoading || !auth.isAuthenticated) return null;
 
   return (
