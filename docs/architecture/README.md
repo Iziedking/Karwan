@@ -16,6 +16,7 @@ Talented people, freelancers and small businesses have skills and customers on t
 | 04 | [Instant top-up](04-instant-top-up.md) | One balance; a buyer funds a deal even when the money is on other chains | Partly live |
 | 05 | [Sign-in and motion](05-sign-in.md) | How a person gets in, and how the sign-in art loads without slowing that down | Designed |
 | 06 | [Record](06-record.md) | How a completed sale becomes proof that is hard to fake | Designed |
+| 07 | [Escrow](07-escrow.md) | One engine for any deal: one-time, milestones, goods, pay on delivery, hourly, retainer, instalments, deposits | v3 built, extensions planned |
 
 ## How to read a view
 
