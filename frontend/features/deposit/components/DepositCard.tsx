@@ -7,6 +7,13 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useMoneyRefresh } from '@/shared/hooks/useMoneyRefresh';
 
+const PRIMARY =
+  'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+const SECONDARY =
+  'inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+const INPUT =
+  'min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
+
 /// Adding money, with the bridge left underneath.
 ///
 /// What this replaces asked the user to pick a rail (Gateway or CCTP), pick a
@@ -189,8 +196,7 @@ export function DepositCard() {
   if (!data?.supported || (!evm.length && !solana)) {
     return (
       <Shell>
-        <Tag>{t.tag}</Tag>
-        <p className="mt-4 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+        <p className="text-[15px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
           {t.unavailable}
         </p>
       </Shell>
@@ -199,8 +205,6 @@ export function DepositCard() {
 
   return (
     <Shell dataGuide="bridge-address">
-      <Tag>{t.tag}</Tag>
-
       {solana ? (
         <div className="mt-5">
           <GroupSwitch
@@ -219,14 +223,14 @@ export function DepositCard() {
         {shown ? <Qr value={shown} label={t.qrAlt} /> : null}
 
         <div className="min-w-0 flex-1">
-          <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+          <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
             {t.addressLabel}
           </span>
           {/* The whole address, wrapped, never truncated. A shortened address is
               fine as a reference and useless as a destination, and this one is a
               destination. */}
           <p
-            className="mt-2 mono text-[13px] leading-[1.6] font-bold text-[var(--lp-dark)] break-all select-all"
+            className="mt-2 text-[14px] leading-[1.6] font-medium text-[var(--ink)] break-all select-all"
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
             {shown}
@@ -235,15 +239,7 @@ export function DepositCard() {
           <button
             type="button"
             onClick={copy}
-            className="group mt-4 inline-flex items-center gap-2 px-5 py-3 mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors"
-            style={{
-              background: 'var(--lp-control-active-bg)',
-              color: 'var(--lp-control-active-ink)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
-            }}
+            className={`mt-4 ${requestOpen ? SECONDARY : PRIMARY}`}
           >
             {copied ? t.copied : t.copy}
           </button>
@@ -254,24 +250,16 @@ export function DepositCard() {
               setRequestOpen((open) => !open);
               setRequestError(false);
             }}
-            className="mt-3 inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors"
-            style={{
-              color: 'var(--lp-dark)',
-              border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
-            }}
+            className={`mt-3 ${SECONDARY}`}
           >
             {t.request.title}
           </button>
 
           <div className="mt-6">
-            <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
+            <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
               {t.acceptsLabel}
             </span>
-            <p className="mt-2 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
               {group === 'solana' ? t.groups.solana : evm.map((chain) => chain.name).join(', ')}
             </p>
           </div>
@@ -295,7 +283,7 @@ export function DepositCard() {
         />
       ) : null}
 
-      <div className="mt-7 pt-5" style={{ borderTop: '1px solid var(--lp-border-light)' }}>
+      <div className="mt-7 border-t border-[var(--line)] pt-5">
         {deposits.length > 0 ? (
           <ul className="space-y-3" role="status" aria-live="polite">
             {deposits.map((d) => (
@@ -351,11 +339,7 @@ function Qr({ value, label }: { value: string; label: string }) {
         // White in both themes, for the same reason as the module colour. The
         // plate is the code's quiet zone.
         background: '#FFFFFF',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 4,
+        borderRadius: 20,
       }}
     >
       <canvas ref={ref} aria-label={label} role="img" width={168} height={168} />
@@ -363,8 +347,7 @@ function Qr({ value, label }: { value: string; label: string }) {
   );
 }
 
-/// Two halves with a sliding lozenge, matching the rail switch this card sits
-/// beside so the page keeps one vocabulary of controls.
+/// Address groups use quiet pills so the copy or request action stays primary.
 function GroupSwitch({
   group,
   onChange,
@@ -378,25 +361,7 @@ function GroupSwitch({
 }) {
   const evm = group === 'evm';
   return (
-    <div
-      className="relative inline-flex p-1 w-full max-w-[360px]"
-      style={{
-        background: 'var(--lp-light)',
-        border: '1px solid var(--lp-border-light)',
-        borderRadius: 999,
-      }}
-    >
-      <span
-        aria-hidden
-        className="absolute top-1 bottom-1 transition-transform duration-300 ease-out motion-reduce:transition-none"
-        style={{
-          width: 'calc(50% - 4px)',
-          left: 4,
-          borderRadius: 999,
-          background: 'var(--lp-control-active-bg)',
-          transform: evm ? 'translateX(0)' : 'translateX(100%)',
-        }}
-      />
+    <div className="inline-flex w-full max-w-[360px] gap-2">
       <GroupHalf active={evm} onClick={() => onChange('evm')}>
         {evmLabel}
       </GroupHalf>
@@ -421,8 +386,7 @@ function GroupHalf({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="relative z-10 flex-1 px-5 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.1em] rounded-full transition-colors"
-      style={{ background: 'transparent', color: active ? 'white' : 'var(--lp-text-sub)' }}
+      className={`min-h-10 flex-1 rounded-full px-5 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] ${active ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink-secondary)] hover:bg-[var(--line)]'}`}
     >
       {children}
     </button>
@@ -437,9 +401,9 @@ function Watching({ label }: { label: string }) {
       <span
         aria-hidden
         className="inline-block motion-safe:animate-pulse motion-reduce:animate-none"
-        style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--lp-accent)' }}
+        style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--ink-secondary)' }}
       />
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">
+      <span className="text-[13px] text-[var(--ink-secondary)]">
         {label}
       </span>
     </div>
@@ -459,12 +423,9 @@ function DepositRow({
   };
 }) {
   const { stage } = deposit;
-  // Lime for in flight and for arrived, because both are the system working. A
-  // stalled hop is the only one that looks different, and it is muted rather than
-  // alarming: the money is safe, it just has not finished moving.
-  const tone = stage === 'stuck' ? 'var(--lp-text-muted)' : 'var(--lp-accent)';
+  const tone = stage === 'stuck' ? 'var(--color-warning)' : stage === 'arrived' ? 'var(--color-positive)' : 'var(--ink-secondary)';
   return (
-    <li className="flex items-center justify-between gap-4 fade-up">
+    <li className="flex items-center justify-between gap-4 fade-up motion-reduce:animate-none" style={{ animationDuration: 'var(--dur-panel)', animationTimingFunction: 'var(--ease-ui)' }}>
       <span className="flex items-center gap-2.5 min-w-0">
         <span
           aria-hidden
@@ -474,7 +435,7 @@ function DepositRow({
           style={{ width: 6, height: 6, borderRadius: 999, background: tone, flex: '0 0 auto' }}
         />
         <span
-          className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-dark)] truncate"
+          className="text-[14px] font-medium text-[var(--ink)] break-words"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {copy.fromTemplate
@@ -482,7 +443,7 @@ function DepositRow({
             .replace('{chain}', deposit.chainName)}
         </span>
       </span>
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] shrink-0 text-[var(--lp-text-sub)]">
+      <span className="text-[13px] shrink-0 text-[var(--ink-secondary)]">
         {copy.stages[stage]}
       </span>
     </li>
@@ -499,26 +460,10 @@ function Shell({
   return (
     <div
       data-guide={dataGuide}
-      className="p-6 sm:p-8"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
-      }}
+      className="rounded-[20px] bg-[var(--surface)] p-6 sm:p-8"
     >
       {children}
     </div>
-  );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-      {children}
-    </span>
   );
 }
 
@@ -563,24 +508,20 @@ function DepositRequestComposer({
 }) {
   return (
     <div
-      className="mt-7 border-t pt-6"
-      style={{ borderColor: 'var(--lp-border-light)' }}
+      className="mt-7 border-t border-[var(--line)] pt-6"
       data-guide="deposit-request"
     >
-      <span className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-        {copy.tag}
-      </span>
       {!request ? (
         <>
-          <p className="mt-3 text-[18px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">
+          <p className="mt-3 text-[22px] font-medium tracking-normal text-[var(--ink)]">
             {copy.title}
           </p>
-          <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+          <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--ink-secondary)]">
             {copy.body}
           </p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
-              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
                 {copy.amountLabel} <span className="font-normal">({copy.amountOptional})</span>
               </span>
               <input
@@ -588,33 +529,23 @@ function DepositRequestComposer({
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 placeholder="0.00"
-                className="min-h-11 w-full px-4 py-3 text-[14px] text-[var(--lp-dark)] outline-none"
-                style={{
-                  background: 'var(--lp-light)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderRadius: 10,
-                }}
+                className={INPUT}
               />
             </label>
             <label className="grid gap-2">
-              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+              <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
                 {copy.purposeLabel}
               </span>
               <input
                 value={purpose}
                 onChange={(event) => setPurpose(event.target.value)}
                 placeholder={copy.purposePlaceholder}
-                className="min-h-11 w-full px-4 py-3 text-[14px] text-[var(--lp-dark)] outline-none"
-                style={{
-                  background: 'var(--lp-light)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderRadius: 10,
-                }}
+                className={INPUT}
               />
             </label>
           </div>
           {error ? (
-            <p className="mt-3 text-[13px] text-[var(--lp-danger)]" role="alert">
+            <p className="mt-3 text-[13px] text-[var(--color-critical)]" role="alert">
               {copy.error}
             </p>
           ) : null}
@@ -622,15 +553,7 @@ function DepositRequestComposer({
             type="button"
             disabled={busy}
             onClick={onCreate}
-            className="mt-5 inline-flex min-h-11 items-center px-5 py-3 text-[13px] font-bold transition-opacity disabled:opacity-60"
-            style={{
-              background: 'var(--lp-control-active-bg)',
-              color: 'var(--lp-control-active-ink)',
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              borderBottomLeftRadius: 10,
-              borderBottomRightRadius: 2,
-            }}
+            className={`mt-5 ${PRIMARY}`}
           >
             {busy ? copy.creating : copy.create}
           </button>
@@ -639,30 +562,22 @@ function DepositRequestComposer({
         <div className="mt-4 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
           <Qr value={link} label={copy.qrAlt} />
           <div className="min-w-0">
-            <p className="text-[18px] font-bold tracking-[-0.02em] text-[var(--lp-dark)]">
+            <p className="text-[22px] font-medium tracking-normal text-[var(--ink)]">
               {copy.shareTitle}
             </p>
-            <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--ink-secondary)]">
               {copy.shareBody}
             </p>
-            <p className="mt-4 text-[13px] font-semibold text-[var(--lp-dark)]">
+            <p className="mt-4 text-[14px] font-medium text-[var(--ink)]">
               {request.amountUsdc ? `${request.amountUsdc} USDC · ` : ''}{request.purpose}
             </p>
-            <p className="mt-1 mono break-all text-[11px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="mt-1 break-all text-[13px] leading-relaxed text-[var(--ink-secondary)]">
               {link}
             </p>
             <button
               type="button"
               onClick={onCopyLink}
-              className="mt-4 inline-flex min-h-11 items-center px-4 py-3 mono text-[11px] font-bold uppercase tracking-[0.1em]"
-              style={{
-                background: 'var(--lp-control-active-bg)',
-                color: 'var(--lp-control-active-ink)',
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 2,
-              }}
+              className={`mt-4 ${PRIMARY}`}
             >
               {copied ? copy.copied : copy.copyLink}
             </button>

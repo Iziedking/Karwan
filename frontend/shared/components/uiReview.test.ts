@@ -37,7 +37,7 @@ test('public analytics and workspace notices avoid API internals and repeat main
   assert.match(nudge, /grid-cols-\[auto_minmax\(0,1fr\)_auto\]/);
   assert.match(nudge, /stepTwo/);
   assert.match(history, /width: 'min\(640px, 100vw\)'/);
-  assert.match(history, /var\(--lp-text-sub\)/);
+  assert.match(history, /var\(--ink-secondary\)/);
   assert.doesNotMatch(history, /--lp-workspace-raised|--ink-3/);
   assert.match(socialExamples, /disclaimer: 'Illustrative trades'/);
 });

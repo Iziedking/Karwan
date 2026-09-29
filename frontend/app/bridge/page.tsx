@@ -37,12 +37,8 @@ const BridgeOutCard = dynamic(
         className="motion-safe:animate-pulse motion-reduce:animate-none"
         style={{
           minHeight: 520,
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 22,
-          borderTopRightRadius: 22,
-          borderBottomLeftRadius: 22,
-          borderBottomRightRadius: 5,
+          background: 'var(--surface)',
+          borderRadius: 20,
         }}
       />
     ),
@@ -93,9 +89,8 @@ function BridgePageFallback() {
             className="motion-safe:animate-pulse motion-reduce:animate-none"
             style={{
               minHeight: 220,
-              background: 'var(--lp-card)',
-              border: '1px solid var(--lp-border-light)',
-              borderRadius: 22,
+              background: 'var(--surface)',
+              borderRadius: 20,
             }}
           />
         </Band>
@@ -171,10 +166,10 @@ function BridgePageInner() {
           lands on Direct. */}
       <PageTour id={BRIDGE_TOUR_ID} steps={buildBridgeSteps({ direction, rail })} />
       <Band tone="light" compact>
-        <header className="max-w-[620px] border-b border-[var(--lp-border-light)] pb-5">
-          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{messages.accountHome.balanceLabel}</p>
-          <h1 className="mt-1 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-none tracking-[-0.045em] text-[var(--lp-dark)]">{pageTitle}</h1>
-          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{pageBody}</p>
+        <header className="max-w-[620px] pb-5">
+          <p className="text-[13px] text-[var(--ink-secondary)]">{messages.accountHome.balanceLabel}</p>
+          <h1 className="mt-1 text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}</h1>
+          <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{pageBody}</p>
           <NetworkContext />
         </header>
       </Band>
@@ -189,16 +184,15 @@ function BridgePageInner() {
               data-guide="bridge-direction"
               className="flex w-full p-1 sm:w-auto"
               style={{
-                background: 'var(--lp-card)',
-                border: '1px solid var(--lp-border-light)',
+                background: 'var(--tint)',
                 borderRadius: 999,
               }}
             >
               <DirToggle active={direction === 'in'} onClick={() => setDirection('in')}>
-                Add
+                {messages.account.page.add}
               </DirToggle>
               <DirToggle active={direction === 'out'} onClick={() => setDirection('out')}>
-                {outIntent === 'move' ? 'Move' : 'Withdraw'}
+                {outIntent === 'move' ? header.titleMove : header.titleOut}
               </DirToggle>
             </div>
             <div data-guide="bridge-history" className="w-full sm:w-auto">
@@ -285,24 +279,20 @@ function ComingSoonPanel({
 }) {
   return (
     <div
-      className="p-6"
+      className="rounded-[20px] bg-[var(--surface)] p-5 sm:p-6"
       style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
+        background: 'var(--surface)',
+          borderRadius: 20,
       }}
     >
       <span
-        className="inline-flex mono text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-1"
-        style={{ background: 'var(--lp-accent)', color: 'var(--accent-ink)', borderRadius: 4 }}
+        className="inline-flex rounded-full bg-[var(--tint)] px-3 py-1 text-[13px] text-[var(--ink-secondary)]"
+
       >
         {soon}
       </span>
-      <p className="mt-4 text-[15px] font-bold tracking-[-0.01em] text-[var(--lp-dark)]">{action}</p>
-      <p className="mt-2 max-w-[46ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+      <p className="mt-4 text-[17px] font-medium text-[var(--ink)]">{action}</p>
+      <p className="mt-2 max-w-[46ch] text-[13px] leading-relaxed text-[var(--ink-secondary)]">
         {body}
       </p>
     </div>
@@ -314,11 +304,10 @@ function HistoryButton({ onClick, label }: { onClick: () => void; label: string 
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex min-h-11 w-full items-center justify-center px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors hover:bg-[var(--lp-light)] sm:w-auto"
+      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--tint)] px-5 py-3 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:w-auto"
       style={{
-        background: 'transparent',
-        color: 'var(--lp-dark)',
-        border: '1px solid var(--lp-border-light)',
+        background: 'var(--tint)',
+        color: 'var(--ink)',
         borderRadius: 999,
       }}
     >
@@ -341,10 +330,10 @@ function DirToggle({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="min-h-11 flex-1 rounded-full px-4 py-2 mono text-[11px] font-bold uppercase tracking-[0.1em] transition-colors sm:flex-none sm:px-5"
+      className="min-h-12 flex-1 rounded-full px-4 py-3 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:flex-none sm:px-5"
       style={{
-        background: active ? 'var(--lp-control-active-bg)' : 'transparent',
-        color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
+        background: active ? 'var(--ink)' : 'transparent',
+        color: active ? 'var(--canvas)' : 'var(--ink-secondary)',
       }}
     >
       {children}

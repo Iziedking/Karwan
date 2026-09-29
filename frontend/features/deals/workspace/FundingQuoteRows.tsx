@@ -10,9 +10,9 @@ import { formatUsdcAmount } from './presentation';
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-t border-[var(--lp-border-light)] py-2 first:border-t-0 first:pt-0">
-      <span className="text-[13px] text-[var(--lp-text-sub)]">{label}</span>
-      <span className="mono tabular-nums text-[14px] font-semibold text-[var(--lp-dark)]">{value}</span>
+    <div className="flex items-baseline justify-between gap-3 border-t border-[var(--line)] py-2 first:border-t-0 first:pt-0">
+      <span className="text-[13px] text-[var(--ink-secondary)]">{label}</span>
+      <span className="mono tabular-nums text-[14px] font-medium text-[var(--ink)]">{value}</span>
     </div>
   );
 }
@@ -22,11 +22,12 @@ function Row({ label, value }: { label: string; value: string }) {
 /// can't cover it. Lives inside the confirm sheet's children so the amount
 /// being approved, and the way to fix a shortfall, are both visible before
 /// the buyer presses confirm.
-export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded }: {
+export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded, onBusyChange }: {
   quote: DirectDealFundingQuote | null;
   errorCode: string | null;
   viewerIsBuyer: boolean;
   onFunded: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const copy = useTranslations().directDealDetail;
   const { locale } = useLocale();
@@ -44,13 +45,13 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded }: 
             value={`${formatUsdcAmount(quote.buyerFeeUsdc, locale)} USDC`}
           />
           <Row label={copy.fundingConsentModal.sellerReceives} value={`${formatUsdcAmount(quote.sellerNetUsdc, locale)} USDC`} />
-          <p className="pt-2 text-[12px] leading-snug text-[var(--lp-text-sub)]">{copy.fundingConsentModal.noConversion}</p>
+          <p className="pt-2 text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.fundingConsentModal.noConversion}</p>
         </div>
       ) : null}
       {errorCode === 'INSUFFICIENT_AGENT_BALANCE' ? (
         viewerIsBuyer ? (
           buyerAgent ? (
-            <div className="mt-3">
+            <div data-testid="deal-funding-recovery" className="mt-3">
               <FundAgentOptions
                 agent="buyer"
                 recipient={buyerAgent}
@@ -58,23 +59,24 @@ export function FundingQuoteRows({ quote, errorCode, viewerIsBuyer, onFunded }: 
                 amountUsdc={quote ? Number(quote.fundedAmountUsdc) : 0}
                 circleAccount={auth.method === 'circle'}
                 onFunded={onFunded}
+                onBusyChange={onBusyChange}
               />
             </div>
           ) : (
-            <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
+            <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)]">
               {copy.errors.insufficientBalanceBuyerPrefix}{' '}
-              <Link href="/profile" className="font-medium text-[var(--lp-dark)] underline underline-offset-2">
+              <Link href="/profile" className="font-medium text-[var(--ink)] rounded-full underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {copy.errors.insufficientBalanceBuyerLink}
               </Link>
             </p>
           )
         ) : (
-          <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">{copy.errors.insufficientBalanceSeller}</p>
+          <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)]">{copy.errors.insufficientBalanceSeller}</p>
         )
       ) : null}
       {errorCode === 'INSUFFICIENT_STAKE' && !viewerIsBuyer ? (
-        <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-          <Link href="/stake" className="font-medium text-[var(--lp-dark)] underline underline-offset-2">
+        <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)]">
+          <Link href="/stake" className="font-medium text-[var(--ink)] underline underline-offset-2">
             {copy.errors.insufficientStakeLink}
           </Link>{' '}
           {copy.errors.insufficientStakeSuffix}

@@ -1,10 +1,11 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Hint } from '@/shared/components/Hint';
 import { cn } from '@/shared/utils/cn';
+import { Icon } from '@/shared/components/Icon';
 import { FundAgentFromBalance } from './FundAgentFromBalance';
 import { FundAgentFromWallet } from './FundAgentFromWallet';
 import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
@@ -37,6 +38,7 @@ export function FundAgentOptions({
   /// and the backend signs, so funding from it is one press and no chain switch.
   circleAccount,
   onFunded,
+  onBusyChange,
 }: {
   agent: 'buyer' | 'seller';
   otherAgentAddress?: string | null;
@@ -44,10 +46,16 @@ export function FundAgentOptions({
   amountUsdc: number;
   circleAccount: boolean;
   onFunded?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const copy = useTranslations().fundAgentOptions;
   const [route, setRoute] = useState<FundRoute | null>(null);
   const [amountInput, setAmountInput] = useState(() => String(amountUsdc));
+  const [fundingBusy, setFundingBusy] = useState(false);
+  const reportBusy = useCallback((busy: boolean) => {
+    setFundingBusy(busy);
+    onBusyChange?.(busy);
+  }, [onBusyChange]);
 
   useEffect(() => {
     setAmountInput(String(amountUsdc));
@@ -57,42 +65,36 @@ export function FundAgentOptions({
   const validAmount = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const fundingAmount = validAmount ? parsedAmount : 0;
 
-  const routes: Array<{ id: FundRoute; label: string; tooltip: string; icon: ReactNode }> = [
-    { id: 'wallet', label: copy.wallet.label, tooltip: copy.wallet.tooltip, icon: <WalletGlyph /> },
+  const routes: Array<{ id: FundRoute; label: string; tooltip: string }> = [
+    { id: 'wallet', label: copy.wallet.label, tooltip: copy.wallet.tooltip },
     ...(otherAgentAddress && recipient
       ? [
           {
             id: 'otherAgent' as const,
             label: agent === 'buyer' ? copy.otherAgent.labelSeller : copy.otherAgent.labelBuyer,
             tooltip: copy.otherAgent.tooltip,
-            icon: <AgentGlyph />,
           },
         ]
       : []),
-    { id: 'gateway', label: copy.gateway.label, tooltip: copy.gateway.tooltip, icon: <PoolGlyph /> },
-    { id: 'chain', label: copy.chain.label, tooltip: copy.chain.tooltip, icon: <ChainGlyph /> },
+    { id: 'gateway', label: copy.gateway.label, tooltip: copy.gateway.tooltip },
+    { id: 'chain', label: copy.chain.label, tooltip: copy.chain.tooltip },
   ];
 
   return (
     <div className="space-y-3">
-      <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
+      <p className="text-[13px] text-[var(--ink-secondary)]">
         {copy.eyebrow}
       </p>
 
       <div className="space-y-1.5">
         <label
           htmlFor={`fund-agent-amount-${agent}`}
-          className="mono text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]"
+          className="text-[13px] font-medium text-[var(--ink)]"
         >
           {copy.amount.label}
         </label>
         <div
-          className="flex min-h-11 items-center gap-3 px-3"
-          style={{
-            background: 'var(--lp-card)',
-            border: '1px solid var(--lp-border-light)',
-            borderRadius: 10,
-          }}
+          className="flex min-h-[52px] items-center gap-3 rounded-[14px] bg-[var(--tint)] px-4"
         >
           <input
             id={`fund-agent-amount-${agent}`}
@@ -102,24 +104,25 @@ export function FundAgentOptions({
             inputMode="decimal"
             value={amountInput}
             onChange={(event) => setAmountInput(event.target.value)}
+            disabled={fundingBusy}
             aria-describedby={`fund-agent-amount-note-${agent}`}
-            className="min-w-0 flex-1 bg-transparent text-[16px] font-semibold tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[16px] font-medium tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
           />
-          <span className="mono text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+          <span className="text-[13px] text-[var(--ink-secondary)]">
             USDC
           </span>
         </div>
-        <p id={`fund-agent-amount-note-${agent}`} className="text-[12px] leading-snug text-[var(--lp-text-muted)]">
+        <p id={`fund-agent-amount-note-${agent}`} className="text-[13px] leading-snug text-[var(--ink-secondary)]">
           {copy.amount.note}
         </p>
         {amountInput.trim() !== '' && !validAmount && (
-          <p className="border-s-2 border-[var(--lp-critical)] ps-2 text-[12px] leading-snug text-[var(--lp-critical)]">
+          <p className="text-[13px] leading-snug text-[var(--color-critical)]">
             {copy.amount.invalid}
           </p>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {routes.map((option) => {
           const active = route === option.id;
           return (
@@ -127,39 +130,21 @@ export function FundAgentOptions({
               <button
                 type="button"
                 onClick={() => setRoute(active ? null : option.id)}
+                disabled={fundingBusy}
                 aria-pressed={active}
                 className={cn(
-                  'group flex h-full w-full flex-col items-start gap-2 p-3 text-start transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
+                  'flex min-h-12 w-full items-center rounded-full py-3 ps-4 pe-12 text-start text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]',
                   active
-                    ? 'bg-[color-mix(in_oklab,var(--lp-accent)_12%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_40%,transparent)]'
-                    : 'bg-[var(--lp-card)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
+                    ? 'bg-[var(--ink)] text-[var(--canvas)]'
+                    : 'bg-[var(--tint)] text-[var(--ink)] hover:bg-[var(--line)]',
                 )}
-                style={{
-                  border: '1px solid',
-                  borderTopLeftRadius: 12,
-                  borderTopRightRadius: 12,
-                  borderBottomLeftRadius: 12,
-                  borderBottomRightRadius: 3,
-                }}
               >
-                <span
-                  aria-hidden
-                  className="transition-colors"
-                  style={{ color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)' }}
-                >
-                  {option.icon}
-                </span>
-                <span
-                  className="mono text-[10px] font-bold uppercase leading-tight tracking-[0.1em]"
-                  style={{ color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)' }}
-                >
-                  {option.label}
-                </span>
+                {option.label}
               </button>
               {/* The explanation, one tap away, out of the button so pressing it
                   chooses the route rather than opening the tooltip. */}
-              <span className="absolute end-2 top-2">
+              <span className="absolute end-2 top-1/2 -translate-y-1/2">
                 <Hint side="bottom" align="end">
                   {option.tooltip}
                 </Hint>
@@ -170,7 +155,7 @@ export function FundAgentOptions({
       </div>
 
       {route === 'wallet' && circleAccount && validAmount && (
-        <FundAgentFromBalance agent={agent} amountUsdc={fundingAmount} onFunded={onFunded} />
+        <FundAgentFromBalance agent={agent} amountUsdc={fundingAmount} onFunded={onFunded} onBusyChange={reportBusy} />
       )}
       {route === 'wallet' && !circleAccount && recipient && validAmount && (
         <FundAgentFromWallet
@@ -178,6 +163,7 @@ export function FundAgentOptions({
           recipient={recipient}
           amountUsdc={fundingAmount}
           onFunded={onFunded}
+          onBusyChange={reportBusy}
         />
       )}
       {route === 'otherAgent' && otherAgentAddress && recipient && validAmount && (
@@ -186,10 +172,11 @@ export function FundAgentOptions({
           toAddress={recipient}
           amountUsdc={fundingAmount}
           onFunded={onFunded}
+          onBusyChange={reportBusy}
         />
       )}
       {route === 'gateway' && recipient && validAmount && (
-        <TopUpFromGateway recipient={recipient} amount={fundingAmount} onFunded={onFunded} />
+        <TopUpFromGateway recipient={recipient} amount={fundingAmount} onFunded={onFunded} onBusyChange={reportBusy} primary />
       )}
       {route === 'gateway' && !recipient && (
         <FundGatewayCallout
@@ -205,7 +192,7 @@ export function FundAgentOptions({
       {/* The Circle path is the only one that needs no wallet at all, so say so
           once rather than repeating it in four tooltips. */}
       {!circleAccount && route === 'wallet' && (
-        <p className="text-[12px] leading-snug text-[var(--lp-text-muted)]">{copy.wallet.web3Note}</p>
+        <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.wallet.web3Note}</p>
       )}
     </div>
   );
@@ -219,16 +206,23 @@ function MoveFromOtherAgent({
   toAddress,
   amountUsdc,
   onFunded,
+  onBusyChange,
 }: {
   from: 'buyer' | 'seller';
   toAddress: string;
   amountUsdc: number;
   onFunded?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const { address } = useAuth();
   const copy = useTranslations().fundAgentOptions;
   const [state, setState] = useState<'idle' | 'moving' | 'done'>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onBusyChange?.(state === 'moving');
+    return () => onBusyChange?.(false);
+  }, [onBusyChange, state]);
 
   async function move() {
     if (!address) return;
@@ -256,13 +250,7 @@ function MoveFromOtherAgent({
         type="button"
         onClick={move}
         disabled={state !== 'idle'}
-        className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-4 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--accent-ink)] transition-opacity hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-        style={{
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          borderBottomLeftRadius: 10,
-          borderBottomRightRadius: 3,
-        }}
+        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
       >
         {state === 'moving'
           ? copy.moving
@@ -271,7 +259,7 @@ function MoveFromOtherAgent({
             : copy.moveCta.replace('{amount}', String(amountUsdc))}
       </button>
       {error && (
-        <p className="border-s-2 border-[var(--lp-critical)] ps-2 text-[12px] leading-snug text-[var(--lp-critical)]">
+        <p className="text-[13px] leading-snug text-[var(--color-critical)]">
           {error}
         </p>
       )}
@@ -294,68 +282,16 @@ function FundGatewayCallout({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-[12px] leading-snug text-[var(--lp-text-sub)]">{note}</p>
+      <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{note}</p>
       <a
         href={`/bridge?rail=${rail}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex min-h-11 items-center gap-2 border border-[var(--lp-outline-strong)] px-4 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-        style={{
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          borderBottomLeftRadius: 10,
-          borderBottomRightRadius: 3,
-        }}
+        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
       >
         {label}
-        <span aria-hidden>↗</span>
+        <Icon name="arrow-up-right" size={16} directional />
       </a>
     </div>
-  );
-}
-
-/* ---- glyphs. line drawings at 1.5 stroke, drawn for these four routes rather
-   than pulled from an icon set, so the row reads as one family. ---- */
-
-function WalletGlyph() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-8Z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3 10h18" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="17" cy="14.5" r="1.25" fill="currentColor" />
-    </svg>
-  );
-}
-
-function AgentGlyph() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="5" y="8" width="14" height="10" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="12" cy="4" r="1.2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9.5 12.5h.01M14.5 12.5h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M9.5 15.5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PoolGlyph() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M12 4 21 8l-9 4-9-4 9-4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M3 12l9 4 9-4" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M3 16l9 4 9-4" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ChainGlyph() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="3" y="9" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="14" y="9" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10 12.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M12.4 10.6 14 12.5l-1.6 1.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

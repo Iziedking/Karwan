@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { budgetDifference, deliverByUnixFromDate, offerDefaults, offerErrorKey, orderOffers, type Offer } from './model';
+import { budgetDifference, deliverByUnixFromDate, offerDefaults, offerErrorKey, orderOffers, topUpAmount, type Offer } from './model';
 
 const o = (id: string, price: string, createdAt: number): Offer => ({
   id,
@@ -46,4 +46,35 @@ test('review: new server refusals map to plain messages', () => {
   assert.equal(offerErrorKey('BUSY'), 'busy');
   assert.equal(offerErrorKey('ALREADY_MATCHED'), 'matched');
   assert.equal(offerErrorKey('CONFLICT'), 'matched');
+});
+
+test('top-up subtracts the available agent balance exactly', () => {
+  assert.equal(topUpAmount({ needUsdc: '280.35', agentUsdc: 30.1 }), 250.25);
+  assert.equal(topUpAmount({ needUsdc: '0.3', agentUsdc: 0.1 }), 0.2);
+});
+
+test('top-up rounds a fractional cent upward', () => {
+  assert.equal(topUpAmount({ needUsdc: '20.000001', agentUsdc: 10 }), 10.01);
+  assert.equal(topUpAmount({ needUsdc: '10.009999', agentUsdc: 10 }), 0.01);
+});
+
+test('top-up is at least one cent when the agent is short', () => {
+  assert.equal(topUpAmount({ needUsdc: '0.000001', agentUsdc: 0 }), 0.01);
+  assert.equal(topUpAmount({ needUsdc: '10', agentUsdc: 9.999999 }), 0.01);
+});
+
+test('top-up never asks for money when the agent already covers the amount', () => {
+  assert.equal(topUpAmount({ needUsdc: '10.01', agentUsdc: 10.01 }), 0);
+  assert.equal(topUpAmount({ needUsdc: '10', agentUsdc: 50 }), 0);
+  assert.equal(topUpAmount({ needUsdc: '0', agentUsdc: 0 }), 0);
+});
+
+test('top-up accepts a native-USDC dust balance written in exponent notation', () => {
+  assert.equal(topUpAmount({ needUsdc: '0.01', agentUsdc: 1e-7 }), 0.01);
+  assert.equal(topUpAmount({ needUsdc: '0.000000000000000001', agentUsdc: 1e-18 }), 0);
+});
+
+test('top-up preserves a shortfall smaller than one USDC micro-unit', () => {
+  assert.equal(topUpAmount({ needUsdc: '10', agentUsdc: 9.9999999 }), 0.01);
+  assert.equal(topUpAmount({ needUsdc: '10.00000001', agentUsdc: 10 }), 0.01);
 });

@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -25,6 +25,8 @@ export function TopUpFromGateway({
   agent,
   amount,
   onFunded,
+  onBusyChange,
+  primary = false,
 }: {
   /// Arc address to credit. An agent SCA is fine.
   recipient: string;
@@ -35,8 +37,13 @@ export function TopUpFromGateway({
   /// USDC to move. Omit to let the user type it.
   amount?: number;
   onFunded?: () => void;
+  onBusyChange?: (busy: boolean) => void;
+  /// The enclosing funding chooser owns its primary action. Profile keeps
+  /// this secondary beside its existing wallet transfer.
+  primary?: boolean;
 }) {
   const t = useTranslations().gatewayTopUp;
+  const amountLabel = useTranslations().fundAgentOptions.amount.label;
   const errCopy = useTranslations().chainErrors;
   const auth = useAuth();
   const { connector, isConnected } = useAccount();
@@ -46,6 +53,11 @@ export function TopUpFromGateway({
   const [steps, setSteps] = useState<StepMap>({});
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    onBusyChange?.(phase === 'moving');
+    return () => onBusyChange?.(false);
+  }, [onBusyChange, phase]);
 
   const asks = amount == null;
   const value = asks ? Number(typed) : amount;
@@ -155,12 +167,8 @@ export function TopUpFromGateway({
             onChange={(e) => setTyped(e.target.value)}
             disabled={phase === 'moving'}
             placeholder="0.00"
-            className="w-full min-w-0 px-2.5 py-1.5 text-[13px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
-            style={{
-              background: 'var(--lp-light)',
-              border: '1px solid var(--lp-border-light)',
-              borderRadius: 8,
-            }}
+            aria-label={amountLabel}
+            className="min-h-[52px] w-full min-w-0 rounded-[14px] bg-[var(--tint)] px-4 text-[16px] tabular-nums text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-50"
           />
         )}
         <button
@@ -168,12 +176,10 @@ export function TopUpFromGateway({
           onClick={() => void run()}
           disabled={phase === 'moving' || loading}
           aria-busy={phase === 'moving'}
-          className="w-full min-w-0 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.08em] leading-tight transition-opacity disabled:opacity-50 sm:px-4 sm:text-[11px] sm:tracking-[0.1em]"
+          className="min-h-12 w-full min-w-0 rounded-full px-5 py-3 text-[15px] font-medium leading-tight transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
           style={{
-            background: covers ? 'var(--lp-accent)' : 'transparent',
-            color: 'var(--lp-dark)',
-            border: `1px solid ${covers ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
-            borderRadius: 999,
+            background: primary ? 'var(--action)' : 'var(--tint)',
+            color: primary ? 'var(--on-action)' : 'var(--ink)',
           }}
         >
           {label}
@@ -181,7 +187,7 @@ export function TopUpFromGateway({
       </div>
 
       {!loading && (
-        <p className="text-[12px] text-[var(--lp-text-sub)]">
+        <p className="text-[13px] text-[var(--ink-secondary)]">
           {covers || !valid
             ? t.availableTemplate.replace(
                 '{amount}',
@@ -195,7 +201,7 @@ export function TopUpFromGateway({
 
       {(phase === 'moving' || phase === 'done') && <GatewayProgress steps={steps} />}
 
-      {phase === 'error' && <p className="text-[12px] text-[#b03d3a]">{error ?? t.failed}</p>}
+      {phase === 'error' && <p className="text-[13px] text-[var(--color-critical)]">{error ?? t.failed}</p>}
     </div>
   );
 }

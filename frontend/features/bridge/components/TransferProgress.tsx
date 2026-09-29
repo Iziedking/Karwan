@@ -12,9 +12,9 @@ import {
 } from '../routePlan';
 
 const PRIMARY =
-  'inline-flex min-h-12 items-center justify-center rounded-[10px] bg-[var(--accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2';
+  'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const SECONDARY =
-  'inline-flex min-h-12 items-center justify-center rounded-[10px] border border-[var(--lp-outline-strong)] px-5 text-[15px] font-medium text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+  'inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 
 export interface TransferProgressProps {
   direction: 'in' | 'out';
@@ -78,16 +78,15 @@ export function TransferProgress(props: TransferProgressProps) {
             <li key={step} aria-current={current ? 'step' : undefined} className="flex items-center gap-3">
               <span
                 aria-hidden
-                className="grid size-6 shrink-0 place-items-center rounded-full border text-[12px]"
+                className="grid size-6 shrink-0 place-items-center rounded-full text-[13px] font-medium tabular-nums"
                 style={{
-                  background: done ? 'var(--lp-dark)' : 'transparent',
-                  borderColor: done ? 'var(--lp-dark)' : current ? 'var(--accent)' : 'var(--lp-border-light)',
-                  color: 'var(--lp-light)',
+                  background: done || current ? 'var(--ink)' : 'var(--tint)',
+                  color: done || current ? 'var(--canvas)' : 'var(--ink-secondary)',
                 }}
               >
-                {done ? '✓' : ''}
+                {index + 1}
               </span>
-              <span className={done || current ? 'text-[15px] font-semibold text-[var(--lp-dark)]' : 'text-[15px] text-[var(--lp-text-sub)]'}>
+              <span className={done || current ? 'text-[15px] font-medium text-[var(--ink)]' : 'text-[15px] text-[var(--ink-secondary)]'}>
                 {labels[step]}
               </span>
             </li>
@@ -95,19 +94,19 @@ export function TransferProgress(props: TransferProgressProps) {
         })}
       </ol>
 
-      <div role="status" aria-live="polite" className="space-y-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
-        {view.kind === 'arrived' ? <p className="font-semibold">{labels.arrived}</p> : null}
+      <div role="status" aria-live="polite" className="space-y-2 text-[15px] leading-relaxed text-[var(--ink)]">
+        {view.kind === 'arrived' ? <p className="font-medium text-[var(--color-positive)]">{labels.arrived}</p> : null}
         {view.kind === 'stuck' ? (
           <p>{fill(t.stillMoving, { chain: props.direction === 'in' ? props.chainName : arc })}</p>
         ) : null}
         {view.kind === 'failed' ? (
-          <p className="border-s-2 border-[var(--color-critical)] ps-3">{t.nothingLeft}</p>
+          <p className="text-[var(--color-critical)]">{t.nothingLeft}</p>
         ) : null}
         {slow ? <p>{t.slow}</p> : null}
       </div>
 
       {!settled ? (
-        <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+        <p className="text-[13px] tabular-nums text-[var(--ink-secondary)]">
           {`${elapsed} · ${usually}${props.notifies === false ? '' : ` ${t.leaveNote}`}`}
         </p>
       ) : null}

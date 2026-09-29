@@ -29,12 +29,8 @@ export function MoneyRailStatus({ direction }: { direction: Direction }) {
     capabilities.find((capability) => capability.rail === rail)?.state ?? 'unavailable';
   const statusLabel = (state: MoneyRailCapability['state']) =>
     state === 'live' ? gatewayCopy.confirmed : state === 'configured' ? copy.onramp.tab : copy.soon;
-  const statusTone = (state: MoneyRailCapability['state']) =>
-    state === 'live'
-      ? { color: 'var(--lp-accent)', background: 'rgba(175, 201, 91, 0.12)' }
-      : state === 'configured'
-        ? { color: 'var(--lp-text-sub)', background: 'var(--lp-light)' }
-        : { color: 'var(--lp-text-muted)', background: 'var(--lp-light)' };
+  const statusTone = (_state: MoneyRailCapability['state']) =>
+    ({ color: 'var(--ink-secondary)', background: 'var(--tint)' });
 
   const rows = direction === 'in'
     ? [
@@ -51,48 +47,27 @@ export function MoneyRailStatus({ direction }: { direction: Direction }) {
   return (
     <section
       aria-label={copy.chooserAria}
-      className="mb-5 overflow-hidden"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
-      }}
+      className="mb-5 overflow-hidden rounded-[20px] bg-[var(--surface)] p-5 sm:p-6"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--lp-border-light)] px-4 py-3">
-        <div>
-          <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            {gatewayCopy.arcPinned}
-          </p>
-          <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">
-            {direction === 'in' ? copy.direct.title : copy.cctp.title}
-          </p>
-        </div>
-        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {gatewayCopy.tag.replace(/[\[\]:]/g, '')}
-        </span>
-      </div>
-      <div className="grid sm:grid-cols-3">
-        {rows.map((row, index) => {
+      <div className="grid gap-4 sm:grid-cols-3">
+        {rows.map((row) => {
           const state = statusFor(row.rail);
           const tone = statusTone(state);
           return (
             <div
               key={`${row.rail}-${row.label}`}
-              className={`${index > 0 ? 'border-t sm:border-t-0 sm:border-s' : ''} border-[var(--lp-border-light)] px-4 py-3`}
+              className="min-w-0"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[12px] font-semibold text-[var(--lp-dark)]">{row.label}</p>
+                <p className="text-[13px] font-medium text-[var(--ink)]">{row.label}</p>
                 <span
-                  className="mono rounded-full px-2 py-1 text-[9px] uppercase tracking-[0.12em]"
+                  className="mono rounded-full px-2 py-1 text-[13px]"
                   style={{ color: tone.color, background: tone.background }}
                 >
                   {statusLabel(state)}
                 </span>
               </div>
-              <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--lp-text-sub)]">{row.body}</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-secondary)]">{row.body}</p>
             </div>
           );
         })}

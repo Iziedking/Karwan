@@ -18,12 +18,13 @@ const LINE_TONE: Record<DealView['money']['line'], string> = {
   refunded: 'var(--lp-text-sub)',
 };
 
-export function MoneyBlock({ amountUsdc, view, counterpartyName, onAction, busy }: {
+export function MoneyBlock({ amountUsdc, view, counterpartyName, onAction, busy, quiet = false }: {
   amountUsdc: string;
   view: DealView;
   counterpartyName: string;
   onAction: () => void;
   busy: boolean;
+  quiet?: boolean;
 }) {
   const copy = useTranslations().dealWorkspace;
   const { locale } = useLocale();
@@ -31,11 +32,11 @@ export function MoneyBlock({ amountUsdc, view, counterpartyName, onAction, busy 
   const automatic = automaticLine(view, copy, locale);
   return (
     <section aria-labelledby="deal-amount" className="space-y-4">
-      <h1 id="deal-amount" className="flex items-baseline gap-2 tabular-nums">
-        <span className="text-[44px] font-semibold leading-none tracking-[-0.03em] text-[var(--lp-dark)] sm:text-[56px]">
+      <h1 id="deal-amount" className="flex items-baseline gap-2 font-medium tabular-nums">
+        <span className="text-[44px] font-medium leading-none text-[var(--lp-dark)] sm:text-[56px]">
           {formatUsdcAmount(amountUsdc, locale)}
         </span>
-        <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+        <span className="text-[18px] font-medium text-[var(--lp-text-sub)]">USDC</span>
       </h1>
       <p role="status" aria-live="polite" className="flex items-start gap-2 text-[15px] leading-relaxed text-[var(--lp-dark)]">
         <span aria-hidden className="mt-[7px] size-2 shrink-0 rounded-full" style={{ background: LINE_TONE[view.money.line] }} />
@@ -47,7 +48,9 @@ export function MoneyBlock({ amountUsdc, view, counterpartyName, onAction, busy 
             type="button"
             onClick={onAction}
             disabled={busy}
-            className="inline-flex min-h-12 items-center rounded-[10px] bg-[var(--accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+            className={quiet
+              ? 'inline-flex min-h-12 items-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'
+              : 'inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]'}
           >
             {busy ? copy.confirm.working : label}
           </button>

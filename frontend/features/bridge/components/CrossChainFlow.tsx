@@ -26,16 +26,16 @@ import { BridgeHistoryModal } from './BridgeHistorySection';
 import { TransferProgress } from './TransferProgress';
 
 const PRIMARY =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-[10px] bg-[var(--accent)] px-5 text-[15px] font-semibold text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2';
+  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--action)] px-5 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:opacity-90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const SECONDARY =
-  'inline-flex min-h-12 items-center justify-center rounded-[10px] border border-[var(--lp-outline-strong)] px-5 text-[15px] font-medium text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+  'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 text-[15px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const QUIET =
-  'inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+  'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-4 text-[14px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const CHIP =
-  'inline-flex min-h-11 items-center rounded-full border border-[var(--lp-outline-strong)] px-3.5 text-[13px] font-semibold text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+  'inline-flex min-h-10 items-center rounded-full bg-[var(--tint)] px-3.5 text-[13px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none hover:bg-[var(--line)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]';
 const OPTION =
-  'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-[10px] border border-[var(--lp-border-light)] px-4 has-[:checked]:border-[var(--lp-dark)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--accent)]';
-const SOFT = 'bg-[var(--lp-workspace-soft)] motion-safe:animate-pulse motion-reduce:animate-none rounded-[10px]';
+  'flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-full bg-[var(--tint)] px-4 text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none has-[:checked]:bg-[var(--ink)] has-[:checked]:text-[var(--canvas)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--action)]';
+const SOFT = 'bg-[var(--tint)] motion-safe:animate-pulse motion-reduce:animate-none rounded-full';
 const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 
 type PoolDestination = Parameters<typeof api.gatewayCashOut>[0];
@@ -298,7 +298,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
   return (
     <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
       <header className="border-b border-[var(--lp-border-light)] pb-6">
-        <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[var(--lp-dark)]">{title}</h1>
+        <h1 className="text-[32px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]">{title}</h1>
         <div className="mt-3">
           <NetworkContext />
         </div>
@@ -319,7 +319,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
           />
         ) : intent === 'add' && !wallet ? (
           <section aria-labelledby="cross-where" className="space-y-6">
-            <h2 id="cross-where" className="text-[20px] font-semibold text-[var(--lp-dark)]">{t.fromExchange}</h2>
+            <h2 id="cross-where" className="text-[22px] font-medium text-[var(--ink)]">{t.fromExchange}</h2>
             <DepositCard />
             <p className="flex items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4 text-[15px] text-[var(--lp-dark)]">
               {t.cardOrBank}
@@ -334,10 +334,10 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
         ) : (
           <>
             <section aria-labelledby="cross-where" className="space-y-4">
-              <h2 id="cross-where" className="text-[20px] font-semibold text-[var(--lp-dark)]">{inbound ? t.whereFrom : t.whereTo}</h2>
+              <h2 id="cross-where" className="text-[22px] font-medium text-[var(--ink)]">{inbound ? t.whereFrom : t.whereTo}</h2>
               {inbound ? (
                 <fieldset className="space-y-2">
-                  <legend className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.fromWallet}</legend>
+                  <legend className="text-[13px] font-medium text-[var(--ink-secondary)]">{t.fromWallet}</legend>
                   {!account.isConnected ? (
                     <button type="button" onClick={() => openConnectModal?.()} className={SECONDARY}>{t.connectWallet}</button>
                   ) : reads.isPending ? (
@@ -357,11 +357,11 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                             value={option.key}
                             checked={chosen === option.key}
                             onChange={() => setSource(option.key)}
-                            className="size-4 accent-[var(--lp-dark)]"
+                            className="size-4 accent-current"
                           />
-                          <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{chainOf(option.key)}</span>
+                          <span className="text-[15px] font-medium text-current">{chainOf(option.key)}</span>
                         </span>
-                        <span className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">{`${formatBalance(option.amount, locale)} USDC`}</span>
+                        <span className="text-[14px] tabular-nums text-current">{`${formatBalance(option.amount, locale)} USDC`}</span>
                       </label>
                     ))
                   )}
@@ -390,9 +390,9 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                             value={key}
                             checked={destination === key}
                             onChange={() => setDestination(key)}
-                            className="size-4 accent-[var(--lp-dark)]"
+                            className="size-4 accent-current"
                           />
-                          <span className="text-[15px] font-semibold text-[var(--lp-dark)]">{chainOf(key)}</span>
+                          <span className="text-[15px] font-medium text-current">{chainOf(key)}</span>
                         </span>
                       </label>
                     ))}
@@ -411,7 +411,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                         spellCheck={false}
                         autoComplete="off"
                         dir="ltr"
-                        className="mt-2 min-h-12 w-full rounded-[10px] border border-[var(--lp-outline-strong)] bg-transparent px-3 text-[15px] text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                        className="mt-2 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                       />
                       {recipient.trim() !== '' && !ADDRESS.test(recipient.trim()) ? (
                         <p className="mt-2 text-[13px] text-[var(--color-critical)]">{sheet.recipientInvalid}</p>
@@ -428,7 +428,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
 
             <section className="space-y-4">
               <label htmlFor={amountId} className="text-[13px] font-medium text-[var(--lp-text-sub)]">{sheet.amountLabel}</label>
-              <div className="flex items-baseline gap-2 border-b-2 border-[var(--lp-dark)] pb-2 focus-within:border-[var(--accent)]">
+              <div className="flex min-h-[52px] items-center gap-2 rounded-[14px] bg-[var(--tint)] px-4">
                 <input
                   id={amountId}
                   value={typed}
@@ -437,9 +437,9 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
                   autoComplete="off"
                   placeholder="0"
                   dir="ltr"
-                  className="min-w-0 flex-1 bg-transparent text-[40px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+                  className="min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent text-[32px] font-medium leading-none tracking-normal tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                 />
-                <span className="text-[18px] font-semibold text-[var(--lp-text-sub)]">USDC</span>
+                <span className="text-[13px] text-[var(--ink-secondary)]">USDC</span>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
@@ -470,7 +470,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
               ) : null}
               {intent === 'send' ? <p className="text-[14px] font-medium text-[var(--color-warning)]">{sheet.sendIrreversible}</p> : null}
               {declined ? (
-                <p role="alert" className="border-s-2 border-[var(--color-critical)] ps-3 text-[14px] text-[var(--lp-dark)]">{sheet.declined}</p>
+                <p role="alert" className="text-[13px] text-[var(--color-critical)]">{sheet.declined}</p>
               ) : null}
               <button type="button" onClick={() => void submit()} disabled={blocked} className={PRIMARY}>{cta}</button>
             </section>

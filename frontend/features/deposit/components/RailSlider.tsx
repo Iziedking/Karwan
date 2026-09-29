@@ -5,20 +5,8 @@ import { cn } from '@/shared/utils/cn';
 import { LpHint } from '@/shared/components/LpHint';
 import type { DepositRail, RailOption } from '../railModel';
 
-/// The rail chooser, and the way one panel becomes the next.
-///
-/// Four routes on one track. The active one carries a lozenge that SLIDES
-/// between them rather than cutting, which is the only thing that makes a row of
-/// buttons read as one control, and the panel underneath rises into place behind
-/// a lime line travelling across its top edge.
-///
-/// That line replaced a blackout: the first version swept an ink band with a
-/// lime edge across the whole panel, which on a light page is a dark rectangle
-/// crossing content mid-read. It looked broken. The line says the same thing
-/// (something changed, here) without ever covering what the reader came for.
-///
-/// Under `prefers-reduced-motion` the sweep is not painted at all and the
-/// lozenge stops sliding.
+/// One active money route, with neutral pills and a short panel transition.
+/// Reduced motion is handled by the existing rail-panel-in animation rule.
 
 /// Must match the CSS in globals.css (`.rail-wipe`).
 const WIPE_MS = 420;
@@ -50,39 +38,20 @@ export function RailSlider({
     return () => window.clearTimeout(timer.current);
   }, [active]);
 
-  const index = Math.max(
-    0,
-    rails.findIndex((rail) => rail.id === active),
-  );
   const hasRailChoice = rails.length > 1;
 
   return (
     <div>
-      {/* The track. One column per rail, so the lozenge width is a fraction of
-          the whole and the labels never reflow when the set changes size. */}
+      {/* One column per rail keeps the choices in a stable order. */}
       {hasRailChoice && (
         <div
           role="tablist"
           aria-label={copy.chooserAria}
-          className="relative grid gap-0 p-1"
+          className="relative grid gap-1 rounded-[20px] bg-[var(--tint)] p-1"
           style={{
             gridTemplateColumns: `repeat(${rails.length}, minmax(0, 1fr))`,
-            background: 'var(--lp-card)',
-            border: '1px solid var(--lp-border-light)',
-            borderRadius: 999,
           }}
         >
-          <span
-            aria-hidden
-            className="absolute top-1 bottom-1 transition-transform duration-[320ms] ease-out motion-reduce:transition-none"
-            style={{
-              width: `${100 / rails.length}%`,
-              left: 4,
-              borderRadius: 999,
-              background: 'var(--lp-band-dark)',
-              transform: `translateX(${index * 100}%)`,
-            }}
-          />
           {rails.map((rail) => {
             const current = rail.id === active;
             return (
@@ -93,20 +62,20 @@ export function RailSlider({
                 aria-selected={current}
                 onClick={() => onChange(rail.id)}
                 className={cn(
-                  'relative z-10 flex min-h-11 items-center justify-center gap-1.5 rounded-full px-2 py-2.5',
-                  'mono text-[10px] font-bold uppercase tracking-[0.08em] transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset',
+                  'flex min-h-12 items-center justify-center gap-1.5 rounded-full px-2 py-3 text-[13px] font-medium',
+                  'transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-inset',
+                  current ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'text-[var(--ink)] hover:bg-[var(--line)]',
                 )}
-                style={{ color: current ? '#ffffff' : 'var(--lp-text-sub)' }}
               >
-                <span className="truncate">{copy[rail.id].tab}</span>
+                <span>{copy[rail.id].tab}</span>
                 {rail.state === 'soon' && (
                   <span
                     aria-hidden
-                    className="hidden shrink-0 rounded-full px-1 py-[1px] text-[8px] leading-none sm:inline"
+                    className="hidden shrink-0 rounded-full px-1 text-[13px] leading-none sm:inline"
                     style={{
-                      background: current ? 'rgba(255,255,255,0.18)' : 'var(--lp-border-light)',
-                      color: current ? '#ffffff' : 'var(--lp-text-muted)',
+                      background: current ? 'var(--tint)' : 'transparent',
+                      color: current ? 'var(--canvas)' : 'var(--ink-secondary)',
                     }}
                   >
                     {copy.soon}
@@ -122,11 +91,8 @@ export function RailSlider({
           the form, because choosing the rail IS the question this page asks. */}
       {hasRailChoice && (
         <div className="mt-5">
-          <span className="mono text-[10px] font-bold tracking-[0.12em] text-[var(--lp-text-sub)]">
-            {copy[active].tag}
-          </span>
           <div className="mt-2 flex items-center gap-2">
-            <h2 className="text-[26px] font-extrabold leading-[1.1] tracking-tight text-[var(--lp-dark)]">
+            <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
               {copy[active].title}
             </h2>
             <LpHint side="bottom" align="start">{copy[active].blurb}</LpHint>
@@ -134,14 +100,11 @@ export function RailSlider({
         </div>
       )}
 
-      {/* The panel, and the sweep on its top edge. A sibling rather than a
-          wrapper so it never becomes a containing block for anything inside the
-          panel (a sticky header, a portalled tooltip). */}
+      {/* Existing panels keep their state and movement handlers. */}
       <div className={cn('relative', hasRailChoice ? 'mt-6' : 'mt-0')}>
-        <div key={active} className={cn(wiping ? 'rail-panel-in' : undefined)}>
+        <div key={active} className={cn(wiping ? 'rail-panel-in' : undefined)} style={{ animationDuration: 'var(--dur-panel)', animationTimingFunction: 'var(--ease-ui)' }}>
           {children}
         </div>
-        {wiping && <span aria-hidden className="rail-wipe" />}
       </div>
     </div>
   );

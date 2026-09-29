@@ -3757,7 +3757,7 @@ function FundingConsentModal({
   return (
     <div
       className="fixed inset-0 z-[80] flex items-end pb-[calc(5rem+env(safe-area-inset-bottom))] sm:items-center sm:justify-end sm:p-4 md:p-6"
-      style={{ background: 'rgba(14,14,14,0.62)' }}
+      style={{ background: 'color-mix(in oklab, var(--palette-night-surface) 62%, transparent)' }}
       onClick={() => !busy && onClose()}
       onKeyDown={onKeyDown}
     >
@@ -3768,24 +3768,22 @@ function FundingConsentModal({
         aria-labelledby="funding-consent-title"
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[22px] outline-none sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(512px,calc(100vw-2rem))] sm:rounded-[18px]"
+        className="karwan-sheet-enter max-h-[calc(100dvh-5rem)] min-h-0 w-full overflow-y-auto rounded-t-[20px] outline-none sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:w-[min(512px,calc(100vw-2rem))] sm:rounded-[20px]"
         style={{
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 24px 72px -24px rgba(0,0,0,0.48)',
+          background: 'var(--surface)',
         }}
       >
-        <div className="px-5 sm:px-6 pt-6 pb-4 border-b border-[var(--lp-border-light)]">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <div className="px-5 sm:px-6 pt-6 pb-4 border-b border-[var(--line)]">
+          <span className="text-[13px] text-[var(--ink-secondary)]">
             {copy.eyebrow}
           </span>
           <h2
             id="funding-consent-title"
-            className="mt-2 font-sans text-[24px] font-extrabold tracking-[-0.03em] leading-tight text-[var(--lp-dark)]"
+            className="mt-2 text-[22px] font-medium tracking-[-0.015em] leading-tight text-[var(--ink)]"
           >
-            {copy.title}<span style={{ color: 'var(--lp-accent)' }}>.</span>
+            {copy.title}
           </h2>
-          <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{copy.body}</p>
+          <p className="mt-3 text-[14px] leading-relaxed text-[var(--ink-secondary)]">{copy.body}</p>
         </div>
         <div className="px-5 sm:px-6 py-5 space-y-3">
           <MoneyRow label={copy.dealAmount} value={formatExactUsdc(quote.dealAmountUsdc)} />
@@ -3801,28 +3799,24 @@ function FundingConsentModal({
           <div
             className="mt-4 px-4 py-4 flex items-end justify-between gap-4"
             style={{
-              background: 'color-mix(in oklab, var(--lp-accent) 13%, var(--lp-card))',
-              border: '1px solid color-mix(in oklab, var(--lp-accent) 45%, var(--lp-border-light))',
-              borderTopLeftRadius: 14,
-              borderTopRightRadius: 14,
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 4,
+              background: 'var(--tint)',
+              borderRadius: 20,
             }}
           >
-            <span className="text-[13px] font-semibold text-[var(--lp-dark)]">{copy.total}</span>
-            <span className="mono text-[19px] font-extrabold tabular-nums text-[var(--lp-dark)] text-end">
+            <span className="text-[13px] font-medium text-[var(--ink)]">{copy.total}</span>
+            <span className="text-[32px] font-medium tabular-nums text-[var(--ink)] text-end">
               {formatExactUsdc(quote.fundedAmountUsdc)}
             </span>
           </div>
-          <p className="text-[12px] leading-snug text-[var(--lp-text-muted)]">{copy.noConversion}</p>
+          <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.noConversion}</p>
         </div>
         <div className="px-5 sm:px-6 pb-6 flex flex-col-reverse sm:flex-row gap-3">
-          <CTAPill variant="secondary" tone="light" onClick={onClose} disabled={busy}>
+          <button type="button" onClick={onClose} disabled={busy} className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--tint)] px-5 py-3 text-[15px] font-medium text-[var(--ink)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
             {copy.cancelCta}
-          </CTAPill>
-          <CTAPill onClick={onConfirm} disabled={busy} busy={busy}>
+          </button>
+          <button type="button" onClick={onConfirm} disabled={busy} aria-busy={busy} className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 py-3 text-[15px] font-medium text-[var(--on-action)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
             {busy ? copy.confirmBusy : copy.confirmCta}
-          </CTAPill>
+          </button>
         </div>
       </div>
     </div>
@@ -4247,16 +4241,7 @@ function DealErrorNote({
 
   const wrap = (children: ReactNode) => (
     <div
-      className="px-3.5 py-3 text-[12.5px] leading-snug"
-      style={{
-        background: 'rgba(176, 61, 58, 0.12)',
-        color: '#ff8a7a',
-        border: '1px solid rgba(176, 61, 58, 0.35)',
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 3,
-      }}
+      className="rounded-[20px] bg-[var(--surface)] p-5 text-[13px] leading-snug text-[var(--color-critical)] sm:p-6"
     >
       {children}
     </div>
@@ -4288,9 +4273,9 @@ function DealErrorNote({
               )}
             </div>
           ) : (
-            <p className="text-[11px] opacity-90">
+            <p className="text-[13px] text-[var(--ink-secondary)]">
               {copy.insufficientBalanceBuyerPrefix}{' '}
-              <Link href="/profile" className="underline font-medium">
+              <Link href="/profile" className="rounded-full underline font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                 {copy.insufficientBalanceBuyerLink}
               </Link>
             </p>

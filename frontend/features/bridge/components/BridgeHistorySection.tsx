@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useBridges, type BridgePhase, type BridgeRecord } from '../hooks/useBridge';
 import { BridgeRow } from './BridgeCard';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 const STUCK_AFTER_MS = 30 * 60 * 1000;
 const PAGE_SIZE = 10;
@@ -124,23 +125,22 @@ export function BridgeHistoryModal({
         onClick={onClose}
         className="absolute inset-0 cursor-default"
         style={{
-          background: 'rgba(0,0,0,0.55)',
+          background: 'color-mix(in oklab, var(--palette-night-surface) 55%, transparent)',
         }}
       />
       <div
-        className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[18px] sm:h-full sm:max-h-none sm:rounded-none sm:rounded-s-[16px]"
+        className="karwan-sheet-enter relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[20px] sm:h-full sm:max-h-none sm:rounded-none sm:rounded-s-[20px]"
         style={{
           width: 'min(640px, 100vw)',
           maxWidth: '640px',
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
+          background: 'var(--surface)',
         }}
       >
         <header className="space-y-4 border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-5 sm:py-5">
           <div className="flex items-center justify-between gap-4">
             <h2
               id="bridge-history-title"
-              className="text-[18px] font-semibold leading-tight text-[var(--lp-dark)]"
+              className="text-[22px] font-medium leading-tight text-[var(--ink)]"
             >
               {title}
             </h2>
@@ -148,16 +148,9 @@ export function BridgeHistoryModal({
               type="button"
               onClick={onClose}
               aria-label={a11y.closeHistory}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[var(--lp-text-sub)] transition-colors hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)]"
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full px-3 text-[13px] text-[var(--ink-secondary)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] hover:bg-[var(--lp-light)] hover:text-[var(--ink)]"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path
-                  d="M3 3l10 10M13 3L3 13"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
+              {a11y.closeHistory}
             </button>
           </div>
           <BridgeHistoryFilters filter={filter} onFilterChange={setFilter} counts={counts} copy={historyCopy} />
@@ -165,13 +158,13 @@ export function BridgeHistoryModal({
         <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
           {bridges.length === 0 ? (
             <div className="px-2 py-5">
-              <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{historyCopy.emptyTitle}</p>
-              <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+              <p className="text-[15px] font-medium text-[var(--ink)]">{historyCopy.emptyTitle}</p>
+              <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink-secondary)]">
                 {historyCopy.emptyBody}
               </p>
             </div>
           ) : filtered.length === 0 ? (
-            <p className="py-6 text-center text-[14px] text-[var(--lp-text-sub)]">
+            <p className="py-6 text-center text-[14px] text-[var(--ink-secondary)]">
               {historyCopy.noneInFilter}
             </p>
           ) : (
@@ -197,16 +190,16 @@ export function BridgeHistoryModal({
               disabled={safePage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              <span aria-hidden>←</span> {historyCopy.previous}
+              <Icon name="chevron-left" size={16} directional /> {historyCopy.previous}
             </PagerButton>
-            <span className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+            <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">
               {historyCopy.pageTemplate.replace('{page}', String(safePage)).replace('{total}', String(totalPages))}
             </span>
             <PagerButton
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
-              {historyCopy.next} <span aria-hidden>→</span>
+              {historyCopy.next} <Icon name="chevron-right" size={16} directional />
             </PagerButton>
           </footer>
         )}
@@ -253,9 +246,9 @@ function PagerButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] px-3 py-2 text-[13px] font-medium text-[var(--lp-dark)] transition-colors disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)]"
+      className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-[var(--lp-light)]"
       style={{
-        border: '1px solid var(--lp-border-light)',
+        background: 'var(--tint)',
       }}
     >
       {children}
@@ -279,18 +272,17 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="inline-flex min-h-11 w-full min-w-0 items-center justify-between gap-1.5 rounded-[10px] px-2.5 py-2 text-[12px] font-medium transition-colors sm:px-3 sm:text-[13px]"
+      className="inline-flex min-h-10 w-full min-w-0 items-center justify-between gap-1.5 rounded-full px-2.5 py-2 text-[13px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] sm:px-3 sm:text-[13px]"
       style={{
-        background: active ? 'var(--lp-accent)' : 'var(--lp-card)',
-        color: active ? 'var(--accent-ink)' : 'var(--lp-text-sub)',
-        border: active ? '1px solid var(--lp-accent)' : '1px solid var(--lp-border-light)',
+        background: active ? 'var(--ink)' : 'var(--tint)',
+        color: active ? 'var(--canvas)' : 'var(--ink)',
       }}
     >
       <span>{label}</span>
       <span
-        className="text-[12px] tabular-nums"
+        className="text-[13px] tabular-nums"
         style={{
-          color: active ? 'var(--accent-ink)' : 'var(--lp-text-sub)',
+          color: active ? 'var(--canvas)' : 'var(--ink-secondary)',
         }}
       >
         {count}

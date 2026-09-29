@@ -4,7 +4,7 @@ import { useChainId, useReadContract, useSwitchChain } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { formatUnits } from 'viem';
 import { cn } from '@/shared/utils/cn';
-import { WalletAvatar } from '@/shared/components/WalletAvatar';
+import { Icon } from '@/shared/components/Icon';
 import { ARC_CHAIN_ID, ARC_EXPLORER_TX, ARC_USDC_ADDRESS, ARC_USDC_DECIMALS } from '../config';
 import { useArcFund, type FundPhase, type FundRecord } from '../hooks/useArcFund';
 import { useCircleFund, type CircleFundRecord } from '../hooks/useCircleFund';
@@ -15,21 +15,16 @@ import { TopUpFromGateway } from '@/features/gateway/TopUpFromGateway';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const CARD_STYLE = {
-  background: 'var(--lp-card)',
-  color: 'var(--lp-dark)',
-  border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 16,
-  borderTopRightRadius: 16,
-  borderBottomLeftRadius: 16,
-  borderBottomRightRadius: 5,
-  boxShadow: '0 12px 36px -28px rgba(0,0,0,0.28)',
+  background: 'var(--surface)',
+  color: 'var(--ink)',
+  borderRadius: 20,
 } as const;
 
 const TONE_COLOR = {
-  positive: 'var(--lp-accent)',
-  critical: '#b03d3a',
-  live: 'var(--lp-accent)',
-  warning: '#b25425',
+  positive: 'var(--color-positive)',
+  critical: 'var(--color-critical)',
+  live: 'var(--ink-secondary)',
+  warning: 'var(--color-warning)',
 } as const;
 
 interface AgentOption {
@@ -192,46 +187,14 @@ export function ArcFundCard({
       : null;
 
   return (
-    <section
-      style={CARD_STYLE}
-      className="p-4 sm:p-5 md:p-6 h-full min-w-0 flex flex-col overflow-hidden"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {af.header.eyebrow}
-          </span>
-          <h2 className="mt-1.5 font-sans text-[19px] sm:text-[21px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            {af.header.title}
-          </h2>
-          <p className="mt-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {isCircleUser ? af.header.subtitleCircle : af.header.subtitleWeb3}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+    <section style={CARD_STYLE} className="flex h-full min-w-0 flex-col overflow-hidden p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h2 className="text-[22px] font-medium leading-tight tracking-[-0.015em] text-[var(--ink)]">
+          {af.header.title}
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
           {activeCount > 0 && (
-            <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 mono text-[10px] font-bold uppercase tracking-[0.14em]"
-              style={{
-                background: 'rgba(175, 201, 91,0.10)',
-                color: 'var(--lp-dark)',
-                border: '1px solid rgba(175, 201, 91,0.35)',
-                borderTopLeftRadius: 6,
-                borderTopRightRadius: 6,
-                borderBottomLeftRadius: 6,
-                borderBottomRightRadius: 2,
-              }}
-            >
-              <span className="relative flex size-1.5">
-                <span
-                  className="absolute inline-flex h-full w-full rounded-full opacity-60 motion-safe:animate-ping"
-                  style={{ background: 'var(--lp-accent)' }}
-                />
-                <span
-                  className="relative inline-flex size-1.5 rounded-full"
-                  style={{ background: 'var(--lp-accent)' }}
-                />
-              </span>
+            <span className="rounded-full bg-[var(--tint)] px-3 py-2 text-[13px] tabular-nums text-[var(--ink-secondary)]">
               {af.header.inFlightTemplate.replace('{count}', String(activeCount))}
             </span>
           )}
@@ -239,45 +202,21 @@ export function ArcFundCard({
             type="button"
             onClick={refetchAll}
             disabled={refreshing}
-            title={af.header.refreshTitle}
-            className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-60 disabled:cursor-wait"
+            aria-label={af.header.refreshTitle}
+            className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--tint)] px-4 text-[13px] text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
           >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden
-              className={refreshing ? 'animate-spin motion-reduce:animate-none' : ''}
-            >
-              <path
-                d="M14 8a6 6 0 1 1-1.76-4.24M14 3v3h-3"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
             {refreshing ? af.header.refreshing : af.header.refresh}
           </button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 flex min-w-0 w-full flex-1 flex-col gap-4">
-        {/* RECIPIENT PICKER */}
-        <div>
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {af.recipient.eyebrow}
-          </span>
-          <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <fieldset>
+          <legend className="text-[13px] font-medium text-[var(--ink)]">{af.recipient.eyebrow}</legend>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {options.map((o) => {
               const active = selected === o.key;
               const disabled = !o.address;
-              const bal = o.key === 'buyer' ? buyerArcBalance : sellerArcBalance;
-              const balHuman =
-                bal.data && !bal.isLoading
-                  ? formatUsdc(formatUnits(bal.data, ARC_USDC_DECIMALS), { withSuffix: false })
-                  : null;
               return (
                 <button
                   key={o.key}
@@ -286,204 +225,81 @@ export function ArcFundCard({
                   disabled={disabled}
                   aria-pressed={active}
                   className={cn(
-                    'relative w-full min-w-0 overflow-hidden text-start p-3.5 transition-colors text-[var(--lp-dark)] sm:p-4',
-                    !active && !disabled && 'hover:-translate-y-0.5',
+                    'min-h-12 w-full min-w-0 rounded-full px-4 py-3 text-[14px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]',
+                    active ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink)] hover:bg-[var(--line)]',
                   )}
-                  style={{
-                    background: active
-                      ? 'rgba(175, 201, 91,0.10)'
-                      : disabled
-                        ? 'var(--lp-light)'
-                        : 'var(--lp-card)',
-                    border: active
-                      ? '1px solid var(--lp-accent)'
-                      : '1px solid var(--lp-border-light)',
-                    opacity: disabled ? 0.5 : 1,
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    borderTopLeftRadius: 12,
-                    borderTopRightRadius: 12,
-                    borderBottomLeftRadius: 12,
-                    borderBottomRightRadius: 3,
-                    boxShadow: active ? '0 1px 0 rgba(175, 201, 91,0.18)' : 'none',
-                  }}
                 >
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute start-0 top-0 bottom-0 w-[3px]"
-                      style={{ background: 'var(--lp-accent)' }}
-                    />
-                  )}
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <WalletAvatar address={o.address ?? '0x0'} size={24} />
-                    <p className="min-w-0 flex-1 text-[13px] font-semibold tracking-[-0.01em] leading-tight truncate">
-                      {o.label}
-                    </p>
-                    <span className="hidden shrink-0 items-baseline gap-1 min-[390px]:inline-flex">
-                      <span className="font-sans text-[15px] font-extrabold tabular-nums tracking-[-0.01em] leading-none">
-                        {o.address ? (balHuman ?? '-') : '-'}
-                      </span>
-                      <span className="mono text-[9px] uppercase tracking-[0.14em] leading-none text-[var(--lp-text-muted)]">
-                        USDC
-                      </span>
-                    </span>
-                  </div>
+                  {o.label}
                 </button>
               );
             })}
           </div>
-        </div>
+        </fieldset>
 
-        {/* AMOUNT */}
-        <div
-          className="fund-amount transition-shadow p-5"
-          style={{
-            background: 'var(--lp-light)',
-            border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
-          }}
-        >
-          <div className="flex items-baseline justify-between">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+        <div className="rounded-[20px] bg-[var(--tint)] p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <label htmlFor="arc-fund-amount" className="text-[13px] font-medium text-[var(--ink)]">
               {af.amount.eyebrow}
-            </span>
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              Arc ·{' '}
-              {arcHuman
-                ? af.amount.availableTemplate.replace(
-                    '{amount}',
-                    formatUsdc(arcHuman, { withSuffix: false }),
-                  )
-                : '-'}
-            </span>
+            </label>
+            {arcHuman != null && (
+              <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">
+                {af.amount.availableTemplate.replace('{amount}', formatUsdc(arcHuman, { withSuffix: false }))}
+              </span>
+            )}
           </div>
-          <div className="mt-2 flex items-baseline gap-3">
+          <div className="mt-2 flex items-center gap-3">
             <input
+              id="arc-fund-amount"
               type="number"
               inputMode="decimal"
               min={0}
               step="any"
               value={amount}
               onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              className="no-spinner flex-1 bg-transparent font-sans text-[34px] font-extrabold tracking-[-0.025em] tabular-nums focus:outline-none placeholder:text-[var(--lp-text-muted)] text-[var(--lp-dark)] min-w-0"
+              className="no-spinner min-h-[52px] min-w-0 flex-1 rounded-[14px] bg-transparent px-2 text-[34px] font-medium tracking-[-0.015em] tabular-nums text-[var(--ink)] outline-none placeholder:text-[var(--ink-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--action)]"
               placeholder="0"
             />
-            <span
-              className="inline-flex items-center gap-1.5 bg-[var(--lp-card)] px-3 py-1.5"
-              style={{
-                borderTopLeftRadius: 8,
-                borderTopRightRadius: 8,
-                borderBottomLeftRadius: 8,
-                borderBottomRightRadius: 2,
-              }}
-            >
-              <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
-              <span className="mono text-[11px] font-bold uppercase tracking-[0.12em]">USDC</span>
-            </span>
+            <span className="text-[13px] text-[var(--ink-secondary)]">USDC</span>
           </div>
-          <style jsx>{`
-            .fund-amount:focus-within {
-              border-color: var(--lp-dark);
-              box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25);
-            }
-          `}</style>
         </div>
 
         <button
           type="submit"
           disabled={!canSubmit}
-          className="group mt-auto inline-flex w-full min-w-0 items-center justify-center gap-2 px-3 py-4 mono text-[11px] font-bold uppercase tracking-[0.06em] transition-[transform,box-shadow] duration-150 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 sm:px-5 sm:text-[13px] sm:tracking-[0.08em]"
-          style={{
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 4,
-            boxShadow: canSubmit ? '0 4px 0 rgba(0,0,0,0.22)' : 'none',
-          }}
+          className="mt-auto inline-flex min-h-12 w-full min-w-0 items-center justify-center gap-2 rounded-full bg-[var(--action)] px-5 py-3 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
         >
-          {!isConnected ? (
-            af.submit.signInToFund
-          ) : isSwitching ? (
-            af.submit.switchingToArc
-          ) : hasActiveTransfer ? (
-            af.submit.transferInProgress
-          ) : (
+          {!isConnected ? af.submit.signInToFund : isSwitching ? af.submit.switchingToArc : hasActiveTransfer ? af.submit.transferInProgress : (
             <>
               <span className="min-w-0 text-center leading-tight">
-                {onWrongChain
-                  ? af.submit.switchToArc
-                  : af.submit.sendToTemplate.replace(
-                      '{label}',
-                      selectedAgent?.label.toLowerCase() ?? af.submit.agentFallback,
-                    )}
+                {onWrongChain ? af.submit.switchToArc : af.submit.sendToTemplate.replace('{label}', selectedAgent?.label.toLowerCase() ?? af.submit.agentFallback)}
               </span>
-              <span
-                aria-hidden
-                className="inline-flex transition-transform group-hover:translate-x-0.5"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M3 8h10M9 4l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
+              <Icon name="arrow-right" size={16} directional />
             </>
           )}
         </button>
-        {hasActiveTransfer && (
-          <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
-            {af.submit.activeNote}
-          </p>
-        )}
+        {hasActiveTransfer && <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{af.submit.activeNote}</p>}
       </form>
 
-      {/* The pooled balance funds the same agent the form above is pointed at.
-          An agent is a Circle SCA, which Gateway rejects as a SIGNER but accepts
-          as a RECIPIENT, so the user's EOA signs and the agent receives. */}
       {selectedAddress && (
-        <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {gt.cta}
-          </span>
-          <div className="mt-3.5">
-            <TopUpFromGateway
-              recipient={selectedAddress}
-              agent={selected}
-              onFunded={refetchAll}
-            />
+        <div className="mt-6 border-t border-[var(--line)] pt-5">
+          <p className="text-[16px] font-medium text-[var(--ink)]">{gt.cta}</p>
+          <div className="mt-3">
+            <TopUpFromGateway recipient={selectedAddress} agent={selected} onFunded={refetchAll} />
           </div>
         </div>
       )}
 
       {records.length > 0 && (
-        <div className="mt-7 pt-5 border-t border-[var(--lp-border-light)]">
-          <div className="flex items-baseline justify-between mb-3.5">
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {af.activity.eyebrow}
-            </span>
-            <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              {records.length}{' '}
-              {records.length === 1 ? af.activity.transferOne : af.activity.transferMany}
+        <div className="mt-6 border-t border-[var(--line)] pt-5">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[16px] font-medium text-[var(--ink)]">{af.activity.eyebrow}</p>
+            <p className="text-[13px] tabular-nums text-[var(--ink-secondary)]">
+              {records.length} {records.length === 1 ? af.activity.transferOne : af.activity.transferMany}
             </p>
           </div>
           <ul className="space-y-2">
             {records.map((r) => (
-              <FundRow
-                key={r.id}
-                record={r}
-                expanded={expandedId === r.id}
-                onToggle={() => setExpandedId(expandedId === r.id ? null : r.id)}
-                onRetry={() => retry(r.id)}
-                onDismiss={() => dismiss(r.id)}
-                copy={af}
-              />
+              <FundRow key={r.id} record={r} expanded={expandedId === r.id} onToggle={() => setExpandedId(expandedId === r.id ? null : r.id)} onRetry={() => retry(r.id)} onDismiss={() => dismiss(r.id)} copy={af} />
             ))}
           </ul>
         </div>
@@ -579,249 +395,65 @@ function FundRow({
       : tone === 'critical'
         ? TONE_COLOR.critical
         : 'var(--lp-text-sub)';
-  const railColor =
-    tone === 'positive'
-      ? TONE_COLOR.positive
-      : tone === 'critical'
-        ? TONE_COLOR.critical
-        : 'var(--lp-accent)';
   return (
-    <li
-      className="relative overflow-hidden transition-shadow"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 3,
-        boxShadow: expanded
-          ? '0 1px 0 rgba(0,0,0,0.04), 0 10px 28px -14px rgba(0,0,0,0.22)'
-          : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
-      }}
-    >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: railColor }}
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full text-start p-3 ps-4 flex items-center gap-3"
-      >
-        <WalletAvatar address={record.agentAddress} size={26} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5 min-w-0">
-            <span className="font-sans text-[17px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-[var(--lp-dark)]">
-              {formatUsdc(record.amountUsdc, { withSuffix: false })}
-            </span>
-            <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] leading-none">
-              →{' '}
-              {record.agentKey === 'buyer'
-                ? copy.row.agentKeyBuyer
-                : copy.row.agentKeySeller}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            <PhaseLED tone={tone} />
-            <span
-              className="text-[11px] font-medium leading-none"
-              style={{ color: textColor }}
-            >
-              {phaseLabel(record.phase, copy.phase)}
-            </span>
-            <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] leading-none">
-              · {elapsed(record.startedAt, copy.elapsed)}
-            </span>
-            {isSlow && (
-              <span
-                className="text-[10px] mono uppercase tracking-[0.14em] leading-none px-1.5 py-0.5 font-bold"
-                style={{
-                  background: 'rgba(178,84,37,0.10)',
-                  color: TONE_COLOR.warning,
-                  border: '1px solid rgba(178,84,37,0.30)',
-                  borderTopLeftRadius: 4,
-                  borderTopRightRadius: 4,
-                  borderBottomLeftRadius: 4,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                {copy.row.slow}
+    <li className="overflow-hidden rounded-[20px] bg-[var(--tint)]">
+      <div className="flex min-w-0 items-center gap-2 p-3">
+        <button type="button" onClick={onToggle} aria-expanded={expanded} className="flex min-h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-full px-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="text-[18px] font-medium tabular-nums text-[var(--ink)]">{formatUsdc(record.amountUsdc, { withSuffix: false })} USDC</span>
+              <span className="inline-flex items-center gap-1 text-[13px] text-[var(--ink-secondary)]">
+                <Icon name="arrow-right" size={16} directional />
+                {record.agentKey === 'buyer' ? copy.row.agentKeyBuyer : copy.row.agentKeySeller}
               </span>
-            )}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
+              <span style={{ color: textColor }}>{phaseLabel(record.phase, copy.phase)}</span>
+              <span className="text-[var(--ink-secondary)]">{elapsed(record.startedAt, copy.elapsed)}</span>
+              {isSlow && <span className="text-[var(--color-warning)]">{copy.row.slow}</span>}
+            </div>
           </div>
-        </div>
+          <Icon name="chevron-right" size={16} className={cn('shrink-0 text-[var(--ink-secondary)] transition-transform duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none', expanded ? '-rotate-90' : 'rotate-90')} />
+        </button>
         {record.txHash && (
-          <a
-            href={ARC_EXPLORER_TX(record.txHash)}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 mono text-[10px] tabular-nums text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] px-2 py-1 shrink-0 transition-colors"
-            style={{
-              background: 'var(--lp-card)',
-              border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 6,
-              borderTopRightRadius: 6,
-              borderBottomLeftRadius: 6,
-              borderBottomRightRadius: 2,
-            }}
-            title={copy.row.viewOnArcscan}
-          >
-            <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path
-                d="M5.5 4.5h6v6M11 5l-6.5 6.5"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
+          <a href={ARC_EXPLORER_TX(record.txHash)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} aria-label={copy.row.viewOnArcscan} className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] tabular-nums text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+            <Icon name="arrow-up-right" size={16} directional />
             {shortHash(record.txHash)}
           </a>
         )}
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden
-          className={cn(
-            'text-[var(--lp-text-muted)] transition-transform shrink-0',
-            expanded && 'rotate-180',
-          )}
-        >
-          <path
-            d="M4 6l4 4 4-4"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+      </div>
 
       {expanded && (
-        <div className="border-t border-[var(--lp-border-light)] px-3 py-3 space-y-3">
+        <div className="space-y-3 border-t border-[var(--line)] px-5 py-4">
           {record.error && (
-            <div
-              className="overflow-hidden"
-              style={{
-                background: 'var(--lp-card)',
-                border: `1px solid ${TONE_COLOR.critical}`,
-                borderTopLeftRadius: 10,
-                borderTopRightRadius: 10,
-                borderBottomLeftRadius: 10,
-                borderBottomRightRadius: 3,
-                boxShadow: '0 1px 0 rgba(176,61,58,0.18)',
-              }}
-            >
-              <div
-                className="flex items-center gap-1.5 px-2.5 py-1.5"
-                style={{ background: TONE_COLOR.critical }}
-              >
-                <span aria-hidden className="inline-block w-[5px] h-[5px] bg-white" />
-                <span className="mono text-[9px] font-bold uppercase tracking-[0.18em] text-white">
-                  {copy.row.errorLabel}
-                </span>
-              </div>
-              <p className="px-3 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">
-                {record.error}
-              </p>
+            <div className="space-y-1 text-[13px] text-[var(--color-critical)]">
+              <p className="font-medium">{copy.row.errorLabel}</p>
+              <p className="leading-snug">{record.error}</p>
             </div>
           )}
-
-          <div className="space-y-1.5">
+          <div className="space-y-2 text-[13px] text-[var(--ink-secondary)]">
             {'reference' in record && record.reference && (
-              <div className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)]">
-                <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {copy.row.reference}
-                </span>
-                <span className="mono font-bold tracking-[0.06em] break-all text-end">
-                  {record.reference}
-                </span>
+              <div className="flex items-baseline justify-between gap-3">
+                <span>{copy.row.reference}</span>
+                <span className="break-all text-end tabular-nums">{record.reference}</span>
               </div>
             )}
-            <div className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)]">
-              <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                {copy.row.recipient}
-              </span>
-              <span className="mono tabular-nums">{shortAddress(record.agentAddress)}</span>
+            <div className="flex items-baseline justify-between gap-3">
+              <span>{copy.row.recipient}</span>
+              <span className="tabular-nums">{shortAddress(record.agentAddress)}</span>
             </div>
-            {record.txHash && (
-              <a
-                href={ARC_EXPLORER_TX(record.txHash)}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-baseline justify-between gap-3 text-[11px] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
-              >
-                <span className="mono uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                  {copy.row.txArc}
-                </span>
-                <span className="mono inline-flex items-center gap-1 tabular-nums">
-                  {shortHash(record.txHash)}
-                  <svg width="9" height="9" viewBox="0 0 16 16" fill="none" aria-hidden>
-                    <path
-                      d="M5.5 4.5h6v6M11 5l-6.5 6.5"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </span>
-              </a>
-            )}
           </div>
-
-          {isStuck && (
-            <p className="text-[11px] text-[var(--lp-text-muted)] leading-snug">
-              {copy.row.stuckNote}
-            </p>
-          )}
-
-          <div className="flex items-center gap-2 pt-0.5">
+          {isStuck && <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.row.stuckNote}</p>}
+          <div className="flex flex-wrap items-center gap-2">
             {canRetry && (
-              <button
-                type="button"
-                onClick={onRetry}
-                className="px-3 py-1.5 mono text-[11px] font-bold uppercase tracking-[0.08em] bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] transition-colors"
-                style={{
-                  borderTopLeftRadius: 8,
-                  borderTopRightRadius: 8,
-                  borderBottomLeftRadius: 8,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                {copy.row.retry}
-              </button>
+              <button type="button" onClick={onRetry} className="min-h-10 rounded-full bg-[var(--surface)] px-4 py-2 text-[13px] font-medium text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{copy.row.retry}</button>
             )}
             {canDismiss && (
-              <button
-                type="button"
-                onClick={onDismiss}
-                className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] hover:bg-[var(--lp-card)] transition-colors rounded"
-              >
-                {copy.row.dismiss}
-              </button>
+              <button type="button" onClick={onDismiss} className="min-h-10 rounded-full px-4 py-2 text-[13px] text-[var(--ink-secondary)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">{copy.row.dismiss}</button>
             )}
           </div>
         </div>
       )}
     </li>
-  );
-}
-
-function PhaseLED({ tone }: { tone: 'live' | 'positive' | 'critical' }) {
-  const color = TONE_COLOR[tone];
-  return (
-    <span
-      aria-hidden
-      data-instrument-blink={tone === 'live' || undefined}
-      className="shrink-0 inline-block w-[6px] h-[6px]"
-      style={{
-        background: color,
-        animation: tone === 'live' ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
-      }}
-    />
   );
 }

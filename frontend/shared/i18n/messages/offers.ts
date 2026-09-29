@@ -25,6 +25,7 @@ export interface OffersCopy {
   confirmBody: string;
   aboveBudget: string;
   includesFee: string;
+  topUpCta: string;
   cancel: string;
   accepted: string;
   noRecord: string;
@@ -81,6 +82,7 @@ const en: OffersCopy = {
   confirmBody: '{price} USDC is held until you approve the work.',
   aboveBudget: '{diff} USDC above your budget',
   includesFee: '{price} USDC offer plus the fee',
+  topUpCta: 'Top up {amount} USDC',
   cancel: 'Cancel',
   accepted: 'Offer accepted. The money is held.',
   noRecord: 'No record yet',
@@ -137,6 +139,7 @@ const ar: OffersCopy = {
   confirmBody: 'يُحجز {price} USDC حتى توافق على العمل.',
   aboveBudget: '{diff} USDC فوق ميزانيتك',
   includesFee: 'عرض بقيمة {price} USDC مع الرسوم',
+  topUpCta: 'اشحن بمبلغ {amount} USDC',
   cancel: 'إلغاء',
   accepted: 'تم قبول العرض. الأموال محجوزة.',
   noRecord: 'لا يوجد سجل بعد',
@@ -193,6 +196,7 @@ const fr: OffersCopy = {
   confirmBody: "{price} USDC sont bloqués jusqu'à ce que vous approuviez le travail.",
   aboveBudget: '{diff} USDC au-dessus de votre budget',
   includesFee: 'Offre de {price} USDC plus les frais',
+  topUpCta: 'Ajouter {amount} USDC',
   cancel: 'Annuler',
   accepted: "Offre acceptée. L'argent est bloqué.",
   noRecord: "Pas encore d'historique",
@@ -249,6 +253,7 @@ const hi: OffersCopy = {
   confirmBody: 'काम को मंज़ूरी देने तक {price} USDC रोककर रखा जाता है।',
   aboveBudget: 'आपके बजट से {diff} USDC ज़्यादा',
   includesFee: '{price} USDC का ऑफ़र और शुल्क',
+  topUpCta: '{amount} USDC टॉप अप करें',
   cancel: 'रद्द करें',
   accepted: 'ऑफ़र स्वीकार हुआ। पैसा रोक लिया गया है।',
   noRecord: 'अभी कोई रिकॉर्ड नहीं',
@@ -305,6 +310,7 @@ const sw: OffersCopy = {
   confirmBody: '{price} USDC inashikiliwa hadi uidhinishe kazi.',
   aboveBudget: '{diff} USDC juu ya bajeti yako',
   includesFee: 'Ofa ya {price} USDC pamoja na ada',
+  topUpCta: 'Ongeza {amount} USDC',
   cancel: 'Ghairi',
   accepted: 'Ofa imekubaliwa. Pesa inashikiliwa.',
   noRecord: 'Hakuna rekodi bado',

@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
@@ -21,10 +21,12 @@ export function FundAgentFromBalance({
   agent,
   amountUsdc,
   onFunded,
+  onBusyChange,
 }: {
   agent: 'buyer' | 'seller';
   amountUsdc: number;
   onFunded?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const { address } = useAuth();
   const t = useTranslations().gatewayTopUp;
@@ -34,6 +36,11 @@ export function FundAgentFromBalance({
   const [phase, setPhase] = useState<'idle' | 'moving' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    onBusyChange?.(phase === 'moving');
+    return () => onBusyChange?.(false);
+  }, [onBusyChange, phase]);
 
   async function run() {
     if (!address || phase === 'moving') return;
@@ -61,20 +68,17 @@ export function FundAgentFromBalance({
         onClick={run}
         disabled={phase === 'moving' || phase === 'done'}
         aria-busy={phase === 'moving'}
-        className="inline-flex items-center gap-2 px-4 py-2.5 mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors disabled:opacity-60"
+        className="inline-flex min-h-12 items-center gap-2 rounded-full px-5 py-3 text-[15px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
         style={{
-          background: phase === 'done' ? 'var(--lp-band-dark)' : 'var(--lp-accent)',
-          color: phase === 'done' ? 'white' : 'var(--accent-ink)',
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          borderBottomLeftRadius: 10,
-          borderBottomRightRadius: 2,
+          background: phase === 'done' ? 'var(--ink)' : 'var(--action)',
+          color: phase === 'done' ? 'var(--canvas)' : 'var(--on-action)',
+          borderRadius: 999,
         }}
       >
         {phase === 'moving' ? t.moving : phase === 'done' ? t.done : t.fundPool}
       </button>
       {error ? (
-        <p className="mono text-[11px] leading-snug text-[#7a1f1a]">{error}</p>
+        <p className="text-[13px] leading-snug text-[var(--color-critical)]">{error}</p>
       ) : null}
     </div>
   );

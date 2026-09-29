@@ -51,6 +51,16 @@ export function offerErrorKey(code: string): ErrorKey {
 
 const micros = (v: string) => parseUnits(v, 6);
 
+/// Native-USDC reads can have 18 decimals. Subtract before rounding to cents.
+export function topUpAmount({ needUsdc, agentUsdc }: { needUsdc: string; agentUsdc: number }): number {
+  const balance = agentUsdc.toLocaleString('en-US', { useGrouping: false, maximumFractionDigits: 18 });
+  const missing = parseUnits(needUsdc, 18) - parseUnits(balance, 18);
+  if (missing <= 0n) return 0;
+  const cent = 10n ** 16n;
+  const cents = (missing + cent - 1n) / cent;
+  return Number(cents) / 100;
+}
+
 /// The agent's pick first, then the cheapest, then whoever offered first.
 export function orderOffers(offers: Offer[], pickSeller?: string): Offer[] {
   return [...offers].sort((a, b) => {

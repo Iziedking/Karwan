@@ -93,8 +93,11 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
   const [movements, setMovements] = useState<MoneyMovementView[]>([]);
   const [recordState, setRecordState] = useState<SettlementRecordFetchState>('loading');
   const [recordKey, setRecordKey] = useState(0);
+  const [fundingBusy, setFundingBusy] = useState(false);
   const counterpartyName = deal?.counterpartyTrust?.name ?? '';
   const actions = useWorkspaceActions(jobId, deal ?? null, address, counterpartyName, refresh);
+  const fundingRecovery = actions.sheet?.action === 'fund' &&
+    actions.errorCode === 'INSUFFICIENT_AGENT_BALANCE' && actions.viewerIsBuyer;
 
   useEffect(() => {
     if (!address) {
@@ -131,7 +134,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         {deal.receiptReferences?.[0] ? <span className="mono tabular-nums">{deal.receiptReferences[0]}</span> : null}
       </header>
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
-        <MoneyBlock amountUsdc={deal.dealAmountUsdc} view={deal.view} counterpartyName={actions.displayName} onAction={actions.openPrimary} busy={actions.busy} />
+        <MoneyBlock amountUsdc={deal.dealAmountUsdc} view={deal.view} counterpartyName={actions.displayName} onAction={actions.openPrimary} busy={actions.busy || fundingBusy} quiet={!!actions.sheet} />
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />
         <ProgressLine view={deal.view} />
         {deal.counterpartyTrust ? (
@@ -140,13 +143,13 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         <AgreementSection deal={deal} />
         {address ? (
           <section aria-labelledby="deal-conversation" className="space-y-3">
-            <h2 id="deal-conversation" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.conversation.title}</h2>
+            <h2 id="deal-conversation" className="text-[20px] font-medium text-[var(--lp-dark)]">{copy.conversation.title}</h2>
             <p className="text-[13px] text-[var(--lp-text-sub)]">{copy.conversation.evidence}</p>
             <ChatPanel jobId={jobId} caller={address} counterpartyLabel={actions.displayName} />
           </section>
         ) : null}
         <section aria-labelledby="deal-record" className="space-y-3">
-          <h2 id="deal-record" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.record.title}</h2>
+          <h2 id="deal-record" className="text-[20px] font-medium text-[var(--lp-dark)]">{copy.record.title}</h2>
           <SettlementRecord
             movements={movements}
             fetchState={recordState}
@@ -162,10 +165,11 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
         title={actions.sheet?.title ?? ''}
         consequence={actions.sheet?.consequence ?? ''}
         irreversible={actions.sheet?.irreversible ?? false}
-        busy={actions.busy}
+        busy={actions.busy || fundingBusy}
+        confirmVariant={fundingRecovery ? 'secondary' : 'primary'}
         error={actions.error}
-        onConfirm={() => { void actions.confirm(); }}
-        onClose={actions.close}
+        onConfirm={() => { if (!fundingBusy) void actions.confirm(); }}
+        onClose={() => { if (!fundingBusy) actions.close(); }}
       >
         {actions.sheet?.action === 'fund' ? (
           <FundingQuoteRows
@@ -173,6 +177,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
             errorCode={actions.errorCode}
             viewerIsBuyer={actions.viewerIsBuyer}
             onFunded={actions.onFunded}
+            onBusyChange={setFundingBusy}
           />
         ) : undefined}
       </ConfirmSheet>

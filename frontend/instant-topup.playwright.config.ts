@@ -6,13 +6,19 @@ const port = 3100;
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /offers\.spec\.ts$/,
+  testMatch: /instant-topup\.spec\.ts$/,
   workers: 1,
   retries: 0,
   timeout: 75_000,
-  outputDir: `../ui-evidence/instant-topup/${network}/${phase}/offers/results`,
-  reporter: [['list'], ['json', { outputFile: `../ui-evidence/instant-topup/${network}/${phase}/offers/report.json` }]],
-  use: { baseURL: `http://127.0.0.1:${port}`, reducedMotion: 'reduce', trace: 'retain-on-failure', screenshot: 'on', serviceWorkers: 'block' },
+  outputDir: `../ui-evidence/instant-topup/${network}/${phase}/surfaces/results`,
+  reporter: [['list'], ['json', { outputFile: `../ui-evidence/instant-topup/${network}/${phase}/surfaces/report.json` }]],
+  use: {
+    baseURL: `http://127.0.0.1:${port}`,
+    reducedMotion: 'reduce',
+    trace: 'retain-on-failure',
+    screenshot: 'on',
+    serviceWorkers: 'block',
+  },
   webServer: {
     command: `${process.env.KARWAN_UI_REUSE_BUILD === '1' ? '' : 'npx next build && '}npx next start -p ${port}`,
     url: `http://127.0.0.1:${port}`,

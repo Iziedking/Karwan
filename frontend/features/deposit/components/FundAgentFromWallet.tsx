@@ -13,11 +13,13 @@ export function FundAgentFromWallet({
   recipient,
   amountUsdc,
   onFunded,
+  onBusyChange,
 }: {
   agent: 'buyer' | 'seller';
   recipient: string;
   amountUsdc: number;
   onFunded?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const copy = useTranslations().arcFundCard;
   const { records, start, retry } = useArcFund();
@@ -43,14 +45,20 @@ export function FundAgentFromWallet({
     onFunded?.();
   }, [latest, onFunded]);
 
-  if (!validRecipient) {
-    return <p className="text-[12px] leading-snug text-[var(--lp-critical)]">{copy.recipient.notConfigured}</p>;
-  }
-  const destination = validRecipient;
-
   const busy = latest?.phase === 'switching' || latest?.phase === 'signing' || latest?.phase === 'confirming';
   const settling = latest?.phase === 'unconfirmed' || latest?.phase === 'settling';
   const completed = latest?.phase === 'done';
+
+  useEffect(() => {
+    onBusyChange?.(busy || settling);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange, settling]);
+
+  if (!validRecipient) {
+    return <p className="text-[13px] leading-snug text-[var(--color-critical)]">{copy.recipient.notConfigured}</p>;
+  }
+  const destination = validRecipient;
+
   const label = latest ? phaseLabel(latest.phase, copy) : copy.submit.sendToTemplate.replace(
     '{label}',
     agent === 'buyer' ? copy.agentBuyerLabel : copy.agentSellerLabel,
@@ -72,21 +80,15 @@ export function FundAgentFromWallet({
         onClick={() => void run()}
         disabled={busy || settling || completed}
         aria-busy={busy}
-        className="inline-flex min-h-11 items-center gap-2 bg-[var(--lp-accent)] px-4 mono text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--accent-ink)] transition-opacity hover:bg-[var(--lp-accent-hover)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-        style={{
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          borderBottomLeftRadius: 10,
-          borderBottomRightRadius: 3,
-        }}
+        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--action)] px-5 py-3 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
       >
         {label}
       </button>
       {latest?.error && latest.phase === 'error' ? (
-        <p className="mono text-[11px] leading-snug text-[var(--lp-critical)]">{latest.error}</p>
+        <p className="text-[13px] leading-snug text-[var(--color-critical)]">{latest.error}</p>
       ) : null}
       {settling ? (
-        <p className="text-[12px] leading-snug text-[var(--lp-text-muted)]">{copy.submit.activeNote}</p>
+        <p className="text-[13px] leading-snug text-[var(--ink-secondary)]">{copy.submit.activeNote}</p>
       ) : null}
     </div>
   );

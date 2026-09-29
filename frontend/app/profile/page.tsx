@@ -506,7 +506,7 @@ function ProfilePageInner() {
                       onClick={() => setMoneyMode(mode)}
                       aria-pressed={on}
                       className={`min-w-0 px-2.5 py-2 mono text-[10px] font-bold uppercase tracking-[0.07em] leading-tight transition-colors sm:px-4 sm:py-1.5 sm:text-[11px] sm:tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
-                        on ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]' : 'text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)]'
+                        on ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink-secondary)] hover:text-[var(--ink)]'
                       }`}
                       style={{
                         borderTopLeftRadius: 7,
@@ -629,11 +629,15 @@ function ProfilePageInner() {
     <main className="profile-route product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
       <div className="mx-auto max-w-[1120px]">
         <header className="border-b border-[var(--lp-border-light)] pb-5 sm:pb-6">
-          <h1 className="text-[clamp(2.25rem,5vw,4.25rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--lp-dark)]">
+          <h1 className={activeSection === 'agents'
+            ? 'text-[36px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]'
+            : 'text-[clamp(2.25rem,5vw,4.25rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--lp-dark)]'}>
             {PROFILE_SECTION_TITLE[activeSection]}
           </h1>
         </header>
-        <section className="mt-5 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_18px_50px_-42px_rgba(0,0,0,0.38)]">
+        <section className={activeSection === 'agents'
+          ? 'mt-5 overflow-hidden rounded-[20px] bg-[var(--surface)]'
+          : 'mt-5 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_18px_50px_-42px_rgba(0,0,0,0.38)]'}>
           {activePanel.content}
         </section>
       </div>

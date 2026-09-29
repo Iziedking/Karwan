@@ -1,13 +1,15 @@
 'use client';
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { api, ApiError } from '@/core/api';
 import { Button } from '@/shared/components/Button';
 import { ConfirmSheetShell } from '@/shared/components/ConfirmSheetShell';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
+import { FundAgentOptions } from '@/features/deposit/components/FundAgentOptions';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
-import { budgetDifference, offerErrorKey, orderOffers, type Offer } from '../model';
+import { budgetDifference, offerErrorKey, orderOffers, topUpAmount, type Offer } from '../model';
 
 function sellerName(address: string): string {
   return /^0x[a-fA-F0-9]{40}$/.test(address) ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
@@ -24,12 +26,22 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
   const t = useTranslations().offers;
   const { locale } = useLocale();
   const auth = useAuth();
+  const money = useMoneyBalances();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [chosen, setChosen] = useState<Offer | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ReturnType<typeof offerErrorKey> | null>(null);
   const [accepted, setAccepted] = useState(false);
+  const [fundingAmount, setFundingAmount] = useState<number | null>(null);
+  const [fundingBusy, setFundingBusy] = useState(false);
+  const returnToAccept = useRef(false);
   const titleId = useId();
+
+  useEffect(() => {
+    if (!chosen || fundingAmount !== null || !returnToAccept.current) return;
+    returnToAccept.current = false;
+    document.getElementById(`${titleId}-accept`)?.focus();
+  }, [chosen, fundingAmount, titleId]);
 
   const load = useCallback(async () => {
     try {
@@ -72,10 +84,22 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
 
   const top = offers[0]!;
   const diff = chosen ? budgetDifference(chosen.priceUsdc, budgetUsdc) : null;
+  const shortfall = chosen && money.buyer !== null
+    ? topUpAmount({ needUsdc: chosen.fundedUsdc ?? chosen.priceUsdc, agentUsdc: money.buyer })
+    : null;
+  const funding = fundingAmount !== null;
+
+  function closeConfirmation() {
+    if (busy || fundingBusy) return;
+    setChosen(null);
+    setError(null);
+    setFundingAmount(null);
+    returnToAccept.current = false;
+  }
 
   return (
     <section aria-labelledby={`${titleId}-list`} className="mx-auto w-full max-w-[720px] px-4 pt-8">
-      <h2 id={`${titleId}-list`} className="text-[28px] font-medium text-[var(--lp-dark)]">
+      <h2 id={`${titleId}-list`} className="text-[22px] font-medium text-[var(--lp-dark)]">
         {offers.length === 1 ? t.countOne : t.listTitle.replace('{n}', String(offers.length))}
       </h2>
       <ul className="mt-5 space-y-3">
@@ -84,7 +108,7 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
             <div className="flex items-baseline justify-between gap-4">
               <span className="flex min-w-0 items-center gap-2">
                 <span className="truncate text-[16px] font-medium text-[var(--lp-dark)]">{sellerName(offer.sellerUser)}</span>
-                {/^0x[a-fA-F0-9]{40}$/.test(offer.sellerUser) ? <ReputationBadge address={offer.sellerUser} size="sm" /> : null}
+                {/^0x[a-fA-F0-9]{40}$/.test(offer.sellerUser) ? <ReputationBadge address={offer.sellerUser} size="sm" appearance="quiet" /> : null}
               </span>
               <span className="shrink-0 text-[16px] font-medium tabular-nums text-[var(--lp-dark)]">
                 {formatUsdc(offer.priceUsdc)}
@@ -102,12 +126,12 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
           </li>
         ))}
       </ul>
-      <Button size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
+      <Button variant={chosen ? 'outline' : undefined} size="lg" className="mt-5 w-full rounded-full" onClick={() => setChosen(top)}>
         {t.accept.replace('{seller}', sellerName(top.sellerUser)).replace('{price}', formatUsdc(top.priceUsdc, { withSuffix: false }))}
       </Button>
       <p className="mt-3 text-center text-[13px] text-[var(--lp-text-sub)]">{t.agentLine}</p>
 
-      <ConfirmSheetShell open={!!chosen} labelledBy={titleId} busy={busy} onClose={() => { setChosen(null); setError(null); }}>
+      <ConfirmSheetShell open={!!chosen} labelledBy={titleId} busy={busy || fundingBusy} onClose={closeConfirmation}>
         {chosen ? (
           <div className="space-y-5">
             <h2 id={titleId} className="text-[22px] font-medium text-[var(--lp-dark)]">
@@ -131,10 +155,35 @@ export function BuyerOffers({ jobId, budgetUsdc }: { jobId: string; budgetUsdc: 
                 {t.errors[error]}
               </p>
             ) : null}
-            <Button size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
-              {t.accept.replace('{seller}', sellerName(chosen.sellerUser)).replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
-            </Button>
-            <Button variant="ghost" className="w-full rounded-full" disabled={busy} onClick={() => { setChosen(null); setError(null); }}>
+            {error === 'topUp' && !funding && shortfall !== null && shortfall > 0 && money.agents?.buyer ? (
+              <Button variant="outline" size="lg" className="w-full rounded-full" onClick={() => setFundingAmount(shortfall)}>
+                {t.topUpCta.replace('{amount}', formatUsdc(shortfall, { withSuffix: false }))}
+              </Button>
+            ) : null}
+            {fundingAmount !== null && money.agents?.buyer ? (
+              <div data-testid="offer-top-up" className="rounded-[20px] bg-[var(--tint)] p-4">
+                <FundAgentOptions
+                  agent="buyer"
+                  amountUsdc={fundingAmount}
+                  recipient={money.agents.buyer}
+                  otherAgentAddress={money.agents.seller}
+                  circleAccount={auth.method !== 'web3'}
+                  onBusyChange={setFundingBusy}
+                  onFunded={() => {
+                    returnToAccept.current = true;
+                    setFundingAmount(null);
+                    setError(null);
+                    money.refetch();
+                  }}
+                />
+              </div>
+            ) : null}
+            {!funding ? (
+              <Button id={`${titleId}-accept`} size="lg" className="w-full rounded-full" loading={busy} onClick={() => void accept(chosen)}>
+                {t.accept.replace('{seller}', sellerName(chosen.sellerUser)).replace('{price}', formatUsdc(chosen.priceUsdc, { withSuffix: false }))}
+              </Button>
+            ) : null}
+            <Button variant="ghost" className="w-full rounded-full" disabled={busy || fundingBusy} onClick={closeConfirmation}>
               {t.cancel}
             </Button>
           </div>

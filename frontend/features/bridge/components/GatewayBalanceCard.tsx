@@ -6,7 +6,7 @@ import { formatUnits } from 'viem';
 import { api, type GatewayBalance } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
+import { Icon } from '@/shared/components/Icon';
 import { formatUsdc } from '@/shared/utils/format';
 import { GATEWAY_CHAINS, type GatewayChainConfig } from '../config';
 import { loadGatewayKit, gatewaySpend, gatewayDeposit } from '@/features/gateway/lib';
@@ -27,14 +27,9 @@ import { chainErrorMessage } from '@/shared/utils/chainError';
 /// user wants it spendable as one balance.
 
 const CARD_STYLE = {
-  background: 'var(--lp-card)',
-  color: 'var(--lp-dark)',
-  border: '1px solid var(--lp-border-light)',
-  borderTopLeftRadius: 22,
-  borderTopRightRadius: 22,
-  borderBottomLeftRadius: 22,
-  borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
+  background: 'var(--surface)',
+  color: 'var(--ink)',
+  borderRadius: 20,
 } as const;
 
 type DepositChain = GatewayChainConfig;
@@ -73,7 +68,7 @@ function ChainDropdown({
 
   return (
     <div className="relative">
-      <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
+      <span className="mono text-[13px] text-[var(--ink-secondary)]">
         {eyebrow}
       </span>
       <button
@@ -82,38 +77,19 @@ function ChainDropdown({
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="mt-2.5 w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors disabled:opacity-50"
+        className="mt-2.5 min-h-[52px] w-full flex items-center justify-between gap-3 px-4 py-3 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-50"
         style={{
-          background: 'var(--lp-card)',
-          border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
+          background: 'var(--tint)',
+          borderRadius: 14,
         }}
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <ChainLogo chain={value.key} size={26} />
-          <span className="block font-sans text-[14px] font-semibold tracking-tight text-[var(--lp-dark)] leading-tight">
+
+          <span className="block font-sans text-[14px] font-medium tracking-tight text-[var(--ink)] leading-tight">
             {value.name}
           </span>
         </span>
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 16 16"
-          fill="none"
-          aria-hidden
-          className={`text-[var(--lp-text-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
-        >
-          <path
-            d="M3 6l5 5 5-5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+<Icon name="chevron-right" size={16} className={`text-[var(--ink-secondary)] transition-transform duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none ${open ? "-rotate-90" : "rotate-90"}`} />
       </button>
       {open && (
         <>
@@ -129,13 +105,8 @@ function ChainDropdown({
             role="listbox"
             className="absolute z-20 start-0 end-0 mt-2 p-1.5 fade-up max-h-[300px] overflow-y-auto"
             style={{
-              background: 'var(--lp-card)',
-              border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 4,
-              boxShadow: '0 18px 50px -18px rgba(0,0,0,0.28)',
+              background: 'var(--surface)',
+              borderRadius: 20,
             }}
           >
             {options.map((c) => {
@@ -150,19 +121,12 @@ function ChainDropdown({
                       onChange(c);
                       setOpen(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg hover:bg-[var(--lp-light)] transition-colors text-start"
+                    className={`min-h-12 w-full flex items-center gap-2.5 rounded-full px-3 py-3 text-start transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] ${isActive ? "bg-[var(--tint)]" : "hover:bg-[var(--tint)]"}`}
                   >
-                    <ChainLogo chain={c.key} size={22} />
-                    <span className="font-sans text-[13px] font-semibold text-[var(--lp-dark)]">
+
+                    <span className="font-sans text-[13px] font-medium text-[var(--ink)]">
                       {c.name}
                     </span>
-                    {isActive && (
-                      <span
-                        aria-hidden
-                        className="ms-auto inline-block w-[6px] h-[6px]"
-                        style={{ background: 'var(--lp-accent)', borderRadius: 1 }}
-                      />
-                    )}
                   </button>
                 </li>
               );
@@ -195,18 +159,17 @@ function StepTab({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={active}
-      className="inline-flex items-center gap-2 px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      className="inline-flex min-h-10 items-center gap-2 px-4 py-2 text-[13px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-40 disabled:cursor-not-allowed"
       style={{
-        background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-        border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+        background: active ? 'var(--ink)' : 'var(--tint)',
         borderRadius: 999,
-        color: 'var(--lp-dark)',
+        color: active ? 'var(--canvas)' : 'var(--ink)',
       }}
     >
       <span
         aria-hidden
-        className="text-[10px] tracking-[0.12em]"
-        style={{ color: active ? 'var(--lp-dark)' : 'var(--lp-text-sub)' }}
+        className="text-[13px]"
+        style={{ color: active ? 'var(--canvas)' : 'var(--ink-secondary)' }}
       >
         {index}
       </span>
@@ -231,31 +194,16 @@ function StatusLine({
 }) {
   return (
     <div className="mt-3 flex items-start justify-between gap-2">
-      <p className="text-[13px]" style={{ color: tone === 'ok' ? 'var(--lp-accent)' : '#b03d3a' }}>
+      <p className="text-[13px]" style={{ color: tone === 'ok' ? 'var(--color-positive)' : 'var(--color-critical)' }}>
         {children}
       </p>
       <button
         type="button"
         onClick={onDismiss}
         aria-label={label}
-        title={label}
-        className="shrink-0 inline-flex items-center justify-center transition-colors hover:bg-[var(--lp-light)]"
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: 999,
-          border: '1px solid var(--lp-border-light)',
-          color: 'var(--lp-text-sub)',
-        }}
+        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-full bg-[var(--tint)] px-3 text-[13px] text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
       >
-        <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
-          <path
-            d="M1 1l8 8M9 1l-8 8"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-          />
-        </svg>
+{label}
       </button>
     </div>
   );
@@ -300,7 +248,6 @@ export function GatewayBalanceCard({
   const [movePhase, setMovePhase] = useState<MovePhase>('idle');
   const [moveError, setMoveError] = useState<string | null>(null);
   const [pulledFrom, setPulledFrom] = useState<string[] | null>(null);
-  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const [maxBusy, setMaxBusy] = useState(false);
   // Live stage map for the current move, and the tx receipts for both actions.
   const [moveSteps, setMoveSteps] = useState<StepMap>({});
@@ -470,9 +417,6 @@ export function GatewayBalanceCard({
   const pending = balance?.pending ?? '0';
   const hasPending = Number(pending) > 0;
   const funded = Number(confirmed) > 0 || hasPending;
-  const perChain = (balance?.chains ?? []).filter(
-    (c) => Number(c.confirmed) > 0 || Number(c.pending) > 0,
-  );
   const canMove = Number(confirmed) > 0;
   // A finished or failed move keeps its form on screen: the status line under it
   // is the only receipt shown in-app, and emptying the balance must not take it
@@ -542,26 +486,13 @@ export function GatewayBalanceCard({
   // beside this tab moves USDC for them today.
   if (isCircleUser) {
     return (
-      <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
-        <div className="mono text-[10px] font-bold tracking-[0.12em] text-[var(--lp-text-sub)]">
-          {inbound ? t.tag : t.sendTag}
-        </div>
-        <h3 className="mt-2 text-[19px] font-bold tracking-tight">{t.title}</h3>
-        <div
-          className="mt-5 pt-5"
-          style={{ borderTop: '1px solid var(--lp-border-light)' }}
-        >
-          <span
-            className="inline-flex mono text-[10px] font-bold uppercase tracking-[0.12em] px-2 py-1"
-            style={{ background: 'var(--lp-accent)', color: 'var(--accent-ink)', borderRadius: 4 }}
-          >
-            {t.soonTag}
-          </span>
-          <p className="mt-3 text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+      <div data-guide="bridge-gateway" className="h-full p-5 sm:p-6" style={CARD_STYLE}>
+        <div>
+          <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
             {t.soonBody}
           </p>
           <label className="mt-5 block">
-            <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+            <span className="mono text-[13px] font-medium text-[var(--ink-secondary)]">
               {t.amount}
             </span>
             <input
@@ -573,12 +504,8 @@ export function GatewayBalanceCard({
               onChange={(e) => setAmount(e.target.value)}
               disabled={busy}
               placeholder="0.00"
-              className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
-              style={{
-                background: 'var(--lp-light)',
-                border: '1px solid var(--lp-border-light)',
-                borderRadius: 10,
-              }}
+              className="mt-1.5 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[32px] font-medium tabular-nums text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-50"
+              aria-label={`${t.amount} USDC`}
             />
           </label>
           <button
@@ -586,12 +513,11 @@ export function GatewayBalanceCard({
             onClick={() => void poolCircle()}
             disabled={busy || !amountValid}
             aria-busy={busy}
-            className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
+            className="mt-4 min-h-12 w-full rounded-full px-5 py-3 text-[15px] font-medium transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
             style={{
-              background: 'var(--lp-control-active-bg)',
-              color: 'var(--lp-control-active-ink)',
-              border: 'none',
-              borderRadius: 12,
+              background: 'var(--action)',
+              color: 'var(--on-action)',
+              borderRadius: 999,
             }}
           >
             {phase === 'depositing' ? t.depositing : t.cta}
@@ -600,7 +526,7 @@ export function GatewayBalanceCard({
             <StatusLine tone="ok" onDismiss={() => setPhase('idle')} label={t.dismiss}>
               {t.pooled}
               {poolReference && (
-                <span className="ms-1 mono text-[10px] tracking-[0.08em]">{poolReference}</span>
+                <span className="ms-1 mono text-[13px]">{poolReference}</span>
               )}
             </StatusLine>
           )}
@@ -618,36 +544,21 @@ export function GatewayBalanceCard({
   // this card to match the CCTP one beside it.
   return (
     <div data-guide="bridge-gateway" className="p-6 h-full" style={CARD_STYLE}>
-      <div className="mono text-[10px] font-bold tracking-[0.12em] text-[var(--lp-text-sub)]">
-        {inbound ? t.tag : t.sendTag}
-      </div>
-      <h3 className="mt-2 text-[19px] font-bold tracking-tight">{t.title}</h3>
 
-      <div className="mt-5 flex items-baseline gap-3 flex-wrap">
-        <span className="text-[34px] font-extrabold tracking-tight tabular-nums">
-          {formatUsdc(confirmed, { withSuffix: false })}
-        </span>
-        <span className="mono text-[11px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)]">
-          {t.confirmed}
-        </span>
-        {hasPending && (
-          <span className="mono text-[11px] uppercase tracking-[0.08em] text-[#b25425]">
-            {formatUsdc(pending, { withSuffix: false })} {t.pending}
-          </span>
-        )}
-      </div>
+      {hasPending && (
+        <p className="text-[13px] tabular-nums text-[var(--color-warning)]">
+          {formatUsdc(pending)} {t.pending}
+        </p>
+      )}
 
       {/* Only above the pooling form. Anywhere else the panel below already
           says there is nothing to move, and two sentences saying the same thing
           read as a fault. */}
       {!funded && inbound && step === 'add' && (
-        <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{t.empty}</p>
+        <p className="mt-2 text-[13px] text-[var(--ink-secondary)]">{t.empty}</p>
       )}
 
-      <div
-        className="mt-5 pt-5"
-        style={{ borderTop: '1px solid var(--lp-border-light)' }}
-      >
+      <div className="mt-5">
         {/* Deposit and withdraw were one card with two stacked forms: pool USDC
             above a move form with a free destination and a custom-address field.
             That is a screen offering to take money in and send it out at once,
@@ -676,21 +587,12 @@ export function GatewayBalanceCard({
           // reload they are signed in but not connected. This used to be a bare
           // sentence telling them to connect with no way to do it from here.
           <div className="space-y-3">
-            <p className="text-[13px] text-[var(--lp-text-sub)]">{t.connect}</p>
+            <p className="text-[13px] text-[var(--ink-secondary)]">{t.connect}</p>
             <button
               type="button"
               onClick={() => openConnectModal?.()}
               disabled={!openConnectModal}
-              className="px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-              style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--accent-ink)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 4,
-                boxShadow: '0 3px 0 rgba(0,0,0,0.22)',
-              }}
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-5 py-3 text-[15px] font-medium text-[var(--on-action)] transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
             >
               {t.connectCta}
             </button>
@@ -705,7 +607,7 @@ export function GatewayBalanceCard({
             />
 
             <div className="mt-4 flex items-center justify-between gap-2">
-              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+              <span className="mono text-[13px] font-medium text-[var(--ink-secondary)]">
                 {t.amount}
               </span>
               {walletUsdc != null && Number(walletUsdc) > 0 && (
@@ -713,7 +615,7 @@ export function GatewayBalanceCard({
                   type="button"
                   onClick={() => setAmount(walletUsdc)}
                   disabled={busy}
-                  className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-50"
+                  className="min-h-10 rounded-full px-3 text-[13px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                 >
                   {t.maxTemplate.replace(
                     '{amount}',
@@ -731,12 +633,8 @@ export function GatewayBalanceCard({
               onChange={(e) => setAmount(e.target.value)}
               disabled={busy}
               placeholder="0.00"
-              className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
-              style={{
-                background: 'var(--lp-light)',
-                border: '1px solid var(--lp-border-light)',
-                borderRadius: 10,
-              }}
+              className="mt-1.5 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] tabular-nums text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-50"
+              aria-label={t.amount}
             />
 
             <button
@@ -744,12 +642,11 @@ export function GatewayBalanceCard({
               onClick={() => void pool()}
               disabled={busy || (!onWrongChain && !amountValid)}
               aria-busy={busy}
-              className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
+              className="mt-4 min-h-12 w-full rounded-full px-5 py-3 text-[15px] font-medium transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
               style={{
-                background: 'var(--lp-control-active-bg)',
-                color: 'var(--lp-control-active-ink)',
-                border: 'none',
-                borderRadius: 12,
+                background: 'var(--action)',
+              color: 'var(--on-action)',
+              borderRadius: 999,
               }}
             >
               {phase === 'switching'
@@ -795,7 +692,7 @@ export function GatewayBalanceCard({
                 each reports forwarderSupported.destination, so Circle's relayer
                 mints there and the recipient needs no gas. */}
             {inbound ? (
-              <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+              <p className="text-[13px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
                 {t.arcPinned}
               </p>
             ) : (
@@ -829,10 +726,10 @@ export function GatewayBalanceCard({
                       onClick={() => setRecipient(key)}
                       disabled={movePhase === 'moving'}
                       aria-pressed={active}
-                      className="px-3 py-1.5 mono text-[11px] uppercase tracking-[0.08em] transition-colors disabled:opacity-50"
+                      className="min-h-10 px-4 py-2 text-[13px] font-medium transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
                       style={{
-                        background: active ? 'rgba(175, 201, 91, 0.12)' : 'var(--lp-card)',
-                        border: `1px solid ${active ? 'var(--lp-accent)' : 'var(--lp-border-light)'}`,
+                        background: active ? 'var(--ink)' : 'var(--tint)',
+                        color: active ? 'var(--canvas)' : 'var(--ink)',
                         borderRadius: 999,
                       }}
                     >
@@ -850,28 +747,23 @@ export function GatewayBalanceCard({
                   disabled={movePhase === 'moving'}
                   placeholder="0x..."
                   spellCheck={false}
-                  className="mt-2 w-full px-3 py-2.5 text-[14px] mono outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
-                  style={{
-                    background: 'var(--lp-light)',
-                    border: `1px solid ${
-                      trimmedCustom && !customValid ? '#b03d3a' : 'var(--lp-border-light)'
-                    }`,
-                    borderRadius: 10,
-                  }}
+                  aria-label={t.toCustom}
+                  aria-invalid={!!trimmedCustom && !customValid}
+                  className="mt-2 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-50"
                 />
               )}
               </>
             )}
 
             <div className="mt-4 flex items-center justify-between gap-2">
-              <span className="mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)]">
+              <span className="mono text-[13px] font-medium text-[var(--ink-secondary)]">
                 {t.amount}
               </span>
               <button
                 type="button"
                 onClick={() => void fillMoveMax()}
                 disabled={movePhase === 'moving' || maxBusy}
-                className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors disabled:opacity-50"
+                className="mono text-[13px] text-[var(--ink-secondary)] hover:text-[var(--ink)] transition-colors disabled:opacity-50"
               >
                 {t.maxTemplate.replace(
                   '{amount}',
@@ -888,12 +780,8 @@ export function GatewayBalanceCard({
               onChange={(e) => setMoveAmount(e.target.value)}
               disabled={movePhase === 'moving'}
               placeholder="0.00"
-              className="mt-1.5 w-full px-3 py-2.5 text-[15px] tabular-nums outline-none focus:border-[var(--lp-accent)] disabled:opacity-50"
-              style={{
-                background: 'var(--lp-light)',
-                border: '1px solid var(--lp-border-light)',
-                borderRadius: 10,
-              }}
+              className="mt-1.5 min-h-[52px] w-full rounded-[14px] bg-[var(--tint)] px-4 text-[16px] tabular-nums text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:opacity-50"
+              aria-label={t.amount}
             />
 
             <button
@@ -906,12 +794,11 @@ export function GatewayBalanceCard({
                 Number(moveAmount) > Number(confirmed)
               }
               aria-busy={movePhase === 'moving'}
-              className="mt-4 w-full py-3 mono text-[12px] font-bold uppercase tracking-[0.1em] transition-opacity disabled:opacity-40"
+              className="mt-4 min-h-12 w-full rounded-full px-5 py-3 text-[15px] font-medium transition-opacity duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
               style={{
-                background: 'var(--lp-accent)',
-                color: 'var(--accent-ink)',
-                border: 'none',
-                borderRadius: 12,
+                background: 'var(--action)',
+                color: 'var(--on-action)',
+                borderRadius: 999,
               }}
             >
               {movePhase === 'moving'
@@ -955,65 +842,12 @@ export function GatewayBalanceCard({
         ) : (
           // Nothing pooled, so there is nothing to move. A form here could
           // only be submitted into a failure.
-          <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)] max-w-[42ch]">
+          <p className="text-[13px] leading-relaxed text-[var(--ink-secondary)] max-w-[42ch]">
             {t.outEmpty}
           </p>
         )}
       </div>
 
-      {/* Where the balance actually sits, per chain. Collapsed by default and
-          parked at the bottom: the headline number is what the user came for,
-          and the split only matters once they want to know what Gateway will
-          draw from. */}
-      {perChain.length > 0 && (
-        <div
-          className="mt-5 pt-5"
-          style={{ borderTop: '1px solid var(--lp-border-light)' }}
-        >
-          <button
-            type="button"
-            onClick={() => setBreakdownOpen((v) => !v)}
-            aria-expanded={breakdownOpen}
-            className="w-full flex items-center justify-between gap-2 mono text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
-          >
-            {t.byChain}
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 16 16"
-              fill="none"
-              aria-hidden
-              className={`transition-transform ${breakdownOpen ? 'rotate-180' : ''}`}
-            >
-              <path
-                d="M3 6l5 5 5-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-
-          {breakdownOpen && (
-            <div className="mt-3 flex flex-col gap-1.5">
-              {perChain.map((c) => (
-                <div key={c.chain} className="flex items-center gap-2 text-[13px]">
-                  <ChainLogo chain={c.key as ChainKey} size={14} />
-                  <span className="tabular-nums">
-                    {formatUsdc(c.confirmed, { withSuffix: false })}
-                  </span>
-                  {Number(c.pending) > 0 && (
-                    <span className="mono text-[10px] uppercase tracking-[0.08em] text-[#b25425]">
-                      +{formatUsdc(c.pending, { withSuffix: false })} {t.pending}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

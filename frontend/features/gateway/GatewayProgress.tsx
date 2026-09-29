@@ -54,15 +54,15 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
         const failed = step?.state === 'error';
         const active = !done && !failed && i === nextIndex;
         const colour = failed
-          ? '#b03d3a'
+          ? 'var(--color-critical)'
           : done
-            ? 'var(--lp-accent)'
+            ? 'var(--color-positive)'
             : active
-              ? 'var(--lp-dark)'
-              : 'var(--lp-text-sub)';
+              ? 'var(--ink)'
+              : 'var(--ink-secondary)';
 
         return (
-          <li key={key} className="flex items-center gap-2 text-[12px]">
+          <li key={key} className="flex items-center gap-2 text-[13px]" aria-current={active ? "step" : undefined}>
             <span
               aria-hidden
               className={
@@ -73,16 +73,16 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
                 height: 6,
                 borderRadius: 999,
                 background: failed
-                  ? '#b03d3a'
+                  ? 'var(--color-critical)'
                   : done
-                    ? 'var(--lp-accent)'
+                    ? 'var(--color-positive)'
                     : active
-                      ? 'var(--lp-accent)'
-                      : 'var(--lp-border-light)',
+                      ? 'var(--ink)'
+                      : 'var(--line)',
                 flexShrink: 0,
               }}
             />
-            <span style={{ color: colour, opacity: !done && !active && !failed ? 0.55 : 1 }}>
+            <span style={{ color: colour }}>
               {labels[key]}
             </span>
             {step?.explorerUrl && (
@@ -90,7 +90,7 @@ export function GatewayProgress({ steps }: { steps: StepMap }) {
                 href={step.explorerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mono text-[10px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] underline underline-offset-2 hover:text-[var(--lp-dark)] transition-colors"
+                className="inline-flex min-h-10 items-center rounded-full px-2 text-[13px] text-[var(--ink-secondary)] underline underline-offset-2 hover:text-[var(--ink)] transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]"
               >
                 {t.view}
               </a>
