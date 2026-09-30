@@ -20,7 +20,7 @@ test('the balance is the loudest thing on the page, with one primary action', as
   await expect(page.getByText('Ready to use on Arc')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Add', exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Move', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Send', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Send', exact: true })).toHaveAttribute('href', '/send');
   expect(await accentControls(page)).toBe(1);
 });
 
@@ -212,7 +212,7 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
-test('send finds a person by Karwan tag and names them before paying', async ({ page }) => {
+test('send is its own page and finds a person by Karwan tag before paying', async ({ page }) => {
   await serveMoney(page, {
     balances: funded,
     tags: {
@@ -220,9 +220,9 @@ test('send finds a person by Karwan tag and names them before paying', async ({ 
       me: { displayName: 'Me', address: ME },
     },
   });
-  await page.goto('/account');
-  await page.getByRole('button', { name: 'Send', exact: true }).click();
-  const sheet = page.getByRole('dialog');
+  await page.goto('/send');
+  const sheet = page.getByRole('region', { name: 'Send USDC' });
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await sheet.getByLabel('Amount').fill('25');
   const to = sheet.getByLabel('Send to');
 

@@ -109,9 +109,7 @@ function MoneyHomeInner() {
               <div className="flex flex-wrap gap-3">
                 <Link href="/bridge?intent=add" className={PRIMARY}>{t.home.add}</Link>
                 <Link href="/bridge?intent=move" className={SECONDARY}>{t.home.move}</Link>
-                <button type="button" onClick={() => setSheet({ move: 'send', agent: 'buyer' })} className={SECONDARY}>
-                  {t.home.send}
-                </button>
+                <Link href="/send" className={SECONDARY}>{t.home.send}</Link>
               </div>
               <NetworkContext />
             </>

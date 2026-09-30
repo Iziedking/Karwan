@@ -1,4 +1,5 @@
 export interface MoneyCopy {
+  sendPage: { gateBody: string };
   home: {
     balanceLabel: string;
     readyOnArc: string;
@@ -157,6 +158,7 @@ export interface MoneyCopy {
 
 export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
   en: {
+    sendPage: { gateBody: 'Sign in to send USDC to a Karwan tag or an Arc address.' },
     home: {
       balanceLabel: 'USDC balance',
       readyOnArc: 'Ready to use on Arc',
@@ -309,6 +311,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
     fund: { line: 'Top up your buying agent to continue.' },
   },
   ar: {
+    sendPage: { gateBody: 'سجّل الدخول لإرسال USDC إلى اسم على Karwan أو عنوان على Arc.' },
     home: {
       balanceLabel: 'رصيد USDC',
       readyOnArc: 'جاهز للاستخدام على Arc',
@@ -461,6 +464,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
     fund: { line: 'عبّئ وكيل الشراء للمتابعة.' },
   },
   fr: {
+    sendPage: { gateBody: 'Connectez-vous pour envoyer des USDC à un tag Karwan ou à une adresse Arc.' },
     home: {
       balanceLabel: 'Solde USDC',
       readyOnArc: 'Prêt à l’emploi sur Arc',
@@ -613,6 +617,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
     fund: { line: 'Alimentez votre agent d’achat pour continuer.' },
   },
   hi: {
+    sendPage: { gateBody: 'Karwan टैग या Arc पते पर USDC भेजने के लिए साइन इन करें।' },
     home: {
       balanceLabel: 'USDC बैलेंस',
       readyOnArc: 'Arc पर इस्तेमाल के लिए तैयार',
@@ -765,6 +770,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
     fund: { line: 'जारी रखने के लिए अपने खरीद एजेंट को टॉप अप करें।' },
   },
   sw: {
+    sendPage: { gateBody: 'Ingia ili kutuma USDC kwa tagi ya Karwan au anwani ya Arc.' },
     home: {
       balanceLabel: 'Salio la USDC',
       readyOnArc: 'Tayari kutumika kwenye Arc',

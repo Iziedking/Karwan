@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -47,12 +47,15 @@ export interface MoneySheetProps {
   prefillRecipient?: string;
   /// Called when the person presses Done after a confirmed move.
   onDone?: () => void;
+  /// 'page' renders the same card as a page of its own (the send page), with
+  /// no drawer, no backdrop and no close button.
+  layout?: 'sheet' | 'page';
 }
 
 /// The one card for quick moves: agent top-up, agent withdrawal and a send to
 /// an Arc address. The amount is the loudest thing in it, the button says
 /// exactly what will happen, and the result lands in place.
-export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone }: MoneySheetProps) {
+export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount, prefillRecipient, onDone, layout = 'sheet' }: MoneySheetProps) {
   const t = useTranslations().money;
   const { locale } = useLocale();
   const auth = useAuth();
@@ -205,10 +208,14 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   }
 
   return (
-    <ConfirmSheetShell open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
+    <Frame layout={layout} open={open} labelledBy={titleId} busy={busy} onClose={onClose} initialFocus={amountRef}>
       <div className="flex items-start justify-between gap-4">
-        <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{title}</h2>
-        <button
+        {layout === 'page' ? (
+          <h1 id={titleId} className="text-[28px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)] sm:text-[32px]">{title}</h1>
+        ) : (
+          <h2 id={titleId} className="text-[20px] font-semibold text-[var(--lp-dark)]">{title}</h2>
+        )}
+        {layout === 'page' ? null : <button
           type="button"
           onClick={onClose}
           disabled={busy}
@@ -216,7 +223,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           className="-me-2 -mt-2 inline-grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
         >
           <span aria-hidden className="text-[22px] leading-none">×</span>
-        </button>
+        </button>}
       </div>
 
       {move === 'send' ? (
@@ -397,7 +404,29 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       </AnimatePresence>
 
       <p role="status" aria-live="polite" className="sr-only">{state.kind === 'confirmed' ? t.sheet.confirmed : ''}</p>
-    </ConfirmSheetShell>
+    </Frame>
+  );
+}
+
+/// The drawer, or the same content as a page of its own. The page keeps the
+/// drawer's first-focus behaviour so the amount is ready to type.
+function Frame({ layout, children, initialFocus, ...sheet }: {
+  layout: 'sheet' | 'page';
+  open: boolean;
+  labelledBy: string;
+  busy: boolean;
+  onClose: () => void;
+  initialFocus: RefObject<HTMLInputElement | null>;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    if (layout === 'page') initialFocus.current?.focus();
+  }, [layout, initialFocus]);
+  if (layout === 'sheet') return <ConfirmSheetShell {...sheet} initialFocus={initialFocus}>{children}</ConfirmSheetShell>;
+  return (
+    <section aria-labelledby={sheet.labelledBy} className="mx-auto w-full max-w-[560px] px-4 py-10 sm:py-14">
+      {children}
+    </section>
   );
 }
 
