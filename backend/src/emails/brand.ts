@@ -5,27 +5,10 @@
 // one lime action, hairlines instead of boxes, plain words, no addresses in the
 // body. Markup is table-based with inline styles so Gmail, Outlook and Apple
 // Mail render it the same; the classes only carry the dark theme.
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 
-function loadLogoBuffer(): Buffer | null {
-  const candidates = [
-    resolve(process.cwd(), 'docs/bot-assets/karwan-bot-pic.png'),
-    resolve(process.cwd(), '../docs/bot-assets/karwan-bot-pic.png'),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) {
-      try {
-        return readFileSync(p);
-      } catch {
-        // try next candidate
-      }
-    }
-  }
-  return null;
-}
-
-export const LOGO_BUFFER = loadLogoBuffer();
+/// The mark now loads from the website (see MARK_URL), so no email carries an
+/// inline attachment. Kept null so the senders' attachment branch stays off.
+export const LOGO_BUFFER: Buffer | null = null;
 export const LOGO_CID = 'karwan-logo';
 
 const C = {
@@ -40,6 +23,9 @@ const C = {
   accentInk: '#0a0a0b',
   warning: '#8a5a00',
 } as const;
+
+const SITE = (process.env.FRONTEND_BASE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
+const MARK_URL = `${SITE}/icon-192.png`;
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 const PAD = '28px';
@@ -60,9 +46,9 @@ export interface BrandShellOptions {
 const DEFAULT_FOOTER_NOTE = "Didn't expect this email? You can ignore it. Nothing changes on your account.";
 
 export function brandedEmailHtml({ title, inner, footerNote = DEFAULT_FOOTER_NOTE, preheader }: BrandShellOptions): string {
-  const mark = LOGO_BUFFER
-    ? `<img src="cid:${LOGO_CID}" width="28" height="28" alt="" style="display:block;border:0;border-radius:8px;" />`
-    : `<div style="width:28px;height:28px;border-radius:8px;background:${C.ink};"></div>`;
+  // Loaded from the website: every client can fetch it, and it does not depend
+  // on a file being present on the server that sends the mail.
+  const mark = `<img src="${MARK_URL}" width="28" height="28" alt="Karwan" style="display:block;border:0;border-radius:8px;" />`;
   const hidden = preheader
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(preheader)}&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;</div>`
     : '';
@@ -121,7 +107,7 @@ ${inner}
             <td class="k-pad" style="padding:28px ${PAD} 24px ${PAD};">
               <div class="k-line" style="border-top:1px solid ${C.line};padding-top:18px;">
                 <p class="k-muted" style="margin:0;font-size:12px;line-height:1.6;color:${C.muted};">${escapeHtml(footerNote)}</p>
-                <p class="k-muted" style="margin:8px 0 0 0;font-size:12px;line-height:1.6;color:${C.muted};">Karwan &middot; Trade settlement &middot; <a href="mailto:support@karwan.site" class="k-link" style="color:${C.sub};">support@karwan.site</a></p>
+                <p class="k-muted" style="margin:8px 0 0 0;font-size:12px;line-height:1.6;color:${C.muted};">Karwan &middot; One reputation for the internet &middot; <a href="mailto:support@karwan.site" class="k-link" style="color:${C.sub};">support@karwan.site</a></p>
               </div>
             </td>
           </tr>
