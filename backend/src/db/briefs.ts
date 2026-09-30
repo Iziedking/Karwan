@@ -115,6 +115,23 @@ export function createBrief(input: Omit<Brief, 'createdAt'>): Brief {
   return brief;
 }
 
+/// Requests that may still be open: not marked expired, and posted within the
+/// window a request can live. Used at boot to put open requests back on the
+/// market, since the buyer agent keeps them only in memory.
+export function openBriefCandidates(briefs: Iterable<Brief>, now: number, maxAgeMs: number): string[] {
+  const out: Array<{ jobId: string; createdAt: number }> = [];
+  for (const b of briefs) {
+    if (b.expiredAt || now - b.createdAt > maxAgeMs) continue;
+    out.push({ jobId: b.jobId, createdAt: b.createdAt });
+  }
+  return out.sort((a, b) => b.createdAt - a.createdAt).map((b) => b.jobId);
+}
+
+export function listOpenBriefJobIds(now: number, maxAgeMs: number): string[] {
+  load();
+  return openBriefCandidates(store.values(), now, maxAgeMs);
+}
+
 export function findBriefBySeedKey(seedKey: string): Brief | null {
   load();
   return Array.from(store.values()).find((brief) => brief.seedKey === seedKey) ?? null;

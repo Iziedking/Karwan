@@ -99,6 +99,7 @@ import { moneyRoutes } from './routes/money.js';
 import {
   startBuyerAgents,
   backfillRecentJobs as backfillBuyer,
+  reseedStoredBriefs,
   configureBuyerTimerShadow,
   configureBuyerTimerParity,
   configureMatchingEngineShadow,
@@ -560,6 +561,11 @@ function bootAgents() {
     // Fire-and-forget; agents handle live events while the backfill catches up.
     backfillBuyer().catch((err) =>
       appLogger.warn({ err: (err as Error).message }, 'buyer backfill failed'),
+    );
+    // The log scan covers only recent blocks and fails when providers refuse
+    // wide windows; stored requests are reloaded by direct contract reads.
+    reseedStoredBriefs().catch((err) =>
+      appLogger.warn({ err: (err as Error).message }, 'buyer request reseed failed'),
     );
   } catch (err) {
     appLogger.warn({ err: (err as Error).message }, 'buyer agent not started');

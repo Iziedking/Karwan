@@ -76,7 +76,7 @@ import { pendingEvaluations } from './evaluationTracker.js';
 const MAX_CANDIDATES = BUYER_MAX_CANDIDATES;
 import { findAgentWalletByAgentAddress } from '../db/agentWallets.js';
 import { createDeal, getDeal, patchDeal } from '../db/deals.js';
-import { getBrief, patchBrief } from '../db/briefs.js';
+import { getBrief, listOpenBriefJobIds, patchBrief } from '../db/briefs.js';
 import { findPendingDirectOfferByAgent } from '../db/directOffers.js';
 import { getProfile } from '../db/profiles.js';
 import {
@@ -4779,7 +4779,10 @@ export async function backfillRecentJobs(fromBlock?: bigint) {
 /// JobBoard contract. Cheap O(1) call, no log scanning. Used by the API
 /// route to recover from a backend restart that wiped the in-memory `jobs`
 /// map. Returns true when the state was successfully restored.
-export async function reseedJobFromChain(jobId: string): Promise<boolean> {
+export async function reseedJobFromChain(
+  jobId: string,
+  opts: { openOnly?: boolean; nowSec?: number } = {},
+): Promise<boolean> {
   if (jobs.has(jobId as `0x${string}`)) return true;
   try {
     const result = (await publicClient.readContract({
@@ -4799,6 +4802,12 @@ export async function reseedJobFromChain(jobId: string): Promise<boolean> {
     ];
     const buyerAddr = result[0];
     if (buyerAddr === '0x0000000000000000000000000000000000000000') return false;
+    // Boot reseed: only a request still Posted (1) and inside its deadline goes
+    // back on the market. The single-job route keeps reading any state.
+    if (opts.openOnly) {
+      const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
+      if (Number(result[4]) !== 1 || Number(result[2]) <= nowSec) return false;
+    }
     const syntheticLog = {
       transactionHash: `0x${jobId.slice(2)}` as `0x${string}`,
       logIndex: 0,
@@ -4816,6 +4825,20 @@ export async function reseedJobFromChain(jobId: string): Promise<boolean> {
     logger.warn({ err: (err as Error).message, jobId }, 'reseedJobFromChain failed');
     return false;
   }
+}
+
+/// Put open requests back on the market after a restart. The jobs map lives in
+/// memory and the JobPosted log scan covers only recent blocks (and fails when
+/// RPC providers refuse wide log windows), so every stored request that may
+/// still be open is reloaded with one direct contract read each.
+export async function reseedStoredBriefs(now = Date.now()): Promise<{ checked: number; restored: number }> {
+  const ids = listOpenBriefJobIds(now, 180 * 86_400_000).filter((id) => !jobs.has(id as `0x${string}`));
+  let restored = 0;
+  for (const id of ids) {
+    if (await reseedJobFromChain(id, { openOnly: true, nowSec: Math.floor(now / 1000) })) restored += 1;
+  }
+  logger.info({ checked: ids.length, restored }, 'buyer reseeded stored requests');
+  return { checked: ids.length, restored };
 }
 
 interface JobPostedArgs {
