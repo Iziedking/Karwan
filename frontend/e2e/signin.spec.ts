@@ -170,6 +170,21 @@ test('sign-up keeps tag availability, code errors and back navigation', async ({
   await expect(page.getByLabel(en.signUp.tagLabel, { exact: true })).toHaveValue(TAG);
 });
 
+test('a misspelled email provider is caught before the code is sent', async ({ page }) => {
+  const requests = await open(page, { route: '/start?mode=signup' });
+  await page.getByLabel(en.signUp.tagLabel, { exact: true }).fill(TAG);
+  await expect(page.getByText(en.signUp.tagAvailable.replace('{tag}', TAG), { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: en.signUp.next, exact: true }).click();
+  const email = page.getByLabel(en.signUp.emailLabel, { exact: true });
+  await email.fill('ada@gmail.cm');
+  await page.getByRole('button', { name: 'ada@gmail.com', exact: true }).click();
+  await expect(email).toHaveValue('ada@gmail.com');
+  await expect(page.getByRole('button', { name: 'ada@gmail.com', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: en.signUp.sendCode, exact: true }).click();
+  await expect(page.getByRole('heading', { name: en.signUp.codeTitle, exact: true })).toBeVisible();
+  expect(requests.find(r => r.path === '/api/auth/otp/request')?.body).toMatchObject({ email: 'ada@gmail.com' });
+});
+
 test('passkey lookup waits for the person to choose sign-in', async ({ page }, testInfo) => {
   const requests = await open(page, { world: { lookup: { exists: true, hasPasskey: true } } });
   await signIn(page);

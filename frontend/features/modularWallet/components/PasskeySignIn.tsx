@@ -7,6 +7,7 @@ import { useSiwe } from '@/shared/hooks/useSiwe';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { PASSKEY_CONNECTOR_ID } from '../connector';
 import { holdEmailProof, clearEmailProof } from '../pendingEmail';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -135,6 +136,7 @@ export function PasskeySignIn({ onStart }: { onStart: () => void }) {
                 className="form-input min-h-[52px]"
               />
             </label>
+            <EmailSuggestion email={email} onApply={setEmail} />
             <button type="submit" className={secondary} disabled={!!busy || !EMAIL_RE.test(email.trim())}>
               {busy === 'send' ? t.passkeySending : t.passkeySendCode}
             </button>

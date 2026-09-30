@@ -5,6 +5,7 @@ import { api, ApiError, WAITLIST_USE_CASES, type WaitlistUseCase } from '@/core/
 import { TESTNET_ORIGIN } from '@/shared/utils/routes';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WaitlistSeal } from './WaitlistSeal';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { START_CARD, START_TITLE } from '@/features/signup/components/cardStyles';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -93,6 +94,7 @@ export function WaitlistCard({ onSignIn, onCreate }: { onSignIn: () => void; onC
             <input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
               disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
           </label>
+          <EmailSuggestion email={email} onApply={setEmail} />
           <button type="submit" className={primary} disabled={!!busy || !EMAIL_RE.test(email.trim())}>
             {busy === 'send' ? t.sending : t.join}
           </button>

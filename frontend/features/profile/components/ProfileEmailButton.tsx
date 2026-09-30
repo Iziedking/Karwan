@@ -7,6 +7,7 @@ import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfi
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { useQueryClient } from '@tanstack/react-query';
 
 function MailGlyph({ size = 13 }: { size?: number }) {
@@ -281,6 +282,7 @@ function EmailModal({ address, onClose }: { address: string; onClose: () => void
                   className="form-input"
                 />
               </label>
+              <EmailSuggestion email={emailInput} onApply={setEmailInput} />
               <div className="flex items-center gap-3">
                 <button
                   type="button"

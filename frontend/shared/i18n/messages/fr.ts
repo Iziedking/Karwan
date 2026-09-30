@@ -53,6 +53,7 @@ export const fr: Messages = {
     loading: 'Chargement',
     error: 'Erreur',
     success: 'Enregistré',
+    emailSuggestion: 'Vouliez-vous dire {email} ?',
   },
   nav: {
     home: 'Accueil',

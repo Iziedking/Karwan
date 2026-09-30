@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { Hex } from 'viem';
 import { api, ApiError } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { deriveVerifier, unlockRecoveryKey, WrongPasswordError, type KdfParams } from '../crypto';
 
 type Step = 'email' | 'code' | 'password' | 'waiting' | 'tooEarly' | 'neverOn' | 'locked' | 'ready' | 'working' | 'done';
@@ -174,6 +175,7 @@ export function RecoverFlow({ onBack, signInWithStoredPasskey }: {
             <input type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
               disabled={busy} className={input} autoFocus />
           </label>
+          <EmailSuggestion email={email} onApply={setEmail} />
           <button type="submit" className={primary} disabled={busy || !EMAIL_RE.test(email.trim())}>{busy ? t.sending : t.sendCode}</button>
         </form>
       )}

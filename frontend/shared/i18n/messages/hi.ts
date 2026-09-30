@@ -51,6 +51,7 @@ export const hi: Messages = {
     loading: 'लोड हो रहा है',
     error: 'त्रुटि',
     success: 'सहेजा गया',
+    emailSuggestion: 'क्या आपका मतलब {email} था?',
   },
   nav: {
     home: 'होम',

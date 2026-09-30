@@ -19,6 +19,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { buildInviteUrl } from '@/features/deals/inviteLink';
 import { InviteLinkTools } from '@/features/deals/components/InviteLinkTools';
 import { LpHint } from '@/shared/components/LpHint';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import {
   InviteRecipientMismatchError,
   verifyInviteRecipient,
@@ -302,6 +303,7 @@ export default function InvitePage() {
                   className="form-input w-full max-w-[34rem] min-h-11"
                 />
               </label>
+              <EmailSuggestion email={email} onApply={setEmail} />
               <button
                 type="button"
                 onClick={sendCode}

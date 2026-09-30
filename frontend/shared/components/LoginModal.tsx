@@ -16,6 +16,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { postAuthDestination } from '@/shared/auth/postAuthRoute';
 import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { PasskeySignIn } from '@/features/modularWallet/components/PasskeySignIn';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
 
 interface Props {
@@ -499,6 +500,7 @@ export function LoginModal({ open, onClose, postAuthHref = '/app' }: Props) {
                   autoFocus
                 />
               </label>
+              <EmailSuggestion email={email} onApply={setEmail} />
               <button
                 type="submit"
                 disabled={busy || !email || passkeyConfigured === false}

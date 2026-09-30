@@ -50,6 +50,7 @@ export const sw: Messages = {
     loading: 'Inapakia',
     error: 'Hitilafu',
     success: 'Imehifadhiwa',
+    emailSuggestion: 'Ulimaanisha {email}?',
   },
   nav: {
     home: 'Mwanzo',

@@ -16,6 +16,7 @@ import { primeCreatedDirectDeal } from '../creationHandoff';
 import { splitDeadline } from '../deadlineSplit';
 import { lookupContact, parseContact, type ContactMatch } from '../counterpartyInput';
 import { fill } from '../workspace/presentation';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -471,6 +472,7 @@ export function DirectDealForm() {
               disabled={submitting}
               className="form-input"
             />
+            {contact.kind === 'email' && <EmailSuggestion email={counterpartyEmail} onApply={setCounterpartyEmail} className="mt-1.5" />}
             {contact.kind === 'tag' && contactState === 'looking' && (
               <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
                 {fill(dd.counterparty.contactLooking, { tag: contact.tag })}

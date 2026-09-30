@@ -46,6 +46,7 @@ interface MessagesShape {
     loading: string;
     error: string;
     success: string;
+    emailSuggestion: string;
   };
   nav: {
     home: string;
@@ -5369,6 +5370,7 @@ export const en: MessagesShape = {
     loading: 'Loading',
     error: 'Error',
     success: 'Saved',
+    emailSuggestion: 'Did you mean {email}?',
   },
   nav: {
     home: 'Home',

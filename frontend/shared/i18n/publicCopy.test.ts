@@ -44,7 +44,10 @@ test('Terms has a document heading, linked contents and readable non-monospace t
   const content = read('shared/components/TermsContent.tsx');
   assert.match(page, /<h1/);
   assert.match(page, /<TermsContent contents/);
-  assert.match(page, /rtl:left-auto rtl:right-1\/2 rtl:translate-x-1\/2/);
+  // Full-bleed bands centre with symmetric margins, so right to left needs no override.
+  assert.match(page, /<FullBleed>/);
+  assert.doesNotMatch(page, /rtl:translate-x/);
+  assert.match(read('shared/components/Bands.tsx'), /bleed-center/);
   assert.match(page, /<time dir="ltr"/);
   assert.match(content, /<nav aria-label/);
   assert.match(content, /scroll-mt-28/);

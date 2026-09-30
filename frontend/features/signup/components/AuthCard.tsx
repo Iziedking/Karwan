@@ -14,6 +14,7 @@ import { useAuth, emitAuthChanged } from '@/shared/hooks/useAuth';
 import { useSiwe } from '@/shared/hooks/useSiwe';
 import { termsAcceptanceMessage } from '@/shared/hooks/useTerms';
 import { Icon } from '@/shared/components/Icon';
+import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WALLET_HOME } from '@/shared/utils/routes';
 import { localTagIssue, normalizeTag, type TagIssue } from '../tag';
@@ -364,6 +365,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                 <input type="email" inputMode="email" autoComplete="email webauthn" value={email}
                   onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
               </Field>
+              <EmailSuggestion email={email} onApply={setEmail} />
               <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
                 {busy === 'lookup' ? t.signIn.checking : t.signIn.continue}
               </Primary>
@@ -469,6 +471,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                   <input type="email" inputMode="email" autoComplete="email" value={email}
                     onChange={(e) => setEmail(e.target.value)} disabled={!!busy} className="min-h-[52px] w-full rounded-[14px] border-0 bg-[var(--tint)] px-4 py-3 text-[16px] text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] disabled:cursor-not-allowed disabled:opacity-50" autoFocus />
                 </Field>
+                <EmailSuggestion email={email} onApply={setEmail} />
                 <Primary type="submit" disabled={!!busy || !EMAIL_RE.test(email.trim())}>
                   {busy === 'send' ? s.sending : s.sendCode}
                 </Primary>

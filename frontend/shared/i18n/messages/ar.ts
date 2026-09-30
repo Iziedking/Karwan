@@ -53,6 +53,7 @@ export const ar: Messages = {
     loading: 'جارٍ التحميل',
     error: 'خطأ',
     success: 'تم الحفظ',
+    emailSuggestion: 'هل تقصد {email}؟',
   },
   nav: {
     home: 'الرئيسية',
