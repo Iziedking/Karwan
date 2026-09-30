@@ -213,7 +213,8 @@ export async function recordDeadlineRecoveryMovement(
     const result = await postgresExecutor().query<{ job_id: string }>(
       `UPDATE deal_deadline_recoveries_v1
        SET movement_reference = $3, updated_at = $4
-       WHERE job_id = $1 AND lease_token = $2 AND state = 'running'`,
+       WHERE job_id = $1 AND lease_token = $2 AND state = 'running'
+       RETURNING job_id`,
       [lease.jobId, lease.leaseToken, movementReference, now],
     );
     if (!result.rows[0]) throw new Error('deadline recovery lease lost');

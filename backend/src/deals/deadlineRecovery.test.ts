@@ -92,3 +92,15 @@ test('changing a deadline resets a failed recovery schedule', async () => {
   assert.equal(reset.deadlineUnix, 300);
   assert.equal(reset.availableAt, nextAvailableAt);
 });
+
+test('every recovery update that checks for a returned row asks Postgres for one', async () => {
+  const { readFileSync } = await import('node:fs');
+  const source = readFileSync(new URL('./deadlineRecovery.ts', import.meta.url), 'utf8');
+  // Without RETURNING, node-postgres gives an empty rows array even when the row
+  // was updated, so the lease always read as lost and a refund retried forever.
+  for (const update of source.split('UPDATE deal_deadline_recoveries_v1').slice(1)) {
+    const statement = update.slice(0, update.indexOf('`'));
+    const after = update.slice(update.indexOf('`'), update.indexOf('`') + 200);
+    if (/rows\[0\]/.test(after)) assert.match(statement, /RETURNING/, statement.trim().split('\n')[0]);
+  }
+});
