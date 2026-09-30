@@ -6,7 +6,7 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
+import { brandedEmailHtml, emailAmount, emailFacts, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
 
 export interface DealCancelledEmailInput {
   /// Lower-cased recipient email address; the address the invite was keyed to.
@@ -25,35 +25,25 @@ export interface SendResult {
 }
 
 function cancelInnerHtml(input: DealCancelledEmailInput): string {
-  const reasonLine = input.reason
-    ? `
-          <tr>
-            <td style="padding:0 28px 18px 28px;">
-              <div style="padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 4px;">
-                <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:8px;">Reason</div>
-                <div style="font-size:13px;line-height:1.5;color:#3a352c;">${escapeHtml(input.reason.slice(0, 280))}</div>
-              </div>
-            </td>
-          </tr>`
-    : '';
+  const facts: Array<[string, string]> = [['From', input.inviterMasked]];
+  if (input.reason) facts.push(['Reason', input.reason.slice(0, 280)]);
+  return (
+    emailHeading({ kicker: 'Deal cancelled', title: 'The deal you were invited to was withdrawn' }) +
+    emailAmount(input.dealAmountUsdc) +
+    emailText('The buyer withdrew it before you accepted. No money was put into escrow, so there is nothing for you to undo.') +
+    emailFacts(facts)
+  );
+}
 
-  return `
-          <tr>
-            <td style="padding:36px 28px 18px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Deal cancelled</div>
-              <p style="margin:0 0 8px 0;font-size:15px;line-height:1.55;color:#3a352c;">
-                <strong style="color:#0e0e0e;">${escapeHtml(input.inviterMasked)}</strong>
-                withdrew the
-                <strong style="color:#0e0e0e;">${escapeHtml(input.dealAmountUsdc)} USDC</strong>
-                deal you were invited to before you accepted it.
-              </p>
-              <p style="margin:0;font-size:13px;line-height:1.55;color:#7a7466;">
-                No escrow was funded. There is nothing on your side to undo.
-              </p>
-            </td>
-          </tr>
-          ${reasonLine}
-  `;
+/// The rendered email, shared by the sender and the preview script.
+export function dealCancelledHtml(input: DealCancelledEmailInput): string {
+  return brandedEmailHtml({
+    title: 'The deal you were invited to was withdrawn',
+    preheader: `${input.dealAmountUsdc} USDC deal withdrawn before you accepted.`,
+    inner: cancelInnerHtml(input),
+    footerNote:
+      'You can ignore the earlier invite link. Questions? Reply to this email.',
+  });
 }
 
 export async function sendDealCancelledEmail(
@@ -67,18 +57,12 @@ export async function sendDealCancelledEmail(
     );
     return { delivered: false };
   }
-  const html = brandedEmailHtml({
-    eyebrow: 'DEAL CANCELLED',
-    title: 'The deal invite you received was cancelled',
-    inner: cancelInnerHtml(input),
-    footerNote:
-      'You can safely ignore the earlier invite link. If you have questions, reply to this email.',
-  });
+  const html = dealCancelledHtml(input);
   const subject = `Karwan deal cancelled (${input.dealAmountUsdc} USDC)`;
   const lines = [
     `${input.inviterMasked} withdrew the ${input.dealAmountUsdc} USDC deal you were invited to before you accepted it.`,
     '',
-    'No escrow was funded. There is nothing on your side to undo.',
+    'No money was put into escrow, so there is nothing for you to undo.',
   ];
   if (input.reason) {
     lines.push('');

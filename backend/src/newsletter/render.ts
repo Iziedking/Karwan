@@ -1,4 +1,4 @@
-import { brandedEmailHtml, escapeHtml } from '../emails/brand.js';
+import { brandedEmailHtml, emailHeading, escapeHtml } from '../emails/brand.js';
 import type { NewsletterIssue } from '../db/newsletter.js';
 
 /// An issue as an email.
@@ -22,7 +22,7 @@ function inline(text: string): string {
   out = out.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     (_m, label: string, href: string) =>
-      `<a href="${href}" style="color:#0E0E0E;text-decoration:underline;">${label}</a>`,
+      `<a href="${href}" style="color:#0a0a0b;text-decoration:underline;">${label}</a>`,
   );
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   return out;
@@ -40,9 +40,9 @@ function paragraphs(body: string): string {
           .filter((l) => l.trim().startsWith('- '))
           .map((l) => `<li style="margin:0 0 8px 0;">${inline(l.replace(/^\s*-\s*/, ''))}</li>`)
           .join('');
-        return `<ul style="margin:0 0 16px 0;padding-left:20px;font-size:15px;line-height:1.65;color:#0E0E0E;">${items}</ul>`;
+        return `<ul style="margin:0 0 16px 0;padding-left:20px;font-size:15px;line-height:1.65;color:#0a0a0b;">${items}</ul>`;
       }
-      return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#0E0E0E;">${inline(
+      return `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.65;color:#0a0a0b;">${inline(
         block.replace(/\n/g, ' '),
       )}</p>`;
     })
@@ -81,7 +81,7 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
   const sections = issue.sections
     .map(
       (s) => `
-        <h2 style="margin:28px 0 12px 0;font-size:17px;font-weight:800;color:#0E0E0E;">${escapeHtml(
+        <h2 class="k-ink" style="margin:28px 0 12px 0;font-size:17px;font-weight:600;color:#0a0a0b;">${escapeHtml(
           s.heading,
         )}</h2>
         ${paragraphs(s.body)}`,
@@ -91,7 +91,7 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
   const sources = issue.sources.length
     ? `
         <hr style="border:0;border-top:1px solid rgba(0,0,0,0.08);margin:28px 0 16px 0;" />
-        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#6B6B6B;">Sources</p>
+        <p class="k-muted" style="margin:0 0 8px 0;font-size:13px;color:#6e6e73;">Sources</p>
         <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:#6B6B6B;">
           ${issue.sources
             .map(
@@ -115,10 +115,12 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
   // client hoists them out, which renders the issue OUTSIDE the white card,
   // full bleed and running off the edge of a phone. The 28px horizontal padding
   // matches the shell's other rows so the text lines up under the wordmark.
-  const inner = `
+  const inner =
+    emailHeading({ kicker: issue.monthInReview ? 'Month in review' : 'Karwan dispatch', title: issue.subject }) +
+    `
           <tr>
-            <td style="padding:6px 28px 28px 28px;">
-              <p style="margin:0 0 20px 0;font-size:15px;line-height:1.6;color:#6B6B6B;">${escapeHtml(
+            <td class="k-pad" style="padding:14px 28px 0 28px;">
+              <p class="k-sub" style="margin:0 0 4px 0;font-size:15px;line-height:1.6;color:#45454a;">${escapeHtml(
                 issue.preheader,
               )}</p>
               ${sections}
@@ -129,8 +131,8 @@ export function renderIssue(issue: NewsletterIssue): RenderedIssue {
   return {
     subject: issue.subject,
     html: brandedEmailHtml({
-      eyebrow: issue.monthInReview ? 'MONTH IN REVIEW' : 'KARWAN DISPATCH',
       title: issue.subject,
+      preheader: issue.preheader,
       inner,
       footerNote: 'You are getting this because you subscribed at karwan.site.',
     }),

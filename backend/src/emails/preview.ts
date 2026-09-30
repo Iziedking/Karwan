@@ -1,119 +1,88 @@
-/// One-shot preview renderer for the transactional email shell. Run via:
+/// Renders every Karwan email to docs/email-previews/ from the same builders
+/// the senders use. Run from the repo root:
 ///
 ///   npx tsx backend/src/emails/preview.ts
 ///
-/// Writes `docs/email-previews/otp.html` and `docs/email-previews/deal-invite.html`
-/// using the same brand.ts shell as production. Open in a browser to verify
-/// the cream + ink + lime palette in light mode, then toggle the OS to dark
-/// mode and refresh to see the cream-on-ink fallback survive.
-///
-/// The CID logo reference (`cid:karwan-logo`) does NOT resolve in browsers.
-/// Resend swaps it in via the attachments array. The preview just shows the
-/// wordmark; that's fine for verifying brand handling.
+/// Open the files in a browser, narrow the window to phone width, and switch
+/// the OS to dark mode to check the dark theme. The logo is a CID attachment
+/// in real mail, so previews show a dark square in its place.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { brandedEmailHtml, escapeHtml } from './brand.js';
+import { otpEmailHtml, verifyEmailHtml } from './codeEmails.js';
+import { dealInviteHtml } from './dealInvite.js';
+import { dealUpdateHtml } from './dealUpdate.js';
+import { dealCancelledHtml } from './dealCancelled.js';
+import { dealEventHtml } from './dealEventEmail.js';
+import { waitlistJoinedEmail } from './waitlistJoined.js';
+import { mainnetAccessEmail } from './mainnetAccess.js';
+import { newsletterWelcomeHtml } from './newsletterWelcome.js';
+import { recoveryEmail } from './recovery.js';
+import { supportTranscriptHtml } from './supportTranscript.js';
+import { teamPasswordResetPreviewHtml } from './teamPasswordReset.js';
 
 const OUT_DIR = resolve(process.cwd(), 'docs/email-previews');
 mkdirSync(OUT_DIR, { recursive: true });
 
-const otpInner = (() => {
-  const code = '447301';
-  return `
-          <tr>
-            <td style="padding:36px 28px 12px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Your code</div>
-              <div style="display:inline-block;padding:18px 28px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:14px 14px 14px 4px;">
-                <div style="font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:36px;font-weight:800;letter-spacing:0.32em;color:#0e0e0e;line-height:1;padding-right:0.32em;">${code}</div>
-              </div>
-            </td>
-          </tr>
+function write(name: string, html: string) {
+  writeFileSync(resolve(OUT_DIR, `${name}.html`), html, 'utf8');
+  console.log(`wrote docs/email-previews/${name}.html`);
+}
 
-          <tr>
-            <td style="padding:18px 28px 8px 28px;text-align:center;">
-              <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
-                Enter this code in the sign-in modal to access your Karwan account.
-              </p>
-              <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                Expires in 10 minutes. Five wrong tries voids it.
-              </p>
-            </td>
-          </tr>
-  `;
-})();
+const claimUrl = 'https://karwan.site/invite/4f9c2a8b3e7d1f0c9a2b4c6d8e0f1a3b5c7d9e1f';
+const dealUrl = 'https://karwan.site/deals/0x46094ce6ea8b83421db3c59386cb2e52ea518cc7db1612799b93045a0382703a';
 
-const otpHtml = brandedEmailHtml({
-  eyebrow: 'SIGN-IN CODE',
-  title: 'Karwan sign-in code',
-  inner: otpInner,
-});
-const otpPath = resolve(OUT_DIR, 'otp.html');
-writeFileSync(otpPath, otpHtml, 'utf8');
-
-const inviteInner = (() => {
-  const inviterMasked = '0xb19f…e97a';
-  const claimUrl = 'https://karwan.site/invite/4f9c2a8b3e7d1f0c';
-  const dealAmountUsdc = '5';
-  const expiresLabel = 'Expires in 7 days';
-  return `
-          <tr>
-            <td style="padding:36px 28px 8px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Deal invite</div>
-              <p style="margin:0 0 22px 0;font-size:15px;line-height:1.55;color:#3a352c;">
-                <strong style="color:#0e0e0e;">${escapeHtml(inviterMasked)}</strong>
-                opened a Karwan deal with you for
-                <strong style="color:#0e0e0e;">${escapeHtml(dealAmountUsdc)} USDC</strong>.
-              </p>
-              <a href="${escapeHtml(claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">Review and claim</a>
-              <p style="margin:18px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                ${escapeHtml(expiresLabel)}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 28px 12px 28px;">
-              <div style="margin-top:10px;padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;line-height:1.5;word-break:break-all;color:#3a352c;">
-                ${escapeHtml(claimUrl)}
-              </div>
-            </td>
-          </tr>
-  `;
-})();
-
-const inviteHtml = brandedEmailHtml({
-  eyebrow: 'DEAL INVITE',
-  title: 'You have a Karwan deal to review',
-  inner: inviteInner,
-  footerNote:
-    "If you weren't expecting this invite, ignore the email. The link binds nothing until you sign in and accept.",
-});
-const invitePath = resolve(OUT_DIR, 'deal-invite.html');
-writeFileSync(invitePath, inviteHtml, 'utf8');
-
-console.log('Wrote previews:');
-console.log(`  ${otpPath}`);
-console.log(`  ${invitePath}`);
-console.log('');
-console.log('Open in a browser. Toggle OS dark mode + refresh to see the dark fallback.');
+write('otp', otpEmailHtml('447301'));
+write('confirm-email', verifyEmailHtml('582914'));
+write('deal-invite', dealInviteHtml({
+  to: 'ada@example.com', claimUrl, dealAmountUsdc: '1200', inviterMasked: '0xb19f…e97a',
+  expiresLabel: 'Expires in 7 days', acceptanceLabel: '24 hours', deliveryLabel: '14 days',
+}));
+write('deal-invite-existing-account', dealInviteHtml({
+  to: 'ada@example.com', claimUrl: dealUrl, dealAmountUsdc: '1200', inviterMasked: '0xb19f…e97a',
+  expiresLabel: 'Expires in 7 days', acceptanceLabel: '24 hours', deliveryLabel: '14 days',
+  signInWallet: '0x7a21…90cc', signInVia: 'login',
+}));
+write('deal-updated', dealUpdateHtml({
+  to: 'ada@example.com', claimUrl, dealAmountUsdc: '1350', inviterMasked: '0xb19f…e97a',
+  changedLabels: ['Amount', 'Delivery window'], acceptanceLabel: '24 hours', deliveryLabel: '21 days',
+}));
+write('deal-cancelled', dealCancelledHtml({
+  to: 'ada@example.com', dealAmountUsdc: '1200', inviterMasked: '0xb19f…e97a', reason: 'We found a supplier closer to home.',
+}));
+write('deal-event-funded', dealEventHtml({
+  kicker: 'Escrow funded', subject: 'Escrow funded (1200 USDC)', heading: 'Escrow is funded', amount: '1200',
+  body: 'The escrow is funded and the seller can start the work.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+}));
+write('deal-event-dispute', dealEventHtml({
+  kicker: 'Dispute', subject: 'A Karwan deal moved to dispute', heading: 'Deal moved to dispute',
+  body: 'This deal is now in dispute. Either party can still propose a mutual cancel for a full refund.', ctaLabel: 'Open the deal', ctaUrl: dealUrl,
+}));
+write('waitlist-joined', waitlistJoinedEmail(42).html);
+write('mainnet-access', mainnetAccessEmail().html);
+write('newsletter-welcome', newsletterWelcomeHtml());
+write('recovery-started', recoveryEmail('started', { releasableAt: Date.UTC(2026, 9, 2, 14, 0), cancelUrl: 'https://karwan.site/recovery/cancel?t=abc123' }).html);
+write('recovery-completed', recoveryEmail('completed').html);
+write('support-transcript', supportTranscriptHtml({
+  id: 'T-4821', status: 'closed', createdAt: Date.UTC(2026, 8, 30, 9, 12),
+  messages: [
+    { role: 'user', text: 'My top-up says sending for a while. Did it fail?', ts: Date.UTC(2026, 8, 30, 9, 12) },
+    { role: 'assistant', text: 'It has not failed. The network is still confirming it, and nothing is lost.', ts: Date.UTC(2026, 8, 30, 9, 12, 20) },
+    { role: 'operator', text: 'Confirmed on our side. It landed at 09:14.\nYour balance is up to date now.', ts: Date.UTC(2026, 8, 30, 9, 15) },
+  ],
+} as Parameters<typeof supportTranscriptHtml>[0]));
+write('team-password-reset', teamPasswordResetPreviewHtml({
+  to: 'israel@karwan.site', name: 'Israel', expiresLabel: 'This link works for one hour',
+  resetUrl: 'https://api.karwan.site/team/reset?token=reset_9b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d_Zx8YwVuTsRqPoNmLkJiH',
+}));
 
 // Team invitation. The long invite URL is the interesting part: it is one
-// unbreakable ~130 character string, which is exactly what blows a fixed-width
-// email card open on a phone. Preview at a narrow viewport, not just desktop.
+// unbreakable string, which is what blows a fixed-width card open on a phone.
 {
   const { teamInvitePreviewHtml } = await import('./teamInvite.js');
-  writeFileSync(
-    resolve(OUT_DIR, 'team-invite.html'),
-    teamInvitePreviewHtml({
-      to: 'israel@karwan.site',
-      name: 'Israel',
-      role: 'marketing',
-      inviteUrl:
-        'https://api.karwan.site/team/invite?token=invite_583043c2-c080-46cd-8039-6f18d7f5b32d_8jsIN0yy7amuXRenZiYzoFQcbLa40p_A6xiVW7iw5Og',
-      expiresLabel: 'This link works for 7 days',
-    }),
-    'utf8',
-  );
-  console.log('wrote docs/email-previews/team-invite.html');
+  write('team-invite', teamInvitePreviewHtml({
+    to: 'israel@karwan.site', name: 'Israel', role: 'marketing', expiresLabel: 'This link works for 7 days',
+    inviteUrl: 'https://api.karwan.site/team/invite?token=invite_583043c2-c080-46cd-8039-6f18d7f5b32d_8jsIN0yy7amuXRenZiYzoFQcbLa40p_A6xiVW7iw5Og',
+  }));
 }
 
 // A newsletter issue. Same trap as the invite: the body is injected into the

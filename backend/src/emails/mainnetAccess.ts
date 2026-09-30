@@ -1,32 +1,19 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailButton, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
 import { resendClient } from './resend.js';
 
 /// Sent when an admin approves someone on the mainnet waitlist.
 export const MAINNET_SIGNUP_URL = 'https://karwan.site/start?mode=signup';
 
 export function mainnetAccessEmail(): { subject: string; html: string; text: string } {
-  const inner = `
-          <tr>
-            <td style="padding:8px 32px 8px 32px;">
-              <p style="margin:0;font-size:15px;line-height:1.6;color:#3a352c;">
-                Your place on the Karwan waitlist has come up. You can now create your account on Arc mainnet.
-              </p>
-              <p style="margin:14px 0 0 0;font-size:15px;line-height:1.6;color:#3a352c;">
-                Use this same email address when you sign up.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:22px 32px 30px 32px;">
-              <a href="${MAINNET_SIGNUP_URL}" style="display:inline-block;padding:14px 26px;background:#AFC95B;color:#10171D;font-weight:700;font-size:15px;text-decoration:none;border-radius:12px;">Create your account</a>
-            </td>
-          </tr>
-  `;
+  const inner =
+    emailHeading({ kicker: 'Mainnet access', title: 'Your place on Karwan has opened' }) +
+    emailText('You can now create your account on Arc mainnet. Use this same email address when you sign up.') +
+    emailButton('Create your account', MAINNET_SIGNUP_URL);
   return {
     subject: "You're in. Create your Karwan account",
-    html: brandedEmailHtml({ eyebrow: 'YOU ARE IN', title: "You're off the waitlist", inner }),
+    html: brandedEmailHtml({ title: 'Your place on Karwan has opened', inner, footerNote: 'You joined the Karwan waitlist with this address. Not you? Ignore this email.' }),
     text:
       "Your place on the Karwan waitlist has come up. You can now create your account on Arc mainnet.\n\n" +
       `Create your account: ${MAINNET_SIGNUP_URL}\n\n` +

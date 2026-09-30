@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { durableEphemeralMap } from '../db/ephemeral.js';
 import { resendClient } from '../emails/resend.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID } from '../emails/brand.js';
+import { LOGO_BUFFER, LOGO_CID } from '../emails/brand.js';
+import { OTP_COPY, otpEmailHtml, type OtpPurpose } from '../emails/codeEmails.js';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -93,49 +94,11 @@ interface OtpSendResult {
   reason?: string;
 }
 
-/// HTML body for the OTP email. Uses the shared brand shell. Digits sit in a
-/// monospace block with a calm letter-spacing, no manual &nbsp; padding,
-/// which was making the code read like "1   2   3" instead of "123456".
-const OTP_COPY: Record<OtpPurpose, { word: string; line: string; eyebrow: string; title: string }> = {
-  'sign-in': { word: 'sign-in', line: 'Enter this code in the sign-in modal to access your Karwan account.', eyebrow: 'SIGN-IN CODE', title: 'Karwan sign-in code' },
-  waitlist: { word: 'waitlist', line: 'Enter this code to join the Karwan waitlist.', eyebrow: 'WAITLIST CODE', title: 'Karwan waitlist code' },
-  recovery: { word: 'recovery', line: "Use this code to recover your wallet. If you didn't ask for it, ignore this email.", eyebrow: 'RECOVERY CODE', title: 'Karwan recovery code' },
-};
-
-function otpEmailHtml(code: string, purpose: OtpPurpose = 'sign-in'): string {
-  const inner = `
-          <tr>
-            <td style="padding:36px 28px 12px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Your code</div>
-              <div style="display:inline-block;padding:18px 28px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:14px 14px 14px 4px;">
-                <div style="font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:36px;font-weight:800;letter-spacing:0.32em;color:#0e0e0e;line-height:1;padding-right:0.32em;">${code}</div>
-              </div>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:18px 28px 8px 28px;text-align:center;">
-              <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
-                ${OTP_COPY[purpose].line}
-              </p>
-              <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                Expires in 10 minutes. Five wrong tries voids it.
-              </p>
-            </td>
-          </tr>
-  `;
-  return brandedEmailHtml({
-    eyebrow: OTP_COPY[purpose].eyebrow,
-    title: OTP_COPY[purpose].title,
-    inner,
-  });
-}
-
 /// Sends the 6-digit code to the user. When RESEND_API_KEY is set we POST to
 /// Resend; otherwise we log the code to the backend terminal so dev still
 /// works without any provider configured. Returns whether the code went out
 /// over real email. The dev autofill pill only renders when this is false.
-export type OtpPurpose = 'sign-in' | 'waitlist' | 'recovery';
+export type { OtpPurpose } from '../emails/codeEmails.js';
 
 export async function sendOtpEmail(email: string, code: string, purpose: OtpPurpose = 'sign-in'): Promise<OtpSendResult> {
   const client = resendClient();
@@ -160,7 +123,7 @@ export async function sendOtpEmail(email: string, code: string, purpose: OtpPurp
       html: otpEmailHtml(code, purpose),
       text:
         `Your Karwan ${OTP_COPY[purpose].word} code is ${code}\n\n` +
-        `It expires in 10 minutes. Five wrong tries voids it.\n\n` +
+        `It expires in 10 minutes and stops working after five wrong tries.\n\n` +
         `If you didn't request this, ignore the email.`,
       // CID inline attachment for the brand mark. Falls back gracefully when
       // the asset isn't on disk (the HTML omits the <img> in that case too).

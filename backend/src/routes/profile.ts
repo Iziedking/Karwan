@@ -20,7 +20,7 @@ import { readUsdcBalance } from '../chain/contracts.js';
 import { readSession, clearSessionCookie, isSessionSelf } from '../auth/session.js';
 import { extractKeywords } from '../llm/keywords.js';
 import { resendClient } from '../emails/resend.js';
-import { brandedEmailHtml } from '../emails/brand.js';
+import { verifyEmailHtml } from '../emails/codeEmails.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { invalidBodyMessage } from './invalidBody.js';
@@ -312,30 +312,6 @@ function callerFor(c: Parameters<typeof readSession>[0], claimed: string): strin
   return session.address.toLowerCase() === claimed.toLowerCase() ? session.address.toLowerCase() : null;
 }
 
-function verifyEmailHtml(code: string): string {
-  const inner = `
-          <tr>
-            <td style="padding:36px 28px 12px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Your code</div>
-              <div style="display:inline-block;padding:18px 28px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:14px 14px 14px 4px;">
-                <div style="font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-size:36px;font-weight:800;letter-spacing:0.32em;color:#0e0e0e;line-height:1;padding-right:0.32em;">${code}</div>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:18px 28px 8px 28px;text-align:center;">
-              <p style="margin:0;font-size:14px;line-height:1.55;color:#3a352c;">
-                Enter this code in Karwan to confirm this email for your account.
-              </p>
-              <p style="margin:10px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                Expires in 10 minutes. Five wrong tries voids it.
-              </p>
-            </td>
-          </tr>
-  `;
-  return brandedEmailHtml({ eyebrow: 'CONFIRM EMAIL', title: 'Confirm your Karwan email', inner });
-}
-
 async function sendVerifyEmail(email: string, code: string): Promise<boolean> {
   const client = resendClient();
   if (!client) {
@@ -354,7 +330,7 @@ async function sendVerifyEmail(email: string, code: string): Promise<boolean> {
       html: verifyEmailHtml(code),
       text:
         `Your Karwan email confirmation code is ${code}\n\n` +
-        `It expires in 10 minutes. Five wrong tries voids it.\n\n` +
+        `It expires in 10 minutes and stops working after five wrong tries.\n\n` +
         `If you didn't request this, ignore the email.`,
     });
     if (error) {

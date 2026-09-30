@@ -5,7 +5,7 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
+import { brandedEmailHtml, emailFacts, emailHeading, emailQuote, emailText, emailThread, LOGO_BUFFER, LOGO_CID } from './brand.js';
 import type { SupportConversation, SupportRole } from '../support/store.js';
 
 /// Reply-To for outbound support mail. When the inbound subdomain is set,
@@ -31,12 +31,9 @@ export async function emailOperatorReply(
       to: convo.email,
       subject: `Re: ${base} (Ticket ${convo.id})`,
       html: brandedEmailHtml({
-        eyebrow: 'KARWAN SUPPORT',
         title: `Ticket ${convo.id}`,
-        inner: `
-          <tr><td style="padding:28px;">
-            <div style="font-size:15px;line-height:1.6;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(text)}</div>
-          </td></tr>`,
+        inner: emailHeading({ kicker: `Karwan support · Ticket ${convo.id}`, title: 'A reply to your support request' }) + emailQuote(text),
+        preheader: text.slice(0, 120),
         footerNote: `Reply to this email to continue. Ticket ${convo.id}.`,
       }),
       text: `${text}\n\nReply to this email to continue. Ticket ${convo.id}.`,
@@ -80,32 +77,13 @@ function fmtTime(ts: number): string {
 }
 
 function transcriptInnerHtml(convo: SupportConversation): string {
-  const rows = convo.messages
-    .map((m) => {
-      const who = ROLE_LABEL[m.role] ?? m.role;
-      const bg = m.role === 'operator' ? '#eef4ec' : m.role === 'user' ? '#f6f3ea' : '#ffffff';
-      return `
-          <tr>
-            <td style="padding:10px 14px;background:${bg};border:1px solid #e6e2d8;border-radius:10px;">
-              <div style="font-size:10px;letter-spacing:0.16em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:5px;">${escapeHtml(who)} &middot; ${escapeHtml(fmtTime(m.ts))}</div>
-              <div style="font-size:14px;line-height:1.5;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(stripMd(m.text))}</div>
-            </td>
-          </tr>
-          <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>`;
-    })
-    .join('');
-  return `
-          <tr>
-            <td style="padding:28px 28px 8px 28px;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Conversation ${escapeHtml(convo.id)}</div>
-              <p style="margin:0 0 18px 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                ${convo.address ? `Wallet <strong style="color:#0e0e0e;">${escapeHtml(convo.address)}</strong>. ` : ''}Opened ${escapeHtml(fmtTime(convo.createdAt))}.
-              </p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                ${rows}
-              </table>
-            </td>
-          </tr>`;
+  const facts: Array<[string, string]> = [['Opened', fmtTime(convo.createdAt)]];
+  if (convo.address) facts.push(['Account', convo.address]);
+  return (
+    emailHeading({ kicker: `Conversation ${convo.id}`, title: 'Your support conversation' }) +
+    emailFacts(facts) +
+    emailThread(convo.messages.map((m) => ({ who: ROLE_LABEL[m.role] ?? m.role, when: fmtTime(m.ts), text: stripMd(m.text) })))
+  );
 }
 
 function transcriptText(convo: SupportConversation): string {
@@ -130,16 +108,12 @@ export async function sendSupportAlertEmail(
   const who = convo.address ? convo.address : 'a guest';
   const firstAsk = convo.messages.filter((m) => m.role === 'user').slice(-1)[0]?.text ?? '';
   const html = brandedEmailHtml({
-    eyebrow: 'NEW SUPPORT TICKET',
     title: `Ticket ${convo.id}`,
-    inner: `
-          <tr>
-            <td style="padding:28px;">
-              <p style="margin:0 0 12px 0;font-size:14px;color:#3a352c;">A user opened live support. Pick it up in the admin page, Telegram, or by replying to the close-out email.</p>
-              <p style="margin:0 0 6px 0;font-size:13px;color:#7a7466;">From: ${escapeHtml(who)}</p>
-              ${firstAsk ? `<p style="margin:8px 0 0 0;font-size:14px;color:#0e0e0e;white-space:pre-wrap;">${escapeHtml(firstAsk.slice(0, 400))}</p>` : ''}
-            </td>
-          </tr>`,
+    inner:
+      emailHeading({ kicker: `New support ticket · ${convo.id}`, title: 'Someone opened live support' }) +
+      emailText('Pick it up in the admin page, Telegram, or by replying to the close-out email.') +
+      emailFacts([['From', who]]) +
+      (firstAsk ? emailQuote(firstAsk.slice(0, 400)) : ''),
     footerNote: `Ticket ${convo.id}. Reply lands when the operator answers in the admin page or Telegram.`,
   });
   try {
@@ -162,6 +136,15 @@ export async function sendSupportAlertEmail(
   }
 }
 
+/// The rendered transcript, shared by the sender and the preview script.
+export function supportTranscriptHtml(convo: SupportConversation): string {
+  return brandedEmailHtml({
+    title: 'Your support conversation',
+    inner: transcriptInnerHtml(convo),
+    footerNote: 'Reply to this email to continue the conversation by mail.',
+  });
+}
+
 export async function sendSupportTranscriptEmail(
   convo: SupportConversation,
 ): Promise<{ delivered: boolean }> {
@@ -172,12 +155,7 @@ export async function sendSupportTranscriptEmail(
   }
   const recipients = [config.SUPPORT_EMAIL];
   if (convo.email && convo.email !== config.SUPPORT_EMAIL) recipients.push(convo.email);
-  const html = brandedEmailHtml({
-    eyebrow: 'SUPPORT TRANSCRIPT',
-    title: 'Support conversation closed',
-    inner: transcriptInnerHtml(convo),
-    footerNote: 'Reply to this email to continue the conversation by mail.',
-  });
+  const html = supportTranscriptHtml(convo);
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,

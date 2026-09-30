@@ -347,7 +347,7 @@ test('the rendered issue escapes, links, and keeps a text part', () => {
   assert.equal(rendered.html.includes('<script>'), false, 'html was not escaped');
   assert.ok(rendered.html.includes('&lt;script&gt;'));
   assert.ok(rendered.html.includes('2026-07-24'), 'the source date is missing');
-  assert.ok(rendered.html.includes('KARWAN DISPATCH'));
+  assert.ok(rendered.html.includes('Karwan dispatch'));
 
   // A missing text part is a spam signal, and the url has to survive into it.
   const text = renderText(issue);
@@ -355,7 +355,7 @@ test('the rendered issue escapes, links, and keeps a text part', () => {
   assert.equal(text.includes('['), false, 'markdown leaked into the text part');
 
   const monthly = renderIssue({ ...issue, monthInReview: true });
-  assert.ok(monthly.html.includes('MONTH IN REVIEW'));
+  assert.ok(monthly.html.includes('Month in review'));
 });
 
 test('an imported branded document is the final approval and send rendering', () => {

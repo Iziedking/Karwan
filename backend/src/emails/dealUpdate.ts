@@ -5,7 +5,20 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
+import {
+  brandedEmailHtml,
+  emailAmount,
+  emailButton,
+  emailFacts,
+  emailHeading,
+  emailPanel,
+  emailStrong,
+  emailText,
+  emailUrlFallback,
+  escapeHtml,
+  LOGO_BUFFER,
+  LOGO_CID,
+} from './brand.js';
 
 export interface DealUpdateEmailInput {
   /// Lower-cased recipient email address.
@@ -34,67 +47,33 @@ export interface SendResult {
 }
 
 function updateInnerHtml(input: DealUpdateEmailInput): string {
+  const facts: Array<[string, string]> = [['From', input.inviterMasked]];
+  if (input.acceptanceLabel || input.deliveryLabel) {
+    facts.push(['Agree within', input.acceptanceLabel ?? 'Not set'], ['Deliver within', input.deliveryLabel ?? 'Open-ended']);
+  }
   const changes = input.changedLabels.length
-    ? `
-          <tr>
-            <td style="padding:0 28px 8px 28px;">
-              <div style="padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 4px;">
-                <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:8px;">What changed</div>
-                <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.6;color:#3a352c;">
-                  ${input.changedLabels.map((c) => `<li>${escapeHtml(c)}</li>`).join('\n')}
-                </ul>
-              </div>
-            </td>
-          </tr>`
+    ? emailPanel(`${emailStrong('What changed:')} ${input.changedLabels.map(escapeHtml).join(', ')}`)
     : '';
+  return (
+    emailHeading({ kicker: 'Deal updated', title: 'The buyer changed the deal you were invited to' }) +
+    emailAmount(input.dealAmountUsdc) +
+    emailText('Check the new terms before you agree. Agreeing does not move any money. The buyer funds escrow afterwards.') +
+    changes +
+    emailFacts(facts) +
+    emailButton('Review the new terms', input.claimUrl) +
+    emailUrlFallback(input.claimUrl)
+  );
+}
 
-  const deadlineBlock =
-    input.acceptanceLabel || input.deliveryLabel
-      ? `
-          <tr>
-            <td style="padding:6px 28px 18px 28px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td width="50%" style="padding:12px 14px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 3px;vertical-align:top;">
-                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Agree by</div>
-                    <div style="font-size:14px;font-weight:700;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.acceptanceLabel ?? '—')}</div>
-                  </td>
-                  <td width="12" style="font-size:0;line-height:0;">&nbsp;</td>
-                  <td width="50%" style="padding:12px 14px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 3px;vertical-align:top;">
-                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Deliver by</div>
-                    <div style="font-size:14px;font-weight:700;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.deliveryLabel ?? 'Open-ended')}</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`
-      : '';
-
-  return `
-          <tr>
-            <td style="padding:36px 28px 8px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">Deal updated</div>
-              <p style="margin:0 0 22px 0;font-size:15px;line-height:1.55;color:#3a352c;">
-                <strong style="color:#0e0e0e;">${escapeHtml(input.inviterMasked)}</strong>
-                adjusted the deal you were invited to. It is now
-                <strong style="color:#0e0e0e;">${escapeHtml(input.dealAmountUsdc)} USDC</strong>.
-              </p>
-              <a href="${escapeHtml(input.claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">Review updated terms</a>
-              <p style="margin:18px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. The link still works.
-              </p>
-            </td>
-          </tr>
-          ${changes}
-          ${deadlineBlock}
-          <tr>
-            <td style="padding:0 28px 12px 28px;">
-              <div style="margin-top:10px;padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;line-height:1.5;word-break:break-all;color:#3a352c;">
-                ${escapeHtml(input.claimUrl)}
-              </div>
-            </td>
-          </tr>
-  `;
+/// The rendered email, shared by the sender and the preview script.
+export function dealUpdateHtml(input: DealUpdateEmailInput): string {
+  return brandedEmailHtml({
+    title: 'The buyer changed the deal you were invited to',
+    preheader: `The deal is now ${input.dealAmountUsdc} USDC. Check the new terms before you agree.`,
+    inner: updateInnerHtml(input),
+    footerNote:
+      'No longer want the deal? Ignore this email. Nothing is agreed until you sign in and accept.',
+  });
 }
 
 export async function sendDealUpdateEmail(
@@ -108,13 +87,7 @@ export async function sendDealUpdateEmail(
     );
     return { delivered: false };
   }
-  const html = brandedEmailHtml({
-    eyebrow: 'DEAL UPDATED',
-    title: 'The deal you were invited to was updated',
-    inner: updateInnerHtml(input),
-    footerNote:
-      'You can ignore this email if you no longer want the deal. The original link binds nothing until you sign in and accept.',
-  });
+  const html = dealUpdateHtml(input);
   const subject = `Karwan deal updated (${input.dealAmountUsdc} USDC)`;
   const lines = [
     `${input.inviterMasked} adjusted the deal you were invited to. It is now ${input.dealAmountUsdc} USDC.`,
@@ -128,11 +101,11 @@ export async function sendDealUpdateEmail(
     lines.push('');
   }
   if (input.acceptanceLabel || input.deliveryLabel) {
-    lines.push(`Agree by: ${input.acceptanceLabel ?? '—'}`);
-    lines.push(`Deliver by: ${input.deliveryLabel ?? 'Open-ended'}`);
+    lines.push(`Agree within: ${input.acceptanceLabel ?? 'Not set'}`);
+    lines.push(`Deliver within: ${input.deliveryLabel ?? 'Open-ended'}`);
     lines.push('');
   }
-  lines.push('Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. The link still works.');
+  lines.push('Agreeing does not move any money. The buyer funds escrow afterwards. The link still works.');
   const text = lines.join('\n');
   try {
     const { data, error } = await client.emails.send({

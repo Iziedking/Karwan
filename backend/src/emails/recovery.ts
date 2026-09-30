@@ -1,6 +1,6 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
-import { brandedEmailHtml, escapeHtml, LOGO_BUFFER, LOGO_CID } from './brand.js';
+import { brandedEmailHtml, emailButton, emailHeading, emailNote, emailPanel, emailText, escapeHtml, LOGO_BUFFER, LOGO_CID } from './brand.js';
 import { resendClient } from './resend.js';
 
 /// Emails for passkey recovery. Every step is announced to the account's
@@ -56,14 +56,24 @@ export function recoveryEmail(
   };
   const { subject, title, lines } = copy[kind];
   const kept = lines.filter(Boolean);
-  const inner = `
-          <tr>
-            <td style="padding:8px 32px 28px 32px;">
-              ${kept.map((l) => `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;color:#3a352c;">${escapeHtml(l)}</p>`).join('')}
-            </td>
-          </tr>
-  `;
-  return { subject, html: brandedEmailHtml({ eyebrow: 'WALLET RECOVERY', title, inner }), text: kept.join('\n\n') };
+  // The HTML shows the cancel link as the one action; the text keeps it inline.
+  const body = kept.filter((l) => l !== cancel);
+  const warning = body.find((l) => l.startsWith("If this wasn't you"));
+  const inner =
+    emailHeading({ kicker: 'Wallet recovery', title }) +
+    emailText(...body.filter((l) => l !== warning)) +
+    (warning ? emailPanel(escapeHtml(warning), 'warning') : '') +
+    (kind === 'started' && opts.cancelUrl ? emailButton('Cancel this recovery', opts.cancelUrl) + emailNote("If this was you, you don't need to do anything.") : '');
+  return {
+    subject,
+    html: brandedEmailHtml({
+      title,
+      inner,
+      preheader: body[0],
+      footerNote: 'Karwan emails every recovery step to the address on your account, so you can stop one you did not start.',
+    }),
+    text: kept.join('\n\n'),
+  };
 }
 
 export async function sendRecoveryEmail(

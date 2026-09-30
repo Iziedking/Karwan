@@ -144,7 +144,7 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
 }
 
 interface EmailContent {
-  eyebrow: string;
+  kicker: string;
   subject: string;
   heading: string;
   body: string;
@@ -182,15 +182,15 @@ function contentFor(
       const priceSuffix = price ? ` at ${price} USDC` : '';
       return role === 'seller'
         ? {
-            eyebrow: 'DEAL MATCHED',
-            subject: `Karwan matched your bid with a buyer${priceSuffix}`,
+            kicker: 'Match found',
+            subject: `Karwan matched your offer with a buyer${priceSuffix}`,
             heading: 'You have a match',
-            body: `Karwan matched your bid with a buyer${priceSuffix}. Accept to fund escrow and start the deal.`,
+            body: `Karwan matched your offer with a buyer${priceSuffix}. Accept to fund escrow and start the deal.`,
             ctaLabel: 'Review the match',
             ctaUrl: jobUrl(e.jobId),
           }
         : {
-            eyebrow: 'DEAL MATCHED',
+            kicker: 'Match found',
             subject: `Your agent found a match${priceSuffix}`,
             heading: 'Your agent found a match',
             body: `Your agent found you a match${priceSuffix}. Escrow funds automatically once the seller accepts.`,
@@ -202,7 +202,7 @@ function contentFor(
       const raised = (e.payload?.raisedPriceUsdc as string | undefined) ?? '';
       const suffix = raised ? ` to ${raised} USDC` : '';
       return {
-        eyebrow: 'SELLER RAISED',
+        kicker: 'Price raised',
         subject: `The seller raised the price${suffix}`,
         heading: 'The seller wants a higher price',
         body: `The seller is not taking the price your agent agreed and raised it${suffix}. Open the match to approve the new price or decline it. Nothing funds until you approve.`,
@@ -212,13 +212,13 @@ function contentFor(
     }
     case 'deal.match.approved':
       return {
-        eyebrow: 'ESCROW FUNDED',
+        kicker: 'Escrow funded',
         subject: `Your Karwan match is live${amountSuffix}`,
         heading: 'Match accepted, escrow funded',
         body:
           role === 'seller'
             ? `Escrow is funded${amountSuffix}. Deliver in Karwan when ${deliverableNoun(trade)} is ready.`
-            : `The seller accepted and escrow is funded${amountSuffix}. Standby for delivery.`,
+            : `The seller accepted and escrow is funded${amountSuffix}. Waiting for delivery.`,
         ctaLabel: 'Open the deal',
         ctaUrl: dealUrl(e.jobId),
       };
@@ -226,7 +226,7 @@ function contentFor(
       const price = (e.payload?.askingPriceUsdc as number | string | undefined) ?? '';
       const priceSuffix = price ? ` at ${price} USDC` : '';
       return {
-        eyebrow: 'OFFER MATCHED',
+        kicker: 'Offer matched',
         subject: `Karwan matched your offer to a request${priceSuffix}`,
         heading: 'Your offer was matched',
         body: `Karwan matched your offer to an open request${priceSuffix}. Review and accept to open the deal.`,
@@ -237,7 +237,7 @@ function contentFor(
     case 'deal.direct.created':
       return role === 'seller'
         ? {
-            eyebrow: 'NEW DEAL',
+            kicker: 'New deal',
             subject: `A buyer opened a deal with you${amountSuffix}`,
             heading: 'A buyer opened a deal with you',
             body: `A buyer opened a deal with you${amountSuffix}. Review the terms and agree if they work for you. The buyer funds only after you agree.`,
@@ -248,7 +248,7 @@ function contentFor(
     case 'deal.seller-approved':
       return role === 'buyer'
         ? {
-            eyebrow: 'READY TO FUND',
+            kicker: 'Ready to fund',
             subject: `The seller agreed to your Karwan deal${amountSuffix}`,
             heading: 'Review the final funding total',
             body: 'The seller agreed to the terms. Review the current fee and exact total before you fund escrow.',
@@ -258,7 +258,7 @@ function contentFor(
         : null;
     case 'deal.accepted':
       return {
-        eyebrow: 'ESCROW FUNDED',
+        kicker: 'Escrow funded',
         subject: `Escrow funded${amountSuffix}`,
         heading: 'Escrow is funded',
         body: `The escrow is funded and the seller can ${startPhrase(trade)}.`,
@@ -268,7 +268,7 @@ function contentFor(
     case 'deal.delivered':
       return role === 'buyer'
         ? {
-            eyebrow: 'DELIVERED',
+            kicker: 'Delivered',
             subject: `Your seller marked ${deliverableNoun(trade)} delivered`,
             heading: trade === 'service' ? 'Work delivered' : 'Delivered',
             body: `The seller marked ${deliverableNoun(trade)} delivered. Open the deal to verify and release escrow.`,
@@ -278,7 +278,7 @@ function contentFor(
         : null; // seller already knows they delivered
     case 'escrow.settled':
       return {
-        eyebrow: 'SETTLED',
+        kicker: 'Settled',
         subject: 'Your Karwan deal settled in full',
         heading: 'Deal settled',
         body: 'The deal settled in full and reputation was recorded on chain.',
@@ -287,7 +287,7 @@ function contentFor(
       };
     case 'deal.disputed':
       return {
-        eyebrow: 'DISPUTE',
+        kicker: 'Dispute',
         subject: 'A Karwan deal moved to dispute',
         heading: 'Deal moved to dispute',
         body: 'This deal is now in dispute. Either party can still propose a mutual cancel for a full refund.',
@@ -297,7 +297,7 @@ function contentFor(
     case 'deal.deadline.passed':
       return role === 'buyer'
         ? {
-            eyebrow: 'DEADLINE PASSED',
+            kicker: 'Deadline passed',
             subject: 'Your deadline passed. You can reclaim your funds',
             heading: 'Deadline passed without delivery',
             body: 'The delivery deadline passed and the seller has not delivered. You can reclaim your escrowed funds now, or grant an extension if you want to wait. If you do nothing and the seller still does not deliver, Karwan reclaims the funds to you automatically.',
@@ -308,7 +308,7 @@ function contentFor(
     case 'deal.delivered.onchain':
       return role === 'buyer'
         ? {
-            eyebrow: 'DELIVERY MARKED',
+            kicker: 'Delivery marked',
             subject: 'Your seller marked delivery on the contract. Your review time has started',
             heading: 'Delivery marked on the contract',
             body: 'The seller marked this deal delivered directly on the escrow contract, not through Karwan, so no delivery check ran. Your review time has started. Check what you received. If something is wrong, open a dispute before the review time ends, or the seller can claim the payment.',
@@ -320,7 +320,7 @@ function contentFor(
       const proposedBy = (e.payload?.proposedBy as 'buyer' | 'seller' | undefined) ?? null;
       if (proposedBy && proposedBy === role) return null; // don't email the proposer
       return {
-        eyebrow: 'CANCEL PROPOSED',
+        kicker: 'Cancellation proposed',
         subject: 'A cancellation was proposed on your deal',
         heading: 'Cancellation proposed',
         body: 'The other party proposed cancelling this deal. Open it to accept or decline.',
@@ -331,7 +331,7 @@ function contentFor(
     case 'deal.fund.insufficient':
       return role === 'buyer'
         ? {
-            eyebrow: 'ACTION NEEDED',
+            kicker: 'Action needed',
             subject: 'Top up to fund your Karwan escrow',
             heading: 'Your agent is underfunded',
             body: "Your buyer agent doesn't have enough USDC on Arc to fund this escrow. Top it up so the seller can accept.",
@@ -342,7 +342,7 @@ function contentFor(
     case 'factoring.requested': {
       const face = (e.payload?.faceValueUsdc as string | undefined) ?? '';
       return {
-        eyebrow: 'INVOICE OPEN',
+        kicker: 'Invoice financing',
         subject: 'A seller requested early payout on Karwan',
         heading: 'A new invoice is open for financing',
         body: `A verified seller opened an invoice${face ? ` worth ${face} USDC` : ''} for early-payout offers. Review the trade and price an offer from the financier desk.`,
@@ -359,7 +359,7 @@ function contentFor(
           ? ` at a ${(bps / 100).toFixed(1).replace(/\.0$/, '')}% discount`
           : '';
       return {
-        eyebrow: 'EARLY PAYOUT',
+        kicker: 'Early payout',
         subject: 'A financier offered early payout on your invoice',
         heading: 'Early payout offered',
         body: `A financier offered you ${advance}${discount}. Open the deal to accept or pass.`,
@@ -369,7 +369,7 @@ function contentFor(
     }
     case 'factoring.accepted':
       return {
-        eyebrow: 'EARLY PAYOUT',
+        kicker: 'Early payout',
         subject: 'The seller accepted your factoring offer',
         heading: 'Offer accepted',
         body: 'Your advance is on its way to the seller. You are repaid automatically when the buyer releases the escrow.',
@@ -381,7 +381,7 @@ function contentFor(
       const suffix = repay ? ` ${repay} USDC` : '';
       return role === 'seller'
         ? {
-            eyebrow: 'EARLY PAYOUT',
+            kicker: 'Early payout',
             subject: 'Your factoring advance has been repaid',
             heading: 'Factoring settled',
             body: `The escrow settled and${suffix} went to the financier. Nothing further is owed on this invoice.`,
@@ -389,7 +389,7 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : {
-            eyebrow: 'EARLY PAYOUT',
+            kicker: 'Early payout',
             subject: 'You have been repaid on a factored invoice',
             heading: 'Repayment received',
             body: `The buyer released the escrow and${suffix} landed in your wallet, principal plus spread.`,
@@ -400,7 +400,7 @@ function contentFor(
     case 'factoring.defaulted':
       return role === 'seller'
         ? {
-            eyebrow: 'ACTION NEEDED',
+            kicker: 'Action needed',
             subject: 'Your factoring repayment could not be collected',
             heading: 'Repayment failed',
             body: 'The escrow settled but the repayment to your financier did not go through. Fund your wallet and contact them before this reaches your reputation.',
@@ -408,7 +408,7 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : {
-            eyebrow: 'ACTION NEEDED',
+            kicker: 'Action needed',
             subject: 'A factored invoice defaulted',
             heading: 'Repayment failed',
             body: 'The escrow settled but the seller\'s repayment did not go through after several attempts. Open the deal to pursue it.',
@@ -417,7 +417,7 @@ function contentFor(
           };
     case 'po.funded':
       return {
-        eyebrow: 'PO FINANCING',
+        kicker: 'Purchase order financing',
         subject: 'A financier funded your purchase order',
         heading: 'Working capital drawn',
         body: 'A financier funded a line against this order. The principal releases to you once proof of delivery is accepted.',
@@ -429,7 +429,7 @@ function contentFor(
       const suffix = principal ? ` ${principal} USDC` : '';
       return role === 'seller'
         ? {
-            eyebrow: 'PO FINANCING',
+            kicker: 'Purchase order financing',
             subject: 'Your PO financing has been released',
             heading: 'Funds released',
             body: `Proof of delivery was accepted and${suffix} was released to you, ahead of the buyer's settlement.`,
@@ -437,7 +437,7 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : {
-            eyebrow: 'PO FINANCING',
+            kicker: 'Purchase order financing',
             subject: 'Your PO line released to the seller',
             heading: 'Principal released',
             body: `Proof of delivery was accepted and${suffix} moved to the seller. You are repaid when the escrow settles.`,
@@ -450,7 +450,7 @@ function contentFor(
       const suffix = repay ? ` ${repay} USDC` : '';
       return role === 'seller'
         ? {
-            eyebrow: 'PO FINANCING',
+            kicker: 'Purchase order financing',
             subject: 'Your PO line has been repaid',
             heading: 'Line closed',
             body: `The escrow settled and${suffix} went to the financier. This line is closed.`,
@@ -458,7 +458,7 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : {
-            eyebrow: 'PO FINANCING',
+            kicker: 'Purchase order financing',
             subject: 'You have been repaid on a PO line',
             heading: 'Repayment received',
             body: `The buyer released the escrow and${suffix} landed in your wallet, principal plus spread.`,
@@ -469,7 +469,7 @@ function contentFor(
     case 'po.defaulted':
       return role === 'seller'
         ? {
-            eyebrow: 'ACTION NEEDED',
+            kicker: 'Action needed',
             subject: 'Your PO line repayment could not be collected',
             heading: 'Repayment failed',
             body: 'The escrow settled but the repayment to your financier did not go through. Fund your wallet and contact them before this reaches your reputation.',
@@ -477,7 +477,7 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : {
-            eyebrow: 'ACTION NEEDED',
+            kicker: 'Action needed',
             subject: 'A PO line defaulted',
             heading: 'Repayment failed',
             body: 'The escrow settled but the seller\'s repayment did not go through after several attempts. Open the deal to pursue it.',
@@ -488,7 +488,7 @@ function contentFor(
       const toTier = (e.payload?.toTier as string | undefined) ?? '';
       const addr = e.payload?.address as string | undefined;
       return {
-        eyebrow: 'TIER UP',
+        kicker: 'Reputation',
         subject: toTier ? `You reached ${toTier} on Karwan` : 'You moved up a tier on Karwan',
         heading: toTier ? `You reached ${toTier}` : 'You moved up a tier',
         body: 'Your reputation tier rose on Karwan. A stronger tier means agents move faster for you.',
@@ -499,6 +499,31 @@ function contentFor(
     default:
       return null;
   }
+}
+
+/// The money each event is about, shown as the email's largest line. Only
+/// payload values: an email never guesses an amount.
+const AMOUNT_KEY: Record<string, string> = {
+  'deal.matched': 'agreedPriceUsdc',
+  'deal.match.raised': 'raisedPriceUsdc',
+  'deal.match.approved': 'dealAmountUsdc',
+  'listing.matched': 'askingPriceUsdc',
+  'deal.direct.created': 'dealAmountUsdc',
+  'deal.seller-approved': 'dealAmountUsdc',
+  'deal.accepted': 'dealAmountUsdc',
+  'factoring.requested': 'faceValueUsdc',
+  'factoring.offered': 'advance',
+  'factoring.settled': 'repayUsdc',
+  'po.released': 'principalUsdc',
+  'po.repaid': 'repayUsdc',
+};
+
+export function amountFor(e: KarwanEvent): string | undefined {
+  const key = AMOUNT_KEY[e.type];
+  const raw = key ? e.payload?.[key] : undefined;
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const text = String(raw);
+  return /^\d+(\.\d+)?$/.test(text) ? text : undefined;
 }
 
 export function startEmailNotifier(): () => void {
@@ -516,7 +541,7 @@ export function startEmailNotifier(): () => void {
         if (profile.settings?.notificationsMuted) continue;
         const content = contentFor(e, r.role, trade);
         if (!content) continue;
-        await sendDealEventEmail({ to: profile.email, ...content });
+        await sendDealEventEmail({ to: profile.email, ...content, amount: amountFor(e) });
       }
     } catch (err) {
       logger.warn({ err: (err as Error).message, type: e.type }, 'email notifier error');

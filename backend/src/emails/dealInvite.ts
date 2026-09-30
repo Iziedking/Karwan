@@ -4,7 +4,20 @@
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
+import {
+  brandedEmailHtml,
+  emailAmount,
+  emailButton,
+  emailFacts,
+  emailHeading,
+  emailNote,
+  emailPanel,
+  emailStrong,
+  emailText,
+  emailUrlFallback,
+  LOGO_BUFFER,
+  LOGO_CID,
+} from './brand.js';
 
 export interface DealInviteEmailInput {
   /// Lower-cased recipient email address. Same address the invite is keyed to.
@@ -45,83 +58,36 @@ export interface SendResult {
 }
 
 function inviteInnerHtml(input: DealInviteEmailInput): string {
-  /// Two-deadline block: accept-by + deliver-by. Recipients used to see
-  /// only the invite-link expiry ("Expires in 6 days") which conflated two
-  /// distinct windows: the time they have to ACCEPT the deal once they
-  /// click, and the time the SELLER has to DELIVER once accepted. Render
-  /// both side-by-side as a metric pair so the recipient understands what
-  /// they're signing up for before they click claim. Falls back to the
-  /// legacy single-expiry sentence when the new labels aren't provided.
   const hasTwoDeadlines = !!input.acceptanceLabel || !!input.deliveryLabel;
-  const deadlineBlock = hasTwoDeadlines
-    ? `
-          <tr>
-            <td style="padding:6px 28px 18px 28px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td width="50%" style="padding:12px 14px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 3px;vertical-align:top;">
-                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Agree by</div>
-                    <div style="font-size:14px;font-weight:700;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.acceptanceLabel ?? '—')}</div>
-                  </td>
-                  <td width="12" style="font-size:0;line-height:0;">&nbsp;</td>
-                  <td width="50%" style="padding:12px 14px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px 10px 10px 3px;vertical-align:top;">
-                    <div style="font-size:10px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:6px;">Deliver by</div>
-                    <div style="font-size:14px;font-weight:700;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.deliveryLabel ?? 'Open-ended')}</div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>`
-    : '';
-  const trailingNote = input.signInWallet
-    ? 'Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.'
-    : hasTwoDeadlines
-      ? `Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward. Invite link itself ${escapeHtml(input.expiresLabel.toLowerCase())}.`
-      : `${escapeHtml(input.expiresLabel)}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.`;
-  const eyebrow = input.signInWallet ? 'Deal waiting' : 'Deal invite';
-  const cta = input.signInWallet ? 'Open the deal' : 'Review and claim';
+  const facts: Array<[string, string]> = [['From', input.inviterMasked]];
+  if (hasTwoDeadlines) {
+    facts.push(['Agree within', input.acceptanceLabel ?? 'Not set'], ['Deliver within', input.deliveryLabel ?? 'Open-ended']);
+  }
+  if (!input.signInWallet) facts.push(['Invite link', input.expiresLabel]);
   /// The line that stops a second account being created. Their email is already
   /// attached to an identity, so it says which one to use rather than inviting
   /// them to make another.
-  const walletBlock = input.signInWallet
-    ? `
-          <tr>
-            <td style="padding:0 28px 4px 28px;">
-              <div style="margin-top:10px;padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px;font-size:13px;line-height:1.55;color:#3a352c;">
-                ${
-                  input.signInVia === 'login'
-                    ? `Sign in with this email as usual. The deal is already addressed to your account <strong style="color:#0e0e0e;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(input.signInWallet)}</strong>.`
-                    : `Sign in with your wallet <strong style="color:#0e0e0e;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(input.signInWallet)}</strong>, the one you verified this email against. The deal is already addressed to it, so there is nothing to claim and no new account to create.`
-                }
-              </div>
-            </td>
-          </tr>`
+  const wallet = input.signInWallet
+    ? emailPanel(
+        input.signInVia === 'login'
+          ? `Sign in with this email as usual. The deal is already addressed to your account ${emailStrong(input.signInWallet)}.`
+          : `Sign in with your wallet ${emailStrong(input.signInWallet)}, the one you verified this email with. The deal is already addressed to it, so there is nothing to claim and no new account to create.`,
+      )
     : '';
-  return `
-          <tr>
-            <td style="padding:36px 28px 8px 28px;text-align:center;">
-              <div style="font-size:12px;letter-spacing:0.18em;color:#8a8478;text-transform:uppercase;font-family:'SFMono-Regular',Menlo,Consolas,monospace;margin-bottom:14px;">${eyebrow}</div>
-              <p style="margin:0 0 22px 0;font-size:15px;line-height:1.55;color:#3a352c;">
-                <strong style="color:#0e0e0e;">${escapeHtml(input.inviterMasked)}</strong>
-                opened a Karwan deal with you for
-                <strong style="color:#0e0e0e;">${escapeHtml(input.dealAmountUsdc)} USDC</strong>.
-              </p>
-              <a href="${escapeHtml(input.claimUrl)}" style="display:inline-block;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">${cta}</a>
-              <p style="margin:18px 0 0 0;font-size:13px;line-height:1.55;color:#7a7466;">
-                ${trailingNote}
-              </p>
-            </td>
-          </tr>
-          ${walletBlock}
-          ${deadlineBlock}
-          <tr>
-            <td style="padding:0 28px 12px 28px;">
-              <div style="margin-top:10px;padding:14px 16px;background:#f6f3ea;border:1px solid #e6e2d8;border-radius:10px;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:11px;line-height:1.5;word-break:break-all;color:#3a352c;">
-                ${escapeHtml(input.claimUrl)}
-              </div>
-            </td>
-          </tr>
-  `;
+  const url = input.claimUrl;
+  return (
+    emailHeading({
+      kicker: input.signInWallet ? 'Deal waiting' : 'Deal to review',
+      title: 'Someone opened a deal with you on Karwan',
+    }) +
+    emailAmount(input.dealAmountUsdc) +
+    emailText('Agreeing does not move any money. After you agree, the buyer puts the money into escrow before work starts.') +
+    wallet +
+    emailFacts(facts) +
+    emailButton(input.signInWallet ? 'Open the deal' : 'Review the deal', url) +
+    emailNote('Nothing is agreed until you accept. You can decline from the same page.') +
+    emailUrlFallback(url)
+  );
 }
 
 /// Human-friendly window label for the acceptance / delivery blocks.
@@ -150,6 +116,17 @@ export function formatWindowLabel(opts: { days?: number; hours?: number }): stri
   return `${days}d ${hours}h${remainingMinutes > 0 ? ` ${remainingMinutes}m` : ''}`;
 }
 
+/// The rendered email, shared by the sender and the preview script.
+export function dealInviteHtml(input: DealInviteEmailInput): string {
+  return brandedEmailHtml({
+    title: 'You have a Karwan deal to review',
+    preheader: `${input.inviterMasked} opened a ${input.dealAmountUsdc} USDC deal with you.`,
+    inner: inviteInnerHtml(input),
+    footerNote:
+      "Not expecting this invite? Ignore the email. Nothing is agreed until you sign in and accept.",
+  });
+}
+
 export async function sendDealInviteEmail(
   input: DealInviteEmailInput,
 ): Promise<SendResult> {
@@ -161,13 +138,7 @@ export async function sendDealInviteEmail(
     );
     return { delivered: false };
   }
-  const html = brandedEmailHtml({
-    eyebrow: 'DEAL INVITE',
-    title: 'You have a Karwan deal to review',
-    inner: inviteInnerHtml(input),
-    footerNote:
-      "If you weren't expecting this invite, ignore the email. The link binds nothing until you sign in and accept.",
-  });
+  const html = dealInviteHtml(input);
   const subject = `You have a Karwan deal to review (${input.dealAmountUsdc} USDC)`;
   const signInLine = input.signInWallet
     ? input.signInVia === 'login'
@@ -176,17 +147,16 @@ export async function sendDealInviteEmail(
     : '';
   const deadlineLines =
     input.acceptanceLabel || input.deliveryLabel
-      ? `Agree by: ${input.acceptanceLabel ?? '—'}\nDeliver by: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
+      ? `Agree within: ${input.acceptanceLabel ?? 'Not set'}\nDeliver within: ${input.deliveryLabel ?? 'Open-ended'}\n\n`
       : '';
   const text =
     `${input.inviterMasked} opened a Karwan deal with you for ${input.dealAmountUsdc} USDC.\n\n` +
-    `${input.signInWallet ? 'Open the deal' : 'Review and claim'}: ${input.claimUrl}\n\n` +
+    `${input.signInWallet ? 'Open the deal' : 'Review the deal'}: ${input.claimUrl}\n\n` +
     signInLine +
     deadlineLines +
-    (input.signInWallet
-      ? 'Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.\n'
-      : `${input.expiresLabel}. Agreeing does not move buyer funds. The buyer reviews and funds escrow afterward.\n`) +
-    `If you weren't expecting this, ignore the email.`;
+    (input.signInWallet ? '' : `${input.expiresLabel}. `) +
+    'Agreeing does not move any money. After you agree, the buyer puts the money into escrow before work starts.\n\n' +
+    `Not expecting this? Ignore the email.`;
   try {
     const { data, error } = await client.emails.send({
       from: config.RESEND_FROM,

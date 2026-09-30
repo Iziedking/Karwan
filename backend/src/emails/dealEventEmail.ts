@@ -1,46 +1,56 @@
 // Generic branded email for a deal lifecycle event, sent to a user's verified
-// contact email. One sender, many events: the notifier builds the eyebrow,
+// contact email. One sender, many events: the notifier builds the kicker,
 // subject, heading, body, and CTA per event and this renders + ships it inside
 // the shared brand shell. Falls back to a log-only no-op when RESEND_API_KEY
 // isn't set.
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { resendClient } from './resend.js';
-import { brandedEmailHtml, LOGO_BUFFER, LOGO_CID, escapeHtml } from './brand.js';
+import { brandedEmailHtml, emailAmount, emailButton, emailHeading, emailText, LOGO_BUFFER, LOGO_CID } from './brand.js';
 
 export interface DealEventEmailInput {
   /// Lower-cased recipient email.
   to: string;
-  /// Small-caps eyebrow, e.g. "DEAL MATCHED".
-  eyebrow: string;
+  /// Quiet sentence-case label above the heading, e.g. "Escrow funded".
+  kicker: string;
   /// Email subject line.
   subject: string;
-  /// Bold heading at the top of the card body.
+  /// The headline.
   heading: string;
   /// One or two sentences of plain body copy.
   body: string;
+  /// The USDC amount this event is about, as a plain decimal string. Shown as
+  /// the largest line when present.
+  amount?: string;
   /// Optional CTA button label + absolute URL. Omitted together when the
   /// event has no useful destination (e.g. a decline).
   ctaLabel?: string;
   ctaUrl?: string;
 }
 
-function innerHtml(input: DealEventEmailInput): string {
-  const cta =
-    input.ctaLabel && input.ctaUrl
-      ? `
-              <a href="${escapeHtml(input.ctaUrl)}" style="display:inline-block;margin-top:22px;padding:14px 28px;background:#0e0e0e;color:#ffffff;font-family:'SFMono-Regular',Menlo,Consolas,monospace;font-size:13px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;text-decoration:none;border-radius:12px 12px 12px 4px;">${escapeHtml(input.ctaLabel)}</a>`
-      : '';
-  return `
-          <tr>
-            <td style="padding:34px 28px 28px 28px;text-align:center;">
-              <div class="k-ink" style="font-size:19px;font-weight:800;color:#0e0e0e;line-height:1.3;">${escapeHtml(input.heading)}</div>
-              <p class="k-sub" style="margin:14px 0 0 0;font-size:15px;line-height:1.55;color:#3a352c;">
-                ${escapeHtml(input.body)}
-              </p>
-              ${cta}
-            </td>
-          </tr>`;
+/// "1200.5" -> "1,200.50". Invalid input is shown as given.
+export function formatEmailUsdc(amount: string): string {
+  const n = Number(amount);
+  return Number.isFinite(n) ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : amount;
+}
+
+export function dealEventInnerHtml(input: Omit<DealEventEmailInput, 'to'>): string {
+  return (
+    emailHeading({ kicker: input.kicker, title: input.heading }) +
+    (input.amount ? emailAmount(formatEmailUsdc(input.amount)) : '') +
+    emailText(input.body) +
+    (input.ctaLabel && input.ctaUrl ? emailButton(input.ctaLabel, input.ctaUrl) : '')
+  );
+}
+
+/// The rendered email, shared by the sender and the preview script.
+export function dealEventHtml(input: Omit<DealEventEmailInput, 'to'>): string {
+  return brandedEmailHtml({
+    title: input.subject,
+    inner: dealEventInnerHtml(input),
+    preheader: input.body,
+    footerNote: 'You get deal emails because you verified this address on Karwan. You can turn them off in your profile settings.',
+  });
 }
 
 export async function sendDealEventEmail(input: DealEventEmailInput): Promise<boolean> {
@@ -49,14 +59,8 @@ export async function sendDealEventEmail(input: DealEventEmailInput): Promise<bo
     logger.info({ to: input.to, subject: input.subject }, '[deal-email] no RESEND_API_KEY, log-only');
     return false;
   }
-  const html = brandedEmailHtml({
-    eyebrow: input.eyebrow,
-    title: input.subject,
-    inner: innerHtml(input),
-    footerNote:
-      'You receive this because you added and verified this email on Karwan. Manage it from your profile.',
-  });
-  const textLines = [input.heading, '', input.body];
+  const html = dealEventHtml(input);
+  const textLines = [input.heading, ...(input.amount ? ['', `${formatEmailUsdc(input.amount)} USDC`] : []), '', input.body];
   if (input.ctaLabel && input.ctaUrl) {
     textLines.push('', `${input.ctaLabel}: ${input.ctaUrl}`);
   }
