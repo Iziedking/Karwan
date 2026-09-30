@@ -431,7 +431,7 @@ export const sw: Messages = {
       addHelp: 'Weka kutoka kwenye pochi inayotumika.',
       moveHelp: 'Hamisha USDC kutoka kwenye salio lako kwenda mnyororo unaotumika.',
       send: 'Tuma USDC',
-      sendHelp: 'Toa kwenda anwani ya pochi unayochagua.',
+      sendHelp: 'Lipa tagi ya Karwan au anwani ya Arc.',
     },
   },
   banners: {
@@ -698,6 +698,8 @@ export const sw: Messages = {
       text: {
         bridgeIn: 'USDC {amount} zimewekwa kutoka {chain}',
         bridgeOut: 'USDC {amount} zimetolewa kwenda {chain}',
+        sent: 'USDC {amount} zimetumwa kwa {who}',
+        received: 'USDC {amount} zimepokelewa kutoka {who}',
         seededByKarwan: 'Karwan iliweka USDC {amount} kwa wakala wako {agent} kugharamia miamala yake ya kwanza',
         setupMove: 'USDC {amount} zilihamishwa kutoka pochi yako kwenda kwa wakala wako {agent} wakati wa usanidi',
         agentWithdraw: 'USDC {amount} zilitolewa kutoka pochi ya wakala {agent} kwenda {to}',

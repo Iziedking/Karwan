@@ -1,5 +1,6 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ARC_EXPLORER_TX } from '@/features/profile/config';
@@ -68,6 +69,18 @@ function collapse(items: Item[], texts: Record<string, string>): Row[] {
   return rows;
 }
 
+export function findReceipt<T extends { id: string; refId: string | null; txHash: string | null }>(items: readonly T[], key: string): T | undefined {
+  const wanted = key.trim().toLowerCase();
+  if (!wanted) return undefined;
+  return items.find((item) => [item.refId, item.id, item.txHash].some((value) => value?.toLowerCase() === wanted));
+}
+
+function ReceiptParam({ onChange }: { onChange: (key: string | null) => void }) {
+  const receipt = useSearchParams().get('receipt');
+  useEffect(() => onChange(receipt), [receipt, onChange]);
+  return null;
+}
+
 function when(ts: number, justNow: string): string {
   const mins = Math.floor((Date.now() - ts) / 60_000);
   if (mins < 1) return justNow;
@@ -92,6 +105,8 @@ export function MyMoneyLedger({
   const [page, setPage] = useState(1);
   const [copiedReference, setCopiedReference] = useState<string | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<PortableReceiptItem | null>(null);
+  const [wantedReceipt, setWantedReceipt] = useState<string | null>(null);
+  const openedReceipt = useRef<string | null>(null);
 
   const rows = useMemo(() => (items ? collapse(items, t.text) : []), [items, t.text]);
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -117,6 +132,16 @@ export function MyMoneyLedger({
     load();
   }, [load]);
 
+  // A notification links here with ?receipt=<reference or transaction hash>
+  // and opens that movement's receipt once, even if the list reloads after.
+  useEffect(() => {
+    if (!items || !wantedReceipt || openedReceipt.current === wantedReceipt) return;
+    const match = findReceipt(items, wantedReceipt);
+    if (!match) return;
+    openedReceipt.current = wantedReceipt;
+    setSelectedReceipt(match);
+  }, [items, wantedReceipt]);
+
   // A bridge in flight changes status without the user doing anything, so
   // refresh when one reports progress rather than making them reload the page.
   useEffect(
@@ -141,6 +166,9 @@ export function MyMoneyLedger({
 
   return (
     <section className="space-y-3">
+      <Suspense fallback={null}>
+        <ReceiptParam onChange={setWantedReceipt} />
+      </Suspense>
       <div className="flex items-baseline justify-between gap-3">
         {!nested && (
           <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">

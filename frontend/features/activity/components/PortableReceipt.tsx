@@ -5,16 +5,17 @@ import { createPortal } from 'react-dom';
 import type { Messages } from '@/shared/i18n/messages/en';
 import {
   downloadReceiptImage,
-  readableMovementText,
   shortenHash,
   type ReceiptExportData,
 } from '../receiptPresentation';
+import { ledgerLine } from '../ledgerPresentation';
 
 type Copy = Messages['activity']['myMoney'];
 
 export interface PortableReceiptItem {
   ts: number;
   summary: string;
+  params?: Record<string, string> | null;
   amountUsdc: string | null;
   refId: string | null;
   txHash: string | null;
@@ -59,10 +60,13 @@ export function PortableReceipt({
   const transaction = item.txHash
     ? { label: copy.receiptTransaction, value: shortenHash(item.txHash) }
     : undefined;
+  // The same sentence the ledger row shows, so a recipient reads "Received",
+  // not the sender's "Sent" written at record time.
+  const line = ledgerLine(item, copy.text);
   const data = useMemo<ReceiptExportData>(
     () => ({
       title: copy.receiptTitle,
-      summary: readableMovementText(item.summary),
+      summary: line,
       reference,
       amount: item.amountUsdc ? `${item.amountUsdc} USDC` : null,
       status,
@@ -73,7 +77,7 @@ export function PortableReceipt({
       historicalNote: copy.receiptHistorical,
       sharedNote: copy.receiptSharedNote,
     }),
-    [copy, date, item.amountUsdc, item.summary, proofHref, reference, status, transaction],
+    [copy, date, item.amountUsdc, line, reference, status, transaction],
   );
 
   useEffect(() => {
@@ -148,7 +152,7 @@ export function PortableReceipt({
             </div>
           </div>
 
-          <p className="mobile-readable mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{readableMovementText(item.summary)}</p>
+          <p className="mobile-readable mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{line}</p>
 
           <dl className="mt-5 grid gap-4 sm:grid-cols-2">
             {reference || !transaction ? (

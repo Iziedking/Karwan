@@ -168,3 +168,54 @@ test('merge respects the route limit after sorting newest first', () => {
   );
   assert.deepEqual(rows.map((row) => row.id), ['KWN-2345-ABCD-EFGH', 'new']);
 });
+
+test('a send reads as sent for the sender and received for the recipient', () => {
+  const base = createMoneyMovement(
+    'KWN-3KPH-3EA6-DQWC',
+    {
+      operationKey: 'cashout:arc-send:x',
+      kind: 'cash_out',
+      amountMicros: '100000000',
+      initiatedBy: buyer,
+      participants: [
+        { address: buyer, role: 'owner' },
+        { address: seller, role: 'recipient' },
+      ],
+      summary: `Sent 100 USDC to ${seller}`,
+      nextActor: 'karwan',
+    },
+    1_000,
+  );
+  const sent = {
+    ...base,
+    state: 'completed' as const,
+    completedAt: 2_000,
+    legs: [
+      {
+        id: '1:arc_transfer',
+        key: 'arc_transfer',
+        attempt: 0,
+        label: 'Arc USDC cash-out',
+        rail: 'circle_wallets' as const,
+        state: 'verified' as const,
+        idempotencyKey: 'send-key',
+        sourceAddress: buyer,
+        destinationAddress: seller,
+        txHash: '0xsend',
+        verifiedAt: 1_900,
+        createdAt: 1_100,
+      },
+    ],
+  };
+  const names = new Map([[buyer, 'ada']]);
+
+  const senderRow = movementToPersonalLedgerItem(sent, buyer, names);
+  assert.equal(senderRow.kind, 'transfer_out');
+  assert.deepEqual(senderRow.params, { t: 'sent', amount: '100', who: '0x2222…2222' });
+  assert.equal(senderRow.txHash, '0xsend');
+
+  const recipientRow = movementToPersonalLedgerItem(sent, seller, names);
+  assert.equal(recipientRow.kind, 'transfer_in');
+  assert.deepEqual(recipientRow.params, { t: 'received', amount: '100', who: '@ada' });
+  assert.equal(recipientRow.refId, 'KWN-3KPH-3EA6-DQWC');
+});

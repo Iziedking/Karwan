@@ -672,6 +672,8 @@ interface MessagesShape {
       text: {
         bridgeIn: string;
         bridgeOut: string;
+        sent: string;
+        received: string;
         seededByKarwan: string;
         setupMove: string;
         agentWithdraw: string;
@@ -5752,7 +5754,7 @@ export const en: MessagesShape = {
       addHelp: 'Deposit from a supported wallet.',
       moveHelp: 'Move USDC from your balance to a supported chain.',
       send: 'Send USDC',
-      sendHelp: 'Withdraw to a wallet address you choose.',
+      sendHelp: 'Pay a Karwan tag or an Arc address.',
     },
   },
   banners: {
@@ -6027,6 +6029,8 @@ export const en: MessagesShape = {
       text: {
         bridgeIn: 'Deposited {amount} USDC from {chain}',
         bridgeOut: 'Withdrew {amount} USDC to {chain}',
+        sent: 'Sent {amount} USDC to {who}',
+        received: 'Received {amount} USDC from {who}',
         seededByKarwan: 'Karwan added {amount} USDC to your {agent} trade account for its first transactions',
         setupMove: 'Moved {amount} USDC from your main account into your {agent} trade account at setup',
         agentWithdraw: 'Moved {amount} USDC from the {agent} trade account to {to}',

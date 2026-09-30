@@ -10,8 +10,10 @@ import { listBridgesForUser } from '../db/bridges.js';
 import { getAgentWallets } from '../db/agentWallets.js';
 import { chainLabel, depositWalletsByChainKey } from '../chain/cctpChains.js';
 import { logger } from '../logger.js';
+import { getProfile } from '../db/profiles.js';
 import {
   mergeMovementLedger,
+  transferCounterparty,
   type PersonalLedgerItem,
 } from './activityMovementLedger.js';
 
@@ -349,11 +351,24 @@ activityRoutes.get('/me', async (c) => {
   // Keep enough merged rows for bridge entries before applying the final route
   // limit, otherwise a newly completed bridge could hide an older movement that
   // should still be in the response window.
+  // Tags for the other side of each direct transfer, so a row names a person.
+  const names = new Map<string, string>();
+  const counterparties = new Set<string>();
+  for (const movement of movements) {
+    const transfer = transferCounterparty(movement);
+    if (transfer) for (const party of [transfer.from, transfer.to]) if (party !== address.toLowerCase()) counterparties.add(party);
+  }
+  await Promise.all([...counterparties].map(async (party) => {
+    const handle = (await getProfile(party).catch(() => null))?.handle;
+    if (handle) names.set(party, handle);
+  }));
+
   const mergedLedger = mergeMovementLedger(
     legacyItems,
     movements,
     limit + bridgeItems.length,
     address,
+    names,
   );
   const durableReferences = new Set(
     movements.map((movement) => movement.reference.toUpperCase()),

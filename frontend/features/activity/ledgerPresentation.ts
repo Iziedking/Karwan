@@ -25,6 +25,7 @@ export type LedgerDirection = 'in' | 'out' | 'flat';
 const INBOUND = new Set([
   'deposit',
   'top_up',
+  'transfer_in',
   'payout',
   'yield_claim',
   'refund',
@@ -42,6 +43,7 @@ const INBOUND = new Set([
 const OUTBOUND = new Set([
   'withdraw',
   'cash_out',
+  'transfer_out',
   'release',
   'stake',
   // The user's own USDC moving from the sign-in wallet into their agent.

@@ -33,12 +33,32 @@ function receiptHash(movement: MoneyMovement): string | null {
   );
 }
 
+/// How a counterparty reads on a ledger row: their Karwan tag when they have
+/// one, otherwise the shortened address.
+export function counterpartyLabel(address: string, names?: ReadonlyMap<string, string>): string {
+  const key = address.toLowerCase();
+  const handle = names?.get(key);
+  if (handle) return `@${handle}`;
+  return `${key.slice(0, 6)}…${key.slice(-4)}`;
+}
+
+/// The other party of a direct USDC transfer on Arc, which is the only leg a
+/// send or an Arc withdrawal has. Null for anything else.
+export function transferCounterparty(movement: MoneyMovement): { from: string; to: string } | null {
+  if (movement.kind !== 'cash_out') return null;
+  const leg = movement.legs.find((candidate) => candidate.attempt === movement.attempt && candidate.key === 'arc_transfer');
+  if (!leg?.destinationAddress) return null;
+  return { from: movement.initiatedBy.toLowerCase(), to: leg.destinationAddress.toLowerCase() };
+}
+
 export function movementToPersonalLedgerItem(
   movement: MoneyMovement,
   viewerAddress?: string,
+  names?: ReadonlyMap<string, string>,
 ): PersonalLedgerItem {
   const viewer = viewerAddress?.toLowerCase();
   let kind: string = movement.kind;
+  let params: Record<string, string> | null = null;
   const leg = movement.legs.find((candidate) => candidate.attempt === movement.attempt);
   const source = leg?.sourceAddress?.toLowerCase();
   const destination = leg?.destinationAddress?.toLowerCase();
@@ -46,6 +66,17 @@ export function movementToPersonalLedgerItem(
     // The durable kind names the rail; the UI kind names the user's view.
     if (viewer === destination) kind = 'financing_repaid';
     else if (viewer === source) kind = 'financing_repayment_sent';
+  } else if (movement.kind === 'cash_out' && viewer && transferCounterparty(movement)) {
+    // One transfer, two readers: the sender sent it, the recipient received it.
+    const transfer = transferCounterparty(movement)!;
+    const amount = formatUsdcMicros(movement.amountMicros);
+    if (viewer === transfer.to && viewer !== transfer.from) {
+      kind = 'transfer_in';
+      params = { t: 'received', amount, who: counterpartyLabel(transfer.from, names) };
+    } else {
+      kind = 'transfer_out';
+      params = { t: 'sent', amount, who: counterpartyLabel(transfer.to, names) };
+    }
   } else if (movement.kind === 'financing_advance' && viewer) {
     if (viewer === destination || (viewer === movement.initiatedBy.toLowerCase() && viewer !== source)) kind = 'financing_received';
     else if (viewer === source) kind = 'financing_funded';
@@ -76,7 +107,7 @@ export function movementToPersonalLedgerItem(
     ts: movement.completedAt ?? movement.updatedAt,
     kind,
     summary: movement.summary,
-    params: null,
+    params,
     amountUsdc: formatUsdcMicros(movement.amountMicros),
     txHash: receiptHash(movement),
     refId: movement.reference,
@@ -97,6 +128,7 @@ export function mergeMovementLedger(
   movements: readonly MoneyMovement[],
   limit: number,
   viewerAddress?: string,
+  names?: ReadonlyMap<string, string>,
 ): PersonalLedgerItem[] {
   const safeLimit = Math.min(200, Math.max(1, Math.floor(limit) || 100));
   const references = new Set(
@@ -105,7 +137,7 @@ export function mergeMovementLedger(
   const preserved = legacy.filter(
     (item) => !item.refId || !references.has(item.refId.toUpperCase()),
   );
-  return [...preserved, ...movements.map((movement) => movementToPersonalLedgerItem(movement, viewerAddress))]
+  return [...preserved, ...movements.map((movement) => movementToPersonalLedgerItem(movement, viewerAddress, names))]
     .sort((a, b) => b.ts - a.ts)
     .slice(0, safeLimit);
 }

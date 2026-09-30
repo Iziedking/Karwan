@@ -57,6 +57,14 @@ const STORAGE_PREFIX = NOTIFICATION_STORAGE_PREFIX;
 const MAX_STORED = 30;
 
 
+/// Money that moved opens its receipt in the transaction history. The
+/// transaction hash is on both sides of a transfer, so it finds the row for
+/// the sender and the recipient alike.
+function receiptHref(e: Pick<ChainEvent, 'payload'>): string {
+  const key = (e.payload?.txHash as string | undefined) ?? (e.payload?.bridgeId as string | undefined);
+  return key ? `/activity?receipt=${encodeURIComponent(key)}` : '/activity';
+}
+
 function hrefForType(type: string, jobId: string): string {
   // listing.matched fires when a seller's offer matches a buyer's brief and the
   // agent bids, before any match proposal exists. The buyer's job page is
@@ -67,8 +75,7 @@ function hrefForType(type: string, jobId: string): string {
   if (type === 'listing.matched') return '/seller';
   // Trend nudge points the seller at the live requests driving the rising demand.
   if (type === 'trend.match') return '/market';
-  if (BRIDGE_TYPES.has(type)) return '/account';
-  if (WALLET_TYPES.has(type)) return '/profile';
+  if (BRIDGE_TYPES.has(type) || WALLET_TYPES.has(type)) return '/activity';
   if (type.startsWith('vault.')) return '/stake';
   if (type.startsWith('agent.')) return '/profile';
   // Tier-up lands on the profile, where the 12h celebrate card renders the
@@ -571,7 +578,7 @@ export function useNotifications() {
             summary: summaryFor(e.type, e.payload, null),
             ts: e.ts,
             read: readIdsRef.current.has(id),
-            href: hrefForType(e.type, ''),
+            href: receiptHref(e),
           });
           continue;
         }
@@ -644,7 +651,7 @@ export function useNotifications() {
             summary: bridgeSummary(e, notifyCopyRef.current),
             ts: e.ts,
             read: readIdsRef.current.has(id),
-            href: hrefForType(e.type, ''),
+            href: receiptHref(e),
           });
           continue;
         }
@@ -741,7 +748,7 @@ export function useNotifications() {
           summary: summaryFor(e.type, e.payload, null),
           ts: e.ts,
           read: readIdsRef.current.has(id),
-          href: hrefForType(e.type, ''),
+          href: receiptHref(e),
           toast: TOAST_TYPES.has(e.type),
         };
         setNotifications((list) => {
@@ -874,7 +881,7 @@ export function useNotifications() {
           summary: bridgeSummary(e, notifyCopyRef.current),
           ts: e.ts,
           read: readIdsRef.current.has(id),
-          href: hrefForType(e.type, ''),
+          href: receiptHref(e),
         };
         setNotifications((list) => (list.some((n) => n.id === id) ? list : [next, ...list].slice(0, MAX_STORED)));
         if (initialHydrateRef.current) playNotificationSound(e, me, null);

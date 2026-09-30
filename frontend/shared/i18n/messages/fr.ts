@@ -434,7 +434,7 @@ export const fr: Messages = {
       addHelp: 'Déposez depuis un wallet pris en charge.',
       moveHelp: 'Déplacez des USDC de votre solde vers une chaîne prise en charge.',
       send: 'Envoyer des USDC',
-      sendHelp: 'Retirez vers l’adresse de wallet de votre choix.',
+      sendHelp: 'Payez un tag Karwan ou une adresse Arc.',
     },
   },
   banners: {
@@ -701,6 +701,8 @@ export const fr: Messages = {
       text: {
         bridgeIn: '{amount} USDC déposés depuis {chain}',
         bridgeOut: '{amount} USDC retirés vers {chain}',
+        sent: '{amount} USDC envoyés à {who}',
+        received: '{amount} USDC reçus de {who}',
         seededByKarwan: 'Karwan a doté votre agent {agent} de {amount} USDC pour ses premières transactions',
         setupMove: '{amount} USDC déplacés de votre portefeuille vers votre agent {agent} à la configuration',
         agentWithdraw: '{amount} USDC retirés du portefeuille de l’agent {agent} vers {to}',

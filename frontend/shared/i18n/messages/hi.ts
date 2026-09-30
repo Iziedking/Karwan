@@ -432,7 +432,7 @@ export const hi: Messages = {
       addHelp: 'किसी समर्थित वॉलेट से जमा करें।',
       moveHelp: 'अपने बैलेंस से USDC किसी समर्थित श्रंखला पर ले जाएँ।',
       send: 'USDC भेजें',
-      sendHelp: 'अपने चुने हुए वॉलेट पते पर निकालें।',
+      sendHelp: 'किसी Karwan टैग या Arc पते पर भुगतान करें।',
     },
   },
   banners: {
@@ -714,6 +714,8 @@ export const hi: Messages = {
       text: {
         bridgeIn: '{chain} से {amount} USDC जमा किए गए',
         bridgeOut: '{chain} पर {amount} USDC निकाले गए',
+        sent: '{who} को {amount} USDC भेजे गए',
+        received: '{who} से {amount} USDC मिले',
         seededByKarwan: 'Karwan ने आपके {agent} एजेंट को उसके पहले लेनदेन के लिए {amount} USDC दिए',
         setupMove: 'सेटअप पर आपके वॉलेट से आपके {agent} एजेंट में {amount} USDC भेजे गए',
         agentWithdraw: '{agent} एजेंट वॉलेट से {amount} USDC निकालकर {to} को भेजे गए',

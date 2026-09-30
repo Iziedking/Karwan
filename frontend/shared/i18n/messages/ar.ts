@@ -434,7 +434,7 @@ export const ar: Messages = {
       addHelp: 'أودِع من محفظة مدعومة.',
       moveHelp: 'انقل USDC من رصيدك إلى شبكة مدعومة.',
       send: 'إرسال USDC',
-      sendHelp: 'اسحب إلى عنوان محفظة تختاره.',
+      sendHelp: 'ادفع إلى وسم Karwan أو عنوان على Arc.',
     },
   },
   banners: {
@@ -716,6 +716,8 @@ export const ar: Messages = {
       text: {
         bridgeIn: 'تم إيداع {amount} USDC من {chain}',
         bridgeOut: 'تم سحب {amount} USDC إلى {chain}',
+        sent: 'تم إرسال {amount} USDC إلى {who}',
+        received: 'تم استلام {amount} USDC من {who}',
         seededByKarwan: 'زوّد Karwan وكيلك {agent} بمبلغ {amount} USDC لتغطية معاملاته الأولى',
         setupMove: 'تم نقل {amount} USDC من محفظتك إلى وكيلك {agent} عند الإعداد',
         agentWithdraw: 'تم سحب {amount} USDC من محفظة الوكيل {agent} إلى {to}',

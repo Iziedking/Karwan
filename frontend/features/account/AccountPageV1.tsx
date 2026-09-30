@@ -44,7 +44,7 @@ function AccountPageInner() {
           <nav className="mt-5 divide-y divide-[var(--lp-border-light)]">
             <AccountAction href="/bridge?direction=in" label={t.add} description={t.addHelp} icon="add" primary />
             <AccountAction href="/bridge?direction=out&intent=move" label={messages.accountHome.move} description={t.moveHelp} icon="move" />
-            <AccountAction href="/bridge?direction=out&intent=send" label={t.send} description={t.sendHelp} icon="send" />
+            <AccountAction href="/send" label={t.send} description={t.sendHelp} icon="send" />
           </nav>
           <RecoveryRow />
         </aside>
