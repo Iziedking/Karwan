@@ -101,6 +101,10 @@ export async function captureTopUpScreen(page: Page, testInfo: TestInfo, phase: 
   maxHeadingWeight?: number;
 } = {}) {
   await expect(root).toBeVisible();
+  // A button still under the cursor from the last click shows its hover shade,
+  // so measure resting colours with the mouse parked and transitions settled.
+  await page.mouse.move(0, 0);
+  await page.waitForFunction(() => document.getAnimations().every(animation => !(animation instanceof CSSTransition) || animation.playState !== 'running'));
   const metrics = await root.evaluate(surface => {
     const visible = (element: HTMLElement) => {
       const rect = element.getBoundingClientRect();
