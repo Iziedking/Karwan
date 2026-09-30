@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { KARWAN_ASSISTANT_SYSTEM, KARWAN_PRODUCT_IDENTITY } from './knowledge.js';
 
-test('assistant identifies Karwan as an open market for local and cross-border trade', () => {
+test('assistant leads with unified reputation and its open market for local and cross-border trade', () => {
   assert.equal(
     KARWAN_PRODUCT_IDENTITY,
-    'Karwan is an open market for secure local and cross-border trade.',
+    'Karwan unifies online reputation, starting with an open market for secure local and cross-border trade.',
   );
   assert.match(KARWAN_ASSISTANT_SYSTEM, /People and businesses can buy or sell services, goods, supplies/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /A trade may be local/);
@@ -31,4 +31,11 @@ test('assistant explains the unified identity and workspace model', () => {
   assert.match(KARWAN_ASSISTANT_SYSTEM, /one wallet and one USDC balance/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /Team permissions and multi-user business access are roadmap work/);
   assert.match(KARWAN_ASSISTANT_SYSTEM, /Sign-in method and workspace are different things/);
+});
+
+test('assistant states the reputation direction with confidence and never as live', () => {
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /one reputation that travels with a person/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /This unified reputation is being built and is not live/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /Never claim to have read another platform, imported outside reputation or contacted a partner/);
+  assert.match(KARWAN_ASSISTANT_SYSTEM, /only with their consent, and nothing is leaked/);
 });

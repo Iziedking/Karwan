@@ -30,7 +30,15 @@ test('roadmap entries are discoverable but cannot be stated as live', () => {
   assert.deepEqual(findFacts({ q: 'local payout', liveOnly: true }), []);
 });
 
-test('canon version records the market-definition update', () => {
-  assert.equal(canonVersion, '0.2.1');
-  assert.equal(canonUpdated, '2026-09-10');
+test('canon version records the unified-reputation direction', () => {
+  assert.equal(canonVersion, '0.3.0');
+  assert.equal(canonUpdated, '2026-09-30');
+});
+
+test('the canon leads with unified reputation and keeps it off the live list', () => {
+  const overview = findFacts({ q: 'open market' }).find((fact) => fact.id === 'what-karwan-is');
+  assert.match(overview?.summary ?? '', /^Karwan unifies online reputation/);
+  const direction = findFacts({ q: 'unified reputation' }).find((fact) => fact.id === 'unified-reputation-roadmap');
+  assert.ok(direction);
+  assert.equal(isStatable(direction), false);
 });

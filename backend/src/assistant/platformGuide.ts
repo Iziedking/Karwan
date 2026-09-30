@@ -1,7 +1,7 @@
 /** Reviewed repository behaviour, not a claim that this build is deployed.
  * Update with the source feature, and keep operational/account truth in tools.
  */
-export const GUIDE_REVIEWED_AT = '2026-09-12';
+export const GUIDE_REVIEWED_AT = '2026-09-30';
 export const PLATFORM_GUIDE = [
   {
     id: 'market', title: 'Buy, sell and find a counterparty', status: 'testnet', route: '/p2p',
@@ -74,6 +74,12 @@ export const PLATFORM_GUIDE = [
     keywords: 'help support ticket feedback settings language notifications theme profile email',
     summary: 'Use /settings for preferences and /profile for account details. Feedback and Talk to a human connect users to support. The assistant cannot read private support-ticket status, alter verification or act as an administrator. Do not invent a ticket, reply or response time. Never request a seed phrase, private key or one-time sign-in code.',
     sources: ['frontend/shared/components/AssistantWidget.tsx', 'frontend/app/settings/page.tsx'],
+  },
+  {
+    id: 'direction', title: 'Unified reputation, the direction', status: 'planned', route: '/how-it-works',
+    keywords: 'what is karwan about mission vision direction unified reputation portable profile other platforms import aggregate talent vetting',
+    summary: 'Karwan is building one reputation that travels with a person across platforms, so they do not vet themselves from zero on every new market, job board or region. It starts with Karwan’s market: completed deals are protected in escrow and recorded, and that record is the first input. Agents will work with data the person already owns, only with consent; nothing is leaked, sold or scraped. Partner platforms join once the working model is designed with them, and none is named until an agreement exists. Being built, not live: today reputation comes only from completed Karwan deals.',
+    sources: ['README.md', 'docs/architecture/08-reputation.md', 'docs/reputation-model.md'],
   },
   {
     id: 'roadmap', title: 'Wider-web discovery', status: 'planned', route: '/how-it-works',

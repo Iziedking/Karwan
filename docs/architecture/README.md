@@ -4,7 +4,7 @@ Every idea gets an architecture view here before it is built. The view names eve
 
 ## What Karwan is for
 
-Talented people, freelancers and small businesses have skills and customers on the internet but no reach, no way for a buyer anywhere to pay them safely, and no easy way to get paid. Karwan closes that gap: a seller gets found or shares a link, a buyer anywhere pays with what they already use, the money is held until the work arrives, the seller is paid out, and every completed sale becomes a record that earns the seller more reach and cheaper money over time.
+Karwan unifies online reputation with an agentic economic model. People join a new marketplace, job board or region and have to prove themselves from zero every time; Karwan is building one reputation that travels with them, so hidden talent becomes visible and opportunity follows. It starts with Karwan's own market: a seller gets found or shares a link, a buyer anywhere pays with what they already use, the money is held until the work arrives, the seller is paid out, and every completed deal becomes a record that earns them more reach and cheaper money over time. View 08 is the direction the other views serve.
 
 ## Views
 
@@ -17,6 +17,7 @@ Talented people, freelancers and small businesses have skills and customers on t
 | 05 | [Sign-in and motion](05-sign-in.md) | How a person gets in, and how the sign-in art loads without slowing that down | Designed |
 | 06 | [Record](06-record.md) | How a completed sale becomes proof that is hard to fake | Designed |
 | 07 | [Escrow](07-escrow.md) | One engine for any deal: one-time, milestones, goods, pay on delivery, hourly, retainer, instalments, deposits | v3 built, extensions planned |
+| 08 | [Unified reputation](08-reputation.md) | How a person's record from Karwan and partner platforms becomes one reputation, with consent and nothing leaked | Designing |
 
 ## How to read a view
 

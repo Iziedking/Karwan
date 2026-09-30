@@ -1,23 +1,48 @@
 # Why Karwan
 
-Last reviewed: 2026-09-25
+Last reviewed: 2026-09-30
 
-Karwan is an open market for internet trade. It gives people and small
-businesses a clear way to move from finding a counterparty to a protected
-USDC settlement, whether the trade is local or cross-border.
+Karwan unifies online reputation with an agentic economic model. It starts
+with Karwan's own open market.
 
 ## The problem
 
-Internet trade usually starts in a social post, a chat, a marketplace, or a
-referral. The place where the buyer and seller meet rarely gives them a shared
-way to agree terms, protect payment, verify delivery, or carry a record of the
-completed trade.
+People join a new marketplace, a new job board, a new region, and have to
+vet themselves from zero every time. Years of good work stay locked inside
+platforms that do not talk to each other. A freelancer with five years of
+five-star work on one site is a stranger on the next. A supplier who has
+delivered on time for a decade has nothing a buyer abroad can check. Real
+talent stays hidden, and opportunities go to whoever is easiest to check,
+not whoever is best.
 
-Cross-border trade adds more friction. Bank rails bring fees, foreign-exchange
-spreads, delays, and unclear payment status. The buyer worries that the goods
-or service will not arrive. The seller worries that the payment will not come.
-Past work is scattered across platforms, so a good delivery record is hard to
-carry into the next trade.
+Trade itself carries the same gap. Internet deals start in a social post, a
+chat, a marketplace or a referral, and the place where the buyer and seller
+meet rarely gives them a shared way to agree terms, protect payment, verify
+delivery or keep the record. Across borders, bank rails add fees, spreads,
+delays and unclear status on top.
+
+## The direction
+
+Karwan is building one reputation that travels with a person: easy to track,
+easy to look up, and hard to fake. When reputation is unified, online deals
+become more trusted and safer, hidden talent becomes visible, and opportunity
+follows.
+
+- **It starts with the market.** Every completed Karwan deal is protected in
+  escrow and recorded, and that record is the first input to the unified
+  reputation.
+- **Your data, your permission.** Agents work with data a person already owns,
+  only after they connect it and agree. Nothing is leaked, sold or scraped.
+- **Partners, not scraping.** Other platforms join as partners when the working
+  model is designed with them. None is named until an agreement exists.
+- **Built on Circle.** Escrow, staking and Circle's payment tools bring the
+  market on chain. The reputation layer is being built on Circle's agent stack.
+- **Designed before it is built.** The model is drawn and explained in
+  [architecture view 08](./architecture/08-reputation.md), and broader research
+  into how people vet themselves across markets guides it.
+
+Today, the market and the reputation earned inside it are live on testnet.
+Unified reputation across platforms is being built.
 
 ## The Karwan answer
 

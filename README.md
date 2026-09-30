@@ -1,6 +1,25 @@
 # Karwan
 
-Karwan helps people and businesses agree a trade, hold USDC in milestone escrow, review delivery, and record payment. Bring a counterparty you already know, or use requests, offers and agent-assisted matching to find one.
+**One reputation for the internet, starting with an open market.**
+
+People join a new marketplace, a new job board, a new region, and have to prove themselves from zero every time. Years of good work stay locked inside platforms that do not talk to each other, so real talent stays hidden and opportunities go to whoever is easiest to check.
+
+Karwan is building one reputation that travels with you: easy to track, easy to look up, and hard to fake. When reputation is unified, online deals become more trusted and safer, hidden talent becomes visible, and opportunity follows. Karwan unifies online reputation with an agentic economic model, and it starts with Karwan's own market.
+
+## How it works
+
+Karwan has two sides that grow together.
+
+**The reputation layer is the direction.** Karwan aggregates the reputation people have already earned. Agents work with data a person already owns, only with their permission. Nothing is leaked, sold or scraped. Other platforms join as partners: we contact them when the real working model is designed with them, never by taking people's data along the way. The reputation layer is being built on Circle's agent stack. The design is drawn before it is built in [architecture view 08](./docs/architecture/08-reputation.md).
+
+**The open market on chain is the foundation.** People and businesses agree a trade, hold USDC in milestone escrow, review delivery and release payment. Bring a counterparty you already know, or use requests, offers and agent-assisted matching to find one. Escrow, staking and Circle's payment tools bring the market on chain, and every completed deal becomes a record anyone can check. That record is the first input to the unified reputation.
+
+| | Status |
+| --- | --- |
+| Open market, direct deals, milestone escrow, delivery review, disputes, receipts | Live on testnet |
+| Reputation from completed Karwan deals, recorded on Arc | Live on testnet |
+| Unified reputation across platforms, agents working with data you own | Being built |
+| Partner platforms | Named here once an agreement exists |
 
 ## Availability
 
@@ -117,6 +136,7 @@ Later work includes a user-invoked browser companion for bringing trade context 
 
 ## Documentation
 
+- [Architecture views](./docs/architecture/README.md), including [unified reputation](./docs/architecture/08-reputation.md)
 - [Architecture](./docs/architecture.md)
 - [Circle integration](./CIRCLE.md)
 - [Agent workflows](./docs/agent-workflows.md)

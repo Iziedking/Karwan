@@ -1,8 +1,11 @@
 # Architecture
 
-Last reviewed: 2026-09-25
+Last reviewed: 2026-09-30
 
-Karwan is an open market for local and cross-border trade. The current build
+Karwan unifies online reputation, starting with an open market for local and
+cross-border trade. The direction, one reputation that travels with a person
+across platforms, is designed in [architecture view 08](./architecture/08-reputation.md).
+This document describes the market that runs today. The current build
 uses one person identity, one login, and optional workspaces under that
 identity. A personal workspace is the default. An owner can add one business
 workspace without creating another account.

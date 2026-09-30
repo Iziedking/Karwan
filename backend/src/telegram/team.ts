@@ -34,9 +34,9 @@ export async function welcomeTeamMember(names: string[]): Promise<void> {
   const body = [
     `Welcome ${who}.`,
     '',
-    'Karwan is a settlement and credit layer for cross-border SME trade. Money sits in milestone escrow and releases against delivery, and every settled deal writes to a credit record that belongs to the business rather than to us.',
+    'Karwan unifies online reputation, starting with its open market. People should not have to prove themselves from zero on every new platform, so we are building one reputation that travels with them. Today that record comes from completed Karwan deals: money sits in milestone escrow, releases against delivery, and every settled deal is recorded.',
     '',
-    'Two things worth knowing on day one. This channel carries real alerts: a disputed escrow is frozen until two arbiter owners sign, so a dispute here is someone waiting on us. And nothing auto-releases at the final milestone, ever. That is the buyer protection the whole product rests on.',
+    'Two things worth knowing on day one. This channel carries real alerts: a disputed escrow is frozen until two arbiter owners sign, so a dispute here is someone waiting on us. And every deal has a review deadline: once it passes, the contract release rules apply, including to the final milestone, so a buyer needs to review or dispute in time.',
   ].join('\n');
 
   const buttons = base

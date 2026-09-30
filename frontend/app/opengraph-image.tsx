@@ -5,7 +5,7 @@ import { ImageResponse } from 'next/og';
 // this og:image too. Kept font-free (default sans) so the build never depends on
 // loading a custom typeface at the edge.
 export const runtime = 'edge';
-export const alt = 'Karwan · opportunities and trade reputation';
+export const alt = 'Karwan · one reputation, starting with an open market';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,12 +32,10 @@ export default function OpengraphImage() {
             style={{
               display: 'flex',
               color: '#9A9A95',
-              fontSize: 26,
-              letterSpacing: 6,
-              textTransform: 'uppercase',
+              fontSize: 28,
             }}
           >
-            Open market · work and business
+            One reputation for the internet
           </div>
         </div>
 
@@ -47,16 +45,13 @@ export default function OpengraphImage() {
               style={{
                 display: 'flex',
                 color: '#FFFFFF',
-                fontSize: 168,
-                fontWeight: 800,
-                letterSpacing: -5,
+                fontSize: 150,
+                fontWeight: 600,
+                letterSpacing: -4,
                 lineHeight: 1,
               }}
             >
-              KARWAN
-            </div>
-            <div style={{ display: 'flex', color: ACCENT, fontSize: 168, fontWeight: 800, lineHeight: 1 }}>
-              .
+              Karwan
             </div>
           </div>
           <div
@@ -69,7 +64,7 @@ export default function OpengraphImage() {
               lineHeight: 1.3,
             }}
           >
-            Find opportunities. Build a record of completed work, delivery and payment.
+            Never start from zero again. It starts with an open market where every completed trade builds your record.
           </div>
         </div>
 

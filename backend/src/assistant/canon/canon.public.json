@@ -1,12 +1,12 @@
 {
-  "canonVersion": "0.2.1",
-  "canonUpdated": "2026-09-10",
+  "canonVersion": "0.3.0",
+  "canonUpdated": "2026-09-30",
   "docs": [
     {
       "id": "brand-colour",
       "title": "Colour",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-09-30",
       "tags": [
         "brand",
         "tokens"
@@ -15,10 +15,10 @@
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-30"
         }
       ],
-      "body": "These are the values the product actually ships, read from the live stylesheet.\n\n```\naccent          #AFC95B    muted lime\naccent hover    #9DB84B\nink / dark      #0E0E0E    primary ink and dark surface\ntext muted      #9A9A9A\ntext sub        #6B6B6B\nhairline        rgba(0, 0, 0, 0.08)\n```\n\nThe accent is a muted lime, not an electric one. It was softened deliberately so\ngreen fills stop glaring and dark text stays legible on top of them. An earlier\ninternal design note still carries the brighter `#D8FF3D`; the shipped value is\n`#AFC95B` and that is the one to use. Where a document and the stylesheet\ndisagree, the stylesheet is what people actually see.\n\nUse the accent for one thing per screen. A page with three lime elements has no\nprimary action, it has three competing ones."
+      "body": "These are the published values, from the product's brand palette.\n\n```\naccent              #AFC95B    Karwan green: the one primary action, positive money state\nink / dark          #16202A    ink and dark surface\ncanvas              #EEF2F7    light theme canvas\npaper               #FFFFFF    light cards and email\ndark inset          #27313A\ntext sub on light   #646C74\ntext sub on dark    #A0A6AD\ngreen text on light #42560F    lime-family text that stays readable on light\nhairline on dark    rgba(206, 220, 232, 0.18)\n```\n\nThe accent is a muted lime, softened so green fills do not glare and dark text\nstays legible on top. Use it for one thing per screen. Status colours are\nseparate and always paired with words."
     },
     {
       "id": "brand-logo",
@@ -41,7 +41,7 @@
       "id": "brand-principles",
       "title": "Brand principles",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-09-30",
       "tags": [
         "brand"
       ],
@@ -49,16 +49,16 @@
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-30"
         }
       ],
-      "body": "Six rules, in order of how often they get broken.\n\n**Editorial, not dashboard-y.** Karwan is a working desk, but the register is\ncloser to a financial-times editorial layout than a SaaS admin panel. Generous\nwhitespace, monumental headings, monospaced metadata.\n\n**Two-tier hierarchy.** Display for intent, in caps with tight tracking. Mono for\nsystem metadata, uppercase and bracketed. Body text stays quiet.\n\n**One accent, used sparingly.** Lime is reserved for the primary call to action,\na LIVE status, positive value movement, and one focal indicator per screen. Never\ndecorate with it.\n\n**Motion is identity.** Every transition has intent. Nothing snaps.\n\n**No default component-library feel.** If a component looks like an unmodified\ndefault, rounded cards and generic muted descriptions, it is wrong. Re-skin every\nprimitive.\n\n**Domain semantics over generic labels.** Not \"Item 1\". `[:MILESTONE 01]`,\n`[:ESCROW]`, `[:SETTLE]`, `[:DISPUTE]`. Trade vocabulary is part of the design."
+      "body": "Six rules, in order of how often they get broken.\n\n**Calm and legible.** Karwan is where strangers put money in escrow with each\nother, so the interface earns trust: calm like a good financial product, never\na generated template. One job and one primary action per screen.\n\n**Money is the loudest thing.** The amount is the largest line, in tabular\nfigures with the currency written out: `1,200.00 USDC`, never `$1,200`. Next\nloudest is the next action and whose move it is.\n\n**One accent, used once.** Lime is for the one primary action and positive\nmoney state. A page with three lime elements has no primary action.\n\n**Sentence case, plain words.** No shouting labels. Brackets and mono are only\nfor technical metadata such as references and proof rows. Request and offer,\nnever brief or bid. No em dashes.\n\n**Hairlines, not stacked cards.** Facts sit in label and value rows separated by\nthin lines. Forms stay in a narrow reading column.\n\n**Honest states and no internals.** Sending is never shown as failed. Chain ids,\naddresses and protocol names stay behind \"Proof on Arc\". Motion only explains\nchange and respects reduced motion."
     },
     {
       "id": "brand-typography",
       "title": "Typography",
       "status": "live",
-      "updated": "2026-07-27",
+      "updated": "2026-09-30",
       "tags": [
         "brand",
         "tokens"
@@ -67,10 +67,10 @@
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-30"
         }
       ],
-      "body": "Three faces, each with one job.\n\n**Display.** A neo-grotesque, weight 700, tracking `-0.02em`, line height `0.95`,\nuppercase. Used for intent: page titles and section headings.\n\n**Mono.** Uppercase, letterspaced, bracketed. Used for system metadata and\nstatus, never for prose. This is what makes a Karwan surface read as an\ninstrument rather than a marketing page.\n\n**Serif.** Reserved for the instrument-readout register on deal surfaces.\n\nNumbers are always tabular. Any digit cluster that can change, a balance, an\namount, a countdown, sets `font-variant-numeric: tabular-nums` so it does not\njitter as it updates.\n\nFonts are self-hosted. Do not add a CDN font link."
+      "body": "One family: General Sans. Hierarchy comes from size and weight, not from a\nsecond face or from capitals.\n\n**Headings.** Sentence case, weight 500 to 600, slightly tight tracking.\n\n**Money.** Tabular figures, the amount larger than anything around it, the\ncurrency written after it.\n\n**Metadata.** The same family with tabular figures. Uppercase letterspaced\nlabels and brackets are reserved for technical metadata such as references,\nnetwork names and timestamps, never for section titles or prose.\n\nEmail uses the system sans stack with the same rules."
     },
     {
       "id": "credit-passport",
@@ -307,10 +307,30 @@
       "body": "A user-invoked browser companion for starting a protected trade beside a\nsupported website is planned and is not live in the current Arc Testnet release.\n\nTrade Anywhere will create a user-approved trade draft and secure invite, with X\nas the first focused surface. The counterparty will be able to review, counter or\naccept through normal Karwan web without installing the companion.\n\nIt will not scrape private messages, inject social actions, post, follow, like,\nreply or send messages for the user."
     },
     {
+      "id": "unified-reputation-roadmap",
+      "title": "Unified reputation",
+      "status": "roadmap",
+      "updated": "2026-09-30",
+      "tags": [
+        "roadmap",
+        "reputation",
+        "mission",
+        "agents"
+      ],
+      "path": "public/product/unified-reputation-roadmap.md",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/08-reputation.md",
+          "date": "2026-09-30"
+        }
+      ],
+      "body": "Karwan is building one reputation that travels with a person across platforms.\nThis is the direction the rest of the product serves, and it is not live in the\ncurrent Arc Testnet release.\n\nPeople join a new marketplace, job board or region and vet themselves from zero\nevery time, because their record is split across platforms that do not talk to\neach other. Unified reputation brings that record together: easy to track, easy\nto look up, hard to fake. It starts with Karwan's market, whose completed\ndeals are the first and most heavily weighted input.\n\nAgents will work only with data a person already owns, after they connect a\nsource and agree. Nothing is leaked, sold or scraped, and consent can be\nwithdrawn. Other platforms join as partners once the working model is designed\nwith them; none is named until an agreement exists. The reputation layer is\nbeing built on Circle's agent stack, while escrow, staking and Circle's payment\ntools bring the market on chain.\n\nToday a person's Karwan reputation comes only from completed Karwan deals."
+    },
+    {
       "id": "what-karwan-is",
       "title": "What Karwan is",
       "status": "live",
-      "updated": "2026-09-01",
+      "updated": "2026-09-30",
       "tags": [
         "overview",
         "market",
@@ -321,31 +341,10 @@
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-09-01"
+          "date": "2026-09-30"
         }
       ],
-      "body": "Karwan is an open market for secure local and cross-border trade. People and\nbusinesses can buy or sell services, goods, supplies and eligible business\norders. A trade may be local, with both parties in the same country, or\ncross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Browser capture, mainnet settlement and local bank payout are\nplanned expansion, not current capabilities."
-    },
-    {
-      "id": "trust-and-proof",
-      "title": "Trust and proof",
-      "status": "live",
-      "updated": "2026-09-10",
-      "tags": [
-        "trust",
-        "chainlink",
-        "world-id",
-        "agentkit",
-        "arc"
-      ],
-      "path": "docs/trust-and-proof.md",
-      "sources": [
-        {
-          "url": "https://karwan.site/docs",
-          "date": "2026-09-10"
-        }
-      ],
-      "body": "Karwan keeps two trust questions separate: what happened, and who is behind an automated action.\n\nArc is the authoritative record for escrow, funding, release, refund, and settlement receipts. Chainlink CRE checks delivery evidence against the accepted agreement. The current demonstration uses GitHub commits and pull requests, but a carrier event, signed artifact, buyer acceptance, or another source with clear scope and freshness can use the same boundary. Authenticated requests, lease fencing, evidence digests, provenance, replay protection, and release gates prevent stale or mismatched evidence from silently releasing funds.\n\nWorld ID and AgentKit provide an optional human-backed identity signal for agent and research workflows. Karwan verifies World ID staging proofs, binds AgentKit requests to a domain, nonce, signature, and expiry, rejects replayed challenges, and checks World AgentBook before granting a protected agent capability. World verification does not approve a payment and delivery evidence does not prove identity. The buyer still reviews the outcome, and the Arc escrow contract remains authoritative.\n\nThe current build proves World ID staging verification and the safe unregistered-agent refusal path. Live AgentBook registration is pending confirmation of the supported World verification path. Karwan is running on Arc Testnet, so testnet USDC has no real value."
+      "body": "Karwan unifies online reputation, starting with an open market for secure local\nand cross-border trade. People join a new marketplace, job board or region and\nhave to vet themselves from zero every time; Karwan is building one reputation\nthat travels with a person, so hidden talent becomes visible and opportunity\nfollows. It starts with Karwan's market, where every completed deal is\nprotected in escrow and recorded.\n\nPeople and businesses can buy or sell services, goods, supplies and eligible\nbusiness orders. A trade may be local, with both parties in the same country,\nor cross-border, with parties in different countries.\n\nTrade can start as a direct deal with a known counterparty, an email invite, an\nopen buyer request, an open seller offer, a verified business connection or an\nagent-assisted match. The parties agree the commercial terms before test USDC\nmoves into milestone escrow on Arc Testnet. Money sits in the escrow contract,\nnot with Karwan or the counterparty, and releases against the agreed outcome.\n\nIndividual and business trade use the same protection layer. Business accounts\ncan also build a portable credit record from settled trade and request financing\nfor eligible Karwan-originated accepted invoices or purchase orders. Financing\nis opt-in: approved financiers quote terms and the supplier chooses. Direct deals\nremain available without verification, while agent matching, verified-business\nfeatures and financing may have eligibility gates.\n\nThe current release is testnet software. Local trade does not mean local-currency\npayment is live. Unified reputation across platforms, browser capture, mainnet\nsettlement and local bank payout are planned expansion, not current capabilities."
     }
   ],
   "facts": [
@@ -361,15 +360,15 @@
         "brand",
         "tokens"
       ],
-      "summary": "These are the values the product actually ships, read from the live stylesheet.",
+      "summary": "These are the published values, from the product's brand palette.",
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-30"
         }
       ],
       "check": null,
-      "updated": "2026-07-27",
+      "updated": "2026-09-30",
       "path": "public/brand/colour.md"
     },
     {
@@ -409,11 +408,11 @@
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-30"
         }
       ],
       "check": null,
-      "updated": "2026-07-27",
+      "updated": "2026-09-30",
       "path": "public/brand/principles.md"
     },
     {
@@ -428,15 +427,15 @@
         "brand",
         "tokens"
       ],
-      "summary": "Three faces, each with one job.",
+      "summary": "One family: General Sans. Hierarchy comes from size and weight, not from a second face or from capitals.",
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-07-27"
+          "date": "2026-09-30"
         }
       ],
       "check": null,
-      "updated": "2026-07-27",
+      "updated": "2026-09-30",
       "path": "public/brand/typography.md"
     },
     {
@@ -771,6 +770,31 @@
       "path": "public/product/trade-anywhere-roadmap.md"
     },
     {
+      "id": "unified-reputation-roadmap",
+      "title": "Unified reputation",
+      "status": "roadmap",
+      "publishable": false,
+      "blockedBy": "not-live",
+      "capability": true,
+      "audience": "all",
+      "tags": [
+        "roadmap",
+        "reputation",
+        "mission",
+        "agents"
+      ],
+      "summary": "Karwan is building one reputation that travels with a person across platforms. This is the direction the rest of the product serves, and it is not live in the current Arc Testnet release.",
+      "sources": [
+        {
+          "url": "https://github.com/Iziedking/Karwan/blob/main/docs/architecture/08-reputation.md",
+          "date": "2026-09-30"
+        }
+      ],
+      "check": null,
+      "updated": "2026-09-30",
+      "path": "public/product/unified-reputation-roadmap.md"
+    },
+    {
       "id": "what-karwan-is",
       "title": "What Karwan is",
       "status": "live",
@@ -784,15 +808,15 @@
         "local-trade",
         "cross-border"
       ],
-      "summary": "Karwan is an open market for secure local and cross-border trade. People and businesses can buy or sell services, goods, supplies and eligible business orders. A trade may be local, with both parties in the same country, or cross-border, with parties in different countries.",
+      "summary": "Karwan unifies online reputation, starting with an open market for secure local and cross-border trade. People join a new marketplace, job board or region and have to vet themselves from zero every time; Karwan is building one reputation that travels with a person, so hidden talent becomes visible and opportunity follows. It starts with Karwan's market, where every completed deal is protected in escrow and recorded.",
       "sources": [
         {
           "url": "https://karwan.site",
-          "date": "2026-09-01"
+          "date": "2026-09-30"
         }
       ],
       "check": null,
-      "updated": "2026-09-01",
+      "updated": "2026-09-30",
       "path": "public/product/what-karwan-is.md"
     }
   ]

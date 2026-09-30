@@ -4,6 +4,10 @@ Reviewed against the implementation on 25 September 2026. Model version: 2.
 
 Karwan reputation summarizes trade history, stake, activity and negative outcomes. It is not proof of identity, a safety guarantee or a financing approval. Trading and staking remain testnet features; a deployed mainnet reputation registry does not make the full trading service available on mainnet.
 
+## Where this model is going
+
+This model covers reputation earned inside Karwan's market, which is where unified reputation starts. Karwan is building one reputation that travels with a person across platforms: agents work with data the person already owns, only with their consent, nothing leaks, and partner platforms join once the working model is designed with them. Karwan deals will keep the most weight because their money, delivery and outcome are all on record. The design is in [architecture view 08](./architecture/08-reputation.md). Everything in the sections below describes the model that runs today.
+
 ## Score and tiers
 
 The backend computes a score from 0 to 1,000. Personal and business workspaces share the customer identity; adding a workspace does not create a separate reputation history.
