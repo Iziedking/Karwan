@@ -8,7 +8,7 @@ export default function TermsPage() {
   const t = useTranslations().termsPage;
   return (
     <FullBleed>
-      <Band tone="light" compact className="rtl:left-auto rtl:right-1/2 rtl:translate-x-1/2">
+      <Band tone="light" compact>
         <div className="mx-auto max-w-[76ch] py-6 sm:py-10">
           <header className="mb-10 border-b border-[var(--lp-border-light)] pb-8">
             <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-[1.1] tracking-[-0.04em] text-[var(--lp-dark)]">{t.eyebrow}</h1>

@@ -99,7 +99,7 @@ export function NetworkTicker() {
 
   return (
     <div
-      className="relative start-1/2 w-bleed -translate-x-1/2 rtl:translate-x-1/2"
+      className="relative w-bleed bleed-center"
       style={{ background: 'var(--lp-workspace-band)' }}
     >
       {/* The band is full-bleed, the movement is not. The track used to run

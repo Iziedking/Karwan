@@ -1749,11 +1749,16 @@ html[data-auth-dialog='open'] .page-feedback-slot {
    page ever shows is a real one: when zoomed in far enough to clip content,
    you can pan left/right to reach it. */
 .w-bleed { width: calc(100vw - var(--scrollbar-width, 0px)); }
+/* Centre a full-bleed band on the viewport with equal negative margins. Both
+   sides move by the same amount, so the band lands in the same place in left-
+   to-right and right-to-left pages, whatever width its parent column has. */
+.bleed-center { margin-inline: calc((100% - (100vw - var(--scrollbar-width, 0px))) / 2); }
 
 /* Workspace bands belong to the available page column, never to the viewport.
    Reflow with the rail rather than clipping the right edge of the content. */
 [data-workspace-main='true'] .w-bleed {
   width: 100%;
+  margin-inline: 0;
   left: auto;
   right: auto;
   /* Tailwind's -translate-x-1/2 uses the individual `translate` property.

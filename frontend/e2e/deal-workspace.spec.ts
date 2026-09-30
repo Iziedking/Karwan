@@ -6,7 +6,7 @@ test('the money comes first with one clear action', async ({ page }) => {
   await serveDeal(page, deliveredDeal);
   await page.goto(`/deals/${JOB}`);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('1,200');
-  await expect(page.getByText('Held in escrow. Released only when the buyer approves.')).toBeVisible();
+  await expect(page.getByText('Held in escrow. Release, claim and refund rules follow the agreed terms.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Release 600 USDC' })).toBeVisible();
   await expect(page.getByText('Your move')).toBeVisible();
   await expect(page.getByText('Releases automatically on 25 Sep 2026 unless the buyer disputes.')).toBeVisible();

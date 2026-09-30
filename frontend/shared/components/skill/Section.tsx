@@ -66,7 +66,7 @@ export function Section({
       variants={sectionReveal}
       transition={{ duration: reduced ? 0 : dur.slow, ease: ease.out }}
       className={cn(
-        'relative start-1/2 w-bleed -translate-x-1/2 rtl:translate-x-1/2',
+        'relative w-bleed bleed-center',
         className,
       )}
       style={{

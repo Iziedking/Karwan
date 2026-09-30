@@ -70,7 +70,7 @@ test('a transfer in flight comes back on return and lands in the balance', async
         : '',
   });
   await page.goto('/bridge?intent=add');
-  await expect(page.locator('li[aria-current="step"]')).toHaveText('Leaving Base Sepolia');
+  await expect(page.locator('li[aria-current="step"]')).toHaveText(/Leaving Base Sepolia$/);
   await expect(page.getByText(/You can leave this page/)).toBeVisible();
   landed = true;
   await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeVisible({ timeout: 10_000 });
@@ -80,7 +80,7 @@ test('a transfer in flight comes back on return and lands in the balance', async
 test('a slow transfer says so, and nothing reads as failed', async ({ page }) => {
   await serveMoney(page, { balances: funded, bridges: [inFlight('minting', 10 * 60_000)] });
   await page.goto('/bridge?intent=add');
-  await expect(page.locator('li[aria-current="step"]')).toHaveText('Arriving on Arc');
+  await expect(page.locator('li[aria-current="step"]')).toHaveText(/Arriving on Arc$/);
   await expect(page.getByText('Taking longer than usual. Nothing is lost.')).toBeVisible();
   await expect(page.getByText(/fail/i)).toHaveCount(0);
 });

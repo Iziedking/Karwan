@@ -62,7 +62,7 @@ export function LegacyBanner() {
     <section
       role="status"
       aria-label={t.ariaLabel}
-      className="relative start-1/2 w-bleed -translate-x-1/2 rtl:translate-x-1/2 overflow-hidden"
+      className="relative w-bleed bleed-center overflow-hidden"
       style={{ background: 'var(--lp-band-dark)' }}
     >
       <div
