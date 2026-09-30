@@ -60,7 +60,10 @@ test('activity keeps personal transactions and the public feed distinct without 
   const activity = source('../../features/activity/components/ActivityView.tsx');
   assert.match(activity, /activity-money-panel/);
   assert.match(activity, /activity-events-panel/);
-  assert.match(activity, /rounded-\[10px\]/);
+  // Transaction history opens first; the public feed is one button away.
+  assert.match(activity, /useState<'money' \| 'events'>\('money'\)/);
+  assert.match(activity, /setActivePanel\(activePanel === 'money' \? 'events' : 'money'\)/);
+  assert.doesNotMatch(activity, /role="tablist"/);
   assert.doesNotMatch(activity, /<ActivityStats|toggleGroup|countByGroup/);
 });
 

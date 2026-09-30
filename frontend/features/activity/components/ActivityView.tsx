@@ -128,21 +128,21 @@ export function ActivityView({ explorer }: { explorer: string }) {
   return (
     <div className="space-y-5">
       <section className="activity-ledger overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]" data-guide="activity-register">
-        <div role="tablist" aria-label={t.moneyTitle} className="flex flex-wrap items-stretch gap-1 border-b border-[var(--lp-border-light)] p-2">
-          <ActivityPanelTab
-            active={activePanel === 'money'}
-            label={t.moneyTitle}
-            tag=""
-            onClick={() => setActivePanel('money')}
-            controls="activity-money-panel"
-          />
-          <ActivityPanelTab
-            active={activePanel === 'events'}
-            label={t.streamEyebrow}
-            tag=""
-            onClick={() => setActivePanel('events')}
-            controls="activity-events-panel"
-          />
+        {/* Transaction history is what people come for. The public pulse is one
+            deliberate press away, from the header's right. */}
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
+          <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">
+            {activePanel === 'money' ? t.moneyTitle : t.streamEyebrow}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setActivePanel(activePanel === 'money' ? 'events' : 'money')}
+            aria-controls={activePanel === 'money' ? 'activity-events-panel' : 'activity-money-panel'}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-[var(--lp-border-light)] px-4 text-[14px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          >
+            {activePanel === 'money' ? t.streamEyebrow : t.moneyTitle}
+            <span aria-hidden className="rtl:rotate-180">→</span>
+          </button>
         </div>
 
         {activePanel === 'money' ? (
@@ -151,10 +151,7 @@ export function ActivityView({ explorer }: { explorer: string }) {
           </div>
         ) : (
           <div id="activity-events-panel" className="min-w-0 space-y-4 p-3 sm:p-4" data-guide="activity-stream">
-        <div ref={streamTopRef} className="flex items-baseline justify-between gap-3 scroll-mt-24">
-          <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
-            {t.streamEyebrow}
-          </span>
+        <div ref={streamTopRef} className="flex items-baseline justify-end gap-3 scroll-mt-24">
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
             {filtered.length === 0
               ? t.countZero
@@ -286,44 +283,6 @@ function StreamRefreshNotice({ body, retryLabel, onRetry }: { body: string; retr
         {retryLabel}
       </button>
     </div>
-  );
-}
-
-function ActivityPanelTab({
-  active,
-  label,
-  tag,
-  onClick,
-  controls,
-}: {
-  active: boolean;
-  label: string;
-  tag: string;
-  onClick: () => void;
-  controls: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-selected={active}
-      aria-controls={controls}
-      role="tab"
-      className={`min-h-11 flex-1 rounded-[10px] px-3 py-2 text-start transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] sm:flex-none sm:min-w-[190px] ${
-        active
-          ? 'bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
-          : 'text-[var(--lp-text-muted)] hover:bg-[var(--lp-light)] hover:text-[var(--lp-ink)]'
-      }`}
-    >
-      {tag && (
-        <span className="block mono text-[8px] uppercase tracking-[0.12em] leading-tight opacity-70 sm:text-[10px] sm:tracking-[0.18em]">
-          {tag}
-        </span>
-      )}
-      <span className={`block whitespace-nowrap text-[10px] leading-tight font-bold uppercase tracking-normal sm:text-[13px] sm:tracking-[0.02em] ${tag ? 'mt-0.5 sm:mt-1' : ''}`}>
-        {label}
-      </span>
-    </button>
   );
 }
 
