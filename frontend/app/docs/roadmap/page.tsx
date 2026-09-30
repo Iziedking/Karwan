@@ -91,6 +91,9 @@ export default function DocsRoadmapPage() {
 
       <DocsH2>{t.next.title}</DocsH2>
 
+      <DocsH3 id="unified-reputation">{t.next.unifiedReputation.title}</DocsH3>
+      <DocsP>{t.next.unifiedReputation.body}</DocsP>
+
       <DocsH3 id="trade-anywhere">{t.next.tradeAnywhere.title}</DocsH3>
       <DocsP>{t.next.tradeAnywhere.body}</DocsP>
 

@@ -28,7 +28,7 @@ export const sw: Messages = {
   activityReview: { filterLabel: 'Chuja shughuli za karibuni kwa aina' },
   onboardingReview: { purpose: 'Weka kiasi cha biashara na muda wa kuwasilisha unaokufaa. Unaweza kubadilisha mapendeleo haya baadaye.', review: 'Kagua mapendeleo yako ya biashara', days: 'siku' },
   landingEditorial: {
-    kicker: "Kazi, bidhaa na fursa za biashara", titleFirst: "Sifa yako inapaswa", titleLast: "kuambatana nawe.", lead: 'Karwan inaunganisha sifa yako ili usianze tena kutoka sifuri. Inaanza na soko wazi ambapo kila biashara iliyokamilika inajenga rekodi yako.',
+    kicker: 'Sifa moja kwa mtandao', titleFirst: "Sifa yako inapaswa", titleLast: "kuambatana nawe.", lead: 'Karwan inaunganisha sifa yako ili usianze tena kutoka sifuri. Inaanza na soko wazi ambapo kila biashara iliyokamilika inajenga rekodi yako.',
     open: 'Fungua Karwan', trade: "Ufikiaji wa mainnet ni kwa mwaliko, mtumiaji mmoja kwa wakati. Soko na makubaliano vinapatikana kwenye testnet.", startLink: 'Jinsi biashara inavyoanza',
     introLabel: "Fursa na sifa", introTitle: "Jenga juu ya kazi uliyokamilisha.", introBody: "Kazi ya mtaalamu, uwasilishaji wa msambazaji na rekodi ya malipo ya mnunuzi vinapaswa kusaidia kupata fursa inayofuata. Karwan inaanza na rekodi ya miamala iliyokamilika hapa. Kushiriki sifa hizo kati ya majukwaa, kwa ruhusa yako, kumepangwa.", marketLink: 'Angalia maombi na ofa', bringLabel: 'Leta makubaliano', bringTitle: 'Tayari unamjua mwenzako', bringBody: 'Weka bidhaa au huduma, kiasi, tarehe ya mwisho na hatua. Mwalike mnunuzi au muuzaji akague masharti hayo.', findLabel: 'Pata mshirika', findTitle: 'Unahitaji mshirika wa biashara', findBody: "Vinjari maombi na ofa kwenye testnet. Kagua historia inayopatikana na masharti yaliyopendekezwa kabla ya kuchagua mshirika.",
     recordLabel: 'Escrow na malipo', recordTitle: 'Malipo yana ratiba.', recordBody: 'Mnunuzi huweka USDC kwenye escrow baada ya pande zote kukubaliana. Karwan huonyesha uwasilishaji, hatua ya sasa na kitakachotokea kwa fedha baadaye.', terms: 'Masharti yamekubaliwa', funded: 'Escrow imefadhiliwa', delivery: 'Uwasilishaji umewasilishwa', reviewed: 'Hatua imekaguliwa', released: 'Malipo yamerekodiwa', both: 'Mnunuzi na muuzaji', buyer: 'Mnunuzi', seller: 'Muuzaji', receipt: 'Risiti ya biashara',
@@ -484,7 +484,7 @@ export const sw: Messages = {
     },
     copyright: {
       entity: '© 2026 Karwan',
-      tagline: 'malipo ya kupita mipaka kwa USDC',
+      tagline: 'sifa moja, ikianza na soko wazi',
     },
     heroClose: 'lipa kwa muda halisi',
     feedbackPrompt: {
@@ -4655,7 +4655,7 @@ export const sw: Messages = {
   docsIndexPage: {
     eyebrow: 'Muhtasari',
     headline: 'Jinsi Karwan inavyofanya kazi',
-    intro: "Karwan husaidia wanunuzi na wauzaji kukubaliana masharti, kuweka USDC kwenye escrow na kukagua uwasilishaji. Biashara zinapatikana kwenye mtandao wa majaribio kwa fedha za majaribio. Mtandao mkuu una pochi na rejista kwa sasa; escrow bado haipatikani.",
+    intro: 'Karwan inajenga sifa moja kwa mtandao, na inaanza na soko. Wanunuzi na wauzaji hukubaliana masharti, hufadhili escrow ya USDC na hukagua uwasilishaji, na kila biashara iliyokamilika inaongeza kwenye rekodi inayobaki kuwa yako. Biashara inapatikana kwenye testnet kwa fedha za majaribio. Programu ya mainnet kwa sasa inasaidia wallet na sajili; escrow ya mainnet bado haipatikani.',
     twoWays: {
       title: 'Njia mbili za kufanya biashara',
       lede: 'Chagua mtiririko unaokufaa kulingana na kama tayari una mwenzio wa biashara au la.',
@@ -4948,6 +4948,7 @@ export const sw: Messages = {
       },
     },
     next: {
+      unifiedReputation: { title: 'Sifa iliyounganishwa', body: 'Mwelekeo ambao kila kitu kingine kinautumikia. Karwan inajenga sifa moja inayokufuata, ili usijithibitishe kuanzia sifuri kwenye soko jipya, jukwaa la kazi au eneo jipya. Inaanza na soko la Karwan: biashara zilizokamilika ndizo chanzo cha kwanza na chenye uzito mkubwa zaidi. Mawakala watafanya kazi tu na data unayomiliki tayari, kwa ridhaa yako, na hakuna kinachovuja. Majukwaa mengine hujiunga kama washirika mara mfumo wa kazi unapobuniwa pamoja nao. Leo sifa yako inatokana na biashara za Karwan zilizokamilika.' },
       tradeAnywhere: {
         title: 'Anzisha biashara iliyolindwa popote',
         body: 'Msaidizi wa kivinjari uliopangwa utafungua Karwan kando ya ukurasa ambako biashara inaanza. X itakuwa sehemu ya kwanza iliyolengwa, kisha mtiririko wa kawaida utafanya kazi kando ya TikTok, Facebook, Instagram, LinkedIn, na ukurasa mwingine wa HTTPS. Utachukua tu muktadha ambao mtumiaji anatoa kwa makusudi, bila kusoma ujumbe binafsi, kuendesha vitendo vya mitandao ya kijamii, au kufanya uamuzi wa kifedha. Mshirika anaweza kukagua na kukubali kwa kiungo cha kawaida cha Karwan bila kusakinisha kiendelezi.',
@@ -5002,7 +5003,7 @@ export const sw: Messages = {
     recordedBody: "Matokeo yako yamerekodiwa kwa mkataba huu. Endelea ukiwa tayari.",
   },
   howItWorksPage: {
-    header: { eyebrow: 'Nyaraka', title: 'Jinsi Karwan inavyofanya kazi', body: 'Karwan inahifadhi USDC katika escrow huku huduma ikitolewa. Kuna njia mbili za kufungua deal, mhimili mmoja wa malipo chini yake. Hii ni mwendo wa hatua kwa hatua: mitiririko, simu za on-chain, na bidhaa za Circle zinazoziendesha. Kila hatua ni muamala halisi kwenye Arc Testnet.' },
+    header: { eyebrow: 'Nyaraka', title: 'Jinsi Karwan inavyofanya kazi', body: 'Karwan inajenga sifa moja kwa mtandao, na inaanza na soko. Kubaliana masharti na mnunuzi au muuzaji, shikilia USDC kwenye escrow, kagua uwasilishaji, na kila biashara iliyokamilika inaongeza kwenye rekodi yako. Soko linaendeshwa kwenye testnet leo; mainnet inatoa ufikiaji wa wallet na sajili, bila escrow.' },
     directDeal: {
       eyebrow: 'Deal ya moja kwa moja',
       title: 'Pale ulipo na mwenzi tayari',
@@ -5018,6 +5019,19 @@ export const sw: Messages = {
       step1: { title: 'Tuma ombi', bodyA: 'Kwenye ', bodyB: ', chagua "Nipatie muuzaji". Andika unachohitaji, weka bajeti na tarehe ya mwisho. Muamala wa ', bodyC: ' unatua Arc ndani ya sekunde chache.' },
       step2: { title: 'Mawakala wanazungumza', bodyA: 'Wakala wa muuzaji anapima ombi na anaita ', bodyB: ". Wakala wa mnunuzi hulinganisha ofa na kujadiliana ndani ya mipaka yako. Unakagua masharti kabla ya kuweka fedha. Utafiti wa kulipia kupitia x402 haujaanza." },
       step3: { title: 'Kamilisha deal', body: "Kagua na ukubali masharti kabla ya kufadhili escrow. Baada ya uwasilishaji, kagua kila hatua na vitendo vya malipo au mgogoro vinavyopatikana." },
+    },
+    direction: {
+      startsLabel: 'Inaanza na soko',
+      eyebrow: 'Tunakoelekea',
+      title: 'Sifa moja inayokufuata kila mahali',
+      body: 'Kila soko jipya, jukwaa la kazi au eneo jipya linawalazimisha watu kujithibitisha kuanzia sifuri. Karwan inajenga sifa moja inayounganisha rekodi yako, ili vipaji vilivyofichwa vionekane na fursa zifuate. Biashara za Karwan zinatangulia kwa sababu malipo, uwasilishaji na matokeo yake yote yamerekodiwa.',
+      consentTitle: 'Data yako, ruhusa yako',
+      consent: 'Mawakala hufanya kazi tu na data unayomiliki tayari, baada ya kuiunganisha na kukubali. Hakuna kinachovuja, kuuzwa wala kukusanywa kwa siri, na unaweza kujiondoa wakati wowote.',
+      partnersTitle: 'Washirika, si ukusanyaji wa siri',
+      partners: 'Majukwaa mengine hujiunga kama washirika mara mfumo wa kazi unapobuniwa pamoja nao. Hakuna linalotajwa kabla ya makubaliano.',
+      earnedTitle: 'Imepatikana, si kudaiwa',
+      earned: 'Chanzo huhesabiwa tu kikiweza kuthibitishwa. Biashara za Karwan zilizokamilika zina uzito mkubwa zaidi.',
+      status: 'Inajengwa. Leo sifa yako ya Karwan inatokana na biashara za Karwan zilizokamilika.',
     },
     contract: {
       eyebrow: 'Nyuma ya pazia',
@@ -5076,9 +5090,10 @@ export const sw: Messages = {
       q8: { q: 'Inahudumia korido zipi?', a: "Karwan ni ya biashara ya bidhaa na huduma ndani ya nchi na kuvuka mipaka. Alika upande unaoujua au chapisha ombi au ofa ili kupata mshirika. Njia zote mbili hutumia escrow ya USDC kwenye Arc." },
       q9: { q: 'Mawazo ya wakala yanafanyika wapi?', a: 'Kila uamuzi unaogusa fedha unashughulikiwa na seti ya kanuni za uhakika nyuma: mipaka ya bajeti na tarehe ya mwisho, ulinganisho wa mada, mahitaji ya dhamana, hesabu ya kuhifadhi. Mfano wa lugha hushughulikia tu sehemu zinazohitaji hukumu, kama vile kama maelezo mawili ya ujuzi yasiyofanana yanaelezea kazi ile ile, au jinsi ya kuandika kaunta. Ikiwa mfano wa lugha unazimika, wakala unaendelea kufanya kazi kupitia njia zake za uhakika za salama.' },
       q10: { q: 'Karwan inawezaje kuweka uwasilishaji salama?', a: "Ukaguzi unaweza kuashiria viungo vinavyotia shaka, lakini hauhakikishi usalama au ubora. Kagua kazi kabla ya kutoa malipo. Ukaguzi ukizuia uwasilishaji, tumia hatua ya kukagua au msaada iliyo kwenye mkataba." },
+      q11: { q: 'Je, naweza kuleta sifa yangu kutoka majukwaa mengine?', a: 'Bado. Karwan inajenga hili ili rekodi yako kwenye majukwaa mengine ihesabiwe hapa, kwa ruhusa yako na bila kuvujisha data yako. Leo sifa yako inatokana na biashara za Karwan zilizokamilika.' },
     },
     videoGuides: { eyebrow: 'Miongozo ya video', title: 'Itazame ikifanya kazi', body: 'Video fupi za kila mtiririko zinakuja. Wakati zinaandaliwa, ziara ya ndani ya programu inakuongoza hatua kwa hatua kwenye kila ukurasa. Ifungue kutoka kitufe cha Ziara chini ya skrini.', badge: 'Inakuja hivi karibuni' },
-    cta: { title: "Fanya biashara yako ijayo kwenye Karwan", body: "Kubalianeni masharti, weka USDC kwenye escrow na fuatilia kila hatua hadi malipo yakamilike.", button: 'Zindua programu', chainPrefix: 'chenya' },
+    cta: { title: 'Anza kujenga rekodi yako', body: 'Kubaliana masharti, fadhili escrow ya USDC, na kila biashara iliyokamilika inaongeza kwenye sifa yako.', button: 'Zindua programu', chainPrefix: 'chenya' },
   },
   brandPage: {
     hero: { tag: 'Chapa', headlineLead: 'Alama ya', headlineAccent: 'Karwan', body: 'Karwan inajenga sifa moja kwa mtandao, ikianza na soko wazi. Pakua alama na jina la chapa, tumia rangi sahihi, na eleza wazi kinachofanya kazi leo na kinachojengwa.' },

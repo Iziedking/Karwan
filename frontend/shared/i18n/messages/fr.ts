@@ -28,7 +28,7 @@ export const fr: Messages = {
   activityReview: { filterLabel: 'Filtrer l’activité récente par type' },
   onboardingReview: { purpose: 'Définissez les montants et délais de livraison qui vous conviennent. Vous pourrez modifier ces préférences plus tard.', review: 'Vérifiez vos préférences commerciales', days: 'jours' },
   landingEditorial: {
-    kicker: "Travail, biens et opportunités commerciales", titleFirst: "Votre réputation devrait", titleLast: "vous suivre partout.", lead: 'Karwan réunit votre réputation pour que vous ne repartiez plus jamais de zéro. Tout commence par un marché ouvert où chaque échange conclu construit votre historique.',
+    kicker: 'Une réputation unique pour internet', titleFirst: "Votre réputation devrait", titleLast: "vous suivre partout.", lead: 'Karwan réunit votre réputation pour que vous ne repartiez plus jamais de zéro. Tout commence par un marché ouvert où chaque échange conclu construit votre historique.',
     open: 'Ouvrir Karwan', trade: "L’accès au mainnet se fait sur invitation, une personne à la fois. Le marché et les accords sont disponibles sur le testnet.", startLink: 'Comment démarrer un accord',
     introLabel: "Opportunités et réputation", introTitle: "Appuyez-vous sur le travail déjà accompli.", introBody: "Le travail d’un indépendant, les livraisons d’un fournisseur et les paiements d’un acheteur devraient les aider à trouver leur prochaine opportunité. Karwan commence par un historique des échanges réalisés ici. Le partage de cette réputation entre plateformes, avec votre accord, est prévu.", marketLink: 'Explorer les demandes et offres',
     bringLabel: 'Proposer un accord', bringTitle: 'Vous connaissez déjà votre partenaire', bringBody: 'Précisez le bien ou service, le montant, l’échéance et les étapes. Invitez l’acheteur ou le vendeur à examiner les mêmes conditions.',
@@ -487,7 +487,7 @@ export const fr: Messages = {
     },
     copyright: {
       entity: '© 2026 Karwan',
-      tagline: 'règlement transfrontalier en USDC',
+      tagline: 'une réputation unique, en commençant par un marché ouvert',
     },
     heroClose: 'régler en temps réel',
     feedbackPrompt: {
@@ -4658,7 +4658,7 @@ export const fr: Messages = {
   docsIndexPage: {
     eyebrow: 'Aperçu',
     headline: 'Comment Karwan fonctionne',
-    intro: "Karwan aide les acheteurs et vendeurs à convenir des conditions, à financer un séquestre en USDC et à examiner la livraison. Les échanges sont disponibles sur le réseau de test avec des fonds de test. Le réseau principal propose actuellement les portefeuilles et les registres, sans séquestre.",
+    intro: 'Karwan construit une réputation unique pour internet, et tout commence par le marché. Acheteurs et vendeurs conviennent des conditions, financent un séquestre en USDC et examinent la livraison, et chaque échange conclu enrichit un historique qui vous appartient. Les échanges sont disponibles sur testnet avec des fonds de test. L’application mainnet prend en charge les wallets et les registres ; le séquestre mainnet n’est pas encore disponible.',
     twoWays: {
       title: 'Les deux façons de trader',
       lede: 'Choisissez le flux selon que vous avez déjà une contrepartie ou non.',
@@ -4951,6 +4951,7 @@ export const fr: Messages = {
       },
     },
     next: {
+      unifiedReputation: { title: 'Réputation unifiée', body: 'La direction que sert tout le reste. Karwan construit une réputation unique qui vous suit, pour ne plus jamais faire vos preuves depuis zéro sur une nouvelle place de marché, plateforme d’emploi ou région. Tout commence par le marché Karwan : les échanges conclus sont la première source et la plus importante. Les agents utiliseront uniquement les données que vous possédez déjà, avec votre accord, et rien n’est divulgué. Les autres plateformes rejoignent Karwan comme partenaires une fois le modèle conçu avec elles. Aujourd’hui, votre réputation vient des échanges Karwan conclus.' },
       tradeAnywhere: {
         title: 'Commencer une transaction protégée depuis n’importe où',
         body: 'Un compagnon de navigateur prévu ouvrira Karwan à côté de la page où la transaction commence. X sera la première surface dédiée, puis le même parcours générique fonctionnera à côté de TikTok, Facebook, Instagram, LinkedIn et de toute autre page HTTPS. Il ne recueillera que le contexte fourni volontairement par l’utilisateur, sans lire les messages privés, automatiser une action sociale ni prendre une décision financière. La contrepartie pourra examiner et accepter la transaction avec un lien Karwan normal, sans installer l’extension.',
@@ -5005,7 +5006,7 @@ export const fr: Messages = {
     recordedBody: "Votre résultat est enregistré pour cette transaction. Continuez quand vous êtes prêt.",
   },
   howItWorksPage: {
-    header: { eyebrow: 'Documentation', title: 'Comment fonctionne Karwan', body: 'Karwan sécurise des USDC en séquestre pendant qu\'un service est livré. Il existe deux façons d\'ouvrir une transaction, sous une seule épine de règlement. Voici le pas à pas: les flux, les appels on-chain et les produits Circle qui les portent. Chaque étape est une transaction réelle sur Arc Testnet.' },
+    header: { eyebrow: 'Documentation', title: 'Comment fonctionne Karwan', body: 'Karwan construit une réputation unique pour internet, et tout commence par le marché. Convenez des conditions avec un acheteur ou un vendeur, bloquez des USDC en séquestre, examinez la livraison, et chaque échange conclu enrichit votre historique. Le marché fonctionne aujourd’hui sur testnet ; le mainnet donne accès au wallet et aux registres, sans séquestre.' },
     directDeal: {
       eyebrow: 'Transaction directe',
       title: 'Quand vous avez déjà une contrepartie',
@@ -5021,6 +5022,19 @@ export const fr: Messages = {
       step1: { title: 'Publier une demande', bodyA: 'Sur ', bodyB: ', choisissez "Trouvez-moi un vendeur". Écrivez ce dont vous avez besoin, fixez un budget et une échéance. Une transaction ', bodyC: ' arrive sur Arc en quelques secondes.' },
       step2: { title: 'Les agents négocient', bodyA: 'L\'agent vendeur évalue la demande et appelle ', bodyB: ". L’agent acheteur compare l’offre et négocie selon vos limites. Vous examinez les conditions avant de financer. La recherche payante via x402 est inactive." },
       step3: { title: 'Régler la transaction', body: "Examinez et approuvez les conditions avant de financer le séquestre. Après livraison, vérifiez chaque étape et les actions de paiement ou de litige disponibles." },
+    },
+    direction: {
+      startsLabel: 'Tout commence par le marché',
+      eyebrow: 'Où nous allons',
+      title: 'Une réputation qui vous suit partout',
+      body: 'Chaque nouvelle place de marché, plateforme d’emploi ou région oblige à faire ses preuves depuis zéro. Karwan construit une réputation unique qui rassemble votre historique, pour que les talents cachés soient vus et que les opportunités suivent. Les échanges Karwan comptent en premier, car leur paiement, leur livraison et leur issue sont enregistrés.',
+      consentTitle: 'Vos données, votre accord',
+      consent: 'Les agents utilisent uniquement les données que vous possédez déjà, après que vous les avez connectées et acceptées. Rien n’est divulgué, vendu ni aspiré, et vous pouvez vous retirer à tout moment.',
+      partnersTitle: 'Des partenaires, pas d’aspiration',
+      partners: 'Les autres plateformes rejoignent Karwan comme partenaires une fois le modèle conçu avec elles. Aucune n’est nommée avant un accord.',
+      earnedTitle: 'Mérité, pas déclaré',
+      earned: 'Une source ne compte que si elle peut être vérifiée. Les échanges Karwan conclus pèsent le plus.',
+      status: 'En construction. Aujourd’hui, votre réputation Karwan vient des échanges Karwan conclus.',
     },
     contract: {
       eyebrow: 'Sous le capot',
@@ -5079,9 +5093,10 @@ export const fr: Messages = {
       q8: { q: 'Quels corridors cela sert-il?', a: "Karwan accompagne le commerce local et transfrontalier de biens et services. Invitez un partenaire connu ou publiez une demande ou une offre pour en trouver un. Les deux parcours utilisent le séquestre en USDC sur Arc." },
       q9: { q: 'Où tourne le raisonnement de l\'agent?', a: 'Chaque décision qui touche à l\'argent est gérée par un jeu de règles déterministe côté backend: bornes de budget et d\'échéance, correspondance thématique, exigences de mise, calcul de réservation. Un modèle de langue ne traite que les parties qui demandent un jugement, comme savoir si deux descriptions de compétences sans recouvrement décrivent le même travail, ou comment formuler une contre-offre. Si le modèle de langue tombe, l\'agent continue de fonctionner via ses replis déterministes.' },
       q10: { q: 'Comment Karwan sécurise-t-il la livraison ?', a: "Les contrôles peuvent signaler des liens suspects, mais ne garantissent ni sécurité ni qualité. Examinez la livraison avant de payer. Si un contrôle la bloque, utilisez l’action de vérification ou d’assistance affichée." },
+      q11: { q: 'Puis-je apporter ma réputation d’autres plateformes ?', a: 'Pas encore. Karwan construit cette fonction pour que votre historique sur d’autres plateformes compte ici, avec votre accord et sans divulguer vos données. Aujourd’hui, votre réputation vient des échanges Karwan conclus.' },
     },
     videoGuides: { eyebrow: 'Guides vidéo', title: 'Voyez-le en action', body: 'De courtes vidéos de chaque flux arrivent bientôt. En attendant, la visite intégrée vous guide pas à pas sur chaque page. Ouvrez-la depuis le bouton Visite en bas de l\'écran.', badge: 'Bientôt' },
-    cta: { title: "Concluez votre prochain accord sur Karwan", body: "Convenez des conditions, approvisionnez le séquestre en USDC et suivez chaque étape jusqu’au règlement.", button: 'Lancer l\'app', chainPrefix: 'chaîne' },
+    cta: { title: 'Commencez à construire votre historique', body: 'Convenez des conditions, financez le séquestre en USDC, et chaque échange conclu renforce votre réputation.', button: 'Lancer l\'app', chainPrefix: 'chaîne' },
   },
   brandPage: {
     hero: { tag: 'Marque', headlineLead: 'La marque', headlineAccent: 'Karwan', body: 'Karwan construit une réputation unique pour internet, en commençant par un marché ouvert. Téléchargez le logo et le nom, utilisez la palette exacte, et distinguez clairement ce qui fonctionne aujourd\'hui de ce qui est en construction.' },

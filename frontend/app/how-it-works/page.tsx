@@ -25,8 +25,36 @@ export default function HowItWorksPage() {
         </p>
       </header>
 
-      {/* DIRECT DEAL FLOW */}
+      {/* WHERE IT IS GOING */}
       <section className="space-y-6">
+        <div className="max-w-2xl">
+          <span className={SECTION_LABEL}>{t.direction.eyebrow}</span>
+          <h2 className="text-[26px] tracking-tight font-semibold mt-2">{t.direction.title}</h2>
+          <p className="text-[14px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{t.direction.body}</p>
+        </div>
+        <div className="grid gap-x-8 md:grid-cols-3">
+          {([
+            [t.direction.consentTitle, t.direction.consent],
+            [t.direction.partnersTitle, t.direction.partners],
+            [t.direction.earnedTitle, t.direction.earned],
+          ] as const).map(([title, body]) => (
+            <div key={title} className="border-t border-[var(--color-line)] py-5">
+              <p className="text-[14px] font-semibold">{title}</p>
+              <p className="text-[13px] text-[var(--color-ink-dim)] mt-2 leading-relaxed">{body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="flex items-start gap-2 text-[13px] text-[var(--color-ink-dim)]">
+          <span aria-hidden className="mt-[6px] size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />
+          {t.direction.status}
+        </p>
+      </section>
+
+      {/* WHERE IT STARTS */}
+      <p className="text-[20px] font-semibold tracking-tight">{t.direction.startsLabel}</p>
+
+      {/* DIRECT DEAL FLOW */}
+      <section className="-mt-6 space-y-6 sm:-mt-12">
         <div className="max-w-2xl">
           <span className={SECTION_LABEL}>
             {t.directDeal.eyebrow}
@@ -101,6 +129,9 @@ export default function HowItWorksPage() {
           <h2 className="text-[26px] tracking-tight font-semibold mt-2">{t.faq.title}</h2>
         </div>
         <div className="divide-y divide-[var(--color-line)] border-y border-[var(--color-line)]">
+          <Faq q={t.faq.q11.q}>
+            {t.faq.q11.a}
+          </Faq>
           <Faq q={t.faq.q2.q}>
             {t.faq.q2.a}
           </Faq>

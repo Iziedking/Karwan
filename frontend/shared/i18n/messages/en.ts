@@ -4565,6 +4565,7 @@ interface MessagesShape {
     };
     next: {
       title: string;
+      unifiedReputation: { title: string; body: string };
       tradeAnywhere: { title: string; body: string };
       financeNetwork: { title: string; body: string };
       localPayouts: { title: string; body: string };
@@ -4622,6 +4623,19 @@ interface MessagesShape {
       step2: { title: string; bodyA: string; bodyB: string };
       step3: { title: string; body: string };
     };
+    direction: {
+      startsLabel: string;
+      eyebrow: string;
+      title: string;
+      body: string;
+      consentTitle: string;
+      consent: string;
+      partnersTitle: string;
+      partners: string;
+      earnedTitle: string;
+      earned: string;
+      status: string;
+    };
     contract: {
       eyebrow: string; title: string; bodyA: string; bodyB: string;
       step1: { actor: string; bodyA: string; bodyB: string };
@@ -4665,6 +4679,7 @@ interface MessagesShape {
       q8: { q: string; a: string };
       q9: { q: string; a: string };
       q10: { q: string; a: string };
+      q11: { q: string; a: string };
     };
     videoGuides: { eyebrow: string; title: string; body: string; badge: string };
     cta: { title: string; body: string; button: string; chainPrefix: string };
@@ -5328,7 +5343,7 @@ export const en: MessagesShape = {
   activityReview: { filterLabel: 'Filter recent activity by type' },
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
   landingEditorial: {
-    kicker: "Work, goods and business opportunities", titleFirst: "Your reputation should", titleLast: "travel with you.",
+    kicker: 'One reputation for the internet', titleFirst: "Your reputation should", titleLast: "travel with you.",
     lead: 'Karwan brings your reputation together, so you never start from zero again. It starts with an open market where every completed trade builds your record.',
     open: 'Open Karwan', trade: "Mainnet access is by invitation, one user at a time. The market and deal flow are available on testnet.", startLink: 'How a deal starts',
     introLabel: "Opportunity and reputation", introTitle: "Build on the work you have already done.", introBody: "A freelancer’s completed work, a supplier’s deliveries and a buyer’s payment history should help them find their next opportunity. Karwan starts with a record of trades completed here. Sharing that reputation across platforms, with your permission, is planned.", marketLink: 'Explore requests and offers',
@@ -5789,7 +5804,7 @@ export const en: MessagesShape = {
     },
     copyright: {
       entity: '© 2026 Karwan',
-      tagline: 'cross-border settlement on USDC',
+      tagline: 'one reputation, starting with an open market',
     },
     heroClose: 'settle in real time',
     feedbackPrompt: {
@@ -10072,7 +10087,7 @@ export const en: MessagesShape = {
   docsIndexPage: {
     eyebrow: 'Overview',
     headline: 'How Karwan works',
-    intro: "Karwan helps buyers and sellers agree terms, fund USDC escrow and review delivery. Trading is available on testnet with test funds. The mainnet application currently supports wallets and registries; mainnet escrow is not yet available.",
+    intro: 'Karwan is building one reputation for the internet, and it starts with the market. Buyers and sellers agree terms, fund USDC escrow and review delivery, and every completed deal adds to a record that stays with you. Trading is available on testnet with test funds. The mainnet application currently supports wallets and registries; mainnet escrow is not yet available.',
     twoWays: {
       title: 'One identity. Two workspaces.',
       lede: 'Keep one login, one customer wallet, and one USDC balance as you move between personal and business trade.',
@@ -10408,6 +10423,7 @@ export const en: MessagesShape = {
     },
     next: {
       title: 'Planned or incomplete',
+      unifiedReputation: { title: 'Unified reputation', body: 'The direction everything else serves. Karwan is building one reputation that travels with you, so you never vet yourself from zero on a new marketplace, job board or region. It starts with Karwan\'s market: completed deals are the first and most heavily weighted input. Agents will work only with data you already own, with your consent, and nothing is leaked. Other platforms join as partners once the working model is designed with them. Today your reputation comes from completed Karwan deals.' },
       tradeAnywhere: {
         title: 'Start a protected trade from anywhere',
         body: 'A planned browser companion will open Karwan beside the page where a trade begins. The first focused surface is X, followed by generic support beside TikTok, Facebook, Instagram, LinkedIn, and other HTTPS pages. It will capture only context the user deliberately supplies, never read private messages, automate social actions, or make financial decisions. The counterparty can review and accept through a normal Karwan link without installing the extension.',
@@ -10467,7 +10483,7 @@ export const en: MessagesShape = {
     header: {
       eyebrow: 'Documentation',
       title: 'How Karwan works',
-      body: "Agree terms with a buyer or seller, fund USDC escrow, review delivery and keep the payment record. This guide covers the testnet trade flow. Mainnet currently provides wallet access and registries, without escrow.",
+      body: 'Karwan is building one reputation for the internet, and it starts with the market. Agree terms with a buyer or seller, hold USDC in escrow, review delivery, and every completed deal adds to your record. The market runs on testnet today; mainnet provides wallet access and registries, without escrow.',
     },
     directDeal: {
       eyebrow: 'Bring a deal',
@@ -10484,6 +10500,19 @@ export const en: MessagesShape = {
       step1: { title: 'Post a request', bodyA: 'On ', bodyB: ', pick "Find me a seller". Write what you need, set a budget and deadline. A ', bodyC: ' transaction lands on Arc in a few seconds.' },
       step2: { title: 'Agents negotiate', bodyA: 'The seller agent scores the request and calls ', bodyB: ". The buyer agent compares the offer and negotiates within your limits. You review the proposed terms before funding. Paid research through x402 is not live." },
       step3: { title: 'Settle the deal', body: "Review and approve the agreed terms before funding escrow. After delivery, review each milestone and the available release or dispute actions." },
+    },
+    direction: {
+      startsLabel: 'It starts with the market',
+      eyebrow: 'Where it is going',
+      title: 'One reputation that travels with you',
+      body: 'Every new marketplace, job board or region makes people prove themselves from zero. Karwan is building one reputation that brings your record together, so hidden talent is seen and opportunity follows. Karwan deals come first because their money, delivery and outcome are all on record.',
+      consentTitle: 'Your data, your permission',
+      consent: 'Agents work only with data you already own, after you connect it and agree. Nothing is leaked, sold or scraped, and you can withdraw at any time.',
+      partnersTitle: 'Partners, not scraping',
+      partners: 'Other platforms join as partners once the working model is designed with them. None is named until an agreement exists.',
+      earnedTitle: 'Earned, not claimed',
+      earned: 'A source counts only if it can be verified. Completed Karwan deals carry the most weight.',
+      status: 'Being built. Today your Karwan reputation comes from completed Karwan deals.',
     },
     contract: {
       eyebrow: 'Under the hood',
@@ -10546,9 +10575,10 @@ export const en: MessagesShape = {
       q8: { q: 'What kinds of trade can I use?', a: "Karwan is for local and cross-border goods or services. Bring a counterparty you already know, or publish a request or offer to find one. Both paths use USDC escrow on Arc." },
       q9: { q: 'Where does the agent reasoning run?', a: "Agents compare candidates and propose terms within your budget and deadline. You review the terms before funding. Contract rules determine later releases, refunds and disputes." },
       q10: { q: 'How does Karwan keep delivery safe?', a: "Delivery checks can flag suspicious links, but they cannot guarantee safety or quality. Inspect the deliverable before releasing payment. If a check blocks a delivery, use the review or support action shown on the deal." },
+      q11: { q: 'Can I bring my reputation from other platforms?', a: 'Not yet. Karwan is building this so your record from other platforms can count here, with your permission and without leaking your data. Today your reputation comes from completed Karwan deals.' },
     },
     videoGuides: { eyebrow: 'Guided help', title: 'Know what to do next', body: 'Use the page tour on sensitive screens when you need context. It stays out of the way for returning users and can be opened again from the page control.', badge: 'In the app' },
-    cta: { title: "Put your next trade on Karwan", body: "Agree the terms, fund USDC escrow, and follow each milestone through settlement.", button: 'Launch app', chainPrefix: 'chain' },
+    cta: { title: 'Start building your record', body: 'Agree the terms, fund USDC escrow, and every completed deal adds to your reputation.', button: 'Launch app', chainPrefix: 'chain' },
   },
   brandPage: {
     hero: { tag: 'Brand', headlineLead: 'The Karwan', headlineAccent: 'mark', body: 'Karwan is building one reputation for the internet, starting with an open market. Download the mark and wordmark, use the exact palette, and say clearly what is live and what is being built.' },
