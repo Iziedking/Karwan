@@ -1305,6 +1305,19 @@ interface MessagesShape {
       emailHint: string;
       emailPlaceholder: string;
       emailInvalid: string;
+      modeWallet: string;
+      modeContact: string;
+      contactLabel: string;
+      contactHint: string;
+      contactPlaceholder: string;
+      contactLooking: string;
+      contactKarwan: string;
+      contactPaytag: string;
+      contactNotFound: string;
+      contactNotFoundPaytag: string;
+      contactSelf: string;
+      contactInvalid: string;
+      contactError: string;
     };
     terms: {
       eyebrow: string;
@@ -6674,6 +6687,19 @@ export const en: MessagesShape = {
       emailHint: 'We email them a one-shot link. The deal sits idle until they claim. Nothing funds before then.',
       emailPlaceholder: 'them@work.com',
       emailInvalid: 'Not a valid email address.',
+      modeWallet: 'Wallet address',
+      modeContact: 'Email or tag',
+      contactLabel: 'Email, Karwan tag or Paytag',
+      contactHint: 'Their email, their @tag on Karwan, or their Paytag. A tag keeps their address off the page.',
+      contactPlaceholder: 'them@work.com or @tag',
+      contactLooking: 'Looking up @{tag}…',
+      contactKarwan: '{name} · @{tag} on Karwan',
+      contactPaytag: '@{tag} · Paytag · {masked}',
+      contactNotFound: 'No one on Karwan uses @{tag}. Check it with them, or use their email.',
+      contactNotFoundPaytag: 'No Karwan account or Paytag uses @{tag}. Check it with them, or use their email.',
+      contactSelf: 'That is your own tag.',
+      contactInvalid: 'Enter an email address or a @tag.',
+      contactError: 'Could not look up that tag. Try again.',
     },
     terms: {
       eyebrow: 'Deal terms',

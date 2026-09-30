@@ -118,7 +118,7 @@ function SellerPageInner() {
       {/* POST LISTING */}
       <Band tone="dark" compact>
         <div id="post-listing" className="scroll-mt-20" />
-        <div className="mt-6 space-y-5">
+        <div className="mt-6 max-w-[760px] space-y-5">
           <div className="min-w-0">
             <div
               className="overflow-hidden"

@@ -14,13 +14,12 @@ import { CreationReview } from './CreationReview';
 import { validAmount, validWhole } from '../creationValidation';
 import { primeCreatedDirectDeal } from '../creationHandoff';
 import { splitDeadline } from '../deadlineSplit';
+import { lookupContact, parseContact, type ContactMatch } from '../counterpartyInput';
+import { fill } from '../workspace/presentation';
 import type { Messages } from '@/shared/i18n/messages/en';
 
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
-/// A Paytag handle, with or without the leading @. Kept deliberately narrow so
-/// a half-typed address never gets mistaken for a handle and fired at the API.
-const PAYTAG_RE = /^@?[a-zA-Z0-9_-]{1,32}$/;
-/// P2P rollout flag. Must match the backend's PAYTAG_ENABLED; when the backend
+/// Paytag rollout flag. Must match the backend's PAYTAG_ENABLED; when the backend
 /// is off it rejects the handle anyway, this just keeps the field honest.
 const PAYTAG_ENABLED = process.env.NEXT_PUBLIC_PAYTAG_ENABLED === '1';
 
@@ -184,63 +183,49 @@ export function DirectDealForm() {
   const sameWallet =
     sellerValid && address && seller.trim().toLowerCase() === address.toLowerCase();
 
-  /// The counterparty field takes a wallet address OR a Paytag handle, the way
-  /// a wallet takes an ENS name: you paste whatever they handed you. Paytag is
-  /// P2P only, so it is offered only when this deal would NOT land in the
-  /// finance lane (a business trading goods/mixed). A handle is a nickname that
-  /// anyone can claim, and the finance lane moves credit against a verified
-  /// business, so it keeps demanding a real address.
+  /// The second box takes an email, a Karwan tag or a Paytag. A tag is looked
+  /// up as a Karwan tag first, then as a Paytag. Paytag is P2P only, so it is
+  /// not offered when this deal would land in the finance lane (a business
+  /// trading goods/mixed): a handle anyone can claim must not decide where
+  /// credit moves. A Karwan tag is an account, so it is allowed everywhere.
   const paytagAllowed = PAYTAG_ENABLED && !(isBusiness && tradeType !== 'service');
-  const sellerLooksLikePaytag =
-    paytagAllowed &&
-    counterpartyMode === 'wallet' &&
-    !sellerValid &&
-    PAYTAG_RE.test(seller.trim());
-
-  const [paytagHit, setPaytagHit] = useState<{ handle: string; maskedAddress: string } | null>(
-    null,
-  );
-  const [paytagMissing, setPaytagMissing] = useState(false);
-  const [paytagLooking, setPaytagLooking] = useState(false);
+  const contact = parseContact(counterpartyEmail);
+  const [contactMatch, setContactMatch] = useState<ContactMatch | null>(null);
+  const [contactState, setContactState] = useState<'idle' | 'looking' | 'missing' | 'self' | 'error'>('idle');
 
   // Debounced so the lookup fires when they stop typing, not per keystroke.
-  const paytagQuery = sellerLooksLikePaytag ? seller.trim().replace(/^@/, '').toLowerCase() : null;
+  const tagQuery = counterpartyMode === 'email' && contact.kind === 'tag' ? contact : null;
+  const tagKey = tagQuery ? `${tagQuery.tag}:${paytagAllowed}` : null;
   useEffect(() => {
-    if (!paytagQuery) {
-      setPaytagHit(null);
-      setPaytagMissing(false);
-      setPaytagLooking(false);
+    if (!tagQuery) {
+      setContactMatch(null);
+      setContactState('idle');
       return;
     }
     let live = true;
-    setPaytagLooking(true);
+    setContactMatch(null);
+    setContactState('looking');
     const t = setTimeout(() => {
-      api
-        .resolvePaytag(paytagQuery)
-        .then((r) => {
+      lookupContact(tagQuery, { paytagAllowed, karwan: api.resolveKarwanTag, paytag: api.resolvePaytag }).then(
+        (result) => {
           if (!live) return;
-          if (r.found && r.handle && r.maskedAddress) {
-            setPaytagHit({ handle: r.handle, maskedAddress: r.maskedAddress });
-            setPaytagMissing(false);
-          } else {
-            setPaytagHit(null);
-            setPaytagMissing(true);
-          }
-        })
-        .catch(() => {
-          if (!live) return;
-          setPaytagHit(null);
-          setPaytagMissing(true);
-        })
-        .finally(() => {
-          if (live) setPaytagLooking(false);
-        });
+          if (result === 'self') setContactState('self');
+          else if (result) {
+            setContactMatch(result);
+            setContactState('idle');
+          } else setContactState('missing');
+        },
+        () => {
+          if (live) setContactState('error');
+        },
+      );
     }, 350);
     return () => {
       live = false;
       clearTimeout(t);
     };
-  }, [paytagQuery]);
+    // tagKey carries the tag and whether Paytag is allowed.
+  }, [tagKey]);
 
   // Look the counterparty up once per address. Seeding overwrites the company
   // fields because the partner's own card is more authoritative than anything
@@ -273,14 +258,8 @@ export function DirectDealForm() {
       live = false;
     };
   }, [lookupAddr]);
-  // Loose email pattern. Backend re-validates via zod.
-  const emailValid =
-    counterpartyEmail.trim().length > 3 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(counterpartyEmail.trim());
   const counterpartyValid =
-    counterpartyMode === 'wallet'
-      ? (sellerValid && !sameWallet) || !!paytagHit
-      : emailValid;
+    counterpartyMode === 'wallet' ? sellerValid && !sameWallet : contact.kind === 'email' || !!contactMatch;
   const amountValid = validAmount(amount);
   // Single-input deadline with a min/hr/day unit toggle. Bounds per unit
   // mirror the buyer brief form so behaviour is identical across surfaces.
@@ -341,10 +320,12 @@ export function DirectDealForm() {
       const r = await api.createDirectDeal({
         buyerAddress: address!,
         ...(counterpartyMode === 'wallet'
-          ? paytagHit
-            ? { sellerPaytag: paytagHit.handle }
-            : { sellerAddress: seller.trim() }
-          : { sellerEmail: counterpartyEmail.trim().toLowerCase() }),
+          ? { sellerAddress: seller.trim() }
+          : contactMatch?.kind === 'karwan'
+            ? { sellerAddress: contactMatch.address }
+            : contactMatch?.kind === 'paytag'
+              ? { sellerPaytag: contactMatch.tag }
+              : { sellerEmail: counterpartyEmail.trim().toLowerCase() }),
         dealAmountUsdc: amount as number,
         deadlineDays: submitDays,
         deadlineHours: submitHours,
@@ -409,48 +390,23 @@ export function DirectDealForm() {
               onClick={() => setCounterpartyMode(mode)} disabled={submitting}
               className="min-h-11 rounded-xl border px-4 text-[14px] font-semibold"
               style={{ background: counterpartyMode === mode ? 'var(--lp-control-active-bg)' : 'transparent', color: counterpartyMode === mode ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)', borderColor: 'var(--lp-outline)' }}>
-              {mode === 'email' ? c.email : paytagAllowed ? c.wallet : dd.counterparty.walletLabel}
+              {mode === 'email' ? dd.counterparty.modeContact : dd.counterparty.modeWallet}
             </button>
           ))}
         </div>
         {counterpartyMode === 'wallet' ? (
-          <FormLabel
-            label={paytagAllowed ? dd.counterparty.walletOrPaytagLabel : dd.counterparty.walletLabel}
-            hint={paytagAllowed ? dd.counterparty.walletOrPaytagHint : dd.counterparty.walletHint}
-          >
+          <FormLabel label={dd.counterparty.walletLabel} hint={dd.counterparty.walletHint}>
             <input
               type="text"
               value={seller}
               onChange={(e) => setSeller(e.target.value)}
-              placeholder={
-                paytagAllowed
-                  ? dd.counterparty.walletOrPaytagPlaceholder
-                  : dd.counterparty.walletPlaceholder
-              }
+              placeholder={dd.counterparty.walletPlaceholder}
               disabled={submitting}
               className="form-input form-input-mono"
             />
-            {paytagLooking && (
-              <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
-                {dd.counterparty.paytagLooking}
-              </span>
-            )}
-            {paytagHit && (
-              <p className="mt-2 mono text-[12px] text-[var(--lp-dark)]">
-                <span style={{ color: 'var(--lp-accent)' }}>@{paytagHit.handle}</span>
-                <span className="text-[var(--lp-text-muted)]"> · {paytagHit.maskedAddress}</span>
-              </p>
-            )}
-            {paytagMissing && !paytagLooking && (
+            {seller.length > 0 && !sellerValid && (
               <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
-                {dd.counterparty.paytagNotFound}
-              </span>
-            )}
-            {seller.length > 0 && !sellerValid && !sellerLooksLikePaytag && (
-              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
-                {paytagAllowed
-                  ? dd.counterparty.walletOrPaytagInvalid
-                  : dd.counterparty.walletInvalid}
+                {dd.counterparty.walletInvalid}
               </span>
             )}
             {sameWallet && (
@@ -503,22 +459,39 @@ export function DirectDealForm() {
             )}
           </FormLabel>
         ) : (
-          <FormLabel
-            label={dd.counterparty.emailLabel}
-            hint={dd.counterparty.emailHint}
-          >
+          <FormLabel label={dd.counterparty.contactLabel} hint={dd.counterparty.contactHint}>
             <input
-              type="email"
+              type="text"
+              inputMode="email"
+              autoComplete="off"
+              spellCheck={false}
               value={counterpartyEmail}
               onChange={(e) => setCounterpartyEmail(e.target.value)}
-              placeholder={dd.counterparty.emailPlaceholder}
+              placeholder={dd.counterparty.contactPlaceholder}
               disabled={submitting}
               className="form-input"
             />
-            {counterpartyEmail.length > 3 && !emailValid && (
-              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
-                {dd.counterparty.emailInvalid}
+            {contact.kind === 'tag' && contactState === 'looking' && (
+              <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
+                {fill(dd.counterparty.contactLooking, { tag: contact.tag })}
               </span>
+            )}
+            {contactMatch && (
+              <p className="mt-2 text-[13px] text-[var(--lp-dark)]">
+                {contactMatch.kind === 'karwan'
+                  ? fill(dd.counterparty.contactKarwan, { name: contactMatch.displayName, tag: contactMatch.tag })
+                  : fill(dd.counterparty.contactPaytag, { tag: contactMatch.tag, masked: contactMatch.maskedAddress })}
+              </p>
+            )}
+            {contact.kind === 'tag' && contactState === 'missing' && (
+              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
+                {fill(paytagAllowed ? dd.counterparty.contactNotFoundPaytag : dd.counterparty.contactNotFound, { tag: contact.tag })}
+              </span>
+            )}
+            {contactState === 'self' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactSelf}</span>}
+            {contactState === 'error' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactError}</span>}
+            {contact.kind === 'invalid' && counterpartyEmail.trim().length > 3 && (
+              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactInvalid}</span>
             )}
           </FormLabel>
         )}
@@ -1037,7 +1010,17 @@ export function DirectDealForm() {
         setReviewing(false);
         requestAnimationFrame(() => formRef.current?.querySelector<HTMLInputElement>('input')?.focus());
       }} rows={[
-        { label: c.seller, value: counterpartyMode === 'email' ? counterpartyEmail : seller },
+        {
+          label: c.seller,
+          value:
+            counterpartyMode === 'wallet'
+              ? seller
+              : contactMatch?.kind === 'karwan'
+                ? `${contactMatch.displayName} · @${contactMatch.tag}`
+                : contactMatch?.kind === 'paytag'
+                  ? `@${contactMatch.tag}`
+                  : counterpartyEmail.trim(),
+        },
         { label: c.delivery, value: terms },
         { label: dd.terms.amountLabel, value: `${amount} USDC` },
         { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : `${submitDays * 24 + submitHours} ${dd.preview.unitHr}` },

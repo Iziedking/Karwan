@@ -258,3 +258,23 @@ for (const path of PAGES) {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 }
+
+test('a direct deal takes a wallet address in one box and an email or tag in the other', async ({ page }) => {
+  await serveSearch(page, {
+    balances: { ...funded },
+    tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
+  });
+  await page.goto('/buyer?mode=direct');
+  await expect(page.getByRole('button', { name: 'Wallet address', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Email or tag', exact: true }).click();
+  const box = page.getByLabel('Email, Karwan tag or Paytag');
+
+  await box.fill('@ada');
+  await expect(page.getByText('Ada Obi · @ada on Karwan')).toBeVisible();
+
+  await box.fill('@nobody');
+  await expect(page.getByText('No one on Karwan uses @nobody. Check it with them, or use their email.')).toBeVisible();
+
+  await box.fill('them@work.com');
+  await expect(page.getByText('No one on Karwan uses', { exact: false })).toHaveCount(0);
+});
