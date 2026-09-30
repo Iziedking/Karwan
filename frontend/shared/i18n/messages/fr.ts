@@ -3204,7 +3204,7 @@ export const fr: Messages = {
     },
     consequence: {
       accept: 'Vous acceptez ces conditions. L\'acheteur peut ensuite financer l\'accord.',
-      fundTemplate: '{amount} USDC passent en séquestre. Ils sont libérés quand vous validez le travail, ou le vendeur peut les réclamer à la fin du délai d\'examen.',
+      fundTemplate: '{amount} USDC passent en séquestre. Ils sont libérés quand vous validez le travail, ou à la fin du délai d\'examen sans litige.',
       releaseTemplate: '{amount} USDC vont à {name}.',
       claimTemplate: '{amount} USDC vous reviennent. Le délai d\'examen est terminé.',
       reviewManually: 'Vous examinez la livraison vous-même. Votre délai d\'examen commence maintenant, et vous pouvez toujours contester.',
@@ -5362,9 +5362,9 @@ export const fr: Messages = {
     header: {
       eyebrow: 'Envoi sortant',
       title: 'Retrait depuis Arc',
-      subtitle: 'CCTP V2 · gas sponsorisé',
+      subtitle: 'Vers tout réseau pris en charge',
     },
-    reassurance: 'Karwan prend en charge les frais de réseau. Votre argent arrive sur la chaîne que vous choisissez.',
+    reassurance: 'Votre argent arrive sur la chaîne que vous choisissez.',
     web3Fallback: 'Sortir depuis un wallet web3 signe le burn Arc vous-même, c’est en cours. Utilisez un compte Karwan email pour sortir maintenant.',
     form: {
       destinationEyebrow: 'Destination',

@@ -8543,7 +8543,7 @@ export const en: MessagesShape = {
     },
     consequence: {
       accept: 'You agree to these terms. The buyer can then fund the deal.',
-      fundTemplate: '{amount} USDC moves into escrow. It is released when you approve the work, or the seller can claim it once the review window ends.',
+      fundTemplate: '{amount} USDC moves into escrow. It is released when you approve the work, or when the review window ends without a dispute.',
       releaseTemplate: '{amount} USDC goes to {name}.',
       claimTemplate: '{amount} USDC comes to you. The review window has ended.',
       reviewManually: 'You review the delivery yourself. Your review time starts now, and you can still dispute.',
@@ -10817,9 +10817,9 @@ export const en: MessagesShape = {
     header: {
       eyebrow: 'Cash out',
       title: 'Cash out',
-      subtitle: 'Powered by Circle · fee covered',
+      subtitle: 'To any supported network',
     },
-    reassurance: 'Karwan covers the network fee. Your money lands on the chain you choose.',
+    reassurance: 'Your money lands on the chain you choose.',
     web3Fallback: 'Bridging out from a web3 wallet signs the Arc burn yourself, which is coming soon. Use a Karwan email account to send out now.',
     form: {
       destinationEyebrow: 'Destination',

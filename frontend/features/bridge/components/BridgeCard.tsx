@@ -668,27 +668,8 @@ export function BridgeCard({
 
   return (
     <div style={CARD_STYLE} className="h-full flex flex-col overflow-hidden">
-      <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-            {bc.eyebrow.topUpAgent}
-          </span>
-          <h2 className="mt-2 font-sans text-[22px] font-extrabold uppercase tracking-[-0.02em] leading-none text-[var(--lp-dark)]">
-            {bc.title}
-          </h2>
-          <p className="mt-2 inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-            <span>{bc.cctpV2}</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/circle-logo.png"
-              alt="Circle"
-              width={20}
-              height={20}
-              className="inline-block rounded-full shrink-0 object-cover"
-              style={{ width: 20, height: 20 }}
-            />
-          </p>
-        </div>
+      {/* The page heading already names this task; the card starts at the form. */}
+      <div className="px-6 pt-6 pb-4 flex items-start justify-end gap-4">
         {activeCount > 0 && (
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] mono font-bold uppercase tracking-[0.14em] shrink-0"

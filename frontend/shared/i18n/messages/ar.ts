@@ -3204,7 +3204,7 @@ export const ar: Messages = {
     },
     consequence: {
       accept: 'توافق على هذه الشروط. يمكن للمشتري بعدها تمويل الصفقة.',
-      fundTemplate: 'ينتقل {amount} USDC إلى الضمان. يُحرَّر عند موافقتك على العمل، أو يمكن للبائع المطالبة به عند انتهاء مهلة المراجعة.',
+      fundTemplate: 'ينتقل {amount} USDC إلى الضمان. يُحرَّر عند موافقتك على العمل، أو عند انتهاء مهلة المراجعة دون نزاع.',
       releaseTemplate: 'يذهب {amount} USDC إلى {name}.',
       claimTemplate: 'يصلك {amount} USDC. انتهت مدة المراجعة.',
       reviewManually: 'تراجع التسليم بنفسك. يبدأ وقت المراجعة الآن، ويمكنك الاعتراض لاحقاً.',
@@ -5362,9 +5362,9 @@ export const ar: Messages = {
     header: {
       eyebrow: 'إرسال للخارج',
       title: 'السحب من Arc',
-      subtitle: 'CCTP V2 · الغاز مدفوع',
+      subtitle: 'إلى أي شبكة مدعومة',
     },
-    reassurance: 'كروان يغطي رسوم الشبكة. تصل أموالك إلى السلسلة التي تختارها.',
+    reassurance: 'تصل أموالك إلى الشبكة التي تختارها.',
     web3Fallback: 'الإرسال من محفظة web3 يتطلّب أن توقّع حرق Arc بنفسك، وهي ميزة قادمة قريبًا. استخدم حساب Karwan بالبريد للإرسال الآن.',
     form: {
       destinationEyebrow: 'الوجهة',

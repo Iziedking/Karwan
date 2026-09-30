@@ -3201,7 +3201,7 @@ export const sw: Messages = {
     },
     consequence: {
       accept: 'Unakubali masharti haya. Kisha mnunuzi anaweza kufadhili mkataba.',
-      fundTemplate: '{amount} USDC zinaingia kwenye escrow. Zinatolewa ukikubali kazi, au muuzaji anaweza kuzidai muda wa kukagua ukiisha.',
+      fundTemplate: '{amount} USDC zinaingia kwenye escrow. Zinatolewa ukikubali kazi, au muda wa kukagua ukiisha bila mgogoro.',
       releaseTemplate: '{amount} USDC zinaenda kwa {name}.',
       claimTemplate: '{amount} USDC zinakuja kwako. Muda wa kukagua umekwisha.',
       reviewManually: 'Unakagua uwasilishaji mwenyewe. Muda wako wa kukagua unaanza sasa, na bado unaweza kupinga.',
@@ -5359,9 +5359,9 @@ export const sw: Messages = {
     header: {
       eyebrow: 'Peleka nje',
       title: 'Toa kutoka Arc',
-      subtitle: 'CCTP V2 · gesi imefadhiliwa',
+      subtitle: 'Kwenda mtandao wowote unaotumika',
     },
-    reassurance: 'Karwan hulipa ada ya mtandao. Pesa yako huingia kwenye mtandao unaochagua.',
+    reassurance: 'Pesa zako zinafika kwenye mnyororo unaouchagua.',
     web3Fallback: 'Kupeleka nje kutoka pochi ya web3 unahitaji kutia saini burn ya Arc mwenyewe, hii inakuja hivi karibuni. Tumia akaunti ya Karwan ya barua pepe kupeleka nje sasa.',
     form: {
       destinationEyebrow: 'Mahali pa kwenda',

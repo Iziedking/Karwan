@@ -35,6 +35,7 @@ import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { getPhantomProvider, getConflictingWalletName } from '../solanaProvider';
 import { useGuide } from '@/shared/guide/GuideProvider';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
 const USDC_DECIMALS = 6;
 const STORAGE_KEY_PREFIX = 'karwan:bridges:';
@@ -451,6 +452,10 @@ function mergeRemoteBridges(local: BridgeRecord[], remote: RemoteBridge[]): Brid
 }
 
 export function useBridges() {
+  // Read through a ref so a language switch never re-creates the transfer callbacks.
+  const chainErrors = useTranslations().chainErrors;
+  const errorCopy = useRef(chainErrors);
+  errorCopy.current = chainErrors;
   const { address: wagmiAddress, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
@@ -739,7 +744,7 @@ export function useBridges() {
         patch(record.id, (b) => ({
           ...b,
           phase: 'error',
-          error: 'That did not go through. Nothing was charged. Try again.',
+          error: errorCopy.current.generic,
         }));
         return;
       }
@@ -1595,7 +1600,7 @@ export function useBridges() {
               ? 'Cancelled in your wallet'
               : raw.includes('insufficient') || raw.includes('not enough')
                 ? 'Not enough USDC for this transfer.'
-                : 'That did not go through. Nothing was charged. Try again.';
+                : errorCopy.current.generic;
         patch(id, (b) => ({ ...b, phase: 'error', error: friendly }));
         return { state: 'failed', error: friendly };
       }
@@ -1857,7 +1862,7 @@ export function useBridges() {
             ...b,
             phase: 'error',
             burnTxHash: hash,
-            error: 'The network rejected this send. Nothing was charged.',
+            error: errorCopy.current.reverted,
           }));
           return;
         }
