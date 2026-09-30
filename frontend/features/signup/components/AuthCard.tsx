@@ -60,6 +60,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   const [awaitingAuth, setAwaitingAuth] = useState(false);
   const [walletPending, setWalletPending] = useState(false);
   const [authedWithoutAccount, setAuthedWithoutAccount] = useState(false);
+  const [sendingHome, setSendingHome] = useState(false);
   const resolvedFor = useRef<string | null>(null);
   const testnetPasskey = useRef(false);
   const [recovering, setRecovering] = useState(false);
@@ -78,13 +79,17 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     if (resolvedFor.current === key) return;
     resolvedFor.current = key;
     let cancelled = false;
+    let settled = false;
     void (async () => {
+      setSendingHome(true);
       const bootstrap = await api.bootstrap().catch(() => null);
       if (cancelled) return;
+      settled = true;
       if (bootstrap?.profile) {
         goHome();
         return;
       }
+      setSendingHome(false);
       setAwaitingAuth(false);
       setBusy(null);
       setAuthedWithoutAccount(true);
@@ -93,6 +98,8 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
     })();
     return () => {
       cancelled = true;
+      // An interrupted check runs again instead of leaving the card empty.
+      if (!settled) resolvedFor.current = null;
     };
   }, [auth.isLoading, auth.isAuthenticated, auth.address, goHome, tag, tagState]);
 
@@ -331,6 +338,13 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
   const waitingForSignIn = awaitingAuth && (siwe.state === 'awaiting-signature' || siwe.state === 'verifying' || siwe.state === 'switching-network');
 
   const card = START_CARD;
+
+  // Someone already signed in who opens this page from the landing is sent
+  // home; until the session is known, show the card without a form so the
+  // sign-in screen never flashes at them.
+  if (!recovering && (auth.isLoading || sendingHome)) {
+    return <div className={`${card} min-h-[360px]`} role="status" aria-label={t.signIn.checking} aria-busy />;
+  }
 
   if (recovering) {
     return (
