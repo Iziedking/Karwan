@@ -181,7 +181,7 @@ export function ListingsBrowse() {
             </span>
           </label>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
             <FilterGroup label={copy.typeFilterLabel}>
               <FilterButton pressed={side === 'all'} onClick={() => setSide('all')}>
                 {copy.filters.all} <span className="tabular-nums">{loading ? <Skeleton className="h-4 w-4" /> : visibleCards.length}</span>
@@ -194,7 +194,7 @@ export function ListingsBrowse() {
               </FilterButton>
             </FilterGroup>
 
-            <span aria-hidden className="text-[13px] text-[var(--ink-secondary)]">·</span>
+            <span aria-hidden className="hidden text-[13px] text-[var(--ink-secondary)] sm:inline">·</span>
             <FilterGroup label={copy.scopeFilterLabel}>
               <FilterButton pressed={scope === 'all'} onClick={() => setScope('all')}>
                 {copy.scope.all}
@@ -207,7 +207,7 @@ export function ListingsBrowse() {
               </FilterButton>
             </FilterGroup>
 
-            <span aria-hidden className="text-[13px] text-[var(--ink-secondary)]">·</span>
+            <span aria-hidden className="hidden text-[13px] text-[var(--ink-secondary)] sm:inline">·</span>
             <FilterGroup label={copy.sortFilterLabel}>
                 <FilterButton pressed={sort === 'newest'} onClick={() => setSort('newest')}>
                   {copy.sort.newest}
@@ -370,11 +370,12 @@ function buildSections(
 
 function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <fieldset className="min-w-0">
+    <fieldset className="w-full min-w-0 sm:w-auto">
       <legend className="sr-only">
         {label}
       </legend>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
+      {/* One row per group on phones, scrolled sideways, so chips never orphan. */}
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto p-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">{children}</div>
     </fieldset>
   );
 }
