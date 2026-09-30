@@ -349,6 +349,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/support/inbound/:secret" },
   { method: "POST", path: "/api/support/start" },
   { method: "GET", path: "/api/support/status" },
+  { method: "GET", path: "/api/tags/:tag" },
   { method: "POST", path: "/api/team-mcp/verify" },
   { method: "POST", path: "/api/telegram/link/remove" },
   { method: "POST", path: "/api/telegram/link/start" },

@@ -44,6 +44,28 @@ export function chipAmount(max: number, chip: 'quarter' | 'half' | 'max'): numbe
 }
 
 export type RecipientStatus = 'ok' | 'missing' | 'invalid' | 'checking';
+
+/// What the "send to" field holds. Karwan tags start with a letter, so anything
+/// starting with 0x (or anything else a tag cannot be) is checked as an address.
+export type RecipientInput = { kind: 'empty' } | { kind: 'tag'; tag: string } | { kind: 'address' };
+
+export function recipientInput(raw: string): RecipientInput {
+  const text = raw.trim();
+  if (text === '') return { kind: 'empty' };
+  const tag = text.replace(/^@/, '').toLowerCase();
+  return /^[a-z][a-z0-9_]{0,19}$/.test(tag) && !/^0x/i.test(text) ? { kind: 'tag', tag } : { kind: 'address' };
+}
+
+export type TagLookupResult =
+  | { found: false; tag: string }
+  | { found: true; self: boolean; tag: string; displayName: string; address: string };
+export type TagLookup = { state: 'checking' } | { state: 'error' } | { state: 'done'; result: TagLookupResult };
+
+export function tagLookupStatus(lookup: TagLookup): RecipientStatus {
+  if (lookup.state === 'checking') return 'checking';
+  if (lookup.state === 'error' || !lookup.result.found || lookup.result.self) return 'invalid';
+  return 'ok';
+}
 export type SheetBlocker = 'noAmount' | 'recipient' | 'loading' | 'short' | null;
 
 /// Why the primary button cannot be pressed yet, in the order a person fixes

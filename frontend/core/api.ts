@@ -4611,6 +4611,13 @@ export const api = {
       maskedAddress?: string;
     }>(`/api/paytag/resolve?handle=${encodeURIComponent(handle)}`),
 
+  /// Who a Karwan tag pays, for the send sheet. Signed-in only.
+  resolveKarwanTag: (tag: string) =>
+    json<
+      | { found: false; tag: string }
+      | { found: true; self: boolean; tag: string; displayName: string; address: string }
+    >(`/api/tags/${encodeURIComponent(tag)}`),
+
   // Circle Gateway pooled balance for the signed-in address. This is USDC
   // locked in the GatewayWallet contract, NOT wallet USDC: it reads zero until
   // the user deposits. Session-scoped, so no address argument.

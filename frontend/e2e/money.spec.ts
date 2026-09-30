@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { TX, accentControls, funded, serveMoney, watchHydration } from './moneyFixtures';
+import { ME, TX, accentControls, funded, serveMoney, watchHydration } from './moneyFixtures';
 
 const agentRow = (page: Page, name: string) => page.getByRole('listitem').filter({ hasText: name });
 
@@ -211,3 +211,32 @@ for (const theme of ['light', 'dark'] as const) {
     expect(hydrationErrors()).toEqual([]);
   });
 }
+
+test('send finds a person by Karwan tag and names them before paying', async ({ page }) => {
+  await serveMoney(page, {
+    balances: funded,
+    tags: {
+      ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' },
+      me: { displayName: 'Me', address: ME },
+    },
+  });
+  await page.goto('/account');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByLabel('Amount').fill('25');
+  const to = sheet.getByLabel('Send to');
+
+  await to.fill('@nobody');
+  await expect(sheet).toContainText('No one on Karwan uses @nobody.');
+  await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeDisabled();
+
+  await to.fill('@me');
+  await expect(sheet).toContainText('That is your own tag.');
+  await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeDisabled();
+
+  await to.fill('@ada');
+  await expect(sheet).toContainText('Ada Obi · @ada');
+  await expect(sheet).toContainText('0x2222…2222');
+  await expect(sheet).toContainText('25.00 USDC goes to @ada.');
+  await expect(sheet.getByRole('button', { name: 'Send 25.00 USDC' })).toBeEnabled();
+});

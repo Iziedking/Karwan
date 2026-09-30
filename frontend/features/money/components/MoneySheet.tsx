@@ -20,16 +20,20 @@ import {
   chipAmount,
   groupAddress,
   parseAmount,
+  recipientInput,
   sheetBlocker,
   sheetBusy,
   sheetProgress,
   shortfall,
   spendable,
+  tagLookupStatus,
   type AgentKey,
   type MoneyMove,
   type RecipientStatus,
   type SheetState,
+  type TagLookup,
 } from '../moneySheetModel';
+import { useTagRecipient } from '../hooks/useTagRecipient';
 import { AddressText } from './AddressText';
 import { CHIP, PRIMARY, SECONDARY } from '@/shared/ui/controls';
 
@@ -115,19 +119,25 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           : balances.balance;
   const max = available === null ? null : spendable(available, move, walletSigned && !fromPool);
 
-  const recipientCheck = useAddressKind(move === 'send' ? recipient : null, {
+  // A Karwan tag is looked up by name; anything else is checked as an address.
+  const input = recipientInput(recipient);
+  const tagLookup = useTagRecipient(move === 'send' && input.kind === 'tag' ? input.tag : null);
+  const paidTag = tagLookup?.state === 'done' && tagLookup.result.found && !tagLookup.result.self ? tagLookup.result : null;
+  const recipientCheck = useAddressKind(move === 'send' && input.kind === 'address' ? recipient : null, {
     trustedAddresses: [auth.address, balances.agents?.buyer, balances.agents?.seller],
   });
   const recipientStatus: RecipientStatus =
     move !== 'send'
       ? 'ok'
-      : recipientCheck.kind === 'eoa' || recipientCheck.kind === 'contract'
-        ? 'ok'
-        : recipientCheck.kind === 'checking'
-          ? 'checking'
-          : recipient.trim() === ''
-            ? 'missing'
-            : 'invalid';
+      : input.kind === 'empty'
+        ? 'missing'
+        : tagLookup
+          ? tagLookupStatus(tagLookup)
+          : recipientCheck.kind === 'eoa' || recipientCheck.kind === 'contract'
+            ? 'ok'
+            : recipientCheck.kind === 'checking'
+              ? 'checking'
+              : 'invalid';
   const blocker = sheetBlocker({ move, amount, available: max, recipient: recipientStatus });
   const busy = sheetBusy(state);
   const moved = pressed ?? amount ?? 0;
@@ -140,14 +150,14 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         : agent === 'buyer' ? t.sheet.titleWithdrawBuyer : t.sheet.titleWithdrawSeller;
   const consequence =
     move === 'send'
-      ? t.sheet.consequenceSend
+      ? paidTag ? t.sheet.consequenceSendTag : t.sheet.consequenceSend
       : move === 'withdraw'
         ? t.sheet.consequenceWithdraw
         : agent === 'buyer' ? t.sheet.consequenceTopUpBuyer : t.sheet.consequenceTopUpSeller;
   const cta = move === 'send' ? t.sheet.ctaSend : move === 'withdraw' ? t.sheet.ctaWithdraw : t.sheet.ctaTopUp;
   const doneLine =
     move === 'send'
-      ? t.sheet.doneSend
+      ? paidTag ? t.sheet.doneSendTag : t.sheet.doneSend
       : move === 'withdraw'
         ? t.sheet.doneWithdraw
         : agent === 'buyer' ? t.sheet.doneTopUpBuyer : t.sheet.doneTopUpSeller;
@@ -177,7 +187,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       agent,
       agentAddress,
       amount,
-      recipient: move === 'send' ? recipientCheck.normalized ?? undefined : undefined,
+      recipient: move !== 'send' ? undefined : paidTag ? (paidTag.address as `0x${string}`) : recipientCheck.normalized ?? undefined,
       source: route?.kind === 'pool' ? 'pool' : 'balance',
     });
   }
@@ -223,12 +233,16 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             dir="ltr"
             className="mt-2 min-h-12 w-full rounded-[10px] border border-[var(--lp-outline-strong)] bg-transparent px-3 text-[15px] text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
-          <RecipientLine
-            status={recipientStatus}
-            kind={recipientCheck.kind}
-            grouped={recipientCheck.normalized ? groupAddress(recipientCheck.normalized) : null}
-            copy={t.sheet}
-          />
+          {tagLookup ? (
+            <TagLine lookup={tagLookup} copy={t.sheet} />
+          ) : (
+            <RecipientLine
+              status={recipientStatus}
+              kind={recipientCheck.kind}
+              grouped={recipientCheck.normalized ? groupAddress(recipientCheck.normalized) : null}
+              copy={t.sheet}
+            />
+          )}
           <Link
             href="/bridge?intent=send"
             className="mt-2 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
@@ -297,7 +311,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         {state.kind === 'editing' ? (
           <motion.div key="editing" {...fade} className="mt-6">
             <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">
-              {fill(consequence, { amount: formatAmount(amount ?? 0, locale) })}
+              {fill(consequence, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '' })}
             </p>
             {move === 'send' ? (
               <p className="mt-2 text-[14px] font-medium text-[var(--color-warning)]">{t.sheet.sendIrreversible}</p>
@@ -320,7 +334,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           <motion.div key="confirmed" {...fade} className="mt-6 space-y-4">
             <p className="flex items-center gap-3 text-[18px] font-semibold text-[var(--lp-dark)]">
               <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[15px] text-[var(--accent-ink)]">✓</span>
-              {fill(doneLine, { amount: formatAmount(moved, locale) })}
+              {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '' })}
             </p>
             <dl className="space-y-1 text-[14px] tabular-nums text-[var(--lp-text-sub)]">
               <div className="flex justify-between gap-3">
@@ -400,6 +414,22 @@ function Place({ label, name, amount, locale, end = false }: {
       <p className="truncate text-[15px] font-semibold text-[var(--lp-dark)]">{name}</p>
       <p className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">{amount === null ? ' ' : `${formatBalance(amount, locale)} USDC`}</p>
     </div>
+  );
+}
+
+/// Who a tag pays: their name and tag, with the address shortened so the person
+/// can still compare it with one they were given.
+function TagLine({ lookup, copy }: { lookup: TagLookup; copy: MoneyCopy['sheet'] }) {
+  if (lookup.state === 'checking') return <p className="mt-2 text-[13px] text-[var(--lp-text-sub)]">{copy.recipientChecking}</p>;
+  if (lookup.state === 'error') return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{copy.tagError}</p>;
+  const result = lookup.result;
+  if (!result.found) return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{fill(copy.tagNotFound, { tag: result.tag })}</p>;
+  if (result.self) return <p className="mt-2 text-[13px] text-[var(--color-critical)]">{copy.tagSelf}</p>;
+  return (
+    <p className="mt-2 flex flex-wrap items-baseline gap-x-2 text-[13px]">
+      <span className="font-semibold text-[var(--lp-dark)]">{fill(copy.tagFound, { name: result.displayName, tag: result.tag })}</span>
+      <span dir="ltr" className="tabular-nums text-[var(--lp-text-sub)]">{`${result.address.slice(0, 6)}…${result.address.slice(-4)}`}</span>
+    </p>
   );
 }
 

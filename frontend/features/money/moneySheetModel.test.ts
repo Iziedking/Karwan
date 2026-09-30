@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   chipAmount,
+  recipientInput,
+  tagLookupStatus,
   afterRecheck,
   driverFor,
   fromArcFund,
@@ -179,4 +181,22 @@ test('each request has exactly one driver, and an incomplete one has none', () =
   assert.equal(driverFor({ move: 'send', agent: 'buyer', amount: 5 }, false), null);
   assert.equal(driverFor({ move: 'send', agent: 'buyer', amount: 5, recipient: '0x2' }, false), 'send');
   assert.equal(driverFor({ move: 'withdraw', agent: 'seller', amount: 5 }, true), 'withdraw');
+});
+
+test('a recipient is read as a Karwan tag unless it is an address', () => {
+  assert.deepEqual(recipientInput('  '), { kind: 'empty' });
+  assert.deepEqual(recipientInput('@Ada'), { kind: 'tag', tag: 'ada' });
+  assert.deepEqual(recipientInput('ada_obi'), { kind: 'tag', tag: 'ada_obi' });
+  assert.deepEqual(recipientInput('0x00000000000000000000000000000000000000aa'), { kind: 'address' });
+  assert.deepEqual(recipientInput('0x12'), { kind: 'address' });
+  assert.deepEqual(recipientInput('@'), { kind: 'address' });
+});
+
+test('only a found tag that is not your own can be paid', () => {
+  assert.equal(tagLookupStatus({ state: 'checking' }), 'checking');
+  assert.equal(tagLookupStatus({ state: 'error' }), 'invalid');
+  assert.equal(tagLookupStatus({ state: 'done', result: { found: false, tag: 'ada' } }), 'invalid');
+  const found = { found: true as const, self: false, tag: 'ada', displayName: 'Ada', address: '0x00000000000000000000000000000000000000aa' };
+  assert.equal(tagLookupStatus({ state: 'done', result: found }), 'ok');
+  assert.equal(tagLookupStatus({ state: 'done', result: { ...found, self: true } }), 'invalid');
 });

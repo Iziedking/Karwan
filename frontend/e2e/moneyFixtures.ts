@@ -41,6 +41,8 @@ export interface MoneyWorld {
   fundAgent?: (route: Route) => Promise<void>;
   withdraw?: (route: Route) => Promise<void>;
   bridgeOut?: (route: Route) => Promise<void>;
+  /// Karwan tags the send sheet can look up, keyed by tag.
+  tags?: Record<string, { displayName: string; address: string }>;
   /// The live stream's body, served on every (re)connection.
   events?: () => string;
 }
@@ -122,6 +124,15 @@ export async function serveMoney(page: Page, world: MoneyWorld) {
         status: 200,
         headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },
         body: `retry: 200\n\n${world.events?.() ?? ''}`,
+      });
+    }
+    if (path.startsWith('/api/tags/')) {
+      const tag = decodeURIComponent(path.slice('/api/tags/'.length)).replace(/^@/, '').toLowerCase();
+      const hit = world.tags?.[tag];
+      return route.fulfill({
+        json: hit
+          ? { found: true, self: hit.address.toLowerCase() === ME.toLowerCase(), tag, ...hit }
+          : { found: false, tag },
       });
     }
     if (path.startsWith('/api/client-errors')) return route.fulfill({ status: 204, body: '' });

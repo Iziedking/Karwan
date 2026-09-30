@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type UserProfile } from '@/core/api';
@@ -11,6 +11,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { TradeStart } from './TradeStart';
+import { MoneySheet } from '@/features/money/components/MoneySheet';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
 
@@ -22,6 +23,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
   accountKind?: AccountKind;
 }) {
   const translations = useTranslations();
+  const [sending, setSending] = useState(false);
   const home = translations.accountHome;
   const { address } = useAuth();
   const { deals, fetchState } = useDirectDeals();
@@ -108,7 +110,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
             <div className="flex flex-wrap gap-1.5">
               <QuickAction href="/bridge?direction=in">{home.add}</QuickAction>
               <QuickAction href="/bridge?direction=out&intent=move">{home.move}</QuickAction>
-              <QuickAction href="/bridge?direction=out&intent=send">{home.send}</QuickAction>
+              <button type="button" onClick={() => setSending(true)} className={QUICK_ACTION}>{home.send}</button>
             </div>
             <Link href="/account" className="inline-flex min-h-11 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{home.details} →</Link>
           </div>
@@ -159,6 +161,7 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           <div className="mt-3"><TradeBook deals={recentDeals} fetchState={fetchState} /></div>
         </motion.div> : null}
       </section>
+      <MoneySheet open={sending} onClose={() => setSending(false)} move="send" agent="buyer" />
     </div>
   );
 }
@@ -220,8 +223,10 @@ function DealFlow({ stage, delivered, labels, progressLabel, states }: {
   );
 }
 
+const QUICK_ACTION = 'inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-3 text-[13px] font-bold text-[var(--lp-dark)] transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:hover:translate-y-0';
+
 function QuickAction({ href, children }: { href: string; children: string }) {
-  return <Link href={href} className="inline-flex min-h-11 items-center rounded-full border border-[var(--lp-border-light)] px-3 text-[13px] font-bold text-[var(--lp-dark)] transition-[background-color,border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--lp-outline-strong)] hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] motion-reduce:hover:translate-y-0">{children}</Link>;
+  return <Link href={href} className={QUICK_ACTION}>{children}</Link>;
 }
 
 function PositionMetric({ label, value }: { label: string; value: number }) {
