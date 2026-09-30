@@ -173,7 +173,7 @@ test('a seller with nothing yet sees the offer form straight away', async ({ pag
   await expect(page.getByLabel('What you offer')).toBeVisible();
 });
 
-test('a returning seller reads needs you, bidding, offers, in that order, and can withdraw', async ({ page }) => {
+test('a returning seller reads needs you, working on, offers, in that order, and can withdraw', async ({ page }) => {
   let abandoned = 0;
   await serveSearch(page, {
     balances: { ...funded },
@@ -195,7 +195,7 @@ test('a returning seller reads needs you, bidding, offers, in that order, and ca
   await page.goto('/seller');
   await expect(page.getByRole('heading', { name: 'Needs you' })).toBeVisible();
   const headings = await page.getByRole('heading', { level: 2 }).allTextContents();
-  expect(headings.slice(0, 3)).toEqual(['Needs you', 'Your agent is bidding on', 'Your offers']);
+  expect(headings.slice(0, 3)).toEqual(['Needs you', 'Requests your agent is working on', 'Your offers']);
   await expect(page.getByText('Negotiating', { exact: true })).toBeVisible();
   await expect(page.getByText('Lost', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Withdraw', exact: true }).click();
