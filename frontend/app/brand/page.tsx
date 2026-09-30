@@ -53,7 +53,7 @@ export default function BrandPage() {
           <LogoCard
             label={t.logo.wordmarkOnLight}
             href="/brand/karwan-wordmark-dark.svg"
-            preview={<img src="/brand/karwan-wordmark-dark.svg" alt="" className="h-32 w-full bg-[var(--karwan-card)] object-contain" />}
+            preview={<img src="/brand/karwan-wordmark-dark.svg" alt="" className="h-32 w-full bg-[var(--lp-card)] object-contain" />}
           />
           <LogoCard
             label={t.logo.markOnDark}
@@ -95,7 +95,7 @@ export default function BrandPage() {
         </p>
 
         <div className="mt-10 grid md:grid-cols-2 gap-5">
-          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
             <div className="p-6 md:p-7 space-y-3">
               <p className="mono text-[12px] font-semibold text-[var(--lp-accent-on-light)]">
                 {t.voice.wordsWeUseLabel}
@@ -105,7 +105,7 @@ export default function BrandPage() {
               </p>
             </div>
           </div>
-          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
             <div className="p-6 md:p-7 space-y-3">
               <p className="mono text-[12px] font-semibold text-[var(--color-critical)]">
                 {t.voice.wordsWeAvoidLabel}
@@ -127,7 +127,7 @@ export default function BrandPage() {
         </p>
 
         <div className="mt-10">
-          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
+          <div className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
             <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 p-5 sm:gap-6 sm:p-7 md:gap-10">
               <span className="flex min-w-0 items-center justify-end gap-2.5 text-[clamp(18px,5vw,36px)] font-semibold tracking-[-0.045em] text-[var(--lp-dark)]">
                 <img src="/karwan-app-icon.svg" alt="" width="36" height="36" className="size-8 shrink-0 sm:size-9" />
@@ -191,7 +191,7 @@ function LogoCard({
   preview: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
+    <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
       <div
         className="overflow-hidden"
         style={{
@@ -249,14 +249,24 @@ function ColorChip({
   async function copy() {
     try {
       await navigator.clipboard.writeText(hex);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
     } catch {
-      // browsers without clipboard permission fall through silently
+      // Clipboard permission denied (embedded views, some privacy modes).
+      const field = document.createElement('textarea');
+      field.value = hex;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.appendChild(field);
+      field.select();
+      const ok = document.execCommand('copy');
+      field.remove();
+      if (!ok) return;
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   }
   return (
-    <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--karwan-card)]">
+    <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
       <div
         className="overflow-hidden"
         style={{
@@ -285,9 +295,10 @@ function ColorChip({
             <p className="mono text-[12px] font-medium text-[var(--lp-text-sub)]">
               {name.toUpperCase()}
             </p>
-            <p className="mt-1 mono text-[15px] tabular-nums text-[var(--lp-dark)]">
+            <button type="button" onClick={copy} aria-label={`${copyLabel} ${hex}`}
+              className="mt-1 mono min-h-11 text-[15px] tabular-nums text-[var(--lp-dark)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
               {hex}
-            </p>
+            </button>
           </div>
           <button
             type="button"
