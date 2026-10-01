@@ -45,8 +45,11 @@
   --control-line: color-mix(in srgb, var(--ink) 56%, transparent);
   --action: #AFC95B;
   --on-action: #16202A;
-  --offer: #0F6E6A;
-  --request: #3F4AA8;
+  /* Slate for requests, olive for offers: both drawn from the ink and green. */
+  --offer: #42560F;
+  --request: #3B4E6E;
+  --offer-surface: #EBEFDD;
+  --request-surface: #E3E9F2;
   --radius-card: 20px;
   --radius-panel: 28px;
   --radius-input: 14px;
@@ -180,8 +183,10 @@ html[data-theme="dark"] {
   --surface: #151E27;
   --ink: #EEF2F7;
   --tint: color-mix(in srgb, var(--ink) 8%, transparent);
-  --offer: #6CC5BE;
-  --request: #A3ABF2;
+  --offer: #C5DB7E;
+  --request: #A9BCD9;
+  --offer-surface: #1F2A1A;
+  --request-surface: #18222E;
   --status-positive: #6fbf6f;
   --status-positive-soft: rgba(111, 191, 111, 0.14);
   --status-warning: #e6b167;

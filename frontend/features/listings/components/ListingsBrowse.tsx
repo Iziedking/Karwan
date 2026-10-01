@@ -535,24 +535,29 @@ function MarketCard({
     (fact): fact is string => !!fact,
   );
 
-  // One plain surface for both sides. The only difference is the coloured
-  // word that names the side.
-  const shell =
-    'market-card relative flex h-full flex-col overflow-hidden rounded-[20px] bg-[var(--surface)]';
+  // Slate for requests, olive for offers, so the side reads before the words do.
+  const surface = `var(--${side}-surface)`;
+  const shell = 'market-card relative flex h-full flex-col overflow-hidden rounded-[20px]';
 
   const content = (
     <>
       <div className="flex flex-1 flex-col gap-2 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[13px] font-medium" style={{ color: sideColor }}>
+          <span className="text-[13px] font-semibold" style={{ color: sideColor }}>
             {statusLabel}
           </span>
           <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">{relativeTime(card.postedAt)}</span>
         </div>
+        <Icon
+          name={card.tradeLane === 'finance' ? 'file-text' : 'briefcase'}
+          size={24}
+          className="market-card-glyph mt-4 mb-6 shrink-0"
+          style={{ color: sideColor }}
+        />
         {/* Two title lines and one body line always fit the same space, so
             every card in a row keeps its footer on the same line. */}
         <div className="h-20 shrink-0 overflow-hidden">
-          <h3 dir="auto" className="line-clamp-2 text-[16px] font-medium leading-snug tracking-[-0.015em] text-[var(--ink)]">
+          <h3 dir="auto" className="line-clamp-2 text-[19px] font-medium leading-[1.3] tracking-[-0.015em] text-[var(--ink)]">
             {card.title}
           </h3>
           {card.body ? <p dir="auto" className="mt-2 line-clamp-1 text-[14px] leading-5 text-[var(--ink-secondary)]">{card.body}</p> : null}
@@ -570,9 +575,13 @@ function MarketCard({
           ))}
         </p>
       </div>
-      <div data-market-footer className="mx-5 flex h-[68px] shrink-0 items-center justify-between gap-3 border-t border-[var(--line)] py-3.5 sm:mx-6">
+      <div
+        data-market-footer
+        className="mx-5 flex h-[68px] shrink-0 items-center justify-between gap-3 border-t py-3.5 sm:mx-6"
+        style={{ borderColor: `color-mix(in srgb, ${sideColor} 24%, transparent)` }}
+      >
         <p className="flex min-w-0 shrink-0 items-baseline gap-1.5">
-          <span className="text-[18px] font-medium leading-none tracking-[-0.015em] text-[var(--ink)] tabular-nums">
+          <span className="text-[22px] font-medium leading-none tracking-[-0.02em] text-[var(--ink)] tabular-nums">
             {formatUsdc(card.priceUsdc, { withSuffix: false })}
           </span>
           <span className="whitespace-nowrap text-[13px] text-[var(--ink-secondary)]">
@@ -594,7 +603,7 @@ function MarketCard({
 
   if (isSummary) {
     return (
-      <article className={shell} data-market-side={card.side}>
+      <article className={shell} style={{ background: surface }} data-market-side={card.side}>
         {content}
       </article>
     );
@@ -604,7 +613,8 @@ function MarketCard({
     <Link
       href={card.href}
       data-market-side={card.side}
-      className={`${shell} transition-colors duration-[var(--dur-small)] ease-[var(--ease-ui)] hover:bg-[color-mix(in_srgb,var(--surface)_92%,var(--ink))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
+      style={{ '--market-surface': surface, '--market-edge': `color-mix(in srgb, ${sideColor} 45%, transparent)` } as React.CSSProperties}
+      className={`${shell} bg-[var(--market-surface)] outline-offset-[-1px] hover:outline hover:outline-1 hover:outline-[var(--market-edge)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--action)]`}
     >
       {content}
     </Link>

@@ -1476,7 +1476,9 @@ html[data-theme="dark"] .product-surface {
 }
 
 .market-card {
-  min-height: 220px;
+  min-height: 300px;
+  /* Secondary text sits on a tinted card, so it needs more ink than on paper. */
+  --ink-secondary: color-mix(in srgb, var(--ink) 74%, transparent);
 }
 
 .activity-ledger {
