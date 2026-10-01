@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'motion/react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
@@ -114,15 +113,14 @@ export function WorkspaceBottomNav() {
                 : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
             )}
           >
-            {item.active ? (
-              <motion.span
-                layoutId="workspace-mobile-active"
-                aria-hidden
-                className="absolute inset-x-3 -top-1.5 h-0.5 bg-[var(--lp-accent)]"
-                transition={{ duration: 0.36, ease: [0.16, 1, 0.3, 1] }}
-              />
-            ) : null}
-            <NavIcon name={item.icon} active={item.active} />
+            {/* The selected page is marked by its icon in the accent: lime on
+                dark, the olive accent on light where lime would be too faint. */}
+            <span
+              className="transition-colors duration-[var(--dur-small)]"
+              style={item.active ? { color: 'var(--lp-accent-on-light)' } : undefined}
+            >
+              <NavIcon name={item.icon} active={item.active} />
+            </span>
             <span className="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium">
               <span className="truncate">{item.label}</span>
               {item.signal ? (
@@ -147,7 +145,7 @@ function NavIcon({ name, active }: { name: IconName; active: boolean }) {
   const stroke = 'currentColor';
   const props = {
     stroke,
-    strokeWidth: 1.5,
+    strokeWidth: active ? 1.9 : 1.5,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
   };
