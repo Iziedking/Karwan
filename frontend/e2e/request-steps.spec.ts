@@ -25,7 +25,7 @@ test('a request is asked in three steps and posts the chosen date and milestones
     return route.fulfill({ json: { jobId: '0xjob', deadlineUnix: 0, txHash: '0x1', explorerUrl: '' } });
   });
 
-  await page.goto('/buyer?mode=managed&search=v1');
+  await page.goto('/buyer?mode=managed');
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '1')} · ${rs.describe}`)).toBeVisible();
   const next = page.getByRole('button', { name: rs.continue, exact: true });
   await expect(next).toBeDisabled();
@@ -61,7 +61,7 @@ test('a request is asked in three steps and posts the chosen date and milestones
 
 test('a picked date becomes whole days until the end of that day', async ({ page }) => {
   await signedInBuyer(page);
-  await page.goto('/buyer?mode=managed&search=v1');
+  await page.goto('/buyer?mode=managed');
   await page.locator('textarea[data-guide="buyer-brief"]').fill('Year-end accounts for a small agency.');
   await page.getByRole('button', { name: rs.continue, exact: true }).click();
   await page.locator('input[data-guide="buyer-budget"]').fill('300');

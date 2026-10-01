@@ -9,6 +9,13 @@ import {
   topUpMainnet, topUpMessages,
 } from './instantTopUpFixtures';
 
+// These pages are the search v2 set, which is off by default; ask for it.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try { sessionStorage.setItem('karwan:search', 'v2'); } catch { /* storage blocked */ }
+  });
+});
+
 test.beforeEach(() => test.skip(topUpMainnet, 'Offer acceptance is unavailable on the mainnet build; the instant-topup suite checks its account redirect.'));
 test.afterEach(async ({}, testInfo) => topUpEvidenceManifest(testInfo));
 

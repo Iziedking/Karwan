@@ -9,6 +9,13 @@ import {
   topUpMainnet, topUpMessages, serveTopUpTokenBalances, type TopUpLocale, type TopUpTheme,
 } from './instantTopUpFixtures';
 
+// These pages are the search v2 set, which is off by default; ask for it.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try { sessionStorage.setItem('karwan:search', 'v2'); } catch { /* storage blocked */ }
+  });
+});
+
 type FundingWorld = {
   confirmed?: string;
   pending?: string;

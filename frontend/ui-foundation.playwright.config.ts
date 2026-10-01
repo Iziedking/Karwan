@@ -24,7 +24,6 @@ export default defineConfig({
       NEXT_PUBLIC_ARC_NETWORK: network,
       NEXT_PUBLIC_DEAL_WORKSPACE_V2: '1',
       NEXT_PUBLIC_MONEY_V2: '1',
-      NEXT_PUBLIC_SEARCH_V2: '1',
       ...(network === 'mainnet' ? {
         NEXT_PUBLIC_RECOVERY: '1',
         NEXT_PUBLIC_CIRCLE_CLIENT_KEY: 'LIVE_E2E:0:0',

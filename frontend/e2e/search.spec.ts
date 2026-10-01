@@ -4,6 +4,13 @@ import { ME, TX, accentControls, funded, watchHydration } from './moneyFixtures'
 
 import { JOB, makeJob, makeProposal, serveSearch } from './searchFixtures';
 
+// These pages are the search v2 set, which is off by default; ask for it.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try { sessionStorage.setItem('karwan:search', 'v2'); } catch { /* storage blocked */ }
+  });
+});
+
 const offer = {
   seller: '0x6666666666666666666666666666666666666666', priceUsdc: '96', deadlineUnix: 0, score: null,
   suggestedCounterPrice: null, suggestedCounterDeadlineDays: null, sellerTier: null,
