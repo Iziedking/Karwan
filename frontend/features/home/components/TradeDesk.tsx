@@ -21,16 +21,16 @@ export function TradeDesk({ business = false }: TradeDeskProps) {
   const routes = tradeEntryRoutes(business);
   const actions = [
     {
-      id: 'sell',
-      href: routes.sell,
-      title: copy.findClients,
-      body: copy.findClientsBody,
-    },
-    {
       id: 'buy',
       href: routes.buy,
-      title: copy.findWork,
-      body: copy.findWorkBody,
+      title: copy.need,
+      body: copy.needBody,
+    },
+    {
+      id: 'sell',
+      href: routes.sell,
+      title: copy.sell,
+      body: copy.sellBody,
     },
   ];
 

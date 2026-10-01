@@ -137,7 +137,7 @@ function SellerPageInner() {
             </div>
           </div>
           <details className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-            <summary className="flex min-h-11 cursor-pointer items-center px-5 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{entry.tools}<span aria-hidden className="ms-auto">⌄</span></summary>
+            <summary className="flex min-h-11 cursor-pointer items-center px-5 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{SCOUT_ENABLED ? entry.toolsResearch : entry.tools}<span aria-hidden className="ms-auto">⌄</span></summary>
             <div className="space-y-4 px-5 pb-5">
               <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
               {SCOUT_ENABLED && <MarketScout />}
