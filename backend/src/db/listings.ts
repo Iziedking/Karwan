@@ -8,6 +8,16 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { logger } from '../logger.js';
 
+/// The terms an offer is sold on, in the shape the deal forms build them, so a
+/// buyer who starts a deal from the offer starts from the same parts.
+export interface ListingTermsDraft {
+  items: string[];
+  conditions: string[];
+  proof: 'link';
+  parts: Array<{ pct: number; covers: { kind: 'start' } | { kind: 'all' } | { kind: 'item'; item: string } }>;
+  reviewWindowDays: number;
+}
+
 export interface Listing {
   id: string;
   sellerUser: string;
@@ -40,6 +50,11 @@ export interface Listing {
   /// The seller's account type at create time, for business badging on a
   /// match without a second profile read. Absent reads as 'person'.
   partyKind?: 'person' | 'business';
+  /// Days the seller needs once a deal starts.
+  readyInDays?: number;
+  /// The agreement text the offer is sold on, and the parts it was built from.
+  terms?: string;
+  termsDraft?: ListingTermsDraft;
 }
 
 // Listings are off-chain and have no chain event to reseed from, so without
@@ -105,6 +120,9 @@ export function createListing(
     expiresAt: now + ttlDays * 24 * 60 * 60 * 1000,
     tradeLane: input.tradeLane,
     partyKind: input.partyKind,
+    readyInDays: input.readyInDays,
+    terms: input.terms,
+    termsDraft: input.termsDraft,
   };
   store.set(id, listing);
   persist();

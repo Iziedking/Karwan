@@ -39,6 +39,28 @@ const addrSchema = z
   .string()
   .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address');
 
+const termLine = z.string().trim().max(160);
+export const termsDraftSchema = z.object({
+  items: z.array(termLine).max(12),
+  conditions: z.array(termLine).max(12),
+  proof: z.literal('link'),
+  parts: z
+    .array(
+      z.object({
+        pct: z.number().int().min(1).max(99),
+        covers: z.union([
+          z.object({ kind: z.literal('start') }),
+          z.object({ kind: z.literal('all') }),
+          z.object({ kind: z.literal('item'), item: termLine.min(1) }),
+        ]),
+      }),
+    )
+    .min(2)
+    .max(5)
+    .refine((parts) => parts.reduce((sum, part) => sum + part.pct, 0) === 100, { message: 'parts must add up to 100' }),
+  reviewWindowDays: z.number().int().min(1).max(90),
+});
+
 const createSchema = z.object({
   sellerUser: addrSchema,
   title: z.string().min(3).max(120),
@@ -50,6 +72,9 @@ const createSchema = z.object({
   /// allowed so the seller form can express minutes or hours for demos.
   /// Floor is roughly one minute so dust windows can't slip in.
   ttlDays: z.number().min(0.0006).max(90).optional(),
+  readyInDays: z.number().int().min(1).max(180).optional(),
+  terms: z.string().trim().max(4000).optional(),
+  termsDraft: termsDraftSchema.optional(),
 });
 
 const cancelSchema = z.object({ caller: addrSchema });
@@ -327,6 +352,9 @@ listingsRoutes.post('/', async (c) => {
     askingPriceUsdc: body.askingPriceUsdc,
     negotiationMaxDecreasePct: body.negotiationMaxDecreasePct,
     ttlDays: body.ttlDays,
+    readyInDays: body.readyInDays,
+    terms: body.terms || undefined,
+    termsDraft: body.termsDraft,
     tradeLane: deriveLane(sellerAccountType),
     partyKind: sellerAccountType,
   });
