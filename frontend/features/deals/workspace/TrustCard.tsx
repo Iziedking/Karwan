@@ -3,14 +3,14 @@ import type { TrustCardView } from '@/core/api';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { fill, formatUsdcAmount, trustFactParts } from './presentation';
 
-export function TrustCard({ card, onOpenPassport }: { card: TrustCardView; onOpenPassport: () => void }) {
+export function TrustCard({ card, onOpenPassport, bare = false }: { card: TrustCardView; onOpenPassport: () => void; bare?: boolean }) {
   const copy = useTranslations().dealWorkspace;
   const { locale } = useLocale();
   const roleLabel = card.role === 'seller' ? copy.trust.asSeller : copy.trust.asBuyer;
   return (
-    <section aria-labelledby="deal-trust" className="space-y-3">
+    <section aria-labelledby={bare ? undefined : 'deal-trust'} className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="deal-trust" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.trust.title}</h2>
+        {bare ? null : <h2 id="deal-trust" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.trust.title}</h2>}
         <span className="text-[13px] text-[var(--lp-text-sub)]">{roleLabel}</span>
       </div>
       {card.name ? (

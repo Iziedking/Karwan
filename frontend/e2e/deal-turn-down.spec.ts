@@ -73,7 +73,7 @@ test('the buyer can cancel on the new deal page while nothing is funded', async 
     await route.fulfill({ json: { accepted: true, jobId: JOB } });
   });
   await page.goto(`/deals/${JOB}`);
-  await page.getByRole('button', { name: en.dealWorkspace.cancelDeal.cta, exact: true }).click();
+  await page.getByRole('button', { name: en.dealWorkspace.simple.problem, exact: true }).click();
   await expect(page.getByText(en.dealWorkspace.cancelDeal.consequence)).toBeVisible();
   await page.getByTestId('deal-confirm').click();
   await expect.poll(() => cancelled).toEqual({ caller: BUYER });

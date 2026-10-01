@@ -14,15 +14,15 @@ function feeUsdc(deal: DirectDeal): string | null {
   return fraction ? `${micros / MICROS}.${fraction}` : `${micros / MICROS}`;
 }
 
-export function AgreementSection({ deal }: { deal: DirectDeal }) {
+export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bare?: boolean }) {
   const copy = useTranslations().dealWorkspace;
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const payments = deal.onChain?.milestonePcts?.length ?? 2;
   const fee = feeUsdc(deal);
   return (
-    <section aria-labelledby="deal-agreement" className="space-y-3">
-      <h2 id="deal-agreement" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.agreement.title}</h2>
+    <section aria-labelledby={bare ? undefined : 'deal-agreement'} className="space-y-3">
+      {bare ? null : <h2 id="deal-agreement" className="text-[20px] font-semibold text-[var(--lp-dark)]">{copy.agreement.title}</h2>}
       <p className="max-w-[62ch] whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-dark)]">{deal.terms}</p>
       <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
         {[

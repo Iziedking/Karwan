@@ -2967,6 +2967,45 @@ interface MessagesShape {
     };
   };
   dealWorkspace: {
+    simple: {
+      newHere: string;
+      agreement: string;
+      messages: string;
+      receipts: string;
+      problem: string;
+      close: string;
+      record: string;
+      sellerDueTemplate: string;
+      buyerDueTemplate: string;
+      deliveredTemplate: string;
+      seeDelivery: string;
+      turnDown: string;
+      deliverTitle: string;
+      proofLabel: string;
+      deliverSubmit: string;
+      moreTimeTitle: string;
+      daysLabel: string;
+      reasonLabel: string;
+      moreTimeSubmit: string;
+      moreTimeSentTemplate: string;
+      answerTimeTitle: string;
+      answerTimeTemplate: string;
+      giveTime: string;
+      keepDeadline: string;
+      answerCancelTitle: string;
+      answerCancelTemplate: string;
+      agreeCancel: string;
+      keepDeal: string;
+      disputeTitle: string;
+      disputeBody: string;
+      whatWentWrong: string;
+      disputeSubmit: string;
+      proposeTitle: string;
+      proposeBodyTemplate: string;
+      proposeSubmit: string;
+      reclaimTitle: string;
+      reclaimBody: string;
+    };
     protectedDeal: string;
     cancelDeal: { cta: string; title: string; consequence: string };
     privateDeal: string;
@@ -2992,8 +3031,6 @@ interface MessagesShape {
       notCoveredTitle: string; notCoveredReleased: string; notCoveredOutside: string;
     };
     confirm: { cannotUndo: string; confirm: string; cancel: string; working: string; failed: string };
-    conversation: { title: string; evidence: string };
-    record: { title: string };
   };
   directDealDetail: {
     hero: {
@@ -8583,18 +8620,57 @@ export const en: MessagesShape = {
     },
   },
   dealWorkspace: {
+    simple: {
+      newHere: "New to Karwan",
+      agreement: "Agreement",
+      messages: "Messages",
+      receipts: "Receipts",
+      problem: "Something is wrong",
+      close: "Close",
+      record: "Their record",
+      sellerDueTemplate: "Deliver by {date}.",
+      buyerDueTemplate: "{name} delivers by {date}.",
+      deliveredTemplate: "{name} marked it delivered.",
+      seeDelivery: "See delivery",
+      turnDown: "Turn down",
+      deliverTitle: "Deliver the work",
+      proofLabel: "Link to the work",
+      deliverSubmit: "Mark delivered",
+      moreTimeTitle: "Ask for more time",
+      daysLabel: "Extra days",
+      reasonLabel: "Reason",
+      moreTimeSubmit: "Send request",
+      moreTimeSentTemplate: "Request sent. Waiting on {name}.",
+      answerTimeTitle: "More time requested",
+      answerTimeTemplate: "{name} asks for {n} more days.",
+      giveTime: "Give more time",
+      keepDeadline: "Keep the deadline",
+      answerCancelTitle: "Cancel proposed",
+      answerCancelTemplate: "{name} proposed cancelling.",
+      agreeCancel: "Agree to cancel",
+      keepDeal: "Keep the deal",
+      disputeTitle: "Open a dispute",
+      disputeBody: "The money stays in escrow until the dispute is decided.",
+      whatWentWrong: "What went wrong",
+      disputeSubmit: "Open dispute",
+      proposeTitle: "Propose cancelling",
+      proposeBodyTemplate: "{name} has to agree before anything moves.",
+      proposeSubmit: "Send proposal",
+      reclaimTitle: "Take the money back",
+      reclaimBody: "The delivery deadline has passed. The unreleased money returns to you.",
+    },
     protectedDeal: 'Protected deal',
     cancelDeal: { cta: 'Cancel deal', title: 'Cancel this deal?', consequence: 'The deal closes and the seller is told. Nothing is funded, so no money moves.' },
     privateDeal: 'This deal is private.',
     privateTermsPreview: 'Confirm it is you to see the terms.',
     money: {
-      notFunded: 'Not funded yet.',
-      held: "Held in escrow. Release, claim and refund rules follow the agreed terms.",
-      sending: 'Sent. Waiting for the network to confirm. Nothing is lost.',
-      paused: 'Paused. No money moves until this is resolved.',
-      released: 'Released to the seller.',
-      refunding: 'Returning to the buyer.',
-      refunded: 'Returned to the buyer.',
+      notFunded: "Not funded yet",
+      held: "Held in escrow",
+      sending: "Sending",
+      paused: "Paused",
+      released: "Released to the seller",
+      refunding: "Returning to the buyer",
+      refunded: "Returned to the buyer",
     },
     actor: { you: 'Your move', waitingTemplate: 'Waiting on {name}', nobody: 'No action needed' },
     counterparty: { seller: 'the seller', buyer: 'the buyer' },
@@ -8662,8 +8738,6 @@ export const en: MessagesShape = {
       working: 'Working',
       failed: 'That did not go through. Check the progress above before trying again.',
     },
-    conversation: { title: 'Conversation', evidence: 'Keep terms here so they count as evidence.' },
-    record: { title: 'Record' },
   },
   directDealDetail: {
     hero: {
