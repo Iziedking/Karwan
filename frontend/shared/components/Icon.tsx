@@ -1,8 +1,8 @@
 import React, { type SVGProps } from 'react';
 import {
-  Activity, ArrowLeftRight, ArrowRight, ArrowUpRight, BriefcaseBusiness,
+  Activity, ArrowLeftRight, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check,
   ChevronLeft, ChevronRight, Coins, FileText, Globe, Link, List,
-  LoaderCircle, Search, UserRound, Wallet,
+  LoaderCircle, Search, Send, UserRound, Wallet,
 } from 'lucide-react';
 
 const icons = {
@@ -11,6 +11,7 @@ const icons = {
   'arrow-right': ArrowRight,
   'arrow-up-right': ArrowUpRight,
   briefcase: BriefcaseBusiness,
+  check: Check,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
   coins: Coins,
@@ -20,6 +21,7 @@ const icons = {
   list: List,
   'loader-circle': LoaderCircle,
   search: Search,
+  send: Send,
   user: UserRound,
   wallet: Wallet,
 } as const;

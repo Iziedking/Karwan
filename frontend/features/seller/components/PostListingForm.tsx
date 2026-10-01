@@ -13,6 +13,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
 
 export function PostListingForm() {
   const pl = useTranslations().postListing;
@@ -404,14 +405,7 @@ export function PostListingForm() {
               </svg>
             )}
             {submitting ? pl.submit.posting : pl.submit.cta}
-            {!submitting && (
-              <span
-                aria-hidden
-                className="transition-transform duration-200 group-hover:translate-x-0.5"
-              >
-                ↗
-              </span>
-            )}
+            {!submitting && <Icon name="send" size={16} directional />}
           </button>
           {!submitting && (
             <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] leading-snug">

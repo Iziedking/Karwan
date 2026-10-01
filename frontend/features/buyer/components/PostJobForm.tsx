@@ -25,6 +25,7 @@ import { useGuide } from '@/shared/guide/GuideProvider';
 import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
+import { Icon } from '@/shared/components/Icon';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -901,14 +902,7 @@ export function PostJobForm() {
             </svg>
           )}
           {buttonLabel}
-          {!submitting && (
-            <span
-              aria-hidden
-              className="transition-transform duration-200 group-hover:translate-x-0.5"
-            >
-              ↗
-            </span>
-          )}
+          {!submitting && <Icon name="send" size={16} directional />}
         </button>
         {submitting && (
           <p className="text-[12px] text-[var(--lp-text-muted)] leading-snug max-w-[36ch]">

@@ -36,6 +36,7 @@ import {
 import { useTagRecipient } from '../hooks/useTagRecipient';
 import { AddressText } from './AddressText';
 import { CHIP, PRIMARY, SECONDARY } from '@/shared/ui/controls';
+import { Icon } from '@/shared/components/Icon';
 
 export interface MoneySheetProps {
   open: boolean;
@@ -333,8 +334,9 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
                 ) : null}
               </p>
             ) : null}
-            <button type="button" onClick={press} disabled={blocker !== null} className={`${PRIMARY} mt-6 w-full`}>
+            <button type="button" onClick={press} disabled={blocker !== null} className={`${PRIMARY} mt-6 w-full gap-2`}>
               {amount === null ? t.sheet.ctaNoAmount : fill(cta, { amount: formatAmount(amount, locale) })}
+              {move === 'send' && amount !== null ? <Icon name="send" size={16} directional /> : null}
             </button>
           </motion.div>
         ) : state.kind === 'confirmed' ? (

@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { formatUsdc } from '@/shared/utils/format';
 import { splitRequestText } from '@/features/discovery/model';
 import { deliverByUnixFromDate, offerDefaults, offerErrorKey, type Offer } from '../model';
+import { Icon } from '@/shared/components/Icon';
 
 type View = Awaited<ReturnType<typeof api.offers>>;
 
@@ -241,7 +242,7 @@ function MakeOffer({
             </p>
           ) : null}
           <Button type="submit" size="lg" className="w-full rounded-full" loading={busy} disabled={noteLength > NOTE_MAX}>
-            {busy ? t.sending : t.send}
+            {busy ? t.sending : <>{t.send}<Icon name="send" size={16} directional /></>}
           </Button>
         </form>
       </ConfirmSheetShell>
