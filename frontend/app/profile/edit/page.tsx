@@ -313,7 +313,6 @@ function Section({ number, title, children }: { number: string; title: string; c
         borderTopRightRadius: 22,
         borderBottomLeftRadius: 22,
         borderBottomRightRadius: 5,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 12px 32px -16px rgba(0,0,0,0.08)',
       }}
     >
       <header className="px-6 pt-5 pb-4 border-b border-[var(--lp-border-light)] flex items-baseline gap-3">

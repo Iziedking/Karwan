@@ -152,7 +152,7 @@ function DealCard({ active }: { active: number }) {
   const card = useTranslations().docsProduct.how.card;
   const paid = active === 3;
   return (
-    <div aria-hidden className="rounded-[18px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] p-6 shadow-[0_24px_60px_-32px_rgba(0,0,0,0.35)]">
+    <div aria-hidden className="rounded-[18px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] p-6">
       <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{card.label}</p>
       <p className="mt-2 text-[18px] font-bold text-[var(--lp-dark)]">{card.title}</p>
       <p className="mono mt-4 text-[44px] font-bold leading-none tracking-[-0.03em] text-[var(--lp-dark)]">
@@ -176,7 +176,7 @@ function DealStrip({ active }: { active: number }) {
   const card = useTranslations().docsProduct.how.card;
   const paid = active === 3;
   return (
-    <div aria-hidden className="rounded-[14px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] px-4 py-3 shadow-[0_12px_30px_-20px_rgba(0,0,0,0.4)]">
+    <div aria-hidden className="rounded-[14px] border border-[var(--lp-outline-strong)] bg-[var(--lp-card)] px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
         <span className="truncate text-[14px] font-semibold text-[var(--lp-dark)]">{card.title}</span>
         <span className="mono shrink-0 text-[15px] font-bold text-[var(--lp-dark)]">150 USDC</span>

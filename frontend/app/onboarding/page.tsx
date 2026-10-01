@@ -636,7 +636,6 @@ function ConnectStep({ onLogin, onBack }: { onLogin: () => void; onBack: () => v
           background: 'var(--lp-card)',
           border: '1px solid var(--lp-border-light)',
           borderRadius: 16,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
         }}
       >
         <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[44ch]">
@@ -869,7 +868,7 @@ function AccountCard({
       aria-pressed={isSel}
       className={cn(
         'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out ',
-        'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
+        'hover:-translate-y-1',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
         isSel && 'ring-2 ring-[var(--lp-accent)] ring-offset-2 ring-offset-[var(--lp-light)]',
@@ -1081,7 +1080,7 @@ function RoleCard({
       aria-pressed={isSel}
       className={cn(
         'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out ',
-        'hover:-translate-y-1 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-16px_rgba(0,0,0,0.10)]',
+        'hover:-translate-y-1',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
         isSel && 'ring-2 ring-[var(--lp-accent)] ring-offset-2 ring-offset-[var(--lp-light)]',
@@ -1809,7 +1808,6 @@ function ProfileSection({
         background: 'var(--lp-card)',
         border: '1px solid var(--lp-border-light)',
         borderRadius: 16,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 22px 54px -30px rgba(0,0,0,0.22)',
       }}
     >
       <header className="border-b border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-5 sm:px-8 sm:py-6">

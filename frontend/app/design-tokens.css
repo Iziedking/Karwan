@@ -36,7 +36,7 @@
   --font-mono: var(--font-sans);
   --font-serif: var(--font-sans);
   --canvas: #EEF2F7;
-  --surface: #FFFFFF;
+  --surface: var(--palette-mist);
   --ink: #16202A;
   --ink-secondary: color-mix(in srgb, var(--ink) 64%, transparent);
   --ink-muted: color-mix(in srgb, var(--ink) 44%, transparent);
@@ -70,6 +70,8 @@
   --palette-night-surface: #16202A;
   --palette-paper: #EEF2F7;
   --palette-white: #FFFFFF;
+  /* Mist: cards sit one soft step above the page, edged by a hairline, no shadow. */
+  --palette-mist: #F8FAFC;
   --palette-navy: #16202A;
   --palette-night-secondary: color-mix(in srgb, var(--palette-paper) 64%, transparent);
 
@@ -103,7 +105,7 @@
   --karwan-canvas: var(--canvas);
   --karwan-card: var(--surface);
   --paper-0: var(--palette-paper);
-  --paper-1: var(--palette-white);
+  --paper-1: var(--palette-mist);
   --paper-2: color-mix(in srgb, var(--palette-navy) 6%, var(--palette-white));
   --surface-0: var(--palette-night-canvas);
   --surface-1: var(--palette-night-surface);
@@ -174,8 +176,8 @@
 }
 
 html[data-theme="dark"] {
-  --canvas: #0E141B;
-  --surface: #16202A;
+  --canvas: #0F161D;
+  --surface: #151E27;
   --ink: #EEF2F7;
   --tint: color-mix(in srgb, var(--ink) 8%, transparent);
   --offer: #6CC5BE;

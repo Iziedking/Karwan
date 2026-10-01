@@ -637,7 +637,7 @@ function ProfilePageInner() {
         </header>
         <section className={activeSection === 'agents'
           ? 'mt-5 overflow-hidden rounded-[20px] bg-[var(--surface)]'
-          : 'mt-5 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_18px_50px_-42px_rgba(0,0,0,0.38)]'}>
+          : 'mt-5 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]'}>
           {activePanel.content}
         </section>
       </div>

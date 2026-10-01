@@ -126,7 +126,7 @@ for (const route of ['/start', '/market', '/account']) {
             }
           }
           for (const [name, value] of Object.entries(metrics.tokens)) expect(value, name).not.toBe('');
-          expect(metrics.tokens['--canvas'].toUpperCase()).toBe(theme === 'light' ? '#EEF2F7' : '#0E141B');
+          expect(metrics.tokens['--canvas'].toUpperCase()).toBe(theme === 'light' ? '#EEF2F7' : '#0F161D');
           // The production CSS optimizer can normalize 0ms to 0s.
           expect(parseFloat(metrics.tokens['--dur-small'])).toBe(0);
           expect(parseFloat(metrics.tokens['--dur-panel'])).toBe(0);

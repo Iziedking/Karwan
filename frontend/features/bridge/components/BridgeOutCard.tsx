@@ -23,7 +23,6 @@ const CARD_STYLE = {
   borderTopRightRadius: 22,
   borderBottomLeftRadius: 22,
   borderBottomRightRadius: 5,
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.12)',
 } as const;
 
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;

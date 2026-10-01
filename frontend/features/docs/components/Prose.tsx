@@ -104,7 +104,6 @@ export function DocsFigure({
           borderTopRightRadius: 14,
           borderBottomLeftRadius: 14,
           borderBottomRightRadius: 4,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 14px 36px -14px rgba(0,0,0,0.18)',
         }}
       >
         {missing ? (

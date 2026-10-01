@@ -192,7 +192,7 @@ export function BusinessHome({
         </HeroHeadline>
         <div className="mt-10 -mx-[clamp(20px,5vw,72px)] -mb-[clamp(64px,9vw,140px)] lg:-mb-0">
           <div
-            className="bg-[var(--lp-card)] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_56px_-20px_rgba(0,0,0,0.12)] lg:rounded-tl-[28px] lg:rounded-tr-[28px] lg:rounded-bl-[28px] lg:rounded-br-[6px]"
+            className="bg-[var(--lp-card)] overflow-hidden lg:rounded-tl-[28px] lg:rounded-tr-[28px] lg:rounded-bl-[28px] lg:rounded-br-[6px]"
             style={{
               marginLeft: 'clamp(20px,5vw,72px)',
               marginRight: 'clamp(20px,5vw,72px)',

@@ -88,8 +88,8 @@ function ActionCard({
         'transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-dark)]',
         accent
-          ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:shadow-[0_14px_36px_-16px_rgba(0,0,0,0.45)]'
-          : 'border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)] hover:shadow-[0_14px_36px_-16px_rgba(0,0,0,0.45)]',
+          ? 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)]'
+          : 'border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-raised)] text-[var(--lp-workspace-ink)]',
       )}
       style={{
         borderTopLeftRadius: 20,

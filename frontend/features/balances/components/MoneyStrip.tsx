@@ -175,7 +175,7 @@ export function MoneyStrip({ embedded = false }: { embedded?: boolean }) {
 
   const content = (
     <div className="mx-auto w-full max-w-[1040px]" data-float-guard>
-      <div className="relative overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_42px_-24px_rgba(0,0,0,0.18)] sm:rounded-[22px] sm:p-6">
+      <div className="relative overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4 sm:rounded-[22px] sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3 fade-up">
           <SectionTag>{ms.eyebrow}</SectionTag>
           <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">USDC</span>

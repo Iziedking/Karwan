@@ -45,7 +45,7 @@ export default function BusinessProfilePage() {
         </header>
 
         {showingBusiness && activeWorkspace ? (
-          <section className="mt-8 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 shadow-[0_18px_50px_-38px_rgba(0,0,0,0.42)] sm:p-7">
+          <section className="mt-8 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 sm:p-7">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[var(--lp-text-sub)]">{t.label}</p>

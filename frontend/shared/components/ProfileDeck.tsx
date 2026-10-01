@@ -374,8 +374,8 @@ function EdgeArrow({
       className={cn(
         'group absolute top-1/2 -translate-y-1/2 z-40 hidden sm:flex items-center justify-center',
         'border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-muted)]',
-        'shadow-[0_8px_22px_-14px_rgba(10,10,11,0.35)] transition-[color,background,border-color,box-shadow] duration-200',
-        'hover:border-black/25 hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)] hover:shadow-[0_10px_24px_-14px_rgba(10,10,11,0.45)]',
+        'transition-[color,background,border-color,box-shadow] duration-200',
+        'hover:border-black/25 hover:bg-[var(--lp-light)] hover:text-[var(--lp-dark)]',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]',
         // Clear of the card on wide screens, closer in when there is less room.
         back ? 'start-0 -ms-6 lg:-ms-9' : 'end-0 -me-6 lg:-me-9',

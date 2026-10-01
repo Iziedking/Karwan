@@ -193,7 +193,7 @@
 /* Product workspace: quiet depth, open composition, and data-led movement.
    The landing page does not opt into these classes. */
 .product-surface {
-  --product-panel-shadow: 0 18px 60px -42px rgba(10, 13, 11, 0.28);
+  --product-panel-shadow: none;
 }
 
 /* Repeat the same restrained material on broad themed surfaces, never on

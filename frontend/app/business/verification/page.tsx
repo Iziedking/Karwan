@@ -80,7 +80,7 @@ function BusinessVerificationPageInner() {
       <Band tone="light" compact>
         <VerificationProgress labels={steps} current={current} ariaLabel={t.progressLabel} />
 
-        <div className="mt-7 overflow-hidden border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_18px_54px_-34px_rgba(0,0,0,0.32)]">
+        <div className="mt-7 overflow-hidden border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
           <SmeCompanyBand
             address={address}
             fallbackName={profile?.displayName}

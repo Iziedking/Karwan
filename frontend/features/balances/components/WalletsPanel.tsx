@@ -26,7 +26,7 @@ function WalletGlyph({ kind }: { kind: 'identity' | 'agent' }) {
   return (
     <span
       aria-hidden
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] shadow-[0_8px_20px_-16px_rgba(16,15,14,0.45)]"
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)]"
     >
       {kind === 'identity' ? (
         <svg viewBox="0 0 32 32" className="h-[23px] w-[23px]" fill="none">
