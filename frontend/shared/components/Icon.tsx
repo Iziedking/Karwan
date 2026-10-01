@@ -1,8 +1,8 @@
 import React, { type SVGProps } from 'react';
 import {
   Activity, ArrowLeftRight, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check,
-  ChevronLeft, ChevronRight, Coins, FileText, Globe, Link, List,
-  LoaderCircle, Search, Send, UserRound, Wallet,
+  ChevronLeft, ChevronRight, Coins, FileText, Globe, ImagePlus, Link, List,
+  LoaderCircle, Reply, Search, Send, UserRound, Wallet, X,
 } from 'lucide-react';
 
 const icons = {
@@ -16,14 +16,17 @@ const icons = {
   'chevron-right': ChevronRight,
   coins: Coins,
   'file-text': FileText,
+  'image-plus': ImagePlus,
   globe: Globe,
   link: Link,
   list: List,
   'loader-circle': LoaderCircle,
+  reply: Reply,
   search: Search,
   send: Send,
   user: UserRound,
   wallet: Wallet,
+  close: X,
 } as const;
 
 export type IconName = keyof typeof icons;

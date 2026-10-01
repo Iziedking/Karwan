@@ -2661,9 +2661,7 @@ export const ar: Messages = {
     topTier: 'أعلى فئة',
   },
   chatPanel: {
-    reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.', retentionNote: 'Messages kept for 14 days', conversationClosed: 'This conversation is closed.',
-    withCounterpartyTemplate: 'مع {name}',
-    telegramNote: 'يصل أيضاً إلى Telegram عند الربط',
+    reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.',conversationClosed: 'This conversation is closed.',
     loadError: 'تعذّر تحميل سجل المحادثة.',
     emptyMessage: 'لا رسائل بعد. ابدأ بتحية.',
     inputPlaceholder: 'اكتب رسالة…',
@@ -3291,10 +3289,6 @@ export const ar: Messages = {
     },
     agentResearch: {
       tag: 'بحث الوكيل',
-      buyerIntro:
-        'بحث وكيلك في هذا السوق قبل التفاوض. واستخدم القراءة للوصول إلى سعر عادل ضمن حدّك الأقصى.',
-      sellerIntro:
-        'بحث وكيلك في هذا السوق قبل التفاوض. واستخدم القراءة لتسعير خدمتك، دون النزول أبداً تحت حدّك الأدنى.',
     },
     errorStates: {
       privateEyebrow: 'صفقة خاصة',
@@ -3493,11 +3487,6 @@ export const ar: Messages = {
     },
     chat: {
       eyebrow: 'محادثة',
-      titleLead: 'حدّث',
-      titleAccent: 'الطرف الآخر',
-      body: 'محادثة خاصة لكل صفقة. تُعكس على Telegram إن كان متصلاً.',
-      openLabel: 'فتح المحادثة',
-      closeLabel: 'إخفاء المحادثة',
       counterpartySellerTemplate: 'البائع {address}',
       counterpartyBuyerTemplate: 'المشتري {address}',
     },

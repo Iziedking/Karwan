@@ -2659,9 +2659,7 @@ export const hi: Messages = {
     topTier: 'शीर्ष श्रेणी',
   },
   chatPanel: {
-    reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.', retentionNote: 'Messages kept for 14 days', conversationClosed: 'This conversation is closed.',
-    withCounterpartyTemplate: '{name} के साथ',
-    telegramNote: 'लिंक होने पर Telegram पर भी पहुँचता है',
+    reply: 'Reply', cancelReply: 'Cancel reply', replyingTo: 'Replying to {name}', you: 'You', imageAttachment: 'Image attachment', attachImage: 'Attach image', removeImage: 'Remove image', imageOnly: 'Add a caption or send the image', imageUnsupported: 'Use a PNG, JPEG, or WebP image.', imageTooLarge: 'That image is too large. Keep it under 750 KB.', imageReadError: 'We could not read that image. Try again.',conversationClosed: 'This conversation is closed.',
     loadError: 'चैट इतिहास लोड नहीं हो सका।',
     emptyMessage: 'अभी कोई संदेश नहीं। नमस्ते कहें।',
     inputPlaceholder: 'संदेश लिखें…',
@@ -3289,10 +3287,6 @@ export const hi: Messages = {
     },
     agentResearch: {
       tag: 'एजेंट रिसर्च',
-      buyerIntro:
-        'आपके एजेंट ने बातचीत से पहले इस बाज़ार पर रिसर्च की. उसने इस रीडिंग से आपकी सीमा के भीतर एक उचित दाम तय किया.',
-      sellerIntro:
-        'आपके एजेंट ने बातचीत से पहले इस बाज़ार पर रिसर्च की. उसने इस रीडिंग से आपकी सेवा का दाम तय किया, कभी आपके फ्लोर से नीचे नहीं.',
     },
     errorStates: {
       privateEyebrow: 'निजी डील',
@@ -3491,11 +3485,6 @@ export const hi: Messages = {
     },
     chat: {
       eyebrow: 'चैट',
-      titleLead: 'अपने',
-      titleAccent: 'प्रतिपक्ष से बात करें',
-      body: 'प्रति-डील थ्रेड. कनेक्ट होने पर Telegram से मिरर.',
-      openLabel: 'बातचीत खोलें',
-      closeLabel: 'बातचीत छिपाएँ',
       counterpartySellerTemplate: 'विक्रेता {address}',
       counterpartyBuyerTemplate: 'खरीदार {address}',
     },

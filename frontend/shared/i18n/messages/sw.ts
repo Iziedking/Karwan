@@ -2658,9 +2658,7 @@ export const sw: Messages = {
     topTier: 'Daraja la juu',
   },
   chatPanel: {
-    reply: 'Jibu', cancelReply: 'Ghairi jibu', replyingTo: 'Kumjibu {name}', you: 'Wewe', imageAttachment: 'Kiambatisho cha picha', attachImage: 'Ambatisha picha', removeImage: 'Ondoa picha', imageOnly: 'Ongeza maelezo au tuma picha', imageUnsupported: 'Tumia picha ya PNG, JPEG au WebP.', imageTooLarge: 'Picha ni kubwa sana. Kikomo ni KB 750.', imageReadError: 'Picha haikuweza kusomwa. Jaribu tena.', retentionNote: 'Ujumbe huhifadhiwa kwa siku 14', conversationClosed: 'Mazungumzo haya yamefungwa.',
-    withCounterpartyTemplate: 'NA {name}',
-    telegramNote: 'Pia inawasilishwa Telegram ikiwa imeunganishwa',
+    reply: 'Jibu', cancelReply: 'Ghairi jibu', replyingTo: 'Kumjibu {name}', you: 'Wewe', imageAttachment: 'Kiambatisho cha picha', attachImage: 'Ambatisha picha', removeImage: 'Ondoa picha', imageOnly: 'Ongeza maelezo au tuma picha', imageUnsupported: 'Tumia picha ya PNG, JPEG au WebP.', imageTooLarge: 'Picha ni kubwa sana. Kikomo ni KB 750.', imageReadError: 'Picha haikuweza kusomwa. Jaribu tena.',conversationClosed: 'Mazungumzo haya yamefungwa.',
     loadError: 'Haikuweza kupakia historia ya mazungumzo.',
     emptyMessage: 'Hakuna ujumbe bado. Sema habari.',
     inputPlaceholder: 'Andika ujumbe…',
@@ -3288,10 +3286,6 @@ export const sw: Messages = {
     },
     agentResearch: {
       tag: 'Utafiti wa wakala',
-      buyerIntro:
-        'Wakala wako alifanya utafiti wa soko hili kabla ya kujadiliana. Alitumia usomaji huo kufikia bei ya haki ndani ya kikomo chako.',
-      sellerIntro:
-        'Wakala wako alifanya utafiti wa soko hili kabla ya kujadiliana. Alitumia usomaji huo kupanga bei ya huduma yako, bila kamwe kushuka chini ya sakafu yako.',
     },
     errorStates: {
       privateEyebrow: 'Mkataba wa faragha',
@@ -3490,11 +3484,6 @@ export const sw: Messages = {
     },
     chat: {
       eyebrow: 'Gumzo',
-      titleLead: 'Zungumza na',
-      titleAccent: 'mwenza wako',
-      body: 'Uzi kwa kila mkataba. Huakisi Telegram ikiunganishwa.',
-      openLabel: 'Fungua mazungumzo',
-      closeLabel: 'Ficha mazungumzo',
       counterpartySellerTemplate: 'muuzaji {address}',
       counterpartyBuyerTemplate: 'mnunuzi {address}',
     },

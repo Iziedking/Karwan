@@ -281,7 +281,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
   const [settlementFetchState, setSettlementFetchState] =
     useState<SettlementRecordFetchState>('loading');
   const [settlementReloadKey, setSettlementReloadKey] = useState(0);
-  const [conversationOpen, setConversationOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<DealSectionId>(() =>
     typeof window === 'undefined' ? 'overview' : dealSectionFromHash(window.location.hash),
   );
@@ -1112,7 +1111,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5" data-guide="deal-flow">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold text-[var(--lp-dark)]">Trade progress</p>
-                <span className="text-[12px] text-[var(--lp-text-muted)]">Agreement to settlement</span>
               </div>
               <ProgressTrack
                 times={{ opened: deal.createdAt, sellerApproved: deal.sellerApprovedAt, accepted: deal.acceptedAt, delivered: deal.deliveredAt }}
@@ -1156,20 +1154,12 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             );
           })}
         </nav>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            View {sectionIndex + 1} of {sectionItems.length}
-          </span>
-          <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            Swipe left or right
-          </span>
-        </div>
       </Band>
 
       <div
         data-deal-view-deck
         role="region"
-        aria-label="Deal views. Swipe left or right to change view."
+        aria-label="Deal views"
         className="deal-view-deck"
         onTouchStart={handleViewTouchStart}
         onTouchEnd={handleViewTouchEnd}
@@ -1280,12 +1270,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             <Band tone="light" compact>
           <div className="fade-up">
             <SectionTag>{dd.agentResearch.tag}</SectionTag>
-            <p className="mt-3 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[60ch]">
-              {viewerIsSeller
-                ? dd.agentResearch.sellerIntro
-                : dd.agentResearch.buyerIntro}
-            </p>
-            <div className="mt-5 max-w-[640px]">
+            <div className="mt-4 max-w-[640px]">
               <MarketReadCard mr={deal.marketRead} role={viewerRole ?? undefined} />
             </div>
           </div>
@@ -1929,29 +1914,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       {/* CHAT */}
       {address && activeSection === 'conversation' && (
         <Band tone="light" compact id="deal-conversation">
-          <SectionTag>{dd.chat.eyebrow}</SectionTag>
-          <HeroHeadline as="h2" size="md">
-            {dd.chat.titleLead} <span style={{ color: 'var(--lp-accent)' }}>{dd.chat.titleAccent}</span>
-            <Punc>.</Punc>
-          </HeroHeadline>
-          <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[46ch]">
-            {dd.chat.body}
-          </p>
-          <div className="mt-4 flex justify-start">
-            <button
-              type="button"
-              aria-expanded={conversationOpen}
-              aria-controls="deal-conversation-panel"
-              onClick={() => setConversationOpen((open) => !open)}
-              className="inline-flex min-h-11 items-center gap-4 rounded-full border border-[var(--lp-outline-strong)] px-4 text-[13px] font-bold text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-dark)] hover:text-[var(--lp-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
-              <span>{conversationOpen ? dd.chat.closeLabel : dd.chat.openLabel}</span>
-              <span aria-hidden>{conversationOpen ? '↑' : '→'}</span>
-            </button>
-          </div>
-          {conversationOpen && (
-          <div id="deal-conversation-panel" className="mt-6">
-            <PageCard>
+          <h2 className="text-[20px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{dd.chat.eyebrow}</h2>
+          <div id="deal-conversation-panel" className="mt-4">
               <ChatPanel
                 jobId={jobId}
                 caller={address}
@@ -1963,17 +1927,10 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 draftSeed={chatDraftSeed}
                 draftSeedKey={chatDraftSeedKey}
               />
-            </PageCard>
           </div>
-          )}
         </Band>
       )}
 
-      <DealViewPager
-        currentIndex={sectionIndex}
-        total={sectionItems.length}
-        currentLabel={sectionItems[sectionIndex]?.label ?? 'Deal overview'}
-      />
       </div>
 
       {showAcceptConsent && (
@@ -2036,41 +1993,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         caller={address ?? undefined}
       />
     </FullBleed>
-    </div>
-  );
-}
-
-function DealViewPager({
-  currentIndex,
-  total,
-  currentLabel,
-}: {
-  currentIndex: number;
-  total: number;
-  currentLabel: string;
-}) {
-  return (
-    <div className="mx-auto max-w-[1180px] px-5 py-5 sm:px-8 lg:px-10">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
-        <div>
-          <p className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-            Current view
-          </p>
-          <p className="mt-1 text-[13px] font-semibold text-[var(--lp-dark)]">{currentLabel}</p>
-        </div>
-        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {currentIndex + 1} / {total} · swipe to continue
-        </span>
-      </div>
-      <div className="mt-3 flex gap-1.5" aria-hidden>
-        {Array.from({ length: total }, (_, index) => (
-          <span
-            key={index}
-            className="h-1 flex-1 rounded-full transition-colors duration-200"
-            style={{ background: index === currentIndex ? 'var(--lp-accent)' : 'var(--lp-border-light)' }}
-          />
-        ))}
-      </div>
     </div>
   );
 }

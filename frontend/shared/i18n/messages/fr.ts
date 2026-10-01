@@ -2661,9 +2661,7 @@ export const fr: Messages = {
     topTier: 'Palier maximal',
   },
   chatPanel: {
-    reply: 'Répondre', cancelReply: 'Annuler la réponse', replyingTo: 'Réponse à {name}', you: 'Vous', imageAttachment: 'Pièce jointe image', attachImage: 'Joindre une image', removeImage: "Supprimer l'image", imageOnly: 'Ajoutez une légende ou envoyez l’image', imageUnsupported: 'Utilisez une image PNG, JPEG ou WebP.', imageTooLarge: 'Cette image est trop volumineuse. Limite : 750 Ko.', imageReadError: "Impossible de lire l'image. Réessayez.", retentionNote: 'Messages conservés 14 jours', conversationClosed: 'Cette conversation est fermée.',
-    withCounterpartyTemplate: 'AVEC {name}',
-    telegramNote: 'Aussi livré sur Telegram quand lié',
+    reply: 'Répondre', cancelReply: 'Annuler la réponse', replyingTo: 'Réponse à {name}', you: 'Vous', imageAttachment: 'Pièce jointe image', attachImage: 'Joindre une image', removeImage: "Supprimer l'image", imageOnly: 'Ajoutez une légende ou envoyez l’image', imageUnsupported: 'Utilisez une image PNG, JPEG ou WebP.', imageTooLarge: 'Cette image est trop volumineuse. Limite : 750 Ko.', imageReadError: "Impossible de lire l'image. Réessayez.",conversationClosed: 'Cette conversation est fermée.',
     loadError: "Impossible de charger l'historique de chat.",
     emptyMessage: 'Aucun message. Dites bonjour.',
     inputPlaceholder: 'Écrire un message…',
@@ -3291,10 +3289,6 @@ export const fr: Messages = {
     },
     agentResearch: {
       tag: 'Recherche agent',
-      buyerIntro:
-        "Votre agent a étudié ce marché avant de négocier. Il a utilisé cette lecture pour fixer un prix juste dans la limite de votre plafond.",
-      sellerIntro:
-        "Votre agent a étudié ce marché avant de négocier. Il a utilisé cette lecture pour fixer le prix de votre service, jamais sous votre plancher.",
     },
     errorStates: {
       privateEyebrow: 'Transaction privée',
@@ -3493,11 +3487,6 @@ export const fr: Messages = {
     },
     chat: {
       eyebrow: 'Chat',
-      titleLead: 'Parlez à votre',
-      titleAccent: 'contrepartie',
-      body: 'Fil par transaction. Reflété sur Telegram si connecté.',
-      openLabel: 'Ouvrir la conversation',
-      closeLabel: 'Masquer la conversation',
       counterpartySellerTemplate: 'vendeur {address}',
       counterpartyBuyerTemplate: 'acheteur {address}',
     },

@@ -2416,8 +2416,6 @@ interface MessagesShape {
     topTier: string;
   };
   chatPanel: {
-    withCounterpartyTemplate: string;
-    telegramNote: string;
     loadError: string;
     emptyMessage: string;
     inputPlaceholder: string;
@@ -2434,7 +2432,6 @@ interface MessagesShape {
     imageUnsupported: string;
     imageTooLarge: string;
     imageReadError: string;
-    retentionNote: string;
     conversationClosed: string;
   };
   liveBidsPanel: {
@@ -3005,8 +3002,6 @@ interface MessagesShape {
     };
     agentResearch: {
       tag: string;
-      buyerIntro: string;
-      sellerIntro: string;
     };
     errorStates: {
       privateEyebrow: string;
@@ -3196,11 +3191,6 @@ interface MessagesShape {
     };
     chat: {
       eyebrow: string;
-      titleLead: string;
-      titleAccent: string;
-      body: string;
-      openLabel: string;
-      closeLabel: string;
       counterpartySellerTemplate: string;
       counterpartyBuyerTemplate: string;
     };
@@ -8046,8 +8036,6 @@ export const en: MessagesShape = {
     topTier: 'Top tier',
   },
   chatPanel: {
-    withCounterpartyTemplate: 'Conversation with {name}',
-    telegramNote: 'Also delivered to Telegram when linked',
     loadError: 'Could not load chat history.',
     emptyMessage: 'No messages yet. Say hello.',
     inputPlaceholder: 'Write a message…',
@@ -8064,7 +8052,6 @@ export const en: MessagesShape = {
     imageUnsupported: 'Use a PNG, JPEG, or WebP image.',
     imageTooLarge: 'That image is too large. Keep it under 750 KB.',
     imageReadError: 'We could not read that image. Try again.',
-    retentionNote: 'Messages kept for 14 days',
     conversationClosed: 'This conversation is closed.',
   },
   liveBidsPanel: {
@@ -8688,10 +8675,6 @@ export const en: MessagesShape = {
     },
     agentResearch: {
       tag: 'Agent research',
-      buyerIntro:
-        'Your agent researched this market before negotiating. It used the read to settle a fair price within your cap.',
-      sellerIntro:
-        'Your agent researched this market before negotiating. It used the read to price your service, never below your floor.',
     },
     errorStates: {
       privateEyebrow: 'Private deal',
@@ -8921,11 +8904,6 @@ export const en: MessagesShape = {
     },
     chat: {
       eyebrow: 'Conversation',
-      titleLead: 'Talk to your',
-      titleAccent: 'counterparty',
-      body: 'Private trade conversation. Telegram receives a copy only when you connect it.',
-      openLabel: 'Open conversation',
-      closeLabel: 'Hide conversation',
       counterpartySellerTemplate: 'seller {address}',
       counterpartyBuyerTemplate: 'buyer {address}',
     },

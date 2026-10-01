@@ -3,13 +3,15 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { ApiError, type ChatMessage } from '@/core/api';
+import { Icon } from '@/shared/components/Icon';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useChat } from '../hooks/useChat';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
 
-/// A compact, deal-scoped conversation. Replies preserve context, images are
-/// the only attachment type, and the server enforces the retention window.
+/// A deal-scoped conversation. Replies keep their context, images are the only
+/// attachment type, and the server enforces the retention window.
 export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSeedKey }: { jobId: string; caller: string; counterpartyLabel: string; draftSeed?: string; draftSeedKey?: number }) {
   const cp = useTranslations().chatPanel;
+  const { locale } = useLocale();
   const { messages, fetchState, fetchError, send, sending, writable } = useChat({ jobId, caller });
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
@@ -20,6 +22,7 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSe
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const byId = useMemo(() => new Map(messages.map((message) => [message.id, message])), [messages]);
+  const canSend = writable && !sending && (!!draft.trim() || !!imageDataUrl);
 
   useEffect(() => { if (!draftSeed) return; setDraft(draftSeed); requestAnimationFrame(() => inputRef.current?.focus()); }, [draftSeed, draftSeedKey]);
   useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [messages.length]);
@@ -27,14 +30,12 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSe
     const input = inputRef.current;
     if (!input) return;
     input.style.height = 'auto';
-    const nextHeight = Math.min(input.scrollHeight, 144);
-    input.style.height = `${Math.max(44, nextHeight)}px`;
+    input.style.height = `${Math.max(24, Math.min(input.scrollHeight, 144))}px`;
     input.style.overflowY = input.scrollHeight > 144 ? 'auto' : 'hidden';
   }, [draft]);
 
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    if (sending || (!draft.trim() && !imageDataUrl) || !writable) return;
+  async function submit() {
+    if (!canSend) return;
     const body = draft;
     const attachment = imageDataUrl ?? undefined;
     const target = replyTo?.id;
@@ -53,18 +54,151 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSe
     reader.readAsDataURL(file);
   }
 
-  return <section className="mx-auto w-full max-w-[860px] overflow-hidden rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] shadow-[0_12px_36px_rgba(0,0,0,0.07)]">
-    <header className="flex items-center justify-between gap-3 border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-5"><div className="min-w-0"><span className="text-[11px] font-semibold text-[var(--lp-text-muted)]">{cp.withCounterpartyTemplate.replace('{name}', counterpartyLabel)}</span><p className="mt-1 text-xs text-[var(--lp-text-sub)]">{cp.telegramNote}</p></div><span className="shrink-0 text-[11px] text-[var(--lp-text-muted)]">{cp.retentionNote}</span></header>
-    <div ref={listRef} className="h-[min(52vh,460px)] min-h-[260px] space-y-3 overflow-y-auto bg-[var(--lp-light)]/50 px-4 py-4 sm:px-5">
-      {fetchState === 'loading' ? <div className="space-y-2"><div className="h-10 w-2/3 animate-pulse rounded-xl bg-black/[0.05] motion-reduce:animate-none" /><div className="ms-auto h-10 w-1/2 animate-pulse rounded-xl bg-black/[0.05] motion-reduce:animate-none" /></div> : null}
-      {fetchState === 'error' ? <div className="rounded-xl border border-red-300/50 bg-red-500/10 px-3 py-2.5 text-xs text-red-700">{fetchError ?? cp.loadError}</div> : null}
-      {fetchState === 'ready' && messages.length === 0 ? <p className="py-8 text-center mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">{cp.emptyMessage}</p> : null}
-      {messages.map((message) => { const sender = typeof message.sender === 'string' ? message.sender : ''; if (message.kind === 'system' || !sender) return <p key={message.id} className="px-2 py-1 text-center text-xs text-[var(--lp-text-muted)]">{message.body}</p>; const mine = sender.toLowerCase() === me; const quoted = message.replyToId ? byId.get(message.replyToId) : undefined; return <div key={message.id} className={cn('flex', mine ? 'justify-end' : 'justify-start')}><div className="group relative max-w-[82%] sm:max-w-[74%]"><div className={cn('px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words', mine ? 'bg-[var(--lp-band-dark)] text-white' : 'border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)]')} style={{ borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px' }}>{quoted ? <div className={cn('mb-2 border-s-2 px-2 py-1 text-[11px]', mine ? 'border-white/55 bg-white/10 text-white/75' : 'border-[var(--lp-text-muted)] bg-black/[0.035] text-[var(--lp-text-sub)]')}><p className="mono text-[9px] uppercase tracking-[0.1em]">{cp.replyingTo.replace('{name}', quoted.sender.toLowerCase() === me ? cp.you : counterpartyLabel)}</p><p className="truncate">{quoted.body || cp.imageAttachment}</p></div> : null}{message.imageDataUrl ? <img src={message.imageDataUrl} alt={cp.imageAttachment} className="mb-2 max-h-56 w-full rounded-lg object-contain" /> : null}{message.body ? <p>{message.body}</p> : null}<p className={cn('mt-1 mono text-[10px] uppercase tracking-[0.1em]', mine ? 'text-white/55' : 'text-[var(--lp-text-muted)]')}>{formatTs(message.ts)}</p></div>{writable ? <button type="button" onClick={() => { setReplyTo(message); inputRef.current?.focus(); }} className={cn('mt-1 inline-flex min-h-11 items-center px-2 mono text-[9px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] underline-offset-2 hover:underline', mine ? 'float-right' : '')}>{cp.reply}</button> : null}</div></div>; })}
-    </div>
-    {sendError ? <div className="mx-4 mt-3 rounded-xl border border-orange-300/50 bg-orange-500/10 px-3 py-2.5 text-xs text-orange-800 sm:mx-5">{sendError}</div> : null}
-    <form onSubmit={onSubmit} className="border-t border-[var(--lp-border-light)] px-4 py-3 sm:px-5">{!writable ? <p className="text-xs text-[var(--lp-text-muted)]">{cp.conversationClosed}</p> : null}{writable && replyTo ? <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border-s-2 border-[var(--lp-accent)] bg-[var(--lp-light)] px-3 py-2"><p className="min-w-0 truncate text-xs text-[var(--lp-text-sub)]">{cp.replyingTo.replace('{name}', replyTo.sender.toLowerCase() === me ? cp.you : counterpartyLabel)}: {replyTo.body || cp.imageAttachment}</p><button type="button" onClick={() => setReplyTo(null)} className="inline-flex min-h-11 min-w-11 items-center justify-center text-lg text-[var(--lp-text-muted)]" aria-label={cp.cancelReply}>×</button></div> : null}{writable && imageDataUrl ? <div className="mb-2 flex items-center gap-2"><img src={imageDataUrl} alt={cp.imageAttachment} className="h-14 w-14 rounded-lg border border-[var(--lp-border-light)] object-cover" /><button type="button" onClick={() => setImageDataUrl(null)} className="min-h-11 px-2 mono text-[9px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)] underline">{cp.removeImage}</button></div> : null}{writable ? <div className="flex items-end gap-2"><input ref={fileRef} type="file" aria-label={cp.attachImage} accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { onImageSelected(event.target.files?.[0]); event.currentTarget.value = ''; }} /><button type="button" onClick={() => fileRef.current?.click()} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--lp-border-light)] text-lg text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]" aria-label={cp.attachImage}>＋</button><textarea ref={inputRef} value={draft} onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); }} placeholder={imageDataUrl ? cp.imageOnly : cp.inputPlaceholder} rows={1} maxLength={2000} className="chat-input min-h-11 max-h-36 min-w-0 flex-1 resize-none overflow-y-hidden rounded-xl bg-[var(--lp-light)] px-4 py-2.5 text-[13px] leading-6 text-[var(--lp-dark)] placeholder:text-[var(--lp-text-muted)] focus:outline-none" /><button type="submit" disabled={sending || (!draft.trim() && !imageDataUrl) || !writable} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-[var(--lp-accent)] px-4 py-2.5 mono text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--lp-band-dark)] transition-opacity disabled:cursor-not-allowed disabled:opacity-50">{sending ? cp.sending : cp.send}{!sending ? <span aria-hidden>→</span> : null}</button></div> : null}</form>
-    <style jsx>{`.chat-input { border: 1px solid var(--lp-border-light); } .chat-input:focus { border-color: var(--lp-dark); box-shadow: 0 0 0 3px rgba(175, 201, 91, 0.25); }`}</style>
-  </section>;
+  const nameOf = (sender: string) => (sender.toLowerCase() === me ? cp.you : counterpartyLabel);
+  const initial = counterpartyLabel.replace(/^(seller|buyer)\s+/i, '').trim().charAt(0).toUpperCase() || '·';
+
+  return (
+    <section className="flex w-full flex-col overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
+      <header className="flex items-center gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
+        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[14px] font-semibold text-[var(--lp-dark)]">{initial}</span>
+        <p className="min-w-0 truncate text-[15px] font-semibold text-[var(--lp-dark)]">{counterpartyLabel}</p>
+      </header>
+
+      <div ref={listRef} role="log" aria-live="polite" className="h-[min(56vh,520px)] min-h-[280px] overflow-y-auto px-3 py-4 sm:px-5">
+        {fetchState === 'loading' ? (
+          <div aria-busy="true" className="space-y-2">
+            <div className="h-10 w-2/3 rounded-[18px] bg-[var(--lp-light)]" />
+            <div className="ms-auto h-10 w-1/2 rounded-[18px] bg-[var(--lp-light)]" />
+          </div>
+        ) : null}
+        {fetchState === 'error' ? <p role="alert" className="text-[14px] text-[var(--lp-dark)]">{fetchError ?? cp.loadError}</p> : null}
+        {fetchState === 'ready' && messages.length === 0 ? (
+          <p className="grid h-full place-items-center text-[14px] text-[var(--lp-text-sub)]">{cp.emptyMessage}</p>
+        ) : null}
+        {messages.map((message, index) => {
+          const sender = typeof message.sender === 'string' ? message.sender : '';
+          const previous = messages[index - 1];
+          const newDay = !previous || dayKey(previous.ts) !== dayKey(message.ts);
+          const divider = newDay ? (
+            <p className="my-3 text-center text-[12px] font-medium text-[var(--lp-text-sub)]">{dayLabel(message.ts, locale)}</p>
+          ) : null;
+          if (message.kind === 'system' || !sender) {
+            return <div key={message.id}>{divider}<p className="my-2 px-6 text-center text-[13px] text-[var(--lp-text-sub)]">{message.body}</p></div>;
+          }
+          const mine = sender.toLowerCase() === me;
+          const grouped = !newDay && previous && previous.kind !== 'system' && previous.sender === message.sender;
+          const quoted = message.replyToId ? byId.get(message.replyToId) : undefined;
+          return (
+            <div key={message.id}>
+              {divider}
+              <div className={cn('group flex items-end gap-1.5', mine ? 'flex-row-reverse' : 'flex-row', grouped ? 'mt-0.5' : 'mt-3')}>
+                <div
+                  className={cn(
+                    'max-w-[80%] px-3.5 py-2 text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] sm:max-w-[70%]',
+                    mine ? 'bg-[var(--lp-dark)] text-[var(--lp-light)]' : 'bg-[var(--lp-light)] text-[var(--lp-dark)]',
+                    mine ? 'rounded-[18px] rounded-ee-[6px]' : 'rounded-[18px] rounded-es-[6px]',
+                  )}
+                >
+                  {quoted ? (
+                    <div className={cn('mb-1.5 rounded-[10px] border-s-2 px-2.5 py-1 text-[13px]', mine ? 'border-[var(--lp-accent)] bg-white/10' : 'border-[var(--lp-accent)] bg-[var(--lp-card)]')}>
+                      <p className="font-semibold">{nameOf(quoted.sender)}</p>
+                      <p className="truncate opacity-80">{quoted.body || cp.imageAttachment}</p>
+                    </div>
+                  ) : null}
+                  {message.imageDataUrl ? (
+                    <img src={message.imageDataUrl} alt={cp.imageAttachment} className="mb-1.5 max-h-60 w-full rounded-[12px] object-contain" />
+                  ) : null}
+                  {message.body ? <span>{message.body}</span> : null}
+                  <span className={cn('ms-2 inline-block translate-y-[3px] text-[11px] tabular-nums', mine ? 'text-[var(--lp-light)]/70' : 'text-[var(--lp-text-sub)]')}>
+                    {timeOf(message.ts, locale)}
+                  </span>
+                </div>
+                {writable ? (
+                  <button
+                    type="button"
+                    onClick={() => { setReplyTo(message); inputRef.current?.focus(); }}
+                    aria-label={`${cp.reply}: ${message.body || cp.imageAttachment}`}
+                    className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] opacity-0 transition-opacity hover:bg-[var(--lp-light)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                  >
+                    <Icon name="reply" size={16} directional />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {sendError ? <p role="alert" className="mx-4 mb-2 text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] sm:mx-5">{sendError}</p> : null}
+
+      {!writable ? (
+        <p className="border-t border-[var(--lp-border-light)] px-5 py-4 text-[14px] text-[var(--lp-text-sub)]">{cp.conversationClosed}</p>
+      ) : (
+        <form
+          onSubmit={(event) => { event.preventDefault(); void submit(); }}
+          className="border-t border-[var(--lp-border-light)] p-3 sm:px-4"
+        >
+          {replyTo ? (
+            <div className="mb-2 flex items-center gap-2 rounded-[12px] border-s-2 border-[var(--lp-accent)] bg-[var(--lp-light)] py-1 pe-1 ps-3">
+              <p className="min-w-0 flex-1 truncate text-[13px] text-[var(--lp-text-sub)]">
+                <span className="font-semibold text-[var(--lp-dark)]">{cp.replyingTo.replace('{name}', nameOf(replyTo.sender))}</span> {replyTo.body || cp.imageAttachment}
+              </p>
+              <button type="button" onClick={() => setReplyTo(null)} aria-label={cp.cancelReply} className="grid size-9 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-card)]">
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+          ) : null}
+          {imageDataUrl ? (
+            <div className="mb-2 flex items-center gap-2">
+              <img src={imageDataUrl} alt={cp.imageAttachment} className="size-14 rounded-[12px] border border-[var(--lp-border-light)] object-cover" />
+              <button type="button" onClick={() => setImageDataUrl(null)} aria-label={cp.removeImage} className="grid size-9 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-light)]">
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+          ) : null}
+          <div className="flex items-end gap-1.5 rounded-[24px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-1 focus-within:border-[var(--lp-outline-strong)]">
+            <input ref={fileRef} type="file" aria-label={cp.attachImage} accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { onImageSelected(event.target.files?.[0]); event.currentTarget.value = ''; }} />
+            <button type="button" onClick={() => fileRef.current?.click()} aria-label={cp.attachImage} className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--lp-text-sub)] hover:bg-[var(--lp-card)] hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+              <Icon name="image-plus" size={20} />
+            </button>
+            <textarea
+              ref={inputRef}
+              value={draft}
+              onChange={(event) => { setDraft(event.target.value); if (sendError) setSendError(null); }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void submit(); }
+              }}
+              placeholder={imageDataUrl ? cp.imageOnly : cp.inputPlaceholder}
+              aria-label={cp.inputPlaceholder}
+              rows={1}
+              maxLength={2000}
+              dir="auto"
+              className="min-w-0 flex-1 resize-none self-center bg-transparent py-2.5 text-[15px] leading-6 text-[var(--lp-dark)] placeholder:text-[var(--lp-text-sub)] focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!canSend}
+              aria-label={sending ? cp.sending : cp.send}
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-band-dark)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
+            >
+              <Icon name={sending ? 'loader-circle' : 'send'} size={20} directional={!sending} className={sending ? 'animate-spin motion-reduce:animate-none' : undefined} />
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
 }
 
-function formatTs(ts: number): string { const d = new Date(ts); const today = new Date(); const sameDay = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate(); const hh = d.getHours().toString().padStart(2, '0'); const mm = d.getMinutes().toString().padStart(2, '0'); return sameDay ? `${hh}:${mm}` : `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`; }
+function dayKey(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function dayLabel(ts: number, locale: string): string {
+  return new Date(ts).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function timeOf(ts: number, locale: string): string {
+  return new Date(ts).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+}

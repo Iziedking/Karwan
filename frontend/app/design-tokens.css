@@ -38,8 +38,8 @@
   --canvas: #EEF2F7;
   --surface: var(--palette-mist);
   --ink: #16202A;
-  --ink-secondary: color-mix(in srgb, var(--ink) 64%, transparent);
-  --ink-muted: color-mix(in srgb, var(--ink) 44%, transparent);
+  --ink-secondary: color-mix(in srgb, var(--ink) 76%, transparent);
+  --ink-muted: color-mix(in srgb, var(--ink) 64%, transparent);
   --tint: color-mix(in srgb, var(--ink) 6%, transparent);
   --line: color-mix(in srgb, var(--ink) 8%, transparent);
   --control-line: color-mix(in srgb, var(--ink) 56%, transparent);
