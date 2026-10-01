@@ -9,7 +9,7 @@ export interface LandingEditorialCopy {
   both: string; buyer: string; seller: string; receipt: string; exampleNote: string;
   limitTitle: string; limitBody: string; rulesLink: string; closeTitle: string; closeBody: string;
   routes: {
-    label: string; title: string; body: string; note: string;
+    label: string; title: string; body: string;
     cities: Record<'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto', string>;
   };
 }

@@ -72,13 +72,10 @@
 .label[data-side='se'] { transform: translate(8px, 6px); }
 .label[data-side='sw'] { transform: translate(calc(-100% - 8px), 6px); }
 
-.note { color: var(--lp-text-sub); font-size: 14px; text-align: center; margin: clamp(20px, 3vw, 32px) 0 0; }
-
 @media (max-width: 760px) {
   .wrap { width: calc(100% - 40px); }
   .header { text-align: start; }
   .body { font-size: 17px; margin-inline: 0; }
-  .note { text-align: start; }
   .label { display: none; }
 }
 

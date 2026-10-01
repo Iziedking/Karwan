@@ -139,7 +139,6 @@ export function TradeRoutesMap() {
             </span>
           ))}
         </div>
-        <p className={styles.note}>{t.note}</p>
       </div>
     </section>
   );

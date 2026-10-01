@@ -5346,7 +5346,7 @@ export const en: MessagesShape = {
   activityReview: { filterLabel: 'Filter recent activity by type' },
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
   landingEditorial: {
-    routes: { label: 'Across borders', title: 'Trade with anyone, anywhere.', body: 'A supplier in Kano and a buyer in Hamburg agree terms, lock the payment in escrow and settle in USDC on Arc. The same protected deal works between any two places.', note: 'Example routes, not live deals.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto' } },
+    routes: { label: 'Across borders', title: 'Trade with anyone, anywhere.', body: 'A supplier in Kano and a buyer in Hamburg agree terms, lock the payment in escrow and settle in USDC on Arc. The same protected deal works between any two places.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto' } },
     kicker: 'One reputation for the internet', titleFirst: "Your reputation should", titleLast: "travel with you.",
     lead: 'Karwan brings your reputation together, so you never start from zero again. It starts with an open market where every completed trade builds your record.',
     open: 'Open Karwan', trade: "Mainnet access is by invitation, one user at a time. The market and deal flow are available on testnet.", startLink: 'How a deal starts',
