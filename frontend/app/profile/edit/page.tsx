@@ -5,23 +5,12 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import { FormError } from '@/shared/components/FormError';
 import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { api, ApiError, type UserRole } from '@/core/api';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-  CTAPill,
-} from '@/shared/components/Bands';
+import { Hint } from '@/shared/components/Hint';
+import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
+import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
-
-// Matches the onboarding form inputs so edit and setup look identical.
-const INPUT_CLS =
-  'w-full rounded-md border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 py-2 text-sm focus:outline-none focus:border-[var(--lp-dark)] transition-colors';
 
 /// Dedicated profile edit. A first-class route, NOT the onboarding flow: no
 /// language / connect / role-pick steps (and no flash of them), just the
@@ -41,7 +30,8 @@ function ProfileEditInner() {
   const pe = useTranslations().profileEdit;
   const router = useRouter();
   const t = useTranslations().profile;
-  const ob = useTranslations().onboarding;
+  const simple = t.simple;
+  const { locale } = useLocale();
   const { profile, address, fetchState } = useUserProfile();
   const { isBusinessWorkspace } = useWorkspaceContext();
 
@@ -100,11 +90,7 @@ function ProfileEditInner() {
   const wantsSeller = role === 'seller' || role === 'both';
   const wantsBuyer = role === 'buyer' || role === 'both';
 
-  // Section numbers renumber when the Identity block is hidden (business) so the
-  // list never starts at 02 or skips a number.
   const showIdentity = !isBusiness;
-  const sellerNo = String((showIdentity ? 1 : 0) + 1).padStart(2, '0');
-  const buyerNo = String((showIdentity ? 1 : 0) + (wantsSeller ? 2 : 1)).padStart(2, '0');
 
   const canSave = (() => {
     if (saving || !displayName.trim()) return false;
@@ -163,175 +149,134 @@ function ProfileEditInner() {
     }
   }
 
-  return (
-    <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="max-w-3xl mx-auto">
-          <div className="fade-up">
-            <SectionTag tone="dark">{t.hero.sectionTag}</SectionTag>
-          </div>
-          <div className="fade-up fade-up-1">
-            <HeroHeadline size="md">
-              Edit your <Accent>profile</Accent>
-              <Punc>.</Punc>
-            </HeroHeadline>
-          </div>
-        </div>
-      </Band>
-
-      <Band tone="light" compact>
-        <div className="max-w-3xl mx-auto space-y-6 fade-up">
-          <RoleSelector role={role} onChange={setRole} disabled={saving} />
-
-          {showIdentity && (
-            <Section number="01" title="Identity">
-              <FieldLabel label={pe.displayName}>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  maxLength={40}
-                  className={INPUT_CLS}
-                />
-              </FieldLabel>
-            </Section>
-          )}
-
-          {wantsSeller && (
-            // Same field, same matching keywords, different vocabulary. A business
-            // supplies goods and categories; only an individual has skills.
-            <Section number={sellerNo} title={isBusiness ? 'As a supplier' : 'As a seller'}>
-              <FieldLabel
-                label={
-                  isBusiness
-                    ? 'What you supply (comma separated)'
-                    : 'Skills (comma separated)'
-                }
-              >
-                <input
-                  value={skills}
-                  onChange={(e) => setSkills(e.target.value)}
-                  placeholder={
-                    isBusiness ? 'e.g. textiles, woven cotton, apparel' : undefined
-                  }
-                  className={INPUT_CLS}
-                />
-              </FieldLabel>
-              <FieldLabel label={isBusiness ? 'What your company does' : 'Short bio'}>
-                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} className={cn(INPUT_CLS, 'resize-none')} />
-              </FieldLabel>
-              <div className="grid grid-cols-2 gap-3">
-                <NumberField label={pe.minBudget} value={sellerMin} onChange={setSellerMin} />
-                <NumberField label={pe.maxBudget} value={sellerMax} onChange={setSellerMax} />
-                <NumberField label={pe.minDays} value={sellerMinDays} onChange={setSellerMinDays} />
-                <NumberField label={pe.maxDays} value={sellerMaxDays} onChange={setSellerMaxDays} />
-              </div>
-            </Section>
-          )}
-
-          {wantsBuyer && (
-            <Section number={buyerNo} title={pe.asBuyer}>
-              <div className="grid grid-cols-2 gap-3">
-                <NumberField label={pe.maxBudget} value={buyerMax} onChange={setBuyerMax} />
-                <NumberField label={pe.minDays} value={buyerMinDays} onChange={setBuyerMinDays} />
-                <NumberField label={pe.maxDays} value={buyerMaxDays} onChange={setBuyerMaxDays} />
-              </div>
-              <FieldLabel label={pe.milestoneSplit}>
-                <input value={milestoneSplit} onChange={(e) => setMilestoneSplit(e.target.value)} className={cn(INPUT_CLS, 'mono')} />
-              </FieldLabel>
-            </Section>
-          )}
-
-          <div className="flex items-center justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => router.push('/profile')}
-              disabled={saving}
-              className="group inline-flex items-center gap-2 mono text-[12px] uppercase tracking-[0.08em] text-[var(--lp-text-sub)] hover:text-[var(--lp-dark)] transition-colors"
-            >
-              <span aria-hidden className="transition-transform duration-200 group-hover:-translate-x-0.5">←</span>
-              {ob.roleStep.backArrow}
-            </button>
-            <CTAPill onClick={save} disabled={!canSave} tone="light">
-              {saving ? 'Saving…' : 'Save changes'}
-            </CTAPill>
-          </div>
-          {error && <FormError>{error}</FormError>}
-        </div>
-      </Band>
-    </FullBleed>
-  );
-}
-
-function RoleSelector({
-  role,
-  onChange,
-  disabled,
-}: {
-  role: UserRole;
-  onChange: (r: UserRole) => void;
-  disabled?: boolean;
-}) {
-  const opts: { value: UserRole; label: string }[] = [
-    { value: 'seller', label: 'Seller' },
-    { value: 'buyer', label: 'Buyer' },
-    { value: 'both', label: 'Both' },
+  const splitText = milestoneSplit.replace(/\s/g, '');
+  const presetSplits = [
+    { value: '50,50', label: TERMS_COPY[locale].payHalf },
+    { value: '30,70', label: TERMS_COPY[locale].payThirty },
   ];
+  const customSplit = !presetSplits.some((preset) => preset.value === splitText);
+  const roles: { value: UserRole; label: string }[] = [
+    { value: 'seller', label: simple.sell },
+    { value: 'buyer', label: simple.buy },
+    { value: 'both', label: simple.both },
+  ];
+
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {opts.map((o) => {
-        const sel = role === o.value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(o.value)}
-            aria-pressed={sel}
-            className={cn(
-              'rounded-md border px-3 py-2.5 mono text-[11px] uppercase tracking-[0.1em] font-semibold transition-colors',
-              sel
-                ? 'border-[var(--lp-control-active-border)] bg-[var(--lp-control-active-bg)] text-[var(--lp-control-active-ink)]'
-                : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)] hover:border-[var(--lp-dark)]',
-            )}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
+    <ProfileFrame title={simple.profileTitle}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+        className="space-y-7"
+      >
+        {showIdentity ? (
+          <Field label={pe.displayName}>
+            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={40} className="form-input" />
+          </Field>
+        ) : null}
+
+        <div role="group" aria-label={simple.useKarwanTo}>
+          <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{simple.useKarwanTo}</p>
+          <div className="flex flex-wrap gap-2">
+            {roles.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={role === option.value}
+                disabled={saving}
+                onClick={() => setRole(option.value)}
+                className={cn(CHIP, role === option.value ? CHIP_ON : CHIP_OFF)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {wantsSeller ? (
+          <section className="space-y-4">
+            <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{simple.sellingAgent}</h2>
+            <Field label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} hint={simple.skillsHint}>
+              <input value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={isBusiness ? 'textiles, woven cotton, apparel' : 'logo design, branding'} className="form-input" />
+            </Field>
+            <Field label={simple.aboutYou}>
+              <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="form-input form-textarea" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField label={pe.minBudget} value={sellerMin} onChange={setSellerMin} />
+              <NumberField label={pe.maxBudget} value={sellerMax} onChange={setSellerMax} />
+              <NumberField label={pe.minDays} value={sellerMinDays} onChange={setSellerMinDays} />
+              <NumberField label={pe.maxDays} value={sellerMaxDays} onChange={setSellerMaxDays} />
+            </div>
+          </section>
+        ) : null}
+
+        {wantsBuyer ? (
+          <section className="space-y-4">
+            <h2 className="text-[17px] font-semibold text-[var(--lp-dark)]">{simple.buyingAgent}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField label={simple.mostItMayPay} value={buyerMax} onChange={setBuyerMax} />
+              <span aria-hidden />
+              <NumberField label={pe.minDays} value={buyerMinDays} onChange={setBuyerMinDays} />
+              <NumberField label={pe.maxDays} value={buyerMaxDays} onChange={setBuyerMaxDays} />
+            </div>
+            <div role="group" aria-label={simple.paymentSplit}>
+              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{simple.paymentSplit}</p>
+              <div className="flex flex-wrap gap-2">
+                {presetSplits.map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    aria-pressed={splitText === preset.value}
+                    onClick={() => setMilestoneSplit(preset.value)}
+                    className={cn(CHIP, splitText === preset.value ? CHIP_ON : CHIP_OFF)}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  aria-pressed={customSplit}
+                  onClick={() => { if (!customSplit) setMilestoneSplit('40,60'); }}
+                  className={cn(CHIP, customSplit ? CHIP_ON : CHIP_OFF)}
+                >
+                  {TERMS_COPY[locale].payCustom}
+                </button>
+              </div>
+              {customSplit ? (
+                <span className="mt-2 block w-40">
+                  <input value={milestoneSplit} onChange={(e) => setMilestoneSplit(e.target.value)} aria-label={pe.milestoneSplit} className="form-input tabular-nums" />
+                </span>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {error ? <FormError>{error}</FormError> : null}
+        <button
+          type="submit"
+          disabled={!canSave}
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
+        >
+          {saving ? simple.saving : simple.save}
+        </button>
+      </form>
+    </ProfileFrame>
   );
 }
 
-function Section({ number, title, children }: { number: string; title: string; children: ReactNode }) {
-  return (
-    <section
-      className="overflow-hidden"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderBottomLeftRadius: 22,
-        borderBottomRightRadius: 5,
-      }}
-    >
-      <header className="px-6 pt-5 pb-4 border-b border-[var(--lp-border-light)] flex items-baseline gap-3">
-        <span className="font-sans text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]/30 leading-none">
-          {number}
-        </span>
-        <h2 className="font-sans text-[18px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
-          {title}
-        </h2>
-      </header>
-      <div className="px-6 py-5 space-y-4">{children}</div>
-    </section>
-  );
-}
+const CHIP = 'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)] disabled:opacity-50';
+const CHIP_ON = 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]';
+const CHIP_OFF = 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]';
 
-function FieldLabel({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block space-y-2">
-      <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">{label}</span>
+      <span className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
+        {label}
+        {hint ? <Hint>{hint}</Hint> : null}
+      </span>
       {children}
     </label>
   );
@@ -351,7 +296,7 @@ function NumberField({
     setText(Number.isFinite(value) ? String(value) : '');
   }, [value]);
   return (
-    <FieldLabel label={label}>
+    <Field label={label}>
       <input
         type="number"
         inputMode="decimal"
@@ -360,8 +305,8 @@ function NumberField({
           setText(e.target.value);
           onChange(e.target.value.trim() === '' ? NaN : Number(e.target.value));
         }}
-        className={cn(INPUT_CLS, 'mono')}
+        className="form-input form-input-num"
       />
-    </FieldLabel>
+    </Field>
   );
 }

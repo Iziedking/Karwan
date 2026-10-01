@@ -6,6 +6,7 @@ import { PageTour } from '@/shared/guide/PageTour';
 import { SETTINGS_TOUR_ID, SETTINGS_STEPS } from '@/shared/guide/tours';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
 
 export default function SettingsPage() {
   const t = useTranslations();
@@ -32,20 +33,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1240px] px-[clamp(20px,3.6vw,52px)] pb-16 pt-8 sm:pt-10">
+    <ProfileFrame title={t.settings.title}>
       <PageTour id={SETTINGS_TOUR_ID} steps={SETTINGS_STEPS} />
-      <header className="max-w-[720px]">
-        <p className="text-[13px] font-medium text-[var(--lp-text-sub)]">{t.settings.eyebrow}</p>
-        <h1 className="mt-3 text-[clamp(2rem,3vw,2.5rem)] font-semibold leading-tight tracking-[-0.035em] text-[var(--lp-dark)]">
-          {t.settings.title}
-        </h1>
-        <p className="mt-3 max-w-[52ch] text-[16px] leading-relaxed text-[var(--lp-text-sub)]">
-          {t.settings.description}
-        </p>
-      </header>
-      <div className="mt-8 max-w-[720px]">
-        <SettingsBand />
-      </div>
-    </div>
+      <SettingsBand />
+    </ProfileFrame>
   );
 }

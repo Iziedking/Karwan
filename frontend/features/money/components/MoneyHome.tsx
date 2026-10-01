@@ -82,8 +82,9 @@ function MoneyHomeInner() {
             </div>
           ) : (
             <>
+              <div className="-mb-2 flex justify-end"><NetworkHint /></div>
               <h1 id="money-balance" className="space-y-2">
-                <span className="block text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}<NetworkHint /></span>
+                <span className="block text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
                 <span className="flex items-baseline gap-2 tabular-nums">
                   {/* Counts to a new value; under reduced motion it fades instead. */}
                   <motion.span

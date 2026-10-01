@@ -154,10 +154,6 @@ async function open(page: Page, path: string, theme: TopUpTheme, locale: TopUpLo
   return { depositCalls, fundCalls, dealFundCalls, acceptCalls: () => acceptCalls, hydrationErrors };
 }
 
-function profileFundingCard(page: Page, locale: TopUpLocale) {
-  return page.getByRole('heading', { name: topUpMessages[locale].arcFundCard.header.title, exact: true })
-    .locator('xpath=ancestor::section[1]');
-}
 
 test.afterEach(async ({}, testInfo) => topUpEvidenceManifest(testInfo));
 
@@ -209,56 +205,6 @@ for (const theme of ['light', 'dark'] as const) {
       const world = await open(page, '/profile', theme, locale);
       await expect(page.locator('.product-surface').last()).toBeVisible();
       await captureTopUpScreen(page, testInfo, 'profile-account-hub', { maxHeadingWeight: 600 });
-      expect(world.depositCalls).toHaveLength(0);
-      expect(world.fundCalls).toHaveLength(0);
-      expect(world.hydrationErrors()).toEqual([]);
-    });
-
-    test(`profile funding shows the available amount in context, ${theme} ${locale}`, async ({ page }, testInfo) => {
-      test.skip(topUpMainnet, 'Agent funding is a testnet capability; mainnet account navigation is covered separately.');
-      const copy = topUpMessages[locale];
-      const world = await open(page, '/profile/agent-funds?money=v1', theme, locale);
-      const card = profileFundingCard(page, locale);
-      await expect(card).toBeVisible();
-      const amount = card.getByPlaceholder('0.00', { exact: true });
-      await expect(amount).toBeVisible();
-      await amount.fill('5');
-      await expect(card.getByText(copy.gatewayTopUp.availableTemplate.replace('{amount}', '40'), { exact: true })).toBeVisible();
-      await expect(card.getByRole('button', { name: copy.gatewayTopUp.cta, exact: true })).toBeEnabled();
-      if (topUpBefore) {
-        await expect(page.locator('body')).toContainText(copy.gatewayTopUp.availableTemplate.replace('{amount}', '40'));
-      } else {
-        await noProtocolWords(page);
-        await checkTopUpKeyboardFocus(page, amount, testInfo, 'profile-topup-amount');
-      }
-      await captureTopUpScreen(page, testInfo, 'profile-topup-ready', { root: card, primary: 1, wholePagePrimary: 1, maxHeadingWeight: 500 });
-      const surface = page.locator('main.profile-route.product-surface');
-      await expect(surface).toBeVisible();
-      if (!topUpBefore) {
-        const heading = surface.getByRole('heading', { level: 1 });
-        const frame = page.locator('main.profile-route > div > section');
-        await expect(heading).toHaveCount(1);
-        await expect(frame).toHaveCount(1);
-        const headingStyle = await heading.evaluate(element => {
-          const style = getComputedStyle(element);
-          return { fontWeight: style.fontWeight, fontSize: style.fontSize, letterSpacing: style.letterSpacing };
-        });
-        const frameStyle = await frame.evaluate(element => {
-          const style = getComputedStyle(element);
-          return { borders: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
-            boxShadow: style.boxShadow, borderRadius: style.borderRadius };
-        });
-        await testInfo.attach('profile-agent-funds-frame', {
-          body: JSON.stringify({ heading: headingStyle, frame: frameStyle }, null, 2), contentType: 'application/json',
-        });
-        expect(headingStyle.fontWeight).toBe('500');
-        expect(headingStyle.fontSize).toBe((page.viewportSize()?.width ?? 0) >= 640 ? '40px' : '36px');
-        expect(['normal', '0px']).toContain(headingStyle.letterSpacing);
-        expect(frameStyle.borders).toEqual(['0px', '0px', '0px', '0px']);
-        expect(frameStyle.boxShadow).toBe('none');
-        expect(frameStyle.borderRadius).toBe('20px');
-      }
-      await captureTopUpScreen(page, testInfo, 'profile-agent-funds-surface', { root: surface, wholePagePrimary: 1, maxHeadingWeight: 500 });
       expect(world.depositCalls).toHaveLength(0);
       expect(world.fundCalls).toHaveLength(0);
       expect(world.hydrationErrors()).toEqual([]);
@@ -340,38 +286,13 @@ test('an unknown add-money error keeps its recovery copy free of protocol words'
   await captureTopUpScreen(page, testInfo, 'bridge-add-unconfirmed-error', { root: card, primary: 1, maxHeadingWeight: 500 });
 });
 
-for (const scenario of [
-  { name: 'short', confirmed: '2', pending: '0', locale: 'en' as const, theme: 'light' as const },
-  { name: 'pending funds are not counted as ready', confirmed: '0', pending: '8', locale: 'ar' as const, theme: 'dark' as const },
-] as const) {
-  test(`profile top-up ${scenario.name}`, async ({ page }, testInfo) => {
-    test.skip(topUpBefore || topUpMainnet, 'After-only testnet agent funding read states.');
-    const copy = topUpMessages[scenario.locale];
-    const world = await open(page, '/profile/agent-funds?money=v1', scenario.theme, scenario.locale, scenario);
-    const card = profileFundingCard(page, scenario.locale);
-    await card.getByPlaceholder('0.00', { exact: true }).fill('5');
-    await expect(card.getByText(copy.gatewayTopUp.shortTemplate.replace('{have}', scenario.confirmed).replace('{need}', '5'), { exact: true })).toBeVisible();
-    await expect(card.getByRole('button', { name: copy.gatewayTopUp.fundPool, exact: true })).toBeVisible();
-    await expect(card.getByRole('button', { name: copy.gatewayTopUp.cta, exact: true })).toHaveCount(0);
-    expect(world.fundCalls).toHaveLength(0);
-    await captureTopUpScreen(page, testInfo, 'profile-topup-short', { root: card, primary: 1, wholePagePrimary: 1, maxHeadingWeight: 500 });
-  });
-}
-
-test('profile top-up failure stays in context without another submission', async ({ page }, testInfo) => {
-  test.skip(topUpBefore || topUpMainnet, 'After-only testnet agent funding failure.');
+test('agent funds top up and withdraw in place from the profile', async ({ page }) => {
+  test.skip(topUpBefore || topUpMainnet, 'Testnet agent funding.');
   const copy = topUpMessages.en;
-  const world = await open(page, '/profile/agent-funds?money=v1', 'dark', 'en', {
-    fund: route => route.fulfill({ status: 502, json: { error: 'Provider response could not be confirmed', code: 'unavailable' } }),
-  });
-  const card = profileFundingCard(page, 'en');
-  await card.getByPlaceholder('0.00', { exact: true }).fill('5');
-  await card.getByRole('button', { name: copy.gatewayTopUp.cta, exact: true }).click();
-  await expect(card).toContainText(copy.gatewayTopUp.failed);
-  expect(world.fundCalls).toHaveLength(1);
-  await expect(card.getByPlaceholder('0.00', { exact: true })).toHaveValue('5');
-  await captureTopUpScreen(page, testInfo, 'profile-topup-unconfirmed-error', { root: card, primary: 1, wholePagePrimary: 1, maxHeadingWeight: 500 });
-  expect(world.fundCalls).toHaveLength(1);
+  await open(page, '/profile/agent-funds', 'light', 'en');
+  await page.getByRole('button', { name: copy.money.home.topUp, exact: true }).first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page).toHaveURL(/\/profile\/agent-funds/);
 });
 
 test('deal recovery keeps the outer confirmation locked until child funding finishes', async ({ page }, testInfo) => {

@@ -1,16 +1,9 @@
 'use client';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  Accent,
-} from '@/shared/components/Bands';
+import { Punc, Accent } from '@/shared/components/Bands';
+import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
 import { Hint } from '@/shared/components/Hint';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { StakeCard } from '@/features/reputation/components/StakeCard';
@@ -69,22 +62,6 @@ function CountUp({ value, decimals = 0 }: { value: number; decimals?: number }) 
   );
 }
 
-/// Section reveal on scroll: translateY -> 0 + fade, once, 20% in view.
-function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
-  const reduce = useHydratedReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={reduce ? false : { opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={reduce ? { duration: 0 } : { duration: 0.5, ease: EASE, delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 export default function StakePage() {
   const sp = useTranslations().stakePage;
   return (
@@ -128,228 +105,94 @@ function StakePageInner() {
   const nextTier = progress.kind === 'top' || progress.kind === 'unknown' ? null : progress.nextTier;
   const capped = data?.tierCappedBy != null;
 
+  const nextValue =
+    progress.kind === 'deals'
+      ? `${progress.deals} ${progress.deals === 1 ? sp.position.dealOne : sp.position.dealMany}`
+      : progress.kind === 'points'
+        ? `${progress.points} ${sp.position.pts}`
+        : progress.kind === 'concentration'
+          ? progressLabel
+          : progress.kind === 'top'
+            ? sp.position.topTier
+            : undefined;
+
   return (
-    <FullBleed>
+    <ProfileFrame title={sp.hero.tag} hint={sp.hero.body}>
       <PageTour id={STAKE_TOUR_ID} steps={STAKE_STEPS} />
 
-      <Band tone="dark" overlay={<GridOverlay />} compact>
-        <div className="max-w-[68ch] fade-up">
-          <div className="flex items-center gap-2">
-            <SectionTag tone="dark" dot="live">{sp.hero.tag}</SectionTag>
-            <Hint glow side="bottom" align="start">{sp.hero.body}</Hint>
-          </div>
-          <HeroHeadline size="md">
-            {sp.hero.line1Prefix} <Accent>{sp.hero.line1Accent}</Accent>
-            <Punc>.</Punc>{' '}
-            {sp.hero.line2Prefix} <Accent>{sp.hero.line2Accent}</Accent>
-            <Punc>.</Punc>
-          </HeroHeadline>
-        </div>
-
-        <div className="fade-up mt-8 grid max-w-[760px] grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--lp-workspace-border)] bg-[var(--lp-workspace-soft)] sm:grid-cols-[minmax(0,1fr)_minmax(200px,max-content)_minmax(0,1fr)]">
-          <Stat label={sp.position.reputation}>
-            <span className="tabular-nums"><CountUp value={score} /></span>
-            <span className="text-[15px] text-[var(--lp-workspace-faint)]"> / 1000</span>
-          </Stat>
-          <Stat label={sp.position.tier} fit>
-            <span style={{ color: tierInk(tier) }}>{tier}</span>
-            {capped ? (
-              <span className="mt-1 block mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-workspace-faint)]">
-                {data?.tierCappedBy === 'concentration'
-                  ? sp.position.cappedConcentration
-                  : sp.position.cappedDeals}
-              </span>
-            ) : null}
-          </Stat>
-          <Stat
-            label={nextTier ? sp.position.toNextTemplate.replace('{tier}', nextTier) : sp.position.status}
-            wide
-            wrap
-          >
-            {progress.kind === 'deals' ? (
-              <span className="tabular-nums">
-                <CountUp value={progress.deals} />{' '}
-                <span className="text-[15px] text-[var(--lp-workspace-faint)]">
-                  {progress.deals === 1 ? sp.position.dealOne : sp.position.dealMany}
-                </span>
-              </span>
-            ) : progress.kind === 'points' ? (
-              <span className="tabular-nums">
-                <CountUp value={progress.points} />{' '}
-                <span className="text-[15px] text-[var(--lp-workspace-faint)]">{sp.position.pts}</span>
-              </span>
-            ) : progress.kind === 'concentration' ? (
-              <span className="text-[15px] text-[var(--lp-workspace-muted)]">{progressLabel}</span>
-            ) : progress.kind === 'top' ? (
-              <span style={{ color: tierInk(tier) }}>{sp.position.topTier}</span>
-            ) : null}
-          </Stat>
-        </div>
-      </Band>
-
-      <Band tone="light" compact id="vault" className="scroll-mt-24" dataGuide="stake-vault">
-        <div className="grid items-stretch gap-8 [grid-template-areas:'stake-heading'_'stake-body'_'yield-heading'_'yield-body'] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-x-8 lg:gap-y-8 lg:[grid-template-areas:'stake-heading_yield-heading'_'stake-body_yield-body']">
-          <header className="min-w-0 [grid-area:stake-heading]">
-            <SectionTag>{sp.vault.tag}</SectionTag>
-            <HeroHeadline size="md">{sp.vault.heading}<Punc>.</Punc></HeroHeadline>
-          </header>
-
-          <div className="min-w-0 h-full [grid-area:stake-body]">
-            <StakeCard />
-          </div>
-
-          <header className="min-w-0 [grid-area:yield-heading]">
-            <div className="flex items-center gap-2">
-              <SectionTag>{pb.stake.yourYield}</SectionTag>
-              <Hint glow side="bottom" align="start">
-                Your share of the protocol&apos;s yield. Claim to your wallet anytime, non-custodial.
-              </Hint>
-            </div>
-            <h2 className="mt-4 max-w-[16ch] font-sans text-[clamp(1.7rem,3vw,2.6rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.03em] text-[var(--lp-dark)]">
-              {pb.stake.earnedByYou}<Punc>.</Punc> {pb.stake.claimableByYou}<Punc>.</Punc>
-            </h2>
-          </header>
-
-          <aside
-            className="min-w-0 h-full rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5 [grid-area:yield-body] sm:p-6"
-            data-guide="stake-your-yield"
-          >
-            <YieldClaimPanel />
-          </aside>
-        </div>
-        <LegacyStakeNudge />
-      </Band>
-
-      <Band tone="light" compact dataGuide="stake-network-yield">
-        {/* The hint is its own control, so it sits outside the disclosure button. */}
-        <div className="flex items-center gap-2 pb-3">
-          <SectionTag>{pb.stake.networkYield}</SectionTag>
-          <Hint glow side="bottom" align="start">
-            {pb.stake.networkYieldHint}
-          </Hint>
-        </div>
-        <button
-          type="button"
-          aria-expanded={reserveOpen}
-          aria-controls="stake-reserve-details"
-          onClick={() => setReserveOpen((open) => !open)}
-          className="group grid min-h-11 w-full grid-cols-[minmax(0,1fr)_44px] items-center gap-4 border-y border-[var(--lp-border-light)] py-5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
-        >
-          <span className="min-w-0">
-            <span className="block font-sans text-[clamp(1.45rem,3vw,2.4rem)] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] text-[var(--lp-dark)]">
-              {pb.stake.tokenizedTbills}<Punc>.</Punc> {pb.stake.verifiedYield}<Punc>.</Punc>
+      <RowGroup>
+        <Row label={sp.position.reputation} value={<><CountUp value={score} /> / 1000</>} />
+        <Row
+          label={sp.position.tier}
+          value={
+            <span style={{ color: tierInk(tier) }}>
+              {tier}
+              {capped ? ` · ${data?.tierCappedBy === 'concentration' ? sp.position.cappedConcentration : sp.position.cappedDeals}` : ''}
             </span>
-          </span>
-          <span
-            aria-hidden
-            className={`grid size-11 place-items-center rounded-full border border-[var(--lp-border-light)] text-[22px] text-[var(--lp-text-sub)] transition-transform duration-300 motion-reduce:transition-none ${reserveOpen ? 'rotate-180' : ''}`}
-          >
-            ↓
-          </span>
-        </button>
+          }
+        />
+        {nextValue ? <Row label={nextTier ? sp.position.toNextTemplate.replace('{tier}', nextTier) : sp.position.status} value={nextValue} /> : null}
+      </RowGroup>
 
+      <section id="vault" className="scroll-mt-24 space-y-2" data-guide="stake-vault">
+        <h2 className="px-1 text-[13px] font-semibold text-[var(--lp-text-sub)]">{sp.vault.tag}</h2>
+        <StakeCard />
+        <LegacyStakeNudge />
+      </section>
+
+      <section className="space-y-2" data-guide="stake-your-yield">
+        <h2 className="flex items-center gap-1.5 px-1 text-[13px] font-semibold text-[var(--lp-text-sub)]">
+          {pb.stake.yourYield}
+          <Hint side="bottom">{pb.stake.networkYieldHint}</Hint>
+        </h2>
+        <div className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-5">
+          <YieldClaimPanel />
+        </div>
+      </section>
+
+      <section data-guide="stake-network-yield">
+        <RowGroup>
+          <Row label={pb.stake.networkYield} onClick={() => setReserveOpen((open) => !open)} />
+        </RowGroup>
         <AnimatePresence initial={false}>
           {reserveOpen ? (
             <motion.div
               id="stake-reserve-details"
               role="region"
-              initial={reduce ? false : { height: 0, opacity: 0, y: -8 }}
-              animate={{ height: 'auto', opacity: 1, y: 0 }}
-              exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0, y: -8 }}
-              transition={{ duration: reduce ? 0 : 0.45, ease: EASE }}
+              initial={reduce ? false : { height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+              transition={{ duration: reduce ? 0 : 0.3, ease: EASE }}
               className="overflow-hidden"
             >
-              <div className="grid gap-5 pt-6 lg:grid-cols-2">
+              <div className="grid gap-4 pt-4">
                 <UsycReservesWidget />
                 <ReservesWidget />
               </div>
             </motion.div>
           ) : null}
         </AnimatePresence>
-      </Band>
+      </section>
 
-      <Band tone="light" compact>
-        <div className="flex items-center gap-2">
-          <SectionTag>{sp.ladder.tag}</SectionTag>
-          <Hint glow side="bottom" align="start">{sp.ladder.body}</Hint>
-        </div>
-        <HeroHeadline size="md">
-          {sp.ladder.headingPrefix} <Accent>{sp.ladder.headingAccent}</Accent><Punc>.</Punc>
-        </HeroHeadline>
-
-        <ul className="mt-8 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-          {ORDER.map((t, i) => {
-            const here = t === tier;
-            return (
-              <li key={t} className="h-full">
-              <Reveal delay={i * 0.04} className="h-full">
-                <div
-                  className="relative h-full min-h-[150px] overflow-hidden rounded-[14px_14px_4px_14px] border p-5"
-                  style={{
-                    background: here ? 'rgba(175,201,91,0.08)' : 'var(--lp-card)',
-                    borderColor: here ? 'var(--lp-accent)' : 'var(--lp-border-light)',
-                  }}
-                >
-                  <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: TIER_HUE[t] }} />
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
-                      {t}
-                    </p>
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] tabular-nums">
-                      {BREAKS[i]}{i < ORDER.length - 1 ? `–${BREAKS[i + 1] - 1}` : '+'}
-                    </span>
-                  </div>
-                  {here ? (
-                    <span className="mt-3 inline-flex rounded-full bg-[rgba(175,201,91,0.18)] px-2 py-1 mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-dark)]">
-                      {sp.ladder.youBadge}
-                    </span>
-                  ) : null}
-                  <p className="mt-4 text-[13px] leading-snug text-[var(--lp-text-sub)]">{sp.ladder.unlock[t]}</p>
-                </div>
-              </Reveal>
-              </li>
-            );
-          })}
-        </ul>
-      </Band>
-    </FullBleed>
+      <RowGroup title={sp.ladder.tag}>
+        {ORDER.map((name, i) => (
+          <Row
+            key={name}
+            label={
+              <span className="block">
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden className="size-2 rounded-full" style={{ background: TIER_HUE[name] }} />
+                  {name}
+                  {name === tier ? <span className="rounded-full bg-[var(--tint)] px-2 text-[12px] font-semibold">{sp.ladder.youBadge}</span> : null}
+                </span>
+                <span className="block text-[13px] font-normal text-[var(--lp-text-sub)]">{sp.ladder.unlock[name]}</span>
+              </span>
+            }
+            value={`${BREAKS[i]}${i < ORDER.length - 1 ? `–${BREAKS[i + 1] - 1}` : '+'}`}
+          />
+        ))}
+      </RowGroup>
+    </ProfileFrame>
   );
 }
 
-function Stat({
-  label,
-  children,
-  wide,
-  fit,
-  wrap,
-}: {
-  label: string;
-  children: ReactNode;
-  wide?: boolean;
-  /// True for long-word values (eg "ESTABLISHED") that need to scale down on
-  /// narrow tiles. Uses a fluid font-size so the value never gets clipped.
-  fit?: boolean;
-  /// True for sentence-length status values. These remain fully readable
-  /// instead of inheriting the single-line treatment used by numbers.
-  wrap?: boolean;
-}) {
-  const sizeClass = fit
-    ? 'text-[clamp(14px,4.8vw,24px)]'
-    : wrap
-      ? 'text-[clamp(14px,2vw,20px)]'
-      : 'text-[26px]';
-  const flowClass = fit || wrap
-    ? 'whitespace-normal break-words'
-    : 'truncate';
-  const leadingClass = wrap ? 'leading-snug' : 'leading-none';
-  return (
-    <div className={`min-w-0 bg-[var(--lp-workspace-raised)] px-5 py-4 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-workspace-faint)]">{label}</p>
-      <p
-        className={`mt-1.5 min-w-0 font-sans ${sizeClass} font-extrabold tracking-[-0.02em] ${leadingClass} text-[var(--lp-workspace-ink)] ${flowClass}`}
-      >
-        {children}
-      </p>
-    </div>
-  );
-}

@@ -825,6 +825,40 @@ interface MessagesShape {
     };
   };
   profile: {
+    simple: {
+      useKarwanTo: string;
+      sell: string;
+      buy: string;
+      both: string;
+      save: string;
+      saving: string;
+      aboutYou: string;
+      skillsHint: string;
+      profileTitle: string;
+      agentsTitle: string;
+      agentsHint: string;
+      agentFundsTitle: string;
+      walletsTitle: string;
+      openDealsTitle: string;
+      contactTitle: string;
+      buyingAgent: string;
+      sellingAgent: string;
+      mostItMayPay: string;
+      deliveryTime: string;
+      paymentSplit: string;
+      whatYouOffer: string;
+      priceRange: string;
+      notSet: string;
+      daysRange: string;
+      usdcRange: string;
+      edit: string;
+      agents: string;
+      on: string;
+      off: string;
+      setUp: string;
+      notAvailable: string;
+      photoHint: string;
+    };
     signInGate: { tag: string; body: string };
     loadError: { tag: string; title: string; body: string };
     tabs: {
@@ -6220,6 +6254,40 @@ export const en: MessagesShape = {
     },
   },
   profile: {
+    simple: {
+      useKarwanTo: "You use Karwan to",
+      sell: "Sell",
+      buy: "Buy",
+      both: "Both",
+      save: "Save",
+      saving: "Saving…",
+      aboutYou: "About you",
+      skillsHint: "Separate with commas",
+      profileTitle: "Profile",
+      agentsTitle: "What your agents accept",
+      agentsHint: "Your agents only agree to deals inside these limits.",
+      agentFundsTitle: "Agent funds",
+      walletsTitle: "Wallets",
+      openDealsTitle: "Open deals",
+      contactTitle: "Contact",
+      buyingAgent: "Buying agent",
+      sellingAgent: "Selling agent",
+      mostItMayPay: "Most it may pay",
+      deliveryTime: "Delivery time",
+      paymentSplit: "Payment split",
+      whatYouOffer: "What you offer",
+      priceRange: "Price range",
+      notSet: "Not set",
+      daysRange: "{min} to {max} days",
+      usdcRange: "{min} to {max} USDC",
+      edit: "Edit",
+      agents: "Agents",
+      on: "On",
+      off: "Off",
+      setUp: "Set up",
+      notAvailable: "Not available",
+      photoHint: "Your photo shows on your public profile.",
+    },
     signInGate: {
       tag: 'Profile',
       body: 'Sign in with email or wallet to manage your account, balances, and agents.',

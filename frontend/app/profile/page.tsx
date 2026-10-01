@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { dealsAvailableOn } from '@/shared/utils/routes';
 import Link from 'next/link';
@@ -8,13 +8,9 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { ActivationModal } from '@/shared/components/ActivationModal';
-import { shortAddress } from '@/shared/utils/format';
-import { ArcFundCard } from '@/features/profile/components/ArcFundCard';
-import { AgentWithdrawCard } from '@/features/profile/components/AgentWithdrawCard';
 import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { WalletsPanel } from '@/features/balances/components/WalletsPanel';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
-import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
 import { AgentResearchCard } from '@/features/reputation/components/AgentResearchCard';
 import { AgentTrustEvidenceCard } from '@/features/reputation/components/AgentTrustEvidenceCard';
@@ -33,13 +29,11 @@ import {
   SectionTag,
   HeroHeadline,
   Punc,
-  Accent,
-  CTAPill,
 } from '@/shared/components/Bands';
-import { Hint } from '@/shared/components/Hint';
 import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountHub';
+import { AgentFundsList } from '@/features/profile/components/AgentFundsList';
+import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
-import { useMoneyV2 } from '@/features/money/useMoneyV2';
 
 type ProfileSection = 'wallets' | 'open-deals' | 'agents' | 'identity' | 'preferences';
 
@@ -70,13 +64,6 @@ const PROFILE_HASH_ROUTE: Record<string, string> = {
   preferences: PROFILE_ROUTE_BY_PANEL.preferences,
 };
 
-const PROFILE_SECTION_TITLE: Record<ProfileSection, string> = {
-  wallets: 'Wallets',
-  'open-deals': 'Open deals',
-  agents: 'Agent funds',
-  identity: 'Account setup',
-  preferences: 'Contact details',
-};
 
 type ProfilePanel = {
   key: ProfileSection;
@@ -108,10 +95,6 @@ function ProfilePageInner() {
   const activation = useActivation();
   const openDeals = useOpenDeals();
   const [activationOpen, setActivationOpen] = useState(false);
-  const [moneyMode, setMoneyMode] = useState<'add' | 'out'>('add');
-  const moneyV2 = useMoneyV2();
-  const [activeAgentSlide, setActiveAgentSlide] = useState(0);
-  const agentCarouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setProfile(loadedProfile), [loadedProfile]);
 
@@ -165,270 +148,65 @@ function ProfilePageInner() {
   }
 
   const isBusiness = isBusinessWorkspace;
+  const simple = t.simple;
+  const sectionTitle: Record<ProfileSection, string> = {
+    wallets: simple.walletsTitle,
+    'open-deals': simple.openDealsTitle,
+    agents: simple.agentFundsTitle,
+    identity: simple.agentsTitle,
+    preferences: simple.contactTitle,
+  };
+  const usdcOrNotSet = (value: unknown) => (isAmount(value) ? `${value} USDC` : simple.notSet);
+  const rangeOrNotSet = (min: unknown, max: unknown, template: string) =>
+    isAmount(min) && isAmount(max) ? template.replace('{min}', String(min)).replace('{max}', String(max)) : simple.notSet;
 
   const profilePanels: ProfilePanel[] = [
     {
       key: 'identity',
       label: t.tabs.identity,
       content: (
-        <div data-guide="profile-identity">
-        {/* One-shot tier-up congrats. renders nothing unless a 48h window is open. */}
-        <div className="px-4 pt-5 md:px-8">
+        <div data-guide="profile-identity" className="space-y-7">
           <TierCelebration address={address} />
-        </div>
-
-        {/* Step 01 stays visible after activation so users can still read the
-            desk state; only the corrective action decays. */}
-        {AGENTS_AVAILABLE && (
-          <div className="border-b border-[var(--lp-border-light)] px-4 py-4 sm:px-6 lg:px-8">
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <div className="min-w-0">
-                <p className="mono text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-dark)]">
-                  {t.agentStatus.eyebrow}
-                </p>
-                <p className="mt-1.5 max-w-[58ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                  {activation.loading
-                    ? t.agentStatus.checking
-                    : activation.activated
-                      ? `${t.agentStatus.buyerFallback} / ${t.agentStatus.sellerFallback} · ${t.agentStatus.walletsLive}`
-                      : t.activation.inactiveBody}
-                </p>
-              </div>
-              <div className="flex min-h-11 items-center sm:justify-end">
+          {AGENTS_AVAILABLE ? (
+            <RowGroup>
+              <Row label={simple.agents} value={activation.loading ? undefined : activation.activated ? simple.on : undefined}>
                 {!activation.loading && !activation.activated ? (
-                  <CTAPill onClick={() => setActivationOpen(true)}>{t.activation.cta}</CTAPill>
-                ) : !activation.loading ? (
-                  <span className="mono inline-flex min-h-11 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--lp-accent-deep)]">
-                    <span aria-hidden className="size-1.5 bg-[var(--lp-accent)]" />
-                    {t.agentStatus.walletsLive}
-                  </span>
+                  <button type="button" onClick={() => setActivationOpen(true)} className={ACCENT_PILL}>{simple.setUp}</button>
                 ) : null}
-              </div>
+              </Row>
+            </RowGroup>
+          ) : null}
+          {SME_TRADES_ENABLED && address && isBusiness ? (
+            <div data-guide="profile-business-verification">
+              <RegisterBusinessBand address={address} />
             </div>
-          </div>
-        )}
-
-        {/* Business setup is the first required action for a business workspace.
-            Keep it above agent preferences and company trade details so the
-            registration path is visible as soon as the workspace opens. */}
-        {SME_TRADES_ENABLED && address && isBusiness ? (
-          <div data-guide="profile-business-verification">
-            <RegisterBusinessBand address={address} />
-          </div>
-        ) : null}
-
-        {/* ROLE + AGENT DETAILS */}
-        {profile ? (
-          <>
-            {(profile.buyer || profile.seller) && (
-              <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <SectionTag>{t.agentProfiles.tag}</SectionTag>
-                      <Hint glow side="bottom" align="start">
-                        {t.agentProfiles.body}
-                      </Hint>
-                    </div>
-                    <h2 className="mt-3 font-sans text-[28px] sm:text-[34px] font-extrabold uppercase tracking-[-0.035em] leading-[0.95] text-[var(--lp-dark)]">
-                      {t.agentProfiles.headlinePrefix}<Accent>{t.agentProfiles.headlineAccent}</Accent><Punc>.</Punc>
-                    </h2>
-                    <p className="mt-2 max-w-[52ch] text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                      {t.agentProfiles.body}
-                    </p>
-                  </div>
-                  {/* The ranges editor is the same for a business and an individual.
-                      A business's hero EDIT DETAILS opens the company trade card, so
-                      this is the entry point that reaches the agent ranges for them
-                      (and a handy second one for individuals). */}
-                  <CTAPill href="/profile/edit" variant="secondary" tone="light">
-                    {t.agentProfiles.editRanges}
-                  </CTAPill>
-                </div>
-                {!activation.activated && (
-                  <p
-                    className="mt-3 mono text-[11px] uppercase tracking-[0.12em] leading-relaxed max-w-[52ch]"
-                    style={{ color: '#b25425' }}
-                  >
-                    {t.agentProfiles.headsUpEyebrow}: {t.agentProfiles.headsUpBody}
-                  </p>
-                )}
-                <div
-                  className={`mt-5 hidden items-start gap-3 sm:gap-4 md:grid ${
-                    profile.buyer && profile.seller
-                      ? 'lg:grid-cols-2'
-                      : 'mx-auto w-full max-w-[760px] grid-cols-1'
-                  }`}
-                >
-                  {profile.buyer && (
-                    <AgentBlock
-                      eyebrow={t.agentProfiles.buyerEyebrow}
-                      fallbackName={t.agentProfiles.buyerFallback}
-                      name={activation.agents?.buyerName}
-                      agentAddress={agents.buyer}
-                      rows={[
-                        { label: t.agentProfiles.rows.maxBudget, value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
-                        {
-                          label: t.agentProfiles.rows.deadline,
-                          value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
-                          mono: true,
-                        },
-                        {
-                          label: t.agentProfiles.rows.milestones,
-                          value: profile.buyer.milestonePcts.join(' / ') || '-',
-                          mono: true,
-                        },
-                      ]}
-                    />
-                  )}
-                  {profile.seller && (
-                    <AgentBlock
-                      eyebrow={t.agentProfiles.sellerEyebrow}
-                      fallbackName={t.agentProfiles.sellerFallback}
-                      name={activation.agents?.sellerName}
-                      agentAddress={agents.seller}
-                      rows={[
-                        {
-                          label: isBusiness
-                            ? t.agentProfiles.rows.supplies
-                            : t.agentProfiles.rows.skills,
-                          value: profile.seller.skills.join(', ') || '-',
-                        },
-                        { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
-                        {
-                          label: t.agentProfiles.rows.budget,
-                          value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
-                          mono: true,
-                        },
-                        {
-                          label: t.agentProfiles.rows.delivery,
-                          value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
-                          mono: true,
-                        },
-                      ]}
-                    />
-                  )}
-                </div>
-                <div className="mt-5 md:hidden">
-                  <div
-                    ref={agentCarouselRef}
-                    data-deck-swipe-lock
-                    className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                    onScroll={(event) => {
-                      const slideWidth = event.currentTarget.clientWidth + 12;
-                      const next = Math.round(event.currentTarget.scrollLeft / slideWidth);
-                      setActiveAgentSlide(Math.max(0, Math.min(1, next)));
-                    }}
-                    aria-label={t.agentProfiles.tag}
-                  >
-                    {profile.buyer && (
-                      <div className="min-w-full snap-start">
-                        <AgentBlock
-                          eyebrow={t.agentProfiles.buyerEyebrow}
-                          fallbackName={t.agentProfiles.buyerFallback}
-                          name={activation.agents?.buyerName}
-                          agentAddress={agents.buyer}
-                          rows={[
-                            { label: t.agentProfiles.rows.maxBudget, value: `${profile.buyer.maxBudgetUsdc} USDC`, mono: true },
-                            {
-                              label: t.agentProfiles.rows.deadline,
-                              value: `${profile.buyer.minDeadlineDays}-${profile.buyer.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
-                              mono: true,
-                            },
-                            {
-                              label: t.agentProfiles.rows.milestones,
-                              value: profile.buyer.milestonePcts.join(' / ') || '-',
-                              mono: true,
-                            },
-                          ]}
-                        />
-                      </div>
-                    )}
-                    {profile.seller && (
-                      <div className="min-w-full snap-start">
-                        <AgentBlock
-                          eyebrow={t.agentProfiles.sellerEyebrow}
-                          fallbackName={t.agentProfiles.sellerFallback}
-                          name={activation.agents?.sellerName}
-                          agentAddress={agents.seller}
-                          rows={[
-                            {
-                              label: isBusiness
-                                ? t.agentProfiles.rows.supplies
-                                : t.agentProfiles.rows.skills,
-                              value: profile.seller.skills.join(', ') || '-',
-                            },
-                            { label: t.agentProfiles.rows.bio, value: profile.seller.bio || '-' },
-                            {
-                              label: t.agentProfiles.rows.budget,
-                              value: `${profile.seller.minBudgetUsdc}-${profile.seller.maxBudgetUsdc} USDC`,
-                              mono: true,
-                            },
-                            {
-                              label: t.agentProfiles.rows.delivery,
-                              value: `${profile.seller.minDeadlineDays}-${profile.seller.maxDeadlineDays} ${t.agentProfiles.daysSuffix}`,
-                              mono: true,
-                            },
-                          ]}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  {profile.buyer && profile.seller && (
-                    <div className="mt-3 flex items-center justify-center gap-1" aria-label={t.agentProfiles.tag}>
-                      {[t.agentProfiles.buyerFallback, t.agentProfiles.sellerFallback].map((label, index) => (
-                        <button
-                          key={label}
-                          type="button"
-                          className="flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
-                          aria-label={label}
-                          aria-current={activeAgentSlide === index ? 'true' : undefined}
-                          onClick={() => {
-                            const carousel = agentCarouselRef.current;
-                            if (!carousel) return;
-                            carousel.scrollTo({ left: index * (carousel.clientWidth + 12), behavior: 'smooth' });
-                            setActiveAgentSlide(index);
-                          }}
-                        >
-                          <span
-                            className={`h-2 w-2 rounded-full transition-colors duration-200 ${
-                              activeAgentSlide === index ? 'bg-[var(--lp-accent)]' : 'bg-[var(--lp-text-muted)]/45'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="px-4 py-5 md:px-8 md:py-7">
-            <SectionTag>{t.noProfile.tag}</SectionTag>
-            <HeroHeadline size="md" as="h2">
-              {t.noProfile.headlinePrefix}<Accent>{t.noProfile.headlineAccent}</Accent>
-              <Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-5 text-[15px] leading-relaxed text-[var(--lp-text-sub)] max-w-[52ch]">
-              {t.noProfile.body}
-            </p>
-            <div className="mt-7">
-              <CTAPill href="/start?mode=signup">{t.noProfile.cta}</CTAPill>
-            </div>
-          </div>
-        )}
-
-        {/* BUSINESS + COMPANY PROFILE. Only for accounts that chose the business
-            kind at onboarding; an individual account never sees these. Gated by
-            the SME rail too. Register-as-business gates the verified tag; the
-            company band holds the trade card. Independent components so editing
-            one re-renders nothing else on this page. */}
-        {/* Company section anchor: a business's EDIT DETAILS scrolls here. */}
-        <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
-        {SME_TRADES_ENABLED && address && isBusiness ? (
-          <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
-        ) : null}
+          ) : null}
+          {profile ? (
+            <>
+              {profile.buyer ? (
+                <RowGroup title={activation.agents?.buyerName || simple.buyingAgent}>
+                  <Row label={simple.mostItMayPay} value={usdcOrNotSet(profile.buyer.maxBudgetUsdc)} />
+                  <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.buyer.minDeadlineDays, profile.buyer.maxDeadlineDays, simple.daysRange)} />
+                  <Row label={simple.paymentSplit} value={profile.buyer.milestonePcts?.length ? profile.buyer.milestonePcts.map((pct) => `${pct}%`).join(' / ') : simple.notSet} />
+                </RowGroup>
+              ) : null}
+              {profile.seller ? (
+                <RowGroup title={activation.agents?.sellerName || simple.sellingAgent}>
+                  <Row label={isBusiness ? t.agentProfiles.rows.supplies : simple.whatYouOffer} value={profile.seller.skills?.length ? profile.seller.skills.join(', ') : simple.notSet} />
+                  <Row label={simple.priceRange} value={rangeOrNotSet(profile.seller.minBudgetUsdc, profile.seller.maxBudgetUsdc, simple.usdcRange)} />
+                  <Row label={simple.deliveryTime} value={rangeOrNotSet(profile.seller.minDeadlineDays, profile.seller.maxDeadlineDays, simple.daysRange)} />
+                </RowGroup>
+              ) : null}
+              <Link href="/profile/edit" className={QUIET_PILL}>{simple.edit}</Link>
+            </>
+          ) : (
+            <Link href="/start?mode=signup" className={ACCENT_PILL}>{t.noProfile.cta}</Link>
+          )}
+          {/* A business's company details sit here; the anchor keeps old links working. */}
+          <div id="company" aria-hidden style={{ scrollMarginTop: 80 }} />
+          {SME_TRADES_ENABLED && address && isBusiness ? (
+            <SmeCompanyBand address={address} fallbackName={profile?.displayName} />
+          ) : null}
         </div>
       ),
     },
@@ -451,10 +229,8 @@ function ProfilePageInner() {
       key: 'wallets',
       label: t.tabs.wallets,
       content: (
-        <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-          <div data-guide="profile-wallets">
-            <WalletsPanel address={address ?? undefined} />
-          </div>
+        <div data-guide="profile-wallets">
+          <WalletsPanel address={address ?? undefined} />
         </div>
       ),
     },
@@ -462,129 +238,28 @@ function ProfilePageInner() {
       key: 'agents',
       label: t.tabs.agents,
       content: (
-        <>
-        {/* FUND + WITHDRAW */}
-        {moneyV2 ? (
-          <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8" data-guide="profile-agents">
-            <p className="max-w-[52ch] text-[15px] leading-relaxed text-[var(--lp-dark)]">{messages.money.profile.agentMoneyMoved}</p>
-            <Link
-              href="/account#agents"
-              className="mt-3 inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            >
-              {messages.money.profile.openMoneyHome}
-            </Link>
-            {activation.activated ? (
-              <div className="mt-6 grid min-w-0 gap-4 xl:grid-cols-2">
-                <AgentResearchCard />
-                <AgentTrustEvidenceCard />
-              </div>
-            ) : null}
-          </div>
-        ) : (
-        <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <div className="space-y-7" data-guide="profile-agents">
+          <AgentFundsList onSetUp={() => setActivationOpen(true)} />
           {activation.activated ? (
             <>
-              {/* One surface, two modes: a toggle swaps between adding money and
-                  cashing out, so the page shows a single card, not two. */}
-              <div
-                className="grid w-full grid-cols-2 gap-1 p-1 sm:inline-grid sm:w-auto"
-                style={{
-                  background: 'var(--lp-light)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 9,
-                  borderTopRightRadius: 9,
-                  borderBottomLeftRadius: 9,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                {(['add', 'out'] as const).map((mode) => {
-                  const on = moneyMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setMoneyMode(mode)}
-                      aria-pressed={on}
-                      className={`min-w-0 px-2.5 py-2 mono text-[10px] font-bold uppercase tracking-[0.07em] leading-tight transition-colors sm:px-4 sm:py-1.5 sm:text-[11px] sm:tracking-[0.1em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] ${
-                        on ? 'bg-[var(--ink)] text-[var(--canvas)]' : 'bg-[var(--tint)] text-[var(--ink-secondary)] hover:text-[var(--ink)]'
-                      }`}
-                      style={{
-                        borderTopLeftRadius: 7,
-                        borderTopRightRadius: 7,
-                        borderBottomLeftRadius: 7,
-                        borderBottomRightRadius: 2,
-                      }}
-                    >
-                      {mode === 'add' ? t.agentTreasury.headlineFund : t.agentTreasury.headlineWithdraw}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* The split surfaces share one row so the Agent Funds page reads as
-                  one composed workspace. The shared deck frame handles any
-                  taller content with an internal scroll instead of changing card
-                  height between panels. */}
-              <div className="mt-4 grid min-w-0 grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
-                <div className="min-w-0 h-full" data-guide="profile-agents">
-                  {moneyMode === 'add' ? (
-                    <ArcFundCard
-                      buyerAgent={agents.buyer}
-                      sellerAgent={agents.seller}
-                      defaultAgent={defaultAgent}
-                    />
-                  ) : (
-                    <AgentWithdrawCard
-                      buyerAgent={agents.buyer}
-                      sellerAgent={agents.seller}
-                      defaultAgent={defaultAgent}
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 h-full">
-                  <AgentResearchCard />
-                  <div className="mt-4">
-                    <AgentTrustEvidenceCard />
-                  </div>
-                </div>
-              </div>
+              <AgentResearchCard />
+              <AgentTrustEvidenceCard />
             </>
-          ) : (
-            <div className="mt-10 max-w-[640px]" data-guide="profile-agents">
-              <ArcFundCard
-                buyerAgent={agents.buyer}
-                sellerAgent={agents.seller}
-                defaultAgent={defaultAgent}
-              />
-            </div>
-          )}
+          ) : null}
         </div>
-        )}
-        </>
       ),
     },
     {
       key: 'preferences',
       label: t.tabs.preferences,
       content: (
-        <>
-        {/* PREFERENCES. Reach pipes the agent uses to ping you. */}
-        <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-          <div
-            className="overflow-hidden border-y border-[var(--lp-border-light)]"
-            data-guide="profile-preferences"
-          >
-            <ContactRow label={messages.profile.hub.email}>
-              {address && <ProfileEmailButton address={address} tone="light" />}
-            </ContactRow>
-            <ContactRow label={messages.profile.hub.telegram}>
-              <TelegramConnectButton address={address ?? undefined} tone="light" />
-            </ContactRow>
-            <ContactRow label={messages.profile.hub.x}>
-              <ConnectXButton tone="light" />
-            </ContactRow>
-          </div>
+        <div data-guide="profile-preferences">
+          <RowGroup>
+            <Row label={messages.profile.hub.email}>{address && <ProfileEmailButton address={address} tone="light" />}</Row>
+            <Row label={messages.profile.hub.telegram}><TelegramConnectButton address={address ?? undefined} tone="light" /></Row>
+            <Row label={messages.profile.hub.x}><ConnectXButton tone="light" /></Row>
+          </RowGroup>
         </div>
-        </>
       ),
     },
   ];
@@ -619,6 +294,7 @@ function ProfilePageInner() {
         address={address}
         hasOpenDeals={openDeals.hasOpenDeals}
         hasAction={openDeals.hasAction}
+        openCount={openDeals.totalCount}
       />
     );
   }
@@ -626,22 +302,10 @@ function ProfilePageInner() {
   if (!activePanel) return null;
 
   return (
-    <main className="profile-route product-surface min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
-      <div className="mx-auto max-w-[1120px]">
-        <header className="border-b border-[var(--lp-border-light)] pb-5 sm:pb-6">
-          <h1 className={activeSection === 'agents'
-            ? 'text-[36px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]'
-            : 'text-[clamp(2.25rem,5vw,4.25rem)] font-semibold leading-[0.98] tracking-[-0.055em] text-[var(--lp-dark)]'}>
-            {PROFILE_SECTION_TITLE[activeSection]}
-          </h1>
-        </header>
-        <section className={activeSection === 'agents'
-          ? 'mt-5 overflow-hidden rounded-[20px] bg-[var(--surface)]'
-          : 'mt-5 overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]'}>
-          {activePanel.content}
-        </section>
-      </div>
-
+    <>
+      <ProfileFrame title={sectionTitle[activeSection]} hint={activeSection === 'identity' ? simple.agentsHint : undefined}>
+        {activePanel.content}
+      </ProfileFrame>
       <ActivationModal
         open={activationOpen}
         onClose={() => setActivationOpen(false)}
@@ -652,140 +316,13 @@ function ProfilePageInner() {
         activated={activation.activated}
         agents={activation.agents}
       />
-    </main>
+    </>
   );
 }
 
-type AgentRow = { label: string; value: string; mono?: boolean };
+const ACCENT_PILL =
+  'inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-5 text-[14px] font-semibold text-[var(--lp-band-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
+const QUIET_PILL =
+  'inline-flex min-h-11 items-center rounded-full bg-[var(--tint)] px-5 text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--line)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
 
-function ContactRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid min-h-[76px] gap-3 border-b border-[var(--lp-border-light)] px-1 py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,auto)] sm:items-center sm:gap-4 sm:px-0">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-dark)]">
-          {label}
-        </span>
-      </div>
-      <div className="flex min-h-11 min-w-0 max-w-full items-center sm:justify-end [&>*]:max-w-full">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// Keep each range card content-sized so the shorter buyer profile does not
-// inherit the seller card's height and leave a large empty panel behind.
-function AgentBlock({
-  eyebrow,
-  fallbackName,
-  name,
-  agentAddress,
-  rows,
-}: {
-  eyebrow: string;
-  fallbackName: string;
-  name?: string;
-  agentAddress: string | undefined;
-  rows: AgentRow[];
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const summaryRows = rows.filter((row) => row.mono).slice(0, 2);
-  const detailsId = `agent-details-${eyebrow.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-
-  return (
-    <div
-      className="group relative overflow-hidden transition-[border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-px"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
-        borderBottomLeftRadius: 16,
-        borderBottomRightRadius: 4,
-        boxShadow: '0 1px 0 rgba(0,0,0,0.04), 0 10px 24px -20px rgba(0,0,0,0.20)',
-      }}
-    >
-      <div className="border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-3">
-          <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-[var(--lp-accent)]" />
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-controls={detailsId}
-            onClick={() => setExpanded((value) => !value)}
-            className="group/trigger flex min-h-11 min-w-0 flex-1 items-center justify-between gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-          >
-            <span className="min-w-0">
-              <span className="block mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {eyebrow}
-              </span>
-              <span className="mt-1 block truncate font-sans text-[18px] font-extrabold uppercase tracking-[-0.025em] leading-none text-[var(--lp-dark)]">
-                {name || fallbackName}
-              </span>
-            </span>
-            <span
-              aria-hidden
-              className={`shrink-0 text-[18px] text-[var(--lp-text-muted)] transition-transform duration-200 motion-reduce:transition-none ${
-                expanded ? 'rotate-90' : ''
-              }`}
-            >
-              ›
-            </span>
-          </button>
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            {agentAddress && (
-              <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                {shortAddress(agentAddress)}
-              </span>
-            )}
-            <ReputationBadge address={agentAddress} size="sm" withDetail />
-          </div>
-        </div>
-        {summaryRows.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 ps-[15px]">
-            {summaryRows.map((row) => (
-              <span key={row.label} className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--lp-text-muted)]">
-                {row.value}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      <div
-        id={detailsId}
-        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none ${
-          expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-        }`}
-        aria-hidden={!expanded}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5">
-            {rows.map((r) => (
-              <div
-                key={r.label}
-                className="min-w-0 rounded-[10px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3 py-2.5"
-              >
-                <span className="block mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                  {r.label}
-                </span>
-                <span
-                  className={`mt-1 block text-start text-[13px] leading-snug text-[var(--lp-dark)] break-words ${
-                    r.mono ? 'font-sans tabular-nums font-semibold tracking-[-0.01em]' : 'font-sans'
-                  }`}
-                >
-                  {r.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const isAmount = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);

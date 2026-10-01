@@ -1,12 +1,15 @@
 'use client';
 
-import Link from 'next/link';
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { api, type UserProfile } from '@/core/api';
 import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { shortAddress } from '@/shared/utils/format';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { formatBalance, heroAmount } from '@/features/money/balanceModel';
+import { useMoneyBalances } from '@/features/money/hooks/useMoneyBalances';
+import { ProfileFrame, Row, RowGroup } from '../ui/ProfileUi';
 import { ProfileSignOut } from './ProfileSignOut';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
@@ -17,24 +20,15 @@ type ProfileAccountHubProps = {
   address: string;
   hasOpenDeals: boolean;
   hasAction: boolean;
+  openCount: number;
 };
 
-type HubRowProps = {
-  label: string;
-  description?: string;
-  children?: ReactNode;
-  onClick?: () => void;
-  href?: string;
-  note?: string;
-  /// Not built yet: shown so people know it is coming, never clickable.
-  soon?: string;
-};
 
 export function ProfileAccountHub({
   profile,
   address,
-  hasOpenDeals,
   hasAction,
+  openCount,
 }: ProfileAccountHubProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [savedPhoto, setSavedPhoto] = useState(profile.profileImageDataUrl);
@@ -91,129 +85,96 @@ export function ProfileAccountHub({
     ? `@${profile.xHandle.replace(/^@/, '')}`
     : profile.email || shortAddress(address);
 
+  const money = useMoneyBalances();
+  const { hasPasskey } = useAuth();
+  const { locale } = useLocale();
+  const simple = messages.profile.simple;
+  const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
+  const agentTotal = money.buyer != null || money.seller != null ? (money.buyer ?? 0) + (money.seller ?? 0) : null;
+  const usdc = (value: number | null) => (value == null ? undefined : `${formatBalance(value, locale)} USDC`);
+
   return (
-    <main className="product-surface min-w-0 overflow-x-clip min-h-[calc(100vh-72px)] bg-[var(--lp-light)] px-4 py-6 sm:px-7 sm:py-8 lg:px-10">
-      <div className="mx-auto min-w-0 max-w-[1180px]">
-        <header className="grid min-w-0 gap-5 border-b border-[var(--lp-border-light)] py-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:py-8">
-          <div className="flex shrink-0 flex-col items-start gap-1">
+    <ProfileFrame
+      title={
+        <span className="flex min-w-0 items-center gap-4">
+          <span className="relative shrink-0">
             <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onChange={(event) => void choosePhoto(event)} />
-            <button type="button" disabled={photoBusy} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onClick={() => photoInput.current?.click()} className="group relative size-[72px] rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:opacity-60">
-            {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={savedPhoto || profile.xProfileImageUrl}
-                alt=""
-                width={72}
-                height={72}
-                className="size-[72px] rounded-full object-cover"
-                onError={() => setImageFailed(true)}
-              />
-            ) : (
-              <WalletAvatar address={address} size={72} />
-            )}
-              <span aria-hidden className="absolute -bottom-1 -end-1 grid size-7 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[16px] text-[var(--lp-dark)] group-hover:border-[var(--lp-accent)]">+</span>
+            <button type="button" disabled={photoBusy} aria-label={savedPhoto ? hub.changePhoto : hub.addPhoto} onClick={() => photoInput.current?.click()} className="group relative block size-14 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 disabled:opacity-60">
+              {(savedPhoto || profile.xProfileImageUrl) && !imageFailed ? (
+                <img src={savedPhoto || profile.xProfileImageUrl} alt="" width={56} height={56} className="size-14 rounded-full object-cover" onError={() => setImageFailed(true)} />
+              ) : (
+                <WalletAvatar address={address} size={56} />
+              )}
+              <span aria-hidden className="absolute -bottom-0.5 -end-0.5 grid size-6 place-items-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[14px] text-[var(--lp-dark)]">+</span>
             </button>
-            {savedPhoto && <button type="button" disabled={photoBusy} onClick={() => void savePhoto(null)} className="min-h-11 text-[12px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{hub.removePhoto}</button>}
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-[var(--lp-text-sub)]">
-              <span>{business ? hub.businessAccount : hub.personalAccount}</span>
-              {hasAction ? (
-                <span className="rounded-full bg-[var(--lp-workspace-soft)] px-2.5 py-1 text-[var(--lp-workspace-ink)]">
-                  {hub.actionNeeded}
-                </span>
-              ) : null}
-            </div>
-            <h1 className="mt-1 break-words text-[clamp(2.4rem,5vw,4.5rem)] font-semibold leading-[0.96] tracking-[-0.06em] text-[var(--lp-dark)]">
-              {displayName}
-            </h1>
-            <p className="mt-1 break-words [overflow-wrap:anywhere] text-[14px] text-[var(--lp-text-sub)]">{contact}</p>
-            <p className="mt-2 text-[12px] text-[var(--lp-text-sub)]">{hub.photoPublic}</p>
-            <p role="status" aria-live="polite" className="mt-1 text-[12px] text-[var(--lp-text-sub)]">{photoBusy ? hub.savingPhoto : ''}</p>
-            {photoError && <p role="alert" className="mt-1 text-[12px] text-[var(--color-critical)]">{photoError}</p>}
-          </div>
-        </header>
-
-        {DEALS_AVAILABLE && (
-          <div className="mt-5 flex items-center justify-between gap-4 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-4 py-3 sm:px-5">
-            <div className="min-w-0">
-              <p className="text-[13px] font-bold text-[var(--lp-dark)]">{hub.workspaces}</p>
-              <p className="mt-0.5 text-[12px] text-[var(--lp-text-sub)]">{hub.switchContext}</p>
-            </div>
-            <WorkspaceSwitcher />
-          </div>
-        )}
-
-        <div className="mt-10 grid gap-10">
-          <HubSection title={hub.account}>
-            <HubRow
-              label={hub.personalDetails}
-              href="/profile/edit"
-            />
-            {DEALS_AVAILABLE && (
-              <HubRow
-                label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
-                description={!business && hasBusinessWorkspace ? businessCopy.manageBody : undefined}
-                href="/profile/business"
-              />
-            )}
-            <HubRow
-              label={hub.accountSetup}
-              href="/profile/setup"
-            />
-            <HubRow
-              label={hub.contactDetails}
-              href="/profile/contact"
-            />
-          </HubSection>
-
-          <HubSection title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
-            <HubRow
-              label={hub.usdcBalance}
-              href="/account"
-            />
-            <HubRow
-              label={hub.wallets}
-              href="/profile/wallets"
-            />
-            {DEALS_AVAILABLE && (
-              <>
-                <HubRow
-                  label={hub.openDeals}
-                  note={hasAction ? hub.reviewNow : hasOpenDeals ? hub.open : undefined}
-                  href="/profile/open-deals"
-                />
-                <HubRow
-                  label={hub.agentFunds}
-                  href="/profile/agent-funds"
-                />
-              </>
-            )}
-            <HubRow label={hub.activityReceipts} href="/activity" />
-            {DEALS_AVAILABLE && <HubRow label={hub.reputation} href="/stake" />}
-          </HubSection>
-
-          <HubSection title={hub.security}>
-            <HubRow label={hub.passkey} href="/settings" />
-            <HubRow label={hub.recovery} soon={hub.soon} />
-            <HubRow label={hub.devices} soon={hub.soon} />
-          </HubSection>
-
-          <HubSection title={hub.other}>
-            <HubRow label={hub.publicProfile} href={`/credit-passport/${address}`} />
-            <HubRow label={nav.allSettings} href="/settings" />
-            <HubRow label={nav.help} href="/how-it-works" />
-          </HubSection>
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate">{displayName}</span>
+            <span className="block truncate text-[14px] font-normal tracking-normal text-[var(--lp-text-sub)]">
+              {[profile.handle ? `@${profile.handle}` : contact, business ? hub.businessAccount : hub.personalAccount].join(' · ')}
+            </span>
+          </span>
+        </span>
+      }
+      hint={simple.photoHint}
+    >
+      {photoBusy || photoError || savedPhoto ? (
+        <div className="-mt-3 flex flex-wrap items-center gap-3 text-[13px]">
+          {savedPhoto ? <button type="button" disabled={photoBusy} onClick={() => void savePhoto(null)} className="min-h-11 font-semibold text-[var(--lp-text-sub)] underline underline-offset-4">{hub.removePhoto}</button> : null}
+          <span role="status" aria-live="polite" className="text-[var(--lp-text-sub)]">{photoBusy ? hub.savingPhoto : ''}</span>
+          {photoError ? <span role="alert" className="text-[var(--color-critical)]">{photoError}</span> : null}
         </div>
+      ) : null}
 
-        <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--lp-border-light)] pt-4">
-          <p className="text-[12px] text-[var(--lp-text-muted)]">
-            {hub.accountLabel} {shortAddress(address)}
-          </p>
-          <div className="ms-auto"><ProfileSignOut /></div>
-        </footer>
-      </div>
-    </main>
+      {DEALS_AVAILABLE && hasBusinessWorkspace ? (
+        <RowGroup>
+          <Row label={hub.workspaces}><WorkspaceSwitcher /></Row>
+        </RowGroup>
+      ) : null}
+
+      <RowGroup title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
+        <Row label={hub.usdcBalance} value={money.balance == null ? undefined : `${formatBalance(heroAmount(balanceFacts), locale)} USDC`} href="/account" />
+        {DEALS_AVAILABLE ? (
+          <>
+            <Row label={simple.agents} value={usdc(agentTotal)} href="/profile/agent-funds" />
+            <Row label={hub.openDeals} value={hasAction ? hub.reviewNow : openCount > 0 ? String(openCount) : undefined} href="/profile/open-deals" />
+          </>
+        ) : null}
+        <Row label={hub.activityReceipts} href="/activity" />
+        {DEALS_AVAILABLE ? <Row label={hub.reputation} href="/stake" /> : null}
+      </RowGroup>
+
+      <RowGroup title={hub.account}>
+        <Row label={simple.profileTitle} href="/profile/edit" />
+        {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} href="/profile/setup" /> : null}
+        <Row label={simple.contactTitle} value={profile.email ?? simple.setUp} href="/profile/contact" />
+        <Row label={simple.walletsTitle} href="/profile/wallets" />
+        {DEALS_AVAILABLE ? (
+          <Row
+            label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}
+            value={business ? profile.smeProfile?.companyName : hasBusinessWorkspace ? undefined : simple.setUp}
+            href="/profile/business"
+          />
+        ) : null}
+      </RowGroup>
+
+      <RowGroup title={hub.security}>
+        <Row label={hub.passkey} value={hasPasskey ? simple.on : simple.off} href="/settings" />
+        <Row label={hub.recovery} soon={hub.soon} />
+        <Row label={hub.devices} soon={hub.soon} />
+      </RowGroup>
+
+      <RowGroup title={hub.other}>
+        <Row label={hub.publicProfile} href={`/credit-passport/${address}`} />
+        <Row label={nav.allSettings} href="/settings" />
+        <Row label={nav.help} href="/how-it-works" />
+      </RowGroup>
+
+      <footer className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <p className="text-[12px] text-[var(--lp-text-sub)]">{hub.accountLabel} {shortAddress(address)}</p>
+        <ProfileSignOut />
+      </footer>
+    </ProfileFrame>
   );
 }
 
@@ -235,56 +196,4 @@ async function cropProfilePhoto(file: File): Promise<string> {
   } finally {
     image.close();
   }
-}
-
-function HubSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="profile-hub-section">
-      <h2 className="mb-4 text-[24px] font-semibold tracking-[-0.025em] text-[var(--lp-dark)]">{title}</h2>
-      <div className="overflow-hidden rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">{children}</div>
-    </section>
-  );
-}
-
-function HubRow({ label, description, onClick, href, note, soon }: HubRowProps) {
-  if (soon) {
-    return (
-      <span
-        role="button"
-        aria-disabled="true"
-        tabIndex={0}
-        aria-label={`${label}, ${soon}`}
-        className="group flex min-h-[74px] w-full cursor-not-allowed items-center gap-4 border-b border-[var(--lp-border-light)] px-5 py-3.5 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
-      >
-        <span aria-hidden className="min-w-0 flex-1 text-[15px] font-bold text-[var(--lp-text-muted)]">{label}</span>
-        <span aria-hidden className="shrink-0 text-[12px] font-bold text-[var(--lp-text-sub)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-          {soon}
-        </span>
-      </span>
-    );
-  }
-  const className = 'group flex min-h-[74px] w-full items-center gap-4 border-b border-[var(--lp-border-light)] px-5 py-3.5 text-start transition-[background-color,padding] duration-200 last:border-b-0 hover:bg-[var(--lp-light)] hover:ps-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset';
-  const content = (
-    <>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-bold text-[var(--lp-dark)]">{label}</span>
-        {description ? (
-          <span className="mt-0.5 block text-[13px] leading-snug text-[var(--lp-text-sub)]">{description}</span>
-        ) : null}
-      </span>
-      {note ? (
-        <span className="shrink-0 text-[12px] font-bold text-[var(--lp-workspace-ink)]">{note}</span>
-      ) : null}
-      <span aria-hidden className="shrink-0 text-[20px] text-[var(--lp-text-muted)] transition-transform group-hover:translate-x-0.5">›</span>
-    </>
-  );
-
-  if (href) return <Link href={href} className={className}>{content}</Link>;
-  return <button type="button" onClick={onClick} className={className}>{content}</button>;
 }

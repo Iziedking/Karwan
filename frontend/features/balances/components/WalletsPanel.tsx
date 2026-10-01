@@ -259,10 +259,10 @@ export function WalletsPanel({ address }: { address?: string }) {
   const runFaucet = async (target: 'identity' | 'buyer' | 'seller') => {
     const addr =
       target === 'identity'
-        ? data?.identity.address
+        ? data?.identity?.address
         : target === 'buyer'
-          ? agents?.buyer.address
-          : agents?.seller.address;
+          ? agents?.buyer?.address
+          : agents?.seller?.address;
     if (!addr) return;
     setFaucetBusy(target);
     setNote(null);
@@ -289,8 +289,8 @@ export function WalletsPanel({ address }: { address?: string }) {
           walletKind="identity"
           title={wp.rows.identity.title}
           purpose={isCircle ? wp.rows.identity.purposeCircle : wp.rows.identity.purposeWeb3}
-          address={data?.identity.address}
-          primary={fmt(data?.identity.usdcBalance)}
+          address={data?.identity?.address}
+          primary={fmt(data?.identity?.usdcBalance)}
           copiedAddr={copiedAddr}
           onCopied={markCopied}
           copiedLabel={wp.copyAddress.copied}
@@ -307,7 +307,7 @@ export function WalletsPanel({ address }: { address?: string }) {
           }
         />
 
-        {agents ? (
+        {agents?.buyer && agents?.seller ? (
           <>
             <Row
               walletKind="agent"

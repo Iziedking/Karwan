@@ -21,7 +21,7 @@ function AccountPageInner() {
     <div className="product-surface mx-auto w-full max-w-[1180px] pb-14">
       <header className="mt-5 grid gap-4 border-b border-[var(--lp-border-light)] pb-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
         <div>
-          <h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}<NetworkHint /></h1>
+          <div className="flex items-center"><h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
         </div>
         <p className="max-w-[46ch] text-[15px] leading-6 text-[var(--lp-text-sub)] lg:pb-1">{t.intro}</p>
       </header>

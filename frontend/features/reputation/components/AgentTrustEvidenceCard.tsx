@@ -24,7 +24,7 @@ export function AgentTrustEvidenceCard() {
       : copy.unavailable;
   const allowance = status?.allowance
     ? `${status.allowance.remaining} / ${status.allowance.allowance}`
-    : status
+    : status?.allowancePolicy
       ? `${status.allowancePolicy.reportsPer24Hours} / 24h`
       : copy.unavailable;
 

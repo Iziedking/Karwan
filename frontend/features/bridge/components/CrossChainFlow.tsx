@@ -298,7 +298,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
   return (
     <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
       <header className="border-b border-[var(--lp-border-light)] pb-6">
-        <h1 className="text-[32px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]">{title}<NetworkHint /></h1>
+        <div className="flex items-center"><h1 className="text-[32px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]">{title}</h1><NetworkHint /></div>
       </header>
 
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">

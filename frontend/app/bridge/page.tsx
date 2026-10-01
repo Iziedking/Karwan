@@ -168,7 +168,7 @@ function BridgePageInner() {
       <Band tone="light" compact>
         <header className="max-w-[620px] pb-5">
           <p className="text-[13px] text-[var(--ink-secondary)]">{messages.accountHome.balanceLabel}</p>
-          <h1 className="mt-1 text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}<NetworkHint /></h1>
+          <div className="mt-1 flex items-center"><h1 className="text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}</h1><NetworkHint /></div>
           <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{pageBody}</p>
         </header>
       </Band>
