@@ -10,6 +10,18 @@ import { TERMS_COPY } from './termsCopy';
 const REVIEW_CHOICES = [1, 3, 7, 14] as const;
 export const MAX_REVIEW_DAYS = 90;
 
+const PRESETS = [
+  { key: 'half', pcts: [50, 50] },
+  { key: 'thirty', pcts: [30, 70] },
+] as const;
+
+const presetParts = (pcts: readonly number[]) =>
+  pcts.map((pct, i) => ({ pct, covers: i === 0 ? ({ kind: 'start' } as Covers) : ({ kind: 'all' } as Covers) }));
+
+const matchesPreset = (draft: TermsDraft, pcts: readonly number[]) =>
+  draft.parts.length === pcts.length &&
+  draft.parts.every((part, i) => part.pct === pcts[i] && part.covers.kind === (i === 0 ? 'start' : 'all'));
+
 export const DEFAULT_TERMS: TermsDraft = {
   items: [''],
   conditions: [''],
@@ -50,6 +62,8 @@ export function TermsBuilder({
   const id = useId();
   const [customReview, setCustomReview] = useState(!REVIEW_CHOICES.includes(value.reviewWindowDays as (typeof REVIEW_CHOICES)[number]));
   const [reviewText, setReviewText] = useState(String(value.reviewWindowDays));
+  const [customSplit, setCustomSplit] = useState(!PRESETS.some((preset) => matchesPreset(value, preset.pcts)));
+  const [moreOpen, setMoreOpen] = useState(cleanLines(value.conditions).length > 0);
   const set = (patch: Partial<TermsDraft>) => onChange({ ...value, ...patch });
   const items = cleanLines(value.items);
   const total = value.parts.reduce((sum, part) => sum + (Number.isFinite(part.pct) ? part.pct : 0), 0);
@@ -89,7 +103,11 @@ export function TermsBuilder({
   }
 
   function setPart(index: number, patch: { pct?: number; covers?: Covers }) {
-    set({ parts: value.parts.map((part, i) => (i === index ? { ...part, ...patch } : part)) });
+    const parts = value.parts.map((part, i) => (i === index ? { ...part, ...patch } : part));
+    if (patch.pct !== undefined && parts.length === 2 && patch.pct >= 1) {
+      parts[1 - index] = { ...parts[1 - index]!, pct: 100 - patch.pct };
+    }
+    set({ parts });
   }
 
   function addPart() {
@@ -109,6 +127,44 @@ export function TermsBuilder({
     parts[parts.length - 1] = { ...parts[parts.length - 1]!, pct: parts[parts.length - 1]!.pct + gone.pct };
     set({ parts });
   }
+
+  const lineList = (list: 'items' | 'conditions') => (
+    <div>
+      <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{list === 'items' ? t.items : t.conditions}</p>
+      <ol className="space-y-2">
+        {value[list].map((line, index) => (
+          <li key={index} className="flex items-center gap-2 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] py-1 ps-3.5 pe-1">
+            <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />
+            <input
+              value={line}
+              onChange={(e) => editLine(list, index, e.target.value)}
+              placeholder={list === 'items' ? t.itemPlaceholder : t.conditionPlaceholder}
+              aria-label={`${list === 'items' ? t.items : t.conditions} ${index + 1}`}
+              maxLength={160}
+              className="min-h-10 min-w-0 flex-1 bg-transparent text-[15px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
+            />
+            <button
+              type="button"
+              onClick={() => removeLine(list, index)}
+              aria-label={`${t.removeLine} ${index + 1}`}
+              className="grid size-10 shrink-0 place-items-center rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
+            >
+              <span aria-hidden className="text-[18px] leading-none">×</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+      <button
+        type="button"
+        onClick={() => set({ [list]: [...value[list], ''] } as Partial<TermsDraft>)}
+        disabled={value[list].length >= 12}
+        className="mt-2 inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)] disabled:opacity-40"
+      >
+        {list === 'items' ? t.addItem : t.addCondition}
+      </button>
+      <p className="mt-1.5 text-[13px] text-[var(--lp-text-sub)]">{list === 'items' ? t.itemsHint : t.conditionsHint}</p>
+    </div>
+  );
 
   const coversChoices: Array<{ key: string; label: string; covers: Covers }> = [
     { key: 'start', label: t.start, covers: { kind: 'start' } },
@@ -160,126 +216,98 @@ export function TermsBuilder({
         </div>
       </div>
 
-      {(['items', 'conditions'] as const).map((list) => (
-        <div key={list}>
-          <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{list === 'items' ? t.items : t.conditions}</p>
-          <ol className="space-y-2">
-            {value[list].map((line, index) => (
-              <li key={index} className="flex items-center gap-2 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] py-1 ps-3.5 pe-1">
-                <span aria-hidden className="size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />
-                <input
-                  value={line}
-                  onChange={(e) => editLine(list, index, e.target.value)}
-                  placeholder={list === 'items' ? t.itemPlaceholder : t.conditionPlaceholder}
-                  aria-label={`${list === 'items' ? t.items : t.conditions} ${index + 1}`}
-                  maxLength={160}
-                  className="min-h-10 min-w-0 flex-1 bg-transparent text-[15px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeLine(list, index)}
-                  aria-label={`${t.removeLine} ${index + 1}`}
-                  className="grid size-10 shrink-0 place-items-center rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
-                >
-                  <span aria-hidden className="text-[18px] leading-none">×</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-          <button
-            type="button"
-            onClick={() => set({ [list]: [...value[list], ''] } as Partial<TermsDraft>)}
-            disabled={value[list].length >= 12}
-            className="mt-2 inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)] disabled:opacity-40"
-          >
-            {list === 'items' ? t.addItem : t.addCondition}
-          </button>
-          <p className="mt-1.5 text-[13px] text-[var(--lp-text-sub)]">{list === 'items' ? t.itemsHint : t.conditionsHint}</p>
-        </div>
-      ))}
-
-      <div>
-        <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{t.proof}</p>
-        <div className="flex flex-wrap gap-2">
-          <span className={cn(chip, chipOn)}>{t.proofLink}</span>
-          <span
-            role="button"
-            aria-disabled="true"
-            tabIndex={0}
-            aria-label={`${t.proofTracking}, ${t.soon}`}
-            className={cn(chip, chipOff, 'group cursor-not-allowed opacity-60')}
-          >
-            <span aria-hidden className="group-hover:hidden group-focus-visible:hidden">{t.proofTracking}</span>
-            <span aria-hidden className="hidden group-hover:inline group-focus-visible:inline">{t.soon}</span>
-          </span>
-        </div>
-        <p className="mt-1.5 text-[13px] text-[var(--lp-text-sub)]">{t.proofLinkHint}</p>
-      </div>
+      {lineList('items')}
 
       <div>
         <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{t.parts}</p>
-        <ol className="space-y-2">
-          {value.parts.map((part, index) => (
-            <li key={index} className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-3">
-              <div className="flex items-center gap-2">
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.part.replace('{n}', String(index + 1))}</span>
-                  {priceUsdc && priceUsdc > 0 ? (
-                    <span className="whitespace-nowrap text-[13px] tabular-nums text-[var(--lp-text-sub)]">{((priceUsdc * part.pct) / 100).toFixed(2)} USDC</span>
-                  ) : null}
-                </span>
-                <span className="flex w-24 shrink-0 items-center gap-1.5">
-                  <input
-                    inputMode="numeric"
-                    value={String(part.pct)}
-                    onChange={(e) => setPart(index, { pct: Math.min(99, Number(e.target.value.replace(/\D/g, '')) || 0) })}
-                    aria-label={`${t.part.replace('{n}', String(index + 1))} %`}
-                    className="form-input form-input-num h-10 text-end"
-                  />
-                  <span aria-hidden className="text-[14px] text-[var(--lp-text-sub)]">%</span>
-                </span>
-                {value.parts.length > minParts ? (
-                  <button
-                    type="button"
-                    onClick={() => removePart(index)}
-                    aria-label={`${t.removeLine} ${t.part.replace('{n}', String(index + 1))}`}
-                    className="grid size-10 place-items-center rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
-                  >
-                    <span aria-hidden className="text-[18px] leading-none">×</span>
-                  </button>
-                ) : null}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-labelledby={`${id}-pays-${index}`}>
-                <span id={`${id}-pays-${index}`} className="me-1 text-[13px] text-[var(--lp-text-sub)]">{t.paysFor}</span>
-                {coversChoices.map((choice) => (
-                  <button
-                    key={choice.key}
-                    type="button"
-                    aria-pressed={coversKey(part.covers) === choice.key}
-                    onClick={() => setPart(index, { covers: choice.covers })}
-                    className={cn(chip, 'min-h-9 max-w-[16rem] truncate px-3 text-[13px]', coversKey(part.covers) === choice.key ? chipOn : chipOff)}
-                  >
-                    {choice.label}
-                  </button>
-                ))}
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          {value.parts.length < maxParts ? (
-            <button
-              type="button"
-              onClick={addPart}
-              className="inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)]"
-            >
-              {t.addPart}
-            </button>
-          ) : <span />}
-          <p className={cn('text-[13px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
-            {(total === 100 ? t.total : t.needs100).replace('{sum}', String(total))}
-          </p>
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((preset) => {
+            const on = !customSplit && matchesPreset(value, preset.pcts);
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setCustomSplit(false);
+                  set({ parts: presetParts(preset.pcts) });
+                }}
+                className={cn(chip, on ? chipOn : chipOff)}
+              >
+                {preset.key === 'half' ? t.payHalf : t.payThirty}
+              </button>
+            );
+          })}
+          <button type="button" aria-pressed={customSplit} onClick={() => setCustomSplit(true)} className={cn(chip, customSplit ? chipOn : chipOff)}>
+            {t.payCustom}
+          </button>
         </div>
+        {customSplit ? (
+          <>
+            <ol className="mt-3 space-y-2">
+              {value.parts.map((part, index) => (
+                <li key={index} className="rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-[14px] font-semibold text-[var(--lp-dark)]">{t.part.replace('{n}', String(index + 1))}</span>
+                      {priceUsdc && priceUsdc > 0 ? (
+                        <span className="whitespace-nowrap text-[13px] tabular-nums text-[var(--lp-text-sub)]">{((priceUsdc * part.pct) / 100).toFixed(2)} USDC</span>
+                      ) : null}
+                    </span>
+                    <span className="flex w-24 shrink-0 items-center gap-1.5">
+                      <input
+                        inputMode="numeric"
+                        value={String(part.pct)}
+                        onChange={(e) => setPart(index, { pct: Math.min(99, Number(e.target.value.replace(/\D/g, '')) || 0) })}
+                        aria-label={`${t.part.replace('{n}', String(index + 1))} %`}
+                        className="form-input form-input-num h-10 text-end"
+                      />
+                      <span aria-hidden className="text-[14px] text-[var(--lp-text-sub)]">%</span>
+                    </span>
+                    {value.parts.length > minParts ? (
+                      <button
+                        type="button"
+                        onClick={() => removePart(index)}
+                        aria-label={`${t.removeLine} ${t.part.replace('{n}', String(index + 1))}`}
+                        className="grid size-10 place-items-center rounded-full text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)]"
+                      >
+                        <span aria-hidden className="text-[18px] leading-none">×</span>
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-labelledby={`${id}-pays-${index}`}>
+                    <span id={`${id}-pays-${index}`} className="me-1 text-[13px] text-[var(--lp-text-sub)]">{t.paysFor}</span>
+                    {coversChoices.map((choice) => (
+                      <button
+                        key={choice.key}
+                        type="button"
+                        aria-pressed={coversKey(part.covers) === choice.key}
+                        onClick={() => setPart(index, { covers: choice.covers })}
+                        className={cn(chip, 'min-h-9 max-w-[16rem] truncate px-3 text-[13px]', coversKey(part.covers) === choice.key ? chipOn : chipOff)}
+                      >
+                        {choice.label}
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+              {value.parts.length < maxParts ? (
+                <button
+                  type="button"
+                  onClick={addPart}
+                  className="inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)]"
+                >
+                  {t.addPart}
+                </button>
+              ) : <span />}
+              <p className={cn('text-[13px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
+                {(total === 100 ? t.total : t.needs100).replace('{sum}', String(total))}
+              </p>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div>
@@ -326,6 +354,13 @@ export function TermsBuilder({
         <p className="mt-1.5 text-[13px] text-[var(--lp-text-sub)]">{t.reviewHint}</p>
       </div>
 
+      <details open={moreOpen} onToggle={(event) => setMoreOpen(event.currentTarget.open)} className="border-y border-[var(--lp-border-light)]">
+        <summary className="flex min-h-11 cursor-pointer items-center gap-3 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+          {t.moreTerms}<span aria-hidden className="ms-auto">{moreOpen ? '−' : '+'}</span>
+        </summary>
+        <div className="pb-5">{lineList('conditions')}</div>
+      </details>
+
       <section aria-live="polite" className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{t.agreement}</p>
@@ -346,11 +381,9 @@ export function TermsBuilder({
                 <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--status-warning,#C98A1B)]" />
                 {issue.code === 'no-items'
                   ? t.noItems
-                  : issue.code === 'no-conditions'
-                    ? t.noConditions
-                    : issue.code === 'split'
-                      ? t.split.replace('{sum}', String(issue.total))
-                      : t.vague.replace('{item}', issue.item)}
+                  : issue.code === 'split'
+                    ? t.split.replace('{sum}', String(issue.total))
+                    : t.vague.replace('{item}', issue.item)}
               </li>
             ))
           )}

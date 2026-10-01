@@ -20,11 +20,11 @@ export interface TermsBuilderCopy {
   conditionPlaceholder: string;
   addCondition: string;
   conditionsHint: string;
-  proof: string;
-  proofLink: string;
-  proofTracking: string;
-  proofLinkHint: string;
   parts: string;
+  payHalf: string;
+  payThirty: string;
+  payCustom: string;
+  moreTerms: string;
   part: string;
   paysFor: string;
   start: string;
@@ -43,7 +43,6 @@ export interface TermsBuilderCopy {
   agreementNote: string;
   ready: string;
   noItems: string;
-  noConditions: string;
   split: string;
   vague: string;
   text: TermsCopy;
@@ -62,8 +61,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     itemsHint: 'One item per line.',
     conditions: 'It is accepted when', conditionPlaceholder: '2 rounds of changes included', addCondition: 'Add a condition',
     conditionsHint: 'What the buyer checks before money is released.',
-    proof: 'Proof of delivery', proofLink: 'A link to the work', proofTracking: 'Carrier and tracking number',
-    proofLinkHint: 'The seller adds a link to the finished work when they deliver.',
+    payHalf: 'Two equal parts', payThirty: '30% then 70%', payCustom: 'Custom', moreTerms: 'More terms',
     parts: 'Paid in', part: 'Part {n}', paysFor: 'Pays for', start: 'Starting the work', all: 'Everything listed',
     addPart: 'Add a part', removeLine: 'Remove', total: 'Adds up to {sum}%', needs100: 'Adds up to {sum}%, needs 100%',
     review: 'Time to check each delivery', day: '1 day', days: '{n} days', other: 'Other', otherDays: 'Days to check',
@@ -71,7 +69,6 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     agreement: 'The agreement both sides sign', agreementNote: 'Read by the agent and the arbiter',
     ready: 'Ready. Every item has a proof and a payment, so an arbiter could decide on it.',
     noItems: 'Add at least one item that is delivered.',
-    noConditions: 'Add at least one condition, so an arbiter can decide if the work is acceptable.',
     split: 'The parts add up to {sum}%. They need to make 100%.',
     vague: '"{item}" is very short. Say exactly what is delivered.',
     text: {
@@ -98,8 +95,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     itemsHint: 'Un élément par ligne.',
     conditions: 'C’est accepté quand', conditionPlaceholder: '2 séries de modifications incluses', addCondition: 'Ajouter une condition',
     conditionsHint: 'Ce que l’acheteur vérifie avant que l’argent soit libéré.',
-    proof: 'Preuve de livraison', proofLink: 'Un lien vers le travail', proofTracking: 'Transporteur et numéro de suivi',
-    proofLinkHint: 'Le vendeur ajoute un lien vers le travail terminé lors de la livraison.',
+    payHalf: 'Deux parts égales', payThirty: '30 % puis 70 %', payCustom: 'Personnalisé', moreTerms: 'Plus de conditions',
     parts: 'Payé en', part: 'Partie {n}', paysFor: 'Paie pour', start: 'Le début du travail', all: 'Tout ce qui est listé',
     addPart: 'Ajouter une partie', removeLine: 'Retirer', total: 'Total de {sum} %', needs100: 'Total de {sum} %, il faut 100 %',
     review: 'Temps pour vérifier chaque livraison', day: '1 jour', days: '{n} jours', other: 'Autre', otherDays: 'Jours pour vérifier',
@@ -107,7 +103,6 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     agreement: 'L’accord signé par les deux parties', agreementNote: 'Lu par l’agent et l’arbitre',
     ready: 'Prêt. Chaque élément a une preuve et un paiement, un arbitre pourrait donc trancher.',
     noItems: 'Ajoutez au moins un élément livré.',
-    noConditions: 'Ajoutez au moins une condition, pour qu’un arbitre puisse juger si le travail est acceptable.',
     split: 'Les parties font {sum} %. Elles doivent faire 100 %.',
     vague: '« {item} » est très court. Précisez ce qui est livré.',
     text: {
@@ -134,8 +129,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     itemsHint: 'عنصر واحد في كل سطر.',
     conditions: 'يُقبل عندما', conditionPlaceholder: 'جولتا تعديل مشمولتان', addCondition: 'أضف شرطًا',
     conditionsHint: 'ما يتحقق منه المشتري قبل تحرير المال.',
-    proof: 'إثبات التسليم', proofLink: 'رابط إلى العمل', proofTracking: 'شركة الشحن ورقم التتبع',
-    proofLinkHint: 'يضيف البائع رابطًا إلى العمل المنجز عند التسليم.',
+    payHalf: 'جزآن متساويان', payThirty: '30% ثم 70%', payCustom: 'مخصص', moreTerms: 'شروط إضافية',
     parts: 'يُدفع على', part: 'الجزء {n}', paysFor: 'مقابل', start: 'بدء العمل', all: 'كل ما سبق',
     addPart: 'أضف جزءًا', removeLine: 'إزالة', total: 'المجموع {sum}%', needs100: 'المجموع {sum}%، والمطلوب 100%',
     review: 'مدة فحص كل تسليم', day: 'يوم واحد', days: '{n} أيام', other: 'أخرى', otherDays: 'أيام الفحص',
@@ -143,7 +137,6 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     agreement: 'الاتفاق الذي يوقّعه الطرفان', agreementNote: 'يقرؤه الوكيل والمحكّم',
     ready: 'جاهز. لكل عنصر إثبات ودفعة، فيمكن للمحكّم أن يحكم فيه.',
     noItems: 'أضف عنصرًا واحدًا على الأقل يُسلَّم.',
-    noConditions: 'أضف شرطًا واحدًا على الأقل ليتمكن المحكّم من الحكم على قبول العمل.',
     split: 'مجموع الأجزاء {sum}%. يجب أن يكون 100%.',
     vague: '"{item}" قصير جدًا. حدّد ما يُسلَّم بالضبط.',
     text: {
@@ -170,8 +163,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     itemsHint: 'हर पंक्ति में एक आइटम।',
     conditions: 'यह स्वीकार होगा जब', conditionPlaceholder: 'बदलाव के 2 दौर शामिल', addCondition: 'शर्त जोड़ें',
     conditionsHint: 'पैसा जारी होने से पहले खरीदार क्या जाँचता है।',
-    proof: 'डिलीवरी का सबूत', proofLink: 'काम का लिंक', proofTracking: 'कूरियर और ट्रैकिंग नंबर',
-    proofLinkHint: 'डिलीवरी के समय विक्रेता पूरे काम का लिंक जोड़ता है।',
+    payHalf: 'दो बराबर हिस्से', payThirty: 'पहले 30%, फिर 70%', payCustom: 'अपने हिसाब से', moreTerms: 'और शर्तें',
     parts: 'भुगतान', part: 'हिस्सा {n}', paysFor: 'किसके लिए', start: 'काम की शुरुआत', all: 'सूची में सब कुछ',
     addPart: 'हिस्सा जोड़ें', removeLine: 'हटाएँ', total: 'कुल {sum}%', needs100: 'कुल {sum}%, 100% चाहिए',
     review: 'हर डिलीवरी जाँचने का समय', day: '1 दिन', days: '{n} दिन', other: 'अन्य', otherDays: 'जाँच के दिन',
@@ -179,7 +171,6 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     agreement: 'दोनों पक्षों का समझौता', agreementNote: 'एजेंट और मध्यस्थ इसे पढ़ते हैं',
     ready: 'तैयार। हर आइटम का सबूत और भुगतान तय है, इसलिए मध्यस्थ फ़ैसला कर सकता है।',
     noItems: 'कम से कम एक डिलीवर होने वाला आइटम जोड़ें।',
-    noConditions: 'कम से कम एक शर्त जोड़ें, ताकि मध्यस्थ तय कर सके कि काम स्वीकार्य है।',
     split: 'हिस्सों का कुल {sum}% है। इसे 100% होना चाहिए।',
     vague: '"{item}" बहुत छोटा है। साफ़ बताएँ कि क्या डिलीवर होगा।',
     text: {
@@ -206,8 +197,7 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     itemsHint: 'Kipengele kimoja kwa kila mstari.',
     conditions: 'Kinakubaliwa wakati', conditionPlaceholder: 'Mizunguko 2 ya marekebisho imejumuishwa', addCondition: 'Ongeza sharti',
     conditionsHint: 'Anachokagua mnunuzi kabla pesa kutolewa.',
-    proof: 'Ushahidi wa kuwasilisha', proofLink: 'Kiungo cha kazi', proofTracking: 'Msafirishaji na namba ya ufuatiliaji',
-    proofLinkHint: 'Muuzaji anaongeza kiungo cha kazi iliyokamilika anapowasilisha.',
+    payHalf: 'Sehemu mbili sawa', payThirty: '30% kisha 70%', payCustom: 'Weka mwenyewe', moreTerms: 'Masharti zaidi',
     parts: 'Inalipwa kwa', part: 'Sehemu {n}', paysFor: 'Inalipia', start: 'Kuanza kazi', all: 'Vyote vilivyoorodheshwa',
     addPart: 'Ongeza sehemu', removeLine: 'Ondoa', total: 'Jumla {sum}%', needs100: 'Jumla {sum}%, inahitaji 100%',
     review: 'Muda wa kukagua kila uwasilishaji', day: 'Siku 1', days: 'Siku {n}', other: 'Nyingine', otherDays: 'Siku za kukagua',
@@ -215,7 +205,6 @@ export const TERMS_COPY: Record<Locale, TermsBuilderCopy> = {
     agreement: 'Makubaliano wanayosaini pande zote', agreementNote: 'Yanasomwa na wakala na msuluhishi',
     ready: 'Tayari. Kila kipengele kina ushahidi na malipo, hivyo msuluhishi anaweza kuamua.',
     noItems: 'Ongeza angalau kipengele kimoja kinachowasilishwa.',
-    noConditions: 'Ongeza angalau sharti moja, ili msuluhishi aweze kuamua kama kazi inakubalika.',
     split: 'Sehemu zinajumlisha {sum}%. Zinahitaji kufikia 100%.',
     vague: '"{item}" ni fupi sana. Eleza hasa kinachowasilishwa.',
     text: {

@@ -15,6 +15,7 @@ import { FundingQuoteRows } from './FundingQuoteRows';
 import { MoneyBlock } from './MoneyBlock';
 import { ProgressLine } from './ProgressLine';
 import { TrustCard } from './TrustCard';
+import { TurnDown } from './TurnDown';
 import { useWorkspaceActions } from './useWorkspaceActions';
 import { registerDealTools } from './webmcp';
 import { V3EscrowPanel } from '../v3/V3EscrowPanel';
@@ -135,6 +136,7 @@ export function DealWorkspace({ jobId }: { jobId: string }) {
       </header>
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
         <MoneyBlock amountUsdc={deal.dealAmountUsdc} view={deal.view} counterpartyName={actions.displayName} onAction={actions.openPrimary} busy={actions.busy || fundingBusy} quiet={!!actions.sheet} />
+        <TurnDown deal={deal} address={address} viewerIsBuyer={actions.viewerIsBuyer} onChanged={() => { void refresh(); }} />
         <V3EscrowPanel deal={deal} address={address} onChanged={() => { void refresh(); }} />
         <ProgressLine view={deal.view} />
         {deal.counterpartyTrust ? (

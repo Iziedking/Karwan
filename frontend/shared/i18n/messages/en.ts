@@ -3240,6 +3240,15 @@ interface MessagesShape {
         buyerWaiting: string;
         buyerWaitingInviteTemplate: string;
         editTermsCta: string;
+        declineCta: string;
+        declineLabel: string;
+        declinePlaceholder: string;
+        declineSend: string;
+        declineBusy: string;
+        declineBack: string;
+        sellerDeclined: string;
+        buyerDeclinedTitle: string;
+        buyerDeclinedBody: string;
         cancelCta: string;
         cancelBusy: string;
       };
@@ -8952,6 +8961,15 @@ export const en: MessagesShape = {
         buyerWaiting: 'Waiting for the seller to agree. Nothing is funded yet. You can edit or cancel before they agree.',
         buyerWaitingInviteTemplate: 'Waiting for {email} to claim the invite link. Nothing is funded yet.',
         editTermsCta: 'Edit terms',
+        declineCta: 'Turn down',
+        declineLabel: 'What would make it work for you?',
+        declinePlaceholder: 'A higher price, more time or fewer changes',
+        declineSend: 'Send to the buyer',
+        declineBusy: 'Sending…',
+        declineBack: 'Not now',
+        sellerDeclined: 'You turned these terms down. The buyer can change them. You can still agree.',
+        buyerDeclinedTitle: 'The seller turned down these terms',
+        buyerDeclinedBody: 'Change the terms so they work for both of you. Nothing is funded yet.',
         cancelCta: 'Cancel deal',
         cancelBusy: 'Working…',
       },

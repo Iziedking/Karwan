@@ -50,7 +50,6 @@ export interface TermsCopy {
 
 export type TermsIssue =
   | { code: 'no-items' }
-  | { code: 'no-conditions' }
   | { code: 'split'; total: number }
   | { code: 'vague'; item: string };
 
@@ -94,7 +93,6 @@ export function termsIssues(draft: TermsDraft): TermsIssue[] {
   const issues: TermsIssue[] = [];
   const items = cleanLines(draft.items);
   if (!items.length) issues.push({ code: 'no-items' });
-  if (!cleanLines(draft.conditions).length) issues.push({ code: 'no-conditions' });
   const total = draft.parts.reduce((sum, part) => sum + (Number.isFinite(part.pct) ? part.pct : 0), 0);
   if (total !== 100) issues.push({ code: 'split', total });
   const vague = items.find((item) => item.split(/\s+/).length < 2);

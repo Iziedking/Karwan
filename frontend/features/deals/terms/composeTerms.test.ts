@@ -66,7 +66,7 @@ test('readiness names what an arbiter could not decide', () => {
   assert.deepEqual(termsIssues(draft), []);
   assert.deepEqual(
     termsIssues({ ...draft, items: [' '], conditions: [], parts: [{ pct: 60, covers: { kind: 'all' } }] }).map((issue) => issue.code),
-    ['no-items', 'no-conditions', 'split'],
+    ['no-items', 'split'],
   );
   assert.deepEqual(termsIssues({ ...draft, items: ['Logo'] }), [{ code: 'vague', item: 'Logo' }]);
 });

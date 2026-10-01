@@ -802,6 +802,23 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
     }
   }
 
+  async function onDeclineTerms(note: string) {
+    if (!address) return;
+    setBusy(true);
+    setErrorInfo(null);
+    try {
+      await api.declineDirectDeal(jobId, { caller: address, note });
+      refresh();
+    } catch (err) {
+      const code = err instanceof ApiError ? err.code : undefined;
+      const message =
+        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
+      setErrorInfo({ code, message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onRaiseDelayAppeal() {
     if (!address) return;
     setBusy(true);
@@ -1830,6 +1847,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
               onStillReviewing={onStillReviewing}
               onAppeal={onAppeal}
               onCancel={onCancel}
+              onDeclineTerms={onDeclineTerms}
               onEdit={viewerIsBuyer ? () => setEditOpen(true) : undefined}
               onRaiseDelayAppeal={onRaiseDelayAppeal}
               onRespondToDelayAppeal={onRespondToDelayAppeal}
@@ -2539,6 +2557,7 @@ function ActionPanel({
   onStillReviewing,
   onAppeal,
   onCancel,
+  onDeclineTerms,
   onEdit,
   onRaiseDelayAppeal,
   onRespondToDelayAppeal,
@@ -2579,6 +2598,7 @@ function ActionPanel({
   onStillReviewing: () => void;
   onAppeal: () => void;
   onCancel: () => void;
+  onDeclineTerms: (note: string) => void;
   onEdit?: () => void;
   onRaiseDelayAppeal: () => void;
   onRespondToDelayAppeal: (reason: string) => void;
@@ -2821,10 +2841,17 @@ function ActionPanel({
               {copy.awaitingAcceptance.trustedMatchSuffix}
             </div>
           )}
+          {deal.sellerDeclinedAt ? (
+            <div className="border-s-2 border-[var(--lp-workspace-border)] ps-3">
+              <Body>{copy.awaitingAcceptance.sellerDeclined}</Body>
+              <p dir="auto" className="mt-1 whitespace-pre-wrap text-[13px] text-[var(--lp-workspace-ink)]">{deal.sellerDeclineNote}</p>
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <CTAPill disabled={busy} busy={busy} onClick={onAccept}>
               {busy ? copy.awaitingAcceptance.acceptBusy : copy.awaitingAcceptance.acceptCta}
             </CTAPill>
+            {!deal.sellerDeclinedAt ? <DeclineTerms busy={busy} onSend={onDeclineTerms} copy={copy.awaitingAcceptance} /> : null}
             {onEdit ? (
               <CTAPill
                 variant="secondary"
@@ -2841,11 +2868,21 @@ function ActionPanel({
     }
     return (
       <div className="space-y-4">
-        <Body>
-          {deal.pendingCounterparty
-            ? copy.awaitingAcceptance.buyerWaitingInviteTemplate.replace('{email}', deal.pendingCounterparty.email)
-            : copy.awaitingAcceptance.buyerWaiting}
-        </Body>
+        {deal.sellerDeclinedAt ? (
+          <div className="space-y-2">
+            <p className="text-[15px] font-semibold text-[var(--lp-workspace-ink)]">{copy.awaitingAcceptance.buyerDeclinedTitle}</p>
+            <p dir="auto" className="whitespace-pre-wrap rounded-[12px] border border-[var(--lp-workspace-border)] px-3 py-2 text-[14px] leading-relaxed text-[var(--lp-workspace-ink)]">
+              {deal.sellerDeclineNote}
+            </p>
+            <Body>{copy.awaitingAcceptance.buyerDeclinedBody}</Body>
+          </div>
+        ) : (
+          <Body>
+            {deal.pendingCounterparty
+              ? copy.awaitingAcceptance.buyerWaitingInviteTemplate.replace('{email}', deal.pendingCounterparty.email)
+              : copy.awaitingAcceptance.buyerWaiting}
+          </Body>
+        )}
         {deal.pendingCounterparty && (
           <PendingInviteCopy
             token={deal.pendingCounterparty.inviteToken}
@@ -2856,7 +2893,7 @@ function ActionPanel({
         <AcceptanceCountdown deal={deal} now={now} viewerIsSeller={false} copy={copy.acceptanceCountdown} />
         <div className="flex flex-wrap gap-2">
           {onEdit ? (
-            <CTAPill variant="secondary" tone="dark" onClick={onEdit} disabled={busy}>
+            <CTAPill variant={deal.sellerDeclinedAt ? 'primary' : 'secondary'} tone="dark" onClick={onEdit} disabled={busy}>
               {copy.awaitingAcceptance.editTermsCta}
             </CTAPill>
           ) : null}
@@ -3463,6 +3500,50 @@ function AcceptanceCountdown({
     <WindowNote tone="muted">
       {copy.expired}
     </WindowNote>
+  );
+}
+
+function DeclineTerms({
+  busy,
+  onSend,
+  copy,
+}: {
+  busy: boolean;
+  onSend: (note: string) => void;
+  copy: Messages['directDealDetail']['actionPanel']['awaitingAcceptance'];
+}) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState('');
+  if (!open) {
+    return (
+      <CTAPill variant="secondary" tone="dark" onClick={() => setOpen(true)} disabled={busy}>
+        {copy.declineCta}
+      </CTAPill>
+    );
+  }
+  return (
+    <div className="w-full space-y-2">
+      <label className="block text-[13px] font-semibold text-[var(--lp-workspace-ink)]">
+        {copy.declineLabel}
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={600}
+          rows={3}
+          dir="auto"
+          placeholder={copy.declinePlaceholder}
+          className="form-input mt-1.5 block font-normal"
+        />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <CTAPill variant="secondary" tone="dark" onClick={() => onSend(note.trim())} disabled={busy || !note.trim()} busy={busy}>
+          {busy ? copy.declineBusy : copy.declineSend}
+        </CTAPill>
+        <CTAPill variant="secondary" tone="dark" onClick={() => setOpen(false)} disabled={busy}>
+          {copy.declineBack}
+        </CTAPill>
+      </div>
+    </div>
   );
 }
 

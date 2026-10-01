@@ -284,6 +284,8 @@ function summaryFor(
         : 'Deal bound to your wallet. Review and agree to the terms.';
     case 'deal.seller-approved':
       return 'Seller agreed to the terms. Review the exact total and fund escrow when ready.';
+    case 'deal.direct.declined':
+      return 'The seller turned down the terms and left a note. Open the deal to change them.';
     case 'deal.accepted':
       return role === 'seller'
         ? `The buyer funded escrow. You can ${startPhrase(trade)}.`

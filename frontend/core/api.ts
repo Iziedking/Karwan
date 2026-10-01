@@ -718,6 +718,9 @@ export interface DirectDeal {
   };
   /// Seller agreed to the current terms. No buyer funds have moved yet.
   sellerApprovedAt?: number;
+  /// Seller turned the terms down with a note; cleared by an edit, counter or agreement.
+  sellerDeclinedAt?: number;
+  sellerDeclineNote?: string;
   /// Escrow is funded and verified Accepted onchain.
   acceptedAt?: number;
   delivered: boolean;
@@ -4859,6 +4862,11 @@ export const api = {
   ) =>
     json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
       `/api/deals/direct/${jobId}/counter`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  declineDirectDeal: (jobId: string, body: { caller: string; note: string }) =>
+    json<{ accepted: boolean; jobId: string; deal: DirectDeal }>(
+      `/api/deals/direct/${jobId}/decline`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
   removeTradeAvailability: (workspaceId: string, availabilityId: string) =>

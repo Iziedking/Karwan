@@ -44,14 +44,20 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
   const tb = TERMS_COPY.en;
   await page.getByRole('textbox', { name: `${tb.items} 1`, exact: true }).fill('Logo in SVG and PNG');
+  await expect(page.getByRole('button', { name: tb.payHalf, exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('summary', { hasText: tb.moreTerms }).click();
   await page.getByRole('textbox', { name: `${tb.conditions} 1`, exact: true }).fill('2 rounds of changes included');
+  await page.getByRole('button', { name: tb.payCustom, exact: true }).click();
   const part1 = page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` });
   const part2 = page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` });
-  await part1.fill('30');
-  await expect(page.getByText(tb.needs100.replace('{sum}', '80'), { exact: true })).toBeVisible();
+  await part1.fill('25');
+  await expect(part2).toHaveValue('75');
+  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('10');
+  await expect(page.getByText(tb.needs100.replace('{sum}', '72'), { exact: true })).toBeVisible();
   await expect(page.locator('button[data-guide="buyer-submit"]')).toBeDisabled();
-  await part2.fill('70');
-  await expect(page.getByText(tb.total.replace('{sum}', '100'), { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: tb.payThirty, exact: true }).click();
+  await expect(part2).toHaveCount(0);
   await page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true }).click();
   await expect(page.getByText(tb.ready, { exact: true })).toBeVisible();
 
@@ -107,11 +113,13 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   await next.click();
 
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
-  await expect(page.getByRole('button', { name: tb.addPart, exact: true })).toHaveCount(0);
   await page.getByRole('textbox', { name: `${tb.items} 1`, exact: true }).fill('Product photos for 20 items');
+  await page.locator('summary', { hasText: tb.moreTerms }).click();
   await page.getByRole('textbox', { name: `${tb.conditions} 1`, exact: true }).fill('White background, 2000 px wide');
+  await page.getByRole('button', { name: tb.payCustom, exact: true }).click();
+  await expect(page.getByRole('button', { name: tb.addPart, exact: true })).toHaveCount(0);
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('40');
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('60');
+  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` })).toHaveValue('60');
   await page.getByRole('button', { name: tb.other, exact: true }).click();
   await page.getByRole('textbox', { name: tb.otherDays, exact: true }).fill('10');
 
