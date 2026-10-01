@@ -102,6 +102,9 @@ function parseMilestoneSplit(text: string): { pcts: number[] | null; error: stri
 }
 
 const SPLIT_PRESETS = ['50, 50', '30, 70', '40, 30, 30'] as const;
+const DEADLINE_CHIPS = [[3, 'days3'], [7, 'week1'], [14, 'weeks2'], [30, 'month1']] as const;
+const MAX_DEADLINE_DAYS = 90;
+const DAY_MS = 86_400_000;
 
 /// One request option: a tick, a bracket label, and its explanation in a
 /// tooltip rather than as a paragraph on the card.
@@ -165,6 +168,7 @@ export function PostJobForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
   const tt = useTranslations().tradeTerms;
+  const rs = c.requestSteps;
   const errCopy = useTranslations().chainErrors;
   const router = useRouter();
   const auth = useAuth();
@@ -201,6 +205,10 @@ export function PostJobForm() {
   // Defaults adapt per unit so switching feels natural (5d → 2h → 15m).
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
+  // The request is asked in three short steps; the review that follows is unchanged.
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [exactTime, setExactTime] = useState(false);
+  const [pickedDate, setPickedDate] = useState('');
   const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
   // Trusted Match: when on, the agent loop weights seller reputation + stake
   // above price and gates bids on the seller's free stake covering the deal's
@@ -271,6 +279,10 @@ export function PostJobForm() {
       typeof deadlineValue !== 'number'
     )
       return;
+    if (step < 2) {
+      if (stepReady) goForward();
+      return;
+    }
     if (intentCheck.wrong && !intentWarned) {
       setIntentWarned(true);
       return;
@@ -329,6 +341,44 @@ export function PostJobForm() {
   }
 
   const split = parseMilestoneSplit(splitText);
+  const maxDeadline = deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : MAX_DEADLINE_DAYS;
+  const stepReady =
+    step === 0 ? brief.trim().length > 0 : step === 1 ? validAmount(budget, 5_000_000) && validWhole(deadlineValue, 1, maxDeadline) : true;
+  const splitParts = splitText.split(',').map((part) => part.trim());
+  const splitSum = splitParts.reduce((sum, part) => sum + (Number(part) || 0), 0);
+
+  function goForward() {
+    if (step === 0) setStep(1);
+    else if (step === 1) {
+      setStep(2);
+      setOptionsOpen(true);
+    }
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }
+
+  function pickDays(days: number) {
+    setDeadlineUnit('d');
+    setDeadlineValue(days);
+    setPickedDate('');
+    setExactTime(false);
+  }
+
+  function pickDate(value: string) {
+    setPickedDate(value);
+    if (!value) return;
+    // Whole days until the end of the chosen day, so "Due 14 Oct" means by the end of 14 Oct.
+    const end = new Date(`${value}T23:59:59`).getTime();
+    const days = Math.max(1, Math.min(MAX_DEADLINE_DAYS, Math.ceil((end - Date.now()) / DAY_MS)));
+    setDeadlineUnit('d');
+    setDeadlineValue(days);
+    setExactTime(false);
+  }
+
+  function setPart(index: number, value: string) {
+    const parts = [...splitParts];
+    parts[index] = value.replace(/[^0-9]/g, '');
+    setSplitText(parts.join(', '));
+  }
   const disabled =
     submitting || hashingFile || profileLoading || !profile?.buyer || !brief.trim() || !validAmount(budget, 5_000_000) ||
     !validWhole(deadlineValue, 1, deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90) ||
@@ -411,6 +461,25 @@ export function PostJobForm() {
     <PageTour id={BUYER_TOUR_ID} steps={BUYER_STEPS} />
     <form ref={formRef} onSubmit={submit} className="space-y-7">
       <fieldset hidden={reviewing} disabled={submitting || reviewing} className="min-w-0 space-y-6">
+
+      <div className="flex items-center gap-3" aria-live="polite">
+        <span aria-hidden className="flex items-center gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={cn(
+                'block h-2 rounded-full transition-all duration-[var(--dur-small)]',
+                i === step ? 'w-6 bg-[var(--lp-dark)]' : i < step ? 'w-2 bg-[var(--lp-accent)]' : 'w-2 bg-[var(--lp-border-light)]',
+              )}
+            />
+          ))}
+        </span>
+        <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+          {rs.stepOf.replace('{n}', String(step + 1))} · {[rs.describe, rs.price, rs.payment][step]}
+        </span>
+      </div>
+
+      <div hidden={step !== 0} className="space-y-6">
 
       {/* THE WORK */}
       <div data-guide="buyer-brief">
@@ -631,7 +700,10 @@ export function PostJobForm() {
       </FieldSection>
       )}
 
+      </div>
+
       {/* TERMS */}
+      <div hidden={step !== 1} className="space-y-6">
       <div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FormLabel
@@ -658,37 +730,97 @@ export function PostJobForm() {
             hint={t.sectionTerms.deadlineHint}
             dataGuide="buyer-deadline"
           >
-            <div className="flex items-stretch gap-2">
-              <input
-                data-guide="buyer-deadline"
-                type="number"
-                min={1}
-                max={deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90}
-                step={1}
-                value={deadlineValue}
-                disabled={submitting}
-                onChange={(e) =>
-                  setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                placeholder="0"
-                className="form-input form-input-num flex-1 min-w-0"
-              />
-              <DeadlineUnitPicker
-                value={deadlineUnit}
-                disabled={submitting}
-                onChange={(next) => {
-                  // Pick a sensible default when the unit changes so the field
-                  // never lands on something nonsensical (90 minutes vs 90 days).
-                  const defaults = { min: 15, hr: 2, d: 5 } as const;
-                  setDeadlineUnit(next);
-                  setDeadlineValue(defaults[next]);
-                }}
-              />
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {DEADLINE_CHIPS.map(([days, key]) => {
+                  const active = !exactTime && !pickedDate && deadlineUnit === 'd' && deadlineValue === days;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => pickDays(days)}
+                      className={cn(
+                        'inline-flex min-h-11 flex-col items-start justify-center rounded-[14px] border px-3.5 py-1.5 text-start text-[14px] font-medium leading-tight transition-colors',
+                        active
+                          ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
+                          : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
+                      )}
+                    >
+                      {rs[key]}
+                      <span className="text-[12px] font-normal opacity-75">
+                        {new Date(Date.now() + days * DAY_MS).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                      </span>
+                    </button>
+                  );
+                })}
+                <label
+                  className={cn(
+                    'relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[14px] border px-3.5 text-[14px] font-medium transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--lp-accent)]',
+                    pickedDate
+                      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
+                      : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
+                  )}
+                >
+                  <span>{pickedDate ? rs.dueOn.replace('{date}', new Date(`${pickedDate}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })) : rs.pickDate}</span>
+                  <input
+                    type="date"
+                    value={pickedDate}
+                    min={new Date(Date.now() + DAY_MS).toISOString().slice(0, 10)}
+                    max={new Date(Date.now() + MAX_DEADLINE_DAYS * DAY_MS).toISOString().slice(0, 10)}
+                    onChange={(e) => pickDate(e.target.value)}
+                    disabled={submitting}
+                    aria-label={rs.pickDate}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                  />
+                </label>
+              </div>
+              {exactTime ? (
+              <div className="flex items-stretch gap-2">
+                <input
+                  data-guide="buyer-deadline"
+                  type="number"
+                  min={1}
+                  max={deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90}
+                  step={1}
+                  value={deadlineValue}
+                  disabled={submitting}
+                  onChange={(e) =>
+                    setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  placeholder="0"
+                  className="form-input form-input-num flex-1 min-w-0"
+                />
+                <DeadlineUnitPicker
+                  value={deadlineUnit}
+                  disabled={submitting}
+                  onChange={(next) => {
+                    // Pick a sensible default when the unit changes so the field
+                    // never lands on something nonsensical (90 minutes vs 90 days).
+                    const defaults = { min: 15, hr: 2, d: 5 } as const;
+                    setDeadlineUnit(next);
+                    setDeadlineValue(defaults[next]);
+                  }}
+                />
+              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setExactTime(true)}
+                  className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
+                >
+                  {rs.exactTime}
+                </button>
+              )}
             </div>
           </FormLabel>
         </div>
       </div>
 
+      </div>
+
+      <div hidden={step !== 2} className="space-y-6">
       <details open={optionsOpen} onToggle={(event) => setOptionsOpen(event.currentTarget.open)} className="border-y border-[var(--lp-border-light)]">
         <summary data-guide="buyer-tolerance" className="flex min-h-11 cursor-pointer items-center gap-3 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
           {TRADE_ENTRY_COPY[locale].options}<span aria-hidden className="ms-auto">{optionsOpen ? '−' : '+'}</span>
@@ -771,38 +903,59 @@ export function PostJobForm() {
                 );
               })}
             </div>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={splitText}
-              disabled={submitting}
-              onChange={(e) => setSplitText(e.target.value)}
-              placeholder="50, 50"
-              aria-invalid={!split.pcts}
-              aria-label={tt.milestoneSplitAria}
-              className="form-input"
-            />
-            {split.pcts ? (
-              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                {split.pcts
-                  .map(
-                    (p, i) =>
-                      `M${i + 1} ${p}%${
-                        typeof budget === 'number' && budget > 0
-                          ? ` (${((budget * p) / 100).toFixed(2)} USDC)`
-                          : ''
-                      }`,
-                  )
-                  .join('  ·  ')}
+            <ol className="space-y-2">
+              {splitParts.map((part, index) => (
+                <li key={index} className="flex items-center gap-2 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 ps-3.5 pe-1.5">
+                  <span className="min-w-0 flex-1 text-[14px] font-medium text-[var(--lp-dark)]">{rs.part.replace('{n}', String(index + 1))}</span>
+                  <span className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
+                    {typeof budget === 'number' && budget > 0 && Number(part) > 0 ? `${((budget * Number(part)) / 100).toFixed(2)} USDC` : ''}
+                  </span>
+                  <span className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={part}
+                      disabled={submitting}
+                      onChange={(e) => setPart(index, e.target.value)}
+                      aria-label={`${rs.part.replace('{n}', String(index + 1))} %`}
+                      className="form-input form-input-num h-10 w-20 pe-7 text-end"
+                    />
+                    <span aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-[13px] text-[var(--lp-text-muted)]">%</span>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={submitting || splitParts.length <= 2}
+                    onClick={() => setSplitText(splitParts.filter((_, i) => i !== index).join(', '))}
+                    aria-label={rs.removePart.replace('{n}', String(index + 1))}
+                    className="grid size-10 place-items-center rounded-full text-[18px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-30"
+                  >
+                    <span aria-hidden>×</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {splitParts.length < 5 ? (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => setSplitText([...splitParts, '0'].join(', '))}
+                  className="inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)]"
+                >
+                  {rs.addPart}
+                </button>
+              ) : <span />}
+              <p className={cn('text-[13px] font-semibold tabular-nums', split.pcts ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
+                {split.pcts ? rs.total.replace('{sum}', String(splitSum)) : `${rs.total.replace('{sum}', String(splitSum))}. ${rs.needs100}`}
               </p>
-            ) : (
-              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{split.error}</p>
-            )}
+            </div>
         </div>
       </div>
 
         </div>
       </details>
+
+      </div>
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
           ("I sell..."). User can click submit again to post anyway. */}
@@ -865,10 +1018,34 @@ export function PostJobForm() {
       </CreationReview> : null}
 
       {/* SUBMIT */}
-      {!reviewing && previewAmount > 0 && previewDeadline > 0 ? (
+      {!reviewing && step === 2 && previewAmount > 0 && previewDeadline > 0 ? (
         <p className="text-[14px] leading-6 text-[var(--lp-dark)]">{c.limit}: <strong>{authorisedPrice(previewAmount, tolerance)} USDC</strong>. {c.fees}</p>
       ) : null}
-      <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
+      {!reviewing ? (
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStep((step - 1) as 0 | 1)}
+              disabled={submitting}
+              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]"
+            >
+              {rs.back}
+            </button>
+          ) : null}
+          {step < 2 ? (
+            <button
+              type="button"
+              onClick={goForward}
+              disabled={!stepReady || submitting}
+              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
+            >
+              {rs.continue}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <div hidden={step < 2 && !reviewing} className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
         <button
           type="submit"
           data-guide="buyer-submit"
