@@ -37,6 +37,13 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '2')} · ${rs.price}`)).toBeVisible();
   await expect(next).toBeDisabled();
   await page.locator('input[data-guide="buyer-budget"]').fill('150');
+  // The buying agent holds 120: the gap shows beside the form and tops up in place.
+  const topUp = page.getByRole('button', { name: en.money.home.topUpGapTemplate.replace('{gap}', '30.00') });
+  await expect(topUp).toBeVisible();
+  await topUp.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/buyer/);
   await page.getByRole('button', { name: new RegExp(`^${rs.weeks2}`) }).click();
   await expect(page.getByRole('button', { name: new RegExp(`^${rs.weeks2}`) })).toHaveAttribute('aria-pressed', 'true');
   await next.click();

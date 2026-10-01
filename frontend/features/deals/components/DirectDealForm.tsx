@@ -21,6 +21,7 @@ import { primeCreatedDirectDeal } from '../creationHandoff';
 import { splitDeadline } from '../deadlineSplit';
 import { lookupContact, parseContact, type ContactMatch } from '../counterpartyInput';
 import { fill } from '../workspace/presentation';
+import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 
 const MAX_DEADLINE_DAYS = 180;
@@ -148,6 +149,7 @@ export function DirectDealForm() {
   // from a listing's "Make offer" deep link with ?amount= in the URL, which
   // pre-fills from the listing's asking price; otherwise it stays blank.
   const [amount, setAmount] = useState<number | ''>(initialAmount ?? '');
+  useReportDealAmount(typeof amount === 'number' ? amount : null);
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
   const [deadlineUnit, setDeadlineUnit] = useState<'min' | 'hr' | 'd'>('d');
   /// Seller has this long to accept before the deal auto-expires (pre-accept,

@@ -18,6 +18,8 @@ export interface MoneyCopy {
     buyingAgent: string;
     sellingAgent: string;
     topUp: string;
+    shortTemplate: string;
+    topUpGapTemplate: string;
     withdraw: string;
     recentTitle: string;
     recentEmpty: string;
@@ -177,6 +179,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       buyingAgent: 'Buying agent',
       sellingAgent: 'Selling agent',
       topUp: 'Top up',
+      shortTemplate: "This needs {need} USDC. Your buying agent is {gap} USDC short.",
+      topUpGapTemplate: "Top up {gap} USDC",
       withdraw: 'Withdraw',
       recentTitle: 'Recent money',
       recentEmpty: 'No money has moved yet.',
@@ -330,6 +334,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       buyingAgent: 'وكيل الشراء',
       sellingAgent: 'وكيل البيع',
       topUp: 'تعبئة',
+      shortTemplate: "يحتاج هذا إلى {need} USDC. ينقص وكيل الشراء {gap} USDC.",
+      topUpGapTemplate: "عبّئ {gap} USDC",
       withdraw: 'سحب',
       recentTitle: 'آخر حركات الأموال',
       recentEmpty: 'لم تتحرك أي أموال بعد.',
@@ -483,6 +489,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       buyingAgent: 'Agent d’achat',
       sellingAgent: 'Agent de vente',
       topUp: 'Alimenter',
+      shortTemplate: "Il faut {need} USDC. Il manque {gap} USDC à votre agent acheteur.",
+      topUpGapTemplate: "Alimenter {gap} USDC",
       withdraw: 'Retirer',
       recentTitle: 'Mouvements récents',
       recentEmpty: 'Aucun mouvement d’argent pour l’instant.',
@@ -636,6 +644,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       buyingAgent: 'खरीद एजेंट',
       sellingAgent: 'बिक्री एजेंट',
       topUp: 'टॉप अप करें',
+      shortTemplate: "इसके लिए {need} USDC चाहिए। आपके खरीद एजेंट में {gap} USDC कम है।",
+      topUpGapTemplate: "{gap} USDC टॉप अप करें",
       withdraw: 'निकालें',
       recentTitle: 'हाल के लेन-देन',
       recentEmpty: 'अभी तक कोई पैसा नहीं चला है।',
@@ -789,6 +799,8 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       buyingAgent: 'Wakala wa kununua',
       sellingAgent: 'Wakala wa kuuza',
       topUp: 'Jaza',
+      shortTemplate: "Hii inahitaji USDC {need}. Wakala wako wa kununua amepungukiwa USDC {gap}.",
+      topUpGapTemplate: "Jaza USDC {gap}",
       withdraw: 'Toa',
       recentTitle: 'Miamala ya hivi karibuni',
       recentEmpty: 'Bado hakuna pesa zilizohamishwa.',

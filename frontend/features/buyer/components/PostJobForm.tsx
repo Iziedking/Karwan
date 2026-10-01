@@ -30,6 +30,7 @@ import { DueChips } from '@/features/deals/components/DueChips';
 import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
 import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+import { useReportDealAmount } from '@/features/balances/dealAmount';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -209,6 +210,8 @@ export function PostJobForm() {
   // The request is asked in three short steps; the review that follows is unchanged.
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
+  // The most the agent may fund, so the balance beside the form shows a shortfall.
+  useReportDealAmount(typeof budget === 'number' && budget > 0 ? authorisedPrice(budget, tolerance) : null);
   // Trusted Match: when on, the agent loop weights seller reputation + stake
   // above price and gates bids on the seller's free stake covering the deal's
   // insurance reservation. For higher-value or one-shot deals.

@@ -6,6 +6,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
 import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
+import { DealAmountProvider } from '@/features/balances/dealAmount';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -117,9 +118,10 @@ function SellerPageInner() {
       {/* POST LISTING */}
       <Band tone="light" compact>
         <div id="post-listing" className="scroll-mt-20" />
+        <DealAmountProvider>
         <div className="mx-auto grid max-w-[1120px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="lg:sticky lg:top-24 lg:order-2">
-            <BalanceSidecar />
+          <div className="lg:order-2">
+            <BalanceSidecar agent="seller" />
           </div>
           <div className="min-w-0 lg:order-1">
             <PageCard>
@@ -129,6 +131,7 @@ function SellerPageInner() {
             </PageCard>
           </div>
         </div>
+        </DealAmountProvider>
       </Band>
 
       {/* ACTIVE BIDS */}
