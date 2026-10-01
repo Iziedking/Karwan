@@ -23,6 +23,12 @@ export interface Brief {
   /// default is used. The managed flow funds a two-part split, so only a
   /// length-2 value takes effect downstream.
   milestonePcts?: number[];
+  /// The structured agreement the buyer set when posting (items, conditions,
+  /// proof, parts). Becomes the deal's terms when a match lands; absent on
+  /// requests posted before terms existed, which use the brief text.
+  terms?: string;
+  /// Days the buyer has to check each delivery, carried into the deal.
+  reviewWindowDays?: number;
   createdAt: number;
   /// Set by jobExpiryWatcher when a brief passes its deadline with no
   /// accepted bid + no approved match proposal. Survives backend restarts so

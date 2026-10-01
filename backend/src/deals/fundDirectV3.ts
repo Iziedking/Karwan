@@ -9,6 +9,8 @@ import {
   type DealTermsV3,
 } from '../chain/dealTermsV3.js';
 import type { ContractCallLifecycle } from '../chain/txs.js';
+import { termsFloorMs } from './releaseWindow.js';
+import type { DirectDeal } from '../db/deals.js';
 import type { PlanMovementLegInput } from '../money/model.js';
 
 /// Funding a direct deal on KarwanDealEscrow (v3): the buyer agent approves and
@@ -121,6 +123,9 @@ export interface FundDirectV3Input {
     requireStakePct?: number;
     tradeType?: 'service' | 'goods' | 'mixed';
     evidenceRequired?: boolean;
+    paymentTerms?: DirectDeal['paymentTerms'];
+    reviewWindowDays?: number;
+    shipment?: DirectDeal['shipment'];
     /// agreementDigest(deal): the sha256 hex both parties consented to.
     agreementDigest: string;
     acceptedAt?: number;
@@ -244,7 +249,8 @@ async function fundDirectDealV3Steps(
           milestonePcts: input.milestonePcts,
           stakePct: deal.requireStake ? (deal.requireStakePct ?? 50) : null,
           deadlineUnix,
-          reviewFloorSecs: 0,
+          // The agreed check window and the built-in floors, as on the v2 path.
+          reviewFloorSecs: Math.floor(termsFloorMs(deal) / 1000),
           shape: shape.shape,
           checkPolicy: shape.checkPolicy,
           agreementHash: `0x${deal.agreementDigest.replace(/^0x/, '')}` as Hex,

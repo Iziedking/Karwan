@@ -56,3 +56,9 @@ test('standard verification preserves the legacy agreement digest', () => {
     agreementDigest({ ...base, verificationPolicy: 'standard', verificationSubject: 'seller' }),
   );
 });
+
+test('an agreed check window joins the digest only when set', () => {
+  assert.equal(agreementDigest({ ...base, reviewWindowDays: undefined }), agreementDigest(base));
+  assert.notEqual(agreementDigest({ ...base, reviewWindowDays: 3 }), agreementDigest(base));
+  assert.notEqual(agreementDigest({ ...base, reviewWindowDays: 3 }), agreementDigest({ ...base, reviewWindowDays: 7 }));
+});

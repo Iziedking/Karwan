@@ -92,6 +92,11 @@ const postJobSchema = z
       .string()
       .regex(/^0x[a-fA-F0-9]{40}$/, 'expected 0x-prefixed 20-byte hex address'),
     brief: z.string().min(5).max(500),
+    /** The structured agreement (items, conditions, proof, parts). It becomes
+     *  the deal's terms on a match and is covered by the on-chain terms hash. */
+    terms: z.string().min(1).max(4000).optional(),
+    /** Days the buyer has to check each delivery; the escrow honours it. */
+    reviewWindowDays: z.number().int().min(1).max(90).optional(),
     budgetUsdc: z.number().positive().max(5_000_000),
     deadlineDays: z.number().int().min(1).max(90).optional(),
     deadlineSeconds: z
@@ -413,7 +418,11 @@ jobsRoutes.post('/', async (c) => {
   // Prefer the explicit seconds shape when both arrive; otherwise convert days.
   const deadlineSeconds = body.deadlineSeconds ?? (body.deadlineDays ?? 1) * 86_400;
   const deadlineUnix = Math.floor(Date.now() / 1000) + deadlineSeconds;
-  const termsHash = keccak256(toBytes(body.brief));
+  // The hash commits to everything the seller agrees to: the request and,
+  // when set, its structured terms.
+  const termsHash = keccak256(toBytes(body.terms ? `${body.brief}
+
+${body.terms}` : body.brief));
 
   // Persist brief metadata BEFORE the on-chain call so agents have it when the
   // JobPosted event fires. On-chain only carries termsHash for integrity.
@@ -428,6 +437,8 @@ jobsRoutes.post('/', async (c) => {
     postedBy: body.posterAddress,
     negotiationMaxIncreasePct: body.negotiationMaxIncreasePct,
     milestonePcts: body.milestonePcts,
+    terms: body.terms,
+    reviewWindowDays: body.reviewWindowDays,
     trustedMatch: body.trustedMatch === true,
     tradeLane: deriveJobLane(posterAccountType, body.tradeType),
     partyKind: posterAccountType,

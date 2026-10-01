@@ -45,6 +45,8 @@ export interface FundAgentMatchV3Input {
   tradeType?: 'service' | 'goods' | 'mixed' | null;
   /// The request's on-chain terms hash from the JobBoard.
   agreementHash: Hex;
+  /// Seconds the buyer has to check each delivery, as the request's terms say.
+  reviewFloorSecs?: number;
 }
 
 /// What the deal row records so every later step uses the same escrow deal.
@@ -80,7 +82,7 @@ export async function fundAgentMatchV3(
         milestonePcts: input.milestonePcts,
         stakePct: input.trustedMatch ? AGENT_FLOW_TRUSTED_STAKE_PCT : null,
         deadlineUnix: input.deadlineUnix,
-        reviewFloorSecs: 0,
+        reviewFloorSecs: input.reviewFloorSecs ?? 0,
         shape: shape.shape,
         checkPolicy: shape.checkPolicy,
         agreementHash: input.agreementHash,

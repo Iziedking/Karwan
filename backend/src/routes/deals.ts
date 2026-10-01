@@ -310,7 +310,11 @@ const createSchema = z
     // demonstrations; ordinary defaults and production-facing presets remain
     // measured in hours or days.
     acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional().default(24),
-    terms: z.string().min(1).max(600),
+    // Room for the structured agreement: items, conditions, proof and parts.
+    terms: z.string().min(1).max(4000),
+    /// Days the buyer has to check each delivery. Lengthens the escrow's
+    /// release window to match what the terms say; unset keeps the default.
+    reviewWindowDays: z.number().int().min(1).max(90).optional(),
     firstReleasePct: z.number().int().min(1).max(99),
     /// Trusted-match flag. When true, this deal is high-trust: the seller
     /// must hold enough free stake to cover the per-deal reservation, which
@@ -394,7 +398,8 @@ const editSchema = z
     deadlineDays: z.number().int().min(0).max(180).optional(),
     deadlineHours: z.number().int().min(0).max(23).optional(),
     acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional(),
-    terms: z.string().min(1).max(600).optional(),
+    terms: z.string().min(1).max(4000).optional(),
+    reviewWindowDays: z.number().int().min(1).max(90).optional(),
     firstReleasePct: z.number().int().min(1).max(99).optional(),
     requireStake: z.boolean().optional(),
     requireStakePct: z
@@ -676,6 +681,7 @@ dealsRoutes.post('/direct', async (c) => {
     acceptanceDeadlineUnix,
     terms: body.terms,
     termsDigest: termsDigest(body.terms),
+    reviewWindowDays: body.reviewWindowDays,
     origin: 'direct',
     pendingCounterparty,
     requireStake: body.requireStake,
@@ -840,6 +846,9 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
   if (body.terms !== undefined) {
     patch.terms = body.terms;
+  }
+  if (body.reviewWindowDays !== undefined) {
+    patch.reviewWindowDays = body.reviewWindowDays;
   }
   if (body.firstReleasePct !== undefined) {
     patch.firstReleasePct = body.firstReleasePct;

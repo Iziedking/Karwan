@@ -23,7 +23,13 @@ const DAY_MS = 86_400_000;
 /// buyer confirms arrival that reason is gone and the floor lifts.
 ///
 /// Services are excluded: a delivery there is a link the buyer opens at once.
-export function termsFloorMs(deal: DirectDeal): number {
+export function termsFloorMs(deal: Pick<DirectDeal, 'reviewWindowDays' | 'paymentTerms' | 'tradeType' | 'shipment'>): number {
+  // The check window both sides agreed is a floor of its own; the rules below
+  // can only lengthen it.
+  return Math.max(deal.reviewWindowDays ? deal.reviewWindowDays * DAY_MS : 0, builtInFloorMs(deal));
+}
+
+function builtInFloorMs(deal: Pick<DirectDeal, 'paymentTerms' | 'tradeType' | 'shipment'>): number {
   switch (deal.paymentTerms) {
     case 'net90':
       return 90 * DAY_MS;

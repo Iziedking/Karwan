@@ -82,6 +82,9 @@ export interface DirectDeal {
   /// post-deadline buyer cancel + reputation slash path stays.
   deadlineUnix?: number;
   terms: string;
+  /// Days the buyer has to check each delivery, as both sides agreed. It only
+  /// ever lengthens the release window (termsFloorMs); unset keeps the default.
+  reviewWindowDays?: number;
   /// Monotonic commercial agreement version. Legacy rows read as version 1.
   /// Every pre-funding buyer edit increments it; CRE receipts bind this value.
   agreementVersion?: number;

@@ -4142,8 +4142,16 @@ async function persistApprovedMatch(
       // the requirement to check the delivery against. Persisting the hash here
       // made the security agent report "the buyer requested a hexadecimal string"
       // and showed a hash as the agreement. Fall back to the hash only if the
-      // brief is somehow gone.
-      terms: brief?.briefText?.trim() || proposal.termsHash,
+      // brief is somehow gone. A request posted with structured terms carries
+      // them after the request text, the same content its terms hash commits to.
+      terms: brief?.briefText?.trim()
+        ? brief.terms
+          ? `${brief.briefText.trim()}
+
+${brief.terms}`
+          : brief.briefText.trim()
+        : proposal.termsHash,
+      reviewWindowDays: brief?.reviewWindowDays,
       acceptedAt: now,
       fundTxHash,
       origin: 'agent',
@@ -4316,6 +4324,7 @@ async function fundEscrow(
       deadlineUnix,
       tradeType: getBrief(state.jobId)?.tradeType ?? null,
       agreementHash: state.context.termsHash as `0x${string}`,
+      reviewFloorSecs: (getBrief(state.jobId)?.reviewWindowDays ?? 0) * 86_400,
     });
     if (!result.ok) {
       logger.error({ jobId: state.jobId, reason: result.reason, detail: result.message }, 'v3 escrow funding not confirmed');

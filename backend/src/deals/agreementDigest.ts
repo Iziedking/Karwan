@@ -15,6 +15,7 @@ export interface AgreementDigestInput {
   terms: string;
   requireStake?: boolean;
   evidenceRequired?: boolean;
+  reviewWindowDays?: number;
   requireStakePct?: number;
   tradeType?: string;
   tradeLane?: string;
@@ -52,6 +53,8 @@ export function agreementDigest(input: AgreementDigestInput): string {
     requireStake: input.requireStake ?? false,
     // Preserve historical optional-evidence digests; required checks are consent.
     ...(input.evidenceRequired ? { evidenceRequired: true } : {}),
+    // Same rule: an agreed check window joins consent only when one was set.
+    ...(input.reviewWindowDays ? { reviewWindowDays: input.reviewWindowDays } : {}),
     requireStakePct: input.requireStakePct ?? null,
     tradeType: input.tradeType ?? null,
     tradeLane: input.tradeLane ?? null,
