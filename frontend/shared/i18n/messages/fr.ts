@@ -3287,9 +3287,6 @@ export const fr: Messages = {
       eyebrow: 'Transaction directe',
       openedTemplate: 'ouverte {when}',
     },
-    agentResearch: {
-      tag: 'Recherche agent',
-    },
     errorStates: {
       privateEyebrow: 'Transaction privée',
       privateTitle: 'Cette transaction est privée',

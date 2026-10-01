@@ -3284,9 +3284,6 @@ export const sw: Messages = {
       eyebrow: 'Mkataba wa moja kwa moja',
       openedTemplate: 'umefunguliwa {when}',
     },
-    agentResearch: {
-      tag: 'Utafiti wa wakala',
-    },
     errorStates: {
       privateEyebrow: 'Mkataba wa faragha',
       privateTitle: 'Mkataba huu ni wa faragha',

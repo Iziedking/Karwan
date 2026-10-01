@@ -3285,9 +3285,6 @@ export const hi: Messages = {
       eyebrow: 'डायरेक्ट डील',
       openedTemplate: 'खुली {when}',
     },
-    agentResearch: {
-      tag: 'एजेंट रिसर्च',
-    },
     errorStates: {
       privateEyebrow: 'निजी डील',
       privateTitle: 'यह डील निजी है',

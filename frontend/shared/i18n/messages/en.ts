@@ -3000,9 +3000,6 @@ interface MessagesShape {
       eyebrow: string;
       openedTemplate: string;
     };
-    agentResearch: {
-      tag: string;
-    };
     errorStates: {
       privateEyebrow: string;
       privateTitle: string;
@@ -8672,9 +8669,6 @@ export const en: MessagesShape = {
     hero: {
       eyebrow: 'Direct deal',
       openedTemplate: 'opened {when}',
-    },
-    agentResearch: {
-      tag: 'Agent research',
     },
     errorStates: {
       privateEyebrow: 'Private deal',

@@ -3287,9 +3287,6 @@ export const ar: Messages = {
       eyebrow: 'صفقة مباشرة',
       openedTemplate: 'فُتحت {when}',
     },
-    agentResearch: {
-      tag: 'بحث الوكيل',
-    },
     errorStates: {
       privateEyebrow: 'صفقة خاصة',
       privateTitle: 'هذه الصفقة خاصة',

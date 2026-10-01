@@ -48,7 +48,6 @@ import {
 } from '../fundingPresentation';
 import { shortAddress, shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
 import { CopyId } from '@/shared/components/CopyId';
-import { MarketReadCard } from '@/shared/components/MarketReadCard';
 import { ProfilePeekModal } from '@/features/jobs/components/ProfilePeekModal';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import {
@@ -1266,16 +1265,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             </div>
           </Band>
 
-          {deal.marketRead && (
-            <Band tone="light" compact>
-          <div className="fade-up">
-            <SectionTag>{dd.agentResearch.tag}</SectionTag>
-            <div className="mt-4 max-w-[640px]">
-              <MarketReadCard mr={deal.marketRead} role={viewerRole ?? undefined} />
-            </div>
-          </div>
-            </Band>
-          )}
 
       {deal.onChain?.escrowVersion === 'v3' && (
         <Band tone="light" compact>
