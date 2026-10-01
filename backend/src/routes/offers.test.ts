@@ -22,7 +22,7 @@ const deps: OfferDeps = {
   },
   approve: async () => ({ ok: true as const, txHash: '0xfund' }),
   publicRequest: () => null,
-  hasAgentBid: () => false,
+  withdrawAgentBid: () => false,
   fundedUsdc: async (p) => p,
 };
 let proposal: MatchProposal | null = null;

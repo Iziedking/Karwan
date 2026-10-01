@@ -241,6 +241,7 @@ export const __listingBidTest = {
   setDirectOfferLookup(fn: DirectOfferLookup) {
     directOfferLookup = fn;
   },
+  evaluateAndBid: (seller: SellerProfile, job: JobContext) => evaluateAndBid(seller, job),
 };
 
 /// A seller's own offer on a request. Same on-chain bid as a listing, but it
@@ -763,6 +764,27 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
       jobId: job.jobId,
       actor: 'seller',
       payload: mismatch,
+    });
+    return;
+  }
+
+  // One offer per seller per request: when the seller already named their own
+  // price here, the agent stays out. Its bid would overwrite that offer on chain
+  // and run a second negotiation the seller never asked for. If the lookup
+  // fails, stand down too: missing one bid is cheaper than replacing a price a
+  // person set.
+  let ownOffer = true;
+  try {
+    ownOffer = (await directOfferLookup(job.jobId, seller.address.toLowerCase())) !== null;
+  } catch (err) {
+    logger.warn({ jobId: job.jobId, err: (err as Error).message }, 'direct offer lookup failed before an agent bid');
+  }
+  if (ownOffer) {
+    bus.emitEvent({
+      type: 'agent.skipped',
+      jobId: job.jobId,
+      actor: 'seller',
+      payload: { seller: seller.address, reason: 'seller-own-offer', detail: 'The seller already sent their own offer on this request.' },
     });
     return;
   }

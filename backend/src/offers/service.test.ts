@@ -50,7 +50,7 @@ function deps(
     },
     approve: async () => ({ ok: true as const, txHash: '0xfund' }),
     publicRequest: () => ({ briefText: 'Logo for a bakery', budgetUsdc: '300', deadlineUnix: 2_000_000 }),
-    hasAgentBid: () => false,
+    withdrawAgentBid: () => false,
     fundedUsdc: async (price) => (Number(price) * 1.0075).toFixed(6),
     calls,
     proposals,
@@ -235,12 +235,22 @@ test('review #3: a withdrawn offer cannot then be accepted, and an accepted one 
   assert.equal((await listDirectOffers(JOB))[0]?.state, 'accepted');
 });
 
-test('review #4: a seller already bidding through their agent cannot also send a direct offer', async () => {
+test('one offer per seller: their own offer withdraws the agent bid before it goes on chain', async () => {
   __resetDirectOffersForTest();
-  const d = deps({ hasAgentBid: (jobId, agent) => jobId === JOB && agent === '0xsagent' });
+  const calls: string[] = [];
+  const d = deps({
+    withdrawAgentBid: (jobId: string, agent: string) => {
+      calls.push(`withdraw:${jobId}:${agent}`);
+      return true;
+    },
+    bid: async () => {
+      calls.push('bid');
+      return { ok: true as const, txHash: '0xtx' };
+    },
+  });
   const r = await createOffer('0xseller', JOB, input, d);
-  assert.deepEqual(!r.ok && { s: r.status, c: r.code }, { s: 409, c: 'ALREADY_BIDDING' });
-  assert.deepEqual(d.calls, []);
+  assert.equal(r.ok, true);
+  assert.deepEqual(calls, [`withdraw:${JOB}:0xsagent`, 'bid']);
 });
 
 test('review #5: the buyer sees the exact amount that leaves their wallet, fee included', async () => {

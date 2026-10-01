@@ -17,9 +17,10 @@ import {
   type MatchProposal,
 } from '../db/matchProposals.js';
 import { approveAgentMatch, getBuyerJob, getMarketplaceBriefs } from '../agents/buyer.js';
-import { submitDirectOfferBid } from '../agents/seller.js';
+import { abandonBid, submitDirectOfferBid } from '../agents/seller.js';
 import { computeFunding, getEscrowFeeBps } from '../chain/contracts.js';
 import { bus } from '../events.js';
+import { logger } from '../logger.js';
 
 /// A seller's own offer on a request, from send to accept. The row is written
 /// before the on-chain bid so the buyer agent can tell it apart; accepting
@@ -46,8 +47,9 @@ export type OfferDeps = {
   approve: typeof approveAgentMatch;
   /// What the market already shows publicly about an open request.
   publicRequest: (jobId: string) => PublicRequest | null;
-  /// True when this seller agent already has a bid the buyer agent is tracking.
-  hasAgentBid: (jobId: string, sellerAgent: string) => boolean;
+  /// Withdraws the seller agent's own negotiation on a request, so a seller's
+  /// own offer replaces it. Returns false when the agent had no bid there.
+  withdrawAgentBid: (jobId: string, sellerAgent: string) => boolean;
   /// Price plus the buyer's share of the fee, as funded on chain.
   fundedUsdc: (priceUsdc: string) => Promise<string>;
 };
@@ -81,8 +83,7 @@ export const defaultDeps: OfferDeps = {
     const b = getMarketplaceBriefs().find((m) => m.jobId === jobId);
     return b ? { briefText: b.briefText, budgetUsdc: b.budgetUsdc, deadlineUnix: b.deadlineUnix } : null;
   },
-  hasAgentBid: (jobId, sellerAgent) =>
-    !!getBuyerJob(jobId)?.bids.some((b) => low(b.seller) === low(sellerAgent)),
+  withdrawAgentBid: abandonBid,
   fundedUsdc: async (priceUsdc) => {
     const { fundedAmount } = computeFunding(parseUnits(priceUsdc, 6), await getEscrowFeeBps());
     return formatUnits(fundedAmount, 6);
@@ -111,9 +112,12 @@ export async function createOffer(
   if (!rule.ok) return { ok: false, status: 400, code: rule.code };
   const w = await deps.wallets(low(sellerUser));
   if (!w?.sellerWalletId || !w.sellerAddress) return { ok: false, status: 409, code: 'NEEDS_ACTIVATION' };
-  // One on-chain bid per seller agent: a second submitBid would overwrite the
-  // one the buyer agent is already negotiating.
-  if (deps.hasAgentBid(jobId, w.sellerAddress)) return { ok: false, status: 409, code: 'ALREADY_BIDDING' };
+  // One offer per seller per request. The seller's own price replaces their
+  // agent's bid: the agent stops negotiating first, then this offer takes its
+  // place on chain (same agent, so submitBid overwrites the old bid).
+  if (deps.withdrawAgentBid(jobId, w.sellerAddress)) {
+    logger.info({ jobId, sellerAgent: w.sellerAddress }, 'seller offer replaces the agent bid');
+  }
 
   const createdAt = deps.now();
   const { offer, created } = await createDirectOffer({
