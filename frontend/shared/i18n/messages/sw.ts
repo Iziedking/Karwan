@@ -28,7 +28,7 @@ export const sw: Messages = {
   activityReview: { filterLabel: 'Chuja shughuli za karibuni kwa aina' },
   onboardingReview: { purpose: 'Weka kiasi cha biashara na muda wa kuwasilisha unaokufaa. Unaweza kubadilisha mapendeleo haya baadaye.', review: 'Kagua mapendeleo yako ya biashara', days: 'siku' },
   landingEditorial: {
-    routes: { label: 'Kuvuka mipaka', title: 'Fanya biashara na yeyote, popote.', body: 'Msambazaji wa Kano na mnunuzi wa Hamburg wanakubaliana masharti, wanafunga malipo kwenye escrow na kulipana kwa USDC kwenye Arc. Makubaliano hayo hayo yaliyolindwa yanafanya kazi kati ya maeneo yoyote mawili.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto' } },
+    routes: { label: 'Kuvuka mipaka', title: 'Fanya biashara na yeyote, popote.', body: 'Msambazaji wa Kano na mnunuzi wa Hamburg wanakubaliana masharti, wanafunga malipo kwenye escrow na kulipana kwa USDC kwenye Arc. Makubaliano hayo hayo yaliyolindwa yanafanya kazi kati ya maeneo yoyote mawili.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto', dakar: 'Dakar', casablanca: 'Casablanca', cairo: 'Kairo', addisAbaba: 'Addis Ababa', kinshasa: 'Kinshasa' } },
     kicker: 'Sifa moja kwa mtandao', titleFirst: "Sifa yako inapaswa", titleLast: "kuambatana nawe.", lead: 'Karwan inaunganisha sifa yako ili usianze tena kutoka sifuri. Inaanza na soko wazi ambapo kila biashara iliyokamilika inajenga rekodi yako.',
     open: 'Fungua Karwan', trade: "Ufikiaji wa mainnet ni kwa mwaliko, mtumiaji mmoja kwa wakati. Soko na makubaliano vinapatikana kwenye testnet.", startLink: 'Jinsi biashara inavyoanza',
     introLabel: "Fursa na sifa", introTitle: "Jenga juu ya kazi uliyokamilisha.", introBody: "Kazi ya mtaalamu, uwasilishaji wa msambazaji na rekodi ya malipo ya mnunuzi vinapaswa kusaidia kupata fursa inayofuata. Karwan inaanza na rekodi ya miamala iliyokamilika hapa. Kushiriki sifa hizo kati ya majukwaa, kwa ruhusa yako, kumepangwa.", marketLink: 'Angalia maombi na ofa', bringLabel: 'Leta makubaliano', bringTitle: 'Tayari unamjua mwenzako', bringBody: 'Weka bidhaa au huduma, kiasi, tarehe ya mwisho na hatua. Mwalike mnunuzi au muuzaji akague masharti hayo.', findLabel: 'Pata mshirika', findTitle: 'Unahitaji mshirika wa biashara', findBody: "Vinjari maombi na ofa kwenye testnet. Kagua historia inayopatikana na masharti yaliyopendekezwa kabla ya kuchagua mshirika.",
@@ -535,6 +535,7 @@ export const sw: Messages = {
     backdropAria: 'Ghairi',
   },
   dealCreation: {
+    requestSteps: { describe: 'Eleza', price: 'Bei na muda', payment: 'Malipo', stepOf: 'Hatua {n} kati ya 3', continue: 'Endelea', back: 'Rudi', days3: 'Siku 3', week1: 'Wiki 1', weeks2: 'Wiki 2', month1: 'Mwezi 1', pickDate: 'Chagua tarehe', dueOn: 'Kabla ya {date}', exactTime: 'Weka kwa saa au dakika', part: 'Sehemu {n}', addPart: 'Ongeza sehemu', removePart: 'Ondoa sehemu {n}', total: 'Jumla {sum}%', needs100: 'Jumla ya sehemu lazima iwe 100%' },
     buyerRole: 'Mnunuzi',
     currencyNote: 'Malipo hukamilishwa kwa USDC. Ubadilishaji kwenda sarafu ya ndani haujajumuishwa.',
     documents: 'Nyaraka',

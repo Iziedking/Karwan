@@ -28,7 +28,7 @@ export const fr: Messages = {
   activityReview: { filterLabel: 'Filtrer l’activité récente par type' },
   onboardingReview: { purpose: 'Définissez les montants et délais de livraison qui vous conviennent. Vous pourrez modifier ces préférences plus tard.', review: 'Vérifiez vos préférences commerciales', days: 'jours' },
   landingEditorial: {
-    routes: { label: 'Au-delà des frontières', title: 'Commercez avec n’importe qui, n’importe où.', body: 'Un fournisseur à Kano et un acheteur à Hambourg conviennent des conditions, bloquent le paiement en séquestre et règlent en USDC sur Arc. Le même accord protégé fonctionne entre deux lieux quelconques.', cities: { kano: 'Kano', hamburg: 'Hambourg', lagos: 'Lagos', london: 'Londres', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubaï', toronto: 'Toronto' } },
+    routes: { label: 'Au-delà des frontières', title: 'Commercez avec n’importe qui, n’importe où.', body: 'Un fournisseur à Kano et un acheteur à Hambourg conviennent des conditions, bloquent le paiement en séquestre et règlent en USDC sur Arc. Le même accord protégé fonctionne entre deux lieux quelconques.', cities: { kano: 'Kano', hamburg: 'Hambourg', lagos: 'Lagos', london: 'Londres', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubaï', toronto: 'Toronto', dakar: 'Dakar', casablanca: 'Casablanca', cairo: 'Le Caire', addisAbaba: 'Addis-Abeba', kinshasa: 'Kinshasa' } },
     kicker: 'Une réputation unique pour internet', titleFirst: "Votre réputation devrait", titleLast: "vous suivre partout.", lead: 'Karwan réunit votre réputation pour que vous ne repartiez plus jamais de zéro. Tout commence par un marché ouvert où chaque échange conclu construit votre historique.',
     open: 'Ouvrir Karwan', trade: "L’accès au mainnet se fait sur invitation, une personne à la fois. Le marché et les accords sont disponibles sur le testnet.", startLink: 'Comment démarrer un accord',
     introLabel: "Opportunités et réputation", introTitle: "Appuyez-vous sur le travail déjà accompli.", introBody: "Le travail d’un indépendant, les livraisons d’un fournisseur et les paiements d’un acheteur devraient les aider à trouver leur prochaine opportunité. Karwan commence par un historique des échanges réalisés ici. Le partage de cette réputation entre plateformes, avec votre accord, est prévu.", marketLink: 'Explorer les demandes et offres',
@@ -538,6 +538,7 @@ export const fr: Messages = {
     backdropAria: 'Annuler',
   },
   dealCreation: {
+    requestSteps: { describe: 'Décrire', price: 'Prix et délai', payment: 'Paiement', stepOf: 'Étape {n} sur 3', continue: 'Continuer', back: 'Retour', days3: '3 jours', week1: '1 semaine', weeks2: '2 semaines', month1: '1 mois', pickDate: 'Choisir une date', dueOn: 'Avant le {date}', exactTime: 'Définir en heures ou minutes', part: 'Partie {n}', addPart: 'Ajouter une partie', removePart: 'Retirer la partie {n}', total: 'Total de {sum} %', needs100: 'Les parties doivent totaliser 100 %' },
     buyerRole: 'Acheteur',
     currencyNote: 'Le règlement se fait en USDC. La conversion en monnaie locale n’est pas incluse.',
     documents: 'Documents',

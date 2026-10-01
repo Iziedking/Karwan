@@ -10,6 +10,7 @@ export interface LandingEditorialCopy {
   limitTitle: string; limitBody: string; rulesLink: string; closeTitle: string; closeBody: string;
   routes: {
     label: string; title: string; body: string;
-    cities: Record<'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto', string>;
+    cities: Record<'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto'
+      | 'dakar' | 'casablanca' | 'cairo' | 'addisAbaba' | 'kinshasa', string>;
   };
 }

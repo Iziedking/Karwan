@@ -6,7 +6,9 @@ import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotio
 import { WORLD_DOTS, WORLD_HEIGHT, WORLD_WIDTH } from '../worldDots';
 import styles from './TradeRoutesMap.module.css';
 
-type City = 'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto';
+type City =
+  | 'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto'
+  | 'dakar' | 'casablanca' | 'cairo' | 'addisAbaba' | 'kinshasa';
 type Side = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 // Positions are dotted-map pins, snapped to the same grid as the land dots.
@@ -20,6 +22,11 @@ const CITIES: Record<City, { x: number; y: number; label: Side }> = {
   nairobi: { x: 72.5, y: 36.37, label: 'e' },
   dubai: { x: 79, y: 26.85, label: 'n' },
   toronto: { x: 31.5, y: 19.05, label: 'n' },
+  dakar: { x: 53.5, y: 31.18, label: 'w' },
+  casablanca: { x: 57, y: 23.38, label: 'e' },
+  cairo: { x: 71, y: 25.11, label: 'n' },
+  addisAbaba: { x: 73.5, y: 32.91, label: 'e' },
+  kinshasa: { x: 65, y: 37.24, label: 'sw' },
 };
 
 const ROUTES: ReadonlyArray<readonly [City, City]> = [
@@ -28,6 +35,10 @@ const ROUTES: ReadonlyArray<readonly [City, City]> = [
   ['shenzhen', 'lagos'],
   ['johannesburg', 'london'],
   ['nairobi', 'dubai'],
+  ['cairo', 'dubai'],
+  ['dakar', 'casablanca'],
+  ['addisAbaba', 'dubai'],
+  ['kinshasa', 'johannesburg'],
 ];
 
 const DOT_RADIUS = 0.24;

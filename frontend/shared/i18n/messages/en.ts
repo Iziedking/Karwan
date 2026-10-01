@@ -490,6 +490,13 @@ interface MessagesShape {
     backdropAria: string;
   };
   dealCreation: {
+    requestSteps: {
+      describe: string; price: string; payment: string; stepOf: string;
+      continue: string; back: string;
+      days3: string; week1: string; weeks2: string; month1: string;
+      pickDate: string; dueOn: string; exactTime: string;
+      part: string; addPart: string; removePart: string; total: string; needs100: string;
+    };
     buyerRole: string;
     currencyNote: string;
     documents: string;
@@ -5348,7 +5355,7 @@ export const en: MessagesShape = {
   activityReview: { filterLabel: 'Filter recent activity by type' },
   onboardingReview: { purpose: 'Set the trade amounts and delivery times you want to work with. You can change these preferences later.', review: 'Review your trade preferences', days: 'days' },
   landingEditorial: {
-    routes: { label: 'Across borders', title: 'Trade with anyone, anywhere.', body: 'A supplier in Kano and a buyer in Hamburg agree terms, lock the payment in escrow and settle in USDC on Arc. The same protected deal works between any two places.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto' } },
+    routes: { label: 'Across borders', title: 'Trade with anyone, anywhere.', body: 'A supplier in Kano and a buyer in Hamburg agree terms, lock the payment in escrow and settle in USDC on Arc. The same protected deal works between any two places.', cities: { kano: 'Kano', hamburg: 'Hamburg', lagos: 'Lagos', london: 'London', johannesburg: 'Johannesburg', shenzhen: 'Shenzhen', nairobi: 'Nairobi', dubai: 'Dubai', toronto: 'Toronto', dakar: 'Dakar', casablanca: 'Casablanca', cairo: 'Cairo', addisAbaba: 'Addis Ababa', kinshasa: 'Kinshasa' } },
     kicker: 'One reputation for the internet', titleFirst: "Your reputation should", titleLast: "travel with you.",
     lead: 'Karwan brings your reputation together, so you never start from zero again. It starts with an open market where every completed trade builds your record.',
     open: 'Open Karwan', trade: "Mainnet access is by invitation, one user at a time. The market and deal flow are available on testnet.", startLink: 'How a deal starts',
@@ -5860,6 +5867,7 @@ export const en: MessagesShape = {
     backdropAria: 'Cancel',
   },
   dealCreation: {
+    requestSteps: { describe: 'Describe', price: 'Price and time', payment: 'Payment', stepOf: 'Step {n} of 3', continue: 'Continue', back: 'Back', days3: '3 days', week1: '1 week', weeks2: '2 weeks', month1: '1 month', pickDate: 'Pick a date', dueOn: 'Due {date}', exactTime: 'Set hours or minutes', part: 'Part {n}', addPart: 'Add a part', removePart: 'Remove part {n}', total: 'Adds up to {sum}%', needs100: 'The parts must add up to 100%' },
     buyerRole: 'Buyer',
     currencyNote: 'Settlement is in USDC. Local-currency conversion is not included.',
     documents: 'Documents',
