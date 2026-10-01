@@ -9,7 +9,12 @@ import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { cn } from '@/shared/utils/cn';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Icon } from '@/shared/components/Icon';
+import { TermsBuilder, DEFAULT_TERMS } from '../terms/TermsBuilder';
+import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerms';
+import { TERMS_COPY } from '../terms/termsCopy';
+import { DueChips } from './DueChips';
 import { CreationReview } from './CreationReview';
 import { validAmount, validWhole } from '../creationValidation';
 import { primeCreatedDirectDeal } from '../creationHandoff';
@@ -17,9 +22,9 @@ import { splitDeadline } from '../deadlineSplit';
 import { lookupContact, parseContact, type ContactMatch } from '../counterpartyInput';
 import { fill } from '../workspace/presentation';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
-import type { Messages } from '@/shared/i18n/messages/en';
 
-const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
+const MAX_DEADLINE_DAYS = 180;
+const shortAddress = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
 /// Paytag rollout flag. Must match the backend's PAYTAG_ENABLED; when the backend
 /// is off it rejects the handle anyway, this just keeps the field honest.
 const PAYTAG_ENABLED = process.env.NEXT_PUBLIC_PAYTAG_ENABLED === '1';
@@ -80,6 +85,8 @@ export function DirectDealForm() {
   const tt = t.tradeTerms;
   const dd = t.directDeal;
   const c = t.dealCreation;
+  const rs = c.requestSteps;
+  const { locale } = useLocale();
   const [reviewing, setReviewing] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
@@ -122,12 +129,8 @@ export function DirectDealForm() {
     : 'karwan';
   const sourceReference = search.get('sourceRef');
 
-  const [seller, setSeller] = useState(initialSeller);
-  /// Counterparty mode. 'wallet' takes a 0x address (existing flow); 'email'
-  /// takes an email and mints a one-shot shareable invite link instead. Funding
-  /// stays parked until the recipient claims the link.
-  const [counterpartyMode, setCounterpartyMode] = useState<'wallet' | 'email'>(search.get('sellerEmail') ? 'email' : 'wallet');
-  const [counterpartyEmail, setCounterpartyEmail] = useState(search.get('sellerEmail') ?? '');
+  // One box takes an email, a Karwan tag, a Paytag or a wallet address.
+  const [counterparty, setCounterparty] = useState(initialSeller || (search.get('sellerEmail') ?? ''));
   /// Trusted-match opt-in. When true, the seller's accept panel will surface a
   /// stake requirement. Default off, most casual deals don't need it.
   const [requireStake, setRequireStake] = useState(false);
@@ -150,8 +153,12 @@ export function DirectDealForm() {
   /// Seller has this long to accept before the deal auto-expires (pre-accept,
   /// no rep hit). Buyer picks a preset; 24h is the human default.
   const [acceptanceHours, setAcceptanceHours] = useState<number>(24);
-  const [firstPct, setFirstPct] = useState<number | ''>('');
-  const [terms, setTerms] = useState(initialTerms);
+  // Asked in three short steps: who, price and time, then the terms.
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  // The agreement as checkable parts. Direct deals fund in two parts today.
+  const [terms, setTerms] = useState<TermsDraft>(() =>
+    initialTerms.trim() ? { ...DEFAULT_TERMS, items: [initialTerms.trim()] } : DEFAULT_TERMS,
+  );
   // SME trade-finance state. Split into one useState per picker per the
   // Vercel `rerender-split-combined-hooks` rule. Default tradeType is
   // 'service' so the existing service-flow deal experience is unchanged.
@@ -180,9 +187,9 @@ export function DirectDealForm() {
   /// never retypes what the partner already published.
   const [partner, setPartner] = useState<Partner | null>(null);
 
-  const sellerValid = ADDR_RE.test(seller.trim());
-  const sameWallet =
-    sellerValid && address && seller.trim().toLowerCase() === address.toLowerCase();
+  const contact = parseContact(counterparty);
+  const sellerAddress = contact.kind === 'address' ? contact.address : null;
+  const sameWallet = !!sellerAddress && !!address && sellerAddress.toLowerCase() === address.toLowerCase();
 
   /// The second box takes an email, a Karwan tag or a Paytag. A tag is looked
   /// up as a Karwan tag first, then as a Paytag. Paytag is P2P only, so it is
@@ -190,12 +197,11 @@ export function DirectDealForm() {
   /// trading goods/mixed): a handle anyone can claim must not decide where
   /// credit moves. A Karwan tag is an account, so it is allowed everywhere.
   const paytagAllowed = PAYTAG_ENABLED && !(isBusiness && tradeType !== 'service');
-  const contact = parseContact(counterpartyEmail);
   const [contactMatch, setContactMatch] = useState<ContactMatch | null>(null);
   const [contactState, setContactState] = useState<'idle' | 'looking' | 'missing' | 'self' | 'error'>('idle');
 
   // Debounced so the lookup fires when they stop typing, not per keystroke.
-  const tagQuery = counterpartyMode === 'email' && contact.kind === 'tag' ? contact : null;
+  const tagQuery = contact.kind === 'tag' ? contact : null;
   const tagKey = tagQuery ? `${tagQuery.tag}:${paytagAllowed}` : null;
   useEffect(() => {
     if (!tagQuery) {
@@ -233,10 +239,7 @@ export function DirectDealForm() {
   // the buyer would type about them; edits after the lookup stick, since the
   // effect only re-runs when the address itself changes.
   const seededFor = useRef<string | null>(null);
-  const lookupAddr =
-    isBusiness && counterpartyMode === 'wallet' && sellerValid && !sameWallet
-      ? seller.trim().toLowerCase()
-      : null;
+  const lookupAddr = isBusiness && sellerAddress && !sameWallet ? sellerAddress.toLowerCase() : null;
   useEffect(() => {
     if (!lookupAddr || seededFor.current === lookupAddr) return;
     let live = true;
@@ -259,27 +262,24 @@ export function DirectDealForm() {
       live = false;
     };
   }, [lookupAddr]);
-  const counterpartyValid =
-    counterpartyMode === 'wallet' ? sellerValid && !sameWallet : contact.kind === 'email' || !!contactMatch;
+  const counterpartyValid = (!!sellerAddress && !sameWallet) || contact.kind === 'email' || !!contactMatch;
   const amountValid = validAmount(amount);
   // Single-input deadline with a min/hr/day unit toggle. Bounds per unit
   // mirror the buyer brief form so behaviour is identical across surfaces.
   // Empty value = open-ended (no delivery deadline, no unilateral cancel for
   // the buyer; seller has no time pressure).
   const deadlineMax =
-    deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 180;
+    deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : MAX_DEADLINE_DAYS;
   const deadlineValid =
     deadlineValue === '' ||
     validWhole(deadlineValue, 1, deadlineMax);
-  const pctValid = validWhole(firstPct, 1, 99);
-  const termsValid = terms.trim().length > 0;
+  const termsValid = termsIssues(terms).length === 0;
 
   const canSubmit =
     isConnected &&
     counterpartyValid &&
     amountValid &&
     deadlineValid &&
-    pctValid &&
     termsValid &&
     !submitting && !hashingFile;
 
@@ -301,9 +301,34 @@ export function DirectDealForm() {
           : deadlineValue * 86400
       : 0;
   const { days: submitDays, hours: submitHours } = splitDeadline(totalSeconds);
+  const dueLabel =
+    totalSeconds > 0
+      ? new Date(Date.now() + totalSeconds * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+      : null;
+  const agreementText = composeTerms(terms, { priceUsdc: amountValid ? (amount as number) : null, dueLabel }, TERMS_COPY[locale].text);
+  const recipient =
+    contactMatch?.kind === 'karwan'
+      ? contactMatch.displayName
+      : contactMatch?.kind === 'paytag'
+        ? `@${contactMatch.tag}`
+        : contact.kind === 'email'
+          ? contact.email
+          : sellerAddress
+            ? shortAddress(sellerAddress)
+            : '';
+  const stepReady = step === 0 ? counterpartyValid : step === 1 ? amountValid && deadlineValid : termsValid;
+
+  function goForward() {
+    if (step < 2) setStep((step + 1) as 1 | 2);
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (step < 2) {
+      if (stepReady) goForward();
+      return;
+    }
     if (!canSubmit || !address || inFlight.current) return;
     if (!reviewing) { setReviewing(true); return; }
     inFlight.current = true;
@@ -320,19 +345,20 @@ export function DirectDealForm() {
           : undefined;
       const r = await api.createDirectDeal({
         buyerAddress: address!,
-        ...(counterpartyMode === 'wallet'
-          ? { sellerAddress: seller.trim() }
+        ...(sellerAddress
+          ? { sellerAddress }
           : contactMatch?.kind === 'karwan'
             ? { sellerAddress: contactMatch.address }
             : contactMatch?.kind === 'paytag'
               ? { sellerPaytag: contactMatch.tag }
-              : { sellerEmail: counterpartyEmail.trim().toLowerCase() }),
+              : { sellerEmail: counterparty.trim().toLowerCase() }),
         dealAmountUsdc: amount as number,
         deadlineDays: submitDays,
         deadlineHours: submitHours,
         acceptanceWindowHours: acceptanceHours,
-        terms: terms.trim(),
-        firstReleasePct: firstPct as number,
+        terms: agreementText,
+        firstReleasePct: terms.parts[0].pct,
+        reviewWindowDays: terms.reviewWindowDays,
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
         evidenceRequired,
@@ -380,230 +406,163 @@ export function DirectDealForm() {
   return (
     <form ref={formRef} onSubmit={submit} className="space-y-7">
       <fieldset hidden={reviewing} disabled={submitting || reviewing} className="space-y-7 min-w-0">
-      {/* COUNTERPARTY */}
-      <FieldSection
-        eyebrow={dd.counterparty.eyebrow}
-        title={c.seller}
-      >
-        <div role="group" aria-label={c.seller} className="flex flex-wrap gap-2">
-          {(['wallet', 'email'] as const).map((mode) => (
-            <button key={mode} type="button" aria-pressed={counterpartyMode === mode}
-              onClick={() => setCounterpartyMode(mode)} disabled={submitting}
-              className="min-h-11 rounded-xl border px-4 text-[14px] font-semibold"
-              style={{ background: counterpartyMode === mode ? 'var(--lp-control-active-bg)' : 'transparent', color: counterpartyMode === mode ? 'var(--lp-control-active-ink)' : 'var(--lp-dark)', borderColor: 'var(--lp-outline)' }}>
-              {mode === 'email' ? dd.counterparty.modeContact : dd.counterparty.modeWallet}
-            </button>
+      <div className="flex items-center gap-3" aria-live="polite">
+        <span aria-hidden className="flex items-center gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className={cn(
+                'block h-2 rounded-full transition-all duration-[var(--dur-small)]',
+                i === step ? 'w-6 bg-[var(--lp-dark)]' : i < step ? 'w-2 bg-[var(--lp-accent)]' : 'w-2 bg-[var(--lp-border-light)]',
+              )}
+            />
           ))}
-        </div>
-        {counterpartyMode === 'wallet' ? (
-          <FormLabel label={dd.counterparty.walletLabel} hint={dd.counterparty.walletHint}>
-            <input
-              type="text"
-              value={seller}
-              onChange={(e) => setSeller(e.target.value)}
-              placeholder={dd.counterparty.walletPlaceholder}
-              disabled={submitting}
-              className="form-input form-input-mono"
-            />
-            {seller.length > 0 && !sellerValid && (
-              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
-                {dd.counterparty.walletInvalid}
-              </span>
-            )}
-            {sameWallet && (
-              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
-                {dd.counterparty.walletSelfWarning}
-              </span>
-            )}
-            {partner && (
-              <div
-                className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5"
-                style={{
-                  background: 'var(--lp-light)',
-                  border: '1px solid var(--lp-border-light)',
-                  borderTopLeftRadius: 10,
-                  borderTopRightRadius: 10,
-                  borderBottomLeftRadius: 10,
-                  borderBottomRightRadius: 2,
-                }}
-              >
-                <span className="font-sans text-[13.5px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-                  {partner.name}
-                </span>
-                {partner.verified && (
-                  <span
-                    className="inline-flex items-center gap-1 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
-                    style={{
-                      background: 'color-mix(in oklab, #1f7a4c 14%, transparent)',
-                      color: '#1f7a4c',
-                      borderRadius: 3,
-                    }}
-                  >
-                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden>
-                      <path
-                        d="M2.5 6.2 4.8 8.5 9.5 3.8"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Verified
-                  </span>
-                )}
-                {(partner.sector || partner.region) && (
-                  <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                    {[partner.sector, partner.region].filter(Boolean).join(' · ')}
-                  </span>
-                )}
-              </div>
-            )}
-          </FormLabel>
-        ) : (
-          <FormLabel label={dd.counterparty.contactLabel} hint={dd.counterparty.contactHint}>
-            <input
-              type="text"
-              inputMode="email"
-              autoComplete="off"
-              spellCheck={false}
-              value={counterpartyEmail}
-              onChange={(e) => setCounterpartyEmail(e.target.value)}
-              placeholder={dd.counterparty.contactPlaceholder}
-              disabled={submitting}
-              className="form-input"
-            />
-            {contact.kind === 'email' && <EmailSuggestion email={counterpartyEmail} onApply={setCounterpartyEmail} className="mt-1.5" />}
-            {contact.kind === 'tag' && contactState === 'looking' && (
-              <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
-                {fill(dd.counterparty.contactLooking, { tag: contact.tag })}
-              </span>
-            )}
-            {contactMatch && (
-              <p className="mt-2 text-[13px] text-[var(--lp-dark)]">
-                {contactMatch.kind === 'karwan'
-                  ? fill(dd.counterparty.contactKarwan, { name: contactMatch.displayName, tag: contactMatch.tag })
-                  : fill(dd.counterparty.contactPaytag, { tag: contactMatch.tag, masked: contactMatch.maskedAddress })}
-              </p>
-            )}
-            {contact.kind === 'tag' && contactState === 'missing' && (
-              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
-                {fill(paytagAllowed ? dd.counterparty.contactNotFoundPaytag : dd.counterparty.contactNotFound, { tag: contact.tag })}
-              </span>
-            )}
-            {contactState === 'self' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactSelf}</span>}
-            {contactState === 'error' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactError}</span>}
-            {contact.kind === 'invalid' && counterpartyEmail.trim().length > 3 && (
-              <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactInvalid}</span>
-            )}
-          </FormLabel>
-        )}
-      </FieldSection>
+        </span>
+        <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+          {rs.stepOf.replace('{n}', String(step + 1))} · {[rs.seller, rs.price, rs.payment][step]}
+        </span>
+      </div>
 
-      {/* DELIVERABLE */}
-      <FieldSection eyebrow={dd.deliverable.eyebrow} title={c.delivery}>
-        <FormLabel label={dd.deliverable.termsLabel} hint={dd.deliverable.termsHint}>
-          <textarea
-            value={terms}
-            onChange={(e) => setTerms(e.target.value)}
-            rows={3}
+      <div hidden={step !== 0} className="space-y-6">
+      <FieldSection title={c.seller}>
+        <FormLabel label={dd.counterparty.oneBoxLabel} hint={dd.counterparty.contactHint}>
+          <input
+            type="text"
+            inputMode="email"
+            autoComplete="off"
+            spellCheck={false}
+            value={counterparty}
+            onChange={(e) => setCounterparty(e.target.value)}
+            placeholder={dd.counterparty.oneBoxPlaceholder}
             disabled={submitting}
-            placeholder={
-              tradeType === 'goods'
-                ? 'e.g. 500 kg organic shea butter, FOB Lagos, packed in 25 kg drums.'
-                : tradeType === 'mixed'
-                  ? 'e.g. Equipment install on site, including shipping and commissioning.'
-                  : dd.deliverable.termsPlaceholder
-            }
-            className="form-input form-textarea"
+            className="form-input"
           />
+          {contact.kind === 'email' && <EmailSuggestion email={counterparty} onApply={setCounterparty} className="mt-1.5" />}
+          {contact.kind === 'email' && <p className="mt-2 text-[13px] text-[var(--lp-dark)]">{fill(dd.counterparty.emailFound, { email: contact.email })}</p>}
+          {sellerAddress && !sameWallet && <p className="mt-2 text-[13px] text-[var(--lp-dark)]">{fill(dd.counterparty.addressFound, { short: shortAddress(sellerAddress) })}</p>}
+          {sameWallet && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.walletSelfWarning}</span>}
+          {partner && (
+            <div
+              className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5"
+              style={{
+                background: 'var(--lp-light)',
+                border: '1px solid var(--lp-border-light)',
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 10,
+                borderBottomRightRadius: 2,
+              }}
+            >
+              <span className="font-sans text-[13.5px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
+                {partner.name}
+              </span>
+              {partner.verified && (
+                <span
+                  className="inline-flex items-center gap-1 mono text-[9px] font-bold uppercase tracking-[0.14em] px-1.5 py-0.5"
+                  style={{
+                    background: 'color-mix(in oklab, #1f7a4c 14%, transparent)',
+                    color: '#1f7a4c',
+                    borderRadius: 3,
+                  }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" aria-hidden>
+                    <path
+                      d="M2.5 6.2 4.8 8.5 9.5 3.8"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Verified
+                </span>
+              )}
+              {(partner.sector || partner.region) && (
+                <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
+                  {[partner.sector, partner.region].filter(Boolean).join(' · ')}
+                </span>
+              )}
+            </div>
+          )}
+          {contact.kind === 'tag' && contactState === 'looking' && (
+            <span className="mono text-[11px] text-[var(--lp-text-muted)] mt-1.5 inline-block">
+              {fill(dd.counterparty.contactLooking, { tag: contact.tag })}
+            </span>
+          )}
+          {contactMatch && (
+            <p className="mt-2 text-[13px] text-[var(--lp-dark)]">
+              {contactMatch.kind === 'karwan'
+                ? fill(dd.counterparty.contactKarwan, { name: contactMatch.displayName, tag: contactMatch.tag })
+                : fill(dd.counterparty.contactPaytag, { tag: contactMatch.tag, masked: contactMatch.maskedAddress })}
+            </p>
+          )}
+          {contact.kind === 'tag' && contactState === 'missing' && (
+            <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
+              {fill(paytagAllowed ? dd.counterparty.contactNotFoundPaytag : dd.counterparty.contactNotFound, { tag: contact.tag })}
+            </span>
+          )}
+          {contactState === 'self' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactSelf}</span>}
+          {contactState === 'error' && <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">{dd.counterparty.contactError}</span>}
+          {contact.kind === 'invalid' && counterparty.trim().length > 3 && !(/^0x[a-f0-9]*$/i.test(counterparty.trim()) && counterparty.trim().length < 42) && (
+            <span className="mono text-[11px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))] mt-1.5 inline-block">
+              {/^0x/i.test(counterparty.trim()) ? dd.counterparty.walletInvalid : dd.counterparty.contactInvalid}
+            </span>
+          )}
         </FormLabel>
       </FieldSection>
+      </div>
 
-      {/* TERMS */}
-      <FieldSection eyebrow={dd.terms.eyebrow} title={c.priceDeadline}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <FormLabel label={dd.terms.amountLabel} unit="USDC">
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
-              value={amount}
-              disabled={submitting}
-              onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="form-input form-input-num"
-            />
-          </FormLabel>
-          <FormLabel
-            label={dd.terms.deadlineLabel}
-            unit={previewUnitLabel}
-            hint={dd.terms.deadlineHint}
-          >
-            <div className="flex items-stretch gap-2">
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={deadlineMax}
-                step={1}
-                value={deadlineValue}
-                disabled={submitting}
-                onChange={(e) =>
-                  setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                placeholder="0"
-                className="form-input form-input-num flex-1 min-w-0"
-              />
-              <DeadlineUnitPicker
-                value={deadlineUnit}
-                disabled={submitting}
-                ariaLabel={dd.deadlineUnitAria}
-                labels={dd.unitPickerLabels}
-                onChange={(next) => {
-                  // When switching units, reset to empty so the user picks a
-                  // sensible number for the new unit. The buyer form seeds
-                  // sample values; the direct-deal form stays empty per the
-                  // "no autofills" rule.
-                  setDeadlineUnit(next);
-                  setDeadlineValue('');
-                }}
-              />
-            </div>
-          </FormLabel>
+      <div hidden={step !== 1} className="space-y-6">
+      <FieldSection title={c.priceDeadline}>
+        <FormLabel label={dd.terms.amountLabel} unit="USDC">
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            value={amount}
+            disabled={submitting}
+            onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="0"
+            className="form-input form-input-num"
+          />
+        </FormLabel>
+        <div className="space-y-2">
+          <p className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--lp-dark)]">
+            {dd.terms.deadlineLabel}
+            <Hint>{dd.terms.deadlineHint}</Hint>
+          </p>
+          <DueChips
+            optional
+            value={deadlineValue}
+            unit={deadlineUnit}
+            maxDays={MAX_DEADLINE_DAYS}
+            disabled={submitting}
+            onChange={(value, unit) => {
+              setDeadlineValue(value);
+              setDeadlineUnit(unit);
+            }}
+          />
         </div>
         {deadlineValue === '' ? <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">{c.noDeadline}</p> : null}
       </FieldSection>
+      </div>
 
-      <FieldSection eyebrow={dd.terms.eyebrow} title={c.payment}>
-        <div className="max-w-sm">
-          <FormLabel
-            label={dd.terms.deliveryPctLabel}
-            unit="%"
-            hint={c.splitHelp}
-          >
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={99}
-              step={1}
-              value={firstPct}
-              disabled={submitting}
-              onChange={(e) => setFirstPct(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="form-input form-input-num"
-            />
-          </FormLabel>
-
-        </div>
-        {pctValid ? <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{c.splitRemaining.replace('{n}', String(100 - Number(firstPct)))}</p> : null}
-      </FieldSection>
+      <div hidden={step !== 2} className="space-y-6">
+      <TermsBuilder
+        value={terms}
+        onChange={setTerms}
+        priceUsdc={amountValid ? (amount as number) : null}
+        dueLabel={dueLabel}
+        minParts={2}
+        maxParts={2}
+        disabled={submitting}
+      />
 
       {/* TRADE CONTEXT. Business-only surface on the SME Trades rail. Hidden
           for individuals so a P2P direct deal stays the simple service flow. */}
       {SME_TRADES_ENABLED && isBusiness && (
-      <FieldSection eyebrow="Trade context" title={tt.sectionTitle}>
+      <FieldSection title={tt.sectionTitle}>
         <FormLabel label={tt.tradeType}>
           <div className="flex gap-2 flex-wrap">
             {(['service', 'goods', 'mixed'] as const).map((opt) => (
@@ -1006,6 +965,7 @@ export function DirectDealForm() {
 
         </div>
       </details>
+      </div>
       </fieldset>
 
       {reviewing ? <CreationReview busy={submitting} onEdit={() => {
@@ -1015,18 +975,16 @@ export function DirectDealForm() {
         {
           label: c.seller,
           value:
-            counterpartyMode === 'wallet'
-              ? seller
-              : contactMatch?.kind === 'karwan'
-                ? `${contactMatch.displayName} · @${contactMatch.tag}`
-                : contactMatch?.kind === 'paytag'
-                  ? `@${contactMatch.tag}`
-                  : counterpartyEmail.trim(),
+            contactMatch?.kind === 'karwan'
+              ? `${contactMatch.displayName} · @${contactMatch.tag}`
+              : contactMatch?.kind === 'paytag'
+                ? `@${contactMatch.tag}`
+                : sellerAddress ?? counterparty.trim(),
         },
-        { label: c.delivery, value: terms },
         { label: dd.terms.amountLabel, value: `${amount} USDC` },
         { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : `${submitDays * 24 + submitHours} ${dd.preview.unitHr}` },
-        { label: c.payment, value: `${firstPct}% / ${100 - Number(firstPct)}%` },
+        { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.responseWindow, value: `${acceptanceHours} ${dd.preview.unitHr}` },
         { label: c.safeguards, value: [
           requireStake ? `${c.security}: ${requireStakePct}%` : '',
@@ -1041,7 +999,31 @@ export function DirectDealForm() {
       </CreationReview> : null}
 
       {/* SUBMIT */}
-      <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
+      {!reviewing ? (
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStep((step - 1) as 0 | 1)}
+              disabled={submitting}
+              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]"
+            >
+              {rs.back}
+            </button>
+          ) : null}
+          {step < 2 ? (
+            <button
+              type="button"
+              onClick={goForward}
+              disabled={!stepReady || submitting}
+              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
+            >
+              {rs.continue}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      <div hidden={step < 2 && !reviewing} className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-border-light)]">
         <button
           type="submit"
           disabled={!canSubmit}
@@ -1073,15 +1055,8 @@ export function DirectDealForm() {
               <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           )}
-          {submitting ? dd.submit.opening : reviewing ? c.confirmDirect : c.review}
-          {!submitting && (
-            <span
-              aria-hidden
-              className="transition-transform duration-200 group-hover:translate-x-0.5"
-            >
-              ↗
-            </span>
-          )}
+          {submitting ? dd.submit.opening : reviewing ? fill(rs.sendTo, { name: recipient }) : c.review}
+          {!submitting && <Icon name="send" size={16} directional />}
         </button>
         {!submitting && !reviewing && (
           <p className="text-[14px] leading-6 text-[var(--lp-text-sub)]">
@@ -1101,11 +1076,9 @@ export function DirectDealForm() {
 }
 
 function FieldSection({
-  eyebrow,
   title,
   children,
 }: {
-  eyebrow: string;
   title: string;
   children: ReactNode;
 }) {
@@ -1147,65 +1120,5 @@ function FormLabel({
       </span>
       {children}
     </label>
-  );
-}
-
-function DeadlineUnitPicker({
-  value,
-  disabled,
-  onChange,
-  ariaLabel,
-  labels,
-}: {
-  value: 'min' | 'hr' | 'd';
-  disabled?: boolean;
-  onChange: (next: 'min' | 'hr' | 'd') => void;
-  ariaLabel: string;
-  labels: Messages['directDeal']['unitPickerLabels'];
-}) {
-  const options: Array<{ key: 'min' | 'hr' | 'd'; label: string }> = [
-    { key: 'min', label: labels.min },
-    { key: 'hr', label: labels.hr },
-    { key: 'd', label: labels.day },
-  ];
-  return (
-    <div
-      role="radiogroup"
-      aria-label={ariaLabel}
-      className="inline-flex items-center gap-0.5 p-0.5 shrink-0"
-      style={{
-        background: 'var(--lp-light)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 9,
-        borderTopRightRadius: 9,
-        borderBottomLeftRadius: 9,
-        borderBottomRightRadius: 2,
-      }}
-    >
-      {options.map((o) => {
-        const active = value === o.key;
-        return (
-          <button
-            key={o.key}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            disabled={disabled}
-            onClick={() => onChange(o.key)}
-            className="min-h-11 min-w-11 px-2.5 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: active ? 'var(--lp-control-active-bg)' : 'transparent',
-              color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-              borderTopLeftRadius: 7,
-              borderTopRightRadius: 7,
-              borderBottomLeftRadius: 7,
-              borderBottomRightRadius: 2,
-            }}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }

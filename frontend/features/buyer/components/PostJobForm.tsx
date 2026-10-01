@@ -26,6 +26,10 @@ import { BUYER_TOUR_ID, BUYER_STEPS } from '@/shared/guide/tours';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { Icon } from '@/shared/components/Icon';
+import { DueChips } from '@/features/deals/components/DueChips';
+import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
+import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
 // `rendering-hoist-jsx` rule: these never change, so re-creating the
@@ -101,10 +105,7 @@ function parseMilestoneSplit(text: string): { pcts: number[] | null; error: stri
   return { pcts: parts, error: null };
 }
 
-const SPLIT_PRESETS = ['50, 50', '30, 70', '40, 30, 30'] as const;
-const DEADLINE_CHIPS = [[3, 'days3'], [7, 'week1'], [14, 'weeks2'], [30, 'month1']] as const;
 const MAX_DEADLINE_DAYS = 90;
-const DAY_MS = 86_400_000;
 
 /// One request option: a tick, a bracket label, and its explanation in a
 /// tooltip rather than as a paragraph on the card.
@@ -207,18 +208,24 @@ export function PostJobForm() {
   const [deadlineValue, setDeadlineValue] = useState<number | ''>('');
   // The request is asked in three short steps; the review that follows is unchanged.
   const [step, setStep] = useState<0 | 1 | 2>(0);
-  const [exactTime, setExactTime] = useState(false);
-  const [pickedDate, setPickedDate] = useState('');
   const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
   // Trusted Match: when on, the agent loop weights seller reputation + stake
   // above price and gates bids on the seller's free stake covering the deal's
   // insurance reservation. For higher-value or one-shot deals.
   const [trustedMatch, setTrustedMatch] = useState(initialTrustedMatch);
-  // Custom milestone split. Off = the buyer profile default (50/50) stands.
-  // On = these tranches are carried into escrow when the agent finds a deal.
-  const [customSplit, setCustomSplit] = useState(Boolean(parsedInitialSplit?.pcts));
-  const [optionsOpen, setOptionsOpen] = useState(initialTrustedMatch || Boolean(parsedInitialSplit?.pcts) || initialTolerance != null);
-  const [splitText, setSplitText] = useState(parsedInitialSplit?.pcts?.join(', ') ?? '50, 50');
+  const [optionsOpen, setOptionsOpen] = useState(initialTrustedMatch || initialTolerance != null);
+  // The agreement as checkable parts. A ?milestones= link seeds its split.
+  const [terms, setTerms] = useState<TermsDraft>(() =>
+    parsedInitialSplit?.pcts
+      ? {
+          ...DEFAULT_TERMS,
+          parts: parsedInitialSplit.pcts.map((pct, i, all) => ({
+            pct,
+            covers: i === 0 ? { kind: 'start' as const } : i === all.length - 1 ? { kind: 'all' as const } : { kind: 'all' as const },
+          })),
+        }
+      : DEFAULT_TERMS,
+  );
   // SME trade-finance state. Split into separate hooks per the Vercel
   // `rerender-split-combined-hooks` rule. Each picker mutates only its own
   // slice so a sector change never re-renders unrelated inputs.
@@ -312,9 +319,10 @@ export function PostJobForm() {
         deadlineSeconds: deadlineToSeconds(deadlineValue, deadlineUnit),
         negotiationMaxIncreasePct: typeof tolerance === 'number' ? tolerance : undefined,
         trustedMatch,
-        // Only sent when the buyer opted into a custom split; otherwise the
-        // backend uses the buyer profile default. Guarded valid by `disabled`.
-        milestonePcts: customSplit ? parseMilestoneSplit(splitText).pcts ?? undefined : undefined,
+        // The parts the buyer set in the terms; guarded valid by `disabled`.
+        milestonePcts: terms.parts.map((part) => part.pct),
+        terms: agreementText,
+        reviewWindowDays: terms.reviewWindowDays,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
         incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
@@ -340,49 +348,25 @@ export function PostJobForm() {
     }
   }
 
-  const split = parseMilestoneSplit(splitText);
+  const dueLabel =
+    typeof deadlineValue === 'number' && deadlineValue > 0
+      ? new Date(Date.now() + deadlineToSeconds(deadlineValue, deadlineUnit) * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+      : null;
+  const agreementText = composeTerms(terms, { priceUsdc: typeof budget === 'number' ? budget : null, dueLabel }, TERMS_COPY[locale].text);
   const maxDeadline = deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : MAX_DEADLINE_DAYS;
   const stepReady =
     step === 0 ? brief.trim().length > 0 : step === 1 ? validAmount(budget, 5_000_000) && validWhole(deadlineValue, 1, maxDeadline) : true;
-  const splitParts = splitText.split(',').map((part) => part.trim());
-  const splitSum = splitParts.reduce((sum, part) => sum + (Number(part) || 0), 0);
 
   function goForward() {
     if (step === 0) setStep(1);
-    else if (step === 1) {
-      setStep(2);
-      setOptionsOpen(true);
-    }
+    else if (step === 1) setStep(2);
     requestAnimationFrame(() => formRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   }
 
-  function pickDays(days: number) {
-    setDeadlineUnit('d');
-    setDeadlineValue(days);
-    setPickedDate('');
-    setExactTime(false);
-  }
-
-  function pickDate(value: string) {
-    setPickedDate(value);
-    if (!value) return;
-    // Whole days until the end of the chosen day, so "Due 14 Oct" means by the end of 14 Oct.
-    const end = new Date(`${value}T23:59:59`).getTime();
-    const days = Math.max(1, Math.min(MAX_DEADLINE_DAYS, Math.ceil((end - Date.now()) / DAY_MS)));
-    setDeadlineUnit('d');
-    setDeadlineValue(days);
-    setExactTime(false);
-  }
-
-  function setPart(index: number, value: string) {
-    const parts = [...splitParts];
-    parts[index] = value.replace(/[^0-9]/g, '');
-    setSplitText(parts.join(', '));
-  }
   const disabled =
     submitting || hashingFile || profileLoading || !profile?.buyer || !brief.trim() || !validAmount(budget, 5_000_000) ||
     !validWhole(deadlineValue, 1, deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90) ||
-    (tolerance !== '' && !validWhole(tolerance, 0, 50)) || (customSplit && !split.pcts);
+    (tolerance !== '' && !validWhole(tolerance, 0, 50)) || termsIssues(terms).length > 0;
   const buttonLabel = submitting
     ? elapsed < 8
       ? t.submit.submittingShort
@@ -730,90 +714,16 @@ export function PostJobForm() {
             hint={t.sectionTerms.deadlineHint}
             dataGuide="buyer-deadline"
           >
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {DEADLINE_CHIPS.map(([days, key]) => {
-                  const active = !exactTime && !pickedDate && deadlineUnit === 'd' && deadlineValue === days;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => pickDays(days)}
-                      className={cn(
-                        'inline-flex min-h-11 flex-col items-start justify-center rounded-[14px] border px-3.5 py-1.5 text-start text-[14px] font-medium leading-tight transition-colors',
-                        active
-                          ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
-                          : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
-                      )}
-                    >
-                      {rs[key]}
-                      <span className="text-[12px] font-normal opacity-75">
-                        {new Date(Date.now() + days * DAY_MS).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
-                      </span>
-                    </button>
-                  );
-                })}
-                <label
-                  className={cn(
-                    'relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[14px] border px-3.5 text-[14px] font-medium transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--lp-accent)]',
-                    pickedDate
-                      ? 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]'
-                      : 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]',
-                  )}
-                >
-                  <span>{pickedDate ? rs.dueOn.replace('{date}', new Date(`${pickedDate}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })) : rs.pickDate}</span>
-                  <input
-                    type="date"
-                    value={pickedDate}
-                    min={new Date(Date.now() + DAY_MS).toISOString().slice(0, 10)}
-                    max={new Date(Date.now() + MAX_DEADLINE_DAYS * DAY_MS).toISOString().slice(0, 10)}
-                    onChange={(e) => pickDate(e.target.value)}
-                    disabled={submitting}
-                    aria-label={rs.pickDate}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
-                  />
-                </label>
-              </div>
-              {exactTime ? (
-              <div className="flex items-stretch gap-2">
-                <input
-                  data-guide="buyer-deadline"
-                  type="number"
-                  min={1}
-                  max={deadlineUnit === 'min' ? 1440 : deadlineUnit === 'hr' ? 72 : 90}
-                  step={1}
-                  value={deadlineValue}
-                  disabled={submitting}
-                  onChange={(e) =>
-                    setDeadlineValue(e.target.value === '' ? '' : Number(e.target.value))
-                  }
-                  placeholder="0"
-                  className="form-input form-input-num flex-1 min-w-0"
-                />
-                <DeadlineUnitPicker
-                  value={deadlineUnit}
-                  disabled={submitting}
-                  onChange={(next) => {
-                    // Pick a sensible default when the unit changes so the field
-                    // never lands on something nonsensical (90 minutes vs 90 days).
-                    const defaults = { min: 15, hr: 2, d: 5 } as const;
-                    setDeadlineUnit(next);
-                    setDeadlineValue(defaults[next]);
-                  }}
-                />
-              </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setExactTime(true)}
-                  className="inline-flex min-h-11 items-center text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)]"
-                >
-                  {rs.exactTime}
-                </button>
-              )}
-            </div>
+            <DueChips
+              value={deadlineValue}
+              unit={deadlineUnit}
+              maxDays={MAX_DEADLINE_DAYS}
+              disabled={submitting}
+              onChange={(value, unit) => {
+                setDeadlineValue(value);
+                setDeadlineUnit(unit);
+              }}
+            />
           </FormLabel>
         </div>
       </div>
@@ -821,6 +731,13 @@ export function PostJobForm() {
       </div>
 
       <div hidden={step !== 2} className="space-y-6">
+      <TermsBuilder
+        value={terms}
+        onChange={setTerms}
+        priceUsdc={typeof budget === 'number' ? budget : null}
+        dueLabel={dueLabel}
+        disabled={submitting}
+      />
       <details open={optionsOpen} onToggle={(event) => setOptionsOpen(event.currentTarget.open)} className="border-y border-[var(--lp-border-light)]">
         <summary data-guide="buyer-tolerance" className="flex min-h-11 cursor-pointer items-center gap-3 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
           {TRADE_ENTRY_COPY[locale].options}<span aria-hidden className="ms-auto">{optionsOpen ? '−' : '+'}</span>
@@ -845,116 +762,15 @@ export function PostJobForm() {
               className="form-input form-input-num"
             />
           </FormLabel>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <OptionTick
-          label={c.security}
-          tooltip={c.securityHelp}
-          checked={trustedMatch}
-          disabled={submitting}
-          onChange={setTrustedMatch}
-        />
-        <OptionTick
-          label={t.customSplit.eyebrow}
-          tooltip={t.customSplit.tooltip}
-          checked={customSplit}
-          disabled={submitting}
-          onChange={setCustomSplit}
-        />
-      </div>
-
-      <div
-        className={cn(
-          customSplit ? 'px-4 py-3 transition-colors' : 'hidden',
-          'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]',
-        )}
-        style={{
-          border: '1px solid',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
-        }}
-      >
-        <div className="space-y-2.5">
-            <div className="flex flex-wrap gap-2">
-              {SPLIT_PRESETS.map((preset) => {
-                const active = splitText.replace(/\s/g, '') === preset.replace(/\s/g, '');
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => setSplitText(preset)}
-                    className={cn(
-                      'min-h-11 mono text-[11px] uppercase tracking-[0.12em] font-bold px-2.5 py-1.5 border transition-colors',
-                      active
-                        ? 'bg-[var(--lp-dark)] text-[var(--lp-bg)] border-[var(--lp-dark)]'
-                        : 'bg-transparent text-[var(--lp-dark)] border-[var(--lp-outline)] hover:border-[var(--lp-outline-hover)]',
-                    )}
-                    style={{
-                      borderTopLeftRadius: 6,
-                      borderTopRightRadius: 6,
-                      borderBottomLeftRadius: 6,
-                      borderBottomRightRadius: 2,
-                    }}
-                  >
-                    {preset}
-                  </button>
-                );
-              })}
-            </div>
-            <ol className="space-y-2">
-              {splitParts.map((part, index) => (
-                <li key={index} className="flex items-center gap-2 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 ps-3.5 pe-1.5">
-                  <span className="min-w-0 flex-1 text-[14px] font-medium text-[var(--lp-dark)]">{rs.part.replace('{n}', String(index + 1))}</span>
-                  <span className="text-[13px] tabular-nums text-[var(--lp-text-sub)]">
-                    {typeof budget === 'number' && budget > 0 && Number(part) > 0 ? `${((budget * Number(part)) / 100).toFixed(2)} USDC` : ''}
-                  </span>
-                  <span className="relative">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={part}
-                      disabled={submitting}
-                      onChange={(e) => setPart(index, e.target.value)}
-                      aria-label={`${rs.part.replace('{n}', String(index + 1))} %`}
-                      className="form-input form-input-num h-10 w-20 pe-7 text-end"
-                    />
-                    <span aria-hidden className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-[13px] text-[var(--lp-text-muted)]">%</span>
-                  </span>
-                  <button
-                    type="button"
-                    disabled={submitting || splitParts.length <= 2}
-                    onClick={() => setSplitText(splitParts.filter((_, i) => i !== index).join(', '))}
-                    aria-label={rs.removePart.replace('{n}', String(index + 1))}
-                    className="grid size-10 place-items-center rounded-full text-[18px] text-[var(--lp-text-muted)] hover:text-[var(--lp-dark)] disabled:opacity-30"
-                  >
-                    <span aria-hidden>×</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {splitParts.length < 5 ? (
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => setSplitText([...splitParts, '0'].join(', '))}
-                  className="inline-flex min-h-11 items-center rounded-[14px] border border-dashed border-[var(--lp-outline-strong)] px-3.5 text-[14px] font-medium text-[var(--lp-dark)]"
-                >
-                  {rs.addPart}
-                </button>
-              ) : <span />}
-              <p className={cn('text-[13px] font-semibold tabular-nums', split.pcts ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
-                {split.pcts ? rs.total.replace('{sum}', String(splitSum)) : `${rs.total.replace('{sum}', String(splitSum))}. ${rs.needs100}`}
-              </p>
-            </div>
-        </div>
-      </div>
-
+          <OptionTick
+            label={c.security}
+            tooltip={c.securityHelp}
+            checked={trustedMatch}
+            disabled={submitting}
+            onChange={setTrustedMatch}
+          />
         </div>
       </details>
-
       </div>
 
       {/* INTENT WARNING. surfaces if the brief reads as a seller offer
@@ -1007,7 +823,8 @@ export function PostJobForm() {
         { label: t.sectionTerms.budgetLabel, value: `${budget} USDC` },
         { label: t.sectionTerms.deadlineLabel, value: `${deadlineValue} ${previewUnitLabel}` },
         { label: c.limit, value: `${authorisedPrice(Number(budget), tolerance)} USDC` },
-        { label: c.payment, value: customSplit ? split.pcts?.map(p => p + '%').join(' / ') : `${c.defaultSplit}: ${profile?.buyer?.milestonePcts.join('%, ')}%` },
+        { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.safeguards, value: trustedMatch ? c.securityHelp : c.none },
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
@@ -1224,61 +1041,4 @@ const UNIT_SECONDS = { min: 60, hr: 3600, d: 86_400 } as const;
 
 function deadlineToSeconds(value: number, unit: 'min' | 'hr' | 'd'): number {
   return Math.max(60, Math.round(value * UNIT_SECONDS[unit]));
-}
-
-function DeadlineUnitPicker({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: 'min' | 'hr' | 'd';
-  disabled?: boolean;
-  onChange: (next: 'min' | 'hr' | 'd') => void;
-}) {
-  const t = useTranslations().postJob;
-  const options: Array<{ key: 'min' | 'hr' | 'd'; label: string }> = [
-    { key: 'min', label: t.unitPickerLabels.min },
-    { key: 'hr', label: t.unitPickerLabels.hr },
-    { key: 'd', label: t.unitPickerLabels.day },
-  ];
-  return (
-    <div
-      role="radiogroup"
-      aria-label={t.deadlineUnitAria}
-      className="grid min-w-[156px] shrink-0 grid-cols-3 items-stretch gap-0.5 p-0.5"
-      style={{
-        background: 'var(--lp-light)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 9,
-        borderTopRightRadius: 9,
-        borderBottomLeftRadius: 9,
-        borderBottomRightRadius: 2,
-      }}
-    >
-      {options.map((o) => {
-        const active = value === o.key;
-        return (
-          <button
-            key={o.key}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            disabled={disabled}
-            onClick={() => onChange(o.key)}
-            className="min-h-11 min-w-11 px-2 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: active ? 'var(--lp-control-active-bg)' : 'transparent',
-              color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-              borderTopLeftRadius: 7,
-              borderTopRightRadius: 7,
-              borderBottomLeftRadius: 7,
-              borderBottomRightRadius: 2,
-            }}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }

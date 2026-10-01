@@ -266,15 +266,13 @@ for (const path of PAGES) {
   });
 }
 
-test('a direct deal takes a wallet address in one box and an email or tag in the other', async ({ page }) => {
+test('a direct deal takes an email, a tag or a wallet address in one box', async ({ page }) => {
   await serveSearch(page, {
     balances: { ...funded },
     tags: { ada: { displayName: 'Ada Obi', address: '0x2222222222222222222222222222222222222222' } },
   });
   await page.goto('/buyer?mode=direct');
-  await expect(page.getByRole('button', { name: 'Wallet address', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Email or tag', exact: true }).click();
-  const box = page.getByLabel('Email, Karwan tag or Paytag');
+  const box = page.getByLabel('Email, tag, Paytag or wallet address');
 
   await box.fill('@ada');
   await expect(page.getByText('Ada Obi · @ada on Karwan')).toBeVisible();
@@ -284,4 +282,9 @@ test('a direct deal takes a wallet address in one box and an email or tag in the
 
   await box.fill('them@work.com');
   await expect(page.getByText('No one on Karwan uses', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('We email them@work.com a link to accept.')).toBeVisible();
+
+  await box.fill('0x3333333333333333333333333333333333333333');
+  await expect(page.getByText('Wallet 0x3333…3333. They accept by signing in with it.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
 });

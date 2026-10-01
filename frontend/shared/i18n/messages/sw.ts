@@ -535,7 +535,7 @@ export const sw: Messages = {
     backdropAria: 'Ghairi',
   },
   dealCreation: {
-    requestSteps: { describe: 'Eleza', price: 'Bei na muda', payment: 'Malipo', stepOf: 'Hatua {n} kati ya 3', continue: 'Endelea', back: 'Rudi', days3: 'Siku 3', week1: 'Wiki 1', weeks2: 'Wiki 2', month1: 'Mwezi 1', pickDate: 'Chagua tarehe', dueOn: 'Kabla ya {date}', exactTime: 'Weka kwa saa au dakika', part: 'Sehemu {n}', addPart: 'Ongeza sehemu', removePart: 'Ondoa sehemu {n}', total: 'Jumla {sum}%', needs100: 'Jumla ya sehemu lazima iwe 100%' },
+    requestSteps: { describe: 'Eleza', price: 'Bei na muda', payment: 'Masharti', stepOf: 'Hatua {n} kati ya 3', continue: 'Endelea', back: 'Rudi', days3: 'Siku 3', week1: 'Wiki 1', weeks2: 'Wiki 2', month1: 'Mwezi 1', pickDate: 'Chagua tarehe', dueOn: 'Kabla ya {date}', exactTime: 'Weka kwa saa au dakika', part: 'Sehemu {n}', addPart: 'Ongeza sehemu', removePart: 'Ondoa sehemu {n}', total: 'Jumla {sum}%', needs100: 'Jumla ya sehemu lazima iwe 100%', noDate: 'Hakuna tarehe ya mwisho', seller: 'Muuzaji', sendTo: 'Tuma kwa {name}' },
     buyerRole: 'Mnunuzi',
     currencyNote: 'Malipo hukamilishwa kwa USDC. Ubadilishaji kwenda sarafu ya ndani haujajumuishwa.',
     documents: 'Nyaraka',
@@ -1379,8 +1379,12 @@ export const sw: Messages = {
       contactNotFound: 'Hakuna mtu kwenye Karwan anayetumia @{tag}. Hakikisha naye, au tumia barua pepe yake.',
       contactNotFoundPaytag: 'Hakuna akaunti ya Karwan wala Paytag inayotumia @{tag}. Hakikisha naye, au tumia barua pepe yake.',
       contactSelf: 'Hii ni tagi yako mwenyewe.',
-      contactInvalid: 'Weka barua pepe au @tagi.',
+      contactInvalid: 'Weka barua pepe, @tagi au anwani ya pochi.',
       contactError: 'Imeshindikana kutafuta tagi hiyo. Jaribu tena.',
+      oneBoxLabel: 'Barua pepe, tagi, Paytag au anwani ya pochi',
+      oneBoxPlaceholder: 'wao@kazi.com, @tag au 0x…',
+      addressFound: 'Pochi {short}. Muuzaji anakubali kwa kuingia nayo.',
+      emailFound: 'Tutamtumia {email} kiungo cha kukubali.',
     },
     terms: {
       eyebrow: 'Masharti ya biashara',

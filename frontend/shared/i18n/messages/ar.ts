@@ -538,7 +538,7 @@ export const ar: Messages = {
     backdropAria: 'إلغاء',
   },
   dealCreation: {
-    requestSteps: { describe: 'الوصف', price: 'السعر والموعد', payment: 'الدفع', stepOf: 'الخطوة {n} من 3', continue: 'متابعة', back: 'رجوع', days3: '3 أيام', week1: 'أسبوع واحد', weeks2: 'أسبوعان', month1: 'شهر واحد', pickDate: 'اختر تاريخًا', dueOn: 'قبل {date}', exactTime: 'حدّد بالساعات أو الدقائق', part: 'الجزء {n}', addPart: 'أضف جزءًا', removePart: 'احذف الجزء {n}', total: 'المجموع {sum}%', needs100: 'يجب أن يكون مجموع الأجزاء 100%' },
+    requestSteps: { describe: 'الوصف', price: 'السعر والموعد', payment: 'الشروط', stepOf: 'الخطوة {n} من 3', continue: 'متابعة', back: 'رجوع', days3: '3 أيام', week1: 'أسبوع واحد', weeks2: 'أسبوعان', month1: 'شهر واحد', pickDate: 'اختر تاريخًا', dueOn: 'قبل {date}', exactTime: 'حدّد بالساعات أو الدقائق', part: 'الجزء {n}', addPart: 'أضف جزءًا', removePart: 'احذف الجزء {n}', total: 'المجموع {sum}%', needs100: 'يجب أن يكون مجموع الأجزاء 100%', noDate: 'بلا موعد نهائي', seller: 'البائع', sendTo: 'أرسل إلى {name}' },
     buyerRole: 'المشتري',
     currencyNote: 'تتم التسوية بعملة USDC. لا يشمل ذلك التحويل إلى العملة المحلية.',
     documents: 'المستندات',
@@ -1382,8 +1382,12 @@ export const ar: Messages = {
       contactNotFound: 'لا أحد على Karwan يستخدم @{tag}. تحقّق معه، أو استخدم بريده.',
       contactNotFoundPaytag: 'لا يوجد حساب Karwan أو Paytag باسم @{tag}. تحقّق معه، أو استخدم بريده.',
       contactSelf: 'هذا اسمك أنت.',
-      contactInvalid: 'أدخل بريدًا إلكترونيًا أو @اسمًا.',
+      contactInvalid: 'أدخل بريدًا إلكترونيًا أو @وسمًا أو عنوان محفظة.',
       contactError: 'تعذّر البحث عن هذا الاسم. حاول مرة أخرى.',
+      oneBoxLabel: 'البريد أو الوسم أو Paytag أو عنوان المحفظة',
+      oneBoxPlaceholder: 'them@work.com أو @tag أو 0x…',
+      addressFound: 'المحفظة {short}. يقبل البائع بتسجيل الدخول بها.',
+      emailFound: 'نرسل إلى {email} رابطًا للقبول.',
     },
     terms: {
       eyebrow: 'شروط الصفقة',

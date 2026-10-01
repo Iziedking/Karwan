@@ -50,3 +50,10 @@ test('a Paytag is used only when no Karwan account holds the tag and Paytag is a
   );
   assert.equal(await lookupContact({ tag: '9lives', karwanShaped: false }, { paytagAllowed: false, karwan: none, paytag }), null);
 });
+
+test('a wallet address is its own kind; a half-typed one never triggers a tag lookup', () => {
+  const address = '0x1111111111111111111111111111111111111111';
+  assert.deepEqual(parseContact(` ${address} `), { kind: 'address', address });
+  assert.deepEqual(parseContact('0xAbC123'), { kind: 'invalid' });
+  assert.deepEqual(parseContact('0xmike'), { kind: 'tag', tag: '0xmike', karwanShaped: false });
+});

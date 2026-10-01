@@ -1,13 +1,16 @@
-/// What the "email or tag" field holds. An email has an @ with text on both
-/// sides; anything shaped like a handle is a tag, looked up as a Karwan tag
-/// first and a Paytag second.
+/// What the seller field holds. An email has an @ with text on both sides; a
+/// wallet address is 0x and 40 hex digits; anything shaped like a handle is a
+/// tag, looked up as a Karwan tag first and a Paytag second.
 export type ContactInput =
   | { kind: 'empty' }
   | { kind: 'email'; email: string }
+  | { kind: 'address'; address: string }
   | { kind: 'tag'; tag: string; karwanShaped: boolean }
   | { kind: 'invalid' };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
+const PARTIAL_ADDRESS = /^0x[a-fA-F0-9]*$/;
 const HANDLE = /^[a-z0-9_-]{1,32}$/;
 const KARWAN_TAG = /^[a-z](?:[a-z0-9]|_(?=[a-z0-9])){2,19}$/;
 
@@ -15,6 +18,9 @@ export function parseContact(raw: string): ContactInput {
   const text = raw.trim();
   if (text === '') return { kind: 'empty' };
   if (EMAIL.test(text)) return { kind: 'email', email: text.toLowerCase() };
+  if (ADDRESS.test(text)) return { kind: 'address', address: text };
+  // An address still being typed is not a tag to look up.
+  if (PARTIAL_ADDRESS.test(text)) return { kind: 'invalid' };
   const tag = text.replace(/^@/, '').toLowerCase();
   if (!text.slice(1).includes('@') && HANDLE.test(tag)) return { kind: 'tag', tag, karwanShaped: KARWAN_TAG.test(tag) };
   return { kind: 'invalid' };

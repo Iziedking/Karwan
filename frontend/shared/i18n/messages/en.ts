@@ -496,6 +496,7 @@ interface MessagesShape {
       days3: string; week1: string; weeks2: string; month1: string;
       pickDate: string; dueOn: string; exactTime: string;
       part: string; addPart: string; removePart: string; total: string; needs100: string;
+      noDate: string; seller: string; sendTo: string;
     };
     buyerRole: string;
     currencyNote: string;
@@ -1328,6 +1329,10 @@ interface MessagesShape {
       contactSelf: string;
       contactInvalid: string;
       contactError: string;
+      oneBoxLabel: string;
+      oneBoxPlaceholder: string;
+      addressFound: string;
+      emailFound: string;
     };
     terms: {
       eyebrow: string;
@@ -5867,7 +5872,7 @@ export const en: MessagesShape = {
     backdropAria: 'Cancel',
   },
   dealCreation: {
-    requestSteps: { describe: 'Describe', price: 'Price and time', payment: 'Payment', stepOf: 'Step {n} of 3', continue: 'Continue', back: 'Back', days3: '3 days', week1: '1 week', weeks2: '2 weeks', month1: '1 month', pickDate: 'Pick a date', dueOn: 'Due {date}', exactTime: 'Set hours or minutes', part: 'Part {n}', addPart: 'Add a part', removePart: 'Remove part {n}', total: 'Adds up to {sum}%', needs100: 'The parts must add up to 100%' },
+    requestSteps: { describe: 'Describe', price: 'Price and time', payment: 'Terms', stepOf: 'Step {n} of 3', continue: 'Continue', back: 'Back', days3: '3 days', week1: '1 week', weeks2: '2 weeks', month1: '1 month', pickDate: 'Pick a date', dueOn: 'Due {date}', exactTime: 'Set hours or minutes', part: 'Part {n}', addPart: 'Add a part', removePart: 'Remove part {n}', total: 'Adds up to {sum}%', needs100: 'The parts must add up to 100%', noDate: 'No deadline', seller: 'Seller', sendTo: 'Send to {name}' },
     buyerRole: 'Buyer',
     currencyNote: 'Settlement is in USDC. Local-currency conversion is not included.',
     documents: 'Documents',
@@ -6730,8 +6735,12 @@ export const en: MessagesShape = {
       contactNotFound: 'No one on Karwan uses @{tag}. Check it with them, or use their email.',
       contactNotFoundPaytag: 'No Karwan account or Paytag uses @{tag}. Check it with them, or use their email.',
       contactSelf: 'That is your own tag.',
-      contactInvalid: 'Enter an email address or a @tag.',
+      contactInvalid: 'Enter an email, a @tag or a wallet address.',
       contactError: 'Could not look up that tag. Try again.',
+      oneBoxLabel: 'Email, tag, Paytag or wallet address',
+      oneBoxPlaceholder: 'them@work.com, @tag or 0x…',
+      addressFound: 'Wallet {short}. They accept by signing in with it.',
+      emailFound: 'We email {email} a link to accept.',
     },
     terms: {
       eyebrow: 'Deal terms',

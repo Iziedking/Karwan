@@ -536,7 +536,7 @@ export const hi: Messages = {
     backdropAria: 'रद्द करें',
   },
   dealCreation: {
-    requestSteps: { describe: 'विवरण', price: 'कीमत और समय', payment: 'भुगतान', stepOf: 'चरण {n} / 3', continue: 'जारी रखें', back: 'वापस', days3: '3 दिन', week1: '1 सप्ताह', weeks2: '2 सप्ताह', month1: '1 महीना', pickDate: 'तारीख चुनें', dueOn: '{date} तक', exactTime: 'घंटे या मिनट में तय करें', part: 'हिस्सा {n}', addPart: 'हिस्सा जोड़ें', removePart: 'हिस्सा {n} हटाएँ', total: 'कुल {sum}%', needs100: 'सभी हिस्सों का कुल 100% होना चाहिए' },
+    requestSteps: { describe: 'विवरण', price: 'कीमत और समय', payment: 'शर्तें', stepOf: 'चरण {n} / 3', continue: 'जारी रखें', back: 'वापस', days3: '3 दिन', week1: '1 सप्ताह', weeks2: '2 सप्ताह', month1: '1 महीना', pickDate: 'तारीख चुनें', dueOn: '{date} तक', exactTime: 'घंटे या मिनट में तय करें', part: 'हिस्सा {n}', addPart: 'हिस्सा जोड़ें', removePart: 'हिस्सा {n} हटाएँ', total: 'कुल {sum}%', needs100: 'सभी हिस्सों का कुल 100% होना चाहिए', noDate: 'कोई समय सीमा नहीं', seller: 'विक्रेता', sendTo: '{name} को भेजें' },
     buyerRole: 'खरीदार',
     currencyNote: 'भुगतान USDC में होता है। स्थानीय मुद्रा में रूपांतरण शामिल नहीं है।',
     documents: 'दस्तावेज़',
@@ -1380,8 +1380,12 @@ export const hi: Messages = {
       contactNotFound: 'Karwan पर कोई @{tag} इस्तेमाल नहीं करता। उनसे पूछें, या उनका ईमेल इस्तेमाल करें।',
       contactNotFoundPaytag: 'कोई Karwan खाता या Paytag @{tag} इस्तेमाल नहीं करता। उनसे पूछें, या उनका ईमेल इस्तेमाल करें।',
       contactSelf: 'यह आपका अपना टैग है।',
-      contactInvalid: 'ईमेल पता या @टैग डालें।',
+      contactInvalid: 'ईमेल, @टैग या वॉलेट पता डालें।',
       contactError: 'यह टैग नहीं मिल सका। फिर कोशिश करें।',
+      oneBoxLabel: 'ईमेल, टैग, Paytag या वॉलेट पता',
+      oneBoxPlaceholder: 'them@work.com, @tag या 0x…',
+      addressFound: 'वॉलेट {short}। विक्रेता इसी से साइन इन करके स्वीकार करता है।',
+      emailFound: 'हम {email} को स्वीकार करने का लिंक भेजेंगे।',
     },
     terms: {
       eyebrow: 'डील शर्तें',

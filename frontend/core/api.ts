@@ -2831,6 +2831,10 @@ export const api = {
       // Per-brief milestone split stated in the request ("30% then 70%").
       // Percentages sum to 100; overrides the buyer profile default at funding.
       milestonePcts?: number[];
+      // The structured agreement and the days the buyer has to check each
+      // delivery. Both carry into the deal when a match lands.
+      terms?: string;
+      reviewWindowDays?: number;
       // SME trade-finance fields (Phase 2 Track 2). All optional; legacy
       // service flows continue to post without them.
       tradeType?: 'service' | 'goods' | 'mixed';
@@ -3608,6 +3612,8 @@ export const api = {
     acceptanceWindowHours?: number;
     terms: string;
     firstReleasePct: number;
+    /// Days the buyer has to check each delivery; the escrow honours it.
+    reviewWindowDays?: number;
     /// Trusted-match opt-in. When true, the seller's accept panel surfaces a
     /// stake requirement and they are expected to back the deal with insurance.
     /// Default false (casual deal, no stake messaging).

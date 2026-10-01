@@ -538,7 +538,7 @@ export const fr: Messages = {
     backdropAria: 'Annuler',
   },
   dealCreation: {
-    requestSteps: { describe: 'Décrire', price: 'Prix et délai', payment: 'Paiement', stepOf: 'Étape {n} sur 3', continue: 'Continuer', back: 'Retour', days3: '3 jours', week1: '1 semaine', weeks2: '2 semaines', month1: '1 mois', pickDate: 'Choisir une date', dueOn: 'Avant le {date}', exactTime: 'Définir en heures ou minutes', part: 'Partie {n}', addPart: 'Ajouter une partie', removePart: 'Retirer la partie {n}', total: 'Total de {sum} %', needs100: 'Les parties doivent totaliser 100 %' },
+    requestSteps: { describe: 'Décrire', price: 'Prix et délai', payment: 'Conditions', stepOf: 'Étape {n} sur 3', continue: 'Continuer', back: 'Retour', days3: '3 jours', week1: '1 semaine', weeks2: '2 semaines', month1: '1 mois', pickDate: 'Choisir une date', dueOn: 'Avant le {date}', exactTime: 'Définir en heures ou minutes', part: 'Partie {n}', addPart: 'Ajouter une partie', removePart: 'Retirer la partie {n}', total: 'Total de {sum} %', needs100: 'Les parties doivent totaliser 100 %', noDate: 'Pas de date limite', seller: 'Vendeur', sendTo: 'Envoyer à {name}' },
     buyerRole: 'Acheteur',
     currencyNote: 'Le règlement se fait en USDC. La conversion en monnaie locale n’est pas incluse.',
     documents: 'Documents',
@@ -1382,8 +1382,12 @@ export const fr: Messages = {
       contactNotFound: 'Personne sur Karwan n’utilise @{tag}. Vérifiez avec la personne, ou utilisez son e-mail.',
       contactNotFoundPaytag: 'Aucun compte Karwan ni Paytag n’utilise @{tag}. Vérifiez avec la personne, ou utilisez son e-mail.',
       contactSelf: 'C’est votre propre tag.',
-      contactInvalid: 'Saisissez une adresse e-mail ou un @tag.',
+      contactInvalid: 'Saisissez un e-mail, un @tag ou une adresse de portefeuille.',
       contactError: 'Impossible de trouver ce tag. Réessayez.',
+      oneBoxLabel: 'E-mail, tag, Paytag ou adresse de portefeuille',
+      oneBoxPlaceholder: 'eux@travail.com, @tag ou 0x…',
+      addressFound: 'Portefeuille {short}. Le vendeur accepte en se connectant avec.',
+      emailFound: 'Nous envoyons à {email} un lien pour accepter.',
     },
     terms: {
       eyebrow: 'Conditions du deal',
