@@ -3433,6 +3433,8 @@ export const fr: Messages = {
       delivered: 'Vendeur a marqué livré',
       firstReleasedTemplate: 'Premiers {pct} % libérés',
       finalReleasedTemplate: 'Derniers {pct} % libérés',
+      dueTemplate: 'Avant le {date}',
+      pending: 'En attente',
     },
     actions: {
       eyebrow: 'Prochaine étape',

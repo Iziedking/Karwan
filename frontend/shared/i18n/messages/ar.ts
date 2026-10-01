@@ -3433,6 +3433,8 @@ export const ar: Messages = {
       delivered: 'وسم البائع بالتسليم',
       firstReleasedTemplate: 'حُرّر أول {pct}%',
       finalReleasedTemplate: 'حُرّرت آخر {pct}%',
+      dueTemplate: 'قبل {date}',
+      pending: 'قيد الانتظار',
     },
     actions: {
       eyebrow: 'الخطوة التالية',

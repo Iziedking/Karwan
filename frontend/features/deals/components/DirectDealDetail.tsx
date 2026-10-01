@@ -68,6 +68,7 @@ import { worldCheckOverview } from '../worldCheckOverview';
 import { dealRouteRecoveryKey } from '../dealRouteRecovery';
 import { HighSignalVerificationCard } from './HighSignalVerificationCard';
 import { SwipeToPay } from './SwipeToPay';
+import { Icon } from '@/shared/components/Icon';
 
 const ARC_EXPLORER_TX = (h: string) => `https://testnet.arcscan.app/tx/${h}`;
 
@@ -1089,6 +1090,8 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
                 <span className="text-[12px] text-[var(--lp-text-muted)]">Agreement to settlement</span>
               </div>
               <ProgressTrack
+                times={{ opened: deal.createdAt, sellerApproved: deal.sellerApprovedAt, accepted: deal.acceptedAt, delivered: deal.deliveredAt }}
+                dueAt={deal.deadlineUnix ? deal.deadlineUnix * 1000 : undefined}
                 milestonePcts={milestonePcts}
                 milestonesReleased={milestonesReleased}
                 stage={stage}
@@ -2367,12 +2370,16 @@ function OverviewFact({ label, children }: { label: string; children: ReactNode 
 }
 
 function ProgressTrack({
+  times,
+  dueAt,
   milestonePcts,
   milestonesReleased,
   stage,
   rail,
   copy,
 }: {
+  times: { opened: number; sellerApproved?: number; accepted?: number; delivered?: number };
+  dueAt?: number;
   milestonePcts: number[];
   milestonesReleased: number;
   stage: DealStage;
@@ -2395,63 +2402,91 @@ function ProgressTrack({
           ? copy.finalReleasedTemplate.replace('{pct}', String(pct))
           : `Milestone ${i + 1} · ${pct}% released`,
     done: stage === 'settled' || milestonesReleased > i,
+    at: undefined as number | undefined,
+    due: undefined as number | undefined,
   }));
   const steps = [
-    { key: 'opened', label: copy.opened, done: true },
+    { key: 'opened', label: copy.opened, done: true, at: times.opened, due: undefined },
     {
       key: 'seller-approved',
       label: copy.sellerApproved,
       done: past('awaiting-acceptance'),
+      at: times.sellerApproved,
+      due: undefined,
     },
     {
       key: 'accepted',
       label: copy.accepted,
       done: past('awaiting-acceptance', 'awaiting-funding'),
+      at: times.accepted,
+      due: undefined,
     },
     {
       key: 'delivered',
       label: copy.delivered,
       done: past('awaiting-acceptance', 'awaiting-funding', 'awaiting-delivery'),
+      at: times.delivered,
+      due: dueAt,
     },
     ...releaseSteps,
   ];
   const firstPending = steps.findIndex((s) => !s.done);
   const terminal = stage === 'settled' || stage === 'disputed' || stage === 'cancelled';
+  const when = (ms: number) =>
+    new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+  // Order-tracking layout: a check once a step is done, a ring on the step in
+  // progress, an empty ring for what is still to come.
   return (
-    <div className="pt-4">
-      <ol className="deal-progress-list grid gap-2 sm:grid-cols-2">
-        {steps.map((s, i) => {
-          const done = s.done;
-          const active = i === firstPending && !terminal;
-          return (
-            <li key={s.key} className="flex min-h-10 items-center gap-3 rounded-[10px] bg-[var(--lp-light)] px-3 py-2">
+    <ol className="deal-progress-list pt-4">
+      {steps.map((s, i) => {
+        const done = s.done;
+        const active = i === firstPending && !terminal;
+        const last = i === steps.length - 1;
+        const detail = done ? (s.at ? when(s.at) : null) : s.due ? copy.dueTemplate.replace('{date}', when(s.due)) : copy.pending;
+        return (
+          <li key={s.key} className="relative flex gap-3 pb-4 last:pb-0">
+            {!last ? (
               <span
                 aria-hidden
-                data-instrument-blink={active || undefined}
-                className="shrink-0 inline-block size-[9px] rounded-full"
-                style={{
-                  background: done ? rail : active ? rail : 'var(--lp-border-light)',
-                  opacity: done ? 1 : active ? 0.65 : 1,
-                  animation: active ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
-                }}
+                className="absolute start-[11px] top-7 bottom-1 w-[2px] rounded-full"
+                style={{ background: done && steps[i + 1]?.done ? 'var(--lp-dark)' : 'var(--lp-border-light)' }}
               />
+            ) : null}
+            <span
+              aria-hidden
+              className="relative grid size-6 shrink-0 place-items-center rounded-full border-2"
+              style={{
+                background: done ? 'var(--lp-dark)' : 'transparent',
+                borderColor: done ? 'var(--lp-dark)' : active ? rail : 'var(--lp-border-light)',
+                color: 'var(--lp-light)',
+              }}
+            >
+              {done ? <Icon name="check" size={16} /> : null}
+              {active ? (
+                <span
+                  data-instrument-blink
+                  className="block size-2 rounded-full"
+                  style={{ background: rail, animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
+                />
+              ) : null}
+            </span>
+            <span className="min-w-0 pt-0.5">
               <span
-                className={`text-[13.5px] ${
-                  done
-                    ? 'text-[var(--lp-dark)] font-medium'
-                    : active
-                      ? 'text-[var(--lp-dark)]'
-                      : 'text-[var(--lp-text-muted)]'
+                className={`block text-[14px] leading-5 ${
+                  done || active ? 'font-medium text-[var(--lp-dark)]' : 'text-[var(--lp-text-muted)]'
                 }`}
               >
                 {s.label}
               </span>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+              {detail ? (
+                <span className="mt-0.5 block text-[13px] tabular-nums text-[var(--lp-text-sub)]">{detail}</span>
+              ) : null}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

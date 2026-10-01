@@ -3430,6 +3430,8 @@ export const sw: Messages = {
       delivered: 'Muuzaji amewasilisha',
       firstReleasedTemplate: 'Asilimia ya kwanza {pct}% imetolewa',
       finalReleasedTemplate: 'Asilimia ya mwisho {pct}% imetolewa',
+      dueTemplate: 'Kabla ya {date}',
+      pending: 'Inasubiri',
     },
     actions: {
       eyebrow: 'Hatua inayofuata',

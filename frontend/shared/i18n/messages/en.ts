@@ -3115,6 +3115,8 @@ interface MessagesShape {
       delivered: string;
       firstReleasedTemplate: string;
       finalReleasedTemplate: string;
+      dueTemplate: string;
+      pending: string;
     };
     actions: {
       eyebrow: string;
@@ -8817,6 +8819,8 @@ export const en: MessagesShape = {
       delivered: 'Seller marked delivered',
       firstReleasedTemplate: 'First {pct}% released',
       finalReleasedTemplate: 'Final {pct}% released',
+      dueTemplate: 'By {date}',
+      pending: 'Pending',
     },
     actions: {
       eyebrow: 'Next step',

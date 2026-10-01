@@ -3431,6 +3431,8 @@ export const hi: Messages = {
       delivered: 'विक्रेता ने डिलीवरी मार्क की',
       firstReleasedTemplate: 'पहले {pct}% रिलीज़ हुए',
       finalReleasedTemplate: 'अंतिम {pct}% रिलीज़ हुए',
+      dueTemplate: '{date} तक',
+      pending: 'बाकी',
     },
     actions: {
       eyebrow: 'अगला कदम',
