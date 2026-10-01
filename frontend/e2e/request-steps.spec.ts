@@ -124,6 +124,7 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   await page.getByRole('textbox', { name: tb.otherDays, exact: true }).fill('10');
 
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
+  await expect(page.getByText('• White background, 2000 px wide', { exact: true })).toBeVisible();
   const send = page.getByRole('button', { name: rs.sendTo.replace('{name}', '0x3333…3333'), exact: true });
   await send.click();
   await expect.poll(() => posted).not.toBeNull();

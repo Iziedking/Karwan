@@ -566,7 +566,7 @@ export const sw: Messages = {
     "noDeadline": "Hakuna tarehe ya mwisho ya uwasilishaji. Kuchelewa pekee hakukupi haki ya kurejeshewa fedha.",
     "required": "Jaza sehemu zinazohitajika ili ukague. Muda wa uwasilishaji ni wa hiari kwa biashara ya moja kwa moja.",
     "requestRequired": "Ongeza maelezo, bajeti na muda wa uwasilishaji.",
-    "safeguards": "Mahitaji yaliyochaguliwa",
+    "safeguards": "Ulinzi wa ziada",
     "none": "Hakuna",
     "security": "Dhamana ya muuzaji",
     "securityHelp": "Inahitaji stake ya muuzaji kabla ya kukubali. Inaweza kupunguzwa ikiwa uamuzi wa mgogoro ni dhidi yake.",

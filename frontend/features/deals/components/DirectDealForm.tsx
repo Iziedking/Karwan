@@ -12,7 +12,7 @@ import { cn } from '@/shared/utils/cn';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
 import { TermsBuilder, DEFAULT_TERMS } from '../terms/TermsBuilder';
-import { composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerms';
+import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '../terms/composeTerms';
 import { TERMS_COPY } from '../terms/termsCopy';
 import { DueChips } from './DueChips';
 import { CreationReview } from './CreationReview';
@@ -984,6 +984,7 @@ export function DirectDealForm() {
         { label: dd.terms.amountLabel, value: `${amount} USDC` },
         { label: dd.terms.deadlineLabel, value: deadlineValue === '' ? c.noDeadline : `${submitDays * 24 + submitHours} ${dd.preview.unitHr}` },
         { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        ...(cleanLines(terms.conditions).length ? [{ label: TERMS_COPY[locale].conditions, value: cleanLines(terms.conditions).map((line) => `• ${line}`).join('\n') }] : []),
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.responseWindow, value: `${acceptanceHours} ${dd.preview.unitHr}` },
         { label: c.safeguards, value: [

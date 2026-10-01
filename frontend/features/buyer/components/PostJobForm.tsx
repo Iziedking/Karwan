@@ -28,7 +28,7 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { Icon } from '@/shared/components/Icon';
 import { DueChips } from '@/features/deals/components/DueChips';
 import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
-import { composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
+import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
 // SME trade-finance constants. Hoisted to module scope per the Vercel
@@ -824,6 +824,7 @@ export function PostJobForm() {
         { label: t.sectionTerms.deadlineLabel, value: `${deadlineValue} ${previewUnitLabel}` },
         { label: c.limit, value: `${authorisedPrice(Number(budget), tolerance)} USDC` },
         { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+        ...(cleanLines(terms.conditions).length ? [{ label: TERMS_COPY[locale].conditions, value: cleanLines(terms.conditions).map((line) => `• ${line}`).join('\n') }] : []),
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.safeguards, value: trustedMatch ? c.securityHelp : c.none },
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companySector, companyRegion].filter(Boolean).join(' · ') }] : []),

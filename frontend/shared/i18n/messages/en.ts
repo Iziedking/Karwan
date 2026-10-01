@@ -5912,7 +5912,7 @@ export const en: MessagesShape = {
     "noDeadline": "No delivery deadline. You cannot reclaim just because delivery is late.",
     "required": "Complete the required fields to review. Delivery deadline is optional for direct deals.",
     "requestRequired": "Add a description, budget and delivery deadline to review.",
-    "safeguards": "Selected requirements",
+    "safeguards": "Extra protection",
     "none": "None",
     "security": "Seller security reserve",
     "securityHelp": "Requires seller stake before acceptance. It can be reduced if a dispute is decided against the seller.",

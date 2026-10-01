@@ -569,7 +569,7 @@ export const fr: Messages = {
     "noDeadline": "Aucun délai de livraison. Un simple retard ne permet pas de récupérer les fonds.",
     "required": "Remplissez les champs obligatoires pour vérifier. Le délai de livraison est facultatif pour un accord direct.",
     "requestRequired": "Ajoutez une description, un budget et un délai de livraison.",
-    "safeguards": "Conditions choisies",
+    "safeguards": "Protection supplémentaire",
     "none": "Aucune",
     "security": "Garantie du vendeur",
     "securityHelp": "Exige une mise du vendeur avant acceptation. Elle peut être réduite si le litige est tranché contre lui.",
