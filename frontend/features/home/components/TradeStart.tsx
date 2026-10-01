@@ -26,7 +26,6 @@ export function TradeStart({ business = false, headingId = 'home-heading' }: { b
       <h1 id={headingId} className="mt-3 max-w-[18ch] text-[clamp(2rem,4vw,3.5rem)] font-semibold leading-[1.02] tracking-[-0.045em] text-[var(--lp-dark)]">
         {business ? businessCopy.title : <>{copy.title}<span className="text-[var(--lp-accent)]">.</span></>}
       </h1>
-      <p className="mt-4 max-w-[42ch] text-[14px] leading-6 text-[var(--lp-text-sub)]">{business ? businessCopy.description : copy.body}</p>
       <div className="mt-7 border-y border-[var(--lp-border-light)]" role="list">
         {actions.map((action) => (
           <div

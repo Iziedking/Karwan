@@ -83,8 +83,7 @@ function PersonalBuyerDesk() {
   return (
     <FullBleed>
       <Band tone="light" compact>
-        <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">{creation.title}</h1>
-        <p className="mt-3 max-w-[54ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">{creation.intro}</p>
+        <h1 className="flex items-center gap-2 text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">{creation.title}<Hint side="bottom">{creation.intro}</Hint></h1>
       </Band>
 
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches

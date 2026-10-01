@@ -78,18 +78,17 @@ test('profile photo is a user-initiated saved image with a generated fallback', 
   const hub = source('../../features/profile/components/ProfileAccountHub.tsx');
   assert.match(hub, /api\.setProfileAvatar\(address, imageDataUrl\)/);
   assert.match(hub, /profile\.profileImageDataUrl/);
-  assert.match(hub, /<WalletAvatar address=\{address\} size=\{72\}/);
+  assert.match(hub, /<WalletAvatar address=\{address\} size=\{56\}/);
   assert.match(hub, /type="file" accept="image\/jpeg,image\/png,image\/webp"/);
 });
 
-test('stake keeps agent linking inside the stake panel and balances the two columns', () => {
+test('stake keeps agent linking inside the stake panel', () => {
   const page = source('../../app/stake/page.tsx');
   const stake = source('../../features/reputation/components/StakeCard.tsx');
   const binding = source('../../features/reputation/components/AgentStakeBinding.tsx');
   assert.doesNotMatch(page, /<AgentStakeBinding/);
   assert.match(stake, /<AgentStakeBinding\s*\/>/);
-  assert.match(page, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)\]/);
-  assert.match(page, /\[grid-area:stake-body\][\s\S]*?<StakeCard\s*\/>/);
+  assert.match(page, /<StakeCard\s*\/>/);
   assert.match(binding, /\{done \? t\.doneCta : busy \? t\.busyCta : t\.cta\}/);
   assert.doesNotMatch(binding, /\{t\.title\}|\{t\.body\}|\{t\.tag\}/);
   assert.equal(en.agentStakeBinding.cta, 'Link agent');
@@ -185,7 +184,7 @@ test('the wallet home renders translated copy, not hardcoded English', () => {
   assert.doesNotMatch(page, /(label|description|aria-label)="[A-Z][a-z]+ /);
   for (const locale of [ar, fr, hi, sw]) {
     assert.notEqual(locale.account.page.manage, en.account.page.manage);
-    assert.notEqual(locale.account.page.intro, en.account.page.intro);
+    assert.notEqual(locale.account.page.byChain, en.account.page.byChain);
   }
 });
 

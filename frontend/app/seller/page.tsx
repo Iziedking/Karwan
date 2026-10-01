@@ -106,8 +106,7 @@ function SellerPageInner() {
   return (
     <FullBleed>
       <Band tone="light" compact>
-        <h1 className="text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">{entry.sellTitle}</h1>
-        <p className="mt-3 max-w-[54ch] text-[15px] leading-6 text-[var(--lp-text-sub)]">{entry.sellBody}</p>
+        <h1 className="flex items-center gap-2 text-[clamp(2rem,4vw,3rem)] font-semibold leading-tight tracking-[-0.04em] text-[var(--lp-dark)]">{entry.sellTitle}<Hint side="bottom">{entry.sellBody}</Hint></h1>
       </Band>
 
       {/* ACTIVATE NOTICE. shared band, renders nothing once activated. Catches

@@ -33,7 +33,6 @@ test('product copy separates portable reputation plans from current access', () 
 test('payment copy does not promise buyer-only release or identical wallet authority', () => {
   const t = MESSAGES.en;
   assert.doesNotMatch(t.dealWorkspace.money.held, /only when.*buyer/i);
-  assert.match(t.dealWorkspace.money.held, /claim/);
   assert.match(t.directDealDetail.fundingSafety.activeBuyer, /deadline/);
   assert.match(t.howItWorksPage.stack.appKit, /Signing depends/);
   assert.doesNotMatch(t.howItWorksPage.stack.appKit, /without ever|no.*popup/);

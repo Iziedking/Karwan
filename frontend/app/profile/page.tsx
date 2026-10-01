@@ -12,8 +12,6 @@ import { ConnectXButton } from '@/features/profile/components/ConnectXButton';
 import { WalletsPanel } from '@/features/balances/components/WalletsPanel';
 import { TelegramConnectButton } from '@/features/telegram/components/TelegramConnectButton';
 import { TierCelebration } from '@/features/reputation/components/TierCelebration';
-import { AgentResearchCard } from '@/features/reputation/components/AgentResearchCard';
-import { AgentTrustEvidenceCard } from '@/features/reputation/components/AgentTrustEvidenceCard';
 import { SmeCompanyBand } from '@/features/profile/components/SmeCompanyBand';
 import { RegisterBusinessBand } from '@/features/profile/components/RegisterBusinessBand';
 import { ProfileEmailButton } from '@/features/profile/components/ProfileEmailButton';
@@ -32,6 +30,7 @@ import {
 } from '@/shared/components/Bands';
 import { ProfileAccountHub } from '@/features/profile/components/ProfileAccountHub';
 import { AgentFundsList } from '@/features/profile/components/AgentFundsList';
+import { ResearchRows } from '@/features/profile/components/ResearchRows';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 
@@ -240,12 +239,7 @@ function ProfilePageInner() {
       content: (
         <div className="space-y-7" data-guide="profile-agents">
           <AgentFundsList onSetUp={() => setActivationOpen(true)} />
-          {activation.activated ? (
-            <>
-              <AgentResearchCard />
-              <AgentTrustEvidenceCard />
-            </>
-          ) : null}
+          {activation.activated ? <ResearchRows /> : null}
         </div>
       ),
     },

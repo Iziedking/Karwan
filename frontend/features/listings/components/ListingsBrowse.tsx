@@ -160,9 +160,6 @@ export function ListingsBrowse() {
           <h1 className="text-[36px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)] sm:text-[40px]">
             {copy.heroTitle}
           </h1>
-          <p className="mt-3 max-w-[68ch] text-[15px] leading-6 text-[var(--ink-secondary)]">
-            {copy.heroDescription}
-          </p>
           <DiscoveryNav active="market" tone="light" appearance="quiet" />
         </div>
 

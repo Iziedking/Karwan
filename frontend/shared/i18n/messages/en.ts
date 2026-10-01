@@ -108,9 +108,7 @@ interface MessagesShape {
 
   };
   settings: {
-    eyebrow: string;
     title: string;
-    description: string;
     language: string;
     languageHint: string;
     theme: string;
@@ -146,26 +144,17 @@ interface MessagesShape {
   businessProfilePage: {
     label: string;
     open: string;
-    title: string;
-    intro: string;
     findTitle: string;
-    findBody: string;
     dealTitle: string;
-    dealBody: string;
     payTitle: string;
-    payBody: string;
     recordTitle: string;
-    recordBody: string;
     setup: string;
     manage: string;
-    manageBody: string;
     edit: string;
-    notice: string;
     setupTitle: string;
     setupBody: string;
     name: string;
     nameHint: string;
-    confirm: string;
     save: string;
     error: string;
     loadError: string;
@@ -377,7 +366,6 @@ interface MessagesShape {
     };
     /// The wallet home at /account, where mainnet sign-in lands.
     page: {
-      intro: string;
       byChain: string;
       byChainHelp: string;
       liveBalances: string;
@@ -515,7 +503,6 @@ interface MessagesShape {
     fees: string;
     limit: string;
     requestNext: string;
-    directFlow: string;
     optional: string;
     responseWindow: string;
     seller: string;
@@ -834,6 +821,21 @@ interface MessagesShape {
       saving: string;
       aboutYou: string;
       skillsHint: string;
+      researchTitle: string;
+      researchHint: string;
+      researchCredit: string;
+      none: string;
+      addCreditTemplate: string;
+      confirmCreditTemplate: string;
+      freeReports: string;
+      reportsLeftTemplate: string;
+      reportsPerDayTemplate: string;
+      verifiedPerson: string;
+      yes: string;
+      notYet: string;
+      creditAdded: string;
+      notEnough: string;
+      tryAgain: string;
       profileTitle: string;
       agentsTitle: string;
       agentsHint: string;
@@ -872,13 +874,8 @@ interface MessagesShape {
     hub: {
       personalAccount: string;
       businessAccount: string;
-      actionNeeded: string;
       workspaces: string;
-      switchContext: string;
       account: string;
-      personalDetails: string;
-      accountSetup: string;
-      contactDetails: string;
       moneyAndTrade: string;
       money: string;
       usdcBalance: string;
@@ -886,7 +883,6 @@ interface MessagesShape {
       openDeals: string;
       reviewNow: string;
       open: string;
-      agentFunds: string;
       activityReceipts: string;
       reputation: string;
       accountLabel: string;
@@ -894,7 +890,6 @@ interface MessagesShape {
       changePhoto: string;
       removePhoto: string;
       savingPhoto: string;
-      photoPublic: string;
       photoError: string;
       photoTypeError: string;
       email: string;
@@ -912,26 +907,8 @@ interface MessagesShape {
       sectionTag: string;
       fallbackName: string;
       publicPassport: string;
-      updatedPrefix: string;
-      editDetailsCta: string;
-      editCompanyCta: string;
-      setUpProfileCta: string;
-    };
-    agentStatus: {
-      eyebrow: string;
-      checking: string;
-      walletsPrefix: string;
-      walletsLive: string;
-      walletsIdle: string;
-      inactiveBody: string;
-      buyerFallback: string;
-      sellerFallback: string;
     };
     activation: {
-      inactiveTag: string;
-      inactiveHeadlinePrefix: string;
-      inactiveHeadlineAccent: string;
-      inactiveBody: string;
       cta: string;
     };
     accountType: {
@@ -945,12 +922,8 @@ interface MessagesShape {
       headlinePrefix: string;
       headlineAccent: string;
       body: string;
-      headsUpEyebrow: string;
-      headsUpBody: string;
       buyerEyebrow: string;
       sellerEyebrow: string;
-      buyerFallback: string;
-      sellerFallback: string;
       rows: {
         maxBudget: string;
         deadline: string;
@@ -962,22 +935,6 @@ interface MessagesShape {
         budget: string;
         delivery: string;
       };
-      daysSuffix: string;
-      editRanges: string;
-    };
-    agentTrustCard: {
-      tag: string;
-      headline: string;
-      body: string;
-      trackRecord: string;
-      connectedEvidence: string;
-      humanBacked: string;
-      notChecked: string;
-      unavailable: string;
-      pilotAllowance: string;
-      reportsPerDay: string;
-      noEvidence: string;
-      notCheckedBody: string;
     };
     noProfile: {
       tag: string;
@@ -990,12 +947,6 @@ interface MessagesShape {
       tag: string;
       headlinePrefix: string;
       headlineAccent: string;
-      body: string;
-    };
-    agentTreasury: {
-      tag: string;
-      headlineFund: string;
-      headlineWithdraw: string;
       body: string;
     };
     stake: {
@@ -1252,7 +1203,7 @@ interface MessagesShape {
     };
   };
   bridge: {
-    header: { titleMove: string; titleOut: string; bodyIn: string; bodyOut: string };
+    header: { titleMove: string; titleOut: string; bodyIn: string; };
     signInGate: { tag: string; body: string };
     sectionTag: string;
     headlinePrefix: string;
@@ -1943,11 +1894,7 @@ interface MessagesShape {
     stake: {
       networkYield: string;
       networkYieldHint: string;
-      tokenizedTbills: string;
-      verifiedYield: string;
       yourYield: string;
-      earnedByYou: string;
-      claimableByYou: string;
     };
     dealDetail: { tradeContext: string; anchoredDocuments: string; containerRefPlaceholder: string };
     sellerOffer: {
@@ -2489,7 +2436,6 @@ interface MessagesShape {
     heroAccent: string;
     heroBody: string;
     heroTitle: string;
-    heroDescription: string;
     marketCurrent: string;
     workRequests: string;
     serviceOffers: string;
@@ -2567,47 +2513,6 @@ interface MessagesShape {
       businessSeller: string;
       individualBuyer: string;
       businessBuyer: string;
-    };
-  };
-  agentWithdrawCard: {
-    header: {
-      eyebrow: string;
-      title: string;
-      subtitle: string;
-    };
-    agents: {
-      buyer: string;
-      seller: string;
-      notConfigured: string;
-      balanceLabel: string;
-    };
-    form: {
-      fromEyebrow: string;
-      amountEyebrow: string;
-      availableTemplate: string;
-      amountPlaceholder: string;
-      destinationEyebrow: string;
-      destinationPlaceholder: string;
-      yourWalletHint: string;
-      verify: {
-        checking: string;
-        verifiedEoa: string;
-        contractDanger: string;
-      };
-    };
-    submit: {
-      signIn: string;
-      sending: string;
-      withdrawTemplate: string;
-      agentFallback: string;
-    };
-    success: {
-      message: string;
-      referenceLabel: string;
-    };
-    errors: {
-      invalidAddress: string;
-      failedTag: string;
     };
   };
   unifiedBalanceCard: {
@@ -4227,10 +4132,6 @@ interface MessagesShape {
     };
     hero: {
       tag: string;
-      line1Prefix: string;
-      line1Accent: string;
-      line2Prefix: string;
-      line2Accent: string;
       body: string;
       mainnetNote: string;
     };
@@ -4258,8 +4159,6 @@ interface MessagesShape {
     legacyNudge: { body: string; link: string };
     ladder: {
       tag: string;
-      headingPrefix: string;
-      headingAccent: string;
       body: string;
       youBadge: string;
       unlock: {
@@ -5520,9 +5419,7 @@ export const en: MessagesShape = {
 
   },
   settings: {
-    eyebrow: 'Settings',
     title: 'Preferences',
-    description: 'Manage language, appearance, notifications and account access.',
     language: 'Language',
     languageHint: 'Used for the app, notifications, and emails.',
     theme: 'Theme',
@@ -5563,26 +5460,17 @@ export const en: MessagesShape = {
   businessProfilePage: {
     label: "Business profile",
     open: "Open a business profile",
-    title: "Your business, on Karwan",
-    intro: "Buy, sell, and settle local or cross-border trade from the same account. Build a trade record people can check.",
     findTitle: "Meet buyers, sellers, and suppliers",
-    findBody: "Browse businesses, requests, and offers. Let your agents help find matches within your trade preferences.",
     dealTitle: "Bring a deal from anywhere",
-    dealBody: "Turn an agreement from chat, email or a marketplace into a trade with clear terms.",
     payTitle: "Agree how you get paid",
-    payBody: "Set delivery milestones and protect settlement in USDC.",
     recordTitle: "Build your business reputation",
-    recordBody: "Keep delivery evidence and settled trades in a record counterparties can review.",
     setup: "Set up business profile",
     manage: "Company details and verification",
-    manageBody: "Add company information, submit evidence and follow your review status.",
     edit: "Edit trade preferences",
-    notice: "Your personal account stays personal. This adds a linked business workspace under the same sign-in, wallet, and balance.",
     setupTitle: "Set up your business profile",
     setupBody: "Start with the name you trade under. Next, add your company details.",
     name: "Business name",
     nameHint: "This name will appear on your Karwan profile.",
-    confirm: "I want to change this account to a business profile.",
     save: "Save and continue",
     error: 'Could not save your business profile. Your details are still here. Try again.',
     loadError: "We could not load your profile. Try again before making changes.",
@@ -5830,7 +5718,6 @@ export const en: MessagesShape = {
       publicPassport: 'View public passport',
     },
     page: {
-      intro: 'See where your USDC is held. Add, move or send it from here.',
       byChain: 'By chain',
       byChainHelp: 'Your available USDC across supported chains.',
       liveBalances: 'Live balances',
@@ -5961,7 +5848,6 @@ export const en: MessagesShape = {
     "fees": "The price limit excludes platform fees and network costs. Your trading balance must cover these too.",
     "limit": "Authorised price limit",
     "requestNext": "Agents find and negotiate with sellers on Karwan. Seller acceptance within your settings can trigger funding from your balance.",
-    "directFlow": "Add your seller and agreed terms. Review, create, then fund after the seller agrees.",
     "optional": "Optional deal requirements",
     "responseWindow": "Seller response time",
     "seller": "Who are you trading with?",
@@ -6263,6 +6149,21 @@ export const en: MessagesShape = {
       saving: "Saving…",
       aboutYou: "About you",
       skillsHint: "Separate with commas",
+      researchTitle: "Market research",
+      researchHint: "Your agent can check market prices before it negotiates. Verified people get a few free reports each day.",
+      researchCredit: "Research credit",
+      none: "None",
+      addCreditTemplate: "Add {price} USDC",
+      confirmCreditTemplate: "Confirm {price} USDC",
+      freeReports: "Free reports",
+      reportsLeftTemplate: "{left} of {total} left today",
+      reportsPerDayTemplate: "{n} a day",
+      verifiedPerson: "Verified person",
+      yes: "Yes",
+      notYet: "Not yet",
+      creditAdded: "Credit added.",
+      notEnough: "Not enough USDC in your buying agent. Top it up first.",
+      tryAgain: "That did not go through. Try again.",
       profileTitle: "Profile",
       agentsTitle: "What your agents accept",
       agentsHint: "Your agents only agree to deals inside these limits.",
@@ -6308,13 +6209,8 @@ export const en: MessagesShape = {
     hub: {
       personalAccount: 'Personal account',
       businessAccount: 'Business account',
-      actionNeeded: 'Action needed',
       workspaces: 'Workspaces',
-      switchContext: 'Switch context before creating or funding a trade.',
       account: 'Account',
-      personalDetails: 'Personal details',
-      accountSetup: 'Account setup',
-      contactDetails: 'Contact details',
       moneyAndTrade: 'Money and trade',
       money: 'Money',
       usdcBalance: 'USDC balance',
@@ -6322,7 +6218,6 @@ export const en: MessagesShape = {
       openDeals: 'Open deals',
       reviewNow: 'Review now',
       open: 'Open',
-      agentFunds: 'Agent funds',
       activityReceipts: 'Activity and receipts',
       reputation: 'Reputation',
       accountLabel: 'Karwan account',
@@ -6330,7 +6225,6 @@ export const en: MessagesShape = {
       changePhoto: 'Change profile photo',
       removePhoto: 'Remove photo',
       savingPhoto: 'Saving photo',
-      photoPublic: 'Your photo is visible on your public profile.',
       photoError: 'Could not save the photo. Try again.',
       photoTypeError: 'Choose a JPG, PNG, or WebP image under 5 MB.',
       email: 'Email',
@@ -6348,26 +6242,8 @@ export const en: MessagesShape = {
       sectionTag: 'Account',
       fallbackName: 'Your account',
       publicPassport: 'Public passport ↗',
-      updatedPrefix: 'Updated',
-      editDetailsCta: 'Edit details',
-      editCompanyCta: 'Edit company',
-      setUpProfileCta: 'Set up profile',
-    },
-    agentStatus: {
-      eyebrow: 'Agent status',
-      checking: 'Checking…',
-      walletsPrefix: 'Wallets',
-      walletsLive: 'live',
-      walletsIdle: 'idle',
-      inactiveBody: 'Activate below to provision agent wallets.',
-      buyerFallback: 'Buyer agent',
-      sellerFallback: 'Seller agent',
     },
     activation: {
-      inactiveTag: 'Not activated',
-      inactiveHeadlinePrefix: 'Activate to ',
-      inactiveHeadlineAccent: 'begin',
-      inactiveBody: 'Activation provisions buyer and seller Circle wallets for this address.',
       cta: 'Activate agents',
     },
     accountType: {
@@ -6381,12 +6257,8 @@ export const en: MessagesShape = {
       headlinePrefix: 'Agent ',
       headlineAccent: 'ranges',
       body: 'Ranges agents respect on every request.',
-      headsUpEyebrow: 'Heads up',
-      headsUpBody: 'this is saved, but your agents aren\'t active yet, so they won\'t make offers or post. Activate above to put them to work.',
       buyerEyebrow: 'Buyer agent',
       sellerEyebrow: 'Seller agent',
-      buyerFallback: 'Buyer',
-      sellerFallback: 'Seller',
       rows: {
         maxBudget: 'Max budget',
         deadline: 'Deadline',
@@ -6398,22 +6270,6 @@ export const en: MessagesShape = {
         budget: 'Budget',
         delivery: 'Delivery',
       },
-      daysSuffix: 'days',
-      editRanges: 'Edit ranges',
-    },
-    agentTrustCard: {
-      tag: 'Agent trust',
-      headline: 'Proof before confidence',
-      body: 'AgentKit checks a human-backed agent before a free report is granted. This is a pilot allowance, not a World guarantee.',
-      trackRecord: 'Track record',
-      connectedEvidence: 'Connected evidence',
-      humanBacked: 'Human-backed agent',
-      notChecked: 'Not checked',
-      unavailable: 'Unavailable',
-      pilotAllowance: 'Pilot allowance',
-      reportsPerDay: '3 reports / 24h',
-      noEvidence: 'No delivery evidence linked yet.',
-      notCheckedBody: 'Verify an AgentBook proof to use the shared allowance.',
     },
     noProfile: {
       tag: 'No profile yet',
@@ -6427,12 +6283,6 @@ export const en: MessagesShape = {
       headlinePrefix: 'Your ',
       headlineAccent: 'wallets',
       body: 'Wallet roles and balances',
-    },
-    agentTreasury: {
-      tag: 'Agent money',
-      headlineFund: 'Deposit',
-      headlineWithdraw: 'Withdraw',
-      body: 'Move USDC to the agent that runs your deals, and pull it back to yourself any time.',
     },
     stake: {
       tag: 'Stake',
@@ -6727,7 +6577,6 @@ export const en: MessagesShape = {
       titleMove: 'Move USDC',
       titleOut: 'Withdraw USDC',
       bodyIn: 'Choose how you want to add USDC to your Karwan account.',
-      bodyOut: 'Send USDC to a wallet on a supported chain. Choose the destination yourself.',
     },
     signInGate: {
       tag: 'Add money / cash out',
@@ -7559,11 +7408,7 @@ export const en: MessagesShape = {
     stake: {
       networkYield: 'Network yield',
       networkYieldHint: 'Stakers are paid at the USYC rate, the return on tokenized US Treasuries. On testnet Karwan funds these payouts.',
-      tokenizedTbills: 'Tokenized T-bills',
-      verifiedYield: 'Verified yield',
       yourYield: 'Your yield',
-      earnedByYou: 'Earned by you',
-      claimableByYou: 'Claimable by you',
     },
     dealDetail: {
       tradeContext: 'Trade context',
@@ -8177,7 +8022,6 @@ export const en: MessagesShape = {
     heroAccent: 'trade',
     heroBody: 'Browse live requests, offers, and business profiles for goods and services. Search by what you want to buy, sell, source, or deliver.',
     heroTitle: 'Find the next trade.',
-    heroDescription: 'Compare work requests, service offers, businesses, budgets, and trade history before you open a conversation.',
     marketCurrent: 'Market current',
     workRequests: 'Work requests',
     serviceOffers: 'Service offers',
@@ -8255,47 +8099,6 @@ export const en: MessagesShape = {
       businessSeller: 'Business seller',
       individualBuyer: 'Individual buyer',
       businessBuyer: 'Business buyer',
-    },
-  },
-  agentWithdrawCard: {
-    header: {
-      eyebrow: 'Cash out',
-      title: 'Cash out your agent',
-      subtitle: 'Agent signs · settles on Arc',
-    },
-    agents: {
-      buyer: 'Buyer agent',
-      seller: 'Seller agent',
-      notConfigured: 'not configured',
-      balanceLabel: 'Balance',
-    },
-    form: {
-      fromEyebrow: 'From',
-      amountEyebrow: 'Amount',
-      availableTemplate: '{amount} available',
-      amountPlaceholder: '0',
-      destinationEyebrow: 'Destination',
-      destinationPlaceholder: '0x…',
-      yourWalletHint: 'Your wallet.',
-      verify: {
-        checking: 'Checking address on Arc',
-        verifiedEoa: 'Wallet address verified',
-        contractDanger: 'Contract address. Funds sent here may be locked. Double-check before withdrawing.',
-      },
-    },
-    submit: {
-      signIn: 'Sign in to cash out',
-      sending: 'Sending on Arc…',
-      withdrawTemplate: 'Cash out {agent}',
-      agentFallback: 'agent',
-    },
-    success: {
-      message: 'On its way.',
-      referenceLabel: 'Karwan reference',
-    },
-    errors: {
-      invalidAddress: 'Not a valid 20-byte address.',
-      failedTag: 'Cash out failed',
     },
   },
   unifiedBalanceCard: {
@@ -10027,10 +9830,6 @@ export const en: MessagesShape = {
     },
     hero: {
       tag: 'Stake',
-      line1Prefix: 'Earn',
-      line1Accent: 'reputation',
-      line2Prefix: 'Earn',
-      line2Accent: 'yield',
       body: 'Stake USDC to support your reputation position. Request a withdrawal when you need it. The live vault shows the cooldown and claim time.',
       mainnetNote: '// yield depends on the enabled route, contract state, and current instrument value',
     },
@@ -10050,8 +9849,6 @@ export const en: MessagesShape = {
     legacyNudge: { body: 'You have {amount} USDC on the previous vault.', link: 'Recover it' },
     ladder: {
       tag: 'Tier ladder',
-      headingPrefix: 'What stake',
-      headingAccent: 'unlocks',
       body: 'Reputation moves your tier. Tier changes how the agents negotiate for you.',
       youBadge: 'You',
       unlock: {

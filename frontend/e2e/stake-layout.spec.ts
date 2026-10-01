@@ -3,7 +3,7 @@ import { BUYER } from './fixtures';
 
 const API = 'http://127.0.0.1:3199';
 
-test('agent linking is one action inside equal stake and yield panels', async ({ baseURL }) => {
+test('agent linking is one action inside the stake panel, as wide as the yield panel', async ({ baseURL }) => {
   test.setTimeout(120_000);
   const browser = await chromium.launch({ channel: process.platform === 'win32' ? 'msedge' : 'chromium' });
   try {
@@ -55,7 +55,6 @@ test('agent linking is one action inside equal stake and yield panels', async ({
       expect(stakeBox).not.toBeNull();
       expect(yieldBox).not.toBeNull();
       expect(Math.abs(stakeBox!.width - yieldBox!.width)).toBeLessThanOrEqual(1);
-      if (width >= 1024) expect(Math.abs(stakeBox!.height - yieldBox!.height)).toBeLessThanOrEqual(1);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
       await context.close();
     }

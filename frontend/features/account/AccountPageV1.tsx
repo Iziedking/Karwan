@@ -23,7 +23,6 @@ function AccountPageInner() {
         <div>
           <div className="flex items-center"><h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
         </div>
-        <p className="max-w-[46ch] text-[15px] leading-6 text-[var(--lp-text-sub)] lg:pb-1">{t.intro}</p>
       </header>
 
       <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]" aria-labelledby="account-holdings-heading">

@@ -11,10 +11,9 @@ type Mode = 'managed' | 'direct';
 export function NewDealPanel() {
   const a11y = useTranslations().a11y;
   const t = useTranslations().dealPanel;
-  const c = useTranslations().dealCreation;
-  const MODES: Array<{ value: Mode; label: string; blurb: string }> = [
-    { value: 'managed', label: t.managedLabel, blurb: c.requestNext },
-    { value: 'direct', label: t.directLabel, blurb: c.directFlow },
+  const MODES: Array<{ value: Mode; label: string }> = [
+    { value: 'managed', label: t.managedLabel },
+    { value: 'direct', label: t.directLabel },
   ];
   // When the user arrives here via a "Make offer" link from a listing detail
   // page (/buyer?seller=0x...&amount=...&terms=...), default to the direct
@@ -26,7 +25,6 @@ export function NewDealPanel() {
     search.get('seller') || search.get('sellerEmail') || search.get('mode') === 'direct' ? 'direct' : 'managed';
   const [mode, setMode] = useState<Mode>(initialMode);
   const [visited, setVisited] = useState<Record<Mode, boolean>>({ managed: initialMode === 'managed', direct: initialMode === 'direct' });
-  const active = MODES.find((m) => m.value === mode)!;
 
   return (
     <div className="space-y-7" id="deal-composer">
@@ -68,9 +66,6 @@ export function NewDealPanel() {
             );
           })}
         </div>
-        <p className="mt-4 text-[14px] leading-relaxed text-[var(--lp-text-sub)] max-w-[64ch]">
-          {active.blurb}
-        </p>
       </div>
 
       <ActivationGate>

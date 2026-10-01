@@ -61,7 +61,7 @@ test('testnet warnings stay beside balances while mainnet shows network identity
     '../../app/bridge/page.tsx',
     '../../features/money/components/MoneyHome.tsx',
     '../../features/bridge/components/CrossChainFlow.tsx',
-  ]) assert.match(source(file), /<NetworkContext \/>/, file);
+  ]) assert.match(source(file), /<NetworkHint \/>/, file);
   const component = source('../components/NetworkContext.tsx');
   assert.match(component, /networkPresentation\(settlementChain\)/);
   assert.match(component, /t\[network.noticeKey\]/);
