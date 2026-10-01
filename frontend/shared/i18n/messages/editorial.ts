@@ -8,4 +8,8 @@ export interface LandingEditorialCopy {
   terms: string; funded: string; delivery: string; reviewed: string; released: string;
   both: string; buyer: string; seller: string; receipt: string; exampleNote: string;
   limitTitle: string; limitBody: string; rulesLink: string; closeTitle: string; closeBody: string;
+  routes: {
+    label: string; title: string; body: string; note: string;
+    cities: Record<'kano' | 'hamburg' | 'lagos' | 'london' | 'johannesburg' | 'shenzhen' | 'nairobi' | 'dubai' | 'toronto', string>;
+  };
 }

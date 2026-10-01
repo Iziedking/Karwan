@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { SocialTradeSection } from '@/features/home/components/SocialTradeSection';
 import { ProtectionSection } from '@/features/home/components/ProtectionSection';
+import { TradeRoutesMap } from '@/features/home/components/TradeRoutesMap';
 import styles from './landing.module.css';
 
 function Arrow() {
@@ -72,6 +73,7 @@ export default function HomePage() {
         </div>
       </section>
       <ProtectionSection />
+      <TradeRoutesMap />
       <section className={styles.closing} aria-labelledby="closing-title"><div className={styles.wrap}><h2 id="closing-title">{t.closeTitle}</h2><p>{t.closeBody}</p><Link className={styles.button} href="/start">{t.open}<Arrow /></Link></div></section>
     </div>
   );
