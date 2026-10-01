@@ -9,7 +9,7 @@ import { BridgeCard } from '@/features/bridge/components/BridgeCard';
 import { BridgeHistoryModal } from '@/features/bridge/components/BridgeHistorySection';
 import { GatewayBalanceCard } from '@/features/bridge/components/GatewayBalanceCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
-import { NetworkContext } from '@/shared/components/NetworkContext';
+import { NetworkHint } from '@/shared/components/NetworkContext';
 import { RailSlider } from '@/features/deposit/components/RailSlider';
 import { PageTour } from '@/shared/guide/PageTour';
 import { BRIDGE_TOUR_ID, buildBridgeSteps } from '@/shared/guide/tours';
@@ -168,9 +168,8 @@ function BridgePageInner() {
       <Band tone="light" compact>
         <header className="max-w-[620px] pb-5">
           <p className="text-[13px] text-[var(--ink-secondary)]">{messages.accountHome.balanceLabel}</p>
-          <h1 className="mt-1 text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}</h1>
+          <h1 className="mt-1 text-[32px] sm:text-[40px] font-medium leading-[1.1] tracking-[-0.015em] text-[var(--ink)]">{pageTitle}<NetworkHint /></h1>
           <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-secondary)]">{pageBody}</p>
-          <NetworkContext />
         </header>
       </Band>
 

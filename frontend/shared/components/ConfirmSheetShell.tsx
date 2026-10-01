@@ -8,7 +8,7 @@ import { dur, ease } from '@/shared/motion/tokens';
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled])';
 
 /// The frame every money or irreversible action opens in: a bottom sheet on a
-/// phone, a side drawer from 768px, the page dimmed behind it. Focus moves in on
+/// phone, a panel at the side from 768px that is only as tall as its content, the page dimmed behind it. Focus moves in on
 /// open (to `initialFocus`, else the first control), stays trapped, and goes back
 /// to whatever opened it. While `busy`, neither Escape nor the backdrop closes
 /// it, so a signing step is never dismissed by accident.
@@ -80,7 +80,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
             role="dialog"
             aria-modal="true"
             aria-labelledby={labelledBy}
-            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[16px] bg-[var(--lp-card)] p-6 md:inset-y-0 md:start-auto md:end-0 md:w-[440px] md:max-h-none md:rounded-none"
+            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[20px] bg-[var(--lp-card)] p-6 md:bottom-auto md:start-auto md:end-4 md:top-4 md:w-[440px] md:max-h-[calc(100dvh-2rem)] md:rounded-[20px] md:shadow-[0_24px_64px_rgba(0,0,0,0.18)]"
             initial={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}
             animate={reduce ? { opacity: 1 } : { y: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}

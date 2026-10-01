@@ -8,7 +8,7 @@ import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivationModal } from '@/shared/components/ActivationModal';
 import { AnimatedNumber } from '@/shared/components/AnimatedNumber';
 import { CopyAddress } from '@/shared/components/CopyAddress';
-import { NetworkContext } from '@/shared/components/NetworkContext';
+import { NetworkHint } from '@/shared/components/NetworkContext';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useHydratedReducedMotion } from '@/shared/hooks/useHydratedReducedMotion';
@@ -83,7 +83,7 @@ function MoneyHomeInner() {
           ) : (
             <>
               <h1 id="money-balance" className="space-y-2">
-                <span className="block text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}</span>
+                <span className="block text-[13px] font-semibold text-[var(--lp-text-sub)]">{t.home.balanceLabel}<NetworkHint /></span>
                 <span className="flex items-baseline gap-2 tabular-nums">
                   {/* Counts to a new value; under reduced motion it fades instead. */}
                   <motion.span
@@ -111,7 +111,6 @@ function MoneyHomeInner() {
                 <Link href="/bridge?intent=move" className={SECONDARY}>{t.home.move}</Link>
                 <Link href="/send" className={SECONDARY}>{t.home.send}</Link>
               </div>
-              <NetworkContext />
             </>
           )}
         </section>

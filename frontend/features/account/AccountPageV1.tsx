@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
-import { NetworkContext } from '@/shared/components/NetworkContext';
+import { NetworkHint } from '@/shared/components/NetworkContext';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { RecoveryRow } from '@/features/recovery/components/RecoveryRow';
@@ -21,11 +21,10 @@ function AccountPageInner() {
     <div className="product-surface mx-auto w-full max-w-[1180px] pb-14">
       <header className="mt-5 grid gap-4 border-b border-[var(--lp-border-light)] pb-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
         <div>
-          <h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1>
+          <h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}<NetworkHint /></h1>
         </div>
         <p className="max-w-[46ch] text-[15px] leading-6 text-[var(--lp-text-sub)] lg:pb-1">{t.intro}</p>
       </header>
-      <NetworkContext />
 
       <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]" aria-labelledby="account-holdings-heading">
         <div className="min-w-0">

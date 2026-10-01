@@ -3,6 +3,22 @@
 import { settlementChain } from '@/core/arcNetwork';
 import { networkPresentation } from '@/shared/chain/networkPresentation';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { Hint } from '@/shared/components/Hint';
+
+/// The testnet note as an info mark beside a page title. Nothing on mainnet.
+export function NetworkHint() {
+  const t = useTranslations().networkUi;
+  const network = networkPresentation(settlementChain);
+  if (network.environment === 'mainnet') return null;
+  return (
+    <span className="ms-2 inline-flex align-middle text-[15px] font-normal tracking-normal" data-network-context={network.environment}>
+      <Hint side="bottom">
+        <span className="block font-semibold">{t.settlementNetwork}: <bdi>Arc</bdi> · {t[network.environment]}</span>
+        <span className="mt-1 block">{t[network.noticeKey]}</span>
+      </Hint>
+    </span>
+  );
+}
 
 /** Testnet warnings stay beside funds; mainnet transactions confirm details in their own review step. */
 export function NetworkContext({ disclosure = false }: { disclosure?: boolean }) {

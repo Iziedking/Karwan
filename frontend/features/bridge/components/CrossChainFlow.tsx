@@ -7,7 +7,7 @@ import { useAccount, useChainId, useReadContracts, useSwitchChain } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { api, ApiError } from '@/core/api';
 import { AuthGuard } from '@/shared/components/AuthGuard';
-import { NetworkContext } from '@/shared/components/NetworkContext';
+import { NetworkHint } from '@/shared/components/NetworkContext';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { moneySounds } from '@/shared/sound/moneySounds';
@@ -298,10 +298,7 @@ function CrossChainFlow({ intent }: { intent: CrossChainIntent }) {
   return (
     <div className="product-surface mx-auto max-w-[720px] px-4 pb-24 pt-6 sm:px-6">
       <header className="border-b border-[var(--lp-border-light)] pb-6">
-        <h1 className="text-[32px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]">{title}</h1>
-        <div className="mt-3">
-          <NetworkContext />
-        </div>
+        <h1 className="text-[32px] font-medium leading-tight tracking-normal text-[var(--ink)] sm:text-[40px]">{title}<NetworkHint /></h1>
       </header>
 
       <div className="divide-y divide-[var(--lp-border-light)] [&>*]:py-8">
