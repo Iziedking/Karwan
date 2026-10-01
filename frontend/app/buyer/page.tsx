@@ -7,10 +7,7 @@ import { useActivation } from '@/shared/hooks/useActivation';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { BusinessTradeDesk } from '@/features/buyer/components/BusinessTradeDesk';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
-import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
-import { MarketScout } from '@/features/research/components/MarketScout';
-import { SCOUT_ENABLED } from '@/features/profile/config';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -22,8 +19,7 @@ import {
   PageCard,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
-import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
-import { TRADE_ENTRY_COPY } from '@/features/home/tradeEntry';
+import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useSearchV2 } from '@/features/search/useSearchV2';
 import { DirectDealOnly, FindSellerPage } from '@/features/search/components/FindSellerPage';
 
@@ -49,12 +45,10 @@ function BuyerPageInner() {
 }
 
 function PersonalBuyerDesk() {
-  const { locale } = useLocale();
-  const entry = TRADE_ENTRY_COPY[locale];
   const creation = useTranslations().dealCreation;
   const auth = useAuth();
   const address = auth.address;
-  const { agents, activated } = useActivation();
+  const { activated } = useActivation();
   const [jobs, setJobs] = useState<BuyerJob[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const bh = useTranslations().buyerHub;
@@ -106,13 +100,6 @@ function PersonalBuyerDesk() {
               </div>
             </PageCard>
           </div>
-          <details className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-            <summary className="flex min-h-11 cursor-pointer items-center px-5 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{SCOUT_ENABLED ? entry.toolsResearch : entry.tools}<span aria-hidden className="ms-auto">⌄</span></summary>
-            <div className="space-y-4 px-5 pb-5">
-              <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
-              {SCOUT_ENABLED && <MarketScout />}
-            </div>
-          </details>
         </div>
       </Band>
 

@@ -5,9 +5,6 @@ import { api, type SellerActiveBid } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
-import { BalancesCard } from '@/features/balances/components/BalancesCard';
-import { MarketScout } from '@/features/research/components/MarketScout';
-import { SCOUT_ENABLED } from '@/features/profile/config';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -44,7 +41,7 @@ function SellerPageInner() {
   const auth = useAuth();
   const address = auth.address;
   const { isBusinessWorkspace } = useWorkspaceContext();
-  const { activated, agents } = useActivation();
+  const { activated } = useActivation();
   const [activeBids, setActiveBids] = useState<SellerActiveBid[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>('idle');
   const sh = useTranslations().sellerHub;
@@ -136,13 +133,6 @@ function SellerPageInner() {
               </div>
             </div>
           </div>
-          <details className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
-            <summary className="flex min-h-11 cursor-pointer items-center px-5 py-3 text-[14px] font-semibold text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">{SCOUT_ENABLED ? entry.toolsResearch : entry.tools}<span aria-hidden className="ms-auto">⌄</span></summary>
-            <div className="space-y-4 px-5 pb-5">
-              <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} />
-              {SCOUT_ENABLED && <MarketScout />}
-            </div>
-          </details>
         </div>
       </Band>
 

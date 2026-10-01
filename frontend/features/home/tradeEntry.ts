@@ -7,7 +7,7 @@ export const tradeEntryRoutes = (business: boolean) => ({
 });
 
 type Copy = { startHere: string; title: string; body: string; sell: string; sellBody: string; buy: string; buyBody: string;
-  agreement: string; scope: string; tools: string; toolsResearch: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
+  agreement: string; scope: string; options: string; buyTitle: string; sellTitle: string; businessBuyBody: string;
   journey: { brief: string; match: string; agree: string; settle: string };
   desk: {
     eyebrow: string; title: string; body: string; choosePath: string; paths: string; tryAgain: string;
@@ -28,7 +28,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     businessBuyBody: 'Browse what businesses offer on Karwan, then agree a deal.',
     agreement: 'I already have an agreement',
     scope: 'Matching starts within Karwan. Finding customers across other websites is planned.',
-    tools: 'Balance', toolsResearch: 'Balance and research', buyTitle: 'What do you need?', sellTitle: 'What do you offer?',
+    buyTitle: 'What do you need?', sellTitle: 'What do you offer?',
     journey: { brief: 'Brief', match: 'Match', agree: 'Agree', settle: 'Settle' },
     desk: {
       eyebrow: 'Trade desk', title: 'What would you like to trade?',
@@ -52,7 +52,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     businessBuyBody: 'Parcourez les offres des entreprises sur Karwan, puis convenez d’un accord.',
     agreement: 'J’ai déjà un accord',
     scope: 'Les mises en relation se font sur Karwan. La recherche de clients sur d’autres sites est prévue.',
-    tools: 'Solde', toolsResearch: 'Solde et recherche', buyTitle: 'De quoi avez-vous besoin ?', sellTitle: 'Que proposez-vous ?',
+    buyTitle: 'De quoi avez-vous besoin ?', sellTitle: 'Que proposez-vous ?',
     journey: { brief: 'Besoin', match: 'Mise en relation', agree: 'Accord', settle: 'Règlement' },
     desk: {
       eyebrow: 'Bureau des échanges', title: 'Que souhaitez-vous échanger ?',
@@ -76,7 +76,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     businessBuyBody: 'تصفح عروض الشركات على Karwan، ثم اتفق على صفقة.',
     agreement: 'لدي اتفاق بالفعل',
     scope: 'تبدأ المطابقة داخل Karwan. البحث عن عملاء عبر مواقع أخرى ضمن الخطط المستقبلية.',
-    tools: 'الرصيد', toolsResearch: 'الرصيد والبحث', buyTitle: 'ماذا تحتاج؟', sellTitle: 'ماذا تقدم؟',
+    buyTitle: 'ماذا تحتاج؟', sellTitle: 'ماذا تقدم؟',
     journey: { brief: 'الطلب', match: 'المطابقة', agree: 'الاتفاق', settle: 'التسوية' },
     desk: {
       eyebrow: 'مكتب التداول', title: 'ماذا تريد أن تتداول؟',
@@ -100,7 +100,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     businessBuyBody: 'Karwan पर व्यवसायों की पेशकश देखें, फिर सौदे की शर्तें तय करें।',
     agreement: 'मेरा समझौता पहले से है',
     scope: 'मिलान अभी Karwan के भीतर होता है। दूसरी वेबसाइटों पर ग्राहक खोजना भविष्य की योजना है।',
-    tools: 'शेष राशि', toolsResearch: 'शेष राशि और शोध', buyTitle: 'आपको क्या चाहिए?', sellTitle: 'आप क्या देते हैं?',
+    buyTitle: 'आपको क्या चाहिए?', sellTitle: 'आप क्या देते हैं?',
     journey: { brief: 'ज़रूरत', match: 'मिलान', agree: 'सहमति', settle: 'निपटान' },
     desk: {
       eyebrow: 'व्यापार डेस्क', title: 'आप क्या व्यापार करना चाहेंगे?',
@@ -124,7 +124,7 @@ export const TRADE_ENTRY_COPY: Record<Locale, Copy> = {
     businessBuyBody: 'Angalia bidhaa na huduma za biashara kwenye Karwan, kisha ukubaliane kuhusu biashara.',
     agreement: 'Tayari nina makubaliano',
     scope: 'Ulinganishaji unaanza ndani ya Karwan. Kutafuta wateja kwenye tovuti nyingine kumepangwa.',
-    tools: 'Salio', toolsResearch: 'Salio na utafiti', buyTitle: 'Unahitaji nini?', sellTitle: 'Unatoa nini?',
+    buyTitle: 'Unahitaji nini?', sellTitle: 'Unatoa nini?',
     journey: { brief: 'Hitaji', match: 'Ulinganifu', agree: 'Kubali', settle: 'Malipo' },
     desk: {
       eyebrow: 'Dawati la biashara', title: 'Ungependa kufanya biashara gani?',
