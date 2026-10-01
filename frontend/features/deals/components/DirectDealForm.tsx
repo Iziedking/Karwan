@@ -159,6 +159,41 @@ export function DirectDealForm() {
   const [terms, setTerms] = useState<TermsDraft>(() =>
     initialTerms.trim() ? { ...DEFAULT_TERMS, items: [initialTerms.trim()] } : DEFAULT_TERMS,
   );
+  // Opened from an offer: start from the terms the seller published and their
+  // ready-in time. A direct deal funds in two parts, so an offer split in more
+  // keeps its first part and puts the rest in the second.
+  const listingId = search.get('listing');
+  useEffect(() => {
+    if (!listingId) return;
+    let cancelled = false;
+    api.getListing(listingId)
+      .then(({ listing }) => {
+        if (cancelled) return;
+        const draft = listing.termsDraft;
+        if (draft) {
+          const first = draft.parts[0]!;
+          const last = draft.parts[draft.parts.length - 1]!;
+          setTerms({
+            items: draft.items.length ? draft.items : [''],
+            conditions: draft.conditions.length ? draft.conditions : [''],
+            proof: draft.proof,
+            parts: [
+              { pct: first.pct, covers: first.covers },
+              { pct: 100 - first.pct, covers: last.covers },
+            ],
+            reviewWindowDays: draft.reviewWindowDays,
+          });
+        }
+        if (listing.readyInDays) {
+          setDeadlineValue(listing.readyInDays);
+          setDeadlineUnit('d');
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [listingId]);
   // SME trade-finance state. Split into one useState per picker per the
   // Vercel `rerender-split-combined-hooks` rule. Default tradeType is
   // 'service' so the existing service-flow deal experience is unchanged.

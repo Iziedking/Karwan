@@ -111,24 +111,16 @@ export const SELLER_STEPS: TourStep[] = [
     target: 'seller-listing',
   },
   {
-    title: 'Set your price',
-    body: 'Enter your asking price in USDC. Your agent negotiates from buyer offers.',
-    target: 'seller-price',
+    title: 'Set the price and time',
+    body: 'Next you set a fixed price, the lowest you accept and how long you need once a deal starts.',
   },
   {
-    title: 'Set your minimum',
-    body: 'Choose how far your price can move. Zero keeps it at the asking price.',
-    target: 'seller-floor',
-  },
-  {
-    title: 'Set the live window',
-    body: 'Choose how long the offer stays open. Post again whenever you want to renew it.',
-    target: 'seller-window',
+    title: 'State your terms',
+    body: 'Then list what you deliver and how payment is split. A buyer who starts a deal from your offer starts from these terms.',
   },
   {
     title: 'Publish the offer',
-    body: 'Your agent watches for matching requests and brings back a deal for you to review.',
-    target: 'seller-submit',
+    body: 'Your agent looks for matching requests and brings back a deal for you to review.',
   },
 ];
 

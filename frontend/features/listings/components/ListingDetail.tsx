@@ -15,12 +15,16 @@ import {
   PageCard,
   CTAPill,
 } from '@/shared/components/Bands';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
 type FetchState = 'loading' | 'ok' | 'error';
 
 export function ListingDetail({ listingId }: { listingId: string }) {
-  const ld = useTranslations().listingDetail;
+  const translations = useTranslations();
+  const ld = translations.listingDetail;
+  const flow = translations.postListing.flow;
+  const { locale } = useLocale();
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
@@ -160,7 +164,7 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   // Buyer-side CTA: pre-fill the new-deal form with this seller + asking price
   // so anyone reading a listing can open a direct deal without copy-paste.
   const buyerOfferHref = isConnected
-    ? `/buyer?seller=${listing.sellerUser}&amount=${listing.askingPriceUsdc}&terms=${encodeURIComponent(listing.title)}`
+    ? `/buyer?seller=${listing.sellerUser}&amount=${listing.askingPriceUsdc}&terms=${encodeURIComponent(listing.title)}&listing=${encodeURIComponent(listing.id)}`
     : '/buyer';
 
   return (
@@ -240,6 +244,12 @@ export function ListingDetail({ listingId }: { listingId: string }) {
           <PageCard>
             <div className="p-6 md:p-7 space-y-4">
               <PriceRow label={ld.pitch.askingLabel} value={listing.askingPriceUsdc} strong />
+              {listing.readyInDays ? (
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[13px] text-[var(--lp-text-sub)]">{flow.readyIn}</span>
+                  <span className="text-[14px] text-[var(--lp-dark)]">{flow.readyInRow.replace('{n}', String(listing.readyInDays))}</span>
+                </div>
+              ) : null}
               {showFloor && (
                 <>
                   <PriceRow
@@ -265,6 +275,16 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             </div>
           </PageCard>
         </div>
+        {listing.terms ? (
+          <div className="mt-5">
+            <PageCard>
+              <div className="p-6 md:p-7">
+                <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{TERMS_COPY[locale].agreement}</p>
+                <p dir="auto" className="mt-3 whitespace-pre-wrap text-[14px] leading-6 text-[var(--lp-text-sub)]">{listing.terms}</p>
+              </div>
+            </PageCard>
+          </div>
+        ) : null}
       </Band>
 
       <Band tone="dark" compact>

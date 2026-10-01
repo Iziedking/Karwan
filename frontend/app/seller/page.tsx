@@ -5,6 +5,7 @@ import { api, type SellerActiveBid } from '@/core/api';
 import { useActivation } from '@/shared/hooks/useActivation';
 import { BidsTable } from '@/features/seller/components/BidsTable';
 import { ListingComposer } from '@/features/seller/components/ListingComposer';
+import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -16,6 +17,7 @@ import {
   Punc,
   Accent,
   CTAPill,
+  PageCard,
 } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
@@ -113,25 +115,18 @@ function SellerPageInner() {
       <ActivateAgentsNotice role="seller" tone="light" />
 
       {/* POST LISTING */}
-      <Band tone="dark" compact>
+      <Band tone="light" compact>
         <div id="post-listing" className="scroll-mt-20" />
-        <div className="mt-6 max-w-[760px] space-y-5">
-          <div className="min-w-0">
-            <div
-              className="overflow-hidden"
-              style={{
-                background: 'var(--lp-workspace-raised)',
-                border: '1px solid var(--lp-workspace-border)',
-                borderTopLeftRadius: 22,
-                borderTopRightRadius: 22,
-                borderBottomLeftRadius: 22,
-                borderBottomRightRadius: 5,
-              }}
-            >
+        <div className="mx-auto grid max-w-[1120px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="lg:sticky lg:top-24 lg:order-2">
+            <BalanceSidecar />
+          </div>
+          <div className="min-w-0 lg:order-1">
+            <PageCard>
               <div className="p-6 md:p-8">
                 <ListingComposer />
               </div>
-            </div>
+            </PageCard>
           </div>
         </div>
       </Band>

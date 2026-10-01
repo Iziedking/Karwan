@@ -61,7 +61,20 @@ test('the buyer reads the note and changing the terms leads', async ({ page }) =
 test('the old deal page offers the same turn-down', async ({ page }) => {
   await serveDeal(page, offered, SELLER);
   await page.goto(`/deals/${JOB}?workspace=v1`);
-  await page.getByRole('button', { name: 'Continue to next step' }).click();
   await page.getByRole('button', { name: copy.declineCta, exact: true }).click();
   await expect(page.getByLabel(copy.declineLabel)).toBeVisible();
+});
+
+test('the buyer can cancel on the new deal page while nothing is funded', async ({ page }) => {
+  await serveDeal(page, { ...offered, view: { ...offered.view!, next: { action: null, actor: 'counterparty', amountUsdc: null } } }, BUYER);
+  let cancelled: unknown = null;
+  await page.route(`**/api/deals/direct/${JOB}/cancel`, async (route) => {
+    cancelled = route.request().postDataJSON();
+    await route.fulfill({ json: { accepted: true, jobId: JOB } });
+  });
+  await page.goto(`/deals/${JOB}`);
+  await page.getByRole('button', { name: en.dealWorkspace.cancelDeal.cta, exact: true }).click();
+  await expect(page.getByText(en.dealWorkspace.cancelDeal.consequence)).toBeVisible();
+  await page.getByTestId('deal-confirm').click();
+  await expect.poll(() => cancelled).toEqual({ caller: BUYER });
 });

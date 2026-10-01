@@ -8,6 +8,7 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { BusinessTradeDesk } from '@/features/buyer/components/BusinessTradeDesk';
 import { JobsTable } from '@/features/buyer/components/JobsTable';
 import { NewDealPanel } from '@/features/deals/components/NewDealPanel';
+import { BalanceSidecar } from '@/features/balances/components/BalanceSidecar';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { ActivateAgentsNotice } from '@/shared/components/ActivateAgentsNotice';
 import {
@@ -92,8 +93,11 @@ function PersonalBuyerDesk() {
       {/* NEW DEAL + SIDE COLUMN */}
       <Band tone="light" compact>
         <div id="new-deal" className="scroll-mt-20" />
-        <div className="mx-auto max-w-[860px] space-y-5">
-          <div className="min-w-0">
+        <div className="mx-auto grid max-w-[1120px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="lg:sticky lg:top-24 lg:order-2">
+            <BalanceSidecar />
+          </div>
+          <div className="min-w-0 lg:order-1">
             <PageCard>
               <div className="p-6 md:p-8">
                 <NewDealPanel />

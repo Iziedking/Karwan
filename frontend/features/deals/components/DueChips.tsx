@@ -59,6 +59,15 @@ export function DueChips({
   }
 
   const unitMax = unit === 'd' ? maxDays : UNIT_MAX[unit];
+  // A day count set from outside (an offer's ready-in time) that is not a chip reads as its date.
+  const setElsewhere =
+    unit === 'd' && typeof value === 'number' && value > 0 && !exactTime && !pickedDate && !CHIPS.some(([days]) => days === value);
+  const dateChipOn = (Boolean(pickedDate) && value !== '') || setElsewhere;
+  const dateChipLabel = pickedDate && value !== ''
+    ? rs.dueOn.replace('{date}', shortDate(new Date(`${pickedDate}T12:00:00`).getTime()))
+    : setElsewhere
+      ? rs.dueOn.replace('{date}', shortDate(Date.now() + (value as number) * DAY_MS))
+      : rs.pickDate;
 
   return (
     <div className="space-y-3">
@@ -89,11 +98,11 @@ export function DueChips({
         })}
         <label
           className={cn(
-            chipClass(Boolean(pickedDate) && value !== ''),
+            chipClass(dateChipOn),
             'relative cursor-pointer flex-row items-center gap-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--lp-accent)]',
           )}
         >
-          <span>{pickedDate && value !== '' ? rs.dueOn.replace('{date}', shortDate(new Date(`${pickedDate}T12:00:00`).getTime())) : rs.pickDate}</span>
+          <span>{dateChipLabel}</span>
           <input
             type="date"
             value={pickedDate}

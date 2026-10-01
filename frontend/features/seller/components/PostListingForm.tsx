@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -12,55 +12,70 @@ import { useDismissed } from '@/shared/hooks/useDismissed';
 import { PageTour } from '@/shared/guide/PageTour';
 import { useGuide } from '@/shared/guide/GuideProvider';
 import { SELLER_TOUR_ID, SELLER_STEPS } from '@/shared/guide/tours';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { Icon } from '@/shared/components/Icon';
+import { CreationReview } from '@/features/deals/components/CreationReview';
+import { TermsBuilder, DEFAULT_TERMS } from '@/features/deals/terms/TermsBuilder';
+import { cleanLines, composeTerms, termsIssues, type TermsDraft } from '@/features/deals/terms/composeTerms';
+import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
+
+const READY_CHIPS = [1, 3, 7, 14] as const;
+const MAX_READY_DAYS = 180;
+const OPEN_CHIPS = [7, 30, 90] as const;
+const MAX_FLOOR_DROP_PCT = 50;
+
+const chip =
+  'inline-flex min-h-11 items-center rounded-full border px-3.5 text-[14px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]';
+const chipOn = 'border-[var(--lp-dark)] bg-[var(--lp-dark)] text-[var(--lp-light)]';
+const chipOff = 'border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] hover:border-[var(--lp-outline-strong)]';
+
+const fill = (template: string, n: number | string) => template.replace('{n}', String(n));
 
 export function PostListingForm() {
   const pl = useTranslations().postListing;
+  const t = useTranslations();
+  const rs = t.dealCreation.requestSteps;
+  const f = pl.flow;
+  const { locale } = useLocale();
   const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
   const { activate, activating } = useActivation();
   const { recordAction } = useGuide();
-  // Initial values from URL query params. ListingComposer sets these after
-  // the natural-language extractor lands so the form mounts pre-filled.
-  // Parsing is defensive: bad values fall through to the empty defaults.
+  // ListingComposer sets these after the natural-language extractor lands so
+  // the form mounts pre-filled. Bad values fall through to empty defaults.
   const search = useSearchParams();
-  const initialTitle = search.get('title') ?? '';
-  const initialDescription = search.get('description') ?? '';
   const initialPriceRaw = search.get('price');
   const initialPrice =
-    initialPriceRaw != null && Number.isFinite(Number(initialPriceRaw))
+    initialPriceRaw != null && Number.isFinite(Number(initialPriceRaw)) && Number(initialPriceRaw) > 0
       ? Number(initialPriceRaw)
       : null;
   const initialToleranceRaw = search.get('tolerance');
   const initialTolerance =
-    initialToleranceRaw != null && Number.isFinite(Number(initialToleranceRaw))
-      ? Number(initialToleranceRaw)
-      : null;
-  const [title, setTitle] = useState(initialTitle);
-  const [description, setDescription] = useState(initialDescription);
+    initialToleranceRaw != null && Number.isFinite(Number(initialToleranceRaw)) ? Number(initialToleranceRaw) : null;
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [reviewing, setReviewing] = useState(false);
+  const [title, setTitle] = useState(search.get('title') ?? '');
+  const [description, setDescription] = useState(search.get('description') ?? '');
   const [price, setPrice] = useState<number | ''>(initialPrice ?? '');
-  const [tolerance, setTolerance] = useState<number | ''>(initialTolerance ?? '');
-  // Listing window in days. Backend caps at 90; default 30 lines up with
-  // most marketplaces' "your post stays live for a month" convention.
-  // Listing window expressed as { value, unit }. Backend takes ttlDays as a
-  // fractional number so unit toggling on the form maps cleanly. Default is
-  // 30 days; demo flows often pick HR or MIN to drive expiry visibly.
-  const [ttlValue, setTtlValue] = useState<number | ''>('');
-  const [ttlUnit, setTtlUnit] = useState<'min' | 'hr' | 'day'>('day');
+  const [floorPrice, setFloorPrice] = useState<number | ''>(
+    initialPrice != null && initialTolerance != null && initialTolerance > 0
+      ? Math.round(initialPrice * (1 - initialTolerance / 100) * 100) / 100
+      : '',
+  );
+  const [readyInDays, setReadyInDays] = useState<number | ''>('');
+  const [customReady, setCustomReady] = useState(false);
+  const [openDays, setOpenDays] = useState<number>(30);
+  const [terms, setTerms] = useState<TermsDraft>(DEFAULT_TERMS);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recent, setRecent] = useState<Listing[]>([]);
   const { dismissed, dismiss } = useDismissed('seller-listings');
   const [watchingForListingId, setWatchingForListingId] = useState<string | null>(null);
   const watchedListingRef = useRef<string | null>(null);
-  // When the user clicks Post Listing on a post that reads as a request
-  // ("Need a backend engineer"), we surface a confirmation BEFORE hitting
-  // the API. Cleared on every text edit so the user has to pass it again
-  // after rewording. Two-state: false = warning not raised yet, true = user
-  // saw the warning and chose to proceed anyway.
+  // An offer that reads like a request ("Need a backend engineer") is named
+  // before posting. Cleared on every text edit so a reworded post passes again.
   const [intentWarned, setIntentWarned] = useState(false);
   const intentCheck = looksLikeWrongSide(title, description, 'offer');
 
@@ -91,11 +106,30 @@ export function PostListingForm() {
     api.listingsForSeller(address).then((r) => setRecent(r.listings)).catch(() => {});
   }, [address]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!address || !title || !description || typeof price !== 'number') return;
-    // Gate the post if the wording reads as a request, not an offer. The
-    // user can dismiss by clicking again (intentWarned flips true).
+  const priceValue = typeof price === 'number' && price > 0 ? price : null;
+  const floorDropPct =
+    priceValue && typeof floorPrice === 'number' && floorPrice > 0 && floorPrice <= priceValue
+      ? Math.round(((priceValue - floorPrice) / priceValue) * 10000) / 100
+      : null;
+  const floorInvalid =
+    floorPrice !== '' && (!priceValue || floorPrice <= 0 || floorPrice > priceValue || (floorDropPct ?? 0) > MAX_FLOOR_DROP_PCT);
+  const readyValid = typeof readyInDays === 'number' && readyInDays >= 1 && readyInDays <= MAX_READY_DAYS;
+  const agreementText = composeTerms(terms, { priceUsdc: priceValue, dueLabel: null }, TERMS_COPY[locale].text);
+  const stepReady =
+    step === 0
+      ? title.trim().length >= 3 && description.trim().length >= 5
+      : step === 1
+        ? !!priceValue && !floorInvalid && readyValid
+        : termsIssues(terms).length === 0;
+
+  function goForward() {
+    if (!stepReady) return;
+    if (step < 2) setStep((step + 1) as 1 | 2);
+    else setReviewing(true);
+  }
+
+  async function publish() {
+    if (!address || !priceValue || !readyValid || submitting) return;
     if (intentCheck.wrong && !intentWarned) {
       setIntentWarned(true);
       return;
@@ -107,23 +141,29 @@ export function PostListingForm() {
         sellerUser: address,
         title: title.trim(),
         description: description.trim(),
-        askingPriceUsdc: price,
-        negotiationMaxDecreasePct: typeof tolerance === 'number' ? tolerance : undefined,
-        ttlDays:
-          typeof ttlValue === 'number'
-            ? ttlValue *
-              (ttlUnit === 'min' ? 1 / 1440 : ttlUnit === 'hr' ? 1 / 24 : 1)
-            : undefined,
+        askingPriceUsdc: priceValue,
+        negotiationMaxDecreasePct: floorDropPct ?? undefined,
+        ttlDays: openDays,
+        readyInDays: readyInDays as number,
+        terms: agreementText,
+        termsDraft: {
+          items: cleanLines(terms.items),
+          conditions: cleanLines(terms.conditions),
+          proof: 'link',
+          parts: terms.parts,
+          reviewWindowDays: terms.reviewWindowDays,
+        },
       });
       setRecent((prev) => [r.listing, ...prev]);
       setWatchingForListingId(r.listing.id);
       recordAction('post-listing');
       setTitle('');
       setDescription('');
+      setTerms(DEFAULT_TERMS);
+      setReviewing(false);
+      setStep(0);
     } catch (err) {
-      const detail =
-        err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message;
-      setError(detail);
+      setError(err instanceof ApiError && err.detail ? String(err.detail) : (err as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -133,304 +173,286 @@ export function PostListingForm() {
     return <p className="text-[13px] text-[var(--lp-workspace-muted)]">{pl.notConnected}</p>;
   }
 
-  const disabled = submitting || !title.trim() || !description.trim() || !price;
-  const previewPrice = typeof price === 'number' ? price : 0;
-  const previewTol = typeof tolerance === 'number' ? tolerance : 0;
-  const floor =
-    typeof price === 'number' && typeof tolerance === 'number'
-      ? (price * (1 - tolerance / 100)).toFixed(2)
-      : null;
+  const stepLabels = [rs.describe, rs.price, rs.payment];
 
   return (
     <div className="space-y-7">
       <PageTour id={SELLER_TOUR_ID} steps={SELLER_STEPS} />
-      <form onSubmit={submit} className="space-y-7">
-        <div
-          aria-live="polite"
-          className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-5 py-5 sm:px-6"
-        >
-          <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{pl.preview.eyebrow}</p>
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-[40px] font-semibold leading-none tabular-nums tracking-[-0.02em] text-[var(--lp-dark)]">
-              {previewPrice}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (reviewing) void publish();
+          else goForward();
+        }}
+        className="space-y-7"
+      >
+        <fieldset hidden={reviewing} disabled={submitting} className="min-w-0 space-y-6">
+          <div className="flex items-center gap-3" aria-live="polite">
+            <span aria-hidden className="flex items-center gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'block h-2 rounded-full transition-all duration-[var(--dur-small)]',
+                    i === step ? 'w-6 bg-[var(--lp-dark)]' : i < step ? 'w-2 bg-[var(--lp-accent)]' : 'w-2 bg-[var(--lp-border-light)]',
+                  )}
+                />
+              ))}
             </span>
-            <span className="text-[15px] font-medium text-[var(--lp-text-sub)]">USDC</span>
-            {previewTol > 0 && (
-              <span className="text-[15px] text-[var(--lp-text-sub)]">
-                <span className="font-semibold tabular-nums text-[var(--lp-dark)]">−{previewTol}%</span> {pl.preview.acceptCaption}
-              </span>
-            )}
+            <span className="text-[13px] font-semibold text-[var(--lp-text-sub)]">
+              {fill(rs.stepOf, step + 1)} · {stepLabels[step]}
+            </span>
           </div>
-          <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-[var(--lp-text-sub)]">
-            <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent-on-light)]" />
-              {pl.preview.agentListening}
-            </span>
-            {floor && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="tabular-nums">{pl.preview.floorTemplate.replace('{amount}', floor)}</span>
-              </>
-            )}
-            <span aria-hidden>·</span>
-            <span>{pl.preview.matchedCaption}</span>
-          </p>
-        </div>
 
-        {/* WHAT YOU OFFER */}
-        <FieldSection eyebrow={pl.sectionWork.eyebrow} title={pl.sectionWork.title} dataGuide="seller-listing">
-          <FormLabel label={pl.sectionWork.titleLabel} hint={pl.sectionWork.titleHint}>
-            <input
-              type="text"
-              value={title}
-              maxLength={120}
-              disabled={submitting}
-              placeholder={pl.sectionWork.titlePlaceholder}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setIntentWarned(false);
-              }}
-              className="form-input"
-            />
-          </FormLabel>
-          <FormLabel
-            label={pl.sectionWork.descriptionLabel}
-            hint={pl.sectionWork.descriptionHint}
-          >
-            <textarea
-              value={description}
-              rows={3}
-              maxLength={500}
-              disabled={submitting}
-              placeholder={pl.sectionWork.descriptionPlaceholder}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                setIntentWarned(false);
-              }}
-              className="form-input form-textarea"
-            />
-          </FormLabel>
-        </FieldSection>
+          <div hidden={step !== 0} className="space-y-6" data-guide="seller-listing">
+            <Field label={pl.sectionWork.titleLabel} hint={pl.sectionWork.titleHint}>
+              <input
+                type="text"
+                value={title}
+                maxLength={120}
+                placeholder={pl.sectionWork.titlePlaceholder}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setIntentWarned(false);
+                }}
+                className="form-input"
+              />
+            </Field>
+            <Field label={pl.sectionWork.descriptionLabel} hint={pl.sectionWork.descriptionHint}>
+              <textarea
+                value={description}
+                rows={4}
+                maxLength={500}
+                placeholder={pl.sectionWork.descriptionPlaceholder}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setIntentWarned(false);
+                }}
+                className="form-input form-textarea"
+              />
+            </Field>
+          </div>
 
-        {/* PRICING */}
-        <FieldSection eyebrow={pl.sectionPricing.eyebrow} title={pl.sectionPricing.title}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <FormLabel
-              label={pl.sectionPricing.askingLabel}
-              unit="USDC"
-              hint={pl.sectionPricing.askingHint}
-              dataGuide="seller-price"
-            >
-              <input
-                type="number"
-                min={1}
-                step={1}
-                value={price}
-                disabled={submitting}
-                onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="0"
-                className="form-input form-input-num"
-              />
-            </FormLabel>
-            <FormLabel
-              label={pl.sectionPricing.acceptLabel}
-              unit="%"
-              hint={pl.sectionPricing.acceptHint}
-              dataGuide="seller-floor"
-            >
-              <input
-                type="number"
-                min={0}
-                max={50}
-                step={1}
-                value={tolerance}
-                disabled={submitting}
-                onChange={(e) =>
-                  setTolerance(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                placeholder="0"
-                className="form-input form-input-num"
-              />
-            </FormLabel>
-            <FormLabel
-              label={pl.sectionPricing.windowLabel}
-              unit={
-                ttlUnit === 'min'
-                  ? pl.sectionPricing.windowUnitShort.min
-                  : ttlUnit === 'hr'
-                    ? pl.sectionPricing.windowUnitShort.hr
-                    : pl.sectionPricing.windowUnitShort.day
-              }
-              hint={pl.sectionPricing.windowHint}
-              dataGuide="seller-window"
-            >
-              <div className="flex items-stretch gap-2">
+          <div hidden={step !== 1} className="space-y-6">
+            <div role="group" aria-label={f.charge}>
+              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.charge}</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <span className="rounded-[16px] border border-[var(--lp-accent)] bg-[var(--lp-card)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--lp-accent)]">
+                  <span className="flex items-center justify-between gap-2 text-[15px] font-semibold text-[var(--lp-dark)]">
+                    {f.fixed}
+                    <span className="grid size-5 place-items-center rounded-full bg-[var(--lp-accent)] text-[var(--lp-band-dark)]">
+                      <Icon name="check" size={16} />
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)]">{f.fixedHint}</span>
+                </span>
+                {[
+                  { label: f.perUnit, hint: f.perUnitHint },
+                  { label: f.perHour, hint: f.perHourHint },
+                ].map((option) => (
+                  <span
+                    key={option.label}
+                    role="button"
+                    aria-disabled="true"
+                    tabIndex={0}
+                    aria-label={`${option.label}, ${f.soon}`}
+                    className="group cursor-not-allowed rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-3 opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--lp-accent)]"
+                  >
+                    <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{option.label}</span>
+                    <span aria-hidden className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)] group-hover:hidden group-focus-visible:hidden">
+                      {option.hint}
+                    </span>
+                    <span aria-hidden className="mt-0.5 hidden text-[13px] font-semibold text-[var(--lp-dark)] group-hover:block group-focus-visible:block">
+                      {f.soon}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={f.price} unit="USDC" hint={pl.sectionPricing.askingHint} dataGuide="seller-price">
                 <input
                   type="number"
+                  inputMode="decimal"
                   min={1}
-                  max={ttlUnit === 'min' ? 1440 : ttlUnit === 'hr' ? 168 : 90}
-                  step={1}
-                  value={ttlValue}
-                  disabled={submitting}
-                  onChange={(e) =>
-                    setTtlValue(e.target.value === '' ? '' : Number(e.target.value))
-                  }
+                  step="any"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
                   placeholder="0"
-                  className="form-input form-input-num flex-1 min-w-0"
+                  className="form-input form-input-num"
                 />
-                <div
-                  role="radiogroup"
-                  aria-label={pl.sectionPricing.unitPickerAria}
-                  className="inline-flex items-stretch p-1 shrink-0"
-                  style={{
-                    background: 'var(--lp-workspace-soft)',
-                    border: '1px solid var(--lp-workspace-border)',
-                    borderTopLeftRadius: 10,
-                    borderTopRightRadius: 10,
-                    borderBottomLeftRadius: 10,
-                    borderBottomRightRadius: 2,
-                  }}
-                >
-                  {(['min', 'hr', 'day'] as const).map((u) => {
-                    const active = ttlUnit === u;
-                    const label =
-                      u === 'min'
-                        ? pl.sectionPricing.unitPickerLabels.min
-                        : u === 'hr'
-                          ? pl.sectionPricing.unitPickerLabels.hr
-                          : pl.sectionPricing.unitPickerLabels.day;
-                    return (
-                      <button
-                        key={u}
-                        type="button"
-                        role="radio"
-                        aria-checked={active}
-                        disabled={submitting}
-                        onClick={() => {
-                          setTtlUnit(u);
-                          // Snap defaults so the value is sensible per unit.
-                          if (u === 'min' && (typeof ttlValue !== 'number' || ttlValue > 1440)) setTtlValue(10);
-                          if (u === 'hr' && (typeof ttlValue !== 'number' || ttlValue > 168)) setTtlValue(2);
-                          if (u === 'day' && (typeof ttlValue !== 'number' || ttlValue > 90)) setTtlValue(30);
-                        }}
-                        className="min-h-11 min-w-11 px-3 mono text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-[var(--dur-micro)]"
-                        style={{
-                          background: active ? 'var(--lp-accent)' : 'transparent',
-                          color: active
-                            ? 'var(--lp-control-active-ink)'
-                            : 'var(--lp-workspace-muted)',
-                          borderTopLeftRadius: 7,
-                          borderTopRightRadius: 7,
-                          borderBottomLeftRadius: 7,
-                          borderBottomRightRadius: 1,
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </FormLabel>
-          </div>
-        </FieldSection>
+              </Field>
+              <Field label={f.floor} unit="USDC" hint={f.floorHint} dataGuide="seller-floor">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="any"
+                  value={floorPrice}
+                  onChange={(e) => setFloorPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder={priceValue ? String(priceValue) : '0'}
+                  aria-invalid={floorInvalid || undefined}
+                  className="form-input form-input-num"
+                />
+                {floorInvalid ? (
+                  <span className="block text-[13px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">{f.floorTooLow}</span>
+                ) : null}
+              </Field>
+            </div>
 
-        {/* INTENT WARNING. surfaces if the post reads as a buyer request
-            rather than a seller offer. User can click submit again to post
-            anyway, but the form has named the trap. */}
-        {intentCheck.wrong && intentWarned && (
-          <div
-            className="px-4 py-3"
-            style={{
-              background: 'rgba(178, 84, 37, 0.10)',
-              border: '1px solid rgba(178, 84, 37, 0.35)',
-              color: '#e8806b',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
-            }}
+            <div>
+              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.readyIn}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {READY_CHIPS.map((days) => {
+                  const on = !customReady && readyInDays === days;
+                  return (
+                    <button
+                      key={days}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        setCustomReady(false);
+                        setReadyInDays(days);
+                      }}
+                      className={cn(chip, on ? chipOn : chipOff)}
+                    >
+                      {days === 1 ? f.day1 : fill(f.days, days)}
+                    </button>
+                  );
+                })}
+                <button type="button" aria-pressed={customReady} onClick={() => setCustomReady(true)} className={cn(chip, customReady ? chipOn : chipOff)}>
+                  {f.other}
+                </button>
+                {customReady ? (
+                  <label className="inline-flex items-center gap-2 text-[14px] text-[var(--lp-text-sub)]">
+                    <span className="block w-20 shrink-0">
+                      <input
+                        inputMode="numeric"
+                        value={readyInDays === '' ? '' : String(readyInDays)}
+                        onChange={(e) => {
+                          const text = e.target.value.replace(/\D/g, '').slice(0, 3);
+                          setReadyInDays(text === '' ? '' : Math.min(MAX_READY_DAYS, Number(text)));
+                        }}
+                        aria-label={f.otherDays}
+                        className="form-input form-input-num h-10 text-end"
+                      />
+                    </span>
+                    {f.otherDays}
+                  </label>
+                ) : null}
+              </div>
+              <p className="mt-1.5 text-[13px] text-[var(--lp-text-sub)]">{f.readyInHint}</p>
+            </div>
+
+            <div data-guide="seller-window">
+              <p className="mb-2 text-[14px] font-semibold text-[var(--lp-dark)]">{f.openFor}</p>
+              <div className="flex flex-wrap gap-2">
+                {OPEN_CHIPS.map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    aria-pressed={openDays === days}
+                    onClick={() => setOpenDays(days)}
+                    className={cn(chip, openDays === days ? chipOn : chipOff)}
+                  >
+                    {days === 7 ? f.openWeek : days === 30 ? f.open30 : f.open90}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div hidden={step !== 2} className="space-y-6">
+            <TermsBuilder value={terms} onChange={setTerms} priceUsdc={priceValue} dueLabel={null} disabled={submitting} />
+          </div>
+        </fieldset>
+
+        {reviewing ? (
+          <CreationReview
+            busy={submitting}
+            onEdit={() => setReviewing(false)}
+            rows={[
+              { label: pl.sectionWork.titleLabel, value: title.trim() },
+              { label: pl.sectionWork.descriptionLabel, value: description.trim() },
+              { label: f.charge, value: f.fixed },
+              { label: f.price, value: `${priceValue} USDC` },
+              ...(floorDropPct ? [{ label: f.floor, value: `${floorPrice} USDC` }] : []),
+              { label: f.readyIn, value: fill(f.readyInRow, readyInDays) },
+              { label: f.openFor, value: fill(f.openForRow, openDays) },
+              { label: t.dealCreation.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
+              ...(cleanLines(terms.conditions).length
+                ? [{ label: TERMS_COPY[locale].conditions, value: cleanLines(terms.conditions).map((line) => `• ${line}`).join('\n') }]
+                : []),
+              { label: TERMS_COPY[locale].agreement, value: agreementText },
+            ]}
           >
-            <p className="mono text-[9px] font-bold uppercase tracking-[0.18em] mb-1.5">
-              {pl.intentWarning.eyebrow}
-            </p>
-            <p className="text-[12.5px] leading-snug text-[var(--lp-workspace-ink)]">
+            <p>{f.next}</p>
+          </CreationReview>
+        ) : null}
+
+        {/* An offer that reads like a request is named before it posts. A
+            second press publishes it as written. */}
+        {reviewing && intentCheck.wrong && intentWarned && (
+          <div className="rounded-[12px] border border-[color-mix(in_srgb,var(--lp-dark)_20%,var(--neg))] px-4 py-3">
+            <p className="text-[14px] font-semibold text-[var(--lp-dark)]">{pl.intentWarning.eyebrow}</p>
+            <p className="mt-1 text-[14px] leading-snug text-[var(--lp-dark)]">
               {pl.intentWarning.bodyPart1}
               <span className="font-bold">{pl.intentWarning.bodyEmphNeed}</span>
               {pl.intentWarning.bodyPart2}
               <span className="font-bold">{pl.intentWarning.bodyEmphOffer}</span>
               {pl.intentWarning.bodyPart3}
-              <a href="/buyer" className="underline underline-offset-2 hover:text-[var(--lp-accent)]">
+              <a href="/buyer" className="underline underline-offset-2">
                 {pl.intentWarning.postRequestLink}
               </a>
               {pl.intentWarning.bodyPart4}
-              <span className="font-bold">{pl.intentWarning.submitEmph}</span>
+              <span className="font-bold">{f.publish}</span>
               {pl.intentWarning.bodyPart5}
             </p>
           </div>
         )}
 
-        {/* SUBMIT */}
-        <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-[var(--lp-workspace-border)]">
-          <button
-            type="submit"
-            data-guide="seller-submit"
-            disabled={disabled}
-            className={cn(
-              'group inline-flex items-center gap-2 px-[22px] py-[13px] mono text-[13px] font-semibold uppercase tracking-[0.08em]',
-              'transition-[transform,box-shadow] duration-150',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-dark)]',
-              disabled
-                ? 'bg-[var(--lp-workspace-soft)] text-[var(--lp-workspace-faint)] cursor-not-allowed border border-[var(--lp-workspace-border)]'
-                : 'bg-[var(--lp-accent)] text-[var(--lp-band-dark)] hover:bg-[var(--lp-accent-hover)] hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_0_rgba(0,0,0,0.45)] hover:shadow-[0_5px_0_rgba(0,0,0,0.45)] active:shadow-[0_1px_0_rgba(0,0,0,0.45)]',
-            )}
-            style={{
-              borderTopLeftRadius: 14,
-              borderTopRightRadius: 14,
-              borderBottomLeftRadius: 14,
-              borderBottomRightRadius: 4,
-            }}
-          >
-            {submitting && (
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 16 16"
-                fill="none"
-                className="animate-spin"
-                aria-hidden
-              >
-                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-                <path d="M14 8a6 6 0 0 0-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            )}
-            {submitting ? pl.submit.posting : pl.submit.cta}
-            {!submitting && <Icon name="send" size={16} directional />}
-          </button>
-          {!submitting && (
-            <p className="mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)] leading-snug">
-              {pl.submit.fundsCaption}
-            </p>
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {!reviewing && step > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStep((step - 1) as 0 | 1)}
+              disabled={submitting}
+              className="inline-flex min-h-12 items-center rounded-full px-4 text-[15px] font-semibold text-[var(--lp-dark)] hover:bg-[var(--lp-light)]"
+            >
+              {rs.back}
+            </button>
+          ) : null}
+          {reviewing ? (
+            <button
+              type="submit"
+              data-guide="seller-submit"
+              disabled={submitting}
+              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
+            >
+              {submitting ? f.publishing : f.publish}
+              {!submitting && <Icon name="send" size={16} directional />}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!stepReady || submitting}
+              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-[var(--lp-accent)] px-6 text-[15px] font-semibold text-[var(--lp-band-dark)] transition-colors hover:bg-[var(--lp-accent-hover)] disabled:cursor-not-allowed disabled:opacity-45 sm:flex-none"
+            >
+              {step < 2 ? rs.continue : t.dealCreation.review}
+            </button>
           )}
         </div>
 
         {watchingForListingId && (
-          <p className="inline-flex items-center gap-2 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-accent)]">
-            <span
-              aria-hidden
-              data-instrument-blink
-              className="w-[6px] h-[6px]"
-              style={{
-                background: 'var(--lp-accent)',
-                animation: 'instrumentBlink 1.6s ease-in-out infinite',
-              }}
-            />
+          <p className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-accent-on-light)]">
+            <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)]" />
             {pl.watchingScanning}
           </p>
         )}
         {error && (
           <div className="space-y-1.5">
-            <p className="mono text-[12px] text-[#ff8a7a]">
+            <p role="alert" className="text-[14px] text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]">
               {pl.errors.postFailedTemplate.replace('{error}', error)}
             </p>
             {/activate|agent wallet/i.test(error) && (
@@ -445,8 +467,7 @@ export function PostListingForm() {
                   }
                 }}
                 disabled={activating}
-                className="mono text-[11px] uppercase tracking-[0.1em] underline underline-offset-2 disabled:opacity-50"
-                style={{ color: 'var(--lp-accent)' }}
+                className="text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-2 disabled:opacity-50"
               >
                 {activating ? pl.errors.activating : pl.errors.activateCta}
               </button>
@@ -554,38 +575,11 @@ export function PostListingForm() {
           </div>
         );
       })()}
-
     </div>
   );
 }
 
-function FieldSection({
-  eyebrow,
-  title,
-  children,
-  dataGuide,
-}: {
-  eyebrow: string;
-  title: string;
-  children: ReactNode;
-  dataGuide?: string;
-}) {
-  return (
-    <section className="space-y-4" data-guide={dataGuide}>
-      <div className="space-y-1.5">
-        <p className="mono text-[10px] uppercase tracking-[0.18em] font-medium text-[var(--lp-workspace-muted)]">
-          {eyebrow}
-        </p>
-        <h3 className="font-sans text-[17px] font-extrabold uppercase tracking-[-0.02em] text-[var(--lp-workspace-ink)]">
-          {title}
-        </h3>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function FormLabel({
+function Field({
   label,
   unit,
   hint,
@@ -600,16 +594,12 @@ function FormLabel({
 }) {
   return (
     <label className="block space-y-2" data-guide={dataGuide}>
-      <span className="flex items-center gap-2 justify-between">
-        <span className="inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] font-medium text-[var(--lp-workspace-muted)]">
+      <span className="flex items-center justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
           {label}
           {hint && <Hint>{hint}</Hint>}
         </span>
-        {unit && (
-          <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-workspace-faint)]">
-            {unit}
-          </span>
-        )}
+        {unit && <span className="text-[13px] text-[var(--lp-text-sub)]">{unit}</span>}
       </span>
       {children}
     </label>

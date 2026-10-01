@@ -62,7 +62,9 @@ export function TermsBuilder({
   const id = useId();
   const [customReview, setCustomReview] = useState(!REVIEW_CHOICES.includes(value.reviewWindowDays as (typeof REVIEW_CHOICES)[number]));
   const [reviewText, setReviewText] = useState(String(value.reviewWindowDays));
-  const [customSplit, setCustomSplit] = useState(!PRESETS.some((preset) => matchesPreset(value, preset.pcts)));
+  const [customPicked, setCustomSplit] = useState(false);
+  // A split that is not a preset (typed, or seeded from an offer) always shows its parts.
+  const customSplit = customPicked || !PRESETS.some((preset) => matchesPreset(value, preset.pcts));
   const [moreOpen, setMoreOpen] = useState(cleanLines(value.conditions).length > 0);
   const set = (patch: Partial<TermsDraft>) => onChange({ ...value, ...patch });
   const items = cleanLines(value.items);

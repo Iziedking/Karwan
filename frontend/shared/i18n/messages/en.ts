@@ -866,6 +866,13 @@ interface MessagesShape {
       email: string;
       telegram: string;
       x: string;
+      security: string;
+      passkey: string;
+      recovery: string;
+      devices: string;
+      soon: string;
+      other: string;
+      publicProfile: string;
     };
     hero: {
       sectionTag: string;
@@ -1762,16 +1769,7 @@ interface MessagesShape {
   };
   postListing: {
     notConnected: string;
-    preview: {
-      eyebrow: string;
-      acceptCaption: string;
-      agentListening: string;
-      floorTemplate: string;
-      matchedCaption: string;
-    };
     sectionWork: {
-      eyebrow: string;
-      title: string;
       titleLabel: string;
       titleHint: string;
       titlePlaceholder: string;
@@ -1780,25 +1778,7 @@ interface MessagesShape {
       descriptionPlaceholder: string;
     };
     sectionPricing: {
-      eyebrow: string;
-      title: string;
-      askingLabel: string;
       askingHint: string;
-      acceptLabel: string;
-      acceptHint: string;
-      windowLabel: string;
-      windowHint: string;
-      windowUnitShort: {
-        min: string;
-        hr: string;
-        day: string;
-      };
-      unitPickerAria: string;
-      unitPickerLabels: {
-        min: string;
-        hr: string;
-        day: string;
-      };
     };
     intentWarning: {
       eyebrow: string;
@@ -1809,13 +1789,7 @@ interface MessagesShape {
       bodyPart3: string;
       postRequestLink: string;
       bodyPart4: string;
-      submitEmph: string;
       bodyPart5: string;
-    };
-    submit: {
-      posting: string;
-      cta: string;
-      fundsCaption: string;
     };
     watchingScanning: string;
     errors: {
@@ -1836,6 +1810,35 @@ interface MessagesShape {
     dismissTitle: string;
     dismissAriaTemplate: string;
     openAriaTemplate: string;
+    flow: {
+      charge: string;
+      fixed: string;
+      fixedHint: string;
+      perUnit: string;
+      perUnitHint: string;
+      perHour: string;
+      perHourHint: string;
+      soon: string;
+      price: string;
+      floor: string;
+      floorHint: string;
+      floorTooLow: string;
+      readyIn: string;
+      readyInHint: string;
+      day1: string;
+      days: string;
+      other: string;
+      otherDays: string;
+      openFor: string;
+      openWeek: string;
+      open30: string;
+      open90: string;
+      readyInRow: string;
+      openForRow: string;
+      publish: string;
+      publishing: string;
+      next: string;
+    };
   };
   editDealModal: {
     tag: string;
@@ -2968,6 +2971,7 @@ interface MessagesShape {
   };
   dealWorkspace: {
     protectedDeal: string;
+    cancelDeal: { cta: string; title: string; consequence: string };
     privateDeal: string;
     privateTermsPreview: string;
     money: { notFunded: string; held: string; sending: string; paused: string; released: string; refunding: string; refunded: string };
@@ -6240,6 +6244,13 @@ export const en: MessagesShape = {
       email: 'Email',
       telegram: 'Telegram',
       x: 'X',
+      security: "Security",
+      passkey: "Passkey",
+      recovery: "Account recovery",
+      devices: "Signed-in devices",
+      soon: "Soon",
+      other: "Other",
+      publicProfile: "Public profile",
     },
     hero: {
       sectionTag: 'Account',
@@ -7224,16 +7235,7 @@ export const en: MessagesShape = {
   },
   postListing: {
     notConnected: 'Sign in to post a listing. Use the Log in pill in the nav.',
-    preview: {
-      eyebrow: 'Offer preview',
-      acceptCaption: 'room to negotiate',
-      agentListening: 'Agent listening',
-      floorTemplate: 'floor {amount} USDC',
-      matchedCaption: 'matched to buyer requests',
-    },
     sectionWork: {
-      eyebrow: 'What you offer',
-      title: 'Describe the offer.',
       titleLabel: 'Title',
       titleHint: 'A short headline buyers see first.',
       titlePlaceholder: 'e.g. Spanish → Arabic legal translation',
@@ -7242,25 +7244,7 @@ export const en: MessagesShape = {
       descriptionPlaceholder: 'Describe your offer in detail. The agent uses this to match buyer requests.',
     },
     sectionPricing: {
-      eyebrow: 'Pricing',
-      title: 'Set your asking and the floor.',
-      askingLabel: 'Asking price',
       askingHint: 'Your headline price. Your agent offers this price on matching requests.',
-      acceptLabel: 'Accept decrease',
-      acceptHint: 'How far below asking the agent may accept. 0 = strict at price.',
-      windowLabel: 'Window',
-      windowHint: 'How long the offer stays live before it auto-expires. Pick a unit for demo timing.',
-      windowUnitShort: {
-        min: 'Min',
-        hr: 'Hrs',
-        day: 'Days',
-      },
-      unitPickerAria: 'Window unit',
-      unitPickerLabels: {
-        min: 'Min',
-        hr: 'Hr',
-        day: 'Day',
-      },
     },
     intentWarning: {
       eyebrow: 'Wait. is this an offer or a request?',
@@ -7271,13 +7255,7 @@ export const en: MessagesShape = {
       bodyPart3: '. Offers are for sellers; requests (posted from the buyer desk) are for buyers. If you meant to find a backend engineer, ',
       postRequestLink: 'post a request instead',
       bodyPart4: '. Click ',
-      submitEmph: 'Post offer',
       bodyPart5: ' again to publish as-is.',
-    },
-    submit: {
-      posting: 'Posting…',
-      cta: 'Post offer',
-      fundsCaption: '↳ your agent looks through open requests and buyer profiles for a match',
     },
     watchingScanning: 'looking through open requests for a match',
     errors: {
@@ -7298,6 +7276,35 @@ export const en: MessagesShape = {
     dismissTitle: 'Dismiss',
     dismissAriaTemplate: 'Dismiss {status} offer',
     openAriaTemplate: 'Open offer {title}',
+    flow: {
+      charge: "How you charge",
+      fixed: "Fixed price",
+      fixedHint: "One price for the whole job",
+      perUnit: "Per unit",
+      perUnitHint: "Price times quantity",
+      perHour: "Per hour",
+      perHourHint: "Price times hours worked",
+      soon: "Soon",
+      price: "Price",
+      floor: "Lowest you accept",
+      floorHint: "Your agent never agrees below this. Buyers do not see it.",
+      floorTooLow: "Keep it within 50% of your price.",
+      readyIn: "Ready in",
+      readyInHint: "How long you need once a deal starts.",
+      day1: "1 day",
+      days: "{n} days",
+      other: "Other",
+      otherDays: "Days",
+      openFor: "Offer stays open",
+      openWeek: "1 week",
+      open30: "30 days",
+      open90: "90 days",
+      readyInRow: "{n} days after the deal starts",
+      openForRow: "{n} days",
+      publish: "Publish offer",
+      publishing: "Publishing…",
+      next: "Your agent offers this on matching requests, and buyers can start a deal from it on these terms.",
+    },
   },
   editDealModal: {
     tag: 'Edit deal',
@@ -8593,6 +8600,7 @@ export const en: MessagesShape = {
   },
   dealWorkspace: {
     protectedDeal: 'Protected deal',
+    cancelDeal: { cta: 'Cancel deal', title: 'Cancel this deal?', consequence: 'The deal closes and the seller is told. Nothing is funded, so no money moves.' },
     privateDeal: 'This deal is private.',
     privateTermsPreview: 'Confirm it is you to see the terms.',
     money: {

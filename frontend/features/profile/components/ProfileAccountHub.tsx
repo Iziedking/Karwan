@@ -26,6 +26,8 @@ type HubRowProps = {
   onClick?: () => void;
   href?: string;
   note?: string;
+  /// Not built yet: shown so people know it is coming, never clickable.
+  soon?: string;
 };
 
 export function ProfileAccountHub({
@@ -163,14 +165,6 @@ export function ProfileAccountHub({
               label={hub.contactDetails}
               href="/profile/contact"
             />
-            <HubRow
-              label={nav.allSettings}
-              href="/settings"
-            />
-            <HubRow
-              label={nav.help}
-              href="/how-it-works"
-            />
           </HubSection>
 
           <HubSection title={DEALS_AVAILABLE ? hub.moneyAndTrade : hub.money}>
@@ -197,6 +191,18 @@ export function ProfileAccountHub({
             )}
             <HubRow label={hub.activityReceipts} href="/activity" />
             {DEALS_AVAILABLE && <HubRow label={hub.reputation} href="/stake" />}
+          </HubSection>
+
+          <HubSection title={hub.security}>
+            <HubRow label={hub.passkey} href="/settings" />
+            <HubRow label={hub.recovery} soon={hub.soon} />
+            <HubRow label={hub.devices} soon={hub.soon} />
+          </HubSection>
+
+          <HubSection title={hub.other}>
+            <HubRow label={hub.publicProfile} href={`/credit-passport/${address}`} />
+            <HubRow label={nav.allSettings} href="/settings" />
+            <HubRow label={nav.help} href="/how-it-works" />
           </HubSection>
         </div>
 
@@ -246,7 +252,23 @@ function HubSection({
   );
 }
 
-function HubRow({ label, description, onClick, href, note }: HubRowProps) {
+function HubRow({ label, description, onClick, href, note, soon }: HubRowProps) {
+  if (soon) {
+    return (
+      <span
+        role="button"
+        aria-disabled="true"
+        tabIndex={0}
+        aria-label={`${label}, ${soon}`}
+        className="group flex min-h-[74px] w-full cursor-not-allowed items-center gap-4 border-b border-[var(--lp-border-light)] px-5 py-3.5 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
+      >
+        <span aria-hidden className="min-w-0 flex-1 text-[15px] font-bold text-[var(--lp-text-muted)]">{label}</span>
+        <span aria-hidden className="shrink-0 text-[12px] font-bold text-[var(--lp-text-sub)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          {soon}
+        </span>
+      </span>
+    );
+  }
   const className = 'group flex min-h-[74px] w-full items-center gap-4 border-b border-[var(--lp-border-light)] px-5 py-3.5 text-start transition-[background-color,padding] duration-200 last:border-b-0 hover:bg-[var(--lp-light)] hover:ps-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset';
   const content = (
     <>

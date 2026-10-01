@@ -1026,6 +1026,19 @@ export interface Listing {
   /// to finance-lane or business-posted cards. Absent reads as service/person.
   tradeLane?: 'service' | 'finance';
   partyKind?: 'person' | 'business';
+  /// Days the seller needs once a deal starts.
+  readyInDays?: number;
+  /// The agreement the offer is sold on, and the parts it was built from.
+  terms?: string;
+  termsDraft?: ListingTermsDraft;
+}
+
+export interface ListingTermsDraft {
+  items: string[];
+  conditions: string[];
+  proof: 'link';
+  parts: Array<{ pct: number; covers: { kind: 'start' } | { kind: 'all' } | { kind: 'item'; item: string } }>;
+  reviewWindowDays: number;
 }
 
 export interface MatchProposal {
@@ -2271,6 +2284,9 @@ export const api = {
     askingPriceUsdc: number;
     negotiationMaxDecreasePct?: number;
     ttlDays?: number;
+    readyInDays?: number;
+    terms?: string;
+    termsDraft?: ListingTermsDraft;
   }) =>
     json<{ listing: Listing }>('/api/listings', {
       method: 'POST',

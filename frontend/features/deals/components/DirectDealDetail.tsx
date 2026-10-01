@@ -299,6 +299,23 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
       window.removeEventListener('popstate', syncFromHash);
     };
   }, []);
+
+  // With no section in the link, a party whose move it is opens on the next step.
+  const openedForMove = useRef(false);
+  useEffect(() => {
+    if (openedForMove.current || !deal || !address || typeof window === 'undefined' || window.location.hash) return;
+    openedForMove.current = true;
+    const current = stageOf(deal);
+    const me = address.toLowerCase();
+    const isBuyer = me === deal.buyer.toLowerCase();
+    const isSeller = me === deal.seller.toLowerCase();
+    const myMove =
+      (current === 'awaiting-acceptance' && (isSeller || (isBuyer && !!deal.sellerDeclinedAt))) ||
+      (current === 'awaiting-funding' && isBuyer) ||
+      (current === 'awaiting-delivery' && isSeller) ||
+      ((current === 'awaiting-first-release' || current === 'awaiting-final-release') && isBuyer);
+    if (myMove) setActiveSection('actions');
+  }, [deal, address]);
   const [deliveryProof, setDeliveryProof] = useState('');
   /// Goods deliver a shipment reference instead of a link. Held here so the
   /// seller's typing survives the poll-driven refresh of the deal.
@@ -1092,15 +1109,6 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
             <p className="mt-2 text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
               {nextStep.body}
             </p>
-            {stage !== 'settled' && stage !== 'cancelled' ? (
-              <button
-                type="button"
-                onClick={() => openSection('actions')}
-                className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-4 text-[13px] font-bold text-[var(--accent-ink)] transition-colors hover:bg-[var(--lp-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
-              >
-                Continue to next step
-              </button>
-            ) : null}
             <div className="mt-6 border-t border-[var(--lp-border-light)] pt-5" data-guide="deal-flow">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[13px] font-semibold text-[var(--lp-dark)]">Trade progress</p>
@@ -1125,7 +1133,7 @@ export function DirectDealDetail({ jobId }: { jobId: string }) {
         <nav
           aria-label="Deal sections"
           role="tablist"
-          className="mt-5 flex gap-1 overflow-x-auto pb-1 text-[11px] text-[var(--lp-text-muted)]"
+          className="mt-5 flex gap-1 overflow-x-auto text-[11px] text-[var(--lp-text-muted)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {sectionItems.map((section) => {
             const selected = activeSection === section.id;
