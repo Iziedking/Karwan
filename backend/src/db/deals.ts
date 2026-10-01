@@ -148,6 +148,10 @@ export interface DirectDeal {
   /// Version and canonical digest the seller actually reviewed.
   sellerApprovedAgreementVersion?: number;
   sellerApprovedAgreementDigest?: string;
+  /// The seller turned these terms down and said what would make them work.
+  /// The deal stays open; a buyer edit, a seller counter or agreement clears it.
+  sellerDeclinedAt?: number;
+  sellerDeclineNote?: string;
   // The escrow has been funded and verified Accepted on chain. Downstream
   // delivery, financing, settlement, and reputation code relies on this funded
   // meaning, so it remains distinct from sellerApprovedAt.

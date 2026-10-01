@@ -21,3 +21,17 @@ test('the invite preview is an allowlist and carries no hardcoded copy', async (
   assert.equal(preview.includes('termsPreview'), false);
   assert.equal(preview.includes('inviterTrust'), true);
 });
+
+test('turning down terms is the seller session only and cannot move money', async () => {
+  const response = await dealsRoutes.request(`/direct/${JOB}/decline`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ caller: BUYER, note: 'Too low' }),
+  });
+  assert.notEqual(response.status, 200);
+  const source = await (await import('node:fs/promises')).readFile(new URL('./deals.ts', import.meta.url), 'utf8');
+  const route = source.slice(source.indexOf("dealsRoutes.post('/direct/:jobId/decline'"), source.indexOf("dealsRoutes.get('/invite/:token'"));
+  assert.match(route, /isSessionSelf\(c, body\.caller\)/);
+  assert.match(route, /!== deal\.seller/);
+  assert.equal(/dealEscrowOps|cancelledAt:/.test(route), false);
+});

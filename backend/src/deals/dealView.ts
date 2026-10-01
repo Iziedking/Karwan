@@ -35,6 +35,7 @@ export interface DealViewInput {
   firstReleasePct: number;
   createdAt: number;
   sellerApprovedAt?: number;
+  sellerDeclinedAt?: number;
   acceptedAt?: number;
   delivered?: boolean;
   deliveredAt?: number;
@@ -171,7 +172,8 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
     return deal.cancellationProposal.proposedBy === viewer ? none('counterparty') : you('respond-cancel');
   }
   if (stage === 'disputed') return none('nobody');
-  if (stage === 'awaiting-acceptance') return viewer === 'seller' ? you('accept') : none('counterparty');
+  // After a turn-down the buyer moves next by changing the terms; the seller can still agree.
+  if (stage === 'awaiting-acceptance') return viewer === 'seller' ? you('accept') : none(deal.sellerDeclinedAt ? 'you' : 'counterparty');
   if (stage === 'awaiting-funding') return viewer === 'buyer' ? you('fund', deal.dealAmountUsdc) : none('counterparty');
   if (stage === 'awaiting-delivery') {
     if (deal.extensionRequest) return viewer === 'buyer' ? you('respond-extension') : none('counterparty');

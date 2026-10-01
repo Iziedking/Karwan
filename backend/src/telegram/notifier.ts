@@ -83,6 +83,7 @@ const RELEVANT = new Set([
   'negotiation.near-miss',
   'deal.direct.created',
   'deal.direct.edited',
+  'deal.direct.declined',
   'deal.invite.claimed',
   'deal.seller-approved',
   'deal.accepted',
@@ -393,6 +394,11 @@ function summaryFor(e: KarwanEvent, role: string, locale: UserLocale = 'en'): No
         url,
       );
     }
+    case 'deal.direct.declined':
+      return role === 'buyer'
+        ? withLink(`*The seller turned down the terms.*
+${String(e.payload?.note ?? '').replace(/[*_`[\]]/g, '').slice(0, 300)}`, url)
+        : null;
     case 'deal.seller-approved':
       return withLink(
         '*Seller agreed to the terms.* Review the current fee and exact total, then fund escrow when ready.',

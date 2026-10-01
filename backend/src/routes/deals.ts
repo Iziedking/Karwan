@@ -428,6 +428,7 @@ const editSchema = z
   );
 
 const callerSchema = z.object({ caller: addrSchema });
+const sellerDeclineSchema = callerSchema.extend({ note: z.string().trim().min(1).max(600) });
 const sellerAcceptSchema = callerSchema.extend({
   expectedAgreementVersion: z.number().int().positive(),
   expectedAgreementDigest: z.string().regex(/^[a-fA-F0-9]{64}$/),
@@ -886,6 +887,11 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     patch.sellerApprovedTermsDigest = undefined;
   }
 
+  if (deal.sellerDeclinedAt) {
+    patch.sellerDeclinedAt = undefined;
+    patch.sellerDeclineNote = undefined;
+  }
+
   // Agreement applies to one exact version of the commercial terms. Any
   // buyer edit before funding sends the revised deal back to seller review.
   if (deal.sellerApprovedAt) {
@@ -1057,6 +1063,8 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
   patch.sellerApprovedTermsDigest = undefined;
   patch.sellerApprovedAgreementVersion = undefined;
   patch.sellerApprovedAgreementDigest = undefined;
+  patch.sellerDeclinedAt = undefined;
+  patch.sellerDeclineNote = undefined;
 
   const updated = await patchDeal(jobId, patch);
   if (!updated) return c.json({ error: 'deal disappeared while countering' }, 409);
@@ -1071,6 +1079,47 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
       fields: Object.keys(patch),
       changedLabels: ['Seller proposed revised terms for buyer review'],
     },
+  });
+  return c.json({ accepted: true, jobId, deal: updated }, 200);
+});
+
+/// Seller turns the terms down before agreeing, with a note on what does not
+/// work for them. Nothing moves on chain: the deal stays open for the buyer to
+/// edit the terms or cancel.
+dealsRoutes.post('/direct/:jobId/decline', async (c) => {
+  const jobId = c.req.param('jobId');
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+
+  let body;
+  try {
+    body = sellerDeclineSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.caller)) {
+    return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  }
+  if (body.caller.toLowerCase() !== deal.seller) {
+    return c.json({ error: 'only the seller can turn down this deal' }, 403);
+  }
+  if (deal.pendingCounterparty) {
+    return c.json({ error: 'claim the invite before answering the deal' }, 409);
+  }
+  if (deal.acceptedAt || deal.sellerApprovedAt) {
+    return c.json({ error: 'you already agreed to these terms', code: 'AGREED' }, 409);
+  }
+  if (deal.cancelledAt || deal.settledAt) {
+    return c.json({ error: 'this deal is no longer open' }, 409);
+  }
+
+  const updated = await patchDeal(jobId, { sellerDeclinedAt: Date.now(), sellerDeclineNote: body.note });
+  if (!updated) return c.json({ error: 'deal disappeared while saving' }, 409);
+  bus.emitEvent({
+    type: 'deal.direct.declined',
+    jobId,
+    actor: 'seller',
+    payload: { buyer: deal.buyer, seller: deal.seller, note: body.note },
   });
   return c.json({ accepted: true, jobId, deal: updated }, 200);
 });
@@ -1902,6 +1951,8 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
         sellerApprovedTermsDigest: termsDigest(deal.terms),
         sellerApprovedAgreementVersion: body.expectedAgreementVersion,
         sellerApprovedAgreementDigest: body.expectedAgreementDigest,
+        sellerDeclinedAt: undefined,
+        sellerDeclineNote: undefined,
         sellerAgentWalletId: sellerAgents.sellerWalletId,
         sellerAgentAddress: sellerAgents.sellerAddress,
       },

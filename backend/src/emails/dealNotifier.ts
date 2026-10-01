@@ -50,6 +50,7 @@ const EMAIL_RELEVANT = new Set([
   'listing.matched',
   'deal.direct.created',
   'deal.seller-approved',
+  'deal.direct.declined',
   'deal.accepted',
   'deal.delivered',
   'escrow.settled',
@@ -245,6 +246,17 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null; // buyer initiated it; no email to self
+    case 'deal.direct.declined':
+      return role === 'buyer'
+        ? {
+            kicker: 'Terms turned down',
+            subject: `The seller turned down your Karwan deal${amountSuffix}`,
+            heading: 'The seller asked for different terms',
+            body: `The seller left a note: "${String(e.payload?.note ?? '').slice(0, 600)}" Change the terms so they work for both of you. No money has moved.`,
+            ctaLabel: 'Change the terms',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : null;
     case 'deal.seller-approved':
       return role === 'buyer'
         ? {

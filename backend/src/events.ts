@@ -41,6 +41,7 @@ export type KarwanEventType =
   | 'reputation.recorded'
   | 'deal.direct.created'
   | 'deal.direct.edited'
+  | 'deal.direct.declined'
   | 'deal.high-signal.requested'
   | 'deal.high-signal.verified'
   | 'deal.high-signal.rejected'
