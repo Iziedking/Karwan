@@ -482,7 +482,7 @@ interface MessagesShape {
       describe: string; price: string; payment: string; stepOf: string;
       continue: string; back: string;
       days3: string; week1: string; weeks2: string; month1: string;
-      pickDate: string; dueOn: string; exactTime: string;
+      pickDate: string; until: string; dueOn: string; exactTime: string;
       part: string; addPart: string; removePart: string; total: string; needs100: string;
       noDate: string; seller: string; sendTo: string;
     };
@@ -5830,7 +5830,7 @@ export const en: MessagesShape = {
     backdropAria: 'Cancel',
   },
   dealCreation: {
-    requestSteps: { describe: 'Describe', price: 'Price and time', payment: 'Terms', stepOf: 'Step {n} of 3', continue: 'Continue', back: 'Back', days3: '3 days', week1: '1 week', weeks2: '2 weeks', month1: '1 month', pickDate: 'Pick a date', dueOn: 'Due {date}', exactTime: 'Set hours or minutes', part: 'Part {n}', addPart: 'Add a part', removePart: 'Remove part {n}', total: 'Adds up to {sum}%', needs100: 'The parts must add up to 100%', noDate: 'No deadline', seller: 'Seller', sendTo: 'Send to {name}' },
+    requestSteps: { describe: 'Describe', price: 'Price and time', payment: 'Terms', stepOf: 'Step {n} of 3', continue: 'Continue', back: 'Back', days3: '3 days', week1: '1 week', weeks2: '2 weeks', month1: '1 month', pickDate: 'Pick a date', until: "Until {date}", dueOn: 'Due {date}', exactTime: 'Set hours or minutes', part: 'Part {n}', addPart: 'Add a part', removePart: 'Remove part {n}', total: 'Adds up to {sum}%', needs100: 'The parts must add up to 100%', noDate: 'No deadline', seller: 'Seller', sendTo: 'Send to {name}' },
     buyerRole: 'Buyer',
     currencyNote: 'Settlement is in USDC. Local-currency conversion is not included.',
     documents: 'Documents',

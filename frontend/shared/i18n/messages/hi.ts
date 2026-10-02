@@ -524,7 +524,7 @@ export const hi: Messages = {
     backdropAria: 'रद्द करें',
   },
   dealCreation: {
-    requestSteps: { describe: 'विवरण', price: 'कीमत और समय', payment: 'शर्तें', stepOf: 'चरण {n} / 3', continue: 'जारी रखें', back: 'वापस', days3: '3 दिन', week1: '1 सप्ताह', weeks2: '2 सप्ताह', month1: '1 महीना', pickDate: 'तारीख चुनें', dueOn: '{date} तक', exactTime: 'घंटे या मिनट में तय करें', part: 'हिस्सा {n}', addPart: 'हिस्सा जोड़ें', removePart: 'हिस्सा {n} हटाएँ', total: 'कुल {sum}%', needs100: 'सभी हिस्सों का कुल 100% होना चाहिए', noDate: 'कोई समय सीमा नहीं', seller: 'विक्रेता', sendTo: '{name} को भेजें' },
+    requestSteps: { describe: 'विवरण', price: 'कीमत और समय', payment: 'शर्तें', stepOf: 'चरण {n} / 3', continue: 'जारी रखें', back: 'वापस', days3: '3 दिन', week1: '1 सप्ताह', weeks2: '2 सप्ताह', month1: '1 महीना', pickDate: 'तारीख चुनें', until: "{date} तक", dueOn: '{date} तक', exactTime: 'घंटे या मिनट में तय करें', part: 'हिस्सा {n}', addPart: 'हिस्सा जोड़ें', removePart: 'हिस्सा {n} हटाएँ', total: 'कुल {sum}%', needs100: 'सभी हिस्सों का कुल 100% होना चाहिए', noDate: 'कोई समय सीमा नहीं', seller: 'विक्रेता', sendTo: '{name} को भेजें' },
     buyerRole: 'खरीदार',
     currencyNote: 'भुगतान USDC में होता है। स्थानीय मुद्रा में रूपांतरण शामिल नहीं है।',
     documents: 'दस्तावेज़',

@@ -526,7 +526,7 @@ export const ar: Messages = {
     backdropAria: 'إلغاء',
   },
   dealCreation: {
-    requestSteps: { describe: 'الوصف', price: 'السعر والموعد', payment: 'الشروط', stepOf: 'الخطوة {n} من 3', continue: 'متابعة', back: 'رجوع', days3: '3 أيام', week1: 'أسبوع واحد', weeks2: 'أسبوعان', month1: 'شهر واحد', pickDate: 'اختر تاريخًا', dueOn: 'قبل {date}', exactTime: 'حدّد بالساعات أو الدقائق', part: 'الجزء {n}', addPart: 'أضف جزءًا', removePart: 'احذف الجزء {n}', total: 'المجموع {sum}%', needs100: 'يجب أن يكون مجموع الأجزاء 100%', noDate: 'بلا موعد نهائي', seller: 'البائع', sendTo: 'أرسل إلى {name}' },
+    requestSteps: { describe: 'الوصف', price: 'السعر والموعد', payment: 'الشروط', stepOf: 'الخطوة {n} من 3', continue: 'متابعة', back: 'رجوع', days3: '3 أيام', week1: 'أسبوع واحد', weeks2: 'أسبوعان', month1: 'شهر واحد', pickDate: 'اختر تاريخًا', until: "حتى {date}", dueOn: 'قبل {date}', exactTime: 'حدّد بالساعات أو الدقائق', part: 'الجزء {n}', addPart: 'أضف جزءًا', removePart: 'احذف الجزء {n}', total: 'المجموع {sum}%', needs100: 'يجب أن يكون مجموع الأجزاء 100%', noDate: 'بلا موعد نهائي', seller: 'البائع', sendTo: 'أرسل إلى {name}' },
     buyerRole: 'المشتري',
     currencyNote: 'تتم التسوية بعملة USDC. لا يشمل ذلك التحويل إلى العملة المحلية.',
     documents: 'المستندات',

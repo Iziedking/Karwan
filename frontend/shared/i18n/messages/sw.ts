@@ -523,7 +523,7 @@ export const sw: Messages = {
     backdropAria: 'Ghairi',
   },
   dealCreation: {
-    requestSteps: { describe: 'Eleza', price: 'Bei na muda', payment: 'Masharti', stepOf: 'Hatua {n} kati ya 3', continue: 'Endelea', back: 'Rudi', days3: 'Siku 3', week1: 'Wiki 1', weeks2: 'Wiki 2', month1: 'Mwezi 1', pickDate: 'Chagua tarehe', dueOn: 'Kabla ya {date}', exactTime: 'Weka kwa saa au dakika', part: 'Sehemu {n}', addPart: 'Ongeza sehemu', removePart: 'Ondoa sehemu {n}', total: 'Jumla {sum}%', needs100: 'Jumla ya sehemu lazima iwe 100%', noDate: 'Hakuna tarehe ya mwisho', seller: 'Muuzaji', sendTo: 'Tuma kwa {name}' },
+    requestSteps: { describe: 'Eleza', price: 'Bei na muda', payment: 'Masharti', stepOf: 'Hatua {n} kati ya 3', continue: 'Endelea', back: 'Rudi', days3: 'Siku 3', week1: 'Wiki 1', weeks2: 'Wiki 2', month1: 'Mwezi 1', pickDate: 'Chagua tarehe', until: "Hadi {date}", dueOn: 'Kabla ya {date}', exactTime: 'Weka kwa saa au dakika', part: 'Sehemu {n}', addPart: 'Ongeza sehemu', removePart: 'Ondoa sehemu {n}', total: 'Jumla {sum}%', needs100: 'Jumla ya sehemu lazima iwe 100%', noDate: 'Hakuna tarehe ya mwisho', seller: 'Muuzaji', sendTo: 'Tuma kwa {name}' },
     buyerRole: 'Mnunuzi',
     currencyNote: 'Malipo hukamilishwa kwa USDC. Ubadilishaji kwenda sarafu ya ndani haujajumuishwa.',
     documents: 'Nyaraka',

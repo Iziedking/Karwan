@@ -526,7 +526,7 @@ export const fr: Messages = {
     backdropAria: 'Annuler',
   },
   dealCreation: {
-    requestSteps: { describe: 'Décrire', price: 'Prix et délai', payment: 'Conditions', stepOf: 'Étape {n} sur 3', continue: 'Continuer', back: 'Retour', days3: '3 jours', week1: '1 semaine', weeks2: '2 semaines', month1: '1 mois', pickDate: 'Choisir une date', dueOn: 'Avant le {date}', exactTime: 'Définir en heures ou minutes', part: 'Partie {n}', addPart: 'Ajouter une partie', removePart: 'Retirer la partie {n}', total: 'Total de {sum} %', needs100: 'Les parties doivent totaliser 100 %', noDate: 'Pas de date limite', seller: 'Vendeur', sendTo: 'Envoyer à {name}' },
+    requestSteps: { describe: 'Décrire', price: 'Prix et délai', payment: 'Conditions', stepOf: 'Étape {n} sur 3', continue: 'Continuer', back: 'Retour', days3: '3 jours', week1: '1 semaine', weeks2: '2 semaines', month1: '1 mois', pickDate: 'Choisir une date', until: "Jusqu’au {date}", dueOn: 'Avant le {date}', exactTime: 'Définir en heures ou minutes', part: 'Partie {n}', addPart: 'Ajouter une partie', removePart: 'Retirer la partie {n}', total: 'Total de {sum} %', needs100: 'Les parties doivent totaliser 100 %', noDate: 'Pas de date limite', seller: 'Vendeur', sendTo: 'Envoyer à {name}' },
     buyerRole: 'Acheteur',
     currencyNote: 'Le règlement se fait en USDC. La conversion en monnaie locale n’est pas incluse.',
     documents: 'Documents',

@@ -22,6 +22,7 @@ import { splitDeadline } from '../deadlineSplit';
 import { lookupContact, parseContact, type ContactMatch } from '../counterpartyInput';
 import { fill } from '../workspace/presentation';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
+import { AcceptWithin, formatWindow } from './AcceptWithin';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 
 const MAX_DEADLINE_DAYS = 180;
@@ -141,9 +142,6 @@ export function DirectDealForm() {
   /// Explicit opt-in for the Chainlink CRE delivery-evidence lane. Ordinary
   /// deals remain lightweight; selecting this records the requirement in the
   /// agreement before either party accepts it.
-  const [evidenceRequired, setEvidenceRequired] = useState(false);
-  const [highSignal, setHighSignal] = useState(false);
-  const [highSignalSubject, setHighSignalSubject] = useState<'seller' | 'buyer' | 'both'>('seller');
   // Numeric fields always start empty; the placeholder "0" renders instead
   // of any autofilled number. The only exception is when the user arrives
   // from a listing's "Make offer" deep link with ?amount= in the URL, which
@@ -394,9 +392,6 @@ export function DirectDealForm() {
         reviewWindowDays: terms.reviewWindowDays,
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
-        evidenceRequired,
-        verificationPolicy: highSignal ? 'high_signal' : 'standard',
-        verificationSubject: highSignal ? highSignalSubject : undefined,
         tradeType: tradeType !== 'service' ? tradeType : undefined,
         incoterms: tradeType !== 'service' && incoterms ? incoterms : undefined,
         paymentTerms: tradeType !== 'service' ? paymentTerms : undefined,
@@ -790,47 +785,13 @@ export function DirectDealForm() {
       <details className="border-y border-[var(--lp-border-light)]">
         <summary className="flex min-h-11 cursor-pointer items-center justify-between py-3 text-[15px] font-semibold text-[var(--lp-dark)]">{c.optional}<span aria-hidden>＋</span></summary>
         <div className="space-y-4 pb-5">
-          <FormLabel
-            label={dd.terms.acceptanceWindowLabel}
-            hint={dd.terms.acceptanceWindowHint}
-          >
-            <div className="flex flex-wrap gap-1.5">
-              {(
-                [
-                  { label: dd.terms.presets.fifteenMin, value: 0.25 },
-                  { label: dd.terms.presets.oneHr, value: 1 },
-                  { label: dd.terms.presets.sixHr, value: 6 },
-                  { label: dd.terms.presets.dayOne, value: 24 },
-                  { label: dd.terms.presets.threeDays, value: 72 },
-                  { label: dd.terms.presets.sevenDays, value: 168 },
-                ] as const
-              ).map((opt) => {
-                const active = acceptanceHours === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => setAcceptanceHours(opt.value)}
-                    className="min-h-11 px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      background: active ? 'var(--lp-control-active-bg)' : 'var(--lp-card)',
-                      color: active ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-                      border: active
-                        ? '1px solid var(--lp-control-active-border)'
-                        : '1px solid var(--lp-border-light)',
-                      borderTopLeftRadius: 7,
-                      borderTopRightRadius: 7,
-                      borderBottomLeftRadius: 7,
-                      borderBottomRightRadius: 2,
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </FormLabel>
+          <div role="group" aria-label={dd.terms.acceptanceWindowLabel} className="space-y-2">
+            <p className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--lp-dark)]">
+              {dd.terms.acceptanceWindowLabel}
+              <Hint>{dd.terms.acceptanceWindowHint}</Hint>
+            </p>
+            <AcceptWithin hours={acceptanceHours} onChange={setAcceptanceHours} disabled={submitting} />
+          </div>
 
       {/* TRUSTED MATCH toggle. When on, the seller will see a stake
           requirement on their accept panel. Off-default, most direct deals
@@ -900,100 +861,6 @@ export function DirectDealForm() {
           )}
         </div>
       </label>
-
-      <label
-        className={cn(
-          'flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors',
-          evidenceRequired
-            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
-            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)] hover:border-[var(--lp-text-muted)]',
-        )}
-        style={{
-          border: '1px solid',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={evidenceRequired}
-          onChange={(e) => setEvidenceRequired(e.target.checked)}
-          disabled={submitting}
-          className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0 cursor-pointer"
-        />
-        <div className="min-w-0">
-          <span
-            className="text-[14px] font-semibold inline-flex items-center gap-1.5"
-            style={{ color: 'var(--lp-dark)' }}
-          >
-            {c.evidence}
-            <Hint>
-              {c.evidenceHelp}
-            </Hint>
-          </span>
-        </div>
-      </label>
-
-      <div
-        className={cn(
-          'px-4 py-3 transition-colors',
-          highSignal
-            ? 'bg-[color-mix(in_oklab,var(--lp-accent)_10%,transparent)] border-[color-mix(in_oklab,var(--lp-accent)_35%,transparent)]'
-            : 'bg-[var(--lp-light)] border-[var(--lp-border-light)]',
-        )}
-        style={{
-          border: '1px solid',
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: 12,
-          borderBottomRightRadius: 3,
-        }}
-      >
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={highSignal}
-            onChange={(e) => setHighSignal(e.target.checked)}
-            disabled={submitting}
-            className="mt-0.5 w-4 h-4 accent-[var(--lp-accent)] shrink-0"
-          />
-          <span className="min-w-0">
-            <span className="text-[14px] font-semibold text-[var(--lp-dark)] inline-flex items-center gap-1.5">
-              {c.identity}
-              <Hint>
-                {c.identityHelp}
-              </Hint>
-            </span>
-          </span>
-        </label>
-        {highSignal ? (
-          <div className="mt-3 flex flex-wrap gap-2 ps-7" role="radiogroup" aria-label={c.who}>
-            {(['seller', 'buyer', 'both'] as const).map((subject) => (
-              <button
-                key={subject}
-                type="button"
-                role="radio"
-                aria-checked={highSignalSubject === subject}
-                onClick={() => setHighSignalSubject(subject)}
-                disabled={submitting}
-                className="min-h-11 px-3 py-2 mono text-[10px] font-bold uppercase tracking-[0.12em] border transition-colors"
-                style={{
-                  background: highSignalSubject === subject ? 'var(--lp-control-active-bg)' : 'transparent',
-                  color: highSignalSubject === subject ? 'var(--lp-control-active-ink)' : 'var(--lp-text-sub)',
-                  borderColor: highSignalSubject === subject ? 'var(--lp-control-active-border)' : 'var(--lp-outline)',
-                  borderRadius: 7,
-                }}
-              >
-                {subject === 'both' ? c.both : subject === 'seller' ? c.sellerRole : c.buyerRole}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-
         </div>
       </details>
       </div>
@@ -1017,12 +884,8 @@ export function DirectDealForm() {
         { label: c.payment, value: terms.parts.map((part) => `${part.pct}%`).join(' / ') },
         ...(cleanLines(terms.conditions).length ? [{ label: TERMS_COPY[locale].conditions, value: cleanLines(terms.conditions).map((line) => `• ${line}`).join('\n') }] : []),
         { label: TERMS_COPY[locale].agreement, value: agreementText },
-        { label: c.responseWindow, value: `${acceptanceHours} ${dd.preview.unitHr}` },
-        { label: c.safeguards, value: [
-          requireStake ? `${c.security}: ${requireStakePct}%` : '',
-          evidenceRequired ? c.evidenceHelp : '',
-          highSignal ? `${c.identity}: ${highSignalSubject === 'both' ? c.both : highSignalSubject === 'seller' ? c.sellerRole : c.buyerRole}. ${c.identityHelp}` : '',
-        ].filter(Boolean).join('\n') || c.none },
+        { label: c.responseWindow, value: formatWindow(acceptanceHours, t.postJob.unitPickerLabels) },
+        ...(requireStake ? [{ label: c.safeguards, value: `${c.security}: ${requireStakePct}%` }] : []),
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companyName, companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
       ]}>
