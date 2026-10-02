@@ -16,7 +16,26 @@ import {
   type DiscoverySort,
 } from '@/features/discovery/model';
 import { ReputationBadge } from '@/features/reputation/components/ReputationBadge';
-import { Icon } from '@/shared/components/Icon';
+import { workKind, type WorkKind } from '@/features/discovery/workKind';
+import { Icon, type IconName } from '@/shared/components/Icon';
+
+const WORK_ICON: Record<WorkKind, IconName> = {
+  device: 'smartphone',
+  apparel: 'shirt',
+  goods: 'package',
+  ai: 'bot',
+  code: 'code',
+  design: 'pen-tool',
+  translation: 'languages',
+  writing: 'pen-line',
+  media: 'clapperboard',
+  marketing: 'megaphone',
+  money: 'calculator',
+  research: 'chart',
+  teaching: 'graduation-cap',
+  advice: 'messages',
+  general: 'briefcase',
+};
 import { Skeleton, SkeletonText } from '@/shared/components/Skeleton';
 import { Band, FullBleed } from '@/shared/components/Bands';
 import { PageTour } from '@/shared/guide/PageTour';
@@ -546,7 +565,7 @@ function MarketCard({
           <span className="text-[13px] tabular-nums text-[var(--ink-secondary)]">{relativeTime(card.postedAt)}</span>
         </div>
         <Icon
-          name={card.tradeLane === 'finance' ? 'file-text' : 'briefcase'}
+          name={card.tradeLane === 'finance' ? 'file-text' : WORK_ICON[workKind(card.title, card.body)]}
           size={24}
           className="market-card-glyph mt-4 mb-6 shrink-0"
           style={{ color: sideColor }}

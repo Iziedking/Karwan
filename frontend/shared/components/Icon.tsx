@@ -1,8 +1,9 @@
 import React, { type SVGProps } from 'react';
 import {
-  Activity, ArrowLeftRight, ArrowRight, ArrowUpRight, BriefcaseBusiness, Check,
-  ChevronLeft, ChevronRight, Coins, FileText, Globe, ImagePlus, Link, List,
-  LoaderCircle, Reply, Search, Send, UserRound, Wallet, X,
+  Activity, ArrowLeftRight, ArrowRight, ArrowUpRight, Bot, BriefcaseBusiness, Calculator,
+  ChartColumn, Check, ChevronLeft, ChevronRight, Clapperboard, Code, Coins, FileText, Globe,
+  GraduationCap, ImagePlus, Languages, Link, List, LoaderCircle, Megaphone, MessagesSquare,
+  Package, PenLine, PenTool, Reply, Search, Send, Shirt, Smartphone, UserRound, Wallet, X,
 } from 'lucide-react';
 
 const icons = {
@@ -27,6 +28,20 @@ const icons = {
   user: UserRound,
   wallet: Wallet,
   close: X,
+  bot: Bot,
+  calculator: Calculator,
+  chart: ChartColumn,
+  clapperboard: Clapperboard,
+  code: Code,
+  'graduation-cap': GraduationCap,
+  languages: Languages,
+  megaphone: Megaphone,
+  messages: MessagesSquare,
+  package: Package,
+  'pen-line': PenLine,
+  'pen-tool': PenTool,
+  shirt: Shirt,
+  smartphone: Smartphone,
 } as const;
 
 export type IconName = keyof typeof icons;
