@@ -25,7 +25,7 @@ const C = {
 } as const;
 
 const SITE = (process.env.FRONTEND_BASE_URL?.trim() || 'https://karwan.site').replace(/\/$/, '');
-const MARK_URL = `${SITE}/icon-192.png`;
+const MARK_URL = `${SITE}/brand/karwan-mark-lime.png`;
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif";
 const PAD = '28px';
