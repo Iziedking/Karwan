@@ -23,7 +23,7 @@ export interface RequirementCheck {
 
 const verdictSchema = z.object({
   verdict: z.enum(['aligned', 'partial', 'mismatch']),
-  reason: z.string().max(240),
+  reason: z.string().describe('One short sentence.'),
 });
 
 export async function verifyDeliverable(input: {
@@ -46,7 +46,7 @@ export async function verifyDeliverable(input: {
         prompt: buildPrompt(requirement, proof, linkSummary),
       }),
     );
-    return { verdict: object.verdict, reason: object.reason.trim() };
+    return { verdict: object.verdict, reason: object.reason.trim().slice(0, 240) };
   } catch {
     // Never block a delivery on a model failure; warn-not-assure.
     return { verdict: 'unknown', reason: '' };

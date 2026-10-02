@@ -5,9 +5,8 @@ import { logger } from '../logger.js';
 
 const keywordSchema = z.object({
   keywords: z
-    .array(z.string().min(1).max(40))
+    .array(z.string())
     .min(1)
-    .max(12)
     .describe(
       'Short canonical tags (1-3 words each), lowercase, no punctuation. ' +
         'Include the literal topic, close synonyms, common abbreviations, AND ' +
@@ -62,7 +61,10 @@ export async function extractKeywords(text: string, label = 'keywords'): Promise
         prompt: `${PROMPT_PREFIX}\n\nInput:\n${cleaned}`,
       }),
     );
-    const tags = result.object.keywords.map((k) => k.toLowerCase().trim()).filter(Boolean);
+    const tags = result.object.keywords
+      .map((k) => k.toLowerCase().trim())
+      .filter((k) => k.length > 0 && k.length <= 40)
+      .slice(0, 12);
     return tags.length > 0 ? tags : naiveKeywords(cleaned);
   } catch (err) {
     logger.warn({ label, err: (err as Error).message }, 'keyword extraction failed; using naive fallback');
@@ -149,7 +151,7 @@ export function topicalMatchScore(briefTags: string[], sellerTags: string[]): nu
 const relevanceSchema = z.object({
   relevant: z.boolean(),
   confidence: z.number().min(0).max(1),
-  reasoning: z.string().max(200),
+  reasoning: z.string().describe('One short sentence.'),
 });
 
 interface RelevanceJudgement {
@@ -211,7 +213,7 @@ export async function judgeRelevance(input: {
     const r = await withLlmRetry('judgeRelevance', () =>
       generateObjectWithLlmFallback({ schema: relevanceSchema, prompt }),
     );
-    value = r.object;
+    value = { ...r.object, reasoning: r.object.reasoning.slice(0, 200) };
   } catch (err) {
     logger.warn(
       { err: (err as Error).message },

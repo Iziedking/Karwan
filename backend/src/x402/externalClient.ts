@@ -367,14 +367,12 @@ const readSchema = z.object({
           .describe('true only when this price is comparable to a whole deal of this type'),
         quote: z
           .string()
-          .max(200)
           .describe('VERBATIM sentence fragment from the evidence that contains this price'),
         sourceIndex: z.number().int().nonnegative().describe('index of the [n] source quoted'),
       }),
     )
-    .max(8)
-    .describe('every explicit price found in the evidence; empty if none'),
-  highlights: z.array(z.string()).max(6),
+    .describe('every explicit price found in the evidence, at most 8; empty if none'),
+  highlights: z.array(z.string()).describe('at most 6'),
 });
 
 /// The intents the sweep searches separately. One blended query returns
@@ -720,7 +718,7 @@ async function doResearchMarket(
   // appears in the source it cites. This is the wall between "the model says
   // the market price is X" and "source [2] verifiably says X".
   const { verified, priceConfidence, priceBandUsdc } = verifyPriceObservations(
-    synth.object.priceObservations,
+    synth.object.priceObservations.slice(0, 8),
     sourceTexts,
   );
 

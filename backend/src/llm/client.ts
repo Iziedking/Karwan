@@ -69,6 +69,13 @@ function fallbackChain(models: Array<LM | null>): LM {
   };
 }
 
+/// Bedrock then the direct Anthropic key, never OpenRouter: for prompts that
+/// carry private account or deal data. Null when neither is configured.
+function directChain(models: Array<LM | null>): LM | null {
+  const chain = models.filter((m): m is LM => m !== null);
+  return chain.length === 0 ? null : fallbackChain(chain);
+}
+
 /// Structured-output boundary built against ai 6.0.180, @openrouter/ai-sdk-provider
 /// 2.9.0, and @ai-sdk/anthropic 3.0.85 (installed versions read 2026-09-02).
 /// AI SDK schema validation happens after a provider's doGenerate call, so the
@@ -155,7 +162,7 @@ export const researchModel = fallbackChain([
 /// model export that is allowed to be unavailable instead of degrading to a
 /// proxy, precisely because the privacy boundary matters more than uptime here.
 /// Bedrock counts as direct: it runs in Karwan's own AWS account.
-export const supervisorModel: LM | null = bedrockModel ?? anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null;
+export const supervisorModel: LM | null = directChain([bedrockModel, anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null]);
 
 /// Authenticated assistant model. Same reasoning as supervisorModel, same
 /// invariant: the authenticated assistant runs a tool-calling loop that reads the
@@ -165,4 +172,4 @@ export const supervisorModel: LM | null = bedrockModel ?? anthropic?.(config.SUP
 /// Null when no Anthropic key: callers fall back to the anonymous, knowledge-only
 /// provider chain (which never sees private data), never to a proxy for this input.
 /// Bedrock counts as direct here too, for the same reason as the supervisor.
-export const assistantAgentModel: LM | null = bedrockModel ?? anthropic?.(config.ASSISTANT_AGENT_LLM_MODEL) ?? null;
+export const assistantAgentModel: LM | null = directChain([bedrockModel, anthropic?.(config.ASSISTANT_AGENT_LLM_MODEL) ?? null]);
