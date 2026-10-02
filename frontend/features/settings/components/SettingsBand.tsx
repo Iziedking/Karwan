@@ -269,15 +269,9 @@ export function SettingsBand() {
   );
 }
 
-function PasskeyRow({
-  hasPasskey,
-  email,
-  onAdded,
-}: {
-  hasPasskey: boolean;
-  email: string;
-  onAdded: () => void | Promise<void>;
-}) {
+/// Adds a passkey to a Circle account in place: the browser asks, the server
+/// verifies, and the caller refreshes the session.
+export function useAddPasskey(email: string | null | undefined, onAdded: () => void | Promise<void>) {
   const t = useTranslations().settings.passkey;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -285,6 +279,7 @@ function PasskeyRow({
   const supports = typeof window !== 'undefined' ? browserSupportsWebAuthn() : true;
 
   async function addPasskey() {
+    if (!email) return;
     setBusy(true);
     setError(null);
     try {
@@ -306,6 +301,20 @@ function PasskeyRow({
       setBusy(false);
     }
   }
+
+  return { addPasskey, busy, error, justAdded, supports, copy: t };
+}
+
+function PasskeyRow({
+  hasPasskey,
+  email,
+  onAdded,
+}: {
+  hasPasskey: boolean;
+  email: string;
+  onAdded: () => void | Promise<void>;
+}) {
+  const { addPasskey, busy, error, justAdded, supports, copy: t } = useAddPasskey(email, onAdded);
 
   return (
     <Row label={t.rowLabel} hint={t.rowHint}>

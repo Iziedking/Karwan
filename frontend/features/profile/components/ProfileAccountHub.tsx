@@ -14,6 +14,7 @@ import { ProfileSignOut } from './ProfileSignOut';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
+import { useAddPasskey } from '@/features/settings/components/SettingsBand';
 
 type ProfileAccountHubProps = {
   profile: UserProfile;
@@ -86,7 +87,8 @@ export function ProfileAccountHub({
     : profile.email || shortAddress(address);
 
   const money = useMoneyBalances();
-  const { hasPasskey } = useAuth();
+  const { hasPasskey, method, email, refresh } = useAuth();
+  const passkey = useAddPasskey(email, () => refresh());
   const { locale } = useLocale();
   const simple = messages.profile.simple;
   const balanceFacts = { balance: money.balance, pool: money.pool, loading: money.loading, error: money.error };
@@ -158,11 +160,22 @@ export function ProfileAccountHub({
         ) : null}
       </RowGroup>
 
-      <RowGroup title={hub.security}>
-        <Row label={hub.passkey} value={hasPasskey ? simple.on : simple.off} href="/settings" />
-        <Row label={hub.recovery} soon={hub.soon} />
-        <Row label={hub.devices} soon={hub.soon} />
-      </RowGroup>
+      {/* A wallet account signs with its wallet; passkeys belong to email accounts. */}
+      {method === 'circle' ? (
+        <RowGroup title={hub.security}>
+          {hasPasskey || passkey.justAdded ? (
+            <Row label={hub.passkey} value={simple.on} />
+          ) : (
+            <Row
+              label={hub.passkey}
+              value={passkey.busy ? passkey.copy.addingButton : passkey.error ?? simple.off}
+              onClick={passkey.supports && !passkey.busy ? () => void passkey.addPasskey() : undefined}
+            />
+          )}
+          <Row label={hub.recovery} soon={hub.soon} />
+          <Row label={hub.devices} soon={hub.soon} />
+        </RowGroup>
+      ) : null}
 
       <RowGroup title={hub.other}>
         <Row label={hub.publicProfile} href={`/credit-passport/${address}`} />

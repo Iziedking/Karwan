@@ -18,6 +18,7 @@ import { THEME_PREPAINT_SCRIPT } from '@/shared/hooks/themePrepaintScript';
 import { DialogProvider } from '@/shared/components/Dialog';
 import { WorkspaceBottomNav } from '@/shared/components/WorkspaceBottomNav';
 import { PageFeedbackPrompt } from '@/shared/components/PageFeedbackPrompt';
+import { RouteTrail } from '@/shared/components/BackButton';
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
 // The Vercel script is only served inside a Vercel deployment. Rendering it
@@ -136,6 +137,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders initialLocale={DEFAULT_LOCALE}>
           <ScrollbarWidthProbe />
           <ScrollReset />
+          <RouteTrail />
           <ThemeRouteSync />
           {/* No overflow clip here on purpose: full-bleed sections use the
               scrollbar-aware `.w-bleed` width so they don't over-shoot at normal

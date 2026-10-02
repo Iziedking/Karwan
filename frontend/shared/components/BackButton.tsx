@@ -33,6 +33,21 @@ function writeStack(stack: string[]): void {
   }
 }
 
+/// Records every in-app route as it is entered, mounted once at the root so a
+/// page without its own back control still counts as where the user came from.
+/// Landing routes never enter the stack, so back can never hand the user to
+/// the marketing site, and a repeated path is not pushed twice.
+export function RouteTrail() {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!pathname || isLandingRoute(pathname)) return;
+    const stack = readStack();
+    if (stack[stack.length - 1] === pathname) return;
+    writeStack([...stack, pathname]);
+  }, [pathname]);
+  return null;
+}
+
 export function BackButton({
   tone = 'dark',
   showOnPublic = false,
@@ -45,16 +60,6 @@ export function BackButton({
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
-
-  // Record each in-app route as it is entered. Landing routes never enter the
-  // stack, so back can never hand the user to the marketing site, and a repeated
-  // path (re-render on the same route) is not pushed twice.
-  useEffect(() => {
-    if (isLandingRoute(pathname)) return;
-    const stack = readStack();
-    if (stack[stack.length - 1] === pathname) return;
-    writeStack([...stack, pathname]);
-  }, [pathname]);
 
   // Home is the root and landing renders its own chrome, so no back control on
   // either. Everywhere else the button shows.

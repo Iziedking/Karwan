@@ -15,6 +15,7 @@ import {
 } from '../db/bridges.js';
 import { getMoneyMovement } from '../db/moneyMovements.js';
 import { getAgentWallets, saveAgentWallets } from '../db/agentWallets.js';
+import { inboundSummary } from '../money/inboundSummary.js';
 import { getUserByAddress } from '../db/users.js';
 import { isSessionSelf, sessionAddress } from '../auth/session.js';
 import { provisionUserBridgeWallet, dripTestnetUsdc } from '../circle/wallets.js';
@@ -385,7 +386,7 @@ bridgeRoutes.post('/record', async (c) => {
         ? `Sent ${amountUsdc} USDC on Arc`
         : direction === 'out'
           ? `Sent ${amountUsdc} USDC from Arc to ${chainLabel(body.sourceChainKey)}`
-          : `Added ${amountUsdc} USDC from ${chainLabel(body.sourceChainKey)} to Arc`,
+          : await inboundSummary({ amountUsdc, chain: chainLabel(body.sourceChainKey), owner: ownerAddress, recipient: body.mintRecipient }),
     });
     movement = ensured.movement;
     if (movement.amountMicros !== amountMicros.toString()) {
@@ -1657,7 +1658,7 @@ bridgeRoutes.post('/circle-bridge', async (c) => {
         initiatedBy: userAddress,
         recipient: body.mintRecipient,
         sourceAddress: bridgeWalletAddress,
-        summary: `Added ${amountUsdc} USDC from ${body.sourceChainKey} to Arc`,
+        summary: await inboundSummary({ amountUsdc, chain: chainLabel(body.sourceChainKey), owner: userAddress, recipient: body.mintRecipient }),
       })
     ).movement;
     await prepareCashoutLeg(movement.reference, {
@@ -1904,7 +1905,7 @@ bridgeRoutes.post('/circle-bridge-app-kit', async (c) => {
         initiatedBy: userAddress,
         recipient: body.mintRecipient,
         sourceAddress: bridgeWalletAddress,
-        summary: `Added ${amountUsdc} USDC from ${body.sourceChainKey} to Arc`,
+        summary: await inboundSummary({ amountUsdc, chain: chainLabel(body.sourceChainKey), owner: userAddress, recipient: body.mintRecipient }),
       })
     ).movement;
     await prepareCashoutLeg(movement.reference, {

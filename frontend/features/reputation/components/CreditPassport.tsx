@@ -17,6 +17,7 @@ import { SME_TRADES_ENABLED } from '@/features/profile/config';
 import { BackButton } from '@/shared/components/BackButton';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { WalletAvatar } from '@/shared/components/WalletAvatar';
 
 const EXPLORER = 'https://testnet.arcscan.app';
 const ADDR_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -223,12 +224,15 @@ export function CreditPassport({ address }: { address: string }) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <p className="eyebrow">{cp.eyebrow}</p>
-          <h1
-            className="mt-2 text-[clamp(1.75rem,4vw,2.5rem)] tracking-tight leading-[1.05]"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
-            {profile?.displayName || cp.fallbackName}
-          </h1>
+          <div className="mt-2 flex items-center gap-4">
+            <PassportPhoto src={profile?.profileImageDataUrl || profile?.xProfileImageUrl} address={address} />
+            <h1
+              className="min-w-0 text-[clamp(1.75rem,4vw,2.5rem)] tracking-tight leading-[1.05]"
+              style={{ fontFamily: 'var(--font-serif)' }}
+            >
+              {profile?.displayName || cp.fallbackName}
+            </h1>
+          </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
             <button
               type="button"
@@ -783,4 +787,12 @@ function CheckGlyph() {
       />
     </svg>
   );
+}
+
+function PassportPhoto({ src, address }: { src?: string; address: string }) {
+  const [failed, setFailed] = useState(false);
+  if (src && !failed) {
+    return <img src={src} alt="" width={56} height={56} className="size-14 shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />;
+  }
+  return <span className="shrink-0"><WalletAvatar address={address} size={56} /></span>;
 }

@@ -55,7 +55,7 @@ function RequestCard({
 }) {
   const link = typeof window !== 'undefined' ? window.location.href : '';
   const active = request.status === 'open';
-  const senderHref = `/bridge?direction=in&rail=cctp&recipient=${encodeURIComponent(request.recipientAddress)}${request.amountUsdc ? `&amount=${encodeURIComponent(request.amountUsdc)}` : ''}`;
+  const senderHref = `/bridge?direction=in&rail=cctp&request=${encodeURIComponent(request.requestId)}&recipient=${encodeURIComponent(request.recipientAddress)}${request.amountUsdc ? `&amount=${encodeURIComponent(request.amountUsdc)}` : ''}`;
   const statusLabel = active
     ? copy.waiting
     : request.status === 'matched'

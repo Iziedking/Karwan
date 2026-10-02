@@ -7,6 +7,8 @@ import { formatUnits, isAddress } from 'viem';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useAddressKind } from '@/shared/hooks/useAddressKind';
 import { api, ApiError, type AppKitBridgeChainKey } from '@/core/api';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import {
   SOURCE_CHAINS,
   APP_KIT_SOURCES,
@@ -347,9 +349,19 @@ export function BridgeCard({
   /// short-circuit the RPC read by being passed in as trusted; Custom hits
   /// Arc Testnet's `eth_getCode` after a debounce. Smart-wallet recipients
   /// remain eligible after the read resolves, while the warning stays visible.
+  // Paying a Karwan payment link: the server vouches for the recipient, which
+  // is usually an email account's smart wallet and must not read as a risk.
+  const requestToken = useSearchParams()?.get('request') ?? null;
+  const { data: payRequest } = useQuery({
+    queryKey: ['deposit-request', requestToken],
+    queryFn: () => api.getDepositRequest(requestToken!),
+    enabled: !!requestToken,
+    staleTime: 15_000,
+  });
+  const requestRecipient = payRequest?.request?.recipientAddress;
   const trustedAddresses = useMemo(
-    () => [identityAddress, buyerAgent, sellerAgent],
-    [identityAddress, buyerAgent, sellerAgent],
+    () => [identityAddress, buyerAgent, sellerAgent, requestRecipient],
+    [identityAddress, buyerAgent, sellerAgent, requestRecipient],
   );
   const customKind = useAddressKind(customAddress, {
     enabled: recipientKind === 'custom',
