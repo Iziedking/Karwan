@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { erc20Abi } from 'viem';
@@ -19,6 +19,7 @@ import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/route
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { requestViewState } from '@/features/deposit/requestViewState';
 import { ShareLink } from './ShareLink';
+import { FundToPay } from './FundToPay';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { LoginModal } from '@/shared/components/LoginModal';
@@ -150,7 +151,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
     functionName: 'balanceOf',
     args: [owner ?? ZERO],
     chainId: ARC_CCTP.chainId,
-    query: { enabled: !!owner },
+    // An account waiting on its own top-up also polls, in case a live event is missed.
+    query: { enabled: !!owner, refetchInterval: viaAccount ? 10_000 : false },
   });
   const reads = useReadContracts({
     contracts: SOURCE_CHAIN_KEYS.map((key) => ({
@@ -172,6 +174,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   const balance = source === 'arc' ? arcBalance : funded.find((s) => s.key === source)?.amount ?? (owner ? 0 : null);
   const chainName = (key: Source) => (key === 'arc' ? copy.arc : SOURCE_CHAINS[key].name);
   const short = balance !== null && balance < amount;
+  const refetchArc = arcRead.refetch;
+  const refetchBalance = useCallback(() => void refetchArc(), [refetchArc]);
 
   // The transfer this page started, followed from the click.
   const [followFrom, setFollowFrom] = useState<number | null>(null);
@@ -325,8 +329,8 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
 
       {viaAccount ? (
         arcBalance !== null ? (
-          <p className={cn('mt-8 text-[13px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
-            {short ? copy.accountShort : fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) })}
+          <p className="mt-8 text-[13px] text-[var(--lp-text-sub)]">
+            {fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) })}
           </p>
         ) : null
       ) : (
@@ -358,6 +362,14 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       ) : null}
       </>
       )}
+      {viaAccount && auth.address && short && arcBalance !== null ? (
+        <FundToPay
+          owner={auth.address}
+          shortfall={formatAmount(Math.ceil((amount - arcBalance) * 100) / 100, locale)}
+          name={name}
+          onLanded={refetchBalance}
+        />
+      ) : null}
       {declined ? <p role="status" className="mt-3 text-[13px] text-[var(--lp-text-sub)]">{copy.connect}</p> : null}
 
       <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
@@ -367,7 +379,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         <button
           type="button"
           onClick={() => setSigningIn(true)}
-          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+          className="mx-auto mt-2 flex min-h-11 items-center px-3 text-[14px] text-[var(--lp-text-sub)] underline-offset-4 hover:text-[var(--lp-dark)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
         >
           {copy.useEmail}
         </button>

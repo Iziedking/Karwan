@@ -239,7 +239,7 @@ export function DepositCard() {
 
 /// The QR, drawn client-side. `qrcode` is imported lazily so no other page pays
 /// for it, and the canvas is redrawn whenever the address group changes.
-function Qr({ value, label }: { value: string; label: string }) {
+export function Qr({ value, label }: { value: string; label: string }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -273,7 +273,7 @@ function Qr({ value, label }: { value: string; label: string }) {
   if (failed) return null;
   return (
     <div
-      className="shrink-0 p-3"
+      className="shrink-0 self-center p-3 sm:self-start"
       style={{
         // White in both themes, for the same reason as the module colour. The
         // plate is the code's quiet zone.
@@ -334,7 +334,7 @@ function GroupHalf({
 
 /// The standing state. A breathing dot rather than a spinner, because nothing is
 /// pending on our side: we are listening, which is a different thing from working.
-function Watching({ label }: { label: string }) {
+export function Watching({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2.5">
       <span

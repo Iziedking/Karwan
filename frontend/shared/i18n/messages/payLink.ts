@@ -30,7 +30,8 @@ export interface PayLinkCopy {
     connect: string;
     useEmail: string;
     accountBalance: string;
-    accountShort: string;
+    fundTitle: string;
+    fundWaiting: string;
     arrivesArc: string;
     arrivesOther: string;
     expires: string;
@@ -86,9 +87,10 @@ const en: PayLinkCopy = {
     walletOn: 'Your wallet on {chain}: {amount} USDC',
     payCta: 'Pay {amount} USDC',
     connect: 'Connect a wallet to pay',
-    useEmail: "Use email or passkey",
+    useEmail: "No wallet? Pay from an exchange",
     accountBalance: "Your Karwan balance: {amount} USDC",
-    accountShort: "Your Karwan balance is too low for this.",
+    fundTitle: "Send {amount} USDC to pay {name}",
+    fundWaiting: "Waiting for your USDC",
     arrivesArc: 'Arrives in seconds',
     arrivesOther: 'Arrives on Arc in about a minute',
     expires: 'Expires {date}',
@@ -144,9 +146,10 @@ const fr: PayLinkCopy = {
     walletOn: 'Votre portefeuille sur {chain} : {amount} USDC',
     payCta: 'Payer {amount} USDC',
     connect: 'Connectez un portefeuille pour payer',
-    useEmail: "Utiliser e-mail ou passkey",
+    useEmail: "Pas de portefeuille ? Payez depuis une plateforme d’échange",
     accountBalance: "Votre solde Karwan : {amount} USDC",
-    accountShort: "Votre solde Karwan est trop bas pour ce paiement.",
+    fundTitle: "Envoyez {amount} USDC pour payer {name}",
+    fundWaiting: "En attente de vos USDC",
     arrivesArc: 'Arrive en quelques secondes',
     arrivesOther: 'Arrive sur Arc en une minute environ',
     expires: 'Expire le {date}',
@@ -202,9 +205,10 @@ const ar: PayLinkCopy = {
     walletOn: 'محفظتك على {chain}: {amount} USDC',
     payCta: 'ادفع {amount} USDC',
     connect: 'اربط محفظة للدفع',
-    useEmail: "استخدم البريد الإلكتروني أو مفتاح المرور",
+    useEmail: "لا محفظة؟ ادفع من منصة تداول",
     accountBalance: "رصيدك في Karwan: {amount} USDC",
-    accountShort: "رصيدك في Karwan لا يكفي لهذا الدفع.",
+    fundTitle: "أرسل {amount} USDC للدفع إلى {name}",
+    fundWaiting: "في انتظار USDC الخاصة بك",
     arrivesArc: 'يصل خلال ثوانٍ',
     arrivesOther: 'يصل إلى Arc خلال دقيقة تقريبًا',
     expires: 'ينتهي في {date}',
@@ -260,9 +264,10 @@ const hi: PayLinkCopy = {
     walletOn: '{chain} पर आपका वॉलेट: {amount} USDC',
     payCta: '{amount} USDC भुगतान करें',
     connect: 'भुगतान के लिए वॉलेट जोड़ें',
-    useEmail: "ईमेल या पासकी से जारी रखें",
+    useEmail: "वॉलेट नहीं है? एक्सचेंज से भुगतान करें",
     accountBalance: "आपका Karwan बैलेंस: {amount} USDC",
-    accountShort: "इस भुगतान के लिए आपका Karwan बैलेंस कम है।",
+    fundTitle: "{name} को भुगतान करने के लिए {amount} USDC भेजें",
+    fundWaiting: "आपके USDC का इंतज़ार है",
     arrivesArc: 'कुछ सेकंड में पहुँचता है',
     arrivesOther: 'लगभग एक मिनट में Arc पर पहुँचता है',
     expires: '{date} को समाप्त',
@@ -318,9 +323,10 @@ const sw: PayLinkCopy = {
     walletOn: 'Pochi yako kwenye {chain}: USDC {amount}',
     payCta: 'Lipa USDC {amount}',
     connect: 'Unganisha pochi ili ulipe',
-    useEmail: "Tumia barua pepe au passkey",
+    useEmail: "Huna pochi? Lipa kutoka soko la kubadilisha",
     accountBalance: "Salio lako la Karwan: USDC {amount}",
-    accountShort: "Salio lako la Karwan halitoshi kwa malipo haya.",
+    fundTitle: "Tuma USDC {amount} ili umlipe {name}",
+    fundWaiting: "Tunasubiri USDC yako",
     arrivesArc: 'Inafika ndani ya sekunde',
     arrivesOther: 'Inafika Arc ndani ya dakika moja hivi',
     expires: 'Inaisha {date}',
