@@ -55,8 +55,8 @@ export function Row({ label, value, href, onClick, soon, children }: {
   }
   const content = (
     <>
-      <span className="min-w-0 flex-1 font-medium text-[var(--lp-dark)]">{label}</span>
-      {value != null ? <span className="min-w-0 truncate text-end text-[14px] tabular-nums text-[var(--lp-text-sub)]">{value}</span> : null}
+      <span className={value != null ? 'max-w-[55%] shrink-0 break-words font-medium text-[var(--lp-dark)]' : 'min-w-0 flex-1 font-medium text-[var(--lp-dark)]'}>{label}</span>
+      {value != null ? <span className="line-clamp-2 min-w-0 flex-1 break-words text-end text-[14px] tabular-nums text-[var(--lp-text-sub)]">{value}</span> : null}
       {children}
       {href || onClick ? <Icon name="chevron-right" size={16} directional className="shrink-0 text-[var(--lp-text-sub)]" /> : null}
     </>
