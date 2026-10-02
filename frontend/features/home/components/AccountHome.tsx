@@ -13,6 +13,7 @@ import { formatUsdc, shortAddress } from '@/shared/utils/format';
 import { TradeStart } from './TradeStart';
 import { PageTour } from '@/shared/guide/PageTour';
 import { HOME_TOUR_ID, HOME_STEPS } from '@/shared/guide/tours';
+import { dealHeadline } from '@/features/home/dealHeadline';
 
 type AccountKind = 'person' | 'business';
 
@@ -127,8 +128,8 @@ export function AccountHome({ profile, displayName, accountKind = 'person' }: {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{home.currentTrade}</p>
-              <h2 className="mt-1 line-clamp-2 text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">
-                {currentDeal.terms || home.tradeDetails}
+              <h2 dir="auto" className="mt-1 line-clamp-1 text-[17px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+                {dealHeadline(currentDeal.terms) || home.tradeDetails}
               </h2>
             </div>
             <Link href={`/deals/${currentDeal.jobId}`} className="inline-flex min-h-11 shrink-0 items-center text-[13px] font-bold text-[var(--lp-dark)] hover:text-[var(--lp-accent-on-light)]">{translations.profile.hub.open} →</Link>

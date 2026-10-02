@@ -7,6 +7,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { safeNotificationHref } from '../notificationRouting';
 import { relativeTime } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { requestPageRefresh } from '@/shared/utils/pageRefresh';
 
 export function NotificationBell() {
   const { isAuthenticated: isConnected } = useAuth();
@@ -143,7 +144,11 @@ export function NotificationBell() {
                     onClick={() => {
                       markRead(n.id);
                       setOpen(false);
-                      router.push(safeNotificationHref(n));
+                      const href = safeNotificationHref(n);
+                      // Already on that page: navigating to it changes nothing,
+                      // so ask the page to read its data again.
+                      if (href.split('#')[0] === window.location.pathname) requestPageRefresh();
+                      router.push(href);
                     }}
                     className="w-full text-start px-4 py-3 hover:bg-[var(--lp-light)] transition-colors flex items-start gap-3"
                   >

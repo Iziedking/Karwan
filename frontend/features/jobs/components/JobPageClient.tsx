@@ -1,8 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api, ApiError, type BuyerJob } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { PAGE_REFRESH_EVENT } from '@/shared/utils/pageRefresh';
 import { LiveJobPage } from './LiveJobPage';
 import { useSearchV2 } from '@/features/search/useSearchV2';
 import { RequestPage } from '@/features/search/components/RequestPage';
@@ -46,6 +48,30 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     | { kind: 'private'; status: NonNullable<BuyerJob['status']> }
     | { kind: 'error'; message: string; isNotFound: boolean }
   >({ kind: 'loading' });
+  // Bumped to read the job again in place: a live event on this request, a
+  // return to the tab, or a notification that points at this page.
+  const [reloadKey, setReloadKey] = useState(0);
+  const shownFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setReloadKey((key) => key + 1), 400);
+    };
+    const offLive = subscribeLiveEvents((e) => {
+      if (e.jobId && e.jobId.toLowerCase() === jobId.toLowerCase()) reload();
+    });
+    const onVisible = () => { if (document.visibilityState === 'visible') reload(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener(PAGE_REFRESH_EVENT, reload);
+    return () => {
+      offLive();
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener(PAGE_REFRESH_EVENT, reload);
+    };
+  }, [jobId]);
 
   useEffect(() => {
     // Wait until we know who the viewer is. the gated read passes the address as
@@ -53,7 +79,8 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     // resolves would read as a non-party and wrongly show the private view.
     if (auth.isLoading) return;
     let cancelled = false;
-    setState({ kind: 'loading' });
+    // Only a different request shows the loading state; a re-read swaps in place.
+    if (shownFor.current !== jobId) setState({ kind: 'loading' });
 
     async function fetchJobWithRetry(): Promise<BuyerJob | { __error: string }> {
       let lastError = '';
@@ -100,6 +127,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
           return;
         }
         const explorer = status?.chain.explorer ?? 'https://testnet.arcscan.app';
+        shownFor.current = jobId;
         setState({ kind: 'ready', job, explorer });
       },
     );
@@ -107,7 +135,7 @@ export function JobPageClient({ jobId }: { jobId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [jobId, auth.address, auth.isLoading]);
+  }, [jobId, auth.address, auth.isLoading, reloadKey]);
 
   if (state.kind === 'loading') {
     // Match the loading.tsx feel: render the route shell so the transition
