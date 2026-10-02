@@ -46,11 +46,11 @@ export const termsDraftSchema = z.object({
   parts: z
     .array(
       z.object({
-        pct: z.number().int().min(1).max(99),
+        pct: z.number().int().min(1).max(100),
         what: z.string().trim().min(1).max(200),
       }),
     )
-    .min(2)
+    .min(1)
     .max(5)
     .refine((parts) => parts.reduce((sum, part) => sum + part.pct, 0) === 100, { message: 'parts must add up to 100' }),
   reviewWindowDays: z.number().int().min(1).max(90),

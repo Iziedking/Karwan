@@ -117,8 +117,8 @@ const postJobSchema = z
      *  at escrow funding. The managed flow supports the same 2 to 5 parts as
      *  the deployed escrow contract. */
     milestonePcts: z
-      .array(z.number().int().min(1).max(99))
-      .min(2)
+      .array(z.number().int().min(1).max(100))
+      .min(1)
       .max(5)
       .refine((a) => a.reduce((s, n) => s + n, 0) === 100, {
         message: 'milestonePcts must sum to 100',

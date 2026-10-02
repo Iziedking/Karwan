@@ -52,6 +52,8 @@ test('a request is asked in three steps and posts the chosen date and milestones
   const tb = TERMS_COPY.en;
   await expect(page.getByText(tb.noWhat.replace('{n}', '1'), { exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
+  // Every deal starts as one milestone; a second is added on purpose.
+  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Final logo in SVG and PNG');
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` })).toHaveValue('33');
@@ -119,6 +121,8 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
 
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the first 10 items');
+  // Every deal starts as one milestone; a second is added on purpose.
+  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the other 10 items');
   await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Edited set in one folder');

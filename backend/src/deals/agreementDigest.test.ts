@@ -62,3 +62,11 @@ test('an agreed check window joins the digest only when set', () => {
   assert.notEqual(agreementDigest({ ...base, reviewWindowDays: 3 }), agreementDigest(base));
   assert.notEqual(agreementDigest({ ...base, reviewWindowDays: 3 }), agreementDigest({ ...base, reviewWindowDays: 7 }));
 });
+
+test('a one-milestone deal digests as a single 100% part', () => {
+  const base = { buyer: '0x1', seller: '0x2', dealAmountUsdc: '100', terms: 't' };
+  assert.equal(
+    agreementDigest({ ...base, firstReleasePct: 100 }),
+    agreementDigest({ ...base, firstReleasePct: 100, milestonePcts: [100] }),
+  );
+});

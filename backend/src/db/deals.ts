@@ -572,7 +572,8 @@ export interface DirectDeal {
 /// two-part shape implied by firstReleasePct. This is the single source the
 /// off-chain code uses whenever it needs the split to fund or display.
 export function dealMilestonePcts(deal: Pick<DirectDeal, 'firstReleasePct' | 'milestonePcts'>): number[] {
-  return deal.milestonePcts ?? [deal.firstReleasePct, 100 - deal.firstReleasePct];
+  if (deal.milestonePcts) return deal.milestonePcts;
+  return deal.firstReleasePct >= 100 ? [100] : [deal.firstReleasePct, 100 - deal.firstReleasePct];
 }
 
 // --- public API: same names as before, now async, Postgres-backed when

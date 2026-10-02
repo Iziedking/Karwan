@@ -14,10 +14,7 @@ export const MAX_REVIEW_DAYS = 90;
 export const DEFAULT_TERMS: TermsDraft = {
   conditions: [''],
   proof: 'link',
-  parts: [
-    { pct: 50, what: '' },
-    { pct: 50, what: '' },
-  ],
+  parts: [{ pct: 100, what: '' }],
   reviewWindowDays: 3,
 };
 
@@ -35,7 +32,7 @@ export function TermsBuilder({
   onChange,
   priceUsdc,
   dueLabel,
-  minParts = 2,
+  minParts = 1,
   maxParts = MAX_PARTS,
   disabled = false,
 }: {
@@ -148,7 +145,7 @@ export function TermsBuilder({
                     <span className="whitespace-nowrap text-[13px] tabular-nums text-[var(--lp-text-sub)]">{((priceUsdc * part.pct) / 100).toFixed(2)} USDC</span>
                   ) : null}
                 </span>
-                <span className="flex w-24 shrink-0 items-center gap-1.5">
+                {value.parts.length === 1 ? null : <span className="flex w-24 shrink-0 items-center gap-1.5">
                   <input
                     inputMode="numeric"
                     value={String(part.pct)}
@@ -157,7 +154,7 @@ export function TermsBuilder({
                     className="form-input form-input-num h-10 text-end"
                   />
                   <span aria-hidden className="text-[14px] text-[var(--lp-text-sub)]">%</span>
-                </span>
+                </span>}
                 {value.parts.length > minParts ? (
                   <button
                     type="button"
@@ -194,9 +191,9 @@ export function TermsBuilder({
               {t.addPart}
             </button>
           ) : <span />}
-          <p className={cn('text-[13px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
+          {value.parts.length === 1 ? null : <p className={cn('text-[13px] font-semibold tabular-nums', total === 100 ? 'text-[var(--lp-accent-on-light)]' : 'text-[color-mix(in_srgb,var(--lp-dark)_75%,var(--neg))]')}>
             {(total === 100 ? t.total : t.needs100).replace('{sum}', String(total))}
-          </p>
+          </p>}
         </div>
       </div>
 

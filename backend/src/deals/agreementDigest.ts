@@ -46,7 +46,7 @@ export function agreementDigest(input: AgreementDigestInput): string {
     seller: input.seller.toLowerCase(),
     dealAmountUsdc: input.dealAmountUsdc,
     firstReleasePct: input.firstReleasePct,
-    milestonePcts: input.milestonePcts ?? [input.firstReleasePct, 100 - input.firstReleasePct],
+    milestonePcts: input.milestonePcts ?? (input.firstReleasePct >= 100 ? [100] : [input.firstReleasePct, 100 - input.firstReleasePct]),
     deadlineUnix: input.deadlineUnix ?? null,
     acceptanceDeadlineUnix: input.acceptanceDeadlineUnix ?? null,
     terms: input.terms,

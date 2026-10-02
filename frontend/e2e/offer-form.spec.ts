@@ -47,6 +47,10 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
   await next.click();
 
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
+
+  // Every deal starts as one milestone; a second is added on purpose.
+
+  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Logo in SVG and PNG');
   await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('30');
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();

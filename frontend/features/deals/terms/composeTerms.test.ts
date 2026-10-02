@@ -10,6 +10,8 @@ const copy: TermsCopy = {
   proofEither: 'Proof of delivery: a link or a tracking number.',
   payment: 'Payment: {amount} USDC held in escrow, released in {n} parts:',
   paymentNoPrice: 'Payment: held in escrow, released in {n} parts:',
+  paymentOne: 'Payment: {amount} USDC held in escrow, released in one milestone:',
+  paymentOneNoPrice: 'Payment: held in escrow, released in one milestone:',
   part: '• {name}, {pct}% ({amount} USDC): {what}',
   partNoPrice: '• {name}, {pct}%: {what}',
   partName: 'Part {n}',
@@ -71,4 +73,11 @@ test('an even split adds up to 100 for every allowed count', () => {
     assert.equal(shares.reduce((sum, pct) => sum + pct, 0), 100);
   }
   assert.deepEqual(evenSplit(3), [33, 33, 34]);
+});
+
+test('a one-off deal is one milestone that releases the whole price', () => {
+  const text = composeTerms({ conditions: [''], proof: 'link', parts: [{ pct: 100, what: 'Logo in SVG and PNG' }], reviewWindowDays: 3 }, { priceUsdc: 200, dueLabel: null }, copy);
+  assert.ok(text.includes('Payment: 200 USDC held in escrow, released in one milestone:'));
+  assert.ok(text.includes('• Part 1, 100% (200 USDC): Logo in SVG and PNG'));
+  assert.deepEqual(termsIssues({ conditions: [''], proof: 'link', parts: [{ pct: 100, what: 'Logo in SVG and PNG' }], reviewWindowDays: 3 }), []);
 });

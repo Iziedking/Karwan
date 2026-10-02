@@ -33,6 +33,8 @@ export interface TermsCopy {
   proofEither: string;
   payment: string;
   paymentNoPrice: string;
+  paymentOne: string;
+  paymentOneNoPrice: string;
   part: string;
   partNoPrice: string;
   partName: string;
@@ -69,7 +71,9 @@ export function composeTerms(draft: TermsDraft, context: TermsContext, copy: Ter
   const lines: string[] = [];
   if (context.dueLabel) lines.push(fill(copy.due, { date: context.dueLabel }));
   const price = context.priceUsdc && context.priceUsdc > 0 ? context.priceUsdc : null;
-  lines.push(price ? fill(copy.payment, { amount: money(price), n: draft.parts.length }) : fill(copy.paymentNoPrice, { n: draft.parts.length }));
+  const one = draft.parts.length === 1;
+  const paying = price ? (one ? copy.paymentOne : copy.payment) : one ? copy.paymentOneNoPrice : copy.paymentNoPrice;
+  lines.push(fill(paying, { amount: price ? money(price) : '', n: draft.parts.length }));
   draft.parts.forEach((part, index) => {
     const name = fill(copy.partName, { n: index + 1 });
     const what = part.what.trim();

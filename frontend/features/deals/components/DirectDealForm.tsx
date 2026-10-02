@@ -159,7 +159,7 @@ export function DirectDealForm() {
   // The agreement as checkable parts. Direct deals fund in two parts today.
   const [terms, setTerms] = useState<TermsDraft>(() =>
     initialTerms.trim()
-      ? { ...DEFAULT_TERMS, parts: [{ pct: 50, what: initialTerms.trim() }, { pct: 50, what: '' }] }
+      ? { ...DEFAULT_TERMS, parts: [{ pct: 100, what: initialTerms.trim() }] }
       : DEFAULT_TERMS,
   );
   // Opened from an offer: start from the terms the seller published and their

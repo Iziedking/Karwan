@@ -285,8 +285,8 @@ const addrSchema = z
 const PENDING_COUNTERPARTY_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
 export const milestonePctsSchema = z
-  .array(z.number().int().min(1).max(99))
-  .min(2)
+  .array(z.number().int().min(1).max(100))
+  .min(1)
   .max(5)
   .refine((pcts) => pcts.reduce((sum, pct) => sum + pct, 0) === 100, { message: 'the parts must add up to 100' });
 
@@ -323,7 +323,7 @@ const createSchema = z
     /// Days the buyer has to check each delivery. Lengthens the escrow's
     /// release window to match what the terms say; unset keeps the default.
     reviewWindowDays: z.number().int().min(1).max(90).optional(),
-    firstReleasePct: z.number().int().min(1).max(99),
+    firstReleasePct: z.number().int().min(1).max(100),
     /// Every part of the payment when there are more than two. Must start with
     /// firstReleasePct and add up to 100.
     milestonePcts: milestonePctsSchema.optional(),
@@ -411,7 +411,7 @@ const editSchema = z
     acceptanceWindowHours: z.number().min(0.25).max(720).multipleOf(0.25).optional(),
     terms: z.string().min(1).max(4000).optional(),
     reviewWindowDays: z.number().int().min(1).max(90).optional(),
-    firstReleasePct: z.number().int().min(1).max(99).optional(),
+    firstReleasePct: z.number().int().min(1).max(100).optional(),
     milestonePcts: milestonePctsSchema.optional(),
     requireStake: z.boolean().optional(),
     requireStakePct: z
@@ -971,7 +971,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
   if (patch.firstReleasePct !== undefined) {
     changedLabels.push(
-      `Payment split: ${(patch.milestonePcts ?? [patch.firstReleasePct, 100 - patch.firstReleasePct]).map((pct) => `${pct}%`).join(' / ')}`,
+      `Payment split: ${(patch.milestonePcts ?? dealMilestonePcts({ firstReleasePct: patch.firstReleasePct })).map((pct) => `${pct}%`).join(' / ')}`,
     );
   }
   if (patch.deadlineUnix !== undefined) {

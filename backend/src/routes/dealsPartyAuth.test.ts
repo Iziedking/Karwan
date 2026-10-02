@@ -36,11 +36,12 @@ test('turning down terms is the seller session only and cannot move money', asyn
   assert.equal(/dealEscrowOps|cancelledAt:/.test(route), false);
 });
 
-test('a direct deal may be split into two to five parts that add up to 100', async () => {
+test('a direct deal is one to five milestones that add up to 100', async () => {
   const { milestonePctsSchema } = await import('./deals.js');
   assert.equal(milestonePctsSchema.safeParse([20, 30, 50]).success, true);
   assert.equal(milestonePctsSchema.safeParse([10, 20, 20, 20, 30]).success, true);
-  assert.equal(milestonePctsSchema.safeParse([100]).success, false);
+  assert.equal(milestonePctsSchema.safeParse([100]).success, true);
+  assert.equal(milestonePctsSchema.safeParse([]).success, false);
   assert.equal(milestonePctsSchema.safeParse([10, 10, 10, 10, 10, 50]).success, false);
   assert.equal(milestonePctsSchema.safeParse([40, 40]).success, false);
 });
