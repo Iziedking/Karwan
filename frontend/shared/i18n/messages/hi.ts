@@ -696,6 +696,11 @@ export const hi: Messages = {
       receiptExportPdf: 'प्रिंट / PDF में सेव करें',
       receiptExportImage: 'इमेज डाउनलोड करें',
       receiptSharedNote: 'वॉलेट पते दिखाए बिना मूवमेंट विवरण साझा करने के लिए यह रसीद भेजें।',
+      receiptDone: "पूरा हुआ",
+      receiptNetwork: "नेटवर्क",
+      receiptVerifyTitle: "Arc पर सत्यापित करने के लिए स्कैन करें",
+      receiptVerifyBody: "इस लेन-देन को एक्सप्लोरर में खोलता है",
+      receiptTestnet: "Arc टेस्टनेट, कोई वास्तविक मूल्य नहीं",
       text: {
         bridgeIn: '{chain} से {amount} USDC जमा किए गए',
         bridgeOut: '{chain} पर {amount} USDC निकाले गए',

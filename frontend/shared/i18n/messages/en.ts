@@ -723,6 +723,11 @@ interface MessagesShape {
       receiptExportPdf: string;
       receiptExportImage: string;
       receiptSharedNote: string;
+      receiptDone: string;
+      receiptNetwork: string;
+      receiptVerifyTitle: string;
+      receiptVerifyBody: string;
+      receiptTestnet: string;
       justNow: string;
       repeated: string;
       showAll: string;
@@ -6022,6 +6027,11 @@ export const en: MessagesShape = {
       receiptExportPdf: 'Print / save PDF',
       receiptExportImage: 'Download image',
       receiptSharedNote: 'Share this receipt to show the movement details without exposing wallet addresses.',
+      receiptDone: "Completed",
+      receiptNetwork: "Network",
+      receiptVerifyTitle: "Scan to verify on Arc",
+      receiptVerifyBody: "Opens this transaction on the explorer",
+      receiptTestnet: "Arc testnet, no real value",
       justNow: 'just now',
       repeated: '×{n}',
       showAll: 'See all',

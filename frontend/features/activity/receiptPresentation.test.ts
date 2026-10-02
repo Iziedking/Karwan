@@ -7,6 +7,7 @@ import {
   shortenDealIds,
   shortenHash,
 } from './receiptPresentation';
+import { CAMEL_PATH } from '@/shared/components/CaravanStamp';
 
 test('redacts EVM wallet addresses from ledger copy', () => {
   assert.equal(
@@ -30,10 +31,10 @@ test('receipt SVG carries the Karwan reference and excludes wallet addresses', (
   });
   assert.match(svg, /KWN-AB12-CD34-EF56/);
   assert.match(svg, /counterparty/);
-  assert.match(svg, /KARWAN\./);
-  assert.doesNotMatch(svg, /M104 124 L111 98 L116 113 L121 98 L128 124/);
-  assert.match(svg, /Transaction receipt/);
-  assert.match(svg, /<circle cx="54" cy="48" r="18"\/>/);
+  assert.match(svg, />Karwan</);
+  // Signed off by the caravan stamp, not a watermark or scalloped edges.
+  assert.ok(svg.includes(CAMEL_PATH));
+  assert.doesNotMatch(svg, /KARWAN\./);
   assert.doesNotMatch(svg, /0x1234567890123456789012345678901234567890/);
 });
 
@@ -118,4 +119,30 @@ test('one hash, one abbreviation, wherever it is shown', () => {
   assert.equal(shortenDealIds(jobId), shortenHash(jobId));
   // Short enough to read whole is left alone.
   assert.equal(shortenHash('0x1234'), '0x1234');
+});
+
+test('the image follows the card: amount, sentence, rows, proof and a testnet note', () => {
+  const svg = buildReceiptSvg({
+    title: 'Karwan receipt',
+    summary: 'Sent 10 USDC from Ethereum Sepolia to @izieking',
+    reference: 'KRW-2026-1002-7Q2M',
+    amount: '10 USDC',
+    status: 'Completed',
+    date: '2 Oct 2026, 06:24',
+    transaction: { label: 'Transaction', value: '0x7a1c…e902' },
+    referenceLabel: 'Karwan reference',
+    referenceNone: 'Not recorded',
+    historicalNote: 'n/a',
+    sharedNote: 'Share safely',
+    done: true,
+    verifyTitle: 'Scan to verify on Arc',
+    verifyUrl: 'https://testnet.arcscan.app/tx/0x7a1c',
+    footnote: 'Arc testnet, no real value',
+  });
+  assert.match(svg, />10<tspan[^>]*>USDC</);
+  assert.match(svg, /Sent 10 USDC from Ethereum Sepolia to @izieking/);
+  assert.match(svg, /Scan to verify on Arc/);
+  assert.match(svg, /testnet\.arcscan\.app/);
+  assert.match(svg, /Arc testnet, no real value/);
+  assert.match(svg, /#E7F0CF/);
 });

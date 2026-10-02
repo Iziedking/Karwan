@@ -36,6 +36,10 @@ export interface PayLinkCopy {
     paidTo: string;
     bothSee: string;
     receiptFor: string;
+    paidBadge: string;
+    receiptKind: string;
+    receiptTo: string;
+    receiptDate: string;
     receiptFrom: string;
     receiptRef: string;
     done: string;
@@ -87,6 +91,10 @@ const en: PayLinkCopy = {
     paidTo: 'to {name}',
     bothSee: 'The request shows Paid for both of you.',
     receiptFor: 'For',
+    paidBadge: 'Paid',
+    receiptKind: 'Payment receipt',
+    receiptTo: 'To',
+    receiptDate: 'Date',
     receiptFrom: 'From',
     receiptRef: 'Reference',
     done: 'Done',
@@ -138,6 +146,10 @@ const fr: PayLinkCopy = {
     paidTo: 'à {name}',
     bothSee: 'La demande indique Payé pour vous deux.',
     receiptFor: 'Pour',
+    paidBadge: 'Payé',
+    receiptKind: 'Reçu de paiement',
+    receiptTo: 'À',
+    receiptDate: 'Date',
     receiptFrom: 'Depuis',
     receiptRef: 'Référence',
     done: 'Terminé',
@@ -189,6 +201,10 @@ const ar: PayLinkCopy = {
     paidTo: 'إلى {name}',
     bothSee: 'يظهر الطلب مدفوعًا لكليكما.',
     receiptFor: 'مقابل',
+    paidBadge: 'مدفوع',
+    receiptKind: 'إيصال دفع',
+    receiptTo: 'إلى',
+    receiptDate: 'التاريخ',
     receiptFrom: 'من',
     receiptRef: 'المرجع',
     done: 'تم',
@@ -240,6 +256,10 @@ const hi: PayLinkCopy = {
     paidTo: '{name} को',
     bothSee: 'अनुरोध आप दोनों के लिए भुगतान हुआ दिखाता है।',
     receiptFor: 'किसके लिए',
+    paidBadge: 'भुगतान हुआ',
+    receiptKind: 'भुगतान रसीद',
+    receiptTo: 'किसे',
+    receiptDate: 'तारीख',
     receiptFrom: 'कहाँ से',
     receiptRef: 'संदर्भ',
     done: 'हो गया',
@@ -291,6 +311,10 @@ const sw: PayLinkCopy = {
     paidTo: 'kwa {name}',
     bothSee: 'Ombi linaonyesha Limelipwa kwa nyote wawili.',
     receiptFor: 'Kwa ajili ya',
+    paidBadge: 'Imelipwa',
+    receiptKind: 'Risiti ya malipo',
+    receiptTo: 'Kwa',
+    receiptDate: 'Tarehe',
     receiptFrom: 'Kutoka',
     receiptRef: 'Kumbukumbu',
     done: 'Imekamilika',

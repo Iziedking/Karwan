@@ -19,6 +19,8 @@ import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/route
 import { TransferProgress } from '@/features/bridge/components/TransferProgress';
 import { requestViewState } from '@/features/deposit/requestViewState';
 import { ShareLink } from './ShareLink';
+import { ReceiptCard } from '@/features/receipt/ReceiptCard';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 
 type Source = 'arc' | CctpChainKey;
 const ZERO = '0x0000000000000000000000000000000000000000';
@@ -122,7 +124,9 @@ function OwnRequest({ request }: { request: DepositRequestPublic }) {
 }
 
 function PayRequest({ token, request, onPaid }: { token: string; request: DepositRequestPublic; onPaid: () => void }) {
-  const copy = useTranslations().payLink.pay;
+  const messages = useTranslations();
+  const copy = messages.payLink.pay;
+  const activity = messages.activity;
   const { locale } = useLocale();
   const router = useRouter();
   const account = useAccount();
@@ -236,23 +240,26 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   }
 
   if (paid) {
+    const receipt = activity.myMoney;
     return (
-      <section className="pt-6 text-center">
-        <span aria-hidden className="mx-auto grid size-20 place-items-center rounded-full bg-[var(--lp-accent)] text-[36px] font-bold text-[#10170b]">✓</span>
-        <h1 className="mt-5 text-[24px] font-semibold text-[var(--lp-dark)]">{fill(copy.paid, { amount: request.amountUsdc ?? '' })}</h1>
-        <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{fill(copy.paidTo, { name })}</p>
-        <dl className="mt-8 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)] text-start text-[15px]">
-          {request.purpose ? <Row term={copy.receiptFor} value={request.purpose} /> : null}
-          {paid.paidChain ? <Row term={copy.receiptFrom} value={paid.paidChain} /> : null}
-          {arcHash ? (
-            <Row
-              term={copy.receiptRef}
-              value={<a href={ARC_CCTP.explorerTx(arcHash)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">{`${arcHash.slice(0, 8)}…${arcHash.slice(-6)}`}</a>}
-            />
-          ) : null}
-        </dl>
-        <p className="mt-4 text-[13px] text-[var(--lp-text-sub)]">{copy.bothSee}</p>
-        <button type="button" onClick={() => router.push('/')} className={cn(PRIMARY, 'mt-8')}>{copy.done}</button>
+      <section className="space-y-6 pt-2">
+        <ReceiptCard
+          status={{ label: copy.paidBadge, tone: 'done' }}
+          kind={copy.receiptKind}
+          amount={request.amountUsdc ? `${request.amountUsdc} USDC` : null}
+          sentence={`${fill(copy.paid, { amount: request.amountUsdc ?? '' })} ${fill(copy.paidTo, { name })}`}
+          rows={[
+            { label: copy.receiptTo, value: name },
+            ...(request.purpose ? [{ label: copy.receiptFor, value: request.purpose }] : []),
+            ...(paid.paidChain ? [{ label: copy.receiptFrom, value: paid.paidChain }] : []),
+            ...(paid.paidAt ? [{ label: copy.receiptDate, value: new Date(paid.paidAt).toLocaleString(locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }] : []),
+            ...(arcHash ? [{ label: copy.receiptRef, value: `${arcHash.slice(0, 8)}…${arcHash.slice(-4)}`, mono: true }] : []),
+          ]}
+          verify={arcHash ? { href: ARC_CCTP.explorerTx(arcHash), title: receipt.receiptVerifyTitle, body: receipt.receiptVerifyBody, qrLabel: receipt.receiptProof } : undefined}
+          footnote={ARC_NETWORK === 'testnet' ? receipt.receiptTestnet : undefined}
+        />
+        <p className="text-center text-[13px] text-[var(--lp-text-sub)]">{copy.bothSee}</p>
+        <button type="button" onClick={() => router.push('/')} className={PRIMARY}>{copy.done}</button>
       </section>
     );
   }
@@ -336,14 +343,5 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
       </p>
     </section>
-  );
-}
-
-function Row({ term, value }: { term: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <dt className="text-[var(--lp-text-sub)]">{term}</dt>
-      <dd className="min-w-0 truncate text-[var(--lp-dark)]">{value}</dd>
-    </div>
   );
 }

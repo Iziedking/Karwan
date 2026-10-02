@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Messages } from '@/shared/i18n/messages/en';
+import { ARC_NETWORK } from '@/core/arcNetwork';
+import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import {
   downloadReceiptImage,
+  readableMovementText,
   shortenHash,
   type ReceiptExportData,
 } from '../receiptPresentation';
@@ -49,8 +52,9 @@ export function PortableReceipt({
   /// without this the button would look inert for that frame.
   const [busy, setBusy] = useState<'pdf' | 'image' | null>(null);
   const reference = item.refId?.trim() || null;
-  const status = item.status === 'done' ? 'COMPLETED' : item.status === 'pending' ? copy.pending : copy.failed;
-  const date = new Date(item.ts).toLocaleString();
+  const status = item.status === 'done' ? copy.receiptDone : item.status === 'pending' ? copy.pending : copy.failed;
+  const network = item.chain ? capitalise(readableMovementText(item.chain)) : null;
+  const date = new Date(item.ts).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   /// A movement recorded before Karwan minted references has no reference and
   /// never will: one is created with the movement, so there is nothing to
   /// recover and nothing honest to invent. It does have the transaction it
@@ -76,8 +80,15 @@ export function PortableReceipt({
       referenceNone: copy.receiptReferenceNone,
       historicalNote: copy.receiptHistorical,
       sharedNote: copy.receiptSharedNote,
+      done: item.status === 'done',
+      dateLabel: copy.receiptDate,
+      network: network ?? undefined,
+      networkLabel: copy.receiptNetwork,
+      verifyTitle: proofHref ? copy.receiptVerifyTitle : undefined,
+      verifyUrl: proofHref ?? undefined,
+      footnote: ARC_NETWORK === 'testnet' ? copy.receiptTestnet : undefined,
     }),
-    [copy, date, item.amountUsdc, line, reference, status, transaction],
+    [copy, date, item.amountUsdc, item.status, line, network, proofHref, reference, status, transaction],
   );
 
   useEffect(() => {
@@ -133,76 +144,21 @@ export function PortableReceipt({
           </button>
         </div>
 
-        <article className="karwan-receipt-print relative mt-5 overflow-hidden rounded-xl border border-[var(--lp-border-light)] bg-[var(--lp-light)] p-5">
-          {/* Watermark. Fully inside the box: it used to hang off the corner at
-              -bottom-5 -right-5 under `overflow-hidden`, so the word was sliced
-              in half on screen and again in the PDF, which read as a rendering
-              fault rather than as a watermark. */}
-          <span
-            aria-hidden
-            className="karwan-receipt-watermark pointer-events-none absolute bottom-3 right-4 select-none text-[clamp(34px,9vw,58px)] font-black leading-none tracking-[-0.06em] text-[var(--lp-border-light)] opacity-80"
-          >
-            KARWAN.
-          </span>
-          <div className="flex items-center gap-3 border-b border-[var(--lp-border-light)] pb-4">
-            <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden className="h-11 w-11 rounded-xl" />
-            <div>
-              <p className="font-bold tracking-[0.08em] text-[var(--lp-dark)]">KARWAN<span className="text-[var(--lp-accent)]">.</span></p>
-              <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">USDC settlement</p>
-            </div>
-          </div>
-
-          <p className="mobile-readable mt-5 break-words text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{line}</p>
-
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            {reference || !transaction ? (
-              <ReceiptField
-                label={copy.receiptReference}
-                value={reference ?? copy.receiptReferenceNone}
-                mono={Boolean(reference)}
-              />
-            ) : (
-              /* No reference was ever minted for this movement, so the
-                 transaction it settled in is the identifier. The proof link
-                 below opens the same hash on the explorer. */
-              <ReceiptField label={transaction.label} value={transaction.value} mono />
-            )}
-            <ReceiptField label={copy.receiptAmount} value={item.amountUsdc ? `${item.amountUsdc} USDC` : '—'} mono />
-            <ReceiptField label={copy.receiptStatus} value={status} />
-            <ReceiptField label={copy.receiptDate} value={date} />
-          </dl>
-
-          {/* Why there is no Karwan reference, as a footnote rather than as the
-              value of the field that should hold one. */}
-          {!reference && (
-            <p className="mobile-readable mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
-              {copy.receiptHistorical}
-            </p>
-          )}
-
-          {proofHref && (
-            <a
-              href={proofHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              /* The printed sheet keeps the anchor, for PDF writers that carry
-                 link annotations, and prints the URL underneath for the ones
-                 that do not. Either way the receipt stays verifiable. */
-              data-proof-url={proofHref}
-              className="karwan-receipt-proof mt-5 inline-flex min-h-11 items-center rounded-md border border-[var(--lp-border-light)] px-3 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-dark)] hover:bg-[var(--lp-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-            >
-              {copy.receiptProof} →
-            </a>
-          )}
-
-          {/* No rule above this. On the printed sheet the divider landed right
-              where the watermark sits, so the two crossed and read as a
-              rendering fault. The note is the last thing on the receipt; it does
-              not need a line to say so. */}
-          <p className="mobile-readable mt-5 text-[12px] leading-relaxed text-[var(--lp-text-sub)]">
-            {copy.receiptSharedNote}
-          </p>
-        </article>
+        <ReceiptCard
+          className="mt-5"
+          status={{ label: status, tone: item.status }}
+          kind={copy.receiptTitle}
+          amount={item.amountUsdc ? `${item.amountUsdc} USDC` : null}
+          sentence={line}
+          rows={[
+            { label: copy.receiptDate, value: date },
+            ...(network ? [{ label: copy.receiptNetwork, value: network }] : []),
+            { label: copy.receiptReference, value: reference ?? copy.receiptReferenceNone, mono: Boolean(reference) },
+            ...(transaction ? [{ label: transaction.label, value: transaction.value, mono: true }] : []),
+          ]}
+          verify={proofHref ? { href: proofHref, title: copy.receiptVerifyTitle, body: copy.receiptVerifyBody, qrLabel: copy.receiptProof } : undefined}
+          footnote={[reference ? null : copy.receiptHistorical, ARC_NETWORK === 'testnet' ? copy.receiptTestnet : null].filter(Boolean).join(' · ') || undefined}
+        />
 
         {!canShare && (
           <p className="karwan-receipt-actions mt-4 text-[12px] leading-relaxed text-[var(--lp-text-muted)]">
@@ -314,17 +270,6 @@ export function PortableReceipt({
             .karwan-receipt-actions {
               display: none !important;
             }
-            /* A watermark has to sit inside the sheet. Anchored to the receipt
-               box rather than to a stretched overlay, at a size that cannot
-               reach the page edge. */
-            .karwan-receipt-watermark {
-              position: absolute !important;
-              right: 10mm !important;
-              bottom: 8mm !important;
-              font-size: 44px !important;
-              opacity: 0.5 !important;
-              color: #e7eade !important;
-            }
             /* Paper cannot be clicked, so the URL is printed under the link.
                PDF writers that preserve link annotations still carry the
                anchor itself. */
@@ -352,11 +297,4 @@ export function PortableReceipt({
   );
 }
 
-function ReceiptField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <dt className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">{label}</dt>
-      <dd className={`mt-1 break-words text-[13px] font-semibold text-[var(--lp-dark)] ${mono ? 'mono tabular-nums' : ''}`}>{value}</dd>
-    </div>
-  );
-}
+const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);

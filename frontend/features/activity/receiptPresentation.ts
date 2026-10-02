@@ -1,3 +1,5 @@
+import { CAMEL_PATH } from '@/shared/components/CaravanStamp';
+
 export interface ReceiptExportData {
   title: string;
   summary: string;
@@ -13,6 +15,15 @@ export interface ReceiptExportData {
   referenceNone: string;
   historicalNote: string;
   sharedNote: string;
+  /// Whether the movement is complete; a pending one gets the neutral badge.
+  done?: boolean;
+  dateLabel?: string;
+  network?: string;
+  networkLabel?: string;
+  verifyTitle?: string;
+  /// The explorer link a reader can type in; an image cannot carry a link.
+  verifyUrl?: string;
+  footnote?: string;
 }
 
 /// Wallet addresses are proof metadata, not portable receipt identity. Keep
@@ -74,75 +85,92 @@ function escapeSvg(value: string): string {
     .replace(/'/g, '&apos;');
 }
 
+const FONT = "'General Sans', 'Helvetica Neue', Arial, sans-serif";
+const MONO = "Consolas, 'SFMono-Regular', monospace";
+
+/// The shareable image of a receipt: the same order and facts as the card in
+/// the app. Amount first, one sentence, rows of facts, then the proof line and
+/// the caravan stamp.
 export function buildReceiptSvg(data: ReceiptExportData): string {
-  // A movement with no Karwan reference is not a movement with no identity: it
-  // settled in a transaction, and that hash is what a reader can verify. So the
-  // identifier row falls back to the hash, and the apology for the missing
-  // reference leaves the value slot entirely.
-  //
-  // The row this replaces printed "NETWORK PROOF" as both the label and the
-  // value, because the label was being passed in as the value. A field whose
-  // value is its own name is worse than no field.
-  const rows: [string, string][] = [
-    ['MOVEMENT', readableMovementText(data.summary)],
+  // A movement with no Karwan reference still settled somewhere: the hash takes
+  // the identifier row, and the note about the missing reference stays out of
+  // the value slot. Both print when both exist.
+  const rows: Array<{ label: string; value: string; mono: boolean }> = [
+    { label: data.dateLabel ?? 'Date', value: data.date, mono: false },
+    ...(data.network ? [{ label: data.networkLabel ?? 'Network', value: data.network, mono: false }] : []),
     data.reference
-      ? [data.referenceLabel, data.reference]
+      ? { label: data.referenceLabel, value: data.reference, mono: true }
       : data.transaction
-        ? [data.transaction.label, data.transaction.value]
-        : [data.referenceLabel, data.referenceNone],
-    // Both, when both exist: the Karwan reference is what support quotes, the
-    // hash is what anyone can check on chain.
-    ...(data.reference && data.transaction
-      ? [[data.transaction.label, data.transaction.value] as [string, string]]
-      : []),
+        ? { label: data.transaction.label, value: data.transaction.value, mono: true }
+        : { label: data.referenceLabel, value: data.referenceNone, mono: false },
+    ...(data.reference && data.transaction ? [{ label: data.transaction.label, value: data.transaction.value, mono: true }] : []),
   ];
-  let detailY = 432;
-  const detailMarkup = rows
-    .map(([label, value]) => {
-      const lines = wrapSvgText(value, 54).slice(0, 3);
-      const markup = svgField(label, lines, detailY);
-      detailY += 82 + (lines.length - 1) * 27;
-      return markup;
-    })
-    .join('');
-  const noteLines = wrapSvgText(data.sharedNote, 92);
-  const noteY = detailY + 16;
-  const height = noteY + noteLines.length * 26 + 104;
-  const noteMarkup = noteLines
-    .map((line, index) => `<tspan x="88" dy="${index === 0 ? 0 : 26}">${escapeSvg(line)}</tspan>`)
-    .join('');
-  const watermarkMarkup = [
-    [170, Math.min(548, height - 180)],
-    [730, Math.min(628, height - 120)],
-    [230, Math.min(742, height - 64)],
-  ]
-    .map(
-      ([x, y]) =>
-        `<text x="${x}" y="${y}" fill="#eef0e8" font-family="Arial, sans-serif" font-size="98" font-weight="800" letter-spacing="-4" opacity="0.82">KARWAN.</text>`,
-    )
-    .join('');
-  const scallops = Array.from(
-    { length: 30 },
-    (_, index) =>
-      `<circle cx="${54 + index * 38}" cy="48" r="18"/><circle cx="${54 + index * 38}" cy="${height - 48}" r="18"/>`,
-  ).join('');
+  const sentence = wrapSvgText(readableMovementText(data.summary), 58).slice(0, 3);
+  const amountMatch = (data.amount ?? '').match(/^(.*?)\s*(USDC)$/);
+  const amountWhole = amountMatch ? amountMatch[1]! : data.amount;
+  const amountUnit = amountMatch ? amountMatch[2]! : '';
+  const tone = /fail/i.test(data.status) ? ['#F6E1E0', '#7a2421'] : data.done === false ? ['#EEF1F4', '#4b545d'] : ['#E7F0CF', '#33410f'];
+  const pillWidth = Math.max(96, data.status.length * 11 + 40);
+
+  let y = 232;
+  const parts: string[] = [];
+  parts.push(`<text x="88" y="${y}" fill="#5d666f" font-family="${FONT}" font-size="22">${escapeSvg(data.title)}</text>`);
+  if (amountWhole) {
+    y += 82;
+    parts.push(`<text x="88" y="${y}" fill="#16202A" font-family="${FONT}" font-size="80" font-weight="600" letter-spacing="-2">${escapeSvg(amountWhole)}<tspan dx="14" font-size="28" font-weight="500" fill="#5d666f" letter-spacing="0">${escapeSvg(amountUnit)}</tspan></text>`);
+  }
+  y += 52;
+  parts.push(`<text x="88" y="${y}" fill="#2c353e" font-family="${FONT}" font-size="25">${sentence.map((line, i) => `<tspan x="88" dy="${i === 0 ? 0 : 34}">${escapeSvg(line)}</tspan>`).join('')}</text>`);
+  y += (sentence.length - 1) * 34 + 40;
+  parts.push(`<line x1="88" y1="${y}" x2="1112" y2="${y}" stroke="#E3E6E1" stroke-width="2"/>`);
+  for (const row of rows) {
+    y += 58;
+    parts.push(`<text x="88" y="${y}" fill="#5d666f" font-family="${FONT}" font-size="23">${escapeSvg(row.label)}</text>`);
+    parts.push(`<text x="1112" y="${y}" text-anchor="end" fill="#16202A" font-family="${row.mono ? MONO : FONT}" font-size="${row.mono ? 22 : 23}" font-weight="${row.mono ? 400 : 500}">${escapeSvg(row.value)}</text>`);
+    y += 24;
+    parts.push(`<line x1="88" y1="${y}" x2="1112" y2="${y}" stroke="#E3E6E1" stroke-width="2"/>`);
+  }
+  y += 92;
+  const proofTitle = data.verifyTitle ?? '';
+  const proofBody = data.verifyUrl ?? '';
+  if (proofTitle || proofBody) {
+    parts.push(`<text x="88" y="${y - 22}" fill="#16202A" font-family="${FONT}" font-size="21" font-weight="600">${escapeSvg(proofTitle)}</text>`);
+    if (proofBody) parts.push(`<text x="88" y="${y + 10}" fill="#5d666f" font-family="${MONO}" font-size="16">${escapeSvg(proofBody.length > 70 ? `${proofBody.slice(0, 67)}...` : proofBody)}</text>`);
+  }
+  parts.push(caravanStampSvg(1112 - 116, y - 96, 116));
+  // The image carries the transaction as its identity; the apology for a
+  // missing reference belongs to the panel, not the shared picture.
+  const notes = [data.footnote ?? null].filter((note): note is string => !!note);
+  y += 60;
+  for (const note of notes.flatMap((line) => wrapSvgText(line, 90))) {
+    parts.push(`<text x="600" y="${y}" text-anchor="middle" fill="#8a929a" font-family="${FONT}" font-size="18">${escapeSvg(note)}</text>`);
+    y += 28;
+  }
+  const height = y + 60;
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
-    <rect width="1200" height="100%" fill="#eef0e8"/>
-    <rect x="36" y="48" width="1128" height="${height - 96}" rx="26" fill="#ffffff" stroke="#d9ddd1"/>
-    ${watermarkMarkup}
-    <text x="88" y="119" fill="#10110f" font-family="Arial, sans-serif" font-size="31" font-weight="800" letter-spacing="1.2">KARWAN</text>
-    <text x="1112" y="118" text-anchor="end" fill="#4e554c" font-family="Arial, sans-serif" font-size="22">Transaction receipt</text>
-    <line x1="88" y1="176" x2="1112" y2="176" stroke="#d9ddd1"/>
-    <text x="88" y="224" fill="#767a74" font-family="Arial, sans-serif" font-size="16" letter-spacing="3">RECEIPT</text>
-    <text x="600" y="300" text-anchor="middle" fill="#10110f" font-family="Arial, sans-serif" font-size="48" font-weight="800" letter-spacing="-1">${escapeSvg(data.amount ?? '-')}</text>
-    <text x="600" y="344" text-anchor="middle" fill="#10110f" font-family="Arial, sans-serif" font-size="25">${escapeSvg(data.status)}</text>
-    <text x="600" y="378" text-anchor="middle" fill="#767a74" font-family="Arial, sans-serif" font-size="16" letter-spacing="1">${escapeSvg(data.date)}</text>
-    <line x1="88" y1="410" x2="1112" y2="410" stroke="#d9ddd1"/>
-    ${detailMarkup}
-    <line x1="88" y1="${noteY - 24}" x2="1112" y2="${noteY - 24}" stroke="#d9ddd1"/>
-    <text x="88" y="${noteY}" fill="#767a74" font-family="Arial, sans-serif" font-size="17">${noteMarkup}</text>
-    <g fill="#eef0e8">${scallops}</g>
+    <rect width="1200" height="${height}" fill="#E4E8ED"/>
+    <rect x="36" y="36" width="1128" height="${height - 72}" rx="40" fill="#FBFBF8"/>
+    <rect x="88" y="96" width="44" height="44" rx="12" fill="#16202A"/>
+    <text x="110" y="127" text-anchor="middle" fill="#AFC95B" font-family="${FONT}" font-size="24" font-weight="700">M</text>
+    <text x="148" y="129" fill="#16202A" font-family="${FONT}" font-size="30" font-weight="700">Karwan</text>
+    <rect x="${1112 - pillWidth}" y="98" width="${pillWidth}" height="40" rx="20" fill="${tone[0]}"/>
+    <text x="${1112 - pillWidth / 2}" y="125" text-anchor="middle" fill="${tone[1]}" font-family="${FONT}" font-size="19" font-weight="600">${escapeSvg(data.status)}</text>
+    ${parts.join('\n    ')}
   </svg>`;
+}
+
+/// The caravan stamp at (x, y), `size` wide: a dotted seal around the camel.
+function caravanStampSvg(x: number, y: number, size: number): string {
+  const s = size / 120;
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+      <circle cx="60" cy="60" r="56" fill="none" stroke="#16202A" stroke-width="3" stroke-dasharray="3 6"/>
+      <g transform="translate(5 14) scale(0.9)">
+        <g fill="#16202A"><path d="${CAMEL_PATH}"/><rect x="31" y="64" width="7" height="26" rx="3"/><rect x="42" y="64" width="7" height="26" rx="3"/><rect x="71" y="64" width="7" height="26" rx="3"/><rect x="82" y="64" width="7" height="26" rx="3"/></g>
+        <path d="M27 55c-7 3-9 9-7 16" stroke="#16202A" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <rect x="45" y="14" width="22" height="15" rx="3" fill="#AFC95B"/>
+      </g>
+    </g>`;
 }
 
 function wrapSvgText(value: string, maxChars: number): string[] {
@@ -160,15 +188,6 @@ function wrapSvgText(value: string, maxChars: number): string[] {
   }
   if (line) lines.push(line);
   return lines.length ? lines : ['-'];
-}
-
-function svgField(label: string, lines: string[], y: number): string {
-  const valueMarkup = lines
-    .slice(0, 3)
-    .map((line, index) => `<tspan x="1112" dy="${index === 0 ? 0 : 27}">${escapeSvg(line)}</tspan>`)
-    .join('');
-  return `<text x="88" y="${y}" fill="#767a74" font-family="Arial, sans-serif" font-size="16" letter-spacing="2">${escapeSvg(label)}</text>
-    <text x="1112" y="${y + 34}" text-anchor="end" fill="#10110f" font-family="Arial, sans-serif" font-size="24" font-weight="700">${valueMarkup}</text>`;
 }
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -195,7 +214,7 @@ export function downloadReceiptImage(data: ReceiptExportData, filename: string):
     canvas.height = svgHeight * scale;
     const context = canvas.getContext('2d');
     if (!context) return;
-    context.fillStyle = '#eef0e8';
+    context.fillStyle = '#E4E8ED';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {

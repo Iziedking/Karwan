@@ -698,6 +698,11 @@ export const ar: Messages = {
       receiptExportPdf: 'طباعة / حفظ PDF',
       receiptExportImage: 'تنزيل الصورة',
       receiptSharedNote: 'شارك هذا الإيصال لعرض تفاصيل الحركة دون كشف عناوين المحافظ.',
+      receiptDone: "مكتمل",
+      receiptNetwork: "الشبكة",
+      receiptVerifyTitle: "امسح للتحقق على Arc",
+      receiptVerifyBody: "يفتح هذه المعاملة في المستكشف",
+      receiptTestnet: "شبكة Arc التجريبية، بلا قيمة حقيقية",
       text: {
         bridgeIn: 'تم إيداع {amount} USDC من {chain}',
         bridgeOut: 'تم سحب {amount} USDC إلى {chain}',

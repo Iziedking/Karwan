@@ -58,7 +58,8 @@ test('a payment link opens its own page: who asks, how much, Arc first, one butt
 test('a paid request says so, and the requester sees their own link to share', async ({ page }) => {
   await mockApi(page, { request: { ...openRequest, status: 'matched', paidAt: Date.now(), paidChain: 'Arc' } });
   await page.goto(`/deposit/request/${TOKEN}`);
-  await expect(page.getByRole('heading', { name: copy.pay.paid.replace('{amount}', '10') })).toBeVisible();
+  await expect(page.getByText(copy.pay.paidBadge, { exact: true })).toBeVisible();
+  await expect(page.getByText(`${copy.pay.paid.replace('{amount}', '10')} ${copy.pay.paidTo.replace('{name}', '@izieking')}`)).toBeVisible();
 
   const owner = await page.context().newPage();
   await mockApi(owner, { signedInAs: SELLER });
