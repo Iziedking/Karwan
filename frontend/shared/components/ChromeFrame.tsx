@@ -112,7 +112,7 @@ function CustomerChromeFrame({
   return (
     <div className="product-chrome relative isolate flex min-h-screen flex-col overflow-x-clip">
       {topNav}
-      {workspace ? profileNudge : null}
+      {workspace ? <div data-workspace-nudge={workspaceWithRail ? 'true' : undefined}>{profileNudge}</div> : null}
       <main
         data-workspace-main={workspaceWithRail ? 'true' : undefined}
         className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}
