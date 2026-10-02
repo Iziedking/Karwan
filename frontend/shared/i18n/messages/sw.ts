@@ -3122,6 +3122,7 @@ export const sw: Messages = {
       newHere: "Mpya kwenye Karwan",
       agreement: "Makubaliano",
       messages: "Ujumbe",
+      newMessages: "Ujumbe mpya",
       receipts: "Risiti",
       problem: "Kuna tatizo",
       close: "Funga",

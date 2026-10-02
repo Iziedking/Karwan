@@ -3123,6 +3123,7 @@ export const hi: Messages = {
       newHere: "Karwan पर नया",
       agreement: "समझौता",
       messages: "संदेश",
+      newMessages: "नए संदेश",
       receipts: "रसीदें",
       problem: "कुछ गड़बड़ है",
       close: "बंद करें",

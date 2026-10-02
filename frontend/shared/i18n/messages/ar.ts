@@ -3125,6 +3125,7 @@ export const ar: Messages = {
       newHere: "جديد على Karwan",
       agreement: "الاتفاق",
       messages: "الرسائل",
+      newMessages: "رسائل جديدة",
       receipts: "الإيصالات",
       problem: "هناك مشكلة",
       close: "إغلاق",

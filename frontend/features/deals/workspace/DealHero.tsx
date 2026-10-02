@@ -1,5 +1,5 @@
 'use client';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import type { DealView, DirectDeal, MoneyMovementView } from '@/core/api';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
@@ -15,6 +15,7 @@ import { actionLabel, actorLabel, automaticLine, fill, formatDealDate, formatUsd
 import { answersCancelHere, problemOptions } from './problems';
 import { Sheet } from './Sheet';
 import { TrustCard } from './TrustCard';
+import { useChatUnread } from '@/features/chat/hooks/useChatUnread';
 
 type Panel = 'record' | 'agreement' | 'messages' | 'receipts' | 'problem' | 'deliver' | 'answerTime' | 'answerCancel' | 'turnDown' | null;
 
@@ -55,6 +56,11 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   const { locale } = useLocale();
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
+  const chat = useChatUnread(deal.jobId, address);
+  const { markSeen } = chat;
+  useEffect(() => {
+    if (panel === 'messages' && chat.unread) markSeen();
+  }, [panel, chat.unread, markSeen]);
   const [editing, setEditing] = useState(false);
   const viewer = !address ? null : viewerIsBuyer ? 'buyer' : 'seller';
   const counterparty = viewerIsBuyer ? deal.seller : deal.buyer;
@@ -180,7 +186,12 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
             onClick={() => setPanel(row.key)}
             className="flex min-h-14 w-full items-center justify-between border-b border-[var(--lp-border-light)] px-5 text-start text-[15px] font-medium text-[var(--lp-dark)] last:border-b-0 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
           >
-            {row.text}
+            <span className="inline-flex items-center gap-2.5">
+              {row.text}
+              {row.key === 'messages' && chat.unread ? (
+                <span role="status" aria-label={s.newMessages} className="size-2 rounded-full bg-[var(--lp-accent)]" />
+              ) : null}
+            </span>
             <Icon name="chevron-right" size={16} directional className="text-[var(--lp-text-sub)]" />
           </button>
         ))}

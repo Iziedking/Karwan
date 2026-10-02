@@ -3125,6 +3125,7 @@ export const fr: Messages = {
       newHere: "Nouveau sur Karwan",
       agreement: "Accord",
       messages: "Messages",
+      newMessages: "Nouveaux messages",
       receipts: "Reçus",
       problem: "Un problème",
       close: "Fermer",

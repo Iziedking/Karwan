@@ -2893,6 +2893,7 @@ interface MessagesShape {
       newHere: string;
       agreement: string;
       messages: string;
+      newMessages: string;
       receipts: string;
       problem: string;
       close: string;
@@ -8459,6 +8460,7 @@ export const en: MessagesShape = {
       newHere: "New to Karwan",
       agreement: "Agreement",
       messages: "Messages",
+      newMessages: "New messages",
       receipts: "Receipts",
       problem: "Something is wrong",
       close: "Close",
