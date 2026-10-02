@@ -1362,16 +1362,6 @@ interface MessagesShape {
     };
   };
   liveJob: {
-    backToBuyer: string;
-    backToSeller: string;
-    managedDealTag: string;
-    statusEyebrow: {
-      positive: string;
-      warning: string;
-      accent: string;
-      default: string;
-      critical: string;
-    };
     statusLabels: {
       escrowFundedTemplate: string;
       requestExpired: string;
@@ -1381,17 +1371,6 @@ interface MessagesShape {
       bidsNegotiatingOne: string;
       bidsNegotiatingMany: string;
       waitingOnSellers: string;
-    };
-    stats: {
-      budget: string;
-      bids: string;
-      deadline: string;
-      termsHash: string;
-      statusLabel: string;
-      escrowFunded: string;
-      accepted: string;
-      expired: string;
-      ended: string;
     };
     brief: {
       eyebrow: string;
@@ -6721,16 +6700,6 @@ export const en: MessagesShape = {
     },
   },
   liveJob: {
-    backToBuyer: 'Back to buyer',
-    backToSeller: 'Back to seller',
-    managedDealTag: 'Managed deal',
-    statusEyebrow: {
-      positive: 'Settled',
-      warning: 'In progress',
-      accent: 'Live',
-      default: 'Open',
-      critical: 'Declined',
-    },
     statusLabels: {
       escrowFundedTemplate: 'Escrow funded · {amount}',
       requestExpired: 'Request expired',
@@ -6740,17 +6709,6 @@ export const en: MessagesShape = {
       bidsNegotiatingOne: '1 offer · negotiating',
       bidsNegotiatingMany: '{n} offers · negotiating',
       waitingOnSellers: 'Waiting on seller agents',
-    },
-    stats: {
-      budget: 'Budget',
-      bids: 'Offers',
-      deadline: 'Deadline',
-      termsHash: 'Terms hash',
-      statusLabel: 'Status',
-      escrowFunded: 'Escrow funded',
-      accepted: 'Accepted',
-      expired: 'Expired',
-      ended: 'Ended',
     },
     brief: {
       eyebrow: 'Request',
@@ -10979,25 +10937,25 @@ export const en: MessagesShape = {
         both: 'Activate to begin',
       },
       bodies: {
-        seller: 'A saved seller profile does not start an agent. Activate it so your seller agent can make offers on matching requests.',
-        buyer: 'A saved buyer profile does not start an agent. Activate to post requests and run auctions.',
-        both: 'A saved profile does not start an agent. Activate it so your agents can make offers and post for you.',
+        seller: "Your profile is saved. Activate your seller agent so it can make offers on matching requests.",
+        buyer: "Your profile is saved. Activate your buyer agent to post requests and collect offers.",
+        both: "Your profile is saved. Activate your agents so they can make offers and post for you.",
       },
       cta: 'Activate agents',
     },
     gate: {
-      loading: 'Checking your agent wallets…',
+      loading: "Checking your agents",
       title: 'Activate to open direct deals',
-      body: 'Direct deals run on your own Circle agent wallets. Activate once to provision a buyer agent and a seller agent for this wallet.',
+      body: "Direct deals need your agents. Activate them once: one buys for you, one sells for you.",
       cta: 'Activate agents',
     },
     modal: {
-      eyebrow: 'Circle wallets',
+      eyebrow: "One-time setup",
       titleNew: 'Activate your agents',
       titleActivated: 'Your agents',
       namedBody: 'Give your agents names so deals read like your own desk. Leave a field blank to use the default.',
-      provisionBody: 'Karwan sets up two agent wallets for you: a buyer agent that funds escrow and signs milestone releases, and a seller agent that receives payouts and can file an appeal. They sign each step on Arc for you, so you don\'t approve every transaction by hand.',
-      setupHint: 'One-time setup. You can rename your agents any time, and fund them from your Arc balance on the profile page.',
+      provisionBody: "Karwan sets up two agents for you. Your buyer agent pays into escrow and releases milestones. Your seller agent receives payouts and can appeal. They sign each step for you, so you do not approve every transaction by hand.",
+      setupHint: "You can rename them any time and add money to them from your profile.",
       fields: {
         buyerNameOptional: 'Buyer agent name (optional)',
         sellerNameOptional: 'Seller agent name (optional)',
@@ -11010,7 +10968,7 @@ export const en: MessagesShape = {
       savingButton: 'Saving…',
       savedNote: 'Saved. Your agents are named.',
       activateButton: 'Activate agents',
-      activatingButton: 'Provisioning wallets…',
+      activatingButton: "Setting up your agents",
       doneButton: 'Done',
       notNowButton: 'Not now',
       errorSavePrefix: "Couldn't save",
