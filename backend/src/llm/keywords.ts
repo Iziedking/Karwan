@@ -205,7 +205,8 @@ export async function judgeRelevance(input: {
     '',
     'Set relevant: true ONLY if the seller can actually do the work, not because',
     'a single shared filler word like "service" or "online" appears on both sides.',
-    'Set confidence: 0.85+ when obvious, 0.6-0.85 when reasonable, below 0.6 when shaky.',
+    'A partial fit counts: a seller who covers the main skill, or a close adjacent one, is relevant even when some named tools are missing.',
+    'Set confidence: 0.85+ when obvious, 0.6-0.85 when reasonable or partial, below 0.6 when shaky.',
   ].join('\n');
 
   let value: RelevanceJudgement;

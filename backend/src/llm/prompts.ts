@@ -131,6 +131,7 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     'Topical match (apply FIRST):',
     "- Decide if the brief is in the seller's wheelhouse, based on the brief text against the seller's skills + bio.",
     '- Match generously on synonyms and abbreviations (e.g. "WL" ≈ "whitelist", "ETH dev" ≈ "Ethereum developer", "Morse NFT" matches any NFT-related skill).',
+    '- A partial match is a match. If the seller covers the core of the brief, or a close adjacent skill a working professional in that field would have (a React or full-stack developer for a landing page, a web3 developer for a dApp frontend), bid with confidence 0.7 to 0.8 and name the gap in reasoning. A missing tag is not a missing skill.',
     '- If the brief is clearly outside the seller\'s skills (e.g. brief asks for graphic design but the seller does smart contracts), decision MUST be "skip" with low confidence. Do NOT bid out of topic.',
     '',
     'Hard range checks (apply SECOND, only if topical match passes):',
@@ -148,7 +149,7 @@ export function buildBidEvaluationPrompt(job: JobContext, seller: SellerProfile)
     '- decision: "bid" ONLY if topical match passes AND budget-in-range AND deadline-in-range. Otherwise "skip".',
     `- suggestedPrice: digits only USDC amount between ${seller.minBudgetUsdc} and ${seller.maxBudgetUsdc}. This is only a hint for the reasoning; the system sets the actual opening inside [budget, ceiling]. A sensible hint is ${Math.min(seller.maxBudgetUsdc, Math.max(seller.minBudgetUsdc, budgetN))} USDC or above.`,
     `- suggestedDeadlineDays: integer in [${seller.minDeadlineDays}, ${Math.min(seller.maxDeadlineDays, daysToBuyerDeadline)}]`,
-    '- confidence: 0..1. Lower confidence (≤ 0.5) means weak topical match or borderline range.',
+    '- confidence: 0..1. 0.85+ for a clear match, 0.7 to 0.8 for a partial match, 0.5 or lower only when the seller cannot do the work or a range check is borderline.',
     '- reasoning: one or two sentences explaining the topical fit (or lack of it) and price logic.',
   ].join('\n');
 }
