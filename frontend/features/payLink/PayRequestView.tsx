@@ -21,6 +21,7 @@ import { requestViewState } from '@/features/deposit/requestViewState';
 import { ShareLink } from './ShareLink';
 import { ReceiptCard } from '@/features/receipt/ReceiptCard';
 import { ARC_NETWORK } from '@/core/arcNetwork';
+import { LoginModal } from '@/shared/components/LoginModal';
 
 type Source = 'arc' | CctpChainKey;
 const ZERO = '0x0000000000000000000000000000000000000000';
@@ -129,15 +130,19 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   const activity = messages.activity;
   const { locale } = useLocale();
   const router = useRouter();
+  const auth = useAuth();
+  // Signed in with email or passkey: pay from the Karwan account on Arc.
+  const viaAccount = auth.method === 'circle' && !!auth.address;
+  const [signingIn, setSigningIn] = useState(false);
   const account = useAccount();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
-  const { bridges, startAppKitBridge, startWeb3ArcSend, recheck } = useBridges();
+  const { bridges, startAppKitBridge, startWeb3ArcSend, startArcSend, recheck } = useBridges();
   const { name } = useRequester(request.recipientAddress);
   const recipient = request.recipientAddress as `0x${string}`;
   const amount = Number(request.amountUsdc ?? 0);
-  const owner = account.address;
+  const owner = viaAccount ? (auth.address as `0x${string}`) : account.address;
 
   const arcRead = useReadContract({
     address: ARC_CCTP.usdc,
@@ -156,7 +161,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       chainId: SOURCE_CHAINS[key].chainId,
     })),
     allowFailure: true,
-    query: { enabled: !!owner },
+    query: { enabled: !!owner && !viaAccount },
   });
   const funded = walletSources(SOURCE_CHAIN_KEYS, reads.data ?? []);
   // Arc leads: it needs no bridge and lands in seconds. The other chains follow
@@ -214,6 +219,15 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
   }, [arcHash, paid, token]);
 
   async function pay() {
+    if (viaAccount && auth.address) {
+      if (short || amount <= 0) return;
+      setDeclined(false);
+      setFollowFrom(Date.now());
+      setPaidSource('arc');
+      moneySounds.submit();
+      void startArcSend({ amountUsdc: amount, recipient, userAddress: auth.address });
+      return;
+    }
     if (!owner || !account.connector) {
       openConnectModal?.();
       return;
@@ -282,7 +296,7 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
         <TransferProgress
           direction="in"
           chainName={chainName(paidSource)}
-          signer="wallet"
+          signer={viaAccount ? 'account' : 'wallet'}
           step={record ? stepForPhase(record.phase) : 'signed'}
           leftSource={!!(record?.burnTxHash || record?.mintTxHash)}
           startedAt={record?.startedAt ?? followFrom}
@@ -309,6 +323,14 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
       </div>
       {request.purpose ? <p className="mt-3 text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
 
+      {viaAccount ? (
+        arcBalance !== null ? (
+          <p className={cn('mt-8 text-[13px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
+            {short ? copy.accountShort : fill(copy.accountBalance, { amount: formatAmount(arcBalance, locale) })}
+          </p>
+        ) : null
+      ) : (
+      <>
       <p className="mt-8 text-[13px] text-[var(--lp-text-sub)]">{copy.payFrom}</p>
       <div role="radiogroup" aria-label={copy.payFrom} className="mt-2 flex flex-wrap gap-2">
         {(['arc', ...others] as Source[]).map((key) => (
@@ -334,11 +356,23 @@ function PayRequest({ token, request, onPaid }: { token: string; request: Deposi
           {short ? fill(copy.notEnough, { chain: chainName(source) }) : fill(copy.walletOn, { chain: chainName(source), amount: formatAmount(balance, locale) })}
         </p>
       ) : null}
+      </>
+      )}
       {declined ? <p role="status" className="mt-3 text-[13px] text-[var(--lp-text-sub)]">{copy.connect}</p> : null}
 
       <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
         {owner ? fill(copy.payCta, { amount: request.amountUsdc ?? '' }) : copy.connect}
       </button>
+      {!owner && !auth.isAuthenticated ? (
+        <button
+          type="button"
+          onClick={() => setSigningIn(true)}
+          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-full border border-[var(--lp-border-light)] px-5 text-[15px] font-medium text-[var(--lp-dark)] transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        >
+          {copy.useEmail}
+        </button>
+      ) : null}
+      <LoginModal open={signingIn} onClose={() => setSigningIn(false)} postAuthHref={null} />
       <p className="mt-3 text-center text-[13px] text-[var(--lp-text-sub)]">
         {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
       </p>
