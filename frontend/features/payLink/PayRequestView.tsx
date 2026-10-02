@@ -1,0 +1,349 @@
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { erc20Abi } from 'viem';
+import { useAccount, useChainId, useReadContract, useReadContracts, useSwitchChain } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
+import { api, type DepositRequestPublic } from '@/core/api';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
+import { moneySounds } from '@/shared/sound/moneySounds';
+import { WalletAvatar } from '@/shared/components/WalletAvatar';
+import { cn } from '@/shared/utils/cn';
+import { fill } from '@/features/deals/workspace/presentation';
+import { formatAmount } from '@/features/money/balanceModel';
+import { ARC_CCTP, SOURCE_CHAINS, SOURCE_CHAIN_KEYS, type CctpChainKey } from '@/features/bridge/config';
+import { useBridges, type BridgeRecord } from '@/features/bridge/hooks/useBridge';
+import { routeSpeed, stepForPhase, walletSources } from '@/features/bridge/routePlan';
+import { TransferProgress } from '@/features/bridge/components/TransferProgress';
+import { requestViewState } from '@/features/deposit/requestViewState';
+import { ShareLink } from './ShareLink';
+
+type Source = 'arc' | CctpChainKey;
+const ZERO = '0x0000000000000000000000000000000000000000';
+const PRIMARY =
+  'flex min-h-14 w-full items-center justify-center rounded-full bg-[var(--lp-accent)] px-5 text-[16px] font-bold text-[#10170b] transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
+const CHIP =
+  'inline-flex min-h-11 items-center rounded-full border px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
+
+/// The page a payment link opens. It pays this one request: who asks, how
+/// much, for what, from where, and one button. While the money moves it shows
+/// each step live; when it lands on Arc the server checks the transfer on chain
+/// and the request reads Paid for both sides.
+export function PayRequestView({ token }: { token: string }) {
+  const copy = useTranslations().payLink.pay;
+  const { address } = useAuth();
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: ['deposit-request', token],
+    queryFn: () => api.getDepositRequest(token),
+    enabled: !!token,
+    staleTime: 15_000,
+  });
+  const request = data?.request ?? null;
+  const view = requestViewState({ isPending, isError, hasRequest: request !== null });
+
+  return (
+    <main className="product-surface min-h-[calc(100vh-7rem)]">
+      <div className="mx-auto max-w-[480px] px-4 pb-16 pt-8 sm:px-6">
+        {view === 'loading' ? <div aria-busy className="h-[480px] rounded-[24px] bg-[var(--lp-card)] motion-safe:animate-pulse" /> : null}
+        {view === 'unavailable' ? (
+          <section>
+            <h1 className="text-[24px] font-semibold text-[var(--lp-dark)]">{copy.unavailableTitle}</h1>
+            <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{copy.unavailableBody}</p>
+          </section>
+        ) : null}
+        {view === 'ready' && request ? (
+          address?.toLowerCase() === request.recipientAddress.toLowerCase() ? (
+            <OwnRequest request={request} />
+          ) : (
+            <PayRequest token={token} request={request} onPaid={() => void refetch()} />
+          )
+        ) : null}
+      </div>
+    </main>
+  );
+}
+
+function useRequester(recipient: string) {
+  const profile = useQuery({ queryKey: ['profile', recipient], queryFn: () => api.getProfile(recipient), staleTime: 60_000 });
+  const reputation = useQuery({ queryKey: ['reputation', recipient], queryFn: () => api.reputation(recipient), staleTime: 60_000 });
+  const p = profile.data?.profile;
+  const name = p?.handle ? `@${p.handle}` : p?.displayName?.trim() || `${recipient.slice(0, 6)}…${recipient.slice(-4)}`;
+  return { profile: p, name, reputation: reputation.data };
+}
+
+function Requester({ recipient }: { recipient: string }) {
+  const copy = useTranslations().payLink.pay;
+  const { profile, name, reputation } = useRequester(recipient);
+  const [failed, setFailed] = useState(false);
+  const photo = profile?.profileImageDataUrl || profile?.xProfileImageUrl;
+  const settled = reputation?.successCount ?? 0;
+  return (
+    <div className="flex items-center gap-3">
+      {photo && !failed ? (
+        <img src={photo} alt="" width={48} height={48} className="size-12 rounded-full object-cover" onError={() => setFailed(true)} />
+      ) : (
+        <WalletAvatar address={recipient} size={48} />
+      )}
+      <div className="min-w-0">
+        <p className="truncate text-[16px] font-semibold text-[var(--lp-dark)]">{profile?.displayName?.trim() || name}</p>
+        <p className="truncate text-[13px] text-[var(--lp-text-sub)]">
+          {[profile?.handle ? `@${profile.handle}` : null, settled > 0 && reputation?.tier ? fill(copy.record, { tier: reputation.tier, n: settled }) : copy.recordNew]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Amount({ value }: { value: string | null }) {
+  return (
+    <p className="text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums text-[var(--lp-dark)]">
+      {value ?? '0'}
+      <span className="ms-2 text-[20px] font-medium tracking-normal text-[var(--lp-text-sub)]">USDC</span>
+    </p>
+  );
+}
+
+function OwnRequest({ request }: { request: DepositRequestPublic }) {
+  const copy = useTranslations().payLink.pay;
+  const url = typeof window !== 'undefined' ? window.location.href : '';
+  return (
+    <section className="space-y-6">
+      <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
+      <Amount value={request.amountUsdc} />
+      {request.purpose ? <p className="text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
+      <p className="text-[15px] text-[var(--lp-text-sub)]">{request.status === 'matched' ? copy.paidAlready : request.status === 'expired' ? copy.expired : request.status === 'cancelled' ? copy.cancelled : copy.yours}</p>
+      {request.status === 'open' ? <ShareLink url={url} /> : null}
+    </section>
+  );
+}
+
+function PayRequest({ token, request, onPaid }: { token: string; request: DepositRequestPublic; onPaid: () => void }) {
+  const copy = useTranslations().payLink.pay;
+  const { locale } = useLocale();
+  const router = useRouter();
+  const account = useAccount();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
+  const { openConnectModal } = useConnectModal();
+  const { bridges, startAppKitBridge, startWeb3ArcSend, recheck } = useBridges();
+  const { name } = useRequester(request.recipientAddress);
+  const recipient = request.recipientAddress as `0x${string}`;
+  const amount = Number(request.amountUsdc ?? 0);
+  const owner = account.address;
+
+  const arcRead = useReadContract({
+    address: ARC_CCTP.usdc,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [owner ?? ZERO],
+    chainId: ARC_CCTP.chainId,
+    query: { enabled: !!owner },
+  });
+  const reads = useReadContracts({
+    contracts: SOURCE_CHAIN_KEYS.map((key) => ({
+      address: SOURCE_CHAINS[key].usdc,
+      abi: erc20Abi,
+      functionName: 'balanceOf' as const,
+      args: [owner ?? ZERO] as const,
+      chainId: SOURCE_CHAINS[key].chainId,
+    })),
+    allowFailure: true,
+    query: { enabled: !!owner },
+  });
+  const funded = walletSources(SOURCE_CHAIN_KEYS, reads.data ?? []);
+  // Arc leads: it needs no bridge and lands in seconds. The other chains follow
+  // in balance order once a wallet is connected, or a short default list before.
+  const others: CctpChainKey[] = owner ? funded.map((s) => s.key) : SOURCE_CHAIN_KEYS.slice(0, 3);
+  const [source, setSource] = useState<Source>('arc');
+  const arcBalance = typeof arcRead.data === 'bigint' ? Number(arcRead.data) / 1_000_000 : null;
+  const balance = source === 'arc' ? arcBalance : funded.find((s) => s.key === source)?.amount ?? (owner ? 0 : null);
+  const chainName = (key: Source) => (key === 'arc' ? copy.arc : SOURCE_CHAINS[key].name);
+  const short = balance !== null && balance < amount;
+
+  // The transfer this page started, followed from the click.
+  const [followFrom, setFollowFrom] = useState<number | null>(null);
+  const [paidSource, setPaidSource] = useState<Source>('arc');
+  const [declined, setDeclined] = useState(false);
+  const record: BridgeRecord | null =
+    followFrom === null
+      ? null
+      : bridges.find((b) => b.startedAt >= followFrom && b.mintRecipient?.toLowerCase() === recipient.toLowerCase()) ?? null;
+  const arcHash = record?.mintTxHash ?? null;
+  const [paid, setPaid] = useState<DepositRequestPublic | null>(request.status === 'matched' ? request : null);
+
+  useEffect(() => {
+    if (record) moneySounds.claim({ ids: [record.id, record.burnTxHash, record.mintTxHash] });
+  }, [record]);
+
+  // Once the money is on Arc, ask the server to check the transfer and mark the
+  // request paid. A receipt not yet visible to the server is asked again.
+  const confirming = useRef(false);
+  useEffect(() => {
+    if (!arcHash || paid || confirming.current) return;
+    confirming.current = true;
+    let stop = false;
+    void (async () => {
+      for (let attempt = 0; attempt < 30 && !stop; attempt += 1) {
+        try {
+          const result = await api.confirmRequestPaid(token, arcHash, chainName(paidSource));
+          if (result.request.status === 'matched') {
+            setPaid(result.request);
+            moneySounds.outcome('success', { ids: [arcHash] });
+            onPaid();
+            return;
+          }
+        } catch {
+          // A refusal is final; the transfer still shows on the steps above.
+          return;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 4000));
+      }
+    })();
+    return () => {
+      stop = true;
+      confirming.current = false;
+    };
+  }, [arcHash, paid, token]);
+
+  async function pay() {
+    if (!owner || !account.connector) {
+      openConnectModal?.();
+      return;
+    }
+    if (short || amount <= 0) return;
+    const since = Date.now();
+    setDeclined(false);
+    setFollowFrom(since);
+    setPaidSource(source);
+    moneySounds.submit();
+    if (source === 'arc') {
+      void startWeb3ArcSend({ amountUsdc: amount, recipient, userAddress: owner });
+      return;
+    }
+    try {
+      if (chainId !== SOURCE_CHAINS[source].chainId) await switchChainAsync({ chainId: SOURCE_CHAINS[source].chainId });
+    } catch {
+      setFollowFrom(null);
+      setDeclined(true);
+      return;
+    }
+    const connector = account.connector;
+    void startAppKitBridge({ sourceChainKey: source, amountUsdc: amount, mintRecipient: recipient, getEvmProvider: () => connector.getProvider() });
+  }
+
+  if (paid) {
+    return (
+      <section className="pt-6 text-center">
+        <span aria-hidden className="mx-auto grid size-20 place-items-center rounded-full bg-[var(--lp-accent)] text-[36px] font-bold text-[#10170b]">✓</span>
+        <h1 className="mt-5 text-[24px] font-semibold text-[var(--lp-dark)]">{fill(copy.paid, { amount: request.amountUsdc ?? '' })}</h1>
+        <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{fill(copy.paidTo, { name })}</p>
+        <dl className="mt-8 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)] text-start text-[15px]">
+          {request.purpose ? <Row term={copy.receiptFor} value={request.purpose} /> : null}
+          {paid.paidChain ? <Row term={copy.receiptFrom} value={paid.paidChain} /> : null}
+          {arcHash ? (
+            <Row
+              term={copy.receiptRef}
+              value={<a href={ARC_CCTP.explorerTx(arcHash)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">{`${arcHash.slice(0, 8)}…${arcHash.slice(-6)}`}</a>}
+            />
+          ) : null}
+        </dl>
+        <p className="mt-4 text-[13px] text-[var(--lp-text-sub)]">{copy.bothSee}</p>
+        <button type="button" onClick={() => router.push('/')} className={cn(PRIMARY, 'mt-8')}>{copy.done}</button>
+      </section>
+    );
+  }
+
+  if (request.status !== 'open') {
+    return (
+      <section className="space-y-4">
+        <Requester recipient={request.recipientAddress} />
+        <Amount value={request.amountUsdc} />
+        <p className="text-[15px] text-[var(--lp-text-sub)]">{request.status === 'expired' ? copy.expired : copy.cancelled}</p>
+      </section>
+    );
+  }
+
+  if (followFrom !== null) {
+    return (
+      <section className="space-y-6">
+        <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{fill(copy.paying, { name })}</p>
+        <Amount value={request.amountUsdc} />
+        <TransferProgress
+          direction="in"
+          chainName={chainName(paidSource)}
+          signer="wallet"
+          step={record ? stepForPhase(record.phase) : 'signed'}
+          leftSource={!!(record?.burnTxHash || record?.mintTxHash)}
+          startedAt={record?.startedAt ?? followFrom}
+          speed={paidSource === 'arc' ? 'seconds' : routeSpeed('cctpIn')}
+          notifies={false}
+          payee={name}
+          onCheckAgain={() => record && void recheck(record.id)}
+          onTryAgain={() => setFollowFrom(null)}
+          onAnother={() => setFollowFrom(null)}
+          onDone={() => router.push('/')}
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <p className="text-[13px] font-semibold text-[var(--lp-text-sub)]">{copy.tag}</p>
+      <div className="mt-5">
+        <Requester recipient={request.recipientAddress} />
+      </div>
+      <div className="mt-7">
+        <Amount value={request.amountUsdc} />
+      </div>
+      {request.purpose ? <p className="mt-3 text-[15px] text-[var(--lp-dark)]">{fill(copy.forTemplate, { purpose: request.purpose })}</p> : null}
+
+      <p className="mt-8 text-[13px] text-[var(--lp-text-sub)]">{copy.payFrom}</p>
+      <div role="radiogroup" aria-label={copy.payFrom} className="mt-2 flex flex-wrap gap-2">
+        {(['arc', ...others] as Source[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={source === key}
+            onClick={() => setSource(key)}
+            className={cn(
+              CHIP,
+              source === key
+                ? 'border-[var(--lp-accent)] text-[var(--lp-dark)] shadow-[inset_0_0_0_1px_var(--lp-accent)]'
+                : 'border-[var(--lp-border-light)] text-[var(--lp-text-sub)] hover:border-[var(--lp-outline-strong)]',
+            )}
+          >
+            {chainName(key)}
+          </button>
+        ))}
+      </div>
+      {owner && balance !== null ? (
+        <p className={cn('mt-3 text-[13px]', short ? 'text-[var(--color-critical)]' : 'text-[var(--lp-text-sub)]')}>
+          {short ? fill(copy.notEnough, { chain: chainName(source) }) : fill(copy.walletOn, { chain: chainName(source), amount: formatAmount(balance, locale) })}
+        </p>
+      ) : null}
+      {declined ? <p role="status" className="mt-3 text-[13px] text-[var(--lp-text-sub)]">{copy.connect}</p> : null}
+
+      <button type="button" onClick={() => void pay()} disabled={!!owner && (short || amount <= 0)} className={cn(PRIMARY, 'mt-10')}>
+        {owner ? fill(copy.payCta, { amount: request.amountUsdc ?? '' }) : copy.connect}
+      </button>
+      <p className="mt-3 text-center text-[13px] text-[var(--lp-text-sub)]">
+        {[source === 'arc' ? copy.arrivesArc : copy.arrivesOther, fill(copy.expires, { date: new Date(request.expiresAt).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })].join(' · ')}
+      </p>
+    </section>
+  );
+}
+
+function Row({ term, value }: { term: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <dt className="text-[var(--lp-text-sub)]">{term}</dt>
+      <dd className="min-w-0 truncate text-[var(--lp-dark)]">{value}</dd>
+    </div>
+  );
+}

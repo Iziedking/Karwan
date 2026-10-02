@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api, type DepositRequestPublic } from '@/core/api';
+import Link from 'next/link';
+import { api } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
@@ -57,13 +58,6 @@ export function DepositCard() {
   const refreshMoney = useMoneyRefresh();
   const [group, setGroup] = useState<Group>('evm');
   const [copied, setCopied] = useState(false);
-  const [requestOpen, setRequestOpen] = useState(false);
-  const [request, setRequest] = useState<DepositRequestPublic | null>(null);
-  const [requestAmount, setRequestAmount] = useState('');
-  const [requestPurpose, setRequestPurpose] = useState('');
-  const [requestBusy, setRequestBusy] = useState(false);
-  const [requestError, setRequestError] = useState(false);
-  const [requestCopied, setRequestCopied] = useState(false);
   /// Every deposit seen this session, newest first, each with its own progress.
   const [deposits, setDeposits] = useState<Deposit[]>([]);
 
@@ -158,37 +152,6 @@ export function DepositCard() {
     }
   }, [shown]);
 
-  const createRequest = useCallback(async () => {
-    setRequestBusy(true);
-    setRequestError(false);
-    try {
-      const result = await api.createDepositRequest({
-        ...(requestAmount.trim() ? { amountUsdc: requestAmount.trim() } : {}),
-        ...(requestPurpose.trim() ? { purpose: requestPurpose.trim() } : {}),
-      });
-      setRequest(result.request);
-    } catch {
-      setRequestError(true);
-    } finally {
-      setRequestBusy(false);
-    }
-  }, [requestAmount, requestPurpose]);
-
-  const requestLink = request
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/deposit/request/${request.requestId}`
-    : '';
-
-  const copyRequestLink = useCallback(async () => {
-    if (!requestLink) return;
-    try {
-      await navigator.clipboard.writeText(requestLink);
-      setRequestCopied(true);
-      window.setTimeout(() => setRequestCopied(false), 2200);
-    } catch {
-      // The link stays visible below, so clipboard permission is optional.
-    }
-  }, [requestLink]);
-
   if (isLoading) return <DepositSkeleton />;
 
   // Nothing provisioned means nothing is watching, and inviting a deposit that
@@ -239,21 +202,14 @@ export function DepositCard() {
           <button
             type="button"
             onClick={copy}
-            className={`mt-4 ${requestOpen ? SECONDARY : PRIMARY}`}
+            className={`mt-4 ${PRIMARY}`}
           >
             {copied ? t.copied : t.copy}
           </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setRequestOpen((open) => !open);
-              setRequestError(false);
-            }}
-            className={`mt-3 ${SECONDARY}`}
-          >
+          <Link href="/request" className={`mt-3 ${SECONDARY}`}>
             {t.request.title}
-          </button>
+          </Link>
 
           <div className="mt-6">
             <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
@@ -265,23 +221,6 @@ export function DepositCard() {
           </div>
         </div>
       </div>
-
-      {requestOpen ? (
-        <DepositRequestComposer
-          copy={t.request}
-          amount={requestAmount}
-          purpose={requestPurpose}
-          setAmount={setRequestAmount}
-          setPurpose={setRequestPurpose}
-          busy={requestBusy}
-          error={requestError}
-          request={request}
-          link={requestLink}
-          copied={requestCopied}
-          onCreate={createRequest}
-          onCopyLink={copyRequestLink}
-        />
-      ) : null}
 
       <div className="mt-7 border-t border-[var(--line)] pt-5">
         {deposits.length > 0 ? (
@@ -479,111 +418,3 @@ function DepositSkeleton() {
   );
 }
 
-function DepositRequestComposer({
-  copy,
-  amount,
-  purpose,
-  setAmount,
-  setPurpose,
-  busy,
-  error,
-  request,
-  link,
-  copied,
-  onCreate,
-  onCopyLink,
-}: {
-  copy: ReturnType<typeof useTranslations>['deposit']['request'];
-  amount: string;
-  purpose: string;
-  setAmount: (value: string) => void;
-  setPurpose: (value: string) => void;
-  busy: boolean;
-  error: boolean;
-  request: DepositRequestPublic | null;
-  link: string;
-  copied: boolean;
-  onCreate: () => void;
-  onCopyLink: () => void;
-}) {
-  return (
-    <div
-      className="mt-7 border-t border-[var(--line)] pt-6"
-      data-guide="deposit-request"
-    >
-      {!request ? (
-        <>
-          <p className="mt-3 text-[22px] font-medium tracking-normal text-[var(--ink)]">
-            {copy.title}
-          </p>
-          <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--ink-secondary)]">
-            {copy.body}
-          </p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
-                {copy.amountLabel} <span className="font-normal">({copy.amountOptional})</span>
-              </span>
-              <input
-                inputMode="decimal"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder="0.00"
-                className={INPUT}
-              />
-            </label>
-            <label className="grid gap-2">
-              <span className="text-[13px] font-medium text-[var(--ink-secondary)]">
-                {copy.purposeLabel}
-              </span>
-              <input
-                value={purpose}
-                onChange={(event) => setPurpose(event.target.value)}
-                placeholder={copy.purposePlaceholder}
-                className={INPUT}
-              />
-            </label>
-          </div>
-          {error ? (
-            <p className="mt-3 text-[13px] text-[var(--color-critical)]" role="alert">
-              {copy.error}
-            </p>
-          ) : null}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onCreate}
-            className={`mt-5 ${PRIMARY}`}
-          >
-            {busy ? copy.creating : copy.create}
-          </button>
-        </>
-      ) : (
-        <div className="mt-4 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
-          <Qr value={link} label={copy.qrAlt} />
-          <div className="min-w-0">
-            <p className="text-[22px] font-medium tracking-normal text-[var(--ink)]">
-              {copy.shareTitle}
-            </p>
-            <p className="mt-2 max-w-[48ch] text-[13px] leading-relaxed text-[var(--ink-secondary)]">
-              {copy.shareBody}
-            </p>
-            <p className="mt-4 text-[14px] font-medium text-[var(--ink)]">
-              {request.amountUsdc ? `${request.amountUsdc} USDC · ` : ''}{request.purpose}
-            </p>
-            <p className="mt-1 break-all text-[13px] leading-relaxed text-[var(--ink-secondary)]">
-              {link}
-            </p>
-            <button
-              type="button"
-              onClick={onCopyLink}
-              className={`mt-4 ${PRIMARY}`}
-            >
-              {copied ? copy.copied : copy.copyLink}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

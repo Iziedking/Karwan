@@ -151,6 +151,7 @@ export function ProfileAccountHub({
         {DEALS_AVAILABLE ? <Row label={simple.agentsTitle} href="/profile/setup" /> : null}
         <Row label={simple.contactTitle} value={profile.email ?? simple.setUp} href="/profile/contact" />
         <Row label={simple.walletsTitle} href="/profile/wallets" />
+        <Row label={messages.payLink.create.title} href="/request" />
         {DEALS_AVAILABLE ? (
           <Row
             label={business || hasBusinessWorkspace ? businessCopy.label : businessCopy.open}

@@ -124,6 +124,9 @@ export interface MoneyCopy {
     ctaPay: string;
     chooseSource: string;
     stepSignedWallet: string;
+    stepConfirmWallet: string;
+    walletPrompt: string;
+    stepPaid: string;
     stepSignedAccount: string;
     stepLeaving: string;
     stepArriving: string;
@@ -284,7 +287,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       ctaSend: 'Send {amount} USDC to {chain}',
       ctaPay: 'Pay {amount} USDC from {chain}',
       chooseSource: 'Choose where it comes from',
-      stepSignedWallet: 'Signed in your wallet',
+      stepSignedWallet: 'Signed in your wallet', stepConfirmWallet: "Confirm in your wallet", walletPrompt: "Your wallet may ask twice: first to allow USDC, then to send it.", stepPaid: "Paid to {name}",
       stepSignedAccount: 'Sent from your balance',
       stepLeaving: 'Leaving {chain}',
       stepArriving: 'Arriving on {chain}',
@@ -439,7 +442,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       ctaSend: 'إرسال {amount} USDC إلى {chain}',
       ctaPay: 'دفع {amount} USDC من {chain}',
       chooseSource: 'اختر مصدر الأموال',
-      stepSignedWallet: 'تم التوقيع في محفظتك',
+      stepSignedWallet: 'تم التوقيع في محفظتك', stepConfirmWallet: "أكّد في محفظتك", walletPrompt: "قد تطلب محفظتك مرتين: أولًا السماح بـ USDC، ثم إرساله.", stepPaid: "تم الدفع إلى {name}",
       stepSignedAccount: 'أُرسل من رصيدك',
       stepLeaving: 'يغادر {chain}',
       stepArriving: 'يصل إلى {chain}',
@@ -594,7 +597,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       ctaSend: 'Envoyer {amount} USDC vers {chain}',
       ctaPay: 'Payer {amount} USDC depuis {chain}',
       chooseSource: 'Choisissez la provenance',
-      stepSignedWallet: 'Signé dans votre portefeuille',
+      stepSignedWallet: 'Signé dans votre portefeuille', stepConfirmWallet: "Confirmez dans votre portefeuille", walletPrompt: "Votre portefeuille peut demander deux fois : d’abord autoriser l’USDC, puis l’envoyer.", stepPaid: "Payé à {name}",
       stepSignedAccount: 'Envoyé depuis votre solde',
       stepLeaving: 'Départ de {chain}',
       stepArriving: 'Arrivée sur {chain}',
@@ -749,7 +752,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       ctaSend: '{amount} USDC {chain} पर भेजें',
       ctaPay: '{chain} से {amount} USDC चुकाएँ',
       chooseSource: 'चुनें कि पैसा कहाँ से आएगा',
-      stepSignedWallet: 'आपके वॉलेट में साइन हुआ',
+      stepSignedWallet: 'आपके वॉलेट में साइन हुआ', stepConfirmWallet: "अपने वॉलेट में पुष्टि करें", walletPrompt: "आपका वॉलेट दो बार पूछ सकता है: पहले USDC की अनुमति, फिर भेजना।", stepPaid: "{name} को भुगतान हुआ",
       stepSignedAccount: 'आपके बैलेंस से भेजा गया',
       stepLeaving: '{chain} से निकल रहा है',
       stepArriving: '{chain} पर पहुँच रहा है',
@@ -904,7 +907,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       ctaSend: 'Tuma {amount} USDC kwenda {chain}',
       ctaPay: 'Lipa {amount} USDC kutoka {chain}',
       chooseSource: 'Chagua zinakotoka',
-      stepSignedWallet: 'Imesainiwa kwenye pochi yako',
+      stepSignedWallet: 'Imesainiwa kwenye pochi yako', stepConfirmWallet: "Thibitisha kwenye pochi yako", walletPrompt: "Pochi yako inaweza kuuliza mara mbili: kwanza kuruhusu USDC, kisha kuituma.", stepPaid: "Imelipwa kwa {name}",
       stepSignedAccount: 'Imetumwa kutoka kwenye salio lako',
       stepLeaving: 'Inaondoka {chain}',
       stepArriving: 'Inafika {chain}',

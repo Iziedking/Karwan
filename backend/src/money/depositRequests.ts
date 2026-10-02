@@ -37,6 +37,8 @@ export interface DepositRequestPublic {
   status: DepositRequestStatus;
   createdAt: number;
   acceptedChains: string[];
+  paidAt?: number;
+  paidChain?: string;
 }
 
 export const REQUEST_TTL_MINUTES = 60;
@@ -115,6 +117,7 @@ export function toPublicRequest(request: DepositRequest, now = Date.now()): Depo
     status: request.status === 'open' && request.expiresAt <= now ? 'expired' : request.status,
     createdAt: request.createdAt,
     acceptedChains: ACCEPTED_CHAINS,
+    ...(request.status === 'matched' && request.matchedAt ? { paidAt: request.matchedAt, paidChain: request.matchedChain } : {}),
   };
 }
 
@@ -206,6 +209,16 @@ export async function matchDepositRequest(input: {
 
   const request = selectDepositRequest(await listDepositRequests(input.owner, 50), input);
   if (!request) return null;
+  return markDepositRequestMatched(request, { txId: input.txId, chain: input.chain, now });
+}
+
+/// Sets an open request to matched exactly once. The row is the compare-and-set
+/// boundary, so a replay or a second payment never overwrites the first.
+export async function markDepositRequestMatched(
+  request: DepositRequest,
+  input: { txId: string; chain: string; now: number },
+): Promise<DepositRequest | null> {
+  const now = input.now;
   const next: DepositRequest = {
     ...request,
     status: 'matched',
@@ -232,10 +245,12 @@ export async function matchDepositRequest(input: {
     return (rows[0]?.data as DepositRequest | undefined) ?? null;
   }
 
+  const current = await getDepositRequest(request.token);
+  if (!current || current.status !== 'open') return null;
   return saveDepositRequest(next);
 }
 
-async function getDepositRequestByTxId(txId: string): Promise<DepositRequest | null> {
+export async function getDepositRequestByTxId(txId: string): Promise<DepositRequest | null> {
   if (pgEnabled) {
     const rows = await db()
       .select({ data: depositRequests.data })

@@ -9,6 +9,7 @@ import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
+import { payLinkCopy } from './payLink';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -20,6 +21,7 @@ export const ar: Messages = {
   escrowV3: escrowV3Copy.ar,
   analytics: analyticsCopy.ar,
   signup: signupCopy.ar,
+  payLink: payLinkCopy.ar,
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   socialTrade: socialTradeCopy.ar,
@@ -1215,32 +1217,7 @@ export const ar: Messages = {
     },
     groups: { evm: 'شبكات EVM', solana: 'Solana' },
     request: {
-      tag: 'اطلب USDC',
       title: 'شارك طلب دفع',
-      body: 'امنح الطرف الآخر المبلغ والغرض بوضوح. يمكنه الدفع من شبكة مدعومة دون تسجيل الدخول أولاً.',
-      amountLabel: 'المبلغ',
-      amountOptional: 'اختياري',
-      purposeLabel: 'ما الغرض من هذا؟',
-      purposePlaceholder: 'مثال: دفعة للمصابيح الشمسية',
-      create: 'إنشاء طلب',
-      creating: 'جارٍ إنشاء الطلب',
-      shareTitle: 'الطلب جاهز للمشاركة',
-      shareBody: 'أرسل الرابط أو رمز QR إلى الشخص الذي سيدفع. تنقل كروان USDC الموثق إلى رصيدك على Arc.',
-      copyLink: 'نسخ الرابط',
-      copied: 'تم نسخ الرابط',
-      sendCta: 'الدفع من محفظة',
-      sendBody: 'سجّل الدخول لاختيار الشبكة وإرسال المبلغ المطلوب. سيُبقي كروان الوجهة والمبلغ جاهزين للمراجعة.',
-      recipientLabel: 'يُضاف إلى رصيدك في كروان',
-      expiresTemplate: 'ينتهي {time}',
-      waiting: 'بانتظار الدفع',
-      matched: 'تمت مطابقة الدفع',
-      expired: 'انتهت صلاحية الطلب',
-      cancelled: 'أُلغي الطلب',
-      needsAttention: 'يحتاج إلى مراجعة',
-      qrAlt: 'رمز QR لطلب الدفع هذا',
-      error: 'تعذر إنشاء الطلب. حاول مرة أخرى.',
-      unavailableTitle: 'هذا الطلب غير متاح.',
-      unavailableBody: 'ربما انتهت صلاحيته أو أُلغي أو أن الرابط غير مكتمل.',
     },
   },
   bridge: {

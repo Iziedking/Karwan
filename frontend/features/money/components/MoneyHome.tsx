@@ -44,6 +44,7 @@ export function MoneyHome() {
 /// the per-network view and the proof, both closed until asked for.
 function MoneyHomeInner() {
   const t = useTranslations().money;
+  const payLink = useTranslations().payLink.create;
   const { locale } = useLocale();
   const auth = useAuth();
   const reduce = useHydratedReducedMotion();
@@ -111,6 +112,7 @@ function MoneyHomeInner() {
                 <Link href="/bridge?intent=add" className={PRIMARY}>{t.home.add}</Link>
                 <Link href="/bridge?intent=move" className={SECONDARY}>{t.home.move}</Link>
                 <Link href="/send" className={SECONDARY}>{t.home.send}</Link>
+                <Link href="/request" className={SECONDARY}>{payLink.short}</Link>
               </div>
             </>
           )}

@@ -36,6 +36,8 @@ import { shortAddress, shortHash, formatUsdc } from '@/shared/utils/format';
 import { useSolanaWallet } from '../hooks/useSolanaWallet';
 import { SolanaConnectCard } from './SolanaConnectCard';
 import { BridgeActivityStrip } from './BridgeActivityStrip';
+import { TransferProgress } from './TransferProgress';
+import { routeSpeed, stepForPhase } from '../routePlan';
 import { ChainLogo, type ChainKey } from '@/shared/components/ChainLogo';
 import { WalletAvatar } from '@/shared/components/WalletAvatar';
 import { LpHint } from '@/shared/components/LpHint';
@@ -246,7 +248,10 @@ export function BridgeCard({
   const identityAddress = (auth.address as `0x${string}` | undefined) ?? undefined;
   const buyerAgent = agents?.buyer ? (agents.buyer as `0x${string}`) : undefined;
   const sellerAgent = agents?.seller ? (agents.seller as `0x${string}`) : undefined;
-  const { bridges, startCircle, startCircleAppKit, startAppKitBridge, isActive } = useBridges();
+  const { bridges, startCircle, startCircleAppKit, startAppKitBridge, isActive, recheck } = useBridges();
+  // The transfer this card started. From the click on, the card shows its live
+  // steps instead of the form, so a wallet prompt never sits on a still page.
+  const [followFrom, setFollowFrom] = useState<number | null>(null);
   // This card only handles bridging IN. Out-records render in BridgeOutCard.
   const inBridgesAll = bridges.filter((b) => b.direction !== 'out');
   /// IDs the user has dismissed from the ACTIVITY modal. Stored in
@@ -279,6 +284,9 @@ export function BridgeCard({
       b.sourceChainKey === sourceKey &&
       (b.phase === 'switching' || b.phase === 'approving' || b.phase === 'burning'),
   );
+  const followed = followFrom === null
+    ? null
+    : inBridgesAll.find((b) => b.startedAt >= followFrom) ?? null;
   const [amount, setAmount] = useState<number | ''>(prefillAmount ?? '');
   /// Source-chain dropdown, previously a 6-tile grid that took too much
   /// vertical space and felt cluttered next to the slim BRIDGE FROM ARC
@@ -575,12 +583,14 @@ export function BridgeCard({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const since = Date.now();
     // Solana: the user signs the burn in their wallet; the forwarder mints on
     // Arc. Recipient is the user's own Arc address (mintRecipient).
     if (appKitPath) {
       // Email account: the backend signs from their Solana deposit wallet.
       if (solanaDepositPath && auth.address) {
         if (!canBridgeSolanaDeposit || !mintRecipient) return;
+        setFollowFrom(since);
         startCircleAppKit({
           sourceChainKey: sourceKey as 'solanaDevnet',
           amountUsdc: amount as number,
@@ -590,6 +600,7 @@ export function BridgeCard({
         return;
       }
       if (!canBridgeSolana || !mintRecipient) return;
+      setFollowFrom(since);
       startAppKitBridge({ sourceChainKey: sourceKey, amountUsdc: amount as number, mintRecipient });
       return;
     }
@@ -615,6 +626,7 @@ export function BridgeCard({
       // Route those through the hand-rolled pipeline, which accepts every CCTP
       // chain. Slower, but real, until App Kit covers them.
       if (appKitBridgeSupportsSource(sourceKey)) {
+        setFollowFrom(since);
         startCircleAppKit({
           sourceChainKey: sourceKey as AppKitBridgeChainKey,
           amountUsdc: amount as number,
@@ -622,6 +634,7 @@ export function BridgeCard({
           userAddress: auth.address,
         });
       } else {
+        setFollowFrom(since);
         startCircle({
           sourceChainKey: sourceKey as CctpChainKey,
           amountUsdc: amount as number,
@@ -649,6 +662,7 @@ export function BridgeCard({
     // EVM connect-wallet now routes through App Kit + the Forwarding Service,
     // same as Solana: the wallet signs the burn (it is already on the source
     // chain after the switch step above) and the forwarder mints on Arc.
+    setFollowFrom(since);
     startAppKitBridge({
       sourceChainKey: sourceKey,
       amountUsdc: amount as number,
@@ -725,7 +739,24 @@ export function BridgeCard({
         {walletPath && evmSource && (
           <Web3FundHint source={evmSource} fundAddress={web3Address} copy={bc.web3Fund} />
         )}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {followed ? (
+          <div className="mb-6">
+            <TransferProgress
+              direction="in"
+              chainName={bridgeChainMeta(followed.sourceChainKey).name}
+              signer={depositPath || solanaDepositPath ? 'account' : 'wallet'}
+              step={stepForPhase(followed.phase)}
+              leftSource={!!followed.burnTxHash}
+              startedAt={followed.startedAt}
+              speed={routeSpeed('cctpIn')}
+              onCheckAgain={() => void recheck(followed.id)}
+              onTryAgain={() => setFollowFrom(null)}
+              onAnother={() => setFollowFrom(null)}
+              onDone={() => setFollowFrom(null)}
+            />
+          </div>
+        ) : null}
+        <form onSubmit={handleSubmit} hidden={!!followed} className="space-y-5">
           {/* SOURCE CHAIN DROPDOWN. Single button + absolute list, mirroring
               BridgeOutCard's destination picker. Combines CCTP EVM chains
               and AppKit chains in one merged list; Solana stays visible to

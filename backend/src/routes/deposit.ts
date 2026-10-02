@@ -25,10 +25,16 @@ import {
   cancelDepositRequest,
   createDepositRequest,
   getDepositRequest,
+  getDepositRequestByTxId,
   listDepositRequests,
+  markDepositRequestMatched,
   saveDepositRequest,
   toPublicRequest,
 } from '../money/depositRequests.js';
+import { coversRequest, receivedBy } from '../money/requestPayment.js';
+import { publicClient } from '../chain/client.js';
+import { config } from '../config.js';
+import { rateLimit } from '../middleware/rateLimit.js';
 
 /// Everything the deposit card needs, with Circle's vocabulary left behind.
 ///
@@ -202,6 +208,41 @@ depositRoutes.get('/requests', async (c) => {
   const requests = await listDepositRequests(owner, 20);
   const now = Date.now();
   return c.json({ requests: requests.map((request) => toPublicRequest(request, now)) });
+});
+
+/// The payer reports the Arc transaction that paid a request. Public, because a
+/// payer need not have an account; the receipt on Arc is the only proof taken.
+const paidSchema = z.object({
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  chain: z.string().trim().min(1).max(40).default('Arc'),
+});
+
+depositRoutes.post('/requests/:token/paid', rateLimit({ windowMs: 60_000, max: 30, name: 'request-paid' }), async (c) => {
+  const parsed = paidSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) return c.json({ error: 'invalid payment' }, 400);
+  const request = await getDepositRequest(c.req.param('token') ?? '');
+  if (!request) return c.json({ error: 'request not found' }, 404);
+  const txId = `arc:${parsed.data.txHash.toLowerCase()}`;
+  if (request.status === 'matched') {
+    return request.matchedTxId === txId
+      ? c.json({ request: toPublicRequest(request) })
+      : c.json({ error: 'already paid', request: toPublicRequest(request) }, 409);
+  }
+  if (toPublicRequest(request).status !== 'open') return c.json({ error: 'request is closed', request: toPublicRequest(request) }, 409);
+  if (await getDepositRequestByTxId(txId)) return c.json({ error: 'this payment already settled another request' }, 409);
+
+  const receipt = await publicClient.getTransactionReceipt({ hash: parsed.data.txHash as `0x${string}` }).catch(() => null);
+  // Not on Arc yet: the payer's page keeps asking until it is.
+  if (!receipt) return c.json({ pending: true, request: toPublicRequest(request) }, 202);
+  if (receipt.status !== 'success') return c.json({ error: 'the transaction failed on Arc' }, 422);
+  const received = receivedBy(receipt.logs, config.USDC_ADDR, request.recipientAddress);
+  if (!coversRequest(received, request.amountUsdc)) {
+    return c.json({ error: 'this transaction does not pay the request' }, 422);
+  }
+  const matched = await markDepositRequestMatched(request, { txId, chain: parsed.data.chain, now: Date.now() });
+  const latest = matched ?? (await getDepositRequest(request.token)) ?? request;
+  logger.info({ token: request.token, txHash: parsed.data.txHash, micros: received.micros.toString() }, 'payment request paid');
+  return c.json({ request: toPublicRequest(latest) });
 });
 
 depositRoutes.post('/requests/:token/cancel', async (c) => {

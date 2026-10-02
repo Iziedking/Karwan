@@ -9,6 +9,7 @@ import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
+import { payLinkCopy } from './payLink';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -20,6 +21,7 @@ export const sw: Messages = {
   escrowV3: escrowV3Copy.sw,
   analytics: analyticsCopy.sw,
   signup: signupCopy.sw,
+  payLink: payLinkCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,
@@ -1212,32 +1214,7 @@ export const sw: Messages = {
     },
     groups: { evm: 'Mitandao ya EVM', solana: 'Solana' },
     request: {
-      tag: 'Omba USDC',
       title: 'Shiriki ombi la malipo',
-      body: 'Weka kiasi na sababu wazi. Mlipaji anaweza kulipa kutoka mtandao unaokubaliwa bila kuingia kwanza.',
-      amountLabel: 'Kiasi',
-      amountOptional: 'Si lazima',
-      purposeLabel: 'Hii ni ya nini?',
-      purposePlaceholder: 'mfano: malipo ya taa za jua',
-      create: 'Unda ombi',
-      creating: 'Inaunda ombi',
-      shareTitle: 'Ombi liko tayari kushirikiwa',
-      shareBody: 'Tuma kiungo au QR kwa anayelipa. Karwan hupeleka USDC iliyothibitishwa kwenye salio lako la Arc.',
-      copyLink: 'Nakili kiungo',
-      copied: 'Kiungo kimenakiliwa',
-      sendCta: 'Lipa kutoka kwa wallet',
-      sendBody: 'Ingia ili uchague chain na utume kiasi kilichoombwa. Karwan itaweka anwani na kiasi tayari ukague.',
-      recipientLabel: 'Inaingia kwenye salio lako la Karwan',
-      expiresTemplate: 'Inaisha {time}',
-      waiting: 'Inasubiri malipo',
-      matched: 'Malipo yamepatikana',
-      expired: 'Ombi limeisha muda',
-      cancelled: 'Ombi limeghairiwa',
-      needsAttention: 'Inahitaji umakini',
-      qrAlt: 'QR ya ombi hili la malipo',
-      error: 'Ombi halikuundwa. Jaribu tena.',
-      unavailableTitle: 'Ombi hili halipatikani.',
-      unavailableBody: 'Huenda muda wake umeisha, limeghairiwa, au kiungo hakijakamilika.',
     },
   },
   bridge: {

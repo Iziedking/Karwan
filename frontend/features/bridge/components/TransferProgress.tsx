@@ -34,6 +34,8 @@ export interface TransferProgressProps {
   /// Whether a notification will come when it lands; only then does the page
   /// say the person can leave and be told.
   notifies?: boolean;
+  /// Paying someone: the last step names them instead of "In your balance".
+  payee?: string;
 }
 
 /// A cross-chain transfer in four plain steps, with the time it has taken and
@@ -52,11 +54,14 @@ export function TransferProgress(props: TransferProgressProps) {
   }, [settled]);
 
   const arc = 'Arc';
+  // Before anything leaves, the wallet is waiting on the person: say so, so a
+  // page that sits on an approval prompt never looks like it did nothing.
+  const awaitingWallet = props.signer === 'wallet' && props.step === 'signed' && !props.leftSource;
   const labels: Record<TransferStep, string> = {
-    signed: props.signer === 'wallet' ? t.stepSignedWallet : t.stepSignedAccount,
+    signed: props.signer === 'wallet' ? (awaitingWallet ? t.stepConfirmWallet : t.stepSignedWallet) : t.stepSignedAccount,
     leaving: fill(t.stepLeaving, { chain: props.direction === 'in' ? props.chainName : arc }),
     arriving: fill(t.stepArriving, { chain: props.direction === 'in' ? arc : props.chainName }),
-    arrived: props.direction === 'in' ? t.stepInBalance : fill(t.stepArrivedOn, { chain: props.chainName }),
+    arrived: props.payee ? fill(t.stepPaid, { name: props.payee }) : props.direction === 'in' ? t.stepInBalance : fill(t.stepArrivedOn, { chain: props.chainName }),
   };
   const reached =
     view.kind === 'arrived' ? TRANSFER_STEPS.length
@@ -102,6 +107,7 @@ export function TransferProgress(props: TransferProgressProps) {
         {view.kind === 'failed' ? (
           <p className="text-[var(--color-critical)]">{t.nothingLeft}</p>
         ) : null}
+        {awaitingWallet ? <p className="text-[var(--ink-secondary)]">{t.walletPrompt}</p> : null}
         {slow ? <p>{t.slow}</p> : null}
       </div>
 

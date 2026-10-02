@@ -1,9 +1,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { DepositRequestView } from '@/features/deposit/components/DepositRequestView';
+import { PayRequestView } from '@/features/payLink/PayRequestView';
 
-export default function DepositRequestPage() {
+export default function PayRequestPage() {
   const params = useParams<{ token: string }>();
-  return <DepositRequestView token={params.token} />;
+  return <PayRequestView token={params.token} />;
 }

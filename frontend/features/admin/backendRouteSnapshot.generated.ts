@@ -210,6 +210,7 @@ export const BACKEND_ROUTE_SNAPSHOT = [
   { method: "POST", path: "/api/deposit/requests" },
   { method: "GET", path: "/api/deposit/requests/:token" },
   { method: "POST", path: "/api/deposit/requests/:token/cancel" },
+  { method: "POST", path: "/api/deposit/requests/:token/paid" },
   { method: "POST", path: "/api/diagnose" },
   { method: "GET", path: "/api/events" },
   { method: "GET", path: "/api/events/deal-rooms/:dealRoomId/replay" },

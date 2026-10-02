@@ -9,6 +9,7 @@ import { offersCopy } from './offers';
 import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
+import { payLinkCopy } from './payLink';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -20,6 +21,7 @@ export const fr: Messages = {
   escrowV3: escrowV3Copy.fr,
   analytics: analyticsCopy.fr,
   signup: signupCopy.fr,
+  payLink: payLinkCopy.fr,
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
   socialTrade: socialTradeCopy.fr,
@@ -1215,32 +1217,7 @@ export const fr: Messages = {
     },
     groups: { evm: 'Reseaux EVM', solana: 'Solana' },
     request: {
-      tag: 'Demander des USDC',
       title: 'Partager une demande de paiement',
-      body: 'Indiquez clairement le montant et le motif. La personne peut payer depuis un réseau pris en charge sans se connecter.',
-      amountLabel: 'Montant',
-      amountOptional: 'Facultatif',
-      purposeLabel: 'À quoi sert ce paiement ?',
-      purposePlaceholder: 'ex. paiement des lampes solaires',
-      create: 'Créer la demande',
-      creating: 'Création de la demande',
-      shareTitle: 'Demande prête à partager',
-      shareBody: 'Envoyez ce lien ou ce QR code à la personne qui paie. Karwan achemine les USDC vérifiés vers votre solde Arc.',
-      copyLink: 'Copier le lien',
-      copied: 'Lien copié',
-      sendCta: 'Payer depuis un portefeuille',
-      sendBody: 'Connectez-vous pour choisir votre réseau et envoyer le montant demandé. Karwan garde la destination et le montant prêts à vérifier.',
-      recipientLabel: 'Vers votre solde Karwan',
-      expiresTemplate: 'Expire {time}',
-      waiting: 'En attente du paiement',
-      matched: 'Paiement associé',
-      expired: 'Demande expirée',
-      cancelled: 'Demande annulée',
-      needsAttention: 'Action requise',
-      qrAlt: 'QR code de cette demande de paiement',
-      error: 'Impossible de créer la demande. Réessayez.',
-      unavailableTitle: 'Cette demande est indisponible.',
-      unavailableBody: 'Elle a peut-être expiré, été annulée, ou le lien est incomplet.',
     },
   },
   bridge: {

@@ -12,6 +12,7 @@ import { offersCopy, type OffersCopy } from './offers';
 import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
 import { analyticsCopy, type AnalyticsCopy } from './analytics';
 import { signupCopy, type SignupCopy } from './signup';
+import { payLinkCopy, type PayLinkCopy } from './payLink';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
@@ -22,6 +23,7 @@ interface MessagesShape {
   escrowV3: EscrowV3Copy;
   analytics: AnalyticsCopy;
   signup: SignupCopy;
+  payLink: PayLinkCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
@@ -1168,32 +1170,7 @@ interface MessagesShape {
     stages: { moving: string; arrived: string; stuck: string };
     groups: { evm: string; solana: string };
     request: {
-      tag: string;
       title: string;
-      body: string;
-      amountLabel: string;
-      amountOptional: string;
-      purposeLabel: string;
-      purposePlaceholder: string;
-      create: string;
-      creating: string;
-      shareTitle: string;
-      shareBody: string;
-      copyLink: string;
-      copied: string;
-      sendCta: string;
-      sendBody: string;
-      recipientLabel: string;
-      expiresTemplate: string;
-      waiting: string;
-      matched: string;
-      expired: string;
-      cancelled: string;
-      needsAttention: string;
-      qrAlt: string;
-      error: string;
-      unavailableTitle: string;
-      unavailableBody: string;
     };
   };
   bridge: {
@@ -5317,6 +5294,7 @@ export const en: MessagesShape = {
   escrowV3: escrowV3Copy.en,
   analytics: analyticsCopy.en,
   signup: signupCopy.en,
+  payLink: payLinkCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,
@@ -6533,32 +6511,7 @@ export const en: MessagesShape = {
     },
     groups: { evm: 'EVM chains', solana: 'Solana' },
     request: {
-      tag: 'Ask for USDC',
       title: 'Share a payment request',
-      body: 'Give someone a clear amount and purpose. They can pay from a supported chain without signing in first.',
-      amountLabel: 'Amount',
-      amountOptional: 'Optional',
-      purposeLabel: 'What is this for?',
-      purposePlaceholder: 'e.g. payment for the solar lamps',
-      create: 'Create request',
-      creating: 'Creating request',
-      shareTitle: 'Request ready to share',
-      shareBody: 'Send this link or QR code to the person paying. Karwan carries verified USDC to your Arc balance.',
-      copyLink: 'Copy link',
-      copied: 'Link copied',
-      sendCta: 'Pay from a wallet',
-      sendBody: 'Sign in to choose your chain and send the requested amount. Karwan keeps the destination and amount ready for your review.',
-      recipientLabel: 'Pays into your Karwan balance',
-      expiresTemplate: 'Expires {time}',
-      waiting: 'Waiting for payment',
-      matched: 'Payment matched',
-      expired: 'Request expired',
-      cancelled: 'Request cancelled',
-      needsAttention: 'Needs attention',
-      qrAlt: 'QR code for this payment request',
-      error: 'Could not create a request. Try again.',
-      unavailableTitle: 'This request is not available.',
-      unavailableBody: 'It may have expired, been cancelled, or the link may be incomplete.',
     },
   },
   bridge: {

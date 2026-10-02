@@ -3332,6 +3332,11 @@ export const api = {
     json<{ request: DepositRequestPublic }>(`/api/deposit/requests/${encodeURIComponent(token)}`),
   listDepositRequests: () =>
     json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests'),
+  confirmRequestPaid: (token: string, txHash: string, chain: string) =>
+    json<{ request: DepositRequestPublic; pending?: boolean }>(`/api/deposit/requests/${encodeURIComponent(token)}/paid`, {
+      method: 'POST',
+      body: JSON.stringify({ txHash, chain }),
+    }),
   cancelDepositRequest: (token: string) =>
     json<{ request: DepositRequestPublic }>(
       `/api/deposit/requests/${encodeURIComponent(token)}/cancel`,
@@ -5101,6 +5106,8 @@ export interface DepositRequestPublic {
   status: DepositRequestStatus;
   createdAt: number;
   acceptedChains: string[];
+  paidAt?: number;
+  paidChain?: string;
 }
 
 export interface ChatMessage {
