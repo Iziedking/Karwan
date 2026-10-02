@@ -74,6 +74,8 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const [typed, setTyped] = useState('');
   const [recipient, setRecipient] = useState('');
   const [pressed, setPressed] = useState<number | null>(null);
+  // Withdraw only: false sends to the account, true to the other agent.
+  const [toOtherAgent, setToOtherAgent] = useState(false);
 
   // Opening starts clean: the move it was opened for, the prefilled amount and
   // no result left over from last time.
@@ -83,6 +85,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     setTyped(prefillAmount ? String(prefillAmount) : '');
     setRecipient(prefillRecipient ?? '');
     setPressed(null);
+    setToOtherAgent(false);
     announced.current = null;
     inFlight.current = false;
     reset();
@@ -107,6 +110,10 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
   const agentAddress = (agent === 'buyer' ? balances.agents?.buyer : balances.agents?.seller) as `0x${string}` | undefined;
   const agentBalance = agent === 'buyer' ? balances.buyer : balances.seller;
   const agentName = agent === 'buyer' ? t.home.buyingAgent : t.home.sellingAgent;
+  const otherAgentName = agent === 'buyer' ? t.home.sellingAgent : t.home.buyingAgent;
+  const otherAgentAddress = (agent === 'buyer' ? balances.agents?.seller : balances.agents?.buyer) as `0x${string}` | undefined;
+  const otherAgentBalance = agent === 'buyer' ? balances.seller : balances.buyer;
+  const withdrawToAgent = move === 'withdraw' && toOtherAgent && !!otherAgentAddress;
   const amount = parseAmount(typed);
   const route =
     move === 'topUp' && amount !== null && balances.balance !== null
@@ -156,19 +163,19 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
     move === 'send'
       ? paidTag ? t.sheet.consequenceSendTag : t.sheet.consequenceSend
       : move === 'withdraw'
-        ? t.sheet.consequenceWithdraw
+        ? withdrawToAgent ? t.sheet.consequenceWithdrawAgent : t.sheet.consequenceWithdraw
         : agent === 'buyer' ? t.sheet.consequenceTopUpBuyer : t.sheet.consequenceTopUpSeller;
   const cta = move === 'send' ? t.sheet.ctaSend : move === 'withdraw' ? t.sheet.ctaWithdraw : t.sheet.ctaTopUp;
   const doneLine =
     move === 'send'
       ? paidTag ? t.sheet.doneSendTag : t.sheet.doneSend
       : move === 'withdraw'
-        ? t.sheet.doneWithdraw
+        ? withdrawToAgent ? t.sheet.doneWithdrawAgent : t.sheet.doneWithdraw
         : agent === 'buyer' ? t.sheet.doneTopUpBuyer : t.sheet.doneTopUpSeller;
   const fromName = move === 'withdraw' ? agentName : route?.kind === 'pool' ? t.home.heldAnyNetwork : t.sheet.yourBalance;
   const fromAmount = move === 'withdraw' ? agentBalance : route?.kind === 'pool' ? balances.pool : balances.balance;
-  const toName = move === 'withdraw' ? t.sheet.yourBalance : agentName;
-  const toAmount = move === 'withdraw' ? balances.balance : agentBalance;
+  const toName = move === 'withdraw' ? (withdrawToAgent ? otherAgentName : t.sheet.yourBalance) : agentName;
+  const toAmount = move === 'withdraw' ? (withdrawToAgent ? otherAgentBalance : balances.balance) : agentBalance;
   const progress = sheetProgress(state);
   const stepLabel = { signed: t.sheet.stepSigned, sent: t.sheet.stepSent, confirmed: t.sheet.stepConfirmed };
   const fade = {
@@ -193,6 +200,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
       amount,
       recipient: move !== 'send' ? undefined : paidTag ? (paidTag.address as `0x${string}`) : recipientCheck.normalized ?? undefined,
       source: route?.kind === 'pool' ? 'pool' : 'balance',
+      toAddress: withdrawToAgent ? otherAgentAddress : undefined,
     });
   }
 
@@ -271,6 +279,16 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
             <span aria-hidden className="text-[18px] leading-none">⇄</span>
           </button>
           <Place label={t.sheet.to} name={toName} amount={toAmount} locale={locale} end />
+          {move === 'withdraw' && otherAgentAddress ? (
+            <button
+              type="button"
+              onClick={() => setToOtherAgent((value) => !value)}
+              disabled={state.kind !== 'editing'}
+              className="col-start-3 justify-self-end min-h-11 text-[13px] font-semibold text-[var(--lp-text-sub)] underline underline-offset-4 hover:text-[var(--lp-dark)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            >
+              {fill(t.sheet.switchTo, { name: withdrawToAgent ? t.sheet.yourBalance.toLowerCase() : otherAgentName.toLowerCase() })}
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -319,7 +337,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
         {state.kind === 'editing' ? (
           <motion.div key="editing" {...fade} className="mt-6">
             <p className="text-[15px] leading-relaxed text-[var(--lp-dark)]">
-              {fill(consequence, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '' })}
+              {fill(consequence, { amount: formatAmount(amount ?? 0, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
             </p>
             {move === 'send' ? (
               <p className="mt-2 text-[14px] font-medium text-[var(--color-warning)]">{t.sheet.sendIrreversible}</p>
@@ -343,7 +361,7 @@ export function MoneySheet({ open, onClose, move: openedOn, agent, prefillAmount
           <motion.div key="confirmed" {...fade} className="mt-6 space-y-4">
             <p className="flex items-center gap-3 text-[18px] font-semibold text-[var(--lp-dark)]">
               <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[15px] text-[var(--accent-ink)]">✓</span>
-              {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '' })}
+              {fill(doneLine, { amount: formatAmount(moved, locale), tag: paidTag?.tag ?? '', name: otherAgentName.toLowerCase() })}
             </p>
             <dl className="space-y-1 text-[14px] tabular-nums text-[var(--lp-text-sub)]">
               <div className="flex justify-between gap-3">

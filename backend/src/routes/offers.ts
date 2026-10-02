@@ -3,6 +3,7 @@ import type { Context } from 'hono';
 import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
 import { invalidBodyMessage } from './invalidBody.js';
+import { getProfile } from '../db/profiles.js';
 import { acceptOffer, createOffer, defaultDeps, viewOffers, withdrawOffer, type OfferDeps } from '../offers/service.js';
 
 /// A seller's own offer on a request. Identity is the signed session only.
@@ -19,8 +20,19 @@ const offerSchema = z.object({
 export const offersRoutes = new Hono();
 
 offersRoutes.get('/:jobId/offers', async (c) => {
-  return c.json(await viewOffers(session(c), c.req.param('jobId'), deps));
+  const jobId = c.req.param('jobId');
+  const view = await viewOffers(session(c), jobId, deps);
+  const postedBy = deps.brief(jobId)?.postedBy;
+  return c.json({ ...view, poster: postedBy ? await publicPoster(postedBy) : null });
 });
+
+/// Who posted a request, for a link to their public profile. Only when their
+/// passport is public; someone who turned it off is not named here either.
+async function publicPoster(address: string): Promise<{ address: string; name: string | null; handle: string | null } | null> {
+  const profile = await getProfile(address.toLowerCase()).catch(() => null);
+  if (!profile || profile.settings?.publicPassport === false) return null;
+  return { address: address.toLowerCase(), name: profile.displayName ?? null, handle: profile.handle ?? null };
+}
 
 offersRoutes.post('/:jobId/offers', async (c) => {
   const me = session(c);

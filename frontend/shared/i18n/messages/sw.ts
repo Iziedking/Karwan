@@ -423,6 +423,8 @@ export const sw: Messages = {
       moveHelp: 'Hamisha USDC kutoka kwenye salio lako kwenda mnyororo unaotumika.',
       send: 'Tuma USDC',
       sendHelp: 'Lipa tagi ya Karwan au anwani ya Arc.',
+      faucetTitle: "Pata USDC za majaribio",
+      faucetBody: "USDC za bure za testnet kwa kila pochi yako.",
     },
   },
   banners: {

@@ -73,7 +73,9 @@ export function getProductBackHref(
     '/jobs',
     '/legacy',
     '/p2p',
+    '/request',
     '/seller',
+    '/send',
     '/stake',
     '/supply',
   ];

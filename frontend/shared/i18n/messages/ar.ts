@@ -426,6 +426,8 @@ export const ar: Messages = {
       moveHelp: 'انقل USDC من رصيدك إلى شبكة مدعومة.',
       send: 'إرسال USDC',
       sendHelp: 'ادفع إلى وسم Karwan أو عنوان على Arc.',
+      faucetTitle: "احصل على USDC تجريبية",
+      faucetBody: "USDC مجانية على الشبكة التجريبية لكل محفظة لديك.",
     },
   },
   banners: {

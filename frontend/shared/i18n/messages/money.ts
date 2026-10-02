@@ -69,6 +69,9 @@ export interface MoneyCopy {
     consequenceTopUpBuyer: string;
     consequenceTopUpSeller: string;
     consequenceWithdraw: string;
+    consequenceWithdrawAgent: string;
+    doneWithdrawAgent: string;
+    switchTo: string;
     consequenceSend: string;
     sendIrreversible: string;
     ctaTopUp: string;
@@ -232,7 +235,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: 'Usually arrives in seconds.',
       consequenceTopUpBuyer: '{amount} USDC moves to your buying agent. You can withdraw it at any time.',
       consequenceTopUpSeller: '{amount} USDC moves to your selling agent. You can withdraw it at any time.',
-      consequenceWithdraw: '{amount} USDC comes back to your balance.',
+      consequenceWithdraw: '{amount} USDC comes back to your balance.', consequenceWithdrawAgent: "{amount} USDC moves to your {name}.", doneWithdrawAgent: "{amount} USDC is in your {name}.", switchTo: "Switch to {name}",
       consequenceSend: '{amount} USDC goes to the address above.',
       sendIrreversible: "Sending to an address can't be undone.",
       ctaTopUp: 'Top up {amount} USDC',
@@ -387,7 +390,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: 'يصل عادةً خلال ثوانٍ.',
       consequenceTopUpBuyer: 'ينتقل {amount} USDC إلى وكيل الشراء. يمكنك سحبه في أي وقت.',
       consequenceTopUpSeller: 'ينتقل {amount} USDC إلى وكيل البيع. يمكنك سحبه في أي وقت.',
-      consequenceWithdraw: 'يعود {amount} USDC إلى رصيدك.',
+      consequenceWithdraw: 'يعود {amount} USDC إلى رصيدك.', consequenceWithdrawAgent: "ينتقل {amount} USDC إلى {name}.", doneWithdrawAgent: "وصل {amount} USDC إلى {name}.", switchTo: "التبديل إلى {name}",
       consequenceSend: 'يذهب {amount} USDC إلى العنوان أعلاه.',
       sendIrreversible: 'لا يمكن التراجع عن الإرسال إلى عنوان.',
       ctaTopUp: 'تعبئة {amount} USDC',
@@ -542,7 +545,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: 'Arrive généralement en quelques secondes.',
       consequenceTopUpBuyer: '{amount} USDC vont à votre agent d’achat. Vous pouvez les retirer à tout moment.',
       consequenceTopUpSeller: '{amount} USDC vont à votre agent de vente. Vous pouvez les retirer à tout moment.',
-      consequenceWithdraw: '{amount} USDC reviennent dans votre solde.',
+      consequenceWithdraw: '{amount} USDC reviennent dans votre solde.', consequenceWithdrawAgent: "{amount} USDC passent vers {name}.", doneWithdrawAgent: "{amount} USDC sont dans {name}.", switchTo: "Passer à {name}",
       consequenceSend: '{amount} USDC partent vers l’adresse ci-dessus.',
       sendIrreversible: 'Un envoi à une adresse ne peut pas être annulé.',
       ctaTopUp: 'Alimenter de {amount} USDC',
@@ -697,7 +700,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: 'आम तौर पर कुछ सेकंड में पहुँचता है।',
       consequenceTopUpBuyer: '{amount} USDC आपके खरीद एजेंट के पास जाएँगे। आप इन्हें कभी भी निकाल सकते हैं।',
       consequenceTopUpSeller: '{amount} USDC आपके बिक्री एजेंट के पास जाएँगे। आप इन्हें कभी भी निकाल सकते हैं।',
-      consequenceWithdraw: '{amount} USDC आपके बैलेंस में वापस आएँगे।',
+      consequenceWithdraw: '{amount} USDC आपके बैलेंस में वापस आएँगे।', consequenceWithdrawAgent: "{amount} USDC आपके {name} में जाएँगे।", doneWithdrawAgent: "{amount} USDC आपके {name} में है।", switchTo: "{name} पर बदलें",
       consequenceSend: '{amount} USDC ऊपर दिए पते पर जाएँगे।',
       sendIrreversible: 'किसी पते पर भेजा गया पैसा वापस नहीं लिया जा सकता।',
       ctaTopUp: '{amount} USDC टॉप अप करें',
@@ -852,7 +855,7 @@ export const moneyCopy: Record<'en' | 'ar' | 'fr' | 'hi' | 'sw', MoneyCopy> = {
       timeSeconds: 'Kwa kawaida hufika ndani ya sekunde chache.',
       consequenceTopUpBuyer: '{amount} USDC zinaenda kwa wakala wako wa kununua. Unaweza kuzitoa wakati wowote.',
       consequenceTopUpSeller: '{amount} USDC zinaenda kwa wakala wako wa kuuza. Unaweza kuzitoa wakati wowote.',
-      consequenceWithdraw: '{amount} USDC zinarudi kwenye salio lako.',
+      consequenceWithdraw: '{amount} USDC zinarudi kwenye salio lako.', consequenceWithdrawAgent: "USDC {amount} zinahamia kwenye {name}.", doneWithdrawAgent: "USDC {amount} ziko kwenye {name}.", switchTo: "Badilisha kwenda {name}",
       consequenceSend: '{amount} USDC zinaenda kwenye anwani iliyo juu.',
       sendIrreversible: 'Kutuma kwa anwani hakuwezi kutenduliwa.',
       ctaTopUp: 'Jaza {amount} USDC',

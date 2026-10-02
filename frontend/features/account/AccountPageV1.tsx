@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 import { BalancesCard } from '@/features/balances/components/BalancesCard';
 import { AuthGuard } from '@/shared/components/AuthGuard';
 import { NetworkHint } from '@/shared/components/NetworkContext';
@@ -44,6 +45,18 @@ function AccountPageInner() {
             <AccountAction href="/bridge?direction=out&intent=move" label={messages.accountHome.move} description={t.moveHelp} icon="move" />
             <AccountAction href="/send" label={t.send} description={t.sendHelp} icon="send" />
           </nav>
+          {ARC_NETWORK === 'testnet' ? (
+            <Link
+              href="/profile/wallets"
+              className="mt-5 flex min-h-11 items-center justify-between gap-3 rounded-[16px] border border-dashed border-[var(--lp-border-light)] px-4 py-3 transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+            >
+              <span className="min-w-0">
+                <span className="block text-[15px] font-semibold text-[var(--lp-dark)]">{t.faucetTitle}</span>
+                <span className="mt-0.5 block text-[13px] text-[var(--lp-text-sub)]">{t.faucetBody}</span>
+              </span>
+              <span aria-hidden className="rtl-flip shrink-0 text-[var(--lp-text-sub)]">→</span>
+            </Link>
+          ) : null}
           <RecoveryRow />
         </aside>
       </section>

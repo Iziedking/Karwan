@@ -60,6 +60,20 @@ export function OfferPanel({ jobId, fallback }: { jobId: string; fallback: React
       {body ? <p dir="auto" className="mt-3 text-[16px] leading-relaxed text-[var(--lp-text-sub)]">{body}</p> : null}
 
       <dl className="mt-8 divide-y divide-[var(--lp-border-light)] rounded-[20px] bg-[var(--lp-card)] px-6">
+        {view.poster ? (
+          <div className="flex items-center justify-between gap-4 py-4">
+            <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.postedBy}</dt>
+            <dd className="min-w-0">
+              <Link
+                href={`/credit-passport/${view.poster.address}`}
+                className="inline-flex min-h-11 items-center gap-1.5 truncate text-[15px] font-medium text-[var(--lp-dark)] underline underline-offset-4 hover:text-[var(--lp-accent-on-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+              >
+                {view.poster.handle ? `@${view.poster.handle}` : view.poster.name ?? `${view.poster.address.slice(0, 6)}…${view.poster.address.slice(-4)}`}
+                <span aria-hidden className="rtl-flip">→</span>
+              </Link>
+            </dd>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-4 py-4">
           <dt className="text-[15px] text-[var(--lp-text-sub)]">{t.budget}</dt>
           <dd className="text-[15px] font-medium tabular-nums text-[var(--lp-dark)]">

@@ -35,6 +35,7 @@ export interface OffersCopy {
   due: string;
   offersLabel: string;
   moneyLabel: string;
+  postedBy: string;
   moneyHeld: string;
   activateLink: string;
   errors: {
@@ -92,6 +93,7 @@ const en: OffersCopy = {
   due: 'Due',
   offersLabel: 'Offers',
   moneyLabel: 'Money',
+  postedBy: 'Posted by',
   moneyHeld: 'Held before work starts',
   activateLink: 'Set it up',
   errors: {
@@ -149,6 +151,7 @@ const ar: OffersCopy = {
   due: 'الموعد',
   offersLabel: 'العروض',
   moneyLabel: 'الأموال',
+  postedBy: 'نشره',
   moneyHeld: 'تُحجز قبل بدء العمل',
   activateLink: 'فعّله الآن',
   errors: {
@@ -206,6 +209,7 @@ const fr: OffersCopy = {
   due: 'Échéance',
   offersLabel: 'Offres',
   moneyLabel: 'Argent',
+  postedBy: 'Publié par',
   moneyHeld: 'Bloqué avant le début du travail',
   activateLink: 'Le configurer',
   errors: {
@@ -263,6 +267,7 @@ const hi: OffersCopy = {
   due: 'समय सीमा',
   offersLabel: 'ऑफ़र',
   moneyLabel: 'पैसा',
+  postedBy: 'पोस्ट करने वाले',
   moneyHeld: 'काम शुरू होने से पहले रोका जाता है',
   activateLink: 'सेट करें',
   errors: {
@@ -320,6 +325,7 @@ const sw: OffersCopy = {
   due: 'Mwisho',
   offersLabel: 'Ofa',
   moneyLabel: 'Pesa',
+  postedBy: 'Imewekwa na',
   moneyHeld: 'Inashikiliwa kabla kazi haijaanza',
   activateLink: 'Iweke sasa',
   errors: {

@@ -424,6 +424,8 @@ export const hi: Messages = {
       moveHelp: 'अपने बैलेंस से USDC किसी समर्थित श्रंखला पर ले जाएँ।',
       send: 'USDC भेजें',
       sendHelp: 'किसी Karwan टैग या Arc पते पर भुगतान करें।',
+      faucetTitle: "टेस्ट USDC पाएँ",
+      faucetBody: "आपके हर वॉलेट के लिए मुफ़्त टेस्टनेट USDC।",
     },
   },
   banners: {

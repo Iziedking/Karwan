@@ -1258,14 +1258,15 @@ html[data-theme="dark"] .product-surface {
 }
 
 .trade-intent-title {
-  max-width: 13ch;
   margin: 0;
   color: var(--lp-dark);
   font-family: var(--font-sans), sans-serif;
-  font-size: clamp(3.8rem, 9vw, 7.3rem);
+  /* One line on desktop, still the loudest thing on the page. */
+  font-size: clamp(2.4rem, 4.4vw, 4.25rem);
   font-weight: 800;
-  letter-spacing: -0.085em;
-  line-height: 0.9;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  text-wrap: balance;
 }
 
 .trade-intent-intro {
@@ -1393,7 +1394,7 @@ html[data-theme="dark"] .product-surface {
   }
 
   .trade-intent-title {
-    font-size: clamp(3.2rem, 16vw, 5.25rem);
+    font-size: clamp(2.2rem, 9.5vw, 3rem);
   }
 
   .trade-intent-action {

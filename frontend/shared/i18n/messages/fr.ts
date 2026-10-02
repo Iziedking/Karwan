@@ -426,6 +426,8 @@ export const fr: Messages = {
       moveHelp: 'Déplacez des USDC de votre solde vers une chaîne prise en charge.',
       send: 'Envoyer des USDC',
       sendHelp: 'Payez un tag Karwan ou une adresse Arc.',
+      faucetTitle: "Obtenir des USDC de test",
+      faucetBody: "Des USDC de testnet gratuits pour chacun de vos portefeuilles.",
     },
   },
   banners: {

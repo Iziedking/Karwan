@@ -31,6 +31,8 @@ export interface MoveRequest {
   amount: number;
   /// Send only: the checked Arc recipient.
   recipient?: `0x${string}`;
+  /// Withdraw only: where the agent's USDC goes. Defaults to the account itself.
+  toAddress?: `0x${string}`;
   /// Top-up only: where planTopUp said the money comes from.
   source?: 'balance' | 'pool';
 }
@@ -84,7 +86,7 @@ export function useMoneyMove() {
             await api.withdrawFromAgent({
               address: auth.address,
               agent: request.agent,
-              toAddress: auth.address,
+              toAddress: request.toAddress ?? auth.address,
               amountUsdc: request.amount,
               requestId,
             }),

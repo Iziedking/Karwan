@@ -378,6 +378,8 @@ interface MessagesShape {
       moveHelp: string;
       send: string;
       sendHelp: string;
+      faucetTitle: string;
+      faucetBody: string;
     };
   };
   banners: {
@@ -5706,6 +5708,8 @@ export const en: MessagesShape = {
       moveHelp: 'Move USDC from your balance to a supported chain.',
       send: 'Send USDC',
       sendHelp: 'Pay a Karwan tag or an Arc address.',
+      faucetTitle: "Get test USDC",
+      faucetBody: "Free testnet USDC for each of your wallets.",
     },
   },
   banners: {

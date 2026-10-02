@@ -2186,6 +2186,8 @@ export const api = {
       offers: Offer[];
       role: 'buyer' | 'seller' | 'visitor';
       request: { briefText: string; budgetUsdc: string; deadlineUnix: number } | null;
+      /// Who posted the request, when their passport is public.
+      poster?: { address: string; name: string | null; handle: string | null } | null;
     }>(`/api/jobs/${jobId}/offers`),
   createOffer: (jobId: string, body: { priceUsdc: string; deliverByUnix: number; note: string }) =>
     json<{ offer: Offer }>(`/api/jobs/${jobId}/offers`, { method: 'POST', body: JSON.stringify(body) }),
