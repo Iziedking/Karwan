@@ -151,8 +151,10 @@ export function buildReceiptSvg(data: ReceiptExportData): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="${height}" viewBox="0 0 1200 ${height}">
     <rect width="1200" height="${height}" fill="#E4E8ED"/>
     <rect x="36" y="36" width="1128" height="${height - 72}" rx="40" fill="#FBFBF8"/>
-    <rect x="88" y="96" width="44" height="44" rx="12" fill="#16202A"/>
-    <text x="110" y="127" text-anchor="middle" fill="#AFC95B" font-family="${FONT}" font-size="24" font-weight="700">M</text>
+    <g transform="translate(86 94) scale(0.09375)">
+      <path d="M56,20 L456,20 Q492,20 492,56 L492,456 Q492,492 456,492 L92,492 Q20,492 20,420 L20,56 Q20,20 56,20 Z" fill="#0e0e0e"/>
+      <path d="M148,362 L215,150 L256,278 L297,150 L364,362" fill="none" stroke="#AFC95B" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
     <text x="148" y="129" fill="#16202A" font-family="${FONT}" font-size="30" font-weight="700">Karwan</text>
     <rect x="${1112 - pillWidth}" y="98" width="${pillWidth}" height="40" rx="20" fill="${tone[0]}"/>
     <text x="${1112 - pillWidth / 2}" y="125" text-anchor="middle" fill="${tone[1]}" font-family="${FONT}" font-size="19" font-weight="600">${escapeSvg(data.status)}</text>

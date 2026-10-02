@@ -7,10 +7,10 @@ import { WaitlistCard } from './WaitlistCard';
 
 /// Mainnet opens by invitation: the waitlist leads, and invited people sign in
 /// or create their account from it. Testnet keeps the full sign-up.
-export function StartScreen({ mode }: { mode: 'signin' | 'signup' }) {
-  const waitlistFirst = ARC_NETWORK === 'mainnet';
+export function StartScreen({ mode }: { mode: 'signin' | 'signup' | 'waitlist' }) {
+  const waitlistFirst = ARC_NETWORK === 'mainnet' || mode === 'waitlist';
   const [view, setView] = useState<'waitlist' | 'signin' | 'signup'>(
-    waitlistFirst && mode !== 'signup' ? 'waitlist' : mode,
+    mode === 'waitlist' || (waitlistFirst && mode !== 'signup') ? 'waitlist' : mode,
   );
   if (view === 'waitlist') {
     return <WaitlistCard onSignIn={() => setView('signin')} onCreate={() => setView('signup')} />;

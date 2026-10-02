@@ -34,6 +34,8 @@ test('receipt SVG carries the Karwan reference and excludes wallet addresses', (
   assert.match(svg, />Karwan</);
   // Signed off by the caravan stamp, not a watermark or scalloped edges.
   assert.ok(svg.includes(CAMEL_PATH));
+  // The real Karwan mark, not a letter in a box.
+  assert.match(svg, /M148,362 L215,150 L256,278 L297,150 L364,362/);
   assert.doesNotMatch(svg, /KARWAN\./);
   assert.doesNotMatch(svg, /0x1234567890123456789012345678901234567890/);
 });

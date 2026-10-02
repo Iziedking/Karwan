@@ -442,7 +442,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
             )}
             {ARC_NETWORK !== 'mainnet' ? (
               <p>
-                <a href={`${MAINNET_ORIGIN}/start`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+                <a href={`${MAINNET_ORIGIN}/waitlist`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
                   {t.signIn.mainnetWaitlist}
                   <Icon name="arrow-up-right" size={16} />
                 </a>

@@ -23,6 +23,7 @@ export function isPublicEditorialRoute(pathname: string | null | undefined): boo
     '/x402',
     '/activity/all-time',
     '/start',
+    '/waitlist',
     '/recover',
   ].some((route) => matchesRoute(pathname, route));
 }

@@ -38,7 +38,7 @@ export function ReceiptCard(props: ReceiptCardProps) {
     >
       <header className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2.5 text-[17px] font-bold tracking-[-0.01em]">
-          <span aria-hidden className="grid size-7 place-items-center rounded-[8px] bg-[#16202A] text-[15px] font-bold text-[#AFC95B]">M</span>
+          <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={30} height={30} className="size-[30px]" />
           Karwan
         </span>
         <span

@@ -107,7 +107,7 @@ function CustomerChromeFrame({
   const focused = shell === 'focused';
   const mainClass = workspaceWithRail
     ? 'workspace-main flex-1 mx-auto min-w-0 min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-[1600px] px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 sm:pt-7 lg:py-8 lg:pe-8'
-    : pathname === '/' || pathname === '/start' ? 'w-full min-w-0 flex-1' : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
+    : pathname === '/' || pathname === '/start' || pathname === '/waitlist' ? 'w-full min-w-0 flex-1' : 'flex-1 mx-auto min-h-[calc(100svh-var(--lp-nav-h,68px))] w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10';
   const platformCopy = workspace || focused;
   return (
     <div className="product-chrome relative isolate flex min-h-screen flex-col overflow-x-clip">
@@ -117,13 +117,13 @@ function CustomerChromeFrame({
         data-workspace-main={workspaceWithRail ? 'true' : undefined}
         className={`relative z-[1] ${mainClass}${platformCopy ? ' platform-copy' : ''}`}
       >
-        {pathname !== '/' && pathname !== '/start' && <div className="relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden">
+        {pathname !== '/' && pathname !== '/start' && pathname !== '/waitlist' && <div className="relative z-10 mb-2 flex flex-wrap items-center gap-2 empty:hidden">
           <ProductBackLink pathname={pathname} isAuthenticated={auth.isAuthenticated} />
           <PageTourButton pathname={pathname} enabled={auth.isAuthenticated && (workspace || focused)} />
         </div>}
         {pathname === '/' ? children : <RouteStage pathname={pathname}>{children}</RouteStage>}
       </main>
-      {shell === 'public' && pathname !== '/start' ? footer : null}
+      {shell === 'public' && pathname !== '/start' && pathname !== '/waitlist' ? footer : null}
       {workspace && auth.isAuthenticated ? feedback : null}
       {workspace ? bottomNav : null}
       {workspace || focused ? notifications : null}
