@@ -75,8 +75,8 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await expect.poll(() => posted).not.toBeNull();
   expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [20, 70, 10], reviewWindowDays: 7 });
   const agreement = String((posted as unknown as { terms: string }).terms);
-  expect(agreement).toContain('• Part 1, 20% (30 USDC): Three logo sketches to choose from');
-  expect(agreement).toContain('• Part 3, 10% (15 USDC): Brand colours sheet');
+  expect(agreement).toContain('• Milestone 1, 20% (30 USDC): Three logo sketches to choose from');
+  expect(agreement).toContain('• Milestone 3, 10% (15 USDC): Brand colours sheet');
   expect(agreement).toContain('• 2 rounds of changes included');
   expect(agreement).toContain('Check window: 7 days');
 });
@@ -144,7 +144,7 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
     reviewWindowDays: 10,
   });
   const agreement = String((posted as unknown as { terms: string }).terms);
-  expect(agreement).toContain('• Part 1, 40% (80 USDC): Product photos for the first 10 items');
-  expect(agreement).toContain('• Part 3, 20% (40 USDC): Edited set in one folder');
+  expect(agreement).toContain('• Milestone 1, 40% (80 USDC): Product photos for the first 10 items');
+  expect(agreement).toContain('• Milestone 3, 20% (40 USDC): Edited set in one folder');
   expect(agreement).toContain('Check window: 10 days');
 });
