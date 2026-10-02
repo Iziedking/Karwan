@@ -1,3 +1,4 @@
+import QRCode from 'qrcode';
 import { CAMEL_PATH } from '@/shared/components/CaravanStamp';
 
 export interface ReceiptExportData {
@@ -130,18 +131,27 @@ export function buildReceiptSvg(data: ReceiptExportData): string {
     y += 24;
     parts.push(`<line x1="88" y1="${y}" x2="1112" y2="${y}" stroke="#E3E6E1" stroke-width="2"/>`);
   }
-  y += 92;
+  // Proof: the QR a phone can scan, the line that says what it opens, and the
+  // caravan stamp. The image cannot carry a link, so the code carries it.
+  y += 40;
   const proofTitle = data.verifyTitle ?? '';
-  const proofBody = data.verifyUrl ?? '';
-  if (proofTitle || proofBody) {
-    parts.push(`<text x="88" y="${y - 22}" fill="#16202A" font-family="${FONT}" font-size="21" font-weight="600">${escapeSvg(proofTitle)}</text>`);
-    if (proofBody) parts.push(`<text x="88" y="${y + 10}" fill="#5d666f" font-family="${MONO}" font-size="16">${escapeSvg(proofBody.length > 70 ? `${proofBody.slice(0, 67)}...` : proofBody)}</text>`);
+  const proofUrl = data.verifyUrl ?? '';
+  const qrSize = 156;
+  if (proofUrl) {
+    parts.push(qrCodeSvg(proofUrl, 88, y, qrSize));
+    const tx = 88 + qrSize + 28;
+    parts.push(`<text x="${tx}" y="${y + 66}" fill="#16202A" font-family="${FONT}" font-size="23" font-weight="600">${escapeSvg(proofTitle)}</text>`);
+    const host = proofUrl.replace(/^https?:\/\//, '').split('/')[0] ?? '';
+    parts.push(`<text x="${tx}" y="${y + 100}" fill="#5d666f" font-family="${FONT}" font-size="19">${escapeSvg(host)}</text>`);
+  } else if (proofTitle) {
+    parts.push(`<text x="88" y="${y + 66}" fill="#16202A" font-family="${FONT}" font-size="23" font-weight="600">${escapeSvg(proofTitle)}</text>`);
   }
-  parts.push(caravanStampSvg(1112 - 116, y - 96, 116));
+  parts.push(caravanStampSvg(1112 - 120, y + 18, 120));
+  y += qrSize + 30;
   // The image carries the transaction as its identity; the apology for a
   // missing reference belongs to the panel, not the shared picture.
   const notes = [data.footnote ?? null].filter((note): note is string => !!note);
-  y += 60;
+  y += 34;
   for (const note of notes.flatMap((line) => wrapSvgText(line, 90))) {
     parts.push(`<text x="600" y="${y}" text-anchor="middle" fill="#8a929a" font-family="${FONT}" font-size="18">${escapeSvg(note)}</text>`);
     y += 28;
@@ -160,6 +170,26 @@ export function buildReceiptSvg(data: ReceiptExportData): string {
     <text x="${1112 - pillWidth / 2}" y="125" text-anchor="middle" fill="${tone[1]}" font-family="${FONT}" font-size="19" font-weight="600">${escapeSvg(data.status)}</text>
     ${parts.join('\n    ')}
   </svg>`;
+}
+
+/// A QR code as vector squares on a white tile with a quiet zone, so the
+/// downloaded image scans as well as the card in the app.
+function qrCodeSvg(value: string, x: number, y: number, size: number): string {
+  const { modules } = QRCode.create(value, { errorCorrectionLevel: 'M' });
+  const n = modules.size;
+  const cell = size / (n + 4);
+  const rects: string[] = [];
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col < n; col++) {
+      if (!modules.get(row, col)) continue;
+      // Merge a run of dark cells into one rect to keep the image small.
+      let run = 1;
+      while (col + run < n && modules.get(row, col + run)) run++;
+      rects.push(`<rect x="${((col + 2) * cell).toFixed(2)}" y="${((row + 2) * cell).toFixed(2)}" width="${(run * cell + 0.3).toFixed(2)}" height="${(cell + 0.3).toFixed(2)}"/>`);
+      col += run - 1;
+    }
+  }
+  return `<g transform="translate(${x} ${y})"><rect width="${size}" height="${size}" rx="14" fill="#FFFFFF" stroke="#E3E6E1" stroke-width="2"/><g fill="#16202A">${rects.join('')}</g></g>`;
 }
 
 /// The caravan stamp at (x, y), `size` wide: a dotted seal around the camel.

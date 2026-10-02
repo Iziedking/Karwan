@@ -270,25 +270,6 @@ export function PortableReceipt({
             .karwan-receipt-actions {
               display: none !important;
             }
-            /* Paper cannot be clicked, so the URL is printed under the link.
-               PDF writers that preserve link annotations still carry the
-               anchor itself. */
-            .karwan-receipt-proof::after {
-              content: ' ' attr(data-proof-url);
-              display: block;
-              margin-top: 4px;
-              font-size: 8px;
-              letter-spacing: 0;
-              text-transform: none;
-              word-break: break-all;
-              color: #4e554c;
-            }
-            .karwan-receipt-proof {
-              display: block !important;
-              min-height: 0 !important;
-              border: 0 !important;
-              padding: 0 !important;
-            }
           }
         `}</style>
       </div>

@@ -145,6 +145,8 @@ test('the image follows the card: amount, sentence, rows, proof and a testnet no
   assert.match(svg, /Sent 10 USDC from Ethereum Sepolia to @izieking/);
   assert.match(svg, /Scan to verify on Arc/);
   assert.match(svg, /testnet\.arcscan\.app/);
+  // The QR is drawn into the image: a white tile and many dark modules.
+  assert.ok((svg.match(/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="[\d.]+"\/>/g) ?? []).length > 100);
   assert.match(svg, /Arc testnet, no real value/);
   assert.match(svg, /#E7F0CF/);
 });
