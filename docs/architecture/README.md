@@ -18,6 +18,7 @@ Karwan unifies online reputation with an agentic economic model. People join a n
 | 06 | [Record](06-record.md) | How a completed sale becomes proof that is hard to fake | Designed |
 | 07 | [Escrow](07-escrow.md) | One engine for any deal: one-time, milestones, goods, pay on delivery, hourly, retainer, instalments, deposits | v3 built, extensions planned |
 | 08 | [Unified reputation](08-reputation.md) | How a person's record from Karwan and partner platforms becomes one reputation, with consent and nothing leaked | Designing |
+| 09 | [Trust engine](09-trust-engine.md) | Who verifies with World ID and why, how delivery is checked, and what protects each deal | v1 built |
 
 ## How to read a view
 

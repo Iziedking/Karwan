@@ -204,6 +204,7 @@ docs/space-paytag-2026-08-16.md
 /docs/diagrams/*
 !/docs/diagrams/architecture.png
 !/docs/diagrams/architecture.svg
+!/docs/diagrams/trust-engine.png
 !/docs/email/
 /docs/email/*
 !/docs/email/newsletter-sme-update.html
