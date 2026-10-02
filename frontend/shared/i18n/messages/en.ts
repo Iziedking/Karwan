@@ -13,6 +13,7 @@ import { escrowV3Copy, type EscrowV3Copy } from './escrowV3';
 import { analyticsCopy, type AnalyticsCopy } from './analytics';
 import { signupCopy, type SignupCopy } from './signup';
 import { payLinkCopy, type PayLinkCopy } from './payLink';
+import { requestPageCopy, type RequestPageCopy } from './requestPage';
 import { recoveryCopy, type RecoveryCopy } from './recovery';
 import { docsProductCopy, type DocsProductCopy } from './docsProduct';
 interface MessagesShape {
@@ -24,6 +25,7 @@ interface MessagesShape {
   analytics: AnalyticsCopy;
   signup: SignupCopy;
   payLink: PayLinkCopy;
+  requestPage: RequestPageCopy;
   recovery: RecoveryCopy;
   docsProduct: DocsProductCopy;
   socialTrade: SocialTradeCopy;
@@ -594,6 +596,8 @@ interface MessagesShape {
     endChat: string;
     backToAssistant: string;
     operatorName: string;
+    suggestions: [string, string, string];
+    confirmNote: string;
   };
   countdown: {
     closed: string;
@@ -5302,6 +5306,7 @@ export const en: MessagesShape = {
   analytics: analyticsCopy.en,
   signup: signupCopy.en,
   payLink: payLinkCopy.en,
+  requestPage: requestPageCopy.en,
   recovery: recoveryCopy.en,
   docsProduct: docsProductCopy.en,
   socialTrade: socialTradeCopy.en,
@@ -5913,6 +5918,8 @@ export const en: MessagesShape = {
     endChat: 'End chat',
     backToAssistant: 'Back to assistant',
     operatorName: 'Support',
+    suggestions: ["What is my balance?", "Find a seller", "How does escrow work?"],
+    confirmNote: "Nothing moves without your confirmation.",
   },
   countdown: {
     closed: 'closed',

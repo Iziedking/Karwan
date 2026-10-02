@@ -6,14 +6,12 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { api, ApiError, type BuyerJob } from '@/core/api';
 import { useJobSnapshot } from '../hooks/useJobSnapshot';
 import { useJobLiveState } from '../hooks/useJobLiveState';
-import { FlowStepper } from './FlowStepper';
 import { NegotiationCard } from './NegotiationCard';
 import { LiveBidsPanel } from './LiveBidsPanel';
 import { PageTour } from '@/shared/guide/PageTour';
 import { JOBS_TOUR_ID, JOBS_STEPS } from '@/shared/guide/tours';
 import { MatchBanner } from './MatchBanner';
 import { CopyId } from '@/shared/components/CopyId';
-import { AgentX402Panel } from '@/shared/components/AgentX402Panel';
 import { MarketAdvisoryBanner } from '@/shared/components/MarketAdvisoryBanner';
 import { NearMissCard } from './NearMissCard';
 import { OutOfReachCard } from './OutOfReachCard';
@@ -21,17 +19,14 @@ import { useMatchProposal } from '../hooks/useMatchProposal';
 import { useNearMiss } from '../hooks/useNearMiss';
 import { presentMatchingState } from '../matchingPresentation';
 import { shortHash, formatUsdc, relativeTime } from '@/shared/utils/format';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  PageCard,
-  CTAPill,
-} from '@/shared/components/Bands';
+import { SectionTag, PageCard, CTAPill } from '@/shared/components/Bands';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { subscribeLiveEvents } from '@/shared/utils/liveEventBus';
+import { PAGE_REFRESH_EVENT } from '@/shared/utils/pageRefresh';
+import { ResearchButton } from './ResearchButton';
+import { requestRef, requestStep } from '../requestRef';
+import { splitRequestText } from '@/features/discovery/model';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
 
 type StatusTone = 'positive' | 'warning' | 'accent' | 'default' | 'critical';
 
@@ -45,6 +40,7 @@ const PAYMENT_TERM_LABELS: Record<'immediate' | 'net30' | 'net60' | 'net90', str
 export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer: string }) {
   const t = useTranslations();
   const lj = t.liveJob;
+  const { locale } = useLocale();
   const { job, refresh: refreshJob } = useJobSnapshot(initial);
   const { address } = useAuth();
   const { events, active, completed, declined, ended, recoverable, outOfReach } = useJobLiveState(
@@ -54,6 +50,29 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const { proposal, refresh: refreshProposal } = useMatchProposal(initial.jobId);
   const { nearMiss, refresh: refreshNearMiss } = useNearMiss(initial.jobId);
   const router = useRouter();
+
+  // A match, a counter or a near miss lands while the page is open: read them
+  // again. Same when a notification for this page is tapped.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reread = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        void refreshJob();
+        void refreshProposal();
+        void refreshNearMiss();
+      }, 400);
+    };
+    const offLive = subscribeLiveEvents((e) => {
+      if (e.jobId && e.jobId.toLowerCase() === initial.jobId.toLowerCase()) reread();
+    });
+    window.addEventListener(PAGE_REFRESH_EVENT, reread);
+    return () => {
+      offLive();
+      if (timer) clearTimeout(timer);
+      window.removeEventListener(PAGE_REFRESH_EVENT, reread);
+    };
+  }, [initial.jobId]);
 
   // Once escrow funds, the deal has crossed into the direct-deal lifecycle:
   // a DirectDeal row exists, the deal watcher takes over, delivery/verification
@@ -69,15 +88,10 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
   const acceptedAt = events.find((e) => e.type === 'bid.accepted')?.ts;
   const matchPending = proposal && !proposal.approvedAt && !proposal.declinedAt;
 
-  // Role-aware back-link: a seller landing here from a match notification gets
-  // sent back to /seller; everyone else (including the buyer who posted) goes
-  // to /buyer. Falls back to /buyer when we can't determine.
   const viewerIsSeller =
     !!address &&
     !!proposal &&
     address.toLowerCase() === proposal.sellerUser.toLowerCase();
-  const backHref = viewerIsSeller ? '/seller' : '/buyer';
-  const backLabel = viewerIsSeller ? lj.backToSeller : lj.backToBuyer;
 
   // The bidder roster and the negotiation walk belong to the buyer who ran the
   // auction. The backend already strips `bids` and the competitor events for a
@@ -175,451 +189,190 @@ export function LiveJobPage({ initial, explorer }: { initial: BuyerJob; explorer
                 }
               : { label: lj.statusLabels.waitingOnSellers, tone: 'default', live: true };
 
+  const rs = t.requestPage;
+  const brief = splitRequestText(job.briefText ?? '');
+  const step = requestStep({
+    offers: job.bids.length,
+    matched: !!proposal,
+    agreed: !!proposal?.approvedAt || !!job.finalized,
+    funded: !!job.escrowFunded,
+  });
+  const looking = status.live && !proposal && !nearMiss && !expired && !declined && !ended && !job.escrowFunded;
+  const pill =
+    status.tone === 'critical'
+      ? 'bg-[color-mix(in_srgb,var(--neg)_14%,transparent)] text-[var(--lp-dark)]'
+      : matchPending || status.tone === 'positive'
+        ? 'bg-[#E7F0CF] text-[#33410f]'
+        : 'border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)]';
+
   return (
-    <FullBleed>
+    <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
       <PageTour id={JOBS_TOUR_ID} steps={JOBS_STEPS} />
-      {/* HERO */}
-      <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="fade-up">
-          <Link
-            href={backHref}
-            className="group inline-flex items-center gap-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] transition-colors mb-6"
-          >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-[var(--lp-text-sub)]">
+          {rs.request}
+          <span className="ms-2 font-mono text-[13px] text-[var(--lp-dark)]">{requestRef(job.jobId)}</span>
+        </p>
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold ${pill}`}>
+            {status.live ? <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)] motion-safe:animate-pulse" /> : null}
+            {status.label}
+          </span>
+          <ResearchButton jobId={job.jobId} proposal={proposal} role={viewerIsBuyer ? 'buyer' : 'seller'} />
+        </div>
+      </div>
+
+      <div className="mt-5" data-guide="job-brief">
+        <h1 dir="auto" className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[32px]">
+          {brief.title || requestRef(job.jobId)}
+        </h1>
+        {brief.body ? <p dir="auto" className="mt-2 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{brief.body}</p> : null}
+      </div>
+
+      <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3" data-guide="job-stats">
+        <div>
+          <dt className="text-[13px] text-[var(--lp-text-sub)]">{rs.budget}</dt>
+          <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(job.budgetUsdc, { withSuffix: true })}</dd>
+        </div>
+        <div>
+          <dt className="text-[13px] text-[var(--lp-text-sub)]">{rs.due}</dt>
+          <dd className="mt-0.5 text-[20px] font-semibold text-[var(--lp-dark)]">
+            {new Date(job.deadlineUnix * 1000).toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+          </dd>
+        </div>
+        {viewerIsBuyer ? (
+          <div>
+            <dt className="text-[13px] text-[var(--lp-text-sub)]">{rs.offers}</dt>
+            <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{job.bids.length}</dd>
+          </div>
+        ) : null}
+      </dl>
+
+      <ol className="mt-6 grid grid-cols-4 gap-1.5" data-guide="job-flow" aria-label={lj.sections.flow}>
+        {rs.steps.map((label, index) => (
+          <li key={label} aria-current={index === step ? 'step' : undefined} className="min-w-0">
             <span
               aria-hidden
-              className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
-            >
-              ←
-            </span>
-            {backLabel}
-          </Link>
-        </div>
-        <div className="grid lg:grid-cols-[1.4fr_auto] gap-6 items-start">
-          <div className="min-w-0">
-            <div className="fade-up fade-up-1">
-              <SectionTag tone="dark" dot={status.live ? 'live' : undefined}>
-                {isB2B ? 'B2B TRADE' : lj.managedDealTag}
-              </SectionTag>
-            </div>
-            <div className="fade-up fade-up-2">
-              <HeroHeadline>
-                {shortHash(job.jobId, 10, 6)}
-                <Punc>.</Punc>
-              </HeroHeadline>
-            </div>
-            <p className="fade-up fade-up-3 mt-4">
-              <CopyId
-                value={job.jobId}
-                className="text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]"
-              />
-            </p>
-          </div>
-          <div className="fade-up fade-up-4">
-            <StatusChip
-              label={status.label}
-              tone={status.tone}
-              live={status.live}
-              eyebrows={lj.statusEyebrow}
+              className={`block h-[5px] rounded-full ${index < step ? 'bg-[#6a8a1e]' : index === step ? 'bg-[var(--lp-dark)]' : 'bg-[var(--lp-border-light)]'}`}
             />
-          </div>
+            <span className={`mt-1.5 block truncate text-[12.5px] ${index === step ? 'font-semibold text-[var(--lp-dark)]' : 'text-[var(--lp-text-sub)]'}`}>{label}</span>
+          </li>
+        ))}
+      </ol>
+
+      {isB2B && tradeChips.length > 0 ? (
+        <p className="mt-5 text-[14px] text-[var(--lp-text-sub)]">
+          {tradeChips.map((c) => `${c.label} ${c.value}`).join(' · ')}
+        </p>
+      ) : null}
+
+      {expired ? (
+        <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">
+          <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{lj.statusLabels.requestExpired}</p>
+          <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix))}</p>
+        </section>
+      ) : null}
+
+      {proposal && !expired ? (
+        <div className="mt-6">
+          <MatchBanner proposal={proposal} onChange={refreshProposal} trustedMatch={job.trustedMatch === true} quiet />
         </div>
-      </Band>
+      ) : null}
 
-      {/* STAT TILES */}
-      <Band tone="light" compact>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 fade-up" data-guide="job-stats">
-          <StatTile
-            label={lj.stats.budget}
-            value={formatUsdc(job.budgetUsdc, { withSuffix: false })}
-            unit="USDC"
-          />
-          {/* Bid count is the buyer's competitive picture. A matched seller
-              never sees how many rivals bid. */}
-          {viewerIsBuyer && (
-            <StatTile label={lj.stats.bids} value={String(job.bids.length)} />
-          )}
-          {/* Once a match is approved or escrow has funded, the brief deadline
-              is irrelevant. show the auction state instead. The page redirects
-              to /deals/[id] on escrowFunded anyway, but during the brief flash
-              we don't want to mislead. */}
-          {job.escrowFunded ? (
-            <StatTile label={lj.stats.statusLabel} value={lj.stats.escrowFunded} small />
-          ) : proposal?.approvedAt ? (
-            <StatTile label={lj.stats.statusLabel} value={lj.stats.accepted} small />
-          ) : expired ? (
-            <StatTile label={lj.stats.statusLabel} value={lj.stats.expired} small />
-          ) : declined ? (
-            <StatTile label={lj.stats.statusLabel} value={lj.stats.ended} small />
-          ) : recoverable || matchingPresentation.recoverable ? (
-            <StatTile
-              label={lj.stats.statusLabel}
-              value={recoverableStateCopy.tag}
-              small
-            />
-          ) : (
-            <StatTile label={lj.stats.deadline} value={relativeTime(job.deadlineUnix)} small />
-          )}
-          <StatTile label={lj.stats.termsHash} value={shortHash(job.termsHash, 6, 4)} mono />
-        </div>
+      {looking ? (
+        <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">
+          <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{rs.lookingTitle}</p>
+          <p className="mt-1 text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{rs.lookingBody}</p>
+          <p className="mt-3 inline-flex items-center gap-2 text-[13px] text-[var(--lp-text-sub)]">
+            <span aria-hidden className="size-2 rounded-full bg-[var(--lp-accent)] shadow-[0_0_0_4px_rgba(175,201,91,0.25)]" />
+            {rs.live}
+          </p>
+        </section>
+      ) : null}
 
-        {/* BRIEF BAND. Renders the human-readable brief text the buyer
-            posted. The on-chain layer only stores the keccak hash, so this
-            comes from the backend's brief store. Hidden when the store
-            doesn't have it (eg flat-file wiped). */}
-        {job.briefText && (
-          <div className="mt-8 fade-up fade-up-1" data-guide="job-brief">
-            <div
-              className="relative flex items-stretch border bg-[var(--lp-card)]"
-              style={{
-                borderColor: 'var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
-              }}
-            >
-              <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-accent)' }} />
-              <div className="flex-1 px-5 py-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-                  <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)]">
-                    {lj.brief.eyebrow}
-                  </p>
-                  {job.trustedMatch && (
-                    <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 mono text-[9px] font-bold uppercase tracking-[0.16em]"
-                      style={{
-                        background: 'var(--lp-accent)',
-                        color: 'var(--lp-band-dark)',
-                        borderRadius: 3,
-                      }}
-                      title={lj.brief.trustedMatchTooltip}
-                    >
-                      {lj.brief.trustedMatchBadge}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[14.5px] leading-relaxed text-[var(--lp-dark)] whitespace-pre-wrap break-words">
-                  {job.briefText}
-                </p>
-                {job.keywords && job.keywords.length > 0 && (
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    {job.keywords.map((k) => (
-                      <span
-                        key={k}
-                        className="inline-flex items-center px-2 py-0.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-sub)]"
-                        style={{
-                          background: 'var(--lp-light)',
-                          border: '1px solid var(--lp-border-light)',
-                          borderRadius: 2,
-                        }}
-                      >
-                        {k}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* B2B TRADE CONTEXT. Goods vs service, sourcing sector + region, and the
-            trade rules (Incoterms, payment terms). Finance lane only — gives the
-            deal a business surface instead of the generic managed-deal look. */}
-        {isB2B && tradeChips.length > 0 && (
-          <div className="mt-6 fade-up fade-up-1">
-            <div
-              className="relative flex items-stretch border bg-[var(--lp-card)]"
-              style={{
-                borderColor: 'var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
-              }}
-            >
-              <span aria-hidden className="w-[3px]" style={{ background: 'var(--lp-band-dark)' }} />
-              <div className="flex-1 px-5 py-4">
-                <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-3">
-                  Trade context
-                </p>
-                <div className="flex flex-wrap gap-2.5">
-                  {tradeChips.map((c) => (
-                    <span
-                      key={c.label}
-                      className="inline-flex items-baseline gap-1.5 px-2.5 py-1.5"
-                      style={{
-                        background: 'var(--lp-light)',
-                        border: '1px solid var(--lp-border-light)',
-                        borderRadius: 4,
-                      }}
-                    >
-                      <span className="mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                        {c.label}
-                      </span>
-                      <span className="text-[13px] font-medium capitalize text-[var(--lp-dark)]">
-                        {c.value}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* EXPIRED BANNER. replaces the match banner slot when the brief is in
-            its read-only afterlife. No actions; the auction is over. */}
-        {expired && (
-          <div className="mt-8 fade-up fade-up-1">
-            <div
-              className="relative flex items-stretch border bg-[var(--lp-card)]"
-              style={{
-                borderColor: 'var(--lp-border-light)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
-              }}
-            >
-              <span aria-hidden className="w-[3px]" style={{ background: '#6b6b6b' }} />
-              <div className="flex-1 px-5 py-4">
-                <p className="mono uppercase font-semibold text-[9px] tracking-[0.22em] text-[var(--lp-text-muted)] mb-2">
-                  {lj.expired.eyebrow}
-                </p>
-                <p className="text-[13px] leading-relaxed text-[var(--lp-text-sub)]">
-                  {lj.expired.bodyTemplate.replace('{time}', relativeTime(job.deadlineUnix))}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MATCH BANNER */}
-        {proposal && !expired && (
-          <div className="mt-8 fade-up fade-up-1">
-            <MatchBanner proposal={proposal} onChange={refreshProposal} trustedMatch={job.trustedMatch === true} />
-          </div>
-        )}
-
-        {/* Non-destructive overpay advisory: appears live when the buyer agent
-            finds the budget sits well above the grounded market price. */}
-        <div className="mt-6 fade-up fade-up-1">
-          <MarketAdvisoryBanner jobId={job.jobId} />
-        </div>
-
-        {/* Live agent payments: streams each x402 nanopayment the agents make
-            for this deal. Renders nothing until there's activity. */}
-        <div className="mt-6 fade-up fade-up-2">
-          <AgentX402Panel jobId={job.jobId} viewerRole={viewerIsBuyer ? 'buyer' : 'seller'} />
-        </div>
-
-        {/* OUT OF REACH. The only topical match is priced far past the budget,
-            so nothing can settle here. Non-destructive: the request stays open
-            for a cheaper seller. Stops the spinner and offers a one-tap repost
-            at a workable budget. */}
-        {ended === 'out-of-reach' && outOfReach && !proposal && !nearMiss && !expired && !job.escrowFunded && (
-          <div className="mt-8 fade-up fade-up-1">
-            <OutOfReachCard
-              jobId={job.jobId}
-              closestFloorUsdc={outOfReach.closestFloorUsdc}
-              budgetUsdc={Number(job.budgetUsdc)}
-              passedPriceUsdc={outOfReach.passedPriceUsdc}
-              caller={address ?? undefined}
-              onReconsidered={refreshNearMiss}
-            />
-          </div>
-        )}
-
-        {/* NEAR-MISS. The agent found a match just outside one side's range and
-            is asking that party whether to proceed. Sits in the banner slot
-            before any match proposal exists; once proceeded it becomes a funded
-            deal and the page redirects to /deals/[id]. */}
-        {nearMiss && !proposal && !expired && !job.escrowFunded && (
-          <div className="mt-8 fade-up fade-up-1">
-            <NearMissCard nearMiss={nearMiss} onChange={refreshNearMiss} />
-          </div>
-        )}
-
-        {/* FLOW + TIMELINE + BIDS. On desktop the bidder roster spans the full
-            left-hand job stack and scrolls internally. Mobile keeps one natural
-            document flow. A matched seller has no Bids rail, so the stack stays
-            full-width. */}
-        <div className="mt-8 grid min-w-0 gap-5 lg:grid-cols-3 lg:items-stretch">
-          <div
-            className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} min-w-0 lg:col-start-1 lg:row-start-1`}
-          >
-            <PageCard>
-              <div className="p-6" data-guide="job-flow">
-                <SectionTag>{lj.sections.flow}</SectionTag>
-                <div className="mt-6">
-                  <FlowStepper active={active} completed={completed} ended={ended} />
-                </div>
-              </div>
-            </PageCard>
-          </div>
-
-          <div
-            className={`${viewerIsBuyer ? 'lg:col-span-2' : 'lg:col-span-3'} min-w-0 space-y-5 lg:col-start-1 lg:row-start-2`}
-          >
-            {viewerIsBuyer && !declined && !ended && !expired && !job.escrowFunded && !matchPending && (
-              <div data-guide="job-negotiation">
-                <NegotiationCard
-                  events={events}
-                  explorer={explorer}
-                  job={job}
-                  proposal={proposal}
-                  viewerAddress={address}
-                />
-              </div>
-            )}
-
-            <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
-            <EditBriefSection
-              job={job}
-              declined={declined}
-              matchPending={!!matchPending}
-              viewerIsSeller={viewerIsSeller}
-              callerAddress={address ?? undefined}
-              onEdited={refreshJob}
-            />
-            <CancelBriefSection
-              job={job}
-              declined={declined}
-              matchPending={!!matchPending}
-              viewerIsSeller={viewerIsSeller}
-              callerAddress={address ?? undefined}
-            />
-          </div>
-
-          {viewerIsBuyer && (
-            <div
-              className="min-w-0 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:min-h-0 lg:[contain:size]"
-              data-guide="job-bids"
-            >
-              <PageCard className="lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:overflow-hidden">
-                <div className="shrink-0 px-6 pt-6">
-                  <SectionTag>{lj.sections.bids}</SectionTag>
-                </div>
-                <LiveBidsPanel initial={job} />
-              </PageCard>
-            </div>
-          )}
-        </div>
-      </Band>
-    </FullBleed>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  unit,
-  mono,
-  small,
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-  mono?: boolean;
-  small?: boolean;
-}) {
-  return (
-    <div
-      className="relative overflow-hidden p-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5"
-      style={{
-        background: 'var(--lp-card)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 18,
-        borderTopRightRadius: 18,
-        borderBottomLeftRadius: 18,
-        borderBottomRightRadius: 4,
-        boxShadow: '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
-      }}
-    >
-      <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-        {label.toUpperCase()}
-      </p>
-      <div className="mt-3 flex items-baseline gap-1.5">
-        <span
-          className={
-            mono
-              ? 'mono tabular-nums text-[18px] font-medium text-[var(--lp-dark)] leading-none'
-              : small
-                ? 'font-sans text-[18px] font-extrabold tracking-[-0.02em] text-[var(--lp-dark)] leading-none'
-                : 'font-sans text-[clamp(2rem,3.4vw,2.75rem)] font-extrabold tabular-nums tracking-[-0.025em] text-[var(--lp-dark)] leading-none'
-          }
-        >
-          {value}
-        </span>
-        {unit && (
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-            {unit}
-          </span>
-        )}
+      <div className="mt-6 empty:hidden">
+        <MarketAdvisoryBanner jobId={job.jobId} />
       </div>
-    </div>
+
+      {ended === 'out-of-reach' && outOfReach && !proposal && !nearMiss && !expired && !job.escrowFunded ? (
+        <div className="mt-6">
+          <OutOfReachCard
+            jobId={job.jobId}
+            closestFloorUsdc={outOfReach.closestFloorUsdc}
+            budgetUsdc={Number(job.budgetUsdc)}
+            passedPriceUsdc={outOfReach.passedPriceUsdc}
+            caller={address ?? undefined}
+            onReconsidered={refreshNearMiss}
+          />
+        </div>
+      ) : null}
+
+      {nearMiss && !proposal && !expired && !job.escrowFunded ? (
+        <div className="mt-6">
+          <NearMissCard nearMiss={nearMiss} onChange={refreshNearMiss} />
+        </div>
+      ) : null}
+
+      <div className="mt-6 space-y-5">
+        {viewerIsBuyer && !declined && !ended && !expired && !job.escrowFunded && !matchPending && job.bids.length > 0 ? (
+          <div data-guide="job-negotiation">
+            <NegotiationCard events={events} explorer={explorer} job={job} proposal={proposal} viewerAddress={address} />
+          </div>
+        ) : null}
+        <SettleSection job={job} acceptedAt={acceptedAt} declined={declined} />
+        <EditBriefSection
+          job={job}
+          declined={declined}
+          matchPending={!!matchPending}
+          viewerIsSeller={viewerIsSeller}
+          callerAddress={address ?? undefined}
+          onEdited={refreshJob}
+        />
+        <CancelBriefSection
+          job={job}
+          declined={declined}
+          matchPending={!!matchPending}
+          viewerIsSeller={viewerIsSeller}
+          callerAddress={address ?? undefined}
+        />
+      </div>
+
+      {viewerIsBuyer && job.bids.length > 0 ? (
+        <section className="mt-8" data-guide="job-bids">
+          <h2 className="text-[16px] font-semibold text-[var(--lp-dark)]">{rs.offers}</h2>
+          <div className="mt-2 overflow-hidden rounded-[18px] bg-[var(--lp-card)]">
+            <LiveBidsPanel initial={job} />
+          </div>
+        </section>
+      ) : null}
+
+      <details className="group mt-8 border-t border-[var(--lp-border-light)]">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden">
+          {rs.details}
+          <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <dl className="divide-y divide-[var(--lp-border-light)] border-t border-[var(--lp-border-light)] text-[14px]">
+          {job.keywords && job.keywords.length > 0 ? (
+            <div className="flex items-start justify-between gap-4 py-3">
+              <dt className="shrink-0 text-[var(--lp-text-sub)]">{rs.looksFor}</dt>
+              <dd className="min-w-0 text-end text-[var(--lp-dark)]">{job.keywords.slice(0, 6).join(', ')}</dd>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-between gap-4 py-3">
+            <dt className="text-[var(--lp-text-sub)]">{rs.proof}</dt>
+            <dd className="font-mono text-[13px] text-[var(--lp-dark)]">{shortHash(job.termsHash, 6, 4)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4 py-3">
+            <dt className="text-[var(--lp-text-sub)]">{rs.requestId}</dt>
+            <dd className="min-w-0 truncate"><CopyId value={job.jobId} className="text-[13px] text-[var(--lp-dark)]" /></dd>
+          </div>
+        </dl>
+      </details>
+    </main>
   );
 }
 
-function StatusChip({
-  label,
-  tone,
-  live,
-  eyebrows,
-}: {
-  label: string;
-  tone: StatusTone;
-  live: boolean;
-  eyebrows: Record<StatusTone, string>;
-}) {
-  // Instrument-readout chip. same family as navbar LiveDot/wallet button.
-  // Body is white-on-dark; status color lives only in the LED cell.
-  const cell: Record<StatusTone, string> = {
-    positive: 'var(--lp-accent)',
-    warning: '#b25425',
-    accent: 'var(--lp-accent)',
-    default: '#6b6b6b',
-    critical: '#b03d3a',
-  };
-  return (
-    <span
-      className="inline-flex items-stretch overflow-hidden mono leading-none text-white"
-      style={{
-        background: 'var(--lp-band-dark)',
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-        borderBottomLeftRadius: 8,
-        borderBottomRightRadius: 2,
-        boxShadow: '0 2px 0 rgba(0,0,0,0.22)',
-      }}
-    >
-      <span
-        aria-hidden
-        className="flex items-center justify-center px-2"
-        style={{ background: cell[tone] }}
-      >
-        <span
-          aria-hidden
-          data-instrument-blink={live || undefined}
-          className="inline-block w-[6px] h-[6px] bg-white"
-          style={{
-            animation: live ? 'instrumentBlink 1.6s ease-in-out infinite' : undefined,
-          }}
-        />
-      </span>
-      <span className="flex flex-col gap-[2px] px-3 py-2">
-        <span
-          className="text-[8.5px] font-bold uppercase tracking-[0.22em]"
-          style={{ color: tone === 'accent' ? 'var(--lp-accent)' : 'rgba(255,255,255,0.55)' }}
-        >
-          {eyebrows[tone]}
-        </span>
-        <span className="text-[12px] font-semibold tracking-[-0.005em]">{label}</span>
-      </span>
-    </span>
-  );
-}
+
 
 function SettleSection({
   job,

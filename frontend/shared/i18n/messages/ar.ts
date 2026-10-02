@@ -10,6 +10,7 @@ import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
+import { requestPageCopy } from './requestPage';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -22,6 +23,7 @@ export const ar: Messages = {
   analytics: analyticsCopy.ar,
   signup: signupCopy.ar,
   payLink: payLinkCopy.ar,
+  requestPage: requestPageCopy.ar,
   recovery: recoveryCopy.ar,
   docsProduct: docsProductCopy.ar,
   socialTrade: socialTradeCopy.ar,
@@ -623,6 +625,8 @@ export const ar: Messages = {
     endChat: 'إنهاء المحادثة',
     backToAssistant: 'العودة إلى المساعد',
     operatorName: 'الدعم',
+    suggestions: ["ما رصيدي؟", "ابحث عن بائع", "كيف يعمل الضمان؟"],
+    confirmNote: "لا يتحرك شيء دون تأكيدك.",
   },
   countdown: {
     closed: 'مغلق',

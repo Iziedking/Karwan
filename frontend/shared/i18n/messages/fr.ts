@@ -10,6 +10,7 @@ import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
+import { requestPageCopy } from './requestPage';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -22,6 +23,7 @@ export const fr: Messages = {
   analytics: analyticsCopy.fr,
   signup: signupCopy.fr,
   payLink: payLinkCopy.fr,
+  requestPage: requestPageCopy.fr,
   recovery: recoveryCopy.fr,
   docsProduct: docsProductCopy.fr,
   socialTrade: socialTradeCopy.fr,
@@ -623,6 +625,8 @@ export const fr: Messages = {
     endChat: 'Terminer la conversation',
     backToAssistant: 'Retour à l\'assistant',
     operatorName: 'Support',
+    suggestions: ["Quel est mon solde ?", "Trouver un vendeur", "Comment fonctionne le séquestre ?"],
+    confirmNote: "Rien ne bouge sans votre confirmation.",
   },
   countdown: {
     closed: 'clôturé',

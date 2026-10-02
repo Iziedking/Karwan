@@ -10,6 +10,7 @@ import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
+import { requestPageCopy } from './requestPage';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -22,6 +23,7 @@ export const hi: Messages = {
   analytics: analyticsCopy.hi,
   signup: signupCopy.hi,
   payLink: payLinkCopy.hi,
+  requestPage: requestPageCopy.hi,
   recovery: recoveryCopy.hi,
   docsProduct: docsProductCopy.hi,
   socialTrade: socialTradeCopy.hi,
@@ -621,6 +623,8 @@ export const hi: Messages = {
     endChat: 'चैट समाप्त करें',
     backToAssistant: 'असिस्टेंट पर वापस',
     operatorName: 'सहायता',
+    suggestions: ["मेरा बैलेंस कितना है?", "विक्रेता खोजें", "एस्क्रो कैसे काम करता है?"],
+    confirmNote: "आपकी पुष्टि के बिना कुछ नहीं होता।",
   },
   countdown: {
     closed: 'बंद',

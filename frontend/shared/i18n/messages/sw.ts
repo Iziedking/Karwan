@@ -10,6 +10,7 @@ import { escrowV3Copy } from './escrowV3';
 import { analyticsCopy } from './analytics';
 import { signupCopy } from './signup';
 import { payLinkCopy } from './payLink';
+import { requestPageCopy } from './requestPage';
 import { recoveryCopy } from './recovery';
 import { docsProductCopy } from './docsProduct';
 
@@ -22,6 +23,7 @@ export const sw: Messages = {
   analytics: analyticsCopy.sw,
   signup: signupCopy.sw,
   payLink: payLinkCopy.sw,
+  requestPage: requestPageCopy.sw,
   recovery: recoveryCopy.sw,
   docsProduct: docsProductCopy.sw,
   socialTrade: socialTradeCopy.sw,
@@ -620,6 +622,8 @@ export const sw: Messages = {
     endChat: 'Maliza mazungumzo',
     backToAssistant: 'Rudi kwa msaidizi',
     operatorName: 'Msaada',
+    suggestions: ["Salio langu ni kiasi gani?", "Tafuta muuzaji", "Escrow inafanyaje kazi?"],
+    confirmNote: "Hakuna kinachosonga bila uthibitisho wako.",
   },
   countdown: {
     closed: 'imefungwa',

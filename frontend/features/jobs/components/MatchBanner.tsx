@@ -22,9 +22,12 @@ interface Props {
   /// richer counterparty profile card so the human gate has reputation, stake
   /// proxy (deal count), and identity (X handle + passport) up front.
   trustedMatch?: boolean;
+  /// Leave out the paid-check line and the market read; the request page shows
+  /// them behind its Research button instead.
+  quiet?: boolean;
 }
 
-export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props) {
+export function MatchBanner({ proposal, onChange, trustedMatch = false, quiet = false }: Props) {
   const mb = useTranslations().matchBanner;
   const router = useRouter();
   const { address } = useAuth();
@@ -223,7 +226,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
 
       {/* Keep the decision surface quiet. Full provenance remains available on
           demand so a match card does not read like an operator log. */}
-      {proposal.paidSignal && (
+      {!quiet && proposal.paidSignal && (
         <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-faint)]">
           <span>{mb.paidData.label}</span>
           <span className="normal-case tracking-normal text-[11px]">
@@ -268,7 +271,7 @@ export function MatchBanner({ proposal, onChange, trustedMatch = false }: Props)
       {/* Market read: the agent paid for live market research on the deal's
           keywords (off-platform), shown to both parties with the payment as
           evidence. Shared component, also rendered on the deal page. */}
-      {proposal.marketRead && (
+      {!quiet && proposal.marketRead && (
         <div className="mt-3">
           <MarketReadCard
             mr={proposal.marketRead}

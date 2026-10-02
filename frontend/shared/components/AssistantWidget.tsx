@@ -29,6 +29,7 @@ import {
 } from '@/shared/hooks/useFloatingClearance';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { isPublicEditorialRoute } from '@/shared/utils/routes';
+import { Icon } from '@/shared/components/Icon';
 
 interface Turn {
   role: 'user' | 'assistant';
@@ -211,8 +212,8 @@ export function AssistantWidget() {
     if (typeof window !== 'undefined') window.localStorage.removeItem(SUPPORT_STORAGE_KEY);
   }
 
-  async function send() {
-    const text = input.trim();
+  async function send(question?: string) {
+    const text = (question ?? input).trim();
     if (!text || loading) return;
 
     // Live (human) mode: relay to the operator, then poll so the user's own
@@ -342,13 +343,12 @@ export function AssistantWidget() {
         >
           {/* header */}
           <div className="flex items-start justify-between gap-3 p-4 border-b border-[var(--lp-border-light)]">
-            <div>
-              <p className="font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-                {t.title}
-              </p>
-              <p className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] mt-0.5">
-                {t.subtitle}
-              </p>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={30} height={30} className="size-[30px] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[16px] font-semibold text-[var(--lp-dark)]">{t.title}</p>
+                <p className="mt-0.5 truncate text-[12.5px] text-[var(--lp-text-sub)]">{t.subtitle}</p>
+              </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button
@@ -383,6 +383,21 @@ export function AssistantWidget() {
           {/* messages */}
           <div ref={scrollRef} className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-3">
             <Bubble role="assistant">{t.greeting}</Bubble>
+            {turns.length === 0 && !isLive ? (
+              <div className="flex flex-wrap gap-2 ps-8">
+                {t.suggestions.map((question) => (
+                  <button
+                    key={question}
+                    type="button"
+                    onClick={() => void send(question)}
+                    disabled={loading}
+                    className="min-h-9 rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3 text-[13.5px] text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             {turns.map((m, i) => (
               <div key={i} className="space-y-2">
                 <Bubble role={m.role}>
@@ -482,30 +497,29 @@ export function AssistantWidget() {
               </button>
             ) : (
               <>
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] py-1.5 pe-1.5 ps-4 focus-within:border-[var(--lp-outline-strong)]">
                   <textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={onKeyDown}
                     placeholder={isLive ? t.livePlaceholder : t.placeholder}
                     rows={1}
-                    className="form-input flex-1 resize-none max-h-28 text-[14px]"
+                    aria-label={isLive ? t.livePlaceholder : t.placeholder}
+                    className="max-h-28 min-h-9 flex-1 resize-none bg-transparent py-2 text-[15px] text-[var(--lp-dark)] outline-none placeholder:text-[var(--lp-text-muted)]"
                   />
                   <button
                     type="button"
-                    onClick={send}
+                    onClick={() => void send()}
                     disabled={loading || !input.trim()}
-                    className="shrink-0 mono text-[11px] uppercase tracking-[0.1em] font-bold px-3 py-2.5 bg-[var(--lp-dark)] text-[var(--lp-bg)] disabled:opacity-50 transition"
-                    style={{
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 3,
-                    }}
+                    aria-label={t.send}
+                    className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--lp-accent)] text-[#10170b] transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]"
                   >
-                    {t.send}
+                    <Icon name="send" size={20} />
                   </button>
                 </div>
+                {!isLive && auth.isAuthenticated ? (
+                  <p className="mt-2 text-center text-[11.5px] text-[var(--lp-text-muted)]">{t.confirmNote}</p>
+                ) : null}
                 {/* Guidance disclaimer is only true for signed-OUT visitors (the
                     assistant holds no tools for them). Once signed in it CAN act
                     (each action still gated by a confirm card), so the line would
@@ -1409,19 +1423,14 @@ function ConfirmCard({
 function Bubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
   const isUser = role === 'user';
   return (
-    <div className={isUser ? 'flex justify-end' : 'flex justify-start'}>
+    <div className={isUser ? 'flex justify-end' : 'flex items-start justify-start gap-2'}>
+      {isUser ? null : <img src="/brand/karwan-mark-lime.svg" alt="" aria-hidden width={22} height={22} className="mt-0.5 size-[22px] shrink-0" />}
       <div
         className={
           isUser
-            ? 'max-w-[85%] min-w-0 break-words px-3.5 py-2.5 text-[13.5px] leading-relaxed bg-[var(--lp-dark)] text-[var(--lp-bg)]'
-            : 'max-w-[88%] min-w-0 break-words px-3.5 py-2.5 text-[13.5px] leading-relaxed bg-[var(--lp-bg)] text-[var(--lp-dark)] border border-[var(--lp-border-light)]'
+            ? 'max-w-[85%] min-w-0 break-words rounded-[16px] rounded-ee-[4px] bg-[#E7F0CF] px-3.5 py-2.5 text-[15px] leading-relaxed text-[#1f2a0b]'
+            : 'max-w-[88%] min-w-0 break-words py-0.5 text-[15px] leading-relaxed text-[var(--lp-dark)]'
         }
-        style={{
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          borderBottomLeftRadius: isUser ? 12 : 3,
-          borderBottomRightRadius: isUser ? 3 : 12,
-        }}
       >
         {children}
       </div>
