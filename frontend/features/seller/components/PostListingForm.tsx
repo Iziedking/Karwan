@@ -147,7 +147,6 @@ export function PostListingForm() {
         readyInDays: readyInDays as number,
         terms: agreementText,
         termsDraft: {
-          items: cleanLines(terms.items),
           conditions: cleanLines(terms.conditions),
           proof: 'link',
           parts: terms.parts,

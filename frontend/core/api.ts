@@ -1034,10 +1034,11 @@ export interface Listing {
 }
 
 export interface ListingTermsDraft {
-  items: string[];
   conditions: string[];
   proof: 'link';
-  parts: Array<{ pct: number; covers: { kind: 'start' } | { kind: 'all' } | { kind: 'item'; item: string } }>;
+  /// Each milestone in plain words. Offers saved before milestones carry
+  /// `covers` instead of `what`.
+  parts: Array<{ pct: number; what?: string; covers?: { kind: 'start' } | { kind: 'all' } | { kind: 'item'; item: string } }>;
   reviewWindowDays: number;
 }
 
@@ -3631,6 +3632,7 @@ export const api = {
     acceptanceWindowHours?: number;
     terms: string;
     firstReleasePct: number;
+    milestonePcts?: number[];
     /// Days the buyer has to check each delivery; the escrow honours it.
     reviewWindowDays?: number;
     /// Trusted-match opt-in. When true, the seller's accept panel surfaces a

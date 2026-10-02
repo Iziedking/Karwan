@@ -46,8 +46,9 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
   await page.getByRole('textbox', { name: f.otherDays, exact: true }).fill('5');
   await next.click();
 
-  await page.getByRole('textbox', { name: `${tb.items} 1`, exact: true }).fill('Logo in SVG and PNG');
-  await page.getByRole('button', { name: tb.payThirty, exact: true }).click();
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Logo in SVG and PNG');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('30');
   await page.getByRole('button', { name: en.dealCreation.review, exact: true }).click();
   await expect(page.getByText(f.readyInRow.replace('{n}', '5'), { exact: true })).toBeVisible();
   await page.getByRole('button', { name: f.publish }).click();
@@ -59,13 +60,12 @@ test('an offer is set in three steps: price, floor, ready-in time and terms', as
     readyInDays: 5,
     ttlDays: 30,
     termsDraft: {
-      items: ['Logo in SVG and PNG'],
       proof: 'link',
-      parts: [{ pct: 30, covers: { kind: 'start' } }, { pct: 70, covers: { kind: 'all' } }],
+      parts: [{ pct: 30, what: 'Three logo sketches to choose from' }, { pct: 70, what: 'Logo in SVG and PNG' }],
       reviewWindowDays: 3,
     },
   });
-  expect(String((posted as unknown as { terms: string }).terms)).toContain('• Logo in SVG and PNG');
+  expect(String((posted as unknown as { terms: string }).terms)).toContain(': Logo in SVG and PNG');
 });
 
 test('a deal started from an offer starts from its terms and ready-in time', async ({ page }) => {
@@ -84,10 +84,9 @@ test('a deal started from an offer starts from its terms and ready-in time', asy
         expiresAt: Date.now() + 86_400_000,
         readyInDays: 5,
         termsDraft: {
-          items: ['Logo in SVG and PNG'],
           conditions: ['2 rounds of changes included'],
           proof: 'link',
-          parts: [{ pct: 20, covers: { kind: 'start' } }, { pct: 30, covers: { kind: 'all' } }, { pct: 50, covers: { kind: 'all' } }],
+          parts: [{ pct: 20, what: 'Three logo sketches' }, { pct: 30, what: 'Two refined directions' }, { pct: 50, what: 'Logo in SVG and PNG' }],
           reviewWindowDays: 7,
         },
       },
@@ -99,8 +98,9 @@ test('a deal started from an offer starts from its terms and ready-in time', asy
   await next.click();
   await expect(page.getByText(/^Due /)).toBeVisible();
   await next.click();
-  await expect(page.getByRole('textbox', { name: `${tb.items} 1`, exact: true })).toHaveValue('Logo in SVG and PNG');
+  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true })).toHaveValue('Logo in SVG and PNG');
   await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` })).toHaveValue('20');
-  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` })).toHaveValue('80');
+  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` })).toHaveValue('30');
+  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` })).toHaveValue('50');
   await expect(page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true })).toHaveAttribute('aria-pressed', 'true');
 });

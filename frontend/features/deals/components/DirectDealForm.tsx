@@ -159,11 +159,12 @@ export function DirectDealForm() {
   const [step, setStep] = useState<0 | 1 | 2>(0);
   // The agreement as checkable parts. Direct deals fund in two parts today.
   const [terms, setTerms] = useState<TermsDraft>(() =>
-    initialTerms.trim() ? { ...DEFAULT_TERMS, items: [initialTerms.trim()] } : DEFAULT_TERMS,
+    initialTerms.trim()
+      ? { ...DEFAULT_TERMS, parts: [{ pct: 50, what: initialTerms.trim() }, { pct: 50, what: '' }] }
+      : DEFAULT_TERMS,
   );
   // Opened from an offer: start from the terms the seller published and their
-  // ready-in time. A direct deal funds in two parts, so an offer split in more
-  // keeps its first part and puts the rest in the second.
+  // ready-in time.
   const listingId = search.get('listing');
   useEffect(() => {
     if (!listingId) return;
@@ -173,16 +174,10 @@ export function DirectDealForm() {
         if (cancelled) return;
         const draft = listing.termsDraft;
         if (draft) {
-          const first = draft.parts[0]!;
-          const last = draft.parts[draft.parts.length - 1]!;
           setTerms({
-            items: draft.items.length ? draft.items : [''],
             conditions: draft.conditions.length ? draft.conditions : [''],
             proof: draft.proof,
-            parts: [
-              { pct: first.pct, covers: first.covers },
-              { pct: 100 - first.pct, covers: last.covers },
-            ],
+            parts: draft.parts.map((part) => ({ pct: part.pct, what: part.what ?? (part.covers?.kind === 'item' ? part.covers.item : '') })),
             reviewWindowDays: draft.reviewWindowDays,
           });
         }
@@ -395,6 +390,7 @@ export function DirectDealForm() {
         acceptanceWindowHours: acceptanceHours,
         terms: agreementText,
         firstReleasePct: terms.parts[0].pct,
+        milestonePcts: terms.parts.map((part) => part.pct),
         reviewWindowDays: terms.reviewWindowDays,
         requireStake,
         requireStakePct: requireStake ? requireStakePct : undefined,
@@ -591,8 +587,6 @@ export function DirectDealForm() {
         onChange={setTerms}
         priceUsdc={amountValid ? (amount as number) : null}
         dueLabel={dueLabel}
-        minParts={2}
-        maxParts={2}
         disabled={submitting}
       />
 

@@ -50,21 +50,19 @@ test('a request is asked in three steps and posts the chosen date and milestones
 
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
   const tb = TERMS_COPY.en;
-  await page.getByRole('textbox', { name: `${tb.items} 1`, exact: true }).fill('Logo in SVG and PNG');
-  await expect(page.getByRole('button', { name: tb.payHalf, exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText(tb.noWhat.replace('{n}', '1'), { exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Three logo sketches to choose from');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Final logo in SVG and PNG');
+  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
+  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` })).toHaveValue('33');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Brand colours sheet');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('10');
+  await expect(page.getByText(tb.needs100.replace('{sum}', '76'), { exact: true })).toBeVisible();
+  await expect(page.locator('button[data-guide="buyer-submit"]')).toBeDisabled();
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('20');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('70');
   await page.locator('summary', { hasText: tb.moreTerms }).click();
   await page.getByRole('textbox', { name: `${tb.conditions} 1`, exact: true }).fill('2 rounds of changes included');
-  await page.getByRole('button', { name: tb.payCustom, exact: true }).click();
-  const part1 = page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` });
-  const part2 = page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` });
-  await part1.fill('25');
-  await expect(part2).toHaveValue('75');
-  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('10');
-  await expect(page.getByText(tb.needs100.replace('{sum}', '72'), { exact: true })).toBeVisible();
-  await expect(page.locator('button[data-guide="buyer-submit"]')).toBeDisabled();
-  await page.getByRole('button', { name: tb.payThirty, exact: true }).click();
-  await expect(part2).toHaveCount(0);
   await page.getByRole('button', { name: tb.days.replace('{n}', '7'), exact: true }).click();
   await expect(page.getByText(tb.ready, { exact: true })).toBeVisible();
 
@@ -75,11 +73,11 @@ test('a request is asked in three steps and posts the chosen date and milestones
   await page.locator('button[data-guide="buyer-submit"]').click();
   await page.locator('button[data-guide="buyer-submit"]').click();
   await expect.poll(() => posted).not.toBeNull();
-  expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [30, 70], reviewWindowDays: 7 });
+  expect(posted).toMatchObject({ budgetUsdc: 150, deadlineSeconds: 14 * DAY_S, milestonePcts: [20, 70, 10], reviewWindowDays: 7 });
   const agreement = String((posted as unknown as { terms: string }).terms);
-  expect(agreement).toContain('• Logo in SVG and PNG');
+  expect(agreement).toContain('• Part 1, 20% (30 USDC): Three logo sketches to choose from');
+  expect(agreement).toContain('• Part 3, 10% (15 USDC): Brand colours sheet');
   expect(agreement).toContain('• 2 rounds of changes included');
-  expect(agreement).toContain('45 USDC');
   expect(agreement).toContain('Check window: 7 days');
 });
 
@@ -120,13 +118,15 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
   await next.click();
 
   await expect(page.getByText(`${rs.stepOf.replace('{n}', '3')} · ${rs.payment}`)).toBeVisible();
-  await page.getByRole('textbox', { name: `${tb.items} 1`, exact: true }).fill('Product photos for 20 items');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the first 10 items');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')}: ${tb.whatLabel}`, exact: true }).fill('Product photos for the other 10 items');
+  await page.getByRole('button', { name: tb.addPart, exact: true }).click();
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')}: ${tb.whatLabel}`, exact: true }).fill('Edited set in one folder');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('40');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` }).fill('40');
+  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '3')} %` }).fill('20');
   await page.locator('summary', { hasText: tb.moreTerms }).click();
   await page.getByRole('textbox', { name: `${tb.conditions} 1`, exact: true }).fill('White background, 2000 px wide');
-  await page.getByRole('button', { name: tb.payCustom, exact: true }).click();
-  await expect(page.getByRole('button', { name: tb.addPart, exact: true })).toHaveCount(0);
-  await page.getByRole('textbox', { name: `${tb.part.replace('{n}', '1')} %` }).fill('40');
-  await expect(page.getByRole('textbox', { name: `${tb.part.replace('{n}', '2')} %` })).toHaveValue('60');
   await page.getByRole('button', { name: tb.other, exact: true }).click();
   await page.getByRole('textbox', { name: tb.otherDays, exact: true }).fill('10');
 
@@ -140,10 +140,11 @@ test('a direct deal names the seller in one box and sends the agreed terms in tw
     dealAmountUsdc: 200,
     deadlineDays: 7,
     firstReleasePct: 40,
+    milestonePcts: [40, 40, 20],
     reviewWindowDays: 10,
   });
   const agreement = String((posted as unknown as { terms: string }).terms);
-  expect(agreement).toContain('• Product photos for 20 items');
-  expect(agreement).toContain('80 USDC');
+  expect(agreement).toContain('• Part 1, 40% (80 USDC): Product photos for the first 10 items');
+  expect(agreement).toContain('• Part 3, 20% (40 USDC): Edited set in one folder');
   expect(agreement).toContain('Check window: 10 days');
 });

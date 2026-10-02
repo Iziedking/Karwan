@@ -222,10 +222,7 @@ export function PostJobForm() {
     parsedInitialSplit?.pcts
       ? {
           ...DEFAULT_TERMS,
-          parts: parsedInitialSplit.pcts.map((pct, i, all) => ({
-            pct,
-            covers: i === 0 ? { kind: 'start' as const } : i === all.length - 1 ? { kind: 'all' as const } : { kind: 'all' as const },
-          })),
+          parts: parsedInitialSplit.pcts.map((pct) => ({ pct, what: '' })),
         }
       : DEFAULT_TERMS,
   );
