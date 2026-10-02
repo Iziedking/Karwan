@@ -93,6 +93,14 @@
        stays stable whether or not a page currently scrolls vertically. */
     scrollbar-gutter: stable;
   }
+  /* Phones read a step smaller: text only, so layout and 44px targets hold.
+     Honoured by iOS Safari and Android Chrome; desktop browsers ignore it. */
+  @media (max-width: 640px) {
+    html {
+      -webkit-text-size-adjust: 92%;
+      text-size-adjust: 92%;
+    }
+  }
   html[data-theme="dark"] {
     color-scheme: dark;
   }
