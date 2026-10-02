@@ -1,5 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { generateObject, type FlexibleSchema } from 'ai';
 import type { LanguageModelV3 } from '@ai-sdk/provider';
 import { config } from '../config.js';
@@ -14,6 +16,13 @@ const openrouterModel = openrouter(config.LLM_MODEL);
 const anthropic = config.ANTHROPIC_API_KEY ? createAnthropic({ apiKey: config.ANTHROPIC_API_KEY }) : null;
 
 type LM = LanguageModelV3;
+
+// Claude Haiku on Amazon Bedrock, in Karwan's own AWS account. Null unless
+// BEDROCK_ENABLED, so every chain below simply starts at the next model.
+const bedrock = config.BEDROCK_ENABLED
+  ? createAmazonBedrock({ region: config.BEDROCK_REGION, credentialProvider: fromNodeProviderChain() })
+  : null;
+export const bedrockModel: LM | null = bedrock?.(config.BEDROCK_MODEL) ?? null;
 
 /// Wrap an ordered list of models so a call tries each in turn, dropping to the
 /// next on any error. The direct Anthropic key (Haiku) is primary and OpenRouter
@@ -102,6 +111,7 @@ export async function runWithLlmFallback<
 /// first, then OpenRouter. This keeps agents alive when the
 /// OpenRouter budget is exhausted and the direct key is unavailable.
 export const llmModelCandidates: LM[] = [
+  bedrockModel,
   anthropic?.(config.FAST_LLM_MODEL) ?? null,
   openrouterModel,
 ].filter((m): m is LM => m !== null);
@@ -113,6 +123,7 @@ export const llmModel = fallbackChain(llmModelCandidates);
 /// This matches the assistant route so agent calls remain available when the
 /// direct key is unavailable and OpenRouter credits are exhausted.
 export const verifierModel = fallbackChain([
+  bedrockModel,
   anthropic?.(config.VERIFIER_LLM_MODEL) ?? null,
   openrouterModel,
 ]);
@@ -122,6 +133,7 @@ export const verifierModel = fallbackChain([
 /// paid fallback, so a live negotiation never drops to
 /// deterministic just because one provider is down or out of credit.
 export const negotiationModel = fallbackChain([
+  bedrockModel,
   anthropic?.(config.NEGOTIATION_LLM_MODEL) ?? null,
   openrouterModel,
 ]);
@@ -129,6 +141,7 @@ export const negotiationModel = fallbackChain([
 /// Paid market-research synthesis (per-deal market read + demand score over Exa
 /// excerpts). Anthropic (Haiku) primary, OpenRouter paid fallback.
 export const researchModel = fallbackChain([
+  bedrockModel,
   anthropic?.(config.RESEARCH_LLM_MODEL) ?? null,
   openrouterModel,
 ]);
@@ -141,7 +154,8 @@ export const researchModel = fallbackChain([
 /// null as "supervisor disabled" rather than routing elsewhere. This is the one
 /// model export that is allowed to be unavailable instead of degrading to a
 /// proxy, precisely because the privacy boundary matters more than uptime here.
-export const supervisorModel: LM | null = anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null;
+/// Bedrock counts as direct: it runs in Karwan's own AWS account.
+export const supervisorModel: LM | null = bedrockModel ?? anthropic?.(config.SUPERVISOR_LLM_MODEL) ?? null;
 
 /// Authenticated assistant model. Same reasoning as supervisorModel, same
 /// invariant: the authenticated assistant runs a tool-calling loop that reads the
@@ -150,4 +164,5 @@ export const supervisorModel: LM | null = anthropic?.(config.SUPERVISOR_LLM_MODE
 /// the DIRECT Anthropic key ONLY, not a fallbackChain.
 /// Null when no Anthropic key: callers fall back to the anonymous, knowledge-only
 /// provider chain (which never sees private data), never to a proxy for this input.
-export const assistantAgentModel: LM | null = anthropic?.(config.ASSISTANT_AGENT_LLM_MODEL) ?? null;
+/// Bedrock counts as direct here too, for the same reason as the supervisor.
+export const assistantAgentModel: LM | null = bedrockModel ?? anthropic?.(config.ASSISTANT_AGENT_LLM_MODEL) ?? null;

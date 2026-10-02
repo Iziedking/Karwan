@@ -45,7 +45,8 @@ export function staticFallbackMessages(messages: AssistantSafetyMessage[]): Assi
 export function privateAssistantProviders<T extends { name: string }>(providers: T[]): T[] {
   // All /chat requests are authenticated; a keyword miss must not disclose
   // their conversation to a proxy. Preserve the direct-provider boundary.
-  return providers.filter((provider) => provider.name === 'anthropic');
+  // Bedrock runs in Karwan's own AWS account, so it is direct as well.
+  return providers.filter((provider) => provider.name === 'anthropic' || provider.name === 'bedrock');
 }
 
 /** A proposal can be shown without pretending it is evidence of completion. */

@@ -533,6 +533,13 @@ const envSchema = z.object({
   // In-app support assistant. Uses Anthropic directly (not OpenRouter) on a
   // low-cost model. Assistant is disabled gracefully if the key is absent.
   ANTHROPIC_API_KEY: optionalString,
+  // Amazon Bedrock in Karwan's own AWS account. When on, Claude Haiku on
+  // Bedrock leads every model chain, assistant and supervisor included: it is
+  // first-party infrastructure, not a proxy. Credentials come from the standard
+  // AWS chain (instance role on the server, env keys or SSO locally).
+  BEDROCK_ENABLED: envBool('BEDROCK_ENABLED'),
+  BEDROCK_REGION: z.string().default('us-east-1'),
+  BEDROCK_MODEL: z.string().default('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
   ASSISTANT_MODEL: z.string().default('claude-haiku-4-5-20251001'),
   // The AUTHENTICATED assistant runs a tool-calling loop that can read the
   // signed-in user's OWN data (balance, deals). Because that data is private, it

@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { generateText } from 'ai';
 import { config } from '../config.js';
+import { bedrockModel } from '../llm/client.js';
 import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -25,7 +27,7 @@ interface Provider {
   model: string;
   /// Wire format. 'anthropic' = /v1/messages; 'openai' =
   /// chat-completions (OpenRouter). Drives request shape + reply parsing.
-  kind: 'anthropic' | 'openai';
+  kind: 'anthropic' | 'openai' | 'bedrock';
 }
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
@@ -34,6 +36,11 @@ type ChatMessage = { role: 'user' | 'assistant'; content: string };
 /// key), then OpenRouter as the last resort. Empty when nothing is configured.
 export function assistantProviders(): Provider[] {
   const list: Provider[] = [];
+  // Bedrock first when enabled: Claude in Karwan's own AWS account, called
+  // through the AI SDK rather than raw HTTP, so url and headers stay empty.
+  if (bedrockModel) {
+    list.push({ name: 'bedrock', url: '', headers: {}, model: config.BEDROCK_MODEL, kind: 'bedrock' });
+  }
   if (config.ANTHROPIC_API_KEY) {
     list.push({
       name: 'anthropic',
@@ -138,6 +145,16 @@ async function callProvider(
   maxTokens: number,
   signal: AbortSignal,
 ): Promise<ProviderResult> {
+  if (p.kind === 'bedrock') {
+    if (!bedrockModel) return { ok: false, detail: 'bedrock not configured' };
+    try {
+      const out = await generateText({ model: bedrockModel, system: KARWAN_ASSISTANT_SYSTEM, messages, maxOutputTokens: maxTokens, abortSignal: signal });
+      const reply = out.text.trim();
+      return reply ? { ok: true, reply } : { ok: false, detail: 'empty reply' };
+    } catch (e) {
+      return { ok: false, detail: (e as Error).message.slice(0, 300) };
+    }
+  }
   // OpenAI format carries the system prompt as the first message; the Anthropic
   // format carries it in a dedicated `system` field.
   const requestBody =
