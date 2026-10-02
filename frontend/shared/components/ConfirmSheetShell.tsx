@@ -8,7 +8,7 @@ import { dur, ease } from '@/shared/motion/tokens';
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled])';
 
 /// The frame every money or irreversible action opens in: a bottom sheet on a
-/// phone, a panel at the side from 768px that is only as tall as its content, the page dimmed behind it. Focus moves in on
+/// phone, a panel at the side from 768px, centred top to bottom and only as tall as its content, the page dimmed behind it. Focus moves in on
 /// open (to `initialFocus`, else the first control), stays trapped, and goes back
 /// to whatever opened it. While `busy`, neither Escape nor the backdrop closes
 /// it, so a signing step is never dismissed by accident.
@@ -66,7 +66,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
   return createPortal(
     <AnimatePresence>
       {open ? (
-        <div className="fixed inset-0 z-[80]" role="presentation">
+        <div className="fixed inset-0 z-[80] md:flex md:items-center md:justify-end md:p-4" role="presentation">
           <motion.div
             className="absolute inset-0 bg-black/40"
             initial={{ opacity: 0 }}
@@ -80,7 +80,7 @@ export function ConfirmSheetShell({ open, labelledBy, busy, onClose, initialFocu
             role="dialog"
             aria-modal="true"
             aria-labelledby={labelledBy}
-            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[20px] bg-[var(--lp-card)] p-6 md:bottom-auto md:start-auto md:end-4 md:top-4 md:w-[440px] md:max-h-[calc(100dvh-2rem)] md:rounded-[20px] md:shadow-[0_24px_64px_rgba(0,0,0,0.18)]"
+            className="absolute inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-[20px] bg-[var(--lp-card)] p-6 md:relative md:inset-auto md:w-[440px] md:max-h-[calc(100dvh-2rem)] md:rounded-[20px] md:shadow-[0_24px_64px_rgba(0,0,0,0.18)]"
             initial={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}
             animate={reduce ? { opacity: 1 } : { y: 0, opacity: 1 }}
             exit={reduce ? { opacity: 0 } : { y: 24, opacity: 0 }}

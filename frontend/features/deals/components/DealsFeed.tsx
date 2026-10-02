@@ -158,11 +158,6 @@ export function DealsFeed() {
                   href={`/deals/${deal.jobId}`}
                   className="group relative flex flex-col md:grid md:grid-cols-[auto_1fr_auto] items-stretch md:items-center gap-2 md:gap-6 px-5 md:px-8 py-4 md:py-5 transition-colors duration-150 hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-inset"
                 >
-                  <span
-                    aria-hidden
-                    className="absolute start-0 top-2 bottom-2 w-[3px] opacity-60 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-                    style={{ background: meta.rail }}
-                  />
 
                   {/* Mobile row 1 / desktop col 1: status + age (left) + amount (right on mobile) */}
                   <div className="flex items-center justify-between md:justify-start gap-3 md:gap-3 md:shrink-0 md:min-w-[180px]">

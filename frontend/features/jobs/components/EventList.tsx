@@ -306,7 +306,6 @@ export function EventList({
         {runs.map(({ e, repeat }, i) => {
           const text = labelFor(e.type, el.eventTexts);
           const tone: Tone = EVENT_TONES[e.type] ?? 'system';
-          const rail = RAIL_COLOR[tone];
           const txHash = (e.payload?.txHash as string | undefined) ?? undefined;
           const txHref = txExplorerHref(explorer, e.payload, txHash);
           const chips = chipsFor(e.payload, el);
@@ -316,16 +315,11 @@ export function EventList({
           // support without leaking stack traces or internal paths.
           const body = (
             <>
-              <span
-                aria-hidden
-                className="absolute start-0 top-0 bottom-0 w-[3px]"
-                style={{ background: rail }}
-              />
               <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                <span className="mobile-readable font-sans text-[14px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+                <span className="mobile-readable text-[15px] font-semibold text-[var(--lp-dark)]">
                   {text}
                 </span>
-                <span className="mobile-meta shrink-0 mono text-[10px] uppercase tracking-[0.12em] tabular-nums text-[var(--lp-text-muted)]">
+                <span className="mobile-meta shrink-0 text-[12px] tabular-nums text-[var(--lp-text-muted)]">
                   {repeat > 1 && <span className="me-2">{`×${repeat}`}</span>}
                   {relativeTime(e.ts)}
                 </span>
@@ -341,12 +335,12 @@ export function EventList({
                       ? e.payload?.detail
                       : undefined;
                 return typeof sub === 'string' && sub ? (
-                  <p className="mobile-readable mt-1 text-[12px] leading-snug text-[var(--lp-text-sub)]">
+                  <p className="mobile-readable mt-1 text-[13.5px] leading-snug text-[var(--lp-text-sub)]">
                     {sub}
                   </p>
                 ) : null;
               })()}
-              <div className="flex flex-wrap items-center gap-2 mt-2">
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <ActorChip tone={tone} actor={e.actor} />
                 {showJobId && e.jobId && (
                   <span className="inline-flex items-center gap-1 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
@@ -392,7 +386,7 @@ export function EventList({
                 {href && (
                   <span
                     aria-hidden
-                    className="ms-auto mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)] transition-colors group-hover:text-[var(--lp-dark)]"
+                    className="ms-auto text-[13px] text-[var(--lp-text-sub)] transition-colors group-hover:text-[var(--lp-dark)]"
                   >
                     {el.openLink}
                   </span>
@@ -401,28 +395,20 @@ export function EventList({
             </>
           );
 
-          const cardStyle = {
-            background: 'var(--lp-card)',
-            border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 12,
-            borderTopRightRadius: 12,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 3,
-            boxShadow: '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
-          } as const;
+          const cardClass =
+            'group relative block rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] p-4';
 
           return (
             <li key={`${e.ts}-${i}`} className="slide-in">
               {href ? (
                 <Link
                   href={href}
-                  className="group relative overflow-hidden block p-3.5 ps-5 transition-[transform,box-shadow] duration-200 hover:-translate-y-px hover:shadow-[0_1px_0_rgba(0,0,0,0.04),0_10px_24px_-14px_rgba(0,0,0,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2"
-                  style={cardStyle}
+                  className={`${cardClass} transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]`}
                 >
                   {body}
                 </Link>
               ) : (
-                <div className="group relative overflow-hidden p-3.5 ps-5" style={cardStyle}>
+                <div className={cardClass}>
                   {body}
                 </div>
               )}
@@ -513,36 +499,10 @@ export function EventList({
 }
 
 function ActorChip({ tone, actor }: { tone: Tone; actor: string }) {
-  const fg = RAIL_COLOR[tone];
-  const bg =
-    tone === 'buyer'
-      ? 'rgba(60,74,138,0.10)'
-      : tone === 'seller'
-        ? 'rgba(175,201,91,0.12)'
-        : tone === 'error'
-          ? 'rgba(176,61,58,0.10)'
-          : 'var(--lp-light)';
   return (
-    <span
-      className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
-      style={{
-        background: bg,
-        color: fg,
-        border: `1px solid ${fg}33`,
-        borderTopLeftRadius: 5,
-        borderTopRightRadius: 5,
-        borderBottomLeftRadius: 5,
-        borderBottomRightRadius: 2,
-      }}
-    >
-      <span
-        aria-hidden
-        className="flex items-center justify-center px-1.5"
-        style={{ background: fg }}
-      >
-        <span aria-hidden className="inline-block w-[4px] h-[4px] bg-white" />
-      </span>
-      <span className="px-1.5 py-[5px]">{actor}</span>
+    <span className="inline-flex items-center gap-1.5 text-[13px] capitalize text-[var(--lp-text-sub)]">
+      <span aria-hidden className="size-1.5 rounded-full" style={{ background: RAIL_COLOR[tone] }} />
+      {actor}
     </span>
   );
 }
@@ -558,21 +518,9 @@ function DetailChip({
 }) {
   if (variant === 'card') {
     return (
-      <span
-        className="inline-flex items-baseline gap-1 px-2 py-1 text-[11px]"
-        style={{
-          background: 'var(--lp-light)',
-          border: '1px solid var(--lp-border-light)',
-          borderTopLeftRadius: 5,
-          borderTopRightRadius: 5,
-          borderBottomLeftRadius: 5,
-          borderBottomRightRadius: 2,
-        }}
-      >
-        <span className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-          {label}
-        </span>
-        <span className="text-[var(--lp-dark)] mono tabular-nums font-medium">{value}</span>
+      <span className="inline-flex items-baseline gap-1.5 text-[13px]">
+        <span className="text-[var(--lp-text-muted)]">{label}</span>
+        <span className="tabular-nums text-[var(--lp-dark)]">{value}</span>
       </span>
     );
   }

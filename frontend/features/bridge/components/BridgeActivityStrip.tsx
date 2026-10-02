@@ -195,7 +195,6 @@ export function BridgeActivityStrip({
                 borderBottomRightRadius: 3,
               }}
             >
-              <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: rail }} />
               <div className="flex items-center gap-3">
                 <RouteGlyph bridge={b} />
                 <div className="flex-1 min-w-0">

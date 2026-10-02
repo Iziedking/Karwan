@@ -1033,12 +1033,6 @@ export function BridgeRow({
     (bridge.phase === 'attesting' || bridge.phase === 'minting') &&
     Date.now() - bridge.startedAt > STUCK_AFTER_MS;
 
-  const railColor =
-    tone === 'positive'
-      ? TONE_HEX.positive
-      : tone === 'critical'
-        ? TONE_HEX.critical
-        : 'var(--lp-accent)';
   return (
     <li
       className="relative overflow-hidden transition-shadow"
@@ -1054,11 +1048,6 @@ export function BridgeRow({
           : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
       }}
     >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: railColor }}
-      />
       <button
         type="button"
         onClick={onToggle}
@@ -1658,11 +1647,6 @@ function CircleSourceFundBanner({
         boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
       }}
     >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: accent }}
-      />
       <div className="px-4 py-3 ps-5">
         <div className="flex items-center gap-3 flex-wrap">
           <span
@@ -1804,11 +1788,6 @@ function SolanaDepositBanner({
         boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
       }}
     >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: 'var(--lp-accent)' }}
-      />
       <div className="px-4 py-3 ps-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -1917,11 +1896,6 @@ function Web3FundHint({
         borderBottomRightRadius: 3,
       }}
     >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: 'var(--lp-accent)' }}
-      />
       <div className="flex items-center gap-2">
         <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
           {copy.eyebrowTemplate.replace('{chain}', source.shortName.toUpperCase())}

@@ -152,11 +152,6 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
                 boxShadow: dark ? 'none' : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
               }}
             >
-              <span
-                aria-hidden
-                className="absolute start-0 top-0 bottom-0 w-[3px]"
-                style={{ background: 'var(--lp-accent)' }}
-              />
               <Link
                 href={`/deals/${deal.jobId}`}
                 className="block px-5 py-4 ps-6 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"

@@ -41,10 +41,6 @@ export function PendingMatchesSignal() {
             borderBottomRightRadius: 4,
           }}
         >
-          <span
-            aria-hidden
-            className="absolute inset-y-0 start-0 w-[3px] bg-[var(--lp-band-dark)]"
-          />
           <button
             type="button"
             aria-expanded={open}

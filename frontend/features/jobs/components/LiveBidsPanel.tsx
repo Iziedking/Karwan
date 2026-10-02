@@ -112,13 +112,6 @@ function BidRow({
 
   return (
     <li className="relative min-w-0 overflow-hidden px-5 py-4 transition-colors hover:bg-[var(--color-surface-2)]">
-      {isLead && (
-        <span
-          aria-hidden
-          className="absolute start-0 top-3 bottom-3 w-[2px] rounded-full"
-          style={{ background: 'var(--color-accent)' }}
-        />
-      )}
 
       <button
         type="button"

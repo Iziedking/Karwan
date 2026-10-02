@@ -150,15 +150,9 @@ export function NetworkTicker() {
 function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
   const t = useTranslations().networkTicker;
   const eyebrow = t.eyebrows[card.kind];
-  // Map state to skill BracketTag variant + tone color for the left rail.
+  // Map state to skill BracketTag variant.
   const variant: BracketTagVariant =
     card.kind === 'opened' ? 'live' : card.kind === 'completed' ? 'pos' : 'neg';
-  const railColor =
-    card.kind === 'opened'
-      ? 'var(--accent)'
-      : card.kind === 'completed'
-        ? 'var(--pos)'
-        : 'var(--neg)';
   const verb = t.verbs[card.kind];
 
   return (
@@ -179,12 +173,6 @@ function TickerCardView({ card, muted }: { card: TickerCard; muted: boolean }) {
         transition: 'border-color 240ms cubic-bezier(0.16,1,0.3,1)',
       }}
     >
-      {/* state rail on the left edge per skill grammar */}
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        style={{ background: railColor }}
-      />
       {/* faint corner grid pattern, brightens on hover */}
       <span
         aria-hidden

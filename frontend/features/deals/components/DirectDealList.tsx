@@ -58,50 +58,42 @@ export function stageOf(deal: DirectDeal): DealStage {
 }
 
 // Curated palette. slight off-axis hues so the badges feel designed, not
-// pulled from default success/error/warning. Each tone has matching bg, fg, and
-// a slightly punchier rail color for the row edge marker. Labels live in the
+// pulled from default success/error/warning. Each tone has matching bg and fg.
+// Labels live in the
 // dealStage.labels namespace so each locale supplies its own wording.
 export const STAGE_META: Record<
   DealStage,
-  { rail: string; chipBg: string; chipFg: string }
+  { chipBg: string; chipFg: string }
 > = {
   'awaiting-acceptance': {
-    rail: '#4a5aa3',
     chipBg: 'rgba(60, 74, 138, 0.10)',
     chipFg: '#3a4a85',
   },
   'awaiting-funding': {
-    rail: '#9a6c1d',
     chipBg: 'rgba(154, 108, 29, 0.12)',
     chipFg: '#7d5717',
   },
   'awaiting-delivery': {
-    rail: '#4a5aa3',
     chipBg: 'rgba(60, 74, 138, 0.10)',
     chipFg: '#3a4a85',
   },
   'awaiting-first-release': {
-    rail: '#c96030',
     chipBg: 'rgba(178, 84, 37, 0.12)',
     chipFg: '#b25425',
   },
   'awaiting-final-release': {
-    rail: '#c96030',
     chipBg: 'rgba(178, 84, 37, 0.12)',
     chipFg: '#b25425',
   },
   settled: {
-    rail: 'var(--lp-accent)',
     chipBg: 'rgba(175, 201, 91, 0.14)',
     chipFg: 'var(--lp-accent)',
   },
   cancelled: {
-    rail: '#b03d3a',
     chipBg: 'rgba(156, 55, 53, 0.10)',
     chipFg: '#9c3735',
   },
   disputed: {
-    rail: '#92294a',
     chipBg: 'rgba(126, 36, 64, 0.10)',
     chipFg: '#7e2440',
   },
@@ -198,7 +190,6 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
             key={deal.jobId}
             dismissable={dismissable}
             onDismiss={() => dismiss(deal.jobId)}
-            railColor={meta.rail}
           >
             <Link
               href={`/deals/${deal.jobId}`}
@@ -292,16 +283,14 @@ export function DirectDealList({ role }: { role?: 'buyer' | 'seller' }) {
 /// is in a terminal state:
 ///   - a large always-visible dismiss button at top-right on desktop / mobile
 ///   - a swipe-left-to-dismiss interaction backed by a red reveal layer
-/// Non-dismissable rows pass through with no wrapper overhead beyond the rail.
+/// Non-dismissable rows pass through with no wrapper overhead.
 function SwipeableRow({
   dismissable,
   onDismiss,
-  railColor,
   children,
 }: {
   dismissable: boolean;
   onDismiss: () => void;
-  railColor: string;
   children: ReactNode;
 }) {
   const t = useTranslations().directDealList.swipe;
@@ -411,12 +400,6 @@ function SwipeableRow({
       onTouchCancel={reset}
       onClickCapture={handleClickCapture}
     >
-      {/* Rail indicator. Stays at the row's left edge regardless of drag. */}
-      <span
-        aria-hidden
-        className="absolute start-0 top-3 bottom-3 w-[3px] z-[1] transition-opacity duration-200 opacity-50 group-hover:opacity-100 group-focus-within:opacity-100"
-        style={{ background: railColor }}
-      />
       {/* Red reveal layer behind the row; fades in as the row slides left. */}
       {dismissable && (
         <div

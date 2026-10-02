@@ -131,14 +131,6 @@ function Row({
         borderBottomRightRadius: 3,
       }}
     >
-      <span
-        aria-hidden
-        className="absolute start-0 top-0 bottom-0 w-[3px]"
-        // Lime on all three: each one holds a balance, and the edge is what
-        // marks a surface as money across the app. Reserving it for the hub made
-        // the agent wallets read as labels rather than as money.
-        style={{ background: 'var(--lp-accent)' }}
-      />
       {/* Stack below sm, two columns above it. NOT flex-wrap.
           With wrapping, whether the balance sat beside the name or under it
           depended on how wide that particular card's title and address happened

@@ -45,7 +45,6 @@ export function SolanaConnectCard({
 
   return (
     <div className="relative mb-4 overflow-hidden px-4 py-3 ps-5" style={PANEL}>
-      <span aria-hidden className="absolute start-0 top-0 bottom-0 w-[3px]" style={{ background: 'var(--lp-accent)' }} />
       <div className="flex items-center gap-2">
         <ChainLogo chain="solana" size={18} />
         <span className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">

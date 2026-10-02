@@ -839,28 +839,13 @@ function BannerFrame({
       : tone === 'accent'
         ? 'var(--color-accent)'
         : 'var(--color-ink)';
-  const toneBorder =
-    tone === 'positive'
-      ? 'color-mix(in srgb, var(--color-positive) 30%, var(--color-line))'
-      : tone === 'accent'
-        ? 'color-mix(in srgb, var(--color-accent) 28%, var(--color-line))'
-        : 'var(--color-line-strong)';
-
   return (
-    <div
-      className="relative flex items-stretch border bg-[var(--color-surface)] fade-up"
-      style={{ borderColor: toneBorder, borderRadius: 3 }}
-    >
-      <span aria-hidden className="w-[3px]" style={{ background: toneInk }} />
-      <div className="flex-1 px-5 py-4">
-        <p
-          className="mono uppercase font-semibold text-[9px] tracking-[0.22em] mb-2"
-          style={{ color: toneInk }}
-        >
-          {eyebrow}
-        </p>
-        {children}
-      </div>
+    <div className="rounded-[18px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-5 py-4 fade-up">
+      <p className="mb-2 inline-flex items-center gap-2 text-[13px] font-medium text-[var(--lp-text-sub)]">
+        <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: toneInk }} />
+        {eyebrow}
+      </p>
+      {children}
     </div>
   );
 }

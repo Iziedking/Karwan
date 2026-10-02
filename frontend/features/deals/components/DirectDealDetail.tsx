@@ -4109,13 +4109,6 @@ function ProposeCancelModal({
                       borderBottomRightRadius: 3,
                     }}
                   >
-                    {active && (
-                      <span
-                        aria-hidden
-                        className="absolute start-0 top-0 bottom-0 w-[3px]"
-                        style={{ background: 'var(--lp-accent)' }}
-                      />
-                    )}
                     <p className="mono text-[10px] uppercase tracking-[0.14em] font-bold text-[var(--lp-dark)]">
                       {opt.label}
                     </p>
