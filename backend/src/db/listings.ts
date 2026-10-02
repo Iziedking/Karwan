@@ -11,10 +11,11 @@ import { logger } from '../logger.js';
 /// The terms an offer is sold on, in the shape the deal forms build them, so a
 /// buyer who starts a deal from the offer starts from the same parts.
 export interface ListingTermsDraft {
-  items: string[];
   conditions: string[];
   proof: 'link';
-  parts: Array<{ pct: number; covers: { kind: 'start' } | { kind: 'all' } | { kind: 'item'; item: string } }>;
+  /// Each milestone in plain words. Offers saved before milestones carry
+  /// `covers` (and an `items` list) instead of `what`.
+  parts: Array<{ pct: number; what?: string; covers?: { kind: 'start' } | { kind: 'all' } | { kind: 'item'; item: string } }>;
   reviewWindowDays: number;
 }
 

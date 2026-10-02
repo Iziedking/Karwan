@@ -282,6 +282,12 @@ const addrSchema = z
 /// `pendingCounterparty` first and refuse to act while it is set.
 const PENDING_COUNTERPARTY_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
+export const milestonePctsSchema = z
+  .array(z.number().int().min(1).max(99))
+  .min(2)
+  .max(5)
+  .refine((pcts) => pcts.reduce((sum, pct) => sum + pct, 0) === 100, { message: 'the parts must add up to 100' });
+
 const createSchema = z
   .object({
     buyerAddress: addrSchema,
@@ -316,6 +322,9 @@ const createSchema = z
     /// release window to match what the terms say; unset keeps the default.
     reviewWindowDays: z.number().int().min(1).max(90).optional(),
     firstReleasePct: z.number().int().min(1).max(99),
+    /// Every part of the payment when there are more than two. Must start with
+    /// firstReleasePct and add up to 100.
+    milestonePcts: milestonePctsSchema.optional(),
     /// Trusted-match flag. When true, this deal is high-trust: the seller
     /// must hold enough free stake to cover the per-deal reservation, which
     /// gets slashed if they lose a dispute. When false, the deal is casual
@@ -401,6 +410,7 @@ const editSchema = z
     terms: z.string().min(1).max(4000).optional(),
     reviewWindowDays: z.number().int().min(1).max(90).optional(),
     firstReleasePct: z.number().int().min(1).max(99).optional(),
+    milestonePcts: milestonePctsSchema.optional(),
     requireStake: z.boolean().optional(),
     requireStakePct: z
       .number()
@@ -428,6 +438,14 @@ const editSchema = z
   );
 
 const callerSchema = z.object({ caller: addrSchema });
+
+/// The parts a split may set on a deal: given every part, the first follows
+/// it; given only the first, the deal goes back to two parts.
+function splitPatch(body: { firstReleasePct?: number; milestonePcts?: number[] }): Partial<DirectDeal> {
+  if (body.milestonePcts) return { milestonePcts: body.milestonePcts, firstReleasePct: body.milestonePcts[0]! };
+  if (body.firstReleasePct !== undefined) return { firstReleasePct: body.firstReleasePct, milestonePcts: undefined };
+  return {};
+}
 const sellerDeclineSchema = callerSchema.extend({ note: z.string().trim().min(1).max(600) });
 const sellerAcceptSchema = callerSchema.extend({
   expectedAgreementVersion: z.number().int().positive(),
@@ -669,6 +687,9 @@ dealsRoutes.post('/direct', async (c) => {
     }
   }
 
+  if (body.milestonePcts && body.milestonePcts[0] !== body.firstReleasePct) {
+    return c.json({ error: 'firstReleasePct must match the first part' }, 400);
+  }
   const deal = await createDeal({
     jobId,
     buyer: body.buyerAddress,
@@ -678,6 +699,7 @@ dealsRoutes.post('/direct', async (c) => {
     buyerAgentAddress: buyerAgents.buyerAddress,
     dealAmountUsdc: body.dealAmountUsdc.toString(),
     firstReleasePct: body.firstReleasePct,
+    milestonePcts: body.milestonePcts,
     deadlineUnix,
     acceptanceDeadlineUnix,
     terms: body.terms,
@@ -851,9 +873,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   if (body.reviewWindowDays !== undefined) {
     patch.reviewWindowDays = body.reviewWindowDays;
   }
-  if (body.firstReleasePct !== undefined) {
-    patch.firstReleasePct = body.firstReleasePct;
-  }
+  Object.assign(patch, splitPatch(body));
   if (body.deadlineDays !== undefined || body.deadlineHours !== undefined) {
     const days = body.deadlineDays ?? 0;
     const hours = body.deadlineHours ?? 0;
@@ -909,7 +929,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
   if (patch.firstReleasePct !== undefined) {
     changedLabels.push(
-      `Milestone split: ${patch.firstReleasePct}% on delivery / ${100 - patch.firstReleasePct}% on verification`,
+      `Payment split: ${(patch.milestonePcts ?? [patch.firstReleasePct, 100 - patch.firstReleasePct]).map((pct) => `${pct}%`).join(' / ')}`,
     );
   }
   if (patch.deadlineUnix !== undefined) {
@@ -1037,7 +1057,7 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
   }
   if (body.dealAmountUsdc !== undefined) patch.dealAmountUsdc = body.dealAmountUsdc.toString();
   if (body.terms !== undefined) patch.terms = body.terms;
-  if (body.firstReleasePct !== undefined) patch.firstReleasePct = body.firstReleasePct;
+  Object.assign(patch, splitPatch(body));
   if (body.deadlineDays !== undefined || body.deadlineHours !== undefined) {
     const days = body.deadlineDays ?? 0;
     const hours = body.deadlineHours ?? 0;

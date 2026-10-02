@@ -41,18 +41,13 @@ const addrSchema = z
 
 const termLine = z.string().trim().max(160);
 export const termsDraftSchema = z.object({
-  items: z.array(termLine).max(12),
   conditions: z.array(termLine).max(12),
   proof: z.literal('link'),
   parts: z
     .array(
       z.object({
         pct: z.number().int().min(1).max(99),
-        covers: z.union([
-          z.object({ kind: z.literal('start') }),
-          z.object({ kind: z.literal('all') }),
-          z.object({ kind: z.literal('item'), item: termLine.min(1) }),
-        ]),
+        what: z.string().trim().min(1).max(200),
       }),
     )
     .min(2)
