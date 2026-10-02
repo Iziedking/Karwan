@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { sessionAddress } from '../auth/session.js';
+import { config } from '../config.js';
 import {
   createBusinessWorkspace,
   getOwnedWorkspace,
@@ -47,6 +48,7 @@ workspaceRoutes.get('/', async (c) => {
 workspaceRoutes.post('/business', async (c) => {
   const address = owner(c);
   if (!address) return c.json({ error: 'not authenticated' }, 401);
+  if (!config.BUSINESS_ACCOUNTS_OPEN) return c.json({ error: 'business_unavailable', code: 'business_unavailable' }, 403);
   let body: { name: string };
   try {
     body = z.object({ name }).parse(await c.req.json());

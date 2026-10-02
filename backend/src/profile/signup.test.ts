@@ -2,11 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { newAccountProfile, signupRefusal } from './signup.js';
 
-const base = { network: 'testnet' as const, hasProfile: false, tagAvailable: true, invited: false };
+const base = { network: 'testnet' as const, businessOpen: false, hasProfile: false, tagAvailable: true, invited: false };
 
 test('a free, valid tag on a fresh session may sign up', () => {
   assert.equal(signupRefusal({ ...base, tag: 'ada', accountKind: 'person' }), null);
-  assert.equal(signupRefusal({ ...base, tag: 'ada', accountKind: 'business' }), null);
 });
 
 test('refuses a malformed, reserved or taken tag', () => {
@@ -19,11 +18,14 @@ test('an account that already exists is not created twice', () => {
   assert.deepEqual(signupRefusal({ ...base, hasProfile: true, tag: 'ada', accountKind: 'person' }), { status: 409, code: 'account_exists' });
 });
 
-test('business accounts wait on mainnet', () => {
-  assert.deepEqual(
-    signupRefusal({ ...base, network: 'mainnet', tag: 'ada', accountKind: 'business' }),
-    { status: 403, code: 'business_unavailable' },
-  );
+test('business accounts stay closed until they are opened', () => {
+  for (const network of ['testnet', 'mainnet'] as const) {
+    assert.deepEqual(
+      signupRefusal({ ...base, network, invited: true, tag: 'ada', accountKind: 'business' }),
+      { status: 403, code: 'business_unavailable' },
+    );
+  }
+  assert.equal(signupRefusal({ ...base, businessOpen: true, tag: 'ada', accountKind: 'business' }), null);
   assert.equal(signupRefusal({ ...base, network: 'mainnet', invited: true, tag: 'ada', accountKind: 'person' }), null);
 });
 

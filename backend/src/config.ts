@@ -44,6 +44,9 @@ const envSchema = z.object({
   VERIFIED_REPUTATION_ENFORCED: envBool('VERIFIED_REPUTATION_ENFORCED'),
   VERIFIED_AGENT_MATCHING_ENFORCED: envBool('VERIFIED_AGENT_MATCHING_ENFORCED'),
   UNVERIFIED_BUSINESS_PERKS_ENFORCED: envBool('UNVERIFIED_BUSINESS_PERKS_ENFORCED'),
+  /// New business accounts and workspaces stay closed until the business
+  /// model is designed. Existing business accounts keep working.
+  BUSINESS_ACCOUNTS_OPEN: envBool('BUSINESS_ACCOUNTS_OPEN'),
   VERIFICATION_POLICY_VERSION: z.string().trim().min(1).default('testnet-open-v1'),
   PORT: z.coerce.number().int().positive().default(8787),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),

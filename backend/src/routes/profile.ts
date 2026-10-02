@@ -195,6 +195,9 @@ profileRoutes.post('/', async (c) => {
       ? 'business'
       : undefined
   );
+  if (!establishedKind && body.accountKind === 'business' && !config.BUSINESS_ACCOUNTS_OPEN) {
+    return c.json({ error: 'business_unavailable', code: 'business_unavailable' }, 403);
+  }
   if (establishedKind && body.accountKind && establishedKind !== body.accountKind) {
     return c.json(
       {

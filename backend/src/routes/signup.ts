@@ -10,6 +10,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { ARC } from '../chain/client.js';
+import { config } from '../config.js';
 import { readSession } from '../auth/session.js';
 import { claimTag, getProfile, setProfileEmail, tagAvailableFor, upsertProfile } from '../db/profiles.js';
 import { getUserByAddress } from '../db/users.js';
@@ -62,6 +63,7 @@ signupRoutes.post('/', rateLimit({ windowMs: 10 * 60_000, max: 10, name: 'signup
     tag: body.tag,
     accountKind: body.accountKind,
     network: ARC.testnet ? 'testnet' : 'mainnet',
+    businessOpen: config.BUSINESS_ACCOUNTS_OPEN,
     hasProfile: !!existing,
     tagAvailable: check.ok ? await tagAvailableFor(tag, address) : false,
   });

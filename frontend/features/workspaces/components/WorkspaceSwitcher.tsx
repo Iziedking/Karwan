@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { cn } from '@/shared/utils/cn';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 
 export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
   const { workspaces, activeWorkspace, isLoading, switchWorkspace } = useWorkspaceContext();
@@ -86,7 +87,7 @@ export function WorkspaceSwitcher({ compact = false }: { compact?: boolean }) {
               </button>
             ))}
           </div>
-          {!workspaces.some((workspace) => workspace.kind === 'business') ? (
+          {BUSINESS_ACCOUNTS_OPEN && !workspaces.some((workspace) => workspace.kind === 'business') ? (
             <Link href="/profile/business/setup" onClick={() => setOpen(false)} className="mt-2 flex min-h-11 items-center justify-between rounded-[12px] border border-dashed border-[var(--color-line-strong)] px-3 text-[12px] font-semibold text-[var(--color-ink)] hover:border-[var(--lp-accent)]">
               {businessCopy.open} <span aria-hidden>＋</span>
             </Link>

@@ -11,6 +11,7 @@ import { useUserProfile, PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfi
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { LpHint } from '@/shared/components/LpHint';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 
 export default function BusinessSetupPage() {
   const t = useTranslations().businessProfilePage;
@@ -18,7 +19,8 @@ export default function BusinessSetupPage() {
 }
 
 function BusinessSetup() {
-  const t = useTranslations().businessProfilePage;
+  const messages = useTranslations();
+  const t = messages.businessProfilePage;
   const common = useTranslations().common;
   const { profile, fetchState, refresh } = useUserProfile();
   return (
@@ -27,6 +29,8 @@ function BusinessSetup() {
       <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{t.setupBody}</p>
       {fetchState === 'loading' || fetchState === 'idle' ? <p role="status" className="mt-8">{common.loading}</p> : fetchState === 'error' ? (
         <div role="alert" className="mt-8"><p>{t.loadError}</p><button onClick={refresh} className="min-h-11 underline">{t.retry}</button></div>
+      ) : profile && !BUSINESS_ACCOUNTS_OPEN ? (
+        <div className="mt-8"><p className="text-[15px] text-[var(--lp-dark)]">{messages.signup.signUp.comingSoon}</p><Link href="/profile" className="mt-3 inline-flex min-h-11 items-center underline">{common.back}</Link></div>
       ) : profile ? <BusinessSetupForm key={profile.address} profile={profile} /> : (
         <div className="mt-8"><p>{t.noProfile}</p><Link href="/start?mode=signup" className="mt-3 inline-flex min-h-11 items-center underline">{t.create}</Link></div>
       )}

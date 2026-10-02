@@ -26,6 +26,7 @@ import { cn } from '@/shared/utils/cn';
 import { ARC_NETWORK } from '@/core/arcNetwork';
 import { WALLET_HOME, dealsAvailableOn } from '@/shared/utils/routes';
 import { AccountKindIcon } from '@/features/account/AccountKindIcon';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import {
   onboardingProgress,
   stepAfterAuthentication,
@@ -801,6 +802,7 @@ function AccountTypeStep({
             kind="business"
             selected={selected}
             onSelect={onSelect}
+            disabled={!BUSINESS_ACCOUNTS_OPEN}
             tone="accent"
             eyebrow={ats.business.eyebrow}
             title={ats.business.title}
@@ -836,6 +838,7 @@ function AccountCard({
   title,
   body,
   tagline,
+  disabled,
 }: {
   kind: 'person' | 'business';
   selected: 'person' | 'business' | null;
@@ -845,8 +848,10 @@ function AccountCard({
   title: string;
   body: string;
   tagline: string;
+  disabled?: boolean;
 }) {
-  const t = useTranslations().onboarding.roleStep;
+  const messages = useTranslations();
+  const t = messages.onboarding.roleStep;
   const isSel = selected === kind;
   const surface =
     !isSel
@@ -866,9 +871,10 @@ function AccountCard({
       type="button"
       onClick={() => onSelect(kind)}
       aria-pressed={isSel}
+      disabled={disabled}
       className={cn(
         'group block h-full w-full text-start relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out ',
-        'hover:-translate-y-1',
+        'hover:-translate-y-1 disabled:pointer-events-none disabled:opacity-55',
         'hover:shadow-[0_2px_4px_rgba(0,0,0,0.06),0_28px_60px_-22px_rgba(0,0,0,0.20)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] focus-visible:ring-offset-2',
         isSel && 'ring-2 ring-[var(--lp-accent)] ring-offset-2 ring-offset-[var(--lp-light)]',
@@ -884,7 +890,7 @@ function AccountCard({
         <div className="flex items-center justify-between gap-4">
           <AccountKindIcon kind={kind === 'business' ? 'business' : 'individual'} size={26} />
           <span className={cn('mono text-[10px] uppercase tracking-[0.2em] font-medium', eyebrowColor)}>
-            {eyebrow}
+            {disabled ? messages.signup.signUp.comingSoon : eyebrow}
           </span>
         </div>
         <h2 className="mt-3 font-sans text-[20px] font-extrabold uppercase tracking-[-0.02em] leading-[1.04] sm:mt-5 sm:text-[22px]">

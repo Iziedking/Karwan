@@ -7,6 +7,7 @@ import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/br
 import { useAccount, useConnect, useSignMessage } from 'wagmi';
 import { api, ApiError } from '@/core/api';
 import { DEALS_AVAILABLE, ARC_NETWORK } from '@/core/arcNetwork';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 import { MODULAR_WALLETS_ENABLED } from '@/features/modularWallet/config';
 import { PASSKEY_CONNECTOR_ID } from '@/features/modularWallet/connector';
 import { clearEmailProof, holdEmailProof } from '@/features/modularWallet/pendingEmail';
@@ -334,7 +335,7 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                 : tagState === 'reserved' ? s.tagReserved
                   : s.tagHint;
   const stepNumber = upStep === 'tag' ? 1 : upStep === 'kind' ? 3 : 2;
-  const businessOpen = ARC_NETWORK !== 'mainnet';
+  const businessOpen = BUSINESS_ACCOUNTS_OPEN;
   const waitingForSignIn = awaitingAuth && (siwe.state === 'awaiting-signature' || siwe.state === 'verifying' || siwe.state === 'switching-network');
 
   const card = START_CARD;

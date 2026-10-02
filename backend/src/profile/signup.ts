@@ -9,6 +9,7 @@ export interface SignupInput {
   tag: string;
   accountKind: 'person' | 'business';
   network: 'testnet' | 'mainnet';
+  businessOpen: boolean;
   hasProfile: boolean;
   tagAvailable: boolean;
   /// Mainnet only: the session's email is on the invite list.
@@ -21,7 +22,7 @@ export function signupRefusal(input: SignupInput): SignupRefusal | null {
   const check = checkKarwanTag(input.tag);
   if (!check.ok) return { status: 400, code: check.reason };
   if (input.hasProfile) return { status: 409, code: 'account_exists' };
-  if (input.accountKind === 'business' && input.network === 'mainnet') {
+  if (input.accountKind === 'business' && !input.businessOpen) {
     return { status: 403, code: 'business_unavailable' };
   }
   if (input.network === 'mainnet' && !input.invited) return { status: 403, code: 'not_invited' };

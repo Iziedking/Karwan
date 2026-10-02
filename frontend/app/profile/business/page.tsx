@@ -7,6 +7,7 @@ import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { WorkspaceSwitcher } from '@/features/workspaces/components/WorkspaceSwitcher';
 import { ProfileFrame, Row, RowGroup } from '@/features/profile/ui/ProfileUi';
+import { BUSINESS_ACCOUNTS_OPEN } from '@/features/account/businessOpen';
 
 const ACCENT_PILL =
   'inline-flex min-h-11 items-center rounded-full bg-[var(--lp-accent)] px-5 text-[14px] font-semibold text-[var(--lp-band-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-dark)]';
@@ -34,9 +35,13 @@ export default function BusinessProfilePage() {
         </div>
       ) : !businessWorkspace ? (
         <RowGroup>
-          <Row label={t.setupTitle}>
-            <Link href="/profile/business/setup" className={ACCENT_PILL}>{t.setup}</Link>
-          </Row>
+          {BUSINESS_ACCOUNTS_OPEN ? (
+            <Row label={t.setupTitle}>
+              <Link href="/profile/business/setup" className={ACCENT_PILL}>{t.setup}</Link>
+            </Row>
+          ) : (
+            <Row label={t.setupTitle} value={messages.signup.signUp.comingSoon} />
+          )}
         </RowGroup>
       ) : (
         <>
