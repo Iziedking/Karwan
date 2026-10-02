@@ -174,6 +174,7 @@ export function dealsAvailableOn(network: string | undefined): boolean {
 }
 
 export const TESTNET_ORIGIN = 'https://testnet.karwan.site';
+export const MAINNET_ORIGIN = 'https://karwan.site';
 
 /// Deal pages run on testnet until the mainnet contracts ship, so a wallet-only
 /// deployment links to them there instead of redirecting to the wallet.

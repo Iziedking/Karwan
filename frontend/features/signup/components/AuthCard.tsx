@@ -17,7 +17,7 @@ import { termsAcceptanceMessage } from '@/shared/hooks/useTerms';
 import { Icon } from '@/shared/components/Icon';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
-import { WALLET_HOME } from '@/shared/utils/routes';
+import { MAINNET_ORIGIN, WALLET_HOME } from '@/shared/utils/routes';
 import { localTagIssue, normalizeTag, type TagIssue } from '../tag';
 import { RECOVERY_ON } from '@/features/recovery/flag';
 import { RecoverFlow } from '@/features/recovery/components/RecoverFlow';
@@ -440,6 +440,14 @@ export function AuthCard({ initialMode = 'signin', onWaitlist }: { initialMode?:
                 </button>
               </p>
             )}
+            {ARC_NETWORK !== 'mainnet' ? (
+              <p>
+                <a href={`${MAINNET_ORIGIN}/start`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-full font-medium text-[var(--ink-secondary)] underline underline-offset-4 hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)]">
+                  {t.signIn.mainnetWaitlist}
+                  <Icon name="arrow-up-right" size={16} />
+                </a>
+              </p>
+            ) : null}
             {DEALS_AVAILABLE && (
               <p>
                 {t.signIn.browsePrompt}{' '}

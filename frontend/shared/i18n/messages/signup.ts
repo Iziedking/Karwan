@@ -25,6 +25,7 @@ export interface SignupCopy {
     notFound: string;
     createInstead: string;
     noAccount: string;
+    mainnetWaitlist: string;
     signUp: string;
     browsePrompt: string;
     browse: string;
@@ -161,6 +162,7 @@ const en: SignupCopy = {
     notFound: 'No account uses this email yet.',
     createInstead: 'Create an account',
     noAccount: "Don't have an account?",
+    mainnetWaitlist: 'Join the mainnet waitlist',
     signUp: 'Sign up',
     browsePrompt: 'Just looking around?',
     browse: 'Browse the market first',
@@ -302,6 +304,7 @@ const ar: SignupCopy = {
     notFound: 'لا يوجد حساب بهذا البريد بعد.',
     createInstead: 'إنشاء حساب',
     noAccount: 'ليس لديك حساب؟',
+    mainnetWaitlist: 'انضم إلى قائمة انتظار الشبكة الرئيسية',
     signUp: 'أنشئ حسابًا',
     browsePrompt: 'تتصفح فقط؟',
     browse: 'تصفح السوق أولًا',
@@ -443,6 +446,7 @@ const fr: SignupCopy = {
     notFound: 'Aucun compte n’utilise encore cet e-mail.',
     createInstead: 'Créer un compte',
     noAccount: 'Pas encore de compte ?',
+    mainnetWaitlist: 'Rejoindre la liste d’attente du mainnet',
     signUp: 'S’inscrire',
     browsePrompt: 'Vous jetez juste un œil ?',
     browse: 'Parcourir le marché d’abord',
@@ -584,6 +588,7 @@ const hi: SignupCopy = {
     notFound: 'इस ईमेल से अभी कोई खाता नहीं है।',
     createInstead: 'खाता बनाएँ',
     noAccount: 'खाता नहीं है?',
+    mainnetWaitlist: 'मेननेट प्रतीक्षा सूची में शामिल हों',
     signUp: 'साइन अप करें',
     browsePrompt: 'बस देख रहे हैं?',
     browse: 'पहले बाज़ार देखें',
@@ -725,6 +730,7 @@ const sw: SignupCopy = {
     notFound: 'Hakuna akaunti inayotumia barua pepe hii bado.',
     createInstead: 'Fungua akaunti',
     noAccount: 'Huna akaunti?',
+    mainnetWaitlist: 'Jiunge na orodha ya kusubiri ya mainnet',
     signUp: 'Jisajili',
     browsePrompt: 'Unaangalia tu?',
     browse: 'Tazama soko kwanza',
