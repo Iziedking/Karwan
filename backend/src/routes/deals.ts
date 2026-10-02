@@ -133,6 +133,8 @@ import { sendDealCancelledEmail } from '../emails/dealCancelled.js';
 import { scanDelivery } from '../security/sa-stub.js';
 import { verifyDeliverable } from '../security/requirementCheck.js';
 import { recordLinkOffense } from '../security/linkOffenses.js';
+import { dealTrustPatch, decideDealTrust } from '../trust/dealTrust.js';
+import { trustForViewer } from '../trust/riskEngine.js';
 import { extractUrls } from '../security/extractUrls.js';
 import { unresolvableHosts } from '../security/hostCheck.js';
 import {
@@ -519,6 +521,34 @@ export const dealsRoutes = new Hono();
 /// Create a direct deal. The escrow is not funded here: the deal sits in
 /// awaiting-seller until the named seller agrees. The buyer must have activated
 /// their agent wallets; the seller activates lazily on agreement.
+/// What the trust engine would ask on this deal, before it exists, so the
+/// review step can show the protection instead of a list of switches.
+const protectionPreviewSchema = z.object({
+  buyerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  sellerAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
+  dealAmountUsdc: z.number().positive().max(1_000_000),
+  terms: z.string().max(20_000).default(''),
+});
+
+dealsRoutes.post('/direct/protection', async (c) => {
+  let body;
+  try {
+    body = protectionPreviewSchema.parse(await c.req.json());
+  } catch (err) {
+    return c.json({ error: invalidBodyMessage(err) }, 400);
+  }
+  if (!isSessionSelf(c, body.buyerAddress)) {
+    return c.json({ error: 'You can only preview your own deal.', code: 'forbidden' }, 403);
+  }
+  const decision = await decideDealTrust({
+    buyer: body.buyerAddress.toLowerCase(),
+    seller: (body.sellerAddress ?? PENDING_COUNTERPARTY_ADDRESS).toLowerCase(),
+    dealAmountUsdc: body.dealAmountUsdc.toString(),
+    terms: body.terms,
+  });
+  return c.json({ protection: trustForViewer(decision, 'buyer') });
+});
+
 dealsRoutes.post('/direct', async (c) => {
   let body;
   try {
@@ -690,6 +720,24 @@ dealsRoutes.post('/direct', async (c) => {
   if (body.milestonePcts && body.milestonePcts[0] !== body.firstReleasePct) {
     return c.json({ error: 'firstReleasePct must match the first part' }, 400);
   }
+  const requested = {
+    evidenceRequired: body.evidenceRequired,
+    verificationPolicy: body.verificationPolicy,
+    verificationSubject: body.verificationPolicy === 'high_signal' ? body.verificationSubject : undefined,
+    highSignalVerification:
+      body.verificationPolicy === 'high_signal'
+        ? createHighSignalVerification(body.verificationSubject)
+        : undefined,
+    requireStake: body.requireStake,
+    requireStakePct: body.requireStake ? body.requireStakePct : undefined,
+  };
+  const protection = await dealTrustPatch({
+    ...requested,
+    buyer: body.buyerAddress.toLowerCase(),
+    seller: sellerAddress.toLowerCase(),
+    dealAmountUsdc: body.dealAmountUsdc.toString(),
+    terms: body.terms,
+  });
   const deal = await createDeal({
     jobId,
     buyer: body.buyerAddress,
@@ -707,8 +755,6 @@ dealsRoutes.post('/direct', async (c) => {
     reviewWindowDays: body.reviewWindowDays,
     origin: 'direct',
     pendingCounterparty,
-    requireStake: body.requireStake,
-    requireStakePct: body.requireStake ? body.requireStakePct : undefined,
     tradeLane,
     partyKind: creatorAccountType,
     tradeType: body.tradeType,
@@ -717,13 +763,8 @@ dealsRoutes.post('/direct', async (c) => {
     counterpartyCompany: body.counterpartyCompany,
     documentRefs: body.documentRefs,
     sourceContext: body.sourceContext,
-    evidenceRequired: body.evidenceRequired,
-    verificationPolicy: body.verificationPolicy,
-    verificationSubject: body.verificationPolicy === 'high_signal' ? body.verificationSubject : undefined,
-    highSignalVerification:
-      body.verificationPolicy === 'high_signal'
-        ? createHighSignalVerification(body.verificationSubject)
-        : undefined,
+    ...requested,
+    ...protection,
   });
 
   bus.emitEvent({
@@ -901,6 +942,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   }
 
   patch.agreementVersion = (deal.agreementVersion ?? 1) + 1;
+  Object.assign(patch, await dealTrustPatch({ ...deal, ...patch }));
 
   if (patch.terms !== undefined) {
     patch.termsDigest = termsDigest(patch.terms);
@@ -1078,6 +1120,7 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
   if (Object.keys(patch).length === 0) return c.json({ error: 'no counter terms provided' }, 400);
 
   patch.agreementVersion = (deal.agreementVersion ?? 1) + 1;
+  Object.assign(patch, await dealTrustPatch({ ...deal, ...patch }));
   if (patch.terms !== undefined) patch.termsDigest = termsDigest(patch.terms);
   patch.sellerApprovedAt = undefined;
   patch.sellerApprovedTermsDigest = undefined;
@@ -1371,7 +1414,12 @@ dealsRoutes.post('/invite/:token/claim', async (c) => {
     );
   }
   try {
-    const dealPatch = { ...patch, ...reanchor, pendingCounterparty: undefined };
+    const dealPatch = {
+      ...patch,
+      ...reanchor,
+      ...(await dealTrustPatch({ ...deal, ...patch })),
+      pendingCounterparty: undefined,
+    };
     if (pgEnabled) {
       const bound = await bindInviteClaimToDeal({
         token,
@@ -1518,7 +1566,8 @@ dealsRoutes.get('/direct/:jobId', async (c) => {
   // judgment of the seller's work — it must never reach the seller. The client
   // also gates it; this strip is the authoritative defense.
   const extras = await partyView(enriched, viewerIsBuyer ? 'buyer' : 'seller', caller!);
-  const shaped = viewerIsBuyer ? { ...enriched, ...extras } : { ...enriched, ...extras, deliveryMatch: undefined };
+  const trust = deal.trust ? trustForViewer(deal.trust, viewerIsBuyer ? 'buyer' : 'seller') : undefined;
+  const shaped = viewerIsBuyer ? { ...enriched, ...extras, trust } : { ...enriched, ...extras, trust, deliveryMatch: undefined };
   if (viewerIsBuyer && held && enriched.deliveryProof) {
     return c.json({ deal: { ...shaped, deliveryProof: undefined } });
   }
@@ -5419,6 +5468,8 @@ async function enrich(deal: DirectDeal) {
     : undefined;
   const base = {
     ...deal,
+    // Raw reasons name things about each person; partyView sends each side its own.
+    trust: undefined,
     agreementVersion: deal.agreementVersion ?? 1,
     agreementDigest: agreementDigest(deal),
     evidenceReceipt,

@@ -557,12 +557,6 @@ export const sw: Messages = {
     "none": "Hakuna",
     "security": "Dhamana ya muuzaji",
     "securityHelp": "Inahitaji stake ya muuzaji kabla ya kukubali. Inaweza kupunguzwa ikiwa uamuzi wa mgogoro ni dhidi yake.",
-    "evidence": "Kagua ushahidi wa uwasilishaji",
-    "evidenceHelp": "Hulinganisha uwasilishaji wa GitHub na vigezo vilivyokubaliwa. Ukaguzi wa kiotomatiki bado haufanyi kazi, kwa hiyo mnunuzi hukagua uwasilishaji mwenyewe. Ukaguzi hauhakikishi ubora wa kazi.",
-    "identity": "Ukaguzi wa uwepo wa World ID",
-    "identityHelp": "Unahitaji ukaguzi mpya wa Selfie kabla upande uliochaguliwa kukubali au kuweka fedha. Hauhakikishi uaminifu wala uwasilishaji.",
-    "both": "Pande zote mbili",
-    "who": "Nani athibitishe",
     "defaultSplit": "Hatua zako za malipo zilizohifadhiwa",
     "placeholder": "Mfano: tengeneza nembo ya duka la mikate, pamoja na marekebisho mawili. Wasilisha SVG na PNG ndani ya siku 7.",
     "budgetHint": "Bei unayolenga kwa USDC. Unyumbufu wa hiari huongeza kikomo kilichoidhinishwa.",
@@ -3135,6 +3129,7 @@ export const sw: Messages = {
     },
   },
   dealWorkspace: {
+    protection: { title: "Ulinzi wa mpango huu", escrow: "Pesa imeshikiliwa kwenye escrow hadi itolewe", you: "Unathibitisha kwa World ID", buyer: "Mnunuzi anathibitisha kwa World ID", seller: "Muuzaji anathibitisha kwa World ID", reasons: { first_deal: "mpango wa kwanza", large_deal: "mpango mkubwa", fast_new_account: "mipango mingi mipya leo", flagged_link_before: "kiungo kilichoripotiwa awali" }, stake: "Muuzaji anashikilia dhamana ya {pct}%", github: "Uwasilishaji unakaguliwa kwenye GitHub", offMarket: "Bei iko mbali na mipango inayofanana" },
     simple: {
       newHere: "Mpya kwenye Karwan",
       agreement: "Makubaliano",

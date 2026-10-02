@@ -560,12 +560,6 @@ export const fr: Messages = {
     "none": "Aucune",
     "security": "Garantie du vendeur",
     "securityHelp": "Exige une mise du vendeur avant acceptation. Elle peut être réduite si le litige est tranché contre lui.",
-    "evidence": "Vérifier les preuves de livraison",
-    "evidenceHelp": "Compare une livraison GitHub aux critères convenus. Les vérifications automatiques ne fonctionnent pas encore : l’acheteur examine donc la livraison lui-même. Une vérification ne garantit pas la qualité du travail.",
-    "identity": "Vérification de présence World ID",
-    "identityHelp": "Exige une nouvelle vérification Selfie avant acceptation ou financement par la partie choisie. Elle ne prouve ni honnêteté ni livraison.",
-    "both": "Les deux parties",
-    "who": "Qui doit se vérifier",
     "defaultSplit": "Vos étapes de paiement enregistrées",
     "placeholder": "Ex. : créer un logo de boulangerie avec deux révisions. Livrer les fichiers SVG et PNG sous 7 jours.",
     "budgetHint": "Votre prix cible en USDC. La flexibilité facultative augmente la limite autorisée.",
@@ -3138,6 +3132,7 @@ export const fr: Messages = {
     },
   },
   dealWorkspace: {
+    protection: { title: "Protection de cette transaction", escrow: "Argent bloqué sous séquestre jusqu’à la libération", you: "Vous vérifiez avec World ID", buyer: "L’acheteur vérifie avec World ID", seller: "Le vendeur vérifie avec World ID", reasons: { first_deal: "première transaction", large_deal: "transaction importante", fast_new_account: "beaucoup de nouvelles transactions aujourd’hui", flagged_link_before: "un lien signalé au dossier" }, stake: "Le vendeur bloque {pct} % en garantie", github: "Livraison vérifiée sur GitHub", offMarket: "Prix éloigné des transactions similaires" },
     simple: {
       newHere: "Nouveau sur Karwan",
       agreement: "Accord",

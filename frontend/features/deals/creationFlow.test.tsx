@@ -28,8 +28,10 @@ test('review must precede each creation call, while required protections stay in
     assert.match(source, /inFlight.current = false/);
   }
   const direct = read('./components/DirectDealForm.tsx');
-  assert.match(direct, /verificationPolicy: highSignal \? 'high_signal' : 'standard'/);
-  assert.match(direct, /evidenceRequired,/);
+  // World ID and the delivery check are decided by the trust engine; the form
+  // shows the decision on review and never sends a switch for them.
+  assert.doesNotMatch(direct, /verificationPolicy|evidenceRequired/);
+  assert.match(direct, /api\.directDealProtection\(/);
   assert.match(direct, /requireStake,/);
   assert.doesNotMatch(direct, /grid-drift|DEAL PREVIEW/);
 });

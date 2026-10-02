@@ -253,6 +253,9 @@ export interface DirectDeal {
   verificationPolicy?: 'standard' | 'high_signal';
   verificationSubject?: 'buyer' | 'seller' | 'both';
   highSignalVerification?: import('../deals/highSignalVerification.js').HighSignalVerification;
+  /// The trust engine's last decision for this deal: who verifies and why,
+  /// how delivery is checked, and whether the seller holds stake.
+  trust?: import('../trust/riskEngine.js').TrustDecision;
   /// Why the agent is NOT running the auto-release clock on this deal. The
   /// watcher sets it the moment it decides to pause and clears it when the
   /// condition lifts. Both parties see the code (never the buyer's private

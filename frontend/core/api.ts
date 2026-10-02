@@ -652,7 +652,16 @@ export interface MoneyMovementView {
   }>;
 }
 
+/// One party's view of the trust engine's decision for a deal.
+export interface TrustView {
+  verify: Partial<Record<'buyer' | 'seller', 'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before' | 'check'>>;
+  stakeRequired: boolean;
+  delivery: 'github' | 'plain';
+  reasons: Array<'first_deal' | 'large_deal' | 'fast_new_account' | 'flagged_link_before' | 'lost_disputes' | 'off_market_price'>;
+}
+
 export interface DirectDeal {
+  trust?: TrustView;
   jobId: string;
   buyer: string;
   seller: string;
@@ -3615,6 +3624,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  directDealProtection: (body: { buyerAddress: string; sellerAddress?: string; dealAmountUsdc: number; terms: string }) =>
+    json<{ protection: TrustView }>('/api/deals/direct/protection', { method: 'POST', body: JSON.stringify(body) }),
   createDirectDeal: (body: {
     buyerAddress: string;
     /// Exactly one of sellerAddress (wallet mode) or sellerEmail (share-link

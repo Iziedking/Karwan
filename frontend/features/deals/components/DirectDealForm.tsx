@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
-import { api, ApiError, type Partner } from '@/core/api';
+import { api, ApiError, type Partner, type TrustView } from '@/core/api';
 import { Hint } from '@/shared/components/Hint';
 import { sfx } from '@/shared/utils/sfx';
 import { SME_TRADES_ENABLED } from '@/features/profile/config';
@@ -23,6 +23,7 @@ import { lookupContact, parseContact, type ContactMatch } from '../counterpartyI
 import { fill } from '../workspace/presentation';
 import { useReportDealAmount } from '@/features/balances/dealAmount';
 import { AcceptWithin, formatWindow } from './AcceptWithin';
+import { protectionLines } from '../protection';
 import { EmailSuggestion } from '@/shared/components/EmailSuggestion';
 
 const MAX_DEADLINE_DAYS = 180;
@@ -347,6 +348,18 @@ export function DirectDealForm() {
             ? shortAddress(sellerAddress)
             : '';
   const stepReady = step === 0 ? counterpartyValid : step === 1 ? amountValid && deadlineValid : termsValid;
+
+  // What the trust engine will ask on this deal, shown on review instead of switches.
+  const [protection, setProtection] = useState<TrustView | undefined>(undefined);
+  const knownSeller = contactMatch?.kind === 'karwan' ? contactMatch.address : sellerAddress ?? undefined;
+  useEffect(() => {
+    if (!reviewing || !address || !amountValid) return;
+    let live = true;
+    api.directDealProtection({ buyerAddress: address, sellerAddress: knownSeller, dealAmountUsdc: amount as number, terms: agreementText })
+      .then((result) => { if (live) setProtection(result.protection); })
+      .catch(() => { if (live) setProtection(undefined); });
+    return () => { live = false; };
+  }, [reviewing, address, knownSeller, amount, amountValid, agreementText]);
 
   function goForward() {
     if (step < 2) setStep((step + 1) as 1 | 2);
@@ -885,7 +898,15 @@ export function DirectDealForm() {
         ...(cleanLines(terms.conditions).length ? [{ label: TERMS_COPY[locale].conditions, value: cleanLines(terms.conditions).map((line) => `• ${line}`).join('\n') }] : []),
         { label: TERMS_COPY[locale].agreement, value: agreementText },
         { label: c.responseWindow, value: formatWindow(acceptanceHours, t.postJob.unitPickerLabels) },
-        ...(requireStake ? [{ label: c.safeguards, value: `${c.security}: ${requireStakePct}%` }] : []),
+        {
+          label: t.dealWorkspace.protection.title,
+          value: protectionLines(
+            protection,
+            'buyer',
+            t.dealWorkspace.protection,
+            requireStake || protection?.stakeRequired ? Math.max(requireStake ? requireStakePct : 0, protection?.stakeRequired ? 50 : 0) : undefined,
+          ).join('\n'),
+        },
         ...(SME_TRADES_ENABLED && isBusiness && tradeType !== 'service' ? [{ label: c.extra, value: [tt.types[tradeType], incoterms, tt.paymentTermLabels[paymentTerms], companyName, companySector, companyRegion].filter(Boolean).join(' · ') }] : []),
         ...(documentRefs.length ? [{ label: c.documents, value: documentRefs.map(d => d.label).join('\n') }] : []),
       ]}>

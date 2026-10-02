@@ -519,12 +519,6 @@ interface MessagesShape {
     none: string;
     security: string;
     securityHelp: string;
-    evidence: string;
-    evidenceHelp: string;
-    identity: string;
-    identityHelp: string;
-    both: string;
-    who: string;
     defaultSplit: string;
     placeholder: string;
     budgetHint: string;
@@ -2906,6 +2900,7 @@ interface MessagesShape {
     };
   };
   dealWorkspace: {
+    protection: { title: string; escrow: string; you: string; buyer: string; seller: string; reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string }; stake: string; github: string; offMarket: string };
     simple: {
       newHere: string;
       agreement: string;
@@ -5864,12 +5859,6 @@ export const en: MessagesShape = {
     "none": "None",
     "security": "Seller security reserve",
     "securityHelp": "Requires seller stake before acceptance. It can be reduced if a dispute is decided against the seller.",
-    "evidence": "Check delivery evidence",
-    "evidenceHelp": "Compares a GitHub delivery with the agreed criteria. Automated checks are not running yet, so the buyer reviews the delivery directly. A check does not guarantee work quality.",
-    "identity": "World ID presence check",
-    "identityHelp": "Requires a fresh Selfie check before the chosen party accepts or funds. It does not prove honesty or guarantee delivery.",
-    "both": "Both parties",
-    "who": "Who must verify",
     "defaultSplit": "Your saved buyer payment stages",
     "placeholder": "e.g. Design a bakery logo with two revisions. Deliver SVG and PNG files within 7 days.",
     "budgetHint": "Your target price in USDC. Optional price flexibility increases the authorised limit.",
@@ -8491,6 +8480,7 @@ export const en: MessagesShape = {
     },
   },
   dealWorkspace: {
+    protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is far from similar deals" },
     simple: {
       newHere: "New to Karwan",
       agreement: "Agreement",
