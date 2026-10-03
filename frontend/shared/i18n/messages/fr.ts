@@ -3727,6 +3727,7 @@ export const fr: Messages = {
       },
     },
     agentsNotCreated: 'Agents non créés: Activez pour provisionner vos agents acheteur et vendeur.',
+    faucetHint: "Obtenir des USDC copie l'adresse du portefeuille et ouvre le faucet de Circle. Choisissez Arc Testnet, collez-la et réclamez.",
     faucetButton: {
       idle: 'Obtenir USDC',
       busy: 'Ouverture',

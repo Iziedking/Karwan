@@ -3436,6 +3436,7 @@ interface MessagesShape {
       };
     };
     agentsNotCreated: string;
+    faucetHint: string;
     faucetButton: {
       idle: string;
       busy: string;
@@ -9056,6 +9057,7 @@ export const en: MessagesShape = {
       },
     },
     agentsNotCreated: 'Agent wallets not ready: Activate to create your buyer and seller agents.',
+    faucetHint: "Get USDC copies the wallet address and opens Circle's faucet. Choose Arc Testnet, paste it and claim.",
     faucetButton: {
       idle: 'Get USDC',
       busy: 'Opening',

@@ -3725,6 +3725,7 @@ export const hi: Messages = {
       },
     },
     agentsNotCreated: 'एजेंट्स नहीं बने: अपने खरीदार और विक्रेता एजेंट तैयार करने के लिए सक्रिय करें.',
+    faucetHint: "USDC पाएं बटन वॉलेट पता कॉपी करता है और Circle का faucet खोलता है। Arc Testnet चुनें, पता पेस्ट करें और क्लेम करें।",
     faucetButton: {
       idle: 'USDC लें',
       busy: 'खुल रहा है',

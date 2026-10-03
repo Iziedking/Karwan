@@ -98,7 +98,6 @@ function Row({
   purpose,
   address,
   primary,
-  secondary,
   action,
   copiedAddr,
   onCopied,
@@ -109,7 +108,6 @@ function Row({
   purpose: string;
   address?: string;
   primary: string;
-  secondary?: string;
   action?: ReactNode;
   copiedAddr?: string | null;
   onCopied?: (addr: string) => void;
@@ -117,59 +115,26 @@ function Row({
   walletKind: 'identity' | 'agent';
 }) {
   // This row's address was the one just copied (via the address line or its
-  // Get USDC button). Drives the inline confirmation under the action.
+  // Get USDC button). Drives the inline confirmation under the address.
   const copied = !!address && copiedAddr === address;
+  // Name and address on the left, balance and action on the right, at every
+  // width, so every card in the list keeps one shape.
   return (
-    <li
-      className="relative overflow-hidden px-3.5 py-3.5 ps-5 sm:px-4"
-      style={{
-        background: 'var(--lp-light)',
-        border: '1px solid var(--lp-border-light)',
-        borderTopLeftRadius: 14,
-        borderTopRightRadius: 14,
-        borderBottomLeftRadius: 14,
-        borderBottomRightRadius: 3,
-      }}
-    >
-      {/* Stack below sm, two columns above it. NOT flex-wrap.
-          With wrapping, whether the balance sat beside the name or under it
-          depended on how wide that particular card's title and address happened
-          to be: "Identity wallet" pushed it to a second line while "Buyer agent"
-          did not, so on a phone the three cards in one list rendered in two
-          different shapes off the same component. A breakpoint decides it now,
-          so every card in the list agrees at every width. */}
-      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <WalletGlyph kind={walletKind} />
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 font-sans text-[15px] font-extrabold tracking-[-0.01em] text-[var(--lp-dark)]">
-              {title}
-              <LpHint>{purpose}</LpHint>
-            </p>
-            {address && <CopyAddress address={address} copied={copied} onCopied={onCopied} />}
-          </div>
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-3.5 py-2.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <WalletGlyph kind={walletKind} />
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-[15px] font-semibold tracking-[-0.01em] text-[var(--lp-dark)]">
+            <span className="truncate">{title}</span>
+            <LpHint>{purpose}</LpHint>
+          </p>
+          {address && <CopyAddress address={address} copied={copied} onCopied={onCopied} />}
+          {copied ? <span aria-live="polite" className="sr-only">{copiedLabel}</span> : null}
         </div>
-        {/* Left-aligned while stacked, right-aligned once it is a column. A
-            fixed text-end looked centred-ish and arbitrary on a phone, because
-            the wrapped block hugs its content rather than filling the row. */}
-        <div className="shrink-0 text-start sm:text-end">
-          <MoneyValue value={primary} size="sm" />
-          {secondary && (
-            <p className="mt-0.5 mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-              {secondary}
-            </p>
-          )}
-          {action && <div className="mt-2">{action}</div>}
-          {copied && (
-            <p
-              aria-live="polite"
-              className="mt-1.5 mono text-[9px] font-bold uppercase tracking-[0.16em]"
-              style={{ color: 'var(--lp-accent)' }}
-            >
-              {copiedLabel}
-            </p>
-          )}
-        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <MoneyValue value={primary} size="sm" />
+        {action}
       </div>
     </li>
   );
@@ -190,15 +155,7 @@ function FaucetButton({
       onClick={onClick}
       disabled={busy}
       aria-busy={busy}
-      className="inline-flex min-h-11 items-center justify-center px-3 py-1.5 mono text-[10px] font-bold uppercase tracking-[0.1em] border transition-colors disabled:opacity-50 hover:bg-black/[0.03]"
-      style={{
-        borderColor: 'var(--lp-border-light)',
-        color: 'var(--lp-text-sub)',
-        borderTopLeftRadius: 9,
-        borderTopRightRadius: 9,
-        borderBottomLeftRadius: 9,
-        borderBottomRightRadius: 3,
-      }}
+      className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 text-[13px] font-semibold text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-outline-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-50"
     >
       {busy ? copy.busy : copy.idle}
     </button>
@@ -260,9 +217,9 @@ export function WalletsPanel({ address }: { address?: string }) {
     setNote(null);
     try {
       await navigator.clipboard?.writeText(addr);
-      // Confirmation shows per-row under this button (the markCopied chip), so
-      // no panel-wide bottom banner for the copy.
       markCopied(addr);
+      // Say what to do on the faucet page, which opens in a new tab.
+      setNote(wp.notes.faucetCopied);
     } catch {
       setNote(wp.notes.faucetFallbackTemplate.replace('{addr}', short(addr)));
     }
@@ -275,8 +232,11 @@ export function WalletsPanel({ address }: { address?: string }) {
   // between rows was a second frame's worth of air, and the third wallet fell
   // below the fold.
   return (
-    <section>
-      <ul className="space-y-2.5">
+    <section className="max-w-[680px]">
+      {ARC_NETWORK === 'testnet' ? (
+        <p className="mb-3 text-[13px] leading-snug text-[var(--lp-text-sub)]">{wp.faucetHint}</p>
+      ) : null}
+      <ul className="space-y-2">
         <Row
           walletKind="identity"
           title={wp.rows.identity.title}
@@ -337,17 +297,7 @@ export function WalletsPanel({ address }: { address?: string }) {
             />
           </>
         ) : ARC_NETWORK === 'testnet' ? (
-          <li
-            className="px-5 py-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]"
-            style={{
-              background: 'var(--lp-light)',
-              border: '1px solid var(--lp-border-light)',
-              borderTopLeftRadius: 12,
-              borderTopRightRadius: 12,
-              borderBottomLeftRadius: 12,
-              borderBottomRightRadius: 3,
-            }}
-          >
+          <li className="rounded-[16px] border border-[var(--lp-border-light)] bg-[var(--lp-light)] px-4 py-3 text-[13px] text-[var(--lp-text-sub)]">
             {wp.agentsNotCreated}
           </li>
         ) : null}
@@ -357,21 +307,11 @@ export function WalletsPanel({ address }: { address?: string }) {
             deposit address here only confused people. */}
       </ul>
 
-      {note && (
-        <p className="mt-4 px-3 py-2.5 text-[12px] leading-snug"
-          style={{
-            background: 'rgba(175, 201, 91,0.10)',
-            color: 'var(--lp-dark)',
-            border: '1px solid rgba(175, 201, 91,0.30)',
-            borderTopLeftRadius: 10,
-            borderTopRightRadius: 10,
-            borderBottomLeftRadius: 10,
-            borderBottomRightRadius: 3,
-          }}
-        >
+      {note ? (
+        <p role="status" className="mt-3 rounded-[14px] border border-[var(--color-accent-soft)] bg-[var(--color-accent-soft)] px-3.5 py-2.5 text-[13px] leading-snug text-[var(--lp-dark)]">
           {note}
         </p>
-      )}
+      ) : null}
     </section>
   );
 }
