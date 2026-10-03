@@ -101,6 +101,23 @@
       text-size-adjust: 92%;
     }
   }
+  /* iOS Safari zooms in on any field under 16px when it is tapped, and stays
+     zoomed after. Fields render at 16px on phones; under the 92% adjustment
+     above that needs 16 / 0.92. Pinch zoom stays available for everyone. */
+  @media (max-width: 767px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+  @media (max-width: 640px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+    textarea,
+    select {
+      font-size: 17.4px !important;
+    }
+  }
   html[data-theme="dark"] {
     color-scheme: dark;
   }
