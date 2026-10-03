@@ -1728,14 +1728,10 @@ export const hi: Messages = {
   },
   listingDetail: {
     notFound: {
-      tag: 'लिस्टिंग नहीं मिली',
       headline: 'हम इस ऑफ़र को लोड नहीं कर सके',
       body: 'लिंक गलत हो सकता है, या ऑफ़र हटा दिया गया है।',
-      backCta: 'विक्रेता डेस्क पर वापस',
     },
-    backToSeller: 'विक्रेता पर वापस',
     hero: {
-      listingTag: 'लिस्टिंग',
       statuses: {
         open: 'खुला',
         expired: 'समाप्त',
@@ -1746,7 +1742,6 @@ export const hi: Messages = {
     },
     pitch: {
       sectionTag: 'ऑफ़र',
-      headline: 'पिच',
       askingLabel: 'माँग',
       floorLabelTemplate: 'आपका फ्लोर ({n}% स्वीकार)',
       floorNote: 'निजी: केवल आप देखते हैं। आपका एजेंट इसका उपयोग काउंटर निर्देशित करने के लिए करता है।',
@@ -1756,20 +1751,6 @@ export const hi: Messages = {
       selfSuffix: ' · आप',
     },
     state: {
-      tags: {
-        cancelled: 'रद्द',
-        expired: 'समाप्त',
-        matched: 'मिला',
-        scanning: 'स्कैनिंग',
-        open: 'खुला',
-      },
-      headlines: {
-        cancelled: 'आपने रद्द किया',
-        expired: 'ऑफ़र विंडो बंद',
-        matched: 'अनुरोध आया',
-        scanning: 'एजेंट देख रहा है',
-        openBuyer: 'डील खोलें',
-      },
       windowClosesTemplate: 'विंडो {time} बंद होती है',
       cancelledBody: 'आपने यह ऑफ़र रद्द किया। यह अब मेल खाते अनुरोध नहीं खोजता। फिर से शुरू करने के लिए नया ऑफ़र पोस्ट करें।',
       expiredMatchedBody: 'मैचिंग विंडो बंद हो गई है। आपके एजेंट ने एक अनुरोध खोजा और ऑफ़र दिया, लेकिन क्रेता ने समय पर स्वीकार नहीं किया। क्या हुआ यह देखने के लिए अनुरोध खोलें, या नया ऑफ़र पोस्ट करें।',

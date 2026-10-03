@@ -1636,14 +1636,10 @@ interface MessagesShape {
   };
   listingDetail: {
     notFound: {
-      tag: string;
       headline: string;
       body: string;
-      backCta: string;
     };
-    backToSeller: string;
     hero: {
-      listingTag: string;
       statuses: {
         open: string;
         expired: string;
@@ -1654,7 +1650,6 @@ interface MessagesShape {
     };
     pitch: {
       sectionTag: string;
-      headline: string;
       askingLabel: string;
       floorLabelTemplate: string;
       floorNote: string;
@@ -1664,20 +1659,6 @@ interface MessagesShape {
       selfSuffix: string;
     };
     state: {
-      tags: {
-        cancelled: string;
-        expired: string;
-        matched: string;
-        scanning: string;
-        open: string;
-      };
-      headlines: {
-        cancelled: string;
-        expired: string;
-        matched: string;
-        scanning: string;
-        openBuyer: string;
-      };
       windowClosesTemplate: string;
       cancelledBody: string;
       expiredMatchedBody: string;
@@ -7022,14 +7003,10 @@ export const en: MessagesShape = {
   },
   listingDetail: {
     notFound: {
-      tag: 'Listing not found',
       headline: "We couldn't load this offer",
       body: 'The link may be wrong, or the offer has been removed.',
-      backCta: 'Back to seller desk',
     },
-    backToSeller: 'Back to seller',
     hero: {
-      listingTag: 'Listing',
       statuses: {
         open: 'Open',
         expired: 'Expired',
@@ -7040,7 +7017,6 @@ export const en: MessagesShape = {
     },
     pitch: {
       sectionTag: 'Offer',
-      headline: 'The pitch',
       askingLabel: 'Asking',
       floorLabelTemplate: 'Your floor ({n}% accept)',
       floorNote: 'Private: only you see this. Your agent uses it to steer counters.',
@@ -7050,20 +7026,6 @@ export const en: MessagesShape = {
       selfSuffix: ' · you',
     },
     state: {
-      tags: {
-        cancelled: 'Cancelled',
-        expired: 'Expired',
-        matched: 'Matched',
-        scanning: 'Scanning',
-        open: 'Open',
-      },
-      headlines: {
-        cancelled: 'You called it off',
-        expired: 'Offer window closed',
-        matched: 'Request landed',
-        scanning: 'Agent is watching',
-        openBuyer: 'Open a deal',
-      },
       windowClosesTemplate: 'Window closes {time}',
       cancelledBody: 'You cancelled this offer. It no longer looks for matching requests. Post a new offer to start again.',
       expiredMatchedBody: 'The matching window has closed. Your agent found a request and made an offer, but the buyer did not accept in time. Open the request to see what happened, or post a new offer.',

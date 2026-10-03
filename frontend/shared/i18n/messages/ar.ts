@@ -1730,14 +1730,10 @@ export const ar: Messages = {
   },
   listingDetail: {
     notFound: {
-      tag: 'العرض غير موجود',
       headline: 'تعذّر تحميل هذا العرض',
       body: 'قد يكون الرابط خاطئاً، أو أُزيل العرض.',
-      backCta: 'العودة إلى مكتب البائع',
     },
-    backToSeller: 'العودة إلى البائع',
     hero: {
-      listingTag: 'عرض',
       statuses: {
         open: 'مفتوح',
         expired: 'منتهي',
@@ -1748,7 +1744,6 @@ export const ar: Messages = {
     },
     pitch: {
       sectionTag: 'العرض',
-      headline: 'الفكرة',
       askingLabel: 'السعر المطلوب',
       floorLabelTemplate: 'حدّك الأدنى (قبول {n}٪)',
       floorNote: 'خاص: تراه أنت فقط. يستخدمه وكيلك لتوجيه العروض المضادة.',
@@ -1758,20 +1753,6 @@ export const ar: Messages = {
       selfSuffix: ' · أنت',
     },
     state: {
-      tags: {
-        cancelled: 'مُلغى',
-        expired: 'منتهي',
-        matched: 'مُطابَق',
-        scanning: 'يفحص',
-        open: 'مفتوح',
-      },
-      headlines: {
-        cancelled: 'أنهيت العرض',
-        expired: 'انتهت نافذة العرض',
-        matched: 'وصل طلب',
-        scanning: 'الوكيل يراقب',
-        openBuyer: 'افتح صفقة',
-      },
       windowClosesTemplate: 'تُغلق النافذة {time}',
       cancelledBody: 'ألغيت هذا العرض. لم يعد يبحث عن طلبات مطابقة. انشر عرضاً جديداً للبدء من جديد.',
       expiredMatchedBody: 'أُغلقت نافذة التطابق. وجد وكيلك طلباً وقدّم عرضاً، لكن المشتري لم يقبله في الوقت المحدد. افتح الطلب لمعرفة ما حدث، أو انشر عرضاً جديداً.',

@@ -1727,14 +1727,10 @@ export const sw: Messages = {
   },
   listingDetail: {
     notFound: {
-      tag: 'Tangazo halijapatikana',
       headline: 'Hatukuweza kupakia tangazo hili',
       body: 'Kiungo kinaweza kuwa kibaya, au tangazo limeondolewa.',
-      backCta: 'Rudi kwa dawati la muuzaji',
     },
-    backToSeller: 'Rudi kwa muuzaji',
     hero: {
-      listingTag: 'Tangazo',
       statuses: {
         open: 'Wazi',
         expired: 'Limeisha',
@@ -1745,7 +1741,6 @@ export const sw: Messages = {
     },
     pitch: {
       sectionTag: 'Tangazo',
-      headline: 'Maelezo',
       askingLabel: 'Bei inayoombwa',
       floorLabelTemplate: 'Kima chako cha chini (kukubali {n}%)',
       floorNote: 'Siri: wewe peke yako unaona. Wakala wako anaitumia kuelekeza ofa za majibu.',
@@ -1755,20 +1750,6 @@ export const sw: Messages = {
       selfSuffix: ' · wewe',
     },
     state: {
-      tags: {
-        cancelled: 'Imeghairiwa',
-        expired: 'Limeisha',
-        matched: 'Limelingana',
-        scanning: 'Inachunguza',
-        open: 'Wazi',
-      },
-      headlines: {
-        cancelled: 'Umelighairi',
-        expired: 'Dirisha la tangazo limefungwa',
-        matched: 'Ombi limefika',
-        scanning: 'Wakala anaangalia',
-        openBuyer: 'Fungua biashara',
-      },
       windowClosesTemplate: 'Dirisha linafungwa {time}',
       cancelledBody: 'Umeighairi ofa hii. Haitafuti tena maombi yanayolingana. Chapisha ofa mpya kuanza upya.',
       expiredMatchedBody: 'Dirisha la kulinganisha limefungwa. Wakala wako alipata ombi na kutoa ofa, lakini mnunuzi hakukubali kwa wakati. Fungua ombi kuona kilichotokea, au chapisha ofa mpya.',

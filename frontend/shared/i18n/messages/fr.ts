@@ -1730,14 +1730,10 @@ export const fr: Messages = {
   },
   listingDetail: {
     notFound: {
-      tag: 'Offre introuvable',
       headline: "Impossible de charger cette offre",
       body: "Le lien est peut-être faux, ou l'offre a été supprimée.",
-      backCta: 'Retour au bureau vendeur',
     },
-    backToSeller: 'Retour vendeur',
     hero: {
-      listingTag: 'Offre',
       statuses: {
         open: 'Ouverte',
         expired: 'Expirée',
@@ -1748,7 +1744,6 @@ export const fr: Messages = {
     },
     pitch: {
       sectionTag: 'Offre',
-      headline: 'Le pitch',
       askingLabel: 'Prix demandé',
       floorLabelTemplate: 'Votre plancher (accepte {n}%)',
       floorNote: "Privé: vous seul le voyez. Votre agent l'utilise pour orienter les contre-offres.",
@@ -1758,20 +1753,6 @@ export const fr: Messages = {
       selfSuffix: ' · vous',
     },
     state: {
-      tags: {
-        cancelled: 'Annulée',
-        expired: 'Expirée',
-        matched: 'Match',
-        scanning: 'Surveille',
-        open: 'Ouverte',
-      },
-      headlines: {
-        cancelled: "Vous l'avez retirée",
-        expired: "Fenêtre d'offre fermée",
-        matched: 'Requête arrivée',
-        scanning: "L'agent surveille",
-        openBuyer: 'Ouvrir un deal',
-      },
       windowClosesTemplate: 'La fenêtre se ferme {time}',
       cancelledBody: 'Vous avez annulé cette offre. Elle ne cherche plus de demandes correspondantes. Publiez une nouvelle offre pour recommencer.',
       expiredMatchedBody: 'La fenêtre de matching est fermée. Votre agent a trouvé une demande et fait une offre, mais l\'acheteur ne l\'a pas acceptée à temps. Ouvrez la demande pour voir ce qui s\'est passé, ou publiez une nouvelle offre.',

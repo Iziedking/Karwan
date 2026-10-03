@@ -1,19 +1,13 @@
 ﻿'use client';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useRouter } from 'next/navigation';
 import { api, type Listing, type ListingStatus } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import { formatUsdc, relativeTime } from '@/shared/utils/format';
-import {
-  FullBleed,
-  Band,
-  GridOverlay,
-  SectionTag,
-  HeroHeadline,
-  Punc,
-  PageCard,
-  CTAPill,
-} from '@/shared/components/Bands';
+import { CTAPill } from '@/shared/components/Bands';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { TERMS_COPY } from '@/features/deals/terms/termsCopy';
 
@@ -24,7 +18,6 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   const ld = translations.listingDetail;
   const flow = translations.postListing.flow;
   const { locale } = useLocale();
-  const router = useRouter();
   const auth = useAuth();
   const address = auth.address;
   const isConnected = auth.isAuthenticated;
@@ -38,6 +31,13 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
+  // Who posted it. Same cache as their avatar, so it is one read per person.
+  const sellerQuery = useQuery({
+    queryKey: qk.personAvatar(listing?.sellerUser ?? ''),
+    queryFn: () => api.getProfile(listing!.sellerUser),
+    enabled: !!listing?.sellerUser,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     let cancelledFetch = false;
@@ -97,51 +97,33 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   }
 
   if (fetchState === 'loading') {
-    /// Reserve roughly the height of the resolved hero band so the swap into
-    /// the real listing doesn't shift the content bands below, the dominant
-    /// CLS source on /listings/[id] before this pass. The skeleton bars sit
-    /// flush at the top; min-h carries the rest.
     return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="space-y-4 max-w-[44ch] min-h-[44vh]">
-            <div className="h-3 w-32 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-            <div className="h-12 w-72 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-            <div className="h-3 w-48 rounded bg-[var(--lp-workspace-soft)] animate-pulse motion-reduce:animate-none" />
-          </div>
-        </Band>
-      </FullBleed>
+      <main aria-busy="true" className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
+        <div className="h-4 w-24 rounded-full bg-[var(--lp-light)]" />
+        <div className="mt-5 h-9 w-3/4 rounded-[12px] bg-[var(--lp-light)]" />
+        <div className="mt-3 h-4 w-1/2 rounded-full bg-[var(--lp-light)]" />
+        <div className="mt-8 h-24 rounded-[18px] bg-[var(--lp-light)]" />
+      </main>
     );
   }
 
   if (fetchState === 'error' || !listing) {
     return (
-      <FullBleed>
-        <Band tone="dark" overlay={<GridOverlay />}>
-          <div className="max-w-[48ch]">
-            <SectionTag tone="dark">{ld.notFound.tag}</SectionTag>
-            <HeroHeadline size="md">
-              {ld.notFound.headline}<Punc>.</Punc>
-            </HeroHeadline>
-            <p className="mt-6 text-[15px] leading-relaxed text-[var(--lp-text-muted)]">
-              {ld.notFound.body}
-            </p>
-            <div className="mt-7">
-              <CTAPill href="/seller">{ld.notFound.backCta}</CTAPill>
-            </div>
-          </div>
-        </Band>
-      </FullBleed>
+      <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-10 sm:px-6">
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)]">{ld.notFound.headline}</h1>
+        <p className="mt-2 text-[15px] text-[var(--lp-text-sub)]">{ld.notFound.body}</p>
+        <Link href="/market" className="mt-6 inline-flex min-h-12 items-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2">
+          {translations.nav.market}
+        </Link>
+      </main>
     );
   }
 
-  const viewerIsOwner =
-    !!address && address.toLowerCase() === listing.sellerUser.toLowerCase();
+  const viewerIsOwner = !!address && address.toLowerCase() === listing.sellerUser.toLowerCase();
   const matched = status === 'matched';
   const isCancelled = status === 'cancelled';
   const isExpired = status === 'expired';
   const isOpen = status === 'open';
-  const isTerminal = isCancelled || isExpired || matched;
   // Floor is the seller agent's private steering value. Backend strips it
   // for non-owners; we double-check on the client so a misconfigured payload
   // can't leak it.
@@ -153,284 +135,149 @@ export function ListingDetail({ listingId }: { listingId: string }) {
       : matched
         ? ld.hero.statuses.matched
         : ld.hero.statuses.open;
-  const statusTone = isCancelled
-    ? '#b03d3a'
-    : isExpired
-      ? '#6b6b6b'
-      : matched
-        ? 'var(--lp-accent)'
-        : '#b0b0b0';
+  const pill = isCancelled
+    ? 'bg-[var(--color-critical-soft)] text-[var(--lp-dark)]'
+    : matched
+      ? 'bg-[var(--color-accent-soft)] text-[var(--lp-dark)]'
+      : 'border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-text-sub)]';
+  const sellerProfile = sellerQuery.data?.profile;
+  const sellerName = viewerIsOwner
+    ? ld.pitch.sellerSelfLabel
+    : sellerProfile?.displayName?.trim() || (sellerProfile?.handle ? `@${sellerProfile.handle}` : ld.pitch.sellerLabel);
+  const sellerTag = !viewerIsOwner && sellerProfile?.handle && sellerProfile.displayName?.trim() ? `@${sellerProfile.handle}` : null;
   // Buyer-side CTA: pre-fill the new-deal form with this seller + asking price
-  // so anyone reading a listing can open a direct deal without copy-paste.
+  // so anyone reading an offer can open a direct deal without copy-paste.
   const buyerOfferHref = isConnected
     ? `/buyer?seller=${listing.sellerUser}&amount=${listing.askingPriceUsdc}&terms=${encodeURIComponent(listing.title)}&listing=${encodeURIComponent(listing.id)}`
     : '/buyer';
+  const primaryClass =
+    'inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--action)] px-6 text-[15px] font-semibold text-[var(--on-action)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--action)] focus-visible:ring-offset-2';
+  const quietClass =
+    'inline-flex min-h-11 items-center text-[14px] font-semibold text-[var(--lp-dark)] underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]';
+
+  const action = isCancelled ? (
+    <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.cancelledBody}</p>
+  ) : isExpired ? (
+    <>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">
+        {listing.matchedJobId ? ld.state.expiredMatchedBody : ld.state.expiredUnmatchedBody}
+      </p>
+      {listing.matchedJobId ? <Link href={`/jobs/${listing.matchedJobId}`} className={`mt-4 ${primaryClass}`}>{ld.state.openMatchedCta}</Link> : null}
+    </>
+  ) : matched ? (
+    <>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.matchedBody}</p>
+      <Link href={`/jobs/${listing.matchedJobId}`} className={`mt-4 ${primaryClass}`}>{ld.state.openMatchedCta}</Link>
+    </>
+  ) : viewerIsOwner ? (
+    <>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.scanningBody}</p>
+      {!confirmCancel ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-6">
+          <button type="button" onClick={() => setShowEdit(true)} className={quietClass}>{ld.state.editCta}</button>
+          <button type="button" onClick={() => setConfirmCancel(true)} className={`${quietClass} text-[var(--lp-text-sub)]`}>{ld.state.cancelCta}</button>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-[14px] bg-[var(--color-critical-soft)] p-4">
+          <p className="text-[14px] text-[var(--lp-dark)]">{ld.state.confirmCancelBody}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="inline-flex min-h-11 items-center rounded-full bg-[var(--color-critical)] px-5 text-[14px] font-semibold text-[var(--color-white)] disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-critical)] focus-visible:ring-offset-2"
+            >
+              {cancelling ? ld.state.confirmYesBusy : ld.state.confirmYes}
+            </button>
+            <button type="button" onClick={() => setConfirmCancel(false)} disabled={cancelling} className={quietClass}>
+              {ld.state.confirmNo}
+            </button>
+          </div>
+          {cancelError ? <p role="alert" className="mt-2 text-[13px] text-[var(--lp-dark)]">{cancelError}</p> : null}
+        </div>
+      )}
+    </>
+  ) : (
+    <>
+      <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]">{ld.state.buyerBody}</p>
+      <Link href={buyerOfferHref} className={`mt-4 w-full sm:w-auto ${primaryClass}`}>
+        {ld.state.buyerCtaTemplate.replace('{amount}', String(listing.askingPriceUsdc))}
+      </Link>
+    </>
+  );
 
   return (
-    <FullBleed>
-      <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="grid lg:grid-cols-[1.4fr_auto] gap-6 items-start">
-          <div className="min-w-0">
-            <div className="fade-up fade-up-1 flex items-center gap-3 flex-wrap">
-              <SectionTag tone="dark" dot={matched ? undefined : 'live'}>
-                {ld.hero.listingTag}
-              </SectionTag>
-              <span
-                className="inline-flex items-center gap-1.5 mono text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 border"
-                style={{
-                  color: statusTone,
-                  borderColor: `${statusTone}55`,
-                  background: `${statusTone}14`,
-                  borderRadius: 4,
-                }}
-              >
-                <span
-                  aria-hidden
-                  className="w-[5px] h-[5px]"
-                  style={{ background: statusTone }}
-                />
-                {statusLabel}
-              </span>
-            </div>
-            <div className="fade-up fade-up-2 mt-6">
-              <HeroHeadline>
-                {listing.title}
-                <Punc>.</Punc>
-              </HeroHeadline>
-            </div>
-            <p className="fade-up fade-up-3 mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)] tabular-nums">
-              {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt))}
-            </p>
-          </div>
-          <div className="fade-up fade-up-4 flex items-baseline gap-2 shrink-0">
-            <span className="font-sans text-[clamp(2.5rem,5vw,4rem)] font-extrabold tabular-nums tracking-[-0.025em] leading-none text-[var(--lp-workspace-ink)]">
-              {formatUsdc(listing.askingPriceUsdc, { withSuffix: false })}
-            </span>
-            <span className="mono text-[12px] uppercase tracking-[0.12em] text-[var(--lp-workspace-muted)]">
-              USDC
-            </span>
-          </div>
-        </div>
-      </Band>
+    <main className="product-surface mx-auto w-full max-w-[760px] px-4 pb-16 pt-6 sm:px-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-[var(--lp-text-sub)]">{ld.pitch.sectionTag}</p>
+        <span className={`inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold ${pill}`}>
+          {isOpen ? <span aria-hidden className="size-1.5 rounded-full bg-[var(--lp-accent)] motion-safe:animate-pulse" /> : null}
+          {statusLabel}
+        </span>
+      </div>
 
-      <Band tone="light" compact>
-        <SectionTag>{ld.pitch.sectionTag}</SectionTag>
-        <HeroHeadline as="h2" size="md">
-          {ld.pitch.headline}<Punc>.</Punc>
-        </HeroHeadline>
-        <div className="mt-8 grid md:grid-cols-2 gap-5">
-          <PageCard>
-            <div className="p-6 md:p-7">
-              <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)] whitespace-pre-wrap">
-                {listing.description}
-              </p>
-            </div>
-          </PageCard>
-          <PageCard>
-            <div className="p-6 md:p-7 space-y-4">
-              <PriceRow label={ld.pitch.askingLabel} value={listing.askingPriceUsdc} strong />
-              {listing.readyInDays ? (
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-[13px] text-[var(--lp-text-sub)]">{flow.readyIn}</span>
-                  <span className="text-[14px] text-[var(--lp-dark)]">{flow.readyInRow.replace('{n}', String(listing.readyInDays))}</span>
-                </div>
-              ) : null}
-              {showFloor && (
-                <>
-                  <PriceRow
-                    label={ld.pitch.floorLabelTemplate.replace(
-                      '{n}',
-                      String(listing.negotiationMaxDecreasePct ?? 0),
-                    )}
-                    value={floor!}
-                  />
-                  <p className="mono text-[10px] uppercase tracking-[0.16em] text-[var(--lp-text-muted)] leading-snug">
-                    {ld.pitch.floorNote}
-                  </p>
-                </>
-              )}
-              <div className="pt-3 border-t border-[var(--lp-border-light)] space-y-2">
-                <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                  {ld.pitch.sellerEyebrow}
-                </p>
-                <p className="text-[13px] font-medium text-[var(--lp-dark)]">
-                  {viewerIsOwner ? ld.pitch.sellerSelfLabel : ld.pitch.sellerLabel}
-                </p>
-              </div>
-            </div>
-          </PageCard>
+      <h1 dir="auto" className="mt-5 text-[26px] font-semibold leading-tight tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[32px]">
+        {listing.title}
+      </h1>
+      <p dir="auto" className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-text-sub)]">{listing.description}</p>
+
+      <Link
+        href={`/credit-passport/${listing.sellerUser}`}
+        className="mt-5 flex items-center gap-3 rounded-[16px] py-1 pe-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+      >
+        <PersonAvatar address={listing.sellerUser} name={sellerName} />
+        <span className="min-w-0">
+          <span className="block text-[12px] text-[var(--lp-text-sub)]">{ld.pitch.sellerEyebrow}</span>
+          <span className="block truncate text-[15px] font-semibold text-[var(--lp-dark)]">
+            {sellerName}
+            {sellerTag ? <span className="ms-1.5 font-normal text-[var(--lp-text-sub)]">{sellerTag}</span> : null}
+          </span>
+        </span>
+      </Link>
+
+      <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-3">
+        <div>
+          <dt className="text-[13px] text-[var(--lp-text-sub)]">{ld.pitch.askingLabel}</dt>
+          <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(listing.askingPriceUsdc)}</dd>
         </div>
-        {listing.terms ? (
-          <div className="mt-5">
-            <PageCard>
-              <div className="p-6 md:p-7">
-                <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{TERMS_COPY[locale].agreement}</p>
-                <p dir="auto" className="mt-3 whitespace-pre-wrap text-[14px] leading-6 text-[var(--lp-text-sub)]">{listing.terms}</p>
-              </div>
-            </PageCard>
+        {listing.readyInDays ? (
+          <div>
+            <dt className="text-[13px] text-[var(--lp-text-sub)]">{flow.readyIn}</dt>
+            <dd className="mt-0.5 text-[20px] font-semibold text-[var(--lp-dark)]">{flow.readyInRow.replace('{n}', String(listing.readyInDays))}</dd>
           </div>
         ) : null}
-      </Band>
+        {showFloor ? (
+          <div>
+            <dt className="text-[13px] text-[var(--lp-text-sub)]">{ld.pitch.floorLabelTemplate.replace('{n}', String(listing.negotiationMaxDecreasePct ?? 0))}</dt>
+            <dd className="mt-0.5 text-[20px] font-semibold tabular-nums text-[var(--lp-dark)]">{formatUsdc(floor!)}</dd>
+          </div>
+        ) : null}
+      </dl>
+      {showFloor ? <p className="mt-2 text-[12px] text-[var(--lp-text-muted)]">{ld.pitch.floorNote}</p> : null}
 
-      <Band tone="dark" compact>
-        <div className="grid lg:grid-cols-[1fr_1.2fr] gap-8 items-start">
-          <div className="max-w-[42ch]">
-            <SectionTag tone="dark" dot={isTerminal ? undefined : 'live'}>
-              {isCancelled
-                ? ld.state.tags.cancelled
-                : isExpired
-                  ? ld.state.tags.expired
-                  : matched
-                    ? ld.state.tags.matched
-                    : viewerIsOwner
-                      ? ld.state.tags.scanning
-                      : ld.state.tags.open}
-            </SectionTag>
-            <HeroHeadline as="h2" size="md">
-              {isCancelled ? (
-                <>{ld.state.headlines.cancelled}<Punc>.</Punc></>
-              ) : isExpired ? (
-                <>{ld.state.headlines.expired}<Punc>.</Punc></>
-              ) : matched ? (
-                <>{ld.state.headlines.matched}<Punc>.</Punc></>
-              ) : viewerIsOwner ? (
-                <>{ld.state.headlines.scanning}<Punc>.</Punc></>
-              ) : (
-                <>{ld.state.headlines.openBuyer}<Punc>.</Punc></>
-              )}
-            </HeroHeadline>
-            {isOpen && listing.expiresAt && (
-              <p className="mt-4 mono text-[11px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">
-                {ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt))}
-              </p>
-            )}
-          </div>
-          <div
-            className="overflow-hidden p-6 md:p-7"
-            style={{
-              background: 'var(--surface-1)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
-            }}
-          >
-            {isCancelled ? (
-              <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                {ld.state.cancelledBody}
-              </p>
-            ) : isExpired ? (
-              listing.matchedJobId ? (
-                <div className="space-y-4">
-                  <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                    {ld.state.expiredMatchedBody}
-                  </p>
-                  <CTAPill href={`/jobs/${listing.matchedJobId}`}>{ld.state.openMatchedCta}</CTAPill>
-                </div>
-              ) : (
-                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                  {ld.state.expiredUnmatchedBody}
-                </p>
-              )
-            ) : matched ? (
-              <div className="space-y-4">
-                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                  {ld.state.matchedBody}
-                </p>
-                <CTAPill href={`/jobs/${listing.matchedJobId}`}>{ld.state.openMatchedCta}</CTAPill>
-              </div>
-            ) : viewerIsOwner ? (
-              <div className="space-y-4">
-                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                  {ld.state.scanningBody}
-                </p>
-                {!confirmCancel ? (
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowEdit(true)}
-                      className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-accent)] hover:text-[var(--lp-accent-hover)] underline underline-offset-2"
-                    >
-                      {ld.state.editCta}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirmCancel(true)}
-                      className="mono text-[11px] uppercase tracking-[0.12em] font-semibold text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)] underline underline-offset-2"
-                    >
-                      {ld.state.cancelCta}
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="px-4 py-3 space-y-3"
-                    style={{
-                      background: 'rgba(176, 61, 58, 0.12)',
-                      border: '1px solid rgba(176, 61, 58, 0.35)',
-                      borderTopLeftRadius: 10,
-                      borderTopRightRadius: 10,
-                      borderBottomLeftRadius: 10,
-                      borderBottomRightRadius: 10,
-                    }}
-                  >
-                    <p className="text-[13px] text-[var(--lp-workspace-ink)] leading-snug">
-                      {ld.state.confirmCancelBody}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCancel}
-                        disabled={cancelling}
-                        className="mono text-[11px] font-bold uppercase tracking-[0.10em] px-3.5 py-2 text-white transition-colors disabled:opacity-60"
-                        style={{
-                          background: '#b03d3a',
-                          borderTopLeftRadius: 8,
-                          borderTopRightRadius: 8,
-                          borderBottomLeftRadius: 8,
-                          borderBottomRightRadius: 8,
-                        }}
-                      >
-                        {cancelling ? ld.state.confirmYesBusy : ld.state.confirmYes}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmCancel(false)}
-                        disabled={cancelling}
-                        className="mono text-[11px] uppercase tracking-[0.10em] text-[var(--lp-workspace-muted)] hover:text-[var(--lp-workspace-ink)]"
-                      >
-                        {ld.state.confirmNo}
-                      </button>
-                    </div>
-                    {cancelError && (
-                      <p className="mono text-[11px] text-[#ff8a7a]">{cancelError}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-[14px] leading-relaxed text-[var(--lp-workspace-muted)]">
-                  {ld.state.buyerBody}
-                </p>
-                <CTAPill href={buyerOfferHref}>
-                  {ld.state.buyerCtaTemplate.replace(
-                    '{amount}',
-                    String(listing.askingPriceUsdc),
-                  )}
-                </CTAPill>
-              </div>
-            )}
-          </div>
-        </div>
-      </Band>
-      {showEdit && (
+      <section className="mt-6 rounded-[18px] bg-[var(--lp-card)] p-5">{action}</section>
+      <p className="mt-3 text-[12px] text-[var(--lp-text-muted)]">
+        {ld.hero.postedTemplate.replace('{time}', relativeTime(listing.postedAt))}
+        {isOpen && listing.expiresAt ? ` · ${ld.state.windowClosesTemplate.replace('{time}', relativeTime(listing.expiresAt))}` : null}
+      </p>
+
+      {listing.terms ? (
+        <details className="group mt-8 border-t border-[var(--lp-border-light)]">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between text-[14px] text-[var(--lp-text-sub)] [&::-webkit-details-marker]:hidden">
+            {TERMS_COPY[locale].agreement}
+            <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <p dir="auto" className="whitespace-pre-wrap pb-4 text-[14px] leading-6 text-[var(--lp-text-sub)]">{listing.terms}</p>
+        </details>
+      ) : null}
+
+      {showEdit ? (
         <EditListingModal
           initialTitle={listing.title}
           initialDescription={listing.description}
           initialAskingPriceUsdc={listing.askingPriceUsdc}
           initialFloorPct={listing.negotiationMaxDecreasePct ?? 0}
-          initialTtlDays={Math.max(
-            1,
-            Math.round((listing.expiresAt - Date.now()) / 86_400_000),
-          )}
+          initialTtlDays={Math.max(1, Math.round((listing.expiresAt - Date.now()) / 86_400_000))}
           busy={editing}
           error={editError}
           onSave={handleEdit}
@@ -439,8 +286,8 @@ export function ListingDetail({ listingId }: { listingId: string }) {
             setEditError(null);
           }}
         />
-      )}
-    </FullBleed>
+      ) : null}
+    </main>
   );
 }
 
