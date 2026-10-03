@@ -37,6 +37,7 @@ export const ADMIN_NAVIGATION: AdminNavigationGroup[] = [
       { href: '/admin/runtime', label: 'Agent runtime', description: 'Tasks, parity and rollout gates' },
       { href: '/admin/payments', label: 'Payments', description: 'Agent payment evidence' },
       { href: '/admin/signals', label: 'Signals', description: 'Research input queue' },
+      { href: '/admin/updates', label: 'Home updates', description: 'Cards on the signed-in home page' },
     ],
   },
   {
