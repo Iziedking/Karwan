@@ -1,5 +1,4 @@
 ﻿'use client';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -170,20 +169,6 @@ export function ListingDetail({ listingId }: { listingId: string }) {
   return (
     <FullBleed>
       <Band tone="dark" overlay={<GridOverlay />}>
-        <div className="fade-up">
-          <Link
-            href="/seller"
-            className="group -ms-3 mb-6 inline-flex min-h-11 items-center gap-1.5 px-3 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
-          >
-            <span
-              aria-hidden
-              className="inline-block transition-transform duration-200 group-hover:-translate-x-0.5"
-            >
-              ←
-            </span>
-            {ld.backToSeller}
-          </Link>
-        </div>
         <div className="grid lg:grid-cols-[1.4fr_auto] gap-6 items-start">
           <div className="min-w-0">
             <div className="fade-up fade-up-1 flex items-center gap-3 flex-wrap">

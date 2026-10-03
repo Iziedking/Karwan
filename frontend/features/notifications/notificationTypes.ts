@@ -119,6 +119,8 @@ export const NOTIFY_TYPES = new Set([
   ...BRIDGE_TYPES,
   // Trend nudge: no jobId, routed to the seller-user like the wallet events.
   'trend.match',
+  // A seller answered the viewer's request. Routed to the poster by payload.
+  'offer.created',
 ]);
 
 // High-signal events that should also trigger a toast. Cooldown finishing is
@@ -130,6 +132,7 @@ export const TOAST_TYPES = new Set([
   'deal.seller-approved',
   'deal.direct.declined',
   'deal.direct.edited',
+  'offer.created',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
   'negotiation.near-miss',

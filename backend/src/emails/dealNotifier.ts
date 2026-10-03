@@ -52,6 +52,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.seller-approved',
   'deal.direct.declined',
   'deal.direct.edited',
+  'offer.created',
   'deal.accepted',
   'deal.delivered',
   'escrow.settled',
@@ -126,6 +127,11 @@ async function recipientsFor(e: KarwanEvent): Promise<Recipient[]> {
     // Only the buyer needs these: their funds are reclaimable now, or their
     // review clock started without a delivery through Karwan.
     const buyer = (e.payload?.buyer as string | undefined)?.toLowerCase();
+    return buyer ? [{ address: buyer, role: 'buyer' }] : [];
+  }
+  if (e.type === 'offer.created') {
+    // A request is not a deal yet, so the poster is named on the event.
+    const buyer = (e.payload?.buyerUser as string | undefined)?.toLowerCase();
     return buyer ? [{ address: buyer, role: 'buyer' }] : [];
   }
   if (e.type === 'deal.match.raised') {
@@ -258,6 +264,20 @@ export function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
+    case 'offer.created': {
+      const price = (e.payload?.priceUsdc as string | number | undefined) ?? '';
+      const priceSuffix = price !== '' ? ` at ${price} USDC` : '';
+      return role === 'buyer'
+        ? {
+            kicker: 'New offer',
+            subject: `A seller made an offer on your request${priceSuffix}`,
+            heading: 'You have a new offer',
+            body: `A seller offered to take your request${priceSuffix}. Review it and accept if it works for you. Nothing is paid until you accept.`,
+            ctaLabel: 'Review the offer',
+            ctaUrl: jobUrl(e.jobId),
+          }
+        : null;
+    }
     case 'deal.direct.edited': {
       // Only the side that did not make the change hears about it.
       const by = e.actor === 'seller' ? 'seller' : 'buyer';
@@ -538,6 +558,7 @@ const AMOUNT_KEY: Record<string, string> = {
   'listing.matched': 'askingPriceUsdc',
   'deal.direct.created': 'dealAmountUsdc',
   'deal.direct.edited': 'dealAmountUsdc',
+  'offer.created': 'priceUsdc',
   'deal.seller-approved': 'dealAmountUsdc',
   'deal.accepted': 'dealAmountUsdc',
   'factoring.requested': 'faceValueUsdc',

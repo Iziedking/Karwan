@@ -143,7 +143,12 @@ export async function createOffer(
     return { ok: false, status: res.reason === 'job-not-open' ? 409 : 502, code: res.reason, message: res.message };
   }
   await setDirectOfferState(offer.id, 'pending', { txHash: res.txHash });
-  bus.emitEvent({ type: 'offer.created', jobId, actor: 'seller', payload: { offerId: offer.id } });
+  bus.emitEvent({
+    type: 'offer.created',
+    jobId,
+    actor: 'seller',
+    payload: { offerId: offer.id, buyerUser: low(brief.postedBy), sellerUser: low(sellerUser), priceUsdc: offer.priceUsdc },
+  });
   return { ok: true, offer: { ...offer, txHash: res.txHash }, created };
 }
 

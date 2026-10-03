@@ -20,3 +20,15 @@ test('resubmitted terms reach only the side that did not change them', () => {
   assert.match(contentFor(edited('seller'), 'buyer', 'service')!.subject, /The seller sent new terms/);
   assert.equal(amountFor(edited('buyer')), '40');
 });
+
+test('an offer on a request reaches only the person who posted it', () => {
+  const offer = {
+    type: 'offer.created', jobId: '0xjob', actor: 'seller', ts: 0,
+    payload: { offerId: 'o1', buyerUser: '0xb', sellerUser: '0xs', priceUsdc: '35' },
+  } as unknown as KarwanEvent;
+  const toBuyer = contentFor(offer, 'buyer', 'service');
+  assert.ok(toBuyer);
+  assert.match(toBuyer.subject, /made an offer on your request at 35 USDC/);
+  assert.equal(contentFor(offer, 'seller', 'service'), null);
+  assert.equal(amountFor(offer), '35');
+});

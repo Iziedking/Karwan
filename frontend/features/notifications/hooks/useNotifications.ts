@@ -287,6 +287,12 @@ function summaryFor(
       return dealAmount
         ? `Deal bound to your wallet at ${dealAmount} USDC. Review and agree to the terms.`
         : 'Deal bound to your wallet. Review and agree to the terms.';
+    case 'offer.created': {
+      const price = payload?.priceUsdc;
+      return price !== undefined && price !== ''
+        ? `A seller offered ${price} USDC on your request. Review it and accept if it works for you.`
+        : 'A seller made an offer on your request. Review it and accept if it works for you.';
+    }
     case 'deal.direct.edited': {
       const who = payload?.countered ? 'The seller' : 'The buyer';
       return dealAmount
@@ -636,6 +642,21 @@ export function useNotifications() {
           });
           continue;
         }
+        if (e.type === 'offer.created') {
+          const poster = (e.payload?.buyerUser as string | undefined)?.toLowerCase();
+          if (poster !== me || !e.jobId) continue;
+          const id = `offer.created-${String(e.payload?.offerId ?? e.ts)}`;
+          fresh.push({
+            id,
+            jobId: e.jobId,
+            type: e.type,
+            summary: summaryFor(e.type, e.payload, 'buyer'),
+            ts: e.ts,
+            read: readIdsRef.current.has(id),
+            href: `/jobs/${e.jobId}`,
+          });
+          continue;
+        }
         // Trend nudge: no jobId, addressed to the seller-user in the payload.
         if (e.type === 'trend.match') {
           const seller = (e.payload?.sellerUser as string | undefined)?.toLowerCase();
@@ -842,6 +863,34 @@ export function useNotifications() {
           if (next.toast) {
             toastListeners.forEach((fn) => fn(next));
           }
+        }
+        return;
+      }
+
+      // A seller answered this viewer's request.
+      if (e.type === 'offer.created') {
+        const poster = (e.payload?.buyerUser as string | undefined)?.toLowerCase();
+        if (poster !== me || !e.jobId) return;
+        const id = `offer.created-${String(e.payload?.offerId ?? e.ts)}`;
+        if (seenNotificationIdsRef.current.has(id)) return;
+        seenNotificationIdsRef.current.add(id);
+        const next: AppNotification = {
+          id,
+          jobId: e.jobId,
+          type: e.type,
+          summary: summaryFor(e.type, e.payload, 'buyer'),
+          ts: e.ts,
+          read: readIdsRef.current.has(id),
+          href: `/jobs/${e.jobId}`,
+          toast: true,
+        };
+        setNotifications((list) => {
+          if (list.some((n) => n.id === id)) return list;
+          return [next, ...list].slice(0, MAX_STORED);
+        });
+        if (initialHydrateRef.current) {
+          playNotificationSound(e, me, 'buyer');
+          toastListeners.forEach((fn) => fn(next));
         }
         return;
       }
