@@ -7,11 +7,13 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { cn } from '@/shared/utils/cn';
 
 const GAP = 12;
+const ADVANCE_MS = 6000;
 
 /// Home Updates: published cards about the tech Karwan runs on, market news and
 /// what people are asking for. A native scroll strip with snap, so touch and
 /// trackpads swipe with real momentum; buttons, dots, arrow keys and a mouse
-/// drag move it too.
+/// drag move it too. It advances on its own until the reader hovers, focuses
+/// or touches it, and not at all under reduced motion.
 export function UpdatesCarousel() {
   const t = useTranslations().accountHome;
   const updates = useQuery({ queryKey: ['home-updates'], queryFn: () => api.getUpdates(), staleTime: 60_000 });
@@ -19,6 +21,8 @@ export function UpdatesCarousel() {
   const [active, setActive] = useState(0);
   const [atEnd, setAtEnd] = useState(false);
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const [held, setHeld] = useState(false);
+  const [taken, setTaken] = useState(false);
   const cards = updates.data?.cards ?? [];
 
   const step = useCallback(() => {
@@ -51,6 +55,17 @@ export function UpdatesCarousel() {
     el.scrollTo({ left: dir * clamped * step(), behavior: reduce ? 'auto' : 'smooth' });
   }, [cards.length, step]);
 
+  useEffect(() => {
+    const el = track.current;
+    if (held || taken || cards.length < 2 || !el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setTimeout(() => {
+      if (document.hidden || el.scrollWidth <= el.clientWidth + 4) return;
+      go(atEnd ? 0 : active + 1);
+    }, ADVANCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [active, atEnd, held, taken, cards.length, go]);
+
   if (cards.length === 0) return null;
 
   // A mouse drags the strip like a finger. Touch and pens already scroll
@@ -80,7 +95,17 @@ export function UpdatesCarousel() {
   );
 
   return (
-    <section aria-labelledby="home-updates-title" aria-roledescription="carousel" className="mt-7">
+    <section
+      aria-labelledby="home-updates-title"
+      aria-roledescription="carousel"
+      className="mt-7"
+      onMouseEnter={() => setHeld(true)}
+      onMouseLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHeld(false); }}
+      onPointerDown={(e) => { if (e.pointerType !== 'mouse') setTaken(true); }}
+      onWheel={() => setTaken(true)}
+    >
       <div className="flex items-center justify-between gap-3">
         <h2 id="home-updates-title" className="text-[18px] font-semibold tracking-[-0.02em] text-[var(--lp-dark)] sm:text-[20px]">{t.updatesTitle}</h2>
         <div className="flex items-center gap-2 sm:gap-3">
