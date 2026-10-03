@@ -20,8 +20,7 @@ export interface Brief {
   /// Per-brief milestone split (percentages summing to 100). When the buyer
   /// states one in the request ("I pay 30% then 70%") it overrides the buyer
   /// profile's default split at escrow funding. Absent means the profile
-  /// default is used. The managed flow funds a two-part split, so only a
-  /// length-2 value takes effect downstream.
+  /// default is used. One to five parts; [100] is a single payment.
   milestonePcts?: number[];
   /// The structured agreement the buyer set when posting (items, conditions,
   /// proof, parts). Becomes the deal's terms when a match lands; absent on

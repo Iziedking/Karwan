@@ -61,6 +61,7 @@ import {
 import { adminDisputeRoutes } from './routes/adminDisputes.js';
 import { adminTeamKeyRoutes } from './routes/adminTeamKeys.js';
 import { adminSignalRoutes } from './routes/adminSignals.js';
+import { updatesRoutes, adminUpdatesRoutes } from './routes/updates.js';
 import { adminMarketSeedRoutes } from './routes/adminMarketSeed.js';
 import { signalIngestRoutes } from './routes/signalIngest.js';
 import { oauthRoutes, oauthMetadataRoutes } from './routes/oauth.js';
@@ -444,6 +445,8 @@ app.route('/api/admin/treasuries', adminTreasuryRoutes);
 app.route('/api/admin/usyc', adminUsycRoutes);
 app.route('/api/admin/team-keys', adminTeamKeyRoutes);
 app.route('/api/admin/signals', adminSignalRoutes);
+app.route('/api/admin/updates', adminUpdatesRoutes);
+app.route('/api/updates', updatesRoutes);
 app.route('/api/admin/market-seed', adminMarketSeedRoutes);
 app.route('/api/signals', signalIngestRoutes);
 app.route('/oauth', oauthRoutes);
