@@ -417,7 +417,6 @@ export const sw: Messages = {
     page: {
       byChain: 'Kwa mnyororo',
       byChainHelp: 'USDC zako zinazopatikana kwenye minyororo inayotumika.',
-      liveBalances: 'Salio la moja kwa moja',
       actionsAria: 'Vitendo vya USDC',
       manage: 'Dhibiti USDC',
       add: 'Ongeza USDC',
@@ -5198,6 +5197,9 @@ export const sw: Messages = {
     refreshing: 'Inaonyesha upya',
     reveal: 'Onyesha',
     hide: 'Ficha',
+    total: 'Jumla',
+    zeroChainsTemplate: 'Hakuna USDC kwenye minyororo {n}',
+    zeroOtherChainsTemplate: 'Hakuna USDC kwenye minyororo mingine {n}',
     tabs: {
       you: 'Wewe',
       buyer: 'Wakala wa ununuzi',

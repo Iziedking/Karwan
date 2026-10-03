@@ -418,7 +418,6 @@ export const hi: Messages = {
     page: {
       byChain: 'श्रंखला के अनुसार',
       byChainHelp: 'समर्थित श्रंखलाओं पर आपके उपलब्ध USDC।',
-      liveBalances: 'लाइव बैलेंस',
       actionsAria: 'USDC कार्रवाइयाँ',
       manage: 'USDC प्रबंधित करें',
       add: 'USDC जोड़ें',
@@ -5199,6 +5198,9 @@ export const hi: Messages = {
     refreshing: 'रिफ्रेश हो रहा',
     reveal: 'दिखाएं',
     hide: 'छिपाएं',
+    total: 'कुल',
+    zeroChainsTemplate: '{n} चेन पर कोई USDC नहीं',
+    zeroOtherChainsTemplate: '{n} अन्य चेन पर कोई USDC नहीं',
     tabs: {
       you: 'आप',
       buyer: 'खरीद एजेंट',

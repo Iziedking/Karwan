@@ -1464,7 +1464,7 @@ html[data-theme="dark"] .product-surface {
 }
 
 .account-launcher {
-  height: fit-content;
+  box-shadow: none;
   padding: 22px;
   border-radius: 22px;
 }

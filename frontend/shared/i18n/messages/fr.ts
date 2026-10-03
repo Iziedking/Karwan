@@ -420,7 +420,6 @@ export const fr: Messages = {
     page: {
       byChain: 'Par chaîne',
       byChainHelp: 'Vos USDC disponibles sur les chaînes prises en charge.',
-      liveBalances: 'Soldes en direct',
       actionsAria: 'Actions USDC',
       manage: 'Gérer vos USDC',
       add: 'Ajouter des USDC',
@@ -5201,6 +5200,9 @@ export const fr: Messages = {
     refreshing: 'Actualisation',
     reveal: 'Afficher',
     hide: 'Masquer',
+    total: 'Total',
+    zeroChainsTemplate: 'Aucun USDC sur {n} réseaux',
+    zeroOtherChainsTemplate: 'Aucun USDC sur {n} autres réseaux',
     tabs: {
       you: 'Vous',
       buyer: 'Agent acheteur',

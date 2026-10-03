@@ -372,7 +372,6 @@ interface MessagesShape {
     page: {
       byChain: string;
       byChainHelp: string;
-      liveBalances: string;
       actionsAria: string;
       manage: string;
       add: string;
@@ -4787,6 +4786,9 @@ interface MessagesShape {
     refreshing: string;
     reveal: string;
     hide: string;
+    total: string;
+    zeroChainsTemplate: string;
+    zeroOtherChainsTemplate: string;
     tabs: {
       you: string;
       buyer: string;
@@ -5685,7 +5687,6 @@ export const en: MessagesShape = {
     page: {
       byChain: 'By chain',
       byChainHelp: 'Your available USDC across supported chains.',
-      liveBalances: 'Live balances',
       actionsAria: 'USDC actions',
       manage: 'Manage USDC',
       add: 'Add USDC',
@@ -10631,6 +10632,9 @@ export const en: MessagesShape = {
     refreshing: 'Refreshing',
     reveal: 'Show',
     hide: 'Hide',
+    total: 'Total',
+    zeroChainsTemplate: 'No USDC on {n} chains',
+    zeroOtherChainsTemplate: 'No USDC on {n} other chains',
     tabs: {
       you: 'You',
       buyer: 'For buying',

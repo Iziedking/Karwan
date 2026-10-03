@@ -19,26 +19,20 @@ function AccountPageInner() {
   const messages = useTranslations();
   const t = messages.account.page;
   return (
-    <div className="product-surface mx-auto w-full max-w-[1180px] pb-14">
+    <div className="product-surface mx-auto w-full max-w-[1040px] pb-14">
       <header className="mt-5 grid gap-4 border-b border-[var(--lp-border-light)] pb-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.45fr)] lg:items-end">
         <div>
           <div className="flex items-center"><h1 className="text-[clamp(2.7rem,6vw,5.2rem)] font-semibold leading-[0.94] tracking-[-0.065em] text-[var(--lp-dark)]">{messages.accountHome.balanceLabel}</h1><NetworkHint /></div>
         </div>
       </header>
 
-      <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_330px]" aria-labelledby="account-holdings-heading">
+      {/* Both cards stretch to the row height, so they always line up. */}
+      <section className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]" aria-label={t.byChain}>
         <div className="min-w-0">
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <h2 id="account-holdings-heading" className="text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{t.byChain}</h2>
-              <p className="mt-1 text-[14px] text-[var(--lp-text-sub)]">{t.byChainHelp}</p>
-            </div>
-            <span className="hidden items-center gap-2 text-[12px] font-semibold text-[var(--lp-text-muted)] sm:inline-flex"><span data-live="true" className="size-2 rounded-full bg-[var(--lp-accent)]" />{t.liveBalances}</span>
-          </div>
-          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} openByDefault />
+          <BalancesCard buyerAgent={agents?.buyer} sellerAgent={agents?.seller} openByDefault title={t.byChain} subtitle={t.byChainHelp} />
         </div>
 
-        <aside className="account-launcher lg:mt-[58px]" aria-label={t.actionsAria}>
+        <aside className="account-launcher" aria-label={t.actionsAria}>
           <h2 className="text-[22px] font-semibold tracking-[-0.035em] text-[var(--lp-dark)]">{t.manage}</h2>
           <nav className="mt-5 divide-y divide-[var(--lp-border-light)]">
             <AccountAction href="/bridge?direction=in" label={t.add} description={t.addHelp} icon="add" primary />

@@ -420,7 +420,6 @@ export const ar: Messages = {
     page: {
       byChain: 'حسب الشبكة',
       byChainHelp: 'رصيدك المتاح من USDC على الشبكات المدعومة.',
-      liveBalances: 'أرصدة مباشرة',
       actionsAria: 'إجراءات USDC',
       manage: 'إدارة USDC',
       add: 'إضافة USDC',
@@ -5201,6 +5200,9 @@ export const ar: Messages = {
     refreshing: 'جاري التحديث',
     reveal: 'إظهار',
     hide: 'إخفاء',
+    total: 'الإجمالي',
+    zeroChainsTemplate: 'لا يوجد USDC على {n} شبكات',
+    zeroOtherChainsTemplate: 'لا يوجد USDC على {n} شبكات أخرى',
     tabs: {
       you: 'أنت',
       buyer: 'وكيل الشراء',
