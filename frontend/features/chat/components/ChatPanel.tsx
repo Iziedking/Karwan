@@ -4,12 +4,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { ApiError, type ChatMessage } from '@/core/api';
 import { Icon } from '@/shared/components/Icon';
+import { PersonAvatar } from '@/shared/components/PersonAvatar';
 import { useLocale, useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useChat } from '../hooks/useChat';
 
 /// A deal-scoped conversation. Replies keep their context, images are the only
 /// attachment type, and the server enforces the retention window.
-export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSeedKey }: { jobId: string; caller: string; counterpartyLabel: string; draftSeed?: string; draftSeedKey?: number }) {
+export function ChatPanel({ jobId, caller, counterpartyLabel, counterpartyAddress, draftSeed, draftSeedKey }: { jobId: string; caller: string; counterpartyLabel: string; counterpartyAddress?: string; draftSeed?: string; draftSeedKey?: number }) {
   const cp = useTranslations().chatPanel;
   const { locale } = useLocale();
   const { messages, fetchState, fetchError, send, sending, writable } = useChat({ jobId, caller });
@@ -55,12 +56,11 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSe
   }
 
   const nameOf = (sender: string) => (sender.toLowerCase() === me ? cp.you : counterpartyLabel);
-  const initial = counterpartyLabel.replace(/^(seller|buyer)\s+/i, '').trim().charAt(0).toUpperCase() || '·';
 
   return (
     <section className="flex w-full flex-col overflow-hidden rounded-[20px] border border-[var(--lp-border-light)] bg-[var(--lp-card)]">
       <header className="flex items-center gap-3 border-b border-[var(--lp-border-light)] px-4 py-3 sm:px-5">
-        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[14px] font-semibold text-[var(--lp-dark)]">{initial}</span>
+        <PersonAvatar address={counterpartyAddress} name={counterpartyLabel} size={36} />
         <p className="min-w-0 truncate text-[15px] font-semibold text-[var(--lp-dark)]">{counterpartyLabel}</p>
       </header>
 
@@ -88,10 +88,16 @@ export function ChatPanel({ jobId, caller, counterpartyLabel, draftSeed, draftSe
           const mine = sender.toLowerCase() === me;
           const grouped = !newDay && previous && previous.kind !== 'system' && previous.sender === message.sender;
           const quoted = message.replyToId ? byId.get(message.replyToId) : undefined;
+          const next = messages[index + 1];
+          // The face sits beside the last bubble of a run, like any messenger.
+          const lastOfRun = !next || next.kind === 'system' || next.sender !== message.sender || dayKey(next.ts) !== dayKey(message.ts);
           return (
             <div key={message.id}>
               {divider}
               <div className={cn('group flex items-end gap-1.5', mine ? 'flex-row-reverse' : 'flex-row', grouped ? 'mt-0.5' : 'mt-3')}>
+                <span className="w-7 shrink-0">
+                  {lastOfRun ? <PersonAvatar address={sender} name={mine ? cp.you : counterpartyLabel} size={28} /> : null}
+                </span>
                 <div
                   className={cn(
                     'max-w-[80%] px-3.5 py-2 text-[15px] leading-snug whitespace-pre-wrap break-words [overflow-wrap:anywhere] sm:max-w-[70%]',
