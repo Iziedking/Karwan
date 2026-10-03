@@ -2013,6 +2013,7 @@ export const ar: Messages = {
       'own-auction': 'بائعك الخاص',
       'finance-lane-requires-business': 'بائعو الأعمال فقط',
       'insufficient-stake-trusted-match': 'حصة غير كافية لمطابقة موثوقة',
+      'agent-not-linked': 'الوكيل غير مرتبط بحسابك',
     },
     scopeLabels: {
       counterEvaluation: 'فشل تقييم العرض المضاد LLM',

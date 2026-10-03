@@ -1,3 +1,4 @@
+import { SELLER_LINK_DETAIL, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { prohibitedBody } from '../policy/prohibited.js';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
@@ -2436,6 +2437,21 @@ dealsRoutes.post('/direct/:jobId/fund', async (c) => {
         },
         409,
       );
+    }
+
+    // The escrow records the seller agent's owner as the seller. Fund only
+    // once that owner is the person, so the record is theirs.
+    const linkRefusal = sellerBindingRefusal(
+      await sellerAgentBinding(sellerAgents.sellerAddress, deal.seller),
+    );
+    if (linkRefusal) {
+      bus.emitEvent({
+        type: 'agent.error',
+        jobId,
+        actor: 'seller',
+        payload: { scope: 'fundEscrow', seller: deal.seller, code: linkRefusal.code, message: SELLER_LINK_DETAIL },
+      });
+      return c.json({ error: linkRefusal.message, code: linkRefusal.code }, 409);
     }
 
     // Trusted deals reserve seller stake during acceptEscrow. Check it before

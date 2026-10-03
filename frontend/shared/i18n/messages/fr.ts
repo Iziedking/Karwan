@@ -2013,6 +2013,7 @@ export const fr: Messages = {
       'own-auction': 'Votre propre vendeur',
       'finance-lane-requires-business': 'Vendeurs entreprises uniquement',
       'insufficient-stake-trusted-match': 'Stake insuffisant pour un match de confiance',
+      'agent-not-linked': 'Agent non relié à votre compte',
     },
     scopeLabels: {
       counterEvaluation: 'Échec éval contre-offre LLM',

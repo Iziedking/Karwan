@@ -1,3 +1,4 @@
+import { SELLER_LINK_DETAIL, SELLER_NOT_BOUND, sellerAgentBinding, sellerBindingRefusal } from '../deals/sellerBinding.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
@@ -3783,6 +3784,11 @@ export async function approveAgentMatch(
 
   const seller = proposal.sellerAgent as `0x${string}`;
 
+  // Before acceptBid: a refusal after it would leave the job Accepted with no
+  // escrow, which no retry can fund.
+  const linkRefusal = await sellerLinkRefusal(state, seller, proposal.sellerUser);
+  if (linkRefusal) return { ok: false, ...linkRefusal };
+
   // Fund-first safety. acceptBid moves the job to Accepted on chain; if the
   // fundEscrow that follows then fails because the buyer agent is short on USDC,
   // the job is wedged (Accepted, empty escrow) and every retry reverts
@@ -3889,7 +3895,9 @@ export async function approveAgentMatch(
       ok: false,
       code: fundRes.reason ?? 'FUND_FAILED',
       message:
-        'Escrow funding did not confirm. The buyer agent is likely short on USDC for the negotiated amount plus the platform fee. Top up the buyer agent and approve again.',
+        fundRes.reason === SELLER_NOT_BOUND
+          ? sellerBindingRefusal({ kind: 'unbound' })!.message
+          : 'Escrow funding did not confirm. The buyer agent is likely short on USDC for the negotiated amount plus the platform fee. Top up the buyer agent and approve again.',
     };
   }
 
@@ -4291,6 +4299,25 @@ async function fundsOnV3(state: JobState): Promise<boolean> {
   }
 }
 
+/// Null when the seller agent is linked to its person and funding may go
+/// ahead. Otherwise the seller is told how to link and the buyer gets the
+/// refusal; no money has moved.
+async function sellerLinkRefusal(state: JobState, sellerAgent: string, sellerUser?: string) {
+  const owner = (await findAgentWalletByAgentAddress(sellerAgent))?.userAddress ?? sellerUser;
+  const refusal = sellerBindingRefusal(
+    owner ? await sellerAgentBinding(sellerAgent, owner) : { kind: 'unknown' },
+  );
+  if (!refusal) return null;
+  logger.warn({ jobId: state.jobId, seller: sellerAgent }, 'escrow funding held: seller agent not linked to its owner');
+  bus.emitEvent({
+    type: 'agent.error',
+    jobId: state.jobId,
+    actor: 'seller',
+    payload: { scope: 'fundEscrow', seller: sellerAgent, code: refusal.code, message: SELLER_LINK_DETAIL },
+  });
+  return refusal;
+}
+
 async function fundEscrow(
   state: JobState,
   seller: `0x${string}`,
@@ -4298,6 +4325,8 @@ async function fundEscrow(
   negotiatedDeadlineUnix: number,
 ): Promise<{ ok: boolean; reason?: string }> {
   if (state.escrowFunded) return { ok: true };
+  const linkRefusal = await sellerLinkRefusal(state, seller);
+  if (linkRefusal) return { ok: false, reason: linkRefusal.code };
   const buyer = state.buyer;
   const milestonePcts = effectiveMilestonePcts(state);
 

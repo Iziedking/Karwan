@@ -2010,6 +2010,7 @@ export const sw: Messages = {
       'own-auction': 'Muuzaji wako mwenyewe',
       'finance-lane-requires-business': 'Wauzaji wa biashara pekee',
       'insufficient-stake-trusted-match': 'Dhamana haitoshi kwa mechi ya kuaminika',
+      'agent-not-linked': 'Wakala hajaunganishwa na akaunti yako',
     },
     scopeLabels: {
       counterEvaluation: 'Tathmini ya ofa ya majibu ya LLM imeshindwa',

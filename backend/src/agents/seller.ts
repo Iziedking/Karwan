@@ -1,3 +1,4 @@
+import { blocksOffer, sellerAgentBinding, SELLER_LINK_DETAIL } from '../deals/sellerBinding.js';
 import { generateObject } from 'ai';
 import { formatUnits, parseUnits, type Log } from 'viem';
 import { publicClient, watchEventsViaGetLogs } from '../chain/client.js';
@@ -925,6 +926,23 @@ async function evaluateAndBid(seller: SellerProfile, job: JobContext) {
         signals: { confidence: judgement.confidence, briefTags, sellerTags },
       },
     });
+    }
+  }
+
+  // An offer from an agent not linked to its person would fund an escrow whose
+  // record lands on the agent. Hold it and say how to link.
+  const linkOwner = await findAgentWalletByAgentAddress(seller.address);
+  if (linkOwner?.userAddress) {
+    const link = await sellerAgentBinding(seller.address, linkOwner.userAddress);
+    if (blocksOffer(link)) {
+      logger.info({ jobId: job.jobId, seller: seller.address, link: link.kind }, 'skipping: seller agent not linked to its owner');
+      bus.emitEvent({
+        type: 'agent.skipped',
+        jobId: job.jobId,
+        actor: 'seller',
+        payload: { seller: seller.address, reason: 'agent-not-linked', detail: SELLER_LINK_DETAIL },
+      });
+      return;
     }
   }
 

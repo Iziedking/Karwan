@@ -314,7 +314,8 @@ function projectEvent(event: ChainEvent): EventProjection | null {
         sourceEventType: event.type,
       };
     case 'agent.skipped':
-      if (reason !== 'insufficient-stake-trusted-match') return null;
+      // Both are fixed on /stake: more stake, or linking the agent.
+      if (reason !== 'insufficient-stake-trusted-match' && reason !== 'agent-not-linked') return null;
       return {
         state: 'paused_needs_approval',
         nextActor: 'seller',

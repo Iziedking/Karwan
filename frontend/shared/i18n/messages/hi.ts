@@ -2011,6 +2011,7 @@ export const hi: Messages = {
       'own-auction': 'आपका अपना विक्रेता',
       'finance-lane-requires-business': 'केवल व्यवसाय विक्रेता',
       'insufficient-stake-trusted-match': 'ट्रस्टेड मैच के लिए पर्याप्त स्टेक नहीं',
+      'agent-not-linked': 'एजेंट आपके खाते से जुड़ा नहीं है',
     },
     scopeLabels: {
       counterEvaluation: 'LLM काउंटर-इवैल विफल',

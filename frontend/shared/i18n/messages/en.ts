@@ -7305,6 +7305,7 @@ export const en: MessagesShape = {
       'own-auction': 'Your own seller',
       'finance-lane-requires-business': 'Business sellers only',
       'insufficient-stake-trusted-match': 'Not enough stake for trusted match',
+      'agent-not-linked': 'Agent not linked to your account',
     },
     scopeLabels: {
       counterEvaluation: 'LLM counter-eval failed',
