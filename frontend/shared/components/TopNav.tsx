@@ -131,7 +131,10 @@ export function TopNav() {
           ) : showAppChrome ? (
               <>
                 <NotificationBell />
+                {/* Where the bottom bar shows, its Profile tab is the one
+                    profile entry; the header pill returns on desktop. */}
                 <ProfileLink
+                  hideBelowLg={shell === 'workspace'}
                   profileActionCount={openDeals.actionCount}
                   profile={profile}
                   identityName={profile?.displayName ?? authEmail?.split('@')[0] ?? ''}
@@ -487,11 +490,13 @@ function NavLinkSoon({
 /// switching lives there with the account tools, while notifications remain in
 /// the header because they are time-sensitive global signals.
 function ProfileLink({
+  hideBelowLg = false,
   profileActionCount,
   profile,
   identityName,
   identityAddress,
 }: {
+  hideBelowLg?: boolean;
   profileActionCount: number;
   profile?: UserProfile | null;
   identityName?: string;
@@ -511,7 +516,7 @@ function ProfileLink({
     <Link
       href="/profile"
       aria-label={t.profile}
-      className="group relative inline-flex min-h-11 max-w-[min(240px,calc(100vw-112px))] shrink-0 items-center gap-2 rounded-full border border-[var(--color-line-strong)] py-1 ps-1 pe-2.5 text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(240px,45vw)]"
+      className={`group relative ${hideBelowLg ? 'hidden lg:inline-flex' : 'inline-flex'} min-h-11 max-w-[min(240px,calc(100vw-112px))] shrink-0 items-center gap-2 rounded-full border border-[var(--color-line-strong)] py-1 ps-1 pe-2.5 text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(240px,45vw)]`}
     >
         <span className="relative grid size-9 shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[11px] font-semibold tracking-[0.04em] text-[var(--color-ink)] sm:size-10">
           <span className="grid size-full place-items-center overflow-hidden rounded-full">

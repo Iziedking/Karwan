@@ -8,6 +8,7 @@ import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { useNotifications } from '@/features/notifications/hooks/useNotifications';
 import { useOpenDeals } from '@/features/notifications/hooks/useOpenDeals';
 import { ActionBeacon } from './ActionBeacon';
+import { PersonAvatar } from './PersonAvatar';
 import { cn } from '@/shared/utils/cn';
 import { getShellSurface, WALLET_HOME } from '@/shared/utils/routes';
 import { DEALS_AVAILABLE } from '@/core/arcNetwork';
@@ -119,7 +120,14 @@ export function WorkspaceBottomNav() {
               className="transition-colors duration-[var(--dur-small)]"
               style={item.active ? { color: 'var(--lp-accent-on-light)' } : undefined}
             >
-              <NavIcon name={item.icon} active={item.active} />
+              {item.icon === 'account' && auth.address ? (
+                // Your own photo marks Profile; the accent ring marks it open.
+                <span className={cn('block rounded-full', item.active && 'ring-2 ring-[var(--lp-accent-on-light)] ring-offset-1 ring-offset-[var(--lp-workspace-band)]')}>
+                  <PersonAvatar address={auth.address} name={t.profile} size={22} />
+                </span>
+              ) : (
+                <NavIcon name={item.icon} active={item.active} />
+              )}
             </span>
             <span className="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium">
               <span className="truncate">{item.label}</span>
