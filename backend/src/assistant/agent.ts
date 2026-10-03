@@ -1450,9 +1450,11 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             }
           }
           for (const r of results.slice(0, 3)) {
+            // Full title as the label and who and how much underneath, so two
+            // offers with similar titles still read as different results.
             const built = r.kind === 'offer'
-              ? buildNavigateAction({ destination: 'offer', listingId: String(r.id), label: `${String(r.title).slice(0, 40)} · ${r.priceUsdc} USDC` })
-              : buildNavigateAction({ destination: 'request', jobId: String(r.jobId), label: `${String(r.title).slice(0, 40)} · ${r.budgetUsdc} USDC` });
+              ? buildNavigateAction({ destination: 'offer', listingId: String(r.id), label: String(r.title).slice(0, 60), description: `${r.seller} · ${r.priceUsdc} USDC` })
+              : buildNavigateAction({ destination: 'request', jobId: String(r.jobId), label: String(r.title).slice(0, 60), description: `Request · ${r.budgetUsdc} USDC · due ${r.due}` });
             if (!('error' in built) && !actions.some((a) => a.id === built.id)) actions.push(built);
           }
           return {

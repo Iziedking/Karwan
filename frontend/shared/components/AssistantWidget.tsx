@@ -582,18 +582,19 @@ function NavigateButton({
     <button
       type="button"
       onClick={go}
-      className="group w-full text-start px-3.5 py-2.5 bg-[var(--lp-accent)] text-[var(--lp-band-dark)] shadow-[0_6px_18px_-10px_rgba(0,0,0,0.5)] hover:brightness-105 transition"
-      style={{ borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomLeftRadius: 12, borderBottomRightRadius: 3 }}
+      className="group flex min-h-12 w-full items-center gap-3 rounded-[14px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] px-3.5 py-2.5 text-start text-[var(--lp-dark)] transition-colors hover:border-[var(--lp-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
     >
-      <span className="flex items-center justify-between gap-2">
-        <span className="mono text-[11px] uppercase tracking-[0.1em] font-bold">{action.label}</span>
-        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 opacity-70 group-hover:translate-x-0.5 transition-transform">
+      <span className="min-w-0 flex-1">
+        <span className="line-clamp-2 text-[14px] font-semibold leading-snug">{action.label}</span>
+        {action.description ? (
+          <span className="mt-0.5 block truncate text-[12.5px] text-[var(--lp-text-sub)]">{action.description}</span>
+        ) : null}
+      </span>
+      <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--lp-light)] text-[var(--lp-text-sub)] transition-colors group-hover:bg-[var(--lp-accent)] group-hover:text-[var(--accent-ink)]">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" className="rtl:-scale-x-100">
           <path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
-      {action.description && (
-        <span className="block mt-0.5 text-[11px] leading-snug font-medium opacity-80">{action.description}</span>
-      )}
     </button>
   );
 }
