@@ -244,9 +244,9 @@ function safeOnChainFundingSummary(onChain: DirectDeal['onChain']) {
 function isValidMilestonePcts(value: unknown): value is number[] {
   return (
     Array.isArray(value) &&
-    value.length >= 2 &&
+    value.length >= 1 &&
     value.length <= 5 &&
-    value.every((pct) => Number.isInteger(pct) && pct > 0 && pct < 100) &&
+    value.every((pct) => Number.isInteger(pct) && pct > 0 && pct <= 100) &&
     value.reduce((total, pct) => total + pct, 0) === 100
   );
 }
@@ -259,7 +259,9 @@ function milestonePctsFor(deal: DirectDeal): number[] {
     return deal.milestonePcts;
   }
   const first = deal.firstReleasePct;
-  return Number.isInteger(first) && first > 0 && first < 100
+  // 100% first is one payment, never a 50/50 split.
+  if (first >= 100) return [100];
+  return Number.isInteger(first) && first > 0
     ? [first, 100 - first]
     : [50, 50];
 }

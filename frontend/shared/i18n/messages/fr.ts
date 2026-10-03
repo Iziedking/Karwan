@@ -3177,7 +3177,7 @@ export const fr: Messages = {
     },
     agreement: {
       title: 'L\'accord',
-      paymentsTemplate: '{n} paiements',
+      paymentsTemplate: '{n} paiements', paymentsOne: '1 paiement',
       deliverByTemplate: 'Livrer avant le {date}',
       feeTemplate: 'Frais de {amount} USDC, partagés à parts égales',
       wrongLink: 'En cas de problème',

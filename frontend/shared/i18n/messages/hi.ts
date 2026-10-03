@@ -3175,7 +3175,7 @@ export const hi: Messages = {
     },
     agreement: {
       title: 'समझौता',
-      paymentsTemplate: '{n} भुगतान',
+      paymentsTemplate: '{n} भुगतान', paymentsOne: '1 भुगतान',
       deliverByTemplate: '{date} तक डिलीवर करें',
       feeTemplate: 'शुल्क {amount} USDC, बराबर बँटा हुआ',
       wrongLink: 'अगर कुछ गलत हो',

@@ -2907,7 +2907,7 @@ interface MessagesShape {
       verifiedPersonDetail: string; settledTemplate: string; onTimeTemplate: string; disputesTemplate: string;
       sinceTemplate: string; stakeTemplate: string; proven: string; newAccount: string; notChecked: string;
     };
-    agreement: { title: string; paymentsTemplate: string; deliverByTemplate: string; feeTemplate: string; wrongLink: string };
+    agreement: { title: string; paymentsTemplate: string; paymentsOne: string; deliverByTemplate: string; feeTemplate: string; wrongLink: string };
     wrong: {
       title: string; dispute: string; deadline: string; silence: string; check: string;
       notCoveredTitle: string; notCoveredReleased: string; notCoveredOutside: string;
@@ -8475,7 +8475,7 @@ export const en: MessagesShape = {
     },
     agreement: {
       title: 'The agreement',
-      paymentsTemplate: '{n} payments',
+      paymentsTemplate: '{n} payments', paymentsOne: '1 payment',
       deliverByTemplate: 'Deliver by {date}',
       feeTemplate: 'Fee {amount} USDC, split evenly',
       wrongLink: 'If something goes wrong',

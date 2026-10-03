@@ -3174,7 +3174,7 @@ export const sw: Messages = {
     },
     agreement: {
       title: 'Makubaliano',
-      paymentsTemplate: 'Malipo {n}',
+      paymentsTemplate: 'Malipo {n}', paymentsOne: 'Malipo 1',
       deliverByTemplate: 'Wasilisha kabla ya {date}',
       feeTemplate: 'Ada {amount} USDC, imegawanywa sawa',
       wrongLink: 'Kitu kikienda vibaya',

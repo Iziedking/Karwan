@@ -33,6 +33,9 @@ export interface DealViewInput {
   seller: string;
   dealAmountUsdc: string;
   firstReleasePct: number;
+  /// The agreed split, when the parties set one. Absent means the split
+  /// implied by firstReleasePct (100 is a single payment).
+  milestonePcts?: number[];
   createdAt: number;
   sellerApprovedAt?: number;
   sellerDeclinedAt?: number;
@@ -85,11 +88,15 @@ export function milestoneAmountUsdc(dealAmountUsdc: string, pct: number): string
   return fromMicros((toMicros(dealAmountUsdc) * BigInt(pct)) / 100n);
 }
 
+/// Chain first, then the agreed split, then the legacy first-release field.
+/// A 100% first release is one payment, never a 50/50 split.
 function milestonePcts(deal: DealViewInput): number[] {
   const onChain = deal.onChain?.milestonePcts;
-  if (onChain && onChain.length >= 2) return onChain;
+  if (onChain && onChain.length >= 1) return onChain;
+  if (deal.milestonePcts && deal.milestonePcts.length >= 1) return deal.milestonePcts;
   const first = deal.firstReleasePct;
-  return first > 0 && first < 100 ? [first, 100 - first] : [50, 50];
+  if (first >= 100) return [100];
+  return first > 0 ? [first, 100 - first] : [50, 50];
 }
 
 export function stageOf(deal: DealViewInput): DealStage {
@@ -99,8 +106,11 @@ export function stageOf(deal: DealViewInput): DealStage {
   const released = deal.onChain?.milestonesReleased ?? 0;
   const total = milestonePcts(deal).length;
   if (deal.settledAt || state === 3 || released >= total || deal.autoReleasedAt) return 'settled';
-  if (released >= total - 1 || (deal.firstAutoReleased && total === 2)) return 'awaiting-final-release';
-  if (deal.delivered || deal.deliveredAt || released >= 1) return 'awaiting-first-release';
+  // Release stages begin with a delivery or a payment; a single-payment deal
+  // goes straight to its final release once delivered.
+  const started = !!(deal.delivered || deal.deliveredAt || released >= 1 || deal.firstAutoReleased);
+  if (started && (released >= total - 1 || (deal.firstAutoReleased && total === 2))) return 'awaiting-final-release';
+  if (started) return 'awaiting-first-release';
   if (deal.acceptedAt) return 'awaiting-delivery';
   if (deal.sellerApprovedAt) return 'awaiting-funding';
   return 'awaiting-acceptance';

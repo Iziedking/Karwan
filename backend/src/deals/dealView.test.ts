@@ -154,3 +154,33 @@ test('n-milestone deals progress through awaiting-first-release for multi-part d
   const view4 = dealView({ ...fivePart, onChain: { state: 2, milestonesReleased: 4, milestonePcts: [20, 20, 20, 20, 20] } }, 'buyer', false, NOW);
   assert.equal(view4.stage, 'awaiting-final-release');
 });
+
+test('a single-payment deal stays one payment from agreement to release', () => {
+  const single: DealViewInput = {
+    ...base,
+    firstReleasePct: 100,
+    sellerApprovedAt: NOW - 9 * 86_400_000,
+    acceptedAt: NOW - 8 * 86_400_000,
+    onChain: { state: 2, milestonesReleased: 0, milestonePcts: [100] },
+  };
+  assert.equal(dealView(single, 'seller', false, NOW).stage, 'awaiting-delivery');
+  assert.deepEqual(dealView(single, 'seller', false, NOW).next, { action: 'deliver', actor: 'you', amountUsdc: null });
+  const delivered = { ...single, delivered: true, deliveredAt: NOW - 86_400_000 };
+  assert.deepEqual(dealView(delivered, 'buyer', false, NOW).next, { action: 'release', actor: 'you', amountUsdc: '1200' });
+  assert.equal(dealView({ ...delivered, onChain: { state: 2, milestonesReleased: 1, milestonePcts: [100] } }, 'buyer', false, NOW).stage, 'settled');
+});
+
+test('the agreed split is used before the chain has one', () => {
+  const split: DealViewInput = {
+    ...base,
+    firstReleasePct: 60,
+    milestonePcts: [60, 30, 10],
+    sellerApprovedAt: NOW - 9 * 86_400_000,
+    acceptedAt: NOW - 8 * 86_400_000,
+    delivered: true,
+    deliveredAt: NOW - 86_400_000,
+  };
+  assert.deepEqual(dealView(split, 'buyer', false, NOW).next, { action: 'release', actor: 'you', amountUsdc: '720' });
+  const one: DealViewInput = { ...split, firstReleasePct: 100, milestonePcts: undefined };
+  assert.deepEqual(dealView(one, 'buyer', false, NOW).next, { action: 'release', actor: 'you', amountUsdc: '1200' });
+});

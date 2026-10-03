@@ -3177,7 +3177,7 @@ export const ar: Messages = {
     },
     agreement: {
       title: 'الاتفاق',
-      paymentsTemplate: '{n} دفعات',
+      paymentsTemplate: '{n} دفعات', paymentsOne: 'دفعة واحدة',
       deliverByTemplate: 'التسليم قبل {date}',
       feeTemplate: 'رسوم {amount} USDC مقسومة بالتساوي',
       wrongLink: 'إذا حدث خطأ',

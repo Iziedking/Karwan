@@ -18,7 +18,9 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
   const copy = useTranslations().dealWorkspace;
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
-  const payments = deal.onChain?.milestonePcts?.length ?? 2;
+  const payments = deal.onChain?.milestonePcts?.length
+    ?? deal.milestonePcts?.length
+    ?? (deal.firstReleasePct >= 100 ? 1 : 2);
   const fee = feeUsdc(deal);
   return (
     <section aria-labelledby={bare ? undefined : 'deal-agreement'} className="space-y-3">
@@ -26,7 +28,7 @@ export function AgreementSection({ deal, bare = false }: { deal: DirectDeal; bar
       <p className="max-w-[62ch] whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--lp-dark)]">{deal.terms}</p>
       <p className="text-[14px] tabular-nums text-[var(--lp-text-sub)]">
         {[
-          fill(copy.agreement.paymentsTemplate, { n: payments }),
+          payments === 1 ? copy.agreement.paymentsOne : fill(copy.agreement.paymentsTemplate, { n: payments }),
           deal.deadlineUnix ? fill(copy.agreement.deliverByTemplate, { date: formatDealDate(deal.deadlineUnix * 1000, locale) }) : null,
           fee ? fill(copy.agreement.feeTemplate, { amount: formatUsdcAmount(fee, locale) }) : null,
         ].filter(Boolean).join(' · ')}
