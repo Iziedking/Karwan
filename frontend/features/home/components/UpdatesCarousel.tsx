@@ -146,10 +146,17 @@ export function UpdateTile({ card, trending, index, total }: { card: UpdateCard;
   const body: ReactNode = card.kind === 'trending'
     ? trending.length > 0
       ? (
-        <span className="mt-2 flex flex-wrap gap-1.5">
+        // One line of chips: a chip that does not fit is hidden rather than
+        // wrapping and pushing the button off the card.
+        <span className="mt-2 flex h-[26px] flex-wrap gap-1.5 overflow-hidden">
           {trending.map((item) => (
-            <span key={item.name} className="rounded-full bg-[var(--lp-card)]/80 px-2.5 py-1 text-[12px] font-medium text-[var(--lp-dark)]">
-              {item.name} · {item.requests === 1 ? t.trendingCountOne : t.trendingCount.replace('{n}', String(item.requests))}
+            <span
+              key={item.name}
+              aria-label={`${item.name}, ${item.requests === 1 ? t.trendingCountOne : t.trendingCount.replace('{n}', String(item.requests))}`}
+              className="inline-flex h-[26px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--lp-card)]/80 px-2.5 text-[12px] font-medium text-[var(--lp-dark)]"
+            >
+              <span aria-hidden>{item.name}</span>
+              <span aria-hidden className="tabular-nums text-[var(--lp-text-sub)]">{item.requests}</span>
             </span>
           ))}
         </span>
