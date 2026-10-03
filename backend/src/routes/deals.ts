@@ -166,6 +166,7 @@ import {
   highSignalBlockedMessage,
   isHighSignalSubject,
   isHighSignalVerified,
+  updateHighSignalParty,
   type HighSignalSubject,
   type VerificationRole,
 } from '../deals/highSignalVerification.js';
@@ -174,6 +175,7 @@ import {
   worldIdDealSessionsConfigured,
 } from './worldId.js';
 import { WorldSessionError, worldAgreementKey } from '../worldid/dealSessions.js';
+import { ARC } from '../chain/client.js';
 import {
   emptyResearchAllowanceSnapshot,
   ResearchAllowanceExhaustedError,
@@ -503,9 +505,13 @@ function highSignalStateFor(deal: DirectDeal) {
   return highSignalForContext(deal.highSignalVerification ?? createHighSignalVerification(subject), worldAgreementKey(deal), config.WORLD_ID_ENVIRONMENT);
 }
 
+/// Testnet lets a party skip the World ID check so a missing credential never
+/// blocks trying a deal. Mainnet always enforces it, against bots and sybils.
+const WORLD_SKIP_ALLOWED = ARC.testnet;
+
 function highSignalGate(deal: DirectDeal, role: VerificationRole) {
   const state = highSignalStateFor(deal);
-  if (!state || isHighSignalVerified(state, role)) return null;
+  if (!state || isHighSignalVerified(state, role, { allowSkip: WORLD_SKIP_ALLOWED })) return null;
   return {
     error: highSignalBlockedMessage(role),
     code: 'HIGH_SIGNAL_VERIFICATION_REQUIRED' as const,
@@ -1883,7 +1889,7 @@ dealsRoutes.post('/direct/:jobId/high-signal/request', async (c) => {
   const role = dealPartyRole(deal, body.caller);
   if (!role) return c.json({ error: 'caller is not a party to this deal' }, 403);
   const state = highSignalStateFor(deal);
-  if (!state || !state[role] || isHighSignalVerified(state, role)) {
+  if (!state || !state[role] || isHighSignalVerified(state, role, { allowSkip: WORLD_SKIP_ALLOWED })) {
     return c.json({ ...highSignalPublicState(deal, role), request: null }, 200);
   }
   if (!worldIdDealSessionsConfigured()) return c.json({
@@ -1916,6 +1922,33 @@ dealsRoutes.post('/direct/:jobId/high-signal/verify', async (c) => {
       provider: 'world-id' as const, environment: config.WORLD_ID_ENVIRONMENT,
     }, 200);
   } catch (error) { return worldSessionFailure(c, error); }
+});
+
+/// Testnet only: record that this party skipped the World ID check for the
+/// current terms. It is not a verification and never reads as one.
+dealsRoutes.post('/direct/:jobId/high-signal/skip', async (c) => {
+  c.header('Cache-Control', 'no-store');
+  if (!WORLD_SKIP_ALLOWED) return c.json({ error: 'This check cannot be skipped on mainnet.', code: 'SKIP_NOT_ALLOWED' }, 403);
+  const jobId = c.req.param('jobId');
+  let body;
+  try { body = highSignalCallerSchema.parse(await c.req.json()); }
+  catch (err) { return c.json({ error: invalidBodyMessage(err) }, 400); }
+  if (!isSessionSelf(c, body.caller)) return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
+  const deal = await getDeal(jobId);
+  if (!deal) return c.json({ error: 'deal not found' }, 404);
+  const role = dealPartyRole(deal, body.caller);
+  if (!role) return c.json({ error: 'caller is not a party to this deal' }, 403);
+  const state = highSignalStateFor(deal);
+  if (!state || !state[role] || isHighSignalVerified(state, role, { allowSkip: true })) {
+    return c.json(highSignalPublicState(deal, role), 200);
+  }
+  const updated = await patchDeal(jobId, {
+    highSignalVerification: updateHighSignalParty(state, role, { status: 'skipped', skippedAt: Date.now(), agreementKey: worldAgreementKey(deal) }),
+  });
+  if (!updated) return c.json({ error: 'deal disappeared' }, 409);
+  invalidateDealsCache();
+  logger.info({ jobId, role }, 'world id check skipped on testnet');
+  return c.json(highSignalPublicState(updated, role), 200);
 });
 
 /// Seller agrees to the current commercial terms. This may provision their

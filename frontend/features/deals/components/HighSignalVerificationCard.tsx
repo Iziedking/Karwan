@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { IDKitSessionWidget, CredentialRequest, any, type IDKitResultSession } from '@worldcoin/idkit';
 import { api, type DirectDeal } from '@/core/api';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { ARC_NETWORK } from '@/core/arcNetwork';
 
 type Role = 'buyer' | 'seller';
 
@@ -46,7 +47,23 @@ function DealWorldCheck({
   const staleAgreement = !deal.agreementDigest || party?.agreementKey !== `${deal.agreementVersion ?? 1}:${deal.agreementDigest}`;
   const status = state?.callerStatus ?? (staleAgreement ? 'pending' : party?.status) ?? 'pending';
   const required = state?.subject === 'both' || state?.subject === role || deal.verificationSubject === role || deal.verificationSubject === 'both';
-  if (!required) return null;
+  // A testnet skip clears the card; new terms bring it back.
+  if (!required || status === 'skipped') return null;
+
+  async function skip() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.skipHighSignal(deal.jobId, caller);
+      if (!active.current) return;
+      setState((previous) => previous ? { ...previous, callerStatus: 'skipped' } : previous);
+      onRefresh();
+    } catch {
+      if (active.current) setError(copy.error);
+    } finally {
+      if (active.current) setBusy(false);
+    }
+  }
 
   async function begin() {
     if (request && request.expires_at * 1000 > Date.now()) {
@@ -138,6 +155,16 @@ function DealWorldCheck({
           >
             {busy ? copy.preparing : request ? copy.resume : copy.start}
           </button>
+          {ARC_NETWORK === 'testnet' ? (
+            <button
+              type="button"
+              onClick={skip}
+              disabled={busy}
+              className="ms-auto min-h-11 rounded-full px-2 text-[11px] text-[var(--lp-text-muted)] opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] disabled:opacity-40"
+            >
+              {copy.skip}
+            </button>
+          ) : null}
         </div>
       ) : null}
       {request && rpContext ? (

@@ -698,8 +698,8 @@ export interface DirectDeal {
     mode: 'high_signal';
     subject: 'buyer' | 'seller' | 'both';
     provider: 'world-id';
-    buyer?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
-    seller?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
+    buyer?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
+    seller?: { status: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped'; verifiedAt?: number; environment?: 'staging' | 'production'; agreementKey?: string };
   };
   creVerification?: {
     state: 'awaitingDelivery' | 'awaitingRequest' | 'queued' | 'checking' | 'confirming' | 'pass' | 'mismatch' | 'unavailable';
@@ -3761,17 +3761,22 @@ export const api = {
       subject: 'buyer' | 'seller' | 'both' | null;
       provider: 'world-id' | null;
       callerRole: 'buyer' | 'seller' | null;
-      callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
-      buyerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
-      sellerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
+      callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped' | null;
+      buyerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped' | null;
+      sellerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped' | null;
       world: { configured: boolean; environment: 'staging' | 'production'; action: string | null; appId: string | null; rpId: string | null };
     }>(`/api/deals/direct/${jobId}/high-signal${caller ? `?caller=${encodeURIComponent(caller)}` : ''}`),
   requestHighSignal: (jobId: string, caller: string) =>
     json<{
       policy: 'standard' | 'high_signal';
-      callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | null;
+      callerStatus: 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped' | null;
       request: { provider: 'world-id'; proofMode: 'session'; sessionId?: string; appId: string; rpId: string; environment: 'staging' | 'production'; nonce: string; sig: string; created_at: number; expires_at: number } | null;
     }>(`/api/deals/direct/${jobId}/high-signal/request`, {
+      method: 'POST', body: JSON.stringify({ caller }),
+    }),
+  /// Testnet only; the server refuses it on mainnet.
+  skipHighSignal: (jobId: string, caller: string) =>
+    json<{ callerStatus: 'skipped' | 'verified' | null }>(`/api/deals/direct/${jobId}/high-signal/skip`, {
       method: 'POST', body: JSON.stringify({ caller }),
     }),
   verifyHighSignal: (jobId: string, caller: string, idkitResponse: Record<string, unknown>) =>

@@ -5,12 +5,15 @@
  */
 export type HighSignalSubject = 'buyer' | 'seller' | 'both';
 export type VerificationRole = 'buyer' | 'seller';
-export type HighSignalStatus = 'pending' | 'verified' | 'unavailable' | 'rejected';
+/// 'skipped' is a testnet-only waiver. It opens the gate where skipping is
+/// allowed and never counts as a verified person anywhere.
+export type HighSignalStatus = 'pending' | 'verified' | 'unavailable' | 'rejected' | 'skipped';
 
 export interface HighSignalPartyState {
   status: HighSignalStatus;
   requestedAt?: number;
   verifiedAt?: number;
+  skippedAt?: number;
   verificationLevel?: string;
   environment?: 'staging' | 'production';
   nullifierDigest?: string;
@@ -37,9 +40,11 @@ export function requiresHighSignal(subject: HighSignalSubject, role: Verificatio
 export function isHighSignalVerified(
   state: HighSignalVerification | undefined,
   role: VerificationRole,
+  options: { allowSkip?: boolean } = {},
 ): boolean {
   if (!state || !requiresHighSignal(state.subject, role)) return true;
-  return state[role]?.status === 'verified';
+  const status = state[role]?.status;
+  return status === 'verified' || (options.allowSkip === true && status === 'skipped');
 }
 
 export function createHighSignalVerification(subject: HighSignalSubject): HighSignalVerification {
@@ -75,7 +80,8 @@ export function highSignalForContext(state: HighSignalVerification, agreementKey
   let current = state;
   for (const role of ['buyer', 'seller'] as const) {
     const party = current[role];
-    if (party?.status === 'verified' && (party.agreementKey !== agreementKey || party.environment !== environment)) {
+    const stale = party?.agreementKey !== agreementKey;
+    if ((party?.status === 'verified' && (stale || party.environment !== environment)) || (party?.status === 'skipped' && stale)) {
       current = updateHighSignalParty(current, role, { status: 'pending' });
     }
   }

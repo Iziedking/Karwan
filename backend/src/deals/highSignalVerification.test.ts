@@ -57,6 +57,18 @@ test('route gate does not waive an agreed requirement based on provider configur
     const source = readFileSync(new URL('../routes/deals.ts', import.meta.url), 'utf8');
     const gate = source.slice(source.indexOf('function highSignalGate('), source.indexOf('export const dealsRoutes'));
     assert.match(gate, /highSignalStateFor\(deal\)/);
-    assert.match(gate, /isHighSignalVerified\(state, role\)/);
+    assert.match(gate, /isHighSignalVerified\(state, role, \{ allowSkip: WORLD_SKIP_ALLOWED \}\)/);
+    // The only waiver is the testnet skip; mainnet never allows it.
+    assert.match(source, /const WORLD_SKIP_ALLOWED = ARC\.testnet;/);
     assert.doesNotMatch(gate, /worldIdProofConfigured|WORLD_ID_ENABLED/);
+});
+
+test('a skip satisfies the gate only where skipping is allowed, and never counts as verified', () => {
+  const state = updateHighSignalParty(createHighSignalVerification('seller'), 'seller', { status: 'skipped', agreementKey: 'v1' });
+  assert.equal(isHighSignalVerified(state, 'seller', { allowSkip: true }), true);
+  assert.equal(isHighSignalVerified(state, 'seller'), false);
+  assert.equal(isHighSignalVerified(state, 'seller', { allowSkip: false }), false);
+  // New terms need a new decision.
+  assert.equal(highSignalForContext(state, 'v2', 'production').seller?.status, 'pending');
+  assert.equal(highSignalForContext(state, 'v1', 'production').seller?.status, 'skipped');
 });
