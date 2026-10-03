@@ -34,3 +34,18 @@ test('account-specific agent questions require live state', () => {
     true,
   );
 });
+
+test('an earlier balance question does not make a later product question stateful', () => {
+  const history = [
+    { role: 'user' as const, content: 'what is my balance?' },
+    { role: 'assistant' as const, content: 'Your wallet holds 10 USDC.' },
+  ];
+  assert.equal(
+    requiresLiveAccountState([...history, { role: 'user', content: 'can you help me find customers to trade with on karwan ?' }]),
+    false,
+  );
+  assert.equal(
+    requiresLiveAccountState([...history, { role: 'user', content: 'what about now?' }]),
+    true,
+  );
+});

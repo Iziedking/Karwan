@@ -7,11 +7,10 @@ export type AssistantSafetyMessage = { role: 'user' | 'assistant'; content: stri
  * guess. Static product questions may still use the provider chain.
  */
 export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): boolean {
-  const text = messages
-    .filter((m) => m.role === 'user')
-    .map((m) => m.content)
-    .join(' ')
-    .toLowerCase();
+  // Only the current turn decides. Joining history made one early balance
+  // question turn every later product question stateful. Follow-ups such as
+  // "what about now?" still fail closed because they are not generic help.
+  const text = (messages.filter((m) => m.role === 'user').at(-1)?.content ?? '').toLowerCase();
   // Keep the classifier conservative. A generic product question such as
   // “how does agent matching work?” is static knowledge and may use the
   // provider fallback. Account-specific wording, money verbs, and outcome
