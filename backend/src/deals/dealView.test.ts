@@ -31,10 +31,10 @@ test('a fresh agreement waits on the seller to accept', () => {
   assert.equal(dealView(base, 'buyer', false, NOW).stage, 'awaiting-acceptance');
 });
 
-test('a turned-down agreement moves to the buyer and the seller can still agree', () => {
+test('a turned-down agreement moves to the buyer and the seller waits for new terms', () => {
   const declined = { ...base, sellerDeclinedAt: NOW - 3_600_000 };
   assert.deepEqual(dealView(declined, 'buyer', false, NOW).next, { action: null, actor: 'you', amountUsdc: null });
-  assert.deepEqual(dealView(declined, 'seller', false, NOW).next, { action: 'accept', actor: 'you', amountUsdc: null });
+  assert.deepEqual(dealView(declined, 'seller', false, NOW).next, { action: null, actor: 'counterparty', amountUsdc: null });
   assert.equal(dealView(declined, 'buyer', false, NOW).money.line, 'not-funded');
 });
 

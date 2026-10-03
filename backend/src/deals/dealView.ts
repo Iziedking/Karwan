@@ -172,8 +172,12 @@ function next(deal: DealViewInput, stage: DealStage, viewer: 'buyer' | 'seller',
     return deal.cancellationProposal.proposedBy === viewer ? none('counterparty') : you('respond-cancel');
   }
   if (stage === 'disputed') return none('nobody');
-  // After a turn-down the buyer moves next by changing the terms; the seller can still agree.
-  if (stage === 'awaiting-acceptance') return viewer === 'seller' ? you('accept') : none(deal.sellerDeclinedAt ? 'you' : 'counterparty');
+  // After a turn-down the buyer moves next by changing the terms. The seller
+  // waits for them: agreeing to terms they just refused is never offered.
+  if (stage === 'awaiting-acceptance') {
+    if (deal.sellerDeclinedAt) return viewer === 'buyer' ? none('you') : none('counterparty');
+    return viewer === 'seller' ? you('accept') : none('counterparty');
+  }
   if (stage === 'awaiting-funding') return viewer === 'buyer' ? you('fund', deal.dealAmountUsdc) : none('counterparty');
   if (stage === 'awaiting-delivery') {
     if (deal.extensionRequest) return viewer === 'buyer' ? you('respond-extension') : none('counterparty');

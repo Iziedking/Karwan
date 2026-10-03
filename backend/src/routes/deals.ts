@@ -1006,6 +1006,7 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
     payload: {
       buyer: deal.buyer,
       seller: deal.seller,
+      dealAmountUsdc: updated?.dealAmountUsdc ?? deal.dealAmountUsdc,
       fields: Object.keys(patch),
       changedLabels,
     },
@@ -1139,6 +1140,7 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
       buyer: deal.buyer,
       seller: deal.seller,
       countered: true,
+      dealAmountUsdc: updated.dealAmountUsdc,
       fields: Object.keys(patch),
       changedLabels: ['Seller proposed revised terms for buyer review'],
     },
@@ -1935,6 +1937,9 @@ dealsRoutes.post('/direct/:jobId/accept', async (c) => {
   }
   if (body.caller.toLowerCase() !== deal.seller) {
     return c.json({ error: 'only the named seller can agree to this deal' }, 403);
+  }
+  if (deal.sellerDeclinedAt) {
+    return c.json({ error: 'You turned these terms down. Wait for the buyer to send new terms.', code: 'DECLINED' }, 409);
   }
   const sellerHighSignalGate = highSignalGate(deal, 'seller');
   if (sellerHighSignalGate) return c.json(sellerHighSignalGate, 409);
