@@ -108,6 +108,28 @@ export const sfx = {
     tone(659.25, 0.14, 0.08, 'sine', 0.055); // E5
     tone(783.99, 0.32, 0.16, 'sine', 0.055); // G5
   },
+  /// A soft two-note bell for a new notification. Audio a browser has put to
+  /// sleep is woken first; a chime that cannot start within a second is
+  /// dropped, never played late.
+  chime() {
+    if (muted) return;
+    const c = getCtx();
+    if (!c) return;
+    const ring = () => {
+      tone(987.77, 0.22, 0, 'sine', 0.045); // B5
+      tone(1318.51, 0.42, 0.11, 'sine', 0.04); // E6
+    };
+    if (isRunning(c)) {
+      ring();
+      return;
+    }
+    const askedAt = Date.now();
+    c.resume()
+      .then(() => {
+        if (isRunning(c) && Date.now() - askedAt < 1000) ring();
+      })
+      .catch(() => {});
+  },
   /// One of the four money sounds. Only shared/sound/moneySounds calls this. A
   /// sound that cannot start within a second of being asked for is dropped,
   /// never played late.

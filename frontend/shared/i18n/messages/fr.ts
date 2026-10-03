@@ -514,6 +514,7 @@ export const fr: Messages = {
     },
     toast: {
       openAction: 'Ouvrir',
+      dismiss: 'Fermer',
       labels: {
         matchFound: 'Correspondance trouvée',
         escrowFunded: 'Séquestre financé',
@@ -4929,6 +4930,7 @@ export const fr: Messages = {
   },
   worldCheck: {
     unavailableLabel: "Indisponible",
+    skip: "Passer sur testnet",
     title: "World ID · Selfie Check",
     verified: "Selfie Check enregistré",
     buyer: "Vérifiez-vous avant de financer cette transaction.",

@@ -144,5 +144,5 @@ export function createMoneySounds(player: SoundPlayer, now: () => number = Date.
 /// The app's instance on the real kit. Muting lives in sfx.
 export const moneySounds: MoneySounds = createMoneySounds({
   money: (kind) => sfx.playMoney(kind),
-  notice: () => sfx.send(),
+  notice: () => sfx.chime(),
 });

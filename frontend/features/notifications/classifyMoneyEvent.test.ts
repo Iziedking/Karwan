@@ -61,7 +61,7 @@ const CASES: Case[] = [
   ...[
     'deal.matched', 'deal.match.approved', 'deal.match.declined', 'deal.match.raised',
     'negotiation.near-miss', 'job.expired', 'listing.matched', 'agent.declined',
-    'deal.direct.created', 'deal.direct.declined', 'deal.invite.claimed', 'deal.seller-approved', 'deal.accepted',
+    'deal.direct.created', 'deal.direct.declined', 'deal.direct.edited', 'deal.invite.claimed', 'deal.seller-approved', 'deal.accepted',
     'deal.delivered', 'deal.delivery.flagged', 'deal.delivery.cleared', 'deal.fund.insufficient',
     'deal.review.started', 'deal.review.heartbeat', 'deal.deadline.passed', 'deal.disputed',
     'deal.cancel.proposed', 'deal.cancel.declined', 'factoring.requested', 'factoring.offered',

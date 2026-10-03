@@ -149,6 +149,11 @@ function shouldNotify(
     const by = payload?.proposedBy as Role | undefined;
     return !!role && !!by && role !== by; // only the counterparty hears the proposal
   }
+  // A buyer edit or a seller counter is news only to the other side.
+  if (type === 'deal.direct.edited') {
+    const by: Role = payload?.countered ? 'seller' : 'buyer';
+    return !!role && role !== by;
+  }
   if (type === 'deal.cancel.declined') {
     const by = payload?.proposedBy as Role | undefined;
     return !!role && !!by && role === by; // only the proposer hears the decline
@@ -282,6 +287,12 @@ function summaryFor(
       return dealAmount
         ? `Deal bound to your wallet at ${dealAmount} USDC. Review and agree to the terms.`
         : 'Deal bound to your wallet. Review and agree to the terms.';
+    case 'deal.direct.edited': {
+      const who = payload?.countered ? 'The seller' : 'The buyer';
+      return dealAmount
+        ? `${who} sent new terms at ${dealAmount} USDC. Review them and agree if they work for you.`
+        : `${who} sent new terms. Review them and agree if they work for you.`;
+    }
     case 'deal.seller-approved':
       return 'Seller agreed to the terms. Review the exact total and fund escrow when ready.';
     case 'deal.direct.declined':

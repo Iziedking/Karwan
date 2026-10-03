@@ -511,6 +511,7 @@ export const sw: Messages = {
     },
     toast: {
       openAction: 'Fungua',
+      dismiss: 'Funga',
       labels: {
         matchFound: 'Ulinganifu umepatikana',
         escrowFunded: 'Escrow imefadhiliwa',
@@ -4926,6 +4927,7 @@ export const sw: Messages = {
   },
   worldCheck: {
     unavailableLabel: "Haipatikani",
+    skip: "Ruka kwenye testnet",
     title: "World ID · Selfie Check",
     verified: "Selfie Check imerekodiwa",
     buyer: "Thibitisha kabla ya kufadhili mkataba huu.",

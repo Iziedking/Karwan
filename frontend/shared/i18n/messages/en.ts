@@ -466,6 +466,7 @@ interface MessagesShape {
     };
     toast: {
       openAction: string;
+      dismiss: string;
       labels: {
         matchFound: string;
         escrowFunded: string;
@@ -4541,6 +4542,7 @@ interface MessagesShape {
   };
   worldCheck: {
     unavailableLabel: string;
+    skip: string;
     title: string;
     verified: string;
     buyer: string;
@@ -5780,6 +5782,7 @@ export const en: MessagesShape = {
     },
     toast: {
       openAction: 'Open',
+      dismiss: 'Dismiss',
       labels: {
         matchFound: 'Match found',
         escrowFunded: 'Escrow funded',
@@ -10351,6 +10354,7 @@ export const en: MessagesShape = {
   },
   worldCheck: {
     unavailableLabel: "Unavailable",
+    skip: "Skip on testnet",
     title: "World ID · Selfie Check",
     verified: "Selfie Check recorded",
     buyer: "Verify before funding this deal.",

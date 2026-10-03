@@ -512,6 +512,7 @@ export const hi: Messages = {
     },
     toast: {
       openAction: 'खोलें',
+      dismiss: 'बंद करें',
       labels: {
         matchFound: 'मैच मिला',
         escrowFunded: 'एस्क्रो फंड हो गया',
@@ -4927,6 +4928,7 @@ export const hi: Messages = {
   },
   worldCheck: {
     unavailableLabel: "उपलब्ध नहीं",
+    skip: "टेस्टनेट पर छोड़ें",
     title: "World ID · Selfie Check",
     verified: "Selfie Check दर्ज है",
     buyer: "इस डील को फंड करने से पहले सत्यापन करें।",

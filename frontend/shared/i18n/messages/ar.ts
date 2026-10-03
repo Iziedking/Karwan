@@ -514,6 +514,7 @@ export const ar: Messages = {
     },
     toast: {
       openAction: 'فتح',
+      dismiss: 'إغلاق',
       labels: {
         matchFound: 'تم العثور على تطابق',
         escrowFunded: 'تم تمويل الضمان',
@@ -4929,6 +4930,7 @@ export const ar: Messages = {
   },
   worldCheck: {
     unavailableLabel: "غير متاح",
+    skip: "تخطٍّ على الشبكة التجريبية",
     title: "World ID · Selfie Check",
     verified: "تم تسجيل فحص السيلفي",
     buyer: "تحقق قبل تمويل هذه الصفقة.",

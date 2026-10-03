@@ -19,6 +19,8 @@ export const DIRECT_TYPES = new Set([
   'deal.invite.claimed',
   'deal.seller-approved',
   'deal.direct.declined',
+  // New terms after an edit or a counter. Only the other side hears it.
+  'deal.direct.edited',
   'deal.accepted',
   'deal.delivered',
   'deal.delivery.flagged',
@@ -95,6 +97,7 @@ export const ACTION_TYPES = new Set([
   'deal.direct.created',
   'deal.seller-approved',
   'deal.direct.declined',
+  'deal.direct.edited',
   'deal.delivered',
   'deal.delivery.flagged',
   'deal.delivery.cleared',
@@ -126,6 +129,7 @@ export const TOAST_TYPES = new Set([
   'deal.match.approved',
   'deal.seller-approved',
   'deal.direct.declined',
+  'deal.direct.edited',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
   'negotiation.near-miss',
@@ -165,6 +169,7 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.invite.claimed': 'seller', // the claimer is the seller; surface "deal is yours" in their bell post-claim
   'deal.seller-approved': 'buyer', // seller agreed; buyer now reviews and funds
   'deal.direct.declined': 'buyer', // seller turned the terms down with a note
+  'deal.direct.edited': 'both', // special-cased below to the side that did not edit
   'deal.accepted': 'both', // escrow is now funded and active
   'deal.delivered': 'buyer', // the buyer verifies and releases
   'deal.delivery.flagged': 'both', // seller fixes the link, buyer learns release is paused

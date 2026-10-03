@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { useNotifications } from '../hooks/useNotifications';
+import { Icon } from '@/shared/components/Icon';
+import { useNotifications, type AppNotification } from '../hooks/useNotifications';
 import { safeNotificationHref } from '../notificationRouting';
 import { relativeTime } from '@/shared/utils/format';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { requestPageRefresh } from '@/shared/utils/pageRefresh';
+import { KindIcon } from './KindIcon';
 
 export function NotificationBell() {
   const { isAuthenticated: isConnected } = useAuth();
@@ -25,12 +27,7 @@ export function NotificationBell() {
     if (!open) return;
     function onPointer(e: MouseEvent) {
       const target = e.target as Node;
-      if (
-        (wrapRef.current && wrapRef.current.contains(target)) ||
-        (panelRef.current && panelRef.current.contains(target))
-      ) {
-        return;
-      }
+      if (wrapRef.current?.contains(target) || panelRef.current?.contains(target)) return;
       setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
@@ -46,147 +43,93 @@ export function NotificationBell() {
 
   if (!isConnected) return null;
 
-  const unreadLabel = unreadCount > 0
-    ? `${t.aria}, ${unreadCount} unread`
-    : t.aria;
+  function openItem(n: AppNotification) {
+    markRead(n.id);
+    setOpen(false);
+    const href = safeNotificationHref(n);
+    // Already on that page: navigating to it changes nothing, so ask the page
+    // to read its data again.
+    if (href.split('#')[0] === window.location.pathname) requestPageRefresh();
+    router.push(href);
+  }
 
   return (
     <div ref={wrapRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((s) => !s)}
-        aria-label={unreadLabel}
-        className="relative inline-flex items-center justify-center w-11 h-11 rounded-full text-[var(--color-ink-dim)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)] transition-colors"
+        aria-label={unreadCount > 0 ? `${t.aria}, ${unreadCount} unread` : t.aria}
+        aria-expanded={open}
+        className="relative inline-flex size-11 items-center justify-center rounded-full text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-          <path
-            d="M8 2a3.5 3.5 0 0 0-3.5 3.5c0 2.6-1 3.8-1.4 4.2-.2.2-.3.4-.2.6.1.3.4.4.6.4h9c.3 0 .5-.1.6-.4.1-.2 0-.4-.2-.6-.4-.4-1.4-1.6-1.4-4.2A3.5 3.5 0 0 0 8 2Z"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M6.5 13a1.7 1.7 0 0 0 3 0"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-          />
-        </svg>
-        {unreadCount > 0 && (
+        <Icon name="bell" size={20} />
+        {unreadCount > 0 ? (
           <span
-            aria-live="polite"
-            className="absolute -top-1 -end-1 z-10 inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] px-1 mono text-[9px] font-bold leading-none tabular-nums text-[var(--accent-ink)]"
-            style={{ background: 'var(--lp-accent)' }}
+            aria-hidden
+            className="absolute end-1.5 top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--lp-accent)] px-1 text-[10px] font-bold tabular-nums leading-none text-[var(--accent-ink)]"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
-        )}
+        ) : null}
       </button>
 
-      {open && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={panelRef}
-          className="fixed start-2 end-2 top-[60px] sm:start-auto sm:end-3 sm:w-[340px] max-w-[calc(100vw-1rem)] bg-[var(--lp-card)] z-[60] fade-up overflow-hidden"
-          style={{
-            border: '1px solid var(--lp-border-light)',
-            borderTopLeftRadius: 14,
-            borderTopRightRadius: 14,
-            borderBottomLeftRadius: 14,
-            borderBottomRightRadius: 4,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 18px 56px -20px rgba(0,0,0,0.22)',
-            color: 'var(--lp-dark)',
-          }}
-        >
-          <div
-            className="px-4 py-3 flex items-baseline justify-between"
-            style={{ borderBottom: '1px solid var(--lp-border-light)' }}
-          >
-            <span className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-              {t.sectionTag}
-            </span>
-            {notifications.length > 0 && (
-              <div className="flex items-center gap-3">
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={markAllRead}
-                    className="-mx-2 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)]"
-                  >
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={panelRef}
+              role="dialog"
+              aria-label={t.sectionTag}
+              className="fade-up fixed end-2 start-2 top-[64px] z-[60] flex max-h-[min(72dvh,560px)] flex-col overflow-hidden rounded-[22px] border border-[var(--lp-border-light)] bg-[var(--lp-card)] text-[var(--lp-dark)] sm:start-auto sm:end-4 sm:w-[400px]"
+              style={{ boxShadow: 'var(--product-panel-shadow, 0 18px 48px -24px rgba(0,0,0,0.35))' }}
+            >
+              <header className="flex items-center justify-between gap-3 px-5 pb-2 pt-4">
+                <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{t.sectionTag}</h2>
+                {unreadCount > 0 ? (
+                  <button type="button" onClick={markAllRead} className="-me-2 min-h-11 rounded-full px-3 text-[13px] font-semibold text-[var(--lp-text-sub)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
                     {t.markRead}
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="-mx-2 inline-flex min-h-11 items-center px-2 mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)]"
-                >
-                  {t.clear}
-                </button>
-              </div>
-            )}
-          </div>
+                ) : null}
+              </header>
 
-          {notifications.length === 0 ? (
-            <div className="px-4 py-10 text-center space-y-1.5">
-              <p className="mono text-[10px] uppercase tracking-[0.18em] text-[var(--lp-text-muted)]">
-                {t.emptyTitle}
-              </p>
-              <p className="text-[12px] text-[var(--lp-text-sub)] leading-snug max-w-[28ch] mx-auto">
-                {t.emptyBody}
-              </p>
-            </div>
-          ) : (
-            <ul className="max-h-[420px] overflow-y-auto divide-y divide-[var(--lp-border-light)]">
-              {notifications.map((n) => (
-                <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      markRead(n.id);
-                      setOpen(false);
-                      const href = safeNotificationHref(n);
-                      // Already on that page: navigating to it changes nothing,
-                      // so ask the page to read its data again.
-                      if (href.split('#')[0] === window.location.pathname) requestPageRefresh();
-                      router.push(href);
-                    }}
-                    className="w-full text-start px-4 py-3 hover:bg-[var(--lp-light)] transition-colors flex items-start gap-3"
-                  >
-                    <span
-                      aria-hidden
-                      className="mt-[5px] shrink-0 inline-block w-[6px] h-[6px]"
-                      style={{
-                        background: n.read ? 'rgba(0,0,0,0.18)' : 'var(--lp-accent)',
-                      }}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={`block text-[12.5px] leading-snug ${
-                          n.read
-                            ? 'text-[var(--lp-text-sub)]'
-                            : 'text-[var(--lp-dark)] font-medium'
-                        }`}
-                      >
-                        {n.summary}
-                      </span>
-                      <span className="mt-1 block mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                        {relativeTime(n.ts)}
-                      </span>
-                    </span>
-                    <span
-                      aria-hidden
-                      className="mono text-[9px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)] mt-1 shrink-0"
-                    >
-                      {t.openAction} →
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>,
-        document.body,
-      )}
+              {notifications.length === 0 ? (
+                <div className="px-5 pb-8 pt-6 text-center">
+                  <p className="text-[15px] font-semibold">{t.emptyTitle}</p>
+                  <p className="mx-auto mt-1 max-w-[32ch] text-[13px] leading-snug text-[var(--lp-text-sub)]">{t.emptyBody}</p>
+                </div>
+              ) : (
+                <>
+                  <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+                    {notifications.map((n) => (
+                      <li key={n.id}>
+                        <button
+                          type="button"
+                          onClick={() => openItem(n)}
+                          className={`flex w-full items-start gap-3 rounded-[16px] px-3 py-3 text-start transition-colors hover:bg-[var(--lp-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-accent)] ${n.read ? '' : 'bg-[var(--tint)]'}`}
+                        >
+                          <KindIcon type={n.type} />
+                          <span className="min-w-0 flex-1">
+                            <span className={`block text-[14px] leading-snug ${n.read ? 'text-[var(--lp-text-sub)]' : 'font-medium text-[var(--lp-dark)]'}`}>
+                              {n.summary}
+                            </span>
+                            <span className="mt-1 block text-[12px] text-[var(--lp-text-muted)]">{relativeTime(n.ts)}</span>
+                          </span>
+                          {n.read ? null : <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--lp-accent)]" />}
+                          <span className="sr-only">{t.openAction}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <footer className="border-t border-[var(--lp-border-light)] px-5 py-1 text-end">
+                    <button type="button" onClick={clearAll} className="-me-2 min-h-11 rounded-full px-3 text-[13px] text-[var(--lp-text-muted)] transition-colors hover:text-[var(--lp-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]">
+                      {t.clear}
+                    </button>
+                  </footer>
+                </>
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
