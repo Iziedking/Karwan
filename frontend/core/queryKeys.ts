@@ -38,6 +38,11 @@ export const qk = {
       ['profile', 'by-address', address.toLowerCase()] as const,
   },
 
+  /// Other people's photos. Not under 'profile', so they stay out of the
+  /// localStorage snapshot: a restored copy hid freshly uploaded photos, and
+  /// every counterparty's image would sit in storage.
+  personAvatar: (address: string) => ['person-avatar', address.toLowerCase()] as const,
+
   business: {
     status: (address: string | null | undefined) =>
       ['business', 'status', (address ?? 'anon').toLowerCase()] as const,
@@ -104,6 +109,7 @@ export type QueryKey = ReturnType<
   | typeof qk.reputation
   | typeof qk.profile.me
   | typeof qk.profile.byAddress
+  | typeof qk.personAvatar
   | typeof qk.business.status
   | typeof qk.workspaces.me
   | typeof qk.workspaces.availability

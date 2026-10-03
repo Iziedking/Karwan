@@ -1,21 +1,32 @@
 'use client';
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/core/api';
 import { qk } from '@/core/queryKeys';
+import { PROFILE_SAVED_EVENT } from '@/shared/hooks/useUserProfile';
 
 /// A person's profile photo (their upload, else their X image), or the first
 /// letter of their name when there is none or it fails to load. Fetched once
 /// per person and shared by every place that shows them.
 export function PersonAvatar({ address, name, size = 40 }: { address?: string; name: string; size?: number }) {
   const profile = useQuery({
-    queryKey: qk.profile.byAddress(address ?? ''),
+    queryKey: qk.personAvatar(address ?? ''),
     queryFn: () => api.getProfile(address!),
     enabled: !!address,
-    staleTime: 5 * 60_000,
+    staleTime: 60_000,
   });
+  const queryClient = useQueryClient();
+  // A photo you just changed shows at once on your own messages.
+  useEffect(() => {
+    const refresh = () => void queryClient.invalidateQueries({ queryKey: ['person-avatar'] });
+    window.addEventListener(PROFILE_SAVED_EVENT, refresh);
+    return () => window.removeEventListener(PROFILE_SAVED_EVENT, refresh);
+  }, [queryClient]);
   const [failed, setFailed] = useState(false);
-  const image = failed ? undefined : profile.data?.profile?.profileImageDataUrl || profile.data?.profile?.xProfileImageUrl;
+  // A new photo gets a fresh chance to load after an earlier one failed.
+  const image0 = profile.data?.profile?.profileImageDataUrl || profile.data?.profile?.xProfileImageUrl;
+  useEffect(() => setFailed(false), [image0]);
+  const image = failed ? undefined : image0;
   if (image) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
