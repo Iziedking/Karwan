@@ -31,7 +31,12 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
   // wording is public. Unknown intent stays on the authenticated tool path.
   const genericHelp = /(?:\b(?:how|what|where|why|does|can|is|are|explain|describe|comment|fonctionne|expliquer|nini|jinsi)\b|كيف|ما هو|कैसे|क्या)/u.test(text)
     && /(?:\b(?:karwan|platform|trade|trading|agent|matching|business|world|cre|settings|support|profile|market|roadmap)\b|كاروان|कारवान)/u.test(text);
-  return moneyOrAccount || outcomeOrAttention || personalContext || !genericHelp;
+  // Asking Karwan to find, browse or create something in its market is help
+  // too. The agent still runs its tools; this only stops a missing account
+  // read from blocking an answer that is not about the account.
+  const marketAction = /\b(?:find|browse|search|look for|post|create|make|list|sell|buy|hire|get)\b/.test(text)
+    && /\b(?:sellers?|buyers?|customers?|clients?|suppliers?|freelancers?|market|marketplace|offers?|requests?|listings?|services?|payment links?|pay links?)\b/.test(text);
+  return moneyOrAccount || outcomeOrAttention || personalContext || !(genericHelp || marketAction);
 }
 
 /** Never forward previous assistant replies/account history to a fallback. */

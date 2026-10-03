@@ -35,6 +35,15 @@ test('account-specific agent questions require live state', () => {
   );
 });
 
+test('finding, browsing and creating on Karwan are help, not account state', () => {
+  for (const content of ['Find a seller', 'find customers', 'browse the market', 'post an offer', 'create a payment link']) {
+    assert.equal(requiresLiveAccountState([{ role: 'user', content }]), false, content);
+  }
+  for (const content of ['send 5 usdc to @ada', 'what about now?', 'find my deal with ada', 'show my pending matches']) {
+    assert.equal(requiresLiveAccountState([{ role: 'user', content }]), true, content);
+  }
+});
+
 test('an earlier balance question does not make a later product question stateful', () => {
   const history = [
     { role: 'user' as const, content: 'what is my balance?' },
