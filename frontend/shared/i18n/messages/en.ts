@@ -1786,14 +1786,13 @@ interface MessagesShape {
     };
   };
   editDealModal: {
-    tag: string;
     title: string;
     body: string;
-    deadlineHintShort: string;
-    acceptanceHintShort: string;
-    deliveryHintShort: string;
-    trustedMatchBodyShort: string;
-    feeBreakdownTemplate: string;
+    amountLabel: string;
+    dueLabel: string;
+    dueOptional: string;
+    deliverLabel: string;
+    feeTemplate: string;
     saving: string;
     save: string;
     cancel: string;
@@ -7171,16 +7170,15 @@ export const en: MessagesShape = {
     },
   },
   editDealModal: {
-    tag: 'Edit deal',
-    title: 'Update terms',
-    body: 'Changes save right away. The seller sees the new terms before accepting, and the acceptance window restarts so they can review.',
-    deadlineHintShort: 'Leave blank for an open-ended deal. Max 180 days when set.',
-    acceptanceHintShort: 'The acceptance clock restarts from now after you save.',
-    deliveryHintShort: 'Slice the seller receives when they mark delivered. Rest on your verification.',
-    trustedMatchBodyShort: 'Seller has to stake USDC to accept. Slashed if they lose a dispute. Leave off for casual deals.',
-    feeBreakdownTemplate: 'You fund {funded} USDC · seller receives {seller} · platform fee {fee}',
-    saving: 'Saving…',
-    save: 'Save changes',
+    title: 'Edit terms',
+    body: 'The seller sees the new terms before agreeing.',
+    amountLabel: 'Amount',
+    dueLabel: 'Due date',
+    dueOptional: 'Optional',
+    deliverLabel: 'What will be delivered',
+    feeTemplate: 'You pay {funded} USDC. The seller gets {seller} USDC.',
+    saving: 'Saving',
+    save: 'Save and send to seller',
     cancel: 'Cancel',
   },
   eventList: {
@@ -8817,7 +8815,7 @@ export const en: MessagesShape = {
         declineSend: 'Send to the buyer',
         declineBusy: 'Sending…',
         declineBack: 'Not now',
-        sellerDeclined: 'You turned these terms down. The buyer can change them. You can still agree.',
+        sellerDeclined: 'You turned these terms down. The buyer can change them. We will tell you when new terms arrive.',
         buyerDeclinedTitle: 'The seller turned down these terms',
         buyerDeclinedBody: 'Change the terms so they work for both of you. Nothing is funded yet.',
         cancelCta: 'Cancel deal',
