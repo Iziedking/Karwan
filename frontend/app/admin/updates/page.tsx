@@ -31,6 +31,7 @@ export default function AdminUpdatesPage() {
   const { confirm } = useDialog();
   const [cards, setCards] = useState<AdminUpdateCard[] | null>(null);
   const [trending, setTrending] = useState<TrendingCategory[]>([]);
+  const [source, setSource] = useState<string | null>(null);
   const [form, setForm] = useState<UpdateInput>(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -38,7 +39,7 @@ export default function AdminUpdatesPage() {
 
   const load = useCallback(() => {
     api.adminListUpdates()
-      .then((r) => { setCards(r.cards); setTrending(r.trending); setErr(null); })
+      .then((r) => { setCards(r.cards); setTrending(r.trending); setSource(r.source); setErr(null); })
       .catch((e) => setErr(e instanceof ApiError ? e.message : 'Could not load the cards'));
   }, []);
   useEffect(load, [load]);
@@ -111,6 +112,11 @@ export default function AdminUpdatesPage() {
       <p className="mt-2 max-w-[68ch] text-[13px] text-white/55">
         Cards in the Updates row on every signed-in home page, in this order. Link to a Karwan page like /how-it-works or an https address such as an Arc House post or a video. Keep figures real: a Trending card fills itself from this week&apos;s requests.
       </p>
+      {source ? (
+        <p role="note" className="mt-4 rounded-lg border border-[#AFC95B]/40 bg-[#AFC95B]/10 px-3 py-2 text-[13px] text-white/85">
+          Home on this network shows the cards published at {source}. Edit them in the admin panel there; changes here are not shown.
+        </p>
+      ) : null}
       {err ? <p role="alert" className="mt-4 rounded-lg border border-[#e0794f]/30 bg-[#e0794f]/10 px-3 py-2 text-[12px] text-[#e0794f]">{err}</p> : null}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">

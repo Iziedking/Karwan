@@ -710,6 +710,9 @@ const envSchema = z.object({
   // Public origin of the frontend, used to embed deal links in Telegram
   // messages so users can jump straight to the deal page from a notification.
   FRONTEND_BASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
+  /// Another Karwan API whose home Updates cards this server shows (testnet
+  /// points at mainnet so cards are published once). Unset: this server's own.
+  UPDATES_SOURCE_URL: z.preprocess(blankToUndefined, z.string().url().startsWith('https://').optional()),
 
   // Per-user assistant caps, counted on UTC day and UTC week boundaries. The
   // assistant costs real model spend per message and is now sign-in only, so

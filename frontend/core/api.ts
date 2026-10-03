@@ -2709,7 +2709,7 @@ export const api = {
     ),
   getUpdates: () => json<{ cards: UpdateCard[]; trending: TrendingCategory[] }>('/api/updates'),
   adminListUpdates: () =>
-    json<{ cards: AdminUpdateCard[]; trending: TrendingCategory[] }>('/api/admin/updates', { headers: adminHeaders() }),
+    json<{ cards: AdminUpdateCard[]; trending: TrendingCategory[]; source: string | null }>('/api/admin/updates', { headers: adminHeaders() }),
   adminCreateUpdate: (input: UpdateInput) =>
     json<{ card: AdminUpdateCard }>('/api/admin/updates', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(input) }),
   adminPatchUpdate: (id: string, patch: Partial<UpdateInput>) =>

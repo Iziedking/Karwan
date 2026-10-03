@@ -8,12 +8,15 @@ import { invalidBodyMessage } from './invalidBody.js';
 import { listAllBriefs } from '../db/briefs.js';
 import { liveUpdates, trendingCategories, updateInputSchema } from '../updates/model.js';
 import { createUpdate, deleteUpdate, listUpdates, patchUpdate, reorderUpdates } from '../updates/store.js';
+import { sourcedCards } from '../updates/source.js';
+import { config } from '../config.js';
 
 export const updatesRoutes = new Hono();
 
 updatesRoutes.get('/', async (c) => {
   const now = Date.now();
-  const cards = liveUpdates(await listUpdates(), now).map(({ createdAt: _c, updatedAt: _u, active: _a, startsAt: _s, endsAt: _e, ...card }) => card);
+  const cards = (await sourcedCards(config.UPDATES_SOURCE_URL))
+    ?? liveUpdates(await listUpdates(), now).map(({ createdAt: _c, updatedAt: _u, active: _a, startsAt: _s, endsAt: _e, ...card }) => card);
   const trending = cards.some((card) => card.kind === 'trending') ? trendingCategories(listAllBriefs(), now) : [];
   c.header('Cache-Control', 'public, max-age=60');
   return c.json({ cards, trending });
@@ -22,7 +25,9 @@ updatesRoutes.get('/', async (c) => {
 export const adminUpdatesRoutes = new Hono();
 adminUpdatesRoutes.use('*', requireAdmin);
 
-adminUpdatesRoutes.get('/', async (c) => c.json({ cards: await listUpdates(), trending: trendingCategories(listAllBriefs(), Date.now()) }));
+// `source` tells the page that home here shows another server's cards, so it
+// can send the editor there instead of to a list nobody sees.
+adminUpdatesRoutes.get('/', async (c) => c.json({ cards: await listUpdates(), trending: trendingCategories(listAllBriefs(), Date.now()), source: config.UPDATES_SOURCE_URL ?? null }));
 
 adminUpdatesRoutes.post('/', async (c) => {
   const parsed = updateInputSchema.safeParse(await c.req.json().catch(() => ({})));
