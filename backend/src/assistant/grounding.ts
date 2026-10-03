@@ -8,7 +8,9 @@ const accountTools = new Set([
   'get_my_balance', 'list_bridge_sources', 'list_my_deals', 'get_deal_status',
   'recall_activity', 'get_my_stake', 'get_my_reputation', 'get_my_market_activity',
   'whats_pending', 'get_my_financing', 'get_my_profile', 'get_my_skills',
-  'check_top_up_sources', 'get_my_workspaces',
+  'check_top_up_sources', 'get_my_workspaces', 'get_my_deposit_addresses',
+  'create_payment_link', 'list_my_payment_links', 'cancel_payment_link',
+  'find_karwan_tag', 'propose_send_to_tag',
 ]);
 const subjects: Array<[RegExp, string[]]> = [
   [/(?:\b(?:balance|solde|salio)\b|رصيد|शेष)/iu, ['get_my_balance', 'list_bridge_sources', 'check_top_up_sources']],
@@ -16,11 +18,14 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:business|workspace|registration)\b/i, ['get_my_workspaces']],
   [/\b(?:reputation|score|tier)\b/i, ['get_my_reputation']],
   [/\b(?:skills?|certificate)\b/i, ['get_my_skills']],
-  [/\b(?:financing|factoring|invoice|loan)\b/i, ['get_my_financing']],
+  [/\b(?:financing|factoring|invoice(?!\s+link)|loan)\b/i, ['get_my_financing']],
   [/\b(?:bridge|transfer|transaction|receipt|cash[ -]?out)\b/i, ['recall_activity', 'get_deal_status']],
   [/\b(?:deals?|escrow)\b/i, ['get_deal_status', 'list_my_deals']],
   [/\b(?:delivery|refund|reclaim|world|cre)\b/i, ['get_deal_status']],
-  [/\b(?:offers?|requests?|matches|matching|bids?)\b/i, ['get_my_market_activity', 'whats_pending']],
+  [/\b(?:offers?|(?<!payment )requests?(?!\s+(?:money|payment|usdc|\d))|matches|matching|bids?)\b/i, ['get_my_market_activity', 'whats_pending']],
+  [/\b(?:pay(?:ment)?\s*links?|invoice\s+link|payment\s+requests?|request\s+(?:money|payment|usdc|\d)|(?:got|been|get)\s+paid)\b/i, ['create_payment_link', 'list_my_payment_links', 'cancel_payment_link']],
+  [/\b(?:deposit|add money|top[ -]?up)\b/i, ['get_my_deposit_addresses', 'check_top_up_sources', 'list_bridge_sources', 'get_my_balance']],
+  [/(?:\bsend\b|\bpay\s+@|(?:^|\s)@[a-z][a-z0-9_]{2,19}\b)/i, ['propose_send_to_tag', 'find_karwan_tag', 'get_my_balance']],
   [/\bprofile\b/i, ['get_my_profile']],
   [/\b(?:anything pending|everything|attention)\b/i, ['whats_pending']],
 ];

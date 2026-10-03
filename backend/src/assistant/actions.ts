@@ -338,7 +338,12 @@ export type AssistantAction = NavigateAction | ConfirmAction;
 /// that isn't a normal user destination.
 export const NAVIGATE_DESTINATIONS = [
   'home',
+  'wallet',
   'add_money',
+  'deposit_address',
+  'send',
+  'request_payment',
+  'payment_link',
   'cash_out',
   'withdraw_proceeds',
   'faucet',
@@ -363,7 +368,7 @@ interface DestSpec {
   label: string;
   /// Build the href from validated params, or null when a required param is
   /// missing/invalid (the caller turns that into an error for the model).
-  build: (p: { jobId?: string; address?: string; rail?: string }) => string | null;
+  build: (p: { jobId?: string; address?: string; rail?: string; to?: string; amountUsdc?: number; token?: string }) => string | null;
 }
 
 /// jobIds are on-chain-derived (0x…) or synthetic (job-…); allow only a safe
@@ -371,12 +376,41 @@ interface DestSpec {
 function safeJobId(v?: string): string | null {
   return v && /^[A-Za-z0-9._-]{1,120}$/.test(v) ? v : null;
 }
+function safeTag(v?: string): string | null {
+  const tag = v?.trim().replace(/^@/, '').toLowerCase();
+  return tag && /^[a-z][a-z0-9_]{2,19}$/.test(tag) ? tag : null;
+}
+function safeAmount(v?: number): string | null {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 1_000_000 ? String(Math.round(v * 1e6) / 1e6) : null;
+}
 function safeAddress(v?: string): string | null {
   return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? v.toLowerCase() : null;
 }
 
 const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   home: { label: 'Go to home', build: () => '/app' },
+  wallet: { label: 'Open your wallet', build: () => '/account' },
+  // Email and passkey accounts get watched addresses on other chains here.
+  deposit_address: { label: 'Show my deposit addresses', build: () => '/bridge?direction=in&rail=direct' },
+  // The send sheet resolves the tag again and asks for confirmation; the link
+  // only fills it in.
+  send: {
+    label: 'Review and send',
+    build: (p) => {
+      const params = new URLSearchParams();
+      const to = safeTag(p.to);
+      const amount = safeAmount(p.amountUsdc);
+      if (to) params.set('to', `@${to}`);
+      if (amount) params.set('amount', amount);
+      const query = params.toString();
+      return query ? `/send?${query}` : '/send';
+    },
+  },
+  request_payment: { label: 'Create a payment link', build: () => '/request' },
+  payment_link: {
+    label: 'Open the payment link',
+    build: (p) => (p.token && /^[0-9a-f-]{36}$/i.test(p.token) ? `/deposit/request/${p.token.toLowerCase()}` : null),
+  },
   // /bridge reads ?rail (gateway|cctp); anything else defaults to the pooled rail.
   add_money: { label: 'Add money', build: (p) => `/bridge?rail=${p.rail === 'cctp' ? 'cctp' : 'gateway'}` },
   // /bridge is the Top up AND Withdraw (cash out) screen. Used to route web3 users
@@ -405,7 +439,7 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
     },
   },
   profile: { label: 'Your profile', build: () => '/profile' },
-  activity: { label: 'Network activity', build: () => '/activity' },
+  activity: { label: 'Your activity', build: () => '/activity' },
   how_it_works: { label: 'How it works', build: () => '/how-it-works' },
   stake: { label: 'Stake for reputation', build: () => '/stake' },
   settings: { label: 'Settings', build: () => '/settings' },
@@ -439,6 +473,11 @@ export interface BuildNavigateInput {
   jobId?: string;
   address?: string;
   rail?: string;
+  /// Karwan tag for send.
+  to?: string;
+  amountUsdc?: number;
+  /// Payment link id for payment_link.
+  token?: string;
   label?: string;
   description?: string;
 }
@@ -448,9 +487,9 @@ export interface BuildNavigateInput {
 export function buildNavigateAction(input: BuildNavigateInput): NavigateAction | { error: string } {
   const spec = DESTINATIONS[input.destination];
   if (!spec) return { error: `Unknown destination "${input.destination}".` };
-  const href = spec.build({ jobId: input.jobId, address: input.address, rail: input.rail });
+  const href = spec.build({ jobId: input.jobId, address: input.address, rail: input.rail, to: input.to, amountUsdc: input.amountUsdc, token: input.token });
   if (!href) {
-    const need = input.destination === 'open_deal' ? 'deal id' : 'address';
+    const need = input.destination === 'open_deal' ? 'deal id' : input.destination === 'payment_link' ? 'payment link id' : 'address';
     return { error: `That destination needs a valid ${need}.` };
   }
   const label = (input.label?.trim() || spec.label).slice(0, 60);

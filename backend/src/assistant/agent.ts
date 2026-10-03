@@ -81,6 +81,24 @@ const CASH_OUT_CHAINS: Record<string, { key: string; label: string; solana?: boo
 };
 import { logger } from '../logger.js';
 import { bridgeSourceHolders } from './bridgeInventory.js';
+import { readDepositAddresses } from '../money/depositAddresses.js';
+import {
+  cancelDepositRequest,
+  createDepositRequest,
+  listDepositRequests,
+  saveDepositRequest,
+  toPublicRequest,
+} from '../money/depositRequests.js';
+import { checkKarwanTag } from '../profile/karwanTag.js';
+import { tagRecipient } from '../profile/tagRecipient.js';
+import { findProfileByHandle } from '../db/profiles.js';
+import { ARC } from '../chain/client.js';
+
+/// Absolute so a link works when pasted anywhere, including outside the app.
+function paymentLinkUrl(token: string): string {
+  const site = (config.FRONTEND_BASE_URL ?? (ARC.testnet ? 'https://testnet.karwan.site' : 'https://karwan.site')).replace(/\/$/, '');
+  return `${site}/deposit/request/${token}`;
+}
 
 /// Chains a Circle account can be topped up FROM without signing anything: the
 /// backend holds a per-user deposit DCW on each, so it signs the burn itself.
@@ -1393,9 +1411,165 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    get_my_deposit_addresses: tool({
+      description:
+        "Read where this account receives USDC from other chains: one address for Ethereum, Base, Arbitrum and Polygon, and a separate Solana address. Use it when the user asks how to add money, deposit, fund from an exchange, or for their deposit address. Only USDC, only on the named chain. Wallet accounts have no deposit addresses; they bridge from their wallet at /bridge.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const read = await readDepositAddresses(address);
+          if (!read.supported) {
+            const guidance = {
+              not_on_this_network: 'Deposit addresses are not enabled on this network. Add money by bridging from a wallet at /bridge.',
+              web3_account: 'This account signs with its own wallet, so it has no Karwan deposit address. Add money by bridging from that wallet at /bridge?direction=in.',
+              not_activated: 'The account is not activated yet, so no deposit address exists. Open /account to finish setup.',
+            }[read.reason];
+            return { supported: false, reason: read.reason, guidance };
+          }
+          return {
+            supported: true,
+            evm: read.chains.length ? { address: read.chains[0]!.address, chains: read.chains.map((c) => c.name) } : null,
+            solana: read.solana ? { address: read.solana.address } : null,
+            token: 'USDC only',
+            arrival: 'USDC sent to these addresses is moved to the Karwan balance on Arc automatically; the record appears in /activity.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant get_my_deposit_addresses failed');
+          return { error: 'Could not read the deposit addresses right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    create_payment_link: tool({
+      description:
+        'Create a payment link that asks someone to pay this user USDC, and return the shareable URL. This creates it immediately: it moves no money and can be cancelled. Use it whenever the user asks for a payment link, pay link, invoice link or a way for a customer to pay them. Amount and note are optional; ask only if the user clearly wants a fixed amount and did not give one. Always give the user the full url from the result.',
+      inputSchema: z.object({
+        amountUsdc: z.number().positive().max(1_000_000).optional().describe('Exact USDC amount to request. Omit for an open amount.'),
+        note: z.string().max(200).optional().describe('What the payment is for, shown to the payer. Trimmed to 120 characters.'),
+        expiresInMinutes: z.number().int().min(5).max(7 * 24 * 60).optional().describe('Default 60. Up to 7 days (10080).'),
+      }),
+      execute: async ({ amountUsdc, note, expiresInMinutes }) => {
+        try {
+          const request = createDepositRequest({ owner: address, amountUsdc, purpose: note, ttlMinutes: expiresInMinutes });
+          await saveDepositRequest(request);
+          const view = toPublicRequest(request);
+          const built = buildNavigateAction({ destination: 'payment_link', token: view.requestId, label: 'Open the payment link' });
+          if (!('error' in built) && !actions.some((a) => a.id === built.id)) actions.push(built);
+          return {
+            ok: true,
+            url: paymentLinkUrl(view.requestId),
+            amountUsdc: view.amountUsdc ?? 'any amount',
+            note: view.purpose,
+            expiresAt: new Date(view.expiresAt).toISOString(),
+            payerOptions: 'A Karwan user pays from their balance, a wallet holder from their wallet, and someone without a wallet can send USDC from an exchange to the address the page shows.',
+            acceptedChains: view.acceptedChains,
+          };
+        } catch (err) {
+          return { error: (err as Error).message || 'Could not create the payment link.' };
+        }
+      },
+    }),
+
+    list_my_payment_links: tool({
+      description: "List this user's recent payment links with their status (open, paid, expired, cancelled) and URLs. Use it when they ask whether someone paid, or for a link they made earlier.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        try {
+          const now = Date.now();
+          const links = (await listDepositRequests(address, 10)).map((r) => toPublicRequest(r, now));
+          return {
+            count: links.length,
+            links: links.map((l) => ({
+              id: l.requestId,
+              url: paymentLinkUrl(l.requestId),
+              amountUsdc: l.amountUsdc ?? 'any amount',
+              note: l.purpose,
+              status: l.status === 'matched' ? 'paid' : l.status,
+              createdAt: new Date(l.createdAt).toISOString(),
+              expiresAt: new Date(l.expiresAt).toISOString(),
+              paidAt: l.paidAt ? new Date(l.paidAt).toISOString() : null,
+            })),
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant list_my_payment_links failed');
+          return { error: 'Could not read your payment links right now.' };
+        }
+      },
+    }),
+
+    cancel_payment_link: tool({
+      description: 'Cancel one of this user’s OPEN payment links so it can no longer be paid. Only when the user explicitly asks to cancel a specific link; read list_my_payment_links first to get its id. Cannot be undone; a new link can be made.',
+      inputSchema: z.object({ id: z.string().uuid() }),
+      execute: async ({ id }) => {
+        try {
+          const request = await cancelDepositRequest(address, id);
+          if (!request) return { error: 'That payment link is not one of yours.' };
+          const view = toPublicRequest(request);
+          if (view.status === 'cancelled') return { ok: true, cancelled: id };
+          return { error: `That link is ${view.status === 'matched' ? 'already paid' : view.status}, so it was not cancelled.` };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant cancel_payment_link failed');
+          return { error: 'Could not cancel that link right now.' };
+        }
+      },
+    }),
+
+    find_karwan_tag: tool({
+      description: 'Look up who a Karwan tag (@handle) belongs to: their display name and whether it is the user themself. Use before sending money or opening a deal with someone by tag, so the user can check the name.',
+      inputSchema: z.object({ tag: z.string().max(40) }),
+      execute: async ({ tag }) => {
+        const check = checkKarwanTag(tag.replace(/^@/, ''));
+        if (!check.ok) return { found: false, tag, reason: 'Not a valid Karwan tag.' };
+        try {
+          const found = tagRecipient(check.tag, await findProfileByHandle(check.tag), address);
+          if (!found.found) return { found: false, tag: `@${found.tag}` };
+          return { found: true, tag: `@${found.tag}`, displayName: found.displayName, isYou: found.self };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant find_karwan_tag failed');
+          return { error: 'Could not look that tag up right now.' };
+        }
+      },
+    }),
+
+    propose_send_to_tag: tool({
+      description:
+        'Prepare sending USDC to another person by Karwan tag. It checks the tag and the user’s wallet balance, then shows a button that opens the send screen filled in; the user confirms there. It never sends by itself. Use when the user asks to send, pay or transfer USDC to @someone.',
+      inputSchema: z.object({
+        tag: z.string().max(40),
+        amountUsdc: z.number().positive().max(1_000_000),
+      }),
+      execute: async ({ tag, amountUsdc }) => {
+        const check = checkKarwanTag(tag.replace(/^@/, ''));
+        if (!check.ok) return { error: 'That is not a valid Karwan tag.' };
+        try {
+          const [profile, walletWei] = await Promise.all([findProfileByHandle(check.tag), readUsdcBalance(address as Address)]);
+          const found = tagRecipient(check.tag, profile, address);
+          if (!found.found) return { error: `No Karwan account has the tag @${check.tag}.` };
+          if (found.self) return { error: 'That tag is yours. You cannot send to yourself.' };
+          const walletUsdc = Number(formatUnits(walletWei, USDC_DECIMALS));
+          if (walletUsdc < amountUsdc) {
+            return { error: `The wallet holds ${walletUsdc.toFixed(2)} USDC, less than ${amountUsdc}. Add money first.`, walletUsdc };
+          }
+          const built = buildNavigateAction({
+            destination: 'send',
+            to: found.tag,
+            amountUsdc,
+            label: `Review sending ${amountUsdc} USDC to @${found.tag}`,
+            description: `To ${found.displayName}. You confirm on the next screen.`,
+          });
+          if ('error' in built) return built;
+          if (!actions.some((a) => a.id === built.id)) actions.push(built);
+          return { ok: true, readyToReview: true, recipient: { tag: `@${found.tag}`, displayName: found.displayName }, amountUsdc, walletUsdc };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_send_to_tag failed');
+          return { error: 'Could not prepare that send right now.' };
+        }
+      },
+    }),
+
     propose_navigation: tool({
       description:
-        'Show the user a prominent button that takes them straight to the in-app screen for something they want to DO but that you cannot execute yet: add money / top up, open a direct deal, post a request or an offer, withdraw proceeds, get test USDC, open one of their own deals, browse the market, find partners, view a credit passport, or stake. Prefer this over only describing where to go. You may call it more than once. Keep the label short and specific.',
+        'Show the user a prominent button that takes them straight to the in-app screen for something they want to DO but that you cannot execute yet: their wallet, add money / top up, their deposit addresses, send USDC, create a payment link, open a payment link, open a direct deal, post a request or an offer, withdraw proceeds, get test USDC, open one of their own deals, browse the market, find partners, view a credit passport, or stake. Prefer this over only describing where to go. You may call it more than once. Keep the label short and specific.',
       inputSchema: z.object({
         destination: z.enum(NAVIGATE_DESTINATIONS).describe('Which screen to send them to.'),
         jobId: z.string().max(120).optional().describe('Required for open_deal: the deal id.'),
@@ -1408,6 +1582,9 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
           .enum(['gateway', 'cctp'])
           .optional()
           .describe('Optional for add_money: which top-up rail. Defaults to the pooled Gateway rail.'),
+        to: z.string().max(40).optional().describe('Optional for send: the Karwan tag. Prefer propose_send_to_tag, which checks the tag and balance.'),
+        amountUsdc: z.number().positive().max(1_000_000).optional().describe('Optional for send: the amount.'),
+        token: z.string().max(40).optional().describe('Required for payment_link: the link id from list_my_payment_links.'),
         label: z.string().max(60).optional().describe('Short, specific button text. Defaults to a sensible label.'),
         description: z.string().max(120).optional().describe('Optional one-line hint under the button.'),
       }),
@@ -1930,7 +2107,12 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 function authenticatedPreamble(address: string, method: string): string {
   return [
     `Today is ${new Date().toISOString()} UTC. Signed-in account: ${address}; method: ${method}.`,
-    'Your tools are account-scoped reads and confirmation-card proposals, not unlimited platform access.',
+    ARC.testnet
+      ? 'This server runs on Arc Testnet: USDC here is test money with no value.'
+      : 'This server runs on Arc mainnet: USDC here is real money. Deals are not enabled on mainnet; deal pages open on testnet.karwan.site.',
+    'Your tools are account-scoped reads, confirmation-card proposals and payment links, not unlimited platform access.',
+    'Payment links -> create_payment_link (give the full url), list_my_payment_links, cancel_payment_link. Deposit addresses -> get_my_deposit_addresses.',
+    'Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
     'Past money moves and bridges -> recall_activity. Stake/yield -> get_my_stake. Reputation -> get_my_reputation.',
