@@ -41,8 +41,42 @@ function utcStamp(value: number): string {
     day: '2-digit',
     month: 'short',
     timeZone: 'UTC',
-  }).format(date).toUpperCase();
+  }).format(date);
   return `${time} UTC · ${day}`;
+}
+
+const MICROS = 1_000_000n;
+
+function toMicros(value: string | number): bigint | null {
+  const text = String(value).trim();
+  if (!/^\d+(\.\d{1,6})?$/.test(text)) return null;
+  const [whole, fraction = ''] = text.split('.');
+  return BigInt(whole!) * MICROS + BigInt(fraction.padEnd(6, '0'));
+}
+
+function fromMicros(value: bigint): string {
+  const fraction = (value % MICROS).toString().padStart(6, '0').replace(/0+$/, '');
+  return fraction ? `${value / MICROS}.${fraction}` : `${value / MICROS}`;
+}
+
+/// How a payment relates to the deal amount, in exact 6-decimal maths: the
+/// buyer's funding is the deal plus the fee, a payout is the milestone's share
+/// less the fee. Null when there is no fee to explain or the inputs are unknown.
+export function paymentBreakdown(
+  movement: Pick<MoneyMovementView, 'kind' | 'amountUsdc' | 'milestoneIndex'>,
+  dealAmountUsdc: string | undefined,
+  milestonePcts: number[],
+): { base: string; fee: string } | null {
+  const amount = toMicros(movement.amountUsdc);
+  const deal = dealAmountUsdc ? toMicros(dealAmountUsdc) : null;
+  if (amount === null || deal === null) return null;
+  if (movement.kind === 'escrow_funding') {
+    return amount > deal ? { base: fromMicros(deal), fee: fromMicros(amount - deal) } : null;
+  }
+  const pct = milestonePcts[movement.milestoneIndex ?? 0] ?? (milestonePcts.length === 1 ? 100 : undefined);
+  if (pct === undefined) return null;
+  const share = (deal * BigInt(pct)) / 100n;
+  return share > amount ? { base: fromMicros(share), fee: fromMicros(share - amount) } : null;
 }
 
 function shortProof(value: string): string {
@@ -58,7 +92,11 @@ export function SettlementRecord({
   /// The buyer paid, so the buyer issues the proof. The seller reads the same
   /// record and verifies the same hashes, without the exports.
   canShareReceipts = true,
+  dealAmountUsdc,
+  milestonePcts = [],
 }: {
+  dealAmountUsdc?: string;
+  milestonePcts?: number[];
   movements: MoneyMovementView[];
   fetchState: SettlementRecordFetchState;
   fundTxHash?: string;
@@ -105,8 +143,7 @@ export function SettlementRecord({
       data-float-guard
       className="mt-7 border-t border-[var(--lp-workspace-border)] pt-7"
     >
-      <p className="text-[13px] font-semibold text-[var(--lp-workspace-muted)]">Settlement record</p>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <h3 id="settlement-record-heading" className="font-display text-[23px] font-semibold tracking-[-0.035em] text-[var(--lp-workspace-ink)]">
           {copy.title}
         </h3>
@@ -143,7 +180,9 @@ export function SettlementRecord({
 
       {fetchState !== 'loading' && fetchState !== 'error' && movements.length > 0 && (
         <div className="mt-5 space-y-3">
-          {movements.map((movement, index) => {
+          {/* Oldest first: the buyer's funding, then each payout. */}
+          {[...movements].sort((a, b) => a.createdAt - b.createdAt).map((movement, index) => {
+            const breakdown = paymentBreakdown(movement, dealAmountUsdc, milestonePcts);
             const expanded = openReference === movement.reference;
             const tone = STATUS_TONE[movement.state];
             const stateLabel = copy.states[movement.state];
@@ -175,28 +214,36 @@ export function SettlementRecord({
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="mono text-[10px] uppercase tracking-[0.17em] text-[var(--lp-workspace-faint)]">
-                      Payment {index + 1} · {kindLabel}
+                    <p className="text-[13px] font-semibold text-[var(--lp-workspace-muted)]">
+                      {copy.paymentTemplate.replace('{n}', String(index + 1))} · {kindLabel}
                     </p>
-                    <p className="mt-3 font-display text-[26px] font-bold leading-none tabular-nums text-[var(--lp-workspace-ink)]">
-                      {movement.amountUsdc} <span className="mono text-[11px] tracking-[0.14em] text-[var(--lp-workspace-muted)]">USDC</span>
+                    <p className="mt-2 text-[26px] font-semibold leading-none tabular-nums text-[var(--lp-workspace-ink)]">
+                      {movement.amountUsdc} <span className="text-[13px] font-medium text-[var(--lp-workspace-muted)]">USDC</span>
                     </p>
+                    {breakdown ? (
+                      <p className="mt-1.5 text-[13px] tabular-nums text-[var(--lp-workspace-muted)]">
+                        {(movement.kind === 'escrow_funding' ? copy.fundingBreakdown : copy.payoutBreakdown)
+                          .replace('{deal}', breakdown.base)
+                          .replace('{share}', breakdown.base)
+                          .replace('{fee}', breakdown.fee)}
+                      </p>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => copyReference(movement.reference)}
                       aria-label={copy.copyReference.replace('{reference}', movement.reference)}
-                      className="mt-2 inline-flex min-h-11 max-w-full items-center gap-2 mono text-[11px] uppercase tracking-[0.13em] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
+                      className="mt-1 inline-flex min-h-11 max-w-full items-center gap-2 font-mono text-[12px] text-[var(--lp-workspace-muted)] transition-colors hover:text-[var(--lp-workspace-ink)]"
                     >
                       <span className="break-all text-start">{movement.reference}</span>
                       <span aria-hidden>{copiedReference === movement.reference ? '✓' : '⧉'}</span>
                     </button>
                   </div>
                   <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-                    <span className={`inline-flex min-h-7 items-center gap-2 rounded-full border px-3 mono text-[10px] uppercase tracking-[0.12em] ${tone.className}`}>
+                    <span className={`inline-flex min-h-7 items-center gap-2 rounded-full border px-3 text-[12px] font-semibold ${tone.className}`}>
                       <span aria-hidden className="size-1.5 rounded-full" style={{ background: tone.dot }} />
                       {stateLabel}
                     </span>
-                    <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-workspace-faint)]">
+                    <span className="text-[12px] tabular-nums text-[var(--lp-workspace-faint)]">
                       {utcStamp(movement.completedAt ?? movement.updatedAt)}
                     </span>
                   </div>
@@ -213,7 +260,7 @@ export function SettlementRecord({
                     <button
                       type="button"
                       onClick={() => setSelectedReceipt(receiptItem)}
-                      className="inline-flex min-h-11 items-center rounded-[10px] border border-[var(--lp-accent)]/45 px-4 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-accent)] transition-colors hover:border-[var(--lp-accent)] hover:bg-[var(--lp-accent)]/10"
+                      className="inline-flex min-h-11 items-center rounded-full bg-[var(--lp-workspace-ink)] px-4 text-[13px] font-semibold text-[var(--lp-workspace-raised)] transition-opacity hover:opacity-90"
                     >
                       {receiptCopy.viewReceipt}
                     </button>
@@ -226,7 +273,7 @@ export function SettlementRecord({
                           current === movement.reference ? null : movement.reference,
                         )
                       }
-                      className="inline-flex min-h-11 items-center justify-between gap-5 rounded-[10px] border border-[var(--lp-workspace-border)] px-4 mono text-[11px] uppercase tracking-[0.14em] text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
+                      className="inline-flex min-h-11 items-center justify-between gap-3 rounded-full border border-[var(--lp-workspace-border)] px-4 text-[13px] font-semibold text-[var(--lp-workspace-muted)] transition-colors hover:border-[var(--lp-accent)] hover:text-[var(--lp-workspace-ink)]"
                     >
                       {expanded ? copy.hideProof : copy.showProof}
                       <span aria-hidden className={`transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-90' : ''}`}>›</span>
