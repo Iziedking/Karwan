@@ -119,7 +119,9 @@ async function open(page: Page, { theme = 'light', locale = 'en', route = '/mark
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   if (!world.signedOut) {
-    await expect(page.locator('[data-chrome="nav"]').getByRole('link', { name: messages[locale].nav.profile, exact: true })).toBeVisible();
+    // Desktop shows the profile pill in the header; phones and tablets show it
+    // in the bottom bar instead. One of them is the signed-in entry.
+    await expect(page.getByRole('link', { name: messages[locale].nav.profile }).filter({ visible: true }).first()).toBeVisible();
   }
   return { data, hydrationErrors };
 }
