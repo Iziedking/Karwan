@@ -263,21 +263,14 @@ function WorkspaceRail({
           aria-label={collapsed ? t.railExpandAria : t.railCollapseAria}
           onClick={toggleRail}
           className={cn(
-            'group mb-1 inline-flex size-11 shrink-0 items-center justify-center self-start rounded-full border border-[var(--color-line)] text-[var(--color-ink-dim)] transition-[background-color,border-color,color,transform] duration-200 hover:border-[var(--color-line-strong)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] hover:-translate-y-0.5',
+            'mb-1 inline-flex size-11 shrink-0 items-center justify-center self-start rounded-[12px] text-[var(--color-ink-dim)] transition-colors duration-200 hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]',
           )}
           aria-controls="workspace-navigation"
         >
-          <span
-            aria-hidden
-            className={cn(
-              'inline-flex transition-transform duration-300 ease-out',
-              collapsed ? 'rotate-180' : 'rotate-0',
-            )}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M15 5 8 12l7 7M8 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
+          <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" className="rtl:-scale-x-100">
+            <rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M9.5 4.5v15" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
         </button>
         <RailLink href={homeHref} active={pathname === homeHref} icon="home" collapsed={collapsed} ariaLabel={t.home}>
           {t.home}
@@ -516,9 +509,9 @@ function ProfileLink({
     <Link
       href="/profile"
       aria-label={t.profile}
-      className={`group relative ${hideBelowLg ? 'hidden lg:inline-flex' : 'inline-flex'} min-h-11 max-w-[min(240px,calc(100vw-112px))] shrink-0 items-center gap-2 rounded-full border border-[var(--color-line-strong)] py-1 ps-1 pe-2.5 text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(240px,45vw)]`}
+      className={`group relative ${hideBelowLg ? 'hidden lg:inline-flex' : 'inline-flex'} h-9 max-w-[min(220px,calc(100vw-112px))] shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-line-strong)] py-0.5 ps-0.5 pe-2 before:absolute before:-inset-1 before:content-[''] text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:max-w-[min(220px,45vw)]`}
     >
-        <span className="relative grid size-9 shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[11px] font-semibold tracking-[0.04em] text-[var(--color-ink)] sm:size-10">
+        <span className="relative grid shrink-0 place-items-center overflow-visible rounded-full bg-[var(--color-surface)] text-[10px] font-semibold tracking-[0.04em] text-[var(--color-ink)] size-8">
           <span className="grid size-full place-items-center overflow-hidden rounded-full">
             {xImage ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -538,12 +531,12 @@ function ProfileLink({
           </span>
           {profileActionCount > 0 ? <ActionBeacon className="absolute -bottom-0.5 -end-0.5" /> : null}
         </span>
-        <span className="hidden min-w-0 max-w-[180px] truncate text-[14px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
+        <span className="hidden min-w-0 max-w-[160px] truncate text-[13px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
           {identityName}
         </span>
         <svg
-          width="15"
-          height="15"
+          width="13"
+          height="13"
           viewBox="0 0 18 18"
           fill="none"
           aria-hidden

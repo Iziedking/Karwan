@@ -60,13 +60,13 @@ export function NotificationBell() {
         onClick={() => setOpen((s) => !s)}
         aria-label={unreadCount > 0 ? `${t.aria}, ${unreadCount} unread` : t.aria}
         aria-expanded={open}
-        className="relative inline-flex size-11 items-center justify-center rounded-full text-[var(--color-ink-dim)] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
+        className="relative inline-flex size-9 items-center justify-center rounded-full text-[var(--color-ink-dim)] before:absolute before:-inset-1 before:content-[''] transition-colors hover:bg-[var(--color-surface-2)] hover:text-[var(--color-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
       >
         <Icon name="bell" size={20} />
         {unreadCount > 0 ? (
           <span
             aria-hidden
-            className="absolute end-1.5 top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--lp-accent)] px-1 text-[10px] font-bold tabular-nums leading-none text-[var(--accent-ink)]"
+            className="absolute -end-0.5 -top-0.5 inline-flex h-[16px] min-w-[16px] items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--lp-accent)] px-1 text-[10px] font-bold tabular-nums leading-none text-[var(--accent-ink)]"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
