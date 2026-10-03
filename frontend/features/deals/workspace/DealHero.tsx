@@ -1,6 +1,9 @@
 'use client';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/core/api';
+import { qk } from '@/core/queryKeys';
 import type { DealView, DirectDeal, MoneyMovementView } from '@/core/api';
 import { ChatPanel } from '@/features/chat/components/ChatPanel';
 import { Icon } from '@/shared/components/Icon';
@@ -116,9 +119,7 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
     <div>
       <header className="flex items-center gap-3">
         <button type="button" onClick={() => setPanel('record')} disabled={!card} className="flex min-w-0 items-center gap-3 rounded-[14px] py-1 pe-2 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--lp-card)] text-[15px] font-semibold text-[var(--lp-dark)]">
-            {name.replace(/^0x/i, '').charAt(0).toUpperCase()}
-          </span>
+          <CounterpartyAvatar address={counterparty} name={name} />
           <span className="min-w-0">
             <span className="block truncate text-[16px] font-semibold text-[var(--lp-dark)]">{name}</span>
             {facts ? <span className="block truncate text-[13px] text-[var(--lp-text-sub)]">{facts}</span> : null}
@@ -237,5 +238,28 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
         />
       ) : null}
     </div>
+  );
+}
+
+/// The counterparty's profile photo, or their initial when they have none or
+/// it fails to load. Fetched once per person, not with every deal refresh.
+function CounterpartyAvatar({ address, name }: { address: string; name: string }) {
+  const profile = useQuery({
+    queryKey: qk.profile.byAddress(address),
+    queryFn: () => api.getProfile(address),
+    staleTime: 5 * 60_000,
+  });
+  const [failed, setFailed] = useState(false);
+  const image = failed ? undefined : profile.data?.profile?.profileImageDataUrl || profile.data?.profile?.xProfileImageUrl;
+  if (image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={image} alt="" width={40} height={40} className="size-10 shrink-0 rounded-full object-cover" onError={() => setFailed(true)} />
+    );
+  }
+  return (
+    <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--lp-card)] text-[15px] font-semibold text-[var(--lp-dark)]">
+      {name.replace(/^0x/i, '').charAt(0).toUpperCase()}
+    </span>
   );
 }
