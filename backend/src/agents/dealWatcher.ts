@@ -13,6 +13,7 @@ import {
   recordReputation,
   ESCROW_ACCEPTED,
   ESCROW_DISPUTED,
+  ESCROW_FUNDED,
   ESCROW_REFUNDED,
   OUTCOME_FAILED,
 } from '../chain/settlement.js';
@@ -39,7 +40,7 @@ import { sellerAgreementExpired } from '../deals/lifecycle.js';
 import {
   ensureEscrowRefundMovement,
   executeEscrowRefundMovement,
-  remainingEscrowMicros,
+  escrowBuyerRefundMicros,
 } from '../money/escrowRefund.js';
 import { formatUsdcMicros } from '../money/model.js';
 import { getMoneyMovementByOperationKey } from '../db/moneyMovements.js';
@@ -217,6 +218,190 @@ async function runV3DisputeSafely(deal: DirectDeal, now: number) {
   } finally {
     processing.delete(deal.jobId);
   }
+}
+
+/// Deadline passed without delivery. The buyer's money is sitting in escrow
+/// and the seller never delivered. First detection alerts the buyer (bell,
+/// email, activity feed) that they can reclaim now or grant an extension.
+/// If they take no action and the seller still has not delivered after the
+/// grace window, auto-reclaim so the money is never stuck. The seller can
+/// still deliver during grace, which clears this branch (deal.delivered).
+///
+/// Runs on Accepted escrows and on Funded ones the seller never accepted on
+/// chain. An agent deal is accepted on chain only when the seller delivers, so
+/// a seller who never delivers leaves it Funded, and skipping Funded left the
+/// buyer's money waiting on a button. Accepted on the per-deal clock reclaims
+/// in one call; anything else disputes, then refunds. Returns true when the
+/// deadline branch owns this tick.
+async function maybeReclaimAfterDeadline(
+  deal: DirectDeal,
+  account: Awaited<ReturnType<typeof dealEscrowOps.read>>,
+  now: number,
+): Promise<boolean> {
+  if (!deal.deadlineUnix || deal.delivered || now <= deal.deadlineUnix * 1000) return false;
+  const buyerWalletId = deal.buyerAgentWalletId!;
+  const onChainReclaim = dealEscrowOps.usesOnChainClock(deal) && account.state === ESCROW_ACCEPTED;
+  const recovery = await ensureDeadlineRecovery({
+    jobId: deal.jobId,
+    deadlineUnix: deal.deadlineUnix,
+    availableAt: deadlineRecoveryReadyAt(
+      deal.deadlineUnix,
+      config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
+    ),
+    now,
+  });
+  if (!deal.deadlineAlertedAt) {
+    await patchDeal(deal.jobId, { deadlineAlertedAt: now });
+    bus.emitEvent({
+      type: 'deal.deadline.passed',
+      jobId: deal.jobId,
+      actor: 'platform',
+      payload: {
+        buyer: deal.buyer,
+        seller: deal.seller,
+        deadlineUnix: deal.deadlineUnix,
+        graceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
+      },
+    });
+    logger.info(
+      { jobId: deal.jobId, deadlineUnix: deal.deadlineUnix },
+      'delivery deadline passed without delivery, alerted buyer to reclaim',
+    );
+    return true;
+  }
+  const recoveryLease =
+    now >= recovery.availableAt
+      ? await claimDeadlineRecovery({ jobId: deal.jobId, now })
+      : null;
+  if (recoveryLease) {
+    const reason =
+      'auto-reclaim: seller did not deliver by the deadline and the grace window passed';
+    try {
+      const buyerAgentAddress =
+        deal.buyerAgentAddress ?? (await getAgentWallets(deal.buyer))?.buyerAddress;
+      if (!buyerAgentAddress) throw new Error('buyer agent address missing');
+      const refundMicros = escrowBuyerRefundMicros(account);
+      if (refundMicros <= 0n) throw new Error('escrow has no remaining balance');
+      const refundAmountUsdc = formatUsdcMicros(refundMicros);
+      publishSettlementShadow({
+        dealRoomId: deal.jobId,
+        escrowAddress: escrowAddressOf(deal),
+        destinationAddress: buyerAgentAddress,
+        amountUsdc: refundAmountUsdc,
+        operation: 'REFUND',
+        observedAtUnix: Math.floor(now / 1_000),
+        movementReference: refundMovementKey(deal.jobId),
+      });
+      const refundInput = {
+        operationKey: refundMovementKey(deal.jobId),
+        amountUsdc: refundAmountUsdc,
+        initiatedBy: deal.buyer,
+        buyerAgentAddress,
+        sellerAddress: deal.seller,
+        jobId: deal.jobId,
+        summary: `Reclaimed ${refundAmountUsdc} USDC from the deal the seller did not deliver`,
+        escrowAddress: escrowAddressOf(deal),
+        buyerAgentWalletId: buyerWalletId,
+      };
+      const ensuredRefund = await ensureEscrowRefundMovement(refundInput);
+      await recordDeadlineRecoveryMovement(
+        recoveryLease,
+        ensuredRefund.movement.reference,
+      );
+      let refundResult;
+      if (onChainReclaim) {
+        // v2b and v3: a single reclaim settles it. It only lands if
+        // the on-chain deadline + grace has passed and records Failed on
+        // chain atomically, so no separate dispute, refund, or reputation
+        // write is needed. The wrapper throws before the off-chain write
+        // if the transaction did not land.
+        refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+          dealEscrowOps.reclaim(deal, buyerWalletId, options),
+        );
+      } else {
+        // v2.E: dispute then refund through the inner-revert guard so a
+        // stuck on-chain state throws before the off-chain cancelled write,
+        // never marking a deal refunded while the buyer's USDC is escrowed.
+        if (account.state !== ESCROW_DISPUTED) {
+          await disputeEscrow(deal.jobId, buyerWalletId, reason);
+        }
+        refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
+          refundEscrow(deal.jobId, buyerWalletId, options),
+        );
+      }
+      const refundTxHash = refundResult.txHash;
+      await patchDeal(deal.jobId, {
+        cancelledAt: Date.now(),
+        cancelKind: 'unilateral',
+        cancelReason: reason,
+      });
+      bus.emitEvent({
+        type: 'deal.cancelled',
+        jobId: deal.jobId,
+        actor: 'platform',
+        payload: {
+          buyer: deal.buyer,
+          seller: deal.seller,
+          kind: 'unilateral',
+          reason,
+          txHash: refundTxHash,
+          reference: refundResult.movement.reference,
+          auto: true,
+        },
+      });
+      void appendActivity({
+        id: `escrow-refund:${deal.jobId}`,
+        address: deal.buyer,
+        kind: 'refund',
+        refId: refundResult.movement.reference,
+        summary: refundInput.summary,
+        params: {
+          t: 'deadlineReclaim',
+          amount: refundAmountUsdc,
+          reference: refundResult.movement.reference,
+        },
+        amountUsdc: refundAmountUsdc,
+        txHash: refundTxHash,
+        jobId: deal.jobId,
+        counterparty: deal.seller.toLowerCase(),
+      });
+      // v2b and v3 record Failed on chain inside the reclaim. Only the
+      // v2.E path needs the explicit off-chain reputation write.
+      if (!onChainReclaim) {
+        await recordReputation(deal.jobId, buyerWalletId, OUTCOME_FAILED);
+      }
+      try {
+        await completeDeadlineRecovery(recoveryLease, {
+          movementReference: refundResult.movement.reference,
+          txHash: refundTxHash,
+        });
+      } catch (recoveryError) {
+        logger.error(
+          { jobId: deal.jobId, err: (recoveryError as Error).message },
+          'refund completed but recovery ledger could not be finalized',
+        );
+      }
+      logger.info(
+        { jobId: deal.jobId, recoveryAttempt: recovery.attempt + 1 },
+        'reclaim grace window passed, auto-reclaimed escrow to the buyer',
+      );
+    } catch (err) {
+      try {
+        await failDeadlineRecovery(recoveryLease, {
+          error: (err as Error).message,
+          nextAvailableAt: now + deadlineRecoveryBackoffMs(recovery.attempt + 1),
+          now,
+        });
+      } catch (recoveryError) {
+        logger.error(
+          { jobId: deal.jobId, err: (recoveryError as Error).message },
+          'refund failed and recovery ledger could not record the retry',
+        );
+      }
+      throw err;
+    }
+  }
+  return true;
 }
 
 /// Finishes a buyer's deadline cancel whose refund step never landed, on a deal
@@ -494,6 +679,10 @@ async function tick() {
         await maybeResumePendingRefund(deal, account, now);
         continue;
       }
+      if (account.state === ESCROW_FUNDED && !dealEscrowOps.isV3(deal)) {
+        await maybeReclaimAfterDeadline(deal, account, now);
+        continue;
+      }
       if (account.state !== ESCROW_ACCEPTED) continue;
       const buyerWalletId = deal.buyerAgentWalletId;
 
@@ -575,178 +764,7 @@ async function tick() {
         await clearBlocked(deal.jobId, parties);
       }
 
-      // Deadline passed without delivery. The buyer's money is sitting in escrow
-      // and the seller never delivered. First detection alerts the buyer (bell,
-      // email, activity feed) that they can reclaim now or grant an extension.
-      // If they take no action and the seller still has not delivered after the
-      // grace window, auto-reclaim so the money is never stuck. The seller can
-      // still deliver during grace, which clears this branch (deal.delivered).
-      if (deal.deadlineUnix && !deal.delivered && now > deal.deadlineUnix * 1000) {
-        const recovery = await ensureDeadlineRecovery({
-          jobId: deal.jobId,
-          deadlineUnix: deal.deadlineUnix,
-          availableAt: deadlineRecoveryReadyAt(
-            deal.deadlineUnix,
-            config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
-          ),
-          now,
-        });
-        if (!deal.deadlineAlertedAt) {
-          await patchDeal(deal.jobId, { deadlineAlertedAt: now });
-          bus.emitEvent({
-            type: 'deal.deadline.passed',
-            jobId: deal.jobId,
-            actor: 'platform',
-            payload: {
-              buyer: deal.buyer,
-              seller: deal.seller,
-              deadlineUnix: deal.deadlineUnix,
-              graceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
-            },
-          });
-          logger.info(
-            { jobId: deal.jobId, deadlineUnix: deal.deadlineUnix },
-            'delivery deadline passed without delivery, alerted buyer to reclaim',
-          );
-          continue;
-        }
-        const recoveryLease =
-          now >= recovery.availableAt
-            ? await claimDeadlineRecovery({ jobId: deal.jobId, now })
-            : null;
-        if (recoveryLease) {
-          const reason =
-            'auto-reclaim: seller did not deliver by the deadline and the grace window passed';
-          try {
-            const buyerAgentAddress =
-              deal.buyerAgentAddress ?? (await getAgentWallets(deal.buyer))?.buyerAddress;
-            if (!buyerAgentAddress) throw new Error('buyer agent address missing');
-            // v3 returns the unpaid seller share and the unreleased fee, the
-            // buyer's half of it included: record exactly that.
-            const refundMicros =
-              account.version === 'v3'
-                ? account.sellerNet - account.released + (account.feeTotal - account.feeReleased)
-                : remainingEscrowMicros(account.dealAmount, account.released);
-            if (refundMicros <= 0n) throw new Error('escrow has no remaining balance');
-            const refundAmountUsdc = formatUsdcMicros(refundMicros);
-            publishSettlementShadow({
-              dealRoomId: deal.jobId,
-              escrowAddress: escrowAddressOf(deal),
-              destinationAddress: buyerAgentAddress,
-              amountUsdc: refundAmountUsdc,
-              operation: 'REFUND',
-              observedAtUnix: Math.floor(now / 1_000),
-              movementReference: refundMovementKey(deal.jobId),
-            });
-            const refundInput = {
-              operationKey: refundMovementKey(deal.jobId),
-              amountUsdc: refundAmountUsdc,
-              initiatedBy: deal.buyer,
-              buyerAgentAddress,
-              sellerAddress: deal.seller,
-              jobId: deal.jobId,
-              summary: `Reclaimed ${refundAmountUsdc} USDC from the deal the seller did not deliver`,
-              escrowAddress: escrowAddressOf(deal),
-              buyerAgentWalletId: buyerWalletId,
-            };
-            const ensuredRefund = await ensureEscrowRefundMovement(refundInput);
-            await recordDeadlineRecoveryMovement(
-              recoveryLease,
-              ensuredRefund.movement.reference,
-            );
-            let refundResult;
-            if (dealEscrowOps.usesOnChainClock(deal)) {
-              // v2b and v3: a single reclaim settles it. It only lands if
-              // the on-chain deadline + grace has passed and records Failed on
-              // chain atomically, so no separate dispute, refund, or reputation
-              // write is needed. The wrapper throws before the off-chain write
-              // if the transaction did not land.
-              refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
-                dealEscrowOps.reclaim(deal, buyerWalletId, options),
-              );
-            } else {
-              // v2.E: dispute then refund through the inner-revert guard so a
-              // stuck on-chain state throws before the off-chain cancelled write,
-              // never marking a deal refunded while the buyer's USDC is escrowed.
-              await disputeEscrow(deal.jobId, buyerWalletId, reason);
-              refundResult = await executeEscrowRefundMovement(refundInput, (options) =>
-                refundEscrow(deal.jobId, buyerWalletId, options),
-              );
-            }
-            const refundTxHash = refundResult.txHash;
-            await patchDeal(deal.jobId, {
-              cancelledAt: Date.now(),
-              cancelKind: 'unilateral',
-              cancelReason: reason,
-            });
-            bus.emitEvent({
-              type: 'deal.cancelled',
-              jobId: deal.jobId,
-              actor: 'platform',
-              payload: {
-                buyer: deal.buyer,
-                seller: deal.seller,
-                kind: 'unilateral',
-                reason,
-                txHash: refundTxHash,
-                reference: refundResult.movement.reference,
-                auto: true,
-              },
-            });
-            void appendActivity({
-              id: `escrow-refund:${deal.jobId}`,
-              address: deal.buyer,
-              kind: 'refund',
-              refId: refundResult.movement.reference,
-              summary: refundInput.summary,
-              params: {
-                t: 'deadlineReclaim',
-                amount: refundAmountUsdc,
-                reference: refundResult.movement.reference,
-              },
-              amountUsdc: refundAmountUsdc,
-              txHash: refundTxHash,
-              jobId: deal.jobId,
-              counterparty: deal.seller.toLowerCase(),
-            });
-            // v2b and v3 record Failed on chain inside the reclaim. Only the
-            // v2.E path needs the explicit off-chain reputation write.
-            if (!dealEscrowOps.usesOnChainClock(deal)) {
-              await recordReputation(deal.jobId, buyerWalletId, OUTCOME_FAILED);
-            }
-            try {
-              await completeDeadlineRecovery(recoveryLease, {
-                movementReference: refundResult.movement.reference,
-                txHash: refundTxHash,
-              });
-            } catch (recoveryError) {
-              logger.error(
-                { jobId: deal.jobId, err: (recoveryError as Error).message },
-                'refund completed but recovery ledger could not be finalized',
-              );
-            }
-            logger.info(
-              { jobId: deal.jobId, recoveryAttempt: recovery.attempt + 1 },
-              'reclaim grace window passed, auto-reclaimed escrow to the buyer',
-            );
-          } catch (err) {
-            try {
-              await failDeadlineRecovery(recoveryLease, {
-                error: (err as Error).message,
-                nextAvailableAt: now + deadlineRecoveryBackoffMs(recovery.attempt + 1),
-                now,
-              });
-            } catch (recoveryError) {
-              logger.error(
-                { jobId: deal.jobId, err: (recoveryError as Error).message },
-                'refund failed and recovery ledger could not record the retry',
-              );
-            }
-            throw err;
-          }
-        }
-        continue;
-      }
+      if (await maybeReclaimAfterDeadline(deal, account, now)) continue;
 
       const totalMilestones = account.milestonePcts.length || 2;
       const nextIndex = account.milestonesReleased;

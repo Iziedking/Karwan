@@ -37,6 +37,22 @@ export function remainingEscrowMicros(dealAmount: bigint | string, released: big
   return remaining;
 }
 
+/**
+ * What a refund or deadline reclaim actually pays the buyer: the unpaid seller
+ * share plus every fee not yet taken, the buyer's own 0.75% included. Both
+ * escrow paths transfer exactly this, so the receipt must say the same.
+ */
+export function escrowBuyerRefundMicros(account: {
+  sellerNet: bigint;
+  released: bigint;
+  feeTotal: bigint;
+  feeReleased: bigint;
+}): bigint {
+  const remaining = account.sellerNet - account.released + (account.feeTotal - account.feeReleased);
+  if (remaining < 0n) throw new Error('ESCROW_RELEASED_EXCEEDS_DEAL_AMOUNT');
+  return remaining;
+}
+
 /** Allocate the buyer's refund receipt before any dispute/reclaim write. */
 export async function ensureEscrowRefundMovement(
   input: EscrowRefundMovementInput,

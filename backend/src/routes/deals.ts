@@ -73,6 +73,7 @@ import { formatUsdcMicros } from '../money/model.js';
 import {
   ensureEscrowRefundMovement,
   executeEscrowRefundMovement,
+  escrowBuyerRefundMicros,
   remainingEscrowMicros,
 } from '../money/escrowRefund.js';
 import {
@@ -4867,8 +4868,7 @@ dealsRoutes.post('/direct/:jobId/cancel', async (c) => {
   }
   let refundMicros: bigint;
   try {
-    refundMicros =
-      dealEscrowOps.refundableMicros(account) ?? remainingEscrowMicros(account.dealAmount, account.released);
+    refundMicros = escrowBuyerRefundMicros(account);
   } catch (err) {
     logger.error({ jobId, err: (err as Error).message }, 'escrow refund amount is invalid');
     return c.json({ error: 'escrow accounting is inconsistent', code: 'ESCROW_ACCOUNTING_INVALID' }, 502);
