@@ -66,3 +66,14 @@ test('a follow-up that touches no account topic has nothing to ground', () => {
   assert.equal(assessGrounding(messages('did the money land?'), []).grounded, false);
   assert.ok(assessGrounding([...messages('my balance'), ...messages('what about now?')], []).subjects > 0);
 });
+
+test('a pasted id that is still a match grounds the answer once the match is read', () => {
+  const id = '0x8e84db295886c261330b76f2169137d1fed4295279ce9770ff23cdfdea907cdb';
+  const question = messages(`${id} check this deal`);
+  const match = { jobId: id, kind: 'match', match: { role: 'buyer', priceUsdc: '50', state: 'waiting for the seller to approve' } };
+  assert.equal(assessGrounding(question, result('get_deal_status', match, { jobId: id })).grounded, true);
+  assert.equal(
+    assessGrounding(question, result('get_deal_status', { error: 'No deal, match or request of yours has the id.' }, { jobId: id })).grounded,
+    false,
+  );
+});

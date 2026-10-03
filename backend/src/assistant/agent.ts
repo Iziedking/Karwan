@@ -2,6 +2,7 @@
 /// No tool directly executes a money action. The direct Anthropic model is the
 /// only provider allowed to receive private tool results or chat history.
 
+import { getBrief } from '../db/briefs.js';
 import { prohibitedReason } from '../policy/prohibited.js';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
@@ -367,19 +368,19 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
 
     get_deal_status: tool({
       description:
-        "Get the full status of ONE of the signed-in user's own deals by its jobId: phase, amount, counterparty, deadline, and whether a release is paused. Only works for a deal the user is a party to.",
+        "Get the full status of ONE of the signed-in user's own deals by its id (jobId, a 0x id of 64 hex characters): phase, amount, counterparty, deadline, and whether a release is paused. The same id may be a match still waiting for approval, or a request the user posted; the result says which (kind: deal, match or request). Only works when the user is a party.",
       inputSchema: z.object({
         jobId: z.string().min(1).max(120).describe('The deal id (jobId) to look up.'),
       }),
       execute: async ({ jobId }) => {
         try {
           const deal = await getDeal(jobId);
-          if (!deal) return { error: `No deal found with id ${jobId}.` };
+          if (!deal) return await matchOrRequestStatus(jobId, address);
           // Party gate: the caller must be the buyer or the seller on this deal.
           if (!canViewDeal(deal, address)) {
             return { error: 'That deal is not one of yours, so I cannot show its details.' };
           }
-          return { jobId: deal.jobId, deal: summarizeDeal(deal, address), protection: dealProtectionContext(deal, address) };
+          return { jobId: deal.jobId, kind: 'deal', deal: summarizeDeal(deal, address), protection: dealProtectionContext(deal, address) };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant get_deal_status failed');
           return { error: 'Could not read that deal right now. Try again shortly.' };
@@ -2270,4 +2271,50 @@ export async function runAssistantAgent(input: {
   // Coverage checks are a guard, not a guarantee of semantic model correctness.
   const { grounded, subjects } = assessGrounding(input.messages, result.steps ?? []);
   return { text: result.text.trim(), actions, grounded, subjects };
+}
+
+/// A 0x id is a deal only once escrow is funded. Before that the same id is a
+/// match waiting for approval, or the request the user posted. Each is shown
+/// only to its parties, and the result names which it is, so the answer never
+/// calls an unfunded match a deal or says money is in escrow.
+async function matchOrRequestStatus(jobId: string, address: string) {
+  const me = address.toLowerCase();
+  const match = await getMatchProposal(jobId);
+  if (match && (match.buyerUser.toLowerCase() === me || match.sellerUser.toLowerCase() === me)) {
+    const role = match.sellerUser.toLowerCase() === me ? 'seller' : 'buyer';
+    const waitingOn = match.awaitingParty ?? 'seller';
+    const state = match.declinedAt ? 'declined' : match.approvedAt ? 'approved' : `waiting for the ${waitingOn} to approve`;
+    return {
+      jobId: match.jobId,
+      kind: 'match',
+      match: {
+        role,
+        priceUsdc: match.raisedPriceUsdc ?? match.agreedPriceUsdc,
+        ...(match.raisedPriceUsdc ? { originalPriceUsdc: match.originalPriceUsdc ?? match.agreedPriceUsdc } : {}),
+        deliveryDue: match.deadlineUnix ? new Date(match.deadlineUnix * 1000).toISOString() : undefined,
+        state,
+        yourMove: !match.declinedAt && !match.approvedAt && waitingOn === role,
+        page: `/jobs/${match.jobId}`,
+      },
+      note: 'This is a match, not a funded deal. No money is in escrow until it is approved and funded.',
+    };
+  }
+  const brief = getBrief(jobId);
+  if (brief && brief.postedBy.toLowerCase() === me) {
+    const live = getMarketplaceBriefs().find((b) => b.jobId.toLowerCase() === brief.jobId.toLowerCase());
+    return {
+      jobId: brief.jobId,
+      kind: 'request',
+      request: {
+        text: brief.briefText.slice(0, 300),
+        open: !!live,
+        budgetUsdc: live?.budgetUsdc,
+        offers: live?.bidsCount,
+        ended: brief.expiredAt ? 'expired' : brief.negotiationEndedAt ? 'negotiation ended' : undefined,
+        page: `/jobs/${brief.jobId}`,
+      },
+      note: 'This is a request the user posted, not a deal yet.',
+    };
+  }
+  return { error: `No deal, match or request of yours has the id ${jobId}.` };
 }
