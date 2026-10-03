@@ -46,3 +46,13 @@ test('mainnet production refuses passkey recovery without a KMS key', () => {
   assert.deepEqual(runtimeSafetyErrors({ ...base, arcNetwork: 'mainnet', recoveryEnabled: true, recoveryKmsKeyId: 'alias/karwan-recovery' }), []);
   assert.deepEqual(runtimeSafetyErrors({ ...base, arcNetwork: 'testnet', recoveryEnabled: true }), []);
 });
+
+test('production refuses World ID in staging, which the real World App cannot complete', () => {
+  const base = { nodeEnv: 'production' as const, databaseUrl: 'postgresql://db/karwan', sessionSecret: 'a-unique-production-session-secret-with-32-characters' };
+  assert.deepEqual(runtimeSafetyErrors({ ...base, worldIdEnabled: true, worldIdEnvironment: 'staging' }), [
+    'WORLD_ID_ENVIRONMENT must be production when WORLD_ID_ENABLED is on in production; staging only works with the World ID Simulator',
+  ]);
+  assert.deepEqual(runtimeSafetyErrors({ ...base, worldIdEnabled: true, worldIdEnvironment: 'production' }), []);
+  assert.deepEqual(runtimeSafetyErrors({ ...base, worldIdEnabled: false, worldIdEnvironment: 'staging' }), []);
+  assert.deepEqual(runtimeSafetyErrors({ nodeEnv: 'development', worldIdEnabled: true, worldIdEnvironment: 'staging' }), []);
+});

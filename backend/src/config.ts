@@ -930,6 +930,8 @@ const safetyErrors = runtimeSafetyErrors({
   arcNetwork: parsed.data.ARC_NETWORK,
   recoveryEnabled: parsed.data.RECOVERY_ENABLED,
   recoveryKmsKeyId: parsed.data.RECOVERY_KMS_KEY_ID,
+  worldIdEnabled: parsed.data.WORLD_ID_ENABLED,
+  worldIdEnvironment: parsed.data.WORLD_ID_ENVIRONMENT,
 });
 if (safetyErrors.length > 0) {
   console.error('Unsafe production configuration:', safetyErrors);

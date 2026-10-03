@@ -5,6 +5,8 @@ export interface RuntimeSafetyInput {
   arcNetwork?: 'testnet' | 'mainnet';
   recoveryEnabled?: boolean;
   recoveryKmsKeyId?: string;
+  worldIdEnabled?: boolean;
+  worldIdEnvironment?: 'staging' | 'production';
 }
 
 export const EXAMPLE_SESSION_SECRET = 'dev-secret-change-me-please-32-chars-min';
@@ -27,6 +29,11 @@ export function runtimeSafetyErrors(input: RuntimeSafetyInput): string[] {
   }
   if (input.nodeEnv === 'production' && input.arcNetwork === 'mainnet' && input.recoveryEnabled && !input.recoveryKmsKeyId) {
     errors.push('RECOVERY_KMS_KEY_ID is required when RECOVERY_ENABLED is on mainnet in production');
+  }
+  // Staging is the default and only answers the World ID Simulator, so real
+  // people scanning with World App were sent to an Orb prompt they could not use.
+  if (input.nodeEnv === 'production' && input.worldIdEnabled && input.worldIdEnvironment !== 'production') {
+    errors.push('WORLD_ID_ENVIRONMENT must be production when WORLD_ID_ENABLED is on in production; staging only works with the World ID Simulator');
   }
   return errors;
 }
