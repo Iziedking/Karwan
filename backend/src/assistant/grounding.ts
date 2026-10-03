@@ -27,6 +27,7 @@ const subjects: Array<[RegExp, string[]]> = [
   [/\b(?:pay(?:ment)?\s*links?|invoice\s+link|payment\s+requests?|request\s+(?:money|payment|usdc|\d)|(?:got|been|get)\s+paid)\b/i, ['create_payment_link', 'list_my_payment_links', 'cancel_payment_link']],
   [/\b(?:deposit|add money|top[ -]?up)\b/i, ['get_my_deposit_addresses', 'check_top_up_sources', 'list_bridge_sources', 'get_my_balance']],
   [/(?:\bsend\b|\bpay\s+@|(?:^|\s)@[a-z][a-z0-9_]{2,19}\b)/i, ['propose_send_to_tag', 'find_karwan_tag', 'get_my_balance', 'propose_direct_deal']],
+  [/\b(?:(?<!request )money|funds|paid|landed|arrived?|received?)\b/i, ['get_my_balance', 'recall_activity', 'list_my_payment_links']],
   [/\bprofile\b/i, ['get_my_profile']],
   [/\b(?:anything pending|everything|attention)\b/i, ['whats_pending']],
 ];
@@ -58,5 +59,8 @@ export function assessGrounding(messages: Message[], steps: readonly Step[]) {
       missing.push('get_deal_status for the requested deal');
     }
   }
-  return { grounded: reads.length > 0 && missing.length === 0, tools: [...used], missing };
+  // How many account topics this question touches. Zero means there is no
+  // account claim to check, so nothing has to be held back.
+  const touched = subjects.filter(([pattern]) => pattern.test(question)).length + dealIds.length;
+  return { grounded: reads.length > 0 && missing.length === 0, tools: [...used], missing, subjects: touched };
 }

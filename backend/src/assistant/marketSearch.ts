@@ -38,12 +38,27 @@ export function searchTerms(query = ''): string[] {
   return [...new Set(query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])].filter((t) => t.length > 2 && !STOP.has(t));
 }
 
-/// Title hits count double: a match in what is being sold beats a passing mention.
+function words(text: string): string[] {
+  return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
+/// A term counts when it starts a word ("design" finds "designer"), never in
+/// the middle of one. Every term must match; a search of three or more words
+/// may miss one. Title hits count double: what is being sold beats a mention.
 function score(terms: string[], title: string, body: string): number {
   if (terms.length === 0) return 1;
-  const t = title.toLowerCase();
-  const b = body.toLowerCase();
-  return terms.reduce((sum, term) => sum + (t.includes(term) ? 2 : 0) + (b.includes(term) ? 1 : 0), 0);
+  const t = words(title);
+  const b = words(body);
+  let matched = 0;
+  let points = 0;
+  for (const term of terms) {
+    const inTitle = t.some((w) => w.startsWith(term));
+    const inBody = b.some((w) => w.startsWith(term));
+    if (inTitle || inBody) matched += 1;
+    points += (inTitle ? 2 : 0) + (inBody ? 1 : 0);
+  }
+  const needed = terms.length >= 3 ? terms.length - 1 : terms.length;
+  return matched >= needed ? points : 0;
 }
 
 function firstLine(text: string): string {

@@ -2240,7 +2240,7 @@ export async function runAssistantAgent(input: {
   address: string;
   method: string;
   messages: AssistantChatMessage[];
-}): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean }> {
+}): Promise<{ text: string; actions: AssistantAction[]; grounded: boolean; subjects: number }> {
   const model = assistantAgentModel;
   if (!model) throw new Error('assistant agent model unavailable');
 
@@ -2264,6 +2264,6 @@ export async function runAssistantAgent(input: {
 
   // Tool failures, public facts and proposals are not private account evidence.
   // Coverage checks are a guard, not a guarantee of semantic model correctness.
-  const { grounded } = assessGrounding(input.messages, result.steps ?? []);
-  return { text: result.text.trim(), actions, grounded };
+  const { grounded, subjects } = assessGrounding(input.messages, result.steps ?? []);
+  return { text: result.text.trim(), actions, grounded, subjects };
 }

@@ -6,7 +6,7 @@
 import { logger } from '../logger.js';
 import type { AssistantAction } from './actions.js';
 import { assistantAgentEnabled, runAssistantAgent, type AssistantChatMessage } from './agent.js';
-import { proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
+import { mayAnswer, proposalReply, requiresLiveAccountState, staticFallbackMessages } from './safety.js';
 
 export type AssistantTurnResult =
   | { ok: true; reply: string; actions?: AssistantAction[] }
@@ -32,7 +32,7 @@ export async function runAssistantTurn(
   const needsLiveState = requiresLiveAccountState(input.messages);
   if (assistantAgentEnabled()) {
     try {
-      const { text, actions, grounded } = await runAssistantAgent({
+      const { text, actions, grounded, subjects } = await runAssistantAgent({
         address: input.address.toLowerCase(),
         method: input.method,
         messages: input.messages,
@@ -44,7 +44,7 @@ export async function runAssistantTurn(
       // Never let a tool-less model answer a stateful prompt. The only safe
       // response when the account read model was not consulted is an honest
       // retry message, not an optimistic status.
-      if (text && (!needsLiveState || grounded)) return { ok: true, reply: text, actions };
+      if (text && mayAnswer({ needsLiveState, grounded, subjects })) return { ok: true, reply: text, actions };
       if (needsLiveState) {
         logger.warn('assistant: stateful answer was not grounded by a fresh account read');
         return STATE_UNAVAILABLE;

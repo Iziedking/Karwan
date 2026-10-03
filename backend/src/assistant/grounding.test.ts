@@ -57,3 +57,12 @@ test('a checked deal proposal grounds opening a deal with a tag', () => {
   assert.equal(assessGrounding(messages('open a deal with @ada_designs for 150 usdc'), ok).grounded, true);
   assert.equal(assessGrounding(messages('open a deal with @ada_designs'), result('propose_direct_deal', { error: 'No Karwan account has the tag @ada_designs.' })).grounded, false);
 });
+
+test('a follow-up that touches no account topic has nothing to ground', () => {
+  const chat = [...messages('help me find who sells outlier account'), { role: 'assistant' as const, content: 'Could you clarify?' }, ...messages('i mean outlier.ai')];
+  assert.equal(assessGrounding(chat, []).subjects, 0);
+  // Money words still need a fresh read, on their own or as the earlier question.
+  assert.ok(assessGrounding(messages('did the money land?'), []).subjects > 0);
+  assert.equal(assessGrounding(messages('did the money land?'), []).grounded, false);
+  assert.ok(assessGrounding([...messages('my balance'), ...messages('what about now?')], []).subjects > 0);
+});

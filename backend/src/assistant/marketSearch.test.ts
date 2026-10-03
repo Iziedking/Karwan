@@ -33,3 +33,11 @@ test('requests are searched by their brief and a price cap applies', () => {
   const request = hits.find((h) => h.kind === 'request');
   assert.equal(request?.kind === 'request' ? request.title : '', 'Need a logo for my bakery');
 });
+
+test('every searched word has to match the start of a word, so accounting is not an outlier account', () => {
+  const extra = [...offers, { id: 'l4', sellerUser: '0xc', title: 'Accounting software setup for clients', description: 'Bookkeeping', askingPriceUsdc: 110, postedAt: 4 }];
+  assert.deepEqual(searchMarket({ query: 'outlier account', kind: 'offers' }, extra, requests), []);
+  assert.deepEqual(searchMarket({ query: 'accounting setup', kind: 'offers' }, extra, requests).map((h) => (h.kind === 'offer' ? h.id : '')), ['l4']);
+  // A longer search may miss one word.
+  assert.deepEqual(searchMarket({ query: 'logo design bakery', kind: 'offers', excludeSeller: '0xme' }, extra, requests).map((h) => (h.kind === 'offer' ? h.id : '')), ['l1']);
+});

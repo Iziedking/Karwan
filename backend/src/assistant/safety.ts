@@ -60,3 +60,11 @@ export function proposalReply(actions: ReadonlyArray<{ kind: string }>): string 
   }
   return null;
 }
+
+/// A reply is held back only when it touches the account (balance, deals,
+/// payments, transfers and the like) and no fresh read backs it. A question
+/// with no account topic, such as a clarification about the market, is
+/// answered: there is no account claim in it to check.
+export function mayAnswer(input: { needsLiveState: boolean; grounded: boolean; subjects: number }): boolean {
+  return !input.needsLiveState || input.grounded || input.subjects === 0;
+}
