@@ -33,6 +33,7 @@ import {
 } from '../llm/prompts.js';
 import { topicalMatchScore } from '../llm/keywords.js';
 import { logger } from '../logger.js';
+import { effectiveMilestonePcts as splitFor } from './milestoneSplit.js';
 import { reportError } from '../errorTracker.js';
 import { bus, recentEventsByType } from '../events.js';
 import type { BuyerProfile } from './buyer-profile.js';
@@ -4274,17 +4275,7 @@ const AGENT_FLOW_TRUSTED_BPS = 5000;
 /// to 100. The on-chain escrow funds and releases any such split. Anything else
 /// (absent or malformed) falls back to the profile default.
 function effectiveMilestonePcts(state: JobState): number[] {
-  const stated = state.context.milestonePcts;
-  if (
-    Array.isArray(stated) &&
-    stated.length >= 2 &&
-    stated.length <= 5 &&
-    stated.every((n) => Number.isInteger(n) && n >= 1 && n <= 99) &&
-    stated.reduce((sum, n) => sum + n, 0) === 100
-  ) {
-    return stated;
-  }
-  return state.buyer.milestonePcts;
+  return splitFor(state.context.milestonePcts, state.buyer.milestonePcts);
 }
 
 /// A job funds on v3 only with the flag on and nothing on the v2 escrow for

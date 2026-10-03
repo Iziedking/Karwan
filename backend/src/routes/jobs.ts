@@ -114,8 +114,8 @@ const postJobSchema = z
     trustedMatch: z.boolean().optional(),
     /** Per-brief milestone split the buyer stated in the request ("30% then
      *  70%"). Percentages must sum to 100. Overrides the buyer profile default
-     *  at escrow funding. The managed flow supports the same 2 to 5 parts as
-     *  the deployed escrow contract. */
+     *  at escrow funding. One part (100) is a single payment; both escrows
+     *  accept 1 to 5 parts. */
     milestonePcts: z
       .array(z.number().int().min(1).max(100))
       .min(1)
