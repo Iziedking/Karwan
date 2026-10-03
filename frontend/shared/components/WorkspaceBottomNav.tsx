@@ -91,6 +91,8 @@ export function WorkspaceBottomNav() {
     },
   ];
 
+  const activeIndex = items.findIndex((item) => item.active);
+
   return (
     <nav
       data-workspace-bottom-nav
@@ -98,9 +100,21 @@ export function WorkspaceBottomNav() {
       style={{ paddingBottom: 'max(6px, env(safe-area-inset-bottom))' }}
     >
       <div
-        className="mx-auto grid max-w-lg"
+        className="relative mx-auto grid max-w-lg"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       >
+        {/* One pill glides to the open tab, so the move itself shows where you went. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-1 start-0 flex justify-center transition-[transform,opacity] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+          style={{
+            width: `${100 / items.length}%`,
+            transform: `translateX(calc(${Math.max(activeIndex, 0)} * 100% * var(--nav-dir, 1)))`,
+            opacity: activeIndex < 0 ? 0 : 1,
+          }}
+        >
+          <span className="h-9 w-[min(64px,80%)] rounded-full bg-[var(--lp-accent)]/25" />
+        </span>
         {items.map((item) => (
           <Link
             key={item.href}
@@ -109,16 +123,14 @@ export function WorkspaceBottomNav() {
             className={cn(
               'relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5',
               'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--lp-accent)]',
-              item.active
-                ? 'text-[var(--color-ink)]'
-                : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
+              item.active ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink-faint)] hover:text-[var(--color-ink)]',
             )}
           >
-            {/* The selected page is marked by its icon in the accent: lime on
-                dark, the olive accent on light where lime would be too faint. */}
             <span
-              className="transition-colors duration-[var(--dur-small)]"
-              style={item.active ? { color: 'var(--lp-accent-on-light)' } : undefined}
+              className={cn(
+                'grid h-9 place-items-center transition-transform duration-[320ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] motion-reduce:transition-none',
+                item.active && '-translate-y-px scale-[1.08]',
+              )}
             >
               {item.icon === 'account' && auth.address ? (
                 // Your own photo marks Profile; the accent ring marks it open.
@@ -129,11 +141,9 @@ export function WorkspaceBottomNav() {
                 <NavIcon name={item.icon} active={item.active} />
               )}
             </span>
-            <span className="inline-flex max-w-full items-center gap-1 truncate text-[11px] font-medium">
+            <span className={cn('inline-flex max-w-full items-center gap-1 truncate text-[11px] transition-[font-weight] duration-200', item.active ? 'font-bold' : 'font-medium')}>
               <span className="truncate">{item.label}</span>
-              {item.signal ? (
-                <ActionBeacon />
-              ) : null}
+              {item.signal ? <ActionBeacon /> : null}
             </span>
           </Link>
         ))}
@@ -142,55 +152,48 @@ export function WorkspaceBottomNav() {
   );
 }
 
+/// Rounded 24px icons. The open tab's icon fills in; the rest stay outlined.
 function NavIcon({ name, active }: { name: IconName; active: boolean }) {
-  const common = {
-    width: 17,
-    height: 17,
-    viewBox: '0 0 18 18',
-    fill: 'none',
-    'aria-hidden': true,
-  } as const;
-  const stroke = 'currentColor';
-  const props = {
-    stroke,
-    strokeWidth: active ? 1.9 : 1.5,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  };
+  const common = { width: 22, height: 22, viewBox: '0 0 24 24', 'aria-hidden': true } as const;
+  const line = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const solid = active ? 'currentColor' : 'none';
 
   if (name === 'home') {
     return (
       <svg {...common}>
-        <path d="M2.75 8.1 9 2.9l6.25 5.2v6.8H11v-4H7v4H2.75z" {...props} />
+        <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" {...line} fill={solid} />
+        {active ? <path d="M9.5 20v-5.5h5V20" fill="none" stroke="var(--lp-workspace-band)" strokeWidth={1.6} strokeLinejoin="round" /> : null}
       </svg>
     );
   }
   if (name === 'trade') {
     return (
       <svg {...common}>
-        <path d="M3 5.25h10.5M11 2.75l2.5 2.5-2.5 2.5M15 12.75H4.5M7 10.25l-2.5 2.5L7 15.25" {...props} />
+        <path d="M16 4l4 4-4 4M20 8H9M8 20l-4-4 4-4M4 16h11" {...line} strokeWidth={active ? 2 : 1.6} />
       </svg>
     );
   }
   if (name === 'discover') {
     return (
       <svg {...common}>
-        <circle cx="8" cy="8" r="4.5" {...props} />
-        <path d="m11.4 11.4 3.6 3.6M6.25 9.75l1.2-3.1 3.1-1.2-1.2 3.1z" {...props} />
+        <circle cx="12" cy="12" r="9" {...line} />
+        <path d="m15.5 8.5-2 5-5 2 2-5z" {...line} fill={solid} />
       </svg>
     );
   }
   if (name === 'activity') {
     return (
       <svg {...common}>
-        <path d="M2.5 9h2.75l1.5-4 3 8 1.5-4H15.5" {...props} />
+        <rect x="4" y="13" width="3.5" height="7" rx="1.2" {...line} fill={solid} />
+        <rect x="10.25" y="8" width="3.5" height="12" rx="1.2" {...line} fill={solid} />
+        <rect x="16.5" y="4" width="3.5" height="16" rx="1.2" {...line} fill={solid} />
       </svg>
     );
   }
   return (
     <svg {...common}>
-      <circle cx="9" cy="6" r="2.75" {...props} />
-      <path d="M3.75 15c.65-2.55 2.4-3.85 5.25-3.85s4.6 1.3 5.25 3.85" {...props} />
+      <circle cx="12" cy="8.5" r="3.75" {...line} fill={solid} />
+      <path d="M4.5 20c.9-3.6 3.5-5.5 7.5-5.5s6.6 1.9 7.5 5.5" {...line} />
     </svg>
   );
 }
