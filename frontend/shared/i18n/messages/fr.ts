@@ -5492,7 +5492,7 @@ export const fr: Messages = {
       contextDeal: 'Deal',
       unit: 'USDC',
       open: 'Ouvrir',
-      dueTemplate: 'ÉCHÉANCE {date}',
+      dueTemplate: 'Échéance {date}',
     },
     chips: {
       acceptToFund: 'Examiner le match',

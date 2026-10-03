@@ -10915,7 +10915,7 @@ export const en: MessagesShape = {
       contextDeal: 'Deal',
       unit: 'USDC',
       open: 'Open',
-      dueTemplate: 'DUE {date}',
+      dueTemplate: 'Due {date}',
     },
     chips: {
       acceptToFund: 'Review match',

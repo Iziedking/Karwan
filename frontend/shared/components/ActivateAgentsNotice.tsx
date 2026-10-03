@@ -16,7 +16,7 @@ interface Props {
 /// Catches the silent dead end: a signed-in user who saved a profile but never
 /// activated. A saved profile does NOT provision a bidding agent, so the seller
 /// (or buyer) agent never acts and nothing on the page says why. This names the
-/// gap and gives a one-click activate. Self-rendering like PendingMatchesBand:
+/// gap and gives a one-click activate. Self-rendering:
 /// returns null once activated (or before the status loads), so it can be
 /// dropped straight between bands without leaving an empty section behind.
 export function ActivateAgentsNotice({ role = 'both', tone = 'light' }: Props) {

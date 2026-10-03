@@ -5489,7 +5489,7 @@ export const sw: Messages = {
       contextDeal: 'Biashara',
       unit: 'USDC',
       open: 'Fungua',
-      dueTemplate: 'MWISHO {date}',
+      dueTemplate: 'Mwisho {date}',
     },
     chips: {
       acceptToFund: 'Kagua mechi',

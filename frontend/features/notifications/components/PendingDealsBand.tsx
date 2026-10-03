@@ -1,9 +1,9 @@
 'use client';
-import Link from 'next/link';
+import { OpenDealRow, shortDate } from './OpenDealRow';
 import { type DirectDeal } from '@/core/api';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useDirectDeals } from '@/features/deals/hooks/useDirectDeals';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
 import type { Messages } from '@/shared/i18n/messages';
 import { Band, SectionTag, HeroHeadline, Punc } from '@/shared/components/Bands';
 import { Hint } from '@/shared/components/Hint';
@@ -50,20 +50,14 @@ export function labelFor(
   }
 }
 
-function fmtUsdc(raw: string): string {
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return raw;
-  if (Number.isInteger(n)) return n.toString();
-  return n.toFixed(2).replace(/\.?0+$/, '');
-}
-
 /// Live direct deals on the viewer's book. Used on /app, /profile, /seller.
 /// Green chips mark deals where the viewer must move; grey chips mark deals
 /// waiting on the counterparty. Terminal stages drop off. Match proposals
-/// surface in PendingMatchesBand. Polls every 10s.
+/// surface in ProfileOpenDealsPanel. Polls every 10s.
 export function PendingDealsBand({ tone = 'light', headline }: Props) {
   const auth = useAuth();
-  const t = useTranslations().pending;
+  const { locale, t: messages } = useLocale();
+  const t = messages.pending;
   const resolvedHeadline = headline ?? t.deals.headline;
   const address = auth.address;
   /// Single source of truth for deal lists. Inheriting the shared cache
@@ -96,8 +90,6 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
   if (fetchState !== 'success') return null;
   if (rows.length === 0) return null;
 
-  const dark = tone === 'dark';
-
   return (
     <Band tone={tone} compact>
       {/* Same measure as every neighbour on this page: MoneyStrip above,
@@ -118,112 +110,19 @@ export function PendingDealsBand({ tone = 'light', headline }: Props) {
         {resolvedHeadline}
         <Punc>.</Punc>
       </HeroHeadline>
-      <ul className="mt-8 space-y-3">
-        {rows.map(({ deal, isBuyer, label }) => {
-          const role = isBuyer ? t.card.roleBuyer : t.card.roleSeller;
-          const counterRole = isBuyer ? t.card.roleSeller : t.card.roleBuyer;
-          const isAction = label.kind === 'action';
-          // Green action chips read as a call to action; grey wait chips
-          // surface the deal without implying the viewer owes a move.
-          const chipBg = isAction
-            ? (dark ? 'rgba(175,201,91,0.12)' : 'rgba(175,201,91,0.16)')
-            : (dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)');
-          const chipFg = isAction
-            ? (dark ? 'var(--lp-accent)' : '#56651f')
-            : (dark ? 'rgba(255,255,255,0.7)' : 'var(--lp-text-sub)');
-          const chipBorder = isAction
-            ? 'rgba(175,201,91,0.52)'
-            : (dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)');
-          const chipBlinkBg = isAction
-            ? 'var(--lp-accent)'
-            : (dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)');
-          return (
-            <li
-              key={deal.jobId}
-              className="relative overflow-hidden"
-              style={{
-                background: dark ? 'rgba(255,255,255,0.04)' : 'var(--lp-card)',
-                border: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid var(--lp-border-light)',
-                color: dark ? 'white' : 'var(--lp-dark)',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                borderBottomLeftRadius: 12,
-                borderBottomRightRadius: 3,
-                boxShadow: dark ? 'none' : '0 1px 0 rgba(0,0,0,0.03), 0 6px 18px -14px rgba(0,0,0,0.14)',
-              }}
-            >
-              <Link
-                href={`/deals/${deal.jobId}`}
-                className="block px-5 py-4 ps-6 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)]"
-              >
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="min-w-0">
-                    <span
-                      className="mono text-[10px] uppercase tracking-[0.18em]"
-                      style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
-                    >
-                      {role} · {t.card.contextDeal}
-                    </span>
-                    <div className="mt-2 flex items-baseline gap-2">
-                      <span
-                        className="font-sans text-[26px] font-extrabold tabular-nums tracking-[-0.02em] leading-none"
-                        style={{ color: dark ? 'white' : 'var(--lp-dark)' }}
-                      >
-                        {fmtUsdc(deal.dealAmountUsdc)}
-                      </span>
-                      <span
-                        className="mono text-[10px] uppercase tracking-[0.14em]"
-                        style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
-                      >
-                        {t.card.unit}
-                      </span>
-                    </div>
-                    <p
-                      className="mt-2 mono text-[10px] uppercase tracking-[0.12em]"
-                      style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
-                    >
-                      {counterRole}
-                    </p>
-                  </div>
-                  <div className="text-end shrink-0">
-                    <span
-                      className="inline-flex items-stretch overflow-hidden mono text-[10px] font-bold uppercase tracking-[0.16em] leading-none"
-                      style={{
-                        background: chipBg,
-                        color: chipFg,
-                        border: `1px solid ${chipBorder}`,
-                        borderTopLeftRadius: 5,
-                        borderTopRightRadius: 5,
-                        borderBottomLeftRadius: 5,
-                        borderBottomRightRadius: 2,
-                      }}
-                    >
-                      <span
-                        aria-hidden
-                        className="flex items-center justify-center px-1.5"
-                        style={{ background: chipBlinkBg }}
-                      >
-                        <span
-                          aria-hidden
-                          data-instrument-blink
-                          className="inline-block w-[5px] h-[5px] bg-white"
-                          style={{ animation: 'instrumentBlink 1.6s ease-in-out infinite' }}
-                        />
-                      </span>
-                      <span className="px-2 py-[6px]">{label.text}</span>
-                    </span>
-                    <p
-                      className="mt-2 mono text-[10px] uppercase tracking-[0.12em]"
-                      style={{ color: dark ? 'rgba(255,255,255,0.55)' : 'var(--lp-text-muted)' }}
-                    >
-                      {t.card.open} →
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+      <ul className="mt-6 divide-y divide-[var(--lp-border-light)] border-y border-[var(--lp-border-light)]">
+        {rows.map(({ deal, isBuyer, label }) => (
+          <OpenDealRow
+            key={deal.jobId}
+            href={`/deals/${deal.jobId}`}
+            role={isBuyer ? t.card.roleBuyer : t.card.roleSeller}
+            amount={deal.dealAmountUsdc}
+            unit={t.card.unit}
+            status={label.text}
+            yourMove={label.kind === 'action'}
+            due={deal.deadlineUnix ? t.card.dueTemplate.replace('{date}', shortDate(deal.deadlineUnix, locale)) : undefined}
+          />
+        ))}
       </ul>
       </div>
     </Band>

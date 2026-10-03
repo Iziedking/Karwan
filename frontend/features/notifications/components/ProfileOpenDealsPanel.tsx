@@ -1,12 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import type { MatchProposal } from '@/core/api';
-import { MatchRow } from './PendingMatchesBand';
+import { presentMatchingState } from '@/features/jobs/matchingPresentation';
 import { labelFor } from './PendingDealsBand';
 import type { OpenDirectDeal } from '../hooks/useOpenDeals';
-import { useTranslations } from '@/shared/i18n/LocaleProvider';
+import { useLocale } from '@/shared/i18n/LocaleProvider';
 import { Button } from '@/shared/components/Button';
+import { cn } from '@/shared/utils/cn';
+import { OpenDealRow, shortDate } from './OpenDealRow';
 
 export function ProfileOpenDealsPanel({
   address,
@@ -21,111 +22,75 @@ export function ProfileOpenDealsPanel({
   fetchState: 'idle' | 'loading' | 'success' | 'partial-error' | 'error';
   onRetry: () => void;
 }) {
-  const t = useTranslations().pending;
+  const { locale, t: messages } = useLocale();
+  const t = messages.pending;
+  const matching = messages.negotiationCard;
   const showError = fetchState === 'error' || fetchState === 'partial-error';
+  const me = address.toLowerCase();
+
+  const matchRows = matches.map((proposal) => {
+    const isSeller = proposal.sellerUser.toLowerCase() === me;
+    const presentation = presentMatchingState({ proposal, viewerAddress: address });
+    const business = !isSeller ? proposal.counterpartyBusiness?.companyName?.trim() : undefined;
+    return (
+      <OpenDealRow
+        key={proposal.jobId}
+        href={`/jobs/${proposal.jobId}`}
+        role={isSeller ? t.card.roleSeller : t.card.roleBuyer}
+        counterparty={business}
+        amount={presentation.currentOffer?.amountUsdc ?? proposal.agreedPriceUsdc}
+        unit={t.card.unit}
+        status={matching.states[presentation.state].tag}
+        yourMove={presentation.nextActor === (isSeller ? 'seller' : 'buyer')}
+        next={matching.nextActors[presentation.nextActor]}
+        due={proposal.deadlineUnix ? t.card.dueTemplate.replace('{date}', shortDate(proposal.deadlineUnix, locale)) : undefined}
+      />
+    );
+  });
+
+  const dealRows = directDeals.map((item) => {
+    const state = labelFor(item.stage, item.isBuyer, t.chips);
+    if (!state) return null;
+    return (
+      <OpenDealRow
+        key={item.deal.jobId}
+        href={`/deals/${item.deal.jobId}`}
+        role={item.isBuyer ? t.card.roleBuyer : t.card.roleSeller}
+        amount={item.deal.dealAmountUsdc}
+        unit={t.card.unit}
+        status={state.text}
+        yourMove={state.kind === 'action'}
+        due={item.deal.deadlineUnix ? t.card.dueTemplate.replace('{date}', shortDate(item.deal.deadlineUnix, locale)) : undefined}
+      />
+    );
+  });
 
   return (
     <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {showError ? (
-        <div className="flex justify-end border-b border-[var(--lp-border-light)] pb-4">
-          <Button type="button" variant="outline" onClick={onRetry}>
-            {t.matches.retry}
-          </Button>
+        <div className="flex items-center justify-between gap-4 border-b border-[var(--lp-border-light)] pb-4">
+          <p role="status" className="text-[14px] text-[var(--lp-text-sub)]">{t.matches.loadError}</p>
+          <Button type="button" variant="outline" onClick={onRetry}>{t.matches.retry}</Button>
         </div>
       ) : null}
 
-      {showError ? (
-        <p role="status" className="border-b border-[var(--lp-border-light)] py-4 text-[13px] text-[var(--lp-text-sub)]">
-          {t.matches.loadError}
-        </p>
-      ) : null}
-
       {!showError && fetchState === 'success' && matches.length === 0 && directDeals.length === 0 ? (
-        <p className="py-8 text-[15px] font-semibold text-[var(--lp-text-sub)]">No open deals.</p>
+        <p className="py-8 text-[15px] font-medium text-[var(--lp-text-sub)]">No open deals.</p>
       ) : null}
 
-      {matches.length > 0 ? (
+      {matchRows.length > 0 ? (
         <section aria-label={t.matches.sectionTag}>
-          {directDeals.length > 0 ? (
-            <h3 className="border-b border-[var(--lp-border-light)] py-3 mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              {t.matches.sectionTag}
-            </h3>
-          ) : null}
-          <ul className="divide-y divide-[var(--lp-border-light)]">
-            {matches.map((proposal) => (
-              <MatchRow
-                key={proposal.jobId}
-                proposal={proposal}
-                viewerAddress={address}
-                tone="light"
-              />
-            ))}
-          </ul>
+          {dealRows.length > 0 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.matches.sectionTag}</h3> : null}
+          <ul className="divide-y divide-[var(--lp-border-light)]">{matchRows}</ul>
         </section>
       ) : null}
 
-      {directDeals.length > 0 ? (
-        <section aria-label={t.deals.sectionTag}>
-          {matches.length > 0 ? (
-            <h3 className="border-y border-[var(--lp-border-light)] py-3 mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-text-muted)]">
-              {t.deals.sectionTag}
-            </h3>
-          ) : null}
-          <ul className="divide-y divide-[var(--lp-border-light)]">
-            {directDeals.map((item) => {
-              const state = labelFor(item.stage, item.isBuyer, t.chips);
-              if (!state) return null;
-              const role = item.isBuyer ? t.card.roleBuyer : t.card.roleSeller;
-              const counterRole = item.isBuyer ? t.card.roleSeller : t.card.roleBuyer;
-              return (
-                <li key={item.deal.jobId}>
-                  <Link
-                    href={`/deals/${item.deal.jobId}`}
-                    className="group grid min-h-20 gap-3 px-1 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-accent)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                  >
-                    <span className="min-w-0">
-                      <span className="block mono text-[10px] uppercase tracking-[0.17em] text-[var(--lp-text-muted)]">
-                        {role} · {t.card.contextDeal}
-                      </span>
-                      <span className="mt-2 flex flex-wrap items-baseline gap-2">
-                        <strong className="font-sans text-[24px] font-extrabold leading-none tracking-[-0.025em] text-[var(--lp-dark)]">
-                          {formatUsdc(item.deal.dealAmountUsdc)}
-                        </strong>
-                        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-text-muted)]">
-                          {t.card.unit}
-                        </span>
-                        <span className="mono text-[10px] uppercase tracking-[0.12em] text-[var(--lp-text-muted)]">
-                          · {counterRole}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="flex min-w-0 items-center justify-between gap-3 sm:justify-end">
-                      <span
-                        className={`mono text-[10px] font-bold uppercase tracking-[0.13em] ${
-                          state.kind === 'action'
-                            ? 'text-[#56651f]'
-                            : 'text-[var(--lp-text-sub)]'
-                        }`}
-                      >
-                        {state.text}
-                      </span>
-                      <span aria-hidden className="text-[var(--lp-text-muted)] transition-transform duration-200 group-hover:translate-x-0.5">
-                        →
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+      {dealRows.length > 0 ? (
+        <section aria-label={t.deals.sectionTag} className={cn(matchRows.length > 0 && 'mt-6')}>
+          {matchRows.length > 0 ? <h3 className="pb-1 pt-2 text-[15px] font-semibold text-[var(--lp-dark)]">{t.deals.sectionTag}</h3> : null}
+          <ul className="divide-y divide-[var(--lp-border-light)]">{dealRows}</ul>
         </section>
       ) : null}
     </div>
   );
-}
-
-function formatUsdc(raw: string): string {
-  const value = Number(raw);
-  if (!Number.isFinite(value)) return raw;
-  return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
