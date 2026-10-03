@@ -7,9 +7,9 @@ import { logger } from '../logger.js';
 import { KARWAN_ASSISTANT_SYSTEM } from '../assistant/knowledge.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 import { readSession } from '../auth/session.js';
-import { assistantAgentEnabled, runAssistantAgent } from '../assistant/agent.js';
+import { runAssistantTurn } from '../assistant/turn.js';
 import { consumeAssistantQuota } from '../db/assistantUsage.js';
-import { requiresLiveAccountState, staticFallbackMessages, privateAssistantProviders, proposalReply } from '../assistant/safety.js';
+import { privateAssistantProviders } from '../assistant/safety.js';
 
 /// Authenticated support. Private answers require successful scoped reads.
 /// Generic help may fall back to direct Anthropic without prior chat history.
@@ -305,70 +305,36 @@ assistantRoutes.post(
     );
   }
 
-  // Authenticated tool-calling loop so the assistant can read this user's own
-  // balance and deals and answer from real numbers. It is bound to the
-  // cryptographically verified session address, never a client parameter.
-  // Stateful prompts fail closed rather than falling through to an ungrounded
-  // provider response.
-  const needsLiveState = requiresLiveAccountState(messages);
-  if (assistantAgentEnabled()) {
-    try {
-      const { text, actions, grounded } = await runAssistantAgent({
-        address: session.address.toLowerCase(),
-        method: session.method,
-        messages,
-      });
-      // Confirmation cards retain their existing authorization gates. Discard
-      // generated prose here so it cannot call a merely prepared action done.
-      const preparedReply = proposalReply(actions);
-      if (preparedReply) return c.json({ reply: preparedReply, actions });
-      // Never let a tool-less model answer a stateful prompt. The only safe
-      // response when the account read model was not consulted is an honest
-      // retry message, not an optimistic status.
-      if (text && (!needsLiveState || grounded)) return c.json({ reply: text, actions });
-      if (needsLiveState) return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
-      logger.warn('assistant: agent path returned empty, falling back to knowledge path');
-    } catch (e) {
-      logger.error(
-        { err: (e as Error).message },
-        'assistant: agent path failed, falling back to knowledge path',
-      );
-      if (needsLiveState) {
-        return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
+  // Bound to the cryptographically verified session address, never a client
+  // parameter. Only generic help can fall back, and only through a direct
+  // provider; account history never reaches a proxy or tool-less model.
+  const result = await runAssistantTurn(
+    { address: session.address, method: session.method, messages },
+    async (fallbackMessages) => {
+      let lastTimeout = false;
+      for (const p of provs) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15_000);
+        try {
+          const r = await callProvider(p, fallbackMessages, MAX_OUTPUT_TOKENS, controller.signal);
+          if (r.ok && r.reply) return { reply: r.reply };
+          logger.error(
+            { provider: p.name, status: r.status, detail: r.detail?.slice(0, 300) },
+            'assistant: provider failed, trying next',
+          );
+        } catch (e) {
+          lastTimeout = (e as Error).name === 'AbortError';
+          logger.error(
+            { provider: p.name, err: (e as Error).message, aborted: lastTimeout },
+            'assistant: provider error, trying next',
+          );
+        } finally {
+          clearTimeout(timeout);
+        }
       }
-    }
-  }
-
-  // An unconfigured tool-calling model is not a valid source of account truth.
-  // Keep static help available, but fail closed for money and workflow state.
-  if (needsLiveState) {
-    return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
-  }
-
-  // Only generic help can fall back, and only through the direct provider.
-  // Never forward account conversation history to a proxy or tool-less model.
-  const fallbackMessages = staticFallbackMessages(messages);
-  if (!fallbackMessages) return c.json({ error: 'assistant-unavailable', code: 'assistant_state_unavailable' }, 503);
-  let lastTimeout = false;
-  for (const p of provs) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-    try {
-      const r = await callProvider(p, fallbackMessages, MAX_OUTPUT_TOKENS, controller.signal);
-      if (r.ok && r.reply) return c.json({ reply: r.reply });
-      logger.error(
-        { provider: p.name, status: r.status, detail: r.detail?.slice(0, 300) },
-        'assistant: provider failed, trying next',
-      );
-    } catch (e) {
-      lastTimeout = (e as Error).name === 'AbortError';
-      logger.error(
-        { provider: p.name, err: (e as Error).message, aborted: lastTimeout },
-        'assistant: provider error, trying next',
-      );
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-  return c.json({ error: lastTimeout ? 'assistant-timeout' : 'assistant-error' }, 502);
+      return { timeout: lastTimeout };
+    },
+  );
+  if (result.ok) return c.json(result.actions ? { reply: result.reply, actions: result.actions } : { reply: result.reply });
+  return c.json(result.code ? { error: result.error, code: result.code } : { error: result.error }, result.status);
 });
