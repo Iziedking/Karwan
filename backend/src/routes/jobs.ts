@@ -1,3 +1,4 @@
+import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import {
@@ -192,6 +193,7 @@ jobsRoutes.get('/marketplace', async (c) => {
     Math.floor(Date.now() / 1000),
   );
   for (const b of candidates) {
+    if (prohibitedReason(b.briefText)) continue;
     const proposal = await getMatchProposal(b.jobId);
     if (proposal && !proposal.declinedAt) continue;
     const deal = await getDeal(b.jobId);
@@ -339,6 +341,8 @@ jobsRoutes.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   if (!isSessionSelf(c, body.posterAddress)) {
     return c.json({ error: 'You can only post a brief as your own wallet.', code: 'forbidden' }, 403);
   }
@@ -653,6 +657,8 @@ jobsRoutes.post('/:jobId/edit', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }

@@ -1,3 +1,4 @@
+import { prohibitedBody, prohibitedReason } from '../policy/prohibited.js';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { generateObject } from 'ai';
@@ -148,7 +149,8 @@ function stripPrivateFields(
 /// All listings, newest first. Public surface, strips private agent steering
 /// (negotiationMaxDecreasePct) so a buyer-side LLM can't enumerate floors.
 listingsRoutes.get('/', (c) => {
-  return c.json({ listings: listAllListings().map(stripPrivateFields) });
+  // Rows that describe a trade Karwan does not support stay off the market.
+  return c.json({ listings: listAllListings().filter((l) => !prohibitedReason(l.title, l.description, l.terms)).map(stripPrivateFields) });
 });
 
 /// Listings owned by the caller, with the private fields intact. The caller's
@@ -250,6 +252,8 @@ listingsRoutes.post('/:id/edit', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   const listing = getListing(id);
   if (!listing) return c.json({ error: 'listing not found' }, 404);
   if (!isSessionSelf(c, body.caller)) {
@@ -313,6 +317,8 @@ listingsRoutes.post('/', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   // Authorization: a Circle session may only post a listing as its own wallet.
   // Matches the gate on jobs/deals/profile writes; web3 users have no session
   // yet, so this is a no-op for them (see auth/session.ts).

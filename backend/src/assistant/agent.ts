@@ -2,6 +2,7 @@
 /// No tool directly executes a money action. The direct Anthropic model is the
 /// only provider allowed to receive private tool results or chat history.
 
+import { prohibitedReason } from '../policy/prohibited.js';
 import { generateText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { formatUnits, parseUnits, type Address } from 'viem';
@@ -1424,10 +1425,13 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         maxPriceUsdc: z.number().positive().max(10_000_000).optional(),
       }),
       execute: async ({ query, kind, maxPriceUsdc }) => {
+        // A trade Karwan does not support is refused, not searched for.
+        const refused = prohibitedReason(query);
+        if (refused) return { refused: true, category: refused.category, message: refused.message, next: 'Tell the user this plainly in one or two sentences and do not suggest other places to get it.' };
         try {
           const now = Date.now();
-          const offers = listOpenListings().filter((l) => l.expiresAt > now);
-          const requests = getMarketplaceBriefs();
+          const offers = listOpenListings().filter((l) => l.expiresAt > now && !prohibitedReason(l.title, l.description, l.terms));
+          const requests = getMarketplaceBriefs().filter((r) => !prohibitedReason(r.briefText));
           const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10 }, offers, requests);
           const results: Array<Record<string, unknown>> = [];
           for (const hit of ranked) {

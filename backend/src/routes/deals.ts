@@ -1,3 +1,4 @@
+import { prohibitedBody } from '../policy/prohibited.js';
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -562,6 +563,8 @@ dealsRoutes.post('/direct', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   if (
     body.sellerAddress &&
     body.buyerAddress.toLowerCase() === body.sellerAddress.toLowerCase()
@@ -885,6 +888,8 @@ dealsRoutes.post('/direct/:jobId/edit', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
@@ -1078,6 +1083,8 @@ dealsRoutes.post('/direct/:jobId/counter', async (c) => {
   } catch (err) {
     return c.json({ error: invalidBodyMessage(err) }, 400);
   }
+  const prohibited = prohibitedBody(body);
+  if (prohibited) return c.json(prohibited, 422);
   if (!isSessionSelf(c, body.caller)) {
     return c.json({ error: 'You can only act as your own wallet.', code: 'forbidden' }, 403);
   }
