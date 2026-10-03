@@ -17,6 +17,11 @@
 # Roll a new image:
 #   docker compose pull && docker compose up -d --remove-orphans
 #
+# Both API services run the image tag in KARWAN_API_TAG, the 7-character
+# commit the deploy workflow rolled (recorded in ~/karwan/.deployed-tag).
+# Unset, they fall back to :latest. To roll back by hand:
+#   KARWAN_API_TAG=<sha> docker compose --profile mainnet up -d karwan-api karwan-api-mainnet
+#
 # DNS: point api.karwan.site at the VPS IP. Caddy negotiates TLS automatically
 # via Let's Encrypt the first time the domain resolves.
 #
@@ -57,7 +62,7 @@ services:
     #      build: { context: ., dockerfile: Dockerfile }
     #   2. Pull from GHCR (recommended once CI publishes images):
     #      image: ghcr.io/<your-gh-user>/karwan-api:latest
-    image: ghcr.io/iziedking/karwan/karwan-api:latest
+    image: ghcr.io/iziedking/karwan/karwan-api:${KARWAN_API_TAG:-latest}
     container_name: karwan-api
     restart: unless-stopped
     env_file:
@@ -110,7 +115,7 @@ services:
   # exists on the server. Until Karwan's contracts are deployed on mainnet it
   # runs wallet-only (balances, deposits, bridging).
   karwan-api-mainnet:
-    image: ghcr.io/iziedking/karwan/karwan-api:latest
+    image: ghcr.io/iziedking/karwan/karwan-api:${KARWAN_API_TAG:-latest}
     container_name: karwan-api-mainnet
     profiles: ["mainnet"]
     restart: unless-stopped

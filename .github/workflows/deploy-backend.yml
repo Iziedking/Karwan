@@ -2,7 +2,12 @@ name: Deploy backend
 
 # Triggers:
 #   - Auto after publish-backend-image.yml succeeds (workflow chain).
-#   - Manual via Actions → "Deploy backend" → Run workflow.
+#   - Manual via Actions → "Deploy backend" → Run workflow. Give it a tag
+#     (a 7-character commit) to roll back to that image.
+#
+# Every deploy pins the image to the commit it was built from, never
+# :latest, and writes it to ~/karwan/.deployed-tag. If the new containers do
+# not turn healthy, the previous tag is started again before the job fails.
 #
 # Strategy: the VPS already has docker compose + a Caddyfile + .env in
 # ~/karwan/. This workflow pulls the latest karwan-api image, syncs the
@@ -16,6 +21,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to deploy (7-character commit). Empty = this commit.'
+        required: false
+        default: ''
 
 concurrency:
   group: deploy-backend-${{ github.ref }}
@@ -79,6 +89,11 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/karwan
+            TAG="${{ inputs.tag || github.event.workflow_run.head_sha || github.sha }}"
+            TAG="${TAG:0:7}"
+            PREV_TAG="$(cat .deployed-tag 2>/dev/null || echo latest)"
+            export KARWAN_API_TAG="$TAG"
+            echo ":: image tag $TAG (previous $PREV_TAG)"
             echo ":: ensure bind-mount file targets exist"
             touch host-crontab.txt
             # The Arc mainnet API is rolled alongside testnet once the server
@@ -140,6 +155,9 @@ jobs:
               if [ "$HEALTHY" != "1" ]; then
                 echo "  HEALTH CHECK FAILED: $SVC did not become healthy in 60s"
                 docker compose $PROFILE logs --tail=80 "$SVC"
+                echo ":: rolling back to $PREV_TAG"
+                KARWAN_API_TAG="$PREV_TAG" docker compose $PROFILE up -d $SERVICES
                 exit 1
               fi
             done
+            echo "$TAG" > .deployed-tag
