@@ -749,6 +749,8 @@ export interface DirectDeal {
     | 'security-hold'
     | 'no-agent-wallet';
   releaseBlockedAt?: number;
+  /// Which check paused the release; both parties see it.
+  releaseBlockedDetail?: 'security-hold' | 'off-request' | 'evidence-mismatch' | 'check-pending' | 'check-expired' | 'terms-changed' | 'delivery-replaced' | 'link-unverifiable';
   /// The required delivery check stalled long enough for the buyer to review
   /// the delivery themselves, and whether they already chose to.
   evidenceManualReviewAvailable?: boolean;

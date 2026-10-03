@@ -32,3 +32,18 @@ test('an offer on a request reaches only the person who posted it', () => {
   assert.equal(contentFor(offer, 'seller', 'service'), null);
   assert.equal(amountFor(offer), '35');
 });
+
+test('a paused release tells the buyer why, with the private note only for them', () => {
+  const blocked = {
+    type: 'deal.release.blocked', jobId: '0xjob', actor: 'platform', ts: 0,
+    payload: { buyer: '0xb', seller: '0xs', reason: 'requirement-mismatch', detail: 'off-request' },
+  } as unknown as KarwanEvent;
+  const toBuyer = contentFor(blocked, 'buyer', 'service', 'The link is a landing page, not the logo files.');
+  assert.ok(toBuyer);
+  assert.match(toBuyer.body, /does not match what you asked for/);
+  assert.match(toBuyer.body, /landing page, not the logo files/);
+  const toSeller = contentFor(blocked, 'seller', 'service', 'The link is a landing page, not the logo files.');
+  assert.ok(toSeller);
+  assert.doesNotMatch(toSeller.body, /landing page/);
+  assert.match(toSeller.body, /The buyer reviews it/);
+});

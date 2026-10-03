@@ -89,7 +89,29 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
   }
 
   let moment: ReactNode = null;
-  if (declined && deal.sellerDeclineNote) {
+  const paused = deal.releaseBlockedReason && view.stage !== 'settled' && view.stage !== 'cancelled' ? copy.checkPaused : null;
+  if (paused) {
+    const detail = deal.releaseBlockedDetail;
+    const reason = !detail
+      ? paused.noWallet
+      : !viewerIsBuyer && detail === 'security-hold'
+        ? paused.sellerHold
+        : !viewerIsBuyer && detail === 'off-request'
+          ? paused.sellerOff
+          : paused.reasons[detail];
+    // The requirement review is the buyer's alone; the seller's copy of the deal never carries it.
+    const saw = viewerIsBuyer ? deal.deliveryMatch?.reason?.trim() : undefined;
+    moment = (
+      <div role="status" className="space-y-2 rounded-[16px] border border-[var(--color-warning-soft)] bg-[var(--color-warning-soft)] p-4">
+        <p className="text-[15px] font-semibold text-[var(--lp-dark)]">{paused.title}</p>
+        <p className="text-[14px] leading-relaxed text-[var(--lp-dark)]">{reason}</p>
+        {saw ? (
+          <p className="text-[14px] leading-relaxed text-[var(--lp-text-sub)]"><span className="font-semibold text-[var(--lp-dark)]">{paused.saw}:</span> <span dir="auto">{saw}</span></p>
+        ) : null}
+        <p className="text-[13px] text-[var(--lp-text-sub)]">{paused.stays}</p>
+      </div>
+    );
+  } else if (declined && deal.sellerDeclineNote) {
     moment = (
       <div className="space-y-2">
         <p className="text-[15px] text-[var(--lp-dark)]">{viewerIsBuyer ? declineCopy.buyerDeclinedTitle : declineCopy.sellerDeclined}</p>
@@ -213,6 +235,8 @@ export function DealHero({ deal, view, address, viewerIsBuyer, displayName, busy
           refundTxHash={deal.refundTxHash}
           onRetry={onRetryRecord}
           canShareReceipts={viewerIsBuyer}
+          dealAmountUsdc={deal.dealAmountUsdc}
+          milestonePcts={deal.onChain?.milestonePcts?.length ? deal.onChain.milestonePcts : deal.milestonePcts?.length ? deal.milestonePcts : deal.firstReleasePct >= 100 ? [100] : [deal.firstReleasePct, 100 - deal.firstReleasePct]}
         />
       </Sheet>
       {address ? (

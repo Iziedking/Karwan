@@ -25,6 +25,8 @@ export const DIRECT_TYPES = new Set([
   'deal.delivered',
   'deal.delivery.flagged',
   'deal.delivery.cleared',
+  // The delivery check paused the release; both sides hear why.
+  'deal.release.blocked',
   'deal.fund.insufficient',
   'escrow.milestone.released',
   'deal.review.started',
@@ -101,6 +103,7 @@ export const ACTION_TYPES = new Set([
   'deal.delivered',
   'deal.delivery.flagged',
   'deal.delivery.cleared',
+  'deal.release.blocked',
   'deal.review.started',
   'deal.fund.insufficient',
   'deal.deadline.passed',
@@ -135,6 +138,7 @@ export const TOAST_TYPES = new Set([
   'offer.created',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
+  'deal.release.blocked',
   'negotiation.near-miss',
   'job.expired',
   'deal.deadline.passed',
@@ -177,6 +181,7 @@ export const RECIPIENT: Record<string, Role | 'both'> = {
   'deal.delivered': 'buyer', // the buyer verifies and releases
   'deal.delivery.flagged': 'both', // seller fixes the link, buyer learns release is paused
   'deal.delivery.cleared': 'both', // both learn the hold lifted
+  'deal.release.blocked': 'both', // role-aware reason, never the buyer's private review
   'deal.fund.insufficient': 'buyer',
   'escrow.milestone.released': 'both',
   'deal.review.started': 'buyer',

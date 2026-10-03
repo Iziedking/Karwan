@@ -1,3 +1,4 @@
+import { deliveryCheckDetail, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { keccak256, toBytes } from 'viem';
 import { config } from '../config.js';
 import { recordHeartbeat } from '../ops/heartbeats.js';
@@ -149,22 +150,25 @@ type BlockReason = ReleaseBlockReason;
 async function markBlocked(
   jobId: string,
   reason: BlockReason,
-  current: BlockReason | undefined,
+  detail: DeliveryCheckDetail | null,
+  current: { reason?: BlockReason; detail?: DeliveryCheckDetail },
   parties: { buyer: string; seller: string },
 ) {
-  if (current === reason) return;
-  await patchDeal(jobId, { releaseBlockedReason: reason, releaseBlockedAt: Date.now() });
+  // A new reason, or a new explanation of the same block, is news to both
+  // sides; the same block seen again on the next tick is not.
+  if (current.reason === reason && current.detail === (detail ?? undefined)) return;
+  await patchDeal(jobId, { releaseBlockedReason: reason, releaseBlockedDetail: detail ?? undefined, releaseBlockedAt: Date.now() });
   bus.emitEvent({
     type: 'deal.release.blocked',
     jobId,
     actor: 'platform',
-    payload: { ...parties, reason },
+    payload: { ...parties, reason, ...(detail ? { detail } : {}) },
   });
   logger.info({ jobId, reason }, 'auto-release paused; both parties notified');
 }
 
 async function clearBlocked(jobId: string, parties: { buyer: string; seller: string }) {
-  await patchDeal(jobId, { releaseBlockedReason: undefined, releaseBlockedAt: undefined });
+  await patchDeal(jobId, { releaseBlockedReason: undefined, releaseBlockedDetail: undefined, releaseBlockedAt: undefined });
   bus.emitEvent({
     type: 'deal.release.unblocked',
     jobId,
@@ -475,7 +479,7 @@ async function tick() {
     // Surface it rather than skipping in silence; the parties still have the
     // manual release and the appeal path.
     if (!deal.buyerAgentWalletId) {
-      await markBlocked(deal.jobId, 'no-agent-wallet', deal.releaseBlockedReason, parties);
+      await markBlocked(deal.jobId, 'no-agent-wallet', null, { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail }, parties);
       continue;
     }
 
@@ -550,14 +554,21 @@ async function tick() {
             requireBinding: deal.evidenceRequired === true,
           })
         : undefined;
-      const blockReason: BlockReason | null = releaseBlockReasonForDelivery({
+      const checkInput = {
         ...deal,
         evidenceRequired: deal.evidenceRequired,
         evidenceReceipt,
         manualReview: manualReviewActive(deal),
-      });
+      };
+      const blockReason: BlockReason | null = releaseBlockReasonForDelivery(checkInput);
       if (blockReason) {
-        await markBlocked(deal.jobId, blockReason, deal.releaseBlockedReason, parties);
+        await markBlocked(
+          deal.jobId,
+          blockReason,
+          deliveryCheckDetail(checkInput),
+          { reason: deal.releaseBlockedReason, detail: deal.releaseBlockedDetail },
+          parties,
+        );
         continue;
       }
       if (deal.releaseBlockedReason) {

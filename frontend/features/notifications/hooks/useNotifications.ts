@@ -318,6 +318,21 @@ function summaryFor(
       return role === 'seller'
         ? 'Your corrected link cleared. The buyer can see it now.'
         : `The flagged link cleared. You can review ${deliverableNoun(trade)} and release.`;
+    case 'deal.release.blocked': {
+      const detail = payload?.detail as string | undefined;
+      const why: Record<string, string> = {
+        'security-hold': role === 'seller' ? 'your delivery link was flagged as unsafe. Send a corrected link' : 'the delivery link was flagged as unsafe',
+        'off-request': role === 'seller' ? 'the check found the delivery may not match the request' : 'the check found the delivery does not match what you asked for',
+        'evidence-mismatch': 'the delivery evidence does not match the agreed terms',
+        'check-pending': 'the automatic check has not returned a result yet',
+        'check-expired': 'the check result expired',
+        'terms-changed': 'the terms changed after the check ran',
+        'delivery-replaced': 'a newer delivery has to be checked',
+        'link-unverifiable': 'the delivery link could not be opened to check it',
+      };
+      const reason = detail && why[detail] ? why[detail] : 'automatic release cannot run for this deal';
+      return `Payment is paused: ${reason}. The money stays in escrow.`;
+    }
     case 'deal.fund.insufficient':
       return 'Your buyer agent needs USDC to fund escrow. Top it up from your profile.';
     case 'escrow.milestone.released':

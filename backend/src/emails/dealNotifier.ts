@@ -9,6 +9,7 @@
 // Each email goes to a recipient's VERIFIED contact email only, and respects
 // the same notificationsMuted toggle the Telegram path honors. No-op when
 // RESEND_API_KEY is unset.
+import { deliveryCheckReason, type DeliveryCheckDetail } from '../deals/deliveryCheck.js';
 import { bus, type KarwanEvent } from '../events.js';
 import { config } from '../config.js';
 import { getDeal } from '../db/deals.js';
@@ -53,6 +54,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.direct.declined',
   'deal.direct.edited',
   'offer.created',
+  'deal.release.blocked',
   'deal.accepted',
   'deal.delivered',
   'escrow.settled',
@@ -180,6 +182,9 @@ export function contentFor(
   e: KarwanEvent,
   role: Recipient['role'],
   trade: TradeType,
+  /// The buyer's private requirement review, read from the deal for the buyer
+  /// alone. Never on the event, which both parties receive.
+  buyerPrivateNote?: string,
 ): EmailContent | null {
   const amount = (e.payload?.dealAmountUsdc as string | undefined) ?? '';
   const amountSuffix = amount ? ` (${amount} USDC)` : '';
@@ -264,6 +269,33 @@ export function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
+    case 'deal.release.blocked': {
+      if (role !== 'buyer' && role !== 'seller') return null;
+      const detail = e.payload?.detail as DeliveryCheckDetail | undefined;
+      const reason = detail
+        ? deliveryCheckReason(detail, role)
+        : e.payload?.reason === 'no-agent-wallet'
+          ? 'Automatic release cannot run for this deal. Release it yourself from the deal page.'
+          : 'The delivery check paused payment.';
+      const note = role === 'buyer' && buyerPrivateNote ? ` What the check saw: ${buyerPrivateNote.slice(0, 400)}` : '';
+      return role === 'buyer'
+        ? {
+            kicker: 'Payment paused',
+            subject: 'The delivery check paused payment on your Karwan deal',
+            heading: 'Payment is paused',
+            body: `${reason}${note} Your money stays in escrow. Open the deal to review the delivery and choose what to do.`,
+            ctaLabel: 'Review the delivery',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            kicker: 'Payment paused',
+            subject: 'Payment on your Karwan deal is paused',
+            heading: 'Payment is paused',
+            body: `${reason} The money stays in escrow until this is resolved.`,
+            ctaLabel: 'Open the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    }
     case 'offer.created': {
       const price = (e.payload?.priceUsdc as string | number | undefined) ?? '';
       const priceSuffix = price !== '' ? ` at ${price} USDC` : '';
@@ -589,7 +621,10 @@ export function startEmailNotifier(): () => void {
         // Only verified contact emails, and respect the mute toggle.
         if (!profile?.email || !profile.emailVerified) continue;
         if (profile.settings?.notificationsMuted) continue;
-        const content = contentFor(e, r.role, trade);
+        const privateNote = e.type === 'deal.release.blocked' && r.role === 'buyer' && e.jobId
+          ? (await getDeal(e.jobId).catch(() => null))?.deliveryMatch?.reason
+          : undefined;
+        const content = contentFor(e, r.role, trade, privateNote);
         if (!content) continue;
         await sendDealEventEmail({ to: profile.email, ...content, amount: amountFor(e) });
       }

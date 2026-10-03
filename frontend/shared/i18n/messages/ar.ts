@@ -3091,6 +3091,7 @@ export const ar: Messages = {
     },
   },
   dealWorkspace: {
+    checkPaused: { title: "الدفع متوقف مؤقتًا", stays: "تبقى أموالك في الضمان حتى يتم حل الأمر.", saw: "ما الذي رصده الفحص", noWallet: "لا يمكن تشغيل الإفراج التلقائي لهذه الصفقة. أفرج عن الدفعة بنفسك من هنا.", reasons: { "security-hold": "تم الإبلاغ عن رابط التسليم على أنه غير آمن، لذلك هو مخفي عنك.", "off-request": "وجد الفحص أن التسليم لا يطابق ما طلبته.", "evidence-mismatch": "دليل التسليم لا يطابق الشروط المتفق عليها.", "check-pending": "لم يُرجع الفحص التلقائي نتيجة بعد.", "check-expired": "انتهت صلاحية نتيجة الفحص قبل الإفراج عن الدفعة.", "terms-changed": "تغيرت الشروط بعد إجراء الفحص، لذا يجب إعادته.", "delivery-replaced": "تم إرسال تسليم أحدث، لذا يجب إعادة الفحص.", "link-unverifiable": "تعذر فتح رابط التسليم لفحصه." }, sellerHold: "تم الإبلاغ عن رابط التسليم الخاص بك على أنه غير آمن وهو مخفي عن المشتري. أرسل رابطًا مصححًا.", sellerOff: "وجد الفحص أن التسليم قد لا يطابق الطلب. يراجعه المشتري." },
     protection: { title: "الحماية في هذه الصفقة", escrow: "الأموال محفوظة في الضمان حتى الإفراج", you: "أنت تتحقق عبر World ID", buyer: "المشتري يتحقق عبر World ID", seller: "البائع يتحقق عبر World ID", reasons: { first_deal: "أول صفقة", large_deal: "صفقة كبيرة", fast_new_account: "صفقات جديدة كثيرة اليوم", flagged_link_before: "رابط مُبلَّغ عنه سابقًا" }, stake: "البائع يحتجز {pct}% كضمان", github: "التسليم يُفحص على GitHub", offMarket: "السعر بعيد عن الصفقات المماثلة" },
     simple: {
       newHere: "جديد على Karwan",
@@ -3381,6 +3382,9 @@ export const ar: Messages = {
     fundingTxLabel: 'معاملة التمويل',
     refundTxLabel: 'معاملة الاسترداد',
     settlementRecord: {
+      paymentTemplate: "الدفعة {n}",
+      fundingBreakdown: "صفقة بقيمة {deal} USDC زائد رسوم {fee} USDC",
+      payoutBreakdown: "حصة {share} USDC ناقص رسوم {fee} USDC",
       title: 'سجل التسوية',
       body: 'يتتبع مرجع واحد كل حركة مالية من الطلب حتى التحقق من اكتمالها.',
       loadingLabel: 'جارٍ التحقق من سجلات التسوية',

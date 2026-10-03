@@ -3088,6 +3088,7 @@ export const sw: Messages = {
     },
   },
   dealWorkspace: {
+    checkPaused: { title: "Malipo yamesimamishwa", stays: "Pesa zako zinabaki kwenye escrow hadi hili litatuliwe.", saw: "Ukaguzi uliona nini", noWallet: "Uachiliaji wa kiotomatiki hauwezi kufanya kazi kwa dili hili. Achilia malipo mwenyewe hapa.", reasons: { "security-hold": "Kiungo cha uwasilishaji kimeripotiwa kuwa si salama, kwa hiyo kimefichwa kwako.", "off-request": "Ukaguzi umeona uwasilishaji haulingani na ulichoomba.", "evidence-mismatch": "Ushahidi wa uwasilishaji haulingani na masharti yaliyokubaliwa.", "check-pending": "Ukaguzi wa kiotomatiki bado haujarudisha matokeo.", "check-expired": "Matokeo ya ukaguzi yaliisha kabla malipo hayajaachiliwa.", "terms-changed": "Masharti yalibadilika baada ya ukaguzi, kwa hiyo lazima ufanyike tena.", "delivery-replaced": "Uwasilishaji mpya umetumwa, kwa hiyo ukaguzi lazima ufanyike tena.", "link-unverifiable": "Kiungo cha uwasilishaji hakikuweza kufunguliwa ili kukagua." }, sellerHold: "Kiungo chako cha uwasilishaji kimeripotiwa kuwa si salama na kimefichwa kwa mnunuzi. Tuma kiungo kilichosahihishwa.", sellerOff: "Ukaguzi umeona uwasilishaji huenda haulingani na ombi. Mnunuzi analikagua." },
     protection: { title: "Ulinzi wa mpango huu", escrow: "Pesa imeshikiliwa kwenye escrow hadi itolewe", you: "Unathibitisha kwa World ID", buyer: "Mnunuzi anathibitisha kwa World ID", seller: "Muuzaji anathibitisha kwa World ID", reasons: { first_deal: "mpango wa kwanza", large_deal: "mpango mkubwa", fast_new_account: "mipango mingi mipya leo", flagged_link_before: "kiungo kilichoripotiwa awali" }, stake: "Muuzaji anashikilia dhamana ya {pct}%", github: "Uwasilishaji unakaguliwa kwenye GitHub", offMarket: "Bei iko mbali na mipango inayofanana" },
     simple: {
       newHere: "Mpya kwenye Karwan",
@@ -3378,6 +3379,9 @@ export const sw: Messages = {
     fundingTxLabel: 'Tx ya ufadhili',
     refundTxLabel: 'Tx ya marejesho',
     settlementRecord: {
+      paymentTemplate: "Malipo {n}",
+      fundingBreakdown: "Dili ya {deal} USDC pamoja na ada ya {fee} USDC",
+      payoutBreakdown: "Sehemu ya {share} USDC toa ada ya {fee} USDC",
       title: 'Rekodi ya malipo',
       body: 'Rejea moja hufuatilia kila mwendo wa fedha kutoka ombi hadi uthibitisho wa mwisho.',
       loadingLabel: 'Inakagua rekodi za malipo',

@@ -3091,6 +3091,7 @@ export const fr: Messages = {
     },
   },
   dealWorkspace: {
+    checkPaused: { title: "Le paiement est en pause", stays: "Votre argent reste en séquestre jusqu’à la résolution.", saw: "Ce que la vérification a vu", noWallet: "La libération automatique ne peut pas s’exécuter pour ce deal. Libérez le paiement vous-même ici.", reasons: { "security-hold": "Le lien de livraison a été signalé comme dangereux, il vous est donc masqué.", "off-request": "La vérification a trouvé que la livraison ne correspond pas à votre demande.", "evidence-mismatch": "Les preuves de livraison ne correspondent pas aux conditions convenues.", "check-pending": "La vérification automatique n’a pas encore donné de résultat.", "check-expired": "Le résultat de la vérification a expiré avant la libération du paiement.", "terms-changed": "Les conditions ont changé après la vérification, elle doit donc être refaite.", "delivery-replaced": "Une livraison plus récente a été envoyée, la vérification doit donc être refaite.", "link-unverifiable": "Le lien de livraison n’a pas pu être ouvert pour la vérification." }, sellerHold: "Votre lien de livraison a été signalé comme dangereux et est masqué à l’acheteur. Envoyez un lien corrigé.", sellerOff: "La vérification indique que la livraison ne correspond peut-être pas à la demande. L’acheteur l’examine." },
     protection: { title: "Protection de cette transaction", escrow: "Argent bloqué sous séquestre jusqu’à la libération", you: "Vous vérifiez avec World ID", buyer: "L’acheteur vérifie avec World ID", seller: "Le vendeur vérifie avec World ID", reasons: { first_deal: "première transaction", large_deal: "transaction importante", fast_new_account: "beaucoup de nouvelles transactions aujourd’hui", flagged_link_before: "un lien signalé au dossier" }, stake: "Le vendeur bloque {pct} % en garantie", github: "Livraison vérifiée sur GitHub", offMarket: "Prix éloigné des transactions similaires" },
     simple: {
       newHere: "Nouveau sur Karwan",
@@ -3381,6 +3382,9 @@ export const fr: Messages = {
     fundingTxLabel: 'Tx de financement',
     refundTxLabel: 'Tx de remboursement',
     settlementRecord: {
+      paymentTemplate: "Paiement {n}",
+      fundingBreakdown: "Deal de {deal} USDC plus {fee} USDC de frais",
+      payoutBreakdown: "Part de {share} USDC moins {fee} USDC de frais",
       title: 'Registre de règlement',
       body: 'Une référence suit chaque mouvement d’argent, de la demande à la vérification finale.',
       loadingLabel: 'Vérification des règlements',

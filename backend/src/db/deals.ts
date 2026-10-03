@@ -262,6 +262,8 @@ export interface DirectDeal {
   /// deliveryMatch.reason), because a paused payout that reads as "releasing
   /// shortly" is how a deal silently wedges: the seller waits on a clock that
   /// is not running and never learns they should appeal.
+  /// Which check paused the release, told to both parties (deals/deliveryCheck.ts).
+  releaseBlockedDetail?: import('../deals/deliveryCheck.js').DeliveryCheckDetail;
   releaseBlockedReason?:
     | 'requirement-mismatch'
     | 'evidence-unavailable'

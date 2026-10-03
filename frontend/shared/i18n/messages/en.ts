@@ -2859,6 +2859,7 @@ interface MessagesShape {
     };
   };
   dealWorkspace: {
+    checkPaused: { title: string; stays: string; saw: string; noWallet: string; reasons: Record<"security-hold" | "off-request" | "evidence-mismatch" | "check-pending" | "check-expired" | "terms-changed" | "delivery-replaced" | "link-unverifiable", string>; sellerHold: string; sellerOff: string };
     protection: { title: string; escrow: string; you: string; buyer: string; seller: string; reasons: { first_deal: string; large_deal: string; fast_new_account: string; flagged_link_before: string }; stake: string; github: string; offMarket: string };
     simple: {
       newHere: string;
@@ -3072,6 +3073,9 @@ interface MessagesShape {
     fundingTxLabel: string;
     refundTxLabel: string;
     settlementRecord: {
+      paymentTemplate: string;
+      fundingBreakdown: string;
+      payoutBreakdown: string;
       title: string;
       body: string;
       loadingLabel: string;
@@ -8402,6 +8406,7 @@ export const en: MessagesShape = {
     },
   },
   dealWorkspace: {
+    checkPaused: { title: "Payment is paused", stays: "Your money stays in escrow until this is resolved.", saw: "What the check saw", noWallet: "Automatic release cannot run for this deal. Release it yourself from here.", reasons: { "security-hold": "The delivery link was flagged as unsafe, so it is hidden from you.", "off-request": "The check found the delivery does not match what you asked for.", "evidence-mismatch": "The delivery evidence does not match the agreed terms.", "check-pending": "The automatic check has not returned a result yet.", "check-expired": "The check result expired before payment was released.", "terms-changed": "The terms changed after the check ran, so it has to run again.", "delivery-replaced": "A newer delivery was submitted, so the check has to run again.", "link-unverifiable": "The delivery link could not be opened to check it." }, sellerHold: "Your delivery link was flagged as unsafe and is hidden from the buyer. Send a corrected link.", sellerOff: "The check found the delivery may not match the request. The buyer reviews it." },
     protection: { title: "Protection on this deal", escrow: "Money held in escrow until release", you: "You verify with World ID", buyer: "The buyer verifies with World ID", seller: "The seller verifies with World ID", reasons: { first_deal: "first deal", large_deal: "large deal", fast_new_account: "many new deals today", flagged_link_before: "a flagged link on record" }, stake: "Seller holds {pct}% stake", github: "Delivery checked on GitHub", offMarket: "Price is far from similar deals" },
     simple: {
       newHere: "New to Karwan",
@@ -8706,6 +8711,9 @@ export const en: MessagesShape = {
     fundingTxLabel: 'Payment proof',
     refundTxLabel: 'Refund proof',
     settlementRecord: {
+      paymentTemplate: "Payment {n}",
+      fundingBreakdown: "{deal} USDC deal plus {fee} USDC fee",
+      payoutBreakdown: "{share} USDC share less {fee} USDC fee",
       title: 'Settlement record',
       body: 'Each payment and settlement keeps one Karwan reference from request to completion.',
       loadingLabel: 'Checking settlement records',
