@@ -176,6 +176,15 @@
   --product-panel-shadow: none;
   --sheet-shadow: 0 12px 40px -16px color-mix(in srgb, var(--palette-night-canvas) 24%, transparent);
   --shadow-pop: var(--sheet-shadow);
+
+  /* Home Updates card grounds: soft, low-chroma tints with a deeper shape tone
+     and a fine ring tone of the same hue. */
+  --update-mist: #E5EDF4; --update-mist-deep: #C9DAEA; --update-mist-ring: #9DB9D4;
+  --update-sage: #E9F0DA; --update-sage-deep: #D3E2B0; --update-sage-ring: #A9C46A;
+  --update-blush: #F5E8E2; --update-blush-deep: #EBCFC3; --update-blush-ring: #D9A893;
+  --update-lilac: #ECE8F5; --update-lilac-deep: #D7CFEC; --update-lilac-ring: #ADA1D6;
+  --update-paper: #F4F2EC; --update-paper-deep: #E4DFD2; --update-paper-ring: #C9C0A8;
+  --faucet-strip: #EEF4DE; --faucet-strip-line: #DCE7BF;
 }
 
 html[data-theme="dark"] {
@@ -195,6 +204,13 @@ html[data-theme="dark"] {
   --status-critical-soft: rgba(229, 128, 114, 0.12);
   --lp-accent-on-light: var(--action);
   --chart-bar: var(--action);
+
+  --update-mist: #1C2631; --update-mist-deep: #263749; --update-mist-ring: #3D5770;
+  --update-sage: #20281A; --update-sage-deep: #313F1E; --update-sage-ring: #57702E;
+  --update-blush: #2C2220; --update-blush-deep: #432F2A; --update-blush-ring: #6B4A40;
+  --update-lilac: #242136; --update-lilac-deep: #332E4D; --update-lilac-ring: #554F7E;
+  --update-paper: #25241F; --update-paper-deep: #36342B; --update-paper-ring: #55513E;
+  --faucet-strip: #232B16; --faucet-strip-line: #364320;
 }
 
 @media (prefers-reduced-motion: reduce) {

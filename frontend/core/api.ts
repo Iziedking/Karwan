@@ -2115,6 +2115,37 @@ export interface AgentKitResearchStatus {
   allowance: ResearchAllowanceSnapshot | null;
 }
 
+/// Home Updates cards, published from /admin/updates.
+export type UpdateGround = 'mist' | 'sage' | 'blush' | 'lilac' | 'paper';
+export type UpdateKind = 'post' | 'video' | 'trending';
+export interface UpdateInput {
+  kind: UpdateKind;
+  tag: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  href: string;
+  ground: UpdateGround;
+  art: 0 | 1 | 2;
+  active?: boolean;
+  startsAt?: number;
+  endsAt?: number;
+}
+export interface UpdateCard extends Omit<UpdateInput, 'active' | 'startsAt' | 'endsAt'> {
+  id: string;
+  order: number;
+}
+export interface AdminUpdateCard extends UpdateInput {
+  id: string;
+  order: number;
+  createdAt: number;
+  updatedAt: number;
+}
+export interface TrendingCategory {
+  name: string;
+  requests: number;
+}
+
 export const api = {
   baseUrl: BASE,
   eventsUrl: (dealRoomId?: string, afterSequence?: number) => {
@@ -2674,6 +2705,17 @@ export const api = {
       `/api/admin/team-members/${id}`,
       { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ disabled }) },
     ),
+  getUpdates: () => json<{ cards: UpdateCard[]; trending: TrendingCategory[] }>('/api/updates'),
+  adminListUpdates: () =>
+    json<{ cards: AdminUpdateCard[]; trending: TrendingCategory[] }>('/api/admin/updates', { headers: adminHeaders() }),
+  adminCreateUpdate: (input: UpdateInput) =>
+    json<{ card: AdminUpdateCard }>('/api/admin/updates', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(input) }),
+  adminPatchUpdate: (id: string, patch: Partial<UpdateInput>) =>
+    json<{ card: AdminUpdateCard }>(`/api/admin/updates/${encodeURIComponent(id)}`, { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify(patch) }),
+  adminDeleteUpdate: (id: string) =>
+    json<{ ok: true }>(`/api/admin/updates/${encodeURIComponent(id)}`, { method: 'DELETE', headers: adminHeaders() }),
+  adminReorderUpdates: (ids: string[]) =>
+    json<{ cards: AdminUpdateCard[] }>('/api/admin/updates/reorder', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ ids }) }),
   adminListSignals: (params: { origin?: SignalOrigin; includeDismissed?: boolean } = {}) => {
     const qs = new URLSearchParams();
     if (params.origin) qs.set('origin', params.origin);

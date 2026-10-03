@@ -1060,6 +1060,18 @@ interface MessagesShape {
     };
   };
   accountHome: {
+    tradeNow: string;
+    faucetLabel: string;
+    faucetBody: string;
+    faucetClaim: string;
+    updatesTitle: string;
+    updatesPrev: string;
+    updatesNext: string;
+    updatesShow: string;
+    trendingEmpty: string;
+    trendingCount: string;
+    trendingCountOne: string;
+    opensNewTab: string;
     roleBusiness: string;
     roleBoth: string;
     roleSeller: string;
@@ -6364,6 +6376,18 @@ export const en: MessagesShape = {
     },
   },
   accountHome: {
+    tradeNow: "Trade now",
+    faucetLabel: "Testnet",
+    faucetBody: "Get free test USDC to try a deal",
+    faucetClaim: "Claim",
+    updatesTitle: "Updates",
+    updatesPrev: "Previous update",
+    updatesNext: "Next update",
+    updatesShow: "Show update {n}",
+    trendingEmpty: "Not enough requests this week yet.",
+    trendingCount: "{n} requests",
+    trendingCountOne: "1 request",
+    opensNewTab: "Opens in a new tab",
     roleBusiness: 'Business account',
     roleBoth: 'Buyer and seller',
     roleSeller: 'Seller account',

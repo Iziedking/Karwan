@@ -2779,3 +2779,29 @@ html[data-theme="dark"] .form-input::placeholder {
 [dir='rtl'] #landing-root img[class~="-translate-x-1/2"] {
   transform: translateX(50%);
 }
+
+/* Home Updates carousel. Each card sets --g, --g-deep and --g-ring from one of
+   the --update-* grounds; the art is flat shapes in those tones plus one lime
+   and one ink accent. */
+.updates-track {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.updates-track::-webkit-scrollbar { display: none; }
+.update-card { background: var(--g); }
+.update-art > span { position: absolute; display: block; }
+.update-art-0 > :nth-child(1) { width: 58%; aspect-ratio: 1; border-radius: 50%; right: -14%; top: -18%; background: var(--g-deep); }
+.update-art-0 > :nth-child(2) { width: 30%; aspect-ratio: 1; border-radius: 50%; right: 10%; bottom: -22%; border: 1.5px solid var(--g-ring); }
+.update-art-0 > :nth-child(3) { width: 12px; height: 12px; right: 40%; top: 20%; background: var(--lp-accent); transform: rotate(45deg); }
+.update-art-0 > :nth-child(4) { width: 8px; height: 8px; right: 7%; top: 60%; background: var(--lp-dark); transform: rotate(45deg); }
+.update-art-1 > :nth-child(1) { width: 56%; aspect-ratio: 2; border-radius: 999px 999px 0 0; right: -6%; bottom: 0; background: var(--g-deep); }
+.update-art-1 > :nth-child(2) { width: 18%; aspect-ratio: 1; border-radius: 50%; right: 32%; top: 12%; border: 1.5px solid var(--g-ring); }
+.update-art-1 > :nth-child(3) { width: 22px; height: 22px; right: 12%; top: 18%; background: var(--lp-accent); border-radius: 5px; }
+.update-art-1 > :nth-child(4) { width: 8px; height: 8px; right: 54%; bottom: 38%; background: var(--lp-dark); transform: rotate(45deg); }
+.update-art-2 > :nth-child(1) { width: 40%; aspect-ratio: 1; right: -12%; top: 16%; background: var(--g-deep); transform: rotate(45deg); border-radius: 18px; }
+.update-art-2 > :nth-child(2) { width: 24%; aspect-ratio: 1; border-radius: 50%; right: 30%; bottom: -16%; border: 1.5px solid var(--g-ring); }
+.update-art-2 > :nth-child(3) { width: 10px; height: 10px; right: 40%; top: 16%; background: var(--lp-dark); border-radius: 50%; }
+.update-art-2 > :nth-child(4) { width: 14px; height: 14px; right: 13%; top: 10%; background: var(--lp-accent); transform: rotate(45deg); }
+
+/* The bottom nav pill slides from the start edge; in RTL that is the right. */
+html[dir="rtl"] [data-workspace-bottom-nav] { --nav-dir: -1; }

@@ -28,13 +28,13 @@ export const WELCOME_STEPS: TourStep[] = [
 export const HOME_TOUR_ID = 'home-v3';
 export const HOME_STEPS: TourStep[] = [
   {
-    title: 'Start with what you need',
-    body: 'Browse the open market or bring a deal from elsewhere. The buttons below the introduction show the different things you can do on Karwan.',
+    title: 'Start trading',
+    body: 'Trade now opens the trade desk: find something to buy, list what you sell, or bring a deal you already agreed.',
     target: 'home-start',
   },
   {
     title: 'Your money, at a glance',
-    body: 'This summary shows available USDC in your account and agent wallets. Open Details for the chain-by-chain view. Money held in a deal is not available balance.',
+    body: 'This shows available USDC in your account and agent wallets. Details opens the chain-by-chain view. On testnet, Claim gets you free test USDC. Money held in a deal is not available balance.',
     target: 'home-money',
   },
   {
