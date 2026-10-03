@@ -51,6 +51,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.direct.created',
   'deal.seller-approved',
   'deal.direct.declined',
+  'deal.direct.edited',
   'deal.accepted',
   'deal.delivered',
   'escrow.settled',
@@ -169,7 +170,7 @@ async function tradeTypeFor(e: KarwanEvent): Promise<TradeType> {
   return tradeTypeOf(await getDeal(e.jobId).catch(() => null));
 }
 
-function contentFor(
+export function contentFor(
   e: KarwanEvent,
   role: Recipient['role'],
   trade: TradeType,
@@ -257,6 +258,21 @@ function contentFor(
             ctaUrl: dealUrl(e.jobId),
           }
         : null;
+    case 'deal.direct.edited': {
+      // Only the side that did not make the change hears about it.
+      const by = e.actor === 'seller' ? 'seller' : 'buyer';
+      if (role === by) return null;
+      const changes = ((e.payload?.changedLabels as string[] | undefined) ?? []).map((l) => l.replace(/\.$/, ''));
+      const who = by === 'buyer' ? 'The buyer' : 'The seller';
+      return {
+        kicker: 'New terms',
+        subject: `${who} sent new terms for your Karwan deal${amountSuffix}`,
+        heading: 'Review the new terms',
+        body: `${who} changed the deal${changes.length ? `: ${changes.join('. ')}.` : '.'} Nothing is funded yet. Agree if the new terms work for you.`,
+        ctaLabel: 'Review the new terms',
+        ctaUrl: dealUrl(e.jobId),
+      };
+    }
     case 'deal.seller-approved':
       return role === 'buyer'
         ? {
@@ -521,6 +537,7 @@ const AMOUNT_KEY: Record<string, string> = {
   'deal.match.approved': 'dealAmountUsdc',
   'listing.matched': 'askingPriceUsdc',
   'deal.direct.created': 'dealAmountUsdc',
+  'deal.direct.edited': 'dealAmountUsdc',
   'deal.seller-approved': 'dealAmountUsdc',
   'deal.accepted': 'dealAmountUsdc',
   'factoring.requested': 'faceValueUsdc',
