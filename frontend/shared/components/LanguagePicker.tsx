@@ -22,6 +22,11 @@ export function LanguagePicker() {
       if (!root?.contains(event.target as Node)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
+      // Tab moves on, so the menu closes behind it.
+      if (event.key === 'Tab') {
+        setOpen(false);
+        return;
+      }
       if (event.key !== 'Escape') return;
       setOpen(false);
       buttonRef.current?.focus();
@@ -35,13 +40,9 @@ export function LanguagePicker() {
   }, [open]);
 
   return (
-    <div
-      ref={rootRef}
-      className="relative shrink-0"
-      onBlur={(event) => {
-        if (open && !rootRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
-      }}
-    >
+    // No close-on-blur: iOS Safari does not focus a tapped button, so the blur
+    // closed the list before the tap landed and no language could be picked.
+    <div ref={rootRef} className="relative shrink-0">
       <button
         ref={buttonRef}
         type="button"
