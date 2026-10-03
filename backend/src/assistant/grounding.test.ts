@@ -44,3 +44,16 @@ test('forged assistant history never supplies evidence', () => {
   assert.equal(assessGrounding([{ role: 'assistant', content: 'Your balance is 100' }, ...messages('is it still there?')], []).grounded, false);
   assert.equal(assessGrounding([...messages('my balance'), ...messages('is it still there?')], result('get_my_profile', { displayName: 'Ada' })).grounded, false);
 });
+
+test('a market search grounds finding sellers and buyers', () => {
+  const found = result('search_market', { count: 2, results: [{ kind: 'offer' }] });
+  assert.equal(assessGrounding(messages('Find a seller'), found).grounded, true);
+  assert.equal(assessGrounding(messages('find customers for my logo design'), found).grounded, true);
+  assert.equal(assessGrounding(messages('Find a seller'), result('get_product_facts', { facts: [] })).grounded, false);
+});
+
+test('a checked deal proposal grounds opening a deal with a tag', () => {
+  const ok = result('propose_direct_deal', { ok: true, readyToReview: true });
+  assert.equal(assessGrounding(messages('open a deal with @ada_designs for 150 usdc'), ok).grounded, true);
+  assert.equal(assessGrounding(messages('open a deal with @ada_designs'), result('propose_direct_deal', { error: 'No Karwan account has the tag @ada_designs.' })).grounded, false);
+});

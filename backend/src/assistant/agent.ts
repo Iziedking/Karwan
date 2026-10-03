@@ -82,6 +82,10 @@ const CASH_OUT_CHAINS: Record<string, { key: string; label: string; solana?: boo
 import { logger } from '../logger.js';
 import { bridgeSourceHolders } from './bridgeInventory.js';
 import { readDepositAddresses } from '../money/depositAddresses.js';
+import { searchMarket } from './marketSearch.js';
+import { listOpenListings } from '../db/listings.js';
+import { getMarketplaceBriefs } from '../agents/buyer.js';
+import { getMatchProposal } from '../db/matchProposals.js';
 import {
   cancelDepositRequest,
   createDepositRequest,
@@ -1411,6 +1415,61 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
       },
     }),
 
+    search_market: tool({
+      description:
+        "Search Karwan's live market: open OFFERS (people selling services or goods) and open REQUESTS (people looking to buy). Use it whenever the user wants to find a seller, supplier, freelancer, service, product, customer or buyer, or asks what is on the market. Pass their words as query (an empty query lists the newest). Returns real listings with price, who posted them and links, and shows buttons to open the top results. Never invent listings; if nothing matches, say so and offer to post a request or an offer.",
+      inputSchema: z.object({
+        query: z.string().max(200).optional().describe('What they are looking for, in their words.'),
+        kind: z.enum(['offers', 'requests', 'both']).describe('offers = sellers to buy from; requests = buyers to sell to.'),
+        maxPriceUsdc: z.number().positive().max(10_000_000).optional(),
+      }),
+      execute: async ({ query, kind, maxPriceUsdc }) => {
+        try {
+          const now = Date.now();
+          const offers = listOpenListings().filter((l) => l.expiresAt > now);
+          const requests = getMarketplaceBriefs();
+          const ranked = searchMarket({ query, kind, maxPriceUsdc, excludeSeller: address, limit: 10 }, offers, requests);
+          const results: Array<Record<string, unknown>> = [];
+          for (const hit of ranked) {
+            if (results.length >= 5) break;
+            if (hit.kind === 'offer') {
+              const seller = await getProfile(hit.sellerUser).catch(() => null);
+              results.push({
+                kind: 'offer', id: hit.id, title: hit.title, priceUsdc: hit.priceUsdc,
+                seller: seller?.displayName?.trim() || (seller?.handle ? `@${seller.handle}` : 'A Karwan seller'),
+                sellerTag: seller?.handle ? `@${seller.handle}` : null,
+                readyInDays: hit.readyInDays ?? null, link: `/listings/${hit.id}`,
+              });
+            } else {
+              // A request already matched or turned into a deal is no longer open.
+              if ((await getDeal(hit.jobId).catch(() => null)) || (await getMatchProposal(hit.jobId).catch(() => null))?.approvedAt) continue;
+              results.push({
+                kind: 'request', jobId: hit.jobId, title: hit.title, budgetUsdc: hit.budgetUsdc,
+                due: new Date(hit.dueUnix * 1000).toISOString().slice(0, 10), link: `/jobs/${hit.jobId}`,
+              });
+            }
+          }
+          for (const r of results.slice(0, 3)) {
+            const built = r.kind === 'offer'
+              ? buildNavigateAction({ destination: 'offer', listingId: String(r.id), label: `${String(r.title).slice(0, 40)} · ${r.priceUsdc} USDC` })
+              : buildNavigateAction({ destination: 'request', jobId: String(r.jobId), label: `${String(r.title).slice(0, 40)} · ${r.budgetUsdc} USDC` });
+            if (!('error' in built) && !actions.some((a) => a.id === built.id)) actions.push(built);
+          }
+          return {
+            count: results.length,
+            results,
+            searched: { offers: kind !== 'requests' ? offers.length : 0, requests: kind !== 'offers' ? requests.length : 0 },
+            next: results.length === 0
+              ? (kind === 'requests' ? 'No open request matches. Suggest posting an offer at /seller so buyers find them.' : 'No open offer matches. Suggest posting a request at /buyer so seller agents bid.')
+              : 'Show these with their price and who posted them. The buttons open each one.',
+          };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant search_market failed');
+          return { error: 'Could not search the market right now. Try again shortly.' };
+        }
+      },
+    }),
+
     get_my_deposit_addresses: tool({
       description:
         "Read where this account receives USDC from other chains: one address for Ethereum, Base, Arbitrum and Polygon, and a separate Solana address. Use it when the user asks how to add money, deposit, fund from an exchange, or for their deposit address. Only USDC, only on the named chain. Wallet accounts have no deposit addresses; they bridge from their wallet at /bridge.",
@@ -1523,10 +1582,48 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         try {
           const found = tagRecipient(check.tag, await findProfileByHandle(check.tag), address);
           if (!found.found) return { found: false, tag: `@${found.tag}` };
+          // Their public record answers "can I trust them" with real history.
+          if (!found.self) {
+            const record = buildNavigateAction({ destination: 'credit_passport', address: found.address, label: `View @${found.tag}'s record` });
+            if (!('error' in record) && !actions.some((a) => a.id === record.id)) actions.push(record);
+          }
           return { found: true, tag: `@${found.tag}`, displayName: found.displayName, isYou: found.self };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant find_karwan_tag failed');
           return { error: 'Could not look that tag up right now.' };
+        }
+      },
+    }),
+
+    propose_direct_deal: tool({
+      description:
+        'Prepare a direct deal with a person the user names by Karwan tag: it checks the tag, then shows a button that opens the deal form filled in (seller, amount, what it is for). The user reviews and sends it; nothing is created or paid here. Use when the user wants to open, start or offer a deal to @someone, or hire or pay a known person for work.',
+      inputSchema: z.object({
+        tag: z.string().max(40),
+        amountUsdc: z.number().positive().max(1_000_000).optional(),
+        what: z.string().max(200).optional().describe('What the deal is for, in a few words.'),
+      }),
+      execute: async ({ tag, amountUsdc, what }) => {
+        const check = checkKarwanTag(tag.replace(/^@/, ''));
+        if (!check.ok) return { error: 'That is not a valid Karwan tag.' };
+        try {
+          const found = tagRecipient(check.tag, await findProfileByHandle(check.tag), address);
+          if (!found.found) return { error: `No Karwan account has the tag @${check.tag}.` };
+          if (found.self) return { error: 'That tag is yours. A deal needs another person.' };
+          const built = buildNavigateAction({
+            destination: 'direct_deal',
+            to: found.tag,
+            amountUsdc,
+            terms: what,
+            label: `Review a deal with @${found.tag}`,
+            description: `With ${found.displayName}. Nothing is sent until you confirm.`,
+          });
+          if ('error' in built) return built;
+          if (!actions.some((a) => a.id === built.id)) actions.push(built);
+          return { ok: true, readyToReview: true, seller: { tag: `@${found.tag}`, displayName: found.displayName }, amountUsdc: amountUsdc ?? null };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant propose_direct_deal failed');
+          return { error: 'Could not prepare that deal right now.' };
         }
       },
     }),
@@ -1585,6 +1682,7 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         to: z.string().max(40).optional().describe('Optional for send: the Karwan tag. Prefer propose_send_to_tag, which checks the tag and balance.'),
         amountUsdc: z.number().positive().max(1_000_000).optional().describe('Optional for send: the amount.'),
         token: z.string().max(40).optional().describe('Required for payment_link: the link id from list_my_payment_links.'),
+        listingId: z.string().max(80).optional().describe('Required for offer: the offer id from search_market.'),
         label: z.string().max(60).optional().describe('Short, specific button text. Defaults to a sensible label.'),
         description: z.string().max(120).optional().describe('Optional one-line hint under the button.'),
       }),
@@ -2112,7 +2210,8 @@ function authenticatedPreamble(address: string, method: string): string {
       : 'This server runs on Arc mainnet: USDC here is real money. Deals are not enabled on mainnet; deal pages open on testnet.karwan.site.',
     'Your tools are account-scoped reads, confirmation-card proposals and payment links, not unlimited platform access.',
     'Payment links -> create_payment_link (give the full url), list_my_payment_links, cancel_payment_link. Deposit addresses -> get_my_deposit_addresses.',
-    'Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
+    'Find sellers, offers, suppliers, buyers or requests on the market -> search_market, then present the real results.',
+    'Start a deal with @someone -> propose_direct_deal. Send to a Karwan tag -> propose_send_to_tag. Who is @tag -> find_karwan_tag. How-to and navigation -> get_product_facts, then propose_navigation.',
     'Product behaviour -> get_product_facts. Balances -> get_my_balance. Cross-chain source inventory -> list_bridge_sources.',
     'Specific deal, World ID or CRE recorded status -> get_deal_status. Other deals -> list_my_deals.',
     'Past money moves and bridges -> recall_activity. Stake/yield -> get_my_stake. Reputation -> get_my_reputation.',

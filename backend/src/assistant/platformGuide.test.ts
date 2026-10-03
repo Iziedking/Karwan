@@ -27,7 +27,7 @@ test('guide cites only sources, pages, endpoints and tools that exist', () => {
   const helpers = new Set(['get_product_facts', 'explain_error', 'propose_navigation', 'propose_pool_usdc']);
   for (const name of agentTools) assert.ok(documented.has(name) || helpers.has(name), `undocumented tool ${name}`);
   for (const destination of NAVIGATE_DESTINATIONS) {
-    const built = buildNavigateAction({ destination, jobId: '0xabc', address: '0x' + '1'.repeat(40), to: 'ada', amountUsdc: 1, token: '6f1c2a3b-0000-4000-8000-000000000000' });
+    const built = buildNavigateAction({ destination, jobId: '0xabc', address: '0x' + '1'.repeat(40), to: 'ada', amountUsdc: 1, token: '6f1c2a3b-0000-4000-8000-000000000000', listingId: 'lst_0123456789abcdef' });
     assert.ok(!('error' in built) && pageExists(built.href), `navigate ${destination}`);
   }
 });
@@ -90,4 +90,18 @@ test('send and payment-link buttons carry only validated values', () => {
   assert.ok(!('error' in unsafe) && unsafe.href === '/send');
   assert.ok('error' in buildNavigateAction({ destination: 'payment_link', token: '../../admin' }));
   assert.ok('error' in buildNavigateAction({ destination: 'payment_link' }));
+});
+
+test('a direct deal button carries only a checked tag, amount and short text', () => {
+  const deal = buildNavigateAction({ destination: 'direct_deal', to: '@Ada_Designs', amountUsdc: 150, terms: 'Logo design' });
+  assert.ok(!('error' in deal));
+  const url = new URL(deal.href, 'https://k.test');
+  assert.equal(url.pathname, '/buyer');
+  assert.equal(url.searchParams.get('mode'), 'direct');
+  assert.equal(url.searchParams.get('seller'), '@ada_designs');
+  assert.equal(url.searchParams.get('amount'), '150');
+  assert.equal(url.searchParams.get('terms'), 'Logo design');
+  const bare = buildNavigateAction({ destination: 'direct_deal', to: '<script>' });
+  assert.ok(!('error' in bare) && bare.href === '/buyer?mode=direct');
+  assert.ok('error' in buildNavigateAction({ destination: 'offer', listingId: '../admin' }));
 });

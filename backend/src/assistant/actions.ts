@@ -344,6 +344,8 @@ export const NAVIGATE_DESTINATIONS = [
   'send',
   'request_payment',
   'payment_link',
+  'offer',
+  'request',
   'cash_out',
   'withdraw_proceeds',
   'faucet',
@@ -368,7 +370,7 @@ interface DestSpec {
   label: string;
   /// Build the href from validated params, or null when a required param is
   /// missing/invalid (the caller turns that into an error for the model).
-  build: (p: { jobId?: string; address?: string; rail?: string; to?: string; amountUsdc?: number; token?: string }) => string | null;
+  build: (p: { jobId?: string; address?: string; rail?: string; to?: string; amountUsdc?: number; token?: string; listingId?: string; terms?: string }) => string | null;
 }
 
 /// jobIds are on-chain-derived (0x…) or synthetic (job-…); allow only a safe
@@ -407,6 +409,9 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
     },
   },
   request_payment: { label: 'Create a payment link', build: () => '/request' },
+  // A public offer or open request found by search_market.
+  offer: { label: 'Open the offer', build: (p) => { const id = safeJobId(p.listingId); return id ? `/listings/${id}` : null; } },
+  request: { label: 'Open the request', build: (p) => { const id = safeJobId(p.jobId); return id ? `/jobs/${id}` : null; } },
   payment_link: {
     label: 'Open the payment link',
     build: (p) => (p.token && /^[0-9a-f-]{36}$/i.test(p.token) ? `/deposit/request/${p.token.toLowerCase()}` : null),
@@ -419,7 +424,21 @@ const DESTINATIONS: Record<NavigateDestination, DestSpec> = {
   withdraw_proceeds: { label: 'Withdraw proceeds', build: () => '/profile#agents' },
   faucet: { label: 'Get test USDC', build: () => '/profile' },
   new_request: { label: 'Post a request', build: () => '/buyer' },
-  direct_deal: { label: 'Open a direct deal', build: () => '/buyer' },
+  // Prefilled from a checked tag; the form shows who it is and the buyer
+  // reviews every field before anything is sent.
+  direct_deal: {
+    label: 'Open a direct deal',
+    build: (p) => {
+      const params = new URLSearchParams({ mode: 'direct' });
+      const seller = safeTag(p.to);
+      const amount = safeAmount(p.amountUsdc);
+      const terms = p.terms?.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 200);
+      if (seller) params.set('seller', `@${seller}`);
+      if (amount) params.set('amount', amount);
+      if (terms) params.set('terms', terms);
+      return `/buyer?${params.toString()}`;
+    },
+  },
   new_offer: { label: 'Post an offer', build: () => '/seller' },
   market: { label: 'Browse the market', build: () => '/market' },
   partners: { label: 'Find partners', build: () => '/partners' },
@@ -478,6 +497,10 @@ export interface BuildNavigateInput {
   amountUsdc?: number;
   /// Payment link id for payment_link.
   token?: string;
+  /// Offer id for offer.
+  listingId?: string;
+  /// What the deal is for, prefilled on the direct deal form.
+  terms?: string;
   label?: string;
   description?: string;
 }
@@ -487,9 +510,9 @@ export interface BuildNavigateInput {
 export function buildNavigateAction(input: BuildNavigateInput): NavigateAction | { error: string } {
   const spec = DESTINATIONS[input.destination];
   if (!spec) return { error: `Unknown destination "${input.destination}".` };
-  const href = spec.build({ jobId: input.jobId, address: input.address, rail: input.rail, to: input.to, amountUsdc: input.amountUsdc, token: input.token });
+  const href = spec.build({ jobId: input.jobId, address: input.address, rail: input.rail, to: input.to, amountUsdc: input.amountUsdc, token: input.token, listingId: input.listingId, terms: input.terms });
   if (!href) {
-    const need = input.destination === 'open_deal' ? 'deal id' : input.destination === 'payment_link' ? 'payment link id' : 'address';
+    const need = input.destination === 'open_deal' || input.destination === 'request' ? 'deal or request id' : input.destination === 'payment_link' ? 'payment link id' : input.destination === 'offer' ? 'offer id' : 'address';
     return { error: `That destination needs a valid ${need}.` };
   }
   const label = (input.label?.trim() || spec.label).slice(0, 60);
