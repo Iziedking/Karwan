@@ -185,7 +185,7 @@ export const PLATFORM_GUIDE: readonly GuideEntry[] = [
     id: 'records', title: 'Activity and receipts', status: 'testnet', mainnet: 'invite', route: '/activity',
     pages: ['/activity', '/activity/all-time'],
     api: ['GET /api/activity/me', 'GET /api/bridge/list'],
-    tools: ['recall_activity'],
+    tools: ['recall_activity', 'find_transaction'],
     keywords: 'activity history receipt reference transaction payment settled records pending where did my money go',
     summary: 'Transaction history records requested, pending and completed money movements. A submitted request is not settlement. Missing data is not zero money or proof nothing happened. Account reads are snapshots; explain when chain reconciliation or support is needed.',
     steps: ['Open /activity and find the movement by date or amount.', 'Open it for the reference and status.'],

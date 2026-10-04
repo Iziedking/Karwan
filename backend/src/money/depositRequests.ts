@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db, pgEnabled } from '../db/client.js';
 import { depositRequests } from '../db/schema.js';
 
@@ -24,6 +24,8 @@ export interface DepositRequest {
   matchedTxId?: string;
   matchedChain?: string;
   matchedAt?: number;
+  /// Who paid: the signed-in payer, else the sender on the Arc transfer.
+  paidBy?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -183,6 +185,25 @@ export async function listDepositRequests(owner: string, limit = 10): Promise<De
     .slice(0, limit);
 }
 
+/// Requests this address paid, newest first. Payers are kept inside the row's
+/// data, so the read filters on that field rather than a column.
+export async function listDepositRequestsPaidBy(payer: string, limit = 20): Promise<DepositRequest[]> {
+  const normalised = payer.toLowerCase();
+  if (pgEnabled) {
+    const rows = await db()
+      .select({ data: depositRequests.data })
+      .from(depositRequests)
+      .where(sql`${depositRequests.data}->>'paidBy' = ${normalised}`)
+      .orderBy(desc(depositRequests.matchedAt))
+      .limit(limit);
+    return rows.map((row) => row.data as DepositRequest);
+  }
+  return Object.values(loadFile())
+    .filter((request) => request.paidBy === normalised)
+    .sort((a, b) => (b.matchedAt ?? 0) - (a.matchedAt ?? 0))
+    .slice(0, limit);
+}
+
 export async function cancelDepositRequest(owner: string, token: string): Promise<DepositRequest | null> {
   const request = await getDepositRequest(token);
   if (!request || request.owner !== owner.toLowerCase()) return null;
@@ -216,7 +237,7 @@ export async function matchDepositRequest(input: {
 /// boundary, so a replay or a second payment never overwrites the first.
 export async function markDepositRequestMatched(
   request: DepositRequest,
-  input: { txId: string; chain: string; now: number },
+  input: { txId: string; chain: string; now: number; paidBy?: string },
 ): Promise<DepositRequest | null> {
   const now = input.now;
   const next: DepositRequest = {
@@ -225,6 +246,7 @@ export async function markDepositRequestMatched(
     matchedTxId: input.txId,
     matchedChain: input.chain,
     matchedAt: now,
+    ...(input.paidBy ? { paidBy: input.paidBy.toLowerCase() } : {}),
     updatedAt: now,
   };
   if (pgEnabled) {

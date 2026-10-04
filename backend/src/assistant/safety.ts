@@ -26,6 +26,7 @@ export function requiresLiveAccountState(messages: AssistantSafetyMessage[]): bo
     || /(?:رصيدي|حسابي|معاملتي|تحققي|मेरे|मेरा|मेरी|खाता|शेष)/u.test(text)
     || /\b(?:am i|have i|did i|can i still|is it still|what about it|what happened|verify me)\b/.test(text)
     || /0x[0-9a-f]{40,64}\b/i.test(text)
+    || /\bkwn-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}\b/i.test(text)
     || /\b(?:verification|registration|ticket|world|cre|business)\s+(?:status|state|result|pending)\b/.test(text);
   // A narrow generic-help allowance, not an assumption that unrecognised
   // wording is public. Unknown intent stays on the authenticated tool path.

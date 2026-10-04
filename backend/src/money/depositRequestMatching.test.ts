@@ -13,6 +13,8 @@ delete process.env.DATABASE_URL;
 const {
   createDepositRequest,
   getDepositRequest,
+  listDepositRequestsPaidBy,
+  markDepositRequestMatched,
   matchDepositRequest,
   saveDepositRequest,
 } = await import('./depositRequests.js');
@@ -62,4 +64,16 @@ test('a transaction already matched to one request cannot be assigned to another
     }),
     null,
   );
+});
+
+test('a paid request is kept against its payer so they can find it again', async () => {
+  const payer = '0x00000000000000000000000000000000000000AB';
+  const request = createDepositRequest({ owner: OWNER, amountUsdc: '4', now: 1_000 });
+  await saveDepositRequest(request);
+  await markDepositRequestMatched(request, { txId: 'arc:0xpaid', chain: 'Arc', now: 2_000, paidBy: payer });
+
+  const paid = await listDepositRequestsPaidBy(payer.toUpperCase());
+  assert.deepEqual(paid.map((r) => r.token), [request.token]);
+  assert.equal(paid[0]?.paidBy, payer.toLowerCase());
+  assert.deepEqual(await listDepositRequestsPaidBy(OWNER), []);
 });

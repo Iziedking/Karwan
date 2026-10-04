@@ -6,6 +6,7 @@ import { useUserProfile } from '@/shared/hooks/useUserProfile';
 import { useTranslations } from '@/shared/i18n/LocaleProvider';
 import { ProfileFrame } from '@/features/profile/ui/ProfileUi';
 import { ShareLink } from './ShareLink';
+import { PayLinkHistory } from './PayLinkHistory';
 
 const WEEK_MINUTES = 7 * 24 * 60;
 const PRIMARY =
@@ -101,6 +102,7 @@ export function CreatePayLink() {
           </div>
         </form>
       )}
+      <PayLinkHistory refreshKey={url} />
     </ProfileFrame>
   );
 }

@@ -1475,6 +1475,7 @@ export interface Reputation {
     tenure?: number;
     activity?: number;
     referral?: number;
+    breadth?: number;
     base?: number;
     penalty?: number;
     decay?: number;
@@ -1495,6 +1496,9 @@ export interface Reputation {
     activeDays?: number;
     lifetimeVolumeUsdc?: number;
     completedDeals?: number;
+    lastActionAt?: number;
+    concentrationRatio?: number;
+    distinctCounterparties?: number;
   };
 }
 
@@ -3378,6 +3382,8 @@ export const api = {
     json<{ request: DepositRequestPublic }>(`/api/deposit/requests/${encodeURIComponent(token)}`),
   listDepositRequests: () =>
     json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests'),
+  paidDepositRequests: () =>
+    json<{ requests: DepositRequestPublic[] }>('/api/deposit/requests/paid'),
   confirmRequestPaid: (token: string, txHash: string, chain: string) =>
     json<{ request: DepositRequestPublic; pending?: boolean }>(`/api/deposit/requests/${encodeURIComponent(token)}/paid`, {
       method: 'POST',

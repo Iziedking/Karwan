@@ -91,10 +91,15 @@ import { getMatchProposal } from '../db/matchProposals.js';
 import {
   cancelDepositRequest,
   createDepositRequest,
+  getDepositRequest,
   listDepositRequests,
+  listDepositRequestsPaidBy,
   saveDepositRequest,
   toPublicRequest,
+  type DepositRequest,
 } from '../money/depositRequests.js';
+import { getMoneyMovement, listMoneyMovementsForAddress } from '../db/moneyMovements.js';
+import { isKarwanReference, type MoneyMovement } from '../money/model.js';
 import { checkKarwanTag } from '../profile/karwanTag.js';
 import { tagRecipient } from '../profile/tagRecipient.js';
 import { findProfileByHandle } from '../db/profiles.js';
@@ -404,11 +409,24 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
         const since = Date.now() - days * 86_400_000;
         const iso = (ts: number) => new Date(ts).toISOString();
         try {
-          const [ledger, walletsRec, proposals] = await Promise.all([
+          const [ledger, walletsRec, proposals, movements] = await Promise.all([
             listActivityForAddress(address, since, 40),
             getAgentWallets(address),
             listMatchProposalsForUser(address),
+            listMoneyMovementsForAddress(address, 60),
           ]);
+          const transfers = movements
+            .filter((m) => m.createdAt >= since)
+            .slice(0, 30)
+            .map((m) => ({
+              at: iso(m.createdAt),
+              reference: m.reference,
+              kind: m.kind,
+              state: m.state,
+              amountUsdc: formatUnits(BigInt(m.amountMicros), 6),
+              summary: m.summary,
+              ...(m.jobId ? { jobId: m.jobId } : {}),
+            }));
           // Same ownership rule the bridge-history route uses. Identity goes in
           // as `owner`, never merged into the address list: deposit addresses
           // can collide with another user's identity address.
@@ -458,17 +476,96 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
             });
           return {
             lookedBackDays: days,
+            transfers,
             moneyMoves,
             bridges: bridgeItems,
             matchProposals: matchItems,
             note:
-              moneyMoves.length + bridgeItems.length + matchItems.length === 0
+              transfers.length + moneyMoves.length + bridgeItems.length + matchItems.length === 0
                 ? `No recorded activity in the last ${days} days. Approved matches become deals, so also check list_my_deals (it carries openedAt dates).`
                 : 'Times are UTC ISO. Chain keys are testnet keys (baseSepolia = Base, sepolia = Ethereum, arbitrumSepolia = Arbitrum, optimismSepolia = Optimism, polygonAmoy = Polygon, avalancheFuji = Avalanche, unichainSepolia = Unichain, solanaDevnet = Solana). Approved match proposals continue as deals under the same jobId.',
           };
         } catch (err) {
           logger.warn({ err: (err as Error).message }, 'assistant recall_activity failed');
           return { error: 'Could not read the account history right now. Try again shortly.' };
+        }
+      },
+    }),
+
+    find_transaction: tool({
+      description:
+        "Look up ONE transaction from whatever the user pasted: a Karwan reference (KWN-XXXX-XXXX-XXXX, printed on every receipt), a transaction hash (0x and 64 hex characters), or a payment link id. Searches this account's money movements (sends, withdrawals, top-ups, escrow funding and releases, cash-outs), bridges, activity and payment links, both the ones they made and the ones they paid. Call it BEFORE saying a reference or hash is unknown. A 0x id of 64 hex characters can also be a deal id: when nothing matches here, call get_deal_status with it.",
+      inputSchema: z.object({
+        id: z.string().min(3).max(140).describe('The reference, hash or link id exactly as the user gave it.'),
+      }),
+      execute: async ({ id }) => {
+        const raw = id.trim().replace(/^`|`$/g, '');
+        const upper = raw.toUpperCase();
+        const lower = raw.toLowerCase();
+        const iso = (ts?: number) => (ts ? new Date(ts).toISOString() : null);
+        const movementView = (m: MoneyMovement) => ({
+          reference: m.reference,
+          kind: m.kind,
+          state: m.state,
+          amountUsdc: formatUnits(BigInt(m.amountMicros), 6),
+          summary: m.summary,
+          createdAt: iso(m.createdAt),
+          completedAt: iso(m.completedAt),
+          ...(m.jobId ? { jobId: m.jobId } : {}),
+          transactions: m.legs.filter((leg) => leg.txHash).map((leg) => ({ step: leg.label, state: leg.state, txHash: leg.txHash })),
+          receipt: '/activity',
+        });
+        const linkView = (r: DepositRequest, yours: 'requested' | 'paid') => {
+          const pub = toPublicRequest(r);
+          return {
+            found: true,
+            kind: 'payment_link',
+            yourSide: yours === 'requested' ? 'you asked for this payment' : 'you paid this request',
+            link: { id: pub.requestId, url: paymentLinkUrl(pub.requestId), amountUsdc: pub.amountUsdc ?? 'any amount', note: pub.purpose, status: pub.status === 'matched' ? 'paid' : pub.status, paidAt: iso(pub.paidAt), recipient: pub.recipientAddress },
+          };
+        };
+        try {
+          if (isKarwanReference(upper)) {
+            const movement = await getMoneyMovement(upper);
+            if (!movement) return { found: false, note: 'No movement has that reference. Check the characters against the receipt.' };
+            if (!movement.participants.some((party) => party.address.toLowerCase() === address)) {
+              return { found: false, note: 'That reference belongs to another account, so I cannot show it.' };
+            }
+            return { found: true, kind: 'money_movement', movement: movementView(movement) };
+          }
+          if (/^0x[0-9a-f]{64}$/.test(lower)) {
+            const movement = (await listMoneyMovementsForAddress(address, 200)).find((m) =>
+              m.legs.some((leg) => leg.txHash?.toLowerCase() === lower),
+            );
+            if (movement) return { found: true, kind: 'money_movement', movement: movementView(movement) };
+            const entry = (await listActivityForAddress(address, 0, 200)).find((e) => e.txHash?.toLowerCase() === lower);
+            if (entry) {
+              return { found: true, kind: 'activity', entry: { at: iso(entry.ts), kind: entry.kind, summary: entry.summary, amountUsdc: entry.amountUsdc ?? null, ...(entry.jobId ? { jobId: entry.jobId } : {}) } };
+            }
+            const wallets = await getAgentWallets(address).catch(() => null);
+            const bridge = (
+              await listBridgesForUser({ owner: address, sourceWalletsByChain: depositWalletsByChainKey(wallets?.bridgeWallets) })
+            ).find((b) => [(b as { sourceTxHash?: string }).sourceTxHash, b.mintTxHash].some((h) => h?.toLowerCase() === lower));
+            if (bridge) {
+              return { found: true, kind: 'bridge', bridge: { amountUsdc: bridge.amountUsdc, direction: bridge.direction ?? 'in', status: bridge.status, at: iso(bridge.createdAt) } };
+            }
+            const txId = `arc:${lower}`;
+            const asked = (await listDepositRequests(address, 50)).find((r) => r.matchedTxId === txId);
+            if (asked) return linkView(asked, 'requested');
+            const paid = (await listDepositRequestsPaidBy(address, 50)).find((r) => r.matchedTxId === txId);
+            if (paid) return linkView(paid, 'paid');
+            return { found: false, note: 'No transaction of this account has that hash. If it is a deal id, call get_deal_status with it.' };
+          }
+          const request = await getDepositRequest(raw);
+          if (request) {
+            if (request.owner === address) return linkView(request, 'requested');
+            if (request.paidBy === address) return linkView(request, 'paid');
+            return { found: false, note: 'That payment link belongs to another account.' };
+          }
+          return { found: false, note: 'This is not a Karwan reference (KWN-XXXX-XXXX-XXXX), a 0x transaction hash or a payment link id.' };
+        } catch (err) {
+          logger.warn({ err: (err as Error).message }, 'assistant find_transaction failed');
+          return { error: 'Could not search your transactions right now. Try again shortly.' };
         }
       },
     }),
@@ -1537,14 +1634,22 @@ function buildTools(address: string, method: string, actions: AssistantAction[])
     }),
 
     list_my_payment_links: tool({
-      description: "List this user's recent payment links with their status (open, paid, expired, cancelled) and URLs. Use it when they ask whether someone paid, or for a link they made earlier.",
+      description: "List this user's recent payment links with their status (open, paid, expired, cancelled) and URLs, plus the requests from other people that this user paid (paidByYou). Use it when they ask whether someone paid, for a link they made earlier, or for a request they paid.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
           const now = Date.now();
           const links = (await listDepositRequests(address, 10)).map((r) => toPublicRequest(r, now));
+          const paidByYou = (await listDepositRequestsPaidBy(address, 10)).map((r) => toPublicRequest(r, now));
           return {
             count: links.length,
+            paidByYou: paidByYou.map((l) => ({
+              id: l.requestId,
+              amountUsdc: l.amountUsdc ?? 'any amount',
+              note: l.purpose,
+              recipient: l.recipientAddress,
+              paidAt: l.paidAt ? new Date(l.paidAt).toISOString() : null,
+            })),
             links: links.map((l) => ({
               id: l.requestId,
               url: paymentLinkUrl(l.requestId),

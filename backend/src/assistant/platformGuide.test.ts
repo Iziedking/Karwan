@@ -54,7 +54,7 @@ test('authenticated fallback excludes proxies and strips history', () => {
     { role: 'user', content: 'How does agent matching work?' },
   ]), [{ role: 'user', content: 'How does agent matching work?' }]);
   assert.equal(staticFallbackMessages([{ role: 'user', content: 'my balance' }, { role: 'user', content: 'what about now?' }]), null);
-  for (const content of ['my business verification', 'is it still there?', 'our support ticket', 'ما هو رصيدي؟', 'Quel est mon solde ?']) {
+  for (const content of ['my business verification', 'is it still there?', 'our support ticket', 'ما هو رصيدي؟', 'Quel est mon solde ?', 'KWN-3E4G-TRNQ-E6YZ check this']) {
     assert.equal(requiresLiveAccountState([{ role: 'user', content }]), true, content);
   }
   for (const content of ['Comment fonctionne Karwan ?', 'كيف يعمل كاروان؟', 'Karwan क्या है?']) {

@@ -17,6 +17,12 @@ export interface PayLinkCopy {
     share: string;
     another: string;
     qrAlt: string;
+    requestedTitle: string;
+    paidTitle: string;
+    statusOpen: string;
+    statusPaid: string;
+    statusExpired: string;
+    statusCancelled: string;
   };
   pay: {
     tag: string;
@@ -76,6 +82,12 @@ const en: PayLinkCopy = {
     share: 'Share',
     another: 'New request',
     qrAlt: 'QR code for this payment link',
+    requestedTitle: "Your requests",
+    paidTitle: "Paid by you",
+    statusOpen: "Waiting",
+    statusPaid: "Paid",
+    statusExpired: "Expired",
+    statusCancelled: "Cancelled",
   },
   pay: {
     tag: 'Payment request',
@@ -135,6 +147,12 @@ const fr: PayLinkCopy = {
     share: 'Partager',
     another: 'Nouvelle demande',
     qrAlt: 'QR code de ce lien de paiement',
+    requestedTitle: "Vos demandes",
+    paidTitle: "Payées par vous",
+    statusOpen: "En attente",
+    statusPaid: "Payée",
+    statusExpired: "Expirée",
+    statusCancelled: "Annulée",
   },
   pay: {
     tag: 'Demande de paiement',
@@ -194,6 +212,12 @@ const ar: PayLinkCopy = {
     share: 'مشاركة',
     another: 'طلب جديد',
     qrAlt: 'رمز QR لرابط الدفع هذا',
+    requestedTitle: "طلباتك",
+    paidTitle: "دفعتها أنت",
+    statusOpen: "بانتظار الدفع",
+    statusPaid: "مدفوع",
+    statusExpired: "منتهي",
+    statusCancelled: "ملغى",
   },
   pay: {
     tag: 'طلب دفع',
@@ -253,6 +277,12 @@ const hi: PayLinkCopy = {
     share: 'शेयर करें',
     another: 'नया अनुरोध',
     qrAlt: 'इस भुगतान लिंक का QR कोड',
+    requestedTitle: "आपके अनुरोध",
+    paidTitle: "आपने भुगतान किया",
+    statusOpen: "प्रतीक्षा में",
+    statusPaid: "भुगतान हुआ",
+    statusExpired: "समाप्त",
+    statusCancelled: "रद्द",
   },
   pay: {
     tag: 'भुगतान अनुरोध',
@@ -312,6 +342,12 @@ const sw: PayLinkCopy = {
     share: 'Shiriki',
     another: 'Ombi jipya',
     qrAlt: 'Msimbo wa QR wa kiungo hiki cha malipo',
+    requestedTitle: "Maombi yako",
+    paidTitle: "Uliyolipa",
+    statusOpen: "Inasubiri",
+    statusPaid: "Imelipwa",
+    statusExpired: "Imeisha muda",
+    statusCancelled: "Imeghairiwa",
   },
   pay: {
     tag: 'Ombi la malipo',

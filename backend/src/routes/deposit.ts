@@ -9,11 +9,12 @@ import {
   getDepositRequest,
   getDepositRequestByTxId,
   listDepositRequests,
+  listDepositRequestsPaidBy,
   markDepositRequestMatched,
   saveDepositRequest,
   toPublicRequest,
 } from '../money/depositRequests.js';
-import { coversRequest, receivedBy } from '../money/requestPayment.js';
+import { coversRequest, payerOf, receivedBy } from '../money/requestPayment.js';
 import { publicClient } from '../chain/client.js';
 import { config } from '../config.js';
 import { rateLimit } from '../middleware/rateLimit.js';
@@ -73,6 +74,15 @@ depositRoutes.post('/requests', async (c) => {
   }
 });
 
+/// Requests the signed-in account paid, so a payer can find them again.
+depositRoutes.get('/requests/paid', async (c) => {
+  const payer = sessionAddress(c);
+  if (!payer) return c.json({ requests: [] });
+  const requests = await listDepositRequestsPaidBy(payer, 20);
+  const now = Date.now();
+  return c.json({ requests: requests.map((request) => toPublicRequest(request, now)) });
+});
+
 /// Public by design. A recipient can share this URL with someone who is not
 /// signed in. It returns only what the sender needs to confirm the request.
 depositRoutes.get('/requests/:token', async (c) => {
@@ -124,7 +134,8 @@ depositRoutes.post('/requests/:token/paid', rateLimit({ windowMs: 60_000, max: 3
   if (!coversRequest(received, request.amountUsdc)) {
     return c.json({ error: 'this transaction does not pay the request' }, 422);
   }
-  const matched = await markDepositRequestMatched(request, { txId, chain: parsed.data.chain, now: Date.now() });
+  const paidBy = sessionAddress(c) ?? payerOf(receipt.logs, config.USDC_ADDR, request.recipientAddress) ?? undefined;
+  const matched = await markDepositRequestMatched(request, { txId, chain: parsed.data.chain, now: Date.now(), paidBy });
   const latest = matched ?? (await getDepositRequest(request.token)) ?? request;
   logger.info({ token: request.token, txHash: parsed.data.txHash, micros: received.micros.toString() }, 'payment request paid');
   return c.json({ request: toPublicRequest(latest) });

@@ -38,6 +38,24 @@ export function receivedBy(logs: readonly Pick<Log, 'address' | 'data' | 'topics
   return { micros, minted };
 }
 
+/// The address the USDC came from: the sender of the first transfer that paid
+/// the recipient. Smart accounts pay through a bundler, so the transaction's own
+/// `from` is not the payer; the transfer's is.
+export function payerOf(logs: readonly Pick<Log, 'address' | 'data' | 'topics'>[], usdc: string, recipient: string): string | null {
+  for (const log of logs) {
+    if (log.address.toLowerCase() !== usdc.toLowerCase()) continue;
+    try {
+      const event = decodeEventLog({ abi: erc20Abi, data: log.data, topics: log.topics as [`0x${string}`, ...`0x${string}`[]] });
+      if (event.eventName !== 'Transfer') continue;
+      const { from, to } = event.args as { from: string; to: string };
+      if (to.toLowerCase() === recipient.toLowerCase() && from.toLowerCase() !== ZERO) return from.toLowerCase();
+    } catch {
+      // Not a Transfer this ABI knows.
+    }
+  }
+  return null;
+}
+
 export function coversRequest(received: ReceivedTransfer, amountUsdc: string | null): boolean {
   if (received.micros <= 0n) return false;
   if (!amountUsdc) return true;
