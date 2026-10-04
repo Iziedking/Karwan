@@ -42,9 +42,10 @@ test('during delivery the seller asks for time once; the buyer reclaims only aft
 test('after delivery either side can dispute or propose cancelling, unless a proposal is open', () => {
   assert.deepEqual(problemOptions(deal('awaiting-first-release'), 'buyer', NOW), ['dispute', 'propose']);
   assert.deepEqual(problemOptions(deal('awaiting-final-release'), 'seller', NOW), ['dispute', 'propose']);
+  assert.deepEqual(problemOptions(deal('disputed'), 'buyer', NOW), ['propose']);
+  assert.deepEqual(problemOptions(deal('disputed'), 'seller', NOW), ['propose']);
   const proposed = deal('awaiting-first-release', { cancellationProposal: { proposedBy: 'seller', kind: 'mutual', reason: 'x', proposedAt: NOW } });
   assert.deepEqual(problemOptions(proposed, 'buyer', NOW), []);
-  assert.deepEqual(problemOptions(deal('disputed'), 'buyer', NOW), []);
   assert.deepEqual(problemOptions(deal('settled'), 'buyer', NOW), []);
   assert.deepEqual(problemOptions(deal('awaiting-first-release'), null, NOW), []);
 });

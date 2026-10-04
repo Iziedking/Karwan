@@ -8522,7 +8522,7 @@ export const en: MessagesShape = {
     },
     wrong: {
       title: 'If something goes wrong',
-      dispute: 'Either side can open a dispute. An arbiter can only split the money held in escrow between you, never take it.',
+      dispute: 'Either side can open a dispute. The arbiter decides who gets the money held in escrow, from a full refund to full payment. It always goes to one of you.',
       deadline: 'If the seller misses the delivery deadline, the buyer can take the unreleased money back.',
       silence: 'If one side stops responding, the deal moves forward on the dates shown above.',
       check: 'If the delivery check does not answer, the buyer can review the delivery themselves.',

@@ -20,6 +20,9 @@ export function problemOptions(deal: DirectDeal, viewer: 'buyer' | 'seller' | nu
     return now >= reclaimAt ? ['reclaim'] : [];
   }
   if (stage === 'awaiting-first-release' || stage === 'awaiting-final-release') return ['dispute', 'propose'];
+  // A dispute can still end by agreement: either side proposes a full refund and
+  // the other accepts, without waiting for the arbiter.
+  if (stage === 'disputed') return ['propose'];
   return [];
 }
 

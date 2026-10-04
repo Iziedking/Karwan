@@ -3203,7 +3203,7 @@ export const fr: Messages = {
     },
     wrong: {
       title: 'En cas de problème',
-      dispute: 'Chaque partie peut ouvrir un litige. Un arbitre peut seulement répartir les fonds en séquestre entre vous, jamais les prendre.',
+      dispute: 'Chaque partie peut ouvrir un litige. L’arbitre décide qui reçoit les fonds en séquestre, du remboursement total au paiement complet. Ils reviennent toujours à l’un de vous.',
       deadline: 'Si le vendeur dépasse le délai de livraison, l\'acheteur peut reprendre les fonds non libérés.',
       silence: 'Si une partie cesse de répondre, l\'accord avance selon les dates indiquées plus haut.',
       check: 'Si la vérification de livraison ne répond pas, l\'acheteur peut examiner la livraison lui-même.',

@@ -3200,7 +3200,7 @@ export const sw: Messages = {
     },
     wrong: {
       title: 'Kitu kikienda vibaya',
-      dispute: 'Upande wowote unaweza kufungua mgogoro. Msuluhishi anaweza tu kugawanya pesa zilizo kwenye escrow kati yenu, kamwe si kuzichukua.',
+      dispute: 'Upande wowote unaweza kufungua mgogoro. Msuluhishi anaamua nani apate pesa zilizo kwenye escrow, kuanzia kurejeshewa zote hadi malipo kamili. Daima zinaenda kwa mmoja wenu.',
       deadline: 'Muuzaji akikosa muda wa kuwasilisha, mnunuzi anaweza kurudisha pesa ambazo hazijatolewa.',
       silence: 'Upande mmoja ukiacha kujibu, mkataba unaendelea kwa tarehe zilizoonyeshwa hapo juu.',
       check: 'Ukaguzi wa uwasilishaji usipojibu, mnunuzi anaweza kukagua uwasilishaji mwenyewe.',
