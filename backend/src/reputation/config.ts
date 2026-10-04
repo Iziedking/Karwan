@@ -39,6 +39,13 @@ export const repConfig = {
   // see any boost). Duration scales the rest in.
   stakeFloorCredit: num('REP_STAKE_FLOOR_CREDIT', 0.4),
 
+  // ---- breadth: deal-earned points scale with how many people you trade with
+  // Completion, volume and activity are multiplied by breadth, from the floor
+  // for a single counterparty up to 1 at breadthFullAt evenly spread ones. Stake,
+  // tenure and referral stay outside it, so nothing here can zero a staker.
+  breadthFloor: num('REP_BREADTH_FLOOR', 0.25),
+  breadthFullAt: num('REP_BREADTH_FULL_AT', 5),
+
   // ---- penalty (a capped multiplier, never a zeroing subtraction) -------
   // score is multiplied by (1 - penalty). Capped so a penalised account drops
   // hard but always keeps a path back. Lighter weights on testnet so test
@@ -65,9 +72,9 @@ export const repConfig = {
   // real sybil farm posts far more, so 15 still catches abuse. Tune via env.
   spamBurstLimit: num('REP_SPAM_BURST_LIMIT', 15),
 
-  // Bumped to 2 for the additive rewrite. Older v1 scores stay comparable
-  // under their own version key.
-  modelVersion: 2,
+  // 2 was the additive rewrite. 3 scales deal-earned points by counterparty
+  // breadth and keeps the score inside the band of the tier it holds.
+  modelVersion: 3,
 } as const;
 
 export type Tier = 'NEW' | 'COLD' | 'ESTABLISHED' | 'STRONG' | 'ELITE';
@@ -107,17 +114,22 @@ export const TIER_MIN_DEALS: Record<Exclude<Tier, 'NEW'>, number> = {
   ELITE: num('REP_MIN_DEALS_ELITE', 15),
 };
 
-/// Ceiling imposed by counterparty concentration. Trading repeatedly with one
-/// wallet is the cheapest way to manufacture a record, and the composite is
-/// otherwise blind to it: `concentrationRatio` fed the buyer agent's trust
-/// signal and the passport, but never the score itself, so five deals with five
-/// counterparties and five deals with the same wallet scored identically.
-///
-/// Hard (>=80% with one counterparty) caps at COLD. Soft (>=60%) caps at
-/// ESTABLISHED, which still allows financing but not the tiers that reduce or
-/// waive collateral.
-export const CONCENTRATION_HARD_CEILING: Tier = 'COLD';
-export const CONCENTRATION_SOFT_CEILING: Tier = 'ESTABLISHED';
+/// Highest score a tier can show. The score is kept inside the band of the tier
+/// actually held, so a number never reads higher than the standing it buys.
+export function tierScoreCeiling(tier: Tier): number {
+  switch (tier) {
+    case 'NEW':
+      return TIER_BREAKPOINTS.COLD - 1;
+    case 'COLD':
+      return TIER_BREAKPOINTS.ESTABLISHED - 1;
+    case 'ESTABLISHED':
+      return TIER_BREAKPOINTS.STRONG - 1;
+    case 'STRONG':
+      return TIER_BREAKPOINTS.ELITE - 1;
+    default:
+      return 1000;
+  }
+}
 
 export function tierFor(score: number): Tier {
   if (score >= TIER_BREAKPOINTS.ELITE) return 'ELITE';
@@ -146,11 +158,4 @@ export function tierCeilingForDeals(completedDeals: number): Tier {
   if (completedDeals >= TIER_MIN_DEALS.ESTABLISHED) return 'ESTABLISHED';
   if (completedDeals >= TIER_MIN_DEALS.COLD) return 'COLD';
   return 'NEW';
-}
-
-/// Highest tier this counterparty concentration can hold.
-export function tierCeilingForConcentration(soft: boolean, hard: boolean): Tier {
-  if (hard) return CONCENTRATION_HARD_CEILING;
-  if (soft) return CONCENTRATION_SOFT_CEILING;
-  return 'ELITE';
 }

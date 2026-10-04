@@ -9,12 +9,13 @@ import {
   tenureScore,
   volumeScore,
   activityScore,
+  breadthScore,
 } from './engine.js';
 import {
   repConfig,
   minTier,
-  tierCeilingForConcentration,
   tierCeilingForDeals,
+  tierScoreCeiling,
   tierFor,
   TIER_BREAKPOINTS,
 } from './config.js';
@@ -50,6 +51,8 @@ function inputs(over: Partial<ReputationInputs> = {}): ReputationInputs {
     spamBreakdown: { burst: 0, diversity: 0, matchCancel: 0 } as never,
     counterAbandonRate: 0,
     concentrationRatio: 0,
+    distinctCounterparties: 0,
+    effectiveCounterparties: 0,
     concentrationSoft: false,
     concentrationHard: false,
     securityOffenses: 0,
@@ -99,6 +102,7 @@ test('a maxed wallet with no penalty reaches the top of the scale', () => {
       activeDays: repConfig.activeDaysCap * 4,
       lifetimeVolumeUsdc: repConfig.volumeCapUsdc * 4,
       referredCount: repConfig.referralCap * 4,
+      effectiveCounterparties: repConfig.breadthFullAt * 2,
     }),
     NOW,
   );
@@ -127,6 +131,7 @@ test('deals cap the tier the score alone would have earned', () => {
       registeredAt: NOW - repConfig.tenureFullDays * 2 * DAY,
       activeDays: repConfig.activeDaysCap,
       lifetimeVolumeUsdc: repConfig.volumeCapUsdc * 0.3,
+      effectiveCounterparties: repConfig.breadthFullAt,
     }),
     NOW,
   );
@@ -134,39 +139,53 @@ test('deals cap the tier the score alone would have earned', () => {
   assert.equal(result.tier, 'ESTABLISHED');
   assert.equal(result.tierCappedBy, 'deals');
   assert.equal(result.dealsToNextTier, 4);
+  assert.ok(result.score <= tierScoreCeiling('ESTABLISHED'), `score ${result.score} reads above the tier it holds`);
 });
 
-test('concentration caps the tier, and the advice names concentration not deals', () => {
-  // The bug: dealsToNextTier came back as a number whenever ANY tier needed
-  // more deals, whatever was actually binding. A wallet held at COLD by trading
-  // with one counterparty was told to close more deals, which would not move it.
+test('deals with the same few people earn less than the same record spread wide', () => {
+  const record = {
+    completedDeals: 12,
+    totalStarted: 12,
+    stakeUsdc: repConfig.stakeCapUsdc * 4,
+    stakeDays: repConfig.stakeFullDays * 2,
+    registeredAt: NOW - repConfig.tenureFullDays * 3 * DAY,
+    activeDays: repConfig.activeDaysCap * 2,
+    lifetimeVolumeUsdc: repConfig.volumeCapUsdc * 2,
+  };
+  const circle = compute(inputs({ ...record, effectiveCounterparties: 1 }), NOW);
+  const wide = compute(inputs({ ...record, effectiveCounterparties: repConfig.breadthFullAt }), NOW);
+  assert.ok(circle.score < wide.score, `circle ${circle.score} should trail wide ${wide.score}`);
+  assert.equal(circle.terms.breadth, repConfig.breadthFloor);
+  assert.equal(wide.terms.breadth, 1);
+  // The tier follows the score: no separate concentration cap to explain.
+  assert.equal(circle.tierCappedBy, null);
+  assert.equal(circle.tier, circle.scoreTier);
+});
+
+test('breadth rises evenly from one counterparty to full credit', () => {
+  assert.equal(breadthScore(inputs({ effectiveCounterparties: 1 })), repConfig.breadthFloor);
+  assert.equal(breadthScore(inputs({ effectiveCounterparties: repConfig.breadthFullAt * 3 })), 1);
+  const mid = breadthScore(inputs({ effectiveCounterparties: (1 + repConfig.breadthFullAt) / 2 }));
+  assert.ok(Math.abs(mid - (repConfig.breadthFloor + 1) / 2) < 1e-9);
+});
+
+test('a staker with no deals keeps stake and tenure points', () => {
   const result = compute(
     inputs({
-      completedDeals: 12,
-      totalStarted: 12,
-      stakeUsdc: repConfig.stakeCapUsdc * 4,
-      stakeDays: repConfig.stakeFullDays * 2,
-      registeredAt: NOW - repConfig.tenureFullDays * 3 * DAY,
-      activeDays: repConfig.activeDaysCap * 2,
-      lifetimeVolumeUsdc: repConfig.volumeCapUsdc * 2,
-      concentrationRatio: 0.95,
-      concentrationSoft: true,
-      concentrationHard: true,
+      stakeUsdc: repConfig.stakeCapUsdc,
+      stakeDays: repConfig.stakeFullDays,
+      registeredAt: NOW - repConfig.tenureFullDays * DAY,
     }),
     NOW,
   );
-  assert.equal(result.tier, 'COLD');
-  assert.equal(result.tierCappedBy, 'concentration');
-  assert.equal(
-    result.dealsToNextTier,
-    null,
-    'closing deals cannot lift a wallet whose ceiling is concentration',
-  );
+  assert.ok(result.score > 0, 'breadth must never zero a staker');
+  assert.equal(result.tier, 'NEW');
+  assert.ok(result.score <= tierScoreCeiling('NEW'));
 });
 
-test('the strictest ceiling wins when several bind', () => {
-  assert.equal(minTier('STRONG', tierCeilingForDeals(3), tierCeilingForConcentration(true, false)), 'ESTABLISHED');
-  assert.equal(minTier('ELITE', tierCeilingForDeals(20), tierCeilingForConcentration(false, true)), 'COLD');
+test('the deal ceiling takes the lower tier', () => {
+  assert.equal(minTier('STRONG', tierCeilingForDeals(3)), 'ESTABLISHED');
+  assert.equal(minTier('COLD', tierCeilingForDeals(20)), 'COLD');
 });
 
 test('a ceiling never raises a tier', () => {

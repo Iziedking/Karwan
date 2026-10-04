@@ -64,6 +64,12 @@ export interface ReputationInputs {
   /// Used by the buyer agent's trust signal (soft flag >= 60%, hard
   /// flag >= 80%) and the credit passport surface.
   concentrationRatio: number;
+  /// Different people this wallet has settled a deal with, across all time.
+  distinctCounterparties: number;
+  /// The same, weighted by how evenly deals are spread: (sum of counts)^2 over
+  /// the sum of squared counts. One person is 1, two equal partners are 2, and
+  /// one big partner with a few one-off deals stays close to 1.
+  effectiveCounterparties: number;
   /// True when concentrationRatio >= 60%. UI surfaces a soft warning;
   /// the buyer agent drops its trust signal by 0.2.
   concentrationSoft: boolean;
@@ -190,6 +196,8 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
       concentrationRatio: 0,
       concentrationSoft: false,
       concentrationHard: false,
+      distinctCounterparties: 0,
+      effectiveCounterparties: 0,
       spamScore: 0,
       breakdown: { burst: 0, diversity: 0, matchAndCancel: 0 },
       counterAbandonRate: 0,
@@ -244,19 +252,33 @@ export async function loadInputs(addressRaw: string): Promise<ReputationInputs> 
 function computeConcentration(
   address: string,
   deals: ReadonlyArray<{ buyer: string; seller: string; settledAt?: number }>,
-): { concentrationRatio: number; concentrationSoft: boolean; concentrationHard: boolean } {
+): {
+  concentrationRatio: number;
+  concentrationSoft: boolean;
+  concentrationHard: boolean;
+  distinctCounterparties: number;
+  effectiveCounterparties: number;
+} {
   const mine = deals.filter((d) => {
     const b = d.buyer?.toLowerCase();
     const s = d.seller?.toLowerCase();
     return (b === address || s === address) && !!d.settledAt;
   });
+  const counterpartyOf = (d: { buyer: string; seller: string }) =>
+    d.buyer.toLowerCase() === address ? d.seller.toLowerCase() : d.buyer.toLowerCase();
+  const lifetime = new Map<string, number>();
+  for (const d of mine) lifetime.set(counterpartyOf(d), (lifetime.get(counterpartyOf(d)) ?? 0) + 1);
+  const distinctCounterparties = lifetime.size;
+  let squares = 0;
+  for (const c of lifetime.values()) squares += c * c;
+  const effectiveCounterparties = squares > 0 ? (mine.length * mine.length) / squares : 0;
   if (mine.length < 3) {
-    return { concentrationRatio: 0, concentrationSoft: false, concentrationHard: false };
+    return { concentrationRatio: 0, concentrationSoft: false, concentrationHard: false, distinctCounterparties, effectiveCounterparties };
   }
   const window = mine.slice(-20);
   const counts = new Map<string, number>();
   for (const d of window) {
-    const cp = d.buyer.toLowerCase() === address ? d.seller.toLowerCase() : d.buyer.toLowerCase();
+    const cp = counterpartyOf(d);
     counts.set(cp, (counts.get(cp) ?? 0) + 1);
   }
   let top = 0;
@@ -268,6 +290,8 @@ function computeConcentration(
     concentrationRatio: ratio,
     concentrationSoft: ratio >= 0.6,
     concentrationHard: ratio >= 0.8,
+    distinctCounterparties,
+    effectiveCounterparties,
   };
 }
 

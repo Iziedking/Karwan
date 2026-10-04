@@ -9,6 +9,12 @@
 /// the hundredth: gains are fast in NEW and progressively harder toward ELITE,
 /// and climbing the last tiers needs several factors high at once, not one maxed.
 ///
+/// Deal-earned factors (completion, volume, activity) are scaled by `breadth`:
+/// a quarter of their points for one counterparty, full points at five evenly
+/// spread ones, so trading in a closed circle cannot build standing. Stake,
+/// tenure and referral stay outside it, so a staker with no deals is never
+/// zeroed. The score is then kept inside the band of the tier it holds.
+///
 /// `penalty` is a capped MULTIPLIER (1 − penalty), never a subtraction that can
 /// drive the score negative, so a penalised wallet drops but always has a path
 /// back. `decay` fades the visible score for idle wallets.
@@ -18,7 +24,7 @@ import {
   tierFor,
   minTier,
   tierCeilingForDeals,
-  tierCeilingForConcentration,
+  tierScoreCeiling,
   TIER_MIN_DEALS,
   type Tier,
 } from './config.js';
@@ -34,6 +40,8 @@ export interface ReputationTerms {
   tenure: number;
   activity: number;
   referral: number;
+  /// Counterparty breadth applied to the deal-earned factors, [breadthFloor, 1].
+  breadth: number;
   /// Weighted sum of the six factors, [0,1].
   base: number;
   /// In [0, penaltyCap]. Applied as (1 - penalty).
@@ -53,13 +61,14 @@ export interface ReputationTerms {
 export interface ReputationResult {
   address: string;
   score: number;
-  /// The tier actually held, after ceilings. Never above `scoreTier`.
+  /// The tier actually held. The score always sits inside its band.
   tier: Tier;
-  /// What the score alone would have earned, before ceilings. Kept so the UI can
-  /// show a wallet what it is losing and why, rather than an unexplained tier.
+  /// What the composite earned before the deal-count ceiling. Kept so the UI can
+  /// say what holding the tier back costs, rather than show an unexplained tier.
   scoreTier: Tier;
   /// Which ceiling bound the tier down, if any. Null when the score governs.
-  tierCappedBy: 'deals' | 'concentration' | null;
+  /// Concentration no longer caps the tier; breadth lowers the score instead.
+  tierCappedBy: 'deals' | null;
   /// Settled deals needed for the next tier up, when deals are the binding
   /// constraint. Null otherwise.
   dealsToNextTier: number | null;
@@ -83,13 +92,15 @@ export function compute(inputs: ReputationInputs, now = Date.now()): ReputationR
   const activity = activityScore(inputs);
   const referral = referralScore(inputs);
 
+  const breadth = breadthScore(inputs);
   const base = clamp01(
     repConfig.wStake * stake +
-      repConfig.wCompletion * completion +
-      repConfig.wVolume * volume +
       repConfig.wTenure * tenure +
-      repConfig.wActivity * activity +
-      repConfig.wReferral * referral,
+      repConfig.wReferral * referral +
+      breadth *
+        (repConfig.wCompletion * completion +
+          repConfig.wVolume * volume +
+          repConfig.wActivity * activity),
   );
 
   const rates = {
@@ -112,33 +123,17 @@ export function compute(inputs: ReputationInputs, now = Date.now()): ReputationR
   );
 
   const decay = decayMultiplier(inputs.lastActionAt, now);
-  const score = clamp(0, 1000, Math.round(1000 * base * (1 - penalty) * decay));
+  const composite = clamp(0, 1000, Math.round(1000 * base * (1 - penalty) * decay));
 
-  // The score says how much standing has been earned. The ceilings say how much
-  // of it can be HELD. Stake, tenure and activity all earn points without a
-  // single deal closing, which is intended, but standing gates other people's
-  // money now: it decides financing eligibility and how much collateral a seller
-  // posts. So a tier has to be backed by completed deals with real
-  // counterparties, not by capital parked and a calendar.
-  const scoreTier = tierFor(score);
-  const dealsCeiling = tierCeilingForDeals(inputs.completedDeals);
-  const concentrationCeiling = tierCeilingForConcentration(
-    inputs.concentrationSoft,
-    inputs.concentrationHard,
-  );
-  const tier = minTier(scoreTier, dealsCeiling, concentrationCeiling);
-
-  let tierCappedBy: 'deals' | 'concentration' | null = null;
-  if (tier !== scoreTier) {
-    // Concentration named first when both bind: it is the one the wallet cannot
-    // fix by simply doing more of the same thing.
-    tierCappedBy =
-      concentrationCeiling === tier && concentrationCeiling !== dealsCeiling
-        ? 'concentration'
-        : dealsCeiling === tier
-          ? 'deals'
-          : 'concentration';
-  }
+  // The composite says how much standing has been earned; the deal ceiling says
+  // how much of it can be HELD. Standing gates other people's money (financing,
+  // collateral), so a tier has to be backed by completed deals, not capital
+  // parked and a calendar. The score is kept inside the held tier's band, so the
+  // number and the tier never disagree.
+  const scoreTier = tierFor(composite);
+  const tier = minTier(scoreTier, tierCeilingForDeals(inputs.completedDeals));
+  const score = Math.min(composite, tierScoreCeiling(tier));
+  const tierCappedBy: 'deals' | null = tier !== scoreTier ? 'deals' : null;
 
   return {
     address: inputs.address,
@@ -147,7 +142,7 @@ export function compute(inputs: ReputationInputs, now = Date.now()): ReputationR
     scoreTier,
     tierCappedBy,
     dealsToNextTier: dealsToNext(inputs.completedDeals, tierCappedBy),
-    terms: { stake, completion, volume, tenure, activity, referral, base, penalty, decay, rates },
+    terms: { stake, completion, volume, tenure, activity, referral, breadth, base, penalty, decay, rates },
     inputs,
     modelVersion: repConfig.modelVersion,
   };
@@ -162,10 +157,7 @@ export function compute(inputs: ReputationInputs, now = Date.now()): ReputationR
 /// that some higher tier needs them, false that closing them would move this
 /// wallet anywhere. Advice that cannot work is worse than no advice, because
 /// the reader acts on it.
-function dealsToNext(
-  completedDeals: number,
-  tierCappedBy: 'deals' | 'concentration' | null,
-): number | null {
+function dealsToNext(completedDeals: number, tierCappedBy: 'deals' | null): number | null {
   if (tierCappedBy !== 'deals') return null;
   const order: Array<Exclude<Tier, 'NEW'>> = ['COLD', 'ESTABLISHED', 'STRONG', 'ELITE'];
   for (const t of order) {
@@ -176,6 +168,14 @@ function dealsToNext(
 }
 
 // Factor sub-scores. Each returns [0,1]. Exported for unit tests + UI preview.
+
+/// Counterparty breadth, [breadthFloor, 1]. Linear in effective counterparties
+/// from one (the floor) to breadthFullAt (full credit).
+export function breadthScore(i: ReputationInputs): number {
+  const full = Math.max(2, repConfig.breadthFullAt);
+  const spread = clamp01((i.effectiveCounterparties - 1) / (full - 1));
+  return repConfig.breadthFloor + (1 - repConfig.breadthFloor) * spread;
+}
 
 /// Staking. amount (sqrt-saturating toward stakeCapUsdc) times a duration
 /// envelope that starts at stakeFloorCredit on day one and ramps to full over

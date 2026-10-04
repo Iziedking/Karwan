@@ -20,7 +20,7 @@ The backend computes a score from 0 to 1,000. Personal and business workspaces s
 | STRONG | 600–799 | 8 |
 | ELITE | 800–1,000 | 15 |
 
-The held tier is the lowest of the score tier, the settled-deal ceiling and the counterparty-concentration ceiling. Concentration of at least 60% with one counterparty caps the tier at ESTABLISHED; at least 80% caps it at COLD. A high score alone cannot bypass these ceilings.
+The held tier is the lower of the score tier and the settled-deal ceiling, and the score is kept inside the band of the tier held, so the number and the tier always agree. Trading with the same few people no longer caps the tier separately: it lowers the score through counterparty breadth, below.
 
 The response includes `scoreTier`, `tierCappedBy` and `dealsToNextTier` to explain the result. Tier thresholds are fixed; minimum deal counts are configurable.
 
@@ -29,9 +29,13 @@ The response includes `scoreTier`, `tierCappedBy` and `dealsToNextTier` to expla
 Implementation: [engine.ts](../backend/src/reputation/engine.ts). Defaults: [config.ts](../backend/src/reputation/config.ts).
 
 ```text
-base = clamp01(sum(weight × factor))
-score = clamp(0, 1000, round(1000 × base × (1 − penalty) × decay))
+deal = completion × w + volume × w + activity × w
+base = clamp01(stake × w + tenure × w + referral × w + breadth × deal)
+composite = clamp(0, 1000, round(1000 × base × (1 − penalty) × decay))
+score = min(composite, top of the held tier's band)
 ```
+
+Breadth scales only the deal-earned factors. It is 0.25 for one counterparty and rises in a straight line to 1 at five effective counterparties, where effective counterparties is (settled deals)² ÷ (sum of squared deals per counterparty): one person counts as 1, two equal partners as 2, and one large partner with a few one-off deals stays close to 1. Stake, tenure and referral sit outside breadth, so a staker with no deals keeps those points.
 
 Each factor is clamped to the range 0–1. Defaults are designed for testnet validation and are not a promise of production settings.
 
