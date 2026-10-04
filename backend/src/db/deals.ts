@@ -300,6 +300,9 @@ export interface DirectDeal {
   /// timer — that case escalates to the human arbiter instead. Absent on deals
   /// disputed before this field existed.
   disputedBy?: 'buyer' | 'seller';
+  /// When the dispute deadline rule acted on this deal (ms). Set once, so the
+  /// rule never opens a second dispute or resolves twice.
+  deadlineRuleAt?: number;
   /// Stamped when the dispute timeout elapsed on a buyer-disputed delivery and
   /// the watcher alerted the arbiter instead of auto-resolving. Once, not
   /// every tick.

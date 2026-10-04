@@ -47,6 +47,9 @@ const envSchema = z.object({
   /// New business accounts and workspaces stay closed until the business
   /// model is designed. Existing business accounts keep working.
   BUSINESS_ACCOUNTS_OPEN: envBool('BUSINESS_ACCOUNTS_OPEN'),
+  /// Others see a public passport (tier and fixed reasons). Full reputation,
+  /// stake positions and repayment behaviour are for the signed-in owner only.
+  SEALED_RECORDS: envBool('SEALED_RECORDS'),
   VERIFICATION_POLICY_VERSION: z.string().trim().min(1).default('testnet-open-v1'),
   PORT: z.coerce.number().int().positive().default(8787),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
@@ -385,6 +388,14 @@ const envSchema = z.object({
   // propose a split first; lower it for demos via env. Requires
   // SECURITY_COUNCIL_WALLET_ID to be configured, else the watcher no-ops.
   DEAL_DISPUTE_TIMEOUT_MS: z.coerce.number().int().positive().default(604_800_000),
+
+  // The owner's dispute deadline rules on v2 (docs/superpowers/specs/2026-10-04-
+  // dispute-resolution-design.md): a delivery still failing the check at the
+  // deadline is refunded, a partial one goes to the arbiter, a seller silent for
+  // the statement window after a buyer dispute is refunded against. Off until
+  // the testnet run passes.
+  DISPUTE_DEADLINE_RULE_ENABLED: envBool('DISPUTE_DEADLINE_RULE_ENABLED'),
+  DISPUTE_STATEMENT_WINDOW_MS: z.coerce.number().int().positive().default(172_800_000),
 
   // Financier application eligibility. Anyone can apply to fund factoring / PO
   // lines in the SME rail, but must meet a real bar: minimum account tenure on

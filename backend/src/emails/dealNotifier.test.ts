@@ -47,3 +47,18 @@ test('a paused release tells the buyer why, with the private note only for them'
   assert.doesNotMatch(toSeller.body, /landing page/);
   assert.match(toSeller.body, /The buyer reviews it/);
 });
+
+test('a deadline refund tells the buyer the money is back and the seller why', () => {
+  const event = {
+    type: 'deal.dispute.auto_resolved',
+    jobId: '0xabc',
+    actor: 'platform',
+    ts: 0,
+    payload: { buyer: '0xb', seller: '0xs', sellerBps: 0, cause: 'failed-at-deadline', dealAmountUsdc: '40' },
+  } as unknown as KarwanEvent;
+  const buyer = contentFor(event, 'buyer', 'service')!;
+  const seller = contentFor(event, 'seller', 'service')!;
+  assert.match(buyer.heading, /refunded/i);
+  assert.match(seller.body, /did not pass the delivery check by the deadline/);
+  assert.doesNotMatch(buyer.body + seller.body, /—/);
+});

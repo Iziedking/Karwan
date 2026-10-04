@@ -60,6 +60,8 @@ import { buildLegacySettlementObservation } from './financialCommandProjection.j
 import { onChainDeliveryAlert } from '../deals/onChainDelivery.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
 import { timeoutRuling } from '../deals/disputeTimeout.js';
+import { runDeadlineRule, deadlineRulingHash, type DeadlineRuleDeps } from '../deals/deadlineRuleRunner.js';
+import { sellerRespondedAfterDispute } from '../deals/sellerResponse.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -609,6 +611,35 @@ async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
 ///
 /// Every path that declines to release must say so on the deal record. A
 /// pause the seller cannot see is a deal that wedges forever.
+const deadlineRuleDeps: DeadlineRuleDeps = {
+  readState: async (jobId) => (await readEscrow(jobId)).state,
+  openDispute: (jobId, walletId, reason) => disputeEscrow(jobId, walletId, reason),
+  resolveRefund: (jobId, reason) => resolveDispute(jobId, 0, deadlineRulingHash(reason)),
+  patchDeal: (jobId, patch) => patchDeal(jobId, patch),
+  emit: (event) => bus.emitEvent(event as Parameters<typeof bus.emitEvent>[0]),
+  sellerRespondedAfterDispute,
+};
+
+/// The owner's deadline rules (v2 only, behind DISPUTE_DEADLINE_RULE_ENABLED).
+/// True when the rule acted, so the caller skips the rest of the tick for it.
+async function maybeApplyDeadlineRule(deal: DirectDeal, now: number): Promise<boolean> {
+  if (!config.DISPUTE_DEADLINE_RULE_ENABLED || dealEscrowOps.isV3(deal) || processing.has(deal.jobId)) return false;
+  processing.add(deal.jobId);
+  try {
+    const outcome = await runDeadlineRule(deal, now, deadlineRuleDeps, {
+      graceMs: config.DEAL_DEADLINE_RECLAIM_GRACE_MS,
+      statementWindowMs: config.DISPUTE_STATEMENT_WINDOW_MS,
+    });
+    if (outcome !== 'none') logger.info({ jobId: deal.jobId, outcome }, 'deadline rule acted');
+    return outcome !== 'none';
+  } catch (err) {
+    logger.warn({ jobId: deal.jobId, err: (err as Error).message }, 'deadline rule failed (retried next tick)');
+    return true;
+  } finally {
+    processing.delete(deal.jobId);
+  }
+}
+
 async function tick() {
   const now = Date.now();
   const deals = await listAllDeals();
@@ -623,7 +654,7 @@ async function tick() {
     if (deal.disputed) {
       if (dealEscrowOps.isV3(deal)) {
         await runV3DisputeSafely(deal, now);
-      } else {
+      } else if (!(await maybeApplyDeadlineRule(deal, now))) {
         await maybeAutoResolveDispute(deal, now);
       }
       continue;
@@ -659,6 +690,7 @@ async function tick() {
     // is nothing for the on-chain watcher to inspect before acceptedAt.
     if (!deal.acceptedAt) continue;
     if (processing.has(deal.jobId)) continue;
+    if (await maybeApplyDeadlineRule(deal, now)) continue;
     const parties = { buyer: deal.buyer, seller: deal.seller };
     // No buyer agent wallet means the agent physically cannot sign a release.
     // Surface it rather than skipping in silence; the parties still have the

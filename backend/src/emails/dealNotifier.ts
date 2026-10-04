@@ -59,6 +59,7 @@ const EMAIL_RELEVANT = new Set([
   'deal.delivered',
   'escrow.settled',
   'deal.disputed',
+  'deal.dispute.auto_resolved',
   'deal.cancel.proposed',
   'deal.fund.insufficient',
   'deal.deadline.passed',
@@ -365,6 +366,44 @@ export function contentFor(
         ctaLabel: 'View the deal',
         ctaUrl: dealUrl(e.jobId),
       };
+    case 'deal.dispute.auto_resolved': {
+      if (role !== 'buyer' && role !== 'seller') return null;
+      const refunded = Number(e.payload?.sellerBps ?? 0) === 0;
+      const cause = e.payload?.cause as string | undefined;
+      const why =
+        cause === 'failed-at-deadline'
+          ? 'The delivery did not pass the delivery check by the deadline.'
+          : cause === 'seller-silent'
+            ? 'The seller did not respond to the dispute in time.'
+            : 'The dispute was not settled in time.';
+      if (!refunded) {
+        return {
+          kicker: 'Dispute closed',
+          subject: 'Your Karwan dispute was closed',
+          heading: 'Dispute closed',
+          body: `${why} The money held in escrow was paid out.`,
+          ctaLabel: 'View the deal',
+          ctaUrl: dealUrl(e.jobId),
+        };
+      }
+      return role === 'buyer'
+        ? {
+            kicker: 'Refunded',
+            subject: `Your Karwan deal was refunded${amountSuffix}`,
+            heading: 'You have been refunded',
+            body: `${why} The money held in escrow went back to you in full.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          }
+        : {
+            kicker: 'Refunded to the buyer',
+            subject: 'A Karwan deal was refunded to the buyer',
+            heading: 'The buyer was refunded',
+            body: `${why} The money held in escrow went back to the buyer and the deal counts against your record.`,
+            ctaLabel: 'View the deal',
+            ctaUrl: dealUrl(e.jobId),
+          };
+    }
     case 'deal.disputed':
       return {
         kicker: 'Dispute',
