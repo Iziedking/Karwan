@@ -80,7 +80,7 @@ export function ProfileAvatar({ actionCount = 0 }: { actionCount?: number }) {
         ) : (
           <WalletAvatar address={address} size={48} />
         )}
-        {actionCount > 0 ? <ActionBeacon className="absolute -bottom-0.5 -end-0.5" /> : null}
+        {actionCount > 0 ? <ActionBeacon className="absolute -top-1 -end-1 size-3.5 rounded-full bg-[var(--color-surface)]" /> : null}
       </span>
       <span className="hidden min-w-0 truncate pe-1 font-sans text-[14px] font-medium tracking-[-0.01em] text-[var(--color-ink)] md:inline">
         {identityName}

@@ -529,7 +529,7 @@ function ProfileLink({
               initials
             )}
           </span>
-          {profileActionCount > 0 ? <ActionBeacon className="absolute -bottom-0.5 -end-0.5" /> : null}
+          {profileActionCount > 0 ? <ActionBeacon className="absolute -top-1 -end-1 size-3.5 rounded-full bg-[var(--color-surface)]" /> : null}
         </span>
         <span className="hidden min-w-0 max-w-[160px] truncate text-[13px] font-medium tracking-[-0.01em] text-[var(--color-ink)] sm:inline">
           {identityName}
