@@ -59,6 +59,7 @@ import type { FinancialCommandShadowObserver } from './financialCommandShadow.js
 import { buildLegacySettlementObservation } from './financialCommandProjection.js';
 import { onChainDeliveryAlert } from '../deals/onChainDelivery.js';
 import { sendTelegramMessage, supportOperatorChatId } from '../telegram/bot.js';
+import { timeoutRuling } from '../deals/disputeTimeout.js';
 
 /// Auto-release used to be gated on `poPrincipalStillHeld`, which blocked the
 /// unattended path while a PO line still held the seller's principal in the old
@@ -203,7 +204,8 @@ async function syncResolvedElsewhere(deal: DirectDeal, chainState: number) {
 /// DEAL_DISPUTE_TIMEOUT_MS, resolve it automatically via the same arbiter path
 /// the admin console uses: the seller keeps the unreleased funds if they
 /// delivered (the reported case — real work, buyer vanished), otherwise the
-/// buyer is refunded. No-ops unless a security-council wallet is configured.
+/// buyer is refunded. A delivery the guard check failed counts as no delivery
+/// (deals/disputeTimeout.ts). No-ops unless a security-council wallet is configured.
 /// v3 disputes: automatic proposal or escalation, execution after the appeal
 /// window, lapse after the timeout. One step per tick; a failure retries next
 /// tick and never blocks other deals.
@@ -560,10 +562,8 @@ async function maybeAutoResolveDispute(deal: DirectDeal, now: number) {
       await syncResolvedElsewhere(deal, account.state);
       return;
     }
-    const sellerBps = deal.delivered ? 10000 : 0;
-    const reason = deal.delivered
-      ? 'auto-arbiter: seller delivered and the buyer went silent past the dispute window'
-      : 'auto-arbiter: no delivery and the buyer went silent past the dispute window';
+    // A delivery the guard check failed is refunded, never paid, on the timer.
+    const { sellerBps, reason } = timeoutRuling(deal);
     const txHash = await resolveDispute(deal.jobId, sellerBps, keccak256(toBytes(reason)));
     await patchDeal(deal.jobId, {
       settledAt: Date.now(),
